@@ -53,25 +53,80 @@ const SCRIPT_ID = "apple-mapkit-js";
 /** How long to wait for MapKit to report its authorization outcome. */
 const AUTH_CONFIRM_TIMEOUT_MS = 5_000;
 
+/** How long to wait for the server to mint a token before falling back to the
+ *  build-time one. Deliberately short: a slow edge cold-start must not delay
+ *  the map, and the fallback is a fully working token. */
+const SERVER_TOKEN_TIMEOUT_MS = 3_000;
+
 let cachedStatus: MapKitStatus = "idle";
 let pending: Promise<MapKitStatus> | null = null;
 
-function getToken(): string | undefined {
+function getBuildTimeToken(): string | undefined {
   // Vite injects import.meta.env.* at build time. We use bracket access
   // so a missing var doesn't blow up TS strict mode.
   const env = (import.meta as { env?: Record<string, string | undefined> }).env;
   return env?.VITE_APPLE_MAPKIT_TOKEN;
 }
 
+/**
+ * Ask the server to mint a short-lived, origin-locked token.
+ *
+ * The build-time token is a static string with a fixed expiry (the committed
+ * one dies 2027-02-14) and no `origin` claim, so it is both a scheduled outage
+ * and a credential anyone can lift out of the public JS bundle and spend. The
+ * `mapkit-token` edge function mints one-hour tokens locked to the requesting
+ * origin, and keeps the signing key server-side.
+ *
+ * Returns null on ANY failure — not configured (503), offline, a cold start
+ * that outruns the timeout — so the caller falls back to the build-time token
+ * and maps keep working exactly as they do today. That fallback is what makes
+ * this safe to deploy before the Apple secrets are set.
+ */
+async function fetchServerToken(): Promise<string | null> {
+  const env = (import.meta as { env?: Record<string, string | undefined> }).env;
+  const base = env?.VITE_SUPABASE_URL;
+  const apikey = env?.VITE_SUPABASE_PUBLISHABLE_KEY;
+  if (!base || !apikey) return null;
+
+  try {
+    // Bounded: MapKit is blocking on this callback, and a hung fetch would
+    // reproduce the very "Locating… forever" hang this hook already guards.
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), SERVER_TOKEN_TIMEOUT_MS);
+    const res = await fetch(`${base}/functions/v1/mapkit-token`, {
+      method: "POST",
+      headers: { apikey, "Content-Type": "application/json" },
+      signal: controller.signal,
+    }).finally(() => clearTimeout(timer));
+
+    if (!res.ok) return null;
+    const body = (await res.json()) as { token?: string };
+    return typeof body.token === "string" && body.token ? body.token : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The token MapKit should use right now, preferring the server.
+ *
+ * MapKit calls `authorizationCallback` again on refresh, so this runs more than
+ * once per session and the server path gets picked up without a reload.
+ */
+async function resolveToken(): Promise<string | undefined> {
+  const served = await fetchServerToken();
+  if (served) return served;
+  return getBuildTimeToken();
+}
+
 function loadScript(): Promise<MapKitStatus> {
   if (pending) return pending;
   if (cachedStatus === "ready") return Promise.resolve("ready");
 
-  const token = getToken();
-  if (!token) {
-    cachedStatus = "missing-token";
-    return Promise.resolve("missing-token");
-  }
+  // NOTE: no longer short-circuits on a missing build-time token. The server
+  // can mint one, so "no VITE_APPLE_MAPKIT_TOKEN" is no longer the same thing
+  // as "no MapKit" — that is resolved inside the authorization callback below,
+  // which reports "missing-token" only when BOTH sources come up empty.
 
   pending = new Promise<MapKitStatus>((resolve) => {
     cachedStatus = "loading";
@@ -135,7 +190,24 @@ function loadScript(): Promise<MapKitStatus> {
           fallbackTimer = setTimeout(() => settle("ready"), AUTH_CONFIRM_TIMEOUT_MS);
         }
 
-        mk.init({ authorizationCallback: (done) => done(token) });
+        // MapKit invokes this on init and again on every refresh, which is
+        // precisely the hook short-lived server tokens need — resolve fresh
+        // each time rather than closing over one string for the session.
+        mk.init({
+          authorizationCallback: (done) => {
+            void resolveToken().then((t) => {
+              if (t) {
+                done(t);
+                return;
+              }
+              // Neither source produced a token. Settle honestly instead of
+              // handing MapKit an empty string, which it accepts and then
+              // fails on asynchronously — the exact silent-hang this hook
+              // exists to prevent.
+              settle("missing-token");
+            });
+          },
+        });
 
         // No event support at all — preserve the old behaviour.
         if (typeof events.addEventListener !== "function") finish("ready");

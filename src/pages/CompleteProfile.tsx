@@ -33,7 +33,7 @@ import {
 } from "./completeProfile/constants";
 
 const CompleteProfile = () => {
-  usePageTitle("Complete your profile — Helpr");
+  usePageTitle("Complete Your Profile — Helpr");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user, profile, isLoading, refresh } = useCurrentUser();
@@ -192,7 +192,6 @@ const CompleteProfile = () => {
         profile: data,
         isAdmin: current?.isAdmin ?? false,
       }));
-      toast.success("Your profile was already saved — opening Helpr.");
       navigate("/dashboard", { replace: true });
       return true;
     } catch {
@@ -273,7 +272,6 @@ const CompleteProfile = () => {
       // back to /complete-profile (LH-29). The authoritative row above is the
       // single source of truth; staleTime keeps it from refetching on arrival.
       hapticSuccess();
-      toast.success("Profile complete — welcome to Helpr.");
       navigate("/dashboard", { replace: true });
     } catch (err: any) {
       const recovered = await recoverCompletedProfile();
@@ -333,8 +331,29 @@ const CompleteProfile = () => {
   // hidden because CompleteProfile is a required post-signup gate — the
   // way out is either Finish or the "Sign out" link at the bottom of the
   // form, not a browser-back that would strand a half-provisioned account.
+  // Shell derived from Login.tsx, the canonical focused-auth sibling, rather
+  // than assembled here — three defects came out of this one call.
+  //
+  //  • `noWebChrome` — the marketing Navbar renders a "Dashboard →" pill for
+  //    anyone holding a session, and on THIS screen the holder is by
+  //    definition half-provisioned: signed in, profile incomplete, sitting in
+  //    a required gate. Offering them the dashboard advertises a way around
+  //    the gate (owner: "once they sign in it should not reference the
+  //    dashboard until they are fully signed up"). It drops the Footer too,
+  //    which is right for the same reason Login drops it — this is a flow, not
+  //    a landing page.
+  //  • `hideHeader` — removes the "Helpr · LA" wordmark and the
+  //    "Louisiana's Local Job Partner" eyebrow. The page already has its own
+  //    "Almost there." heading, so the brand block was a second, competing
+  //    title on a screen whose whole job is one form (owner).
+  //  • `centerColumn` + the wider measure — `align` defaults to "start", so
+  //    `items-start` pinned the max-w-md (448px) column against the left edge:
+  //    at 1534 the content ran 48→496 with 1038px dead to the right, centre
+  //    272 against a viewport centre of 767. CLAUDE.md calls that a hard
+  //    failure ("a page that floats in a lopsided column with blank bands has
+  //    failed the audit"), and it is what the owner was pointing at.
   return (
-    <AuthShell hideBack maxWidth="md">
+    <AuthShell hideBack hideHeader centerColumn maxWidth="lg" noWebChrome>
       <div className="pb-12">
           <div className="text-center mb-7">
             <span className="text-display-eyebrow">Welcome aboard</span>

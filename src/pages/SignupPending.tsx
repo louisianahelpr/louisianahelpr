@@ -26,7 +26,7 @@ const SignupPending = () => {
   // check your email, so the user comes back to a tab strip and has to pick
   // it out. It is also the moment a screen reader should announce where the
   // user landed after submitting the signup form.
-  usePageTitle("Check your email — Helpr");
+  usePageTitle("Check Your Email — Helpr");
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -63,7 +63,6 @@ const SignupPending = () => {
       const sessionUser = data.session?.user;
       if (sessionUser?.email_confirmed_at) {
         try { sessionStorage.removeItem(PENDING_EMAIL_KEY); } catch { /* private mode */ }
-        toast.success("Email verified — taking you in.");
         navigate("/complete-profile", { replace: true });
       }
     };
@@ -100,7 +99,6 @@ const SignupPending = () => {
     }
     setResent(true);
     setResendCooldown(RESEND_COOLDOWN_S);
-    toast.success("Verification link sent.");
   };
 
   const stepIcon = (Icon: typeof MailCheck) => (
@@ -128,7 +126,7 @@ const SignupPending = () => {
       // wrong-address case has its own explicit "Start over" link inside the
       // resend panel.
       backTo="/"
-      title="Check Your Inbox"
+      title="Check Your Email"
     >
       <div className="liquid-glass p-5 sm:p-6 lg:p-10 space-y-6">
         {/* Name the ADDRESS. It's the one fact this screen exists to

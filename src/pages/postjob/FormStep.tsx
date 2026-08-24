@@ -41,19 +41,19 @@ export function FormStep({ form }: FormStepProps) {
 
   // Contextual label — names the first unfinished *field* (not just the
   // section) so the poster knows exactly what's blocking the button.
-  let submitLabel = "Review & pay";
+  let submitLabel = "Review & Pay";
   if (!form.detailsComplete) {
-    if (!form.title.trim()) submitLabel = "Add a title to continue";
-    else if (!form.description.trim()) submitLabel = "Add a description to continue";
-    else if (!form.category) submitLabel = "Pick a category to continue";
-    else submitLabel = "Replace the [placeholders] to continue";
+    if (!form.title.trim()) submitLabel = "Add a Title to Continue";
+    else if (!form.description.trim()) submitLabel = "Add a Description to Continue";
+    else if (!form.category) submitLabel = "Pick a Category to Continue";
+    else submitLabel = "Replace the [Placeholders] to Continue";
   } else if (!form.logisticsComplete) {
     if (!form.streetAddress.trim() || !form.city.trim() || !form.addrState.trim() || !form.zipCode.trim())
-      submitLabel = "Add the address to continue";
-    else if (!form.dateNeeded) submitLabel = "Pick a date to continue";
-    else submitLabel = "Pick a start time to continue";
+      submitLabel = "Add the Address to Continue";
+    else if (!form.dateNeeded) submitLabel = "Pick a Date to Continue";
+    else submitLabel = "Pick a Start Time to Continue";
   } else if (!form.budgetComplete) {
-    submitLabel = "Set a budget to continue";
+    submitLabel = "Set a Budget to Continue";
   }
 
   return (
@@ -137,6 +137,8 @@ export function FormStep({ form }: FormStepProps) {
             budgetNum={form.budgetNum}
             logisticsComplete={form.logisticsComplete}
             category={form.category}
+            selectedPetIds={form.selectedPetIds}
+            onTogglePet={form.togglePet}
             includeMaterials={form.includeMaterials}
             setIncludeMaterials={form.setIncludeMaterials}
             materialsNote={form.materialsNote}
@@ -211,7 +213,7 @@ export function FormStep({ form }: FormStepProps) {
             the last thing they reach. Bottom padding clears the floating
             MobileNav dock so the button is never tucked under it. The label
             is contextual: it names the next unfinished chapter until every
-            required field is in, then becomes "Review & pay". */}
+            required field is in, then becomes "Review & Pay". */}
         <div
           className="pt-1"
           style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px + 1rem)" }}

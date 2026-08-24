@@ -143,8 +143,21 @@
   --olive:        78 23% 70%;   /* #B7C3A1 — secondary green */
   --sage:         78 9% 53%;    /* #8C947D — primary accent */
   --bark:         70 20% 33%;   /* #5E6544 — deep olive */
-  --bark-light:   76 20% 44%;   /* bark FAB gradient highlight stop (orb top) */
-  --bark-border:  66 25% 19%;   /* bark CTA button border / dark gradient stop */
+  /* The CTA gradient's NEAR stop, and the light-mode mirror of --bark-deep's
+     problem. At 44% the highlight rendered rgb(123,135,90), and the near-white
+     --primary-foreground label on it measured 3.45:1 — under AA, at the END of
+     the ramp the label most often sits over, because the gradient's centre is
+     at 32%/22% and a wide button's text runs straight through it.
+     36% takes it to 4.82:1. The highlight is still visibly lighter than the
+     52%→19% falloff around it, so the button still reads as lit from the
+     top-left; it is simply no longer lit past the point the label survives. */
+  --bark-light:   76 20% 36%;   /* bark CTA / FAB gradient highlight stop */
+  --bark-border:  66 25% 19%;   /* bark CTA button border */
+  /* The primary CTA gradient's FAR stop, split out from --bark-border because
+     the two want opposite things on dark. The border wants to stay dark (it is
+     the edge against the page); the gradient's corner has to carry the LABEL,
+     and on dark that label is near-black --parchment. See the dark value. */
+  --bark-deep:    66 25% 19%;   /* bark CTA gradient far stop */
   --olivewood:    64 16% 16%;   /* #2E2F22 — primary text + dark ground */
   --burnt-sienna: 19 75% 35%;   /* #984216 — warm accent / emphasis */
   /* Accent used as TEXT on a raised surface. Identical to --burnt-sienna in
@@ -403,6 +416,13 @@
      fix. This light value IS the old light --bark, so light mode is
      byte-identical; the dark sibling below is the actual change. */
   --sage-ink:   70 20% 33%;   /* chip label */
+  /* The sienna family's LABEL ink — the third of the adaptive -ink pairs, after
+     --sage-ink and --danger-ink, and minted for the same reason. Raw
+     --burnt-sienna has a dark value tuned for accents, not for small text on
+     its own tint: the "In progress" status chip measured 3.83:1 on dark and
+     "Disputed" 3.52:1, both under AA. Light value is byte-identical to
+     --burnt-sienna, so light mode does not move at all. */
+  --sienna-ink: 19 75% 35%;   /* == --burnt-sienna in light */
 
   /* Cancel red — destructive "Cancel job" action button. Warmer & more
      saturated than the muted system --destructive, kept as its own pair.
@@ -439,8 +459,25 @@
   --olive:        78 15% 42%;   /* secondary green — lightened for dark bg */
   --sage:         78 12% 60%;   /* primary accent — noticeably lighter */
   --bark:         72 22% 52%;   /* deep olive lightened for legibility */
-  --bark-light:   76 20% 44%;   /* same as light mode — gradient stop, not theme-adaptive */
+  /* DELIBERATELY NOT the light value any more. The two themes put opposite
+     labels on this gradient — near-white --primary-foreground on light,
+     near-black on dark — so the stop that is too light for one is correct for
+     the other. Light darkens this to 36% to carry a white label; dark keeps 44%,
+     where the near-black label measures 4.71:1. See --bark-deep for the other
+     end of the same ramp, which needed the mirror treatment. */
+  --bark-light:   76 20% 44%;
   --bark-border:  66 25% 19%;   /* same as light mode — button border, not theme-adaptive */
+  /* LIGHTER ON DARK, and this is the one bark token that has to be.
+     The ending shape is 125% of the box, so the button's bottom-right corner
+     sits at 0.828 of the ramp — an interpolation between the 46% stop and this
+     one. At 19% that painted rgb(87,93,58), and dark-mode --parchment (the
+     label, rgb(20,22,26)) measured 2.60:1 on it. AA needs 4.5. Not a
+     theoretical corner: "Post a Job" spans the whole rail and "Accept Job"
+     half a card, so the label's far end genuinely sits in it.
+     40% puts the darkest painted colour at rgb(130,141,83) — 5.07:1 — while
+     keeping a real falloff from the 52% centre, so the button still reads as
+     lit from the top-left rather than flat. */
+  --bark-deep:    66 25% 40%;
   --olivewood:    36 15% 80%;   /* primary text — near-white warm */
   --burnt-sienna: 19 65% 52%;   /* warm accent — slightly brighter on dark */
   --accent-ink:   19 70% 66%;   /* accent-as-text on a raised dark surface —
@@ -572,6 +609,11 @@
 
   --boost-tint: 25 65% 56%;   /* lighter base so low-alpha fill reads on dark */
   --boost-ink:  25 80% 70%;   /* legible orange label on dark */
+  --sienna-ink: 19 72% 68%;   /* legible sienna label on dark. Sits in the same
+                                 68-70% lightness band as --sage-ink and
+                                 --danger-ink so a row of status chips stays
+                                 even. Measures 6.06:1 on the 0.12 tint and
+                                 5.57:1 on the 0.18 one. */
   --sage-ink:   78 30% 68%;   /* legible sage label on dark — measures 6.5:1 on
                                  the tinted chip, where the old --bark gave
                                  4.24. Held at 30% saturation rather than the
@@ -872,16 +914,78 @@ html.web-desktop {
     margin-inline: 0;
     box-shadow: none;
   }
+
+  /* THE PAGE COLOUR RUNS BEHIND THE PANEL TOO.
+     The frame stops at the rail's edge, so the strip behind and around the
+     side panel was never painted by the app at all — what showed through was
+     #root's inline boot gradient from index.html, which is a COLD BLUE-GREY
+     (hsl 220) placeholder that exists to cover the pre-mount flash. Beside the
+     app's warm champagne page it read as two different papers meeting at the
+     panel's edge (owner: "the color behind the right panel doesn't match the
+     background color on the left").
+
+     `body` carries the real page background, so it paints the full viewport
+     and the boot gradient is covered the moment the app mounts — which is all
+     it was ever meant to survive. */
+  html.web-desktop.app-shell body {
+    background-color: hsl(var(--parchment));
+  }
+  html.web-desktop.app-shell #root {
+    background: transparent !important;
+  }
   /* The floating bottom dock is replaced by the sidebar on desktop. Hide it
      outright so it can't overlap content. */
   html.web-desktop .mobile-nav-frame {
     display: none !important;
   }
   /* Widen the inner content column on desktop. PageScaffold's centered column
-     is capped at max-w-3xl (768px) on mobile; on desktop give it a roomy cap
-     so the multi-column rails have space to breathe. */
+     is capped at max-w-3xl (768px) on mobile; on desktop it FILLS the frame.
+
+     It used to stop at a flat 1280px, which is narrower than the space the
+     frame actually hands it on any large monitor — so the page floated in a
+     column with blank bands either side, the thing CLAUDE.md calls a hard
+     failure ("a page that floats in a lopsided column with blank bands has
+     failed the audit"). Measured on a 1920 viewport with the side panel open:
+
+       available (viewport 1920 − 248 rail) .... 1672px
+       content (cards + map) .................. 1265px, spanning x 210 → 1475
+       dead space ............................. 210px left + 197px right
+
+     The frame is already inset by the rail and already carries the page's
+     horizontal padding (px-5 / lg:px-8 / xl:px-12), so removing this cap does
+     not run anything to the bezel — it lets the two-pane layout use the width
+     it was given, which is what the map half wants anyway (owner, repeatedly:
+     "make the content fill the preview panel").
+
+     `none`, not a bigger number: any fixed value is wrong on the next monitor
+     size up, and re-creates exactly this defect one breakpoint later. */
   html.web-desktop .app-shell-frame .ds-desktop-wide {
-    max-width: 1280px;
+    max-width: none;
+  }
+
+  /* ...and neither does the `.container` wrapping it.
+     Lifting the cap above alone changed nothing visible, because
+     `ds-desktop-wide` was never the binding constraint — Tailwind's `.container`
+     is. `screens: { "2xl": "1400px" }` in tailwind.config.ts makes `.container`
+     cap at 1400px and `mx-auto` centre it, so INSIDE a 1672px frame it took
+     136px off each side before the page's own px-12 took another 48. Measured
+     at 1920 with the panel open, after the ds-desktop-wide cap was removed:
+
+       .app-shell-frame ......... 1672px   x 0
+       .container ............... 1400px   x 136   ← max-width: 1400px
+       .ds-desktop-wide ......... 1304px   x 184   ← max-width: none (already)
+       gutter ................... 184px each side, content filling 78%
+
+     Two nested measures inside a frame that is already inset by the rail and
+     already padded. On the desktop website the frame IS the measure, so the
+     container stops adding a second one and the page's own horizontal padding
+     is the only inset left (owner: "info needs to fill the preview panel").
+
+     Scoped to `.app-shell-frame` so `.container` keeps its normal capping
+     behaviour on marketing and document-scroll pages, which want a reading
+     measure rather than a full-bleed one. */
+  html.web-desktop .app-shell-frame .container {
+    max-width: none;
   }
 
   /* Full-bleed top header. On the desktop website the header spans the ENTIRE
@@ -919,6 +1023,7 @@ html.web-desktop {
   html.web-desktop .dashboard-title-bell {
     display: none !important;
   }
+
 
   /* Activity (My Posts / My Jobs) card column. Gated by web-desktop so the
      native app + phone-width browsers keep their identical single column.
@@ -963,6 +1068,22 @@ html.web-desktop {
      padding, so it stays pinned at the viewport's left edge. */
   html.web-desktop.desktop-rail.side-panel-open:not(.app-shell) #root {
     padding-right: var(--desktop-sidebar-w);
+  }
+
+  /* The CONTENT has to move with the panel, not after it.
+     `side-panel-open` toggles instantly, so the inset above snapped to its new
+     value in a single frame while the panel itself slid over 300ms — the page
+     lurched, then the panel caught up. Matching duration and curve makes the
+     two read as one movement (owner: "side panel should move in and out
+     smoother"). Applied to the BASE selectors so it eases in both directions,
+     and only under motion-safe. */
+  @media (prefers-reduced-motion: no-preference) {
+    html.web-desktop.desktop-rail:not(.app-shell) #root {
+      transition: padding-right 300ms cubic-bezier(0.32, 0.72, 0, 1);
+    }
+    html.web-desktop.app-shell.desktop-rail .app-shell-frame {
+      transition: right 300ms cubic-bezier(0.32, 0.72, 0, 1);
+    }
   }
 
   /* Reserve the global top bar's height (DesktopTopNav, h-14 = 3.5rem).
@@ -1127,6 +1248,18 @@ html.web-desktop {
 
   .link-standard {
     display: inline-block;
+    /* A 44px TAP TARGET without a 44px box.
+       These links sit in tight footer columns and inline in body copy, so
+       growing the visible box would blow the column's rhythm apart. The
+       pseudo-element is centred on the link and hit-testable while the link
+       itself keeps its text-sized layout — the same trick the filter chips
+       already use. Measured before: Jobs 25x16, Terms 34x16, Rules 30x16,
+       Privacy 39x16, Help Center 66x16 — every one under half the minimum,
+       and on phone width this is the same surface as the native app.
+       `pointer: coarse` only: on a mouse a 16px link is genuinely fine, and an
+       invisible 44px overlay there would swallow clicks meant for its
+       neighbours in a dense footer column. */
+    position: relative;
     text-decoration-line: underline;
     text-decoration-color: transparent;
     text-underline-offset: 0.18em;
@@ -1137,6 +1270,19 @@ html.web-desktop {
                 filter 0.15s var(--ease-spring);
   }
   @media (hover: hover) {
+  @media (pointer: coarse) {
+    .link-standard::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      min-height: 44px;
+      height: 100%;
+    }
+  }
+
     .link-standard:hover {
       text-decoration-color: currentColor;
       transform: translateY(-1px);
@@ -1666,11 +1812,16 @@ button,
      "Post a task" treatment used by the nav CTAs (MobileNav / DesktopSidebarNav
      / Community). Every primary green button (default / hero / bark variants)
      references this so the look can't drift across the app. */
+  /* TOKENS, not literals. These two stops were hardcoded here AND declared as
+     --bark-light / --bark-border, so the "single source of truth" had a second
+     copy that merely happened to agree — which is exactly why the dark-mode
+     contrast fix first landed here and changed nothing: the nav CTAs build the
+     same gradient inline from the tokens. One set of values now. */
   background-image: radial-gradient(
     125% 125% at 32% 22%,
-    hsl(76 20% 44%) 0%,
+    hsl(var(--bark-light)) 0%,
     hsl(var(--bark)) 46%,
-    hsl(66 25% 19%) 100%
+    hsl(var(--bark-deep)) 100%
   );
 }
 
@@ -3339,3 +3490,4 @@ html.simple-mode *::after {
   .plan-masthead-title { font-size: clamp(2.25rem, 3.4vw, 3.25rem); }
   .plan-card-name      { font-size: clamp(1.6rem, 2.4vw, 2.15rem); }
 }
+

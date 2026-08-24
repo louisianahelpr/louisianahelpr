@@ -1,10 +1,22 @@
 import { MessageSquare } from "lucide-react";
 
 /**
- * Desktop right-pane resting state, shown when no thread is selected yet
- * in the side-by-side split. Purely presentational.
+ * Desktop right-pane resting state for the side-by-side split.
+ *
+ * It handled ONE of the two empty cases. "Pick a thread on the left to read and
+ * reply here" is right when threads exist and none is selected — and wrong when
+ * the list beside it is itself empty, which is exactly when it rendered next to
+ * ConversationList's own "No messages yet." Two panes, side by side, one
+ * telling you to pick from a list the other says is empty.
+ *
+ * `hasConversations` splits them. Nothing to pick gets a line that says so and
+ * points at the only thing that can start a conversation — applying to a job.
  */
-export const MessagesEmptyThread = () => (
+export const MessagesEmptyThread = ({
+  hasConversations = true,
+}: {
+  hasConversations?: boolean;
+}) => (
   <div className="flex-1 min-h-0 flex flex-col items-center justify-center text-center px-8 gap-3">
     <div
       className="w-16 h-16 rounded-full flex items-center justify-center"
@@ -26,13 +38,15 @@ export const MessagesEmptyThread = () => (
         letterSpacing: "-0.015em",
       }}
     >
-      Your conversations
+      {hasConversations ? "Your conversations" : "No messages yet"}
     </p>
     <p
       className="font-serif italic text-ds-14 max-w-[280px]"
       style={{ color: "hsl(var(--olivewood) / 0.8)" }}
     >
-      Pick a thread on the left to read and reply here.
+      {hasConversations
+        ? "Pick a thread on the left to read and reply here."
+        : "Messages start when you apply to a job or someone applies to yours."}
     </p>
   </div>
 );

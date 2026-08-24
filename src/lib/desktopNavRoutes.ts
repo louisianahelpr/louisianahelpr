@@ -8,6 +8,11 @@
 // (rendered inside PublicLayout with the marketing Navbar + Footer), so the
 // authed left rail must not cover it. Its authed counterpart is /dashboard.
 export const AUTH_PREFIXES = [
+  // Admin. Removing it from NO_NAV_PREFIXES only stopped the nav being
+  // suppressed — `isDesktopRailRoute` is an ALLOW-list, so it also has to be
+  // named here or the nav still never renders. Both halves are required; this
+  // is the pair that actually turns it on.
+  "/admin",
   "/dashboard", "/activity", "/my-posts", "/my-jobs", "/post-job", "/profile",
   "/messages", "/schedule", "/availability", "/user", "/earnings",
   "/browse", "/saved-helpers",
@@ -59,7 +64,17 @@ export const AUTH_PREFIXES = [
 // the authed rail would be a wayfinding lie.
 export const AUTH_PREFIX_EXCLUSIONS = ["/family/accept"];
 
-export const NO_NAV_PREFIXES = ["/login", "/signup", "/forgot-password", "/reset-password", "/admin"];
+// `/admin` is NOT here any more. It was, back when the admin console rendered
+// its own top bar and its own left rail — a self-contained shell that did not
+// want the app's chrome on top of it. Both of those are gone: Admin now lives
+// as a section in the shared side panel, and its top bar is phone-only. The
+// result was a desktop admin screen with NO top bar at all and therefore no way
+// out of it (owner: "if i click on something in admin panel there is no way
+// back — top nav should always be there on webpage").
+//
+// The auth screens stay: those are deliberately focused flows with nothing to
+// navigate to, which is a different situation from a console you need to leave.
+export const NO_NAV_PREFIXES = ["/login", "/signup", "/forgot-password", "/reset-password"];
 
 /**
  * True when the desktop sidebar rail owns navigation for `pathname` — i.e. a

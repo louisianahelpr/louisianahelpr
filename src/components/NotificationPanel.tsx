@@ -27,7 +27,13 @@ const NotificationPanel = () => {
   const [open, setOpen] = useState(false);
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushSupported, setPushSupported] = useState(false);
-  const [filter, setFilter] = useState<Filter>("all");
+  /* UNREAD BY DEFAULT — but only when there IS unread (owner). A notification
+     panel is opened to answer "what have I missed", and All buries that under
+     everything already seen. Opening a caught-up panel on an empty Unread tab
+     would be the opposite mistake, so the default is resolved once from the
+     first load rather than hardcoded either way. Same rule the Messages inbox
+     and the Activity buckets use. */
+  const [filter, setFilter] = useState<Filter | null>(null);
   // Differentiates "fetch failed" from "fetched, but no notifications"
   // — without this flag a failed initial load silently falls through to
   // the "All caught up" empty state, which would wrongly suggest the
@@ -139,7 +145,6 @@ const NotificationPanel = () => {
     const granted = await requestPush();
     if (granted) {
       setPushEnabled(true);
-      toast.success("Push notifications enabled");
     } else {
       toast.error(
         Capacitor.isNativePlatform()
@@ -150,6 +155,13 @@ const NotificationPanel = () => {
   };
 
   const unreadCount = notifications.filter((n) => !n.read).length;
+  // Seed the default from the first loaded page, once. `null` means "not chosen
+  // yet" so the very first render — when `notifications` is still empty — does
+  // not lock the panel to All.
+  useEffect(() => {
+    if (filter !== null || notifications.length === 0) return;
+    setFilter(notifications.some((n) => !n.read) ? "unread" : "all");
+  }, [notifications, filter]);
 
   const visibleNotifications = useMemo(
     () => (filter === "unread" ? notifications.filter((n) => !n.read) : notifications),
@@ -212,10 +224,13 @@ const NotificationPanel = () => {
           <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5">
             {([
-              { key: "all" as Filter, label: "All", count: notifications.length },
+              // Unread leads: it is the tab the panel opens on (see the
+              // filter default above), and the first pill should be the one
+              // that is already active.
               { key: "unread" as Filter, label: "Unread", count: unreadCount },
+              { key: "all" as Filter, label: "All", count: notifications.length },
             ]).map((opt) => {
-              const isActive = filter === opt.key;
+              const isActive = (filter ?? "all") === opt.key;
               return (
                 <button
                   key={opt.key}
@@ -357,7 +372,7 @@ const NotificationPanel = () => {
                   onClick={enablePush}
                   className="rounded-ds-md mt-1"
                 >
-                  <BellRing className="w-4 h-4 mr-2" /> Turn on Push Notifications
+                  <BellRing className="w-4 h-4 mr-2" /> Turn On Push Notifications
                 </Button>
               )}
             </div>

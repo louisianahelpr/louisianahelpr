@@ -13,7 +13,7 @@ type DismissJobDialogProps = {
 export function DismissJobDialog({ confirmDismissJobId, confirmDismissJob, onOpenChange, onConfirm }: DismissJobDialogProps) {
   return (
     <AlertDialog open={!!confirmDismissJobId} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-lg rounded-ds-sm p-4 sm:p-6">
+      <AlertDialogContent>
         <AlertDialogHero
           title="Not Interested?"
         />

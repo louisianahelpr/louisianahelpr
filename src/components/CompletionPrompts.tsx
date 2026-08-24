@@ -89,7 +89,6 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
     try {
       await navigator.clipboard.writeText(referralLink);
       setReferralCopied(true);
-      toast.success("Link copied.");
       setTimeout(() => setReferralCopied(false), 2000);
     } catch {
       toast.error("Couldn't copy. Try long-pressing the link.");
@@ -116,7 +115,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
   }, [jobId, userId]);
 
   const submitReview = async () => {
-    if (rating === 0) { hapticError(); toast.error("Please select a rating"); return; }
+    if (rating === 0) { hapticError(); toast.error("Please select a rating."); return; }
     hapticMedium();
     setSaving(true);
     const { error } = await supabase.from("reviews").insert({
@@ -125,11 +124,10 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
     });
     setSaving(false);
     if (error) {
-      if (error.code === "23505") { toast.info("You've already reviewed this job"); setStep("tip"); }
+      if (error.code === "23505") { setStep("tip"); }
       else { hapticError(); toast.error("We couldn't submit your review — please try again."); }
     } else {
       hapticSuccess();
-      toast.success("Review submitted — thanks for your feedback.");
 
       // Check for repeat low ratings → auto-flag
       const { data: allReviews, error: allReviewsErr } = await supabase.from("reviews").select("rating").eq("reviewee_id", revieweeId);
@@ -205,7 +203,6 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
       <Dialog open={step === "review"} onOpenChange={() => { setStep("tip"); }}>
         <DialogContent>
           <DialogHero
-            eyebrowClassName="inline-flex items-center gap-1.5"
             eyebrow={
               <>
                 <PartyPopper className="w-3 h-3" /> Job complete
@@ -254,7 +251,6 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
       <Dialog open={step === "tip"} onOpenChange={() => setStep("share")}>
         <DialogContent>
           <DialogHero
-            eyebrowClassName="inline-flex items-center gap-1.5"
             eyebrow={
               <>
                 <Gift className="w-3 h-3" /> Optional
@@ -309,7 +305,6 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
       <Dialog open={step === "share"} onOpenChange={() => setStep("nps")}>
         <DialogContent>
           <DialogHero
-            eyebrowClassName="inline-flex items-center gap-1.5"
             eyebrow={
               <>
                 <Heart className="w-3 h-3" /> Spread the word

@@ -8,15 +8,39 @@
 // nearly all of them). The screen said "estimated total $118.16-$120.32" and
 // Stripe charged $108.40.
 //
-// LA R.S. 47:301(14) defines a narrow list of taxable services. Most labor
-// services (cleaning, yard work, moving, painting houses, errands, pet care,
-// delivery) are NOT subject to LA state sales tax. The clearest taxable case in
-// this app is *assembly* — installation/assembly of tangible personal property
-// (e.g. IKEA furniture). Handyman work is ambiguous (taxable if repairing a TV,
-// exempt if repairing a doorframe); it defaults to exempt and relies on
-// operator judgment per job. If LDR clarifies otherwise, add categories here
-// and BOTH the charge and the quoted estimate move together.
-export const TAXABLE_CATEGORIES: ReadonlySet<string> = new Set(["assembly"]);
+// LA R.S. 47:301.3 (Act 11, 2024 3rd Extraordinary Session, effective
+// 2025-01-01) makes Louisiana an ENUMERATED-SERVICES state: exactly ten
+// services are taxable, and a service not on the list is not taxed at all.
+// The list is sleeping rooms · admissions · parking · printing and copying ·
+// laundry/cleaning/pressing/alteration/repair/dyeing · cold storage ·
+// REPAIRS AND MAINTENANCE OF TANGIBLE PERSONAL PROPERTY AND DIGITAL PRODUCTS ·
+// telecommunications · prewritten software access · information services.
+//
+// Item 7 is the one this app lives under, and it turns on MOVABLE vs
+// IMMOVABLE. LDR states the rule directly: "Labor to fabricate, repair, or
+// maintain tangible personal property is generally subject to sales tax,"
+// while "labor to construct, install, remodel, or repair immovable (real)
+// property is generally not."
+//
+//   assembly   furniture and equipment — movable. Taxable.
+//   handyman   BOTH. Repairing a lamp is movable and taxable; replacing a
+//              kitchen faucet is real property and is not. A category cannot
+//              tell the two apart, and neither can we at checkout.
+//   pet_care   NOT on the enumerated list. Grooming and boarding are exempt —
+//              confirmed 2026-08-23, previously carried as "ambiguous".
+//   cleaning, yard_work, moving, painting, errands, delivery, storm_prep,
+//              events — none are enumerated. Exempt.
+//
+// HANDYMAN IS INCLUDED BY OWNER DECISION (2026-08-23): "just add the tax for
+// handyman so we are covered either way." That deliberately errs toward
+// COLLECTING on jobs that may be exempt real-property work, rather than
+// missing tax on the movable-property repairs item 7 does cover. The trade is
+// real and worth stating plainly: tax collected must be remitted, so
+// over-collecting is not free — it is a different exposure, not the absence of
+// one. The durable fix is a per-job movable/immovable answer at post time
+// rather than a per-category guess; until then this is the safer side of a
+// call the category cannot make.
+export const TAXABLE_CATEGORIES: ReadonlySet<string> = new Set(["assembly", "handyman"]);
 
 /** Whether the job's LABOR line is subject to LA sales tax. */
 export function isLaborTaxable(category: string | null | undefined): boolean {

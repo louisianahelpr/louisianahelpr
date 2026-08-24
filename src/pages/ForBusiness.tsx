@@ -140,7 +140,7 @@ const TIERS: readonly Tier[] = [
     earlyAccessMinutes: 0,
     price: "Free",
     features: ["Post jobs", "Browse Helprs", "Chat with applicants"],
-    ctaLabel: "Start free",
+    ctaLabel: "Start Free",
   },
   {
     name: "Crew",

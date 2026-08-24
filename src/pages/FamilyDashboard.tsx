@@ -108,7 +108,6 @@ export default function FamilyDashboard() {
     onSuccess: () => {
       setPendingRevokeId(null);
       hapticSuccess();
-      toast.success("Access removed.");
       void qc.invalidateQueries({ queryKey: ["care_relationships", userId] });
     },
     onError: (err: Error) => {
@@ -233,7 +232,7 @@ export default function FamilyDashboard() {
               {!relQuery.isLoading && relQuery.isError && (
                 <ErrorState
                   variant="inline"
-                  title="Couldn't load your family connections."
+                  title="We couldn't load your family connections."
                   body="Tap Try again to reload who you're managing jobs for."
                   onRetry={() => void relQuery.refetch()}
                   retryDisabled={relQuery.isFetching}
@@ -253,7 +252,7 @@ export default function FamilyDashboard() {
                     variant="inline"
                     icon={Users}
                     eyebrow="Just you, so far"
-                    title="No family members yet."
+                    title="No family members yet"
                     body="Invite someone you help look after — a parent, a grandparent, a neighbor. Once they approve, you can post jobs, message helpers, and follow the work on their behalf. You can remove your access any time."
                     action={
                       <BarkPillButton onClick={() => setInviteOpen(true)}>
@@ -412,7 +411,7 @@ export default function FamilyDashboard() {
       onOpenChange={(open) => { if (!open) setPendingRevokeId(null); }}
       title="Remove Access?"
       description={`${pendingRevokeName} will no longer be able to view or post jobs on your behalf. Jobs they already posted stay on your account exactly as they are — nothing is cancelled.`}
-      primaryLabel={revokeMut.isPending ? "Removing…" : "Remove access"}
+      primaryLabel={revokeMut.isPending ? "Removing…" : "Remove Access"}
       primaryTone="sienna"
       primaryHaptic="warning"
       primaryDisabled={revokeMut.isPending}
@@ -420,7 +419,7 @@ export default function FamilyDashboard() {
         e.preventDefault();
         if (pendingRevokeId) revokeMut.mutate(pendingRevokeId);
       }}
-      secondaryLabel="Keep access"
+      secondaryLabel="Keep Access"
     />
     </>
   );

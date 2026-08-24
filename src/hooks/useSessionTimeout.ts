@@ -34,8 +34,6 @@ export const useSessionTimeout = () => {
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
           await signOutWithPushCleanup();
-          const { toast } = await import("sonner");
-          toast.info("You've been logged out due to inactivity");
           window.location.href = "/login";
         }
       }, TIMEOUT_MS);

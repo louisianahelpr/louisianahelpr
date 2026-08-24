@@ -82,7 +82,7 @@ describe("EarningsForecastCard", () => {
     await waitFor(() => {
       expect(screen.getByText(/no jobs lined up yet/i)).toBeInTheDocument();
     });
-    expect(screen.getByRole("button", { name: /browse tasks/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /browse jobs/i })).toBeInTheDocument();
     // The honest-framing caveat should NOT appear in the empty state.
     expect(screen.queryByText(/estimate — assumes/i)).not.toBeInTheDocument();
   });

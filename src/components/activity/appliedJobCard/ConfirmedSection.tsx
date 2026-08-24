@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { messageButtonStyle } from "@/components/activity/JobActionRow";
 import {MessageSquare } from "lucide-react";
 import { JobCountdown } from "@/components/activity/JobCountdown";
+import { JobPetCareSheet } from "@/components/activity/JobPetCareSheet";
 import { JobConfirmation } from "@/components/JobConfirmation";
 import { JobTracking, type TrackingData } from "@/components/JobTracking";
 import type { AppliedApp, Job } from "../activityConstants";
@@ -20,6 +21,11 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
     <div className="px-4 py-3 border-t border-[hsl(var(--olivewood)/0.1)] bg-card space-y-2.5" onClick={(e) => e.stopPropagation()}>
       {/* Job countdown */}
       <JobCountdown dateNeeded={job.date_needed} startTime={job.start_time} label="Job starts in" />
+      {/* The pets, and everything the owner already wrote down about them.
+          Self-hides when the job has none, so no category gate is needed here.
+          See JobPetCareSheet — before it, a sitter arrived knowing the address
+          and the time and nothing about the animal. */}
+      <JobPetCareSheet jobId={app.job_id} />
       {/* No "Add to Calendar" (owner, twice — here and on the offer card):
           "once they accept a job it will be on their calendar in the app".
           Handing the helpr an .ics to download and import is asking the user

@@ -131,19 +131,19 @@ async function renderVerifiedEmail(fullName: string, userId: string): Promise<{ 
     Hey ${greetingName},
   </p>
   <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">
-    Your identity has been <strong style="color:${brand.burntSienna}">verified</strong> and your Helpr account is fully approved. You're cleared to post tasks and start helping your neighbors across Louisiana.
+    Your identity has been <strong style="color:${brand.burntSienna}">verified</strong> and your Helpr account is fully approved. You're cleared to post jobs and start helping your neighbors across Louisiana.
   </p>
   <a href="${ctaUrl}" style="display:inline-block;background-color:${brand.bark};color:${brand.surface};font-size:15px;border-radius:12px;padding:14px 28px;text-decoration:none;font-weight:600">
     Go to Dashboard
   </a>
   <p style="font-size:13px;color:${brand.bodyOlive};line-height:1.5;margin:24px 0 0;padding:16px 0 0;border-top:1px solid ${brand.hairline}">
-    Welcome in. You're set to post tasks and help neighbors across Louisiana.
+    Welcome in. You're set to post jobs and help neighbors across Louisiana.
   </p>
   <img src="${pixelUrl}" width="1" height="1" style="display:none" alt="" />
 </div>
 </body></html>`
 
-  const text = `Verification successful\n\nHey ${greetingName},\n\nYour identity has been verified and your Helpr account is fully approved. You're cleared to post tasks and start helping your neighbors across Louisiana.\n\nGo to your dashboard: ${siteUrl}/dashboard\n\nWelcome to the Helpr community!`
+  const text = `Verification successful\n\nHey ${greetingName},\n\nYour identity has been verified and your Helpr account is fully approved. You're cleared to post jobs and start helping your neighbors across Louisiana.\n\nGo to your dashboard: ${siteUrl}/dashboard\n\nWelcome to the Helpr community!`
 
   return { html, text }
 }

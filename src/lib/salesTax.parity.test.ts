@@ -40,12 +40,36 @@ describe("sales-tax classification parity (UI ↔ edge)", () => {
 });
 
 describe("LA taxability rules", () => {
-  it("taxes assembly and nothing else — the create-payment tax_code list", () => {
-    expect([...uiTaxableCategories]).toEqual(["assembly"]);
+  /**
+   * The taxable list is TWO categories, and the second is a judgement call.
+   *
+   * LA R.S. 47:301.3 enumerates ten taxable services; the one this app falls
+   * under is "repairs and maintenance of tangible personal property", which
+   * turns on MOVABLE vs IMMOVABLE. `assembly` is unambiguously movable.
+   * `handyman` is both — repairing a lamp is taxable, replacing a kitchen
+   * faucet is real property and is not — and the owner chose to collect on all
+   * of it rather than miss the movable half (2026-08-23).
+   *
+   * Pinned as an exact list on purpose: adding a category here silently
+   * changes what every poster in it is CHARGED, so it should never be possible
+   * to do by accident. If this assertion fails, that is the point — confirm the
+   * statutory basis before updating it.
+   */
+  const TAXABLE = ["assembly", "handyman"];
+
+  it("taxes exactly the enumerated categories — the create-payment tax_code list", () => {
+    expect([...uiTaxableCategories]).toEqual(TAXABLE);
     expect([...edgeTaxableCategories]).toEqual([...uiTaxableCategories]);
     for (const c of ALL_CATEGORIES) {
-      expect(uiIsLaborTaxable(c), `${c}`).toBe(c === "assembly");
+      expect(uiIsLaborTaxable(c), `${c}`).toBe(TAXABLE.includes(c));
     }
+  });
+
+  it("pet care is NOT taxable — it is not an enumerated service", () => {
+    // Confirmed 2026-08-23 against R.S. 47:301.3: grooming and boarding appear
+    // nowhere on the ten-service list, and LDR treats veterinary and grooming
+    // as exempt. The module previously carried pet_care as "ambiguous".
+    expect(uiIsLaborTaxable("pet_care")).toBe(false);
   });
 
   it("quotes exactly $0 tax for an exempt category, at any parish rate", () => {

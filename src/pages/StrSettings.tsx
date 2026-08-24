@@ -118,7 +118,6 @@ export default function StrSettings() {
       return data;
     },
     onSuccess: () => {
-      toast.success("Calendar connected! Checking for upcoming checkouts…");
       setAddOpen(false);
       queryClient.invalidateQueries({ queryKey: ["str-calendar-connections"] });
     },
@@ -150,13 +149,6 @@ export default function StrSettings() {
 
       if (result?.error) {
         toast.error(`Couldn't sync — ${result.error}`);
-      } else {
-        const n = result?.jobs_created ?? 0;
-        toast.success(
-          n > 0
-            ? `Sync complete — ${n} cleaning job${n === 1 ? "" : "s"} created`
-            : "Sync complete — no new checkouts in the next 7 days",
-        );
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Couldn't sync your calendar — try again?");
@@ -177,7 +169,6 @@ export default function StrSettings() {
     },
     onSuccess: () => {
       setRemovingId(null);
-      toast.success("Calendar removed");
       queryClient.invalidateQueries({ queryKey: ["str-calendar-connections"] });
     },
     onError: () => {
@@ -261,7 +252,7 @@ export default function StrSettings() {
               <div className="flex">
                 <ErrorState
                   variant="inline"
-                  title="Couldn't load your calendars."
+                  title="We couldn't load your calendars."
                   body="Your connected calendars are still saved — we just couldn't reach them. Tap Try again before adding one, so you don't end up with a duplicate."
                   onRetry={() => void refetch()}
                   retryDisabled={isFetching}
@@ -283,7 +274,7 @@ export default function StrSettings() {
                 action={
                   <BarkPillButton onClick={() => setAddOpen(true)}>
                     <Plus className="w-4 h-4 mr-1.5" />
-                    Add a calendar
+                    Add a Calendar
                   </BarkPillButton>
                 }
                 /* Fine print INSIDE the card. This sentence used to print on
@@ -325,7 +316,7 @@ export default function StrSettings() {
                     className="w-full flex items-center justify-between px-4 py-3.5"
                     onClick={() => setAddOpen((v) => !v)}
                     aria-expanded={addOpen}
-                    aria-controls="add-calendar-form"
+                    aria-controls={addOpen ? "add-calendar-form" : undefined}
                   >
                     <div className="flex items-center gap-2">
                       <Plus
@@ -336,7 +327,7 @@ export default function StrSettings() {
                         className="font-display italic font-semibold text-ds-14"
                         style={{ color: "hsl(var(--ink-deep))" }}
                       >
-                        Add a calendar
+                        Add a Calendar
                       </span>
                     </div>
                     {addOpen ? (
@@ -399,7 +390,7 @@ export default function StrSettings() {
           removeConnection(connToRemove.id);
           setConnToRemove(null);
         }}
-        secondaryLabel="Keep calendar"
+        secondaryLabel="Keep Calendar"
       />
     </div>
   );

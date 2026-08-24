@@ -137,7 +137,7 @@ function validate(draft: Draft, identified: boolean): Partial<Record<FieldKey, s
  * secondary destination reached from a footer/legal link, not a landing.
  */
 const PageIntro = () => (
-  <section className="container mx-auto px-5">
+  <section className="px-5 sm:px-8 lg:px-12">
     <div className="page-measure mx-auto">
       <div className="flex items-center gap-3 mt-4 mb-3 md:mt-5 md:mb-4">
         <div className="shrink-0">
@@ -179,11 +179,11 @@ const FieldError = ({ id, message }: { id: string; message?: string }) =>
 
 const Support = () => {
   usePageMeta({
-    title: "Contact support — Helpr | Louisiana's Local Job Partner",
+    title: "Contact Support — Helpr | Louisiana's Local Job Partner",
     description:
       "Message the Helpr team about your account, a job, a payment, or a bug. No account needed — we reply by email.",
     canonical: "https://www.louisianahelpr.com/support",
-    ogTitle: "Contact support — Helpr",
+    ogTitle: "Contact Support — Helpr",
     ogDescription:
       "Message the Helpr team about your account, a job, a payment, or a bug. No account needed — we reply by email.",
   });

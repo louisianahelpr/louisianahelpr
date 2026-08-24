@@ -69,18 +69,26 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
     try {
       // Fetch authoritative job data to calculate fee server-side
       const { data: jobData, error: fetchError } = await supabase.from("jobs").select("date_needed, budget, helper_id, helper_fee_percent").eq("id", jobId).single();
-      if (fetchError || !jobData) throw new Error("Could not verify job details");
+      if (fetchError || !jobData) throw new Error("Couldn't verify job details");
 
+      // SAME two functions the quote above uses, and the same ones
+      // void-cancelled-payments charges from. This block used to re-inline
+      // `new Date(date_needed + "T00:00:00")` and a hand-copied ladder — the
+      // exact local-zone parse the comment 20 lines above says was removed —
+      // so the fee we PERSIST was computed in the browser's timezone while the
+      // fee we SHOWED was computed in the platform's.
+      //
+      // Chicago agreed with itself, which is why it survived. Anywhere else it
+      // did not: a $200 job cancelled 24.5h out was quoted 0% and written to
+      // the row as 25% ($50) with late_cancellation = true from America/
+      // New_York. The money that actually MOVES was always right — the edge
+      // function recomputes from _shared/cancellationFee — but every number
+      // derived from the persisted row was not: the fee pill both parties see,
+      // admin late-cancel revenue, and the helper's penalty record.
       const serverHasHelper = !!jobData.helper_id;
-      const serverJobDateTime = new Date(jobData.date_needed + "T00:00:00");
-      const serverHoursUntil = (serverJobDateTime.getTime() - Date.now()) / (1000 * 60 * 60);
-      const serverFeePercent = !serverHasHelper
-        ? 0
-        : serverHoursUntil < 2
-        ? 50
-        : serverHoursUntil < 24
-        ? 25
-        : 0;
+      const serverHoursUntil =
+        (jobLocalMidnightMs(jobData.date_needed) - Date.now()) / (1000 * 60 * 60);
+      const serverFeePercent = sharedCancellationFeePercent(serverHasHelper, serverHoursUntil);
       const serverFee = Math.round(jobData.budget * serverFeePercent) / 100;
       const serverIsLate = serverHoursUntil < 24 && serverHoursUntil > 0;
 
@@ -200,9 +208,6 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
           );
           if (notifyErr) report(notifyErr, { tags: { source: "CancellationDialog.notifyAdmins" } });
         }
-        toast.success("Job cancelled.");
-      } else {
-        toast.success("Job cancelled. Any held payment will be refunded within the hour.");
       }
 
       hapticSuccess();
@@ -224,7 +229,6 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <DialogHero
-          eyebrowClassName="inline-flex items-center gap-1.5"
           eyebrow={
             <>
               <Clock className="w-3 h-3" /> Heads up
@@ -412,7 +416,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
             />
           </div>
         </div>
-        <DialogFooter className="!gap-2">
+        <DialogFooter>
           <Button
             variant="ghost"
             disabled={cancelling}

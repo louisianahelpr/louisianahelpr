@@ -79,12 +79,12 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
   const canSubmit = !!reason && trimmedLength >= MIN_LENGTH && !submitting;
 
   const handleSubmit = async () => {
-    if (!reason) { hapticError(); toast.error("Pick a reason first"); return; }
-    if (trimmedLength < MIN_LENGTH) { hapticError(); toast.error(`Add at least ${MIN_LENGTH} characters of detail`); return; }
+    if (!reason) { hapticError(); toast.error("Pick a reason first."); return; }
+    if (trimmedLength < MIN_LENGTH) { hapticError(); toast.error(`Add at least ${MIN_LENGTH} characters of detail.`); return; }
     hapticMedium();
     setSubmitting(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { toast.error("You must be logged in"); setSubmitting(false); return; }
+    if (!user) { toast.error("You must be logged in."); setSubmitting(false); return; }
 
     const { data, error } = await supabase
       .from("reports")
@@ -124,7 +124,6 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
     try {
       await navigator.clipboard?.writeText(caseNumber);
       hapticSuccess();
-      toast.success("Case number copied");
     } catch {
       hapticError();
       toast.error("Couldn't copy — long-press the number to select it.");
@@ -144,7 +143,6 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
       <DialogContent>
         <DialogHero
-          eyebrowClassName="inline-flex items-center gap-1.5"
           eyebrow={<><ShieldAlert className="w-3 h-3" strokeWidth={2} aria-hidden="true" /> {eyebrow}</>}
           title={title}
         />

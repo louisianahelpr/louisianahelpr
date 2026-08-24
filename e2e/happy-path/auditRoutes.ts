@@ -214,7 +214,10 @@ export const ANON_SCREENS: ScreenSpec[] = [
   // so they are the routes a stranger and a search crawler actually hit.
   { name: "help", url: "/help" },
   { name: "support", url: "/support" },
-  { name: "accessibility", url: "/accessibility" },
+  // REMOVED 2026-08-24: /accessibility. The standalone page was orphaned —
+  // no link anywhere reached it — and its one real control (Simple Mode)
+  // duplicated the Profile Accessibility tab's Senior Mode. Accessibility
+  // settings live in Profile → Accessibility on every surface.
   // REMOVED 2026-08-22: /how-it-works, /become-a-partner, /community,
   // /enterprise, /evacuation, /impact, /local-guide, /parishes,
   // /parish/:slug (x3) and /browse-jobs. Their redirect stubs were deleted in
@@ -319,12 +322,18 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   // fixture values; a route that redirects (many of these do, depending on
   // profile state) still gets audited, just as whatever it lands on.
   { name: "activity", url: "/activity" },
-  { name: "analytics", url: "/analytics" },
+  // REMOVED 2026-08-23: /analytics is a <Navigate> to /profile?tab=earnings
+  // now, not a screen. Left in, this row would have audited the Earnings tab
+  // under the wrong name and counted it twice — the over-counting the catalog
+  // guard exists to catch. `profile-earnings` already covers the destination.
   { name: "auto-tip", url: "/auto-tip" },
   { name: "availability", url: "/availability" },
   { name: "earnings", url: "/earnings" },
-  { name: "family", url: "/family" },
-  { name: "family-accept", url: "/family/accept/test-invite-token" },
+  // REMOVED 2026-08-23: Family & Care is behind FAMILY_ENABLED, which is off
+  // (owner: "it seems pointless — you literally just post the job on their
+  // behalf"). With the routes unregistered both rows rendered NotFound and
+  // counted as two clean screens — exactly the over-counting this catalog's
+  // guard test exists to catch. Restore both when the flag flips back.
   // REMOVED 2026-08-22: `family-accept-empty` pointed at "/family/accept/".
   // The route is "/family/accept/:token" and React Router will not match an
   // EMPTY path segment, so that row rendered the 404 page, not the page's
@@ -456,7 +465,11 @@ export const ADMIN_VIEWS = [
   "analytics", "people", "jobs", "settings", "disputes", "broadcasts",
   "notifications", "notiflogs", "reports", "support", "referrals",
   "subscriptions", "fraud", "audit", "health", "export", "payouts",
-  "parishtax", "tiers", "idv", "geography", "marketing", "credentials",
+  // parishtax and geography were DELETED (owner: Stripe handles tax; geography
+  // was redundant). They are out of this list because they are out of the app —
+  // /admin coerces their old deep links to home now, so sweeping them would
+  // just be re-testing the dashboard under two extra names.
+  "tiers", "idv", "marketing", "credentials",
   "business_verify", "business_accounts", "exceptions",
 ] as const;
 

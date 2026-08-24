@@ -25,6 +25,14 @@ interface ChatHeaderProps {
    *  (mobile/native always show it). */
   hideBack?: boolean;
   /**
+   * True when the inbox list is on screen NEXT TO this header — the desktop
+   * two-pane layout. The selected row over there already carries the job's
+   * status chip, so repeating it here puts the same word on screen twice, a
+   * few hundred pixels apart (owner). Phone and native are a single pane: the
+   * list is not visible, so the header chip is the only one and stays.
+   */
+  inboxVisible?: boolean;
+  /**
    * True when this is the top-most element against the status bar — i.e.
    * standalone/native, where it sits in AppShell's header slot.
    *
@@ -56,6 +64,7 @@ export function ChatHeader({
   isOtherOnline,
   onBack,
   hideBack = false,
+  inboxVisible = false,
   ownsSafeArea = false,
   onOpenMuteSheet,
   onToggleMute,
@@ -183,7 +192,7 @@ export function ChatHeader({
               );
             })()}
             <ChevronRight className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--olivewood) / 0.65)" }} />
-            {activeConvo.jobStatus && (() => {
+            {activeConvo.jobStatus && !inboxVisible && (() => {
               const status = activeConvo.jobStatus;
               // Colors come from the canonical `jobStatusColor` map so the chat
               // header pill paints identically to every other status chip.
@@ -243,19 +252,19 @@ export function ChatHeader({
               already muted, this collapses to a fast unmute. */}
           {activeConvo.isMuted ? (
             <DropdownMenuItem onClick={() => onToggleMute(activeConvo)}>
-              <Bell className="w-4 h-4 mr-2" /> Unmute notifications
+              <Bell className="w-4 h-4 mr-2" /> Unmute Notifications
             </DropdownMenuItem>
           ) : (
             <DropdownMenuItem onClick={onOpenMuteSheet}>
-              <BellOff className="w-4 h-4 mr-2" /> Mute notifications…
+              <BellOff className="w-4 h-4 mr-2" /> Mute Notifications…
             </DropdownMenuItem>
           )}
           <div role="separator" className="my-1 h-px bg-border" />
           <DropdownMenuItem onClick={onReportUser}>
-            <Flag className="w-4 h-4 mr-2" /> Report user
+            <Flag className="w-4 h-4 mr-2" /> Report User
           </DropdownMenuItem>
           <DropdownMenuItem onClick={onBlockUser}>
-            <Ban className="w-4 h-4 mr-2" /> Block user
+            <Ban className="w-4 h-4 mr-2" /> Block User
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

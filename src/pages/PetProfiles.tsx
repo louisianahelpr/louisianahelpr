@@ -83,7 +83,6 @@ const PetProfiles = () => {
     },
     onSuccess: (_data, petId) => {
       queryClient.invalidateQueries({ queryKey: ["pet_profiles", userId] });
-      toast.success("Pet removed");
       // If we just deleted the active desktop pet, clear the URL param.
       if (petId === activePetId) {
         const next = new URLSearchParams(searchParams);
@@ -165,7 +164,7 @@ const PetProfiles = () => {
           {isError && (
             <ErrorState
               variant="inline"
-              title="Couldn't load your pets."
+              title="We couldn't load your pets."
               body="Tap Try again to reload your pet profiles."
               onRetry={() => refetch()}
             />
@@ -179,7 +178,7 @@ const PetProfiles = () => {
               body="Add your pets' profiles so helpers know their needs."
               action={
                 <Button variant="primary" onClick={openAddMobile}>
-                  <Plus className="w-4 h-4 mr-1" /> Add a pet
+                  <Plus className="w-4 h-4 mr-1" /> Add a Pet
                 </Button>
               }
             />
@@ -255,7 +254,7 @@ const PetProfiles = () => {
                 <div className="p-3">
                   <ErrorState
                     variant="inline"
-                    title="Couldn't load your pets."
+                    title="We couldn't load your pets."
                     body="Tap Try again to reload."
                     onRetry={() => refetch()}
                   />
@@ -271,7 +270,7 @@ const PetProfiles = () => {
                     body="Add your first pet to get started."
                     action={
                       <Button variant="primary" size="sm" onClick={openAddDesktop}>
-                        <Plus className="w-4 h-4 mr-1" /> Add a pet
+                        <Plus className="w-4 h-4 mr-1" /> Add a Pet
                       </Button>
                     }
                   />
@@ -351,7 +350,7 @@ const PetProfiles = () => {
                       className="mt-4"
                       onClick={openAddDesktop}
                     >
-                      <Plus className="w-4 h-4 mr-1" /> Add a pet
+                      <Plus className="w-4 h-4 mr-1" /> Add a Pet
                     </Button>
                   )}
                 </div>

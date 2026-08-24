@@ -212,7 +212,7 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
           onClick={() => navigate("/dashboard")}
         >
           <Briefcase className="w-3.5 h-3.5" />
-          Browse Tasks
+          Browse Jobs
         </Button>
       </div>
     );

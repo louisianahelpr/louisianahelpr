@@ -64,12 +64,28 @@ export const JOB_STATUS_COLORS: Record<JobStatus, StatusColor> = {
   // Neutral, helpful — the job is on the board and available to anyone.
   open:               { bg: "hsl(var(--olivewood) / 0.12)", text: "hsl(var(--olivewood))" },
   // Confident forward motion — a helpr is locked in.
-  accepted:           { bg: "hsl(var(--bark) / 0.12)",      text: "hsl(var(--bark))" },
+  // --sage-ink for the same reason as `completed`. This one measured 4.76:1 on
+  // dark — over the line, but only just, and on the thinner 0.12 tint; the rule
+  // is that a status LABEL uses an adaptive -ink token, not that each one is
+  // audited to the second decimal. Light mode is unchanged (--sage-ink's light
+  // value IS --bark).
+  accepted:           { bg: "hsl(var(--bark) / 0.12)",      text: "hsl(var(--sage-ink))" },
   // Active warmth — work is happening right now.
-  in_progress:        { bg: "hsl(var(--burnt-sienna) / 0.12)", text: "hsl(var(--burnt-sienna))" },
+  // --sienna-ink, not raw --burnt-sienna. Same defect as `completed` and
+  // `disputed` below — the brand accent's dark value is tuned for accents, not
+  // for 9px text on its own tint, and this chip measured 3.83:1 on dark.
+  // --sienna-ink is the sienna family's adaptive LABEL pair (its light value is
+  // byte-identical to --burnt-sienna, so light mode does not move) and it keeps
+  // the hue, which --danger-ink would not: "in progress" is not danger.
+  in_progress:        { bg: "hsl(var(--burnt-sienna) / 0.12)", text: "hsl(var(--sienna-ink))" },
   // Earned, settled — slightly more saturation than `accepted` to mark
   // the difference between "agreed" and "done".
-  completed:          { bg: "hsl(var(--bark) / 0.18)",      text: "hsl(var(--bark))" },
+  // --sage-ink, not raw --bark. --bark has no dark sibling tuned for label
+  // duty: on the dark canvas it resolves to rgb(149,160,106) and this 9px chip
+  // measured 4.28:1 on its own 0.18 tint — just under AA. --sage-ink is the
+  // theme-adaptive pair for the same hue (its LIGHT value is literally the old
+  // --bark, so nothing changes in light mode) and measures 6.5:1 on dark.
+  completed:          { bg: "hsl(var(--bark) / 0.18)",      text: "hsl(var(--sage-ink))" },
   // Muted, no judgment — terminal but quiet.
   cancelled:          { bg: "hsl(var(--olivewood) / 0.10)", text: "hsl(var(--olivewood) / 0.8)" },
   // Gentle attention — the poster asked for a change. Uses the amber
@@ -77,7 +93,10 @@ export const JOB_STATUS_COLORS: Record<JobStatus, StatusColor> = {
   // text was only 2.53:1 and failed WCAG AA.
   revision_requested: { bg: "hsl(var(--amber-tint) / 0.14)", text: "hsl(var(--amber-ink))" },
   // Serious but warm, NOT red-alarm — kept in the brand sienna family.
-  disputed:           { bg: "hsl(var(--burnt-sienna) / 0.18)", text: "hsl(var(--burnt-sienna))" },
+  // Same defect as `completed` above, caught by the same sweep: raw
+  // --burnt-sienna as ink measured 3.52:1 on dark. --sienna-ink keeps the
+  // family (this state is deliberately NOT alarm-red) while clearing AA.
+  disputed:           { bg: "hsl(var(--burnt-sienna) / 0.18)", text: "hsl(var(--sienna-ink))" },
   // Awaiting business-poster approval on a member-created posting that
   // exceeds the org's threshold. Gentle attention — same gold-warm as
   // revision_requested since it's "waiting on a person" not "in flight."
@@ -120,11 +139,11 @@ export function jobStatusColor(status: string | null | undefined): StatusColor {
 const STATUS_COLOR_CLASSES: Record<JobStatus, string> = {
   open:               "bg-[hsl(var(--olivewood)/0.12)] text-[hsl(var(--olivewood))]",
   accepted:           "bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))]",
-  in_progress:        "bg-[hsl(var(--burnt-sienna)/0.12)] text-[hsl(var(--burnt-sienna))]",
-  completed:          "bg-[hsl(var(--bark)/0.18)] text-[hsl(var(--bark))]",
+  in_progress:        "bg-[hsl(var(--burnt-sienna)/0.12)] text-[hsl(var(--sienna-ink))]",
+  completed:          "bg-[hsl(var(--bark)/0.18)] text-[hsl(var(--sage-ink))]",
   cancelled:          "bg-[hsl(var(--olivewood)/0.10)] text-[hsl(var(--olivewood)/0.8)]",
   revision_requested: "bg-[hsl(var(--amber-tint)/0.14)] text-[hsl(var(--amber-ink))]",
-  disputed:           "bg-[hsl(var(--burnt-sienna)/0.18)] text-[hsl(var(--burnt-sienna))]",
+  disputed:           "bg-[hsl(var(--burnt-sienna)/0.18)] text-[hsl(var(--sienna-ink))]",
   pending_approval:   "bg-[hsl(var(--amber-tint)/0.14)] text-[hsl(var(--amber-ink))]",
 };
 

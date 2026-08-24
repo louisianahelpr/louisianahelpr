@@ -130,7 +130,6 @@ export default function FamilyAcceptPage() {
 
       hapticSuccess();
       setAccepted(true);
-      toast.success("Access granted");
     } catch (err) {
       report(err as Error, { severity: "warning", tags: { source: "FamilyAcceptPage.accept" } });
       toast.error("Couldn't accept invite — please try again.");
@@ -280,7 +279,7 @@ export default function FamilyAcceptPage() {
                 onClick={handleAccept}
                 disabled={accepting}
               >
-                {accepting ? "Accepting…" : `Accept — let ${caregiverName} help`}
+                {accepting ? "Accepting…" : `Accept — Let ${caregiverName} Help`}
               </Button>
             )}
           </div>

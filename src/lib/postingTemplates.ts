@@ -61,7 +61,7 @@ export const categoryTemplates: Record<string, PostingTemplate> = {
     checklist: [
       "What specifically needs to be fixed or installed?",
       "Any materials needed — do you have them or should they bring?",
-      "Photos of the area or item (helps them quote accurately)",
+      "Photos of the area or item (helps them size up the job)",
       "Any brand/model to match?",
     ],
     quickTips: ["Add a photo — posts with photos fill 40% faster"],
@@ -110,7 +110,7 @@ export const categoryTemplates: Record<string, PostingTemplate> = {
       "Do you have the instructions?",
       "Where in the home? (stairs involved?)",
     ],
-    quickTips: ["Item name + brand = faster, more accurate quotes"],
+    quickTips: ["Item name + brand = faster, better-matched applicants"],
   },
   storm_prep: {
     title: "Storm preparation help needed",
@@ -156,6 +156,6 @@ export const categoryTemplates: Record<string, PostingTemplate> = {
       "Any equipment or materials needed?",
       "When do you need it done?",
     ],
-    quickTips: ["More detail = better applicants and more accurate quotes"],
+    quickTips: ["More detail = better applicants and fewer questions"],
   },
 };

@@ -106,7 +106,7 @@ export function WhatToBringChecklist({ jobId, category }: WhatToBringChecklistPr
           setOpen((o) => !o);
         }}
         aria-expanded={open}
-        aria-controls={`what-to-bring-${jobId}`}
+        aria-controls={open ? `what-to-bring-${jobId}` : undefined}
         className="w-full flex items-center justify-between gap-2 px-3 py-2 text-left btn-press"
       >
         <span className="flex items-center gap-2 min-w-0">

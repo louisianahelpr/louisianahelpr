@@ -18,9 +18,8 @@ interface QrCodeModalProps {
 export function QrCodeModal({ profile, qrOpen, setQrOpen, qrDataUrl }: QrCodeModalProps) {
   return (
     <Dialog open={qrOpen} onOpenChange={setQrOpen}>
-      <DialogContent className="max-w-xs mx-auto text-center">
+      <DialogContent className="mx-auto text-center">
         <DialogHero
-          eyebrowClassName="inline-flex items-center gap-1.5"
           eyebrow={<><QrCode className="w-3 h-3" /> Verify at the door</>}
           title="My QR Code"
         />

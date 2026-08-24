@@ -5,6 +5,7 @@ import { formatJobDate, parseLocalDate } from "@/lib/dateUtils";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
 import { formatTime12 } from "@/components/TimePickerSelect";
 import type { EnrichedJob } from "../types";
+import { mapsSearchUrl } from "@/lib/mapsLink";
 
 interface JobStatTilesProps {
   job: EnrichedJob;
@@ -49,7 +50,11 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
           const dateEndIso = dateEnd.toISOString().slice(0, 10).replace(/-/g, "");
           calendarUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(job.title)}&dates=${dateStartIso}/${dateEndIso}&details=${encodeURIComponent(job.description.slice(0, 200))}&location=${encodeURIComponent(job.location)}`;
         }
-        const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.location)}`;
+        // Same helper as the activity cards, so the two surfaces open the same
+        // app with the same query — and so the platform choice lives in one
+        // place. This one already used the address; it just did not know about
+        // Apple Maps or Android's geo: intent.
+        const mapsUrl = mapsSearchUrl(job.location);
         // Distance estimate when both helpr coords + parish centroid
         // available. distMilesForDriving + drivingLabel are computed
         // above (because useDrivingTime is a hook); we just compose

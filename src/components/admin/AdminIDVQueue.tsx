@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { ShieldAlert, RefreshCw, Loader2, CheckCircle2, XCircle, Eye } from "lucide-react";
+import { CheckCircle2, Eye, Loader2, RefreshCw, ShieldAlert, ShieldCheck, XCircle } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { formatName } from "@/lib/utils";
 import { logAdminAction } from "@/lib/adminAudit";
@@ -17,6 +17,7 @@ import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 import { toneTextClasses } from "@/components/admin/tones";
 import { cn } from "@/lib/utils";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 interface IDVProfile {
   user_id: string;
@@ -85,7 +86,7 @@ const AdminIDVQueue = () => {
       .maybeSingle();
     if (error) {
       console.error("[AdminIDVQueue] loadSettings:", error);
-      toast.error("Couldn't load IDV settings — refresh to retry");
+      toast.error("Couldn't load IDV settings — refresh to retry.");
       return;
     }
     if (data) {
@@ -101,7 +102,7 @@ const AdminIDVQueue = () => {
     if (!settingsId) return;
     const t = parseFloat(threshold);
     if (isNaN(t) || t < 0 || t > 100) {
-      toast.error("Threshold must be 0–100");
+      toast.error("Threshold must be 0–100.");
       return;
     }
     setSavingSettings(true);
@@ -115,7 +116,6 @@ const AdminIDVQueue = () => {
     setSavingSettings(false);
     if (error) toast.error(error.message);
     else {
-      toast.success("IDV settings updated");
       await logAdminAction("update_idv_settings", "platform_settings", settingsId, {
         hybrid_idv_enabled: hybridEnabled,
         idv_auto_approve_threshold: t,
@@ -161,7 +161,6 @@ const AdminIDVQueue = () => {
     }
 
     setActioning(null);
-    toast.success(`${formatName(p.full_name)} approved`);
     await logAdminAction("idv_manual_approve", "user", p.user_id, { previous_status: p.idv_status });
     setSelected(null);
     load();
@@ -180,7 +179,6 @@ const AdminIDVQueue = () => {
     setActioning(null);
     if (error) toast.error(error.message);
     else {
-      toast.success(`${formatName(p.full_name)} denied`);
       await logAdminAction("idv_manual_deny", "user", p.user_id, { previous_status: p.idv_status });
       setSelected(null);
       load();
@@ -257,7 +255,12 @@ const AdminIDVQueue = () => {
         </div>
       ) : profiles.length === 0 ? (
         <div className="rounded-ds-md liquid-glass p-8 text-center">
-          <p className="text-ds-11 text-muted-foreground">No users in this status.</p>
+          <EmptyState
+            variant="inline"
+            icon={ShieldCheck}
+            title="Nothing in this status"
+            body="Try another status tab above."
+          />
         </div>
       ) : (
         <div className="space-y-2">

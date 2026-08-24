@@ -106,37 +106,17 @@ function PostedJobCardInner({
     job.status === "open";
   const helperName = job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr";
 
-  return (
-          <JobCardShell
-            expandable={isFullyCompleted}
-            expanded={isExpanded}
-            onToggle={() => setExpandedJobId(isExpanded ? null : job.id)}
-            // scroll-mt keeps a card's title from ghosting up under the
-            // translucent (~0.85 opacity) page title card when it scrolls
-            // to the top of the list.
-            className="group relative scroll-mt-3"
-          >
-            <JobCardTitleBar title={job.title} amount={formatPrice(job.budget)} />
-
-            {/* Where this job stands — a full-width band directly under the
-                title divider, not a pill floating in the body padding. Active
-                folds several statuses into one list, so without this a job
-                awaiting a reply, one whose offer was just declined, and one
-                already underway all look alike. Unlike the old pill this also
-                colours the terminal statuses, so a Completed / Cancelled /
-                Disputed card is identifiable at a glance too. */}
-            {/* NO STATUS STRIPE. Owner: "can be removed so we can better
-                organize on the top by active / completed / cancelled etc" —
-                the filter tabs above the list carry the status now, so a
-                coloured band on every card repeated the tab the reader is
-                standing in, once per card, all the way down the page. What
-                the band said that a tab cannot, each card still says better:
-                an assigned job shows the tracker sitting on its real step, an
-                open one shows its applicant count, a cancelled one leads with
-                "Re-post This Job". */}
-
-            {/* Summary */}
-            <div className="px-4 py-3 space-y-2.5">
+  /**
+   * Location · date · time — built ONCE and placed twice.
+   *
+   * On the desktop website it rides the TITLE row (owner: "move these up to
+   * the right of the title to free up space, but only in webpage"): a wide
+   * card gave the title a third of one row and this a tenth of the next, so
+   * the card spent two rows on what fits comfortably in one. On phone it stays
+   * exactly where it was — there is no spare width to move anything into.
+   * Same node either way, so the two placements cannot drift apart.
+   */
+  const metaRow = (
               <JobCardMetaRow
                 dateNeeded={job.date_needed}
                 startTime={job.start_time}
@@ -161,26 +141,6 @@ function PostedJobCardInner({
                 // padding and the non-interactive status stripe, never on
                 // another control — the only other interactive thing in this
                 // row is the location link at the opposite end.
-                trailing={
-                  hasDescription || hasRequirements ? (
-                    <button
-                      type="button"
-                      aria-expanded={isExpanded}
-                      // The words are GONE — owner: "should not have show
-                      // details just a chevron arrow down". A chevron that
-                      // rotates is the whole control now, so the state it used
-                      // to spell out lives entirely in aria-expanded and the
-                      // aria-label; nothing about it is announced any less.
-                      aria-label={isExpanded ? "Hide job description" : "Show job description"}
-                      className="inline-flex items-center justify-center w-11 h-11 -my-3.5 -mr-2.5 text-primary active:opacity-70"
-                      onClick={(e) => { e.stopPropagation(); setExpandedJobId(isExpanded ? null : job.id); }}
-                    >
-                      <ChevronDown
-                        className={`w-4 h-4 motion-safe:transition-transform motion-safe:duration-200 ${isExpanded ? "rotate-180" : ""}`}
-                      />
-                    </button>
-                  ) : null
-                }
               >
                 {/* The applicant COUNT deliberately does not appear here.
                     An open job with applicants used to state the same number
@@ -203,6 +163,44 @@ function PostedJobCardInner({
                    <span className="flex items-center gap-1"><Users className="w-3 h-3 shrink-0 text-primary" /> {job.helpers_needed ? `${job.helpers_needed} Helpr${job.helpers_needed === 1 ? "" : "s"}` : "Group job"}</span>
                  )}
                </JobCardMetaRow>
+  );
+
+  return (
+          <JobCardShell
+            expandable={isFullyCompleted || hasDescription || hasRequirements}
+            expanded={isExpanded}
+            onToggle={() => setExpandedJobId(isExpanded ? null : job.id)}
+            // scroll-mt keeps a card's title from ghosting up under the
+            // translucent (~0.85 opacity) page title card when it scrolls
+            // to the top of the list.
+            className="group relative scroll-mt-3"
+          >
+            <JobCardTitleBar title={job.title} amount={formatPrice(job.budget)} meta={metaRow} />
+
+            {/* Where this job stands — a full-width band directly under the
+                title divider, not a pill floating in the body padding. Active
+                folds several statuses into one list, so without this a job
+                awaiting a reply, one whose offer was just declined, and one
+                already underway all look alike. Unlike the old pill this also
+                colours the terminal statuses, so a Completed / Cancelled /
+                Disputed card is identifiable at a glance too. */}
+            {/* NO STATUS STRIPE. Owner: "can be removed so we can better
+                organize on the top by active / completed / cancelled etc" —
+                the filter tabs above the list carry the status now, so a
+                coloured band on every card repeated the tab the reader is
+                standing in, once per card, all the way down the page. What
+                the band said that a tab cannot, each card still says better:
+                an assigned job shows the tracker sitting on its real step, an
+                open one shows its applicant count, a cancelled one leads with
+                "Re-Post This Job". */}
+
+            {/* Summary */}
+            <div className="px-4 py-2.5 space-y-2">
+              {/* Under the title on EVERY width (owner: "move back under
+                title globally"). This was `lg:hidden`, with a second copy
+                lifted into the title bar on desktop — two arrangements of one
+                card, and the desktop one truncated the city to an ellipsis
+                before it would drop. One placement, no truncation. */}
             {/* Description behind a tap.
                 The card used to print the brief in full (a short one cleared
                 the old `length > 100` gate, so no toggle was offered and the
@@ -318,7 +316,7 @@ function PostedJobCardInner({
                     onClick={(e) => { e.stopPropagation(); navigate(`/post-job?rebook=${job.id}`); }}
                   >
                     <RotateCcw className="w-4 h-4 mr-1.5" />
-                    Re-post This Job
+                    Re-Post This Job
                   </Button>
                 </div>
               )}
@@ -463,7 +461,7 @@ function PostedJobCardInner({
                   className="w-full rounded-ds-md"
                   onClick={(e) => { e.stopPropagation(); navigate(job.helper_id ? `/post-job?rebook=${job.id}&offerTo=${job.helper_id}` : `/post-job?rebook=${job.id}`); }}
                 >
-                  <RotateCcw className="w-4 h-4 mr-1.5" /> Re-post
+                  <RotateCcw className="w-4 h-4 mr-1.5" /> Re-Post
                 </Button>
               </div>
             )}

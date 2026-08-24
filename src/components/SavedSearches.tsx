@@ -131,7 +131,7 @@ export function SavedSearches({
     const trimmed = name.trim();
     if (!trimmed) {
       hapticError();
-      toast.error("Name your search to save it");
+      toast.error("Name your search to save it.");
       return;
     }
     if (
@@ -163,7 +163,6 @@ export function SavedSearches({
       return;
     }
     hapticSuccess();
-    toast.success("Search saved — we'll ping you when a matching job posts.");
     setName("");
     load();
   };
@@ -204,7 +203,6 @@ export function SavedSearches({
     }
     setSearches((prev) => prev.filter((x) => x.id !== id));
     hapticSuccess();
-    toast.success("Search deleted");
   };
 
   return (
@@ -231,7 +229,6 @@ export function SavedSearches({
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <DialogHero
-          eyebrowClassName="inline-flex items-center gap-1.5"
           eyebrow={
             <>
               <Bookmark className="w-3 h-3" strokeWidth={2} aria-hidden="true" /> Get notified
@@ -376,7 +373,6 @@ export function SavedSearches({
                   onClick={() => {
                     onApplySearch(s);
                     setOpen(false);
-                    toast.success(`Applied "${s.name}"`);
                   }}
                   className="flex-1 text-left min-w-0 active:opacity-70 transition-opacity"
                 >

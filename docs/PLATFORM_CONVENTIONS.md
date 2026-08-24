@@ -37,6 +37,16 @@ preview, so apply them deliberately:
 Status: screen + popup titles were converted (67 strings, 60 files, commit
 `f2309699`). **Button labels are NOT done** — that sweep is still open.
 
+### Titles are one line — never two (owner, 2026-08-24)
+
+A screen title on the phone/app surface never wraps: every header-row
+`<h1>`/`<h2>` carries `truncate` (+ `min-w-0` in a flex row) so a long title
+ellipsizes instead of stacking. This covers `PageHeader`, `AuthShell`,
+`ProfileTabHeader`, `ScreenHeaderRow`, `DocumentPageCards`, and the hand-rolled
+public-doc title rows. Centered full-screen lockout states
+(`DashboardBlockedScreen`) are the one exemption — truncating a lockout
+message mid-word is worse than a wrap; keep those titles short instead.
+
 ## 2. Accessibility
 
 - **Dynamic Type.** The OS text-size setting must drive the app. A manual

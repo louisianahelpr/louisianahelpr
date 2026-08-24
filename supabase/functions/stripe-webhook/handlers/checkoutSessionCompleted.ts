@@ -609,6 +609,35 @@ export async function handleCheckoutSessionCompleted(
       const taxCents = (taxPi.amount_details as any)?.tax?.total_tax_amount;
       if (typeof taxCents === "number") {
         updateData.sales_tax_amount = taxCents / 100;
+
+        // ...and the RATE, derived from what Stripe actually charged rather
+        // than from our own parish table.
+        //
+        // `sales_tax_amount` has been Stripe-sourced here for a while, but
+        // `sales_tax_rate` was still the ESTIMATE written at insert time from
+        // `parish_tax_rates` — so a job could carry Stripe's real amount beside
+        // our guessed rate, and rate x budget would not reconcile to the
+        // amount. That table is also where the DeSoto/LaSalle spelling mismatch
+        // lived, which resolved to a rate of 0 for seven ZIP codes.
+        //
+        // The effective rate is the only honest one: tax over the base it was
+        // charged on. Tax lands on the LABOR line only (the fees all ship as
+        // txcd_00000000), so the base is the budget.
+        const { data: jobRow } = await supabase
+          .from("jobs")
+          .select("budget")
+          .eq("id", jobId)
+          .maybeSingle();
+        const budgetCents = Math.round(Number(jobRow?.budget ?? 0) * 100);
+        if (budgetCents > 0) {
+          // Two decimals: rates are quoted like 10.00 / 10.50, and an
+          // unrounded float here would persist 9.999999999 for a clean 10%.
+          updateData.sales_tax_rate =
+            Math.round((taxCents / budgetCents) * 100 * 100) / 100;
+        } else if (taxCents === 0) {
+          // A genuine zero with no base to divide by — an exempt category.
+          updateData.sales_tax_rate = 0;
+        }
       }
     } catch (taxErr) {
       logStep("WARN: PI retrieve failed in checkout handler — payment_intent.succeeded will record tax", {

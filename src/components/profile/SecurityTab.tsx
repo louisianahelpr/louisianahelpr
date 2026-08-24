@@ -159,7 +159,6 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
       toast.error("Couldn't sign you out everywhere — try again?");
       return;
     }
-    toast.success("Signed out everywhere.");
   };
 
   // Change-email uses an in-app branded dialog rather than the native
@@ -216,7 +215,6 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
       console.warn("[SecurityTab] old-address notification failed", notifyErr);
     }
     setSubmitting(false);
-    toast.success("Confirmation sent to your new email.");
     setEmailDialogOpen(false);
   };
 
@@ -237,7 +235,6 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
     if (!next) {
       setAppLockEnabled(false);
       setAppLockOn(false);
-      toast.success("Face ID lock turned off.");
       return;
     }
     const ok = await requireBiometric("Turn on the Face ID lock for Helpr");
@@ -249,7 +246,6 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
     }
     setAppLockEnabled(true);
     setAppLockOn(true);
-    toast.success("Helpr will ask for Face ID when you open it.");
   };
 
   return (
@@ -268,7 +264,6 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
           <DialogHero
-            eyebrowClassName="inline-flex items-center gap-1.5"
             eyebrow={<><Mail className="w-3 h-3" /> Account</>}
             title="Change Email Address."
           />
@@ -301,7 +296,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
             )}
           </div>
 
-          <DialogFooter className="!gap-2">
+          <DialogFooter>
             <Button
               variant="ghost"
               onClick={() => setEmailDialogOpen(false)}
@@ -412,7 +407,6 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
               });
               setResettingPassword(false);
               if (error) toast.error("Couldn't send the reset link — try again?");
-              else toast.success("Password reset link sent to your email.");
             }}
           >
             {resettingPassword ? "Sending…" : "Reset"}

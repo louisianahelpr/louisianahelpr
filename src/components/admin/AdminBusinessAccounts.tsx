@@ -169,7 +169,6 @@ const AdminBusinessAccounts = () => {
                 <Building2 className="w-3.5 h-3.5" /> Business account
               </>
             }
-            eyebrowClassName="inline-flex items-center gap-1.5"
             title={openBusiness?.business_name}
           />
           {openBusiness && (

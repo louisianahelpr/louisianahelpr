@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 import { formatShortDate } from "@/lib/format";
 import { report } from "@/lib/errorLogger";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 type Ticket = {
   id: string;
@@ -52,7 +53,7 @@ const AdminSupport = () => {
 
       const { data, error } = await query;
       if (error) {
-        toast.error("Couldn't load support tickets — refresh to retry");
+        toast.error("Couldn't load support tickets — refresh to retry.");
         return [];
       }
 
@@ -83,14 +84,13 @@ const AdminSupport = () => {
     const { error } = await supabase.from("reports").update({ status }).eq("id", id);
     if (error) toast.error(error.message);
     else {
-      toast.success(`Ticket marked as ${status}`);
       qc.invalidateQueries({ queryKey });
     }
     setUpdating(null);
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex gap-2">
         {(["pending", "resolved", "all"] as const).map(f => (
           <Button
@@ -110,10 +110,16 @@ const AdminSupport = () => {
       {isInitialLoading ? (
         <p className="text-muted-foreground text-ds-11 py-8 text-center">Loading tickets…</p>
       ) : tickets.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
-          <Mail className="w-8 h-8 mx-auto mb-2 opacity-40" />
-          <p className="text-ds-13">No {filter !== "all" ? filter : ""} support tickets.</p>
-        </div>
+        <EmptyState
+          variant="inline"
+          icon={Mail}
+          title={filter !== "all" ? `No ${filter} tickets` : "No support tickets"}
+          body={
+            filter !== "all"
+              ? "Nothing matches this filter — try All."
+              : "Nobody has written in. That is the good outcome."
+          }
+        />
       ) : (
         <div className="space-y-3">
           {tickets.map(ticket => {

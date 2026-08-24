@@ -83,7 +83,7 @@ export function EmailsTab({
           title={approvalMaxReached ? "Max 3 follow-up emails reached" : "Send a manual follow-up reminder (auto-reminders also run every 3 days)"}
         >
           <MailIcon className="w-4 h-4 mr-1" />
-          {resending === viewProfile.id ? "Sending…" : `Send Approval Follow-up (${approvalSent}/3)`}
+          {resending === viewProfile.id ? "Sending…" : `Send Approval Follow-Up (${approvalSent}/3)`}
         </Button>
       )}
       {/* Approval email tracking */}

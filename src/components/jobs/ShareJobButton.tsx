@@ -230,7 +230,7 @@ export function ShareJobButton({
       } catch {
         /* clipboard unavailable too — fall through to the error below */
       }
-      toast.error("Couldn't share — try again");
+      toast.error("Couldn't share — try again.");
     } finally {
       setSharing(false);
     }

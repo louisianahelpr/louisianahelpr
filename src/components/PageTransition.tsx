@@ -8,7 +8,9 @@ import {
 } from "framer-motion";
 import { useLocation, useNavigate, useNavigationType } from "react-router-dom";
 
+import { useHiddenAtMount } from "@/hooks/useHiddenAtMount";
 import { useReducedMotion } from "@/lib/accessibility";
+import { hasInAppHistory } from "@/lib/inAppHistory";
 
 interface PageTransitionProps {
   children: ReactNode;
@@ -52,6 +54,12 @@ const PageTransition = ({ children }: PageTransitionProps) => {
   const navigate = useNavigate();
   const navigationType = useNavigationType();
   const reducedMotion = useReducedMotion();
+  /* A route that mounts while the app is backgrounded has nobody to watch it
+     arrive, and framer's rAF tween would leave it at `opacity: 0` — slid
+     sideways by `offsetX` — until frames resume. That is the blank screen a
+     user meets when a push deep-link or a resume restores a route. Render the
+     settled state instead. See useHiddenAtMount. */
+  const hiddenAtMount = useHiddenAtMount();
 
   // POP = back navigation. PUSH/REPLACE = forward.
   const isBack = navigationType === "POP";
@@ -89,7 +97,14 @@ const PageTransition = ({ children }: PageTransitionProps) => {
       (info.offset.x > DISMISS_DISTANCE_PX ||
         info.velocity.x > DISMISS_VELOCITY);
     fromEdge.current = false;
-    if (committed) {
+    // ...but only if there is somewhere to go. A cold-opened deep link has no
+    // entry behind it, and `navigate(-1)` there walks the user clean out of the
+    // app — the same defect BackButton was fixed for, which the gesture never
+    // inherited because the guard was a closure inside that component. With no
+    // history the swipe snaps back to rest, which is also what iOS does when
+    // you swipe at the root of a navigation stack: the screen you are on IS the
+    // entry point, so the gesture has nothing to dismiss.
+    if (committed && hasInAppHistory()) {
       navigate(-1);
       return;
     }
@@ -98,6 +113,10 @@ const PageTransition = ({ children }: PageTransitionProps) => {
   };
 
   // Reduced motion: keep the simple fade, no interactive drag follow.
+  if (hiddenAtMount) {
+    return <div key={location.key}>{children}</div>;
+  }
+
   if (reducedMotion) {
     return (
       <motion.div

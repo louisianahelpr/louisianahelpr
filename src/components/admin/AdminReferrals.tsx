@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Search, Gift, Users, DollarSign, Banknote, Copy } from "lucide-react";
-import { toast } from "sonner";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -276,7 +275,7 @@ const AdminReferrals = () => {
               <EmptyState
                 variant="inline"
                 icon={DollarSign}
-                title="No credits awarded yet."
+                title="No credits awarded yet"
                 body="Referral bonuses post here as soon as a referred user finishes their first job."
               />
             )}
@@ -296,7 +295,7 @@ const AdminReferrals = () => {
               <div className="flex items-center gap-2">
                 <span className="font-mono text-ds-13 font-bold text-primary tracking-widest">{c.code}</span>
                 <button
-                  onClick={() => { navigator.clipboard.writeText(c.code); toast.success("Code copied"); }}
+                  onClick={() => { navigator.clipboard.writeText(c.code); }}
                   aria-label="Copy referral code"
                   className="p-1 rounded hover:bg-secondary/50 transition-colors"
                 >

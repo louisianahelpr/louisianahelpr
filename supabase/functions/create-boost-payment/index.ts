@@ -171,7 +171,7 @@ serve(async (req) => {
             // Derived, not hardcoded: this is the line the customer reads on
             // their Stripe receipt, and it was the ONE duration string in this
             // file that wouldn't follow BOOST_DURATION_HOURS if it changed.
-            description: `Boosts "${job.title}" to the top of Browse Tasks for ${BOOST_DURATION_HOURS} hours.`,
+            description: `Boosts "${job.title}" to the top of Browse Jobs for ${BOOST_DURATION_HOURS} hours.`,
             // Promotional / advertising service — not subject to LA sales tax.
             // (LA does not currently tax advertising services for state purposes.)
             tax_code: "txcd_00000000",

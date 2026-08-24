@@ -1,11 +1,10 @@
-import { useState, useCallback, useEffect, useMemo, useRef, lazy, Suspense } from "react";
+import { useState, useCallback, useEffect, useRef, lazy, Suspense } from "react";
 import type { FeedDensity } from "@/components/dashboard/feedDensity";
 
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { signOutWithPushCleanup } from "@/lib/authSignOut";
 import { PageScaffold } from "@/components/ui/PageScaffold";
-import { toast } from "sonner";
 import { DashboardSkeleton } from "@/components/SkeletonLoaders";
 import { LoadingHeading } from "@/components/ui/LoadingHeading";
 import { useRealtimePush } from "@/hooks/useRealtimePush";
@@ -15,7 +14,6 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 // read as a band of chrome rather than a card.
 import { DashboardTitleBar, TITLE_BAR_PADDING } from "@/components/dashboard/DashboardTitleBar";
 import { BrowseSearchBar } from "@/components/dashboard/browseTasksToolbar/BrowseSearchBar";
-import DashboardInProgressBadge from "@/components/dashboard/DashboardInProgressBadge";
 import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
 import { BrowseTasksActions } from "@/components/dashboard/browseTasksToolbar/BrowseTasksActions";
 import { BrowseTasksFeed } from "@/components/dashboard/BrowseTasksFeed";
@@ -214,7 +212,7 @@ const Dashboard = () => {
   const userParish = profile?.parish ?? null;
 
   const {
-    pifCount, upcomingJob,
+    pifCount,
     savedJobIds, setSavedJobIds, dismissedJobIds, setDismissedJobIds,
   } = useDashboardSideQueries({ userId: user?.id, userParish, allJobs });
 
@@ -250,7 +248,6 @@ const Dashboard = () => {
       safeStorage.setItem("helpr_dismissed_jobs", JSON.stringify([...next]));
       return next;
     });
-    toast.success("Job removed from your feed.");
     setConfirmDismissJobId(null);
   }, [confirmDismissJobId, setDismissedJobIds]);
 
@@ -265,10 +262,10 @@ const Dashboard = () => {
   // node identity. As a bare inline element this was a NEW object every render,
   // so the effect re-fired, setState ran, and the component re-rendered —
   // "Maximum update depth exceeded", an infinite loop on Home.
-  const statusPill = useMemo(
-    () => <DashboardInProgressBadge job={upcomingJob} onView={(to) => navigate(to)} />,
-    [upcomingJob, navigate],
-  );
+  // The in-progress pill is no longer rendered in the brand row (owner:
+  // "remove"). That row is logo, filter, notification. The job it pointed at is
+  // still one tap away via the Jobs tab, and DashboardInProgressBadge itself
+  // stays — ScheduleTab imports `inProgressBadgeTarget` from it.
 
 
   if (loading) {
@@ -290,7 +287,6 @@ const Dashboard = () => {
         // the "Full-bleed top header" CSS rule never fires), stacking on top
         // of the title card's own emblem+bell instead of replacing them.
         titleCard={<DashboardTitleBar
-            status={statusPill}
             actions={<BrowseTasksActions filters={filters} filtersButtonRef={filtersButtonRef} />}
             searchBar={filters.searchOpen ? <BrowseSearchBar filters={filters} /> : undefined}
           />}
@@ -299,7 +295,7 @@ const Dashboard = () => {
         {/* The loaded screen's only <h1> lives in BrowseTasksToolbar, which
             doesn't exist yet here — so the pending screen had no heading at
             all. Visually hidden; the skeleton stays the visible design. */}
-        <LoadingHeading title="Browse jobs" message="Loading jobs near you…" />
+        <LoadingHeading title="Browse Jobs" message="Loading jobs near you…" />
         <DashboardSkeleton />
       </PageScaffold>
     );
@@ -366,7 +362,6 @@ const Dashboard = () => {
       titleCard={
         isWebDesktop ? undefined : (
           <DashboardTitleBar
-            status={statusPill}
             actions={
               <BrowseTasksActions
                 filters={filters}
@@ -374,6 +369,12 @@ const Dashboard = () => {
                 savedOnly={savedOnly}
                 onToggleSavedOnly={toggleSavedOnly}
                 savedCount={savedJobIds.size}
+                // Phone + native: emblem, filter, bell. Search and Saved fold
+                // into the filter sheet, which is the only way this row fits —
+                // measured, the five-icon cluster wanted 386px against a card
+                // edge at 334, and the overflow was silently eating first the
+                // emblem and then the bell.
+                compact
               />
             }
             searchBar={filters.searchOpen ? <BrowseSearchBar filters={filters} /> : undefined}
@@ -443,6 +444,35 @@ const Dashboard = () => {
                       {filters.searchOpen ? (
                         <BrowseSearchBar filters={filters} />
                       ) : (
+                        <>
+                          {/* THE ROW EARNS ITS HEIGHT. With the emblem hidden
+                              on web-desktop and no title on this screen (owner:
+                              "home will not have a title just the H logo"), the
+                              left half of this 44px band was empty and the four
+                              icons huddled at the right — a full row saying
+                              nothing above the list it belongs to.
+                              The count is what it can honestly say instead:
+                              live, about the list directly beneath, and the
+                              same shape as the "N unread" and bucket counts
+                              every sibling screen puts in that slot. */}
+                          <span
+                            /* Same TYPE as the status tabs Posts and Jobs put in
+                               this slot (owner: "needs to be same size as Post
+                               and Jobs") — font-display italic at ds-13, not
+                               font-serif at ds-11. Home sat two steps smaller
+                               and in a different family than its two siblings,
+                               for the same kind of label in the same position. */
+                            className="font-display italic text-ds-13 leading-none min-w-0 truncate"
+                            /* --ink-deep, matching the SELECTED status tab on
+                               Posts and Jobs — those went black in the same
+                               pass and this is the same label in the same slot
+                               (owner: "black and same size as other pages"). */
+                            style={{ color: "hsl(var(--ink-deep))" }}
+                          >
+                            {filters.filteredJobs.length}
+                            {filters.filteredJobs.length === 1 ? " job" : " jobs"}
+                            {filters.hasFilters ? " match your filters" : " nearby"}
+                          </span>
                         <div className="flex items-center gap-1 ml-auto">
                           <BrowseTasksActions
                             filters={filters}
@@ -474,6 +504,7 @@ const Dashboard = () => {
                             )}
                           </button>
                         </div>
+                        </>
                       )}
                     </div>
                   )}
@@ -487,6 +518,12 @@ const Dashboard = () => {
                     view={view}
                     setView={setView}
                     hideViewToggle={isWebDesktop}
+                    // The sheet grows Search + "Only saved jobs" sections on
+                    // exactly the surfaces whose header row lost those icons.
+                    compactActions={!isWebDesktop}
+                    savedOnly={savedOnly}
+                    onToggleSavedOnly={toggleSavedOnly}
+                    savedCount={savedJobIds.size}
                     onClearAllFilters={() => {
                       // After clearing filters, snap the feed back to the top
                       // so the user lands on the fresh unfiltered head of the

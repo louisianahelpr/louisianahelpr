@@ -42,7 +42,16 @@ const COLS: Record<number, string> = {
 export const JOB_ACTION_CHIP_CLASS =
   "w-full h-auto min-h-[44px] flex-col gap-0.5 px-1 py-1.5 glass-press border-0";
 
-export type JobActionTone = "info" | "boost" | "edit" | "danger" | "primary" | "neutral" | "share" | "done";
+export type JobActionTone =
+  | "info"
+  | "boost"
+  | "edit"
+  | "danger"
+  | "primary"
+  | "approve"
+  | "neutral"
+  | "share"
+  | "done";
 
 /**
  * Tint/ink/border per chip tone.
@@ -113,6 +122,29 @@ export function jobActionChipStyle(tone: JobActionTone): CSSProperties {
         background: "hsl(var(--olivewood) / 0.08)",
         color: "hsl(var(--olivewood))",
         border: "0.5px solid hsl(var(--olivewood) / 0.22)",
+      };
+    case "approve":
+      // A GREEN LIGHT, literally (owner: "make this more of a green light
+      // color"). Approve had been on `primary` — the bark tint borrowed from
+      // the money chip — which is olive, the same family as the page's own
+      // furniture, so the one chip that means "go, release the money" looked
+      // like part of the card rather than a decision.
+      //
+      // --live is the app's existing go-green (142° at 64%): the presence dot,
+      // the landing heartbeat, the payout ticker. Reused rather than minted so
+      // the app keeps ONE saturated green, and it already carries a lightened
+      // dark-mode value. The ink is --success-ink-deep, the same green family's
+      // text token, which measures well clear of AA on this fill in both
+      // themes.
+      //
+      // Distinct from `done` on purpose: `done` is the SAME hue at low
+      // presence for a finished, inert action (Tipped / Reviewed), this is the
+      // live one. Green means good outcome either way; brightness says whether
+      // there is still something to press.
+      return {
+        background: "hsl(var(--live) / 0.18)",
+        color: "hsl(var(--success-ink-deep))",
+        border: "0.5px solid hsl(var(--live) / 0.45)",
       };
     case "done":
       // A finished action — Tipped, Reviewed. It used to borrow `neutral`,

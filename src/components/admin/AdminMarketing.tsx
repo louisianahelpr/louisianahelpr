@@ -38,15 +38,15 @@ const AdminMarketing = () => {
   // a toast) when the form isn't ready.
   const validate = (asTest: boolean): boolean => {
     if (!subject.trim() || !html.trim()) {
-      toast.error("Subject and body are required");
+      toast.error("Subject and body are required.");
       return false;
     }
     if (asTest && !testEmail.trim()) {
-      toast.error("Enter a test email");
+      toast.error("Enter a test email.");
       return false;
     }
     if (segment === "by_parish" && !parish) {
-      toast.error("Pick a parish");
+      toast.error("Pick a parish.");
       return false;
     }
     return true;
@@ -75,11 +75,6 @@ const AdminMarketing = () => {
       });
       if (error) throw error;
       setLastResult({ sent: data?.sent ?? 0, failed: data?.failed ?? 0, total: data?.total ?? 0 });
-      toast.success(
-        asTest
-          ? `Test email sent to ${testEmail}`
-          : `Campaign sent: ${data?.sent ?? 0} delivered, ${data?.failed ?? 0} failed`
-      );
     } catch (e: any) {
       toast.error(e.message || "Send failed");
     } finally {
@@ -204,7 +199,7 @@ const AdminMarketing = () => {
             title="Send to the Full Segment?"
             description={`This sends the campaign to all matching ${segment === "all" ? "users" : segment}. It can't be undone.`}
             callout={{ text: "Did you send a test first? This goes straight to real inboxes." }}
-            primaryLabel="Send campaign"
+            primaryLabel="Send Campaign"
             primaryTone="sienna"
             primaryHaptic="warning"
             onPrimary={() => { setConfirmSendOpen(false); void send(false); }}

@@ -74,7 +74,9 @@ export function ProUpgradeSheet({
                 the upgrade sheet's heading ran ~7% larger than every dialog and
                 sheet beside it. The inert `eyebrow`/`eyebrowStyle` props went
                 with the ones stripped from the sheet call sites. */}
-            <DialogHero className="flex-1 min-w-0" title={title} />
+            <div className="flex-1 min-w-0">
+              <DialogHero title={title} />
+            </div>
           </div>
         </DialogHeader>
 
@@ -123,7 +125,7 @@ export function ProUpgradeSheet({
           </ul>
         </div>
 
-        <DialogFooter className="!gap-2 !flex-col-reverse sm:!flex-row">
+        <DialogFooter className="!flex-col-reverse sm:!flex-row">
           <Button variant="ghost" onClick={onClose} className="rounded-ds-md">
             Maybe Later
           </Button>
@@ -136,7 +138,7 @@ export function ProUpgradeSheet({
             className="rounded-ds-md flex-1 sm:flex-initial"
           >
             <TierIcon className="w-4 h-4 mr-1.5" />
-            See {tierLabel} plans
+            See {tierLabel} Plans
           </Button>
         </DialogFooter>
       </DialogContent>

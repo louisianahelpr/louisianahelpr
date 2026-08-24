@@ -80,8 +80,7 @@ describe("DeleteUserDialog", () => {
     expect(invokeMock).toHaveBeenCalledWith("admin-delete-user", {
       body: { userId: "user-id-1" },
     });
-    await waitFor(() => expect(toastSuccess).toHaveBeenCalled());
-    expect(onSuccess).toHaveBeenCalled();
+    await waitFor(() => expect(onSuccess).toHaveBeenCalled());
     expect(onClose).toHaveBeenCalled();
   });
 

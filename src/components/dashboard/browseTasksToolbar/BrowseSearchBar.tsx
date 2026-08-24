@@ -83,29 +83,27 @@ export function BrowseSearchBar({
             }}
             // Delayed so a mousedown on a suggestion row still lands.
             onBlur={() => window.setTimeout(() => setFocused(false), 150)}
-            className="w-full pl-9 pr-9 h-9 text-ds-13 rounded-ds-md glass-field focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"
+            className="w-full pl-9 pr-10 h-9 text-ds-13 rounded-ds-md glass-field focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"
           />
-          {filters.searchQuery && (
-            <button
-              onClick={() => filters.setSearchQuery("")}
-              aria-label="Clear search"
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground btn-press"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
+          {/* The X lives INSIDE the field, on its right — the same shape the
+              Activity search uses (owner: "instead of Cancel put X in the
+              right of the search bar"). Always present, not only once you have
+              typed: it is the way OUT of search, so hiding it until there is a
+              query left an empty search bar with no visible dismiss and a
+              word-button sitting outside the field to do the job. Clears the
+              query and closes in one press. */}
+          <button
+            type="button"
+            onClick={() => {
+              filters.setSearchQuery("");
+              filters.setSearchOpen(false);
+            }}
+            aria-label="Close search"
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 h-7 w-7 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary/60 btn-press transition"
+          >
+            <X className="w-4 h-4" strokeWidth={2.25} />
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            filters.setSearchOpen(false);
-            filters.setSearchQuery("");
-          }}
-          className="shrink-0 text-ds-13 font-medium btn-press py-2"
-          style={{ color: "hsl(var(--bark))" }}
-        >
-          Cancel
-        </button>
       </div>
 
       {showRecent && (

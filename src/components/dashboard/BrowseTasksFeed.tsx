@@ -300,7 +300,7 @@ export function BrowseTasksFeed({
            feed rendered an empty panel with no explanation at all. */
         <div className="px-3 pt-4 flex-1 min-h-0 flex">
           <ErrorState
-            title="Nothing saved yet."
+            title="Nothing saved yet"
             body="Tap the bookmark on a job to keep it here. Saved jobs stay put until you unsave them or they're filled."
           />
         </div>
@@ -512,7 +512,12 @@ export function BrowseTasksFeed({
                  virtualized row so it survives the absolute positioning
                  the virtualizer applies. */
               <div
-                className="px-3 pt-3"
+                /* px-4, matching the toolbar row directly above it. The feed was px-3
+           and the toolbar px-4, so the cards sat 4px further left than the
+           "N jobs nearby" label introducing them — two edges 4px apart is the
+           kind of misalignment that reads as sloppiness without being
+           nameable (owner: "same spacing"). */
+        className="px-4 pt-3"
                 style={{
                   paddingBottom: "calc(6rem + var(--safe-area-bottom, 0px))",
                 }}
@@ -526,7 +531,13 @@ export function BrowseTasksFeed({
                     // virtualizer absolutely-positions rows, so the gap is
                     // bottom padding measured as part of the row height.
                     <div
-                      className="pb-2.5 lg:pb-4 xl:pb-5"
+                      className=/* 8 / 10 / 12, not 10 / 16 / 20 (owner: "tighter together").
+                       The gap GREW with viewport width while the card it
+                       separates stayed 85px tall, so the desktop feed spent a
+                       fifth of a card's height on the space between every pair.
+                       A list reads as a list when the rows are closer to each
+                       other than they are tall. */
+                    "pb-2 lg:pb-2.5 xl:pb-3"
                       onMouseEnter={() => setHoveredJobId?.(job.id)}
                       onMouseLeave={() => setHoveredJobId?.(null)}
                     >
@@ -554,11 +565,6 @@ export function BrowseTasksFeed({
                     Load More
                   </Button>
                 )}
-              </div>
-            )}
-            {!hasNextPage && visibleJobs.length >= 25 && (
-              <div className="px-4 py-4 text-center text-ds-11 text-muted-foreground">
-                You've reached the end of the feed.
               </div>
             )}
           </>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { Search, Users } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { safeStorage } from "@/lib/safeStorage";
@@ -22,6 +23,7 @@ import { filterAndSortProfiles, getTabCounts, type Tab, type SortDir } from "./a
 import { AdminUserRow } from "./adminusers/AdminUserRow";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 // UUID v4-ish pattern. Loose enough to accept any 8-4-4-4-12 hex group;
 // strict enough that a plain email won't false-match.
@@ -137,7 +139,7 @@ const AdminUsers = () => {
       .order("created_at", { ascending: false });
     if (error) {
       console.error("[AdminUsers] loadProfiles:", error);
-      toast.error("Couldn't load users — refresh to retry");
+      toast.error("Couldn't load users — refresh to retry.");
     } else if (data) {
       setProfiles(data);
       // Load supplemental data in parallel (non-blocking). `profiles` (the
@@ -251,12 +253,18 @@ const AdminUsers = () => {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-6">
       {/* Scrolls rather than dividing the width six ways. With `flex-1` each
           tab got ~1/6 of 402pt and had to share that with a count badge, so
           "Active" rendered as "Acti…" — a filter that will not say what it
           filters. Same overflow treatment as the app's other chip rows. */}
-      <div className="flex gap-0.5 bg-secondary/50 rounded-ds-sm p-0.5 w-full overflow-x-auto scrollbar-none [-webkit-mask-image:linear-gradient(to_right,black_calc(100%-16px),transparent)] [mask-image:linear-gradient(to_right,black_calc(100%-16px),transparent)]">
+      {/* `w-fit max-w-full`, not `w-full`. The tinted track is the SHAPE OF THE
+          CONTROL, so painting it edge-to-edge left six small tabs huddled at
+          the left of a wide grey band with nothing in the rest of it — the
+          track stopped reading as a segmented control and started reading as a
+          slab the page had failed to fill. It still scrolls when the six tabs
+          genuinely exceed the width. */}
+      <div className="flex gap-0.5 bg-secondary/50 rounded-ds-sm p-0.5 w-fit max-w-full overflow-x-auto scrollbar-none [-webkit-mask-image:linear-gradient(to_right,black_calc(100%-16px),transparent)] [mask-image:linear-gradient(to_right,black_calc(100%-16px),transparent)]">
         {tabs.map((t) => (
           <button
             key={t.key}
@@ -285,13 +293,20 @@ const AdminUsers = () => {
 
       {/* Search */}
       <div className="flex flex-col sm:flex-row gap-2">
-        <Input
-          type="search"
-          aria-label="Search users by name, email, phone, or job UUID"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="h-9 text-ds-13 flex-1"
-        />
+        {/* A magnifier and a placeholder. It had neither — just an aria-label —
+            so it rendered as a bare empty pill with no indication of what it
+            searched or that it was a search field at all. */}
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" aria-hidden />
+          <Input
+            type="search"
+            aria-label="Search users by name, email, phone, or job UUID"
+            placeholder="Search name, email, phone or job ID…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="h-9 text-ds-13 w-full pl-9"
+          />
+        </div>
         <Select value={sortDir} onValueChange={(v) => setSortDir(v as typeof sortDir)}>
           <SelectTrigger aria-label="Sort by" className="h-9 text-ds-13 sm:w-[220px]">
             <SelectValue placeholder="Sort by" />
@@ -349,7 +364,12 @@ const AdminUsers = () => {
       </div>
 
       {filtered.length === 0 ? (
-        <p className="text-ds-11 text-muted-foreground text-center py-8">No users in this category.</p>
+        <EmptyState
+          variant="inline"
+          icon={Users}
+          title="No users here"
+          body={`Nothing is ${tabCountLabel[tab]} right now. Try another tab above.`}
+        />
       ) : (
         <VirtualList
           items={filtered}

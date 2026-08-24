@@ -89,11 +89,9 @@ const BusinessTeam = () => {
   useEffect(() => {
     const seats = searchParams.get("seats");
     if (seats === "success") {
-      toast.success("Plan upgraded! Your new seats are ready.");
       searchParams.delete("seats");
       setSearchParams(searchParams, { replace: true });
     } else if (seats === "cancel") {
-      toast.info("Upgrade cancelled.");
       searchParams.delete("seats");
       setSearchParams(searchParams, { replace: true });
     }
@@ -185,8 +183,6 @@ const BusinessTeam = () => {
         toast.warning(
           `Invite saved, but email failed to send. Share this link manually: louisianahelpr.com/signup?invite=${encodeURIComponent(email)}`,
         );
-      } else {
-        toast.success(`Invite emailed to ${email}.`);
       }
       setInviteEmail("");
       queryClient.invalidateQueries({ queryKey: queryKeys.business.members(business.business_id) });
@@ -212,8 +208,6 @@ const BusinessTeam = () => {
         description: "Tap retry — or report if it keeps happening.",
         onRetry: () => handleResendInvite(memberEmail),
       });
-    } else {
-      toast.success(`Invite resent to ${memberEmail}.`);
     }
   };
 
@@ -228,9 +222,6 @@ const BusinessTeam = () => {
       toast.error(error.message || "We couldn't remove that teammate — try again in a moment.");
       return;
     }
-    toast.success(
-      removeTarget.status === "pending" ? "Invite cancelled" : "Member removed",
-    );
     queryClient.invalidateQueries({ queryKey: queryKeys.business.members(business.business_id) });
     setRemoveTarget(null);
   };
@@ -261,7 +252,6 @@ const BusinessTeam = () => {
           toast.error("Couldn't change role — try again.");
           return;
         }
-        toast.success(`Role updated to ${ROLE_LABEL[nextRole]}.`);
         queryClient.invalidateQueries({ queryKey: queryKeys.business.members(business.business_id) });
         return;
       }
@@ -271,7 +261,6 @@ const BusinessTeam = () => {
       return;
     }
     setSavingRole(null);
-    toast.success(`Role updated to ${ROLE_LABEL[nextRole]}.`);
     queryClient.invalidateQueries({ queryKey: queryKeys.business.members(business.business_id) });
   };
 

@@ -221,15 +221,13 @@ function EnrollDialog({
       toast.error("That code didn't match. Check your app and try again.");
       return;
     }
-    toast.success("Two-step verification is on.");
     onEnrolled();
   };
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="!gap-3" onOpenAutoFocus={(e) => e.preventDefault()}>
+      <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHero
-          eyebrowClassName="inline-flex items-center gap-1.5"
           eyebrow={<><Smartphone className="w-3 h-3" /> Authenticator app</>}
           title="Turn On Two-Step."
         />
@@ -297,7 +295,7 @@ function EnrollDialog({
           </>
         )}
 
-        <DialogFooter className="!gap-2">
+        <DialogFooter>
           <Button variant="ghost" onClick={onClose} className="rounded-ds-md" style={{ color: "hsl(var(--bark))" }}>
             Cancel
           </Button>
@@ -353,15 +351,13 @@ function DisableDialog({
       toast.error("Couldn't turn off two-step verification — try again?");
       return;
     }
-    toast.success("Two-step verification is off.");
     onDisabled();
   };
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="!gap-3" onOpenAutoFocus={(e) => e.preventDefault()}>
+      <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHero
-          eyebrowClassName="inline-flex items-center gap-1.5"
           eyebrow={<><ShieldCheck className="w-3 h-3" /> Two-step verification</>}
           title="Turn Off Two-Step?"
         />
@@ -386,7 +382,7 @@ function DisableDialog({
           />
         </div>
 
-        <DialogFooter className="!gap-2">
+        <DialogFooter>
           <Button variant="ghost" onClick={onClose} className="rounded-ds-md" style={{ color: "hsl(var(--bark))" }}>
             Keep It On
           </Button>

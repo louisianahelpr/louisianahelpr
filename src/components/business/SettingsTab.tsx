@@ -95,7 +95,6 @@ export function SettingsTab({ businessId, initial, isOwner }: SettingsTabProps) 
       }
       return false;
     }
-    toast.success(`${label} saved.`);
     queryClient.invalidateQueries({ queryKey: queryKeys.business.allMine });
     return true;
   };

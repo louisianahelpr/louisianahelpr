@@ -80,14 +80,12 @@ const ForgotPassword = () => {
       // Neutral copy — doesn't confirm the email exists ("If that email
       // is registered, we've sent…") so the screen reads identically for
       // non-existent addresses too.
-      toast.success("If that email is registered, we've sent a reset link.");
     }
   };
 
   const handleResend = async () => {
     if (loading || resendCooldown > 0) return;
-    const ok = await performSend();
-    if (ok) toast.success("If that email is registered, we've sent another link.");
+    await performSend();
   };
 
   return (
@@ -106,7 +104,7 @@ const ForgotPassword = () => {
                 a section heading under it. It was an h1 back when the title
                 row lived inside the `!sent` branch and disappeared here —
                 lifting the row into AuthShell made the page briefly carry two. */}
-            <h2 className="text-page-title leading-tight">
+            <h2 className="text-page-title leading-tight truncate">
               Check your inbox.
             </h2>
             {/* Neutral confirmation copy — leaks no signal about whether

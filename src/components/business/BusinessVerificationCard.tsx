@@ -65,11 +65,11 @@ export default function BusinessVerificationCard() {
   const handleUpload = async (file: File) => {
     if (!data?.business_id) return;
     if (!data.is_owner) {
-      toast.error("Only the business owner can upload verification documents");
+      toast.error("Only the business owner can upload verification documents.");
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
-      toast.error("File must be 10 MB or smaller");
+      toast.error("File must be 10 MB or smaller.");
       return;
     }
 
@@ -98,7 +98,6 @@ export default function BusinessVerificationCard() {
         .eq("id", data.business_id);
       if (updErr) throw updErr;
 
-      toast.success("Document uploaded — pending admin review");
       load();
     } catch (err: any) {
       toast.error(err.message || "Couldn't upload — try again?");

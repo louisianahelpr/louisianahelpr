@@ -11,7 +11,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { safeStorage } from "@/lib/safeStorage";
 import { CheckCircle2, ArrowRight, ArrowLeft as ArrowLeftIcon, Building2, Users, CreditCard, CalendarClock, Sparkles } from "lucide-react";
-import { toast } from "sonner";
 import { hapticSuccess } from "@/lib/haptics";
 
 const STORAGE_KEY = "biz_onboarding_v1";
@@ -78,7 +77,6 @@ const BusinessOnboarding = () => {
   const finish = () => {
     safeStorage.removeItem(STORAGE_KEY);
     hapticSuccess();
-    toast.success("You're all set.");
     navigate("/business/team");
   };
 

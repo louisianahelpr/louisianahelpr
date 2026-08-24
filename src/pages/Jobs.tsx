@@ -361,7 +361,7 @@ const Jobs = () => {
                       asChild
                       className="squircle"
                     >
-                      <Link to="/signup">Sign up to Get Notified</Link>
+                      <Link to="/signup">Sign Up to Get Notified</Link>
                     </Button>
                   )
                 }

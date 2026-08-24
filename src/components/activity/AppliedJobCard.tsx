@@ -117,6 +117,23 @@ function AppliedJobCardInner({
     viewerFeePercent,
   );
 
+  /**
+   * Location · date · time — built once, placed twice. Desktop puts it on the
+   * TITLE row; phone keeps it below. Mirrors PostedJobCard exactly, which is
+   * the point: these two cards sit in the same two tabs of the same screen.
+   */
+  const metaRow = (
+            <JobCardMetaRow
+              dateNeeded={job.date_needed}
+              startTime={job.start_time}
+              location={job.location}
+              latitude={job.latitude}
+              longitude={job.longitude}
+              estimatedHours={job.estimated_hours}
+              expiresAt={isPending && !job.helper_id ? job.expires_at : null}
+            />
+  );
+
   return (
     <>
         <div ref={cardRef}>
@@ -133,6 +150,7 @@ function AppliedJobCardInner({
             // one overstates it.
             amount={formatPriceExact(payout)}
             amountTitle={`Budget: $${job.budget} · Fee: ${commissionPercent}%`}
+            meta={metaRow}
           />
 
           {/* NO STATUS BAND — the filter tabs say it (owner: "remove"). Same
@@ -168,7 +186,7 @@ function AppliedJobCardInner({
               stacked to ~48px of dead band with a hairline through the middle,
               directly above the Accept/Decline pair. Same trim the posted card
               makes. */}
-          <div className={`px-4 pt-3 space-y-2.5 ${hasActionSection && !isMinimalCard ? "pb-1.5" : "pb-3"}`}>
+          <div className={`px-4 pt-2.5 space-y-2 ${hasActionSection && !isMinimalCard ? "pb-1.5" : "pb-3"}`}>
             {/* The chevron goes through JobCardMetaRow's own `trailing` slot,
                 which exists for exactly this and is what PostedJobCard uses.
                 This card wrapped the meta row in a bespoke flex and hung its
@@ -177,30 +195,6 @@ function AppliedJobCardInner({
                 ChevronDown now too, copied from PostedJobCard: swapping
                 ChevronUp/ChevronDown with no transition made the identical
                 control animate on one card and snap on the other. */}
-            <JobCardMetaRow
-              dateNeeded={job.date_needed}
-              startTime={job.start_time}
-              location={job.location}
-              latitude={job.latitude}
-              longitude={job.longitude}
-              estimatedHours={job.estimated_hours}
-              expiresAt={isPending && !job.helper_id ? job.expires_at : null}
-              trailing={
-                !isMinimalCard ? (
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); setExpandedJobId(isExpanded ? null : app.job_id); }}
-                    aria-expanded={isExpanded}
-                    aria-label={isExpanded ? "Hide job details" : "Show job details"}
-                    className="inline-flex items-center justify-center w-11 h-11 -my-3.5 -mr-2.5 text-primary active:opacity-70"
-                  >
-                    <ChevronDown
-                      className={`w-4 h-4 motion-safe:transition-transform motion-safe:duration-200 ${isExpanded ? "rotate-180" : ""}`}
-                    />
-                  </button>
-                ) : null
-              }
-            />
 
             {/* Description behind a tap — expands IN PLACE on this card (it IS
                 the detail surface for an applied job; there is no separate
@@ -231,18 +225,9 @@ function AppliedJobCardInner({
               <div className="space-y-2">
                 <p className="text-ds-11 text-muted-foreground italic">{isCancelled ? "Job was cancelled" : "Not selected"}</p>
                 {isCancelled && <CancellationFeePill job={job} />}
-                {/* Rejection is the most deflating moment on the helper side —
-                    never leave it a dead end. Offer the obvious next step. */}
-                {!isCancelled && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="rounded-ds-md"
-                    onClick={(e) => { e.stopPropagation(); navigate("/dashboard"); }}
-                  >
-                    <Eye className="w-3.5 h-3.5 mr-1.5" /> Browse Open Jobs
-                  </Button>
-                )}
+                {/* No "Browse Open Jobs" button (owner: "remove"). A full-size
+                    control on every not-selected card repeated the Home tab one
+                    tap away — an archived rejection doesn't need a CTA. */}
               </div>
             )}
           </div>

@@ -314,7 +314,7 @@ const MembersTab = ({
         ) : membersError ? (
           <ErrorState
             variant="inline"
-            title="Couldn't load your team."
+            title="We couldn't load your team."
             body="Tap Try again to reload your team members."
             onRetry={() => refetchMembers()}
           />

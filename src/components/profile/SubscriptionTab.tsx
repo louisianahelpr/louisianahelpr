@@ -37,7 +37,6 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
     try {
       await supabase.functions.invoke("check-pro-subscription");
       await queryClient.invalidateQueries({ queryKey: queryKeys.currentUser.all });
-      toast.success("Membership updated");
     } catch {
       toast.error("Couldn't refresh your membership — try again?");
     } finally {
@@ -92,9 +91,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
     } catch { /* handled below via alertSent */ }
     setAcceptingPause(false);
     setPauseOfferOpen(false);
-    if (alertSent) {
-      toast.success("Got it — we'll be in touch.");
-    } else {
+    if (!alertSent) {
       toast.error("Couldn't send your request — try again or email support.");
     }
   };
@@ -151,7 +148,13 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
   const isBusinessMember =
     BUSINESS_ENABLED && currentTier?.toLowerCase() === "business" && !isExpired;
   return (
-    <div className="flex flex-col min-h-full gap-4 pb-4">
+    /* `space-y-4` — the shell every other Profile tab uses. This one wrapped
+       itself in `flex flex-col min-h-full gap-4 pb-4`, so Membership's title
+       row and body sat on a different rhythm from Security, Legal, Earnings and
+       the rest, and `min-h-full` stretched the tab to the panel even when its
+       content was short (owner, twice: "all profile tabs should share the same
+       shell"). Guarded by profileTabShell.test.ts. */
+    <div className="space-y-4">
       <ProfileTabHeader
         title="Membership"
         onBack={onBack}

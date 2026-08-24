@@ -185,10 +185,15 @@ export function PostedJobActions({
         })()}
         {job.status === "accepted" && (
           <div className="space-y-2">
-            <p className="text-ds-11 text-muted-foreground text-center">
-              <Clock className="w-3 h-3 inline mr-1" />
-              Helpr must confirm 24 hours before the job starts — tracking actions unlock then
-            </p>
+            {/* REMOVED: "Helpr must confirm 24 hours before the job starts —
+                tracking actions unlock then."
+                It was the THIRD statement of one fact on a single card, and the
+                least useful of the three. Directly above it, JobConfirmation
+                already says "Confirmation opens in 3d 6h" with the same
+                explanation and a live number; above that, JobCountdown says
+                "Job starts in 4d 14h". This one restated both in flat grey with
+                no number at all. Owner: "needs better organization globally."
+                One fact, one place — the countdown that actually moves. */}
             {startRequestedJobIds.has(job.id) && !job.helper_confirmed_at && (
               <Button size="sm" className="w-full" disabled={confirmingStartJobId === job.id} onClick={() => onConfirmStart(job.id)}>
                 <CheckCircle2 className="w-4 h-4 mr-1" />
@@ -304,7 +309,23 @@ export function PostedJobActions({
               // on-the-way one (owner: "SOS should be when they are there
               // arrived and working"). Someone still driving over is not a
               // safety situation yet, and an SOS offered then reads as routine.
-              const showSos = !!job.helper_arrived_at;
+              // ...and it ENDS when the job does (owner: "if they're done
+              // remove SOS"). `helper_arrived_at` is a stamp, never cleared, so
+              // on its own it kept a personal-safety escalation on the card
+              // forever — including on a finished job sitting in history, where
+              // the helper left days ago and there is no situation to escalate.
+              // A safety control that outlives the situation is noise, and
+              // noise is what gets ignored when it matters.
+              // Either side's completion stamp marks it over. The tracker's
+              // "Done" step lights on `helper_completed_at`, and a card whose
+              // own tracker says Done while its action row still offers SOS is
+              // contradicting itself (owner, 2026-08-24: "if the job tracker
+              // is on done then the bottom buttons should not be that") — the
+              // helper has finished and left; there is no live situation.
+              // (The status union on this branch is only in_progress |
+              // revision_requested, so status comparisons stay dead code.)
+              const jobIsOver = !!job.poster_completed_at || !!job.helper_completed_at;
+              const showSos = !!job.helper_arrived_at && !jobIsOver;
               const showApprove = !!job.helper_completed_at;
               // Dispute only where the shared predicate already allows it (an
               // open revision on the customer side) — no new dispute surface,
@@ -324,19 +345,6 @@ export function PostedJobActions({
                 <>
                   <JobActionRow columns={columns}>
                     {showSos && <SosShareButton jobId={job.id} variant="chip" />}
-                    <JobActionChip
-                      icon={MessageCircle}
-                      label="Message"
-                      ariaLabel="Message Helpr"
-                      // Blue. Owner: "I think blue suits messages better."
-                      tone="info"
-                      // Straight into the thread with THIS helpr on THIS job, not
-                      // the conversation list — owner: "when I tap message it
-                      // should take me right into Eli's message". Same
-                      // jobId+userId contract the card's other Message entry
-                      // points already use.
-                      onClick={() => navigate(`/messages?jobId=${job.id}&userId=${job.helper_id}`)}
-                    />
                     {showNoShow && (
                       <JobActionChip
                         icon={XCircle}
@@ -355,12 +363,36 @@ export function PostedJobActions({
                         onClick={() => onDispute(job)}
                       />
                     )}
+                    {/* ORDER, GLOBALLY: danger left · Message middle · Approve
+                        right (owner: "move to middle globally and dispute or
+                        SOS on left").
+
+                        Message is the one action present on EVERY assigned job,
+                        so it is the fixed point the eye scans to; the
+                        situational chips (SOS, No-show, Dispute) queue to its
+                        left and the terminal one (Approve) stays right. That
+                        also keeps the two consequential ends apart — the
+                        escalation and the release of money never land next to
+                        each other under a thumb. */}
+                    <JobActionChip
+                      icon={MessageCircle}
+                      label="Message"
+                      ariaLabel="Message Helpr"
+                      // Blue. Owner: "I think blue suits messages better."
+                      tone="info"
+                      // Straight into the thread with THIS helpr on THIS job, not
+                      // the conversation list — owner: "when I tap message it
+                      // should take me right into Eli's message". Same
+                      // jobId+userId contract the card's other Message entry
+                      // points already use.
+                      onClick={() => navigate(`/messages?jobId=${job.id}&userId=${job.helper_id}`)}
+                    />
                     {showApprove && (
                       <JobActionChip
                         icon={CheckCircle2}
                         label={job.poster_completed_at ? "Approved" : "Approve"}
                         ariaLabel="Approve the work and release payment"
-                        tone="primary"
+                        tone="approve"
                         disabled={completingJobId === job.id || !!job.poster_completed_at}
                         onClick={() => {
                           if (!job.poster_completed_at) {
@@ -507,7 +539,7 @@ export function PostedJobActions({
                     {job.helper_id ? (
                       <JobActionChip
                         icon={RotateCcw}
-                        label="Hire again"
+                        label="Hire Again"
                         ariaLabel={`Hire ${helperName} again`}
                         tone="primary"
                         onClick={() => navigate(`/post-job?rebook=${job.id}&offerTo=${job.helper_id}`)}
@@ -515,7 +547,7 @@ export function PostedJobActions({
                     ) : (
                       <JobActionChip
                         icon={RotateCcw}
-                        label="Re-post"
+                        label="Re-Post"
                         ariaLabel="Re-post this job"
                         tone="primary"
                         onClick={() => navigate(`/post-job?rebook=${job.id}`)}
@@ -580,7 +612,6 @@ export function PostedJobActions({
                     if (error) { hapticError(); toast.error("We couldn't mark that resolved — please try again."); return; }
                     if (job.helper_id) await createNotification({ user_id: job.helper_id, title: "Dispute resolved ✓", message: `The poster confirmed the issue on "${job.title}" is resolved. Payment will be released.`, type: "payment", link: "/my-jobs?filter=completed" });
                     hapticSuccess();
-                    toast.success("Dispute resolved — payment released to Helpr");
                     onActionComplete();
                   } finally {
                     setDisputeActing(false);
@@ -596,7 +627,6 @@ export function PostedJobActions({
                     if (adminErr) report(adminErr, { tags: { source: "PostedJobCard.escalateNotifyAdmins" } });
                     if (adminRoles) { for (const admin of adminRoles) { await createNotification({ user_id: admin.user_id, title: "🚨 Dispute escalated", message: `"${job.title}" dispute has been escalated and requires admin decision.`, type: "warning", link: "/admin" }); } }
                     hapticSuccess();
-                    toast.success("Dispute escalated to admin for final decision");
                     onActionComplete();
                   } finally {
                     setDisputeActing(false);
@@ -613,7 +643,7 @@ export function PostedJobActions({
               className="w-full"
               onClick={(e) => { e.stopPropagation(); onViewDispute(job); }}
             >
-              <AlertTriangle className="w-4 h-4 mr-1" /> View timeline & add evidence
+              <AlertTriangle className="w-4 h-4 mr-1" /> View Timeline & Add Evidence
             </Button>
             <div className="grid grid-cols-2 gap-2">
               <Button size="sm" variant="outline" style={messageButtonStyle} className="w-full" onClick={() => navigate(`/messages?jobId=${job.id}&userId=${job.helper_id}`)}><MessageSquare className="w-4 h-4 mr-1" /> Message Helpr</Button>

@@ -34,7 +34,6 @@ export const RemoveJobDialog = ({
               <Trash2 className="w-3.5 h-3.5" /> Remove job
             </>
           }
-          eyebrowClassName="inline-flex items-center gap-1.5"
           title="Remove Job"
         />
         <div className="space-y-3">

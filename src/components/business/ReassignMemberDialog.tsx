@@ -88,7 +88,6 @@ export function ReassignMemberDialog({
         toast.warning("Reassignment isn't live yet; posts will stay attributed.");
       } else {
         hapticSuccess();
-        toast.success("Posts reassigned.");
       }
     }
     await onConfirm();
@@ -98,7 +97,7 @@ export function ReassignMemberDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm">
+      <DialogContent>
         <DialogHero
           eyebrow="Remove teammate"
           title={`Remove ${fromDisplay}?`}

@@ -289,26 +289,26 @@ test.describe("My Posts — card density + header", () => {
     const description = page.getByText("Full clean — kitchen, two bathrooms", { exact: false });
     await expect(description).toHaveCount(0);
 
-    const toggle = page.getByRole("button", { name: "Show job description" }).first();
-    await expect(toggle).toBeVisible();
-
-    // ≥44px tap target.
-    const box = await toggle.boundingBox();
-    expect(box, "toggle has no box").not.toBeNull();
-    expect(box!.height).toBeGreaterThanOrEqual(44);
+    // The whole card is the click/tap toggle. The sr-only button inside
+    // JobCardShell is the keyboard/screen-reader affordance — it is intentionally
+    // not visually interactive, so { force: true } bypasses Playwright's
+    // "element is on top" check, which sr-only elements always fail.
+    const toggle = page.getByRole("button", { name: "Expand Job Details" }).first();
+    await expect(toggle).toBeAttached();
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
 
     await dismissNudge(page);
     await page.screenshot({ path: `${SHOTS}/card-collapsed-375.png`, fullPage: true });
 
-    await toggle.click();
+    await toggle.click({ force: true });
     await expect(description.first()).toBeVisible();
     // Same card — the toggle expanded in place rather than navigating.
     await expect(page).toHaveURL(/\/my-posts/);
     await page.screenshot({ path: `${SHOTS}/card-expanded-375.png`, fullPage: true });
 
-    const collapse = page.getByRole("button", { name: "Hide job description" }).first();
+    const collapse = page.getByRole("button", { name: "Collapse Job Details" }).first();
     await expect(collapse).toHaveAttribute("aria-expanded", "true");
-    await collapse.click();
+    await collapse.click({ force: true });
     await expect(description).toHaveCount(0);
   });
 
@@ -387,7 +387,7 @@ test.describe("My Posts — card density + header", () => {
   // changing colour between cards, Message deep-links into the thread, and the
   // description toggle lost its words.
 
-  test("the live tracker is ONE scrollable line and the helpr captions the current step", async ({ page, context, baseURL }) => {
+  test("the live tracker is ONE scrollable line and the helpr is named in its heading", async ({ page, context, baseURL }) => {
     await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
     await installSupabaseMocks(page, {
       user: FAKE_CUSTOMER,
@@ -431,13 +431,24 @@ test.describe("My Posts — card density + header", () => {
 
     // The status sentence is gone from the card; the name now rides the row.
     await expect(page.getByText(/is on the way|finished the job|Offered to/i)).toHaveCount(0);
-    // After the Activity rewrite (commit b82aaf22) the helpr's name moved from
-    // the individual step caption onto the tracker heading — so no individual
-    // step carries a second <span> line any more. Assert 0 to pin that layout.
+    // ...and it is re-stated in the tracking card's HEADING, not as a caption
+    // under the live step. The caption gave every step column a third line of
+    // vertical space to accommodate one word on one of them, and it moved down
+    // the row as the job advanced (owner: "can we move this somewhere else so
+    // we can tighten up the spacing"). Up in the heading it holds still.
+    //
+    // So the assertion inverts: NO step carries a second line, and the name is
+    // on the card heading instead. Asserted structurally rather than by name —
+    // what the helpr resolves to here is the card's own display fallback, so
+    // matching a literal would test the fixture, not the feature.
     const captioned = await row.evaluate((el) =>
       Array.from(el.children).filter((c) => c.querySelectorAll("span").length > 1).length,
     );
-    expect(captioned, "no step carries a helpr caption (name lives in heading now)").toBe(0);
+    expect(captioned, "no tracker step carries a caption line").toBe(0);
+    const headingRow = page.locator("h3", { hasText: "Job tracking" }).first().locator("..");
+    await expect(headingRow, "the helpr's name rides the tracking heading").not.toHaveText(
+      /^Job tracking$/,
+    );
 
     await page.screenshot({ path: `${SHOTS}/tracker-one-line-375.png` });
   });
@@ -524,7 +535,7 @@ test.describe("My Posts — card density + header", () => {
     expect(url.searchParams.get("jobId"), "job not addressed").toBeTruthy();
   });
 
-  test("the description toggle is a bare chevron, with no words", async ({ page, context, baseURL }) => {
+  test("the card-level toggle carries aria-expanded and flips on click", async ({ page, context, baseURL }) => {
     await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
     await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true });
     await page.goto("/my-posts?filter=all");
@@ -532,19 +543,20 @@ test.describe("My Posts — card density + header", () => {
     await settle(page);
     await dismissNudge(page);
 
-    const toggle = page.getByRole("button", { name: "Show job description" }).first();
-    await expect(toggle).toBeVisible();
-    // The control is an icon only: no rendered text, but the accessible name
-    // and aria-expanded still carry the state the words used to spell out.
-    expect((await toggle.textContent())?.trim()).toBe("");
+    // The visible chevron button was removed by owner direction — "remove the
+    // chevron entirely". The whole card is now the click/tap affordance.
+    // The keyboard/screen-reader affordance is a sr-only button inside
+    // JobCardShell whose text and aria-expanded track the expand state.
+    // { force: true } is required because sr-only elements are never "on top"
+    // in Playwright's actionability check — they're intentionally visually hidden.
+    const toggle = page.getByRole("button", { name: "Expand Job Details" }).first();
+    await expect(toggle).toBeAttached();
     await expect(toggle).toHaveAttribute("aria-expanded", "false");
-    const box = await toggle.boundingBox();
-    expect(box!.height, "chevron tap target").toBeGreaterThanOrEqual(44);
-    await toggle.click();
-    await expect(page.getByRole("button", { name: "Hide job description" }).first()).toBeVisible();
+    await toggle.click({ force: true });
+    await expect(page.getByRole("button", { name: "Collapse Job Details" }).first()).toBeAttached();
   });
 
-  test("the active bucket is named beside the title", async ({ page, context, baseURL }) => {
+  test("the active bucket is the selected tab, not a caption beside the title", async ({ page, context, baseURL }) => {
     await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
     await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true });
 
@@ -565,8 +577,33 @@ test.describe("My Posts — card density + header", () => {
       await page.waitForSelector("h1");
       await settle(page);
       await dismissNudge(page);
-      const header = page.locator("h1").locator("..");
-      await expect(header, `filter=${filter}`).toContainText(label);
+      /* The bucket is now a TAB, not a caption. It used to render as
+         "· 2 Needs you" beside the h1 while the actual control hid behind a
+         sliders icon and a "Refine your search" sheet — a label naming
+         whichever bucket the hidden sheet had selected. The sheet is gone and
+         the four tabs sit above the cards on every surface (owner: "put the
+         needs you etc at the top oiver the job card same for search and remove
+         the filter since they will all be ther"), so what has to be true is
+         that the deep link SELECTS the right tab.
+
+         The tabs then went BEHIND A CHEVRON next to search (owner: "add a
+         dropdown arrow next to search so these aren't always showing"). A
+         non-default `?filter=` is supposed to open that disclosure on its own,
+         precisely so a filtered screen never hides why it is filtered — but
+         `needs_you` IS the default, so that one arrives collapsed and has to be
+         opened here. Asserting the toggle's state first is what proves the
+         auto-open rule rather than silently papering over it. */
+      const toggle = page.getByRole("button", { name: /Filter by status|Hide status filters/ }).first();
+      const alreadyOpen = (await toggle.getAttribute("aria-expanded")) === "true";
+      expect(
+        alreadyOpen,
+        `filter=${filter}: a non-default filter must open the disclosure itself`,
+      ).toBe(filter !== "needs_you");
+      if (!alreadyOpen) await toggle.click();
+
+      const tab = page.getByRole("group", { name: "Filter by status" }).getByRole("button", { name: new RegExp(`^${label}`) });
+      await expect(tab, `filter=${filter} tab is present`).toBeVisible();
+      await expect(tab, `filter=${filter} tab is selected`).toHaveAttribute("aria-pressed", "true");
       // Still exactly one heading — the indicator is a span, never an h2.
       await assertOneH1(page);
       if (filter === "needs_you") {
@@ -625,26 +662,21 @@ test.describe("My Posts — card density + header", () => {
     await page.waitForSelector("h1");
     await settle(page);
 
-    // Exactly one expand affordance per card — not a toggle bolted under an
-    // already-visible description.
-    //
-    // The applied card names it "job details", not "job description" like the
-    // posted card, and that difference is deliberate: this expander reveals
-    // who posted the job, the payout breakdown AND the description, so
-    // "description" would under-describe it for anyone navigating by
-    // accessible name. The STRUCTURE is shared — both cards render the control
-    // through JobCardMetaRow's `trailing` slot, as one rotating chevron — which
-    // is what this test is really guarding.
-    const show = page.getByRole("button", { name: "Show job details" });
-    const hide = page.getByRole("button", { name: "Hide job details" });
+    // Both posted and applied cards share the same JobCardShell expand affordance:
+    // the whole card is the click/tap toggle; the keyboard/screen-reader handle
+    // is a sr-only button whose text is "Expand Job Details" / "Collapse Job Details".
+    // The visible chevron and the per-card naming ("job description" vs "job
+    // details") were removed by owner direction ("remove the chevron entirely").
+    const show = page.getByRole("button", { name: "Expand Job Details" });
+    const hide = page.getByRole("button", { name: "Collapse Job Details" });
     expect(await show.count() + await hide.count()).toBeGreaterThan(0);
     await expect(hide).toHaveCount(0);
 
     const first = show.first();
-    const box = await first.boundingBox();
-    expect(box!.height).toBeGreaterThanOrEqual(44);
-    await first.click();
-    await expect(page.getByRole("button", { name: "Hide job details" })).toHaveCount(1);
+    // { force: true } required: sr-only elements are never "on top" in Playwright's
+    // actionability check (they're intentionally not visually interactive).
+    await first.click({ force: true });
+    await expect(page.getByRole("button", { name: "Collapse Job Details" })).toHaveCount(1);
     await page.screenshot({ path: `${SHOTS}/my-jobs-expanded-375.png`, fullPage: true });
 
     // The withdraw action is the icon-over-label chip now, still destructive.

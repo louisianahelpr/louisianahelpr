@@ -85,8 +85,6 @@ export const SaveHelperButton = ({
       successToast("Saved to your Helprs", {
         action: { label: "View", onClick: () => navigate("/saved-helpers") },
       });
-    } else {
-      toast.success("Removed from your saved Helprs");
     }
 
     setWorking(false);

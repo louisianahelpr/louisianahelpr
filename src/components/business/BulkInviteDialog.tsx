@@ -209,7 +209,6 @@ export function BulkInviteDialog({
               <FileSpreadsheet className="w-3.5 h-3.5" /> Bulk invite
             </>
           }
-          eyebrowClassName="inline-flex items-center gap-1.5"
           title="Bulk Invite by CSV"
         />
 
@@ -328,7 +327,7 @@ export function BulkInviteDialog({
                 <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> Sending…
               </>
             ) : (
-              `Send ${sendable.length} invite${sendable.length === 1 ? "" : "s"}`
+              `Send ${sendable.length} Invite${sendable.length === 1 ? "" : "s"}`
             )}
           </Button>
         </div>

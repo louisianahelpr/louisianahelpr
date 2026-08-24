@@ -1,0 +1,39 @@
+-- Drop `parish_tax_rates`. Stripe is the only source of sales tax now.
+--
+-- WHY IT IS GOING, AND WHY ONLY NOW
+-- ---------------------------------
+-- This table held a state+local rate per parish so the app could quote and
+-- persist sales tax itself. Stripe Tax has been computing and CHARGING the real
+-- figure the whole time — `create-payment` sets `automatic_tax: { enabled: true }`
+-- and a tax code per line — so the table was a second implementation of a
+-- number that already had an authority.
+--
+-- The two diverged exactly as duplicated numbers do. This table spelled two
+-- parishes "De Soto" and "La Salle" while `louisiana_zip_parishes` spelled them
+-- "DeSoto" and "LaSalle"; the lookup was an exact match, so it missed, and the
+-- miss read as a rate of ZERO. Seven ZIP codes were quoted $0 sales tax on a
+-- charge Stripe taxed at 10.00% and 10.50%.
+--
+-- Both readers are gone before this drop, which is why it is safe:
+--
+--   the QUOTE      CheckoutStep now calls the `calculate-tax` edge function,
+--                  which asks Stripe's tax.calculations API using the same tax
+--                  code and the same "exclusive" behaviour create-payment
+--                  assigns the labor line.
+--   the RECORD     the checkout webhook already wrote `sales_tax_amount` from
+--                  the payment intent's own tax details, and now writes
+--                  `sales_tax_rate` too, derived as tax over the base it was
+--                  charged on. Post-time no longer seeds an estimate.
+--
+-- Verified against prod before writing this: 0 incoming foreign keys, and
+-- pg_depend reports no view, matview or rule referencing the table.
+--
+-- RECOVERABLE: the rates were seeded by an earlier migration that remains in
+-- this directory, so the data can be restored by re-running that seed if the
+-- decision is ever reversed.
+--
+-- `jobs.sales_tax_rate` and `jobs.sales_tax_amount` are NOT touched — they are
+-- the historical record of what each job was charged and are now written from
+-- Stripe. Only the rate LOOKUP goes.
+
+DROP TABLE IF EXISTS public.parish_tax_rates;

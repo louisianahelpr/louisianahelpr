@@ -179,7 +179,7 @@ export function BackgroundCheckCard({ status }: { status: string }) {
             <Loader2 className="w-4 h-4 animate-spin" /> Starting…
           </>
         ) : (
-          <>Get Background-checked · {BGC_PRICE}</>
+          <>Get Background-Checked · {BGC_PRICE}</>
         )}
       </Button>
     </div>

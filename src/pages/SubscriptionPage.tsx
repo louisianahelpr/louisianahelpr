@@ -933,7 +933,7 @@ export default function SubscriptionPage() {
               type="button"
               onClick={() => setShowCompare((s) => !s)}
               aria-expanded={showCompare}
-              aria-controls="compare-features-table"
+              aria-controls={showCompare ? "compare-features-table" : undefined}
               className="group inline-flex items-center gap-2 h-10 sm:h-11 px-4 sm:px-5 rounded-2xl font-sans font-semibold text-ds-13 transition-[background,color] duration-150"
               style={{
                 color: "hsl(var(--bark))",

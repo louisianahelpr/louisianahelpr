@@ -35,7 +35,9 @@ const alerts = () => slackAlerts as Array<{ title?: string }>;
 
 const ADMIN = { id: "admin-1", email: "admin@test.com" };
 const AUTH = { Authorization: "Bearer admin-jwt" };
-const DISPUTE_ID = "dispute-1";
+// A real uuid: the function now validates the shape before touching the DB,
+// because `= 'dispute-1'` on a uuid column comes back as an opaque 22P02.
+const DISPUTE_ID = "11111111-1111-4111-8111-111111111111";
 
 /** $110.00 captured: a $100 budget plus a $10 poster service fee. */
 const CAPTURED_CENTS = 11_000;
@@ -62,6 +64,10 @@ function writeTo(table: string, op: "insert" | "update" = "insert"): any {
 }
 function writesTo(table: string, op: "insert" | "update" = "update"): any[] {
   return scenario.writes.filter((w) => w.table === table && w.op === op).map((w) => w.payload);
+}
+/** The full write records (payload + the eq/neq/in predicate) for a table. */
+function writeRecords(table: string, op: "insert" | "update" = "update") {
+  return scenario.writes.filter((w) => w.table === table && w.op === op);
 }
 
 /**
@@ -211,6 +217,17 @@ describe("execute-dispute-split edge function", () => {
       const res = await invoke(fn, {});
       expect(res.status).toBe(400);
       expect((await json(res)).error).toMatch(/dispute_id required/i);
+    });
+
+    it("returns 400 — not a misleading 500 — for a dispute_id that isn't a uuid", async () => {
+      // Left to Postgres this is a 22P02 cast error, which the read reports as
+      // "dispute lookup failed — retry" and sends the admin round in circles.
+      seedExecutable(scenario);
+      const fn = await load();
+      const res = await invoke(fn, { dispute_id: "dispute-1" });
+      expect(res.status).toBe(400);
+      expect((await json(res)).error).toMatch(/must be a uuid/i);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
     });
   });
 
@@ -416,7 +433,9 @@ describe("execute-dispute-split edge function", () => {
       expect(writesTo("disputes")).toHaveLength(0);
     });
 
-    it("rejects a job whose payment_status is no longer executable", async () => {
+    it("rejects a terminal job on a FIRST attempt — that escrow was settled elsewhere", async () => {
+      // No prior claim on the dispute, so a 'released' job means some other path
+      // already settled this escrow. This split must not touch it.
       seedExecutable(scenario, { job: { payment_status: "released" } });
       const fn = await load();
       const res = await invoke(fn);
@@ -424,8 +443,31 @@ describe("execute-dispute-split edge function", () => {
 
       expect(res.status).toBe(409);
       expect(body.error).toMatch(/payment_status is released/i);
+      expect(body.is_resume).toBe(false);
       expect(stripeMock.transfers.create).not.toHaveBeenCalled();
       expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    });
+
+    it("ALLOWS a terminal job when a prior attempt of this split claimed it", async () => {
+      // The transfer leg flips the job terminal (directly, and via the
+      // transfer.created webhook). Without this widening, a split whose refund
+      // leg failed could never be finished — the poster's share would be stuck.
+      seedExecutable(scenario, {
+        helperShare: 0.6,
+        job: { payment_status: "released" },
+        dispute: { execution_status: "failed", execution_transfer_id: "tr_1" },
+      });
+      scenario.reads.payout_transfers = {
+        rows: [{ id: "pt-1", stripe_transfer_id: "tr_1", status: "paid", amount_cents: 5280, platform_fee_cents: 720 }],
+      };
+      const fn = await load();
+      const body = await json(await invoke(fn));
+
+      expect(body.success).toBe(true);
+      expect(body.resumed).toBe(true);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+      expect(body.refund_cents).toBe(4260);
     });
 
     it("accepts payout_pending as well as escrow", async () => {
@@ -624,6 +666,149 @@ describe("execute-dispute-split edge function", () => {
       expect((await json(res)).existing_transfer_id).toBe("tr_prev");
       expect(stripeMock.refunds.create).not.toHaveBeenCalled();
       expect(alerts().some((a) => /already-settled payout/i.test(a.title ?? ""))).toBe(true);
+    });
+
+    it("survives the real failure sequence: transfer paid → refund throws → webhook releases the job → retry finishes the refund", async () => {
+      // This is the sequence the entry gate used to make unreachable. The
+      // transfer.created webhook matches the 'paid' ledger row this function
+      // writes and flips the job escrow → released within milliseconds — so the
+      // retry arrives at a terminal job with the poster's share still unpaid.
+      seedExecutable(scenario, { helperShare: 0.6 });
+      stripeMock.refunds.create.mockRejectedValueOnce(new Error("card_network_unavailable"));
+
+      const fn = await load();
+      const first = await invoke(fn);
+      const firstBody = await json(first);
+
+      expect(first.status).toBe(502);
+      expect(firstBody.stripe_transfer_id).toBe("tr_1");
+      expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
+      // The transfer id is banked on the dispute so the retry can resume.
+      const failure = writesTo("disputes").pop();
+      expect(failure).toMatchObject({ execution_status: "failed", execution_transfer_id: "tr_1" });
+
+      // ── Now the world as the retry finds it ──
+      scenario.writes.length = 0;
+      scenario.reads.jobs.rows![0].payment_status = "released"; // transfer.created webhook
+      scenario.reads.disputes.rows![0].execution_status = "failed";
+      scenario.reads.disputes.rows![0].execution_transfer_id = "tr_1";
+      scenario.reads.payout_transfers = {
+        rows: [{ id: "pt-1", stripe_transfer_id: "tr_1", status: "paid", amount_cents: 5280, platform_fee_cents: 720 }],
+      };
+      stripeMock.refunds.create.mockResolvedValue({ id: "re_1", amount: 4260, currency: "usd" });
+
+      const second = await invoke(fn);
+      const body = await json(second);
+
+      expect(second.status).toBe(200);
+      expect(body.resumed).toBe(true);
+      // The Helpr is NOT paid twice.
+      expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
+      expect(stripeMock.refunds.create).toHaveBeenCalledTimes(2); // 1 throw + 1 success
+      expect(body.stripe_transfer_id).toBe("tr_1");
+      expect(body.refund_cents).toBe(4260);
+      expect(writeTo("payment_refunds", "insert")).toMatchObject({ amount_cents: 4260 });
+      expect(writesTo("disputes").pop()).toMatchObject({
+        execution_status: "executed",
+        execution_transfer_id: "tr_1",
+        execution_refund_id: "re_1",
+      });
+    });
+
+    it("reports the LEDGER's amount when the transfer leg is skipped, not a recomputation", async () => {
+      // A subscription-tier change between attempts moves the recomputed
+      // commission. What the dispute records and the admin is told must be what
+      // actually left, which only the ledger knows.
+      seedExecutable(scenario, {
+        helperShare: 0.6,
+        job: { payment_status: "released" },
+        dispute: { execution_status: "failed" },
+      });
+      scenario.reads.payout_transfers = {
+        rows: [{ id: "pt-1", stripe_transfer_id: "tr_prev", status: "paid", amount_cents: 5000, platform_fee_cents: 600 }],
+      };
+      const fn = await load();
+      const body = await json(await invoke(fn));
+
+      expect(body.helper_cents).toBe(5000); // ledger, not the recomputed 5280
+      expect(body.platform_fee_cents).toBe(600); // ledger, not the recomputed 720
+      expect(writesTo("disputes").pop()).toMatchObject({ execution_helper_cents: 5000 });
+
+      const jobPatch = writeTo("jobs", "update");
+      expect(jobPatch.platform_fee_amount).toBe(6);
+      // The rate the settled transfer was computed at stays frozen — this run
+      // must not overwrite it with a live tier no money moved at.
+      expect(jobPatch).not.toHaveProperty("helper_fee_percent");
+    });
+
+    it("never walks a settled dispute back to 'failed' — the loser of a race can't relabel the winner", async () => {
+      seedExecutable(scenario);
+      stripeMock.accounts.retrieve.mockResolvedValue({
+        id: "acct_helper",
+        payouts_enabled: false,
+        charges_enabled: true,
+      });
+      const fn = await load();
+      await invoke(fn);
+
+      const failure = writeRecords("disputes").pop()!;
+      expect(failure.payload).toMatchObject({ execution_status: "failed" });
+      expect(failure.filters).toEqual(
+        expect.arrayContaining([
+          { op: "neq", column: "execution_status", value: "executed" },
+        ]),
+      );
+    });
+
+    it("catches a refund that reached Stripe but never reached the ledger", async () => {
+      // Past Stripe's ~24h idempotency window the key protects nothing, so the
+      // metadata cross-check is the only thing standing between a lost ledger
+      // write and a second real refund.
+      seedExecutable(scenario, {
+        helperShare: 0.6,
+        job: { payment_status: "released" },
+        dispute: { execution_status: "failed" },
+      });
+      scenario.reads.payout_transfers = {
+        rows: [{ id: "pt-1", stripe_transfer_id: "tr_1", status: "paid", amount_cents: 5280, platform_fee_cents: 720 }],
+      };
+      scenario.reads.payment_refunds = { rows: [] };
+      stripeMock.refunds.list.mockResolvedValue({
+        data: [{ id: "re_orphan", amount: 4260, currency: "usd", metadata: { dispute_id: DISPUTE_ID } }],
+      });
+
+      const fn = await load();
+      const body = await json(await invoke(fn));
+
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      expect(body.stripe_refund_id).toBe("re_orphan");
+      expect(body.success).toBe(true);
+      // The divergence we just proved is healed, so the next run answers from
+      // the ledger rather than paying for another Stripe round-trip.
+      expect(writeTo("payment_refunds", "insert")).toMatchObject({
+        stripe_refund_id: "re_orphan",
+        amount_cents: 4260,
+        source: "dispute_split",
+        metadata: { recovered_from_stripe: true },
+      });
+    });
+
+    it("fails closed when the prior-refund cross-check itself can't run", async () => {
+      seedExecutable(scenario, {
+        helperShare: 0.6,
+        job: { payment_status: "released" },
+        dispute: { execution_status: "failed" },
+      });
+      scenario.reads.payout_transfers = {
+        rows: [{ id: "pt-1", stripe_transfer_id: "tr_1", status: "paid", amount_cents: 5280, platform_fee_cents: 720 }],
+      };
+      stripeMock.refunds.list.mockRejectedValue(new Error("stripe down"));
+
+      const fn = await load();
+      const res = await invoke(fn);
+      expect(res.status).toBe(502);
+      expect((await json(res)).error).toMatch(/could not verify prior refunds/i);
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
     });
 
     it("treats a reversed transfer as settled — re-paying is an operator decision", async () => {

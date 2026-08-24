@@ -43,8 +43,31 @@ import { netUrgentFeeDollars, stripeProcessingCostCents } from "../_shared/strip
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { formatPayoutDollars } from "../_shared/money.ts";
 
-/** Job payment states from which a decided split may still be executed. */
+/** Job payment states from which a decided split may be executed for the FIRST time. */
 const EXECUTABLE_PAYMENT_STATES = ["escrow", "payout_pending"] as const;
+
+/**
+ * Additional states a RESUME may start from.
+ *
+ * The transfer leg flips the job terminal — directly at the end of a completed
+ * run, and also via the `transfer.created` webhook, which matches the 'paid'
+ * ledger row this function writes and moves the job escrow → released within
+ * milliseconds of `transfers.create` returning. So the moment the transfer
+ * succeeds, the job is 'released' whether or not the refund leg finished.
+ *
+ * A split whose refund leg then failed therefore comes back to a job the
+ * first-attempt gate would reject, and the poster's money would be stuck in
+ * escrow with no path out of this function. These two states are accepted ONLY
+ * when the dispute carries a prior claim (`execution_status` non-null), which is
+ * exactly the "a previous attempt of THIS split already moved something"
+ * signal — never for a first attempt, where a terminal job means the escrow was
+ * settled by some other path and this split must not touch it.
+ */
+const RESUME_PAYMENT_STATES = ["released", "refunded"] as const;
+
+/** A dispute id must be a uuid — the column is `uuid`, and a malformed one
+ *  otherwise reaches Postgres and comes back as an opaque 22P02 cast error. */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * Execution states that may be (re-)claimed.
@@ -112,6 +135,13 @@ serve(async (req) => {
   }
   const disputeId = body.dispute_id;
   if (!disputeId) return json({ error: "dispute_id required" }, 400);
+  if (!UUID_RE.test(disputeId)) {
+    // Caught here rather than at the DB: an `= 'not-a-uuid'` on a uuid column
+    // raises 22P02, which the read below would report as "dispute lookup
+    // failed — retry" and send an admin round in circles retrying a request
+    // that can never succeed.
+    return json({ error: "dispute_id must be a uuid" }, 400);
+  }
 
   // ── 1. The dispute must be decided, with a real recorded split ───────────
   const { data: dispute, error: disputeErr } = await supabaseAdmin
@@ -179,11 +209,20 @@ serve(async (req) => {
     );
   }
 
-  if (!EXECUTABLE_PAYMENT_STATES.includes(job.payment_status)) {
+  // A prior attempt of THIS split claimed the dispute (the 'executed' case
+  // already returned above, so any non-null value here is an unfinished run).
+  // That, and only that, widens the payment-state gate — see RESUME_PAYMENT_STATES.
+  const isResume = dispute.execution_status != null;
+  const allowedPaymentStates: readonly string[] = isResume
+    ? [...EXECUTABLE_PAYMENT_STATES, ...RESUME_PAYMENT_STATES]
+    : EXECUTABLE_PAYMENT_STATES;
+
+  if (!allowedPaymentStates.includes(job.payment_status)) {
     return json(
       {
-        error: `job payment_status is ${job.payment_status}, expected ${EXECUTABLE_PAYMENT_STATES.join(" or ")}`,
+        error: `job payment_status is ${job.payment_status}, expected ${allowedPaymentStates.join(" or ")}`,
         payment_status: job.payment_status,
+        is_resume: isResume,
       },
       409,
     );
@@ -233,10 +272,19 @@ serve(async (req) => {
         ? session.payment_intent
         : session.payment_intent?.id;
       if (paymentIntentId) {
-        await supabaseAdmin
+        // Backfill is a convenience, not a precondition — this run already has
+        // the id in hand. Non-blocking, but never silently dropped: a failure
+        // means the next path to need it pays for another session round-trip.
+        const { error: backfillErr } = await supabaseAdmin
           .from("jobs")
           .update({ stripe_payment_intent_id: paymentIntentId })
           .eq("id", job.id);
+        if (backfillErr) {
+          console.error(
+            `[execute-dispute-split] stripe_payment_intent_id backfill failed for job ${job.id}:`,
+            backfillErr,
+          );
+        }
       }
     } catch (e) {
       console.warn(`[execute-dispute-split] could not retrieve session for job ${job.id}:`, e);
@@ -395,7 +443,13 @@ serve(async (req) => {
   // idempotency window (~24h) has expired.
   const { data: transferRows, error: transferReadErr } = await supabaseAdmin
     .from("payout_transfers")
-    .select("id, stripe_transfer_id, status")
+    // amount_cents / platform_fee_cents are read, not just the status: when the
+    // transfer leg is SKIPPED because a prior attempt settled it, the ledger is
+    // the only truthful record of what moved. Recomputing here can disagree —
+    // `getHelperFeePercent` resolves the helper's LIVE subscription tier, so a
+    // tier change between attempts would make this run report (and stamp on the
+    // dispute) a figure no transfer was ever made at.
+    .select("id, stripe_transfer_id, status, amount_cents, platform_fee_cents")
     .eq("job_id", job.id);
   if (transferReadErr) {
     console.error(`[execute-dispute-split] payout_transfers read failed for job ${job.id}:`, transferReadErr);
@@ -420,7 +474,62 @@ serve(async (req) => {
     console.error(`[execute-dispute-split] payment_refunds read failed for job ${job.id}:`, refundReadErr);
     return json({ error: "duplicate-refund check failed — retry" }, 500);
   }
-  const settledRefund = (refundRows ?? [])[0];
+  let settledRefund = (refundRows ?? [])[0];
+
+  // Last-resort cross-check, ONLY on a resume with an empty refund ledger.
+  //
+  // Stripe replays a reused idempotency key for about 24 hours. Past that
+  // window the key is meaningless, so the sequence "refund succeeded → ledger
+  // write failed → nobody retried for a day" would let this function issue a
+  // SECOND real refund. Ask Stripe directly instead: every refund this function
+  // creates carries `metadata.dispute_id`, so one already out for this dispute
+  // is recognisable no matter how long ago it was made. Kept off the first-
+  // attempt path, where there is by definition nothing to find.
+  if (!settledRefund && isResume && refundCents > 0) {
+    try {
+      const priorRefunds = await stripe.refunds.list({ payment_intent: paymentIntentId, limit: 100 });
+      const match = (priorRefunds?.data ?? []).find(
+        (r: Stripe.Refund) => r?.metadata?.dispute_id === disputeId,
+      );
+      if (match) {
+        console.warn(
+          `[execute-dispute-split] refund ${match.id} for dispute ${disputeId} exists at Stripe but not in payment_refunds — treating the leg as settled and healing the ledger.`,
+        );
+        settledRefund = { id: null, stripe_refund_id: match.id, source: "dispute_split" };
+        // Heal the divergence we just proved, so the next run answers from the
+        // ledger instead of paying for another Stripe round-trip. Best-effort:
+        // the leg is already settled either way, so a failed write must not
+        // block the rest of the settlement.
+        const { error: healErr } = await supabaseAdmin.from("payment_refunds").upsert(
+          {
+            job_id: job.id,
+            customer_id: job.customer_id,
+            stripe_refund_id: match.id,
+            stripe_payment_intent_id: paymentIntentId,
+            amount_cents: Math.round(Number(match.amount ?? 0)),
+            currency: match.currency ?? "usd",
+            is_partial: true,
+            reason: "dispute split — poster's share (ledger row recovered from Stripe)",
+            source: "dispute_split",
+            initiated_by_user_id: adminUserId,
+            metadata: { dispute_id: disputeId, recovered_from_stripe: true },
+          },
+          { onConflict: "stripe_refund_id", ignoreDuplicates: true },
+        );
+        if (healErr) {
+          console.error(
+            `[execute-dispute-split] could not heal the payment_refunds row for ${match.id}:`,
+            healErr,
+          );
+        }
+      }
+    } catch (e) {
+      // Fail CLOSED: an unverifiable refund history is exactly the case this
+      // check exists for, so never fall through to "no prior refund".
+      console.error(`[execute-dispute-split] refunds.list failed for ${paymentIntentId}:`, e);
+      return json({ error: "could not verify prior refunds — retry" }, 502);
+    }
+  }
 
   // A settled payout on a job whose split awards the Helpr NOTHING is a
   // contradiction: the money already left toward the Helpr, and refunding the
@@ -450,6 +559,53 @@ serve(async (req) => {
         error:
           "a payout for this job has already settled, so a split awarding the Helpr nothing cannot be executed — reconcile this one by hand",
         existing_transfer_id: settledTransfer.stripe_transfer_id,
+      },
+      409,
+    );
+  }
+
+  // What the helper leg is actually worth, once the ledger has had its say. On
+  // a first attempt these are this run's computed figures; on a resume that
+  // skips a settled transfer they are the LEDGER's, which is the only record of
+  // what really left. Everything downstream — the cap re-check, the job's
+  // frozen fee, the dispute stamp, the notification, the response — reports
+  // these, never the recomputed pair.
+  const ledgerHelperCents = Number(settledTransfer?.amount_cents);
+  const ledgerFeeCents = Number(settledTransfer?.platform_fee_cents);
+  const movedHelperCents = settledTransfer && Number.isFinite(ledgerHelperCents)
+    ? ledgerHelperCents
+    : helperCents;
+  const movedPlatformFeeCents = settledTransfer && Number.isFinite(ledgerFeeCents)
+    ? ledgerFeeCents
+    : platformFeeCents;
+
+  // Re-assert the hard cap against what ACTUALLY moved. The check in section 4
+  // ran on this run's arithmetic; if the ledger says a bigger transfer already
+  // went out, the cap has to be judged on that number instead — otherwise a
+  // resume could refund the poster on top of an over-sized prior payout.
+  if (movedHelperCents !== helperCents && movedHelperCents + refundCents > (capturedCents as number)) {
+    console.error(
+      `[execute-dispute-split] REFUSING resume of dispute ${disputeId}: settled transfer ${movedHelperCents}c + refund ${refundCents}c exceeds captured ${capturedCents}c.`,
+    );
+    await postSlackOpsAlert({
+      kind: "payout_failed",
+      severity: "critical",
+      title: "Dispute split resume blocked — settled payout plus refund exceeds the capture",
+      message:
+        "A resumed split would have refunded the poster on top of an already-settled transfer that, combined, exceeds what the PaymentIntent captured. Nothing moved — reconcile by hand.",
+      fields: {
+        dispute_id: disputeId,
+        job_id: job.id,
+        settled_transfer_cents: movedHelperCents,
+        refund_cents: refundCents,
+        captured_cents: capturedCents as number,
+      },
+    });
+    return json(
+      {
+        error: "the already-settled payout plus this refund exceeds the captured escrow — refused",
+        settled_transfer_cents: movedHelperCents,
+        refund_cents: refundCents,
       },
       409,
     );
@@ -545,6 +701,12 @@ serve(async (req) => {
           // Stripe replays the original response (failure included) for a
           // reused key inside its ~24h window, so a genuine retry after a
           // failed transfer needs a fresh key to be a new attempt.
+          //
+          // WINDOW CAVEAT: past ~24h the key stops protecting anything, so this
+          // is the WEAKER of the two transfer guards. The load-bearing one is
+          // the fail-closed `payout_transfers` read above, which is permanent
+          // and is why a lost ledger write is escalated as CRITICAL rather than
+          // left for a retry to sort out.
           idempotencyKey: failedTransferCount > 0
             ? `dispute-split-tr-${disputeId}-r${failedTransferCount}`
             : `dispute-split-tr-${disputeId}`,
@@ -619,8 +781,21 @@ serve(async (req) => {
     let refund: Stripe.Refund;
     try {
       refund = await stripe.refunds.create(
-        { payment_intent: paymentIntentId, amount: refundCents },
-        { idempotencyKey: `dispute-split-rf-${disputeId}` },
+        {
+          payment_intent: paymentIntentId,
+          amount: refundCents,
+          // Stamped so this refund stays identifiable as THIS dispute's for as
+          // long as it exists — that is what the `refunds.list` cross-check
+          // above matches on when the ledger row is missing.
+          metadata: { dispute_id: disputeId, job_id: job.id, poster_share: String(posterShare) },
+        },
+        {
+          // Same ~24h window caveat as the transfer key: it makes a fast
+          // double-click a no-op, and nothing more. The durable guards are the
+          // fail-closed `payment_refunds` read and, past the window, the
+          // metadata cross-check against Stripe's own refund list.
+          idempotencyKey: `dispute-split-rf-${disputeId}`,
+        },
       );
     } catch (e) {
       const err = e as Error;
@@ -687,16 +862,23 @@ serve(async (req) => {
   // webhook guards (R8/R9): a job an operator has since refunded or charged
   // back must never be walked forward by this write. 'released'/'refunded' stay
   // in the allowed set so a resumed run is a clean no-op rather than a failure.
-  const finalPaymentStatus = helperCents > 0 ? "released" : "refunded";
+  const finalPaymentStatus = movedHelperCents > 0 ? "released" : "refunded";
+  const jobPatch: Record<string, unknown> = {
+    payment_status: finalPaymentStatus,
+    // The commission that was actually kept — the ledger's on a resume.
+    platform_fee_amount: movedPlatformFeeCents / 100,
+  };
+  // Only freeze the rate when THIS run resolved it against a transfer it made.
+  // On a resume the earlier attempt already froze the rate its transfer was
+  // computed at; re-resolving the helper's LIVE tier here would overwrite that
+  // with a percentage no money ever moved at.
+  if (!settledTransfer) jobPatch.helper_fee_percent = helperFeePercent;
+
   const { data: settledJob, error: jobUpdateErr } = await supabaseAdmin
     .from("jobs")
-    .update({
-      payment_status: finalPaymentStatus,
-      helper_fee_percent: helperFeePercent,
-      platform_fee_amount: platformFeeDollars,
-    })
+    .update(jobPatch)
     .eq("id", job.id)
-    .in("payment_status", [...EXECUTABLE_PAYMENT_STATES, "released", "refunded"])
+    .in("payment_status", [...EXECUTABLE_PAYMENT_STATES, ...RESUME_PAYMENT_STATES])
     .select("id");
   if (jobUpdateErr || !settledJob || settledJob.length === 0) {
     // The money is already out. A job stuck in escrow/payout_pending after a
@@ -719,7 +901,7 @@ serve(async (req) => {
         db_error: jobUpdateErr?.message ?? "zero rows matched the state precondition",
       },
     });
-    await markFailed(supabaseAdmin, disputeId, "money moved but the job state did not flip", { transferId, refundId, helperCents, refundCents });
+    await markFailed(supabaseAdmin, disputeId, "money moved but the job state did not flip", { transferId, refundId, helperCents: movedHelperCents, refundCents });
     return json(
       {
         error: "the split moved money but the job status update failed — manual reconciliation needed",
@@ -737,7 +919,7 @@ serve(async (req) => {
       executed_at: new Date().toISOString(),
       execution_transfer_id: transferId,
       execution_refund_id: refundId,
-      execution_helper_cents: helperCents,
+      execution_helper_cents: movedHelperCents,
       execution_refund_cents: refundCents,
       execution_error: null,
     })
@@ -753,25 +935,43 @@ serve(async (req) => {
   }
 
   // ── 10. Tell both sides what actually moved ──────────────────────────────
-  const helperDollars = helperCents / 100;
+  // Amounts come from `moved*`, so a resume quotes the settled transfer rather
+  // than this run's recomputation. Both inserts are non-blocking — the money is
+  // out and the state is terminal — but the error is logged, never dropped: a
+  // party who is never told is a support ticket, and the log is the only trace.
+  const helperDollars = movedHelperCents / 100;
   const refundDollars = refundCents / 100;
-  if (job.helper_id && helperCents > 0) {
-    await supabaseAdmin.from("notifications").insert({
+  if (job.helper_id && movedHelperCents > 0) {
+    const { error: helperNoteErr } = await supabaseAdmin.from("notifications").insert({
       user_id: job.helper_id,
       title: "Dispute settled — your share was sent",
       message: `The dispute on "${job.title}" was settled with a ${Math.round(helperShare * 100)}% share to you. $${formatPayoutDollars(helperDollars)} is on its way to your bank.`,
       type: "payment",
-      link: "/dashboard?tab=earnings",
+      // `/profile?tab=earnings` is the earnings screen — `/earnings` and
+      // `/analytics` both redirect here, and Dashboard reads no `tab` param.
+      link: "/profile?tab=earnings",
     });
+    if (helperNoteErr) {
+      console.error(
+        `[execute-dispute-split] helper notification insert failed for dispute ${disputeId}:`,
+        helperNoteErr,
+      );
+    }
   }
   if (job.customer_id && refundCents > 0) {
-    await supabaseAdmin.from("notifications").insert({
+    const { error: posterNoteErr } = await supabaseAdmin.from("notifications").insert({
       user_id: job.customer_id,
       title: "Dispute settled — refund issued",
       message: `The dispute on "${job.title}" was settled with a ${Math.round(posterShare * 100)}% share to you. $${formatPayoutDollars(refundDollars)} has been refunded to your original payment method.`,
       type: "payment",
       link: "/my-posts",
     });
+    if (posterNoteErr) {
+      console.error(
+        `[execute-dispute-split] poster notification insert failed for dispute ${disputeId}:`,
+        posterNoteErr,
+      );
+    }
   }
 
   return json({
@@ -780,12 +980,14 @@ serve(async (req) => {
     job_id: job.id,
     helper_share: helperShare,
     poster_share: posterShare,
-    helper_cents: helperCents,
-    platform_fee_cents: platformFeeCents,
+    // What MOVED, not what this run recomputed — see `movedHelperCents`.
+    helper_cents: movedHelperCents,
+    platform_fee_cents: movedPlatformFeeCents,
     refund_cents: refundCents,
     stripe_transfer_id: transferId,
     stripe_refund_id: refundId,
     payment_status: finalPaymentStatus,
+    resumed: isResume,
   });
 });
 
@@ -823,6 +1025,14 @@ function parseSplit(
  * whichever leg already settled so a retry resumes instead of restarting.
  * Never throws — it runs on paths that are already returning an error, and
  * losing the error text must not lose the error.
+ *
+ * The `neq('executed')` is load-bearing, not defensive noise. 'executing' is
+ * deliberately re-claimable, so two admins clicking at once can both get past
+ * the claim; if the loser's failure write lands after the winner's success
+ * write, an unguarded UPDATE would relabel a fully settled dispute
+ * "Settlement failed" in the admin queue — which reads as an invitation to
+ * refund the poster a second time by hand. A settled dispute is terminal and
+ * nothing may walk it back.
  */
 async function markFailed(
   admin: ReturnType<typeof createClient>,
@@ -839,8 +1049,15 @@ async function markFailed(
     if (settled.refundId) patch.execution_refund_id = settled.refundId;
     if (settled.helperCents != null) patch.execution_helper_cents = settled.helperCents;
     if (settled.refundCents != null) patch.execution_refund_cents = settled.refundCents;
-    const { error } = await admin.from("disputes").update(patch).eq("id", disputeId);
+    const { error } = await admin
+      .from("disputes")
+      .update(patch)
+      .eq("id", disputeId)
+      .neq("execution_status", "executed");
     if (error) {
+      // Not fatal — the caller is already returning the real error — but a
+      // dispute left in 'executing' with no reason recorded is a run nobody can
+      // diagnose, so it must never vanish silently.
       console.error(`[execute-dispute-split] could not record failure on dispute ${disputeId}:`, error);
     }
   } catch (e) {

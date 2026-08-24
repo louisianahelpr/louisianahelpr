@@ -39,8 +39,19 @@ export interface SupabaseScenario {
   reads: Record<string, TableResult>;
   /** rpc name -> resolved data */
   rpc: Record<string, unknown>;
-  /** Captured writes, in order. */
-  writes: Array<{ table: string; op: "insert" | "update" | "delete"; payload: unknown }>;
+  /**
+   * Captured writes, in order. `filters` records the `eq`/`neq`/`in` calls that
+   * were chained onto the write — the filters themselves are no-ops for
+   * matching (the scenario decides the result), but a conditional write's
+   * predicate IS the behaviour under test in the money paths, so it has to be
+   * assertable.
+   */
+  writes: Array<{
+    table: string;
+    op: "insert" | "update" | "delete";
+    payload: unknown;
+    filters: Array<{ op: "eq" | "neq" | "in"; column: string; value: unknown }>;
+  }>;
   /** Optional override: table name -> error to return on write. */
   writeErrors: Record<string, { message: string; code?: string }>;
   /** Optional override: rows returned from a write that ends in .select(). */
@@ -79,6 +90,7 @@ class QueryBuilder implements PromiseLike<{ data: unknown; error: unknown }> {
   private op: "select" | "insert" | "update" | "delete" = "select";
   private payload: unknown;
   private endsWithSelect = false;
+  private filters: Array<{ op: "eq" | "neq" | "in"; column: string; value: unknown }> = [];
 
   constructor(private table: string) {}
 
@@ -116,13 +128,16 @@ class QueryBuilder implements PromiseLike<{ data: unknown; error: unknown }> {
     this.op = "delete";
     return this;
   }
-  eq() {
+  eq(column?: string, value?: unknown) {
+    this.filters.push({ op: "eq", column: column ?? "", value });
     return this;
   }
-  neq() {
+  neq(column?: string, value?: unknown) {
+    this.filters.push({ op: "neq", column: column ?? "", value });
     return this;
   }
-  in() {
+  in(column?: string, value?: unknown) {
+    this.filters.push({ op: "in", column: column ?? "", value });
     return this;
   }
   or() {
@@ -157,7 +172,12 @@ class QueryBuilder implements PromiseLike<{ data: unknown; error: unknown }> {
       return { data: t.rows ?? [], error: null };
     }
     // write
-    scenario.writes.push({ table: this.table, op: this.op, payload: this.payload });
+    scenario.writes.push({
+      table: this.table,
+      op: this.op,
+      payload: this.payload,
+      filters: this.filters,
+    });
     const writeErr = scenario.writeErrors[this.table];
     if (writeErr) return { data: null, error: writeErr };
     if (this.endsWithSelect) {

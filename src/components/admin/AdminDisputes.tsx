@@ -290,12 +290,31 @@ const AdminDisputes = () => {
         // leave the admin believing the money moved.
         const invokeError = error ?? (data?.error ? new Error(String(data.error)) : null);
         if (invokeError) {
-          const status = (invokeError as { context?: Response }).context instanceof Response
-            ? (invokeError as { context: Response }).context.status
-            : null;
-          if (status === 404) {
-            // Deploy window: the function landed on main but hasn't finished
-            // deploying. The decision IS recorded; only the settlement is late.
+          const ctx = (invokeError as { context?: unknown }).context;
+          const response = ctx instanceof Response ? ctx : null;
+          // A 404 has two very different causes and only one of them is worth
+          // waiting out. The GATEWAY returns a bodyless 404 while the function
+          // is still deploying; the DEPLOYED function returns 404 with our own
+          // `{ error }` envelope for "dispute not found" / "job not found".
+          // Reading the body is the only way to tell them apart — without it an
+          // admin chasing genuinely missing data is told "still deploying,
+          // retry in a minute" forever.
+          let stillDeploying = false;
+          if (response?.status === 404) {
+            let hasErrorEnvelope = false;
+            try {
+              const parsed = await response.clone().json();
+              hasErrorEnvelope =
+                typeof parsed?.error === "string" && parsed.error.trim().length > 0;
+            } catch {
+              // Not JSON at all — the gateway's own 404.
+              hasErrorEnvelope = false;
+            }
+            stillDeploying = !hasErrorEnvelope;
+          }
+          if (stillDeploying) {
+            // The function landed on main but hasn't finished deploying. The
+            // decision IS recorded; only the settlement is late.
             toast.warning(
               "Decision recorded. The settlement service is still deploying — reopen this dispute in a minute to move the money.",
             );

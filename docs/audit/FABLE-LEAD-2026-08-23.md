@@ -110,6 +110,43 @@ is kept for the reasoning, not as a to-do list. Highlights and corrections:
 
 ---
 
+## ✅ CLOSED 2026-08-24 (evening) — R19 + R20, the latent items
+
+Shipped as `20260824210000_r19_r20_latent_leaks_and_cancelling_status.sql`,
+every sub-item re-verified against the live DB before writing (pg_policies /
+pg_proc ACLs / cron.job / pg_constraint). Corrections the verification forced:
+
+- **R19 closed with two verified NON-findings.**
+  - `is_licensed`/`is_insured` are **not** forgeable badges: `CredentialBadge`
+    requires `license_status`/`insurance_status = 'verified'`, and those ARE
+    pinned by `prevent_self_escalation`. The booleans are the user's own
+    CredentialsTab inputs — pinning them would have broken the form. No change.
+  - `job-photos` stays a **public bucket by decision**: photos attach to
+    publicly-browsable listings and every stored URL is a public URL; flipping
+    the bucket private 404s them all. The participant-scoped policy isn't dead
+    letter either — it arbitrates the client's upsert uploads
+    (`storagePolicies.test.ts`). If listing photos are ever deemed sensitive,
+    the fix is signed URLs plus a data migration, not a bucket flip.
+  - The fixed remainder: `evacuation_pets` read is owner/helper/admin (was
+    anon `USING(true)` incl. `destination_address`); `reviews` SELECT enforces
+    `status='published'` + the `feedback_visible_at` double-blind hold that
+    clients were already filtering voluntarily; **15** (not 12) cron/sweep/
+    cleanup definers revoked from PUBLIC/anon/authenticated with service_role
+    kept for the one edge-function caller; `get_pending_invite_for_email`
+    answers only for the caller's own JWT email (Signup's post-auth call
+    unaffected).
+- **R20 closed at the constraint, not the code:** the `'cancelling'` write is a
+  deliberate two-phase claim (crashed runs stay re-claimable via
+  `.in(["escrow","cancelling"])`) — the CHECK constraint was the missing half,
+  so it gains the value. `enforce_job_status_transition` only guards
+  `jobs.status`, verified, so no trigger change is needed.
+
+Still open after this pass: **R24 only** (demo-seed rows with impossible
+chronology — cosmetic, owner's test data). R21 (inline banners `6da0fa808`),
+R22 (`cf2c811f2`), R23/R25 (`384ef643e`) were closed by the earlier wave.
+
+---
+
 ## REPORTED — needs a tone / money / legal / product decision (severity-ranked)
 
 ### CRITICAL — trust (load-bearing wall)

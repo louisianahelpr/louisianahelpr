@@ -31,6 +31,10 @@ interface DatePickerFieldProps {
   placeholder?: string;
   id?: string;
   className?: string;
+  /** Forwarded to the trigger button so a field error (e.g. Signup's
+   *  `dob-error`) is announced with the control, not just painted near it. */
+  "aria-describedby"?: string;
+  "aria-invalid"?: boolean;
   /**
    * Swap the calendar grid for month/day/year scroll wheels. Opt-in: a grid
    * is right for "which day next week", a wheel is right for a birthday,
@@ -53,6 +57,8 @@ export function DatePickerField({
   id,
   className,
   wheel = false,
+  "aria-describedby": ariaDescribedby,
+  "aria-invalid": ariaInvalid,
 }: DatePickerFieldProps) {
   const [open, setOpen] = useState(false);
   const selected = value ? parseLocalDate(value) : undefined;
@@ -80,6 +86,8 @@ export function DatePickerField({
         <button
           id={id}
           type="button"
+          aria-describedby={ariaDescribedby}
+          aria-invalid={ariaInvalid}
           className={cn(
             "flex h-12 w-full items-center justify-between rounded-2xl border border-input glass-field px-4 text-ds-15 text-left ring-offset-background transition-colors",
             // Softer, flush focus ring — the full-strength bark ring reads

@@ -134,12 +134,6 @@ export function SignupStep2(props: SignupStep2Props) {
   const firstNameValid = firstName.trim().length > 0;
   const lastNameValid = lastName.trim().length > 0;
   const phoneValid = phone.replace(/\D/g, "").length >= 10;
-  // Drives the primary button's disabled state below — mirrors the same
-  // required fields validateAboutYouStep enforces on submit (avatar, first
-  // name, last name, date of birth all carry the red asterisk), so a user
-  // sees the button reflect invalidity live instead of only after tapping it.
-  const avatarValid = !!avatarFile;
-  const dobValid = !!dateOfBirth;
 
   return (
     <div className="space-y-6">
@@ -152,7 +146,7 @@ export function SignupStep2(props: SignupStep2Props) {
         <div className="space-y-2 text-center pb-3">
           <Label htmlFor="avatar" className={labelCls}>Profile photo <span aria-hidden style={{ color: "hsl(var(--destructive))" }}>*</span></Label>
           <div className="flex flex-col items-center gap-1.5">
-          <label className="cursor-pointer group relative inline-block active:scale-[0.98] transition-transform">
+          <label className="cursor-pointer group relative inline-block active:scale-[0.98] transition-transform rounded-full focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring">
             <div
               className={`relative w-20 h-20 rounded-full border-2 border-dashed transition-colors flex items-center justify-center overflow-hidden ${fieldErrors.avatar ? "border-destructive" : "border-border group-hover:border-primary"}`}
               style={{
@@ -183,11 +177,15 @@ export function SignupStep2(props: SignupStep2Props) {
             >
               <Camera className="w-3.5 h-3.5" strokeWidth={2.25} />
             </div>
+            {/* sr-only (not `hidden`): display:none removes the input from the
+                tab order, and the photo is REQUIRED — a keyboard-only user
+                could never finish signup. sr-only keeps it focusable; the
+                dashed circle shows the ring via focus-within. */}
             <input
               id="avatar"
               type="file"
               accept="image/*"
-              className="hidden"
+              className="sr-only"
               aria-invalid={!!fieldErrors.avatar}
               aria-describedby={fieldErrors.avatar ? "avatar-error" : undefined}
               onChange={(e) => { onAvatarChange(e); clearFieldError?.("avatar"); }}
@@ -238,6 +236,8 @@ export function SignupStep2(props: SignupStep2Props) {
               onChange={(v) => { setDateOfBirth(v); clearFieldError?.("dateOfBirth"); }}
               min={minDob}
               max={maxDob}
+              aria-invalid={!!fieldErrors.dateOfBirth}
+              aria-describedby={fieldErrors.dateOfBirth ? "dob-error" : undefined}
               className={`rounded-ds-md border-[hsl(var(--bark)/0.28)] dark:border-white/15${fieldErrors.dateOfBirth ? " border-destructive" : ""}`}
             />
             <FieldError id="dob-error" message={fieldErrors.dateOfBirth} />
@@ -317,7 +317,11 @@ export function SignupStep2(props: SignupStep2Props) {
           className="flex-1 rounded-ds-md"
           size="lg"
           onClick={onContinue}
-          disabled={loading || !avatarValid || !firstNameValid || !lastNameValid || !dobValid}
+          // Stays tappable while fields are missing — tapping runs
+          // validateAboutYouStep, which names every unfinished field at once
+          // (same pattern step 1's Continue adopted: an empty submit explains
+          // itself instead of a wordless disabled button + red asterisks).
+          disabled={loading}
         >
           {loading ? "Creating Account…" : "Create Account"}
         </Button>

@@ -171,7 +171,7 @@ export function SignupStep1({
           <Label htmlFor="email" className={labelCls}>Email <span aria-hidden style={{ color: "hsl(var(--destructive))" }}>*</span></Label>
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: "hsl(var(--olivewood) / 0.8)" }} strokeWidth={1.75} />
-            <Input ref={emailRef} id="email" type="email" inputMode="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={onEmailKeyDown} required autoComplete="email" aria-invalid={emailError}
+            <Input ref={emailRef} id="email" type="email" inputMode="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={onEmailKeyDown} required autoComplete="email" aria-invalid={emailError} aria-describedby={emailError ? "signup-email-error" : undefined}
               className={`${inputCls} pl-10 ${emailValid ? "pr-10" : ""} ${emailError ? "!border-destructive focus-visible:!border-destructive" : ""}`} />
             {emailValid && (
               <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
@@ -185,7 +185,7 @@ export function SignupStep1({
               empty case used to paint the border with no words at all, which
               is a "something's wrong" with no path out. */}
           {emailError && (
-            <p className="inline-flex items-center gap-1 text-ds-11 text-destructive">
+            <p id="signup-email-error" role="alert" className="inline-flex items-center gap-1 text-ds-11 text-destructive">
               <X className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden />
               {email.trim() ? "Enter a valid email address" : "Add your email address"}
             </p>
@@ -205,12 +205,12 @@ export function SignupStep1({
           <Label htmlFor="password" className={labelCls}>Password <span aria-hidden style={{ color: "hsl(var(--destructive))" }}>*</span></Label>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: "hsl(var(--olivewood) / 0.8)" }} strokeWidth={1.75} />
-            <Input ref={passwordRef} id="password" type={showPassword ? "text" : "password"} enterKeyHint="next" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={onPasswordKeyDown} onKeyUp={trackCaps} required minLength={8} aria-invalid={passwordError}
+            <Input ref={passwordRef} id="password" type={showPassword ? "text" : "password"} enterKeyHint="next" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={onPasswordKeyDown} onKeyUp={trackCaps} required minLength={8} aria-invalid={passwordError} aria-describedby={passwordError ? "signup-password-error" : undefined}
               className={`${inputCls} pl-10 pr-10 ${passwordError ? "!border-destructive focus-visible:!border-destructive" : ""}`} autoComplete="new-password" />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              aria-label={showPassword ? "Hide passwords" : "Show passwords"}
+              aria-label={showPassword ? "Hide password" : "Show password"}
               className="absolute right-0 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
             >
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -222,7 +222,7 @@ export function SignupStep1({
             </p>
           )}
           {attempted && !password && (
-            <p className="inline-flex items-center gap-1 text-ds-11 text-destructive">
+            <p id="signup-password-error" role="alert" className="inline-flex items-center gap-1 text-ds-11 text-destructive">
               <X className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden />
               Add a password
             </p>

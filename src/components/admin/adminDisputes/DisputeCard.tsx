@@ -128,6 +128,29 @@ export const DisputeCard = ({
                 helper <span className="font-semibold text-foreground tabular-nums">{Math.round((record.payout_split.helper ?? 0) * 100)}%</span>
               </p>
             )}
+            {/* What actually moved. `execution_status` is undefined on rows read
+                before the migration deployed — that's "not attempted", so it
+                renders nothing rather than a scary empty settlement line. */}
+            {record.execution_status === "executed" && (
+              <p className="text-ds-11 text-muted-foreground mt-1">
+                Settled:
+                {" "}
+                <span className="font-semibold text-foreground tabular-nums">
+                  ${((record.execution_helper_cents ?? 0) / 100).toFixed(2)}
+                </span>
+                {" to the Helpr · "}
+                <span className="font-semibold text-foreground tabular-nums">
+                  ${((record.execution_refund_cents ?? 0) / 100).toFixed(2)}
+                </span>
+                {" refunded"}
+              </p>
+            )}
+            {record.execution_status === "failed" && (
+              <p className="text-ds-11 mt-1" style={{ color: "hsl(var(--amber-ink))" }}>
+                Settlement failed — no money moved, or only part of it did.
+                {record.execution_error ? ` ${record.execution_error}` : ""}
+              </p>
+            )}
           </div>
         )}
       </div>
@@ -173,11 +196,13 @@ export const DisputeCard = ({
               className="w-full accent-primary"
               aria-label="Helpr's share of the payout"
             />
-            {/* At 100/0 and 0/100 the decision triggers the real Stripe
-                release / refund. ANY partial split is recorded only —
-                AdminDisputes says so in code ("Splits are recorded but not
-                auto-executed") — so the figures below are a record of the
-                ruling, not money in motion, and the caption says which. */}
+            {/* Every position on this slider now settles for real: recording the
+                decision hands it to `execute-dispute-split`, which transfers the
+                Helpr's share and refunds the poster's off the original charge.
+                The figures below are the GROSS shares of the budget — the Helpr's
+                side arrives minus the platform commission, and the poster's minus
+                the card-processing fee Stripe keeps on a refund. The caption says
+                so rather than quoting a number the parties won't recognise. */}
             <div className="flex justify-between text-ds-11 tabular-nums">
               <span className="text-muted-foreground">
                 Poster <span className="font-semibold text-foreground">{100 - helperShare}%</span>
@@ -188,12 +213,11 @@ export const DisputeCard = ({
                 <span className="ml-1 text-muted-foreground">(${((job.budget * helperShare) / 100).toFixed(2)})</span>
               </span>
             </div>
-            {helperShare !== 0 && helperShare !== 100 && (
-              <p className="text-ds-10 mt-1.5" style={{ color: "hsl(var(--amber-ink))" }}>
-                Recorded only — a partial split does not move money. Release or
-                refund the escrow manually in Stripe after deciding.
-              </p>
-            )}
+            <p className="text-ds-10 mt-1.5" style={{ color: "hsl(var(--amber-ink))" }}>
+              This moves real money. Recording the decision transfers the Helpr's
+              share and refunds the customer's share to their card — gross figures
+              above, before the platform commission and Stripe's processing fee.
+            </p>
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -229,7 +253,7 @@ export const DisputeCard = ({
               onClick={() => decide(job)}
               disabled={submittingDecision || !decisionText.trim()}
             >
-              {submittingDecision ? "Recording…" : "Record Decision"}
+              {submittingDecision ? "Settling…" : "Record & Settle"}
             </Button>
             <Button
               size="sm"

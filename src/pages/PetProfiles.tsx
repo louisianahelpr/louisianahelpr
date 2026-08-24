@@ -236,7 +236,7 @@ const PetProfiles = () => {
                   onClick={openAddDesktop}
                   className="inline-flex items-center gap-1 text-ds-12 font-semibold px-2 py-1 rounded-ds-sm transition-colors active:bg-secondary/40"
                   style={{ color: "hsl(var(--bark))" }}
-                  aria-label="Add a pet"
+                  aria-label="Add a Pet"
                 >
                   <Plus className="w-3.5 h-3.5" /> Add
                 </button>

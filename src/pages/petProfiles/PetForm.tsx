@@ -231,7 +231,7 @@ export function PetForm({
             letterSpacing: "-0.02em",
           }}
         >
-          {initialValues ? `Edit ${initialValues.name}` : "Add a pet"}
+          {initialValues ? `Edit ${initialValues.name}` : "Add a Pet"}
         </h2>
         <button
           type="button"
@@ -312,7 +312,7 @@ export function PetForm({
                 <input
                   id="pet-breed"
                   className="glass-field w-full rounded-ds-md px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none"
-                  placeholder="e.g. Golden Retriever"
+                  placeholder="e.g. Lab mix"
                   value={form.breed ?? ""}
                   onChange={(e) => set("breed", e.target.value)}
                 />

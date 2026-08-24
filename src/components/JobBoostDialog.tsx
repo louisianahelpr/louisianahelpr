@@ -8,7 +8,7 @@ import { Rocket, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { BOOST_DISCOUNT_PCT, boostPriceForTier, formatFeeUsd } from "@/lib/productPrices";
+import { BOOST_DISCOUNT_PCT, BOOST_DURATION_HOURS, boostPriceForTier, formatFeeUsd } from "@/lib/productPrices";
 
 interface JobBoostDialogProps {
   jobId: string;
@@ -107,7 +107,7 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
                   className="font-serif italic mt-1.5 text-ds-13"
                   style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >
-                  Runs for <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>24 hours</span>
+                  Runs for <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>{BOOST_DURATION_HOURS} hours</span>
                 </p>
               </>
             ) : (
@@ -122,7 +122,7 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
                   className="font-serif italic mt-1.5 text-ds-13"
                   style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >
-                  One-time · runs for <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>24 hours</span>
+                  One-time · runs for <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>{BOOST_DURATION_HOURS} hours</span>
                 </p>
                 <Link
                   to="/profile?tab=subscription"

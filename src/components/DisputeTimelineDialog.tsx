@@ -280,7 +280,7 @@ export const DisputeTimelineDialog = ({
                   <p className="font-sans text-ds-11 mt-1.5" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
                     Payout: poster <span className="tabular-nums font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>{Math.round((payoutSplit.poster ?? 0) * 100)}%</span>
                     {" · "}
-                    helper <span className="tabular-nums font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>{Math.round((payoutSplit.helper ?? 0) * 100)}%</span>
+                    Helpr <span className="tabular-nums font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>{Math.round((payoutSplit.helper ?? 0) * 100)}%</span>
                   </p>
                 )}
               </div>

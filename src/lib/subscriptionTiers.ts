@@ -31,6 +31,12 @@
  * portfolio showcase, and 10-min early access (vs Basic's 5-min).
  */
 
+// The boost discount is a PRICE, owned by productPrices.ts (which the edge
+// function's create-boost-payment mirror is parity-tested against). The bullet
+// below advertises it, so it reads the number rather than restating it — no
+// cycle: productPrices imports only lib/format, which imports nothing.
+import { BOOST_DISCOUNT_PCT } from "@/lib/productPrices";
+
 export type SubscriptionTier = "free" | "basic" | "pro" | "elite" | "business";
 
 export interface TierPerks {
@@ -96,7 +102,7 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
       "Helpr Badge",
       "Instant Payouts",
       "5-min early access",
-      "20% off Job Boosts",
+      `${BOOST_DISCOUNT_PCT}% off Job Boosts`,
     ],
   },
   pro: {

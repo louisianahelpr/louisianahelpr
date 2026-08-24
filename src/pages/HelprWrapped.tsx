@@ -204,7 +204,12 @@ const StatCard = ({ label, value, sublabel }: StatCardProps) => (
 );
 
 const HelprWrapped = () => {
-  usePageTitle(SEASON.isYearEnd ? `Helpr Wrapped ${YEAR}` : `Your ${YEAR} so far — Helpr`);
+  // Both branches say what the h1 says (`Your ${SEASON.title}`) and both keep
+  // the "— Helpr" suffix every other title carries. The December branch used
+  // to drop the suffix AND reorder the words ("Helpr Wrapped 2026"), so the
+  // one month the feature is at its most shareable was the one month its tab
+  // stopped looking like the rest of the app.
+  usePageTitle(`Your ${SEASON.title} — Helpr`);
   const navigate = useNavigate();
   const { user, isReady } = useAuthReady();
 

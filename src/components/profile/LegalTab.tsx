@@ -194,7 +194,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
             Policy documents
           </h2>
           {([
-            { to: "/rules", icon: FileText, title: "Platform rules", body: "How Helpr works — every guideline that governs jobs, payments, and conduct." },
+            { to: "/rules", icon: FileText, title: "Community Rules", body: "How Helpr works — every guideline that governs jobs, payments, and conduct." },
             { to: "/terms", icon: Scale, title: "Terms of service", body: "The contract between you and Helpr when you use the platform." },
             { to: "/privacy", icon: Shield, title: "Privacy policy", body: "What we collect, how we use it, and how we keep it safe." },
           ]).map(({ to, icon: Icon, title, body }) => (
@@ -219,7 +219,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
                   </p>
                 </div>
                 {/* aria-hidden: the row's accessible name already comes from
-                    the title + body text ("Platform rules, How Helpr works —
+                    the title + body text ("Community Rules, How Helpr works —
                     …"), which describes in-app navigation and never claims a
                     new window. The glyph is decoration on top of that. */}
                 <ChevronRight aria-hidden className="w-4 h-4 text-muted-foreground shrink-0 mt-1" />
@@ -260,7 +260,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
           Jump to a section
         </h2>
         {([
-          { to: "/legal?tab=community#basics", icon: Building2, title: "Community guidelines" },
+          { to: "/legal?tab=community#basics", icon: Building2, title: "Community Rules" },
           { to: "/legal?tab=community#posting-accepting", icon: Clock, title: "Budget limits, editing & new-Helpr limits" },
           { to: "/legal?tab=community#cancellations", icon: XCircle, title: "Cancellations, response times & no-shows" },
           { to: "/legal?tab=community#escrow-release", icon: Wallet, title: "Escrow & how your payout is released" },

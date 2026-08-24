@@ -56,7 +56,10 @@ import { DismissJobDialog } from "./dashboard/DismissJobDialog";
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  usePageTitle("Dashboard — Helpr");
+  // Matches the h1 this page renders ("Browse Jobs" — LoadingHeading and
+  // BrowseTasksToolbar both), not the route name. "Dashboard — Helpr" named a
+  // word that appears nowhere on the screen.
+  usePageTitle("Browse Jobs — Helpr");
 
   // The Filters button lives in the title card (BrowseTasksActions) while the
   // filter panel lives in BrowseTasksToolbar below it. This page is the one

@@ -572,13 +572,20 @@ const CompleteProfile = () => {
               </label>
             </div>
 
-            <label className="flex items-start gap-2.5 text-ds-11 cursor-pointer" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            {/* aria-labelledby, NOT the wrapping <label> alone — same reason
+                as SignupStep1's consent row: Radix renders Checkbox as
+                <button role="checkbox"> with empty content, so the box
+                announced as an unnamed checkbox while the user was agreeing to
+                the rules, terms and privacy policy. */}
+            <label htmlFor="accept-policies" className="flex items-start gap-2.5 text-ds-11 cursor-pointer" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               <Checkbox
+                id="accept-policies"
+                aria-labelledby="accept-policies-label"
                 checked={acceptedPolicies}
                 onCheckedChange={(v) => setAcceptedPolicies(v === true)}
                 className="h-3.5 w-3.5 mt-[3px] shrink-0 [&_svg]:h-3 [&_svg]:w-3"
               />
-              <span className="leading-relaxed">
+              <span id="accept-policies-label" className="leading-relaxed">
                 I agree to the{" "}
                 <a href="/rules" target="_blank" rel="noreferrer" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>platform rules</a>,{" "}
                 <a href="/terms" target="_blank" rel="noreferrer" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>terms</a>, and{" "}

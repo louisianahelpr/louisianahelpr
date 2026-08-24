@@ -67,7 +67,7 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose }:
               Include a message <span className="text-muted-foreground font-normal">(optional)</span>
             </div>
             <Textarea
-              aria-label="Message to helper (optional)"
+              aria-label="Message to Helpr (optional)"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder={`Say something to ${helperName}…`}

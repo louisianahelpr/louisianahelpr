@@ -55,7 +55,11 @@ export function TrustRow({
   if (avgRating != null && avgRating > 0) {
     chips.push(
       <span key="rating">
-        {avgRating.toFixed(1)}★
+        {/* The glyph is decoration: on its own AT reads "4.9 black star".
+            Hide it and say what the number means. */}
+        {avgRating.toFixed(1)}
+        <span aria-hidden>★</span>
+        <span className="sr-only"> star rating</span>
         {reviewCount != null && reviewCount > 0 && (
           <span style={{ color: "hsl(var(--olivewood) / 0.8)" }}> ({reviewCount})</span>
         )}

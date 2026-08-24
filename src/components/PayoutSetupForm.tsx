@@ -309,7 +309,7 @@ export function PayoutSetupForm() {
             ) : needsMoreInfo ? (
               <><RefreshCw className="w-4 h-4 mr-2" /> Complete Stripe Verification</>
             ) : (
-              <><ExternalLink className="w-4 h-4 mr-2" /> Set up Payouts with Stripe</>
+              <><ExternalLink className="w-4 h-4 mr-2" /> Set Up Payouts with Stripe</>
             )}
           </Button>
           {status?.connected && (

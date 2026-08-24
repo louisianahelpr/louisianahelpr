@@ -1273,7 +1273,11 @@ html.web-desktop {
                 transform 0.15s var(--ease-spring),
                 filter 0.15s var(--ease-spring);
   }
-  @media (hover: hover) {
+  /* The tap-target overlay is its OWN query, a sibling of the hover block.
+     It used to be nested inside `@media (hover: hover)`, which made it
+     unreachable on exactly the devices it exists for: a phone reports
+     `hover: none`, so the outer query never matched and the 44px
+     pseudo-element never rendered. Keep these two siblings. */
   @media (pointer: coarse) {
     .link-standard::before {
       content: "";
@@ -1286,7 +1290,7 @@ html.web-desktop {
       height: 100%;
     }
   }
-
+  @media (hover: hover) {
     .link-standard:hover {
       text-decoration-color: currentColor;
       transform: translateY(-1px);

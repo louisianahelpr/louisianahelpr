@@ -448,8 +448,12 @@ const NotificationPanel = () => {
                               >
                                 {n.title}
                               </p>
+                              {/* Colour alone cannot carry "unread" — labelled
+                                  the same way ConversationRow's dot is. */}
                               {!n.read && (
                                 <span
+                                  role="status"
+                                  aria-label="Unread"
                                   className="w-2 h-2 rounded-full flex-shrink-0"
                                   style={{ background: "hsl(var(--burnt-sienna))" }}
                                 />

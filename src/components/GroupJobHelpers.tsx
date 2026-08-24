@@ -158,7 +158,7 @@ export function GroupJobHelpers({
                 </span>
               </div>
               {isOwner && (
-                <button onClick={() => removeHelper(h.id)} aria-label="Remove helper" className="text-muted-foreground hover:text-destructive">
+                <button onClick={() => removeHelper(h.id)} aria-label="Remove Helpr" className="text-muted-foreground hover:text-destructive">
                   <XCircle className="w-4 h-4" />
                 </button>
               )}

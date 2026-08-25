@@ -107,17 +107,44 @@ deletion (App Store 5.1.1(v)), Sign in with Apple, destructive red,
 `prefers-reduced-motion`, safe-area insets, swipe-back, haptics, splash screen,
 pinch-zoom, no input auto-zoom.
 
-## 7. Ownership split (2026-08-22)
+## 7. Ownership split (revised 2026-08-25)
 
-Two sessions were editing the same files and reverting each other. Owner's split:
+Two sessions were editing the same files and reverting each other. The split
+below replaces the original app-surface/webpage-surface one, which stopped
+working the moment both lanes started auditing the SAME authed screens.
 
-- **App surface** — auth screens, dashboard, post-job, activity, messages,
-  profile tabs, admin, and the shared UI primitives (`components/ui/*`,
-  `components/dashboard/*`, `components/auth/*`).
-- **Webpage surface** — landing, Footer, HelpCenter, Legal, Support,
-  ForBusiness, parish/impact/community pages, SEO metadata, desktop web shell.
+**Why it was revised.** On 2026-08-25 the two lanes independently found and
+fixed `/wrapped`'s missing desktop rail AND the Membership "Once" disclosure —
+duplicate work that then collided in a rebase. One lane also nearly committed a
+repair for a typecheck break the other had already pushed, and two migrations
+were stamped `20260825183000` within minutes of each other, which failed
+`db push` on `schema_migrations_pkey` and BLOCKED EVERY QUEUED MIGRATION until
+one was re-timestamped. Splitting by *surface* does not prevent any of that,
+because "the webpage" and "the app" are the same React tree.
 
-A change needed in a shared primitive is raised, not made unilaterally.
+**Split by ROUTE, not by surface.** Each lane owns whole routes end to end —
+the page, its sub-components, and its copy:
+
+- **Lane A — the money loop:** `/post-job`, `/my-posts`, `/my-jobs`,
+  `/messages`, `/payment-success`, job cards, escrow/dispute/payout surfaces.
+- **Lane B — identity & account:** `/profile` + every `?tab=`, `/user/:id`,
+  auth screens, `/subscription`, membership.
+- **Lane C — public & operator:** landing, Footer, `/help`, `/legal`,
+  `/support`, `/jobs`, `/browse`, and all of `/admin`.
+
+Rules that make the split hold:
+
+1. **Shared primitives (`components/ui/*`) are nobody's by default.** A change
+   there is raised, not made unilaterally — unchanged from the original split,
+   and the one rule that was never the problem.
+2. **Migrations carry the lane letter in the filename** (`..._a_<name>.sql`)
+   and each lane uses a distinct minute offset (A :00, B :15, C :30). A
+   colliding timestamp is not a merge conflict — git takes both files happily
+   and the failure only appears at deploy, where it stalls the whole queue.
+3. **Announce before touching another lane's route.** Finding a bug outside
+   your lane is normal; fixing it silently is what produces the duplicate.
+4. **Re-pull immediately before every commit.** Non-negotiable when three
+   lanes push to `main` directly.
 
 ### Settled questions — do not reopen without reading the history
 

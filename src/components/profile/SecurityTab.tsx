@@ -500,7 +500,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
                   key={group.fingerprint}
                   className="flex items-center gap-3 rounded-ds-md p-2.5"
                   style={{
-                    background: "hsla(0, 0%, 100%, 0.55)",
+                    background: "hsl(var(--ivory-sand) / 0.55)",
                     border: "0.5px solid hsl(var(--olivewood) / 0.10)",
                   }}
                 >

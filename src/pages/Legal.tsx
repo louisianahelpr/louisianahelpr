@@ -598,7 +598,7 @@ const Legal = () => {
   // This page renders the canonical in-content <BackButton /> next to its H1,
   // which is its only back affordance.
   return (
-    <PublicLayout showCtaBand={false}>
+    <PublicLayout>
       <Tabs value={tab} onValueChange={setTab} className="w-full">
         {/* Compact [BackButton] [title] row — same shape and vertical offset as
             /for-business, /subscription, /help, and /jobs. */}

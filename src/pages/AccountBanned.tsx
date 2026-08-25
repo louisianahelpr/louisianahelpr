@@ -126,21 +126,18 @@ const AccountBanned = () => {
               public route (not behind ProtectedRoute), so a suspended account
               can still reach it, and the form identifies them from their
               session so support gets the account without them typing it. */}
-          <Link to="/support?topic=message&subject=Account%20suspension%20appeal">
-            <Button
-              variant="primary"
-              className="w-full rounded-ds-md"
-              size="lg"
-            >
+          {/* `Button asChild` wrapping the Link — the canonical pattern. The
+              inverse (<Link><Button>) renders a <button> INSIDE an <a>: invalid
+              HTML, and a double tab stop on every one of these CTAs. */}
+          <Button asChild variant="primary" className="w-full rounded-ds-md" size="lg">
+            <Link to="/support?topic=message&subject=Account%20suspension%20appeal">
               <Mail className="w-4 h-4 mr-2" />
               Contact Support
-            </Button>
-          </Link>
-          <Link to="/rules">
-            <Button variant="ghost" className="w-full rounded-ds-md" size="sm">
-              Review Platform Rules
-            </Button>
-          </Link>
+            </Link>
+          </Button>
+          <Button asChild variant="ghost" className="w-full rounded-ds-md" size="sm">
+            <Link to="/rules">Review Platform Rules</Link>
+          </Button>
         </div>
       </div>
 

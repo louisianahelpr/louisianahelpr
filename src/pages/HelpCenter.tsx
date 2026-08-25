@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { ArrowRight, ChevronDown, ChevronRight } from "lucide-react";
+import { useState } from "react";
+import { ChevronDown } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import PublicLayout from "@/components/marketing/PublicLayout";
 import FaqRow from "@/components/marketing/FaqRow";
@@ -56,15 +56,13 @@ const topicSlug = (label: string) =>
 const topicDesc = (topic: string): string | undefined =>
   TOPICS.find((t) => t.label.toLowerCase() === topic.toLowerCase())?.desc;
 
-// ─── TopicSection — collapsible topic wrapper (topic click expands the FAQ list) ─
+// ─── TopicSection — collapsible topic wrapper ────────────────────────────────
 const TopicSection = ({
   section,
   accent,
-  externallyOpened,
 }: {
   section: { topic: string; items: Array<{ q: string; a: string }> };
   accent: string;
-  externallyOpened: boolean;
 }) => {
   // Open by default on md+ (owner, 2026-08-24: seven collapsed category
   // headers filled a 1440px screen with zero actual answers — "info is low").
@@ -75,12 +73,6 @@ const TopicSection = ({
   const [manualOpen, setManualOpen] = useState<boolean>(
     () => typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches,
   );
-  // When the parent flips externallyOpened to true (user clicked a topic
-  // card up in Section 2), open this section. Users can still collapse
-  // it by clicking the chevron.
-  useEffect(() => {
-    if (externallyOpened) setManualOpen(true);
-  }, [externallyOpened]);
   const open = manualOpen;
   return (
     <div
@@ -155,10 +147,6 @@ const TopicSection = ({
 // ─── HelpCenter ───────────────────────────────────────────────────────────────
 
 const HelpCenter = () => {
-  // Track which FAQ topic sections were requested to open via the topic
-  // cards up in Section 2. Set-based so multiple can be open at once.
-  const [expandedSlugs, setExpandedSlugs] = useState<Set<string>>(new Set());
-
   // No search on this page (owner, 2026-08-22). It was a client-side filter
   // over FAQ_SECTIONS — a static array of seven topics — reached through a
   // control that had already been moved three times looking for a place where
@@ -176,61 +164,6 @@ const HelpCenter = () => {
     ogDescription:
       "Answers, guides, and support — for posters and Helprs alike.",
   });
-
-  // Sequential fade-in for the topic grid, matching HowItWorksSection —
-  // IntersectionObserver at 0.2 threshold with a 10% bottom rootMargin,
-  // 1100ms cubic-bezier ease, 400ms per-item stagger. Respects reduced motion.
-  const topicsRef = useRef<HTMLDivElement>(null);
-  const [topicsInView, setTopicsInView] = useState(false);
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const reduceMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
-    if (reduceMotion) {
-      setTopicsInView(true);
-      return;
-    }
-    const el = topicsRef.current;
-    if (!el) return;
-    const io = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setTopicsInView(true);
-          io.disconnect();
-        }
-      },
-      { threshold: 0.2, rootMargin: "0px 0px -10% 0px" },
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
-
-  // "Learn more" from a topic card scrolls straight to the FAQ section
-  // header (deep-link) — the direct successor to the old auto-filled search.
-  const scrollToFaq = () => {
-    const target = document.getElementById("faq");
-    if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
-
-  // Open a category: mark its FAQ section expanded, then scroll to it. The
-  // scroll is deferred a frame so the section has re-rendered with its body
-  // open and the target offset is the final one, not a mid-animation one.
-  // Shared by the app list and the marketing grid so the two presentations
-  // can never drift in behaviour.
-  const openTopic = (label: string) => {
-    const slug = topicSlug(label);
-    setExpandedSlugs((prev) => {
-      const next = new Set(prev);
-      next.add(slug);
-      return next;
-    });
-    requestAnimationFrame(() => {
-      const target = document.getElementById(`faq-${slug}`);
-      if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
-      else scrollToFaq();
-    });
-  };
 
   return (
     <PublicLayout>
@@ -315,9 +248,6 @@ const HelpCenter = () => {
                     SECTION_ACCENTS[section.topic] ??
                     "hsl(var(--burnt-sienna))"
                   }
-                  externallyOpened={expandedSlugs.has(
-                    topicSlug(section.topic),
-                  )}
                 />
               ))}
             </div>

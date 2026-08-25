@@ -5,7 +5,6 @@ import {
   Clock,
   ExternalLink,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import PageHeader from "@/components/PageHeader";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
@@ -99,7 +98,6 @@ const CARD_CLASS = "doc-card rounded-ds-lg overflow-hidden";
 
 export default function BenefitsPage() {
   usePageTitle("Benefits & Perks — Helpr");
-  const navigate = useNavigate();
 
   // Partner rows are real anchors, not buttons — see the render below. The
   // previous `window.open(url, "_blank", "noopener noreferrer")` silently

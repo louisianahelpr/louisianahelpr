@@ -147,7 +147,7 @@ const Index = () => {
 
 
   return (
-    <PublicLayout showCtaBand={false} noNavSpacer>
+    <PublicLayout noNavSpacer>
       {/* LocalBusiness + Organization JSON-LD is in index.html (static,
           crawlable without JS). These page-specific schemas stay here. */}
       <script

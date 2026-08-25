@@ -257,7 +257,7 @@ const Jobs = () => {
     // Navbar through the SAME spacer, so their titles land at one offset.
     // This page renders the canonical in-content <BackButton /> next to its
     // H1, which is its only back affordance.
-    <PublicLayout showCtaBand={false}>
+    <PublicLayout>
       {/* The bottom padding clears the floating MobileNav (96px) plus
           the iOS home-indicator safe area, with a 16px gap so the
           last action isn't kissing the dock. pb-32 was barely 2px

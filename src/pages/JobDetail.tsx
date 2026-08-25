@@ -107,7 +107,7 @@ const JobDetail = () => {
   // can reuse it without a hook landing after an early return.)
 
   return (
-    <PublicLayout showCtaBand={false} noNavSpacer>
+    <PublicLayout noNavSpacer>
       <div className="pt-20 pb-[calc(var(--safe-area-bottom,0px)_+_96px_+_1rem)] md:pb-safe-nav px-5">
         <div className="container mx-auto max-w-md">
           <h1 className="sr-only">{headingText}</h1>

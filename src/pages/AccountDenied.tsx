@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { XCircle, RefreshCw, Mail, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { signOutWithPushCleanup } from "@/lib/authSignOut";
@@ -111,34 +111,24 @@ const AccountDenied = () => {
             <RefreshCw className="w-4 h-4 mr-2" />
             Re-Apply Now
           </Button>
-          {/* Appeal CTA — pre-fills the email with the user's ID + email
-              + denial reason so the admin can pull the right case row up
-              instantly. We don't share the bare denial_reason verbatim in
-              the URL when it could contain sensitive admin notes — just
-              flag that a reason exists so the user can quote it back. */}
-          <a
-            href={`mailto:admin@louisianahelpr.com?subject=${encodeURIComponent(
-              "Account decision appeal",
-            )}&body=${encodeURIComponent(
-              [
-                "Hi Helpr team,",
-                "",
-                "I'd like to appeal the decision on my account.",
-                "",
-                "[Tell us what changed or what you'd like reconsidered]",
-                "",
-                "—",
-                `User ID: ${user?.id ?? "unknown"}`,
-                `Email: ${user?.email ?? "unknown"}`,
-                denyReason ? `Reason on file: ${denyReason}` : "Reason on file: (not provided)",
-              ].join("\n"),
-            )}`}
-          >
-            <Button variant="ghost" className="w-full rounded-ds-md" size="sm">
+          {/* Appeal CTA → /support, never a raw `mailto:`. Inside the native
+              app a mailto has no handler, so the appeal button did nothing at
+              all on the one screen where a denied user has no other route to a
+              human — the same reason AccountBanned links to /support. /support
+              is public (not behind ProtectedRoute), so a denied account can
+              still reach it, and the form identifies them from their session,
+              so the admin gets the account without the user typing an ID.
+
+              The denial reason is deliberately NOT carried in the URL: it can
+              contain internal admin notes, and a query string is the wrong
+              place for them. It is already shown on this card above, so the
+              user can quote whatever they want to contest. */}
+          <Button asChild variant="ghost" className="w-full rounded-ds-md" size="sm">
+            <Link to="/support?topic=message&subject=Account%20decision%20appeal">
               <Mail className="w-4 h-4 mr-2" />
               Appeal This Decision
-            </Button>
-          </a>
+            </Link>
+          </Button>
         </div>
       </div>
 

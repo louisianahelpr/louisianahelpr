@@ -189,8 +189,12 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           dropping them on the landing made them find the tab themselves. */}
       <Route path="/earnings" element={<Navigate to="/profile?tab=earnings" replace />} />
       <Route path="/messages" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowPending><Messages /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      {/* /support is linked from the footer, the legal pages, and the Profile
-          Legal tab's data-rights footnote, so it must resolve WITHOUT auth.
+      {/* /support is linked from PolicyFooter (the card that closes the legal
+          policy tabs AND the Help Center), the Profile Legal tab's data-rights
+          footnote, and the three account-gate screens (pending / denied /
+          banned), so it must resolve WITHOUT auth — a suspended or
+          not-yet-approved account has no other route to a human. NOT from
+          <Footer>: the site footer carries no /support link.
           It used to redirect to /help — a
           static FAQ whose only contact affordance was a raw `mailto:` (which
           does nothing inside the native app). It now renders a real contact

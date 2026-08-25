@@ -14,7 +14,7 @@ interface AuthShellProps {
    * lands mid-flow from search or a shared link isn't stuck with no way out.
    *
    * Login and Signup opt OUT of that (owner, 2026-08-23): those two are
-   * reached by clicking "Sign In" / "Get Started" FROM the site, not landed
+   * reached by clicking "Log In" / "Get Started" FROM the site, not landed
    * on cold, so the exit-hatch argument doesn't apply the same way, and a
    * focused credential/create-account flow reads better without a nav bar
    * competing for attention above the form.

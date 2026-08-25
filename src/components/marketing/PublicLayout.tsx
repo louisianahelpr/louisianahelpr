@@ -1,13 +1,10 @@
 import type { ReactNode } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { ArrowRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useLocation } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import AppShell from "@/components/AppShell";
 import { authPages } from "@/components/mobileNav/mobileNavHelpers";
 import { isNativePlatform } from "@/lib/nativeInit";
-import { useAuthReady } from "@/hooks/useAuthReady";
 
 /**
  * PublicLayout — shared chrome for the public marketing / SEO surface
@@ -18,22 +15,16 @@ import { useAuthReady } from "@/hooks/useAuthReady";
  * between the nav spacer and the footer — these pages stay document-scroll
  * (`min-h-screen` / `bg-premium-page`), never AppShell.
  *
- * The shared "ready to start?" CTA band is OFF by default — it read as
- * repetitive stacked above the footer on every page. A page opts IN
- * (showCtaBand) only when it wants that band as its sole conversion CTA.
+ * A shared "ready to start?" CTA band used to live above the footer, gated on
+ * a `showCtaBand` prop that defaulted to false. It read as repetitive stacked
+ * over the footer, so every one of the call sites either passed
+ * `showCtaBand={false}` or omitted it — the band, its four copy props
+ * (ctaHeadline / ctaSubcopy / ctaLabel / ctaTo) and the `/#how-it-works` link
+ * inside it never rendered once. Removed 2026-08-25 rather than left as a
+ * dormant second conversion surface.
  */
 interface PublicLayoutProps {
   children: ReactNode;
-  /** Render the shared CTA band above the footer. Default false. */
-  showCtaBand?: boolean;
-  /** Headline for the CTA band. */
-  ctaHeadline?: string;
-  /** Supporting line under the headline. */
-  ctaSubcopy?: string;
-  /** Primary CTA label (logged-out). */
-  ctaLabel?: string;
-  /** Primary CTA destination (logged-out). */
-  ctaTo?: string;
   /**
    * Drop the spacer that clears the fixed Navbar. The landing hero is
    * designed to flow UNDER the transparent nav, so it opts out; every
@@ -44,17 +35,8 @@ interface PublicLayoutProps {
 
 const PublicLayout = ({
   children,
-  showCtaBand = false,
-  ctaHeadline = "Ready to start?",
-  ctaSubcopy = "Join your Louisiana neighbors getting things done on Helpr.",
-  ctaLabel = "Get Started",
-  ctaTo = "/signup",
   noNavSpacer = false,
 }: PublicLayoutProps) => {
-  // Session-only auth (no profile round-trip) so the CTA band mirrors the
-  // Navbar: an authenticated visitor sees "Open app" instead of the
-  // logged-out "Get started".
-  const { user } = useAuthReady();
   const location = useLocation();
 
   // NATIVE (iOS/Android WebView): the marketing Navbar + Footer are web-only
@@ -143,76 +125,6 @@ const PublicLayout = ({
           `hideHomeLink` prop was removed with it. */}
 
       <div className="flex-1">{children}</div>
-
-      {showCtaBand && (
-        <section
-          aria-label="Get started with Helpr"
-          className="relative px-5 sm:px-8 lg:px-12 pt-4 pb-10"
-        >
-          <div
-            className="mx-auto max-w-5xl rounded-ds-lg px-6 py-9 lg:px-10 lg:py-11 text-center"
-            style={{
-              background:
-                "linear-gradient(135deg, hsl(var(--bark) / 0.08) 0%, hsl(var(--burnt-sienna) / 0.07) 100%)",
-              border: "1px solid hsl(var(--bark) / 0.14)",
-            }}
-          >
-            <h2
-              className="font-display italic font-bold text-ds-24 lg:text-ds-32 tracking-[-0.025em] text-balance"
-              style={{ color: "hsl(var(--ink-deep))" }}
-            >
-              {ctaHeadline}
-            </h2>
-            <p
-              className="font-serif italic text-ds-15 leading-relaxed mt-2 max-w-lg mx-auto"
-              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-            >
-              {ctaSubcopy}
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-6">
-              {user ? (
-                <Button
-                  asChild
-                  variant="primary"
-                  size="lg"
-                  className="group rounded-2xl px-8 w-full sm:w-auto"
-                >
-                  <Link to="/dashboard">
-                    Open App
-                    <ArrowRight className="ml-1.5 w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
-                  </Link>
-                </Button>
-              ) : (
-                <>
-                  <Button
-                    asChild
-                    variant="primary"
-                    size="lg"
-                    className="group rounded-2xl px-8 w-full sm:w-auto"
-                  >
-                    <Link to={ctaTo}>
-                      {ctaLabel}
-                      <ArrowRight className="ml-1.5 w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
-                    </Link>
-                  </Button>
-                  <Button
-                    asChild
-                    variant="outline"
-                    size="lg"
-                    className="rounded-2xl px-8 w-full sm:w-auto"
-                    style={{
-                      borderColor: "hsl(var(--olivewood) / 0.3)",
-                      color: "hsl(var(--ink-deep))",
-                    }}
-                  >
-                    <Link to="/#how-it-works">How It Works</Link>
-                  </Button>
-                </>
-              )}
-            </div>
-          </div>
-        </section>
-      )}
 
       <Footer />
     </div>

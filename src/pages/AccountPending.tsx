@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { LogOut, MailCheck, RefreshCw, ArrowRight, Clock, Check, Loader2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -355,32 +355,22 @@ const AccountPending = () => {
                   <><RefreshCw className="w-3.5 h-3.5" /> Sync Status</>
                 )}
               </Button>
-              {/* Contact CTA — pre-fills the support email with the user's
-                  ID + email so the admin can find the right row instantly
-                  without asking a sleep-deprived applicant to dig out
-                  their account info. Falls back to /support on web if
-                  mailto: is blocked. */}
-              <a
-                href={`mailto:admin@louisianahelpr.com?subject=${encodeURIComponent(
-                  "Account review question",
-                )}&body=${encodeURIComponent(
-                  [
-                    "Hi Helpr team,",
-                    "",
-                    "I'm waiting on account approval and have a question:",
-                    "",
-                    "[Your question here]",
-                    "",
-                    "—",
-                    `User ID: ${user?.id ?? "unknown"}`,
-                    `Email: ${userEmail || "unknown"}`,
-                  ].join("\n"),
-                )}`}
+              {/* Contact CTA → /support, never a raw `mailto:`. This was a
+                  mailto whose comment claimed it "falls back to /support on
+                  web if mailto: is blocked" — there was no such fallback, and
+                  inside the native app a mailto has no handler at all, so the
+                  link simply did nothing. /support is public (not behind
+                  ProtectedRoute), so a pending account reaches it, and the form
+                  identifies the user from their session — which is what the
+                  hand-built mailto body was doing by hand. Matches
+                  AccountBanned / AccountDenied. */}
+              <Link
+                to="/support?topic=message&subject=Account%20review%20question"
                 className="text-center text-ds-12 text-muted-foreground hover:text-foreground transition-colors"
               >
                 Need help?{" "}
                 <span className="underline underline-offset-2">Contact support</span>
-              </a>
+              </Link>
             </div>
           </div>
         )}

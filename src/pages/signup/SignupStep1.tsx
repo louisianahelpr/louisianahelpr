@@ -329,10 +329,16 @@ export function SignupStep1({
               destination, and the consent actually recorded, is unchanged.
               "Platform Rules" was also the odd one out: the other three places
               in the app that link /rules call it "Community Rules". */}
+          {/* New TAB, not an in-app <Link>. These policies open mid-signup, and
+              /signup keeps no draft of the typed email, password, or checkbox
+              state — an in-app navigation to /terms therefore threw the form
+              away and dropped the user back on an empty step 1. CompleteProfile's
+              identical consent row already opens its three policy links in a new
+              tab for exactly this reason; this matches it. */}
           I agree to the{" "}
-          <Link to="/terms" onClick={(e) => e.stopPropagation()} className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>Terms</Link>,{" "}
-          <Link to="/rules" onClick={(e) => e.stopPropagation()} className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>Rules</Link>{" & "}
-          <Link to="/privacy" onClick={(e) => e.stopPropagation()} className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>Privacy</Link>
+          <a href="/terms" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>Terms</a>,{" "}
+          <a href="/rules" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>Rules</a>{" & "}
+          <a href="/privacy" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>Privacy</a>
         </span>
       </label>
 
@@ -459,7 +465,7 @@ export function SignupStep1({
           className="font-semibold hover:underline whitespace-nowrap"
           style={{ color: "hsl(var(--bark))" }}
         >
-          Sign In
+          Log In
         </Link>
       </p>
       </div>

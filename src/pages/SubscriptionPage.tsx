@@ -1205,7 +1205,7 @@ export default function SubscriptionPage() {
     );
   }
   return (
-    <PublicLayout showCtaBand={false}>
+    <PublicLayout>
       {inner}
     </PublicLayout>
   );

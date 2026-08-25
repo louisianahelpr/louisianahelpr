@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
-import { BookOpen, CheckCircle2, ChevronRight, Loader2, Send } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
+import { CheckCircle2, Loader2, Send } from "lucide-react";
 import { toast } from "sonner";
 
 import BackButton from "@/components/BackButton";
@@ -75,15 +75,6 @@ const MESSAGE_MAX = 5000;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 type FieldKey = "name" | "email" | "topic" | "subject" | "message";
-
-// Plain-language names for the "still needed" hint under a disabled submit.
-const FIELD_NOUNS: Record<FieldKey, string> = {
-  name: "your name",
-  email: "your email",
-  topic: "a topic",
-  subject: "a subject",
-  message: "a message",
-};
 
 interface Draft {
   name: string;

@@ -106,6 +106,12 @@ const Login = () => {
   // One-shot note from useSessionTimeout: the 30-minute inactivity sign-out
   // is otherwise silent, and being dumped here with no explanation reads as
   // a crash. Read-and-clear so a refresh doesn't repeat it.
+  //
+  // INTENTIONALLY DORMANT: idle sign-out is disabled app-wide — `SessionManager`
+  // in App.tsx no longer calls `useSessionTimeout()`, so nothing writes
+  // `helpr_signed_out_reason` and this banner cannot currently render. It is
+  // kept, like the hook and its tests, so restoring idle sign-out stays the
+  // one-line revert App.tsx documents. Do not read it as live behaviour.
   const [signedOutForInactivity] = useState<boolean>(() => {
     try {
       const hit = sessionStorage.getItem("helpr_signed_out_reason") === "inactivity";
@@ -142,19 +148,19 @@ const Login = () => {
   // could otherwise stack into a wall of yellow above the form.
   const notice =
     signedOutForInactivity
-      ? "You were signed out after 30 minutes of inactivity. Sign back in to pick up where you left off."
+      ? "You were signed out after 30 minutes of inactivity. Log back in to pick up where you left off."
       : arrivedFromSignup
-        ? "If that email already has an account, sign in below. Forgot your password? Reset it and you'll be back in."
+        ? "If that email already has an account, log in below. Forgot your password? Reset it and you'll be back in."
         : bouncedFromGatedRoute
-          ? "That page needs an account. Sign in and we'll take you to your dashboard."
+          ? "That page needs an account. Log in and we'll take you to your dashboard."
           : null;
   const queryClient = useQueryClient();
   usePageMeta({
     title: "Log In — Helpr",
-    description: "Sign in to your Helpr account.",
+    description: "Log in to your Helpr account.",
     canonical: "https://www.louisianahelpr.com/login",
     ogTitle: "Log In — Helpr",
-    ogDescription: "Sign in to your Helpr account to post jobs or pick up local work across Louisiana.",
+    ogDescription: "Log in to your Helpr account to post jobs or pick up local work across Louisiana.",
   });
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -171,7 +177,7 @@ const Login = () => {
   const [mfaCode, setMfaCode] = useState("");
   const [mfaVerifying, setMfaVerifying] = useState(false);
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
-  // Set once Sign In has been tapped — lets an UNTOUCHED field surface its
+  // Set once Log In has been tapped — lets an UNTOUCHED field surface its
   // "add this" error, which a purely value-driven check can never do.
   const [attempted, setAttempted] = useState(false);
   const emailRef = useRef<HTMLInputElement>(null);
@@ -330,8 +336,8 @@ const Login = () => {
   };
 
   return (
-    <AuthShell hideHeader centerColumn backTo="/" maxWidth="2xl" title="Sign In" noWebChrome>
-      {/* The [back] [Sign in] row now comes from AuthShell's `title` prop —
+    <AuthShell hideHeader centerColumn backTo="/" maxWidth="2xl" title="Log In" noWebChrome>
+      {/* The [back] [Log In] row now comes from AuthShell's `title` prop —
           it was hand-rolled here, then hand-copied (and drifted) into
           ForgotPassword, Signup and SignupPending. One implementation, in the
           shell, so all ten auth screens carry the identical row.
@@ -528,7 +534,7 @@ const Login = () => {
               <Link
                 to="/forgot-password"
                 // Muted olivewood, NOT --bark. Bark (#5E6544) is the same deep
-                // olive the Sign in button is built from, so a bold bark link
+                // olive the Log In button is built from, so a bold bark link
                 // sitting directly above that button read as a second green
                 // control competing with the primary one. The screen gets ONE
                 // strong green. Dropped to medium weight for the same reason —
@@ -546,13 +552,13 @@ const Login = () => {
             className="w-full rounded-ds-md"
             size="lg"
             // Loading-only disable (owner, V5) — the pattern Signup's Continue
-            // and Create Account already use. A greyed-out Sign In is a dead
+            // and Create Account already use. A greyed-out Log In is a dead
             // end that says something is wrong without saying WHAT; the button
             // now stays tappable and tapping it names the missing field inline
             // (and focuses it) instead of firing signInWithPassword.
             disabled={loading}
           >
-            {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Signing In…</> : "Sign In"}
+            {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Logging In…</> : "Log In"}
           </Button>
           {/* No "By signing in you agree to our Terms · Rules · Privacy" here.
               Consent is CAPTURED on signup — Signup.tsx has real, recorded

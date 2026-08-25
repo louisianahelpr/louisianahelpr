@@ -503,6 +503,18 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                   <ul className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5">
                     {tier.features
                       .filter((f) => !/^Everything in/i.test(f))
+                      // The bullets in subscriptionTiers.ts are written for a
+                      // RECURRING plan, and the Once tab renders the same list
+                      // under a one-time price — so Pro advertised "1 free Job
+                      // Boost every month" on a pass that only ever sees one
+                      // month. On the one-time cycle a per-month perk is
+                      // restated for the single period it actually covers,
+                      // rather than promising a cadence the pass cannot reach.
+                      .map((f) =>
+                        billingInterval === "one_time"
+                          ? f.replace(/\s*every month$/i, ` for your ${ONE_TIME_PASS_DAYS} days`)
+                          : f,
+                      )
                       .map((feature) => (
                         <li
                           key={feature}

@@ -480,7 +480,14 @@ export function PostedJobActions({
                   by DisputeLink's own exported predicate, so the 7-day window
                   and the never-double-file rule are unchanged. */}
               {(() => {
-                const canReview = job.payment_status === "released";
+                // Approving completion leaves the job at 'payout_pending' until
+                // the transfer settles (hours later), so gating the Review chip
+                // on 'released' hid it during exactly the window when the app
+                // auto-opens the rating sheet — dismiss that sheet and there was
+                // no way back to leaving a review. Matches the reviews INSERT
+                // policy, which accepts both settlement states.
+                const canReview =
+                  job.payment_status === "released" || job.payment_status === "payout_pending";
                 // Revision first, dispute second — same escalation order the
                 // footnote used to spell out.
                 const canRevise = !job.poster_completed_at && !job.revision_requested_at;

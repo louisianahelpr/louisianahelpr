@@ -66,22 +66,42 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
     hapticHeavy();
     setSubmitting(true);
     try {
-      // Upload evidence photos
+      // Upload evidence photos. The proof-photos INSERT policy requires the
+      // FIRST path segment to be the uploader's uid, so evidence must live
+      // under `<uid>/disputes/<jobId>/…` — the old `disputes/<jobId>/…` shape
+      // was rejected 400 by RLS on every single file, and the per-file
+      // `continue` swallowed it, so disputes were filed with zero evidence and
+      // the admin resolved them blind. Failures are now surfaced, not skipped.
+      const { data: authData } = await supabase.auth.getUser();
+      const uid = authData?.user?.id;
       const evidenceUrls: string[] = [];
+      let failedUploads = 0;
       for (const file of evidenceFiles) {
         const ext = file.name.split(".").pop();
-        const path = `disputes/${jobId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const path = `${uid}/disputes/${jobId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
         const { error: uploadError } = await supabase.storage.from("proof-photos").upload(path, file);
         if (uploadError) {
           report(uploadError, { tags: { source: "DisputeDialog.uploadEvidence" } });
+          failedUploads += 1;
           continue;
         }
         const { data: urlData, error: signedUrlError } = await supabase.storage.from("proof-photos").createSignedUrl(path, 60 * 60 * 24 * 365);
         if (signedUrlError) {
           report(signedUrlError, { tags: { source: "DisputeDialog.createSignedUrl" } });
+          failedUploads += 1;
           continue;
         }
         if (urlData?.signedUrl) evidenceUrls.push(urlData.signedUrl);
+      }
+      // Evidence decides the dispute, so a silent partial upload is not
+      // acceptable: stop and let them retry rather than filing short.
+      if (failedUploads > 0) {
+        hapticError();
+        toast.error(
+          `${failedUploads} of ${evidenceFiles.length} photo${evidenceFiles.length === 1 ? "" : "s"} didn't upload. Try again — your evidence matters here.`,
+        );
+        setSubmitting(false);
+        return;
       }
 
       const reasonText = `${DISPUTE_REASONS.find((r) => r.value === reason)?.label}: ${details}`.trim();

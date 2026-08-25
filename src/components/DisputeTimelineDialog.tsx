@@ -128,10 +128,15 @@ export const DisputeTimelineDialog = ({
     hapticHeavy();
     setSubmitting(true);
     try {
+      // Path must start with the uploader's uid — see DisputeDialog: the
+      // proof-photos INSERT policy keys on `(storage.foldername(name))[1]`,
+      // so a `disputes/…` prefix is rejected by RLS on every file.
+      const { data: authData } = await supabase.auth.getUser();
+      const uid = authData?.user?.id;
       const newUrls: string[] = [];
       for (const file of evidenceFiles) {
         const ext = file.name.split(".").pop();
-        const path = `disputes/${jobId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const path = `${uid}/disputes/${jobId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
         const { error: uploadError } = await supabase.storage.from("proof-photos").upload(path, file);
         if (uploadError) {
           report(uploadError, { tags: { source: "DisputeTimelineDialog.upload" } });

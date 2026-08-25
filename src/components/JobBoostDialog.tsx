@@ -29,9 +29,18 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
   const subExp = profile?.subscription_expires_at ? new Date(profile.subscription_expires_at) : null;
   const subActive = subExp ? subExp > new Date() : false;
   const price = boostPriceForTier(subTier, subActive);
-  const isSubscriber = price.free;
-  const BOOST_PRICE = price.free ? "" : formatFeeUsd(price.cents);
-  const isDiscounted = !price.free && price.discounted;
+  // Pro's ONE FREE BOOST per calendar month is spent server-side against
+  // profiles.boost_credit_used_month (create-boost-payment). The tier rule
+  // above knows nothing about it, so a Pro poster with an unused credit was
+  // quoted the discounted price and then charged $0 — the same
+  // price-that-isn't-the-price defect the comment above forbids, just in the
+  // other direction, and their monthly perk was spent without being named.
+  const thisMonth = new Date().toISOString().slice(0, 7);
+  const hasFreeProBoost =
+    subActive && subTier === "pro" && profile?.boost_credit_used_month !== thisMonth;
+  const isSubscriber = price.free || hasFreeProBoost;
+  const BOOST_PRICE = isSubscriber ? "" : formatFeeUsd(price.cents);
+  const isDiscounted = !isSubscriber && price.discounted;
 
   const handleBoost = async () => {
     setBoosting(true);
@@ -107,8 +116,25 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
                   className="font-serif italic mt-1.5 text-ds-13"
                   style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >
-                  Runs for <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>{BOOST_DURATION_HOURS} hours</span>
+                  {hasFreeProBoost && !price.free ? (
+                    <>
+                      Your free Pro boost this month · runs for{" "}
+                      <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>{BOOST_DURATION_HOURS} hours</span>
+                    </>
+                  ) : (
+                    <>
+                      Runs for <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>{BOOST_DURATION_HOURS} hours</span>
+                    </>
+                  )}
                 </p>
+                {hasFreeProBoost && !price.free && (
+                  <p
+                    className="font-serif italic mt-1 text-ds-12"
+                    style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                  >
+                    After this one, boosts are {formatFeeUsd(price.cents)} for the rest of the month.
+                  </p>
+                )}
               </>
             ) : (
               <>
@@ -172,7 +198,13 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
             className="rounded-ds-md"
           >
             <Rocket className="w-4 h-4 mr-1.5" />
-            {boosting ? "Boosting…" : isSubscriber ? "Boost — Included" : `Boost for ${BOOST_PRICE}`}
+            {boosting
+              ? "Boosting…"
+              : hasFreeProBoost && !price.free
+                ? "Boost — Free This Month"
+                : isSubscriber
+                  ? "Boost — Included"
+                  : `Boost for ${BOOST_PRICE}`}
           </Button>
         </DialogFooter>
       </DialogContent>

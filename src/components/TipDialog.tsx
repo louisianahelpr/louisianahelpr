@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { functionErrorMessage } from "@/lib/supabaseResult";
 import { Dialog, DialogContent, DialogHero } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { CurrencyInput } from "@/components/ui/currency-input";
@@ -31,7 +32,12 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
       const { data, error } = await supabase.functions.invoke("create-payment", {
         body: { action: "tip", jobId, amount: tipAmount },
       });
-      if (error) throw error;
+      // A non-2xx makes the SDK throw a FunctionsHttpError whose message is the
+      // useless "Edge Function returned a non-2xx status code" — while the real
+      // reason sits in the response body ("This helper hasn't set up their payout
+      // account yet…"). Rethrowing `error` directly buried that, so a tip that
+      // could never work reported a generic failure. Read the body first.
+      if (error) throw new Error(await functionErrorMessage(error, "Couldn't send your tip — try again?"));
       if (data?.error) throw new Error(data.error);
       if (data?.url) { hapticSuccess(); window.location.href = data.url; }
       else throw new Error("Couldn't start checkout. Please try again.");
@@ -48,7 +54,9 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
       <DialogContent>
         <DialogHero
           eyebrow={<><Gift className="w-3 h-3" /> A little extra</>}
-          title={`Send a tip${helperName ? ` to ${helperName}` : ""}.`}
+          /* Helper names arrive abbreviated ("Camille R."), so the template's
+             own period doubled it up — "Send a tip to Camille R..". */
+          title={`Send a tip${helperName ? ` to ${helperName.replace(/\.$/, "")}` : ""}.`}
         />
         {/* Relocated OUT of DialogHero's `subtitle` (2026-07-25 "one main
             title": headers show a title and nothing else). Not dropped —

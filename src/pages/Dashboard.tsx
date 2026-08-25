@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef, lazy, Suspense } from "react";
 import type { FeedDensity } from "@/components/dashboard/feedDensity";
 
+import { toast } from "sonner";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { signOutWithPushCleanup } from "@/lib/authSignOut";
@@ -132,6 +133,29 @@ const Dashboard = () => {
     try { localStorage.setItem("helpr_welcomed", "1"); } catch { /* private-browsing / quota — ignore */ }
     setShowWelcome(false);
   }, []);
+
+  // Stripe sends a paid boost back to `/dashboard?boosted=<jobId>` (and a
+  // bailed one to `?boost_cancelled=<jobId>`). Nothing consumed either param,
+  // so a poster who had just paid for a boost landed on the feed with no
+  // confirmation at all — the Boosted badge only appears later, on My Posts.
+  // The toast carries an action so it survives the suppress-plain-success
+  // policy (see lib/toastPolicy.ts): the toast IS the route to the boosted post.
+  useEffect(() => {
+    const boosted = searchParams.get("boosted");
+    const boostCancelled = searchParams.get("boost_cancelled");
+    if (!boosted && !boostCancelled) return;
+    if (boosted) {
+      toast.success("Your job is boosted — it's at the top of the feed for the next 24 hours.", {
+        action: { label: "View", onClick: () => navigate("/my-posts") },
+      });
+    } else {
+      toast.error("Boost cancelled — your job is still posted, just not boosted.");
+    }
+    const next = new URLSearchParams(searchParams);
+    next.delete("boosted");
+    next.delete("boost_cancelled");
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams, navigate]);
 
   const [reportJobId, setReportJobId] = useState<string | null>(null);
   // Detail-dialog open/close lifecycle (which job, feed-scroll restore, and

@@ -136,8 +136,21 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
     step === "reason" ? "Step 1 of 2 · Pick a reason" :
     step === "details" ? "Step 2 of 2 · Add details" :
     "Report submitted";
+  // Title Case, per PLATFORM_CONVENTIONS §1 (popup titles). This is why the
+  // 2026-08-24 casing sweep missed it: the title is COMPUTED from the
+  // reportedType union, so the literal "Report User" never appears in source
+  // for a lexical grep to find — it rendered "Report user", "Report job",
+  // "Report message". Mapping the union to display nouns fixes every variant
+  // at once and keeps the next sweep honest.
+  const REPORTED_NOUN: Record<ReportDialogProps["reportedType"], string> = {
+    job: "Job",
+    message: "Message",
+    user: "User",
+    profile: "Profile",
+    review: "Review",
+  };
   const title =
-    step === "confirmation" ? "Thanks — we've got it." : `Report ${reportedType}`;
+    step === "confirmation" ? "Thanks — We've Got It" : `Report ${REPORTED_NOUN[reportedType]}`;
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>

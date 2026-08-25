@@ -1,6 +1,6 @@
 /**
  * subscriptionTiers.ts — canonical perk definitions for the CONSUMER
- * membership tiers (Free / Helpr Pro / Helpr Elite) plus a Business row
+ * membership tiers (Free / Basic / Pro / Elite) plus a Business row
  * that exists here ONLY as the fee-percent reference for business accounts.
  *
  * Consumer prices MUST equal the live Stripe Price objects (verified):
@@ -80,7 +80,7 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     featureBullets: ["Access to all open jobs", "Basic applicant visibility"],
   },
   basic: {
-    name: "Helpr Basic",
+    name: "Basic",
     price: 5,
     // Annual = $50/yr → monthly-equivalent 4.17 (2 months free vs $60/yr
     // at monthly). Matches the "2 months free" pattern used by Pro/Elite.
@@ -106,7 +106,7 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     ],
   },
   pro: {
-    name: "Helpr Pro",
+    name: "Pro",
     price: 10,
     annualPrice: 8.33,
     platformFeePercent: 10,
@@ -128,7 +128,7 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     ],
   },
   elite: {
-    name: "Helpr Elite",
+    name: "Elite",
     price: 15,
     annualPrice: 12.5,
     platformFeePercent: 8,

@@ -556,9 +556,8 @@ export default function SubscriptionPage() {
                       </span>
                     )}
 
-                    {/* Tier name — big Bodoni. Strips the "Helpr " prefix
-                        so tiers read as just "Basic / Pro / Elite" (Free
-                        for the free tier). */}
+                    {/* Tier name — big Bodoni. Bare "Basic / Pro / Elite"
+                        ("Free" for the free tier). */}
                     {/* No conditional margin. This used to add mt-3 whenever a
                         chip sat above the title — but the "Current" chip is gone
                         and "Recommended" is now absolutely positioned in the
@@ -584,7 +583,7 @@ export default function SubscriptionPage() {
                           color: "hsl(var(--ink-deep))",
                         }}
                       >
-                        {isFree ? "Free" : perks.name.replace(/^Helpr\s+/, "")}
+                        {isFree ? "Free" : perks.name}
                       </h3>
                       <div className="sm:hidden shrink-0 text-right">
                         {/* One wrapping row, not a stack: the annual save chip
@@ -991,7 +990,7 @@ export default function SubscriptionPage() {
                       const isFeatured = tier === "pro";
                       const displayName = isFree
                         ? "Free"
-                        : perks.name.replace(/^Helpr\s+/, "");
+                        : perks.name;
                       return (
                         <th
                           key={tier}

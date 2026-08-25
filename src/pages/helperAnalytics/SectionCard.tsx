@@ -89,7 +89,7 @@ const SectionCard = ({
       <button
         type="button"
         onClick={onUpgrade}
-        aria-label={`${title} — included with Helpr Pro. Upgrade to unlock.`}
+        aria-label={`${title} — included with Pro. Upgrade to unlock.`}
         className="w-full text-left rounded-2xl liquid-glass px-4 py-3 flex items-center gap-3 min-h-[44px] glass-press"
         style={{
           boxShadow:
@@ -111,7 +111,7 @@ const SectionCard = ({
             className="block font-serif italic text-ds-11 truncate"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
-            {lockedPreview ?? "Available with Helpr Pro"}
+            {lockedPreview ?? "Available with Pro"}
           </span>
         </span>
         {/* The lock is the affordance; "Pro" is the reason. One quiet pair at
@@ -172,7 +172,7 @@ export const ProUpsellHeader = ({ onUpgrade, count }: { onUpgrade: () => void; c
     </span>
     <p className="min-w-0 flex-1 text-ds-12" style={{ color: "hsl(var(--ink-deep))" }}>
       <span className="font-sans font-semibold">
-        {count} more {count === 1 ? "insight" : "insights"} with Helpr Pro
+        {count} more {count === 1 ? "insight" : "insights"} with Pro
       </span>
       <span className="block font-serif italic text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
         Everything below unlocks together.

@@ -134,7 +134,7 @@ export const TermsContent = () => (
         body={
           <>
             <p><strong className="text-foreground">Poster service fee:</strong> added at checkout by your plan — {TIER_PERKS.free.platformFeePercent}% Free, {TIER_PERKS.basic.platformFeePercent}% Basic, {TIER_PERKS.pro.platformFeePercent}% Pro, {TIER_PERKS.elite.platformFeePercent}% Elite{BUSINESS_ENABLED ? `, ${TIER_PERKS.business.platformFeePercent}% Business` : ""} (minimum covers card processing on small jobs).</p>
-            <p><strong className="text-foreground">Helpr platform fee:</strong> deducted from payout by plan — {TIER_PERKS.free.platformFeePercent}% Free, {TIER_PERKS.basic.platformFeePercent}% Helpr Basic, {TIER_PERKS.pro.platformFeePercent}% Helpr Pro, {TIER_PERKS.elite.platformFeePercent}% Helpr Elite{BUSINESS_ENABLED ? `, ${TIER_PERKS.business.platformFeePercent}% Business` : ""}.</p>
+            <p><strong className="text-foreground">Helpr platform fee:</strong> deducted from payout by plan — {TIER_PERKS.free.platformFeePercent}% Free, {TIER_PERKS.basic.platformFeePercent}% Basic, {TIER_PERKS.pro.platformFeePercent}% Pro, {TIER_PERKS.elite.platformFeePercent}% Elite{BUSINESS_ENABLED ? `, ${TIER_PERKS.business.platformFeePercent}% Business` : ""}.</p>
             <p><strong className="text-foreground">Total platform take:</strong> the poster's plan-based service fee plus the Helpr's plan-based fee.</p>
             <p><strong className="text-foreground">Urgent job fee:</strong> {formatDollarsWhole(URGENT_FEE_FLOOR_DOLLARS)} minimum bonus that goes to the Helpr, added by the poster for priority placement.</p>
             {/* Job Boost and Tipping moved here verbatim from the Profile → Legal
@@ -184,7 +184,7 @@ export const TermsContent = () => (
     <PolicySection
       icon={Crown}
       title="Membership tiers"
-      subtitle={BUSINESS_ENABLED ? "Free, Helpr Basic, Helpr Pro, Helpr Elite, and Business plans" : "Free, Helpr Basic, Helpr Pro, and Helpr Elite plans"}
+      subtitle={BUSINESS_ENABLED ? "Free, Basic, Pro, Elite, and Business plans" : "Free, Basic, Pro, and Elite plans"}
       anchorId="subscription-tiers"
     >
       <PolicyRowItem

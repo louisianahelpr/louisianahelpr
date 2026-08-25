@@ -189,7 +189,7 @@ serve(async (req) => {
     const productName = isBoostDiscountTier
       ? (flooredBelowDiscount
           ? "Job Boost — 24-hour featured placement"
-          : `Job Boost — 24-hour featured placement (${BOOST_DISCOUNT_PCT}% off with ${subTier === "basic" ? "Helpr Basic" : "Helpr Pro"})`)
+          : `Job Boost — 24-hour featured placement (${BOOST_DISCOUNT_PCT}% off with ${subTier === "basic" ? "Basic" : "Pro"})`)
       : "Job Boost — 24-hour featured placement";
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {

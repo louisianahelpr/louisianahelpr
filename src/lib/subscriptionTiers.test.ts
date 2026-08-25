@@ -90,9 +90,9 @@ describe("TIER_PERKS fee model", () => {
 
   it("carries the current tier display names (rebrand guard)", () => {
     expect(TIER_PERKS.free.name).toBe("Free");
-    expect(TIER_PERKS.basic.name).toBe("Helpr Basic");
-    expect(TIER_PERKS.pro.name).toBe("Helpr Pro");
-    expect(TIER_PERKS.elite.name).toBe("Helpr Elite");
+    expect(TIER_PERKS.basic.name).toBe("Basic");
+    expect(TIER_PERKS.pro.name).toBe("Pro");
+    expect(TIER_PERKS.elite.name).toBe("Elite");
     expect(TIER_PERKS.business.name).toBe("Business");
   });
 });

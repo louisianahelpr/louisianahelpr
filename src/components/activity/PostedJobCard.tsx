@@ -7,6 +7,7 @@ import {
   Check, ChevronDown, ChevronUp, Eye,
 } from "lucide-react";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
+import { SeriesStrip } from "@/components/activity/SeriesStrip";
 import { JobCountdown } from "@/components/activity/JobCountdown";
 import { JobConfirmation } from "@/components/JobConfirmation";
 import { JobTracking } from "@/components/JobTracking";
@@ -176,6 +177,16 @@ function PostedJobCardInner({
             className="group relative scroll-mt-3"
           >
             <JobCardTitleBar title={job.title} amount={formatPrice(job.budget)} meta={metaRow} />
+            {/* The series, made visible — parents only (see SeriesStrip). */}
+            {!job.parent_job_id && (
+              <SeriesStrip
+                jobId={job.id}
+                recurrenceDays={job.recurrence_days}
+                recurrenceWeeks={job.recurrence_weeks}
+                dateNeeded={job.date_needed}
+                seriesHelperCommitted={!!job.recurring_helper_id}
+              />
+            )}
 
             {/* Where this job stands — a full-width band directly under the
                 title divider, not a pill floating in the body padding. Active

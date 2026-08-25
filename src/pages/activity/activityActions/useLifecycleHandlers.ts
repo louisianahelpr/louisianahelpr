@@ -5,6 +5,7 @@ import { checkProximity } from "@/lib/locationUtils";
 import { toast } from "sonner";
 import { formatName } from "@/lib/utils";
 import { hapticLight, hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
+import { safeStorage } from "@/lib/safeStorage";
 import { fetchProfile } from "@/hooks/useProfile";
 import { fireSuccessMoment } from "@/lib/successMoment";
 import type { User as SupaUser } from "@supabase/supabase-js";
@@ -248,6 +249,33 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
       } else {
         hapticMedium();
         await refresh();
+        // One-time Instant Release offer (owner, 2026-08-24): the toggle
+        // lives on the Auto-Tip page where nobody stumbles onto it — the
+        // moment adoption actually happens is right after a poster's second
+        // smooth approval. Offered once, tracked locally; every guard fails
+        // toward silence (a missed offer costs nothing, a nagging one does).
+        try {
+          const OFFER_KEY = "helpr_instant_release_offered";
+          if (user?.id && !safeStorage.getItem(OFFER_KEY)) {
+            const [{ count }, { data: prof }] = await Promise.all([
+              supabase.from("jobs").select("id", { count: "exact", head: true })
+                .eq("customer_id", user.id).eq("status", "completed"),
+              supabase.from("profiles").select("auto_release_on_complete")
+                .eq("user_id", user.id).maybeSingle(),
+            ]);
+            if ((count ?? 0) >= 2 && !prof?.auto_release_on_complete) {
+              safeStorage.setItem(OFFER_KEY, new Date().toISOString());
+              toast("Enjoying smooth jobs?", {
+                description:
+                  "Turn on Instant Release and payment goes out the moment your Helpr marks done with photo proof — no 24-hour wait.",
+                duration: 10_000,
+                action: { label: "Turn It On", onClick: () => { window.location.href = "/auto-tip"; } },
+              });
+            }
+          }
+        } catch {
+          // Non-fatal — the perk offer is a nice-to-have.
+        }
       }
     } catch (err) {
       hapticError();

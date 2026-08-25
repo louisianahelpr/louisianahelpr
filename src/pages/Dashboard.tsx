@@ -40,6 +40,7 @@ const WelcomeModal = lazy(() => import("@/components/dashboard/WelcomeModal"));
 const BrowseMap = lazy(() => import("@/components/BrowseMap").then(m => ({ default: m.BrowseMap })));
 import SectionBoundary from "@/components/SectionBoundary";
 import { useDashboardData } from "@/hooks/useDashboardData";
+import { usePendingSaveConsumer } from "@/hooks/usePendingSaveConsumer";
 import { usePrefetchUserData } from "@/hooks/usePrefetchUserData";
 import { useDashboardFilters } from "@/hooks/useDashboardFilters";
 import { safeStorage } from "@/lib/safeStorage";
@@ -99,6 +100,8 @@ const Dashboard = () => {
   });
 
   useRealtimePush(user?.id ?? null);
+  // Guest bookmark -> signup -> this saves the job they wanted kept.
+  usePendingSaveConsumer(user?.id);
   // Warm Referral / Activity / Jobs caches in the background — makes the next tap feel instant.
   usePrefetchUserData(user?.id);
 

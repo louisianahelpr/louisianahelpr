@@ -104,3 +104,28 @@ export function signupUrlFor(path?: string | null): string {
   const safe = safeInternalRedirect(path);
   return safe ? `/signup?redirect=${encodeURIComponent(safe)}` : "/signup";
 }
+
+
+/**
+ * "…and I wanted it SAVED, not just seen."
+ *
+ * The guest save hook (owner, 2026-08-24): a logged-out visitor tapping the
+ * bookmark shouldn't dead-end — the tap is the strongest interest signal a
+ * guest can give. Same storage rules as the job intent above (tracked key,
+ * survives the verification round-trip, destructive read), consumed by
+ * `consumePendingSave` from the authed bounce targets.
+ */
+const SAVE_KEY = "helpr.pendingSaveJob";
+trackKey(SAVE_KEY);
+
+export function rememberPendingSave(jobId: string): void {
+  if (!jobId) return;
+  safeStorage.setItem(SAVE_KEY, jobId);
+}
+
+/** Read-and-clear the pending save. */
+export function takePendingSave(): string | null {
+  const v = safeStorage.getItem(SAVE_KEY);
+  if (v) safeStorage.removeItem(SAVE_KEY);
+  return v || null;
+}

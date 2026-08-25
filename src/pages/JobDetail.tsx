@@ -5,6 +5,7 @@ import { Briefcase } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { usePendingSaveConsumer } from "@/hooks/usePendingSaveConsumer";
 import { useJobRef } from "@/hooks/useJobRef";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { queryKeys } from "@/lib/queryKeys";
@@ -38,6 +39,8 @@ const JobDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, isLoading: authLoading } = useCurrentUser();
+  // The job-intent bounce lands HERE — consume a guest's pending save too.
+  usePendingSaveConsumer(user?.id);
   // Capture ?ref= attribution (share / email / notif) on mount.
   useJobRef();
 

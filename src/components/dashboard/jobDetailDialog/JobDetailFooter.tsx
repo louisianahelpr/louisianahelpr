@@ -4,7 +4,7 @@ import { getCity } from "@/lib/locationUtils";
 import { IconActionButton } from "../IconActionButton";
 import { ShareJobButton } from "@/components/jobs/ShareJobButton";
 import type { EnrichedJob } from "../types";
-import { signupUrlFor } from "@/lib/jobIntent";
+import { signupUrlFor, rememberPendingSave } from "@/lib/jobIntent";
 
 interface JobDetailFooterProps {
   job: EnrichedJob;
@@ -36,6 +36,28 @@ export const JobDetailFooter = ({
     // "Sign up to bid" branch went away with bidding — zero production usage.)
     const guestCtaLabel = job.instant_book ? "Sign up to book" : "Sign up to apply";
     return (
+      <div className="flex gap-1.5 pt-0.5 items-stretch">
+      {/* Guest save — the strongest interest signal a guest can give
+          shouldn't dead-end (owner, 2026-08-24). Remembers the job as a
+          PENDING SAVE (tracked storage, survives the email round-trip) and
+          walks them into signup; the authed bounce consumes it, saves the
+          job, and says so. */}
+      <button
+        type="button"
+        aria-label="Save this job — sign up to keep it"
+        onClick={() => {
+          rememberPendingSave(job.id);
+          navigate(signupUrlFor(`/jobs/${job.id}`));
+        }}
+        className="shrink-0 w-11 h-11 sm:h-12 sm:w-12 rounded-ds-md inline-flex items-center justify-center btn-press"
+        style={{
+          background: "hsl(var(--bark) / 0.08)",
+          border: "0.5px solid hsl(var(--bark) / 0.28)",
+          color: "hsl(var(--bark))",
+        }}
+      >
+        <Bookmark className="w-4 h-4" strokeWidth={2} />
+      </button>
       <Button
         size="lg"
         // See the note on `Get verified` below: navigate() alone, never
@@ -74,6 +96,7 @@ export const JobDetailFooter = ({
           />
         </span>
       </Button>
+      </div>
     );
   }
 

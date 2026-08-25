@@ -24,8 +24,9 @@
 // is unavailable, so LA sales tax is computed here from `_shared/salesTax.ts` —
 // the same module the Post-a-Task screen quotes from and the same module
 // create-payment classifies line items with. Only assembly labor is taxable, so
-// on nearly every series this term is exactly zero; when it is not, the rate
-// comes from `parish_tax_rates`, not a guess.
+// on nearly every series this term is exactly zero; when it is not, the number
+// comes from Stripe's own `tax.calculations`, which is where the actual charge
+// gets it too.
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
@@ -34,7 +35,7 @@ import { verifyCronSecret } from "../_shared/cron-auth.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { getHelperFeePercent } from "../_shared/helperFees.ts";
 import { posterFeePercentForTier, posterServiceFeeCents } from "../_shared/posterFees.ts";
-import { salesTaxCents } from "../_shared/salesTax.ts";
+import { isLaborTaxable } from "../_shared/salesTax.ts";
 import { recurringVisitDates } from "../_shared/recurringSchedule.ts";
 
 const corsHeaders = {
@@ -205,34 +206,58 @@ serve(async (req) => {
         // and was already paid on the first visit.
         const feeCents = posterServiceFeeCents(budgetCents, feePercent, 0);
 
-        // Sales tax: only assembly labor is taxable, so this is $0 on nearly
-        // every series. The rate is the parish's real one, never a guess — the
-        // same source the checkout screen quotes from.
-        let parishRate = 0;
-        if (parent.parish) {
-          // Fail closed, or the comment above stops being true. Dropping this
-          // error made a failed rate read indistinguishable from "this parish
-          // has no rate": `rateRow` is null, `parishRate` stays 0, and the visit
-          // is charged with the sales tax silently zeroed out. We would still
-          // owe Louisiana that tax, having never collected it, on a charge the
-          // poster already sees as final. Skip the visit and retry next run.
-          const { data: rateRow, error: rateErr } = await supabase
-            .from("parish_tax_rates")
-            .select("total_rate")
-            .eq("parish_name", parent.parish)
-            .maybeSingle();
-          if (rateErr) {
+        // Sales tax. Louisiana is an enumerated-services state, so only the
+        // `assembly` and `handyman` labor lines are taxable — every other
+        // category is $0 and needs no rate at all.
+        //
+        // This used to read `parish_tax_rates` for EVERY series, taxable or
+        // not. That table was retired on 2026-08-23 (owner decision: quote
+        // Stripe's number, stop maintaining a second one — the two had already
+        // diverged and quoted $0 on charges Stripe taxed at 10%). It no longer
+        // exists, so that read returned an error and its fail-closed branch
+        // skipped the visit "rather than charging untaxed" — forever, and even
+        // for the exempt categories that were never going to be taxed at all.
+        // Combined with the enum bug above, recurring could not have charged a
+        // visit even once.
+        //
+        // Tax now comes from the same place the actual charge gets it: Stripe.
+        // `tax.calculations` is the exact call `calculate-tax` makes for the
+        // checkout quote, with the same labor tax_code, so the recurring visit
+        // and the first visit are computed from identical inputs.
+        let taxCents = 0;
+        if (isLaborTaxable(parent.category as string)) {
+          try {
+            const calc = await stripe.tax.calculations.create({
+              currency: "usd",
+              line_items: [{
+                amount: budgetCents,
+                reference: "labor",
+                tax_behavior: "exclusive",
+                tax_code: "txcd_20030000",
+              }],
+              customer_details: {
+                address: {
+                  postal_code: (parent.zip_code as string) ?? "",
+                  state: "LA",
+                  country: "US",
+                },
+                address_source: "billing",
+              },
+            });
+            taxCents = calc.tax_amount_exclusive ?? 0;
+          } catch (e) {
+            // Still fail closed, but now only for the narrow taxable case —
+            // charging untaxed would leave us owing Louisiana money we never
+            // collected on a total the poster already sees as final.
             console.error(
-              `[charge-recurring-visits] parish tax rate read failed for series ${parent.id} (${parent.parish}); skipping rather than charging untaxed`,
-              rateErr,
+              `[charge-recurring-visits] Stripe tax calculation failed for series ${parent.id} (${parent.category}); skipping rather than charging untaxed`,
+              e,
             );
             results.errors++;
             continue;
           }
-          const r = rateRow?.total_rate;
-          parishRate = typeof r === "number" && r > 0 ? r : 0;
         }
-        const taxCents = salesTaxCents(budgetCents, parent.category as string, parishRate);
+
         const totalCents = budgetCents + feeCents + taxCents;
 
         // The HELPER's commission, which is a different number in a different
@@ -367,7 +392,13 @@ serve(async (req) => {
             platform_fee_amount: helperFeeAmount,
             customer_fee_amount: feeCents / 100,
             helper_fee_percent: helperFeePercent,
-            sales_tax_rate: taxCents > 0 ? parishRate : 0,
+            // Derived from the amount Stripe actually calculated rather than a
+            // rate we looked up ourselves — that second source of truth is the
+            // one that was retired. Rounded to 4dp so a rate like 9.95% stores
+            // as 9.95 and not a repeating float.
+            sales_tax_rate: taxCents > 0 && budgetCents > 0
+              ? Math.round((taxCents / budgetCents) * 1_000_000) / 10_000
+              : 0,
             sales_tax_amount: taxCents / 100,
             // A recurring visit is never a one-time template itself.
             is_recurring: false,

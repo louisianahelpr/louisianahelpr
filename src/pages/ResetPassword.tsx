@@ -5,17 +5,30 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Check, X } from "lucide-react";
+import { Loader2, Check, X, Eye, EyeOff } from "lucide-react";
 import AuthShell from "@/components/auth/AuthShell";
-import { usePageTitle } from "@/hooks/usePageTitle";
+import { usePageMeta } from "@/hooks/usePageMeta";
 import { friendlyAuthError } from "@/lib/authErrors";
 import { passwordStrength } from "./signup/signupHelpers";
 
 const ResetPassword = () => {
-  usePageTitle("Set New Password — Helpr");
+  // usePageMeta, not usePageTitle: this was the one funnel page shipping a
+  // bare <title> with no description/canonical/OG, so a shared or indexed
+  // reset link had no card and no canonical. Matches ForgotPassword.
+  usePageMeta({
+    title: "Set New Password — Helpr",
+    description: "Choose a new password for your Helpr account.",
+    canonical: "https://www.louisianahelpr.com/reset-password",
+    ogTitle: "Set New Password — Helpr",
+    ogDescription: "Finish resetting your Helpr password.",
+  });
   const navigate = useNavigate();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  // One control reveals BOTH fields. This screen asks for the same secret
+  // twice, so seeing them together is how a user actually checks they match —
+  // and it was the only password field in the funnel with no reveal at all.
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [ready, setReady] = useState(false);
   // When a link is invalid/expired/used, Supabase forwards `error=`,
@@ -141,7 +154,7 @@ const ResetPassword = () => {
               <div className="relative">
                 <Input
                   id="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   // No placeholder — a row of bullets mimics a FILLED password
                   // field. Worse here than on sign-in: this screen asks the user
                   // to type a NEW password twice, so a field that looks
@@ -152,10 +165,18 @@ const ResetPassword = () => {
                   required
                   minLength={8}
                   autoComplete="new-password"
-                  className={`${passwordValid ? "pr-10" : ""} rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.8)]`}
+                  className={`${passwordValid ? "pr-20" : "pr-11"} rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.8)]`}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  className="absolute right-0 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
                 {passwordValid && (
-                  <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
+                  <Check className="absolute right-10 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
                 )}
               </div>
               {/* Strength meter — same scoring as the signup form so the
@@ -195,7 +216,7 @@ const ResetPassword = () => {
               <div className="relative">
                 <Input
                   id="confirm"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   // Same reason as the field above — the "Confirm password"
                   // label names it; bullets would only imply it's already filled.
                   value={confirm}

@@ -433,8 +433,14 @@ export function CheckoutStep({
                     </span>
                   </div>
                   <p className="text-ds-11 text-muted-foreground leading-snug">
-                    No Louisiana sales tax applies to {categoryLabel.toLowerCase()} work —
-                    this is the full amount you'll be charged.
+                    {/* "Yard Work" + the literal " work" read "yard work work" —
+                        only append the noun when the label doesn't already end
+                        in it (caught live on the checkout drive, 2026-08-24). */}
+                    No Louisiana sales tax applies to{" "}
+                    {categoryLabel.toLowerCase().endsWith("work")
+                      ? categoryLabel.toLowerCase()
+                      : `${categoryLabel.toLowerCase()} work`}{" "}
+                    — this is the full amount you'll be charged.
                   </p>
                 </>
               );

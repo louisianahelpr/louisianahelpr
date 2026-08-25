@@ -291,7 +291,7 @@ export function ChatView({
             <div className="rounded-md bg-accent/10 border border-accent/20 px-2.5 py-1.5 mt-2 mb-1 flex items-start gap-1.5">
               <AlertTriangle className="w-3 h-3 text-accent mt-[3px] shrink-0" />
               <p className="text-ds-11 leading-snug text-accent flex-1">
-                Keep chats &amp; payments on Helpr. Sharing contact info or going off-platform = warning, then permanent ban.
+                Keep chats &amp; payments on Helpr. Sharing contact info or going off-platform = warning, then final warning, then a 7-day restriction while an admin reviews your account.
               </p>
               <button onClick={dismissBanner} className="-m-2 p-2 text-accent/60 hover:text-accent shrink-0 self-start" aria-label="Dismiss safety reminder">
                 <X className="w-3 h-3" />

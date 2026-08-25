@@ -15,14 +15,14 @@ import {
 
 /**
  * HelperTierBadge (#112) — pill that surfaces the four-step verification
- * ladder (Verified → Trusted → Elite). Hidden entirely at tier 0, since
+ * ladder (Verified → Trusted → Top Rated). Hidden entirely at tier 0, since
  * fresh-signup helprs are a high-volume cohort and an "unverified" chip
  * everywhere would clutter the feed without adding signal.
  *
  * Tap → popover explaining what the tier means and exactly what's needed
  * to reach the next rung. The popover is the helpr-progression story —
  * customers see "what makes this trustworthy", helprs see "here's the
- * concrete next step" (e.g. "3 more reviews to reach Elite").
+ * concrete next step" (e.g. "3 more reviews to reach Top Rated").
  *
  * Props accept either a precomputed `tier` (cheaper when many helprs
  * render in a list) or a `{ profile, stats }` pair (the function call
@@ -42,6 +42,10 @@ interface TierMeta {
 // olivewood for the entry rung (calm trust), bark for established
 // (the same warm brown used for completion CTAs), gold-warm for the
 // prestige tier (matches Elite/Pro elsewhere).
+//
+// Tier 3 reads "Top Rated", NOT "Elite": "Elite" names the paid
+// membership tier, and both chips can land side by side on one profile.
+// The internal key/threshold name stays `elite`.
 const TIER_META: Record<Exclude<HelperTier, 0>, TierMeta> = {
   1: {
     label: "Verified",
@@ -56,8 +60,8 @@ const TIER_META: Record<Exclude<HelperTier, 0>, TierMeta> = {
     colorVar: "--bark",
   },
   3: {
-    label: "Elite",
-    description: "Top tier — 25+ jobs delivered at a 4.8+ average.",
+    label: "Top Rated",
+    description: "Top rung — 25+ jobs delivered at a 4.8+ average.",
     icon: Award,
     colorVar: "--gold-warm",
   },
@@ -69,7 +73,7 @@ interface TierBadgeBaseProps {
   size?: Size;
   /**
    * Whether to render the progression hint ("X more reviews to reach
-   * Elite") inside the popover. Defaults to true; turn off for surfaces
+   * Top Rated") inside the popover. Defaults to true; turn off for surfaces
    * where the customer can't act on it (e.g. browse listings — the helpr
    * isn't reading their own card there).
    */

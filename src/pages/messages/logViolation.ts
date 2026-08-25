@@ -3,85 +3,71 @@ import { report } from "@/lib/errorLogger";
 import { toast } from "sonner";
 
 /**
- * Records an off-platform-contact violation for the current user, escalating
- * to a permanent ban on a repeat offence and notifying admins either way.
- * Extracted verbatim from Messages.tsx — takes the current user id and the
- * cached auth user (for the sender's display name) rather than closing over
- * component state.
+ * Reports a blocked (off-platform-contact) message to the server and tells the
+ * user honestly what happened.
+ *
+ * This function used to RUN the ladder: it counted prior violations, and on a
+ * second offence it inserted a `permanent` row into user_bans and set the
+ * user's own `profiles.ban_status = 'permanently_banned'` — all from the
+ * OFFENDER'S OWN CLIENT, with `banned_by` pointing at the offender. That made
+ * the harshest action this product can take both bypassable (a modified client
+ * just doesn't run it) and unreviewable (no human ever saw the case), and two
+ * scanner false positives were enough to kill a legitimate account.
+ *
+ * The escalation now lives in `apply_message_violation_consequence`
+ * (20260825160000_message_violation_ladder_human_review.sql), SECURITY DEFINER
+ * and scoped to auth.uid():
+ *   1st  → recorded + courtesy warning
+ *   2nd  → final warning
+ *   3rd+ → recorded as `pending_ban_review` + a REVERSIBLE 7-day restriction,
+ *          routed to an admin at /admin?view=banreview. No automatic
+ *          permanent ban.
+ * The client's only job is to call it and surface the verdict.
  */
 export const logViolation = async (
   userId: string | null,
-  cachedUser: { user_metadata?: { full_name?: string } } | null | undefined,
+  _cachedUser: { user_metadata?: { full_name?: string } } | null | undefined,
   violationDescription: string,
   blockedContent: string,
 ) => {
   if (!userId) return;
-  const senderName = cachedUser?.user_metadata?.full_name || "A user";
 
-  const { data: existing, error: existingError } = await supabase
-    .from("user_violations")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("violation_type", "off_platform");
-  // A failed prior-count read previously fell through to priorCount=0,
-  // silently downgrading a repeat offence to a first warning. Surface it.
-  if (existingError) report(existingError, { severity: "warning", tags: { source: "Messages.logViolation.priorCount" } });
+  // `as any`: the RPC ships with this change's migration, so the generated
+  // types.ts doesn't know it yet — same escape hatch the business RPCs use.
+  const { data, error } = await supabase.rpc(
+    "apply_message_violation_consequence" as any,
+    { p_description: violationDescription, p_content: blockedContent } as any,
+  );
 
-  const priorCount = existing?.length || 0;
-
-  if (priorCount >= 1) {
-    // A silently-failed ban write leaves a repeat offender unbanned while we
-    // tell them they're banned — surface both writes so a stuck ban is visible.
-    const { error: banInsertError } = await supabase.from("user_bans").insert({
-      user_id: userId, ban_type: "permanent",
-      reason: "Repeated off-platform activity: " + violationDescription, banned_by: userId,
+  if (error) {
+    // PGRST202 = the RPC isn't deployed yet (the window between merge and
+    // db-deploy finishing). The message is still blocked either way — the
+    // scanner refused it before we got here, and the server-side
+    // scan_message_content trigger hides + fraud-flags anything that lands.
+    // So degrade to "blocked, not recorded" rather than pretending otherwise,
+    // and never fall back to a client-side ban.
+    const code = (error as { code?: string }).code;
+    report(error, {
+      severity: code === "PGRST202" ? "warning" : "error",
+      tags: { source: "Messages.logViolation.rpc" },
     });
-    if (banInsertError) report(banInsertError, { severity: "error", tags: { source: "Messages.logViolation.banInsert" } });
-    const { error: banStatusError } = await supabase.from("profiles").update({ ban_status: "permanently_banned" }).eq("user_id", userId);
-    if (banStatusError) report(banStatusError, { severity: "error", tags: { source: "Messages.logViolation.banStatus" } });
-    const { error: banViolationError } = await supabase.from("user_violations").insert({
-      user_id: userId, violation_type: "off_platform",
-      description: `${violationDescription} | Message: "${blockedContent}"`, action_taken: "permanent_ban",
-    });
-    if (banViolationError) report(banViolationError, { severity: "warning", tags: { source: "Messages.logViolation.banViolationRecord" } });
-    const { data: adminRoles, error: adminRolesError } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
-    if (adminRolesError) report(adminRolesError, { severity: "warning", tags: { source: "Messages.logViolation.adminNotify" } });
-    if (adminRoles?.length) {
-      await supabase.from("notifications").insert(
-        adminRoles.map((a: { user_id: string }) => ({
-          user_id: a.user_id,
-          title: "⛔ User permanently banned",
-          message: `${senderName} was auto-banned for repeated off-platform activity. They tried to send: "${blockedContent.slice(0, 100)}" (${violationDescription})`,
-          type: "warning",
-          link: `/admin?view=reports`,
-          read: false,
-        })),
-      );
-    }
-    toast.error("Your account is banned. Contact admin@louisianahelpr.com if you think this was a mistake.");
-  } else {
-    // This violation row is what makes the NEXT offence escalate to a ban —
-    // a silent failure here means the offender never accrues a prior count.
-    const { error: warnViolationError } = await supabase.from("user_violations").insert({
-      user_id: userId, violation_type: "off_platform",
-      description: `${violationDescription} | Message: "${blockedContent}"`, action_taken: "warning",
-    });
-    if (warnViolationError) report(warnViolationError, { severity: "warning", tags: { source: "Messages.logViolation.warnViolationRecord" } });
-    const { error: warnStatusError } = await supabase.from("profiles").update({ ban_status: "final_warning" }).eq("user_id", userId);
-    if (warnStatusError) report(warnStatusError, { severity: "warning", tags: { source: "Messages.logViolation.warnStatus" } });
-    const { data: adminRoles, error: adminRolesError } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
-    if (adminRolesError) report(adminRolesError, { severity: "warning", tags: { source: "Messages.logViolation.adminNotify" } });
-    if (adminRoles?.length) {
-      await supabase.from("notifications").insert(
-        adminRoles.map((a: { user_id: string }) => ({
-          user_id: a.user_id,
-          title: "⚠️ Off-platform attempt detected",
-          message: `${senderName} tried to send: "${blockedContent.slice(0, 100)}" (${violationDescription})`,
-          type: "warning",
-          link: `/admin?view=reports`,
-          read: false,
-        })),
-      );
-    }
+    return;
   }
+
+  const action = (data as { action?: string } | null)?.action;
+
+  if (action === "final_warning") {
+    toast.error(
+      "Final warning — that's your second blocked message. One more and your account is restricted for 7 days while an admin reviews it.",
+      { duration: 9000 },
+    );
+  } else if (action === "pending_ban_review") {
+    toast.error(
+      "Your account is restricted for 7 days while an admin reviews it. If you think this was a mistake, email admin@louisianahelpr.com.",
+      { duration: 10000 },
+    );
+  }
+  // 'warning' is already covered by the first-offence toast the send handler
+  // shows, and 'duplicate' means this exact message was already counted —
+  // neither needs a second toast on top.
 };

@@ -109,7 +109,7 @@ describe("computeHelperTier — Tier 2 (Trusted)", () => {
     ).toBe(2);
   });
 
-  it("stays at 2 when one Elite threshold is just below", () => {
+  it("stays at 2 when one Top Rated threshold is just below", () => {
     const e = TIER_THRESHOLDS.elite;
     // completedJobs short
     expect(
@@ -138,7 +138,7 @@ describe("computeHelperTier — Tier 2 (Trusted)", () => {
   });
 });
 
-describe("computeHelperTier — Tier 3 (Elite)", () => {
+describe("computeHelperTier — Tier 3 (Top Rated)", () => {
   const e = TIER_THRESHOLDS.elite;
 
   it("returns 3 at the exact boundary", () => {
@@ -196,7 +196,7 @@ describe("describeTierProgress", () => {
     expect(hint.missing.some((m) => m.includes("1 more review"))).toBe(true);
   });
 
-  it("at tier 2, counts the gap to Elite", () => {
+  it("at tier 2, counts the gap to Top Rated", () => {
     const e = TIER_THRESHOLDS.elite;
     const hint = describeTierProgress(2, verifiedProfile, {
       completedJobs: e.completedJobs - 3,

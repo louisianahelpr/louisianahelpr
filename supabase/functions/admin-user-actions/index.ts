@@ -18,6 +18,11 @@ type ActionType =
   | 'reset_password'
   | 'formal_warning'
   | 'grant_admin'
+  // Message-scanner ban review (20260825160000). The offender's own client used
+  // to write the permanent ban itself; now the server flags the case
+  // `pending_ban_review` and exactly one of these two admin decisions closes it.
+  | 'confirm_message_ban'
+  | 'dismiss_message_ban_review'
 
 async function sendEmail(apiKey: string, to: string, subject: string, html: string, text: string) {
   const res = await fetch('https://api.resend.com/emails', {
@@ -386,6 +391,83 @@ Deno.serve(async (req) => {
         await sendEmail(resendApiKey, profile.email, emailSubject, html, text).catch((e) => console.error('email failed', e))
       }
       return new Response(JSON.stringify({ success: true, strike_number: strikeNumber, action_taken: actionTaken }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    // ---- Message-scanner ban review ----
+    // Both branches are the ONLY way a message-scanner case turns into (or
+    // stops being) a ban. The caller was verified as an admin above, and every
+    // decision writes an admin_audit_log row, so a permanent ban always names
+    // the human who chose it — the old client path named the offender.
+    if (action === 'confirm_message_ban' || action === 'dismiss_message_ban_review') {
+      const violationId: string | null = body.violationId ?? null
+      const confirming = action === 'confirm_message_ban'
+
+      if (confirming) {
+        const { error: banErr } = await admin.from('user_bans').insert({
+          user_id: targetUserId,
+          ban_type: 'permanent',
+          reason: note || 'Repeated off-platform contact attempts in messages (admin-confirmed)',
+          banned_by: userData.user.id,
+        })
+        if (banErr) throw new Error(`Failed to record ban: ${banErr.message}`)
+
+        const { error: statusErr } = await admin.from('profiles')
+          .update({ ban_status: 'permanently_banned', auto_suspended_until: null })
+          .eq('user_id', targetUserId)
+        if (statusErr) throw new Error(`Failed to apply ban status: ${statusErr.message}`)
+      } else {
+        // Dismissed: undo the reversible restriction the ladder applied. Only
+        // lift a suspension that is still auto-managed — a manual admin ban
+        // (auto_suspended_until IS NULL) must not be washed away by a dismissal.
+        const { error: liftErr } = await admin.from('profiles')
+          .update({ ban_status: 'active', auto_suspended_until: null })
+          .eq('user_id', targetUserId)
+          .eq('ban_status', 'temp_banned')
+          .not('auto_suspended_until', 'is', null)
+        if (liftErr) throw new Error(`Failed to lift restriction: ${liftErr.message}`)
+      }
+
+      // Close the queue item so it stops rendering. Scoped to the one row when
+      // an id was given, otherwise every open case for this user — either way
+      // re-running the same decision is a no-op, so a double-tap is harmless.
+      const closeQuery = admin.from('user_violations')
+        .update({ action_taken: confirming ? 'permanent_ban' : 'review_dismissed' })
+        .eq('action_taken', 'pending_ban_review')
+      const { error: closeErr } = violationId
+        ? await closeQuery.eq('id', violationId)
+        : await closeQuery.eq('user_id', targetUserId)
+      if (closeErr) throw new Error(`Failed to close review: ${closeErr.message}`)
+
+      const { error: auditErr } = await admin.from('admin_audit_log').insert({
+        admin_id: userData.user.id,
+        action: confirming ? 'confirm_message_ban' : 'dismiss_message_ban_review',
+        target_id: targetUserId,
+        target_type: 'user',
+        details: { note, violation_id: violationId },
+      })
+      if (auditErr) console.error('[admin-user-actions] audit log write FAILED — privileged action has no trail:', auditErr.message)
+
+      await admin.from('notifications').insert(
+        confirming
+          ? {
+              user_id: targetUserId,
+              title: 'Account permanently banned',
+              message: 'An admin reviewed your blocked messages and permanently banned your account. Email admin@louisianahelpr.com if you believe this is a mistake.',
+              type: 'warning',
+              link: '/account-banned',
+            }
+          : {
+              user_id: targetUserId,
+              title: 'Restriction lifted',
+              message: 'An admin reviewed your account and lifted the restriction. Keep chats and payments on Helpr and you\'re all set.',
+              type: 'success',
+              link: '/dashboard',
+            },
+      )
+
+      return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }

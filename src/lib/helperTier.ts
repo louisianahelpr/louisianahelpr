@@ -4,7 +4,7 @@
  * Today helprs have a single binary verification state ("Verified" or not).
  * That flattens a real spectrum — a Stripe-onboarded but zero-job helpr
  * looks identical to one with 30 5-star jobs. This computes a four-step
- * ladder (0 / 1 Verified / 2 Trusted / 3 Elite) from data we already have:
+ * ladder (0 / 1 Verified / 2 Trusted / 3 Top Rated) from data we already have:
  *
  *   - `profiles.approval_status`     — admin/IDV approval
  *   - `profiles.idv_status`          — Stripe Identity result
@@ -45,7 +45,10 @@ export interface HelperTierStats {
 }
 
 // Thresholds are exported so the component can render "X more to reach …"
-// hints without duplicating constants.
+// hints without duplicating constants. The `elite` KEY is the ladder's
+// internal identifier and is deliberately left alone — only the rung's
+// user-facing LABEL was renamed to "Top Rated" (the word "Elite" now
+// belongs solely to the paid membership tier).
 export const TIER_THRESHOLDS = {
   trusted: { completedJobs: 5, avgRating: 4.5, reviewCount: 3 },
   elite: { completedJobs: 25, avgRating: 4.8, reviewCount: 10 },
@@ -106,7 +109,7 @@ export interface TierProgressHint {
  * `nextTier: null` when they're already at Tier 3 (top of the ladder).
  * The strings are written for the helpr's own EarningsTab, but are short
  * enough to reuse in customer-facing tooltips ("3 more 5-star jobs to
- * reach Elite").
+ * reach Top Rated").
  */
 export function describeTierProgress(
   current: HelperTier,

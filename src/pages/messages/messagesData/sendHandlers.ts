@@ -188,7 +188,11 @@ export function createSendHandlers({
         if (!warningShown) {
           setWarningShown(true);
           toast.error(
-            "⚠️ Warning: Sharing contact info or taking business off-platform is not allowed. This is your first warning — a second offense will result in a permanent ban.",
+            // Honest copy: a second offence is a FINAL WARNING, not a ban. The
+            // ladder (apply_message_violation_consequence, 20260825160000) runs
+            // warning → final warning → 7-day restriction + admin review, and a
+            // permanent ban only ever comes from a person confirming it.
+            "⚠️ Warning: Sharing contact info or taking business off-platform is not allowed. This is your first warning — a second one is a final warning.",
             { duration: 8000 }
           );
         }

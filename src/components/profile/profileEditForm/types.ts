@@ -28,6 +28,13 @@ export interface ProfileEditFormProps {
   /** Called after portfolio upload/remove with the full new URL list so
    *  the parent can sync its profile state without a refetch. */
   onPortfolioChange?: (urls: string[]) => void;
+  /** Called after an intro-video upload/remove with the three column values
+   *  so the parent can sync its profile state without a refetch. */
+  onIntroVideoChange?: (fields: {
+    intro_video_url: string | null;
+    intro_video_thumbnail_url: string | null;
+    intro_video_duration_seconds: number | null;
+  }) => void;
   /** Opens the Support tab — first/last name are locked after signup,
    *  so a name change has to go through support. */
   onContactSupport?: () => void;

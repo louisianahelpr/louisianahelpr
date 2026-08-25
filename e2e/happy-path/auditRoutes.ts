@@ -471,6 +471,10 @@ export const ADMIN_VIEWS = [
   // just be re-testing the dashboard under two extra names.
   "tiers", "idv", "marketing", "credentials",
   "business_verify", "business_accounts", "exceptions",
+  // banreview — the queue the message-violation ladder escalates into now that
+  // a permanent ban is a person's decision instead of something the offender's
+  // own client handed itself (2026-08-25).
+  "banreview",
 ] as const;
 
 const adminRules = () => [mockTable("user_roles", [{ role: "admin" }])];

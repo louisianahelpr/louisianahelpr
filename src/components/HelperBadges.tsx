@@ -45,23 +45,26 @@ export function computeBadges(stats: {
     });
   }
 
-  // 👑 Earned Elite Helpr: 25+ completed jobs, 4.8+ rating, 10+ reviews
-  // Earned-tier shares the gold treatment (it's a prestige status, just
-  // achieved via performance instead of subscription).
-  if (stats.completedJobs >= 25 && stats.avgRating >= 4.8 && stats.reviewCount >= 10) {
-    badges.push({
-      key: "elite",
-      label: "Elite",
-      icon: <Crown className="w-3 h-3" style={{ color: "hsl(var(--gold-warm))" }} />,
-      color: "tier-gold-elite",
-    });
-  }
+  // There is deliberately NO earned "Elite" badge here any more. It fired at
+  // 25+ jobs / 4.8+ / 10+ reviews with the same Crown, the same gold and the
+  // same word as the SUBSCRIPTION badge above, so an Elite member who had
+  // also earned it rendered "Elite" twice, visually identical, with nothing
+  // distinguishing purchase from achievement. Those thresholds are also the
+  // verification ladder's top rung (TIER_THRESHOLDS.elite, helperTier.ts),
+  // and HelperTierBadge renders that rung right beside this row on both
+  // profile surfaces — so the achievement is not lost, it is simply stated
+  // once, by the pill that can explain itself (progression popover).
+  // Owner ruling 2026-08-25: "Elite" names the paid membership, nothing else.
 
-  // 🏆 Top Rated: 4.8+ rating with 3+ reviews — gold-trimmed trophy.
+  // 🏆 Highly Rated: 4.8+ rating with 3+ reviews — gold-trimmed trophy.
+  // NOT "Top Rated": that is now the ladder's top rung, which sits on the
+  // same screen behind a far higher bar (25+ jobs). Two chips inches apart
+  // reading identically for different achievements is the exact collision
+  // this pass exists to remove.
   if (stats.avgRating >= 4.8 && stats.reviewCount >= 3) {
     badges.push({
       key: "top_rated",
-      label: "Top Rated",
+      label: "Highly Rated",
       icon: <Trophy className="w-3 h-3" style={{ color: "hsl(var(--gold-warm))" }} />,
       color: "tier-gold-soft",
     });

@@ -50,8 +50,9 @@ const AdminCredentialQueue = lazy(() => import("@/components/admin/AdminCredenti
 const AdminBusinessVerificationQueue = lazy(() => import("@/components/admin/AdminBusinessVerificationQueue"));
 const AdminBusinessAccounts = lazy(() => import("@/components/admin/AdminBusinessAccounts"));
 const AdminExceptionQueue = lazy(() => import("@/components/admin/AdminExceptionQueue"));
+const AdminBanReview = lazy(() => import("@/components/admin/AdminBanReview"));
 
-type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "notiflogs" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "payouts" | "tiers" | "idv" | "marketing" | "credentials" | "business_verify" | "business_accounts" | "exceptions";
+type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "notiflogs" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "payouts" | "tiers" | "idv" | "marketing" | "credentials" | "business_verify" | "business_accounts" | "exceptions" | "banreview";
 
 import { safeStorage } from "@/lib/safeStorage";
 import { adminNavGroups } from "@/components/admin/adminNavGroups";
@@ -79,6 +80,7 @@ const VIEW_LABELS: Record<View, string> = {
     idv: "Identity Verify", marketing: "Marketing",
     credentials: "License & Insurance",
     exceptions: "Exception Queue",
+    banreview: "Ban Review",
     // Unreachable while BUSINESS_ENABLED is false — the nav rows are not
     // rendered and `?view=business_*` is coerced to "home" — but kept so the
     // map stays exhaustive over `View`.
@@ -464,6 +466,9 @@ const Admin = () => {
       case "idv": return <AdminIDVQueue />;
       case "credentials": return <AdminCredentialQueue />;
       case "exceptions": return <AdminExceptionQueue />;
+      // The human half of the message-scanner ladder — deep-linked from the
+      // "Ban review needed" admin notification (20260825160000).
+      case "banreview": return <AdminBanReview />;
       case "business_verify":
         return BUSINESS_ENABLED ? <AdminBusinessVerificationQueue /> : null;
       case "business_accounts":

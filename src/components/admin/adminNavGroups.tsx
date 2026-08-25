@@ -13,6 +13,7 @@ import {
   ClipboardList,
   Crown,
   DollarSign,
+  Gavel,
   Gift,
   Headphones,
   Mail,
@@ -48,6 +49,7 @@ export const adminNavGroups: { title: string; items: AdminNavItem[] }[] = [
       { id: "idv", label: "Identity Verify", icon: ShieldCheck },
       { id: "credentials", label: "License & Insurance", icon: ShieldCheck },
       { id: "exceptions", label: "Exception Queue", icon: ClipboardList },
+      { id: "banreview", label: "Ban Review", icon: Gavel },
       // Business Verification / Business Accounts are the admin half of the
       // Business product. They are spread in only while `BUSINESS_ENABLED` is
       // true, because with the product hidden they are two dead sidebar rows

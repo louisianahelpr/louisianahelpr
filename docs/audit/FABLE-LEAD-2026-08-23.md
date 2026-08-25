@@ -381,3 +381,64 @@ mutations beyond the marked test account.
 R28 email-latency fix shape (owner may prefer synchronous auth mail); whether
 "Once" memberships should exist at all publicly (product/legal — Terms describe
 recurring subscriptions).
+
+---
+
+## OWNER-REPORTED QUEUE — 2026-08-25 afternoon (live walkthrough)
+
+Reported by the owner while driving the site. Captured verbatim-in-substance so
+none is lost; ✅ = fixed and verified, ⏳ = open.
+
+### Fixed
+- ✅ **Pages open wide then shrink when the side panel is there / landing "loads
+  weird and jumps".** ONE root cause: `useAppShellViewport` set
+  `web-desktop` / `app-shell` / `desktop-rail` in a `useEffect`, i.e. after
+  first paint, so every desktop page painted full-width then reflowed 248px
+  narrower. Now applied synchronously pre-paint (`prePaintShellClasses.ts`,
+  `2662ce898`). Measured after: **CLS 0.0000, 0 layout shifts** on `/`,
+  `/profile`, `/help`, `/legal` at 1440.
+- ✅ **"Report user" not Title Case** — and the confirmation "Thanks — we've got
+  it." Both fixed (`c9cb11a5f`). *Why it was missed:* the title is computed as
+  `` `Report ${reportedType}` `` from the type union, so the literal string
+  never existed in source for the lexical casing sweep to find; it rendered
+  lowercase for all five report types.
+- ✅ **Admin money figures counted fixture data** — `is_seed` flag shipped and
+  backfilled (54 seed / 4 real jobs; 20 seed / 3 real profiles), wired into 21
+  aggregate queries incl. the quarterly tax reserve.
+
+### Open — triaged, not yet fixed
+- ⏳ **Block vs Report use different dialog shells.** Confirmed: `ReportDialog`
+  = `Dialog`+`DialogHero`; `BlockUserDialog` = `AlertDialog`+`AlertDialogHero`.
+  BlockUserDialog collects a Textarea reason, so it is NOT a pure confirm and
+  `AlertDialog` is the wrong primitive for it. Owner also reports mute /
+  report / block "open at different places with different backgrounds and
+  layouts" — treat as one sweep over every safety popup, not three fixes.
+- ⏳ **Browse Jobs → 404** and **Login → 404 then refreshes in.** Production
+  deployments are all READY on the current commit and `vercel.json`'s SPA
+  rewrite is correct, so this is NOT a stale deploy. Prime suspect is the
+  service worker: `navigateFallback` is deliberately disabled and navigations
+  run NetworkFirst, so a returning user on an old SW can be served a stale or
+  failed navigation. Needs reproduction with SW inspection.
+- ⏳ **"A lot of things need to be done twice before they work"** and **the Home
+  filter button doesn't scroll until you click out and back in** — likely the
+  same class (first interaction lost). High value: it makes the whole app feel
+  broken.
+- ⏳ Help Center: large gap title→content; topic tabs should default COLLAPSED.
+- ⏳ Legal: Terms/Rules/Privacy squished mid-bar; space them out, move search left.
+- ⏳ Public profile: name/location/since belong right of the avatar (match the
+  Profile tab); career milestones can move up; info is messy. "Reviews" opens
+  3 blank tabs.
+- ⏳ Job card: "Verified" shouldn't render there; "1 day left" belongs on the
+  line above. Done-stage card offers Message/Approve but not Review or Tip.
+- ⏳ Toasts/error popups need a dismiss (X) before they fade.
+- ⏳ Search field renders two X buttons.
+- ⏳ Messages should open to Unread, not All.
+- ⏳ **Can't file a dispute; can't report a no-show.** For no-show the deployed
+  RPC has hard guards (job must be FUNDED; scheduled start must have PASSED;
+  one report per job) — if the test job is unfunded or future-dated the block
+  is CORRECT and the defect is that the reason never reaches the user. Verify
+  which before changing the guard.
+- ⏳ Shared job link for a signed-out visitor: confirm `/jobs/:id` preview →
+  signup → returns to that job rather than dropping the destination.
+- ⏳ Post + Jobs pages "are bad" — needs the deep pass.
+- ⏳ Deep landing + footer audit (requested; not yet run as its own pass).

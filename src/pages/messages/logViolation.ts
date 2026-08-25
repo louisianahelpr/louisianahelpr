@@ -15,7 +15,7 @@ import { toast } from "sonner";
  * scanner false positives were enough to kill a legitimate account.
  *
  * The escalation now lives in `apply_message_violation_consequence`
- * (20260825160000_message_violation_ladder_human_review.sql), SECURITY DEFINER
+ * (20260825183000_message_violation_ladder_human_review.sql), SECURITY DEFINER
  * and scoped to auth.uid():
  *   1st  → recorded + courtesy warning
  *   2nd  → final warning

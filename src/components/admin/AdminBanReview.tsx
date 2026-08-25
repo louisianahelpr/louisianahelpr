@@ -31,7 +31,7 @@ import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
  * OFFENDER'S OWN CLIENT, with nobody ever looking at it. It now records the
  * case as `user_violations.action_taken = 'pending_ban_review'` and applies a
  * REVERSIBLE 7-day restriction (see apply_message_violation_consequence,
- * 20260825160000). This view is where a person reads the actual blocked
+ * 20260825183000). This view is where a person reads the actual blocked
  * messages and decides: confirm the permanent ban, or dismiss it and lift the
  * restriction. Both decisions go through the admin-user-actions edge function,
  * which re-checks the caller is an admin server-side and writes an

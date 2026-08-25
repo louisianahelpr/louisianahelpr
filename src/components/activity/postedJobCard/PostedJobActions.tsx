@@ -424,6 +424,23 @@ export function PostedJobActions({
                       />
                     )}
                   </JobActionRow>
+                  {/* Why Review and Tip are not on this row yet. Approving IS
+                      the escrow release, and both unlock only once the money
+                      has moved (canReview gates on payment_status released /
+                      payout_pending), so the order is real — but nothing said
+                      so, and the card read as if the two actions had gone
+                      missing (owner, 2026-08-25: "if the tracker shows done,
+                      why does the card say message or approve? Where is review
+                      and tip?"). One line, only while Approve is the pending
+                      step. */}
+                  {showApprove && (
+                    <p
+                      className="font-serif italic leading-snug text-ds-11 px-1"
+                      style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                    >
+                      Approve to release payment — then you can review and tip.
+                    </p>
+                  )}
                   {showApprove && (
                     <CompletionChoiceSheet
                       open={completionSheetOpen}

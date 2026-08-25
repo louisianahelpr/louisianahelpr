@@ -1,6 +1,6 @@
 import { memo, useCallback, type KeyboardEvent, type TouchEvent } from "react";
 import {
-  MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Users, Repeat, CheckCheck, ShieldCheck,
+  MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Users, Repeat, CheckCheck,
 } from "lucide-react";
 import { hapticLight, hapticMedium } from "@/lib/haptics";
 import { useLongPress } from "@/hooks/useLongPress";
@@ -549,22 +549,13 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 </span>
               </>
             )}
-            {/* Poster ID-verified — a quiet sage trust cue. Populated by
-                useDashboardData from get_safe_profiles; absent (and so hidden)
-                until migration 20260616120000 is pushed to prod. */}
-            {job.posterIdVerified && (
-              <>
-                <span className="opacity-30">·</span>
-                <span
-                  className="flex items-center gap-0.5 font-sans font-semibold"
-                  style={{ color: "hsl(var(--sage))" }}
-                  aria-label="Poster's ID is verified"
-                >
-                  <ShieldCheck className="w-2.5 h-2.5 shrink-0" strokeWidth={2.25} />
-                  Verified
-                </span>
-              </>
-            )}
+            {/* No poster "Verified" cue here (owner, 2026-08-25: "Verified
+                should not be here"). It competed with the meta a browsing
+                Helpr actually decides on — place, date, time, rating — and
+                verification is a POSTER attribute, surfaced on the poster's
+                profile and in the job detail, not a property of the job in a
+                scanning list. `posterIdVerified` stays on the type and in
+                useDashboardData for those surfaces. */}
             {/* "Posted X ago" was dropped from the row — it was the same on
                 every card (no decision value) and added a third wrapped line
                 on small phones. Freshness is still signalled by the "New"
@@ -597,20 +588,26 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 </span>
               </>
             )}
+            {/* Urgency rides the SAME line as the rest of the meta (owner,
+                2026-08-25: "1 day left should be in the same line as the stuff
+                above"). It used to own row 2 because an unconditional
+                "14 days left" printed on every card and made heights ragged —
+                but the countdown is now gated to a 48h horizon, so it appears
+                on a handful of cards rather than all of them, and the reason
+                for the separate row went with it. whitespace-nowrap still
+                keeps "1 day left" from breaking across two lines. */}
+            {expiryText && (
+              <>
+                <span className="opacity-30">·</span>
+                <span
+                  className={`flex items-center gap-1 ${isExpiringSoon ? "text-destructive font-medium" : ""}`}
+                >
+                  <Timer className="w-2.5 h-2.5 shrink-0" />
+                  <span className="font-sans whitespace-nowrap">{expiryText}</span>
+                </span>
+              </>
+            )}
           </div>
-
-          {/* Row 2 — urgency, on its own line so it competes with nothing.
-              whitespace-nowrap keeps "1 day left" from breaking into
-              "1 day" / "left", which is what made card heights ragged when
-              this chip was still fighting for room on row 1. */}
-          {expiryText && (
-            <div
-              className={`flex items-center gap-1 ${isExpiringSoon ? "text-destructive font-medium" : ""}`}
-            >
-              <Timer className="w-2.5 h-2.5 shrink-0" />
-              <span className="font-sans whitespace-nowrap">{expiryText}</span>
-            </div>
-          )}
         </div>
       </div>
 

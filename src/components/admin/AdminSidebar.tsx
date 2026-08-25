@@ -202,23 +202,13 @@ const AdminSidebar = ({
       </SidebarHeader>
 
       <SidebarContent className="px-2 py-2 gap-0 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:items-center">
-        <SidebarGroup className="py-1">
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={() => handleSelect("home")}
-                  isActive={activeView === "home"}
-                  tooltip="Dashboard"
-                  className="font-medium group-data-[collapsible=icon]:!justify-center"
-                >
-                  <Home className="w-4 h-4" />
-                  {!collapsed && <span>Dashboard</span>}
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {/* Dashboard used to be hand-rolled here as a standalone group, which
+            made it the one section that existed in this rail but NOT in
+            `adminNavGroups` — so the app-wide side panel, which renders from
+            that shared list, had no way to reach the console home at all (its
+            "Admin" row only expands). It now lives in the Overview group like
+            every other section, so both consumers render the same map from one
+            source and neither can drift. */}
 
         {/* Pinned items — float to the top of the menu. Hidden when nothing
             is pinned. The hover-revealed pin icon in each row controls

@@ -265,10 +265,26 @@ const AdminUsers = () => {
           track stopped reading as a segmented control and started reading as a
           slab the page had failed to fill. It still scrolls when the six tabs
           genuinely exceed the width. */}
-      <div className="flex gap-0.5 bg-secondary/50 rounded-ds-sm p-0.5 w-fit max-w-full overflow-x-auto scrollbar-none [-webkit-mask-image:linear-gradient(to_right,black_calc(100%-16px),transparent)] [mask-image:linear-gradient(to_right,black_calc(100%-16px),transparent)]">
+      {/* Segmented control = a real tablist, and it has to say so. These six
+          chips choose which population the list below shows, but they shipped
+          as bare <button>s: a screen reader announced "Pending, button" with
+          no group, no set size, and — the part that actually costs someone —
+          no indication of WHICH one is currently showing, because the active
+          state was carried only by background colour. `aria-selected` is the
+          non-visual half of that highlight. Matches the tablist AdminPayoutBatches
+          already ships, so the two segmented controls in admin now behave the
+          same for assistive tech as they do visually. */}
+      <div
+        role="tablist"
+        aria-label="Filter users by status"
+        className="flex gap-0.5 bg-secondary/50 rounded-ds-sm p-0.5 w-fit max-w-full overflow-x-auto scrollbar-none [-webkit-mask-image:linear-gradient(to_right,black_calc(100%-16px),transparent)] [mask-image:linear-gradient(to_right,black_calc(100%-16px),transparent)]"
+      >
         {tabs.map((t) => (
           <button
             key={t.key}
+            type="button"
+            role="tab"
+            aria-selected={tab === t.key}
             onClick={() => setTab(t.key)}
             className={`shrink-0 whitespace-nowrap px-2.5 py-1.5 rounded-md text-ds-10 sm:text-ds-13 font-medium transition-colors flex items-center justify-center gap-1 ${
               tab === t.key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
@@ -276,7 +292,16 @@ const AdminUsers = () => {
           >
             <span>{t.label}</span>
             {t.count !== undefined && t.count > 0 && (
-              <span className="text-ds-9 sm:text-ds-10 bg-destructive/10 text-destructive px-1 py-0.5 rounded-full flex-shrink-0">{t.count}</span>
+              /* The bare number read as loose digits after the label ("Active
+                 22"). Naming it makes the count a fact instead of noise, and
+                 hiding the visual twin stops it being announced twice. It says
+                 "users" rather than anything like "needing attention": these
+                 counts are per-tab populations (All is every user, Active is
+                 every approved one), not a work queue. */
+              <span className="text-ds-9 sm:text-ds-10 bg-destructive/10 text-destructive px-1 py-0.5 rounded-full flex-shrink-0">
+                <span aria-hidden="true">{t.count}</span>
+                <span className="sr-only">{`${t.count} ${t.count === 1 ? "user" : "users"}`}</span>
+              </span>
             )}
           </button>
         ))}

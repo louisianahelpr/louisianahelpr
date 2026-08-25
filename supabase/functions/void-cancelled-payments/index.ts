@@ -48,22 +48,37 @@ serve(async (req) => {
     // never throws — the customer's refund/capture has already succeeded and
     // must not be rolled back over a payout hiccup.
     const payHelperCancellationFee = async (
-      job: { id: string; title: string; helper_id: string | null },
+      job: { id: string; title: string; helper_id: string | null; helper_fee_percent?: number | string | null },
       cancellationFee: number,
       pi: Stripe.PaymentIntent,
     ) => {
       if (!(cancellationFee > 0) || !job.helper_id) return;
-      // Resolve commission from the helper's live subscription tier; fall back
-      // to the platform-settings rate if the profile read fails.
+      // Resolve commission from the helper's live subscription tier. The
+      // FALLBACK is what matters here: every other payout path
+      // (create-payment, release-payout, process-scheduled-payouts,
+      // execute-dispute-split) falls back to `job.helper_fee_percent` — the
+      // rate frozen onto the job when escrow was funded — and only then to a
+      // global rate. This one went straight to platform_settings, so a
+      // transient profile-read failure priced a free helper's commission at
+      // the settings rate (10% in prod) instead of their real 12%, quietly
+      // under-charging the platform on the one path nobody watches. Prefer the
+      // frozen per-job rate so a cancellation settles at the same percentage
+      // the job was funded at.
       const { data: settings } = await supabaseAdmin
         .from("platform_settings")
         .select("helper_fee_percent")
         .limit(1)
         .single();
+      const frozenPercent =
+        job.helper_fee_percent === null || job.helper_fee_percent === undefined
+          ? null
+          : Number(job.helper_fee_percent);
       const commissionPercent = await getHelperFeePercent(
         supabaseAdmin,
         job.helper_id,
-        settings?.helper_fee_percent ?? DEFAULT_TIER_FEE_PERCENT,
+        (frozenPercent !== null && Number.isFinite(frozenPercent) ? frozenPercent : undefined) ??
+          settings?.helper_fee_percent ??
+          DEFAULT_TIER_FEE_PERCENT,
       );
       const platformCut = Math.round(cancellationFee * (commissionPercent / 100) * 100) / 100;
       const helperPayout = cancellationFee - platformCut;
@@ -138,7 +153,7 @@ serve(async (req) => {
     // ── Part A: Cancelled jobs still in escrow ──
     const { data: cancelledJobs, error } = await supabaseAdmin
       .from("jobs")
-      .select("id, title, stripe_session_id, stripe_payment_intent_id, budget, customer_fee_amount, cancellation_fee, date_needed, cancelled_at, helper_id, customer_id")
+      .select("id, title, stripe_session_id, stripe_payment_intent_id, budget, customer_fee_amount, cancellation_fee, date_needed, cancelled_at, helper_id, customer_id, helper_fee_percent")
       .eq("status", "cancelled")
       .eq("payment_status", "escrow");
 

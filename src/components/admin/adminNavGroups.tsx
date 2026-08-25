@@ -12,12 +12,16 @@ import {
   ClipboardCheck,
   ClipboardList,
   Crown,
-  DollarSign,
+  Download,
+  FileCheck,
   Gavel,
   Gift,
   Headphones,
+  LayoutDashboard,
   Mail,
   Megaphone,
+  Scale,
+  ScrollText,
   Settings,
   ShieldAlert,
   ShieldCheck,
@@ -40,32 +44,46 @@ import {
 export const adminNavGroups: { title: string; items: AdminNavItem[] }[] = [
   {
     title: "Overview",
-    items: [{ id: "analytics", label: "Analytics", icon: BarChart3 }],
+    items: [
+      // "home" is already a real view (VIEW_LABELS.home === "Dashboard") and is
+      // where every section's back arrow lands, but it had no rail row — so the
+      // console's landing screen was the one screen you could not navigate TO,
+      // only back to. Listing it makes the rail a complete map of the console.
+      { id: "home", label: "Dashboard", icon: LayoutDashboard },
+      { id: "analytics", label: "Analytics", icon: BarChart3 },
+    ],
   },
   {
-    title: "Operations",
+    title: "Directory",
     items: [
       { id: "people", label: "Users", icon: Users },
-      { id: "idv", label: "Identity Verify", icon: ShieldCheck },
-      { id: "credentials", label: "License & Insurance", icon: ShieldCheck },
-      { id: "exceptions", label: "Exception Queue", icon: ClipboardList },
-      { id: "banreview", label: "Ban Review", icon: Gavel },
-      // Business Verification / Business Accounts are the admin half of the
-      // Business product. They are spread in only while `BUSINESS_ENABLED` is
-      // true, because with the product hidden they are two dead sidebar rows
-      // naming a feature no user can reach — a verification queue for
-      // businesses nobody can create, and an accounts list that can only ever
-      // be empty. `?view=business_verify` also falls through to the dashboard
-      // home rather than rendering the queue (see `renderContent`).
-      ...(BUSINESS_ENABLED
-        ? ([
-            { id: "business_verify", label: "Business Verification", icon: Building2 },
-            { id: "business_accounts", label: "Business Accounts", icon: Building2 },
-          ] as AdminNavItem[])
-        : []),
       { id: "jobs", label: "Jobs", icon: Briefcase },
+      ...(BUSINESS_ENABLED
+        ? ([{ id: "business_accounts", label: "Business Accounts", icon: Building2 }] as AdminNavItem[])
+        : []),
+    ],
+  },
+  {
+    // The three review queues, together. These are the recurring daily shift —
+    // someone is waiting on a decision in each — so they earn their own heading
+    // rather than being three rows lost inside a nine-row "Operations" list.
+    title: "Queues",
+    items: [
+      { id: "idv", label: "Identity Verify", icon: ShieldCheck },
+      { id: "credentials", label: "License & Insurance", icon: FileCheck },
+      { id: "exceptions", label: "Exception Queue", icon: ClipboardList },
+      ...(BUSINESS_ENABLED
+        ? ([{ id: "business_verify", label: "Business Verification", icon: Building2 }] as AdminNavItem[])
+        : []),
+    ],
+  },
+  {
+    // Everything where a human is unhappy and someone must adjudicate.
+    title: "Trust & Safety",
+    items: [
       { id: "fraud", label: "Fraud", icon: ShieldAlert },
-      { id: "disputes", label: "Disputes", icon: ShieldAlert },
+      { id: "banreview", label: "Ban Review", icon: Gavel },
+      { id: "disputes", label: "Disputes", icon: Scale },
       { id: "reports", label: "Reports", icon: AlertTriangle },
       { id: "support", label: "Support", icon: Headphones },
     ],
@@ -92,9 +110,9 @@ export const adminNavGroups: { title: string; items: AdminNavItem[] }[] = [
     title: "System",
     items: [
       { id: "settings", label: "Settings", icon: Settings },
-      { id: "audit", label: "Audit Log", icon: ClipboardCheck },
+      { id: "audit", label: "Audit Log", icon: ScrollText },
       { id: "health", label: "Health", icon: Activity },
-      { id: "export", label: "Export", icon: DollarSign },
+      { id: "export", label: "Export", icon: Download },
     ],
   },
 ];

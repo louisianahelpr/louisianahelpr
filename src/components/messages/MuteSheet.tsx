@@ -1,9 +1,16 @@
 import { Bell, BellOff, Clock } from "lucide-react";
+// Dialog, not Sheet. Mute, Report and Block all launch from the same chat
+// menu, but Sheet slides up from the bottom while DialogContent is pinned
+// top-centre — so three sibling safety actions appeared in two different
+// places with two different frames (owner, 2026-08-25: "mute notifications
+// report user block user etc all of these pop up are not consistent they open
+// all at different places with different backgrounds and layouts"). The list
+// of presets is short and fits the dialog exactly as it fitted the sheet.
 import {
-  Sheet,
-  SheetContent,
-  SheetHero,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogHero,
+} from "@/components/ui/dialog";
 import {
   SNOOZE_PRESETS,
   snoozeRemainingLabel,
@@ -52,9 +59,9 @@ export function MuteSheet({
   };
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom">
-        <SheetHero title="Mute Notifications" />
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHero title="Mute Notifications" />
         {isMuted && (
           <div
             className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full"
@@ -130,7 +137,7 @@ export function MuteSheet({
             </button>
           )}
         </div>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -295,7 +295,7 @@ const Legal = () => {
   const tabBar = (
     <TabsList
       data-print-hide
-      className="grid grid-cols-3 sm:inline-flex items-center gap-1 rounded-2xl p-1 h-auto bg-transparent border-0 w-full sm:w-auto"
+      className="grid grid-cols-3 sm:flex items-center gap-1 sm:gap-2 rounded-2xl p-1 h-auto bg-transparent border-0 w-full"
     >
       {VALID_TABS.map((t) => {
         const isActive = t === tab;
@@ -304,7 +304,7 @@ const Legal = () => {
           <TabsTrigger
             key={t}
             value={t}
-            className="relative h-9 inline-flex items-center justify-center gap-1.5 rounded-ds-md text-ds-13 font-sans font-semibold leading-none transition-colors duration-200"
+            className="relative h-9 inline-flex sm:flex-1 items-center justify-center gap-1.5 rounded-ds-md text-ds-13 font-sans font-semibold leading-none transition-colors duration-200"
             style={{ color: isActive ? "hsl(var(--parchment))" : "hsl(var(--olivewood))" }}
           >
             {/* A single lifted pill that slides between tabs via framer's
@@ -442,7 +442,14 @@ const Legal = () => {
       className={
         searchOpen
           ? "flex flex-col sm:flex-row sm:items-center gap-2 p-1"
-          : "flex flex-col gap-2 p-1 sm:grid sm:grid-cols-[1fr_auto_1fr] sm:items-center"
+          // Search LEFT, tabs spread across the rest of the bar. The closed
+          // state used to be a [1fr auto 1fr] grid that pinned the triggers to
+          // the TRUE centre — which is exactly the "all squished together in
+          // the middle" the owner reported: at 1440 the three tabs occupied
+          // x=587..854 with ~500px of dead band on either side. Now the row is
+          // a flex line and the tab group takes the remaining width, so the
+          // three policies are distributed instead of packed.
+          : "flex flex-col gap-2 p-1 sm:flex-row sm:items-center sm:gap-4"
       }
     >
       {searchBar}
@@ -450,7 +457,7 @@ const Legal = () => {
         className={
           searchOpen
             ? "w-full sm:w-auto sm:shrink-0 order-1 sm:order-2"
-            : "w-full sm:w-auto order-1 sm:order-2 sm:col-start-2 sm:justify-self-center"
+            : "w-full order-1 sm:order-2 sm:flex-1"
         }
       >
         {tabBar}

@@ -103,6 +103,10 @@ export const EarningsExport = ({ helperId, helperName, open: controlledOpen, onO
       toast.error("Pick both a start and end date.");
       return null;
     }
+    if (customStart > customEnd) {
+      toast.error("Your start date is after your end date — swap them and try again.");
+      return null;
+    }
     return {
       start: customStart.toISOString().slice(0, 10),
       end: customEnd.toISOString().slice(0, 10),
@@ -135,6 +139,9 @@ export const EarningsExport = ({ helperId, helperName, open: controlledOpen, onO
     try {
       const rows = await fetchRows(range.start, range.end);
       if (!rows.length) {
+        // Say why nothing downloaded — a silent return here read as a
+        // broken export button.
+        toast(`No earnings found for ${range.label}.`);
         return;
       }
       if (formatType === "csv") downloadCSV(rows, range.label);

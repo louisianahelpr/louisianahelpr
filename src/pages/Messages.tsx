@@ -290,7 +290,29 @@ const Messages = () => {
       hapticError();
       toast.error("Couldn't delete that one — give it another try?");
     } else {
-      setMessages((prev) => prev.filter((m) => m.id !== messageId));
+      const remaining = messages.filter((m) => m.id !== messageId);
+      setMessages(remaining);
+      // If the deleted row was the thread's latest, the inbox row would
+      // keep previewing the deleted text — re-derive the preview from
+      // what's left (empty preview when nothing human remains).
+      if (activeConvo) {
+        const lastReal = [...remaining].reverse().find((m) => !m.is_system);
+        setConversations((prev) =>
+          prev.map((c) =>
+            c.jobId === activeConvo.jobId && c.otherUserId === activeConvo.otherUserId
+              ? {
+                  ...c,
+                  lastMessage: lastReal?.content ?? "",
+                  lastAt: lastReal?.created_at ?? c.lastAt,
+                  lastMessageSenderId: lastReal?.sender_id ?? null,
+                  lastMessageAttachmentPath: lastReal?.attachment_url ?? null,
+                  lastMessageAttachmentMime: lastReal?.attachment_mime ?? null,
+                  lastMessageAttachmentSignedUrl: null,
+                }
+              : c,
+          ),
+        );
+      }
       hapticSuccess();
     }
     setDeleteMessageConfirm(null);

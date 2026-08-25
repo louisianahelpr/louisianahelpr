@@ -12,7 +12,7 @@ import { report } from "@/lib/errorLogger";
 import { queryKeys } from "@/lib/queryKeys";
 import { PERSIST_MAX_AGE_MS } from "@/lib/queryPersister";
 import { TIER_PERKS, tierFeePercent } from "@/lib/subscriptionTiers";
-import { earlyAccessDelayMs } from "@/lib/earlyAccess";
+import { earlyAccessDelayMs, resolveEarlyAccessTier } from "@/lib/earlyAccess";
 
 // Cursor-based pagination over the open-jobs feed. Page size kept small so the
 // initial paint stays cheap as the marketplace grows; later pages are fetched
@@ -194,17 +194,17 @@ export function useDashboardData() {
       // profile is read from the outer useDashboardData scope (always
       // current-user's profile). Default to free-tier when profile is
       // still loading — safer than accidentally granting early access.
-      const currentSubTier = profile?.subscription_tier ?? null;
-      const currentSubExpiresAt = profile?.subscription_expires_at ?? null;
-      const currentSubActive = currentSubExpiresAt
-        ? new Date(currentSubExpiresAt) > new Date()
-        : false;
-      // Graduated early-access cutoff — same formula the client gate in
-      // useDashboardFilters uses, so the two layers never disagree. An
-      // inactive/absent subscription falls through to the free (20-min)
-      // delay; Elite resolves to a 0ms delay (cutoff === now), which passes
-      // every already-created job and is equivalent to "no filter".
-      const effectiveTier = currentSubActive ? currentSubTier : null;
+      // Graduated early-access cutoff — resolveEarlyAccessTier is the SAME
+      // resolver the client gate in useDashboardFilters uses, so the two
+      // layers can no longer disagree. Its convention (null expiry = ACTIVE,
+      // matching tierFeePercent) also fixes this layer treating a
+      // null-expiry subscriber as free-tier. An inactive/absent subscription
+      // falls through to the free (20-min) delay; Elite resolves to a 0ms
+      // delay (cutoff === now), which passes every already-created job.
+      const effectiveTier = resolveEarlyAccessTier(
+        profile?.subscription_tier,
+        profile?.subscription_expires_at,
+      );
       const earlyAccessCutoff = new Date(
         Date.now() - earlyAccessDelayMs(effectiveTier),
       ).toISOString();

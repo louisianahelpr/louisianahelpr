@@ -192,7 +192,10 @@ describe("useDashboardFilters — early-access (subscription tier delay)", () =>
     const fresh = new Date(Date.now() - 1 * 60 * 1000).toISOString(); // 1 min old
     const jobs = [makeJob({ id: "fresh", created_at: fresh })];
 
-    const { result } = setup(jobs, { helprTier: "elite" });
+    // The gate reads the PROFILE tier (resolveEarlyAccessTier), not helprTier.
+    const { result } = setup(jobs, {
+      profile: { subscription_tier: "elite", subscription_expires_at: null } as unknown as Profile,
+    });
     expect(result.current.filteredJobs.map((j) => j.id)).toEqual(["fresh"]);
   });
 
@@ -201,7 +204,9 @@ describe("useDashboardFilters — early-access (subscription tier delay)", () =>
     const min16 = new Date(Date.now() - 16 * 60 * 1000).toISOString();
     const jobs = [makeJob({ id: "min10", created_at: min10 }), makeJob({ id: "min16", created_at: min16 })];
 
-    const { result } = setup(jobs, { helprTier: "basic" });
+    const { result } = setup(jobs, {
+      profile: { subscription_tier: "basic", subscription_expires_at: null } as unknown as Profile,
+    });
     // Free=20, basic=15. 16 min old visible; 10 min old hidden.
     expect(result.current.filteredJobs.map((j) => j.id)).toEqual(["min16"]);
   });

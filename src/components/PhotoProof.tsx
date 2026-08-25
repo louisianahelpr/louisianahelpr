@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui
 import { Camera, ImagePlus, X, CheckCircle2, Image } from "lucide-react";
 import { toast } from "sonner";
 import { report } from "@/lib/errorLogger";
+import { hasRequiredProof, requiredProof } from "@/lib/photoProofPolicy";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { pickImagesNative } from "@/lib/nativeCamera";
 
@@ -339,10 +340,13 @@ export const PhotoProofGroup = ({
           </div>
         </div>
 
-        {/* Warning for $50+ jobs */}
-        {requireAfter && budget >= 50 && !hasAfter && (
+        {/* States the SAME rule the completion buttons enforce (see
+            photoProofPolicy): before & after on every job. The old note said
+            "After-photos required for jobs $50+" — a rule none of the gates
+            actually applied. */}
+        {requireAfter && !hasRequiredProof({ budget }, beforeUrls, afterUrls) && (
           <p className="text-ds-11 text-destructive flex items-center gap-1 mt-2">
-            <Camera className="w-3 h-3" /> After-photos required for jobs $50+
+            <Camera className="w-3 h-3" /> {requiredProof({ budget }).reason}
           </p>
         )}
       </div>

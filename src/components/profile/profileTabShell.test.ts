@@ -59,7 +59,7 @@ describe("Profile tabs share one shell", () => {
     const names = [
       "AccessibilityTab", "AvailabilityTab", "CredentialsTab", "EarningsTab",
       "JobListTab", "LegalTab", "ReviewsTab", "SavedHelpersTab", "ScheduleTab",
-      "ScheduleAvailabilityTab", "SecurityTab", "SubscriptionTab", "WarningsTab",
+      "SecurityTab", "SubscriptionTab", "WarningsTab",
     ];
     const wrong: string[] = [];
     for (const name of names) {

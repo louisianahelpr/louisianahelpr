@@ -94,10 +94,14 @@ export function ConnectionCard({ conn, onSync, onRequestRemove, syncing, removin
         >
           <Home className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--bark))" }} />
           <span className="text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            Auto-creates <strong style={{ color: "hsl(var(--ink-deep))" }}>cleaning jobs</strong> at{" "}
-            <strong style={{ color: "hsl(var(--ink-deep))" }}>
-              ${conn.cleaning_budget ?? 80}
-            </strong>
+            Auto-creates <strong style={{ color: "hsl(var(--ink-deep))" }}>cleaning jobs</strong>{" "}
+            {/* Null budget means the host never set one — say so instead of
+                fabricating an $80 figure str-ical-sync won't use. */}
+            {conn.cleaning_budget != null ? (
+              <>at <strong style={{ color: "hsl(var(--ink-deep))" }}>${conn.cleaning_budget}</strong></>
+            ) : (
+              <>(budget not set)</>
+            )}
           </span>
         </div>
       ) : (

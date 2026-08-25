@@ -30,11 +30,17 @@ export function buildAttachmentPath(jobId: string, senderId: string, file: File)
   return `${jobId}/${senderId}/${uuid}-${safeName}`;
 }
 
+/** HEIC/HEIF can't be decoded by canvas in WKWebView (or most browsers),
+ *  so its EXIF — including GPS — can't be scrubbed client-side. */
+export function isHeicMime(mime: string | null | undefined): boolean {
+  return mime === "image/heic" || mime === "image/heif";
+}
+
 // Strips EXIF (and other metadata) from an image by drawing it onto a
-// canvas and re-encoding. Returns a fresh Blob. Skips non-image and HEIC
-// files (HEIC isn't decodable in most browsers).
+// canvas and re-encoding. Returns a fresh Blob. Skips non-image files;
+// HEIC never reaches this (uploadMessageAttachment rejects it first).
 export async function stripImageExif(file: File): Promise<Blob> {
-  if (!file.type.startsWith("image/") || file.type === "image/heic") return file;
+  if (!file.type.startsWith("image/") || isHeicMime(file.type)) return file;
 
   const bitmap = await createImageBitmap(file);
   try {
@@ -69,7 +75,12 @@ export async function uploadMessageAttachment(
     return { error: `File too large (max ${Math.round(MESSAGE_ATTACHMENT_MAX_BYTES / 1024 / 1024)}MB).` };
   }
   if (!MESSAGE_ATTACHMENT_MIME_WHITELIST.includes(file.type as MessageAttachmentMime)) {
-    return { error: "Unsupported file type. Allowed: JPG, PNG, WEBP, HEIC, PDF." };
+    return { error: "Unsupported file type. Allowed: JPG, PNG, WEBP, PDF." };
+  }
+  // Un-strippable format would ship the photo's GPS EXIF to the other
+  // participant — refuse it rather than leak location data.
+  if (isHeicMime(file.type)) {
+    return { error: "That photo format can't be privacy-scrubbed — take a screenshot or choose a JPEG/PNG." };
   }
 
   const blob = await stripImageExif(file);

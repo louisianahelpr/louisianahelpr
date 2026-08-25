@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { netUrgentFeeDollars } from "@/lib/stripeFees";
+import { helperTakeHomeDollars } from "@/lib/helperEarnings";
 import { Info, Sparkles, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -39,20 +39,6 @@ const FORECAST_STATUSES = ["accepted", "in_progress"] as const;
 const COMPLETED_STATUS = "completed";
 
 /**
- * Compute the helper's net take from a single job using the same formula
- * already used by EarningsTab (kept inline for parity — see line ~640 in
- * `EarningsTab.tsx`). If that formula ever changes, this MUST follow.
- */
-function helperNet(job: Pick<Job, "budget" | "helpers_needed" | "is_group_job" | "helper_fee_percent" | "urgent_fee">, feeFallbackPercent: number): number {
-  const helpers = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
-  const perHelper = job.budget / helpers;
-  const commissionPercent = job.helper_fee_percent ?? feeFallbackPercent;
-  const commission = (perHelper * commissionPercent) / 100;
-  // Urgent fee splits across the roster like the budget (#114).
-  return perHelper - commission + netUrgentFeeDollars(job.urgent_fee) / helpers;
-}
-
-/**
  * Return [mondayISO, sundayISO] covering the current week in the user's
  * local timezone. Postgres comparisons against `date_needed` (a `date`,
  * not `timestamptz`) ignore time-of-day, so we send YYYY-MM-DD strings.
@@ -80,6 +66,7 @@ interface ForecastRow {
   budget: number;
   helpers_needed: number | null;
   is_group_job: boolean | null;
+  platform_fee_amount: number | null;
   helper_fee_percent: number | null;
   urgent_fee: number | null;
   status: Job["status"];
@@ -122,7 +109,9 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
       const rows = unwrap(
         await supabase
           .from("jobs")
-          .select("budget, helpers_needed, is_group_job, helper_fee_percent, urgent_fee, status")
+          // platform_fee_amount is required by helperTakeHomeDollars —
+          // it's the stamped-fee authority on completed non-group rows.
+          .select("budget, helpers_needed, is_group_job, platform_fee_amount, helper_fee_percent, urgent_fee, status")
           .eq("helper_id", helperId)
           .in("status", [...FORECAST_STATUSES, COMPLETED_STATUS])
           .gte("date_needed", startISO)
@@ -135,7 +124,11 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
       let inProgressCount = 0;
 
       for (const row of safeRows) {
-        const net = helperNet(row, feeFallbackPercent);
+        // The one shared take-home definition (helperEarnings.ts) — honors
+        // the stamped platform_fee_amount, the frozen per-job percent, the
+        // group-roster split and the net urgent bonus, so the projection
+        // agrees with every other earnings surface.
+        const net = helperTakeHomeDollars(row, feeFallbackPercent);
         if (row.status === COMPLETED_STATUS) {
           earnedSoFar += net;
           // Completed jobs also count toward the projected total — the

@@ -216,6 +216,9 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
     }
     setSubmitting(false);
     setEmailDialogOpen(false);
+    // The dialog just closes on success — without this the user has no cue
+    // that a confirmation email is now sitting in the NEW inbox.
+    toast.success(`Check ${trimmed} to confirm your new address.`);
   };
 
   const [appLockOn, setAppLockOn] = useState(() => isAppLockEnabled());
@@ -407,6 +410,9 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
               });
               setResettingPassword(false);
               if (error) toast.error("Couldn't send the reset link — try again?");
+              // Say it worked — the only visible change was the button label
+              // flicking back from "Sending…", which reads as nothing happened.
+              else toast.success(`Reset link sent to ${email}.`);
             }}
           >
             {resettingPassword ? "Sending…" : "Reset"}

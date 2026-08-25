@@ -50,7 +50,7 @@ export const CancelSurveyDialog = ({
               }}
               className="w-full text-left px-4 py-3 rounded-ds-md transition-all active:scale-[0.99]"
               style={{
-                background: "hsla(0, 0%, 100%, 0.55)",
+                background: "hsl(var(--ivory-sand) / 0.55)",
                 border: "0.5px solid hsl(var(--olivewood) / 0.18)",
                 color: "hsl(var(--ink-deep))",
                 fontFamily: "Bodoni Moda, Garamond, serif",

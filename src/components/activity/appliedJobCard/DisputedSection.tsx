@@ -138,8 +138,13 @@ export function DisputedSection({
               <div className="flex gap-2">
                 <Button size="sm" className="flex-1" disabled={!disputeResponse.trim() || submittingResponse} onClick={async () => {
                   setSubmittingResponse(true);
-                  const { error } = await supabase.from("jobs").update({ dispute_helper_response: disputeResponse.trim(), dispute_status: "helper_responded" }).eq("id", app.job_id);
-                  if (error) { hapticError(); toast.error("We couldn't submit your response — please try again."); setSubmittingResponse(false); return; }
+                  // `.select("id")`: a bare `.update().eq(...)` resolves
+                  // `{data: null, error: null}` whether it changed one row or
+                  // NONE, so an RLS-filtered write (dispute resolved out from
+                  // under this card) read as success and showed a response
+                  // the poster never received.
+                  const { data: saved, error } = await supabase.from("jobs").update({ dispute_helper_response: disputeResponse.trim(), dispute_status: "helper_responded" }).eq("id", app.job_id).select("id");
+                  if (error || !saved || saved.length === 0) { hapticError(); toast.error("We couldn't submit your response — please try again."); setSubmittingResponse(false); return; }
                   if (job.customer_id) await createNotification({ user_id: job.customer_id, title: "Helpr responded to dispute", message: `The Helpr has responded to the dispute on "${job.title}". Please review and mark resolved or escalate.`, type: "info", link: "/my-posts?filter=disputed" });
                   hapticSuccess();
                   setSubmittingResponse(false);
@@ -160,11 +165,10 @@ export function DisputedSection({
         </div>
       )}
 
-      {/* Policy note */}
-      <p className="text-ds-10 text-muted-foreground leading-relaxed">
-        If not resolved within 72 hours, payment auto-releases to you.
-      </p>
-
+      {/* No hardcoded "within 72 hours" policy line — the DeadlineCountdown
+          above renders the job's ACTUAL dispute_deadline and its caption
+          already says what happens when it lapses; a fixed 72h sentence
+          contradicted it whenever the live deadline differed. */}
       <Button
         size="sm"
         variant="outline"

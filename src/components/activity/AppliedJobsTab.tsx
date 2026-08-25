@@ -94,14 +94,16 @@ export const AppliedJobsTab = ({
       .update({ message: editMessageText.trim() || null })
       .eq("id", appId)
       .select("id");
+    setSavingMessage(false);
     if (error || !saved || saved.length === 0) {
       hapticError();
+      // Editor stays OPEN with the typed text intact — closing here (as this
+      // used to) discarded the note the toast is asking the helper to retry.
       toast.error("Couldn't save your note — try again?");
-    } else {
-      hapticSuccess();
-      onRefresh();
+      return;
     }
-    setSavingMessage(false);
+    hapticSuccess();
+    onRefresh();
     setEditingMessageAppId(null);
   }, [editMessageText, onRefresh]);
 

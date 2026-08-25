@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { MessageSquare, TriangleAlert } from "lucide-react";
+import { toast } from "sonner";
+import { RELIABILITY_LADDER_RUNGS } from "@/lib/reliabilityLadder";
 
 type Props = {
   open: boolean;
@@ -33,6 +35,11 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose }:
     setSubmitting(true);
     try {
       await onConfirm(parseInt(hours), message.trim() || undefined);
+    } catch {
+      // The confirm callback surfaces its own specific errors when it can;
+      // this catch is the backstop so a thrown failure never dies silently
+      // with the dialog stuck open and no explanation.
+      toast.error("Couldn't send the offer — please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -107,11 +114,13 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose }:
               </span>{" "}
               Helprs who decline jobs repeatedly will face escalating consequences:
             </p>
+            {/* Rungs come from the shared ladder statement so this list can
+                never again disagree with what the RPC actually applies —
+                it did (every rung here was off by one). */}
             <ul className="text-ds-11 mt-1 space-y-0.5 list-disc pl-4" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-              <li>1st & 2nd decline — no penalty</li>
-              <li>3rd decline — warning issued</li>
-              <li>4th decline — temporary ban</li>
-              <li>5th+ decline — permanent ban</li>
+              {RELIABILITY_LADDER_RUNGS.map((rung) => (
+                <li key={rung}>{rung}</li>
+              ))}
             </ul>
           </div>
         </div>

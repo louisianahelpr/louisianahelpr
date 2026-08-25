@@ -7,6 +7,7 @@ import { MapPin, Clock, ChevronLeft, ChevronRight, CalendarDays, Search, Plus } 
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 
 import { supabase } from "@/integrations/supabase/client";
+import { report } from "@/lib/errorLogger";
 import type { Database } from "@/integrations/supabase/types";
 import { jobStatusColorClasses } from "@/lib/statusColors";
 import { jobStatusLabel } from "@/lib/statusLabels";
@@ -141,7 +142,12 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
         .eq("helper_id", userId)
         .not("specific_date", "is", null)
         .eq("is_available", false);
-      if (error) return new Map();
+      if (error) {
+        // Degrade to "no blocked dates" but observably — a dropped error
+        // here silently un-greys days the helper marked unavailable.
+        report(error, { severity: "warning", tags: { source: "ScheduleTab.blockedDates" } });
+        return new Map();
+      }
       const m = new Map<string, "marked_unavailable">();
       (data as Array<{ specific_date: string | null }>).forEach((row) => {
         if (row.specific_date) m.set(row.specific_date, "marked_unavailable");

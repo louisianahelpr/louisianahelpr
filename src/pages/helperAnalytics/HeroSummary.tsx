@@ -59,9 +59,9 @@ const HeroSummary = ({ analytics, isLoading }: HeroSummaryProps) => {
                 analytics section, whose subject is volume and performance;
                 what the helpr actually banked is the payout section's subject,
                 and that section reads the ledger rather than guessing from a
-                budget column. Gross earned and jobs completed stay, because
-                those ARE analytics figures and nothing else on the page states
-                them. */}
+                budget column. The take-home total and jobs completed stay,
+                because those ARE analytics figures and nothing else on this
+                dashboard states them. */}
           </div>
         </>
       )}

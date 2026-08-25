@@ -24,7 +24,12 @@ export function RecentWorkSection({
 }: RecentWorkSectionProps) {
   return (
     <div className="rounded-2xl liquid-glass p-5 space-y-4">
-      <div className="flex items-center justify-end gap-2">
+      {/* Titled — the counter used to float alone on the right, so the card
+          opened with "0/6" and no word saying what it counted. */}
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-ds-13 font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
+          Recent work
+        </h3>
         <span className="text-ds-11 text-muted-foreground">{portfolioUrls.length}/{MAX_PORTFOLIO}</span>
       </div>
       {/* One paragraph, ONE typeface. The emphasis span used to carry

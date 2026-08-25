@@ -3,7 +3,7 @@ import { Star } from "lucide-react";
 import { categoryColors } from "@/components/activity/activityConstants";
 import { getCity } from "@/lib/locationUtils";
 import { computeNet } from "@/components/dashboard/JobPrice";
-import { formatPrice, formatPriceExact } from "@/lib/format";
+import { formatPrice, formatPriceFloor } from "@/lib/format";
 import type { EnrichedJob } from "@/components/dashboard/types";
 
 interface CompactJobCardProps {
@@ -53,11 +53,11 @@ export function CompactJobCard({
   const priceAmount = isNet
     ? computeNet(job.budget, effectiveFee, job.urgent_fee ?? 0, helpers).netEarnings
     : job.budget;
-  // Take-home to the cent, gross budget in whole dollars — the same split
-  // JobPrice makes, and for the same reason: a rounded "$84" next to the apply
-  // sheet's "$83.60" is one job quoting two payouts, with the rounded one
-  // promising money the helper won't get. See JobPrice for the full note.
-  const priceText = isNet ? formatPriceExact(priceAmount) : formatPrice(priceAmount);
+  // Take-home FLOORED to whole dollars, gross budget rounded — the same split
+  // JobPrice makes (owner, 2026-08-19): a payout figure may never read above
+  // the payout, so nets floor while a poster-typed budget keeps ordinary
+  // rounding. See JobPrice / formatPriceFloor for the full note.
+  const priceText = isNet ? formatPriceFloor(priceAmount) : formatPrice(priceAmount);
 
   return (
     <li>

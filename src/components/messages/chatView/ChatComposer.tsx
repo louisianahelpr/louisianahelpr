@@ -2,6 +2,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { Lock, X } from "lucide-react";
 import { QuickReplies } from "@/components/QuickReplies";
 import { RichMessageInput } from "@/components/RichMessageInput";
+import { assertWritable } from "@/hooks/useImpersonation";
 import type { Conversation, Message } from "../types";
 
 /**
@@ -65,6 +66,7 @@ export function ChatComposer({
     content: string,
     attachment?: { path: string; mime: string; size: number; duration?: number },
     replyToId?: string | null,
+    opts?: { isLocationShare?: boolean },
   ) => Promise<boolean>;
   broadcastTyping: () => void;
   /** Message being replied to, or null. Owned by ChatView. */
@@ -166,7 +168,8 @@ export function ChatComposer({
           return (
             <QuickReplies
               onSelect={(msg) => setDraft(msg)}
-              onSend={(msg) => { void sendMessage(msg); }}
+              // Same read-only-impersonation guard the typed-send path runs.
+              onSend={(msg) => { if (!assertWritable()) return; void sendMessage(msg); }}
               audience={activeConvo?.viewerIsPoster ? "poster" : "helper"}
               jobStatus={activeConvo.jobStatus}
               wrap
@@ -175,14 +178,14 @@ export function ChatComposer({
         })()}
         value={draft}
         onChange={setDraft}
-        onSend={async (content, attachment) => {
+        onSend={async (content, attachment, opts) => {
           // RichMessageInput clears its (controlled) text right
           // after onSend returns. If the content scan in the page
           // blocks the message (`sendMessage` resolves `false`),
           // restore the typed text so a blocked message isn't
           // silently lost — the user keeps what they wrote and a
           // toast explains why it didn't send.
-          const accepted = await sendMessage(content, attachment, replyTo?.id ?? null);
+          const accepted = await sendMessage(content, attachment, replyTo?.id ?? null, opts);
           // Only clear the reply once the message was actually accepted. If the
           // content scan blocked it, the user keeps both their text AND the
           // message they were replying to, so retrying is one tap.

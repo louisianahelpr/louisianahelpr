@@ -18,7 +18,13 @@ export interface RichMessageInputProps {
    * need the thread's send handler, which lives up in ChatComposer.
    */
   quickReplies?: React.ReactNode;
-  onSend: (content: string, attachment?: SendAttachment) => void;
+  onSend: (
+    content: string,
+    attachment?: SendAttachment,
+    /** Set by the share-location path so the app-generated share (and only
+     *  it) can skip the content scan — user-typed "📍" prefixes don't. */
+    opts?: { isLocationShare?: boolean },
+  ) => void;
   onTyping?: () => void;
   disabled?: boolean;
   /** Optional controlled value — when provided, parent owns the text state. */

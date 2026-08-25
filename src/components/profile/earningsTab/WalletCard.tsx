@@ -1,6 +1,5 @@
 import { Wallet, RefreshCw, Loader2, Banknote, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { formatCents } from "./earningsTabHelpers";
 import {
   instantPayoutFeeLabel,
@@ -9,70 +8,31 @@ import {
 } from "@/lib/instantPayoutFee";
 import type { StripePayoutData } from "./types";
 
+// EarningsTab only mounts this card once Stripe is connected and loaded —
+// it owns the loading skeleton, and the disconnected state renders the
+// Payout & payments connect card instead. So this component has exactly one
+// state: a live, connected wallet.
 interface WalletCardProps {
-  stripeData: StripePayoutData | undefined;
-  stripeLoading: boolean;
+  stripeData: StripePayoutData;
   refreshing: boolean;
   availableTotal: number;
   pendingTotal: number;
   canUseInstantPayout: boolean;
   onRefresh: () => void;
-  onNavigatePayment: () => void;
   onCashOut: () => void;
   onUpgrade: () => void;
 }
 
 export function WalletCard({
   stripeData,
-  stripeLoading,
   refreshing,
   availableTotal,
   pendingTotal,
   canUseInstantPayout,
   onRefresh,
-  onNavigatePayment,
   onCashOut,
   onUpgrade,
 }: WalletCardProps) {
-  if (stripeLoading) {
-    return (
-      <div className="rounded-2xl liquid-glass p-5 space-y-3">
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-2">
-            <Skeleton className="h-3 w-20 rounded" />
-            <Skeleton className="h-7 w-24 rounded" />
-          </div>
-          <div className="space-y-2">
-            <Skeleton className="h-3 w-20 rounded" />
-            <Skeleton className="h-7 w-24 rounded" />
-          </div>
-        </div>
-        <Skeleton className="h-9 w-full rounded-md" />
-      </div>
-    );
-  }
-
-  if (!stripeData?.connected) {
-    return (
-      <div className="rounded-2xl liquid-glass p-5 space-y-3">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-            <Wallet className="w-4 h-4 text-primary" />
-          </div>
-          <div>
-            <h2 className="font-display italic font-bold leading-tight text-ds-17" style={{ color: "hsl(var(--ink-deep))" }}>
-              Wallet
-            </h2>
-          </div>
-        </div>
-        <p className="font-serif italic text-ds-14" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-          Connect your payout account to see your live balance.
-        </p>
-        <Button variant="primary" size="sm" className="w-full" onClick={onNavigatePayment}>Set Up Payouts</Button>
-      </div>
-    );
-  }
-
   return (
     <div className="rounded-2xl liquid-glass p-5">
       <div className="flex items-center justify-between mb-3">
@@ -155,7 +115,10 @@ export function WalletCard({
                       letterSpacing: "0.06em",
                     }}
                   >
-                    Pro
+                    {/* Basic is the cheapest tier that unlocks instant
+                        payouts (TIER_PERKS.basic) — the chip names the real
+                        gate, matching the paywall sheet. */}
+                    Basic
                   </span>
                 )}
               </div>

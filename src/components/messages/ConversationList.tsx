@@ -374,13 +374,20 @@ export function ConversationList({
               style={{ minHeight: "52px", borderBottom: "1px solid hsl(var(--olivewood) / 0.1)" }}
             >
               {selectMode ? (
-                /* Select mode — live "N/3 selected" counter fills the row. */
-                <span className="flex-1 text-ds-13 font-medium" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                  {selectedKeys.size}/{MAX_SELECT} selected
-                </span>
-              ) : searchOpen ? (
-                /* Search mode — input replaces the row inline (iOS pattern). */
+                /* Select mode — live "N/3 selected" counter fills the row.
+                   The sr-only h1 keeps the page named for screen readers
+                   while the visible title row is taken over. */
                 <>
+                  <h1 className="sr-only">Messages</h1>
+                  <span className="flex-1 text-ds-13 font-medium" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                    {selectedKeys.size}/{MAX_SELECT} selected
+                  </span>
+                </>
+              ) : searchOpen ? (
+                /* Search mode — input replaces the row inline (iOS pattern).
+                   Same sr-only h1 rule as select mode above. */
+                <>
+                  <h1 className="sr-only">Messages</h1>
                   <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                     <input
@@ -697,8 +704,11 @@ export function ConversationList({
           {selectMode && !isEmpty && (
             <div
               role="toolbar"
-              aria-label="Bulk delete action bar"
-              className="fixed inset-x-0 z-40 px-4"
+              aria-label="Bulk hide action bar"
+              // Embedded (desktop split): anchor inside the list pane so the
+              // bar doesn't stretch across the thread pane; standalone keeps
+              // the fixed viewport-bottom float above the nav dock.
+              className={`${embedded ? "absolute" : "fixed"} inset-x-0 z-40 px-4`}
               style={{ bottom: embedded ? "1rem" : "calc(var(--safe-area-bottom, 0px) + 80px)" }}
             >
               <div
@@ -734,7 +744,10 @@ export function ConversationList({
                     type="button"
                     onClick={handleBatchDelete}
                     disabled={selectedKeys.size === 0}
-                    aria-label={`Delete ${selectedKeys.size} selected conversation${selectedKeys.size === 1 ? "" : "s"}`}
+                    // "Hide", not "Delete" — the action is the same honest
+                    // local archive every other surface calls hiding ("no
+                    // messages are deleted"); the bar must not promise more.
+                    aria-label={`Hide ${selectedKeys.size} selected conversation${selectedKeys.size === 1 ? "" : "s"}`}
                     className="h-9 px-3 rounded-ds-md inline-flex items-center gap-1.5 text-ds-13 font-semibold btn-press transition disabled:opacity-40 disabled:pointer-events-none"
                     style={{
                       background: "hsl(var(--burnt-sienna))",
@@ -742,7 +755,7 @@ export function ConversationList({
                     }}
                   >
                     <Trash2 className="w-4 h-4" />
-                    Delete
+                    Hide
                   </button>
                 </div>
               </div>
@@ -756,7 +769,9 @@ export function ConversationList({
   // PageScaffold shell or title card — the parent provides the outer
   // shell and a shared title card spanning both panes.
   if (embedded) {
-    return <div className="flex-1 min-h-0 flex flex-col">{listBody}</div>;
+    // `relative` so the embedded select-mode action bar anchors to this
+    // pane instead of the viewport.
+    return <div className="relative flex-1 min-h-0 flex flex-col">{listBody}</div>;
   }
 
   return (
@@ -765,12 +780,9 @@ export function ConversationList({
     // redundant count line removed from Activity, /jobs, and the browse
     // toolbar. The desktop split's bar keeps its UNREAD pill, which is real
     // information you can't get by glancing at the list.
-    // `titleAs="h1"` because this standalone inbox renders no other heading —
-    // the title card was dropped, so without this the whole mobile/native
-    // Messages screen has ZERO h1 (the desktop split in Messages.tsx already
-    // passes it; only this branch was missed). Phone web and the iOS app are
-    // the same surface, so that was the shipped app's inbox announcing no
-    // page heading to VoiceOver.
+    // The page's h1 lives in the toolbar row above (visible on phone/native,
+    // sr-only when embedded, and an sr-only stand-in during search/select
+    // modes) — PageScaffold renders no title card here.
     <PageScaffold>
       {listBody}
     </PageScaffold>

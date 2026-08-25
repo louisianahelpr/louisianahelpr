@@ -4,27 +4,13 @@ import {
   TrendingUp, Crown, FileText, Gavel, HelpCircle,
   AlertTriangle, Type, Clock,
 } from "lucide-react";
-import { getProfileCompletion } from "@/lib/profileCompletion";
-import { hapticLight } from "@/lib/haptics";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import type { PayoutPrompt } from "@/hooks/useStripeConnectStatus";
 import type { MenuItem, Profile } from "./types";
 import { FAMILY_ENABLED } from "@/config/familyEnabled";
 
 interface UseProfileLandingDerivedArgs {
   profile: Profile | null;
   avatarBroken: boolean;
-  completedCount: number;
-  avgRating: number | null;
-  reviewCount: number;
-  /**
-   * Payout state, already resolved into a single verdict by
-   * `useStripeConnectStatus` — so the "Payout & Payments" row badge and the
-   * banner above it are reading the same answer, not two derivations of it.
-   */
-  payoutPrompt: PayoutPrompt;
-  onSelectTab: (key: string) => void;
-  onNavigate: (path: string) => void;
 }
 
 /**
@@ -61,9 +47,6 @@ const SECTION_TINT = {
 export function useProfileLandingDerived({
   profile,
   avatarBroken,
-  payoutPrompt,
-  onSelectTab,
-  onNavigate,
 }: UseProfileLandingDerivedArgs) {
   const { isAdmin } = useCurrentUser();
   // The admin-panel shortcut used to be a Shield icon button in the Dashboard
@@ -95,15 +78,11 @@ export function useProfileLandingDerived({
     { ok: profile?.license_status === "verified", label: "Licensed" },
     { ok: profile?.insurance_status === "verified", label: "Insured" },
   ]).filter((b) => b.ok);
-  // `setup` is the ONLY verdict that means "this account cannot receive
-  // money yet". An `error` verdict deliberately does NOT badge the row: a
-  // failed status call is not evidence that the account is broken, and
-  // <PayoutStatusRow /> already says "we couldn't check" out loud — a red
-  // "Action needed" dot on top of that would be a guess dressed as a fact.
-  // (The old code fabricated a disconnected status on failure, which is
-  // exactly that guess.)
-  const payoutNeedsSetup = payoutPrompt.kind === "setup";
-  const stripeNeedsAction = payoutNeedsSetup && profile?.approval_status === "approved";
+  // No payout badge is derived here on purpose: <PayoutStatusRow /> (fed
+  // by useStripeConnectStatus in SettingsSection) is the single voice for
+  // payout state — a second derivation here would be two answers to one
+  // question, and on a failed status check it would be a guess dressed as
+  // a fact.
   const subscriptionDesc =
     tier === "elite"
       ? "Elite — top visibility"
@@ -112,52 +91,6 @@ export function useProfileLandingDerived({
         : tier === "basic"
           ? "Basic — upgrade to Pro"
           : "Free — tap to upgrade";
-
-  // ─── Portfolio gallery + completion meter ──────────────────────────
-  // portfolio_urls is on profiles (text[]). Gallery shows up to 6 inline
-  // on the landing; tap navigates into Edit Profile to manage. The
-  // completion meter uses the shared getProfileCompletion helper, which
-  // tracks only post-signup enhancements (signup already requires
-  // photo / name / phone / bio / city / ID doc).
-  const portfolioUrls: string[] = (profile?.portfolio_urls ?? []) as string[];
-  // Core signup fields (the "Big 7" gate) — already satisfied by every
-  // normally-onboarded account. They count toward the percentage so a
-  // finished profile reads as mostly-complete instead of a discouraging
-  // 0%; the checklist below still lists only the actionable enhancements.
-  const coreComplete = [
-    !!profile?.full_name?.trim(),
-    !!profile?.avatar_url,
-    (profile?.bio?.trim().length ?? 0) >= 20,
-    !!profile?.date_of_birth,
-    !!profile?.phone?.trim(),
-    !!profile?.location?.trim(),
-    !!profile?.id_document_url,
-  ];
-  const completion = getProfileCompletion({
-    zipCode: profile?.zip_code,
-    idvStatus: profile?.idv_status,
-    portfolioCount: portfolioUrls.length,
-    core: coreComplete,
-  });
-  const completionPct = completion.pct;
-
-  // Map each completion-checklist item to the exact place that fixes it,
-  // so an incomplete row is one tap from the right edit surface (not a
-  // generic "open Edit Profile"). Keyed by the labels emitted from
-  // getProfileCompletion. `tab` routes through onSelectTab; `href`
-  // navigates. A short cue tells the user what they'll land on. Unknown
-  // labels fall back to the Edit-Profile form.
-  const completionTargets: Record<string, { tab?: string; href?: string; cue: string }> = {
-    "ZIP code": { tab: "profile", cue: "Add ZIP" },
-    "ID verified": { tab: "credentials", cue: "Verify ID" },
-    "Work photos": { tab: "profile", cue: "Add photos" },
-  };
-  const handleCompletionItemTap = (label: string) => {
-    hapticLight();
-    const target = completionTargets[label];
-    if (target?.href) onNavigate(target.href);
-    else onSelectTab(target?.tab ?? "profile");
-  };
 
   // Completeness gaps surfaced per-row so the user knows *what's*
   // missing without having to open each tab. Derived from existing
@@ -170,8 +103,6 @@ export function useProfileLandingDerived({
   const credentialsIncomplete =
     profile?.license_status !== "verified" &&
     profile?.insurance_status !== "verified";
-  const payoutIncomplete = payoutNeedsSetup;
-  const bioMissing = (profile?.bio?.trim().length ?? 0) < 20;
 
   // Settings hub, grouped into four scannable editorial sections per the
   // S18 design card: Account · Work · Money · Legal. Pure information-
@@ -204,6 +135,9 @@ export function useProfileLandingDerived({
           icon: <ShieldCheck className="w-5 h-5" />,
           desc: "Add your license and insurance",
           tint: SECTION_TINT.work,
+          // Quiet nudge when neither credential is verified yet — same
+          // pill treatment as the Security row's "Verify phone".
+          incompleteLabel: credentialsIncomplete ? "Add credentials" : undefined,
         },
         {
           key: "str-settings",
@@ -335,6 +269,23 @@ export function useProfileLandingDerived({
           tint: SECTION_TINT.account,
           href: "/home-history",
         },
+        // The posted/completed job tabs exist (TAB_TITLES, ProfileTabPanels)
+        // but had NO menu entry — reachable only by hand-typing ?tab=. Two
+        // plain rows make them navigable again.
+        {
+          key: "posted_jobs",
+          label: "Posted Jobs",
+          icon: <FileText className="w-5 h-5" />,
+          desc: "Tasks you've posted",
+          tint: SECTION_TINT.account,
+        },
+        {
+          key: "completed_jobs",
+          label: "Completed Jobs",
+          icon: <ClipboardList className="w-5 h-5" />,
+          desc: "Work you've finished or had done",
+          tint: SECTION_TINT.account,
+        },
       ],
     },
     {
@@ -365,22 +316,14 @@ export function useProfileLandingDerived({
   ];
 
   // "Profile" row in the header (Edit) doesn't get a pill — its own
-  // edit affordance is right there. But the bio nudge sits under the
-  // hero anyway, so we surface "Add a photo" / "Add bio" on the
-  // landing's existing inline prompts (the avatar Camera dot and the
-  // "+ Add a short bio" CTA already cover those).
-  void bioMissing;
+  // edit affordance is right there, and the avatar Camera dot plus the
+  // "+ Add a short bio" CTA already cover the photo/bio nudges inline.
 
   return {
     tier,
     hasPhoto,
     memberSinceLabel,
     earnedBadges,
-    portfolioUrls,
-    completion,
-    completionPct,
-    completionTargets,
-    handleCompletionItemTap,
     menuGroups,
   };
 }

@@ -4,7 +4,7 @@ import { netUrgentFeeDollars } from "@/lib/stripeFees";
 // formatPriceExact: this component IS the arithmetic — budget, fee, urgent
 // bonus, take-home. Whole-dollar rounding is right for a headline price and
 // wrong for the lines that justify it, where the column has to add up.
-import { formatPriceExact as formatPrice } from "@/lib/format";
+import { formatPriceExact as formatPrice, formatPriceFloor } from "@/lib/format";
 
 /**
  * ApplyEarningsBreakdown — the "You earn" take-home card shown at the top of
@@ -64,7 +64,10 @@ export function ApplyEarningsBreakdown({
             className="font-display italic font-bold tabular-nums text-ds-18"
             style={{ color: "hsl(var(--bark))", letterSpacing: "-0.02em" }}
           >
-            ${formatPrice(payout)}
+            {/* HEADLINE floors (owner, 2026-08-19), matching JobPrice and
+                every other headline take-home — the line items above keep
+                exact cents because they show the arithmetic. */}
+            ${formatPriceFloor(payout)}
           </span>
         </div>
       </div>

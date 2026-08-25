@@ -7,9 +7,10 @@ import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/queryKeys";
+import { functionErrorMessage } from "@/lib/supabaseResult";
 import { tierConfig, TierIcon } from "@/components/profile/subscriptionTab/tierConfig";
 import { PauseOfferDialog } from "@/components/profile/subscriptionTab/PauseOfferDialog";
 import { CancelSurveyDialog } from "@/components/profile/subscriptionTab/CancelSurveyDialog";
@@ -19,8 +20,12 @@ type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Profile | null; user: User | null; onBack: () => void }) => {
   const [loadingPortal, setLoadingPortal] = useState(false);
   const [loadingCheckout, setLoadingCheckout] = useState<string | null>(null);
-  const [billingInterval, setBillingInterval] = useState<"monthly" | "annual" | "one_time">("one_time");
+  // Defaults to monthly — the public /subscription page opens on monthly
+  // pricing, and defaulting here to the one-time pass meant the same tier
+  // quoted a different price depending on which surface you arrived at.
+  const [billingInterval, setBillingInterval] = useState<"monthly" | "annual" | "one_time">("monthly");
   const [refreshing, setRefreshing] = useState(false);
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const currentTier = profile?.subscription_tier || null;
@@ -91,7 +96,11 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
     } catch { /* handled below via alertSent */ }
     setAcceptingPause(false);
     setPauseOfferOpen(false);
-    if (!alertSent) {
+    if (alertSent) {
+      // The dialog closes on success — without this the accept path ended
+      // in total silence, which reads as "nothing happened".
+      toast.success("Request received — we'll follow up by email.");
+    } else {
       toast.error("Couldn't send your request — try again or email support.");
     }
   };
@@ -102,8 +111,10 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
       const { data, error } = await supabase.functions.invoke("pro-customer-portal");
       if (error) throw error;
       if (data?.url) window.location.href = data.url;
-    } catch (err: any) {
-      toast.error(err.message || "Couldn't open the billing portal — try again?");
+    } catch (err: unknown) {
+      // functionErrorMessage digs the edge function's real reason out of the
+      // response body — the SDK's own .message is just "non-2xx status code".
+      toast.error(await functionErrorMessage(err, "Couldn't open the billing portal — try again?"));
     } finally {
       setLoadingPortal(false);
     }
@@ -118,8 +129,8 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
       });
       if (error) throw error;
       if (data?.url) window.location.href = data.url;
-    } catch (err: any) {
-      toast.error(err.message || "Couldn't start checkout — try again?");
+    } catch (err: unknown) {
+      toast.error(await functionErrorMessage(err, "Couldn't start checkout — try again?"));
     } finally {
       setLoadingCheckout(null);
     }
@@ -184,7 +195,9 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
           </p>
           <div className="mt-3">
             <Button
-              onClick={() => { window.location.href = "/business/billing"; }}
+              // SPA navigation — window.location.href full-reloaded the app
+              // (and re-ran the boot loader) for an in-app route.
+              onClick={() => navigate("/business/billing")}
               variant="outline"
               className="rounded-ds-md"
             >
@@ -334,6 +347,31 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
 
       {/* Manage row used to live here — now consolidated into the
           "Your plan" hero above when actively subscribed. */}
+
+      {/* One-time pass explainer — "Once" needs a duration or it reads as
+          "pay once, member forever". The pass grants 30 days: the webhook
+          stamps subscription_expires_at now+30d on a one_time checkout
+          (stripe-webhook/handlers/checkoutSessionCompleted.ts). */}
+      {billingInterval === "one_time" && (
+        <div
+          className="rounded-ds-md px-3 py-2 flex items-center gap-2"
+          style={{
+            background: "hsl(var(--bark) / 0.06)",
+            border: "0.5px solid hsl(var(--bark) / 0.20)",
+          }}
+        >
+          <Sparkles className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--bark))" }} strokeWidth={2.25} />
+          <p
+            className="font-serif italic leading-snug text-ds-12"
+            style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+          >
+            <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
+              One-time pass — 30 days.
+            </span>{" "}
+            Pay once, keep the perks for 30 days, no auto-renew.
+          </p>
+        </div>
+      )}
 
       {/* Lock-in rate pill — only shown when annual is the chosen cycle.
           Concrete commitment hook: "lock in current pricing for a year". */}

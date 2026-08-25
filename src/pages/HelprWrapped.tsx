@@ -230,11 +230,24 @@ const HelprWrapped = () => {
   });
 
   const handleShare = async () => {
-    const helpedCount = (stats?.jobsPosted ?? 0) + (stats?.jobsCompleted ?? 0);
+    // Posting a job isn't helping a neighbor — only completed jobs count as
+    // "helped"; posts get their own clause so the share text stays honest.
+    const helped = stats?.jobsCompleted ?? 0;
+    const posted = stats?.jobsPosted ?? 0;
     const earned = stats?.totalEarned ?? 0;
+    const parts: string[] = [];
+    if (helped > 0) parts.push(`helped ${helped} neighbor${helped !== 1 ? "s" : ""}`);
+    if (posted > 0) parts.push(`posted ${posted} job${posted !== 1 ? "s" : ""}`);
+    if (earned > 0) parts.push(`earned $${earned.toLocaleString()}`);
+    const summary =
+      parts.length === 0
+        ? "was part of the community"
+        : parts.length === 1
+          ? parts[0]
+          : `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
     await shareNative({
       title: `My ${YEAR} on Helpr`,
-      text: `I helped ${helpedCount} neighbor${helpedCount !== 1 ? "s" : ""} and earned $${earned.toLocaleString()} on @LouisianaHelpr this year! 🎉`,
+      text: `I ${summary} on @LouisianaHelpr this year! 🎉`,
       url: "https://www.louisianahelpr.com",
       dialogTitle: SEASON.isYearEnd ? "Share your Helpr Wrapped" : "Share your Helpr year",
     });
@@ -438,20 +451,15 @@ const HelprWrapped = () => {
                 <Share2 className="w-4 h-4 mr-2" />
                 {SEASON.isYearEnd ? "Share Your Wrapped" : "Share Your Year"}
               </Button>
+              {/* The "See yours" anchor that sat here preventDefault-ed into
+                  nothing — a dead link directly under the real Share button.
+                  A plain caption says the same thing without pretending to
+                  be a second control. */}
               <p
                 className="text-center text-ds-11 font-serif italic"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
-                <a
-                  href="/wrapped"
-                  onClick={(e) => e.preventDefault()}
-                  className="underline underline-offset-2 hover:opacity-80 transition-opacity"
-                  style={{ color: "hsl(var(--burnt-sienna) / 0.7)" }}
-                  aria-label="Share your Helpr Wrapped with others"
-                >
-                  See yours
-                </a>{" "}
-                — share with the community
+                Share it with the community
               </p>
             </div>
           )}

@@ -5,6 +5,7 @@ import { jobStatusLabel } from "@/lib/statusLabels";
 import { jobStatusColorClasses } from "@/lib/statusColors";
 import { formatPrice, formatPriceExact, formatShortDate } from "@/lib/format";
 import { helperTakeHomeDollars } from "@/lib/helperEarnings";
+import { stripeProcessingCostCents } from "@/lib/stripeFees";
 import type { Job } from "./types";
 
 interface EarningHistoryProps {
@@ -101,7 +102,7 @@ export function EarningHistory({
           <div
             className="w-16 h-16 rounded-full flex items-center justify-center"
             style={{
-              backgroundColor: "hsla(0, 0%, 100%, 0.55)",
+              backgroundColor: "hsl(var(--ivory-sand) / 0.55)",
               border: "1px solid hsl(var(--olivewood) / 0.10)",
               boxShadow:
                 "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
@@ -142,7 +143,14 @@ export function EarningHistory({
               ? helperTakeHomeDollars(job, feeFallbackPct)
               : null;
             const jobTips = tips.filter((t) => t.job_id === job.id);
-            const tipTotal = jobTips.reduce((s, t) => s + t.amount, 0);
+            // NET of the card fee — the same calc as the tab's Tips tile
+            // (create-payment retains stripeProcessingCostCents(tip) as the
+            // application fee, so tip − fee is what transferred). Showing
+            // gross here meant the per-row tips didn't sum to the tile.
+            const tipTotal = jobTips.reduce(
+              (s, t) => s + (t.amount - stripeProcessingCostCents(Math.round(t.amount * 100)) / 100),
+              0,
+            );
             return (
               <div key={job.id} className="rounded-ds-md liquid-glass p-3.5 transition-all hover:-translate-y-0.5 hover:shadow-md">
                 <div className="flex items-start justify-between gap-3">

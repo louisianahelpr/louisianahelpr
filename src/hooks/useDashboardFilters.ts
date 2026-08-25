@@ -6,7 +6,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { haversineMiles, parseNearbyFilter } from "@/lib/geo";
 import { useUserLocation } from "@/hooks/useUserLocation";
 import { sortJobsSmart } from "@/lib/smartSort";
-import { earlyAccessDelayMs } from "@/lib/earlyAccess";
+import { earlyAccessDelayMs, resolveEarlyAccessTier } from "@/lib/earlyAccess";
 import type { MapJobFilterInput } from "@/components/browseMap/mapFilter";
 
 // Persisted browse-feed sort key. Stored in localStorage so a helper's
@@ -164,6 +164,18 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
     return map;
   }, [sortBy, allJobs, helperLocationForSort]);
 
+  // The tier the early-access gate runs at — resolved from the PROFILE with
+  // the shared resolver (null expiry = active, the tierFeePercent
+  // convention), so this client gate and the SQL cutoff in useDashboardData
+  // grade the same tier. It used to read `helprTier` (the
+  // check-pro-subscription edge result) here while the server layer derived
+  // from the profile with the opposite null-expiry rule — two layers, two
+  // answers. `helprTier` remains in use only for the Search Priority sort.
+  const earlyAccessTier = resolveEarlyAccessTier(
+    profile?.subscription_tier,
+    profile?.subscription_expires_at,
+  );
+
   // Local "YYYY-MM-DD" for today — used to hide past-dated jobs. Built from
   // local date parts (not toISOString, which is UTC and would flip the day
   // near midnight for US timezones).
@@ -227,7 +239,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
       // free users wait). Encourages helpers AND posters to subscribe.
       if (!earlyAccessExempt) {
         const jobAge = Date.now() - new Date(job.created_at).getTime();
-        if (jobAge < earlyAccessDelayMs(helprTier)) return false;
+        if (jobAge < earlyAccessDelayMs(earlyAccessTier)) return false;
       }
       if (matchAvailability && helperAvailability.length > 0) {
         const jobDate = new Date(job.date_needed + "T12:00:00");
@@ -279,7 +291,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
         case "ending_soon": return new Date(a.date_needed).getTime() - new Date(b.date_needed).getTime();
         default: return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       }
-    }), [allJobs, userId, searchQuery, selectedCategory, minBudget, maxBudget, locationFilter, nearbyMiles, userLoc, expiresWithin, helprTier, matchAvailability, helperAvailability, sortBy, boostedOnly, urgentOnly, earlyAccessExempt, profile?.parish, profile?.location, smartIndexByJobId, todayLocalDate]);
+    }), [allJobs, userId, searchQuery, selectedCategory, minBudget, maxBudget, locationFilter, nearbyMiles, userLoc, expiresWithin, helprTier, earlyAccessTier, matchAvailability, helperAvailability, sortBy, boostedOnly, urgentOnly, earlyAccessExempt, profile?.parish, profile?.location, smartIndexByJobId, todayLocalDate]);
 
   // The same filter state, shaped for the Browse map. The map runs its own
   // (unpaginated) fetch against a narrow PII-safe row, so it can't reuse
@@ -301,11 +313,11 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
       userLoc: userLoc.status === "ready" ? { lat: userLoc.lat, lng: userLoc.lng } : null,
       // Mirrors the list's early-access gate. Without it the map leaked
       // exactly the brand-new jobs the subscription perk exists to hold back.
-      earlyAccessDelayMs: earlyAccessExempt ? 0 : earlyAccessDelayMs(helprTier),
+      earlyAccessDelayMs: earlyAccessExempt ? 0 : earlyAccessDelayMs(earlyAccessTier),
     }),
     [
       selectedCategory, searchQuery, minBudget, maxBudget, urgentOnly, boostedOnly,
-      expiresWithin, matchAvailability, nearbyMiles, userLoc, earlyAccessExempt, helprTier,
+      expiresWithin, matchAvailability, nearbyMiles, userLoc, earlyAccessExempt, earlyAccessTier,
     ],
   );
 

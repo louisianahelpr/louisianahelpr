@@ -17,7 +17,7 @@ import { JobActionRow, JobActionChip } from "./JobActionRow";
 import { JobCardMetaRow } from "./JobCardMetaRow";
 import { JobCardPhotoStrip } from "./JobCardPhotoStrip";
 import { SendReportCard } from "./PetReportCard";
-import { formatPriceExact, formatShortDate, formatRecurrenceInterval } from "@/lib/format";
+import { formatPrice, formatPriceFloor, formatShortDate, formatRecurrenceInterval } from "@/lib/format";
 import type { AppliedJobCardProps, ApplicationViewFields } from "./appliedJobCard/types";
 import { useHighlightPulse } from "./appliedJobCard/useHighlightPulse";
 import { deriveAppliedJobCardState } from "./appliedJobCard/appliedJobCardHelpers";
@@ -91,7 +91,29 @@ function AppliedJobCardInner({
   // read it through this narrow view rather than `as any`.
   const viewedApp = app as AppliedApp & ApplicationViewFields;
   const job = app.job;
-  if (!job) return null;
+  if (!job) {
+    // An application can outlive its job row's VISIBILITY: once the job
+    // closes to another helper, the jobs SELECT policy hides it from a
+    // rejected applicant, so `app.job` comes back null. The bucket counts
+    // (activityFilters) still tally this application under Done — a silent
+    // `null` here is what made the Done badge read 3 over a list of 2
+    // cards. Render the same minimal "Not selected" card, minus the job
+    // details we can no longer read.
+    return (
+      <div ref={cardRef}>
+        <JobCardShell expandable={false} expanded={false} onToggle={() => {}}>
+          <div className="px-4 py-3 space-y-1">
+            <p className="text-ds-13 font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
+              {app.status === "rejected" ? "Not selected" : "Job no longer available"}
+            </p>
+            <p className="text-ds-11 text-muted-foreground italic">
+              This job has closed, so its details aren’t available any more.
+            </p>
+          </div>
+        </JobCardShell>
+      </div>
+    );
+  }
   const {
     status,
     isOffered,
@@ -144,12 +166,13 @@ function AppliedJobCardInner({
         >
           <JobCardTitleBar
             title={job.title || "Job"}
-            // Exact cents, matching Browse / the job-detail pill / the apply
-            // sheet. A helper seeing $84 here and $83.60 two taps away has
-            // been given two answers to "what do I get paid", and the rounded
-            // one overstates it.
-            amount={formatPriceExact(payout)}
-            amountTitle={`Budget: $${job.budget} · Fee: ${commissionPercent}%`}
+            // FLOORED, matching JobPrice (owner, 2026-08-19: the headline
+            // take-home floors — a payout figure may never read above the
+            // payout). Browse, the job-detail pill and this card all quote
+            // the same whole-dollar floor; only breakdown line items keep
+            // exact cents, because those must visibly add up.
+            amount={formatPriceFloor(payout)}
+            amountTitle={`Budget: $${formatPrice(job.budget ?? 0)} · Fee: ${commissionPercent}%`}
             meta={metaRow}
           />
 
@@ -224,7 +247,7 @@ function AppliedJobCardInner({
             {isMinimalCard && (
               <div className="space-y-2">
                 <p className="text-ds-11 text-muted-foreground italic">{isCancelled ? "Job was cancelled" : "Not selected"}</p>
-                {isCancelled && <CancellationFeePill job={job} />}
+                {isCancelled && <CancellationFeePill job={job} fallbackFeePercent={viewerFeePercent} />}
                 {/* No "Browse Open Jobs" button (owner: "remove"). A full-size
                     control on every not-selected card repeated the Home tab one
                     tap away — an archived rejection doesn't need a CTA. */}

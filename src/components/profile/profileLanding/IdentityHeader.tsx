@@ -1,4 +1,3 @@
-import { lazy } from "react";
 import {
   MapPin, ChevronRight as ChevronRightIcon,
   Award, BadgeCheck, Building2, Camera, Crown, QrCode, Users,
@@ -10,18 +9,10 @@ import { avatarGradientFor } from "@/lib/avatarGradient";
 import { formatPriceFloor } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import HelperTierBadge from "@/components/profile/HelperTierBadge";
-import { tierFeePercent } from "@/lib/subscriptionTiers";
-// ProfileStatsTrend statically imports recharts (~107 kB gzip combined).
-// The chart lives in a collapsed disclosure (hidden by default), so there
-// is no reason to block the Profile landing render on it. Lazy-loading
-// keeps recharts off the Profile page's synchronous import chain — it
-// only fetches after first paint, mirroring the pattern used for charts
-// in Admin (KpiSparkline) and the BrowseMap/JobDetailDialog pattern.
-const ProfileStatsTrend = lazy(() => import("@/components/profile/ProfileStatsTrend"));
 import { EarningsSparkline } from "@/components/profile/EarningsSparkline";
 import { hapticLight } from "@/lib/haptics";
 import { shareNative } from "@/lib/nativeShare";
-import type { Profile, ReviewPreview } from "./types";
+import type { Profile } from "./types";
 
 interface IdentityHeaderProps {
   profile: Profile | null;
@@ -33,18 +24,12 @@ interface IdentityHeaderProps {
   reviewCount: number;
   completedCount: number;
   onSelectTab: (key: string) => void;
-  reviewsPreview: ReviewPreview[];
-  reviewsError: boolean;
-  onRetryReviews?: () => void;
   earningsSparkline: number[] | null;
   totalEarnings: number;
   tier: string;
   hasPhoto: boolean;
   memberSinceLabel: string | null;
   earnedBadges: { ok: boolean; label: string }[];
-  portfolioUrls: string[];
-  videoUploading: boolean;
-  handleVideoUpload: (file: File) => void;
   setQrOpen: (open: boolean) => void;
 }
 
@@ -58,18 +43,12 @@ export function IdentityHeader({
   reviewCount,
   completedCount,
   onSelectTab,
-  reviewsPreview: _reviewsPreview,
-  reviewsError: _reviewsError,
-  onRetryReviews: _onRetryReviews,
   earningsSparkline,
   totalEarnings,
   tier,
   hasPhoto,
   memberSinceLabel,
   earnedBadges,
-  portfolioUrls: _portfolioUrls,
-  videoUploading: _videoUploading,
-  handleVideoUpload: _handleVideoUpload,
   setQrOpen,
 }: IdentityHeaderProps) {
   // Crew/Team/Enterprise badge for a business member — see the note at the
@@ -84,19 +63,14 @@ export function IdentityHeader({
   const rawSeatTier = useBusinessSeatTier(userId);
   const seatTier = BUSINESS_ENABLED ? rawSeatTier : null;
 
-  // Intro-video state — tracks the fullscreen preview open state.
-  // Fee % for legacy job rows without a per-job helper_fee_percent —
-  // tier-derived so the trend chart's "earned" agrees with the other
-  // earnings surfaces (analytics/work-record/Earnings tab).
-  const feeFallbackPercent = tierFeePercent(tier, profile?.subscription_expires_at ?? null);
-
   return (
     <>
       {/* ── Identity header ──────────────────────────────────────────
           A confident profile header: avatar with the ID-verified badge,
-          name + tier, location/tenure, then a clean three-up trust
-          strip (rating · jobs done · jobs posted). The same radial
-          Sienna→Verdigris backdrop as the Dashboard greeting card. */}
+          name + tier, location/tenure, bio, earned trust badges, and a
+          four-up affordance row (Reviews · Share · Edit · QR). The same
+          radial Sienna→Verdigris backdrop as the Dashboard greeting
+          card. */}
       <div
         className="relative liquid-glass shrink-0 p-4 overflow-hidden"
         style={{
@@ -498,13 +472,12 @@ export function IdentityHeader({
           </button>
         )}
 
-        {/* Activity trend used to sit here. Moved to /analytics (owner
-            decision): the Profile landing is identity — who you are, what
-            you've done, how to reach you — and a self-fetching area chart of
-            your own job volume is analysis, not identity. It also dragged
-            recharts (~107 kB gzip) onto the landing behind a lazy boundary
-            for a panel most visits never opened. /analytics is the page that
-            exists for exactly this and already loads recharts. */}
+        {/* Activity trend used to sit here. Moved to the Earnings tab's
+            analytics section (owner decision): the Profile landing is
+            identity — who you are, what you've done, how to reach you — and
+            a self-fetching area chart of your own job volume is analysis,
+            not identity. It also kept recharts (~107 kB gzip) off the
+            landing's import chain. */}
 
         {/* "Work & reviews" disclosure removed 2026-08-19 (owner request).
             It rendered as an eyebrow + a "View" chevron above a ~90pt gap and

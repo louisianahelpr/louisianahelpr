@@ -22,14 +22,6 @@ export interface MenuItem {
   incompleteLabel?: string;
 }
 
-export interface ReviewPreview {
-  rating: number;
-  feedback: string | null;
-  created_at: string;
-  reviewerName: string;
-  jobTitle: string;
-}
-
 export interface ProfileLandingProps {
   profile: Profile | null;
   /** The auth'd user's UUID — used to build the public profile share URL. */
@@ -53,16 +45,10 @@ export interface ProfileLandingProps {
   onLoadInlineJobs: () => void;
   onRequestDelete: () => void;
   onRequestLogout: () => void;
-  /** Up to 2 most recent reviews surfaced on the hero card. */
-  reviewsPreview?: ReviewPreview[];
   /** True when the helper-stats sub-loader failed. */
   statsError?: boolean;
-  /** True when the review-preview sub-loader failed. */
-  reviewsError?: boolean;
   /** Retries just the helper-stats sub-section. */
   onRetryStats?: () => void;
-  /** Retries just the review-preview sub-section. */
-  onRetryReviews?: () => void;
   /**
    * Last-6-weeks take-home earnings, oldest → newest, for the header
    * sparkline teaser. `null` (not enough signal) hides the teaser.

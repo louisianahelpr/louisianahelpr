@@ -68,18 +68,20 @@ export function BlockUserDialog({
     };
   }, [open, blockedUserId]);
 
-  const handleBlock = async () => {
+  // Resolves `true` only when the block landed — "Block and Report" keys
+  // off this so a failed block never proceeds into the report flow.
+  const handleBlock = async (): Promise<boolean> => {
     setSubmitting(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         toast.error("You must be logged in.");
-        return;
+        return false;
       }
       const result = await blockUser(user.id, blockedUserId, reason.trim() || undefined);
       if (!result.ok) {
         toast.error(result.error || "Couldn't block this person — try again?");
-        return;
+        return false;
       }
 
       // Notify the blocked user about any cancelled jobs (no notification about the block itself)
@@ -97,6 +99,7 @@ export function BlockUserDialog({
       onBlocked?.(result.cancelledJobIds);
       onClose();
       setReason("");
+      return true;
     } finally {
       setSubmitting(false);
     }
@@ -197,8 +200,8 @@ export function BlockUserDialog({
             <AlertDialogAction
               onClick={async (e) => {
                 e.preventDefault();
-                await handleBlock();
-                onReportAndBlock();
+                const blocked = await handleBlock();
+                if (blocked) onReportAndBlock();
               }}
               disabled={submitting}
               className="rounded-ds-md"

@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { AUTO_COMPLETE_HOURS, hoursToMs } from "../../../../supabase/functions/_shared/escrowTiming";
 import { CheckCircle2, MessageSquare, RefreshCw, Check, ClipboardList } from "lucide-react";
 import { PhotoProofGroup } from "@/components/PhotoProof";
+import { hasRequiredProof } from "@/lib/photoProofPolicy";
+import { report } from "@/lib/errorLogger";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
 import { JobConfirmation } from "@/components/JobConfirmation";
 import { JobTracking, type TrackingData } from "@/components/JobTracking";
@@ -49,11 +51,15 @@ export function ActiveJobSection({
     enabled: !!job.helper_completed_at && !job.poster_completed_at && !!job.customer_id,
     staleTime: 5 * 60_000,
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("profiles")
         .select("auto_release_on_complete")
         .eq("user_id", job.customer_id as string)
         .maybeSingle();
+      // False stays the safe default (the 24h countdown renders), but the
+      // failure must be observable — dropping it made a broken read look
+      // exactly like "this poster doesn't auto-release".
+      if (error) report(error, { severity: "warning", tags: { source: "ActiveJobSection.posterInstantRelease" } });
       return !!data?.auto_release_on_complete;
     },
   });
@@ -167,8 +173,12 @@ export function ActiveJobSection({
         </div>
       )}
 
-      {/* Photo proof - only when working */}
-      {job.poster_confirmed_working_at && (
+      {/* Photo proof — anchored on the helper's own ARRIVAL, the same stamp
+          that unlocks the payout button below. Gating this on the poster's
+          working confirmation hid the uploader behind a stamp a ghosting
+          poster never sets, while the payout button kept demanding the
+          photos the helper had no way to add. */}
+      {job.helper_arrived_at && (
         <PhotoProofGroup
           jobId={app.job_id}
           beforeUrls={job.proof_before_urls || []}
@@ -188,9 +198,9 @@ export function ActiveJobSection({
             window instead. The 30-min floor measures from their confirmation
             when it exists, else from the helper's own arrival stamp. */}
         {!job.helper_completed_at && job.helper_arrived_at && (() => {
-          const beforePhotos = job.proof_before_urls || [];
-          const afterPhotos = job.proof_after_urls || [];
-          const hasPhotos = beforePhotos.length > 0 && afterPhotos.length > 0;
+          // ONE shared proof rule (photoProofPolicy) — the same predicate
+          // JobTracking's Done step and completeJob's re-check enforce.
+          const hasPhotos = hasRequiredProof(job, job.proof_before_urls, job.proof_after_urls);
           const workingStart = job.poster_confirmed_working_at
             ? new Date(job.poster_confirmed_working_at)
             : job.helper_arrived_at
@@ -232,6 +242,12 @@ export function ActiveJobSection({
           );
         })()}
         <Button size="sm" variant="outline" style={messageButtonStyle} className="w-full" onClick={() => navigate(job.customer_id ? `/messages?jobId=${app.job_id}&userId=${job.customer_id}` : "/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
+        {/* The state machine has no sanctioned helper exit once a job is
+            underway — say so quietly rather than leaving a stuck helper to
+            discover it by hunting for a cancel button that isn't there. */}
+        <p className="font-serif italic text-center text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+          Can’t finish? Message the poster or contact support — once a job starts it can only be completed or disputed.
+        </p>
       </div>
     </div>
   );

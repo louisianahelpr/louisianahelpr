@@ -249,7 +249,8 @@ export function postedCardState(job: PostedJobStateInput): ActivityState {
 export function appliedCardState(app: AppliedStateInput): ActivityState {
   const job = app.job;
   if (app.status === "rejected") return { label: "Not selected", tone: "neutral" };
-  if (app.status === "withdrawn") return { label: "Withdrawn", tone: "neutral" };
+  // No "withdrawn" branch: withdrawing DELETES the applications row (there is
+  // no such enum value), so no card can ever be in that state.
   if (job?.status === "cancelled") return { label: "Job cancelled", tone: "danger" };
   if (job?.status === "completed") return { label: "Completed", tone: "success" };
   if (job?.status === "disputed") return { label: "Disputed", tone: "action" };

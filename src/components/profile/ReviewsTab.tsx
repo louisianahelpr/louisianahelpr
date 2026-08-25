@@ -294,8 +294,11 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
               </PopoverContent>
             </Popover>
           </div>
-          {sortedReviews.map((review, i) => (
-            <div key={i} className="rounded-ds-md liquid-glass p-4 space-y-2.5 transition-all hover:-translate-y-0.5 hover:shadow-md">
+          {sortedReviews.map((review) => (
+            /* Stable identity, not the array index — the list re-sorts, and an
+               index key makes React reuse the wrong row's DOM on re-sort. Rows
+               have no id, but created_at + reviewer is unique per review. */
+            <div key={`${review.created_at}-${review.reviewerName}`} className="rounded-ds-md liquid-glass p-4 space-y-2.5 transition-all hover:-translate-y-0.5 hover:shadow-md">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="flex items-center gap-0.5">

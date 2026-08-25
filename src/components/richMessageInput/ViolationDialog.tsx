@@ -2,7 +2,6 @@ import { ShieldAlert } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
-  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogFooter,
   AlertDialogHero,
@@ -11,11 +10,10 @@ import {
 interface ViolationDialogProps {
   pendingViolation: string | null;
   onOpenChange: (open: boolean) => void;
-  onConfirm: () => void;
 }
 
 export const ViolationDialog = ({
-  pendingViolation, onOpenChange, onConfirm,
+  pendingViolation, onOpenChange,
 }: ViolationDialogProps) => {
   return (
     <AlertDialog open={!!pendingViolation} onOpenChange={onOpenChange}>
@@ -24,10 +22,14 @@ export const ViolationDialog = ({
           eyebrow={<><ShieldAlert className="w-3 h-3" /> Safety</>}
           title="This Violates Platform Rules"
         />
+        {/* Single CTA on purpose. A "Send Anyway" action here was a trap:
+            the downstream scan re-blocked the message every time and logged
+            a violation per tap, so two taps reached the permanent-ban
+            branch. Editing is the only path forward — the server trigger
+            remains the true gate. */}
         <AlertDialogFooter>
-          <AlertDialogCancel>Edit Message</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-            Send Anyway
+          <AlertDialogAction onClick={() => onOpenChange(false)}>
+            Edit Message
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

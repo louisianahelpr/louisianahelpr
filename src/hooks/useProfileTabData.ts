@@ -83,8 +83,7 @@ export function useProfileStats(userId: string | undefined) {
 
 /**
  * Full reviews list (with reviewer names + job titles resolved). Enabled on
- * both the landing tab (2-review preview on the hero card) and the reviews
- * tab, so opening either shares one cached fetch.
+ * the reviews tab only — the landing's hero preview was removed.
  */
 export function useProfileReviews(userId: string | undefined, enabled: boolean) {
   return useQuery<ProfileReview[]>({

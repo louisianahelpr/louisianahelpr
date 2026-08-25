@@ -74,8 +74,13 @@ export function PetForm({
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
 
-  const set = (field: string, value: unknown) =>
+  const set = (field: string, value: unknown) => {
+    // The one-shot duplicate confirmation is a claim about a SPECIFIC name —
+    // editing the name invalidates it, or "Boo" confirmed once would let a
+    // later duplicate "Gumbo" sail through unconfirmed.
+    if (field === "name") setConfirmedDuplicate(false);
     setForm((f) => ({ ...f, [field]: value }));
+  };
 
   const isInline = variant === "inline";
 

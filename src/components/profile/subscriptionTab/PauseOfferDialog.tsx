@@ -40,7 +40,7 @@ export const PauseOfferDialog = ({
             <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
               What you keep:
             </span>{" "}
-            Your verification status, saved helpers, payout history, and reviews — all untouched. Once we confirm your pause by email, we'll send a heads-up a week before it ends.
+            Your verification status, Saved Helprs, payout history, and reviews — all untouched. We’ll follow up by email to confirm your pause.
           </p>
         </div>
         <DialogFooter className="sm:!justify-between">

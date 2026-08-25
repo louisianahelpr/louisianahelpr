@@ -24,12 +24,17 @@ export const AUTH_PREFIXES = [
   // deliberately excluded — its public /family/accept/:token invite sub-route
   // shares the prefix and would surface the authed rail to logged-out invitees.
   "/gift-card", "/str-settings", "/home-history", "/work-record",
-  "/benefits", "/analytics", "/pets",
+  "/benefits", "/pets",
   // /auto-tip was the one strictly-authed settings page missing from this
   // list — the 2026-08-24 visual audit caught it rendering with no rail and
   // no top bar at desktop widths (the exact failure mode the comment above
   // describes), while every sibling linked from the same profile rows has it.
   "/auto-tip",
+  // /wrapped — same failure mode as /auto-tip above: strictly-authed
+  // document-scroll page linked from the app, but absent here meant it
+  // rendered with no rail and no top bar (caught by the 2026-08-24 B-lane
+  // overnight audit at 1440).
+  "/wrapped",
   // /data-rights is NOT a page any more — since 2026-08-18 it is a
   // <Navigate> into /profile?tab=legal. It stays listed for the same reason
   // /schedule, /availability and /saved-helpers do (they are also redirects

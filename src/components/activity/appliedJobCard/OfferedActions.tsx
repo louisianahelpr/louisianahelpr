@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { MessageSquare, CheckCircle2, XCircle, Timer } from "lucide-react";
 import BrandConfirmDialog from "@/components/ui/BrandConfirmDialog";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
+import { RELIABILITY_LADDER_SENTENCE } from "@/lib/reliabilityLadder";
 import type { Application, AppliedApp, Job } from "../activityConstants";
 
 interface OfferedActionsProps {
@@ -16,13 +17,14 @@ interface OfferedActionsProps {
 
 /**
  * Declining after you were SELECTED from your own application files a
- * `job_denial` violation, and the ladder is unforgiving: a warning at the third
- * and a permanent ban at the fifth (`decline_job_offer`, migration
- * 20260518140000). The first two produce no feedback whatsoever, so a helper
- * could walk three quarters of the way to losing their account without the app
- * ever mentioning it — from a single unconfirmed tap on a button labelled only
- * "Decline", while WITHDRAWING an application (which costs nothing) got a whole
- * sheet with a mandatory reason. This confirm inverts that back.
+ * `job_denial` violation on the shared reliability ladder
+ * (`apply_job_denial_consequence`, migration 20260824243000): the first
+ * strike is recorded with only a courtesy warning, the second is a final
+ * warning, the third suspends the account for 7 days, and a fourth is a
+ * permanent ban. A helper could walk most of the way up that ladder from a
+ * single unconfirmed tap on a button labelled only "Decline", while
+ * WITHDRAWING an application (which costs nothing) got a whole sheet with a
+ * mandatory reason. This confirm inverts that back.
  *
  * A DIRECT offer is exempt: the helper never applied, so turning down
  * unsolicited work isn't misconduct and `respond_to_direct_offer` files no
@@ -59,7 +61,13 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
   //    fill a gap. Owner: the flat "Respond within 24 hours" sentence "should
   //    be a count down", and it now is on every offer rather than only the
   //    ones the backend happened to stamp.
-  const derivedDeadline = app.updated_at
+  //
+  // NEVER derived for a SYNTHETIC direct-offer row: its `updated_at` is the
+  // JOB row's updated_at (useActivityData copies it in), which moves on any
+  // write to the job — so a clock derived from it restarts arbitrarily. A
+  // direct offer carries a real `direct_offer_expires_at` stamp anyway; when
+  // only updated_at is available the flat 24-hour sentence renders instead.
+  const derivedDeadline = !isDirectOffer(app) && app.updated_at
     ? new Date(
         new Date(app.updated_at).getTime() +
           DEFAULT_RESPONSE_WINDOW_HOURS * 3_600_000,
@@ -267,7 +275,10 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
         title="Decline This Job?"
         description="You applied for this one and the poster picked you, so backing out now counts against your account."
         callout={{
-          text: "Three declines gets you a warning. Five is a permanent ban. This can't be undone.",
+          // The real ladder, from the shared statement — this callout used to
+          // quote the retired 5-strike math ("Three declines gets you a
+          // warning. Five is a permanent ban.").
+          text: `Declining after accepting counts as a reliability strike — ${RELIABILITY_LADDER_SENTENCE}. This can’t be undone.`,
         }}
         primaryLabel="Decline the Job"
         primaryTone="sienna"

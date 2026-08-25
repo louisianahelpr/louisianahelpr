@@ -91,7 +91,7 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
                   aria-label={`Sort: ${activeSortLabel}`}
                   className="shrink-0 inline-flex items-center gap-1.5 rounded-ds-md h-10 px-3 text-ds-11 font-sans font-semibold active:scale-[0.96] transition-all"
                   style={{
-                    background: "hsla(0, 0%, 100%, 0.65)",
+                    background: "hsl(var(--ivory-sand) / 0.65)",
                     border: "1px solid hsl(var(--olivewood) / 0.18)",
                     color: "hsl(var(--olivewood))",
                   }}

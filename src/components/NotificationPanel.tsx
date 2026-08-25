@@ -92,9 +92,13 @@ const NotificationPanel = () => {
     // scoping the postgres_changes subscription to only this user's rows
     // (avoids receiving every platform-wide notification INSERT).
     let channel: ReturnType<typeof supabase.channel> | null = null;
+    // The session read is async — if the component unmounts before it
+    // resolves, the cleanup below has already run against a null `channel`
+    // and the subscription would leak. The flag closes that race.
+    let cancelled = false;
     supabase.auth.getSession().then(({ data: { session } }) => {
       const userId = session?.user?.id;
-      if (!userId) return;
+      if (!userId || cancelled) return;
       channel = supabase
         // Unique per mount — NotificationPanel renders in both the header
         // and the admin shell, and a shared channel name would collide.
@@ -130,10 +134,16 @@ const NotificationPanel = () => {
           },
         )
         .subscribe();
+      // Unmounted while subscribe was in flight — tear it down right away.
+      if (cancelled) {
+        supabase.removeChannel(channel);
+        channel = null;
+      }
     });
 
     return () => {
       clearTimeout(timer);
+      cancelled = true;
       if (channel) supabase.removeChannel(channel);
     };
   }, []);
@@ -173,8 +183,14 @@ const NotificationPanel = () => {
   );
 
   const markAsRead = async (id: string) => {
-    await supabase.from("notifications").update({ read: true }).eq("id", id);
+    // Optimistic flip first so the row responds instantly; revert on failure
+    // so the badge doesn't lie about what the server thinks is unread.
     setNotifications((prev) => prev.map((n) => n.id === id ? { ...n, read: true } : n));
+    const { error } = await supabase.from("notifications").update({ read: true }).eq("id", id);
+    if (error) {
+      report(error, { tags: { source: "NotificationPanel.markAsRead" } });
+      setNotifications((prev) => prev.map((n) => n.id === id ? { ...n, read: false } : n));
+    }
   };
 
   const markAllRead = async () => {
@@ -198,7 +214,14 @@ const NotificationPanel = () => {
   };
 
   const handleClick = (n: Notification) => {
-    markAsRead(n.id);
+    void markAsRead(n.id);
+    // A notification exists to take you somewhere — follow its link when it
+    // has one. Only in-app (root-relative) links are navigable; anything
+    // absent or malformed just marks read and keeps the panel open.
+    if (n.link && n.link.startsWith("/")) {
+      setOpen(false);
+      navigate(n.link);
+    }
   };
 
   return (
@@ -227,8 +250,10 @@ const NotificationPanel = () => {
               // Unread leads: it is the tab the panel opens on (see the
               // filter default above), and the first pill should be the one
               // that is already active.
-              { key: "unread" as Filter, label: "Unread", count: unreadCount },
-              { key: "all" as Filter, label: "All", count: notifications.length },
+              { key: "unread" as Filter, label: "Unread", count: unreadCount, atCap: false },
+              // The fetch caps at 50 rows, so an at-cap count is a floor,
+              // not a total — say so instead of understating.
+              { key: "all" as Filter, label: "All", count: notifications.length, atCap: notifications.length >= 50 },
             ]).map((opt) => {
               const isActive = (filter ?? "all") === opt.key;
               return (
@@ -259,7 +284,7 @@ const NotificationPanel = () => {
                         color: isActive ? "hsl(var(--parchment) / 0.85)" : "hsl(var(--olivewood) / 0.8)",
                       }}
                     >
-                      {opt.count}
+                      {opt.atCap ? `${opt.count}+` : opt.count}
                     </span>
                   )}
                 </button>

@@ -155,10 +155,8 @@ describe("card status stripe — every status gets a band", () => {
       label: "Not selected",
       tone: "neutral",
     });
-    expect(appliedCardState({ status: "withdrawn", job: { status: "open" } })).toEqual({
-      label: "Withdrawn",
-      tone: "neutral",
-    });
+    // No "withdrawn" case: withdrawing deletes the row, so the state cannot
+    // exist (the enum has no such value).
     expect(appliedCardState({ status: "accepted", job: { status: "completed" } })).toEqual({
       label: "Completed",
       tone: "success",

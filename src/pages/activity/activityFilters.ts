@@ -117,7 +117,15 @@ export function appliedActivityBucket(app: AppliedApp): ActivityBucket {
   // offer is the one that expires if I do nothing.
   if (needsHelperResponse(app)) return "needs_you";
   if (jobStatus === "revision_requested") return "needs_you";
-  if (jobStatus === "in_progress") return "scheduled";
+  // An open dispute carries a required action for the helper (Respond to
+  // Dispute) — their move, not a quiet scheduled state.
+  if (jobStatus === "disputed") return "needs_you";
+  if (jobStatus === "in_progress") {
+    // Work submitted, sitting on the poster's approval — waiting on the
+    // other party by definition, not "scheduled".
+    if (app.job?.helper_completed_at && !app.job?.poster_completed_at) return "waiting";
+    return "scheduled";
+  }
   if (app.status === "accepted") return "scheduled";
   // Applied, awaiting their decision.
   return "waiting";

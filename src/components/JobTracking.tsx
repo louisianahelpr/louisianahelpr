@@ -10,6 +10,7 @@ import { parseLocalDate } from "@/lib/dateUtils";
 import { formatShortDate } from "@/lib/format";
 import { usePermissionRationale } from "@/hooks/usePermissionRationale";
 import { report } from "@/lib/errorLogger";
+import { hasRequiredProof, requiredProof } from "@/lib/photoProofPolicy";
 import BrandConfirmDialog from "@/components/ui/BrandConfirmDialog";
 import { isNativePlatform } from "@/lib/nativeInit";
 
@@ -528,12 +529,12 @@ export function JobTracking({
         loadTracking();
         return;
       }
-      const hasPhotos =
-        (gate?.proof_before_urls?.length ?? 0) > 0 &&
-        (gate?.proof_after_urls?.length ?? 0) > 0;
+      // ONE shared proof rule (photoProofPolicy) — same predicate the payout
+      // CTA and completeJob's re-check enforce, same stated reason.
+      const hasPhotos = hasRequiredProof(undefined, gate?.proof_before_urls, gate?.proof_after_urls);
       if (!hasPhotos) {
         hapticError();
-        toast.error("Add before & after photos first — they're the proof that releases your payment.");
+        toast.error(requiredProof().reason);
         setUpdating(false);
         loadTracking();
         return;
@@ -988,6 +989,13 @@ export function JobTracking({
 
         const nextStatus = STATUSES[nextIdx];
         if (!nextStatus) return null;
+
+        // While a revision is open, the revision flow OWNS completion (the
+        // card's "Mark Fixed" → poster accepts). The tracker caps its index
+        // at Working in this state, which made its next-step button "Done" —
+        // so the card offered Done, "I'll Fix It" and "Mark Fixed" at once,
+        // three CTAs for one decision. Hide the tracker's Done here.
+        if (nextStatus.key === "done" && jobStatus === "revision_requested") return null;
 
         // Locked until TWO HOURS BEFORE the start time, not just until
         // midnight of the job day (owner, 2026-08-24 transition audit): the

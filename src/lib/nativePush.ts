@@ -39,6 +39,11 @@ let listenersAttached = false;
 let pendingToken: { token: string; platform: "ios" | "android" } | null = null;
 let authListenerAttached = false;
 
+// The token APNs/FCM handed THIS device in this app session — remembered so
+// sign-out can delete just this device's row instead of nuking the user's
+// tokens on every other device they're signed in on.
+let currentDeviceToken: string | null = null;
+
 // App version is exposed on `window.HELPR_BUILD` from main.tsx (set at
 // bundle time). This avoids the previous hardcoded "1.0.4" which would
 // silently lie after every iOS rebuild. Falls back to "unknown" if the
@@ -81,6 +86,7 @@ function attachAuthListenerOnce() {
 }
 
 async function savePushToken(token: string, platform: "ios" | "android") {
+  currentDeviceToken = token;
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
@@ -372,17 +378,24 @@ export function useRequestPushPermission() {
 }
 
 /**
- * Remove all device tokens for the current user. Call on sign-out.
+ * Remove this device's push token for the signing-out user. Call on sign-out.
+ *
+ * Deletes by (user_id, token) when this session saw the device token, so
+ * signing out here doesn't kill push on the user's other devices. Only when
+ * the token is unknown (web, or registration never fired this session) does
+ * it fall back to the user-wide delete — the handed-off-device privacy leak
+ * (F-PRIV-01) is worse than a re-registration on the next sign-in.
  *
  * Best-effort — a failure never blocks logout — but it must NOT be silent:
- * a swallowed delete failure leaves the token behind and re-opens the
- * handed-off-device privacy leak (F-PRIV-01) with no trace. Surface both a
- * returned Supabase `error` and any thrown exception to monitoring so a
- * systematic failure is visible, then let sign-out proceed regardless.
+ * a swallowed delete failure leaves the token behind and re-opens F-PRIV-01
+ * with no trace. Surface both a returned Supabase `error` and any thrown
+ * exception to monitoring, then let sign-out proceed regardless.
  */
 export async function unregisterPushOnSignOut(userId: string) {
   try {
-    const { error } = await supabase.from("push_tokens").delete().eq("user_id", userId);
+    let query = supabase.from("push_tokens").delete().eq("user_id", userId);
+    if (currentDeviceToken) query = query.eq("token", currentDeviceToken);
+    const { error } = await query;
     if (error) {
       report(error, {
         severity: "warning",

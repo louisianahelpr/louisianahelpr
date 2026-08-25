@@ -70,7 +70,6 @@ const DOCUMENT_SCROLL_ROUTES = [
   "/post-job",     // PostJob (PageHeader + min-h-screen)
   "/business",     // BusinessTeam (PageHeader + min-h-screen)
   "/admin",        // Admin dashboard (min-h-screen document-scroll + sidebar)
-  "/analytics",    // HelperAnalytics (PageHeader + min-h-screen document-scroll)
   "/gift-card",       // Gift Card — long-form document-scroll
   "/subscription", // Subscription tiers — long-form min-h-screen document-scroll
   "/str-settings", // Rental host automation — long-form min-h-screen document-scroll

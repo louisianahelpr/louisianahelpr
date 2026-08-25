@@ -55,7 +55,6 @@ const JobDetailDialog = ({
     viewerUserId,
     repeatJobs,
     posterCancelRate,
-    viewerSubscriptionTier,
     viewerTier,
     distMilesForDriving,
     drivingLabel,
@@ -67,7 +66,11 @@ const JobDetailDialog = ({
   const catStyle = categoryColors[job.category] || categoryColors.other;
 
   const helpers = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
-  const commissionPercent = job.helper_fee_percent ?? effectiveFee;
+  // Viewer fee only — the same resolver the Browse card and apply sheet use.
+  // (The browse feed's open_jobs_browse select doesn't expose
+  // helper_fee_percent, so a `job.helper_fee_percent ?? …` fallback here was
+  // dead code that merely LOOKED like a different fee rule.)
+  const commissionPercent = effectiveFee;
 
   const handleAskQuestion = () => {
     // No onClose() — the route change unmounts this dialog on its own, and

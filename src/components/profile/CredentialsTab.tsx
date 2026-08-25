@@ -425,7 +425,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
               <div
                 className="flex items-center gap-3 rounded-ds-md p-3"
                 style={{
-                  background: "hsla(0, 0%, 100%, 0.55)",
+                  background: "hsl(var(--ivory-sand) / 0.55)",
                   border: "0.5px dashed hsl(var(--burnt-sienna) / 0.45)",
                 }}
               >

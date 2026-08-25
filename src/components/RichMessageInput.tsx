@@ -50,9 +50,6 @@ export const RichMessageInput = ({
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const libraryInputRef = useRef<HTMLInputElement>(null);
   const filesInputRef = useRef<HTMLInputElement>(null);
-  // Legacy ref kept for downstream callers; unused after the refactor
-  // but the close-staged failure path resets all three above.
-  const fileRef = useRef<HTMLInputElement>(null);
   const { request: requestPermission } = usePermissionRationale();
 
   // Throttle the presence broadcast: without this, onTyping fires once per
@@ -228,6 +225,8 @@ export const RichMessageInput = ({
   };
 
   const handleShareLocation = async () => {
+    // Read-only impersonation: admins viewing as another user cannot send.
+    if (!assertWritable()) return;
     if (!isNativePlatform && !navigator.geolocation) {
       toast.error("This device can't share location.");
       return;
@@ -243,7 +242,9 @@ export const RichMessageInput = ({
           const { Geolocation } = await import("@capacitor/geolocation");
           const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: false, timeout: 10000 });
           const { latitude, longitude } = pos.coords;
-          onSend(`📍 Location: https://maps.google.com/?q=${latitude},${longitude}`);
+          // The explicit flag (not the "📍" prefix) is what exempts this
+          // app-generated share from the content scan downstream.
+          onSend(`📍 Location: https://maps.google.com/?q=${latitude},${longitude}`, undefined, { isLocationShare: true });
         } catch {
           toast.error("Location access denied — allow it in Settings to share your location.");
         }
@@ -253,7 +254,7 @@ export const RichMessageInput = ({
         navigator.geolocation.getCurrentPosition(
           (pos) => {
             const { latitude, longitude } = pos.coords;
-            onSend(`📍 Location: https://maps.google.com/?q=${latitude},${longitude}`);
+            onSend(`📍 Location: https://maps.google.com/?q=${latitude},${longitude}`, undefined, { isLocationShare: true });
             resolve();
           },
           () => {
@@ -295,11 +296,6 @@ export const RichMessageInput = ({
       }
     }
 
-    await performSend();
-  };
-
-  const confirmSendAnyway = async () => {
-    setPendingViolation(null);
     await performSend();
   };
 
@@ -486,10 +482,13 @@ export const RichMessageInput = ({
           className="hidden"
           onChange={handleFileSelect}
         />
+        {/* No image/heic in accept on purpose: HEIC can't be EXIF-scrubbed
+            client-side (upload rejects it), and iOS transcodes HEIC→JPEG
+            automatically when the picker doesn't accept heic. */}
         <input
           ref={libraryInputRef}
           type="file"
-          accept="image/jpeg,image/png,image/webp,image/heic"
+          accept="image/jpeg,image/png,image/webp"
           className="hidden"
           onChange={handleFileSelect}
         />
@@ -500,10 +499,6 @@ export const RichMessageInput = ({
           className="hidden"
           onChange={handleFileSelect}
         />
-        {/* Legacy ref left as a placeholder so anything that imported
-            this component and reached into the ref doesn't crash; the
-            actual source selection now flows through the three above. */}
-        <input ref={fileRef} type="hidden" />
       </div>
 
       <AttachSourceSheet
@@ -521,7 +516,6 @@ export const RichMessageInput = ({
       <ViolationDialog
         pendingViolation={pendingViolation}
         onOpenChange={(open) => !open && setPendingViolation(null)}
-        onConfirm={confirmSendAnyway}
       />
     </div>
   );

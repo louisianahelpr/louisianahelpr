@@ -2,11 +2,10 @@
 //
 // Two visualisations on the same surface:
 //
-//  1. Pie of earnings by job category (skills slice from each
-//     completed job). Skills is a free-text string; we bucket on the
-//     first comma-separated token so a helper who's tagged "Painting"
-//     and "Lawn care, painting" rolls under the same "Painting"
-//     bucket. The slice is purely visual — not for tax math.
+//  1. Pie of take-home earnings by job category (`jobs.category`,
+//     formatted with formatCategory — the same bucketing fetchAnalytics
+//     uses for Top Categories). The slice is purely visual — not for
+//     tax math.
 //
 //  2. YTD vs prior YTD month-by-month comparison. Cumulative line
 //     instead of bars so the divergence (or lack thereof) reads at a
@@ -16,6 +15,7 @@
 // stays compact for brand-new helpers.
 
 import { useMemo } from "react";
+import { formatCategory } from "@/lib/format";
 import { helperTakeHomeDollars } from "@/lib/helperEarnings";
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
@@ -47,15 +47,11 @@ const PIE_COLORS = [
   "hsl(280, 25%, 50%)",  // muted plum
 ];
 
-// First comma-separated bucket from a free-text skills string. Falls
-// back to "Other" so an unbucketed job still shows in the pie.
-const bucketFor = (skills: string | null | undefined): string => {
-  const raw = (skills ?? "").trim();
-  if (!raw) return "Other";
-  const first = raw.split(",")[0]?.trim();
-  if (!first) return "Other";
-  // Capitalize for display consistency.
-  return first.charAt(0).toUpperCase() + first.slice(1);
+// Display bucket for a job's category. "Other" catches a blank category
+// so the job still shows in the pie instead of vanishing.
+const bucketFor = (category: string | null | undefined): string => {
+  const label = formatCategory(category ?? "");
+  return label || "Other";
 };
 
 // Tail accessor for the per-job timestamp — prefers helper completion
@@ -72,11 +68,11 @@ export function EarningsBreakdownCharts({ earningsJobs, feeFallbackPercent }: Ea
   const ytdYear = now.getFullYear();
   const priorYtdYear = ytdYear - 1;
 
-  // ── Pie data — bucket completed-job take-home by skills bucket ──
+  // ── Pie data — bucket completed-job take-home by job category ──
   const pieData = useMemo(() => {
     const totals = new Map<string, number>();
     completed.forEach((j) => {
-      const key = bucketFor((j as unknown as { skills?: string | null }).skills);
+      const key = bucketFor(j.category);
       totals.set(key, (totals.get(key) ?? 0) + helperTakeHomeDollars(j, feeFallbackPercent));
     });
     return Array.from(totals.entries())

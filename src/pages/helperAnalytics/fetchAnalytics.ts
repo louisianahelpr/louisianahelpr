@@ -1,7 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
+import { report } from "@/lib/errorLogger";
 import { formatCategory } from "@/lib/format";
 import { shortMonth, DOW_LABELS } from "./analyticsUtils";
-import { tierFeePercent } from "@/lib/subscriptionTiers";
+import { tierFeePercent, toSubscriptionTier } from "@/lib/subscriptionTiers";
 import {
   helperPlatformFeeDollars,
   helperTakeHomeDollars,
@@ -76,11 +77,22 @@ export async function fetchAnalytics(userId: string) {
   // dropped fetch doesn't show "0% success rate" that isn't real.
   if (allAppsRes.error) throw allAppsRes.error;
 
-  const tier = (profileRes.data?.subscription_tier ?? "free") as string;
+  // EFFECTIVE tier, expiry-aware: an expired paid tier resolves to "free"
+  // even before the expire-subscriptions cron nulls the column — the same
+  // convention tierFeePercent uses. Consumers (analytics gate, fee
+  // fallback) can therefore read `tier` directly without re-checking
+  // expiry.
+  const rawTier = profileRes.data?.subscription_tier ?? null;
+  const tierExpiresAt = profileRes.data?.subscription_expires_at ?? null;
+  const tierExpired = tierExpiresAt ? new Date(tierExpiresAt).getTime() < Date.now() : false;
+  const tier = toSubscriptionTier(tierExpired ? "free" : (rawTier ?? "").toLowerCase());
   const completedJobs = completedJobsRes.data ?? [];
   const allApps = allAppsRes.data ?? [];
-  // Surface any ratings fetch error; fall back to empty array on error so the
-  // rest of the analytics still renders (non-critical).
+  // Ratings are non-critical — degrade to empty so the rest of the
+  // analytics still renders, but observably (never drop the error).
+  if (ratingsRes.error) {
+    report(ratingsRes.error, { severity: "warning", tags: { source: "fetchAnalytics.ratings" } });
+  }
   const allRatings = ratingsRes.error ? [] : (ratingsRes.data ?? []);
 
   // ── Earnings by month ─────────────────────────────────────────────────────

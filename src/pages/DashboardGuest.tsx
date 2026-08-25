@@ -660,10 +660,11 @@ const DashboardGuest = () => {
                   <div
                     className={`${FEED_GRID_CLASS} animate-in fade-in-0 duration-500 pb-safe-nav`}
                   >
-                    {filters.filteredJobs
-                      .slice()
-                      .sort((a, b) => Number(b.is_urgent ?? false) - Number(a.is_urgent ?? false))
-                      .map((job, idx) => (
+                    {/* No re-sort here: useDashboardFilters already sorts
+                        urgent-first (then boosted etc.), so a second
+                        urgent-only sort was a redundant pass that could only
+                        ever scramble the tie-breaks below it. */}
+                    {filters.filteredJobs.map((job, idx) => (
                       <JobCard
                         key={job.id}
                         job={job}

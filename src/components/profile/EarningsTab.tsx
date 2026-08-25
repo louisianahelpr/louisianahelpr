@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { TrendingUp, Gift, Briefcase, Zap, Info } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatPriceExact } from "@/lib/format";
 import { instantPayoutFeeLabel, instantPayoutMinLabel } from "@/lib/instantPayoutFee";
 import {
@@ -23,6 +24,7 @@ import { EarningsForecastCard } from "@/components/profile/EarningsForecastCard"
 import { HelperScheduleStrip } from "@/components/profile/HelperScheduleStrip";
 import { HelperStreakBadge } from "@/components/profile/HelperStreakBadge";
 import { MonthlyGoalCard } from "@/components/profile/MonthlyGoalCard";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useHelperMilestones } from "@/hooks/useHelperMilestones";
 import type { EarningsTabProps } from "@/components/profile/earningsTab/types";
@@ -76,11 +78,15 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   const scrollToPayout = () => {
     payoutSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
-  // Instant Payout is a Pro/Elite perk — free helpers see a paywall when
-  // they tap Cash out. Subscription must be active (not expired) to count.
+  // Instant Payout comes with ANY paid membership — Basic and up (see
+  // TIER_PERKS.basic). Free helpers see a paywall when they tap Cash out.
+  // Subscription must be active (not expired) to count; a NULL expiry on a
+  // paid tier means "no scheduled end" and counts as active — the same
+  // convention tierFeePercent uses, so the gate and the fee rate can never
+  // disagree about whether a membership is live.
   const subTier = (profile?.subscription_tier ?? "free") as string;
   const subExp = profile?.subscription_expires_at ? new Date(profile.subscription_expires_at) : null;
-  const subActive = subExp ? subExp > new Date() : false;
+  const subActive = subExp ? subExp > new Date() : true;
   // Fee % to apply when a job row's helper_fee_percent is null (legacy row
   // pre-dating the column). Derive it from the helper's own subscription
   // tier — same ladder /analytics and /work-record use — so a Free helper's
@@ -95,7 +101,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   const PAGE = 25;
   const [historyVisible, setHistoryVisible] = useState(PAGE);
 
-  const { stripeData, stripeLoading, payoutLedger, refreshing, handleRefresh } = useEarningsData(helperId);
+  const { stripeData, stripeLoading, stripeError, ledgerError, payoutLedger, refreshing, handleRefresh } = useEarningsData(helperId);
 
   // ─── CSV EXPORT (1099 / Tax prep) ─────────────────────────
   const payoutYears = useMemo(() => {
@@ -274,8 +280,10 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           — the wallet, the goal, the charts, the ledger — is either empty or
           about money that cannot move until Stripe is set up, so the one thing
           a helpr can do sits directly under the forecast rather than eight
-          sections down behind a card that only scrolls to it. */}
-      {!stripeLoading && !stripeData?.connected && payoutSection}
+          sections down behind a card that only scrolls to it.
+          `!stripeError` matters: a failed status fetch is NOT "not
+          connected" — that state renders its own retry banner below. */}
+      {!stripeLoading && !stripeError && !stripeData?.connected && payoutSection}
 
       {/* 1099-K banner — appears once YTD payouts cross the federal gross
           threshold (FORM_1099K_GROSS_THRESHOLD_DOLLARS). Quiet, dismissible
@@ -292,6 +300,18 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
       {/* ─── YOUR MONEY ─── */}
       <SectionRule label="Your money" />
       <section className="space-y-3">
+        {/* Payout data failed to load — say so, with a Retry. Without this
+            the tab silently rendered the "not connected" journey to a
+            connected helper whenever stripe-payouts hiccuped. */}
+        {(stripeError || ledgerError) && !stripeLoading && (
+          <ErrorState
+            variant="inline"
+            title="We couldn't load your payout data."
+            body="Your money is safe — we just couldn't reach Stripe. Tap Try again."
+            onRetry={handleRefresh}
+            retryDisabled={refreshing}
+          />
+        )}
         {/* Wallet card (Available + Pending side-by-side).
             NOT RENDERED UNTIL STRIPE IS CONNECTED. Its disconnected state was
             a second "Set up Payouts" card — the first thing on the page —
@@ -306,16 +326,30 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
             section moves up to just under the forecast in that state (see
             below) so the connect CTA is still the first thing they can act
             on. */}
-        {stripeData?.connected && (
+        {stripeLoading ? (
+          /* Wallet-shaped skeleton — owned here (not inside WalletCard)
+             because the card itself only ever renders connected+loaded. */
+          <div className="rounded-2xl liquid-glass p-5 space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Skeleton className="h-3 w-20 rounded" />
+                <Skeleton className="h-7 w-24 rounded" />
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-3 w-20 rounded" />
+                <Skeleton className="h-7 w-24 rounded" />
+              </div>
+            </div>
+            <Skeleton className="h-9 w-full rounded-md" />
+          </div>
+        ) : stripeData?.connected && (
         <WalletCard
           stripeData={stripeData}
-          stripeLoading={stripeLoading}
           refreshing={refreshing}
           availableTotal={availableTotal}
           pendingTotal={pendingTotal}
           canUseInstantPayout={canUseInstantPayout}
           onRefresh={handleRefresh}
-          onNavigatePayment={scrollToPayout}
           onCashOut={() => setPayoutDialogOpen(true)}
           onUpgrade={() => setUpgradeOpen(true)}
         />
@@ -496,7 +530,9 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           `${instantPayoutFeeLabel()} per instant cash-out · ${instantPayoutMinLabel()} minimum`,
           "Plus every other subscriber perk on your plan",
         ]}
-        requiredTier="pro"
+        // Basic unlocks instant payouts (TIER_PERKS.basic) — the paywall
+        // names the CHEAPEST tier that actually opens the gate, not Pro.
+        requiredTier="basic"
       />
 
       <InstantPayoutDialog

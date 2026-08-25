@@ -9,6 +9,7 @@ import { useReferralData } from "@/hooks/useReferralData";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { queryKeys } from "@/lib/queryKeys";
 import { ReferralExtras } from "@/components/profile/ReferralExtras";
+import { getPublicSiteUrl } from "@/lib/authRedirects";
 import { requireBiometric } from "@/lib/biometricGate";
 import { shareNative } from "@/lib/nativeShare";
 import { hapticLight, hapticSuccess } from "@/lib/haptics";
@@ -47,7 +48,11 @@ const ReferralSection = ({ userId }: { userId: string }) => {
   // code is included verbatim so the recipient can copy/paste it at
   // sign-up even if the link is stripped by a messaging app.
   const buildShareBody = (code: string) => {
-    const url = `${window.location.origin}/signup?ref=${encodeURIComponent(code)}`;
+    // Canonical origin, NOT `window.location.origin` — inside the shipped
+    // iOS/Android build the page origin is `capacitor://localhost`, which
+    // resolves to nothing on the recipient's phone. Same rule as the QR
+    // code in ReferralExtras.
+    const url = `${getPublicSiteUrl()}/signup?ref=${encodeURIComponent(code)}`;
     const text = `Join me on Louisiana Helpr — local job marketplace. Use code ${code} and we both earn $5 on your first job.`;
     return { url, text, combined: `${text}\n${url}` };
   };

@@ -45,6 +45,13 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
     }
     hapticError(); // a strike is not a success moment
     const action = (data as { action?: string } | null)?.action;
+    if (action === "permanent_ban") {
+      // Fourth strike. Mirror the decline path (useOfferHandlers): a
+      // permanent ban is not a toast — hard-load the banned screen so the
+      // banned session is torn down rather than left live behind /my-jobs.
+      window.location.assign("/account-banned");
+      return;
+    }
     toast.warning(
       action === "temp_ban"
         ? "Booking cancelled — third strike: your account is suspended for 7 days."

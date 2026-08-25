@@ -146,6 +146,17 @@ describe("Activity — whose move is it", () => {
     expect(appliedActivityBucket(app({ status: "accepted", jobStatus: "in_progress" }))).toBe("scheduled");
   });
 
+  it("puts a dispute in Needs you — the card carries Respond to Dispute", () => {
+    expect(appliedActivityBucket(app({ status: "accepted", jobStatus: "disputed" }))).toBe("needs_you");
+  });
+
+  it("puts submitted-but-unapproved work in Waiting — the ball is with the poster", () => {
+    const a = app({ status: "accepted", jobStatus: "in_progress" });
+    (a.job as { helper_completed_at?: string | null }).helper_completed_at = "2026-08-01T00:00:00Z";
+    (a.job as { poster_completed_at?: string | null }).poster_completed_at = null;
+    expect(appliedActivityBucket(a)).toBe("waiting");
+  });
+
   it("puts a rejection and a completed job in Done", () => {
     expect(appliedActivityBucket(app({ status: "rejected", jobStatus: "open" }))).toBe("done");
     expect(appliedActivityBucket(app({ status: "accepted", jobStatus: "completed" }))).toBe("done");

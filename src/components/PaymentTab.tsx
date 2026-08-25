@@ -7,10 +7,20 @@ import { AnimatedCounter } from "@/components/AnimatedCounter";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { report } from "@/lib/errorLogger";
+import { unwrap } from "@/lib/supabaseResult";
 import { formatPriceExact } from "@/lib/format";
 import type { Database } from "@/integrations/supabase/types";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
+
+/** Poster-side slice needed for the Spent tiles. */
+interface SpentJobRow {
+  id: string;
+  budget: number;
+  poster_completed_at: string | null;
+  helper_completed_at: string | null;
+  created_at: string;
+}
 
 interface PayoutSummaryRow {
   amount_cents: number;
@@ -73,25 +83,50 @@ export function PaymentTab({ earningsJobs, totalEarnings, onSeeEarnings }: Payme
     gcTime: 5 * 60_000,
   });
 
+  // Poster-side spending — jobs this user POSTED that completed. "Total
+  // spent" used to be summed from the helper-side `earningsJobs` prop (jobs
+  // the user WORKED), so it reported their clients' budgets as the user's
+  // own spending — fictional money. Scoped query here rather than threading
+  // another prop through EarningsTab, which has no poster-side data.
+  const { data: spentJobs = [] } = useQuery<SpentJobRow[]>({
+    queryKey: ["payment", "posterSpend", user?.id],
+    queryFn: async () => {
+      const rows = unwrap(
+        await supabase
+          .from("jobs")
+          .select("id, budget, poster_completed_at, helper_completed_at, created_at")
+          .eq("customer_id", user!.id)
+          .eq("status", "completed"),
+      );
+      return (rows ?? []) as SpentJobRow[];
+    },
+    enabled: !!user?.id,
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
+  });
 
   // Lifetime totals — completed jobs only so cancelled/expired don't
-  // inflate the headline numbers.
+  // inflate the headline numbers. Spent comes from poster-side rows,
+  // Earned from the helper-side jobs the parent already loaded.
   const completedJobs = earningsJobs.filter((j) => j.status === "completed");
-  const lifetimeSpent = completedJobs.reduce((s, j) => s + j.budget, 0);
+  const lifetimeSpent = spentJobs.reduce((s, j) => s + j.budget, 0);
   const lifetimeEarned = totalEarnings;
   // This-month slice — bucketed by completion timestamp (poster confirmation,
   // falling back to the helper's, then created_at for older rows that
   // predate completion timestamps).
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-  const monthCompleted = completedJobs.filter((j) => {
-    const completedAt = j.poster_completed_at ?? j.helper_completed_at;
-    const t = completedAt
-      ? new Date(completedAt).getTime()
-      : new Date(j.created_at).getTime();
-    return t >= monthStart;
-  });
-  const monthSpent = monthCompleted.reduce((s, j) => s + j.budget, 0);
+  const completedInMonth = <T extends { poster_completed_at: string | null; helper_completed_at: string | null; created_at: string }>(rows: T[]) =>
+    rows.filter((j) => {
+      const completedAt = j.poster_completed_at ?? j.helper_completed_at;
+      const t = completedAt
+        ? new Date(completedAt).getTime()
+        : new Date(j.created_at).getTime();
+      return t >= monthStart;
+    });
+  const monthCompleted = completedInMonth(completedJobs);
+  const monthSpentJobs = completedInMonth(spentJobs);
+  const monthSpent = monthSpentJobs.reduce((s, j) => s + j.budget, 0);
   // Earnings-by-month isn't separately tracked here (totalEarnings is a
   // single lifetime figure), so we estimate the month slice proportionally
   // by completed-job share. Accurate enough for the summary preview;
@@ -104,8 +139,8 @@ export function PaymentTab({ earningsJobs, totalEarnings, onSeeEarnings }: Payme
   const [scope, setScope] = useState<"lifetime" | "month">("lifetime");
   const totalSpent = scope === "month" ? monthSpent : lifetimeSpent;
   const totalEarnedView = scope === "month" ? monthEarned : lifetimeEarned;
-  const spentCount = scope === "month" ? monthCompleted.length : completedJobs.length;
-  const earnedCount = spentCount;
+  const spentCount = scope === "month" ? monthSpentJobs.length : spentJobs.length;
+  const earnedCount = scope === "month" ? monthCompleted.length : completedJobs.length;
   const monthLabel = now.toLocaleDateString("en-US", { month: "long" });
   // No money has ever moved — collapse the summary to a single empty
   // state (no scope toggle, no dual $0.00 columns, no triple "no

@@ -416,18 +416,31 @@ export function useMessagesData({
     // leaves that notifications row unread — so the bell would keep counting
     // a message the user has already seen. Clear it here on thread open.
     if (userId) {
-      // `void <builder>` never issues the request — PostgrestBuilder fetches
-      // inside then(). The bell kept counting messages already read.
-      void supabase
-        .from("notifications")
-        .update({ read: true })
-        .eq("user_id", userId)
-        .eq("type", "message")
-        .eq("read", false)
-        .like("link", `%job=${convo.jobId}%`)
-        .then(({ error }) => {
-          if (error) report(error, { tags: { source: "useMessagesData.clearThreadNotifs" } });
-        });
+      // Limitation: the trigger's link (`/messages?jobId=<id>`) carries no
+      // sender, and the notifications row has no sender column — so for a
+      // job with several counterparties (poster ↔ multiple applicants) the
+      // link alone can't say WHICH thread a notification belongs to. Scope
+      // the clear by time instead: the trigger inserts the notification in
+      // the same transaction as the message (identical created_at), so only
+      // rows no newer than the latest loaded message from THIS thread's
+      // counterparty can have been seen by opening this thread.
+      // (`data` is newest-first, so find() returns the newest from them.)
+      const newestFromOther = data?.find((m) => m.sender_id === convo.otherUserId);
+      if (newestFromOther) {
+        // `void <builder>` never issues the request — PostgrestBuilder
+        // fetches inside then(). The bell kept counting messages already read.
+        void supabase
+          .from("notifications")
+          .update({ read: true })
+          .eq("user_id", userId)
+          .eq("type", "message")
+          .eq("read", false)
+          .like("link", `%jobId=${convo.jobId}%`)
+          .lte("created_at", newestFromOther.created_at)
+          .then(({ error }) => {
+            if (error) report(error, { tags: { source: "useMessagesData.clearThreadNotifs" } });
+          });
+      }
     }
     setChatLoading(false);
     scrollToBottom();

@@ -7,6 +7,12 @@ import { requireOnline } from "@/lib/requireOnline";
 import type { Conversation, Message } from "@/components/messages/types";
 import { logViolation } from "../logViolation";
 
+// Module-level so it survives the per-render re-creation of the handlers:
+// a blocked send logs at most ONE violation per unique (user, message) —
+// retrying the identical text re-blocks but must not re-log, since two
+// logged violations reach the permanent-ban branch.
+let lastLoggedViolationKey: string | null = null;
+
 /**
  * The outbound-send slice of the Messages data layer, extracted verbatim from
  * `useMessagesData`. Owns the optimistic-send bubble lifecycle
@@ -163,15 +169,19 @@ export function createSendHandlers({
     content: string,
     attachment?: { path: string; mime: string; size: number; duration?: number },
     replyToId?: string | null,
+    opts?: { isLocationShare?: boolean },
   ): Promise<boolean> => {
     if (!requireOnline()) return false;
     if (!activeConvo || !userId) return false;
     if (!content.trim() && !attachment) return false;
 
-    // Skip scanning for system-generated messages (location shares, attachments)
-    const isSystemMessage = content.startsWith("📍 Location:") || !!attachment;
+    // Scan every piece of user-entered text — including captions on
+    // attachment messages. Only the app-generated location share skips the
+    // scan, identified by the explicit flag threaded from the share-location
+    // path (a user-typed "📍" prefix must not exempt a message).
+    const skipScan = opts?.isLocationShare === true;
 
-    if (!isSystemMessage) {
+    if (!skipScan && content.trim()) {
       const violations = scanMessage(content);
       if (violations.length > 0) {
         const violationDesc = violations.map((v) => v.label).join(", ");
@@ -182,7 +192,13 @@ export function createSendHandlers({
             { duration: 8000 }
           );
         }
-        await logViolation(userId, cachedUser, violationDesc, content);
+        // Log once per unique blocked message — a retry of the identical
+        // text is still blocked but doesn't accrue another violation.
+        const violationKey = `${userId}|${content}`;
+        if (lastLoggedViolationKey !== violationKey) {
+          lastLoggedViolationKey = violationKey;
+          await logViolation(userId, cachedUser, violationDesc, content);
+        }
         // Blocked — report back so the composer keeps the typed text
         // rather than silently discarding it.
         return false;

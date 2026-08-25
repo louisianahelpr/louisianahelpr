@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogHero, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Crown, Check, type LucideIcon } from "lucide-react";
+import { Sparkles, Crown, Star, Check, type LucideIcon } from "lucide-react";
 
 interface ProUpgradeSheetProps {
   open: boolean;
@@ -15,8 +15,9 @@ interface ProUpgradeSheetProps {
   body: string;
   /** Bullet list of perks the user gets at this tier and up. */
   perks: string[];
-  /** Required tier — "pro" or "elite". Determines copy + CTA destination. */
-  requiredTier?: "pro" | "elite";
+  /** Cheapest tier that unlocks the feature — "basic", "pro" or "elite".
+      Determines copy + CTA destination. */
+  requiredTier?: "basic" | "pro" | "elite";
 }
 
 /**
@@ -37,16 +38,24 @@ export function ProUpgradeSheet({
 }: ProUpgradeSheetProps) {
   const navigate = useNavigate();
 
-  const tierLabel = requiredTier === "elite" ? "Elite" : "Pro";
-  const TierIcon = requiredTier === "elite" ? Crown : Sparkles;
+  const tierLabel =
+    requiredTier === "elite" ? "Elite" : requiredTier === "basic" ? "Basic" : "Pro";
+  const TierIcon =
+    requiredTier === "elite" ? Crown : requiredTier === "basic" ? Star : Sparkles;
+  // Basic's accent is bark — the same treatment its badge preview and the
+  // in-app tier card use.
   const accent =
     requiredTier === "elite"
       ? "hsl(var(--gold-warm))"
-      : "hsl(var(--burnt-sienna))";
+      : requiredTier === "basic"
+        ? "hsl(var(--bark))"
+        : "hsl(var(--burnt-sienna))";
   const accentSoft =
     requiredTier === "elite"
       ? "hsl(var(--gold-warm) / 0.14)"
-      : "hsl(var(--burnt-sienna) / 0.12)";
+      : requiredTier === "basic"
+        ? "hsl(var(--bark) / 0.10)"
+        : "hsl(var(--burnt-sienna) / 0.12)";
 
   return (
     <Dialog open={open} onOpenChange={onClose}>

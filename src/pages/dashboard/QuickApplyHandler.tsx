@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { formatPrice } from "@/lib/format";
 import type { EnrichedJob } from "@/components/dashboard/types";
 
 // Quick Apply handler for notification deep links
@@ -27,7 +28,7 @@ export const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
 
     const promptToApply = (title: string, budget: number | null, isInstantBook = false) => {
       toast(
-        `${isInstantBook ? "Instant Book" : "Quick Apply"}: "${title}"${budget != null ? ` ($${budget})` : ""}`,
+        `${isInstantBook ? "Instant Book" : "Quick Apply"}: "${title}"${budget != null ? ` ($${formatPrice(budget)})` : ""}`,
         {
           action: { label: isInstantBook ? "Book now" : "Apply now", onClick: () => onApply(quickApplyId) },
           duration: 10000,

@@ -8,6 +8,7 @@ import { hapticLight, hapticMedium, hapticSuccess, hapticError } from "@/lib/hap
 import { safeStorage } from "@/lib/safeStorage";
 import { fetchProfile } from "@/hooks/useProfile";
 import { fireSuccessMoment } from "@/lib/successMoment";
+import { hasRequiredProof, requiredProof } from "@/lib/photoProofPolicy";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import type { Job, AppliedApp } from "@/components/activity/activityConstants";
 import type { OptimisticJobCache } from "./types";
@@ -118,22 +119,25 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
             }
           }
 
-          // Require after-photos for jobs $50+
-          if (job.budget >= 50) {
+          // ONE shared proof rule (photoProofPolicy): before & after photos
+          // on every job — the same predicate the payout CTA and the
+          // tracker's Done step enforce. This re-check used to require only
+          // after-photos on $50+ jobs, a third variant of the rule that let
+          // a completion slip through a gate the buttons claimed to hold.
+          {
             const { data: jobData, error: proofErr } = await supabase
               .from("jobs")
-              .select("proof_after_urls")
+              .select("proof_before_urls, proof_after_urls")
               .eq("id", jobId)
               .single();
-            // Fails CLOSED (read error → treated as no after-photo → block the
-            // $50+ completion), but report it so the failure isn't invisible.
+            // Fails CLOSED (read error → treated as missing proof → block the
+            // completion), but report it so the failure isn't invisible.
             if (proofErr) {
               report(proofErr, { tags: { area: "activity", op: "completeJob.proofRead" }, context: { jobId } });
             }
-            const afterPhotos = jobData?.proof_after_urls || [];
-            if (afterPhotos.length === 0) {
+            if (!hasRequiredProof(job, jobData?.proof_before_urls, jobData?.proof_after_urls)) {
               hapticError();
-              toast.error("Add an after-photo before you mark a $50+ job complete.", { duration: 6000 });
+              toast.error(requiredProof(job).reason, { duration: 6000 });
               return;
             }
           }

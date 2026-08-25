@@ -12,6 +12,7 @@
 // availability signal, not a calendar entry.
 
 import { useState, useEffect } from "react";
+import { report } from "@/lib/errorLogger";
 import { HelperAvailability } from "@/components/HelperAvailability";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { Switch } from "@/components/ui/switch";
@@ -37,7 +38,13 @@ export function AvailabilityTab({ userId, onBack }: AvailabilityTabProps) {
       .select("available_until")
       .eq("user_id", userId)
       .single()
-      .then(({ data }: { data: any }) => {
+      .then(({ data, error }: { data: any; error: unknown }) => {
+        // Degrade to "not available now" (the safe default for a status
+        // toggle), but never silently — CLAUDE.md: never drop the error.
+        if (error) {
+          report(error, { severity: "warning", tags: { source: "AvailabilityTab.loadStatus" } });
+          return;
+        }
         if (data?.available_until) {
           const until = new Date(data.available_until as string);
           setAvailableUntil(until > new Date() ? until : null);

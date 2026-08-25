@@ -76,14 +76,11 @@ function formatPaidTierPrices(tierId: "basic" | "pro" | "elite") {
 // leaving it in would render a card whose checkout has no Stripe price and
 // 500s.
 //
-// Basic is omitted for the SAME reason as Business: it has no usable live
-// Stripe price. `_shared/proTiers.ts` still falls back to the literal
-// placeholders `price_TODO_LIVE_BASIC_{MONTHLY,ANNUAL,ONETIME}`, so unless the
-// STRIPE_PRICE_BASIC_* env overrides are set, every Basic upgrade sends a
-// nonexistent price to Stripe and fails at checkout. Re-add "basic" here once
-// real Live Prices exist and are pasted into LIVE_PRO_PRICE_MAP (the tier
-// itself, its perks, and its parity tests all remain intact meanwhile).
-const CONSUMER_TIERS: SubscriptionTier[] = ["free", "pro", "elite"];
+// Basic is a full consumer tier here, matching the in-app Membership tab.
+// It was hidden while `_shared/proTiers.ts` carried placeholder Basic price
+// IDs, but LIVE_PRO_PRICE_MAP now holds verified live Prices for all three
+// Basic cycles, so the public page sells the same ladder the app does.
+const CONSUMER_TIERS: SubscriptionTier[] = ["free", "basic", "pro", "elite"];
 
 // The benefits shown in the "Why upgrade" section.
 //
@@ -362,8 +359,12 @@ export default function SubscriptionPage() {
                 the price toggle sits with the "Pick your plan" heading rather
                 than floating centered above the grid. Inline-flex inherits the
                 column's text-center (mobile) / md:text-left alignment. */}
+            {/* radiogroup, not tablist: tabs imply arrow-key navigation and
+                tab panels, neither of which exists here — these are two
+                mutually exclusive choices, which is exactly what radios
+                announce. Visuals unchanged. */}
             <div
-              role="tablist"
+              role="radiogroup"
               aria-label="Billing cycle"
               className="mt-3 sm:mt-6 inline-flex items-center gap-1 p-1 rounded-2xl"
               style={{
@@ -378,8 +379,8 @@ export default function SubscriptionPage() {
                   <button
                     key={cycle}
                     type="button"
-                    role="tab"
-                    aria-selected={active}
+                    role="radio"
+                    aria-checked={active}
                     onClick={() => setBillingCycle(cycle)}
                     className="h-9 sm:h-10 px-4 sm:px-5 rounded-ds-md font-sans font-semibold text-ds-13 transition-[background,color,transform] duration-150 active:scale-[0.98]"
                     style={{
@@ -414,11 +415,11 @@ export default function SubscriptionPage() {
           </div>
 
           {/* Right — tier grid. Column count tracks CONSUMER_TIERS.length so
-              the row always divides evenly and never orphans a dead column.
-              If Basic is restored, take this to `sm:grid-cols-2 lg:grid-cols-4`
-              to match /for-business's 2x2.
+              the row always divides evenly and never orphans a dead column:
+              four tiers → `sm:grid-cols-2 lg:grid-cols-4`, matching
+              /for-business's 2x2-then-4-across.
 
-              Three-across starts at lg, NOT sm. This grid only gets 8/12 (then
+              Four-across starts at lg, NOT sm. This grid only gets 8/12 (then
               9/12) of the row because the masthead holds the rest, so at sm
               three cards landed in roughly 200px each: "Access to / all open /
               jobs" broke across three lines, the subtitles hit their
@@ -454,7 +455,7 @@ export default function SubscriptionPage() {
               first bullet is "Everything in Free", and floating Pro to the top
               would break both. It does not need to be first to be seen — it
               needs to be above the fold, which it now is. */}
-          <div className="md:col-span-8 lg:col-span-9 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-5">
+          <div className="md:col-span-8 lg:col-span-9 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
             {CONSUMER_TIERS.map((tier, i) => {
               const perks = TIER_PERKS[tier];
               const isActive = tier === currentTier;
@@ -781,16 +782,16 @@ export default function SubscriptionPage() {
                           (tierConfig.tsx), instead of only listing this tier's
                           own new perks and implying the rest are lost. */}
                       <ul className="mt-4 space-y-2 flex-1">
-                        {/* Name the tier ACTUALLY rendered below this one, not a
-                            hardcoded "Basic". With Basic hidden (see
-                            CONSUMER_TIERS) a literal "Everything in Basic"
-                            referenced a tier the user cannot see anywhere on the
-                            page — a dangling comparison. Deriving it from
-                            CONSUMER_TIERS keeps the ladder honest whichever tiers
-                            are on display, and restores "Basic" automatically if
-                            it is ever re-enabled. */}
-                        {tier === "pro" && (() => {
-                          const belowKey = CONSUMER_TIERS[CONSUMER_TIERS.indexOf("pro") - 1];
+                        {/* Name the tier ACTUALLY rendered below this one —
+                            never a hardcoded name. Deriving it from
+                            CONSUMER_TIERS keeps the ladder honest whichever
+                            tiers are on display (when Basic was hidden, a
+                            literal "Everything in Basic" dangled against a
+                            tier the page never showed). Pro and Elite carry
+                            the cue, mirroring the in-app tierConfig; Basic,
+                            like there, does not. */}
+                        {(tier === "pro" || tier === "elite") && (() => {
+                          const belowKey = CONSUMER_TIERS[CONSUMER_TIERS.indexOf(tier) - 1];
                           const belowLabel = belowKey ? TIER_PERKS[belowKey]?.name ?? belowKey : null;
                           return belowLabel ? (
                             <li className="flex items-start gap-2 font-sans text-ds-13 font-semibold leading-relaxed" style={{ color: "hsl(var(--olivewood))" }}>
@@ -799,12 +800,6 @@ export default function SubscriptionPage() {
                             </li>
                           ) : null;
                         })()}
-                        {tier === "elite" && (
-                          <li className="flex items-start gap-2 font-sans text-ds-13 font-semibold leading-relaxed" style={{ color: "hsl(var(--olivewood))" }}>
-                            <Check className="w-4 h-4 shrink-0 mt-0.5" strokeWidth={2.25} style={{ color: "hsl(var(--burnt-sienna))" }} />
-                            <span>Everything in Pro</span>
-                          </li>
-                        )}
                         {perks.featureBullets.map((bullet) => (
                           <li
                             key={bullet}

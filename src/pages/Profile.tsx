@@ -21,6 +21,7 @@ import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { splitName } from "@/lib/splitName";
 import { requireOnline } from "@/lib/requireOnline";
+import { functionErrorMessage } from "@/lib/supabaseResult";
 import { buildEarningsSparklineSeries } from "@/lib/earningsSparklineSeries";
 import {
   useProfileStats,
@@ -152,9 +153,9 @@ const ProfilePage = () => {
   // rather than a page-level banner — so one section failing never blanks
   // the core profile (name, avatar) that loaded fine.
   const statsQuery = useProfileStats(userId);
-  // Reviews are needed on both the landing tab (2-review hero preview) and
-  // the reviews tab — gating on either shares one cached fetch.
-  const reviewsQuery = useProfileReviews(userId, tab === "landing" || tab === "reviews");
+  // Reviews feed the reviews tab only — the landing's 2-review hero
+  // preview was removed, so fetching on the landing bought nothing.
+  const reviewsQuery = useProfileReviews(userId, tab === "reviews");
   // Also enabled on the landing tab so the header earnings-sparkline
   // teaser has its (cheap jobs+tips) data without a second query. The
   // result is cached, so opening the Earnings tab next is instant.
@@ -474,8 +475,10 @@ const ProfilePage = () => {
       if (error) throw error;
       await signOutWithPushCleanup();
       navigate("/");
-    } catch (err: any) {
-      toast.error(err.message || "Couldn't delete your account — try again?");
+    } catch (err: unknown) {
+      // functionErrorMessage recovers the edge function's real reason from
+      // the response body — the SDK's own .message is just "non-2xx".
+      toast.error(await functionErrorMessage(err, "Couldn't delete your account — try again?"));
     } finally {
       setDeletingAccount(false);
     }
@@ -580,11 +583,8 @@ const ProfilePage = () => {
               onLoadInlineJobs={() => {}}
               onRequestDelete={() => { setDeleteStep(1); setDeleteConfirmText(""); setShowDeleteAccountDialog(true); }}
               onRequestLogout={() => setShowLogoutDialog(true)}
-              reviewsPreview={reviews.slice(0, 2)}
               statsError={statsQuery.isError}
-              reviewsError={reviewsQuery.isError}
               onRetryStats={() => { statsQuery.refetch(); }}
-              onRetryReviews={() => { reviewsQuery.refetch(); }}
               earningsSparkline={earningsSparkline}
               totalEarnings={totalEarnings}
             />

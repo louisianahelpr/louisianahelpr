@@ -40,25 +40,9 @@ export function useJobDetailData({ job, guest, userLat, userLng }: UseJobDetailD
   // sample-size floor.
   const [posterCancelRate, setPosterCancelRate] = useState<number | null>(null);
 
-  // Viewer's subscription tier — drives the Helper Pro fee upsell in
-  // FeeBreakdown. Cached per-session (staleTime 60s). Falls back to "free"
-  // so the upsell shows unless a paid tier is positively confirmed.
-  const { data: viewerSubscriptionTier = "free" } = useQuery({
-    queryKey: ["viewerSubscriptionTier"],
-    enabled: !guest,
-    staleTime: 60_000,
-    queryFn: async (): Promise<string> => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return "free";
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("subscription_tier")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      if (error || !data) return "free";
-      return (data as { subscription_tier: string | null }).subscription_tier ?? "free";
-    },
-  });
+  // (The viewerSubscriptionTier query lived here for the Helper Pro fee
+  // upsell in FeeBreakdown — removed with that upsell, so the per-open
+  // profiles fetch went with it.)
 
   // Viewer's credential tier — used to gate the Apply button when the job
   // requires a minimum tier. Fetched once per session (staleTime 60s) and
@@ -258,7 +242,6 @@ export function useJobDetailData({ job, guest, userLat, userLng }: UseJobDetailD
     viewerUserId,
     repeatJobs,
     posterCancelRate,
-    viewerSubscriptionTier,
     viewerTier,
     distMilesForDriving,
     drivingLabel,

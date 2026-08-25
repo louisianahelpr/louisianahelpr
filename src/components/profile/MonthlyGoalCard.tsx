@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Target, Flame, Pencil, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { hapticSuccess } from "@/lib/haptics";
 import { formatPrice, formatPriceFloor } from "@/lib/format";
 
 interface MonthlyGoalCardProps {
@@ -83,10 +84,13 @@ export function MonthlyGoalCard({ completedJobs }: MonthlyGoalCardProps) {
       : 0;
   const hitGoal = goal != null && goal > 0 && thisMonthEarnings >= goal;
 
-  // One-time celebration toast the first time the goal is hit this session
+  // One-time celebration the first time the goal is hit this session —
+  // actually fires now (the flag used to be set with no toast behind it).
   useEffect(() => {
     if (hitGoal && !celebrated && goal != null) {
       setCelebrated(true);
+      hapticSuccess();
+      toast.success(`Goal hit — $${formatPriceFloor(thisMonthEarnings)} this month. Nice work!`);
     }
   }, [hitGoal, celebrated, goal, thisMonthEarnings]);
 

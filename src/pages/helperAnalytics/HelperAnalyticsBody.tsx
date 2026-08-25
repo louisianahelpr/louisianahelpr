@@ -17,7 +17,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { fetchAnalytics } from "@/pages/helperAnalytics/fetchAnalytics";
 import HeroSummary from "@/pages/helperAnalytics/HeroSummary";
 import EarningsByMonthCard from "@/pages/helperAnalytics/EarningsByMonthCard";
-import { tierFeePercent } from "@/lib/subscriptionTiers";
+import { TIER_PERKS, tierFeePercent } from "@/lib/subscriptionTiers";
 const ProfileStatsTrend = lazy(() => import("@/components/profile/ProfileStatsTrend"));
 import TopCategoriesCard from "@/pages/helperAnalytics/TopCategoriesCard";
 import ProfileViewsCard from "@/pages/helperAnalytics/ProfileViewsCard";
@@ -27,9 +27,6 @@ import RepeatHireCard from "@/pages/helperAnalytics/RepeatHireCard";
 import BestDaysCard from "@/pages/helperAnalytics/BestDaysCard";
 import { AnalyticsCard, ProUpsellHeader } from "@/pages/helperAnalytics/SectionCard";
 import RatingsReviewsCard from "@/pages/helperAnalytics/RatingsReviewsCard";
-
-// Helpers whose subscription tier gives access to analytics.
-const ANALYTICS_TIERS = new Set(["pro", "elite", "business"]);
 
 // The monthly earnings goal is NOT here. This page used to carry a second
 // "Monthly goal" card — its own editor, its own progress bar, its own wording
@@ -69,8 +66,12 @@ export const HelperAnalyticsBody = () => {
 
   const analytics = analyticsData;
 
+  // Gate on the perk flag, not a hand-rolled tier list — TIER_PERKS is the
+  // single authority on which tiers include advanced analytics, and
+  // `analytics.tier` is already the expiry-aware effective tier
+  // (fetchAnalytics resolves an expired paid tier to "free").
   const hasAnalyticsAccess = analytics
-    ? ANALYTICS_TIERS.has(analytics.tier)
+    ? TIER_PERKS[analytics.tier].advancedAnalytics
     : false;
 
   // How many locked panels the free tier will actually see. Counted rather
@@ -161,8 +162,10 @@ export const HelperAnalyticsBody = () => {
                   <AnalyticsCard>
                     <ProfileStatsTrend
                       helperId={user.id}
-                      /* Same tier-derived fallback the Profile landing used, so
-                         "earned" still agrees with the other earnings surfaces. */
+                      /* Same tier-derived fallback the other earnings surfaces
+                         use. `analytics.tier` is already expiry-resolved by
+                         fetchAnalytics, so no separate expires_at is needed
+                         here for the rate to be expiry-aware. */
                       feeFallbackPercent={tierFeePercent(analytics?.tier ?? null)}
                     />
                   </AnalyticsCard>

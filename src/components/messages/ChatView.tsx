@@ -60,6 +60,8 @@ interface ChatViewProps {
   sendMessage: (
     content: string,
     attachment?: { path: string; mime: string; size: number; duration?: number },
+    replyToId?: string | null,
+    opts?: { isLocationShare?: boolean },
   ) => Promise<boolean>;
   /** Re-dispatch a previously failed optimistic message by its clientId. */
   retryMessage: (clientId: string) => void;

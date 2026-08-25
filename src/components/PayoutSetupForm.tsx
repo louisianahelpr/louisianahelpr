@@ -42,15 +42,21 @@ export function PayoutSetupForm() {
   const [resetting, setResetting] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
 
+  // A failed status check THROWS rather than resolving to null. Resolving
+  // null made a transient stripe-connect failure indistinguishable from a
+  // brand-new account, so a fully connected helper could open this form and
+  // be told "Connect to start earning". The error renders its own "we
+  // couldn't check" state below — same honesty rule as PayoutStatusRow.
   const statusQuery = useQuery<AccountStatus | null>({
     queryKey: queryKeys.payoutSetup.status(userId),
     queryFn: async () => {
       try {
         const res = await supabase.functions.invoke("stripe-connect", { body: { action: "status" } });
-        return res.error ? null : (res.data || null);
+        if (res.error) throw res.error;
+        return res.data || null;
       } catch (err: unknown) {
         report(err, { tags: { source: "PayoutSetupForm.status" } });
-        return null;
+        throw err;
       }
     },
     enabled: !!userId,
@@ -63,7 +69,13 @@ export function PayoutSetupForm() {
     queryFn: async () => {
       try {
         const res = await supabase.functions.invoke("stripe-connect", { body: { action: "list_payout_methods" } });
-        return res.error ? [] : (res.data?.methods || []);
+        if (res.error) {
+          // Methods are additive detail — degrade to an empty list, but
+          // never silently (CLAUDE.md: never drop the Supabase error).
+          report(res.error, { tags: { source: "PayoutSetupForm.methods" } });
+          return [];
+        }
+        return res.data?.methods || [];
       } catch (err: unknown) {
         report(err, { tags: { source: "PayoutSetupForm.methods" } });
         return [];
@@ -241,6 +253,38 @@ export function PayoutSetupForm() {
             ))}
           </div>
         )}
+      </div>
+    );
+  }
+
+  // Status check failed — say exactly that, with a Retry. Asserting
+  // "not connected" here would tell a connected helper their payouts
+  // aren't set up on the strength of a network blip.
+  if (statusQuery.isError && !status) {
+    return (
+      <div className="flex items-start gap-3">
+        <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "hsl(var(--burnt-sienna))" }} />
+        <div className="flex-1 min-w-0">
+          <p
+            className="font-display italic font-bold leading-tight text-ds-16"
+            style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+          >
+            We couldn't check your payout status
+          </p>
+          <p className="font-serif italic mt-1 text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            Your account may be fine — we just couldn't reach Stripe. Try again in a moment.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-3 rounded-ds-md"
+            onClick={() => { void statusQuery.refetch(); }}
+            disabled={statusQuery.isFetching}
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${statusQuery.isFetching ? "animate-spin" : ""}`} />
+            Retry
+          </Button>
+        </div>
       </div>
     );
   }

@@ -8,9 +8,7 @@ import type { Profile } from "./types";
 // isn't claimed in the AASA file either, so it never opened the app). `/user/:id`
 // is the profile route that actually exists AND is claimed for Universal Links,
 // so a scan opens the helper's profile — which is the thing being verified.
-//
-// NOTE: `QrCodeModal`'s "Share QR Link" button still sends the dead
-// `/verify/:id` URL; it was corrected alongside this.
+// QrCodeModal's "Share QR Link" button sends this same `/user/:id` URL.
 const verifyUrlFor = (userId: string) =>
   `https://www.louisianahelpr.com/user/${userId}`;
 

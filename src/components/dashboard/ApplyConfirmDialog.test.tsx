@@ -67,14 +67,17 @@ describe("ApplyConfirmDialog", () => {
 
   it("adds the net urgent bonus into take-home", () => {
     // budget 100, 10% fee, +$15 urgent netted of its own 2.9% bundled Stripe
-    // cost ($15 − $0.44 = $14.56) -> 100 - 10 + 14.56 = $104.56 take-home.
+    // cost ($15 − $0.44 = $14.56) -> 100 - 10 + 14.56 = $104.56, and the
+    // HEADLINE take-home floors to whole dollars (matching JobPrice) while
+    // the bonus line item keeps its exact cents.
     render(
       <ApplyConfirmDialog
         {...makeProps({ confirmApplyJob: makeJob({ urgent_fee: 15 }) })}
       />,
     );
     expect(screen.getByText(/urgent bonus/)).toBeInTheDocument();
-    expect(screen.getByText("$104.56")).toBeInTheDocument();
+    expect(screen.getByText("$14.56", { exact: false })).toBeInTheDocument();
+    expect(screen.getByText("$104")).toBeInTheDocument();
   });
 
   it("shows a generic prompt when no job is resolved", () => {

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { report } from "@/lib/errorLogger";
 import { hapticWarning } from "@/lib/haptics";
 import { formatName } from "@/lib/utils";
 import { toast } from "sonner";
@@ -43,6 +44,7 @@ export function useSavedHelpers({ user, business }: UseSavedHelpersArgs) {
     setLoadError(false);
     const { data, error } = await supabase.rpc("get_my_saved_helpers");
     if (error) {
+      report(error, { severity: "warning", tags: { source: "useSavedHelpers.retry" } });
       setWasOffline(typeof navigator !== "undefined" && navigator.onLine === false);
       setLoadError(true);
       setLoading(false);
@@ -76,6 +78,7 @@ export function useSavedHelpers({ user, business }: UseSavedHelpersArgs) {
       const { data, error } = await supabase.rpc("get_my_saved_helpers");
       if (cancelled) return;
       if (error) {
+        report(error, { severity: "warning", tags: { source: "useSavedHelpers.load" } });
         setWasOffline(typeof navigator !== "undefined" && navigator.onLine === false);
         setLoadError(true);
         setLoading(false);

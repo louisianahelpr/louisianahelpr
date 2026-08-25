@@ -45,7 +45,15 @@ export function useMessagesRealtime({
         (payload) => {
           const msg = payload.new as Message;
           const active = activeConvoRef.current;
-          if (active && msg.job_id === active.jobId) {
+          // Same-job is not enough: a poster can have several applicant
+          // threads on ONE job, and a message from applicant B must not be
+          // appended into (or marked read by) applicant A's open thread.
+          // System rows have no human counterparty and always belong.
+          if (
+            active &&
+            msg.job_id === active.jobId &&
+            (msg.is_system || msg.sender_id === active.otherUserId)
+          ) {
             setMessages((prev) => [...prev, msg]);
             // A bare builder never fires — PostgrestBuilder issues its fetch
             // inside then(). This read-receipt was never sent, so messages the
@@ -63,13 +71,20 @@ export function useMessagesRealtime({
             // Same dead-`void` pattern: without a .then() the request is
             // never issued, so the bell kept counting a message the user was
             // looking at.
+            // The link (`/messages?jobId=<id>`) carries no sender, so scope
+            // the clear by time: the trigger inserts the notification in the
+            // same transaction as the message (identical created_at), and we
+            // only get here for messages from the open thread's counterparty
+            // — so rows newer than this message (other threads' later
+            // traffic) are left alone.
             void supabase
               .from("notifications")
               .update({ read: true })
               .eq("user_id", userId)
               .eq("type", "message")
               .eq("read", false)
-              .like("link", `%job=${msg.job_id}%`)
+              .like("link", `%jobId=${msg.job_id}%`)
+              .lte("created_at", msg.created_at)
               .then(({ error }) => {
                 if (error) report(error, { tags: { source: "useMessagesRealtime.clearMessageNotif" } });
               });
@@ -133,6 +148,22 @@ export function useMessagesRealtime({
         (payload) => {
           const updated = payload.new as Message;
           setMessages((prev) => prev.map((m) => m.id === updated.id ? updated : m));
+        },
+      )
+      .on(
+        "postgres_changes",
+        // No server-side filter here, deliberately: a DELETE payload carries
+        // only the old row's primary key (REPLICA IDENTITY default), so a
+        // receiver_id filter can never match and would silently drop every
+        // event. The payload is just an id and the handler only prunes local
+        // state, so the unfiltered stream costs a few bytes per delete.
+        { event: "DELETE", schema: "public", table: "messages" },
+        (payload) => {
+          const deletedId = (payload.old as { id?: string } | null)?.id;
+          if (!deletedId) return;
+          // A message deleted by the other participant disappears from the
+          // open thread instead of lingering until the next refetch.
+          setMessages((prev) => prev.filter((m) => m.id !== deletedId));
         },
       )
       .subscribe();

@@ -14,7 +14,6 @@ import type {
   Job,
   Application,
   EnrichedApplication,
-  AppliedApp,
 } from "@/components/activity/activityConstants";
 import type { OptimisticJobCache } from "./types";
 
@@ -513,15 +512,14 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
       await refresh();
       setStatusFilter("accepted");
     } else {
-      // Decline — atomic via the decline_job_offer RPC (migration
-      // 20260518140000): the violation insert, ban escalation, app
-      // rejection and job reopen all run in one transaction. Falls back
-      // to the pre-migration multi-step path (atomic per-row only) if
-      // the RPC isn't deployed to this environment yet — that branch
-      // goes dormant once the migration lands.
+      // Decline — atomic via the decline_job_offer RPC: the violation
+      // insert, ladder escalation (apply_job_denial_consequence, migration
+      // 20260824243000), app rejection and job reopen all run in one
+      // transaction. If the RPC isn't deployed yet the decline fails CLOSED
+      // (see below) — there is deliberately no client-side re-implementation
+      // of the consequence ladder.
       let actionTaken: string;
       let priorCount: number;
-      const declineTitle = (app as AppliedApp).job?.title || "Unknown";
 
       const { data: rpcData, error: rpcError } = await supabase.rpc("decline_job_offer", {
         p_application_id: app.id,
@@ -552,41 +550,18 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
           toast.error("Couldn't record your response — please try again.");
           return;
         }
-        // Prior violation count drives the graduated-ban ladder — a dropped
-        // error here would reset priorCount to 0 and let a repeat offender
-        // evade escalation to a warning or ban. Fail closed: abort the
-        // decline attempt so they retry rather than silently getting off.
-        const { data: existing, error: violErr } = await supabase.from("user_violations").select("id").eq("user_id", user.id).eq("violation_type", "job_denial");
-        if (violErr) {
-          report(violErr, { tags: { source: "useOfferHandlers.priorViolationCount" } });
-          hapticError();
-          toast.error("Couldn't record your response right now — please try again.");
-          return;
-        }
-        priorCount = existing?.length || 0;
-        // Softened: 5 strikes with graduated warnings before ban
-        actionTaken = priorCount >= 4 ? "permanent_ban" : priorCount >= 2 ? "warning" : "none";
-        // Fallback path (RPC missing) — every write below was previously
-        // fire-and-forget. That's a moderation silent-failure surface: a
-        // failed insert/update leaves the offender uncounted, unbanned, or
-        // the job un-reopened without any signal. Cowork audit 2026-07-08.
-        // Best-effort with logging — this branch only runs when the RPC
-        // isn't deployed, so we log rather than abort (aborting mid-way
-        // through leaves partial state, which is worse than a logged nudge).
-        const logIfErr = (label: string) => (result: { error: unknown }) => {
-          if (result?.error) {
-            report(result.error, { tags: { source: `useOfferHandlers.declineFallback.${label}` } });
-          }
-        };
-        await supabase.from("user_violations").insert({ user_id: user.id, violation_type: "job_denial", description: `Declined job offer: "${declineTitle}"`, job_id: app.job_id, action_taken: actionTaken }).then(logIfErr("insertViolation"));
-        if (actionTaken === "warning") {
-          await supabase.from("profiles").update({ ban_status: "final_warning" }).eq("user_id", user.id).then(logIfErr("warnUpdate"));
-        } else if (actionTaken === "permanent_ban") {
-          await supabase.from("user_bans").insert({ user_id: user.id, ban_type: "permanent", reason: "Declined 5 job offers after being selected", banned_by: user.id }).then(logIfErr("banInsert"));
-          await supabase.from("profiles").update({ ban_status: "permanently_banned" }).eq("user_id", user.id).then(logIfErr("banUpdate"));
-        }
-        await supabase.from("applications").update({ status: "rejected" }).eq("id", app.id).then(logIfErr("rejectApp"));
-        await supabase.from("jobs").update({ status: "open", helper_id: null, response_deadline: null }).eq("id", app.job_id).then(logIfErr("reopenJob"));
+        // RPC missing (the merge → db-deploy window). The old fallback
+        // re-implemented the RETIRED 5-strike ladder client-side (warning at
+        // the 3rd, permanent at the 5th, no temp ban at all), so a helper who
+        // declined during a deploy window was graded against rules the
+        // backend no longer has. The consequence ladder is moderation logic —
+        // it runs in one place, in the RPC's transaction, or not at all.
+        // Fail closed like the group-accept fallback: record nothing locally
+        // and ask for a retry once the migration lands.
+        report(rpcError, { tags: { source: "useOfferHandlers.declineRpcMissing" } });
+        hapticError();
+        toast.error("We couldn't record this right now — try again shortly.");
+        return;
       } else {
         // RPC returns a Json blob (type is `Json` per generated types), so
         // narrow it to the record shape we know it emits before reading.
@@ -595,11 +570,22 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
         priorCount = rpcResult.prior_count ?? 0;
       }
 
-      // Notifications (best-effort) + toasts — shared by both paths.
+      // Consequence surfacing — the RPC's action, said in the ladder's real
+      // terms. The RPC already inserts the helper's in-app notification for a
+      // warning, so no client createNotification here (it used to double up —
+      // two notifications for one strike, quoting the retired 5-strike math).
       if (actionTaken === "warning") {
-        const warningNum = priorCount + 1;
-        await createNotification({ user_id: user.id, title: `⚠️ Decline Warning (${warningNum}/4)`, message: `You've declined ${warningNum} job offer${warningNum > 1 ? "s" : ""}. Declining ${5 - warningNum} more will result in a permanent ban.`, type: "warning", link: "/profile" });
-        toast.warning(`Warning ${warningNum}/4: You've declined a job offer.`);
+        // Action "warning" is the SECOND strike: the final warning.
+        toast.warning("This is your final warning — one more strike suspends your account for 7 days.");
+      } else if (actionTaken === "temp_ban") {
+        hapticError();
+        // Third strike: 7-day suspension. The toast states it, but the banned
+        // screen is the real surface — same hard document load as the
+        // permanent path below, so no suspended session stays live in memory
+        // (/account-banned reads ban_status/auto_suspended_until and renders
+        // the temporary variant with the return date).
+        toast.warning("Third strike — your account is suspended for 7 days.");
+        window.location.assign("/account-banned");
       } else if (actionTaken === "permanent_ban") {
         hapticError();
         // Same reasoning as CancellationDialog: a permanent ban is not a toast.

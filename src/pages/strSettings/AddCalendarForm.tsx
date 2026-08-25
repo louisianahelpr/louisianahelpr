@@ -49,6 +49,25 @@ export function validateCleaningBudget(raw: string): CleaningBudgetCheck {
   return { value: Math.round(parsed * 100) / 100, error: null };
 }
 
+/**
+ * Shape-check the iCal feed URL before it's written to the DB — a pasted
+ * listing URL (the common mistake) would otherwise sit silently broken until
+ * the first sync fails. Accepts http(s) URLs pointing at an .ics feed and
+ * the webcal:// scheme Apple Calendar hands out.
+ */
+export function validateIcalUrl(raw: string): string | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null; // emptiness is handled by the disabled button
+  if (/^webcal:\/\/.+/i.test(trimmed)) return null;
+  if (!/^https?:\/\/.+/i.test(trimmed)) {
+    return "That doesn't look like a calendar link — it should start with https:// or webcal://.";
+  }
+  if (!/\.ics(\?|#|$)/i.test(trimmed) && !/[?&]/.test(trimmed)) {
+    return "That looks like a regular page link, not a calendar feed — look for the .ics export link.";
+  }
+  return null;
+}
+
 // ---------------------------------------------------------------------------
 // Add Calendar form
 // ---------------------------------------------------------------------------
@@ -71,6 +90,7 @@ export function AddCalendarForm({
   const budgetError = form.auto_create_cleaning
     ? validateCleaningBudget(form.cleaning_budget).error
     : null;
+  const icalUrlError = validateIcalUrl(form.ical_url);
 
   return (
     <div className="space-y-4">
@@ -124,7 +144,14 @@ export function AddCalendarForm({
           value={form.ical_url}
           onChange={(e) => set("ical_url", e.target.value)}
           className="rounded-ds-md"
+          aria-invalid={!!icalUrlError}
+          aria-describedby={icalUrlError ? "ical-url-error" : undefined}
         />
+        {icalUrlError && (
+          <p id="ical-url-error" className="mt-1 text-ds-11" style={{ color: "hsl(var(--burnt-sienna))" }}>
+            {icalUrlError}
+          </p>
+        )}
       </div>
 
       {/* Property name + address */}
@@ -233,7 +260,7 @@ export function AddCalendarForm({
 
       <Button
         onClick={() => onAdd(form)}
-        disabled={loading || !form.ical_url.trim() || !!budgetError}
+        disabled={loading || !form.ical_url.trim() || !!icalUrlError || !!budgetError}
         className="w-full rounded-ds-md"
         style={{ background: "hsl(var(--bark))", color: "hsl(var(--parchment))" }}
       >

@@ -15,6 +15,7 @@ import {
 } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
+import { report } from "@/lib/errorLogger";
 import { ChevronDown } from "lucide-react";
 
 type Window = "30d" | "90d" | "12mo";
@@ -64,7 +65,11 @@ export function ProfileStatsTrend({ helperId, feeFallbackPercent }: ProfileStats
         .or(`helper_id.eq.${helperId},customer_id.eq.${helperId}`)
         .gte("created_at", since.toISOString())
         .order("created_at", { ascending: true });
-      if (error) return [];
+      if (error) {
+        // Degrade to an empty chart but observably (never drop the error).
+        report(error, { severity: "warning", tags: { source: "ProfileStatsTrend.jobs" } });
+        return [];
+      }
       return (data as JobRow[]) ?? [];
     },
     enabled: open && !!helperId,

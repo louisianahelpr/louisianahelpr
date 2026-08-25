@@ -91,25 +91,14 @@ export function JobPrice({
   // Bidding was removed (zero production usage), so a job's price is always the
   // poster's set budget: gross on guest/poster surfaces, net take-home otherwise.
   const amount = showBudget ? budget : netEarnings;
-  // TAKE-HOME IS SHOWN TO THE CENT; the gross budget stays whole dollars.
-  //
-  // `formatPrice` rounds to the nearest dollar, which turned an $83.60 payout
-  // into "You earn $84" here while the apply sheet's breakdown — which must add
-  // up, so it uses exact cents — said "Take-home $83.60" two taps later. One job,
-  // two answers to "what do I get paid", and the rounder one was the OPTIMISTIC
-  // one: it promised 40c the helper never receives. A payout figure may never
-  // read higher than the payout, so the headline moved to the exact number
-  // rather than the breakdown moving to a rounded one. Whole amounts still
-  // print clean ("$90", not "$90.00"), so a round budget is unaffected — only
-  // fee-derived nets, which are exactly the figures that were wrong.
-  //
-  // The poster's gross budget is a number they typed, not a payout, so it keeps
-  // the whole-dollar treatment.
-  // Owner (2026-08-19): whole dollars on the card, no cents. Take-home FLOORS
-  // rather than rounding — see formatPriceFloor: rounding $83.60 to "$84"
-  // would promise 40c the helpr never receives, and a payout must never read
-  // higher than the payout. A gross budget is a number the poster typed, not
-  // money owed to anyone, so it keeps ordinary rounding.
+  // TAKE-HOME IS FLOORED TO WHOLE DOLLARS (owner, 2026-08-19); the gross
+  // budget keeps ordinary rounding. See formatPriceFloor: rounding $83.60 to
+  // "$84" would promise 40c the helpr never receives, and a payout figure may
+  // never read higher than the payout. A gross budget is a number the poster
+  // typed, not money owed to anyone, so it rounds. Every headline take-home
+  // surface (this component, CompactJobCard, AppliedJobCard's title amount,
+  // the apply sheet's Take-home) uses the same floor; only breakdown LINE
+  // ITEMS keep exact cents, because those must visibly add up.
   const earnings = showBudget ? formatPrice(amount) : formatPriceFloor(amount);
 
   // ──────────────────────────────────────────────────────────────────────

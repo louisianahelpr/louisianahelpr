@@ -200,16 +200,9 @@ export function ProfileEditForm({
               }}
             />
           </div>
-          {completion.nextLabel && (
-            <p className="font-serif italic text-ds-11 leading-snug" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              Next:{" "}
-              <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
-                {completion.nextLabel}
-              </span>
-              {" — "}
-              complete profiles get more offers.
-            </p>
-          )}
+          {/* No "Next: …" line — getProfileCompletion's actionable checklist
+              is deliberately empty (see profileCompletion.ts), so nextLabel
+              is always null and the line could never render. */}
         </div>
 
         {/* Contact section */}

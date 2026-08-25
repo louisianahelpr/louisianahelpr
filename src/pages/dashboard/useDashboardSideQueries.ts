@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
+import { report } from "@/lib/errorLogger";
 import { queryKeys } from "@/lib/queryKeys";
 import { safeStorage } from "@/lib/safeStorage";
 import type { EnrichedJob } from "@/components/dashboard/types";
@@ -32,7 +33,12 @@ export function useDashboardSideQueries({ userId, userParish, allJobs }: UseDash
           .eq("status", "available")
           .eq("parish", userParish);
         if (error && (error as { code?: string }).code === "PGRST202") return 0;
-        if (error) return 0;
+        // 0 stays the safe default, but the failure has to be observable —
+        // a dropped error made a broken count look like "no credits here".
+        if (error) {
+          report(error, { severity: "warning", tags: { source: "useDashboardSideQueries.pifCount" } });
+          return 0;
+        }
         return count ?? 0;
       } catch { return 0; }
     },
@@ -112,7 +118,13 @@ export function useDashboardSideQueries({ userId, userParish, allJobs }: UseDash
         .order("date_needed", { ascending: true })
         .limit(1)
         .maybeSingle();
-      if (error) return null;
+      if (error) {
+        // Null (no reminder card) is the safe degrade, but warn-report it —
+        // silently dropping the error hid a broken query behind "no
+        // upcoming jobs".
+        report(error, { severity: "warning", tags: { source: "useDashboardSideQueries.upcomingJob" } });
+        return null;
+      }
       return data;
     },
     enabled: !!userId,

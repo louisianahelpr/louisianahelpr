@@ -10,6 +10,7 @@ import { categoryLabels, categoryColors } from "@/components/activity/activityCo
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { formatJobDate, formatTimeLeft } from "@/lib/dateUtils";
 import { formatPrice, formatPriceFloor } from "@/lib/format";
+import { earlyAccessDelayMs } from "@/lib/earlyAccess";
 import { formatTime12 } from "@/components/TimePickerSelect";
 import { getCity } from "@/lib/locationUtils";
 import { haversineMiles } from "@/lib/geo";
@@ -131,11 +132,13 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
     : `$${formatPriceFloor(computeNet(job.budget, effectiveFee, job.urgent_fee ?? 0, helpersCount).netEarnings)}`;
   const catStyle = categoryColors[job.category] || categoryColors.other;
 
-  // Freshness signal: a job posted within the last 30 minutes gets a "New"
-  // chip — aligned with the Pro/Elite early-access window so the badge
-  // appears exactly when fresh jobs flow into the feed for paid subscribers.
-  // After 30 min the badge drops away and all helpers can see the job.
-  const isNew = Date.now() - new Date(job.created_at).getTime() < 30 * 60_000;
+  // Freshness signal: a job still inside the early-access window gets a "New"
+  // chip. DERIVED from the shared perk value (the free-tier delay — 20 min)
+  // rather than restated: this used to hardcode 30 min next to a comment
+  // claiming alignment with the 20-min window, so the badge outlived the
+  // exclusivity it advertised. Subscribers see the badge while the job is
+  // still early-access; it drops exactly when every helper can see the job.
+  const isNew = Date.now() - new Date(job.created_at).getTime() < earlyAccessDelayMs(null);
 
   const cityState = getCity(job.location);
 

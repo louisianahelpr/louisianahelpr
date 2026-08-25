@@ -333,7 +333,9 @@ export function MessageBubble({
             {mine && (
               <button
                 onClick={() => onDelete(m.id)}
-                className="ml-0.5 opacity-50 hover:opacity-100 hover:text-destructive transition-opacity flex items-center justify-center w-5 h-5 rounded-full"
+                // before:-inset-3 grows the tap target to 44px without
+                // changing the 20px visual footprint.
+                className="ml-0.5 opacity-50 hover:opacity-100 hover:text-destructive transition-opacity flex items-center justify-center w-5 h-5 rounded-full relative before:absolute before:-inset-3 before:content-['']"
                 title="Delete"
                 aria-label="Delete message"
               >

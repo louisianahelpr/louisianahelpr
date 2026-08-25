@@ -132,16 +132,21 @@ export function SkillEndorsements({
                 · {count}
               </span>
               {showPlus && (
+                /* 44px hit area around a 16px visual dot: the padding grows
+                   the touch target while the negative margins cancel it out
+                   of the pill's layout, so nothing moves visually. */
                 <button
                   type="button"
                   aria-label={`Endorse ${skill.skill}`}
                   onClick={() => handleEndorse(skill.id)}
-                  className="ml-0.5 w-4 h-4 rounded-full flex items-center justify-center transition-opacity active:opacity-60"
-                  style={{
-                    background: "hsl(var(--bark) / 0.18)",
-                  }}
+                  className="ml-0.5 -my-3.5 -mr-3 p-3.5 rounded-full flex items-center justify-center transition-opacity active:opacity-60"
                 >
-                  <Plus className="w-2.5 h-2.5" strokeWidth={2.5} />
+                  <span
+                    className="w-4 h-4 rounded-full flex items-center justify-center"
+                    style={{ background: "hsl(var(--bark) / 0.18)" }}
+                  >
+                    <Plus className="w-2.5 h-2.5" strokeWidth={2.5} />
+                  </span>
                 </button>
               )}
             </span>

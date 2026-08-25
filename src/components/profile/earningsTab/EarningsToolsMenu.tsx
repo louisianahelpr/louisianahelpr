@@ -6,7 +6,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Settings, FileText, FileSpreadsheet, ExternalLink, Printer } from "lucide-react";
+import { Settings, FileText, FileSpreadsheet, ChevronRight, Printer } from "lucide-react";
 
 interface EarningsToolsMenuProps {
   onExportPdf: () => void;
@@ -42,8 +42,12 @@ export function EarningsToolsMenu({ onExportPdf, onExportCsv, onNavigatePayment 
           <Printer className="w-4 h-4 mr-2" /> Print / Save as PDF
         </DropdownMenuItem>
         <DropdownMenuSeparator />
+        {/* Scrolls to the Payout & payments section of THIS screen — so no
+            ExternalLink icon and no "Stripe Dashboard" name, both of which
+            promised leaving the app (the ↗ affordance is reserved for
+            actions that actually do). */}
         <DropdownMenuItem onSelect={onNavigatePayment}>
-          <ExternalLink className="w-4 h-4 mr-2" /> Stripe Dashboard Access
+          <ChevronRight className="w-4 h-4 mr-2" /> Payout Settings
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -45,6 +45,21 @@ const AdminCredentialQueue = () => {
   const [busy, setBusy] = useState<string | null>(null);
   const [rejectTarget, setRejectTarget] = useState<{ userId: string; credential: "license" | "insurance" } | null>(null);
   const [rejectReason, setRejectReason] = useState("");
+  // Bulk selection, keyed "<userId>:<credential>" — the same key `busy` uses,
+  // because the unit of decision is one CREDENTIAL, not one person. Someone
+  // whose licence is clean and whose insurance expired must be approvable on
+  // the licence alone.
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkRunning, setBulkRunning] = useState(false);
+
+  const toggleSelected = (key: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   // unwrap() throws into React Query so a failed RPC flips isError on
   // instead of degrading silently to "queue is empty". See CLAUDE.md
@@ -75,6 +90,47 @@ const AdminCredentialQueue = () => {
       return;
     }
     qc.invalidateQueries({ queryKey });
+  };
+
+  /**
+   * Approve every ticked credential.
+   *
+   * Approve only — bulk REJECT is deliberately absent. A rejection carries a
+   * reason that the Helpr reads and acts on, and one reason pasted across a
+   * batch is either wrong for most of them or so generic it tells them
+   * nothing. Rejecting stays per-credential, where the reason box is.
+   *
+   * Sequential rather than Promise.all: review_credential writes a profile row
+   * and fans out a notification, and firing twenty at once is how you find the
+   * rate limit during an incident. A queue this size is not worth the risk of
+   * parallelism.
+   */
+  const approveSelected = async () => {
+    if (selected.size === 0) return;
+    setBulkRunning(true);
+    const keys = [...selected];
+    let ok = 0;
+    const failures: string[] = [];
+    for (const key of keys) {
+      const [userId, credential] = key.split(":") as [string, "license" | "insurance"];
+      const { error } = await supabase.rpc("review_credential", {
+        _user_id: userId,
+        _credential: credential,
+        _decision: "verified",
+      });
+      if (error) {
+        report(error, { tags: { source: "AdminCredentialQueue.approveSelected", credential } });
+        failures.push(credential);
+      } else ok++;
+    }
+    setBulkRunning(false);
+    setSelected(new Set());
+    qc.invalidateQueries({ queryKey });
+    // Report the partial outcome honestly. A blanket "Approved" after two of
+    // five succeeded is how a queue silently keeps stale rows.
+    if (failures.length === 0) toast.success(`Approved ${ok} credential${ok === 1 ? "" : "s"}.`);
+    else if (ok === 0) toast.error(`None approved — ${failures.length} failed.`);
+    else toast.warning(`Approved ${ok}, but ${failures.length} failed. The queue still shows them.`);
   };
 
   return (
@@ -120,6 +176,25 @@ const AdminCredentialQueue = () => {
         />
       ) : (
         <div className="space-y-3">
+          {/* Bulk bar appears only once something is ticked, so the default
+              view of the queue is unchanged for the common single-decision
+              case. */}
+          {selected.size > 0 && (
+            <div className="flex items-center justify-between gap-3 rounded-ds-md border border-primary/30 bg-primary/5 p-3">
+              <p className="text-ds-13 font-semibold text-foreground">
+                {selected.size} selected
+              </p>
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="ghost" disabled={bulkRunning} onClick={() => setSelected(new Set())}>
+                  Clear
+                </Button>
+                <Button size="sm" disabled={bulkRunning} onClick={approveSelected}>
+                  <CheckCircle2 className="w-4 h-4 mr-1" />
+                  {bulkRunning ? "Approving…" : `Approve ${selected.size}`}
+                </Button>
+              </div>
+            </div>
+          )}
           {rows.map((r) => (
             <div key={r.user_id} className="rounded-ds-md border border-border/60 bg-background/40 p-4 space-y-3">
               <div className="flex items-center gap-3">
@@ -157,7 +232,16 @@ const AdminCredentialQueue = () => {
                 {r.license_status === "pending" && r.license_url && (
                   <div className="rounded-ds-md border border-border bg-secondary/40 p-3 space-y-2">
                     <div className="flex items-center justify-between">
-                      <p className="text-ds-11 font-semibold uppercase tracking-wider text-muted-foreground">License</p>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 accent-[hsl(var(--bark))]"
+                          checked={selected.has(`${r.user_id}:license`)}
+                          onChange={() => toggleSelected(`${r.user_id}:license`)}
+                          aria-label={`Select license for ${r.full_name || r.email}`}
+                        />
+                        <span className="text-ds-11 font-semibold uppercase tracking-wider text-muted-foreground">License</span>
+                      </label>
                       <SignedOpenLink path={r.license_url} />
                     </div>
                     <DocPreview path={r.license_url} />
@@ -190,7 +274,16 @@ const AdminCredentialQueue = () => {
                 {r.insurance_status === "pending" && r.insurance_url && (
                   <div className="rounded-ds-md border border-border bg-secondary/40 p-3 space-y-2">
                     <div className="flex items-center justify-between">
-                      <p className="text-ds-11 font-semibold uppercase tracking-wider text-muted-foreground">Insurance</p>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 accent-[hsl(var(--bark))]"
+                          checked={selected.has(`${r.user_id}:insurance`)}
+                          onChange={() => toggleSelected(`${r.user_id}:insurance`)}
+                          aria-label={`Select insurance for ${r.full_name || r.email}`}
+                        />
+                        <span className="text-ds-11 font-semibold uppercase tracking-wider text-muted-foreground">Insurance</span>
+                      </label>
                       <SignedOpenLink path={r.insurance_url} />
                     </div>
                     <DocPreview path={r.insurance_url} />

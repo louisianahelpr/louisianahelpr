@@ -33,7 +33,11 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { verifyCronSecret } from "../_shared/cron-auth.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
-import { getHelperFeePercent } from "../_shared/helperFees.ts";
+import {
+  DEFAULT_TIER_FEE_PERCENT,
+  getHelperFeePercent,
+  helperCommissionDollars,
+} from "../_shared/helperFees.ts";
 import { posterFeePercentForTier, posterServiceFeeCents } from "../_shared/posterFees.ts";
 import { isLaborTaxable } from "../_shared/salesTax.ts";
 import { recurringVisitDates } from "../_shared/recurringSchedule.ts";
@@ -280,15 +284,30 @@ serve(async (req) => {
           .select("helper_fee_percent")
           .limit(1)
           .maybeSingle();
+        // The last-resort fallback is the FREE-tier rate, not a literal 10.
+        // helperFees.ts picks free (12) on purpose: an unrecognised or
+        // unreadable tier must never under-charge the platform, and a bare 10
+        // silently applied the Pro rate whenever platform_settings was
+        // unreadable.
         const fallbackHelperFeePercent = typeof settingsRow?.helper_fee_percent === "number"
           ? settingsRow.helper_fee_percent
-          : 10;
+          : DEFAULT_TIER_FEE_PERCENT;
         const helperFeePercent = await getHelperFeePercent(
           supabase as never,
           parent.recurring_helper_id as string,
           fallbackHelperFeePercent,
         );
-        const helperFeeAmount = (Number(parent.budget) * helperFeePercent) / 100;
+        // Use the shared commission helper, not the unrounded
+        // `(budget * pct) / 100` form. helperFees.ts documents why: the
+        // unrounded variant carries sub-cent precision into the row and put
+        // two payout paths a cent apart on thousands of (budget, tier) pairs.
+        // This value is provisional — release-payout overwrites it with the
+        // real commission — but it is what admin reporting and the helper's
+        // estimate read until then, so it must round like money.
+        const helperFeeAmount = helperCommissionDollars(
+          Number(parent.budget),
+          helperFeePercent,
+        );
 
         if (dryRun) {
           console.log("[charge-recurring-visits] would charge", {

@@ -108,7 +108,7 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
                     <Star key={s} className={`w-3.5 h-3.5 ${s <= r.rating ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />
                   ))}
                 </div>
-                <span className="text-ds-11 text-muted-foreground">by {r.reviewerName || "User"}</span>
+                <span className="text-ds-11 text-muted-foreground">by {r.reviewerName || "a neighbor"}</span>
               </div>
               <button
                 onClick={() => setReportReviewId(r.id)}

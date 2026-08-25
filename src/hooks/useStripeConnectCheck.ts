@@ -46,7 +46,7 @@ export function useStripeConnectCheck() {
       // No `needsPayoutSetup` here: we never established that the account is
       // missing, only that we couldn't ask. Sending them to set up an account
       // they may already have would be the wrong instruction.
-      return { ok: false, reason: "Unable to verify your payout account. Please try again." };
+      return { ok: false, reason: "Couldn't verify your payout account — try again?" };
     } finally {
       setChecking(false);
     }

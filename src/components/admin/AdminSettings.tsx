@@ -33,17 +33,34 @@ const FEE_LADDER: { id: SubscriptionTier; name: string; percent: number }[] = (
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
-// Known feature flags. Keeping this as a constants list (vs reading
-// every key found in the JSONB blob) means the UI surface is
-// deterministic — a stray key written by some other tool can't show
-// up here as a mystery toggle. New flags need a line here + a usage
-// site reading from `feature_flags[<id>]`.
-const KNOWN_FEATURE_FLAGS: { id: string; label: string; description: string }[] = [
-  { id: "subscriptions_enabled", label: "Subscriptions", description: "Show the Pro / Elite subscription upsell + flows." },
-  { id: "referrals_enabled", label: "Referrals", description: "Surface the referral programme in profile + invites." },
-  { id: "ai_helpr_assistant", label: "AI Helpr assistant", description: "Show the AI-assisted job-post draft flow." },
-  { id: "boosts_enabled", label: "Job boosts", description: "Allow posters to pay to boost their job to the top." },
-  { id: "stripe_idv_required", label: "Stripe IDV required", description: "Force every Helpr through Stripe Identity before accepting jobs." },
+// Operator kill-switches. Keeping this as a constants list (vs rendering
+// every key found in the JSONB blob) means the UI surface is deterministic —
+// a stray key written by some other tool can't show up here as a mystery
+// toggle. A flag belongs here ONLY once something reads it; see
+// src/lib/featureFlags.ts.
+//
+// This list was five toggles until 2026-08-25, and none of the five were read
+// by anything: subscriptions/referrals/AI/boosts/IDV all wrote to
+// `feature_flags` and no screen or edge function ever looked. Four were
+// deleted rather than wired, because they gate features the app owns end to
+// end and which already fail gracefully on their own — a switch whose only
+// effect is to hide a working feature is a way to cause an outage, not
+// prevent one.
+//
+// The survivor is the one guarding an EXTERNAL dependency. If Stripe Identity
+// goes down, every Helpr is blocked from posting and accepting at the same
+// moment, and a native app cannot be hot-fixed inside App Review — so the
+// ability to lift that gate for an afternoon is worth a switch. It is phrased
+// as "paused" rather than "required" so that absent/unreadable means ENFORCED;
+// the reasoning is in featureFlags.ts.
+const KNOWN_FEATURE_FLAGS: { id: string; label: string; description: string; danger?: boolean }[] = [
+  {
+    id: "idv_requirement_paused",
+    label: "Pause identity verification",
+    description:
+      "Emergency use only. While ON, Helprs can post and accept jobs WITHOUT passing Stripe Identity. Turn this on only during a Stripe Identity outage, and turn it off the moment it clears.",
+    danger: true,
+  },
 ];
 
 const AdminSettings = () => {
@@ -389,35 +406,32 @@ const AdminSettings = () => {
       <AdminCard
         className="max-w-lg"
         title={<span className="flex items-center gap-2"><Flag className="w-4 h-4 text-primary" /> Feature Flags</span>}
-        subtitle="Server-side toggles that persist immediately to platform_settings.feature_flags."
+        subtitle="Emergency controls. Off is the normal state — leave them off unless you are working an incident."
       >
-        {/* Honesty banner (Session C audit, 2026-08-25). Every flag below
-            writes to platform_settings.feature_flags and NOTHING reads it back:
-            a repo-wide grep for each id finds no consumer outside this file.
-            So the switches persist but change no app behaviour — and the old
-            subtitle ("off is always the safe fallback") actively implied the
-            opposite, which is the dangerous reading for a control named
-            "Stripe IDV required". Until each flag has a real usage site, the
-            screen has to say so rather than pose as a kill-switch. Delete this
-            banner as the flags get wired up. */}
-        <div className="rounded-ds-md border-2 border-destructive/40 bg-destructive/10 p-4 mb-3">
-          <div className="flex items-start gap-3">
-            <Flag className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
-            <div className="flex-1 space-y-1">
-              <p className="text-ds-13 font-bold text-foreground">
-                ⚠️ These toggles are not wired up yet
-              </p>
-              <p className="text-ds-11 text-muted-foreground leading-relaxed">
-                Each switch saves to{" "}
-                <code className="text-ds-10 bg-muted px-1 rounded">feature_flags</code>,
-                but no screen or edge function reads those values today. Flipping
-                one records your intent — it does <strong>not</strong> turn the
-                feature off. Treat none of these as a kill-switch until it has a
-                usage site.
-              </p>
+        {/* Live-state banner, shown only while the requirement is actually
+            paused. The card carried a permanent "these are not wired up"
+            warning between 2026-08-25 and this change, which was true then:
+            five toggles wrote to feature_flags and nothing read any of them.
+            Four were deleted and the fifth is now read on every post and every
+            accept, so a standing warning would be the new lie. It fires on
+            state instead — silent when safe, loud when a gate is down. */}
+        {!!featureFlags["idv_requirement_paused"] && (
+          <div className="rounded-ds-md border-2 border-destructive/40 bg-destructive/10 p-4 mb-3">
+            <div className="flex items-start gap-3">
+              <Flag className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+              <div className="flex-1 space-y-1">
+                <p className="text-ds-13 font-bold text-foreground">
+                  ⚠️ Identity verification is currently PAUSED
+                </p>
+                <p className="text-ds-11 text-muted-foreground leading-relaxed">
+                  Helprs can post and accept jobs without passing Stripe
+                  Identity right now. This is an outage measure — turn it back
+                  off as soon as Stripe Identity recovers.
+                </p>
+              </div>
             </div>
           </div>
-        </div>
+        )}
         <div className="space-y-2.5">
           {KNOWN_FEATURE_FLAGS.map((flag) => {
             const value = !!featureFlags[flag.id];

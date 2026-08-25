@@ -1,4 +1,5 @@
 import { useRef } from "react";
+import { isIdvRequirementPaused } from "@/lib/featureFlags";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { track, AhaEvent } from "@/lib/analytics";
@@ -243,7 +244,10 @@ export function useJobSubmit(params: UseJobSubmitParams) {
         return null;
       }
       const profStatus = (prof as { idv_status?: string })?.idv_status;
-      if (profStatus !== "verified") {
+      // See useOfferHandlers: the same operator pause, and the same
+      // fail-closed read, so posting and accepting cannot disagree about
+      // whether identity verification is currently required.
+      if (profStatus !== "verified" && !(await isIdvRequirementPaused())) {
         setIdvStatus(profStatus);
         setIdvFailureReason((prof as { idv_failure_reason?: string })?.idv_failure_reason);
         setIdvDialogOpen(true);

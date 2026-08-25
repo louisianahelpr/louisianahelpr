@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { createNotification } from "@/lib/notifications";
 import { report } from "@/lib/errorLogger";
+import { isIdvRequirementPaused } from "@/lib/featureFlags";
 import { toast } from "sonner";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import { track, AhaEvent } from "@/lib/analytics";
@@ -280,7 +281,10 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
         return;
       }
       const profIdvStatus = (prof as { idv_status?: string })?.idv_status;
-      if (profIdvStatus !== "verified") {
+      // Operators can pause the IDV requirement during a Stripe Identity
+      // outage (Admin -> Settings). Fails closed: an unreadable flag keeps the
+      // gate up, so a dropped fetch can never quietly stop requiring IDV.
+      if (profIdvStatus !== "verified" && !(await isIdvRequirementPaused())) {
         setPendingAcceptApp(app);
         setIdvStatus(profIdvStatus);
         setIdvFailureReason((prof as { idv_failure_reason?: string })?.idv_failure_reason);
@@ -380,7 +384,10 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
         return;
       }
       const profIdvStatus = (prof as { idv_status?: string })?.idv_status;
-      if (profIdvStatus !== "verified") {
+      // Operators can pause the IDV requirement during a Stripe Identity
+      // outage (Admin -> Settings). Fails closed: an unreadable flag keeps the
+      // gate up, so a dropped fetch can never quietly stop requiring IDV.
+      if (profIdvStatus !== "verified" && !(await isIdvRequirementPaused())) {
         setPendingAcceptApp(app);
         setIdvStatus(profIdvStatus);
         setIdvFailureReason((prof as { idv_failure_reason?: string })?.idv_failure_reason);

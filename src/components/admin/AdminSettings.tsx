@@ -8,21 +8,30 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHero } from "@/components/ui/dialog";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { toast } from "sonner";
-import { Flag, Plus, Search, Shield, ShieldCheck, Smartphone, Trash2, UserPlus } from "lucide-react";
+import { Flag, Percent, Plus, Search, Shield, ShieldCheck, Smartphone, Trash2, UserPlus } from "lucide-react";
+import { TIER_PERKS, type SubscriptionTier } from "@/lib/subscriptionTiers";
+import { AdminViewShell, AdminCard } from "./AdminViewShell";
 import type { Database } from "@/integrations/supabase/types";
 import { logAdminAction } from "@/lib/adminAudit";
 import { Switch } from "@/components/ui/switch";
 import { BUSINESS_ENABLED } from "@/config/businessEnabled";
 import { EmptyState } from "@/components/ui/EmptyState";
 
-// The fee-ladder rungs an admin is shown. Business (6%) is only named while
-// the Business product is switched on — with `BUSINESS_ENABLED` false there
-// is no Business plan anyone can hold, so listing it in the console describes
-// a rate that can never apply. Same treatment as legal/TermsSection and the
-// Help Center fee answers.
-const FEE_LADDER_LABEL = BUSINESS_ENABLED
-  ? "Free 12 / Basic 11 / Pro 10 / Elite 8 / Business 6"
-  : "Free 12 / Basic 11 / Pro 10 / Elite 8";
+// The fee-ladder rungs an admin is shown, DERIVED from the tier config rather
+// than restated. `TIER_PERKS` is the same table `tierFeePercent()` resolves a
+// live payout against and the same one /subscription advertises, so the console
+// can no longer quote a ladder the platform does not charge — which is exactly
+// what the deleted editable inputs did (see the read-only card below).
+//
+// Business (6%) is only named while the Business product is switched on — with
+// `BUSINESS_ENABLED` false there is no Business plan anyone can hold, so listing
+// it describes a rate that can never apply. Same treatment as legal/TermsSection
+// and the Help Center fee answers.
+const FEE_LADDER: { id: SubscriptionTier; name: string; percent: number }[] = (
+  ["free", "basic", "pro", "elite", ...(BUSINESS_ENABLED ? (["business"] as const) : [])] as SubscriptionTier[]
+).map((id) => ({ id, name: TIER_PERKS[id].name, percent: TIER_PERKS[id].platformFeePercent }));
+
+const FEE_LADDER_LABEL = FEE_LADDER.map((t) => `${t.name} ${t.percent}`).join(" / ");
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -40,13 +49,14 @@ const KNOWN_FEATURE_FLAGS: { id: string; label: string; description: string }[] 
 ];
 
 const AdminSettings = () => {
+  // Read-only now — displayed as the payout functions' fail-safe fallback, not
+  // as an editable rate. See the Fee Model card below for why.
   const [customerFee, setCustomerFee] = useState("");
   const [helperFee, setHelperFee] = useState("");
   const [socialWebhookUrl, setSocialWebhookUrl] = useState("");
   const [savingWebhook, setSavingWebhook] = useState(false);
   const [settingsId, setSettingsId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   // Min-build setter + flag toggles. featureFlags is a free-form map
   // but we only surface KNOWN_FEATURE_FLAGS entries above.
   const [minBuild, setMinBuild] = useState<string>("0");
@@ -214,30 +224,6 @@ const AdminSettings = () => {
     setAdminsLoading(false);
   };
 
-  const handleSave = async () => {
-    if (!settingsId) return;
-    const custVal = parseFloat(customerFee);
-    const helpVal = parseFloat(helperFee);
-    if (isNaN(custVal) || custVal < 0 || custVal > 100 || isNaN(helpVal) || helpVal < 0 || helpVal > 100) {
-      toast.error("Fees must be between 0 and 100.");
-      return;
-    }
-    setSaving(true);
-    const { error } = await supabase
-      .from("platform_settings")
-      .update({
-        platform_fee_percent: custVal,
-        customer_fee_percent: custVal,
-        helper_fee_percent: helpVal,
-      })
-      .eq("id", settingsId);
-    setSaving(false);
-    if (error) toast.error(error.message);
-    else {
-      await logAdminAction("update_settings", "platform_settings", settingsId, { customer_fee_percent: custVal, helper_fee_percent: helpVal });
-    }
-  };
-
   const searchUsers = async () => {
     if (!searchQuery.trim()) return;
     setSearching(true);
@@ -312,66 +298,71 @@ const AdminSettings = () => {
   if (loading) return <p className="text-muted-foreground">Loading settings…</p>;
 
   return (
-    <div className="space-y-6">
-      
+    <AdminViewShell>
+      {/* ── Fee model — READ ONLY ──
+          This was two number inputs and a "Total platform take: 20%" calculator
+          with a Save button, and every part of it was wrong. The platform has
+          not charged one flat rate since the tier ladder shipped: a poster pays
+          their own tier's service fee and a Helpr pays their own tier's
+          commission, resolved per job by `tierFeePercent()` from the same
+          TIER_PERKS table read below. So the console let an admin type a number
+          that would never be charged, then added two unrelated percentages
+          together and called the sum the platform's take — arithmetic that has
+          never described a single real job. Owner: "the 10% payout fee … also
+          not correct."
 
-      {/* Split Fee Settings */}
-      <div className="max-w-md rounded-ds-md liquid-glass p-6 space-y-5">
-        <div className="space-y-1">
-          <h3 className="font-display font-semibold text-foreground">Split Fee Model</h3>
+          The platform_settings COLUMNS stay exactly where they are. The payout
+          edge functions read customer_fee_percent / helper_fee_percent as a
+          fail-safe when a tier cannot be resolved, and release-payout 500s
+          without them — so the row is load-bearing infrastructure even though
+          it is not a control. It is shown here as what it is: a fallback, with
+          its live values, and no way to edit it by accident. */}
+      <AdminCard
+        className="max-w-md"
+        title={<span className="flex items-center gap-2"><Percent className="w-4 h-4 text-primary" /> Fee Model</span>}
+        subtitle="Set by subscription tier, not by this screen."
+        contentClassName="space-y-4"
+      >
+        <div className="space-y-2">
           <p className="text-ds-11 text-muted-foreground">
-            The platform earns from both sides: a service fee from customers and a platform fee from Helprs.
+            Each job resolves its own rates from the tier ladder — the poster's service fee and the Helpr's
+            commission both descend as their tier rises. The same table drives the /subscription page and the
+            payout functions, so there is one ladder, not a console copy of one.
           </p>
+          <ul className="rounded-ds-sm bg-primary/5 p-3 space-y-1">
+            {FEE_LADDER.map((t) => (
+              <li key={t.id} className="flex items-center justify-between text-ds-11">
+                <span className="text-muted-foreground">{t.name}</span>
+                <span className="font-semibold text-foreground tabular-nums">{t.percent}%</span>
+              </li>
+            ))}
+          </ul>
         </div>
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="custFee">Customer service fee (%) — fallback</Label>
-            <p className="text-ds-11 text-muted-foreground">Fallback only. Each poster is charged their own tier rate ({FEE_LADDER_LABEL}), floored at Stripe's cost. This value is used only when a poster's tier can't be read.</p>
-            <Input
-              id="custFee"
-              type="number"
-              min="0"
-              max="100"
-              step="0.5"
-              value={customerFee}
-              onChange={(e) => setCustomerFee(e.target.value)}
-              className="max-w-[120px]"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="helpFee">Helpr platform fee (%)</Label>
-            <p className="text-ds-11 text-muted-foreground">Deducted from the Helpr's payout (e.g. 10% on a $100 job = $10 deducted)</p>
-            <Input
-              id="helpFee"
-              type="number"
-              min="0"
-              max="100"
-              step="0.5"
-              value={helperFee}
-              onChange={(e) => setHelperFee(e.target.value)}
-              className="max-w-[120px]"
-            />
-          </div>
-          <div className="rounded-ds-sm bg-primary/5 p-3">
-            <p className="text-ds-11 text-muted-foreground">
-              <strong>Total platform take:</strong> {(parseFloat(customerFee) || 0) + (parseFloat(helperFee) || 0)}% — 
-              On a $100 job: ${((parseFloat(customerFee) || 0)).toFixed(2)} from customer + ${((parseFloat(helperFee) || 0)).toFixed(2)} from Helpr = ${((parseFloat(customerFee) || 0) + (parseFloat(helperFee) || 0)).toFixed(2)} total
-            </p>
+        <div className="space-y-1.5 border-t border-border/60 pt-3">
+          <p className="text-ds-11 font-semibold text-foreground">Fallback rates</p>
+          <p className="text-ds-11 text-muted-foreground">
+            Used only when a tier cannot be read at payout time. Stored in{" "}
+            <code className="text-foreground">platform_settings</code>, where the payout edge functions read them —
+            they are not editable here because they are a safety net, not a lever.
+          </p>
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-ds-11">
+            <span className="text-muted-foreground">
+              Customer service fee <span className="font-semibold text-foreground tabular-nums">{customerFee || "—"}%</span>
+            </span>
+            <span className="text-muted-foreground">
+              Helpr commission <span className="font-semibold text-foreground tabular-nums">{helperFee || "—"}%</span>
+            </span>
           </div>
         </div>
-        <Button onClick={handleSave} disabled={saving}>
-          {saving ? "Saving…" : "Save Fee Settings"}
-        </Button>
-      </div>
+      </AdminCard>
 
       {/* Social Webhook URL */}
-      <div className="max-w-md rounded-ds-md liquid-glass p-6 space-y-4">
-        <div className="space-y-1">
-          <h3 className="font-display font-semibold text-foreground">Social Webhook URL</h3>
-          <p className="text-ds-11 text-muted-foreground">
-            Paste the Make.com webhook URL here. The "Send to Social" button on the Facebook Post Generator will send each post (text + image + timing) to this URL for scheduling.
-          </p>
-        </div>
+      <AdminCard
+        className="max-w-md"
+        title="Social Webhook URL"
+        subtitle={`Paste the Make.com webhook URL here. The "Send to Social" button on the Facebook Post Generator will send each post (text + image + timing) to this URL for scheduling.`}
+        contentClassName="space-y-4"
+      >
         <div className="space-y-2">
           <Label htmlFor="socialWebhook">Webhook URL</Label>
           <Input
@@ -388,20 +379,14 @@ const AdminSettings = () => {
         <Button onClick={handleSaveWebhook} disabled={savingWebhook}>
           {savingWebhook ? "Saving…" : "Save Webhook URL"}
         </Button>
-      </div>
+      </AdminCard>
 
       {/* Feature Flags */}
-      <div className="max-w-lg rounded-ds-md liquid-glass p-6 space-y-4">
-        <div className="space-y-1">
-          <h3 className="font-display font-semibold text-foreground flex items-center gap-2">
-            <Flag className="w-4 h-4 text-primary" /> Feature Flags
-          </h3>
-          <p className="text-ds-11 text-muted-foreground">
-            Server-side toggles for major user-facing surfaces. Off-state
-            should always be a safe fallback (hide UI, no-op handlers).
-            Persists immediately when toggled.
-          </p>
-        </div>
+      <AdminCard
+        className="max-w-lg"
+        title={<span className="flex items-center gap-2"><Flag className="w-4 h-4 text-primary" /> Feature Flags</span>}
+        subtitle="Server-side toggles for major user-facing surfaces. Off-state should always be a safe fallback (hide UI, no-op handlers). Persists immediately when toggled."
+      >
         <div className="space-y-2.5">
           {KNOWN_FEATURE_FLAGS.map((flag) => {
             const value = !!featureFlags[flag.id];
@@ -428,22 +413,20 @@ const AdminSettings = () => {
             );
           })}
         </div>
-      </div>
+      </AdminCard>
 
       {/* Min Supported Build */}
-      <div className="max-w-md rounded-ds-md liquid-glass p-6 space-y-4">
-        <div className="space-y-1">
-          <h3 className="font-display font-semibold text-foreground flex items-center gap-2">
-            <Smartphone className="w-4 h-4 text-primary" /> Minimum Supported Build
-          </h3>
-          <p className="text-ds-11 text-muted-foreground">
-            Native binaries with a build code lower than this are forced
-            to update via the in-app ForceUpdate blocker. Set to{" "}
-            <code className="text-foreground">0</code> to disable the
-            check. Bumps take effect on the next app launch — no binary
-            release required.
-          </p>
-        </div>
+      <AdminCard
+        className="max-w-md"
+        title={<span className="flex items-center gap-2"><Smartphone className="w-4 h-4 text-primary" /> Minimum Supported Build</span>}
+        subtitle={
+          <>
+            Native binaries with a build code lower than this are forced to update via the in-app ForceUpdate
+            blocker. Set to <code className="text-foreground">0</code> to disable the check. Bumps take effect on
+            the next app launch — no binary release required.
+          </>
+        }
+      >
         <div className="flex items-end gap-2">
           <div className="flex-1 space-y-1.5">
             <Label htmlFor="minBuild">Build code</Label>
@@ -462,30 +445,28 @@ const AdminSettings = () => {
             {savingMinBuild ? "Saving…" : "Save"}
           </Button>
         </div>
-      </div>
+      </AdminCard>
 
       {/* Admin Management */}
-      <div className="max-w-lg space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-ds-20 font-display font-bold text-foreground flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-primary" /> Admin Users
-          </h3>
+      <AdminCard
+        className="max-w-lg"
+        title={<span className="flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-primary" /> Admin Users</span>}
+        subtitle={adminsLoading ? undefined : `${admins.length} ${admins.length === 1 ? "account holds" : "accounts hold"} the admin role`}
+        action={
           <Button size="sm" onClick={() => { setShowAddDialog(true); setSearchQuery(""); setSearchResults([]); }}>
             <UserPlus className="w-4 h-4 mr-1" /> Add Admin
           </Button>
-        </div>
-
+        }
+      >
         {adminsLoading ? (
           <p className="text-ds-11 text-muted-foreground">Loading admins…</p>
         ) : admins.length === 0 ? (
-          <div className="rounded-ds-md liquid-glass p-6 text-center">
-            <EmptyState
+          <EmptyState
             variant="inline"
             icon={Shield}
             title="No admins found"
             body="No accounts currently hold the admin role."
           />
-          </div>
         ) : (
           <div className="space-y-2">
             {admins.map((admin) => (
@@ -511,18 +492,20 @@ const AdminSettings = () => {
             ))}
           </div>
         )}
-      </div>
+      </AdminCard>
 
-      {/* How fees work */}
-      <div className="max-w-md rounded-ds-md liquid-glass p-6 space-y-3">
-        <h3 className="font-semibold text-foreground">How the split fee model works</h3>
+      {/* How fees work — the explainer for the read-only card at the top.
+          Every percentage below now comes from the tier ladder or from the
+          stored fallback; the "total platform take" row is gone because there
+          is no single such number: the take on a job is the poster's tier rate
+          plus the Helpr's tier rate, and those two are independent. */}
+      <AdminCard className="max-w-md" title="How the Fee Model Works">
         <ul className="text-ds-11 text-muted-foreground space-y-1.5 list-disc list-inside">
-          <li>Customer pays: job budget + their tier service fee ({FEE_LADDER_LABEL}; <strong className="text-foreground">{customerFee}%</strong> fallback) + sales tax, floored at Stripe's cost</li>
-          <li>Helpr receives: job budget − their tier platform fee (<strong className="text-foreground">{helperFee}%</strong> fallback) + urgent bonus</li>
-          <li>Platform keeps: service fee from customer + platform fee from Helpr</li>
-          <li>Total platform take: <strong className="text-foreground">{(parseFloat(customerFee) || 0) + (parseFloat(helperFee) || 0)}%</strong></li>
+          <li>Customer pays: job budget + their tier service fee ({FEE_LADDER_LABEL}; <strong className="text-foreground">{customerFee || "—"}%</strong> fallback) + sales tax, floored at Stripe's cost</li>
+          <li>Helpr receives: job budget − their tier commission (same ladder; <strong className="text-foreground">{helperFee || "—"}%</strong> fallback) + urgent bonus</li>
+          <li>Platform keeps: service fee from the customer + commission from the Helpr — both at each party's own tier rate, so the take differs job to job</li>
         </ul>
-      </div>
+      </AdminCard>
 
       {/* Add Admin Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
@@ -594,7 +577,7 @@ const AdminSettings = () => {
         }}
         secondaryLabel="Cancel"
       />
-    </div>
+    </AdminViewShell>
   );
 };
 

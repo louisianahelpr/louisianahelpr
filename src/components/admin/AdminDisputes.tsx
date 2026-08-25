@@ -19,6 +19,7 @@ import type {
   CategoryFilter,
 } from "./adminDisputes/types";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { AdminViewShell, AdminCard } from "./AdminViewShell";
 
 const AdminDisputes = () => {
   const [disputes, setDisputes] = useState<DisputedJob[]>([]);
@@ -389,7 +390,7 @@ const AdminDisputes = () => {
   const list = filteredList;
 
   return (
-    <div className="space-y-6">
+    <AdminViewShell>
       {/* Filter tabs — Open queue vs. Decided audit log. */}
       <div className="flex gap-1.5 border-b border-border">
         <button
@@ -418,9 +419,29 @@ const AdminDisputes = () => {
         </button>
       </div>
 
-      {/* Cross-cutting filters — only meaningful on the Open queue. */}
+      {/* Cross-cutting filters — only meaningful on the Open queue. Panelled so
+          the three chip groups read as one control block between the tabs and
+          the queue, rather than three stacks floating on the page. */}
       {filter === "open" && disputes.length > 0 && (
-        <div className="flex flex-col sm:flex-row gap-2 flex-wrap text-ds-11">
+        <AdminCard
+          title="Filters"
+          action={
+            (ageFilter !== "all" || partyFilter !== "all" || categoryFilter !== "all") ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setAgeFilter("all");
+                  setPartyFilter("all");
+                  setCategoryFilter("all");
+                }}
+                className="text-ds-11 text-primary hover:underline"
+              >
+                Reset Filters
+              </button>
+            ) : undefined
+          }
+          contentClassName="flex flex-col gap-2.5 text-ds-11"
+        >
           <FilterChipGroup
             label="Age"
             value={ageFilter}
@@ -452,56 +473,55 @@ const AdminDisputes = () => {
               ...Object.entries(CATEGORY_LABELS).map(([id, label]) => ({ id, label })),
             ]}
           />
-          {(ageFilter !== "all" || partyFilter !== "all" || categoryFilter !== "all") && (
-            <button
-              type="button"
-              onClick={() => {
-                setAgeFilter("all");
-                setPartyFilter("all");
-                setCategoryFilter("all");
-              }}
-              className="text-ds-11 text-primary hover:underline px-2 self-center"
-            >
-              Reset Filters
-            </button>
-          )}
-        </div>
+        </AdminCard>
       )}
 
-      {list.length === 0 ? (
-        <EmptyState
-          variant="inline"
-          icon={CheckCircle2}
-          title={filter === "open" ? "No active disputes" : "No decided disputes"}
-          body={
-            filter === "open"
-              ? "Nothing is contested right now."
-              : "Nothing has been decided in the last 50 jobs."
-          }
-        />
-      ) : (
-        list.map((job) => (
-          <DisputeCard
-            key={job.id}
-            job={job}
-            filter={filter}
-            disputeRecords={disputeRecords}
-            profiles={profiles}
-            tiers={tiers}
-            activePanelJobId={activePanelJobId}
-            resolving={resolving}
-            decisionText={decisionText}
-            helperShare={helperShare}
-            submittingDecision={submittingDecision}
-            openDecisionPanel={openDecisionPanel}
-            setConfirm={setConfirm}
-            setDecisionText={setDecisionText}
-            setHelperShare={setHelperShare}
-            setActivePanelJobId={setActivePanelJobId}
-            decide={decide}
+      <AdminCard
+        title={filter === "open" ? "Open Queue" : "Decided"}
+        subtitle={
+          list.length === 0
+            ? undefined
+            : `${list.length} ${list.length === 1 ? "dispute" : "disputes"}${
+                filter === "open" && list.length !== disputes.length ? ` of ${disputes.length} · filtered` : ""
+              }`
+        }
+        contentClassName="space-y-3"
+      >
+        {list.length === 0 ? (
+          <EmptyState
+            variant="inline"
+            icon={CheckCircle2}
+            title={filter === "open" ? "No active disputes" : "No decided disputes"}
+            body={
+              filter === "open"
+                ? "Nothing is contested right now."
+                : "Nothing has been decided in the last 50 jobs."
+            }
           />
-        ))
-      )}
+        ) : (
+          list.map((job) => (
+            <DisputeCard
+              key={job.id}
+              job={job}
+              filter={filter}
+              disputeRecords={disputeRecords}
+              profiles={profiles}
+              tiers={tiers}
+              activePanelJobId={activePanelJobId}
+              resolving={resolving}
+              decisionText={decisionText}
+              helperShare={helperShare}
+              submittingDecision={submittingDecision}
+              openDecisionPanel={openDecisionPanel}
+              setConfirm={setConfirm}
+              setDecisionText={setDecisionText}
+              setHelperShare={setHelperShare}
+              setActivePanelJobId={setActivePanelJobId}
+              decide={decide}
+            />
+          ))
+        )}
+      </AdminCard>
 
       <BrandConfirmDialog
         open={!!confirm}
@@ -530,7 +550,7 @@ const AdminDisputes = () => {
         }}
         secondaryLabel="Cancel"
       />
-    </div>
+    </AdminViewShell>
   );
 };
 

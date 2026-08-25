@@ -24,6 +24,7 @@ import { AdminUserRow } from "./adminusers/AdminUserRow";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { AdminViewShell, AdminCard } from "./AdminViewShell";
 
 // UUID v4-ish pattern. Loose enough to accept any 8-4-4-4-12 hex group;
 // strict enough that a plain email won't false-match.
@@ -253,7 +254,7 @@ const AdminUsers = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <AdminViewShell>
       {/* Scrolls rather than dividing the width six ways. With `flex-1` each
           tab got ~1/6 of 402pt and had to share that with a count badge, so
           "Active" rendered as "Acti…" — a filter that will not say what it
@@ -291,8 +292,9 @@ const AdminUsers = () => {
         onChange={() => loadProfiles()}
       />
 
-      {/* Search */}
-      <div className="flex flex-col sm:flex-row gap-2">
+      {/* Search — panelled as the view's filter block, so the page reads
+          header → filters → list like every other admin view. */}
+      <AdminCard title="Find a User" contentClassName="flex flex-col sm:flex-row gap-2">
         {/* A magnifier and a placeholder. It had neither — just an aria-label —
             so it rendered as a bare empty pill with no indication of what it
             searched or that it was a search field at all. */}
@@ -328,7 +330,7 @@ const AdminUsers = () => {
             )}
           </SelectContent>
         </Select>
-      </div>
+      </AdminCard>
 
       {isUuid && (
         <div className="rounded-ds-md border border-primary/40 bg-primary/5 p-3 flex items-center justify-between gap-3">
@@ -483,7 +485,7 @@ const AdminUsers = () => {
         onClose={() => setWarningProfile(null)}
         onSuccess={() => { loadProfiles(); setViewProfile(null); }}
       />
-    </div>
+    </AdminViewShell>
   );
 };
 

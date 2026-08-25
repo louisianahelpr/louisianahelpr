@@ -25,6 +25,8 @@ import { resolve } from "node:path";
  * managed to pass while seven tabs were off-shell.
  */
 const SHELL = "space-y-6";
+/** `AdminViewShell` IS `space-y-5 sm:space-y-6` — the same rhythm, named. */
+const SHELL_COMPONENT = "AdminViewShell";
 const ROOT = resolve(__dirname, "../../..");
 
 /** The components /admin renders as views, read out of the router itself. */
@@ -36,13 +38,21 @@ function adminViews(): string[] {
 }
 
 /** The wrapper on a component's MAIN render — the last top-level `return (`,
- *  not a loading or empty-state early return above it. */
+ *  not a loading or empty-state early return above it.
+ *
+ *  Returns the literal `"<AdminViewShell>"` for a view that has adopted the
+ *  component. That adoption is the END STATE this test was written to drive
+ *  toward, and without this branch it would have read as "not a plain <div>,
+ *  nothing to compare" and skipped — so the views that actually did the work
+ *  would be the only ones no longer covered. */
 function mainWrapper(name: string): string | null {
   const f = resolve(ROOT, `src/components/admin/${name}.tsx`);
   if (!existsSync(f)) return null;
   const src = readFileSync(f, "utf8");
-  const ms = [...src.matchAll(/return \(\s*\n\s*<div className="([^"]*)"/g)];
-  return ms.length ? ms[ms.length - 1][1] : null;
+  const ms = [...src.matchAll(/return \(\s*\n\s*<(?:div className="([^"]*)"|(AdminViewShell)[\s>])/g)];
+  if (!ms.length) return null;
+  const last = ms[ms.length - 1];
+  return last[2] ? SHELL_COMPONENT : last[1];
 }
 
 describe("Admin views share one shell", () => {
@@ -64,6 +74,7 @@ describe("Admin views share one shell", () => {
       // asserted here — it has a structural reason (a Fragment, an early
       // centred loading state) and there is nothing to compare.
       if (w === null) continue;
+      if (w === SHELL_COMPONENT) continue;
       if (!w.startsWith("space-y-")) continue;
       if (w !== SHELL) wrong.push(`${v}: "${w}"`);
     }

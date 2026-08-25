@@ -7,6 +7,7 @@ import { KpiCard, computeTrend } from "./KpiCard";
 import { PriorityAlert } from "./PriorityAlert";
 import { TaxReserveCard } from "./TaxReserveCard";
 import { DateRangeBar } from "./DateRangeBar";
+import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 
 interface DashboardHomeProps {
   stats: Stats;
@@ -31,13 +32,28 @@ export const DashboardHome = ({
 }: DashboardHomeProps) => {
   const v = (val: number | string) => statsLoading ? "—" : val;
   const hasAlerts = stats.pendingApprovals > 0 || stats.disputedJobs > 0 || stats.openReports > 0 || stats.supportTickets > 0;
+  // A SUM OF NULLS IS NOT ZERO PROFIT.
+  // `totalFees` adds up `jobs.platform_fee_amount + customer_fee_amount` across
+  // captured jobs, and both columns are nullable — `Number(null || 0)` folds an
+  // unwritten fee into the total as a zero. So a platform that has collected
+  // real money and recorded no fee on any of it renders "$0.00 Platform Profit"
+  // beside "$3295.00 Payments Collected", which is what prod showed on
+  // 2026-08-24 (all 23 captured jobs carry platform_fee_amount = NULL).
+  //
+  // Collected money with exactly zero recorded fee is not a business outcome,
+  // it is a missing write — so this tile says "unknown" instead of inventing a
+  // zero an operator might reconcile against. The same flag mutes the tax
+  // reserve, which is a percentage OF this number and inherits its falsehood.
+  const feesUnknown = !statsLoading && stats.totalRevenue > 0 && stats.totalFees === 0;
+  const feesUnknownHint =
+    "Money was collected but no platform fee is recorded on any captured job — jobs.platform_fee_amount was never written. This is a data gap, not $0 of profit.";
   const revenueTrend = computeTrend(stats.revenueInRange, stats.revenuePrev);
   const newUsersTrend = computeTrend(stats.newUsersInRange, stats.newUsersPrev);
   const completedTrend = computeTrend(stats.completedJobsInRange, stats.completedJobsPrev);
   const compareCopy = `vs ${prevLabel}`;
 
   return (
-    <div className="space-y-4 sm:space-y-5 w-full">
+    <AdminViewShell className="w-full">
       {/* Date range selector — top of the dashboard. Drives every
           range-sensitive tile (revenue, new users, completed jobs) and
           the sparklines under each. */}
@@ -63,9 +79,15 @@ export const DashboardHome = ({
             below. Inside the plate it reads as a control ON this dashboard
             rather than a stray bar between the nav and the content, and it
             reclaims the row it used to occupy on its own.
-            `items-start` so it aligns to the heading's cap-height, not to the
-            centre of a two-line greeting. */}
-        <div className="flex items-start justify-between gap-4">
+
+            BESIDE only from `sm` up. At 375 the four pills claimed ~200 of 343
+            available points and squeezed "Welcome back" into a two-line stack
+            with its subtitle broken across four, which is the exact cramp
+            AdminCard's stacked header exists to prevent — so this now follows
+            AdminCard's rule: column on a phone, row with the action on the
+            right from `sm`. `sm:items-start` so the picker aligns to the
+            heading's cap-height, not to the centre of a two-line greeting. */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
           <div className="min-w-0">
             <h1
               // font-display, like every other h1 in the product — admin no
@@ -148,11 +170,10 @@ export const DashboardHome = ({
 
       {/* Priority alerts */}
       {hasAlerts && (
-        <div className="space-y-2 sm:space-y-3">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-accent" />
-            <p className="text-ds-10 sm:text-ds-11 font-semibold text-foreground uppercase tracking-widest">Priority Alerts</p>
-          </div>
+        <AdminCard
+          title={<span className="flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-accent" /> Priority Alerts</span>}
+          subtitle="Queues with something waiting on you."
+        >
           <div className="grid sm:grid-cols-2 gap-2.5 sm:gap-3">
             {stats.pendingApprovals > 0 && (
               <PriorityAlert label="Pending Helpr approvals" count={stats.pendingApprovals} color="accent" onClick={() => onNavigate("people")} />
@@ -167,18 +188,24 @@ export const DashboardHome = ({
               <PriorityAlert label="Support tickets" count={stats.supportTickets} color="accent" onClick={() => onNavigate("support")} />
             )}
           </div>
-        </div>
+        </AdminCard>
       )}
 
       {/* Financial Health — full width */}
-      <div className="space-y-2 sm:space-y-3">
-        <p className="text-ds-10 sm:text-ds-11 font-semibold text-muted-foreground uppercase tracking-widest">Financial Health</p>
+      <AdminCard title="Financial Health" subtitle="All-time totals. Tap any tile for the breakdown in Analytics.">
         <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
           {/* Same figure, same name as Analytics — it was "Captured Revenue
               (all-time)" here and "Collected Revenue" there. And it is gross
               volume, not revenue: budget + poster fee, most of it owed out. */}
           <KpiCard label="Payments Collected (all-time)" value={v(`$${stats.totalRevenue.toFixed(2)}`)} icon={DollarSign} accent="primary" onClick={() => onNavigate("analytics")} />
-          <KpiCard label="Platform Profit" value={v(`$${stats.totalFees.toFixed(2)}`)} icon={TrendingUp} accent="primary" onClick={() => onNavigate("analytics")} />
+          <KpiCard
+            label={feesUnknown ? "Platform Profit (not recorded)" : "Platform Profit"}
+            value={feesUnknown ? "—" : v(`$${stats.totalFees.toFixed(2)}`)}
+            hint={feesUnknown ? feesUnknownHint : undefined}
+            icon={TrendingUp}
+            accent="primary"
+            onClick={() => onNavigate("analytics")}
+          />
           <KpiCard label="Active Subscriptions" value={v(stats.activeSubscriptions)} icon={Crown} accent="accent" onClick={() => onNavigate("subscriptions")} />
           <KpiCard
             label={`Completed Jobs (${rangeLabel})`}
@@ -194,18 +221,16 @@ export const DashboardHome = ({
             <KpiCard label="Late Cancel Revenue" value={v(`$${stats.lateCancellationRevenue.toFixed(2)}`)} icon={X} accent="destructive" onClick={() => onNavigate("analytics")} />
           )}
         </div>
-      </div>
+      </AdminCard>
 
       {/* Tax obligations — running reserve estimate so the platform-fee
           income tax never lands as an April surprise. */}
-      <div className="space-y-2 sm:space-y-3">
-        <p className="text-ds-10 sm:text-ds-11 font-semibold text-muted-foreground uppercase tracking-widest">Tax Obligations</p>
-        <TaxReserveCard
-          totalFees={stats.totalFees}
-          feesThisQuarter={stats.feesThisQuarter}
-          statsLoading={statsLoading}
-        />
-      </div>
-    </div>
+      <TaxReserveCard
+        totalFees={stats.totalFees}
+        feesThisQuarter={stats.feesThisQuarter}
+        statsLoading={statsLoading}
+        feesUnknown={feesUnknown}
+      />
+    </AdminViewShell>
   );
 };

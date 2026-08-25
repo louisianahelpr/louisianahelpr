@@ -34,10 +34,18 @@ export const TaxReserveCard = ({
   totalFees,
   feesThisQuarter,
   statsLoading,
+  feesUnknown,
 }: {
   totalFees: number;
   feesThisQuarter: number;
   statsLoading: boolean;
+  /** True when no captured job carries a recorded platform fee — see
+   *  DashboardHome. Every figure on this card is a percentage OF `totalFees`,
+   *  so it inherits that falsehood exactly: "$0 — 30% of $0 all-time platform
+   *  fees" reads as "you owe nothing" when the truth is "nobody wrote the fee
+   *  down". Reserving against an unknown is the one direction you cannot err
+   *  safely, so the card says so instead of quoting a number. */
+  feesUnknown?: boolean;
 }) => {
   const [rate, setRate] = useState(0.3);
 
@@ -71,7 +79,12 @@ export const TaxReserveCard = ({
           "radial-gradient(80% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.10) 0%, transparent 60%)",
       }}
     >
-      <div className="flex items-start justify-between gap-3">
+      {/* AdminCard's header rule, applied by hand because this plate keeps its
+          own gradient: column on a phone, title-beside-action from `sm` up. The
+          four rate pills claimed ~150 of 343 points at 375 and folded "Tax
+          reserve / Set aside for income tax — not a payment" into a six-line
+          ribbon down the left edge. */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
         <div className="flex items-center gap-2.5 min-w-0">
           <span className="w-9 h-9 sm:w-10 sm:h-10 rounded-ds-sm flex items-center justify-center bg-accent/10 text-accent shrink-0">
             <Landmark className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -110,12 +123,25 @@ export const TaxReserveCard = ({
 
       {/* Big all-time reserve figure */}
       <div>
-        <p className="text-ds-24 sm:text-ds-28 font-bold tabular-nums leading-none" style={{ color: "hsl(var(--ink-deep))" }}>
-          {statsLoading ? "—" : money(reserveAllTime)}
+        <p
+          className="text-ds-24 sm:text-ds-28 font-bold tabular-nums leading-none"
+          style={{ color: "hsl(var(--ink-deep))" }}
+          title={feesUnknown ? "No platform fee is recorded on any captured job, so there is no fee base to reserve against." : undefined}
+        >
+          {statsLoading || feesUnknown ? "—" : money(reserveAllTime)}
         </p>
-        <p className="text-ds-11 text-muted-foreground mt-1 leading-snug">
-          {Math.round(rate * 100)}% of {statsLoading ? "—" : money(totalFees)} all-time platform fees.
-          A conservative estimate on gross revenue — actual tax owed is lower after expenses.
+        <p className="text-ds-11 mt-1 leading-snug" style={feesUnknown ? { color: "hsl(var(--amber-ink))" } : undefined}>
+          {feesUnknown ? (
+            <>
+              No platform fee is recorded on any captured job, so there is no fee base to reserve against.
+              Reconcile the fee columns before trusting a reserve figure.
+            </>
+          ) : (
+            <span className="text-muted-foreground">
+              {Math.round(rate * 100)}% of {statsLoading ? "—" : money(totalFees)} all-time platform fees.
+              A conservative estimate on gross revenue — actual tax owed is lower after expenses.
+            </span>
+          )}
         </p>
       </div>
 
@@ -124,10 +150,10 @@ export const TaxReserveCard = ({
         <div>
           <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-widest">This quarter</p>
           <p className="text-ds-15 font-bold tabular-nums mt-0.5" style={{ color: "hsl(var(--ink-deep))" }}>
-            {statsLoading ? "—" : money(reserveThisQuarter)}
+            {statsLoading || feesUnknown ? "—" : money(reserveThisQuarter)}
           </p>
           <p className="text-ds-10 text-muted-foreground leading-tight">
-            on {statsLoading ? "—" : money(feesThisQuarter)} in fees
+            {feesUnknown ? "no recorded fees" : <>on {statsLoading ? "—" : money(feesThisQuarter)} in fees</>}
           </p>
         </div>
         <div>

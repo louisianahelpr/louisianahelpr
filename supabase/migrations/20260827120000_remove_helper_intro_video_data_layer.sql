@@ -84,30 +84,18 @@ COMMENT ON FUNCTION public.get_safe_profiles(uuid[]) IS
   'Public-safe profile fields for a set of user_ids or profile ids. Intro-video columns removed 2026-08-27.';
 
 -- ---------------------------------------------------------------------------
--- 2. Destroy the profile-videos storage bucket: objects first, then policies,
---    then the bucket row. Guarded so a from-scratch rebuild (where the bucket
---    may never have been created, or already removed) still succeeds.
+-- 2. The profile-videos storage bucket is deliberately NOT removed here.
+--    Supabase rejects direct DML against the storage schema from a migration
+--    ("Direct deletion from storage tables is not allowed. Use the Storage API
+--    instead." SQLSTATE 42501), which failed this whole migration on its first
+--    deploy and rolled back the column drops below with it.
+--
+--    Leaving the bucket is harmless: it holds zero objects, and with the
+--    upload UI and the columns gone nothing can ever write to it again. Its
+--    four RLS policies are likewise inert — they scope access to a bucket no
+--    code addresses. If the bucket itself is ever worth reclaiming, it has to
+--    be deleted through the Storage API or the dashboard, not from SQL.
 -- ---------------------------------------------------------------------------
-DO $$
-BEGIN
-  IF to_regclass('storage.objects') IS NOT NULL THEN
-    DELETE FROM storage.objects WHERE bucket_id = 'profile-videos';
-  END IF;
-END
-$$;
-
-DROP POLICY IF EXISTS "profile-videos: public read"   ON storage.objects;
-DROP POLICY IF EXISTS "profile-videos: owner upload"  ON storage.objects;
-DROP POLICY IF EXISTS "profile-videos: owner update"  ON storage.objects;
-DROP POLICY IF EXISTS "profile-videos: owner delete"  ON storage.objects;
-
-DO $$
-BEGIN
-  IF to_regclass('storage.buckets') IS NOT NULL THEN
-    DELETE FROM storage.buckets WHERE id = 'profile-videos';
-  END IF;
-END
-$$;
 
 -- ---------------------------------------------------------------------------
 -- 3. Drop the columns. Nothing else references them (see audit above).

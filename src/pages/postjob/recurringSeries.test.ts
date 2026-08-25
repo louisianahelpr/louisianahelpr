@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { describe, it, expect } from "vitest";
@@ -73,11 +73,14 @@ describe("recurring series wiring", () => {
     expect(src).toMatch(/isRecurring && recurrenceDays\.length === 0/);
   });
 
-  it("keeps the old unfunded spawn cron disabled", () => {
-    // charge-recurring-visits supersedes it. If this ever flips back on, both
-    // would post visits for the same series and only one of them pays.
-    const src = read("../../../supabase/functions/spawn-recurring-jobs/index.ts");
-    expect(src).toMatch(/const SPAWNING_ENABLED = false/);
+  it("keeps the old unfunded spawn cron gone", () => {
+    // charge-recurring-visits supersedes it. The function was removed outright
+    // in f29ebfbe0; if a file ever reappears at this path, both crons would
+    // post visits for the same series and only one of them pays — so its
+    // absence is the guarantee this test pins.
+    expect(
+      existsSync(resolve(__dirname, "../../../supabase/functions/spawn-recurring-jobs")),
+    ).toBe(false);
   });
 
   it("creates the visit only AFTER the charge succeeds", () => {

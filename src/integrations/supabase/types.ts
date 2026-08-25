@@ -1961,6 +1961,7 @@ export type Database = {
           is_flexible_schedule: boolean
           is_group_job: boolean | null
           is_recurring: boolean | null
+          is_seed: boolean
           is_urgent: boolean | null
           late_cancellation: boolean | null
           latitude: number | null
@@ -2073,6 +2074,7 @@ export type Database = {
           is_flexible_schedule?: boolean
           is_group_job?: boolean | null
           is_recurring?: boolean | null
+          is_seed?: boolean
           is_urgent?: boolean | null
           late_cancellation?: boolean | null
           latitude?: number | null
@@ -2185,6 +2187,7 @@ export type Database = {
           is_flexible_schedule?: boolean
           is_group_job?: boolean | null
           is_recurring?: boolean | null
+          is_seed?: boolean
           is_urgent?: boolean | null
           late_cancellation?: boolean | null
           latitude?: number | null
@@ -3273,6 +3276,7 @@ export type Database = {
           is_insured: boolean
           is_legacy_user: boolean
           is_licensed: boolean
+          is_seed: boolean
           job_radius: string | null
           last_approval_email_at: string | null
           last_denial_email_at: string | null
@@ -3363,6 +3367,7 @@ export type Database = {
           is_insured?: boolean
           is_legacy_user?: boolean
           is_licensed?: boolean
+          is_seed?: boolean
           job_radius?: string | null
           last_approval_email_at?: string | null
           last_denial_email_at?: string | null
@@ -3453,6 +3458,7 @@ export type Database = {
           is_insured?: boolean
           is_legacy_user?: boolean
           is_licensed?: boolean
+          is_seed?: boolean
           job_radius?: string | null
           last_approval_email_at?: string | null
           last_denial_email_at?: string | null
@@ -5154,6 +5160,10 @@ export type Database = {
         Args: { p_description: string; p_helper: string; p_job: string }
         Returns: Json
       }
+      apply_message_violation_consequence: {
+        Args: { p_content: string; p_description: string }
+        Returns: Json
+      }
       apply_to_job: {
         Args: { p_job_id: string; p_message: string; p_proposed_price?: number }
         Returns: string
@@ -5774,6 +5784,7 @@ export type Database = {
         Args: { p_viewed_user_id: string }
         Returns: boolean
       }
+      redact_audit_snapshot: { Args: { p_row: Json }; Returns: Json }
       redeem_pif_credit: {
         Args: { p_credit_id: string; p_job_id: string; p_user_id: string }
         Returns: Json
@@ -5844,6 +5855,7 @@ export type Database = {
         Args: { _applicant_id: string }
         Returns: undefined
       }
+      rpc_withdraw_dispute: { Args: { _job_id: string }; Returns: undefined }
       set_available_now: { Args: { p_hours?: number }; Returns: string }
       set_thread_snooze: {
         Args: { _job_id: string; _other_user_id: string; _until: string }

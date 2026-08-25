@@ -234,41 +234,41 @@ const Admin = () => {
       activeJobsInRangeRows,
       quarterRes,
     ] = await Promise.all([
-      supabase.from("profiles").select("id", { count: "exact", head: true }),
-      supabase.from("profiles").select("id", { count: "exact", head: true }).eq("approval_status", "pending").eq("email_verified", true),
+      supabase.from("profiles").select("id", { count: "exact", head: true }).eq("is_seed", false),
+      supabase.from("profiles").select("id", { count: "exact", head: true }).eq("approval_status", "pending").eq("email_verified", true).eq("is_seed", false),
       supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "pending").neq("reported_type", "support"),
       supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "pending").eq("reported_type", "support"),
-      supabase.from("jobs").select("id", { count: "exact", head: true }).in("status", ["open", "accepted", "in_progress"]),
-      supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "completed"),
-      supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "disputed"),
-      supabase.from("jobs").select("budget, platform_fee_amount, customer_fee_amount").in("payment_status", ["escrow", "payout_pending", "released"]).neq("status", "cancelled"),
-      supabase.from("profiles").select("id", { count: "exact", head: true }).not("subscription_tier", "is", null),
-      supabase.from("jobs").select("budget, platform_fee_amount, customer_fee_amount, cancellation_fee").eq("status", "cancelled").in("payment_status", ["refunded", "cancelled", "escrow", "payout_pending", "released"]),
+      supabase.from("jobs").select("id", { count: "exact", head: true }).in("status", ["open", "accepted", "in_progress"]).eq("is_seed", false),
+      supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "completed").eq("is_seed", false),
+      supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "disputed").eq("is_seed", false),
+      supabase.from("jobs").select("budget, platform_fee_amount, customer_fee_amount").in("payment_status", ["escrow", "payout_pending", "released"]).neq("status", "cancelled").eq("is_seed", false),
+      supabase.from("profiles").select("id", { count: "exact", head: true }).not("subscription_tier", "is", null).eq("is_seed", false),
+      supabase.from("jobs").select("budget, platform_fee_amount, customer_fee_amount, cancellation_fee").eq("status", "cancelled").in("payment_status", ["refunded", "cancelled", "escrow", "payout_pending", "released"]).eq("is_seed", false),
       // New users by created_at — rows so we can bucket into a sparkline.
-      supabase.from("profiles").select("created_at").gte("created_at", dStart),
-      supabase.from("profiles").select("created_at").gte("created_at", dPrevStart).lt("created_at", dStart),
+      supabase.from("profiles").select("created_at").gte("created_at", dStart).eq("is_seed", false),
+      supabase.from("profiles").select("created_at").gte("created_at", dPrevStart).lt("created_at", dStart).eq("is_seed", false),
       // Revenue rows in current window
       supabase.from("jobs").select("platform_fee_amount, customer_fee_amount, updated_at")
         .in("payment_status", ["escrow", "payout_pending", "released"])
         .neq("status", "cancelled")
-        .gte("updated_at", dStart),
+        .gte("updated_at", dStart).eq("is_seed", false),
       // Revenue rows in previous window
       supabase.from("jobs").select("platform_fee_amount, customer_fee_amount, updated_at")
         .in("payment_status", ["escrow", "payout_pending", "released"])
         .neq("status", "cancelled")
-        .gte("updated_at", dPrevStart).lt("updated_at", dStart),
+        .gte("updated_at", dPrevStart).lt("updated_at", dStart).eq("is_seed", false),
       // Completed jobs in current window
-      supabase.from("jobs").select("updated_at").eq("status", "completed").gte("updated_at", dStart),
+      supabase.from("jobs").select("updated_at").eq("status", "completed").gte("updated_at", dStart).eq("is_seed", false),
       // Completed jobs in previous window
-      supabase.from("jobs").select("updated_at").eq("status", "completed").gte("updated_at", dPrevStart).lt("updated_at", dStart),
+      supabase.from("jobs").select("updated_at").eq("status", "completed").gte("updated_at", dPrevStart).lt("updated_at", dStart).eq("is_seed", false),
       // Active-job creation pulse for sparkline (created_at within window)
-      supabase.from("jobs").select("created_at").in("status", ["open", "accepted", "in_progress"]).gte("created_at", dStart),
+      supabase.from("jobs").select("created_at").in("status", ["open", "accepted", "in_progress"]).gte("created_at", dStart).eq("is_seed", false),
       // Platform-fee revenue accrued this calendar quarter — feeds the
       // tax-reserve tracker's "this quarter" figure.
       supabase.from("jobs").select("platform_fee_amount, customer_fee_amount, updated_at")
         .in("payment_status", ["escrow", "payout_pending", "released"])
         .neq("status", "cancelled")
-        .gte("updated_at", quarterStart),
+        .gte("updated_at", quarterStart).eq("is_seed", false),
     ]);
 
     // Surface any failed query instead of silently rendering a misleading

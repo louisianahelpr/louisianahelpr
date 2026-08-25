@@ -73,7 +73,7 @@ const AdminAnalytics = () => {
       let page = 0;
       const PAGE_SIZE = 999;
       while (true) {
-        const { data, error } = await supabase.from("jobs").select("*").range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+        const { data, error } = await supabase.from("jobs").select("*").eq("is_seed", false).range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
         if (error) {
           report(error, { tags: { source: "AdminAnalytics.loadJobs" } });
           break;
@@ -85,7 +85,7 @@ const AdminAnalytics = () => {
       }
 
       const [profilesRes, tipsRes, rolesRes, transfersRes] = await Promise.all([
-        supabase.from("profiles").select("*"),
+        supabase.from("profiles").select("*").eq("is_seed", false),
         supabase.from("tips").select("*"),
         supabase.from("user_roles").select("user_id, role"),
         // THE LEDGER. "Helpr Payouts" used to be recomputed from job budgets
@@ -220,18 +220,18 @@ const AdminAnalytics = () => {
     setDrillDown(type);
     setDrillLoading(true);
     if (type === "users") {
-      const { data, error } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
+      const { data, error } = await supabase.from("profiles").select("*").eq("is_seed", false).order("created_at", { ascending: false });
       if (error) report(error, { tags: { source: "AdminAnalytics.drillDownUsers" } });
       setDrillUsers(data || []);
     } else if (type === "jobs" || type === "revenue" || type === "fees" || type === "payouts") {
-      const query = supabase.from("jobs").select("*").order("created_at", { ascending: false });
+      const query = supabase.from("jobs").select("*").eq("is_seed", false).order("created_at", { ascending: false });
       if (type === "revenue" || type === "fees") query.in("payment_status", ["escrow", "payout_pending", "released"]);
       if (type === "payouts") query.in("payment_status", ["escrow", "payout_pending", "released"]);
       const { data, error } = await query;
       if (error) report(error, { tags: { source: "AdminAnalytics.drillDownJobs" } });
       setDrillJobs(data || []);
     } else if (type === "subscriptions") {
-      const { data, error } = await supabase.from("profiles").select("*").not("subscription_tier", "is", null).order("subscription_tier");
+      const { data, error } = await supabase.from("profiles").select("*").eq("is_seed", false).not("subscription_tier", "is", null).order("subscription_tier");
       if (error) report(error, { tags: { source: "AdminAnalytics.drillDownSubscriptions" } });
       setDrillUsers(data || []);
     }

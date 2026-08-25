@@ -49,6 +49,7 @@ type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" |
 
 import { safeStorage } from "@/lib/safeStorage";
 import { adminNavGroups } from "@/components/admin/adminNavGroups";
+import { AdminCommandPalette } from "@/components/admin/AdminCommandPalette";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 
 const SEEN_KEY_PREFIX = "admin_seen_";
@@ -508,6 +509,11 @@ const Admin = () => {
           <main
             className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8 pb-[calc(2rem_+_var(--safe-area-bottom,0px))]"
           >
+            {/* Mounted once, inside admin only: the shortcut should not exist
+                on the rest of the app, where there are no sections to jump
+                between. It routes through handleViewChange so a jump behaves
+                exactly like a rail click — same seen-marking, same URL write. */}
+            <AdminCommandPalette onSelect={handleViewChange} />
             {view !== "home" && (
               <AdminSectionHeader title={viewLabels[view]} onBack={() => handleViewChange("home")} />
             )}

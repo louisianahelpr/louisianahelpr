@@ -1,5 +1,11 @@
 -- is_seed — mark fixture/test rows so admin aggregates can exclude them.
 --
+-- Timestamped 184500, not 183000: a parallel session created
+-- 20260825183000_message_violation_ladder_human_review.sql with the identical
+-- prefix. Git merged both, theirs registered the version first, and this file
+-- then failed `db push` on schema_migrations_pkey — which blocked EVERY
+-- subsequent migration in the queue, not just this one.
+--
 -- WHY: the 2026-08-25 audit measured production and found it is mostly a test
 -- database — 54 of 58 `jobs` and 20 of 23 `profiles` are fixtures or clearly
 -- marked audit accounts. Every admin money figure counts them: "Payments

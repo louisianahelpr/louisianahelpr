@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { report } from "@/lib/errorLogger";
 
 /**
  * Loads Apple's MapKit JS (the same SDK that powers maps.apple.com)
@@ -58,6 +59,11 @@ const AUTH_CONFIRM_TIMEOUT_MS = 5_000;
  *  the map, and the fallback is a fully working token. */
 const SERVER_TOKEN_TIMEOUT_MS = 3_000;
 
+// Reported ONCE per session, not per call: MapKit re-invokes the authorization
+// callback on every refresh, so an unconditional report would flood Sentry
+// with the same misconfiguration.
+let serverTokenFailureReported = false;
+
 let cachedStatus: MapKitStatus = "idle";
 let pending: Promise<MapKitStatus> | null = null;
 
@@ -81,6 +87,15 @@ function getBuildTimeToken(): string | undefined {
  * that outruns the timeout — so the caller falls back to the build-time token
  * and maps keep working exactly as they do today. That fallback is what makes
  * this safe to deploy before the Apple secrets are set.
+ *
+ * VERIFIED 2026-08-25, production: this endpoint answers
+ * `503 {"error":"not_configured"}` — APPLE_MAPKIT_PRIVATE_KEY / _KEY_ID /
+ * _TEAM_ID were never set. So the origin-locked path has never actually run,
+ * and every map in production is served by the UNRESTRICTED build-time token
+ * that this function exists to replace. The failure was silent (a bare
+ * `return null`), which is why it survived this long — it now reports once per
+ * session so the inert hardening is visible in monitoring instead of only in
+ * a console warning MapKit happens to print.
  */
 async function fetchServerToken(): Promise<string | null> {
   const env = (import.meta as { env?: Record<string, string | undefined> }).env;
@@ -99,12 +114,31 @@ async function fetchServerToken(): Promise<string | null> {
       signal: controller.signal,
     }).finally(() => clearTimeout(timer));
 
-    if (!res.ok) return null;
+    if (!res.ok) {
+      reportServerTokenFailure(`mapkit-token responded ${res.status}`);
+      return null;
+    }
     const body = (await res.json()) as { token?: string };
-    return typeof body.token === "string" && body.token ? body.token : null;
-  } catch {
+    if (typeof body.token === "string" && body.token) return body.token;
+    reportServerTokenFailure("mapkit-token returned no token");
+    return null;
+  } catch (e) {
+    reportServerTokenFailure(e instanceof Error ? e.message : "mapkit-token request failed");
     return null;
   }
+}
+
+/**
+ * Surface the fallback-to-unrestricted-token condition exactly once. Silent
+ * degradation is the whole reason a permanent misconfiguration looked like a
+ * working feature for months.
+ */
+function reportServerTokenFailure(reason: string) {
+  if (serverTokenFailureReported) return;
+  serverTokenFailureReported = true;
+  report(new Error(`MapKit falling back to the unrestricted build-time token: ${reason}`), {
+    tags: { source: "useMapKitJs.fetchServerToken" },
+  });
 }
 
 /**

@@ -48,6 +48,12 @@ function walk(dir: string, out: string[] = []): string[] {
 const PROFILES_SELECT = /\.from\(\s*["']profiles["']\s*\)[\s\S]{0,200}?\.select\(\s*["']([^"']*)["']/g;
 
 describe("dropped-column guard", () => {
+  // 30s, not the 5s default. This walks every .ts/.tsx under src/ and
+  // supabase/functions and reads each one synchronously — fast alone (~700ms)
+  // but it competes with 184 other suites for the same disk, and it timed out
+  // twice during the 2026-08-25 audit while passing instantly in isolation.
+  // A source-scan guard that fails only under load reads as flake and gets
+  // ignored, which would quietly retire the guard.
   it("no source file selects `role` from `profiles` — the column was dropped in 2026-05", () => {
     const offenders: string[] = [];
     for (const root of ROOTS) {
@@ -64,5 +70,5 @@ describe("dropped-column guard", () => {
       offenders,
       `profiles.role no longer exists; PostgREST 400s the whole select. Use user_roles for admin checks.\n${offenders.join("\n")}`,
     ).toEqual([]);
-  });
+  }, 30_000);
 });

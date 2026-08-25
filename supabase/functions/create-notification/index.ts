@@ -96,17 +96,57 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Authorization: a regular user may only create notifications for themselves.
-    // Admins may target any user (e.g. system-wide announcements). Without this
-    // check, any signed-up user could POST {user_id: <anyone>, ...} and spoof
-    // a notification branded as Helpr to any other user.
+    // Authorization: a regular user may notify themselves, an admin may target
+    // anyone (system-wide announcements) — and, since 2026-08-25, a user may
+    // notify the OTHER PARTY of a job they share. The original self-or-admin
+    // rule (anti-spoofing: any signed-up user could POST {user_id: <anyone>}
+    // and brand a fake Helpr notification) silently 403'd EVERY client-driven
+    // lifecycle notification — offer, revision, dispute, cancellation, on-my-way
+    // (~17 call sites route through createNotification with the counterparty's
+    // id), and the callers report-but-swallow the failure. The job-party rule
+    // below restores those while still refusing strangers: the caller and the
+    // target must share a job (either side of customer/helper), or one must
+    // have an application on the other's job (covers offer/decline notices to
+    // applicants who aren't assigned yet).
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
     if (user_id !== user.id) {
+      // user.id comes from the verified JWT; user_id is caller-supplied, so
+      // pin it to a UUID before it goes anywhere near a query filter string.
+      const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!UUID_RE.test(String(user_id))) {
+        return new Response(JSON.stringify({ error: "Invalid user_id" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       const { data: isAdmin, error: roleErr } = await adminClient.rpc("has_role", {
         _user_id: user.id,
         _role: "admin",
       });
-      if (roleErr || !isAdmin) {
+      let allowed = !roleErr && !!isAdmin;
+      if (!allowed) {
+        const { count: sharedJobs } = await adminClient
+          .from("jobs")
+          .select("id", { count: "exact", head: true })
+          .or(
+            `and(customer_id.eq.${user.id},helper_id.eq.${user_id}),and(customer_id.eq.${user_id},helper_id.eq.${user.id})`,
+          );
+        allowed = (sharedJobs ?? 0) > 0;
+      }
+      if (!allowed) {
+        const { count: theirAppOnMyJob } = await adminClient
+          .from("applications")
+          .select("id, jobs!inner(customer_id)", { count: "exact", head: true })
+          .eq("helper_id", user_id)
+          .eq("jobs.customer_id", user.id);
+        const { count: myAppOnTheirJob } = await adminClient
+          .from("applications")
+          .select("id, jobs!inner(customer_id)", { count: "exact", head: true })
+          .eq("helper_id", user.id)
+          .eq("jobs.customer_id", user_id);
+        allowed = (theirAppOnMyJob ?? 0) > 0 || (myAppOnTheirJob ?? 0) > 0;
+      }
+      if (!allowed) {
         return new Response(JSON.stringify({ error: "Forbidden" }), {
           status: 403,
           headers: { ...corsHeaders, "Content-Type": "application/json" },

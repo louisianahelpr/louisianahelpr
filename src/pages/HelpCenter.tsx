@@ -64,15 +64,15 @@ const TopicSection = ({
   section: { topic: string; items: Array<{ q: string; a: string }> };
   accent: string;
 }) => {
-  // Open by default on md+ (owner, 2026-08-24: seven collapsed category
-  // headers filled a 1440px screen with zero actual answers — "info is low").
-  // The desktop has the room to show the questions; the phone keeps the
-  // collapsed accordion, where seven open sections WOULD be a wall. Media
-  // query read once at mount — the md boundary is not something a session
-  // crosses outside of devtools.
-  const [manualOpen, setManualOpen] = useState<boolean>(
-    () => typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches,
-  );
+  // Collapsed by default at EVERY width (owner, 2026-08-25: "the tabs in help
+  // center also should open as expanded. They should be collapsed").
+  // This reverses the 2026-08-24 md+ auto-expand, which was trying to solve a
+  // different problem — a desktop screen of nothing but category headers. The
+  // answer to that is the spacing and the topic cards above, not seven
+  // sections open at once: expanded-by-default made the page a wall of text
+  // you had to scroll past to find the one question you came for, and it is
+  // what pushed the real content so far below the title.
+  const [manualOpen, setManualOpen] = useState<boolean>(false);
   const open = manualOpen;
   return (
     <div
@@ -200,7 +200,13 @@ const HelpCenter = () => {
         // this padding separated the title from nothing and left 45px of
         // dead air under "Help Center". The md+ editorial spacing is
         // unchanged, because there the lede really is there.
-        className="px-5 sm:px-8 lg:px-12 pt-0 md:pt-16 lg:pt-24 pb-8 scroll-mt-24"
+        /* pt-16/pt-24 was hero breathing room from when this section opened
+           the page. It now sits directly under the PageHeader title row,
+           which brings its own margin, so the two stacked into ~190px of
+           empty band between "Help Center" and the first answer (owner,
+           2026-08-25: "a lot of space from the title of help center to the
+           actual info"). Kept a rhythm step, dropped the hero gap. */
+        className="px-5 sm:px-8 lg:px-12 pt-0 md:pt-6 lg:pt-8 pb-8 scroll-mt-24"
       >
         <div className="mx-auto page-measure grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-10 lg:gap-16">
           {/* Left column — masthead. Same two-presentation h2 as the Topics

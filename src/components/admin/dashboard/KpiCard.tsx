@@ -11,7 +11,7 @@ export const computeTrend = (current: number, previous: number): { pct: number; 
   return { pct: Math.abs(pct), up: pct >= 0 };
 };
 
-export const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick, sparkline, compareLabel }: {
+export const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick, sparkline, compareLabel, hint }: {
   label: string;
   value: string | number;
   icon: React.ElementType;
@@ -20,6 +20,8 @@ export const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick, spar
   onClick?: () => void;
   sparkline?: number[];
   compareLabel?: string;
+  /** Native tooltip on the tile — carries the WHY behind an em-dash value. */
+  hint?: string;
 }) => {
   // Icon tint mirrors the metric color. Note: `accent` uses `text-accent`
   // (burnt sienna), NOT `text-accent-foreground` (which is white and was
@@ -33,7 +35,13 @@ export const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick, spar
   return (
     <button
       onClick={onClick}
-      className="rounded-ds-md liquid-glass p-3 sm:p-4 text-left hover:border-primary/30 hover:shadow-md transition-all group w-full"
+      title={hint}
+      // `overflow-hidden` is load-bearing, not tidiness: KpiSparkline bleeds
+      // itself past the card padding with `-mx-1` so the trend line reaches the
+      // tile's edges, and without a clip the stroke drew straight out through
+      // the rounded corner — visible on the New Users tile at both 375 and 1440.
+      // Clipping it AT the radius is what makes the bleed read as deliberate.
+      className="rounded-ds-md liquid-glass overflow-hidden p-3 sm:p-4 text-left hover:border-primary/30 hover:shadow-md transition-all group w-full"
     >
       <div className="flex items-center justify-between mb-1.5 sm:mb-2">
         <div className={cn("w-8 h-8 sm:w-9 sm:h-9 rounded-ds-sm flex items-center justify-center", accentClasses)}>

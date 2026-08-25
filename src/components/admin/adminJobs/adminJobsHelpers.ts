@@ -13,6 +13,30 @@ export const saveResolvedFlags = (set: Set<string>) => {
   safeStorage.setItem(RESOLVED_FLAGS_KEY, JSON.stringify([...set]));
 };
 
+/**
+ * The one auto-flag that is a STALENESS signal rather than a moderation
+ * concern. Everything else in `detectFlags` is a reason to look at a human's
+ * behaviour — spam keywords, a phone number in the description, a budget that
+ * makes no sense. "Date needed is in the past" just means the calendar moved.
+ *
+ * It is also, by a wide margin, the most common flag: on prod every one of the
+ * 20 jobs in the queue carried it and nothing else, so the moderation list
+ * rendered twenty identical red banners down the page. Twenty alarms that are
+ * all the same alarm is not twenty alarms, it is wallpaper — and it buried the
+ * one card that had a real flag on it. Split out here so the list can render it
+ * as a quiet amber note, keep the destructive treatment for actual moderation
+ * flags, and sort staleness-only rows to the bottom.
+ */
+export const STALE_DATE_FLAG = "Date needed is in the past";
+
+/** Moderation flags only — the staleness signal removed. */
+export const moderationFlags = (flags: string[] | undefined): string[] =>
+  (flags ?? []).filter((f) => f !== STALE_DATE_FLAG);
+
+/** True when the only thing wrong with this job is that its date has passed. */
+export const isStaleOnly = (flags: string[] | undefined): boolean =>
+  !!flags?.includes(STALE_DATE_FLAG) && moderationFlags(flags).length === 0;
+
 // ─── Auto-flag logic ──────────────────────────────────────
 export function detectFlags(job: Job): string[] {
   const flags: string[] = [];
@@ -58,7 +82,7 @@ export function detectFlags(job: Job): string[] {
   // same-day job as overdue. Eight active jobs dated today on prod, zero
   // actually past.
   if (isPastDue(job.date_needed)) {
-    flags.push("Date needed is in the past");
+    flags.push(STALE_DATE_FLAG);
   }
 
   return flags;

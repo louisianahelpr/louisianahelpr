@@ -7,7 +7,8 @@ import { Flag, CheckCircle2, Briefcase } from "lucide-react";
 import { logAdminAction } from "@/lib/adminAudit";
 import { toast } from "sonner";
 import type { Job } from "./adminJobs/types";
-import { detectFlags, getResolvedFlags, saveResolvedFlags } from "./adminJobs/adminJobsHelpers";
+import { detectFlags, getResolvedFlags, saveResolvedFlags, isStaleOnly } from "./adminJobs/adminJobsHelpers";
+import { AdminViewShell, AdminCard, AdminFilterStrip } from "./AdminViewShell";
 import { JobListItem } from "./adminJobs/JobListItem";
 import { JobDetailDialog } from "./adminJobs/JobDetailDialog";
 import { RemoveJobDialog } from "./adminJobs/RemoveJobDialog";
@@ -269,44 +270,62 @@ const AdminJobs = () => {
   const flaggedIds = [...jobFlags.keys()].filter((id) => !resolvedFlags.has(id));
   const flaggedCount = flaggedIds.length;
   const resolvedCount = [...jobFlags.keys()].filter((id) => resolvedFlags.has(id)).length;
-  const filteredJobs =
+  const baseJobs =
     filter === "flagged"
       ? jobs.filter((j) => jobFlags.has(j.id) && !resolvedFlags.has(j.id))
       : filter === "resolved"
       ? jobs.filter((j) => jobFlags.has(j.id) && resolvedFlags.has(j.id))
       : jobs;
+  // Staleness-only rows sink to the bottom. A passed date is the commonest flag
+  // by far and the least actionable one — leaving it interleaved by created_at
+  // buried the cards with real moderation flags among twenty that just needed a
+  // calendar. Stable within each group: the original created_at order survives.
+  const filteredJobs = [...baseJobs].sort((a, b) => {
+    const aStale = isStaleOnly(jobFlags.get(a.id)) ? 1 : 0;
+    const bStale = isStaleOnly(jobFlags.get(b.id)) ? 1 : 0;
+    return aStale - bStale;
+  });
+  const staleOnlyCount = filteredJobs.filter((j) => isStaleOnly(jobFlags.get(j.id))).length;
+
+  const FILTERS: { id: typeof filter; label: string; count: number; icon: typeof Flag }[] = [
+    { id: "flagged", label: "Flagged", count: flaggedCount, icon: Flag },
+    { id: "resolved", label: "Resolved", count: resolvedCount, icon: CheckCircle2 },
+    // "all" was already a valid filter value with no control to reach it, so
+    // the full job list was unreachable from this screen.
+    { id: "all", label: "All", count: jobs.length, icon: Briefcase },
+  ];
 
   if (loading) return <p className="text-muted-foreground">Loading jobs…</p>;
 
   return (
-    <div className="space-y-6">
-      {jobFlags.size > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant={filter === "flagged" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFilter("flagged")}
-              className="gap-1.5"
-            >
-              <Flag className="w-3.5 h-3.5" />
-              Flagged ({flaggedCount})
-            </Button>
-            <Button
-              variant={filter === "resolved" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFilter("resolved")}
-              className="gap-1.5"
-            >
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              Resolved ({resolvedCount})
-            </Button>
-          </div>
-        </div>
-      )}
+    <AdminViewShell>
+      <AdminFilterStrip label="Job filter">
+        {FILTERS.map((f) => (
+          <Button
+            key={f.id}
+            variant={filter === f.id ? "default" : "outline"}
+            size="sm"
+            onClick={() => setFilter(f.id)}
+            aria-pressed={filter === f.id}
+            className="gap-1.5 shrink-0"
+          >
+            <f.icon className="w-3.5 h-3.5" />
+            {f.label} ({f.count})
+          </Button>
+        ))}
+      </AdminFilterStrip>
 
-      <div className="space-y-3">
-
+      <AdminCard
+        title={filter === "flagged" ? "Flagged Jobs" : filter === "resolved" ? "Resolved Flags" : "All Jobs"}
+        subtitle={
+          filteredJobs.length === 0
+            ? undefined
+            : `${filteredJobs.length} ${filteredJobs.length === 1 ? "job" : "jobs"}${
+                staleOnlyCount > 0 ? ` · ${staleOnlyCount} stale-dated, sorted last` : ""
+              }`
+        }
+        contentClassName="space-y-3"
+      >
         {filteredJobs.map((job) => (
           <JobListItem
             key={job.id}
@@ -328,7 +347,7 @@ const AdminJobs = () => {
             }
           />
         )}
-      </div>
+      </AdminCard>
 
       {/* Job Detail Dialog */}
       <JobDetailDialog
@@ -391,7 +410,7 @@ const AdminJobs = () => {
         onCancel={() => { setOverrideOpen(false); setOverrideReason(""); }}
         onConfirm={handleStatusOverride}
       />
-    </div>
+    </AdminViewShell>
   );
 };
 

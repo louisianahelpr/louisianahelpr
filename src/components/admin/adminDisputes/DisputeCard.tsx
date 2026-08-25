@@ -53,7 +53,7 @@ export const DisputeCard = ({
   return (
     <div key={job.id} className="rounded-ds-md border border-destructive/30 bg-card p-4 space-y-3">
       <div className="flex items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="font-semibold text-foreground">{job.title}</h3>
             {filter === "open" && slaBadge(job.disputed_at)}
@@ -155,15 +155,22 @@ export const DisputeCard = ({
         )}
       </div>
 
+      {/* Three actions, one shape.
+          `flex-wrap` gave the primary its content width and the two secondaries
+          the full row each, so at 375 the most important control — the one that
+          opens the split panel — was a half-width stub labelled "Decide…" above
+          two full-width buttons, reading as the least important of the three.
+          Now all three are full-width and stacked on a phone and share one row
+          from `sm` up, with the primary named for what it opens. */}
       {filter === "open" && !isActivePanel && (
-        <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
-          <Button size="sm" onClick={() => openDecisionPanel(job)}>
-            <Scale className="w-4 h-4 mr-1" /> Decide…
+        <div className="flex flex-col gap-2 pt-2 border-t border-border sm:flex-row sm:flex-wrap">
+          <Button size="sm" className="w-full sm:w-auto" onClick={() => openDecisionPanel(job)}>
+            <Scale className="w-4 h-4 mr-1" /> Decide Outcome…
           </Button>
-          <Button size="sm" variant="outline" onClick={() => setConfirm({ job, action: "release" })} disabled={resolving === job.id}>
+          <Button size="sm" variant="outline" className="w-full sm:w-auto" onClick={() => setConfirm({ job, action: "release" })} disabled={resolving === job.id}>
             <CheckCircle2 className="w-4 h-4 mr-1" /> Quick: Release to Helpr
           </Button>
-          <Button size="sm" variant="outline" className="text-destructive" onClick={() => setConfirm({ job, action: "refund" })} disabled={resolving === job.id}>
+          <Button size="sm" variant="outline" className="w-full sm:w-auto text-destructive" onClick={() => setConfirm({ job, action: "refund" })} disabled={resolving === job.id}>
             <XCircle className="w-4 h-4 mr-1" /> Quick: Refund Customer
           </Button>
         </div>
@@ -220,10 +227,13 @@ export const DisputeCard = ({
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          {/* Same shape rule as the action row above — three equal presets,
+              stacked on a phone, three across from `sm`. */}
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
             <Button
               size="sm"
               variant="outline"
+              className="w-full"
               onClick={() => setHelperShare(0)}
               disabled={submittingDecision}
             >
@@ -232,6 +242,7 @@ export const DisputeCard = ({
             <Button
               size="sm"
               variant="outline"
+              className="w-full"
               onClick={() => setHelperShare(50)}
               disabled={submittingDecision}
             >
@@ -240,6 +251,7 @@ export const DisputeCard = ({
             <Button
               size="sm"
               variant="outline"
+              className="w-full"
               onClick={() => setHelperShare(100)}
               disabled={submittingDecision}
             >
@@ -250,6 +262,7 @@ export const DisputeCard = ({
           <div className="flex gap-2 pt-1">
             <Button
               size="sm"
+              className="flex-1 sm:flex-none"
               onClick={() => decide(job)}
               disabled={submittingDecision || !decisionText.trim()}
             >
@@ -258,6 +271,7 @@ export const DisputeCard = ({
             <Button
               size="sm"
               variant="ghost"
+              className="shrink-0"
               onClick={() => {
                 setActivePanelJobId(null);
                 setDecisionText("");

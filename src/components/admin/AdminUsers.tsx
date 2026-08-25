@@ -34,7 +34,25 @@ const AdminUsers = () => {
   const navigate = useNavigate();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<Tab>("pending");
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // The URL owns which tab is showing, matching Admin.tsx's rule for ?view=
+  // ("The URL is the source of truth for the current view"). As local state
+  // this survived nothing: a refresh dropped you back on Pending, browser-Back
+  // stepped out of Users entirely instead of back a tab, and a filtered list
+  // could not be linked to anyone. `tab` is re-derived from searchParams every
+  // render, so back/forward and deep links all resolve through one path.
+  const TABS: Tab[] = ["pending", "awaiting_email", "approved", "denied", "banned", "all"];
+  const rawTab = searchParams.get("tab");
+  const tab: Tab = (TABS as string[]).includes(rawTab ?? "") ? (rawTab as Tab) : "pending";
+  const setTab = (next: Tab) => {
+    const params = new URLSearchParams(searchParams);
+    // "pending" is the default, so it stays out of the URL rather than
+    // decorating every link with the value it would have had anyway.
+    if (next === "pending") params.delete("tab");
+    else params.set("tab", next);
+    setSearchParams(params, { replace: true });
+  };
 
   // Auto-restricted rail moved to its own component (AutoRestrictedRail).
   // Owns its own data fetch + reverse handler. Parent only forwards the
@@ -179,7 +197,6 @@ const AdminUsers = () => {
   // Once profiles are loaded, find the user and open their detail dialog
   // automatically. Strip the ?user= param afterwards so navigating back
   // doesn't re-open the dialog every time.
-  const [searchParams, setSearchParams] = useSearchParams();
   useEffect(() => {
     const userIdParam = searchParams.get("user");
     if (!userIdParam || profiles.length === 0) return;

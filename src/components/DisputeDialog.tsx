@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { lifecycleErrorMessage } from "@/lib/lifecycleErrors";
 import { fireSlackAlert } from "@/lib/slackAlerts";
 import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -38,8 +39,14 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
   const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
   const disputedStatus: Database["public"]["Enums"]["job_status"] = "disputed";
 
+  // Known precondition codes get human copy; anything else keeps the raw
+  // message (still more useful than a generic string when it is an RLS or
+  // network failure). Raw Postgres codes like "dispute_already_open" were
+  // reaching the toast verbatim — owner, 2026-08-25: "I'm trying to file a
+  // dispute but it's not letting me".
   const getErrorMessage = (error: unknown) =>
-    error instanceof Error ? error.message : "Couldn't file the dispute — try again?";
+    lifecycleErrorMessage(error) ??
+    (error instanceof Error ? error.message : "Couldn't file the dispute — try again?");
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);

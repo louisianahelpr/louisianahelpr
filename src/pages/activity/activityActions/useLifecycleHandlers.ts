@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { lifecycleErrorMessage } from "@/lib/lifecycleErrors";
 import { createNotification } from "@/lib/notifications";
 import { report } from "@/lib/errorLogger";
 import { checkProximity } from "@/lib/locationUtils";
@@ -381,7 +382,13 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
       if (rpcError) {
         report(rpcError, { tags: { area: "activity", op: "handleNoShow.rpc" }, context: { jobId, helperId } });
         hapticError();
-        toast.error("Couldn't report the no-show — please try again.");
+        // The RPC's preconditions (funded job, start time passed, one report
+        // per job) are things the poster can act on, so say which one stopped
+        // them. "Please try again" was actively wrong advice for a guard that
+        // will keep refusing until the start time passes.
+        toast.error(
+          lifecycleErrorMessage(rpcError) ?? "Couldn't report the no-show — please try again.",
+        );
         return;
       }
       // RPC returns a Json blob (typed as `Json` in the generated types);

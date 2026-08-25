@@ -1,20 +1,14 @@
-// Referral-tab extras: client-rendered QR code + tier-ladder visual.
+// Referral-tab extras: the tier-ladder visual.
 //
-// Built as a standalone component so the existing ReferralSection
-// stays compact and the heavier QR-encoder + ladder geometry don't
-// re-render every time the parent refetches credits.
-//
-// The QR encodes the same signup URL as the share/SMS shortcuts so a
-// scanned-vs-tapped flow lands the recipient at the same place.
+// Built as a standalone component so the existing ReferralSection stays
+// compact and the ladder geometry doesn't re-render every time the parent
+// refetches credits. (It also carried the in-person QR code until that
+// feature was removed at the owner's request.)
 
-import { useEffect, useRef, useState } from "react";
 import { Trophy } from "lucide-react";
-import { HelprSpinner } from "@/components/ui/HelprSpinner";
-import { getPublicSiteUrl } from "@/lib/authRedirects";
 import { formatPrice } from "@/lib/format";
 
 interface ReferralExtrasProps {
-  referralCode: string | null;
   referralCount: number;
   /** Sum of all referral-credit dollars (redeemed + unredeemed). */
   totalEarned: number;
@@ -31,9 +25,7 @@ const LADDER = [
   { goal: 25, label: "Hall of Fame", reward: "Custom shoutout" },
 ];
 
-export function ReferralExtras({ referralCode, referralCount, totalEarned }: ReferralExtrasProps) {
-
-
+export function ReferralExtras({ referralCount, totalEarned }: ReferralExtrasProps) {
   // Active rung — the *highest* milestone the user has reached. Drives
   // the "now" marker and rewards-claimed pill.
   const activeRungIdx = LADDER.reduce(

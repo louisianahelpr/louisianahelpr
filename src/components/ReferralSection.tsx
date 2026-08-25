@@ -247,7 +247,6 @@ const ReferralSection = ({ userId }: { userId: string }) => {
           "next milestone, how far to go". Self-contained so we don't
           churn the parent on credit refreshes. */}
       <ReferralExtras
-        referralCode={referralCode}
         referralCount={referralCount}
         totalEarned={totalCredits}
       />

@@ -266,3 +266,99 @@ engineering brief; R-items flagged VERIFY-LIVE should be confirmed against
 
 **Release state:** typecheck + 1734 vitest green at HEAD; E2E fix pushed (CI
 confirmation pending at time of writing). PR-ceremony-free per project rules.
+
+---
+
+# Web-surface lane — overnight 2026-08-24→25 (Fable, parallel to the iOS-sim session)
+
+**Scope:** the WEBSITE only, per the overnight brief — every guest route and every
+authed route (18 profile tabs, 27 admin views, 16 core/feature routes) in Chrome
+at 375 / 768 / 1440 / 1536, light + dark, driven headlessly against the running
+lh-dev server plus line-level source reads of the guest funnel. The iOS sim was
+not touched. Numbering continues from R25 (R23–R25 were assigned by the parallel
+session's overnight log above).
+
+**Method notes for whoever picks this up:** screenshots + per-cell metrics
+(title, h1, horizontal overflow, console errors) live in the session scratchpad
+(`shots-authed/`, `metrics-authed.jsonl`) — scratchpads get wiped between
+sessions, so re-run the sweep script rather than hunting for old files. Two
+infrastructure traps burned real time tonight and are worth knowing: (1)
+`node_modules/.vite/deps` was found EMPTY under the running dev server — every
+cold lazy route 504'd ("Outdated Optimize Dep") until a `touch vite.config.ts`
+forced an in-process Vite restart; if "Try again" boundaries appear app-wide,
+check that cache before blaming code. (2) Committing to the repo while a
+long-lived tab is open makes that tab's next lazy import fail its chunk fetch —
+which now correctly surfaces as the "Update ready — reload" screen (R23's fix,
+seen working in the wild tonight).
+
+## APPLIED this lane (each gated typecheck + vitest, pushed direct to main)
+
+| commit | what |
+|---|---|
+| `6c15357de` | **Un-broke Vitest on main.** `f29ebfbe0` (parallel session) deleted `supabase/functions/spawn-recurring-jobs` but left `recurringSeries.test.ts` reading the deleted file — the Test workflow had been red on every push since. The guard's intent survives stronger: the test now pins the function's ABSENCE (a reappearing second spawn path fails CI), and the orphaned `config.toml` entry went with it. |
+| `24aa5b444` | **R26 fix — CSP allowlists.** The Capacitor meta-CSP (`index.html`) never allowed `cdn.apple-mapkit.com` / `*.apple-mapkit.com`, so every map in the shipped native app dies at the CSP layer (dev shows the same; prod web was already fine via `vercel.json`). It also blocked `api.pwnedpasswords.com` — the signup leaked-password check was silently skipped — and prod web blocked that same call, so the HIBP domain was added to `vercel.json` connect-src too. Pure allowlist additions for calls the shipped code already makes. |
+
+## NEW FINDINGS — R26 onward
+
+### HIGH
+
+**R26 — CSP blocked Apple MapKit (native) and the HIBP breach check (native + prod web). FIXED, see applied table.** Left here as the record: this was why the map pane was dead and why weak-password signups sailed through the breach check. The `vercel.json` change deploys with the next Vercel build; the meta-CSP change ships with the next native build — the iOS lane should re-verify maps render in the sim after a rebuild.
+
+**R27 — One Membership, two storefronts.** The in-app tab (`/profile?tab=subscription`, `SubscriptionTab.tsx`) sells FOUR tiers (Free/Basic/Pro/Elite) across THREE billing modes (Once / Monthly / Annual, with "$5/$10/$15 one-time" price lines); the public `/subscription` page (`SubscriptionPage.tsx`) sells THREE tiers (no Basic) across TWO modes (no Once). The public page's Basic-exclusion rationale is a comment claiming Basic has placeholder Stripe prices — **stale**: `_shared/proTiers.ts:40` now carries real, verified-live price IDs for every tier × cycle including one-time. So today a member is offered one-time purchases and a Basic tier that a logged-out visitor is told don't exist, and the Terms fee ladder (which lists Basic 11%) matches the in-app view, not the public one. Tonight's `fix(subscription)`→revert churn by the parallel session sits in this exact area. Needs a product call: either the public page gains Basic + Once, or the in-app tab loses them — then delete the stale comment either way.
+
+**R28 — Signup verification email can take 5+ minutes; the auth hook can miss its deadline entirely.** `auth-email-hook` renders the React Email template TWICE (html + plaintext) plus 3 DB round-trips inside Supabase's ~5s auth-hook budget — ~2s warm, and a cold start was measured blowing the deadline (5.21s). Worse for the funnel: it only ENQUEUES to pgmq, and `process-email-queue` drains **every 5 minutes** — so a brand-new signup sits on "Check Your Email" for up to 5 min in the best case. Fix shape: hook writes raw template props to the queue and returns (render moves into the worker), and the queue cron tightens for `auth_emails` (or the hook sends auth mail synchronously via Resend and leaves the queue for the rest).
+
+**R29 — A keyboard user cannot create an account.** The required profile-photo control on signup step 2 is `<input id="avatar" type="file" className="hidden">` inside a non-focusable label (`SignupStep2.tsx:186-194`) — removed from tab order — while `validateAboutYouStep` makes the photo REQUIRED and the submit stays disabled without it. WCAG 2.1.1 failure on the funnel's critical path. Fix: `sr-only` (not `hidden`) input with a visible `focus-within` ring, or a real button that proxies `input.click()`.
+
+### MEDIUM
+
+**R30 — Step 2 and Support regress to the wordless-disabled-button dead end that `41ff2120e` just fixed on step 1.** Signup step 2's Create Account is `disabled` until avatar/name/DOB validate (`SignupStep2.tsx:320`), so the collect-all-errors branch in `validateAboutYouStep` is unreachable — a user faces a grey button and red asterisks. Same pattern on Support's submit (`Support.tsx:532`), whose reveal-all-errors branch is equally dead code. Pick the step-1 pattern (button stays active, tap names what's missing) for both.
+
+**R31 — The signup cooldown punishes recovery.** `SIGNUP_COOLDOWN_KEY` is armed BEFORE the attempt (`Signup.tsx:287-296`), so a password rejected by the HIBP check or a network error costs the user a 60s "Too many attempts" lockout on their immediate corrected retry. Arm it only after `signUp` actually fires.
+
+**R32 — "Already registered" is a silent teleport to Sign In.** `Signup.tsx:318-329` navigates to `/login` with no message (the comment claims a neutral line is shown; none is). Anti-enumeration doesn't require silence — show the same neutral line either way.
+
+**R33 — The `?redirect=` round-trip is dead on both ends, and the account-gate screens flash + trap history.** `ProtectedRoute` encodes the destination into `/login?redirect=…`; `Login.tsx:86-93` never reads it (hardcoded `/dashboard`) — a guest's deep link into any protected route is silently dropped (only the job-intent path survives). Related from the same enumeration pass: `/account-denied` and `/account-banned` paint their full card to a signed-out visitor BEFORE the redirect effect fires (`AccountDenied.tsx:18-23`, `AccountBanned.tsx:20-26` — `/account-pending` shows a skeleton, the right pattern), and all three gate redirects omit `{replace:true}`, so browser Back returns to the gate and re-bounces — a history trap.
+
+**R34 — Wrapped's stat tiles render blank.** `/wrapped` ("Your 2026 so far") shows the headline card with four EMPTY tiles for this zero-activity account — no numbers, no labels, no zero-state copy (375 light, screenshot). If that's the loading skeleton it never resolved within ~2.5s on localhost; either way a new user sees a blank year-in-review. Needs a real zero-state ("Complete your first job and we'll start counting").
+
+### LOW / polish
+
+- **R35 — funnel micro-a11y batch (mechanically safe, one commit's worth):** step-1 email/password inline errors are bare `<p>`s with no `id`/`role`/`aria-describedby` (SignupStep1.tsx:187-192,224-228 — step 2's `FieldError` does it right); same on ForgotPassword's email error (170-185); Support's Subject is the one field missing `aria-describedby` (485-494); `DatePickerField` doesn't forward `aria-describedby` so `dob-error` never associates (SignupStep2.tsx:234-243); the step-1 password toggle says "Show password**s**" for one field (213, Login uses singular); ForgotPassword imports `AuthBrandPane`/`HelprMark` and uses neither.
+- **R36 — invite auto-claim can fail silently.** The `business_members` claim `.update()` result is never checked (`Signup.tsx:373-377`) — a dropped Supabase error in the exact block whose own comments lecture about reading errors (house rule violation).
+- **R37 — login lockout counts network timeouts as failed attempts.** The 15s `signInWithTimeout` rejection lands in the same attempt ledger as a wrong password (`Login.tsx:133-150`) — flaky wifi can soft-lock a legitimate user for 5 min. Count only credential failures.
+- **R38 — "No applications yet." keeps the period the empty-state ruling dropped.** The My Jobs empty title carries terminal punctuation; Messages' "No messages yet" (and the 1fa2f06 sweep) settled fragment titles take none. One character, but it's in the Activity surface the sim lane is actively editing — flagged instead of fixed to avoid a collision.
+- **R39 — payment-success's no-reference title truncates as "We couldn't confirm your …" at 375.** The one-line-title rule cuts it mid-phrase, and the eyebrow directly above already reads "PAYMENT NOT CONFIRMED". Shorten the h1 (e.g. "Payment not confirmed") — the body copy ("Please don't pay again…") is excellent and carries the message.
+- **R40 — dashboard console warnings.** React "Cannot update a component while rendering a different component" plus Radix "Select is changing from uncontrolled to controlled" ×3 fire on dashboard mount (375 capture) — technical-health noise that will mask real regressions in Sentry.
+- **R41 — title/meta stragglers.** Dominant pattern is "X — Helpr"; `Support.tsx:182` appends "| Louisiana's Local Job Partner" (only non-root page that does); `ResetPassword` is the only funnel page on `usePageTitle` without meta/canonical, and the only password field in the funnel without a show/hide toggle; `HelpCenter.tsx` header comments describe a search UI that was removed.
+
+## Coverage manifest — web lane
+
+**Guest surface (signed out):** every public route enumerated from `App.tsx`
+(landing, login incl. MFA-state source-read, signup steps 1–2, forgot/reset
+password incl. all four token states, signup-pending, account-pending/denied/
+banned, support incl. 3 topics, legal ×3 tabs + search + anchors, /jobs +
+?job= dialog, /jobs/:id, /browse, /subscription, /help, 404) — swept at
+375/1440 visually + 768/1536 by metrics in both themes pre-restart, plus a
+line-level source audit of every funnel form (report reproduced above as
+R29–R33/R35–R37/R41). The session restart destroyed the guest screenshot
+archive; guest METRICS (overflow/console/title) were clean at all four widths.
+
+**Authed surface (test account `Audit Weblane`, admin-elevated):** 61 routes ×
+4 widths × 2 themes sweep — in progress at time of writing; cells reviewed so
+far: all 18 profile tabs (titles/h1 consistent, payment≡earnings alias
+coherent), dashboard/my-jobs/messages/post-job entry/gift-card/benefits/
+wrapped/payment-success at 375, admin home/users at 375+768. Zero horizontal
+overflow in any captured cell. Remaining at write time: full 1440/1536 + dark
+blocks, dashboard-with-dismissed-welcome recaptures, and the post-commit
+"Update ready" cells — the sweep + recapture completes tonight and this doc
+gets the final table.
+
+**Excluded by brief:** iOS simulator (other session's lane); live-Stripe charge
+paths (prod keys are LIVE — no test-mode environment exists tonight); prod-DB
+mutations beyond the marked test account.
+
+**Open for the morning (decisions, not defects):** R27 storefront unification;
+R28 email-latency fix shape (owner may prefer synchronous auth mail); whether
+"Once" memberships should exist at all publicly (product/legal — Terms describe
+recurring subscriptions).

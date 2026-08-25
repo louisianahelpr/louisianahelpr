@@ -3,6 +3,7 @@ import { netUrgentFeeDollars } from "@/lib/stripeFees";
 import { HELPER_FEE_LEGACY_FALLBACK_PERCENT } from "@/lib/legacyFeeFallback";
 import { SUB_PRICE, type Job, type Profile, type Tip } from "./types";
 import { formatCategory } from "@/lib/format";
+import { tierDisplayName } from "@/lib/subscriptionTiers";
 
 // Pure metric computation for the admin analytics dashboard. Extracted VERBATIM
 // from AdminAnalytics.tsx — no hooks, no state, no side effects. Given the raw
@@ -312,9 +313,9 @@ export const computeMetrics = (
 
   // Subscription pie data
   const subPieData = [
-    { name: "Elite", value: subElite, color: TIER_COLORS.elite },
-    { name: "Pro", value: subPro, color: TIER_COLORS.pro },
-    { name: "Basic", value: subBasic, color: TIER_COLORS.basic },
+    { name: tierDisplayName("elite"), value: subElite, color: TIER_COLORS.elite },
+    { name: tierDisplayName("pro"), value: subPro, color: TIER_COLORS.pro },
+    { name: tierDisplayName("basic"), value: subBasic, color: TIER_COLORS.basic },
     { name: "Free", value: subFree, color: TIER_COLORS.free },
   ].filter(d => d.value > 0);
 

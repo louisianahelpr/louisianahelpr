@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { BOOST_DISCOUNT_PCT, BOOST_DURATION_HOURS, boostPriceForTier, formatFeeUsd } from "@/lib/productPrices";
+import { TIER_PERKS } from "@/lib/subscriptionTiers";
 
 interface JobBoostDialogProps {
   jobId: string;
@@ -132,8 +133,8 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
                 >
                   <Sparkles className="w-3 h-3" />{" "}
                   {isDiscounted
-                    ? `${BOOST_DISCOUNT_PCT}% off with your plan · Free with Elite`
-                    : "Free with Elite · See plans"}
+                    ? `${BOOST_DISCOUNT_PCT}% off with your plan · Free with ${TIER_PERKS.elite.name}`
+                    : `Free with ${TIER_PERKS.elite.name} · See plans`}
                 </Link>
               </>
             )}

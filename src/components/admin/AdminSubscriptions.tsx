@@ -9,6 +9,7 @@ import { formatShortDate } from "@/lib/format";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
+import { tierDisplayName } from "@/lib/subscriptionTiers";
 
 interface SubscribedProfile {
   user_id: string;
@@ -107,7 +108,7 @@ const AdminSubscriptions = () => {
         {Object.entries(tierCounts).map(([tier, count]) => (
           <div key={tier} className="rounded-2xl border border-border/60 bg-card shadow-[var(--card-shadow)] p-4">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-ds-11 text-muted-foreground capitalize">{tier}</span>
+              <span className="text-ds-11 text-muted-foreground">{tierDisplayName(tier)}</span>
               <Users className="w-4 h-4 text-primary opacity-60" />
             </div>
             <p className="text-ds-24 font-bold text-foreground">{count}</p>
@@ -164,8 +165,8 @@ const AdminSubscriptions = () => {
               </div>
               <div className="flex items-center gap-2">
                 {p.subscription_tier && (
-                  <Badge className={`capitalize text-ds-10 ${tierColor(p.subscription_tier)}`}>
-                    {p.subscription_tier}
+                  <Badge className={`text-ds-10 ${tierColor(p.subscription_tier)}`}>
+                    {tierDisplayName(p.subscription_tier)}
                   </Badge>
                 )}
                 <Badge variant={status === "active" ? "default" : "secondary"} className="text-ds-10">

@@ -13,6 +13,7 @@ import { VideoPreviewModal } from "./VideoPreviewModal";
 import { ApplicantsLoadingState, ApplicantsErrorState, ApplicantsEmptyState } from "./applicantsPanel/ApplicantsStates";
 import { ApplicantSortControls } from "./applicantsPanel/ApplicantSortControls";
 import { helperInitialsFrom, isImageAttachment } from "./applicantsPanel/applicantsPanelHelpers";
+import { TIER_PERKS } from "@/lib/subscriptionTiers";
 
 interface ApplicantsPanelProps {
   /** No longer read here — the bid-mode sort default was its only consumer,
@@ -251,7 +252,7 @@ export function ApplicantsPanel({
                                     letterSpacing: "0.08em",
                                   }}
                                 >
-                                  Elite
+                                  {TIER_PERKS.elite.name}
                                 </span>
                               )}
                               {isPro && (
@@ -263,7 +264,7 @@ export function ApplicantsPanel({
                                     letterSpacing: "0.08em",
                                   }}
                                 >
-                                  Pro
+                                  {TIER_PERKS.pro.name}
                                 </span>
                               )}
                               {/* Licensed/Insured badges — the hiring surface

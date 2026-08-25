@@ -1,4 +1,5 @@
 import { Star, Trophy, Zap, Shield, Flame, Heart, Crown, Target, Sparkles } from "lucide-react";
+import { TIER_PERKS } from "@/lib/subscriptionTiers";
 
 export type HelperBadge = {
   key: string;
@@ -25,21 +26,21 @@ export function computeBadges(stats: {
   if (stats.helprTier === "elite") {
     badges.push({
       key: "elite_sub",
-      label: "Elite",
+      label: TIER_PERKS.elite.name,
       icon: <Crown className="w-3 h-3" style={{ color: "hsl(var(--gold-warm))" }} />,
       color: "tier-gold-elite",
     });
   } else if (stats.helprTier === "pro" || stats.isPro) {
     badges.push({
       key: "pro",
-      label: "Pro",
+      label: TIER_PERKS.pro.name,
       icon: <Sparkles className="w-3 h-3" style={{ color: "hsl(var(--gold-warm))" }} />,
       color: "tier-gold-pro",
     });
   } else if (stats.helprTier === "basic") {
     badges.push({
       key: "basic_sub",
-      label: "Basic",
+      label: TIER_PERKS.basic.name,
       icon: <Star className="w-3 h-3" />,
       color: "bg-secondary/80 text-secondary-foreground border border-border",
     });

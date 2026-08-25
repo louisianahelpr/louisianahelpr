@@ -12,6 +12,7 @@ import { formatCategory, formatPrice, formatPriceExact, formatShortDate } from "
 import { formatJobDate } from "@/lib/dateUtils";
 import { PIE_COLORS } from "./adminAnalyticsConstants";
 import { toneTextClasses, type Tone } from "@/components/admin/tones";
+import { tierDisplayName } from "@/lib/subscriptionTiers";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
@@ -72,7 +73,7 @@ export const UsersDrillDown = ({ users, roleByUser }: { users: Profile[]; roleBy
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
                 {u.subscription_tier && (
-                  <Badge className="text-ds-10 bg-primary/10 text-primary capitalize">{u.subscription_tier}</Badge>
+                  <Badge className="text-ds-10 bg-primary/10 text-primary">{tierDisplayName(u.subscription_tier)}</Badge>
                 )}
                 <Badge className={`text-ds-11 capitalize ${statusColor(u.approval_status)}`}>{u.approval_status}</Badge>
               </div>
@@ -102,8 +103,8 @@ export const SubscriptionsDrillDown = ({ users }: { users: Profile[] }) => {
           const count = users.filter(u => t === "all" || (t === "free" ? !u.subscription_tier : u.subscription_tier === t)).length;
           return (
             <button key={t} onClick={() => setTierFilter(t)} aria-pressed={tierFilter === t}
-              className={`flex-1 px-3 py-1.5 rounded-md text-ds-11 font-medium transition-colors capitalize ${tierFilter === t ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
-              {t} ({count})
+              className={`flex-1 px-3 py-1.5 rounded-md text-ds-11 font-medium transition-colors ${tierFilter === t ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+              {t === "all" ? "All" : tierDisplayName(t)} ({count})
             </button>
           );
         })}

@@ -115,6 +115,17 @@ this list tight; project-specific trivia belongs in code comments, not here.
   receives every platform-wide write), and a unique channel-name nonce via
   `channelNonce()` (`src/lib/realtimeChannel.ts`) — Supabase dedupes channels
   by name, so a reused name silently drops the second subscription.
+- **Parallel lanes: stagger the gates, and never stage work in `/tmp`.** When
+  several sessions/agents run at once, do NOT let them all run `npm run
+  typecheck` / `vitest` / `eslint` simultaneously. Five concurrent `tsc -b`
+  processes drove this machine to load average 28 on 2026-08-25; the dev server
+  got slow enough that Playwright timed out mid-audit and the failure was
+  briefly misread as an app bug. Gates are cheap to serialize and expensive to
+  misdiagnose. Separately: a launchd job (`com.claudecode.cleanup`) runs
+  hourly and used to `rm -rf /tmp/*` — it destroyed three agent worktrees
+  holding ~100 uncommitted files. It has been fixed to age-gate and skip
+  anything containing a `.git`, but worktrees still belong under `$HOME`
+  (e.g. `~/.lh-b-ws/tree`), and uncommitted work should be committed early.
 - **Commit directly to `main`.** No feature branch / PR ceremony is required —
   commit straight to `main`. The gate is still mandatory, but as of 2026-07-25
   most of it runs in CI, so locally you only need:

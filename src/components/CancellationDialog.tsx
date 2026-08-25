@@ -151,84 +151,52 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
         });
       }
 
-      // Track cancellation with helpr assigned — 2 warnings then permanent ban on 3rd
+      // The consequence ladder is SERVER-owned (apply_cancellation_violation_consequence,
+      // migration 20260826040000). This block used to run it here: it counted
+      // prior violations in the browser and, on the third cancel, inserted a
+      // `permanent` user_bans row with banned_by pointing at the offender
+      // themselves, set profiles.ban_status, and redirected to /account-banned.
+      //
+      // RLS rejects both of those writes for a non-admin, so the ban never
+      // actually landed — the user was sent to a ban screen while the database
+      // still said `active`, and no admin ever saw a case. Same bug the message
+      // scanner had (20260825183000), same fix: report the event, let the server
+      // decide, act only on the verdict it returns.
       if (hasHelper) {
-        const { data: existing, error: existingErr } = await supabase
-          .from("user_violations")
-          .select("id")
-          .eq("user_id", userId)
-          .eq("violation_type", "cancel_with_helper");
-        if (existingErr) report(existingErr, { tags: { source: "CancellationDialog.priorViolations" } });
-        const priorCount = existing?.length ?? 0;
+        // `as any`: the RPC ships with this change's migration, so the
+        // generated types.ts doesn't know it yet — same escape hatch
+        // logViolation.ts uses for the message ladder.
+        const { data: verdict, error: ladderErr } = await supabase.rpc(
+          "apply_cancellation_violation_consequence" as any,
+          { p_job_id: jobId } as any,
+        );
 
-        let actionTaken = "none";
-        if (priorCount >= 2) actionTaken = "permanent_ban";
-        else actionTaken = "warning";
-
-        const { error: violationErr } = await supabase.from("user_violations").insert({
-          user_id: userId,
-          violation_type: "cancel_with_helper",
-          description: `Cancelled job with Helpr assigned: "${jobTitle}"`,
-          job_id: jobId,
-          action_taken: actionTaken,
-        });
-        if (violationErr) report(violationErr, { tags: { source: "CancellationDialog.recordViolation" } });
-
-        const warningNum = priorCount + 1;
-
-        if (actionTaken === "warning") {
-          const { error: warnErr } = await supabase.from("profiles").update({ ban_status: "final_warning" }).eq("user_id", userId);
-          if (warnErr) report(warnErr, { tags: { source: "CancellationDialog.finalWarning" } });
-          await createNotification({
-            user_id: userId,
-            title: `⚠️ Cancellation Warning (${warningNum}/2)`,
-            message: `You've cancelled ${warningNum} job${warningNum > 1 ? "s" : ""} after selecting a Helpr. A 3rd cancellation will result in a permanent ban.`,
-            type: "warning",
-            link: "/profile",
-          });
-          toast.warning(`Late cancel ${warningNum} of 2 — one more after a Helpr accepts will result in a permanent ban.`);
-        } else if (actionTaken === "permanent_ban") {
-          const { error: banInsertErr } = await supabase.from("user_bans").insert({
-            user_id: userId,
-            ban_type: "permanent",
-            reason: "Cancelled 3 jobs after selecting a Helpr",
-            banned_by: userId,
-          });
-          if (banInsertErr) report(banInsertErr, { tags: { source: "CancellationDialog.recordBan" } });
-          const { error: banStatusErr } = await supabase.from("profiles").update({ ban_status: "permanently_banned" }).eq("user_id", userId);
-          if (banStatusErr) report(banStatusErr, { tags: { source: "CancellationDialog.applyBanStatus" } });
-          // A permanent ban is the most consequential message this product can
-          // send, and it used to be a toast: auto-dismissing in a few seconds,
-          // swipeable by accident, leaving no record. Someone who looked away
-          // lost their account and never saw why.
-          //
-          // Route to /account-banned instead. The ban rows above have already
-          // been written, and that screen reads `ban_status` off the profile,
-          // so it renders the real headline, the reason and the support path —
-          // and it persists, because it is a page rather than a notification.
-          // window.location, not useNavigate: a full document load is the RIGHT
-          // behaviour for a ban — it tears down every cached authed query
-          // rather than leaving a banned session live in memory behind the
-          // screen. It also keeps this component renderable without a Router,
-          // which its unit tests rely on.
-          window.location.assign("/account-banned");
-        }
-
-        // Bulk-fan to admins in one INSERT instead of awaiting per row.
-        const { data: adminRoles, error: adminRolesErr } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
-        if (adminRolesErr) report(adminRolesErr, { tags: { source: "CancellationDialog.fetchAdmins" } });
-        if (adminRoles?.length) {
-          const { error: notifyErr } = await supabase.from("notifications").insert(
-            adminRoles.map((a: { user_id: string }) => ({
-              user_id: a.user_id,
-              title: "⚠️ Cancellation with Helpr",
-              message: `User cancelled "${jobTitle}" after selecting a Helpr (${warningNum} total). Action: ${actionTaken}.`,
-              type: "warning",
-              link: "/admin?view=people",
-              read: false,
-            })),
-          );
-          if (notifyErr) report(notifyErr, { tags: { source: "CancellationDialog.notifyAdmins" } });
+        if (ladderErr) {
+          // PGRST202 = merged but not yet deployed (db-deploy.yml runs on the
+          // merge commit). The cancellation itself already succeeded, so say
+          // nothing and let the strike go unrecorded for those few minutes.
+          // There is deliberately NO client-side fallback: a ban this client
+          // cannot legitimately write is not a fallback, it is theatre.
+          if (String(ladderErr.code ?? "") !== "PGRST202") {
+            report(ladderErr, { tags: { source: "CancellationDialog.applyConsequence" } });
+          }
+        } else {
+          const action = (verdict as { action?: string } | null)?.action;
+          if (action === "warning") {
+            toast.warning("Cancellation warning (1 of 2) — cancelling again after a Helpr commits is a final warning.");
+          } else if (action === "final_warning") {
+            toast.warning("Final warning — one more cancellation after a Helpr commits and your account is restricted for 7 days pending review.");
+          } else if (action === "pending_ban_review") {
+            // A restriction is the most consequential message this product can
+            // send, and a toast auto-dismisses. Route to the page that reads
+            // the real ban_status off the profile, so it persists and says why.
+            // window.location, not useNavigate: a full document load tears down
+            // every cached authed query rather than leaving a restricted
+            // session live in memory behind the screen, and it keeps this
+            // component renderable without a Router (its unit tests rely on that).
+            window.location.assign("/account-banned");
+            return;
+          }
         }
       }
 
@@ -358,15 +326,19 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
             <div className="space-y-2 text-ds-11 text-muted-foreground">
               <div className="flex items-start gap-2">
                 <AlertTriangle className="w-3.5 h-3.5 text-accent mt-0.5 shrink-0" />
-                <p><strong className="text-foreground">1st strike:</strong> Written warning on your account. Admins notified.</p>
+                <p><strong className="text-foreground">1st strike:</strong> Written warning on your account.</p>
               </div>
               <div className="flex items-start gap-2">
                 <ShieldAlert className="w-3.5 h-3.5 text-destructive mt-0.5 shrink-0" />
-                <p><strong className="text-foreground">2nd strike:</strong> Final warning. One more cancellation = permanent ban.</p>
+                <p><strong className="text-foreground">2nd strike:</strong> Final warning.</p>
               </div>
+              {/* This used to promise an automatic, irreversible permanent ban
+                  on the 3rd strike. It now says what actually happens: a
+                  reversible 7-day restriction while a person reviews the case
+                  (apply_cancellation_violation_consequence, 20260826040000). */}
               <div className="flex items-start gap-2">
                 <Ban className="w-3.5 h-3.5 text-destructive mt-0.5 shrink-0" />
-                <p><strong className="text-foreground">3rd strike:</strong> Permanent ban from Helpr. This cannot be undone.</p>
+                <p><strong className="text-foreground">3rd strike:</strong> Your account is restricted for 7 days while an admin reviews it. They decide what happens next — a permanent ban is never automatic.</p>
               </div>
             </div>
             {!hasHelper && (

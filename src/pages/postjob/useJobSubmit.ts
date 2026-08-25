@@ -352,6 +352,8 @@ export function useJobSubmit(params: UseJobSubmitParams) {
         isRecurring,
         recurrenceInterval,
         recurrenceEndDate,
+        recurrenceDays,
+        recurrenceWeeks,
         isGroupJob,
         helpersNeeded,
         isUrgent,

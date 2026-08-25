@@ -150,6 +150,9 @@ const WIDTH_CLASS: Record<NonNullable<PageHeaderProps["width"]>, WidthSpec> = {
   },
 };
 
+// `meta` stays destructured-but-unpainted per the 2026-08-13 owner decision
+// recorded in the retirement note below (title only; ~15 call sites still pass it).
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const PageHeader = ({ title, meta, onBack, backTo, rightSlot, titleActions, hideBack = false, showBrand = false, width = "default", topInsetHandled = false }: PageHeaderProps) => {
   // `eyebrow` is accepted by PageHeaderProps for call-site compatibility but
   // intentionally not destructured/rendered — see the removal note below.

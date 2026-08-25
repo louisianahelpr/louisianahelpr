@@ -1,16 +1,14 @@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHero } from "@/components/ui/alert-dialog";
-import type { EnrichedJob } from "@/components/dashboard/types";
 
 type DismissJobDialogProps = {
   confirmDismissJobId: string | null;
-  confirmDismissJob: EnrichedJob | null;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
 };
 
 // "Not interested?" confirmation for hiding a job from the feed. Extracted
 // verbatim from Dashboard — same copy, tokens, and classNames.
-export function DismissJobDialog({ confirmDismissJobId, confirmDismissJob, onOpenChange, onConfirm }: DismissJobDialogProps) {
+export function DismissJobDialog({ confirmDismissJobId, onOpenChange, onConfirm }: DismissJobDialogProps) {
   return (
     <AlertDialog open={!!confirmDismissJobId} onOpenChange={onOpenChange}>
       <AlertDialogContent>

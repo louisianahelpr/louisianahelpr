@@ -15,8 +15,6 @@ import PageHeader from "@/components/PageHeader";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { unwrap } from "@/lib/supabaseResult";
-import { getCategoryIcon } from "@/lib/categoryIcons";
-import { categoryLabels } from "@/components/activity/activityConstants";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { JobCardSkeleton } from "@/components/SkeletonLoaders";
 import { ErrorState } from "@/components/ui/ErrorState";

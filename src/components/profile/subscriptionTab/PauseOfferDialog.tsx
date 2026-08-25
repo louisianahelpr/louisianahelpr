@@ -11,14 +11,12 @@ export const PauseOfferDialog = ({
   pauseOfferOpen,
   setPauseOfferOpen,
   setCancelSurveyOpen,
-  currentTier,
   handleAcceptPause,
   acceptingPause,
 }: {
   pauseOfferOpen: boolean;
   setPauseOfferOpen: (open: boolean) => void;
   setCancelSurveyOpen: (open: boolean) => void;
-  currentTier: string | null;
   handleAcceptPause: () => void;
   acceptingPause: boolean;
 }) => {

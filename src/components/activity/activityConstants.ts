@@ -148,6 +148,6 @@ export type AppliedApp = Application & {
  * See ActivityBucket in activityFilters.ts for what each of the four means and
  * why they are exhaustive.
  */
-export function defaultStatusFilterFor(tab: "posted" | "applied"): string {
+export function defaultStatusFilterFor(_tab: "posted" | "applied"): string {
   return "needs_you";
 }

@@ -4,7 +4,6 @@ import {
   FAKE_HELPER,
   installSupabaseMocks,
   seedAuthedSession,
-  type MockRule,
 } from "./fixtures";
 import { measureLayout, settleAnimations } from "./auditRoutes";
 import type { Page } from "@playwright/test";
@@ -62,33 +61,6 @@ const MOVED_OUT_OF_ROW = [
   /^(Show map view|Show list view)$/,
   /^Saved searches$/,
 ];
-
-/**
- * Override the `helper_upcoming_job` read so the pill renders its
- * accepted-but-not-started state. That query is the only `jobs` select whose
- * column list starts `id,title,date_needed` — matching on the select list
- * keeps this rule off the feed's own (much wider) job read.
- */
-function upcomingJobRule(status: "accepted" | "in_progress"): MockRule {
-  return {
-    match: (url, method) =>
-      method === "GET" &&
-      url.pathname === "/rest/v1/jobs" &&
-      (url.searchParams.get("select") ?? "").startsWith("id,title,date_needed"),
-    handle: () => ({
-      status: 200,
-      body: [
-        {
-          id: "10000000-0000-4000-8000-0000000000ff",
-          title: "Mow and edge a corner lot",
-          date_needed: "2026-08-20",
-          start_time: "09:00:00",
-          status,
-        },
-      ],
-    }),
-  };
-}
 
 /**
  * The onboarding tour is a modal Radix dialog that auto-opens ~1.5s after load

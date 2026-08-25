@@ -60,7 +60,6 @@ export interface ProfileTabPanelsProps {
   tab: Tab;
   user: User | null;
   profile: Profile | null;
-  setTab: (tab: Tab) => void;
   /**
    * Back out of the CURRENT tab. Every tab used to pass its own
    * `onBack={onBackFromTab}` (seventeen of them), which meant back
@@ -130,7 +129,6 @@ export const ProfileTabPanels = ({
   user,
   profile,
   onBackFromTab,
-  setTab,
   setProfile,
   firstName,
   lastName,
@@ -204,7 +202,6 @@ export const ProfileTabPanels = ({
             onBack={onBackFromTab}
             onPortfolioChange={(urls) => setProfile((prev) => prev ? ({ ...prev, portfolio_urls: urls }) : prev)}
             onIntroVideoChange={(fields) => setProfile((prev) => prev ? ({ ...prev, ...fields }) : prev)}
-            onContactSupport={() => setTab("support")}
           />
         </Suspense>
       )}

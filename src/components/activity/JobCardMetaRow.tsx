@@ -18,7 +18,6 @@ interface JobCardMetaRowProps {
      across the call sites for no gain. */
   latitude?: number | null;
   longitude?: number | null;
-  estimatedHours?: number | null;
   /** ISO timestamp of the application/post expiry. Pass `null`/`undefined`
       to hide the expiry chip; the caller is responsible for any extra
       gating (e.g. only show while pending, only show with no helper). */
@@ -35,7 +34,7 @@ interface JobCardMetaRowProps {
 }
 
 /**
- * Date / location / estimated-hours / expiry chip row shared by both
+ * Date / location / expiry chip row shared by both
  * activity cards. Posted adds a few role-specific chips via `children`.
  */
 export function JobCardMetaRow({
@@ -43,7 +42,6 @@ export function JobCardMetaRow({
   startTime,
   flexibleLabel = "Flexible",
   location,
-  estimatedHours,
   expiresAt,
   children,
   trailing,

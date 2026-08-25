@@ -43,6 +43,7 @@ interface ViolationRow {
   user_id: string;
   description: string | null;
   action_taken: string;
+  violation_type: string;
   created_at: string;
 }
 
@@ -53,7 +54,9 @@ interface ReviewCase {
   created_at: string;
   full_name: string | null;
   email: string | null;
-  /** Every off-platform violation on file for this user, newest first. */
+  /** The kind of case this is — 'off_platform', 'cancel_with_helper', … */
+  violation_type: string;
+  /** Every violation of THIS case's kind on file for the user, newest first. */
   history: ViolationRow[];
 }
 
@@ -71,7 +74,7 @@ const BanReviewInner = () => {
     fetcher: async () => {
       const { data, error } = await supabase
         .from("user_violations")
-        .select("id, user_id, description, action_taken, created_at")
+        .select("id, user_id, description, action_taken, violation_type, created_at")
         .eq("action_taken", "pending_ban_review")
         .order("created_at", { ascending: true });
 
@@ -106,19 +109,27 @@ const BanReviewInner = () => {
         nameById.set(p.user_id, { full_name: p.full_name ?? null, email: p.email ?? null }),
       );
 
-      // The evidence: every off-platform violation these users have on file.
+      // The evidence: every violation these users have on file of any KIND
+      // that can open a case. This used to be hardcoded to 'off_platform',
+      // which was fine while the message scanner was the only ladder feeding
+      // the queue — a cancellation case (20260826040000) landed here with an
+      // empty evidence list and a "0 blocked messages" badge.
+      const caseTypes = [...new Set(pending.map((r) => r.violation_type))];
       const { data: hist, error: histError } = await supabase
         .from("user_violations")
-        .select("id, user_id, description, action_taken, created_at")
+        .select("id, user_id, description, action_taken, violation_type, created_at")
         .in("user_id", userIds)
-        .eq("violation_type", "off_platform")
+        .in("violation_type", caseTypes)
         .order("created_at", { ascending: false });
       if (histError) report(histError, { severity: "warning", tags: { source: "AdminBanReview.history" } });
+      // Keyed by user AND type: one user can have an open case of each kind,
+      // and a cancellation case must not quote blocked messages as evidence.
       const historyByUser = new Map<string, ViolationRow[]>();
       ((hist ?? []) as ViolationRow[]).forEach((h) => {
-        const list = historyByUser.get(h.user_id) ?? [];
+        const key = `${h.user_id}::${h.violation_type}`;
+        const list = historyByUser.get(key) ?? [];
         list.push(h);
-        historyByUser.set(h.user_id, list);
+        historyByUser.set(key, list);
       });
 
       const seen = new Set<string>();
@@ -132,7 +143,8 @@ const BanReviewInner = () => {
           created_at: r.created_at,
           full_name: nameById.get(r.user_id)?.full_name ?? null,
           email: nameById.get(r.user_id)?.email ?? null,
-          history: historyByUser.get(r.user_id) ?? [],
+          violation_type: r.violation_type,
+          history: historyByUser.get(`${r.user_id}::${r.violation_type}`) ?? [],
         });
       }
       return collapsed;
@@ -206,7 +218,10 @@ const BanReviewInner = () => {
                         {c.full_name || "Unnamed user"}
                       </p>
                       <span className={cn("inline-flex items-center rounded-full text-ds-10 font-semibold px-2 py-0.5", toneBadgeClasses.warning)}>
-                        {c.history.length} blocked {c.history.length === 1 ? "message" : "messages"}
+                        {c.history.length}{" "}
+                        {c.violation_type === "cancel_with_helper"
+                          ? c.history.length === 1 ? "cancellation" : "cancellations"
+                          : c.history.length === 1 ? "blocked message" : "blocked messages"}
                       </span>
                     </div>
                     <p className="text-ds-11 text-muted-foreground truncate">{c.email}</p>

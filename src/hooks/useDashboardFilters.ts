@@ -67,7 +67,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
   // backwards through every chip tap before leaving the page). Sort is
   // deliberately NOT here — it is a lasting preference, persisted in
   // localStorage across sessions, not a property of one history entry.
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const param = (key: string) => searchParams.get(key) ?? "";
   const [searchQuery, setSearchQuery] = useState(() => param("q"));
   const [selectedCategory, setSelectedCategory] = useState<string | null>(

@@ -15,6 +15,7 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
+  AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHero,
 } from "@/components/ui/alert-dialog";
@@ -125,6 +126,23 @@ export function BrandConfirmDialog({
             (Owner, more than once: "these pop ups need to share the same
             shell ... none of them have the same layout.") */}
         <AlertDialogHero title={title} />
+
+        {/* Description lives in the BODY, not the Hero. The 2026-07-25 "one
+            main title" decision stopped AlertDialogHero rendering a subtitle,
+            and this dialog kept passing `description` into nothing — ~25 call
+            sites' consequence copy ("This moves real money and can't be undone
+            here", "Permanent. Job history … gone for good") was silently
+            dropped. That same decision says copy a sighted user must read
+            belongs in the dialog body, so that is where it is rendered.
+            Falsy/empty descriptions render nothing. */}
+        {description ? (
+          <AlertDialogDescription
+            className="font-serif italic text-ds-12 leading-relaxed"
+            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+          >
+            {description}
+          </AlertDialogDescription>
+        ) : null}
 
         {callout && (
           <div

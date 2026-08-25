@@ -583,7 +583,6 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
         pauseOfferOpen={pauseOfferOpen}
         setPauseOfferOpen={setPauseOfferOpen}
         setCancelSurveyOpen={setCancelSurveyOpen}
-        currentTier={currentTier}
         handleAcceptPause={handleAcceptPause}
         acceptingPause={acceptingPause}
       />

@@ -151,7 +151,6 @@ function AppliedJobCardInner({
               location={job.location}
               latitude={job.latitude}
               longitude={job.longitude}
-              estimatedHours={job.estimated_hours}
               expiresAt={isPending && !job.helper_id ? job.expires_at : null}
             />
   );

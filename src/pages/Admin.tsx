@@ -3,19 +3,12 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { BUSINESS_ENABLED } from "@/config/businessEnabled";
-import {
-  Users, Briefcase, Settings, BarChart3, ClipboardCheck,
-  AlertTriangle, DollarSign, ShieldAlert, Megaphone,
-  BellRing, Headphones, Gift, Crown, Activity,
-  Banknote, MapPin, Award, ShieldCheck,
-  Mail, Building2, ClipboardList,
-} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { signOutWithPushCleanup } from "@/lib/authSignOut";
 import { channelNonce } from "@/lib/realtimeChannel";
 import { lazy, Suspense } from "react";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import AdminSidebar, { AdminNavItem } from "@/components/admin/AdminSidebar";
+import AdminSidebar from "@/components/admin/AdminSidebar";
 import AdminTopBar from "@/components/admin/AdminTopBar";
 import AdminSectionHeader from "@/components/admin/AdminSectionHeader";
 import { DashboardHome } from "@/components/admin/dashboard/DashboardHome";

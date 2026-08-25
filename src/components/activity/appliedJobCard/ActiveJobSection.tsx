@@ -4,7 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { messageButtonStyle } from "@/components/activity/JobActionRow";
 import { Button } from "@/components/ui/button";
 import { AUTO_COMPLETE_HOURS, hoursToMs } from "../../../../supabase/functions/_shared/escrowTiming";
-import { CheckCircle2, MessageSquare, RefreshCw, Check, ClipboardList } from "lucide-react";
+import { CheckCircle2, MessageSquare, RefreshCw, Check, ClipboardList, CalendarX2 } from "lucide-react";
+import { toast } from "sonner";
+import { hapticError } from "@/lib/haptics";
+import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
+import { Textarea } from "@/components/ui/textarea";
+import { RELIABILITY_LADDER_SENTENCE } from "@/lib/reliabilityLadder";
 import { PhotoProofGroup } from "@/components/PhotoProof";
 import { hasRequiredProof } from "@/lib/photoProofPolicy";
 import { report } from "@/lib/errorLogger";
@@ -41,6 +46,65 @@ export function ActiveJobSection({
   setShowReportCard,
 }: ActiveJobSectionProps) {
   const [resolving, setResolving] = useState(false);
+
+  // ── The sanctioned exit for a job already underway ──
+  // Server owns every part of this decision (helper_abort_job, migration
+  // 20260825190000): which settlement path the job takes, and what the strike
+  // costs. The client only states it truthfully before the tap.
+  const [abortOpen, setAbortOpen] = useState(false);
+  const [abortReason, setAbortReason] = useState("");
+  const [aborting, setAborting] = useState(false);
+  const [aborted, setAborted] = useState<"reopened" | "disputed" | null>(null);
+
+  // Same predicate the RPC uses to pick its branch, so the money sentence in
+  // the dialog is the one that will actually happen. If these ever drift the
+  // SERVER wins — this is copy, not control flow.
+  const abortWorkStarted =
+    !!job.helper_arrived_at ||
+    !!job.helper_completed_at ||
+    (job.proof_before_urls?.length ?? 0) > 0 ||
+    (job.proof_after_urls?.length ?? 0) > 0;
+
+  const handleAbort = async () => {
+    if (aborting) return; // double-fire guard: the dialog stays open on tap
+    setAborting(true);
+    const { data, error } = await supabase.rpc("helper_abort_job", {
+      p_job_id: app.job_id,
+      p_reason: abortReason.trim(),
+    });
+    setAborting(false);
+    if (error) {
+      hapticError();
+      report(error, { tags: { source: "ActiveJobSection.helperAbortJob" } });
+      toast.error(
+        /not_abortable/.test(error.message)
+          ? "This job has already moved on — pull to refresh and take another look."
+          : "We couldn’t send that — check your connection and try again.",
+        { action: { label: "Retry", onClick: () => void handleAbort() } },
+      );
+      return; // dialog stays open, reason preserved, primary re-enabled
+    }
+    hapticError(); // a strike is never a success moment
+    const result = data as { action?: string; outcome?: string } | null;
+    if (result?.action === "permanent_ban") {
+      // Fourth strike. Mirror the decline / cancel-booking paths: hard-load so
+      // the banned session is torn down rather than left live behind the list.
+      window.location.assign("/account-banned");
+      return;
+    }
+    const outcome = result?.outcome === "disputed" ? "disputed" : "reopened";
+    setAborted(outcome);
+    setAbortOpen(false);
+    toast.warning(
+      result?.action === "temp_ban"
+        ? "We told the poster — third strike: your account is suspended for 7 days."
+        : result?.action === "warning"
+          ? "We told the poster — final warning. One more strike is a 7-day suspension."
+          : outcome === "disputed"
+            ? "We told the poster. Our team will review what you’re owed."
+            : "We told the poster, and the job is open again. This counts as a reliability strike.",
+    );
+  };
 
   // Does THIS poster release instantly? Read once the banner could show;
   // false on any error — the 24h countdown is the safe default, instant is
@@ -242,12 +306,63 @@ export function ActiveJobSection({
           );
         })()}
         <Button size="sm" variant="outline" style={messageButtonStyle} className="w-full" onClick={() => navigate(job.customer_id ? `/messages?jobId=${app.job_id}&userId=${job.customer_id}` : "/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
-        {/* The state machine has no sanctioned helper exit once a job is
-            underway — say so quietly rather than leaving a stuck helper to
-            discover it by hunting for a cancel button that isn't there. */}
-        <p className="font-serif italic text-center text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-          Can’t finish? Message the poster or contact support — once a job starts it can only be completed or disputed.
-        </p>
+        {/* The sanctioned exit for a job already underway. This REPLACES the
+            stopgap line that used to sit here ("once a job starts it can only
+            be completed or disputed") — true when it was written, and the
+            defect: ghosting was the only remaining move AND the cheapest one,
+            because it recorded no strike while every honest exit did. */}
+        {aborted ? (
+          <p className="font-serif italic text-center text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            {aborted === "disputed"
+              ? "You’ve told the poster you can’t finish. Our team is reviewing what you’re owed — the payment stays in escrow until then."
+              : "You’ve told the poster you can’t finish. The job is open to other Helprs again."}
+          </p>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setAbortOpen(true)}
+            className="w-full text-center text-ds-11 font-serif italic underline underline-offset-2 text-muted-foreground hover:text-foreground transition-colors min-h-[44px]"
+          >
+            Can’t finish this job? See what happens
+          </button>
+        )}
+        <BrandConfirmDialog
+          open={abortOpen}
+          onOpenChange={(next) => { if (!aborting) setAbortOpen(next); }}
+          title="Can’t Finish This Job?"
+          description=""
+          callout={{
+            icon: CalendarX2,
+            text: `Stopping a job you committed to counts as a reliability strike — ${RELIABILITY_LADDER_SENTENCE}. Telling us costs exactly the same as going quiet, and going quiet costs the poster their whole day.`,
+          }}
+          primaryLabel={aborting ? "Sending…" : "I Can’t Finish"}
+          primaryTone="sienna"
+          primaryHaptic="warning"
+          primaryDisabled={aborting || abortReason.trim().length < 5}
+          onPrimary={(e) => { e.preventDefault(); void handleAbort(); }}
+          secondaryLabel="Keep Working"
+        >
+          <div className="space-y-2.5">
+            {/* The money outcome, stated plainly, before the tap. */}
+            <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood))" }}>
+              {abortWorkStarted
+                ? "You’ve already started, so we won’t decide who’s owed what on our own. The poster’s payment stays in escrow and our team reviews it — you may still be paid for the part you did."
+                : "You never started, so the poster is charged nothing. The job reopens for other Helprs right away and their payment stays protected in escrow."}
+            </p>
+            <label htmlFor={`abort-reason-${app.job_id}`} className="block text-ds-11 font-medium text-foreground">
+              What happened? The poster sees this.
+            </label>
+            <Textarea
+              id={`abort-reason-${app.job_id}`}
+              value={abortReason}
+              onChange={(e) => setAbortReason(e.target.value)}
+              maxLength={1000}
+              rows={3}
+              disabled={aborting}
+              placeholder="My van broke down and I can’t get back out there today."
+            />
+          </div>
+        </BrandConfirmDialog>
       </div>
     </div>
   );

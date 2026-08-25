@@ -7,17 +7,13 @@
 //
 // Validation lives in the parent (validateAboutYouStep).
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Building2,
   Camera,
-  ArrowLeft,
   UserRound,
-  UserCircle2,
   AlertCircle,
   Check,
 } from "lucide-react";
@@ -51,10 +47,6 @@ function FieldError({ id, message }: { id: string; message?: string }) {
 }
 
 export interface SignupStep2Props {
-  isBusinessSignup: boolean;
-  companyName: string;
-  setCompanyName: (v: string) => void;
-  avatarFile: File | null;
   avatarPreview: string | null;
   onAvatarChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   firstName: string;
@@ -76,8 +68,6 @@ export interface SignupStep2Props {
   fieldErrors?: Record<string, string>;
   /** Called when the user edits a field, to clear its individual error. */
   clearFieldError?: (key: string) => void;
-  /** Called when the user clicks Back. */
-  onBack: () => void;
   /**
    * Called when the user clicks the primary button — parent runs validation,
    * then creates the account (Step 2 is the final step).
@@ -90,10 +80,6 @@ export interface SignupStep2Props {
 
 export function SignupStep2(props: SignupStep2Props) {
   const {
-    isBusinessSignup,
-    companyName,
-    setCompanyName,
-    avatarFile,
     avatarPreview,
     onAvatarChange,
     firstName,
@@ -110,7 +96,6 @@ export function SignupStep2(props: SignupStep2Props) {
     labelCls,
     fieldErrors = {},
     clearFieldError,
-    onBack,
     onContinue,
     loading = false,
   } = props;

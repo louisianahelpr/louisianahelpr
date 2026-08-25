@@ -10,7 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Briefcase, Clock, Crown, MoreVertical, Flag, Ban, UserX, MessageSquare } from "lucide-react";
+import { Briefcase, Clock, Crown, MoreVertical, Flag, Ban, UserX } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";

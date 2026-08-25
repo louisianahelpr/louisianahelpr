@@ -112,9 +112,20 @@ export default tseslint.config(
       "react-hooks/preserve-manual-memoization": "off",
       "react-hooks/incompatible-library": "off",
       "react-hooks/globals": "off",
-      "@typescript-eslint/no-unused-vars": ["warn", {
+      // ERROR, not warn — and no `varsIgnorePattern`. This rule was a warning
+      // that nothing failed on, so ~60 dead symbols accumulated behind it,
+      // including whole half-wired features: an intro-video upload whose
+      // handlers were destructured and dropped, a completion checklist that
+      // could never render, per-row "action needed" chips that were computed
+      // and never used. Every one of them read as intentional in review
+      // because an underscore or a passing lint run said nothing was wrong.
+      //
+      // `argsIgnorePattern` stays: an unused leading ARGUMENT is often forced
+      // by a callback signature you don't control. An unused VARIABLE never
+      // is — it is either dead or a feature someone forgot to finish, and
+      // both deserve to stop the build rather than be renamed to `_thing`.
+      "@typescript-eslint/no-unused-vars": ["error", {
         argsIgnorePattern: "^_",
-        varsIgnorePattern: "^_",
       }],
       // tailwind.config.ts uses CommonJS require() for the plugin —
       // standard Tailwind pattern, not worth rewriting.

@@ -92,11 +92,19 @@ export function IDVPromptDialog({
 
   const Icon = isAdminReview ? Hourglass : isPending ? Hourglass : ShieldCheck;
 
-  const description = isAdminReview
-    ? "Your verification didn't auto-pass. An admin will review your submission manually within 24 hours. You'll get a notification when it's resolved."
-    : isPending
-      ? "We've received your documents and are reviewing them. This usually finishes in a few minutes."
-      : (reason ?? "Helpr requires a quick ID + selfie check before you accept your first job. This protects posters and keeps the platform safe.");
+  // WHY this dialog is being shown, rendered at the top of the body.
+  //
+  // This used to be a three-way const that DialogHero no longer rendered, so
+  // it was computed and thrown away — including the caller's own `reason`
+  // ("…before you can post a job", from PostJob), which meant a poster was
+  // shown the generic first-job copy instead of the reason they were actually
+  // stopped. The admin-review and pending arms are dropped rather than
+  // restored: their bodies below already say the same thing ("An admin will
+  // review your ID upload manually…", "You'll get a notification as soon as
+  // the review finishes"), and re-adding them would duplicate that copy.
+  const intro = isAdminReview || isPending
+    ? null
+    : (reason ?? "Helpr requires a quick ID + selfie check before you accept your first job. This protects posters and keeps the platform safe.");
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -113,6 +121,15 @@ export function IDVPromptDialog({
           }
           title={headline}
         />
+
+        {intro && (
+          <p
+            className="font-serif italic px-1 pt-1 text-ds-13"
+            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+          >
+            {intro}
+          </p>
+        )}
 
         {/* Admin-review state — show Stripe's reason for transparency, but
             no self-service retry CTA. Per owner policy, Stripe Identity is

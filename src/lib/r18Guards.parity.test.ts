@@ -31,17 +31,6 @@ const MIGRATIONS_DIR = join(process.cwd(), "supabase", "migrations");
 
 const readFn = (rel: string) => readFileSync(join(FUNCTIONS_DIR, rel), "utf8");
 
-/** Newest migration whose text contains `needle` — timestamp-prefixed names
- *  sort lexically into apply order, so the last match is the one that ships. */
-function newestMigrationContaining(needle: string): string {
-  const hits = readdirSync(MIGRATIONS_DIR)
-    .filter((f) => f.endsWith(".sql"))
-    .filter((f) => readFileSync(join(MIGRATIONS_DIR, f), "utf8").includes(needle))
-    .sort();
-  expect(hits.length, `no migration defines ${needle}`).toBeGreaterThan(0);
-  return readFileSync(join(MIGRATIONS_DIR, hits[hits.length - 1]), "utf8");
-}
-
 function newestMigrationDefining(needle: string, bodyPattern: RegExp): string {
   const hits = readdirSync(MIGRATIONS_DIR)
     .filter((f) => f.endsWith(".sql"))

@@ -5704,6 +5704,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      helper_abort_job: {
+        Args: { p_job_id: string; p_reason: string }
+        Returns: Json
+      }
       helper_cancel_booking: { Args: { p_job_id: string }; Returns: Json }
       instant_book_claim: { Args: { p_job_id: string }; Returns: undefined }
       is_business_admin: {

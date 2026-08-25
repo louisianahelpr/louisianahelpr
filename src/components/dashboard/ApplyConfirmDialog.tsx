@@ -8,13 +8,12 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { FileText, Paperclip, Trash2, WifiOff, Sparkles, BookmarkCheck, ChevronDown, Plus, X } from "lucide-react";
+import { FileText, Paperclip, Trash2, WifiOff, Sparkles, BookmarkCheck, ChevronDown, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { errorToast } from "@/lib/toast";
 import { hapticMedium, hapticLight } from "@/lib/haptics";
 import { useOnlineStatus } from "@/lib/useOnlineStatus";
 import { safeStorage } from "@/lib/safeStorage";
-import { formatPrice } from "@/lib/format";
 import type { ApplyConfirmDialogProps } from "@/components/dashboard/applyConfirmDialog/types";
 import { ApplyEarningsBreakdown } from "@/components/dashboard/applyConfirmDialog/ApplyEarningsBreakdown";
 import {

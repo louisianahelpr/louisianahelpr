@@ -35,7 +35,4 @@ export interface ProfileEditFormProps {
     intro_video_thumbnail_url: string | null;
     intro_video_duration_seconds: number | null;
   }) => void;
-  /** Opens the Support tab — first/last name are locked after signup,
-   *  so a name change has to go through support. */
-  onContactSupport?: () => void;
 }

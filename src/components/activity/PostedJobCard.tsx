@@ -125,7 +125,6 @@ function PostedJobCardInner({
                 location={job.location}
                 latitude={job.latitude}
                 longitude={job.longitude}
-                estimatedHours={job.estimated_hours}
                 expiresAt={!job.helper_id && job.status !== "cancelled" ? job.expires_at : null}
                 // "View details" costs no row of its own any more.
                 //

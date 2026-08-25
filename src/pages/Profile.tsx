@@ -5,7 +5,6 @@ import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { signOutWithPushCleanup } from "@/lib/authSignOut";
 import { ProfilePageSkeleton } from "@/components/SkeletonLoaders";
-import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import AppShell from "@/components/AppShell";
 import { toast } from "sonner";
 import { setSimpleMode } from "@/lib/simpleMode";
@@ -607,7 +606,6 @@ const ProfilePage = () => {
             onBackFromTab={backFromTab}
             user={user}
             profile={profile}
-            setTab={setTab}
             setProfile={setProfile}
             firstName={firstName}
             lastName={lastName}

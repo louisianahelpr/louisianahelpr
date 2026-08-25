@@ -10,7 +10,6 @@ interface PhotoNameSectionProps {
   setAvatarBroken: (v: boolean) => void;
   avatarUploading: boolean;
   onAvatarUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onContactSupport?: () => void;
 }
 
 export function PhotoNameSection({
@@ -22,7 +21,6 @@ export function PhotoNameSection({
   setAvatarBroken,
   avatarUploading,
   onAvatarUpload,
-  onContactSupport,
 }: PhotoNameSectionProps) {
   return (
     <div className="rounded-2xl liquid-glass p-5 space-y-4">

@@ -78,7 +78,14 @@ const Signup = () => {
   useEffect(() => {
     track(AhaEvent.SignupStarted, { source: "web", ...ppoTrackingProps() });
   }, []);
-  const [companyName, setCompanyName] = useState("");
+  // No `companyName` state any more. The company-name Input was removed from
+  // SignupStep2's business branch a while back, so nothing could ever set it:
+  // the validator below then failed business signups with "Add your company
+  // name" against a field that no longer existed, and the businesses INSERT
+  // was guarded on a value that was permanently "". The whole branch is
+  // unreachable today regardless (BUSINESS_ENABLED === false), and the live
+  // way to create a business is BusinessNoAccountState.tsx after signup — so
+  // the dead plumbing is gone rather than left as a broken half-path.
   // Dev-only: seed the step from `?step=2` so the flow can be inspected
   // without the old on-page PREVIEW band, which showed testers a control
   // real users never see. Production always starts at step 1.
@@ -146,7 +153,6 @@ const Signup = () => {
     // has to enforce it. Note this adds real signup friction: a photo is a
     // bigger ask than a name, and it now blocks account creation.
     if (!avatarFile) errors.avatar = "Upload a profile photo";
-    if (isBusinessSignup && !companyName.trim()) errors.companyName = "Add your company name";
     if (!firstName.trim()) errors.firstName = "Add your first name";
     if (!lastName.trim()) errors.lastName = "Add your last name";
     // Avatar, phone and DOB are DEFERRED — not required to create the
@@ -352,19 +358,10 @@ const Signup = () => {
         if (referralErr) report(referralErr, { tags: { source: "Signup.referral" } });
       }
 
-      // Business signup: create business. Same resolved-error caveat — a failed
-      // insert would leave a business-tier account with no business to manage,
-      // so surface it to the user instead of swallowing it.
-      if (isBusinessSignup && companyName.trim()) {
-        const { error: businessErr } = await supabase.from("businesses").insert({
-          owner_id: userId,
-          name: companyName.trim(),
-        });
-        if (businessErr) {
-          report(businessErr, { tags: { source: "Signup.businessCreation" } });
-          toast.error("We couldn't finish setting up your business — contact support.");
-        }
-      }
+      // Business signup no longer creates a `businesses` row here — signup has
+      // no company-name field to create it from (see the note at the state
+      // declarations). A business-tier account sets its business up from the
+      // Business tab (BusinessNoAccountState) on first visit.
 
       // Auto-accept any pending invite for this email
       try {
@@ -473,10 +470,6 @@ const Signup = () => {
         {/* Step 2: About you + ID */}
         {step === 2 && (
           <SignupStep2
-            isBusinessSignup={isBusinessSignup}
-            companyName={companyName}
-            setCompanyName={setCompanyName}
-            avatarFile={avatarFile}
             avatarPreview={avatarPreview}
             onAvatarChange={handleAvatarChange}
             firstName={firstName}
@@ -494,7 +487,6 @@ const Signup = () => {
             fieldErrors={step2Errors}
             clearFieldError={(key) => setStep2Errors((prev) => { const next = { ...prev }; delete next[key]; return next; })}
             loading={loading}
-            onBack={() => { setStep2Errors({}); setStep(1); }}
             onContinue={async () => {
               if (!(await validateAboutYouStep())) return;
               setStep2Errors({});

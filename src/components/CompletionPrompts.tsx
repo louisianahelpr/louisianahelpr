@@ -129,39 +129,44 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
     } else {
       hapticSuccess();
 
-      // Check for repeat low ratings → auto-flag
-      const { data: allReviews, error: allReviewsErr } = await supabase.from("reviews").select("rating").eq("reviewee_id", revieweeId);
-      if (allReviewsErr) report(allReviewsErr, { tags: { source: "CompletionPrompts.lowRatingCheck" } });
-      if (allReviews) {
-        const lowRatings = allReviews.filter(r => r.rating <= 2).length;
-        if (lowRatings >= 3) {
-          // Auto-flag for admin review.
-          const { error: flagErr } = await supabase.from("user_violations").insert({
-            user_id: revieweeId,
-            violation_type: "low_ratings",
-            description: `User has ${lowRatings} ratings of 2 stars or below. Auto-flagged for admin review.`,
-            reported_by: null,
-            action_taken: "warning",
-          });
-          if (flagErr) report(flagErr, { tags: { source: "CompletionPrompts.autoFlagLowRating" } });
-          // Bulk-insert one row per admin instead of awaiting per admin.
-          // For 5+ admins this difference is visible to the user (~1.5s vs ~300ms).
-          const { data: adminRoles, error: adminRolesErr } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
-          if (adminRolesErr) report(adminRolesErr, { tags: { source: "CompletionPrompts.lowRatingNotifyAdmins" } });
-          if (adminRoles?.length) {
-            const { error: notifyErr } = await supabase.from("notifications").insert(
-              adminRoles.map((a: { user_id: string }) => ({
-                user_id: a.user_id,
-                title: "⚠️ Low rating alert",
-                message: `A user has received ${lowRatings} low ratings and has been auto-flagged.`,
-                type: "warning",
-                link: "/admin?view=fraud",
-                read: false,
-              })),
-            );
-            if (notifyErr) report(notifyErr, { tags: { source: "CompletionPrompts.notifyLowRating" } });
-          }
-        }
+      // Repeat low ratings → auto-flag for the admin fraud queue.
+      //
+      // This whole ladder used to run HERE, in the REVIEWER'S browser: read
+      // every rating the reviewee had ever received, count the <= 2s in JS,
+      // and — if that count crossed 3 — insert a `low_ratings` violation
+      // against ANOTHER USER and fan a notification to every admin it had just
+      // enumerated out of user_roles.
+      //
+      // It never actually worked. `user_violations` only grants "Admins can
+      // manage violations", and `notifications` INSERT needs admin or
+      // service_role, so for an ordinary reviewer both writes were rejected by
+      // RLS and the errors were merely report()ed — the flag has been silently
+      // failing to fire for its entire life. It fired only when the reviewer
+      // happened to be an admin.
+      //
+      // The fix is not to loosen that RLS: it is to stop a client deciding a
+      // consequence for a third party. apply_low_rating_flag() re-counts the
+      // reviewee's low ratings from the source of truth, verifies the caller
+      // actually reviewed them, dedupes to one flag per 30 days, and writes
+      // under its own authority — the same house pattern as
+      // apply_message_violation_consequence.
+      //
+      // `as any`: the RPC ships with this change's migration, so the generated
+      // types.ts doesn't know it yet.
+      const { error: flagErr } = await supabase.rpc(
+        "apply_low_rating_flag" as any,
+        { p_reviewee_id: revieweeId } as any,
+      );
+      if (flagErr) {
+        // PGRST202 = the RPC isn't deployed yet (the window between merge and
+        // db-deploy finishing). The review itself already landed and the next
+        // genuine reviewer re-evaluates the threshold, so degrade quietly
+        // rather than falling back to a client-side flag.
+        const code = (flagErr as { code?: string }).code;
+        report(flagErr, {
+          severity: code === "PGRST202" ? "warning" : "error",
+          tags: { source: "CompletionPrompts.applyLowRatingFlag" },
+        });
       }
       setStep("tip");
     }

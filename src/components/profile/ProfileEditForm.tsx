@@ -42,7 +42,6 @@ export function ProfileEditForm({
   onBack,
   onPortfolioChange,
   onIntroVideoChange,
-  onContactSupport,
 }: ProfileEditFormProps) {
   const idStatus = profile?.idv_status ?? null;
   const hasId = !!profile?.id_document_url;
@@ -165,7 +164,6 @@ export function ProfileEditForm({
           setAvatarBroken={setAvatarBroken}
           avatarUploading={avatarUploading}
           onAvatarUpload={onAvatarUpload}
-          onContactSupport={onContactSupport}
         />
 
         {/* Completion meter — the 3 post-signup enhancements (ZIP / ID

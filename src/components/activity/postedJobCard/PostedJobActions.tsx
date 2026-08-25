@@ -11,7 +11,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { AUTO_COMPLETE_HOURS, hoursToMs } from "../../../../supabase/functions/_shared/escrowTiming";
 import {
    DollarSign, XCircle, CheckCircle2, RotateCcw, Star, MessageSquare,
-  MessageCircle, Pencil, AlertTriangle, Rocket, Clock, Wrench,
+  MessageCircle, Pencil, AlertTriangle, Rocket, Wrench,
 } from "lucide-react";
 import { SosShareButton } from "@/components/SosShareButton";
 import { PhotoProofGroup } from "@/components/PhotoProof";
@@ -591,6 +591,16 @@ export function PostedJobActions({
         {job.status === "disputed" && (() => {
           const disputeStatus = job.dispute_status || "open";
           const isDisputer = job.disputed_by === userId;
+          // Once escalated, nothing auto-releases and there is nothing for the
+          // poster to do — `auto-resolve-disputes` skips escalated disputes and
+          // only nags admins. Both the 72h countdown and the static policy box
+          // below therefore have to stay quiet, or they promise a deadline that
+          // will never fire. This became load-bearing with helper_abort_job
+          // (20260825190000), which opens ESCALATED disputes on purpose so a
+          // helper who walked off a started job can't be paid in full by a
+          // timeout — but the copy was already wrong for a poster-escalated one.
+          const awaitingAdmin = disputeStatus === "escalated";
+          const showDeadline = !!job.dispute_deadline && disputeStatus !== "resolved" && !awaitingAdmin;
           return (
           <div className="space-y-2">
             {job.poster_confirmed_working_at && (
@@ -616,7 +626,7 @@ export function PostedJobActions({
                   <p className="text-ds-11 text-foreground mt-0.5">"{job.dispute_helper_response}"</p>
                 </div>
               )}
-              {job.dispute_deadline && disputeStatus !== "resolved" && (
+              {showDeadline && job.dispute_deadline && (
                 <DeadlineCountdown
                   deadline={job.dispute_deadline}
                   expiredText="Deadline passed — payment auto-releasing to Helpr"
@@ -629,7 +639,7 @@ export function PostedJobActions({
                 (owner, 2026-08-24 transition audit): with dispute_deadline
                 present, the DeadlineCountdown above already says all of this
                 with a live number — the box was the same sentence twice. */}
-            {!(job.dispute_deadline && disputeStatus !== "resolved") && (
+            {!showDeadline && !awaitingAdmin && (
               <div className="p-2 rounded-ds-sm bg-card">
                 <p className="text-ds-10 text-muted-foreground leading-relaxed">
                   <strong>Policy:</strong> You have 72 hours to confirm the issue is fixed or escalate to admin. If you do nothing, payment auto-releases to the Helpr.
@@ -684,8 +694,11 @@ export function PostedJobActions({
                 }}><AlertTriangle className="w-4 h-4 mr-1" /> Escalate to Admin</Button>
               </div>
             )}
-            {isDisputer && disputeStatus === "escalated" && (
-              <div className="text-ds-11 text-center text-muted-foreground px-2 py-1.5 rounded bg-muted/50">Admin is reviewing this dispute. You'll be notified of the outcome.</div>
+            {/* NOT gated on isDisputer: when the HELPR opened the dispute (they
+                couldn't finish), the poster is the party with no controls and
+                the most questions — they need this line most of all. */}
+            {awaitingAdmin && (
+              <div className="text-ds-11 text-center text-muted-foreground px-2 py-1.5 rounded bg-muted/50">Admin is reviewing this dispute. You'll be notified of the outcome, and nothing is charged or released until then.</div>
             )}
             <Button
               size="sm"

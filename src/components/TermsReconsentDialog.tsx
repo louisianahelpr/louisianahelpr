@@ -10,7 +10,6 @@
 // re-consent event the Cowork audit flagged as missing.
 
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { AlertDialog, AlertDialogContent, AlertDialogHero, AlertDialogFooter, AlertDialogAction } from "@/components/ui/alert-dialog";
 import { useCurrentUser } from "@/hooks/useCurrentUser";

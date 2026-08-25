@@ -234,7 +234,6 @@ const Dashboard = () => {
   const [hoveredJobId, setHoveredJobId] = useState<string | null>(null);
 
   const [confirmDismissJobId, setConfirmDismissJobId] = useState<string | null>(null);
-  const confirmDismissJob = allJobs.find((j) => j.id === confirmDismissJobId) || null;
 
   // Pay It Forward — count of available credits in the user's parish.
   // Shown as a teaser banner above the community teaser when > 0.
@@ -713,7 +712,6 @@ const Dashboard = () => {
 
       <DismissJobDialog
         confirmDismissJobId={confirmDismissJobId}
-        confirmDismissJob={confirmDismissJob}
         onOpenChange={(open) => { if (!open) setConfirmDismissJobId(null); }}
         onConfirm={handleDismissConfirm}
       />

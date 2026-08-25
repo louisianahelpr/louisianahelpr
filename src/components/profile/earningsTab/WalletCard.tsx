@@ -8,7 +8,6 @@ import {
   INSTANT_PAYOUT_MIN_CENTS,
 } from "@/lib/instantPayoutFee";
 import type { StripePayoutData } from "./types";
-import { TIER_PERKS } from "@/lib/subscriptionTiers";
 
 interface WalletCardProps {
   stripeData: StripePayoutData | undefined;
@@ -156,7 +155,7 @@ export function WalletCard({
                       letterSpacing: "0.06em",
                     }}
                   >
-                    {TIER_PERKS.pro.name}
+                    Pro
                   </span>
                 )}
               </div>

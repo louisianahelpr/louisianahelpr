@@ -131,7 +131,7 @@ const TierBadgePreview = ({ tier }: { tier: string }) => {
         className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-flex items-center gap-1"
         style={{ color: "hsl(var(--bark))", background: "hsl(var(--bark) / 0.10)", letterSpacing: "0.08em" }}
       >
-        <Star className="w-2.5 h-2.5" /> Helpr Basic
+        <Star className="w-2.5 h-2.5" /> Basic
       </span>
     );
   }
@@ -141,7 +141,7 @@ const TierBadgePreview = ({ tier }: { tier: string }) => {
         className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-flex items-center gap-1"
         style={{ color: "hsl(var(--burnt-sienna))", background: "hsl(var(--burnt-sienna) / 0.12)", letterSpacing: "0.08em" }}
       >
-        <Award className="w-2.5 h-2.5" /> Helpr Pro
+        <Award className="w-2.5 h-2.5" /> Pro
       </span>
     );
   }
@@ -151,7 +151,7 @@ const TierBadgePreview = ({ tier }: { tier: string }) => {
         className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-flex items-center gap-1"
         style={{ color: "hsl(var(--gold-warm))", background: "hsl(var(--gold-warm) / 0.14)", letterSpacing: "0.08em" }}
       >
-        <Crown className="w-2.5 h-2.5" /> Helpr Elite
+        <Crown className="w-2.5 h-2.5" /> Elite
       </span>
     );
   }
@@ -556,6 +556,9 @@ export default function SubscriptionPage() {
                       </span>
                     )}
 
+                    {/* Tier name — big Bodoni. Strips the "Helpr " prefix
+                        so tiers read as just "Basic / Pro / Elite" (Free
+                        for the free tier). */}
                     {/* No conditional margin. This used to add mt-3 whenever a
                         chip sat above the title — but the "Current" chip is gone
                         and "Recommended" is now absolutely positioned in the
@@ -581,7 +584,7 @@ export default function SubscriptionPage() {
                           color: "hsl(var(--ink-deep))",
                         }}
                       >
-                        {isFree ? "Free" : perks.name}
+                        {isFree ? "Free" : perks.name.replace(/^Helpr\s+/, "")}
                       </h3>
                       <div className="sm:hidden shrink-0 text-right">
                         {/* One wrapping row, not a stack: the annual save chip
@@ -800,7 +803,7 @@ export default function SubscriptionPage() {
                         {tier === "elite" && (
                           <li className="flex items-start gap-2 font-sans text-ds-13 font-semibold leading-relaxed" style={{ color: "hsl(var(--olivewood))" }}>
                             <Check className="w-4 h-4 shrink-0 mt-0.5" strokeWidth={2.25} style={{ color: "hsl(var(--burnt-sienna))" }} />
-                            <span>Everything in {TIER_PERKS.pro.name}</span>
+                            <span>Everything in Pro</span>
                           </li>
                         )}
                         {perks.featureBullets.map((bullet) => (
@@ -986,7 +989,9 @@ export default function SubscriptionPage() {
                       const perks = TIER_PERKS[tier];
                       const isFree = tier === "free";
                       const isFeatured = tier === "pro";
-                      const displayName = isFree ? "Free" : perks.name;
+                      const displayName = isFree
+                        ? "Free"
+                        : perks.name.replace(/^Helpr\s+/, "");
                       return (
                         <th
                           key={tier}

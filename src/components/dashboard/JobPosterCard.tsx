@@ -4,7 +4,6 @@ import { formatDistanceToNow } from "date-fns";
 import { computeBadges, HelperBadges } from "@/components/HelperBadges";
 import { TrustRow } from "@/components/TrustRow";
 import type { EnrichedJob } from "./types";
-import { TIER_PERKS } from "@/lib/subscriptionTiers";
 
 interface JobPosterCardProps {
   /** The job whose poster is shown. */
@@ -188,7 +187,7 @@ export function JobPosterCard({ job, repeatJobs, cancellationRate, guest = false
               style={{ color: "hsl(var(--gold-warm))", letterSpacing: "0.06em" }}
             >
               <Crown className="w-3.5 h-3.5" strokeWidth={2.25} />
-              {TIER_PERKS.elite.name} Poster
+              Elite Poster
             </span>
           )}
           {job.posterSubscriptionTier === "pro" && (
@@ -197,7 +196,7 @@ export function JobPosterCard({ job, repeatJobs, cancellationRate, guest = false
               style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.06em" }}
             >
               <Sparkles className="w-3.5 h-3.5" strokeWidth={2.25} />
-              {TIER_PERKS.pro.name} Poster
+              Pro Poster
             </span>
           )}
           {job.posterSubscriptionTier === "basic" && (
@@ -206,7 +205,7 @@ export function JobPosterCard({ job, repeatJobs, cancellationRate, guest = false
               style={{ color: "hsl(var(--bark))", letterSpacing: "0.06em" }}
             >
               <Star className="w-3.5 h-3.5" strokeWidth={2.25} />
-              {TIER_PERKS.basic.name} Poster
+              Basic Poster
             </span>
           )}
           {/* Poster-data trust signals via the reusable TrustRow component.

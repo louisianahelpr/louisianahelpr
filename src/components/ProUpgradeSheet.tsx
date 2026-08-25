@@ -2,7 +2,6 @@ import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogHero, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Crown, Check, type LucideIcon } from "lucide-react";
-import { TIER_PERKS } from "@/lib/subscriptionTiers";
 
 interface ProUpgradeSheetProps {
   open: boolean;
@@ -38,8 +37,7 @@ export function ProUpgradeSheet({
 }: ProUpgradeSheetProps) {
   const navigate = useNavigate();
 
-  const tierLabel =
-    requiredTier === "elite" ? TIER_PERKS.elite.name : TIER_PERKS.pro.name;
+  const tierLabel = requiredTier === "elite" ? "Elite" : "Pro";
   const TierIcon = requiredTier === "elite" ? Crown : Sparkles;
   const accent =
     requiredTier === "elite"

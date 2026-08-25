@@ -13,7 +13,6 @@ import { computeMetrics } from "./adminAnalytics/adminAnalyticsHelpers";
 import { toneTextClasses } from "@/components/admin/tones";
 import { cn } from "@/lib/utils";
 import { formatPrice, formatPriceExact } from "@/lib/format";
-import { tierDisplayName } from "@/lib/subscriptionTiers";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 
@@ -374,9 +373,9 @@ const AdminAnalytics = () => {
           <p className="text-ds-24 font-bold text-foreground">${totalSubRevenue.toFixed(2)}<span className="text-ds-13 font-normal text-muted-foreground">/mo</span></p>
           <div className="grid grid-cols-4 gap-2 mt-4">
             {[
-              { label: tierDisplayName("elite"), count: subElite, color: "bg-accent/20 text-accent" },
-              { label: tierDisplayName("pro"), count: subPro, color: "bg-primary/10 text-primary" },
-              { label: tierDisplayName("basic"), count: subBasic, color: "Bg-secondary Text-secondary-foreground" },
+              { label: "Elite", count: subElite, color: "bg-accent/20 text-accent" },
+              { label: "Pro", count: subPro, color: "bg-primary/10 text-primary" },
+              { label: "Basic", count: subBasic, color: "Bg-secondary Text-secondary-foreground" },
               { label: "Free", count: subFree, color: "Bg-muted Text-muted-foreground" },
             ].map(t => (
               <div key={t.label} className="text-center">
@@ -548,9 +547,9 @@ const AdminAnalytics = () => {
           <p className="text-ds-28 font-bold text-foreground tabular-nums leading-none">${totalSubRevenue.toFixed(2)}</p>
           <p className="text-ds-11 text-muted-foreground mt-1">Projected annual: ${(totalSubRevenue * 12).toFixed(2)}</p>
           <div className="mt-4 space-y-1.5">
-            <MRRRow tier={tierDisplayName("elite")} count={subElite} amount={subElite * SUB_PRICE.elite} />
-            <MRRRow tier={tierDisplayName("pro")} count={subPro} amount={subPro * SUB_PRICE.pro} />
-            <MRRRow tier={tierDisplayName("basic")} count={subBasic} amount={subBasic * SUB_PRICE.basic} />
+            <MRRRow tier="Elite" count={subElite} amount={subElite * SUB_PRICE.elite} />
+            <MRRRow tier="Pro" count={subPro} amount={subPro * SUB_PRICE.pro} />
+            <MRRRow tier="Basic" count={subBasic} amount={subBasic * SUB_PRICE.basic} />
           </div>
         </AdminCard>
       </div>

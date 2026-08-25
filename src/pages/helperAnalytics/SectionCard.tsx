@@ -1,6 +1,5 @@
 import { Crown, Lock } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TIER_PERKS } from "@/lib/subscriptionTiers";
 
 interface SectionCardProps {
   title: string;
@@ -126,7 +125,7 @@ const SectionCard = ({
           style={{ color: "hsl(var(--bark))" }}
         >
           <Lock className="w-3 h-3" strokeWidth={2} aria-hidden />
-          {TIER_PERKS.pro.name}
+          Pro
         </span>
       </button>
     );

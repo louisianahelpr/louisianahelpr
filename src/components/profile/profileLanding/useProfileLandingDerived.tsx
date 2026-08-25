@@ -10,7 +10,6 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import type { PayoutPrompt } from "@/hooks/useStripeConnectStatus";
 import type { MenuItem, Profile } from "./types";
 import { FAMILY_ENABLED } from "@/config/familyEnabled";
-import { TIER_PERKS } from "@/lib/subscriptionTiers";
 
 interface UseProfileLandingDerivedArgs {
   profile: Profile | null;
@@ -107,11 +106,11 @@ export function useProfileLandingDerived({
   const stripeNeedsAction = payoutNeedsSetup && profile?.approval_status === "approved";
   const subscriptionDesc =
     tier === "elite"
-      ? `${TIER_PERKS.elite.name} — top visibility`
+      ? "Elite — top visibility"
       : tier === "pro"
-        ? `${TIER_PERKS.pro.name} — upgrade to ${TIER_PERKS.elite.name}`
+        ? "Pro — upgrade to Elite"
         : tier === "basic"
-          ? `${TIER_PERKS.basic.name} — upgrade to ${TIER_PERKS.pro.name}`
+          ? "Basic — upgrade to Pro"
           : "Free — tap to upgrade";
 
   // ─── Portfolio gallery + completion meter ──────────────────────────

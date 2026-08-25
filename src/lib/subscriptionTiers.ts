@@ -180,20 +180,6 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
 };
 
 /**
- * Maps a tier ID (e.g., "pro", "elite") to its branded display name.
- * Used in admin views and edge functions where the tier is a raw string
- * to avoid hardcoding or applying unreliable transformations.
- *
- * @param tier - Subscription tier ID ("free", "basic", "pro", "elite", "business")
- * @returns The branded display name, e.g., "Helpr Pro"
- */
-export function tierDisplayName(tier: SubscriptionTier | string): string {
-  const normalizedTier = tier.toLowerCase() as SubscriptionTier;
-  const perks = TIER_PERKS[normalizedTier];
-  return perks?.name ?? "Unknown";
-}
-
-/**
  * Returns a human-friendly "pays for itself" string for paid tiers,
  * e.g. "Pays for itself after just 2 jobs/month".
  *

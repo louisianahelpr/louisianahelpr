@@ -81,7 +81,7 @@ export const tierConfig: TierDisplay[] = [
   },
   {
     id: "basic",
-    name: TIER_PERKS.basic.name,
+    name: "Basic",
     iconName: "star",
     forWhom: "For Helprs testing the marketplace.",
     ...formatTierPrices("basic"),
@@ -90,21 +90,21 @@ export const tierConfig: TierDisplay[] = [
   },
   {
     id: "pro",
-    name: TIER_PERKS.pro.name,
+    name: "Pro",
     iconName: "sparkles",
     forWhom: "For Helprs picking up regular work.",
     ...formatTierPrices("pro"),
     feePercent: TIER_PERKS.pro.platformFeePercent,
-    features: [`Everything in ${TIER_PERKS.basic.name}`, ...TIER_PERKS.pro.featureBullets],
+    features: ["Everything in Basic", ...TIER_PERKS.pro.featureBullets],
   },
   {
     id: "elite",
-    name: TIER_PERKS.elite.name,
+    name: "Elite",
     iconName: "crown",
     forWhom: "For full-time Helprs.",
     ...formatTierPrices("elite"),
     feePercent: TIER_PERKS.elite.platformFeePercent,
-    features: [`Everything in ${TIER_PERKS.pro.name}`, ...TIER_PERKS.elite.featureBullets],
+    features: ["Everything in Pro", ...TIER_PERKS.elite.featureBullets],
   },
 ];
 

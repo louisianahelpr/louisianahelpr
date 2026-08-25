@@ -10,7 +10,7 @@ import { avatarGradientFor } from "@/lib/avatarGradient";
 import { formatPriceFloor } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import HelperTierBadge from "@/components/profile/HelperTierBadge";
-import { tierFeePercent, TIER_PERKS } from "@/lib/subscriptionTiers";
+import { tierFeePercent } from "@/lib/subscriptionTiers";
 // ProfileStatsTrend statically imports recharts (~107 kB gzip combined).
 // The chart lives in a collapsed disclosure (hidden by default), so there
 // is no reason to block the Profile landing render on it. Lazy-loading
@@ -244,7 +244,7 @@ export function IdentityHeader({
                     letterSpacing: "0.08em",
                   }}
                 >
-                  <Star className="w-2.5 h-2.5" /> {TIER_PERKS.basic.name}
+                  <Star className="w-2.5 h-2.5" /> Basic
                 </span>
               )}
               {!seatTier && tier === "pro" && (
@@ -260,7 +260,7 @@ export function IdentityHeader({
                       Elite a Crown, so a bare word read as a different kind of
                       chip rather than the middle of one ladder. Award sits
                       naturally between the two. */}
-                  <Award className="w-2.5 h-2.5" /> {TIER_PERKS.pro.name}
+                  <Award className="w-2.5 h-2.5" /> Pro
                 </span>
               )}
               {!seatTier && tier === "elite" && (
@@ -272,7 +272,7 @@ export function IdentityHeader({
                     letterSpacing: "0.08em",
                   }}
                 >
-                  <Crown className="w-2.5 h-2.5" /> {TIER_PERKS.elite.name}
+                  <Crown className="w-2.5 h-2.5" /> Elite
                 </span>
               )}
             </div>

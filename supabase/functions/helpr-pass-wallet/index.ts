@@ -14,8 +14,6 @@
 // what gets signed) are all real and ready to use the moment the certs
 // arrive — only the signing step is stubbed.
 
-import { tierDisplayName } from "../_shared/tierDisplayName.ts";
-
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 
@@ -116,7 +114,7 @@ Deno.serve(async (req) => {
             label: "RATING",
             value: avgRating != null ? `${avgRating} ★` : "New",
           },
-          { key: "tier", label: "TIER", value: tierDisplayName(profile.subscription_tier) },
+          { key: "tier", label: "TIER", value: "Elite" },
         ],
         auxiliaryFields: [
           {

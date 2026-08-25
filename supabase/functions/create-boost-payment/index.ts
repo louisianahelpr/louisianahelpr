@@ -4,7 +4,6 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { getAppUrl } from "../_shared/appUrl.ts";
 import { BOOST_FEE_CENTS, BOOST_DURATION_HOURS, BOOST_DISCOUNT_PCT, BOOST_MIN_UNIT_AMOUNT_CENTS } from "../_shared/productPrices.ts";
-import { tierDisplayName } from "../_shared/tierDisplayName.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -104,13 +103,13 @@ serve(async (req) => {
         .eq("id", job_id);
       if (boostErr) {
         console.error("[create-boost-payment] elite boost flip failed:", boostErr);
-        return fail(500, `We couldn't apply your ${tierDisplayName("elite")} boost. Please try again.`);
+        return fail(500, "We couldn't apply your Elite boost. Please try again.");
       }
       return new Response(
         JSON.stringify({
           free: true,
           boost_expires_at: boostExpires.toISOString(),
-          message: `Job boosted — included with ${tierDisplayName("elite")}`,
+          message: "Job boosted — included with Elite",
         }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -152,7 +151,7 @@ serve(async (req) => {
           JSON.stringify({
             free: true,
             boost_expires_at: boostExpires.toISOString(),
-            message: `Job boosted — your free ${tierDisplayName("pro")} boost this month`,
+            message: "Job boosted — your free Pro boost this month",
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
         );

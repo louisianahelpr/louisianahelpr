@@ -204,8 +204,15 @@ const Admin = () => {
       markSeen(v);
       setUnreadCounts(prev => { const next = { ...prev }; delete next[v]; return next; });
     }
-    setView(v);
-  }, []);
+    // Write the view into the URL (preserving unrelated params like ?user=)
+    // rather than into state — see the source-of-truth note at `view` above.
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (v === "home") next.delete("view");
+      else next.set("view", v);
+      return next;
+    });
+  }, [setSearchParams]);
 
   const loadStats = async (windowDays: number) => {
     const now = new Date();

@@ -70,10 +70,21 @@ function manyMessages() {
   return Array.from({ length: ROW_COUNT }, (_, i) => ({
     id: `30000000-0000-4000-8000-0000000${String(i + 100).padStart(5, "0")}`,
     job_id: `10000000-0000-4000-8000-0000000${String(i + 100).padStart(5, "0")}`,
-    sender_id: i % 2 === 0 ? FAKE_CUSTOMER.id : OTHER_POSTER,
-    recipient_id: i % 2 === 0 ? OTHER_POSTER : FAKE_CUSTOMER.id,
+    // Every thread is an unread message TO the signed-in user.
+    //
+    // The column is `receiver_id`. This fixture said `recipient_id`, which
+    // exists nowhere in the schema, so loadConversations' unread count
+    // (`m.receiver_id === uid && !m.read`) matched nothing and every
+    // conversation came back with unread: 0. That stayed invisible while the
+    // inbox fell back to All whenever nothing was unread — the seeded inbox
+    // looked fine and the spec passed for the wrong reason. Once Messages
+    // started opening on Unread unconditionally (owner: "messages should open
+    // to unread not all"), the default view became permanently empty and took
+    // this spec's premise with it: an empty list has nothing to scroll.
+    sender_id: OTHER_POSTER,
+    receiver_id: FAKE_CUSTOMER.id,
     content: `Thread ${i + 1} — latest message text goes here.`,
-    read: i % 4 === 0,
+    read: false,
     created_at: new Date(now - i * 60_000).toISOString(),
     archived_by: [],
   }));

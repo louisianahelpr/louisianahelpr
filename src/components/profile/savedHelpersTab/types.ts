@@ -26,10 +26,6 @@ export interface SavedHelper {
       migration 20260609110000 is applied; nullable so older deploys
       return undefined. */
   private_note?: string | null;
-  /** When non-null, this saved-helper row is visible to every active
-      teammate of the named business. Surfaced once migration
-      20260609170000 (business_account_id on favorite_helpers) lands. */
-  business_account_id?: string | null;
 }
 
 export interface SavedHelpersTabProps {

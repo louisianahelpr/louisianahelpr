@@ -14,7 +14,7 @@ import { extendTailwindMerge } from "tailwind-merge";
  * The result was silent and looked like a component bug: on a `<Badge>`, which
  * sets `text-primary-foreground` in its variant, adding `className="text-ds-10"`
  * DELETED the foreground colour. The seat-plan "Current" pill on
- * /business/team rendered `#2e2f22 on #5f6543` = 2.21:1, a WCAG AA failure at
+ * a dark pill on an olive surface rendered `#2e2f22 on #5f6543` = 2.21:1, a WCAG AA failure at
  * 12px, and four admin badges (AdminReferrals ×3, AdminSubscriptions ×1) had
  * the identical defect. Nothing in the markup hinted at a colour being
  * dropped.

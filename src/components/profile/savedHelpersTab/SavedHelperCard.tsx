@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { Heart, Briefcase, Send, Star, StickyNote, Check, X, Users } from "lucide-react";
+import { Heart, Briefcase, Send, Star, StickyNote, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatName } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
@@ -8,31 +8,25 @@ import type { SavedHelper } from "./types";
 
 interface SavedHelperCardProps {
   h: SavedHelper;
-  business: { business_id: string } | null | undefined;
   editingNoteFor: string | null;
   noteDraft: string;
   setNoteDraft: (value: string) => void;
   savingNote: boolean;
-  togglingShare: string | null;
   openNoteEditor: (helperId: string, current: string | null | undefined) => void;
   cancelNoteEditor: () => void;
   saveNote: (helperId: string) => void;
-  toggleTeamShare: (helperId: string, currentlyShared: boolean) => void;
   handleRemove: (helperId: string) => void;
 }
 
 export function SavedHelperCard({
   h,
-  business,
   editingNoteFor,
   noteDraft,
   setNoteDraft,
   savingNote,
-  togglingShare,
   openNoteEditor,
   cancelNoteEditor,
   saveNote,
-  toggleTeamShare,
   handleRemove,
 }: SavedHelperCardProps) {
   const navigate = useNavigate();
@@ -207,32 +201,6 @@ export function SavedHelperCard({
         </Button>
       </div>
 
-      {business && (
-        <button
-          type="button"
-          onClick={() => toggleTeamShare(h.helper_id, !!h.business_account_id)}
-          disabled={togglingShare === h.helper_id}
-          className="inline-flex items-center gap-1.5 text-ds-11 font-semibold active:opacity-70 self-start"
-          style={{
-            color: h.business_account_id
-              ? "hsl(var(--olivewood))"
-              : "hsl(var(--bark))",
-          }}
-          aria-pressed={!!h.business_account_id}
-          aria-label={
-            h.business_account_id
-              ? "Shared with team — tap to stop sharing"
-              : "Share with team"
-          }
-        >
-          {/* One label in both states — the slot used to read "Share with
-              team" on one card and "Visible to team" on the next, which
-              looked like two different controls down a list. State is
-              carried by aria-pressed and the colour shift. */}
-          <Users className="w-3 h-3" />
-          Share with Team
-        </button>
-      )}
     </div>
   );
 }

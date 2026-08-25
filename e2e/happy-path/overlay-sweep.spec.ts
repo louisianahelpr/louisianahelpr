@@ -111,9 +111,6 @@ const ROUTES = [
   "/job-history",
   "/home-history",
   "/availability",
-  "/business/team",
-  "/business/billing",
-  "/business/onboarding",
   "/jobs/10000000-0000-4000-8000-000000000001",
   `/user/${FAKE_CUSTOMER.id}`,
   // Every admin ?view=, not just the default one. `/admin` alone probed the

@@ -814,7 +814,7 @@ body {
    `margin-inline: auto` (not `transform`) is deliberate: a transform would
    make this fixed element a containing block and break AppShell's own
    descendant `position: fixed` children. Everything here is scoped to
-   `html.app-shell` so document-scroll marketing pages (Index, ForBusiness,
+   `html.app-shell` so document-scroll marketing pages (Index,
    Legal) keep their intentional full-width SEO layout. */
 @media (min-width: 768px) {
   /* Centered phone-frame presentation. This is the MOBILE-web / tablet
@@ -2912,7 +2912,7 @@ button,
 }
 
 /* Verified-flag affordance — small gold underline / border for the
-   "Verified" check across helpr profile pages, business pages, and
+   "Verified" check across helpr profile pages and
    admin queues. Subtle so it complements the existing checkmark icon. */
 .verified-gold {
   color: hsl(var(--gold-warm));
@@ -3005,7 +3005,7 @@ button,
   header[role="banner"],
   [data-print-hide],
   /* The authed sticky top bar (wordmark + NotificationPanel). Every shell
-     that renders one — PageHeader, DashboardHeader, BusinessLayout,
+     that renders one — PageHeader, DashboardHeader,
      DashboardGuest, GuestBrowseSkeleton — marks it with `.glass-header` and
      none of them set role="banner", so without this the app bar printed on
      top of documents like /work-record and /legal. */

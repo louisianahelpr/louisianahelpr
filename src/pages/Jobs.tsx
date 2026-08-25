@@ -253,7 +253,7 @@ const Jobs = () => {
   return (
     // No `noNavSpacer`: /jobs used to opt out of PublicLayout's shared nav
     // spacer and hand-roll `pt-20` instead, which put its H1 8px lower than
-    // /for-business, /subscription, and /help. All four now clear the fixed
+    // /subscription and /help. All of them now clear the fixed
     // Navbar through the SAME spacer, so their titles land at one offset.
     // This page renders the canonical in-content <BackButton /> next to its
     // H1, which is its only back affordance.

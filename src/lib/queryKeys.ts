@@ -70,32 +70,6 @@ export const queryKeys = {
     conversations: (userId: string | undefined | null) =>
       ["messages", "conversations", userId] as const,
   },
-  business: {
-    /** Catch-all prefix — matches every business-domain key. */
-    all: ["business"] as const,
-    /**
-     * Prefix for myBusiness lookups across users. Invalidating this matches
-     * every `mine(userId)` key by React Query's prefix rule.
-     */
-    allMine: ["myBusiness"] as const,
-    /** The current user's primary business membership row. */
-    mine: (userId: string | undefined | null) => ["myBusiness", userId] as const,
-    /** Member roster for a single business. */
-    members: (businessId: string | undefined | null) => ["businessMembers", businessId] as const,
-    /** API keys for a single business. */
-    apiKeys: (businessId: string | undefined | null) => ["businessApiKeys", businessId] as const,
-    /** Webhook subscriptions for a single business. */
-    webhooks: (businessId: string | undefined | null) => ["businessWebhooks", businessId] as const,
-    /** Recurring job templates for a single business. */
-    templates: (businessId: string | undefined | null) => ["businessJobTemplates", businessId] as const,
-    /** Settings / report prefs row for a single business. */
-    settings: (businessId: string | undefined | null) => ["businessSettings", businessId] as const,
-  },
-  adminBusiness: {
-    all: ["adminBusiness"] as const,
-    accounts: () => ["adminBusiness", "accounts"] as const,
-    members: (businessId: string | undefined | null) => ["adminBusiness", "members", businessId] as const,
-  },
   payoutSetup: {
     all: ["payout-setup"] as const,
     /**

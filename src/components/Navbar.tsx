@@ -1,5 +1,4 @@
 import { Link, useLocation } from "react-router-dom";
-import { BUSINESS_ENABLED } from "@/config/businessEnabled";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { forwardRef } from "react";
@@ -25,7 +24,7 @@ interface NavbarProps {
 const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => {
   // Session-only auth (no profile DB round-trip) so the marketing nav can
   // reflect logged-in state: an authenticated visitor landing on a public
-  // page (/for-business, /legal, /) should see an "Open app" CTA instead of
+  // page (/legal, /) should see an "Open app" CTA instead of
   // the logged-out "Log in / Get Started" pair.
   const { user } = useAuthReady();
   // On the wide desktop *website*, a signed-in visitor already has the
@@ -116,12 +115,6 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
               primary hero CTA — so this is one fewer top-level item competing
               with the two actions the bar actually exists to drive: Log In /
               Get Started. */}
-          {BUSINESS_ENABLED && <Link
-            to="/for-business"
-            className="text-ds-13 font-semibold text-[hsl(var(--ink-deep))] transition-colors duration-200 hover:text-[hsl(var(--bark))]"
-          >
-            Business
-          </Link>}
           {/* Subtle vertical rule between text nav and auth actions —
               two logical groups rather than one long list. */}
           <span

@@ -22,7 +22,6 @@ import {
 } from "./signup/signupHelpers";
 import { SignupStep1 } from "./signup/SignupStep1";
 import { SignupStep2 } from "./signup/SignupStep2";
-import { BUSINESS_ENABLED } from "@/config/businessEnabled";
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -35,18 +34,6 @@ const Signup = () => {
   });
   const { user, isReady } = useAuthReady();
   const [searchParams] = useSearchParams();
-  // `?type=business` switches this screen into the business-account flow: a
-  // "Business account" banner on step 1, a required Company name field on
-  // step 2, and a `businesses` row created on submit.
-  //
-  // `&& BUSINESS_ENABLED` is what keeps that flow off the air while the
-  // Business product is hidden. The Login link that used to point here is
-  // already gated, but the URL itself is not a secret — anyone with an old
-  // link, an old email, or a browser history entry lands on a screen titled
-  // "Create a Business Account" for a product with no page and no pricing.
-  // With the flag off the param is ignored and /signup?type=business renders
-  // the ordinary Create Account screen.
-  const isBusinessSignup = BUSINESS_ENABLED && searchParams.get("type") === "business";
   // `?job=<id>` — the job a guest tapped on /browse or /jobs before the signup
   // wall. `?redirect=<path>` — the fuller form of the same idea: the exact
   // in-app route they were trying to reach (e.g. `/jobs/<id>`). Persist both
@@ -78,14 +65,6 @@ const Signup = () => {
   useEffect(() => {
     track(AhaEvent.SignupStarted, { source: "web", ...ppoTrackingProps() });
   }, []);
-  // No `companyName` state any more. The company-name Input was removed from
-  // SignupStep2's business branch a while back, so nothing could ever set it:
-  // the validator below then failed business signups with "Add your company
-  // name" against a field that no longer existed, and the businesses INSERT
-  // was guarded on a value that was permanently "". The whole branch is
-  // unreachable today regardless (BUSINESS_ENABLED === false), and the live
-  // way to create a business is BusinessNoAccountState.tsx after signup — so
-  // the dead plumbing is gone rather than left as a broken half-path.
   // Dev-only: seed the step from `?step=2` so the flow can be inspected
   // without the old on-page PREVIEW band, which showed testers a control
   // real users never see. Production always starts at step 1.
@@ -100,12 +79,7 @@ const Signup = () => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
-  // Prefill email when arriving via a business team invite link.
-  // The pending business_members row's invited_email is matched to the
-  // signing-up user's email by the post-signup auto-claim flow, so the
-  // prefill needs to lock in the invite-target address.
-  const inviteEmail = searchParams.get("invite") || "";
-  const [email, setEmail] = useState(inviteEmail);
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [phone, setPhone] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
@@ -358,30 +332,6 @@ const Signup = () => {
         if (referralErr) report(referralErr, { tags: { source: "Signup.referral" } });
       }
 
-      // Business signup no longer creates a `businesses` row here — signup has
-      // no company-name field to create it from (see the note at the state
-      // declarations). A business-tier account sets its business up from the
-      // Business tab (BusinessNoAccountState) on first visit.
-
-      // Auto-accept any pending invite for this email
-      try {
-        const { data: invites, error: inviteErr } = await supabase.rpc("get_pending_invite_for_email", { _email: email });
-        // PGRST202 = function not yet deployed to production — safe to ignore
-        // (invite-linking is best-effort; the user can still join the team
-        // manually after login). All other errors are logged for observability.
-        if (inviteErr && !inviteErr.message?.includes("PGRST202")) {
-          report(inviteErr, { tags: { source: "Signup.inviteLinking" } });
-        }
-        if (invites && invites.length > 0) {
-          for (const inv of invites) {
-            const { error: claimErr } = await supabase
-              .from("business_members")
-              .update({ user_id: userId, status: "active", joined_at: new Date().toISOString() })
-              .eq("id", inv.invite_id);
-            if (claimErr) report(claimErr, { tags: { source: "Signup.inviteLinking" } });
-          }
-        }
-      } catch (e) { report(e, { tags: { source: "Signup.inviteLinking" } }); }
 
       track(AhaEvent.SignupCompleted, { has_referral: !!referralCode.trim(), ...ppoTrackingProps() });
       hapticSuccess();
@@ -389,7 +339,7 @@ const Signup = () => {
     } catch (err: any) {
       hapticError();
       // Reported, not just toasted: this catch guards the whole signup funnel
-      // (signUp → complete-signup → referral/invite), and a failure here can
+      // (signUp → complete-signup → referral), and a failure here can
       // strand a HALF-CREATED account (auth user exists, profile incomplete)
       // with a 4-second toast as the only evidence. Observed live 2026-08-24.
       report(err, { tags: { source: "Signup.createAccountAndFinish" } });
@@ -406,19 +356,13 @@ const Signup = () => {
     "rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.8)]";
   const labelCls = "text-ds-13 font-sans font-medium";
 
-  // Subtitles only where they carry information. The business path keeps one
-  // because "Invite your team and bill jobs to one card." is a real value
-  // proposition at the moment of commitment. The personal path drops its
+  // Subtitles only where they carry information. Step 1 drops its
   // "Create your account to get started." — the email/password form directly
   // below already says that, the same reason Login's
   // "Pick up right where you left off." was removed. `subtitle` is optional;
   // the header renders the <p> only when one is present.
   const stepHeading: { title: string; subtitle?: string } =
-    step === 1
-      ? isBusinessSignup
-        ? { title: "Create business account", subtitle: "Invite your team and bill jobs to one card." }
-        : { title: "Create Account" }
-      : { title: "About you" };
+    step === 1 ? { title: "Create Account" } : { title: "About you" };
 
   // No `desktopBrandPanel`: the AuthBrandPane component (deleted unused on
   // 2026-08-25) was only the H emblem, and it stacked
@@ -438,7 +382,7 @@ const Signup = () => {
       // longer differ in title size (step 2 used to be a hand-rolled row inside
       // the card at clamp(1.6rem,2.4vw+0.5rem,2.1rem) against step 1's ds-24).
       {...(step === 1 ? { backTo: "/" } : { backOnClick: () => { setStep2Errors({}); setStep(1); } })}
-      title={step === 1 ? (isBusinessSignup ? "Create a Business Account" : "Create Account") : stepHeading.title}
+      title={step === 1 ? "Create Account" : stepHeading.title}
     >
       <div>
           {/* Liquid-glass card — matches the Login screen so the two auth
@@ -513,7 +457,6 @@ const Signup = () => {
             setMarketingConsent={setMarketingConsent}
             inputCls={inputCls}
             labelCls={labelCls}
-            isBusinessSignup={isBusinessSignup}
             onContinue={async () => {
               if (!(await validateAccountStep())) return;
               track(AhaEvent.SignupStepCompleted, { step: 1, ...ppoTrackingProps() });

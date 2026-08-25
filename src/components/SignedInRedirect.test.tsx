@@ -82,10 +82,10 @@ describe("SignedInRedirect", () => {
   it("redirects to whatever destination it is given", () => {
     useCurrentUserMock.mockReturnValue({ user: { id: "u1" }, isLoading: false });
     render(
-      <MemoryRouter initialEntries={["/for-business"]}>
+      <MemoryRouter initialEntries={["/promo"]}>
         <Routes>
           <Route
-            path="/for-business"
+            path="/promo"
             element={<SignedInRedirect to="/dashboard"><h1>{LANDING}</h1></SignedInRedirect>}
           />
           <Route path="/dashboard" element={<div>DASHBOARD</div>} />

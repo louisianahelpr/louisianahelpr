@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowRight, ArrowBigUp, Eye, EyeOff, Check, Circle, X, Mail, Lock, Building2 } from "lucide-react";
+import { ArrowRight, ArrowBigUp, Eye, EyeOff, Check, Circle, X, Mail, Lock } from "lucide-react";
 import { SocialAuthButtons } from "@/components/auth/SocialAuthButtons";
 import { suggestEmailCorrection, passwordStrength } from "./signupHelpers";
 
@@ -34,8 +34,6 @@ export interface SignupStep1Props {
   setMarketingConsent: (v: boolean) => void;
   inputCls: string;
   labelCls: string;
-  /** True when the URL carries ?type=business — drives the account-type banner. */
-  isBusinessSignup: boolean;
   /** Called when the user clicks Continue — parent runs validation, then advances step. */
   onContinue: () => void | Promise<void>;
 }
@@ -55,7 +53,6 @@ export function SignupStep1({
   setMarketingConsent,
   inputCls,
   labelCls,
-  isBusinessSignup,
   onContinue,
 }: SignupStep1Props) {
   // The Continue button stays visually active even before the policies box is
@@ -126,31 +123,6 @@ export function SignupStep1({
 
   return (
     <div className="space-y-5">
-      {/* Account-type context banner — mirrors Step 2's treatment so both
-          steps read as one consistent flow. Business path uses a bark-toned
-          card; personal path shows a neutral callout so neither path feels
-          unfinished. Either way the everyday entry point is the quiet footer
-          link below, not an up-front toggle. */}
-      {isBusinessSignup && (
-        <div
-          className="flex items-start gap-3 px-4 py-3 rounded-2xl"
-          style={{ background: "hsl(var(--bark) / 0.06)", border: "1px solid hsl(var(--bark) / 0.16)" }}
-        >
-          <Building2 className="w-5 h-5 shrink-0 mt-0.5" strokeWidth={1.75} style={{ color: "hsl(var(--bark))" }} />
-          <div className="space-y-0.5">
-            <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
-              Business account
-            </p>
-            <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              Add your company, invite teammates, and bill every job to one card.{" "}
-              <Link to="/signup" replace className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>
-                Just for me instead?
-              </Link>
-            </p>
-          </div>
-        </div>
-      )}
-
       {/* Two columns at lg+, mirroring the Sign in screen (Login.tsx):
           credentials left, social right, with the OR rule as its own middle
           column. Same class strings as Login on purpose — the two auth screens
@@ -471,11 +443,6 @@ export function SignupStep1({
       </div>
       </div>
 
-      {/* No "Setting up for a company?" link here (owner, 2026-08-22).
-          Business signup stays reachable at /signup?type=business and from the
-          Sign in screen; it is just not offered as a fork on the consumer
-          create-account form, where it was a third decision on a screen whose
-          job is to get one person an account. */}
     </div>
   );
 }

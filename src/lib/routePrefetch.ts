@@ -31,10 +31,6 @@ const prefetchers: Record<string, () => Promise<unknown>> = {
   "/user": () => import("@/pages/UserProfile"),
   "/activity": () => import("@/pages/Activity"),
   "/earnings": () => import("@/pages/Profile"),
-  // "/for-business" intentionally absent while BUSINESS_ENABLED is false — the
-  // route is not registered in App.tsx, so nothing can navigate there and a
-  // prefetch entry would only pull the ForBusiness chunk into the graph for a
-  // destination that renders NotFound. Restore alongside the route.
   "/browse": () => import("@/pages/DashboardGuest"),
 };
 

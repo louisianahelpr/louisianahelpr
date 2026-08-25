@@ -14,7 +14,6 @@ import { AdminViewShell, AdminCard } from "./AdminViewShell";
 import type { Database } from "@/integrations/supabase/types";
 import { logAdminAction } from "@/lib/adminAudit";
 import { Switch } from "@/components/ui/switch";
-import { BUSINESS_ENABLED } from "@/config/businessEnabled";
 import { EmptyState } from "@/components/ui/EmptyState";
 
 // The fee-ladder rungs an admin is shown, DERIVED from the tier config rather
@@ -22,13 +21,8 @@ import { EmptyState } from "@/components/ui/EmptyState";
 // live payout against and the same one /subscription advertises, so the console
 // can no longer quote a ladder the platform does not charge — which is exactly
 // what the deleted editable inputs did (see the read-only card below).
-//
-// Business (6%) is only named while the Business product is switched on — with
-// `BUSINESS_ENABLED` false there is no Business plan anyone can hold, so listing
-// it describes a rate that can never apply. Same treatment as legal/TermsSection
-// and the Help Center fee answers.
 const FEE_LADDER: { id: SubscriptionTier; name: string; percent: number }[] = (
-  ["free", "basic", "pro", "elite", ...(BUSINESS_ENABLED ? (["business"] as const) : [])] as SubscriptionTier[]
+  ["free", "basic", "pro", "elite"] as SubscriptionTier[]
 ).map((id) => ({ id, name: TIER_PERKS[id].name, percent: TIER_PERKS[id].platformFeePercent }));
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];

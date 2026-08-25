@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useDraftJob } from "@/hooks/useDraftJob";
 import { safeStorage } from "@/lib/safeStorage";
-import { useMyBusiness } from "@/hooks/useMyBusiness";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import type { Step } from "./postJobFormTypes";
 import { useJobMediaUpload } from "./useJobMediaUpload";
@@ -22,7 +21,6 @@ export type { Step } from "./postJobFormTypes";
  */
 export function usePostJobForm() {
   const navigate = useNavigate();
-  const { business } = useMyBusiness();
   const { profile } = useCurrentUser();
   const [searchParams] = useSearchParams();
   const { draft, hasDraft, saveDraft, clearDraft } = useDraftJob();
@@ -140,13 +138,6 @@ export function usePostJobForm() {
   const [urgentFee, setUrgentFee] = useState("5");
   const [customUrgentFee, setCustomUrgentFee] = useState(false);
   const [isFlexibleSchedule, setIsFlexibleSchedule] = useState(false);
-  // Business posts can opt to require the accepted helper to sign a W-9.
-  // See helper_w9_records + the e-sign dialog in W9CollectionDialog.
-  const [requiresW9, setRequiresW9] = useState(false);
-  // Business-account poster — optional cost-center / department tag.
-  // Persisted to jobs.department by the consolidated migration
-  // 20260609170000_business_team_roles.sql.
-  const [department, setDepartment] = useState("");
   const [platformFee, setPlatformFee] = useState<number | null>(null);
   const [customerFee, setCustomerFee] = useState<number | null>(null);
   // One-time account-setup fee — mirrors the edge function (create-payment
@@ -281,8 +272,6 @@ export function usePostJobForm() {
     credentialTier,
     includeMaterials,
     materialsNote,
-    department,
-    requiresW9,
     offerToHelperId,
   });
 
@@ -327,15 +316,12 @@ export function usePostJobForm() {
     setCredentialTier,
     setIncludeMaterials,
     setMaterialsNote,
-    setDepartment,
-    setRequiresW9,
   });
 
   // Review-gate + pre-submit checks + job-insert/payment flow. Extracted
   // into useJobSubmit; all form state is passed through so this hook stays
   // the single source of truth. Behavior is unchanged.
   const { handleReview, handleSubmit } = useJobSubmit({
-    business,
     saving,
     setSaving,
     setRedirecting,
@@ -374,8 +360,6 @@ export function usePostJobForm() {
     salesTaxRate,
     offerToHelperId,
     credentialTier,
-    department,
-    requiresW9,
     includeMaterials,
     materialsNote,
     saveCardForFuture,
@@ -518,12 +502,6 @@ export function usePostJobForm() {
     setIsGroupJob,
     helpersNeeded,
     setHelpersNeeded,
-    /** Cost-center / department label — exposed only to business posters. */
-    department,
-    setDepartment,
-    /** Business membership row (so the post-job UI can show the
-        department field, MFA banner, and approval-threshold notice). */
-    business,
     // budget fields
     budget,
     setBudget,
@@ -538,9 +516,6 @@ export function usePostJobForm() {
     setUrgentFee,
     customUrgentFee,
     setCustomUrgentFee,
-    // W-9 requirement (business posts only)
-    requiresW9,
-    setRequiresW9,
     // images
     imageFiles,
     imagePreviews,

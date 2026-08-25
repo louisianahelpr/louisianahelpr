@@ -19,93 +19,9 @@
  */
 
 import type { Page } from "@playwright/test";
-// The REAL flag, not a mirrored copy — a duplicate boolean here would
-// drift silently, which is the whole failure mode this guards against.
-import { BUSINESS_ENABLED } from "../../src/config/businessEnabled";
-import { FAKE_CUSTOMER, FAKE_HELPER, mockRpc, mockTable, type MockSupabaseOptions } from "./fixtures";
-import {
-  BUSINESS_ID,
-  SEED_BUSINESS_ACTIVITY,
-  SEED_BUSINESS_PENDING_JOBS,
-  SEED_BUSINESS_SPEND,
-  makeSeedBusinessMembers,
-  makeSeedBusinessVerification,
-  type BusinessVerification,
-} from "./seedData";
+import { FAKE_CUSTOMER, FAKE_HELPER, mockTable, type MockSupabaseOptions } from "./fixtures";
 
 type MockRules = NonNullable<MockSupabaseOptions["rules"]>;
-
-/**
- * Everything a `/business/*` screen needs to render an ACTUAL business account
- * instead of `BusinessNoAccountState`.
- *
- * Why a hand-rolled rule instead of `mockTable("business_members", rows)`:
- * `business_members` is read by two queries with incompatible expectations on
- * the SAME path.
- *   - `useMyBusiness` / `useBusinessSeatTier` embed `businesses!inner(…)` and
- *     call `.maybeSingle()` — handing them the 3-row roster makes maybeSingle
- *     fail with PGRST116 and the hook returns null, i.e. the empty state again.
- *   - `useTeamMembers` wants the whole roster, flat.
- * A static body can only satisfy one of them, so the rule branches on the
- * `select` param (membership lookup ⇄ roster) and resolves the `user_id`
- * filter itself — `rules` bypass `applyPostgrestQuery` entirely.
- *
- * `verification` picks the branch BusinessLayout renders: "verified" (no
- * banner) vs "none"/"pending"/"rejected" (the "Verify your business to start
- * posting" banner on pages that opt into `requiresVerification`). They are
- * visibly different screens, so both are in the catalog.
- */
-export function businessRules(
-  verification: BusinessVerification = "verified",
-  options: { pendingApprovals?: boolean } = {},
-): MockRules {
-  const members = makeSeedBusinessMembers(verification);
-  const rules: MockRules = [
-    {
-      match: (url, method) => method === "GET" && url.pathname === "/rest/v1/business_members",
-      handle: (url) => {
-        const select = url.searchParams.get("select") ?? "";
-        // Membership lookup: embedded `businesses`, resolved with maybeSingle.
-        // Must return 0 or 1 row, scoped to whoever is asking.
-        if (select.includes("businesses")) {
-          const wanted = (url.searchParams.get("user_id") ?? "").replace(/^eq\./, "");
-          return {
-            status: 200,
-            body: members.filter((m) => m.status === "active" && m.user_id === wanted),
-          };
-        }
-        // Roster: every non-removed seat.
-        return { status: 200, body: members.filter((m) => m.status !== "removed") };
-      },
-    },
-    // BusinessVerificationCard (rendered by the Team page only).
-    //
-    // `is_owner: true` is fixed rather than derived: a rule only sees the URL,
-    // not who is asking, and the same static rules array serves both the
-    // customer (the real owner) and helper passes. So on the HELPER pass this
-    // one card shows the owner's upload controls while the rest of the page
-    // correctly renders the member view. Known fixture limitation, called out
-    // here so a screenshot of it is not mistaken for a permissions bug.
-    mockRpc("get_my_business_verification", makeSeedBusinessVerification(verification, true)),
-    mockRpc("business_activity_feed", SEED_BUSINESS_ACTIVITY),
-    mockRpc("business_spend_summary", SEED_BUSINESS_SPEND),
-  ];
-
-  if (options.pendingApprovals) {
-    // Scoped to the pending-approval query specifically rather than to the
-    // whole `jobs` table, so nothing else on the page is fed approval rows.
-    rules.push({
-      match: (url, method) =>
-        method === "GET" &&
-        url.pathname === "/rest/v1/jobs" &&
-        url.searchParams.get("status") === "eq.pending_approval" &&
-        url.searchParams.get("business_id") === `eq.${BUSINESS_ID}`,
-      handle: () => ({ status: 200, body: SEED_BUSINESS_PENDING_JOBS }),
-    });
-  }
-
-  return rules;
-}
 
 export interface ScreenSpec {
   name: string;
@@ -194,11 +110,6 @@ const GUEST_PREVIEW_JOB = {
 export const ANON_SCREENS: ScreenSpec[] = [
   { name: "landing", url: "/" },
   { name: "signup", url: "/signup" },
-  // The BUSINESS signup variant. Same route, different form: SignupStep1
-  // paints an account-type banner and Signup.tsx adds a company-name field and
-  // an extra `businesses` insert on submit. It was unaudited until 2026-08-17 —
-  // `/signup` alone never renders the business branch.
-  { name: "signup-business", url: "/signup?type=business" },
   { name: "login", url: "/login" },
   { name: "forgot-password", url: "/forgot-password" },
   { name: "reset-password", url: "/reset-password" },
@@ -267,9 +178,6 @@ export const ANON_SCREENS: ScreenSpec[] = [
   { name: "not-found", url: "/this-route-does-not-exist" },
 ];
 
-// /for-business is registered as `{BUSINESS_ENABLED && <Route …>}`, so with the
-// flag off it 404s exactly like the /business/* screens. Verified in a browser.
-if (BUSINESS_ENABLED) ANON_SCREENS.push({ name: "for-business", url: "/for-business" });
 
 // Authenticated surfaces. EVERY protected route in src/App.tsx + EVERY one
 // of the 18 Profile tabs (see Tab union in src/pages/Profile.tsx). Each of
@@ -379,69 +287,8 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   { name: "work-record", url: "/work-record" },
   { name: "wrapped", url: "/wrapped" },
   { name: "post-login", url: "/dashboard/post-login" },
-  // Business screens are appended below, behind the real BUSINESS_ENABLED flag.
 ];
 
-/**
- * The /business/* screens, audited ONLY when the Business product is on.
- *
- * All five business routes are registered as `{BUSINESS_ENABLED && <Route …>}`
- * (App.tsx), and the flag has been false since 2026-08-20. With it off the
- * routes are not registered at all, so every one of these rows rendered the
- * NotFound page — under BOTH roles, at every variant — and each 404 was
- * recorded as a clean audit of a business screen. Verified in a browser:
- * /business/billing returns the 404 page today.
- *
- * Kept rather than deleted, because businessEnabled.ts is explicit that nothing
- * was removed and flipping the flag restores the feature; deleting these rows
- * would silently drop the coverage on the day it comes back.
- */
-const BUSINESS_SCREENS: ScreenSpec[] = [
-  { name: "business-team", url: "/business/team" },
-  { name: "business-billing", url: "/business/billing" },
-  { name: "business-exports", url: "/business/exports" },
-  { name: "business-onboarding", url: "/business/onboarding" },
-
-  // ── /business/* WITH a business attached (added 2026-08-17) ───────────────
-  // The four rows above have only ever rendered BusinessNoAccountState — no
-  // fixture created a `businesses` row, so the entire B2B product was
-  // invisible to both sweeps while all four routes reported clean. They are
-  // KEPT as-is (the no-account screen is real, and it is what the empty-state
-  // sweep still asserts on); these rows add the populated surface next to it.
-  //
-  // Every row carries explicit `rules` rather than leaning on SEED_TABLES, so
-  // the business renders identically in the SEEDED sweep and the EMPTY one —
-  // per-screen rules are consulted before the seed fallback in both.
-  { name: "business-team-owned", url: "/business/team", rules: businessRules("verified") },
-  {
-    // Same route, unverified: BusinessLayout's "Verify your business to start
-    // posting" banner + the verification card's "Not submitted" pill. A
-    // visibly different screen, not a variant of the one above.
-    name: "business-team-unverified",
-    url: "/business/team",
-    rules: businessRules("none"),
-  },
-  {
-    name: "business-team-approvals",
-    url: "/business/team?tab=approvals",
-    rules: businessRules("verified", { pendingApprovals: true }),
-  },
-  { name: "business-team-spend", url: "/business/team?tab=spend", rules: businessRules("verified") },
-  { name: "business-team-activity", url: "/business/team?tab=activity", rules: businessRules("verified") },
-  { name: "business-team-settings", url: "/business/team?tab=settings", rules: businessRules("verified") },
-  { name: "business-billing-owned", url: "/business/billing", rules: businessRules("verified") },
-  {
-    // Billing opts into `requiresVerification`, so this is the row that
-    // actually paints the banner on a money screen.
-    name: "business-billing-unverified",
-    url: "/business/billing",
-    rules: businessRules("none"),
-  },
-  { name: "business-exports-owned", url: "/business/exports", rules: businessRules("verified") },
-  { name: "business-onboarding-owned", url: "/business/onboarding", rules: businessRules("verified") },
-];
-
-if (BUSINESS_ENABLED) AUTHED_SCREENS.push(...BUSINESS_SCREENS);
 
 
 // Admin surface — gated by AdminRoute, which redirects to /dashboard unless
@@ -470,7 +317,7 @@ export const ADMIN_VIEWS = [
   // /admin coerces their old deep links to home now, so sweeping them would
   // just be re-testing the dashboard under two extra names.
   "tiers", "idv", "marketing", "credentials",
-  "business_verify", "business_accounts", "exceptions",
+  "exceptions",
   // banreview — the queue the message-violation ladder escalates into now that
   // a permanent ban is a person's decision instead of something the offender's
   // own client handed itself (2026-08-25).

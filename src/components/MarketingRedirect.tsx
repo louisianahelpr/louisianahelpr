@@ -16,7 +16,7 @@ interface MarketingRedirectProps {
 }
 
 /**
- * Route wrapper for the PURELY PROMOTIONAL pages (`/`, `/for-business`):
+ * Route wrapper for the PURELY PROMOTIONAL landing page (`/`):
  * a signed-in visitor is sent into the app, a guest gets the page.
  *
  * Owner decision: once someone is signed in, there should be no references
@@ -28,7 +28,6 @@ interface MarketingRedirectProps {
  * redirect — `<NativeRedirect>` behind `if (isNative)` in Index.tsx — and
  * layering a second one on top would mean two components racing to decide the
  * same thing, on the delicate cold-launch path, for no behavioural gain. It
- * would also newly redirect native /for-business, which today just renders.
  * `NativeRedirect` itself is not modified, imported, or reached from here.
  *
  * This gate is about AUTH STATE, never viewport: phone-width web is web and

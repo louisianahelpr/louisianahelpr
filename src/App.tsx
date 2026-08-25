@@ -1,7 +1,6 @@
 import { lazy, Suspense, forwardRef, useEffect, useState, type ReactElement } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
-import { BUSINESS_ENABLED } from "@/config/businessEnabled";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { Analytics } from "@vercel/analytics/react";
 
@@ -101,12 +100,7 @@ const Jobs = lazy(() => import("./pages/Jobs"));
 const JobDetail = lazy(() => import("./pages/JobDetail"));
 const DashboardGuest = lazy(() => import("./pages/DashboardGuest"));
 
-const ForBusiness = lazy(() => import("./pages/ForBusiness"));
-const BusinessTeam = lazy(() => import("./pages/BusinessTeam"));
 const HelprWrapped = lazy(() => import("./pages/HelprWrapped"));
-const BusinessBilling = lazy(() => import("./pages/business/BusinessBilling"));
-const BusinessExports = lazy(() => import("./pages/business/BusinessExports"));
-const BusinessOnboarding = lazy(() => import("./pages/business/BusinessOnboarding"));
 const SubscriptionPage = lazy(() => import("./pages/SubscriptionPage"));
 const StrSettings = lazy(() => import("./pages/StrSettings"));
 const AutoTip = lazy(() => import("./pages/AutoTip"));
@@ -151,12 +145,11 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       {/* SIGNED-IN VISITORS SKIP THE MARKETING SITE.
           Owner decision: once someone is signed in there should be no
           references back to landing — everything they need is in the app. So
-          the two purely promotional routes (this one and /for-business) bounce
-          an authenticated visitor to /dashboard.
+          the landing route bounces an authenticated visitor to /dashboard.
 
           <MarketingRedirect> wraps OUTSIDE routeEl() on purpose: it renders
           `children` only in the guest branch, so a signed-in visitor never
-          starts the Index/ForBusiness chunk download at all, and a guest's
+          starts the Index chunk download at all, and a guest's
           download starts on exactly the same tick as before.
 
           Every other public route is deliberately NOT wrapped — see the
@@ -219,7 +212,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           with the page instead of staying fixed to the viewport).
           Landing (/) also skips PageTransition for the same reason;
           this preserves the same fixed-nav behaviour on /legal,
-          /for-business, /help, /subscription. */}
+          /help, /subscription. */}
       {/* NOT wrapped in <MarketingRedirect>, and must not be.
           These are the only place the policy TEXT exists. The in-app Legal tab
           (/profile?tab=legal) is NOT a second copy of it — read LegalTab.tsx:
@@ -294,18 +287,11 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           on a flow whose destination does not exist. */}
       {FAMILY_ENABLED && <Route path="/family" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><FamilyDashboard /></ProtectedRoute>)}</RouteErrorBoundary>} />}
       {FAMILY_ENABLED && <Route path="/family/accept/:token" element={<RouteErrorBoundary>{routeEl(<PageTransition><FamilyAcceptPage /></PageTransition>)}</RouteErrorBoundary>} />}
-      {/* Purely promotional (a Footer destination pitching business accounts),
-          so it takes the same signed-in bounce as the landing page. */}
-      {BUSINESS_ENABLED && <Route path="/for-business" element={<RouteErrorBoundary><MarketingRedirect>{routeEl(<PageTransition><ForBusiness /></PageTransition>)}</MarketingRedirect></RouteErrorBoundary>} />}
       {/* /analytics rendered the SAME body as the Earnings tab under a
           different title — an orphan route kept for deep links, and a second
           screen for one subject. It redirects now, so the bookmarks keep
           working and there is one Earnings & Analytics, not two (owner). */}
       <Route path="/analytics" element={<Navigate to="/profile?tab=earnings" replace />} />
-      {BUSINESS_ENABLED && <Route path="/business/team" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessTeam /></ProtectedRoute>)}</RouteErrorBoundary>} />}
-      {BUSINESS_ENABLED && <Route path="/business/billing" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessBilling /></ProtectedRoute>)}</RouteErrorBoundary>} />}
-      {BUSINESS_ENABLED && <Route path="/business/exports" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessExports /></ProtectedRoute>)}</RouteErrorBoundary>} />}
-      {BUSINESS_ENABLED && <Route path="/business/onboarding" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BusinessOnboarding /></ProtectedRoute>)}</RouteErrorBoundary>} />}
       {/* Public vertical landing pages */}
 
       <Route path="/home-history" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><HomeHistory /></ProtectedRoute>)}</RouteErrorBoundary>} />

@@ -40,12 +40,6 @@ const breadcrumbSchema = {
     {
       "@type": "ListItem",
       position: 2,
-      name: "For Business",
-      item: `${SITE_URL}/for-business`,
-    },
-    {
-      "@type": "ListItem",
-      position: 3,
       name: "Legal",
       item: `${SITE_URL}/legal`,
     },

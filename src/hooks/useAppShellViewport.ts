@@ -11,8 +11,6 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 const DOCUMENT_SCROLL_ROUTES = [
   "/",
 
-  "/for-business",
-
   "/legal",
   "/terms",
   "/privacy",
@@ -68,7 +66,6 @@ const DOCUMENT_SCROLL_ROUTES = [
   // AppShell's scroll surface (iOS double-rubber-band).
   "/user",         // /user/:userId — UserProfile (PageHeader + min-h-screen)
   "/post-job",     // PostJob (PageHeader + min-h-screen)
-  "/business",     // BusinessTeam (PageHeader + min-h-screen)
   "/admin",        // Admin dashboard (min-h-screen document-scroll + sidebar)
   "/gift-card",       // Gift Card — long-form document-scroll
   "/subscription", // Subscription tiers — long-form min-h-screen document-scroll

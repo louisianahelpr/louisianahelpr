@@ -10,17 +10,16 @@
  *
  * BUSINESS IS NOT A SUBSCRIBABLE CONSUMER TIER. Business accounts are
  * billed per-seat on the FOUR seat-plan tiers defined in
- * `businessSeatTiers.ts` (Starter free · Crew $20/mo · Team $30/mo ·
- * Enterprise $40/mo). The `business` entry below carries `price: null` and
- * `annualPrice: null` on purpose so any code that reads them can never
- * accidentally render a fictional "$50/mo Business" price — the real
- * pricing surface is /for-business, and SubscriptionTab redirects Business
- * subscribers there.
+ * `supabase/functions/_shared/businessSeatTiers.ts` (Starter free · Crew
+ * $20/mo · Team $30/mo · Enterprise $40/mo). The `business` entry below
+ * carries `price: null` and `annualPrice: null` on purpose so any code that
+ * reads them can never accidentally render a fictional "$50/mo Business"
+ * price. The in-app Business product was REMOVED on 2026-08-25; this row
+ * survives only as the fee-percent reference the ladder and the edge
+ * functions still read.
  *
  * The tier IDs align with the subscription_tier column on profiles
- * ("basic", "pro", "elite", "business"). Business is self-serve upgradable
- * via the seat plans, then gated behind license + insurance verification
- * before the verified-business badge unlocks. "free" is the default/null
+ * ("basic", "pro", "elite", "business"). "free" is the default/null
  * case. The commission ladder is a clean five rungs:
  * free 12% → basic 11% → pro 10% → elite 8% → business 6%.
  *

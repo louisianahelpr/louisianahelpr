@@ -25,7 +25,7 @@ interface AppShellProps {
  * bottom navigation. The MobileNav remains mounted at the App root so it never
  * remounts between routes (no flicker).
  *
- * Public marketing pages (Index, Heroes, ForBusiness, Features, legal) intentionally
+ * Public marketing pages (Index, Heroes, Features, legal) intentionally
  * do NOT use this shell — they use normal document scroll for SEO and long-form content.
  */
 const AppShell = forwardRef<HTMLDivElement, AppShellProps>(

@@ -9,18 +9,10 @@ import {
   Crown,
 } from "lucide-react";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
-import { BUSINESS_ENABLED } from "@/config/businessEnabled";
 
-// The bottom rung of the fee ladder that a reader is allowed to SEE.
-//
-// Business is a real tier in TIER_PERKS (6% both sides) and these answers used
-// to quote it by name. While `BUSINESS_ENABLED` is false the whole Business
-// product is hidden — no marketing page, no signup, no plan card — so quoting
-// "Business 6%" in the Help Center advertised a plan a reader cannot buy and
-// cannot find. Elite is the lowest rung that is actually purchasable, so the
-// ladder simply stops there; flip the flag back on and Business reappears in
-// both answers with no other edit. Mirrors `FEE_FLOOR` in legal/TermsSection.
-const FEE_FLOOR = BUSINESS_ENABLED ? TIER_PERKS.business : TIER_PERKS.elite;
+// The bottom rung of the fee ladder a reader can actually reach.
+// Mirrors `FEE_FLOOR` in legal/TermsSection.
+const FEE_FLOOR = TIER_PERKS.elite;
 
 // ─── Topic cards ──────────────────────────────────────────────────────────────
 
@@ -173,7 +165,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
       },
       {
         q: "What fees does Helpr charge?",
-        a: `Free-account Helprs keep ${100 - TIER_PERKS.free.platformFeePercent}% (${TIER_PERKS.free.platformFeePercent}% platform fee). Basic keeps ${100 - TIER_PERKS.basic.platformFeePercent}%, Pro keeps ${100 - TIER_PERKS.pro.platformFeePercent}%, and Elite ${100 - TIER_PERKS.elite.platformFeePercent}% (${TIER_PERKS.elite.platformFeePercent}% fee)${BUSINESS_ENABLED ? `, and Business ${100 - TIER_PERKS.business.platformFeePercent}% (${TIER_PERKS.business.platformFeePercent}% fee)` : ""} — the platform fee drops as your plan tier rises. Posters pay a plan-based service fee at checkout too (${TIER_PERKS.free.platformFeePercent}% Free, ${TIER_PERKS.basic.platformFeePercent}% Basic, ${TIER_PERKS.pro.platformFeePercent}% Pro, ${TIER_PERKS.elite.platformFeePercent}% Elite${BUSINESS_ENABLED ? `, ${TIER_PERKS.business.platformFeePercent}% Business` : ""}), with a small minimum so tiny jobs still cover card processing.`,
+        a: `Free-account Helprs keep ${100 - TIER_PERKS.free.platformFeePercent}% (${TIER_PERKS.free.platformFeePercent}% platform fee). Basic keeps ${100 - TIER_PERKS.basic.platformFeePercent}%, Pro keeps ${100 - TIER_PERKS.pro.platformFeePercent}%, and Elite ${100 - TIER_PERKS.elite.platformFeePercent}% (${TIER_PERKS.elite.platformFeePercent}% fee) — the platform fee drops as your plan tier rises. Posters pay a plan-based service fee at checkout too (${TIER_PERKS.free.platformFeePercent}% Free, ${TIER_PERKS.basic.platformFeePercent}% Basic, ${TIER_PERKS.pro.platformFeePercent}% Pro, ${TIER_PERKS.elite.platformFeePercent}% Elite), with a small minimum so tiny jobs still cover card processing.`,
       },
       {
         q: "What if there's a dispute?",

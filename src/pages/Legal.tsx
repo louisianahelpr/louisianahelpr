@@ -229,8 +229,8 @@ const Legal = () => {
   );
 
   // WEB header: the same compact row every other public page opens with —
-  // [BackButton] [normal-size page title] — so /legal, /for-business,
-  // /subscription, /help, and /jobs all start their title at the identical
+  // [BackButton] [normal-size page title] — so /legal, /subscription,
+  // /help, and /jobs all start their title at the identical
   // vertical offset. Replaces the old full-bleed editorial hero (display
   // eyebrow, clamp() Bodoni H1 with burnt-sienna accent, warm halo, poster
   // subhead, wide-tracked "Last updated" chip), which opened /legal 64px lower
@@ -244,7 +244,7 @@ const Legal = () => {
   //
   // This header and the content container below BOTH use the reference pages'
   // `px-5 sm:px-8 lg:px-12`, so Legal's left edge lines up with Help Center,
-  // Support and For Business.
+  // and Support.
   //
   // They previously both used `container mx-auto px-5`. That kept the title
   // aligned with its own tab band and policy cards — the constraint the old
@@ -608,7 +608,7 @@ const Legal = () => {
     <PublicLayout>
       <Tabs value={tab} onValueChange={setTab} className="w-full">
         {/* Compact [BackButton] [title] row — same shape and vertical offset as
-            /for-business, /subscription, /help, and /jobs. */}
+            /subscription, /help, and /jobs. */}
         {webHeader}
 
         <div className="px-5 sm:px-8 lg:px-12 pb-8">

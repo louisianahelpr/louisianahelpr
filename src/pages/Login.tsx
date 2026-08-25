@@ -1,6 +1,5 @@
 import { useRef, useState } from "react";
 import { Clock } from "lucide-react";
-import { BUSINESS_ENABLED } from "@/config/businessEnabled";
 import { postAuthDestination } from "@/lib/jobIntent";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -624,31 +623,6 @@ const Login = () => {
         </p>
         {/* Creating an account is the alternative to BOTH sign-in methods, so
             it closes the right column rather than floating under the card. */}
-        {/* Only the BUSINESS offer stays in the card. The personal one is now
-            the "Create account" tab above, and repeating it here would be the
-            same choice twice on one screen. A business account is a genuinely
-            different destination the two tabs don't cover.
-
-            ONE line (owner: "try to fit new to Helpr and the business account
-            each in their own line"). It used to be two — question, then the
-            link `block` beneath it — because "Create a business account"
-            wrapped mid-phrase into "Create a" / "business account", two broken
-            fragments. Shortening the link fits it inline in the auth column at
-            375px; `whitespace-nowrap` guarantees that if the copy ever grows
-            the link drops to its own line intact rather than splitting in the
-            middle again. */}
-        {BUSINESS_ENABLED && (
-        <p className="text-center text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-          Setting up a company?{" "}
-          <Link
-            to="/signup?type=business"
-            className="font-semibold hover:underline whitespace-nowrap"
-            style={{ color: "hsl(var(--bark))" }}
-          >
-            Business account
-          </Link>
-        </p>
-        )}
         </div>
         </div>
 

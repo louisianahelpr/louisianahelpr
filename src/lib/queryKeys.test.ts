@@ -81,16 +81,6 @@ describe("queryKeys", () => {
     });
   });
 
-  describe("business", () => {
-    it("mine key shape: ['myBusiness', userId]", () => {
-      expect(queryKeys.business.mine("user-1")).toEqual(["myBusiness", "user-1"]);
-    });
-
-    it("members key shape: ['businessMembers', businessId]", () => {
-      expect(queryKeys.business.members("biz-1")).toEqual(["businessMembers", "biz-1"]);
-    });
-  });
-
   describe("payoutSetup", () => {
     it("status key shape: ['payout-setup', 'status', userId]", () => {
       expect(queryKeys.payoutSetup.status("user-1")).toEqual(["payout-setup", "status", "user-1"]);

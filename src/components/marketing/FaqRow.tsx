@@ -3,7 +3,7 @@ import { ChevronDown } from "lucide-react";
 
 /**
  * Shared editorial FAQ row — hairline divider between rows, chevron rotates on
- * open, no glass panel. Extracted from HelpCenter so ForBusiness and any other
+ * open, no glass panel. Extracted from HelpCenter so any other
  * marketing surface can reuse the same pattern verbatim.
  *
  * The parent is responsible for grouping rows inside its own container /

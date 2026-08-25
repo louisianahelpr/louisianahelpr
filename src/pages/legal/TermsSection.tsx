@@ -6,8 +6,6 @@ import {
 import { PolicyRowItem, PolicySection } from "@/components/policy/CollapsedPolicy";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import { BOOST_DISCOUNT_PCT } from "@/lib/productPrices";
-import { BUSINESS_SEAT_TIERS, formatSeatPriceMonthly } from "@/lib/businessSeatTiers";
-import { BUSINESS_ENABLED } from "@/config/businessEnabled";
 import {
   URGENT_FEE_FLOOR_DOLLARS,
   ONBOARDING_FEE_CENTS,
@@ -41,20 +39,8 @@ const ANNUAL_MONTHS_SAVED = (() => {
   return Math.round(12 * (1 - annualMonthly / monthly));
 })();
 
-/**
- * The bottom of the fee ladder a reader can actually reach.
- *
- * These Terms quoted "down to 6% on Business" and listed a Business plan with
- * per-seat pricing — but BUSINESS_ENABLED has been false since 2026-08-20, so
- * the product, its marketing page and every entry point are hidden. Terms was
- * describing a plan nobody can buy and a rate nobody can get, which is a
- * factual defect in a legal document rather than a stale marketing line.
- *
- * Tied to the same flag as the feature, so the two can never disagree again:
- * flip BUSINESS_ENABLED back on and every percentage, name and bullet below
- * returns by itself.
- */
-const FEE_FLOOR = BUSINESS_ENABLED ? TIER_PERKS.business : TIER_PERKS.elite;
+/** The bottom of the fee ladder a reader can actually reach. */
+const FEE_FLOOR = TIER_PERKS.elite;
 
 /* ─────────────────────────────  TERMS  ───────────────────────────── */
 export const TermsContent = () => (
@@ -133,8 +119,8 @@ export const TermsContent = () => (
         title="Split fee model"
         body={
           <>
-            <p><strong className="text-foreground">Poster service fee:</strong> added at checkout by your plan — {TIER_PERKS.free.platformFeePercent}% Free, {TIER_PERKS.basic.platformFeePercent}% Basic, {TIER_PERKS.pro.platformFeePercent}% Pro, {TIER_PERKS.elite.platformFeePercent}% Elite{BUSINESS_ENABLED ? `, ${TIER_PERKS.business.platformFeePercent}% Business` : ""} (minimum covers card processing on small jobs).</p>
-            <p><strong className="text-foreground">Helpr platform fee:</strong> deducted from payout by plan — {TIER_PERKS.free.platformFeePercent}% Free, {TIER_PERKS.basic.platformFeePercent}% Basic, {TIER_PERKS.pro.platformFeePercent}% Pro, {TIER_PERKS.elite.platformFeePercent}% Elite{BUSINESS_ENABLED ? `, ${TIER_PERKS.business.platformFeePercent}% Business` : ""}.</p>
+            <p><strong className="text-foreground">Poster service fee:</strong> added at checkout by your plan — {TIER_PERKS.free.platformFeePercent}% Free, {TIER_PERKS.basic.platformFeePercent}% Basic, {TIER_PERKS.pro.platformFeePercent}% Pro, {TIER_PERKS.elite.platformFeePercent}% Elite (minimum covers card processing on small jobs).</p>
+            <p><strong className="text-foreground">Helpr platform fee:</strong> deducted from payout by plan — {TIER_PERKS.free.platformFeePercent}% Free, {TIER_PERKS.basic.platformFeePercent}% Basic, {TIER_PERKS.pro.platformFeePercent}% Pro, {TIER_PERKS.elite.platformFeePercent}% Elite.</p>
             <p><strong className="text-foreground">Total platform take:</strong> the poster's plan-based service fee plus the Helpr's plan-based fee.</p>
             <p><strong className="text-foreground">Urgent job fee:</strong> {formatDollarsWhole(URGENT_FEE_FLOOR_DOLLARS)} minimum bonus that goes to the Helpr, added by the poster for priority placement.</p>
             {/* Job Boost and Tipping moved here verbatim from the Profile → Legal
@@ -184,7 +170,7 @@ export const TermsContent = () => (
     <PolicySection
       icon={Crown}
       title="Membership tiers"
-      subtitle={BUSINESS_ENABLED ? "Free, Basic, Pro, Elite, and Business plans" : "Free, Basic, Pro, and Elite plans"}
+      subtitle="Free, Basic, Pro, and Elite plans"
       anchorId="subscription-tiers"
     >
       <PolicyRowItem
@@ -195,10 +181,7 @@ export const TermsContent = () => (
             <p><strong className="text-foreground">Free:</strong> standard access at a {TIER_PERKS.free.platformFeePercent}% platform fee.</p>
             <p><strong className="text-foreground">{TIER_PERKS.basic.name}:</strong> {legalFmtMo(TIER_PERKS.basic.price)} — reduced {TIER_PERKS.basic.platformFeePercent}% platform fee with instant payouts and {BOOST_DISCOUNT_PCT}% off job boosts.</p>
             <p><strong className="text-foreground">{TIER_PERKS.pro.name}:</strong> {legalFmtMo(TIER_PERKS.pro.price)} — reduced {TIER_PERKS.pro.platformFeePercent}% platform fee.</p>
-            <p><strong className="text-foreground">{TIER_PERKS.elite.name}:</strong> {legalFmtMo(TIER_PERKS.elite.price)} — {BUSINESS_ENABLED ? "lowest consumer" : "lowest"} {TIER_PERKS.elite.platformFeePercent}% platform fee.</p>
-            {BUSINESS_ENABLED && (
-              <p><strong className="text-foreground">{TIER_PERKS.business.name}:</strong> per-seat pricing ({BUSINESS_SEAT_TIERS.map((t) => `${t.name} ${formatSeatPriceMonthly(t.priceLabel)}`).join(" · ")}) — team tools and a {TIER_PERKS.business.platformFeePercent}% platform fee across all seat plans.</p>
-            )}
+            <p><strong className="text-foreground">{TIER_PERKS.elite.name}:</strong> {legalFmtMo(TIER_PERKS.elite.price)} — lowest {TIER_PERKS.elite.platformFeePercent}% platform fee.</p>
             <p>Annual plans save about {ANNUAL_MONTHS_SAVED} month{ANNUAL_MONTHS_SAVED === 1 ? "" : "s"}. Stripe handles billing automatically.</p>
           </>
         }

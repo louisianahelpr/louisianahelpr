@@ -1,5 +1,4 @@
 import type { AdminNavItem } from "@/components/admin/AdminSidebar";
-import { BUSINESS_ENABLED } from "@/config/businessEnabled";
 import {
   Activity,
   AlertTriangle,
@@ -8,7 +7,6 @@ import {
   BarChart3,
   BellRing,
   Briefcase,
-  Building2,
   ClipboardCheck,
   ClipboardList,
   Crown,
@@ -58,9 +56,6 @@ export const adminNavGroups: { title: string; items: AdminNavItem[] }[] = [
     items: [
       { id: "people", label: "Users", icon: Users },
       { id: "jobs", label: "Jobs", icon: Briefcase },
-      ...(BUSINESS_ENABLED
-        ? ([{ id: "business_accounts", label: "Business Accounts", icon: Building2 }] as AdminNavItem[])
-        : []),
     ],
   },
   {
@@ -72,9 +67,6 @@ export const adminNavGroups: { title: string; items: AdminNavItem[] }[] = [
       { id: "idv", label: "Identity Verify", icon: ShieldCheck },
       { id: "credentials", label: "License & Insurance", icon: FileCheck },
       { id: "exceptions", label: "Exception Queue", icon: ClipboardList },
-      ...(BUSINESS_ENABLED
-        ? ([{ id: "business_verify", label: "Business Verification", icon: Building2 }] as AdminNavItem[])
-        : []),
     ],
   },
   {

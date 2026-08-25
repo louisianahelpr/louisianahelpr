@@ -2,7 +2,6 @@ import { useState } from "react";
 import { MapPin, Clock, CheckCircle, Phone, ClipboardList, ShieldCheck, Star, Users, Timer, RotateCcw } from "lucide-react";
 import { HelperBadges, type HelperBadge } from "@/components/HelperBadges";
 import CredentialBadge from "@/components/CredentialBadge";
-import BusinessBadge from "@/components/BusinessBadge";
 import HelperTierBadge from "@/components/profile/HelperTierBadge";
 import type { Database } from "@/integrations/supabase/types";
 import { cn } from "@/lib/utils";
@@ -336,7 +335,6 @@ export const ProfileHeaderCard = ({
                   Verification in progress
                 </span>
               )}
-              <BusinessBadge userId={userId} size="md" />
             </div>
         </div>
 

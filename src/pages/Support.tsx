@@ -40,7 +40,7 @@ import {
  * the real form lived behind auth in the Profile tab.
  *
  * Shape notes:
- *   • Renders inside PublicLayout, matching /help and /for-business — the
+ *   • Renders inside PublicLayout, matching /help — the
  *     compact header below carries the canonical BackButton, which is the
  *     page's only back affordance.
  *   • Magazine layout (left masthead / right content) on the standard
@@ -124,7 +124,7 @@ function validate(draft: Draft, identified: boolean): Partial<Record<FieldKey, s
 
 /**
  * Compact page header — canonical BackButton to the LEFT of a normal-size page
- * title. Identical row shape to /for-business and /help; /support is a
+ * title. Identical row shape to /help; /support is a
  * secondary destination reached from a footer/legal link, not a landing.
  */
 const PageIntro = () => (

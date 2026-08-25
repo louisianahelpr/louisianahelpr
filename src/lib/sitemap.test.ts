@@ -32,11 +32,6 @@ const redirectPaths = [
 describe("sitemap.xml", () => {
   it("lists at least the core public pages", () => {
     expect(locs.length).toBeGreaterThan(0);
-    // `/for-business` was removed from this list on 2026-08-23 together with
-    // its <url> entry. The route itself is gated on `BUSINESS_ENABLED` in
-    // App.tsx (false since 2026-08-20), so the page 404s — advertising it to
-    // crawlers pointed them at a dead URL and kept a "Business" result in
-    // search for a product with no page. Re-add both when the flag flips back.
     for (const path of ["/", "/jobs", "/help", "/legal"]) {
       expect(sitemapPaths).toContain(path);
     }

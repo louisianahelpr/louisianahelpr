@@ -2,7 +2,7 @@
  * Synchronous "is there probably a session?" probe — WITHOUT importing
  * Supabase.
  *
- * Why this exists: the marketing routes (`/`, `/for-business`) must redirect a
+ * Why this exists: the marketing landing route (`/`) must redirect a
  * signed-in visitor into the app, but answering "is this visitor signed in?"
  * properly means `useCurrentUser()`, which drags `@supabase/supabase-js`
  * (~206 KiB raw / ~53 KiB gzipped) onto the landing page's critical path. That

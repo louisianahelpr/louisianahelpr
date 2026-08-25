@@ -50,13 +50,13 @@ export const AUTH_PREFIXES = [
   // AUTH_PREFIX_EXCLUSIONS.
   "/family",
   // NOTE: /subscription is deliberately NOT in this list — it's a
-  // marketing page (like /for-business, /help, /legal), rendered inside
+  // marketing page (like /help, /legal), rendered inside
   // PublicLayout with the marketing Navbar + Footer + editorial hero.
   // Adding it here surfaces the authed desktop rail alongside the
   // marketing content for signed-in users, which reads as two navigation
   // systems stacked and clashes with the editorial layout. Signed-in
   // users on /subscription keep the marketing Navbar the same way
-  // signed-in users on /for-business or /help do.
+  // signed-in users on /help do.
   //
   // NOTE: /support was REMOVED from this list for exactly that reason. It
   // was here when the route was a redirect into /profile?tab=support (a real

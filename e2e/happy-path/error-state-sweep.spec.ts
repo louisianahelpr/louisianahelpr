@@ -658,15 +658,11 @@ const ROLES = (
  * Collapse rows that render identically once their data is broken.
  *
  * `seededOnly` rows exist to exercise six different `job_status` branches; with
- * every read failing they are one screen, six times. Likewise the catalog holds
- * several entries that differ ONLY by their per-screen `rules` (the
- * `business-*-owned` / `-unverified` pairs) — those rules feed tables this
- * sweep is breaking, so both members of each pair render the same failure. The
- * de-dup key is url + whether the row drives the page after load, which is the
- * only remaining thing that can make two rows differ here.
- *
- * This is a coverage REDUCTION and it is stated plainly: /business/team is
- * audited once in this sweep, not three times.
+ * every read failing they are one screen, six times. Likewise the catalog can
+ * hold entries that differ ONLY by their per-screen `rules` — those rules feed
+ * tables this sweep is breaking, so both members of each pair render the same
+ * failure. The de-dup key is url + whether the row drives the page after load,
+ * which is the only remaining thing that can make two rows differ here.
  */
 function distinctScreens(list: ScreenSpec[]): ScreenSpec[] {
   const seen = new Set<string>();

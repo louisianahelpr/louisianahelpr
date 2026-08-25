@@ -71,10 +71,9 @@ function formatPaidTierPrices(tierId: "basic" | "pro" | "elite") {
   };
 }
 
-// Business is acquired through the seats flow (create-business-seat-checkout),
-// not this consumer upgrade page, so it is intentionally omitted here —
-// leaving it in would render a card whose checkout has no Stripe price and
-// 500s.
+// The `business` row in TIER_PERKS is a fee-percent reference only (the
+// Business product was removed on 2026-08-25), so it is intentionally omitted
+// here — leaving it in would render a card whose checkout has no Stripe price.
 //
 // Basic is a full consumer tier here, matching the in-app Membership tab.
 // It was hidden while `_shared/proTiers.ts` carried placeholder Basic price
@@ -416,8 +415,8 @@ export default function SubscriptionPage() {
 
           {/* Right — tier grid. Column count tracks CONSUMER_TIERS.length so
               the row always divides evenly and never orphans a dead column:
-              four tiers → `sm:grid-cols-2 lg:grid-cols-4`, matching
-              /for-business's 2x2-then-4-across.
+              four tiers → `sm:grid-cols-2 lg:grid-cols-4`, a
+              2x2-then-4-across.
 
               Four-across starts at lg, NOT sm. This grid only gets 8/12 (then
               9/12) of the row because the masthead holds the rest, so at sm
@@ -825,8 +824,8 @@ export default function SubscriptionPage() {
                           Free card claim to be their current plan — untrue, and
                           a dead end, since that branch renders an inert <div>.
                           Guests now fall through to the `isFree` branch below,
-                          which already reads "Start free" and links to /signup,
-                          matching Starter on /for-business. */}
+                          which already reads "Start free" and links to
+                          /signup. */}
                       {isActive && user ? (
                         <div
                           // Matches the Upgrade CTAs exactly — same height ramp, padding, radius and
@@ -889,9 +888,8 @@ export default function SubscriptionPage() {
                             color: "hsl(var(--parchment))",
                             // Bark for every tier, featured or not. The featured
                             // card used burnt-sienna, so /subscription's primary
-                            // CTA and /for-business's (Team, which is bark) were
-                            // different colours for the same action on two
-                            // pricing pages. The card is already marked out by
+                            // CTA differed in colour from the same action
+                            // elsewhere. The card is already marked out by
                             // its halo and corner chip; the button doesn't need
                             // to differ too.
                             background: "hsl(var(--bark))",

@@ -37,7 +37,6 @@ interface Route {
 const ROUTES: Route[] = [
   // Public marketing
   { path: "/", auth: "anon" },
-  { path: "/for-business", auth: "anon" },
   { path: "/subscription", auth: "anon" },
   { path: "/help", auth: "anon" },
   { path: "/legal", auth: "anon" },
@@ -85,14 +84,6 @@ const ROUTES: Route[] = [
   { path: "/str-settings", auth: "authed" },
   { path: "/wrapped", auth: "authed" },
 
-  // Business
-  { path: "/business/team", auth: "authed" },
-  { path: "/business/billing", auth: "authed" },
-  { path: "/business/contracts", auth: "authed" },
-  { path: "/business/exports", auth: "authed" },
-  { path: "/business/reports", auth: "authed" },
-  { path: "/business/api", auth: "authed" },
-  { path: "/business/onboarding", auth: "authed" },
 ];
 
 test.describe("desktop content fills the viewport", () => {

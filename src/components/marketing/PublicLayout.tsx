@@ -8,7 +8,7 @@ import { isNativePlatform } from "@/lib/nativeInit";
 
 /**
  * PublicLayout — shared chrome for the public marketing / SEO surface
- * (landing, /jobs, /for-business, /help).
+ * (landing, /jobs, /help).
  *
  * Gives every marketing page ONE consistent nav (the shared <Navbar>) and
  * ONE footer (<Footer>). The page's own content renders as {children}
@@ -74,7 +74,7 @@ const PublicLayout = ({
     // overflow-x-clip: structural guarantee for CLAUDE.md's "every page must FIT
     // THE SCREEN — no horizontal overflow" rule. Decorative ambient halos
     // (WarmHalo's `-inset-16 sm:-inset-24 lg:-inset-32`) intentionally bleed past
-    // their parent, which was widening the scroll area at 375px (/for-business
+    // their parent, which was widening the scroll area at 375px (a marketing page
     // overflowed 42px, /subscription 4px) and dragging every `w-full` fixed
     // element out with it. `clip` not `hidden`: it does NOT create a scroll
     // container, so sticky children still stick, and the fixed Navbar/mesh keep
@@ -98,7 +98,7 @@ const PublicLayout = ({
           surface. The landing hero (noNavSpacer) stays transparent until
           scroll so it can float over the photo. */}
       {/* Nav renders in the SAME glass-transparent + backdrop-blur state
-          on every public page (landing, business, membership, help,
+          on every public page (landing, membership, help,
           legal). Previously interior pages used `solid=true` which added
           a bordered olive surface — that made every non-landing page's
           top nav look different from the landing. Uniform now. */}

@@ -43,8 +43,6 @@ export interface UseJobEntryParams {
   setCredentialTier: (v: number) => void;
   setIncludeMaterials: (v: boolean) => void;
   setMaterialsNote: (v: string) => void;
-  setDepartment: (v: string) => void;
-  setRequiresW9: (v: boolean) => void;
 }
 
 export function useJobEntry(params: UseJobEntryParams) {
@@ -81,8 +79,6 @@ export function useJobEntry(params: UseJobEntryParams) {
     setCredentialTier,
     setIncludeMaterials,
     setMaterialsNote,
-    setDepartment,
-    setRequiresW9,
   } = params;
 
   // Apply AI-generated fields to the form. Pure assignment — caller
@@ -132,8 +128,6 @@ export function useJobEntry(params: UseJobEntryParams) {
     // job it restores into is a plain set-price job.
     if (draft.includeMaterials !== undefined) setIncludeMaterials(draft.includeMaterials);
     if (draft.materialsNote !== undefined) setMaterialsNote(draft.materialsNote);
-    if (draft.department !== undefined) setDepartment(draft.department);
-    if (draft.requiresW9 !== undefined) setRequiresW9(draft.requiresW9);
     if (draft.offerToHelperId !== undefined) setOfferToHelperId(draft.offerToHelperId);
 
     setDraftConsumed(true);

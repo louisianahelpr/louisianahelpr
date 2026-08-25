@@ -8,7 +8,6 @@
 
 import { useNavigate } from "react-router-dom";
 import { Heart, Search, ArrowUpDown } from "lucide-react";
-import { useMyBusiness } from "@/hooks/useMyBusiness";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -30,10 +29,8 @@ import { SavedHelperCard } from "@/components/profile/savedHelpersTab/SavedHelpe
 export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
   const navigate = useNavigate();
   const { user } = useCurrentUser();
-  const { business } = useMyBusiness();
   const {
     helpers,
-    togglingShare,
     loading,
     loadError,
     wasOffline,
@@ -49,11 +46,10 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
     openNoteEditor,
     cancelNoteEditor,
     saveNote,
-    toggleTeamShare,
     handleRemove,
     filtered,
     activeSortLabel,
-  } = useSavedHelpers({ user, business });
+  } = useSavedHelpers({ user });
 
   return (
     // Canonical Profile tab body: `space-y-4` under a ProfileTabHeader, with
@@ -217,16 +213,13 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
               <SavedHelperCard
                 key={h.helper_id}
                 h={h}
-                business={business}
                 editingNoteFor={editingNoteFor}
                 noteDraft={noteDraft}
                 setNoteDraft={setNoteDraft}
                 savingNote={savingNote}
-                togglingShare={togglingShare}
                 openNoteEditor={openNoteEditor}
                 cancelNoteEditor={cancelNoteEditor}
                 saveNote={saveNote}
-                toggleTeamShare={toggleTeamShare}
                 handleRemove={handleRemove}
               />
             ))}

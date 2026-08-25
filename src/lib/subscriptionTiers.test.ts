@@ -15,7 +15,8 @@ import {
 
 // Consumer-subscribable paid tiers only. Business is deliberately excluded
 // — it isn't a consumer subscription; Business accounts are billed per-seat
-// on the seat plans in businessSeatTiers.ts, so TIER_PERKS.business.price
+// on the seat plans in supabase/functions/_shared/businessSeatTiers.ts, so
+// TIER_PERKS.business.price
 // is intentionally null and the "paid tier has a price" invariant doesn't
 // apply. TIER_PERKS.business.platformFeePercent is still the real 6% fee
 // used by the ladder / commission math and IS covered by the fee tests.
@@ -77,9 +78,9 @@ describe("TIER_PERKS fee model", () => {
     expect(TIER_PERKS.pro.price!).toBeLessThan(TIER_PERKS.elite.price!);
   });
 
-  it("Business is intentionally price:null — per-seat via businessSeatTiers", () => {
+  it("Business is intentionally price:null — it is not a consumer tier", () => {
     // Business isn't a consumer subscription; the seat plans in
-    // businessSeatTiers.ts carry the real prices. Guarding that this stays
+    // edge functions carry the real prices. Guarding that this stays
     // null so a future edit doesn't accidentally re-introduce a fictional
     // consumer-side Business price without also removing this test.
     expect(TIER_PERKS.business.price).toBeNull();

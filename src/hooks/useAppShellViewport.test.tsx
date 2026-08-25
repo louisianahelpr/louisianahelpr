@@ -80,8 +80,8 @@ describe("useAppShellViewport", () => {
     expect(document.documentElement.classList.contains("app-shell")).toBe(true);
   });
 
-  it("matches deep paths under /business via startsWith", () => {
-    renderHook(() => useAppShellViewport(), { wrapper: wrapperFor("/business/team") });
+  it("matches deep paths under /user via startsWith", () => {
+    renderHook(() => useAppShellViewport(), { wrapper: wrapperFor("/user/abc123") });
     expect(document.documentElement.classList.contains("app-shell")).toBe(false);
   });
 

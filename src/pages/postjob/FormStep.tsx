@@ -1,9 +1,4 @@
-import { FileSignature } from "lucide-react";
-import { useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { useMyBusiness } from "@/hooks/useMyBusiness";
 import { LogisticsSection } from "@/components/postjob/LogisticsSection";
 import { BudgetSection } from "@/components/postjob/BudgetSection";
 import { DetailsSection } from "@/components/postjob/DetailsSection";
@@ -25,11 +20,6 @@ interface FormStepProps {
  * The scroll-spy + jump wiring here is local view state only.
  */
 export function FormStep({ form }: FormStepProps) {
-  const { business } = useMyBusiness();
-  // Gate the W-9 toggle on the SURFACE, not the account: a business owner
-  // posting a personal errand from the normal flow was being asked for tax
-  // paperwork that only makes sense for business-posted work.
-  const isBusinessSurface = useLocation().pathname.startsWith("/business");
 
   const atOpenJobLimit = form.openJobCount !== null && form.openJobCount >= 5;
   // The form is "ready" once all three sections' required fields are
@@ -167,63 +157,6 @@ export function FormStep({ form }: FormStepProps) {
             category={form.category}
           />
         </div>
-
-        {/* W-9 requirement — business posting surface only. See
-            helper_w9_records + the W9CollectionDialog the helper sees at
-            acceptance time. */}
-        {business?.is_owner && isBusinessSurface && (
-          <div data-section="w9" className="rounded-ds-md border border-border p-4 flex items-start gap-3">
-            <div className="w-9 h-9 rounded-ds-sm bg-accent/15 text-accent flex items-center justify-center shrink-0">
-              <FileSignature className="w-4 h-4" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between gap-3">
-                {/* The sibling copy IS the control's name, so it has to be a
-                    real <Label htmlFor> — Radix renders Switch as
-                    <button role="switch"> with empty content, which computes
-                    to an unnamed switch otherwise. `aria-labelledby` belt-and-
-                    braces because label association is not part of a button's
-                    accname algorithm in every engine. */}
-                <Label
-                  htmlFor="require-w9"
-                  id="require-w9-label"
-                  className="font-semibold text-ds-13 text-foreground mb-0 cursor-pointer"
-                >
-                  Require W-9 from accepted Helpr
-                </Label>
-                <Switch
-                  id="require-w9"
-                  aria-labelledby="require-w9-label"
-                  checked={form.requiresW9}
-                  onCheckedChange={form.setRequiresW9}
-                />
-              </div>
-              <p className="text-ds-11 text-muted-foreground mt-1">
-                When this is on, the helper signs a W-9 the moment they accept. We collect a typed signature + IP for the audit trail.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* The optional "Department / cost center" input used to live here for
-            business posters. Removed 2026-08-10 — it was an extra field on the
-            longest form in the product, optional, and free-text (so it was
-            never reliable for reporting anyway).
-
-            The approval-threshold notice below was NESTED INSIDE that field's
-            block and is deliberately kept: it tells a business poster their job
-            will go to pending approval instead of straight live, which changes
-            what happens after they pay. `jobs.department` still exists in the
-            schema and in jobSubmitHelpers, so nothing is dropped server-side
-            and the field can come back without a migration. */}
-        {form.business &&
-          form.business.require_approval_above != null &&
-          form.budgetNum > Number(form.business.require_approval_above) && (
-            <p className="text-ds-11" style={{ color: "hsl(var(--bark))" }}>
-              This post exceeds your team's ${Number(form.business.require_approval_above)} threshold —
-              it'll go to pending approval before going live.
-            </p>
-          )}
 
         {/* Submit — sits at the natural end of the form (not sticky) so it
             never floats over and obscures the section fields above it. The

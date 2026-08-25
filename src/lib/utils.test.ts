@@ -40,7 +40,7 @@ describe("formatName", () => {
 //
 // On a <Badge>, whose variant supplies `text-primary-foreground`, adding
 // `className="text-ds-10"` therefore deleted the foreground colour — the
-// seat-plan pill on /business/team measured 2.21:1 against its own background,
+// a dark pill on an olive surface measured 2.21:1 against its own background,
 // a WCAG AA failure, with nothing in the JSX to suggest a colour was lost.
 describe("cn — ds-* type scale vs tailwind-merge", () => {
   it("keeps a text colour and a ds font size together", () => {

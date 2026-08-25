@@ -37,8 +37,7 @@ const catalogSrc = readFileSync(
  * Resolve a build-time feature flag (`export const X = true|false`) out of
  * src/config. Routes written as `{FLAG && <Route …>}` are NOT registered when
  * the flag is false, and a text-only scan of App.tsx cannot tell the
- * difference — the first version of this test could not, and duly passed while
- * /for-business and all five /business/* routes were 404ing.
+ * difference.
  */
 function flagValue(name: string): boolean | null {
   for (const file of readdirSync(resolve(repoRoot, "src/config"))) {

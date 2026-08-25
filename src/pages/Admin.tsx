@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
-import { BUSINESS_ENABLED } from "@/config/businessEnabled";
 import { supabase } from "@/integrations/supabase/client";
 import { signOutWithPushCleanup } from "@/lib/authSignOut";
 import { channelNonce } from "@/lib/realtimeChannel";
@@ -40,12 +39,10 @@ const AdminIDVQueue = lazy(() => import("@/components/admin/AdminIDVQueue"));
 const AdminNotificationLogs = lazy(() => import("@/components/admin/AdminNotificationLogs"));
 const AdminMarketing = lazy(() => import("@/components/admin/AdminMarketing"));
 const AdminCredentialQueue = lazy(() => import("@/components/admin/AdminCredentialQueue"));
-const AdminBusinessVerificationQueue = lazy(() => import("@/components/admin/AdminBusinessVerificationQueue"));
-const AdminBusinessAccounts = lazy(() => import("@/components/admin/AdminBusinessAccounts"));
 const AdminExceptionQueue = lazy(() => import("@/components/admin/AdminExceptionQueue"));
 const AdminBanReview = lazy(() => import("@/components/admin/AdminBanReview"));
 
-type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "notiflogs" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "payouts" | "tiers" | "idv" | "marketing" | "credentials" | "business_verify" | "business_accounts" | "exceptions" | "banreview";
+type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "notiflogs" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "payouts" | "tiers" | "idv" | "marketing" | "credentials" | "exceptions" | "banreview";
 
 import { safeStorage } from "@/lib/safeStorage";
 import { adminNavGroups } from "@/components/admin/adminNavGroups";
@@ -75,11 +72,6 @@ const VIEW_LABELS: Record<View, string> = {
     credentials: "License & Insurance",
     exceptions: "Exception Queue",
     banreview: "Ban Review",
-    // Unreachable while BUSINESS_ENABLED is false — the nav rows are not
-    // rendered and `?view=business_*` is coerced to "home" — but kept so the
-    // map stays exhaustive over `View`.
-    business_verify: "Business Verification",
-    business_accounts: "Business Accounts",
   };
 
 const Admin = () => {
@@ -92,12 +84,8 @@ const Admin = () => {
   // can openProfile() automatically.
   const [searchParams, setSearchParams] = useSearchParams();
   const rawInitialView = (searchParams.get("view") as View) || "home";
-  // A stale `?view=business_verify` / `?view=business_accounts` deep-link — from
-  // an old admin notification or a bookmark — must not reopen a Business screen
-  // while the product is hidden. Coerced to the dashboard home instead, which
-  // is also what makes the two `renderContent` cases below unreachable.
-  //
-  // The SAME coercion has to cover any view that no longer exists. Parish Tax
+  // A stale deep-link to a view that no longer exists — from an old admin
+  // notification or a bookmark — must not half-render a screen. Parish Tax
   // and Geography were deleted at the owner's request, and a `?view=parishtax`
   // link (a bookmark, an old notification, the UI sweep) then rendered the
   // dashboard home WITH an AdminSectionHeader whose title was `undefined` —
@@ -111,11 +99,7 @@ const Admin = () => {
   // deep links coerce automatically.
   const isRealView = (v: string): v is View =>
     v === "home" || Object.prototype.hasOwnProperty.call(VIEW_LABELS, v);
-  const initialView: View =
-    !isRealView(rawInitialView) ||
-    (!BUSINESS_ENABLED && (rawInitialView === "business_verify" || rawInitialView === "business_accounts"))
-      ? "home"
-      : rawInitialView;
+  const initialView: View = !isRealView(rawInitialView) ? "home" : rawInitialView;
   // The URL is the source of truth for the current view — switching sections
   // used to setState only, leaving the address bar at bare /admin, so a
   // refresh dumped the admin back on Dashboard and browser-Back exited admin
@@ -463,10 +447,6 @@ const Admin = () => {
       // The human half of the message-scanner ladder — deep-linked from the
       // "Ban review needed" admin notification (20260825160000).
       case "banreview": return <AdminBanReview />;
-      case "business_verify":
-        return BUSINESS_ENABLED ? <AdminBusinessVerificationQueue /> : null;
-      case "business_accounts":
-        return BUSINESS_ENABLED ? <AdminBusinessAccounts /> : null;
       case "marketing": return <AdminMarketing />;
       default: return (
         <DashboardHome

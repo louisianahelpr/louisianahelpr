@@ -13,7 +13,6 @@ import { maybeFireFirstPostConfetti } from "./firstPostConfetti";
 import { recordJobActionForPermissionPrompt } from "@/hooks/useNotificationPermissionPrompt";
 import { buildJobInsertPayload } from "./jobSubmitHelpers";
 import { hasUnfilledPlaceholders } from "@/lib/postingTemplates";
-import type { BusinessMembership } from "@/hooks/useMyBusiness";
 import type { Step } from "./postJobFormTypes";
 import { composeSpecialRequirements, scrollToField } from "./postJobFormHelpers";
 import {
@@ -34,8 +33,6 @@ import {
  * truth — this hook only reads that state and drives the submit behavior.
  */
 export interface UseJobSubmitParams {
-  // Auth / business
-  business: BusinessMembership | null | undefined;
   // Overlay / status setters (parent-owned)
   saving: boolean;
   setSaving: (v: boolean) => void;
@@ -80,8 +77,6 @@ export interface UseJobSubmitParams {
   salesTaxRate: number;
   offerToHelperId: string | null;
   credentialTier: number;
-  department: string;
-  requiresW9: boolean;
   // Materials + card
   includeMaterials: boolean;
   materialsNote: string;
@@ -98,7 +93,6 @@ export interface UseJobSubmitParams {
 
 export function useJobSubmit(params: UseJobSubmitParams) {
   const {
-    business,
     saving,
     setSaving,
     setRedirecting,
@@ -136,8 +130,6 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     salesTaxRate,
     offerToHelperId,
     credentialTier,
-    department,
-    requiresW9,
     includeMaterials,
     materialsNote,
     saveCardForFuture,
@@ -257,41 +249,6 @@ export function useJobSubmit(params: UseJobSubmitParams) {
       }
     }
 
-    // Business verification gate — when this post is being attributed to a
-    // business (`business_id` will land on the row), the business must be
-    // admin-verified (insurance + license reviewed). Mirrors the IDV gate:
-    // fresh fetch, fail closed on error, block if not 'verified'. Also
-    // enforced server-side by an RLS check on jobs.INSERT so a client-only
-    // bypass can't slip past this — this gate is UX so the poster sees the
-    // right toast instead of a raw RLS violation.
-    if (business?.business_id) {
-      const { data: bizRow, error: bizErr } = await supabase
-        .from("businesses")
-        .select("verification_status")
-        .eq("id", business.business_id)
-        .single();
-      if (bizErr) {
-        report(bizErr, { tags: { source: "usePostJobForm.businessVerificationGate" } });
-        toast.error("Couldn't check your business verification status — please try again.");
-        setSaving(false);
-        submittingRef.current = false;
-        return null;
-      }
-      const bizStatus = (bizRow as { verification_status?: string })?.verification_status;
-      if (bizStatus !== "verified") {
-        const label =
-          bizStatus === "pending" ? "still being reviewed by our team"
-            : bizStatus === "rejected" ? "was rejected — see the reason on your Business page"
-              : "not yet verified";
-        toast.error(
-          `Your business is ${label}. Businesses must be verified (insurance + license) before posting jobs.`,
-        );
-        setSaving(false);
-        submittingRef.current = false;
-        return null;
-      }
-    }
-
     // Check open job limit (server enforces too, but show friendly message)
     const { count: openCount, error: openCountErr } = await supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", user.id).eq("status", "open");
     if (openCountErr) {
@@ -326,19 +283,10 @@ export function useJobSubmit(params: UseJobSubmitParams) {
       specialRequirements,
     });
 
-    // Approval workflow — if this is a business post and the business
-    // has set a `require_approval_above` threshold, route the post to
-    // pending_approval instead of straight to open.
-    const requiresApproval =
-      !!business &&
-      business.require_approval_above != null &&
-      !!budget &&
-      parseFloat(budget) > Number(business.require_approval_above);
-
     const buildPayload = (opts: { withExtras: boolean }) =>
       buildJobInsertPayload({
         userId: user.id,
-        businessId: business?.business_id ?? null,
+        businessId: null,
         title,
         description,
         category,
@@ -366,9 +314,8 @@ export function useJobSubmit(params: UseJobSubmitParams) {
         salesTaxRate,
         offerToHelperId,
         credentialTier: opts.withExtras ? credentialTier : 0,
-        department: opts.withExtras ? department : null,
-        initialStatus: opts.withExtras && requiresApproval ? "pending_approval" : undefined,
-        requiresW9: opts.withExtras && business ? requiresW9 : false,
+        department: null,
+        requiresW9: false,
       });
 
     let { data: jobData, error } = await supabase

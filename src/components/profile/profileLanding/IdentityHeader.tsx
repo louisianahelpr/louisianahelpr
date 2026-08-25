@@ -1,10 +1,8 @@
 import {
   MapPin, ChevronRight as ChevronRightIcon,
-  Award, BadgeCheck, Building2, Camera, Crown, Users,
+  Award, BadgeCheck, Camera, Crown,
   Star, Share2, Edit,
 } from "lucide-react";
-import { useBusinessSeatTier } from "@/hooks/useBusinessSeatTier";
-import { BUSINESS_ENABLED } from "@/config/businessEnabled";
 import { avatarGradientFor } from "@/lib/avatarGradient";
 import { formatPriceFloor } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -49,17 +47,6 @@ export function IdentityHeader({
   memberSinceLabel,
   earnedBadges,
 }: IdentityHeaderProps) {
-  // Crew/Team/Enterprise badge for a business member — see the note at the
-  // render site for why it outranks the consumer tier chip.
-  //
-  // Hard-nulled while `BUSINESS_ENABLED` is false. The hook already returns
-  // null in that case; the second `&&` here is deliberate belt-and-braces, so
-  // the render site reads as gated on its own and a future refactor of the
-  // hook can't silently put a TEAM chip back on the owner's profile for a
-  // product with no page, no pricing and no way to buy it. (The hook is still
-  // CALLED unconditionally — rules-of-hooks — it just no-ops internally.)
-  const rawSeatTier = useBusinessSeatTier(userId);
-  const seatTier = BUSINESS_ENABLED ? rawSeatTier : null;
 
   return (
     <>
@@ -180,34 +167,7 @@ export function IdentityHeader({
                   Basic = neutral bark (gold is reserved for the earned
                   Pro/Elite prestige, per HelperBadges), Pro = sienna,
                   Elite = gold-warm. */}
-              {/* Seat badge takes PRECEDENCE over the consumer one below. A seat
-                  plan grants basic/pro/elite (see the mapping in
-                  check-business-seat-subscription) purely to move the fee and
-                  early-access rungs — so without this a Crew owner showed up on
-                  their own profile as a consumer "Basic" subscriber: a plan they
-                  never bought, under a name that means nothing to a business.
-                  Now Crew/Team/Enterprise render instead, matching the badge
-                  previewed on /for-business. Glyphs ascend Users → Building2 →
-                  Crown, the same shape as Star → Award → Crown on the consumer
-                  ladder. `starter` returns null from the hook, so free business
-                  accounts fall through and keep whatever consumer tier they
-                  actually hold. */}
-              {seatTier ? (
-                <span
-                  className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-flex items-center gap-1"
-                  style={{
-                    color: "hsl(var(--bark))",
-                    background: "hsl(var(--bark) / 0.10)",
-                    letterSpacing: "0.08em",
-                  }}
-                >
-                  {seatTier === "crew" && <Users className="w-2.5 h-2.5" />}
-                  {seatTier === "team" && <Building2 className="w-2.5 h-2.5" />}
-                  {seatTier === "enterprise" && <Crown className="w-2.5 h-2.5" />}
-                  {seatTier}
-                </span>
-              ) : null}
-              {!seatTier && tier === "basic" && (
+              {tier === "basic" && (
                 <span
                   className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-flex items-center gap-1"
                   style={{
@@ -219,7 +179,7 @@ export function IdentityHeader({
                   <Star className="w-2.5 h-2.5" /> Basic
                 </span>
               )}
-              {!seatTier && tier === "pro" && (
+              {tier === "pro" && (
                 <span
                   className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-flex items-center gap-1"
                   style={{
@@ -235,7 +195,7 @@ export function IdentityHeader({
                   <Award className="w-2.5 h-2.5" /> Pro
                 </span>
               )}
-              {!seatTier && tier === "elite" && (
+              {tier === "elite" && (
                 <span
                   className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-flex items-center gap-1"
                   style={{

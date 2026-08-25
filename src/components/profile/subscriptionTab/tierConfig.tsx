@@ -28,7 +28,7 @@ interface TierDisplay {
  * Format the display prices for a consumer tier from the canonical
  * `TIER_PERKS` config. This is the single source of truth — if `pro` moves
  * to $12/mo we edit `subscriptionTiers.ts` and every price surface (this
- * tab, /subscription, /for-business, checkout, Legal) follows. Previously
+ * tab, /subscription, checkout, Legal) follows. Previously
  * each string was hardcoded here and drifted on any change.
  */
 function formatTierPrices(tierId: "basic" | "pro" | "elite") {
@@ -51,11 +51,7 @@ function formatTierPrices(tierId: "basic" | "pro" | "elite") {
   };
 }
 
-// Consumer tiers only. Business lives on /for-business (per-seat plans) and
-// is deliberately NOT surfaced here as a consumer choice — showing it here
-// previously caused the "Your plan" hero card to blank for a Business
-// subscriber, which SubscriptionTab now handles with an explicit redirect
-// note instead.
+// Consumer tiers only.
 export const tierConfig: TierDisplay[] = [
   {
     // The plan almost every Helpr is actually ON, and it was the one plan the

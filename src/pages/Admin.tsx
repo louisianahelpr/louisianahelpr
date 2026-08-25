@@ -94,7 +94,7 @@ const Admin = () => {
   // Notifications fanned out by triggers point here so admins land on the
   // right sub-view in one tap. ?user= is forwarded into AdminUsers so it
   // can openProfile() automatically.
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const rawInitialView = (searchParams.get("view") as View) || "home";
   // A stale `?view=business_verify` / `?view=business_accounts` deep-link — from
   // an old admin notification or a bookmark — must not reopen a Business screen
@@ -120,7 +120,14 @@ const Admin = () => {
     (!BUSINESS_ENABLED && (rawInitialView === "business_verify" || rawInitialView === "business_accounts"))
       ? "home"
       : rawInitialView;
-  const [view, setView] = useState<View>(initialView);
+  // The URL is the source of truth for the current view — switching sections
+  // used to setState only, leaving the address bar at bare /admin, so a
+  // refresh dumped the admin back on Dashboard and browser-Back exited admin
+  // entirely instead of stepping back a section (caught by the 2026-08-24
+  // interactive click-audit; the owner reported it as "buttons don't work").
+  // `initialView` re-derives from searchParams every render, so back/forward
+  // and deep links all resolve through the same coercion above.
+  const view = initialView;
   // One title per view, the same way Profile.tsx titles its 18 tabs: all 27
   // admin screens used to report "Admin — Helpr", so history, bookmarks and
   // the tab bar could not tell Disputes from Payout Batches. `VIEW_LABELS` is

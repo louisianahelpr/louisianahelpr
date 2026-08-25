@@ -389,8 +389,35 @@ const AdminSettings = () => {
       <AdminCard
         className="max-w-lg"
         title={<span className="flex items-center gap-2"><Flag className="w-4 h-4 text-primary" /> Feature Flags</span>}
-        subtitle="Server-side toggles that persist immediately — off is always the safe fallback."
+        subtitle="Server-side toggles that persist immediately to platform_settings.feature_flags."
       >
+        {/* Honesty banner (Session C audit, 2026-08-25). Every flag below
+            writes to platform_settings.feature_flags and NOTHING reads it back:
+            a repo-wide grep for each id finds no consumer outside this file.
+            So the switches persist but change no app behaviour — and the old
+            subtitle ("off is always the safe fallback") actively implied the
+            opposite, which is the dangerous reading for a control named
+            "Stripe IDV required". Until each flag has a real usage site, the
+            screen has to say so rather than pose as a kill-switch. Delete this
+            banner as the flags get wired up. */}
+        <div className="rounded-ds-md border-2 border-destructive/40 bg-destructive/10 p-4 mb-3">
+          <div className="flex items-start gap-3">
+            <Flag className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+            <div className="flex-1 space-y-1">
+              <p className="text-ds-13 font-bold text-foreground">
+                ⚠️ These toggles are not wired up yet
+              </p>
+              <p className="text-ds-11 text-muted-foreground leading-relaxed">
+                Each switch saves to{" "}
+                <code className="text-ds-10 bg-muted px-1 rounded">feature_flags</code>,
+                but no screen or edge function reads those values today. Flipping
+                one records your intent — it does <strong>not</strong> turn the
+                feature off. Treat none of these as a kill-switch until it has a
+                usage site.
+              </p>
+            </div>
+          </div>
+        </div>
         <div className="space-y-2.5">
           {KNOWN_FEATURE_FLAGS.map((flag) => {
             const value = !!featureFlags[flag.id];

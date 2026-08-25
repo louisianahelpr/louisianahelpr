@@ -14,7 +14,7 @@
  *
  * Nothing is deleted. The pages, components, queries, tables and RLS all remain,
  * so flipping this back to `true` restores the feature. Mirrors the existing
- * `BUSINESS_ENABLED` and `RECURRING_ENABLED` switches.
+ * `RECURRING_ENABLED` switch.
  *
  * BEFORE RE-ENABLING, it needs a reason to exist that posting a job does not
  * already cover — the obvious one being that the CARED-FOR person, not the

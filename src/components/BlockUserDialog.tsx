@@ -1,12 +1,17 @@
 import { useEffect, useState } from "react";
+// Dialog, not AlertDialog. AlertDialog is the shared primitive for a PURE
+// confirm; this dialog collects a free-text reason, so it is a form and
+// belongs on the same Dialog + DialogHero shell every other safety popup uses
+// (ReportDialog, MuteSheet). Owner, 2026-08-25: block and report "have
+// different pop up dialog shells? Why??".
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogFooter,
-  AlertDialogHero,
-} from "@/components/ui/alert-dialog";
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHero,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
@@ -106,9 +111,9 @@ export function BlockUserDialog({
   };
 
   return (
-    <AlertDialog open={open} onOpenChange={(o) => !o && !submitting && onClose()}>
-      <AlertDialogContent>
-        <AlertDialogHero
+    <Dialog open={open} onOpenChange={(o) => !o && !submitting && onClose()}>
+      <DialogContent>
+        <DialogHero
           eyebrow={<><ShieldAlert className="w-3 h-3" /> Safety</>}
           title={<>Block {blockedUserName}?</>}
         />
@@ -146,13 +151,13 @@ export function BlockUserDialog({
             flex-col-reverse on mobile, which would float Cancel to the top.
             We want the action stack to read Just block → Block and report →
             Cancel, with Cancel anchored at the bottom. */}
-        <AlertDialogFooter className="!flex-col sm:!items-stretch sm:!space-x-0">
+        <DialogFooter className="!flex-col sm:!items-stretch sm:!space-x-0">
           {/* Order: Just block → Block and report → Cancel. When the parent
               opts into report-and-block, "Block and report" is the primary
               filled CTA and sits closest to the thumb (just above Cancel);
               "Just block" reads as a solid-tinted secondary above it. When
               there's no report path, "Just block" is the lone primary. */}
-          <AlertDialogAction
+          <Button
             onClick={(e) => {
               e.preventDefault();
               handleBlock();
@@ -195,9 +200,9 @@ export function BlockUserDialog({
             ) : (
               "Just Block"
             )}
-          </AlertDialogAction>
+          </Button>
           {onReportAndBlock && (
-            <AlertDialogAction
+            <Button
               onClick={async (e) => {
                 e.preventDefault();
                 const blocked = await handleBlock();
@@ -224,11 +229,13 @@ export function BlockUserDialog({
               ) : (
                 "Block and Report"
               )}
-            </AlertDialogAction>
+            </Button>
           )}
-          <AlertDialogCancel disabled={submitting} className="rounded-ds-md">Cancel</AlertDialogCancel>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+          <DialogClose asChild>
+            <Button variant="ghost" disabled={submitting} className="rounded-ds-md">Cancel</Button>
+          </DialogClose>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -106,7 +106,19 @@ serve(async (req) => {
     .not("recurrence_days", "is", null)
     .not("recurring_helper_id", "is", null)
     .is("parent_job_id", null)
-    .not("status", "in", "(cancelled,expired)");
+    // 'cancelled' only. jobs.status is the `job_status` ENUM (open, accepted,
+    // in_progress, completed, cancelled, revision_requested, disputed,
+    // pending_approval) — there is no 'expired' member, and naming one made
+    // Postgres reject the whole read with `invalid input value for enum
+    // job_status: "expired"`. That surfaced here as seriesErr -> HTTP 500, on
+    // every single daily run, so no recurring series has ever produced a second
+    // visit: the first visit funds at checkout and the schedule then silently
+    // stops forever.
+    //
+    // 'completed' deliberately stays IN scope — the parent row IS visit one, so
+    // it flips to completed as soon as that visit is done while visits 2..N are
+    // still owed. Excluding it would end every series after its first visit.
+    .neq("status", "cancelled");
 
   if (seriesErr) {
     console.error("[charge-recurring-visits] series read failed", seriesErr);
@@ -124,11 +136,22 @@ serve(async (req) => {
         (parent.recurrence_days ?? []) as number[],
         Number(parent.recurrence_weeks ?? 0),
       );
-      // Due = strictly after today (today's visit was funded days ago) and
-      // within the lead window. `slice(1)` is not used: the first date is the
-      // parent job itself and can never be > today for an active series, so the
-      // window check already excludes it.
-      const due = dates.filter((d) => d > today && d <= horizon);
+      // Due = strictly after the parent's OWN visit date, strictly after today,
+      // and within the lead window.
+      //
+      // The `d > parentDate` term is load-bearing. dates[0] IS the parent's
+      // date_needed (recurringVisitDates starts at startDate), and the previous
+      // comment here reasoned that term was unnecessary because "the first date
+      // is the parent job itself and can never be > today for an active
+      // series". That is false for the ordinary case of booking ahead: a series
+      // whose first visit is 1-3 days out has dates[0] > today and inside the
+      // horizon, so it was due. The duplicate guard below cannot catch it
+      // either — it only matches rows WHERE parent_job_id = parent.id, and the
+      // parent itself has parent_job_id NULL. The result would have been a
+      // second, separately-charged job for a visit the poster already funded at
+      // checkout.
+      const parentDate = parent.date_needed as string;
+      const due = dates.filter((d) => d > parentDate && d > today && d <= horizon);
       if (due.length === 0) continue;
 
       const [{ data: existing }, { data: released }] = await Promise.all([

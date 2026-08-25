@@ -557,7 +557,7 @@ const AdminAnalytics = () => {
       {/* ── Funnels & retention ── */}
       <SectionLabel>Funnels &amp; Retention</SectionLabel>
       <div className="grid sm:grid-cols-2 gap-4">
-        <FunnelCard title="Customer activation" subtitle="Signup → revenue" stages={customerFunnel} />
+        <FunnelCard title="Poster activation" subtitle="Signup → revenue" stages={customerFunnel} />
         <FunnelCard title="Helpr supply" subtitle="Signup → first paid job" stages={helperFunnel} />
       </div>
 

@@ -115,7 +115,7 @@ export function FormalWarningDialog({ profile, onClose, onSuccess }: FormalWarni
               aria-label="Internal note (sent to user)"
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder="e.g. Customer complaint: Helpr left gate open. Verified via phone call."
+              placeholder="e.g. Poster complaint: Helpr left gate open. Verified via phone call."
               rows={3}
             />
           </div>

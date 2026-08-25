@@ -336,7 +336,7 @@ const AdminDisputes = () => {
           const posterRefunded = (moved?.refund_cents ?? 0) / 100;
           const parts = [
             helperPaid > 0 ? `$${formatPriceExact(helperPaid)} to the Helpr` : null,
-            posterRefunded > 0 ? `$${formatPriceExact(posterRefunded)} back to the customer` : null,
+            posterRefunded > 0 ? `$${formatPriceExact(posterRefunded)} back to the poster` : null,
           ].filter(Boolean);
           toast.success(`Dispute settled — ${parts.join(", ")}.`);
         }
@@ -526,7 +526,7 @@ const AdminDisputes = () => {
       <BrandConfirmDialog
         open={!!confirm}
         onOpenChange={(open) => { if (!open) setConfirm(null); }}
-        title={confirm?.action === "release" ? "Release Payment to Helpr?" : "Refund the Customer?"}
+        title={confirm?.action === "release" ? "Release Payment to Helpr?" : "Refund the Poster?"}
         description={
           confirm?.action === "release"
             // formatPriceExact, not raw interpolation: this dialog states the
@@ -535,9 +535,9 @@ const AdminDisputes = () => {
             // — no thousands separator, a truncated cent — on the one screen
             // where an admin is asked to confirm moving that exact sum.
             ? `This releases the escrowed $${formatPriceExact(confirm?.job.budget ?? 0)} to ${profiles[confirm?.job.helper_id || ""] || "the Helpr"} and closes the dispute. This moves real money and can't be undone here.`
-            : `This refunds $${formatPriceExact(confirm?.job.budget ?? 0)} to ${profiles[confirm?.job.customer_id || ""] || "the customer"} and closes the dispute. This moves real money and can't be undone here.`
+            : `This refunds $${formatPriceExact(confirm?.job.budget ?? 0)} to ${profiles[confirm?.job.customer_id || ""] || "the poster"} and closes the dispute. This moves real money and can't be undone here.`
         }
-        primaryLabel={confirm && resolving === confirm.job.id ? "Working…" : (confirm?.action === "release" ? "Release Payment" : "Refund Customer")}
+        primaryLabel={confirm && resolving === confirm.job.id ? "Working…" : (confirm?.action === "release" ? "Release Payment" : "Refund Poster")}
         primaryTone="sienna"
         primaryHaptic="warning"
         primaryDisabled={!!resolving}

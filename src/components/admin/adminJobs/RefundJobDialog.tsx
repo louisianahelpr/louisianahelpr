@@ -40,7 +40,7 @@ export const RefundJobDialog = ({
               <DollarSign className="w-3.5 h-3.5" /> Refund
             </>
           }
-          title="Refund Customer"
+          title="Refund Poster"
         />
         <div className="space-y-3">
           <p className="text-ds-11 text-muted-foreground">

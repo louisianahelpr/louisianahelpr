@@ -68,7 +68,7 @@ export const DisputeCard = ({
           </div>
           <p className="text-ds-11 text-muted-foreground">${job.budget}</p>
           <p className="text-ds-11 text-muted-foreground mt-1">
-            Customer: <span className="font-medium text-foreground">{posterName}</span>
+            Poster: <span className="font-medium text-foreground">{posterName}</span>
             {helperName && <> · Helpr: <span className="font-medium text-foreground">{helperName}</span></>}
           </p>
           {job.disputed_at && (
@@ -171,7 +171,7 @@ export const DisputeCard = ({
             <CheckCircle2 className="w-4 h-4 mr-1" /> Quick: Release to Helpr
           </Button>
           <Button size="sm" variant="outline" className="w-full sm:w-auto text-destructive" onClick={() => setConfirm({ job, action: "refund" })} disabled={resolving === job.id}>
-            <XCircle className="w-4 h-4 mr-1" /> Quick: Refund Customer
+            <XCircle className="w-4 h-4 mr-1" /> Quick: Refund Poster
           </Button>
         </div>
       )}

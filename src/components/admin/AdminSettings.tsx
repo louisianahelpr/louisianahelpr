@@ -338,7 +338,7 @@ const AdminSettings = () => {
             fee model, a page apart, is the duplication itself — not just the
             prose inside them. */}
         <ul className="text-ds-11 text-muted-foreground space-y-1.5 list-disc list-inside">
-          <li>Customer pays: job budget + their tier service fee + sales tax, floored at Stripe's cost</li>
+          <li>Poster pays: job budget + their tier service fee + sales tax, floored at Stripe's cost</li>
           <li>Helpr receives: job budget − their tier commission + urgent bonus</li>
           <li>Platform keeps both — each at that party's own tier rate, so the take differs job to job</li>
         </ul>
@@ -351,7 +351,7 @@ const AdminSettings = () => {
           </p>
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-ds-11">
             <span className="text-muted-foreground">
-              Customer service fee <span className="font-semibold text-foreground tabular-nums">{customerFee || "—"}%</span>
+              Poster service fee <span className="font-semibold text-foreground tabular-nums">{customerFee || "—"}%</span>
             </span>
             <span className="text-muted-foreground">
               Helpr commission <span className="font-semibold text-foreground tabular-nums">{helperFee || "—"}%</span>

@@ -96,7 +96,7 @@ export function JobsTab({ viewProfile, profileJobs }: JobsTabProps) {
           <SelectContent>
             <SelectItem value="all">All Jobs</SelectItem>
             <SelectItem value="worked">Worked (Helpr)</SelectItem>
-            <SelectItem value="posted">Posted (Customer)</SelectItem>
+            <SelectItem value="posted">Posted (Poster)</SelectItem>
           </SelectContent>
         </Select>
       </div>

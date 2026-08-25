@@ -202,7 +202,7 @@ export const JobDetailDialog = ({
                     onClick={onOpenRefund}
                     className="gap-1.5 text-destructive border-destructive/40 hover:bg-destructive/5"
                   >
-                    <DollarSign className="w-3.5 h-3.5" /> Refund Customer
+                    <DollarSign className="w-3.5 h-3.5" /> Refund Poster
                   </Button>
                 )}
               </div>

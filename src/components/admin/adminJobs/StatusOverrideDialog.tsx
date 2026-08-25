@@ -73,7 +73,7 @@ export const StatusOverrideDialog = ({
               })}
             </div>
             <p className="text-ds-10 text-muted-foreground italic">
-              Refunds aren't issued automatically — use the Refund Customer
+              Refunds aren't issued automatically — use the Refund Poster
               button if money also needs to move.
             </p>
           </div>

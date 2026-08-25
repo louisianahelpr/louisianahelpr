@@ -123,6 +123,7 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
       "Priority Placement",
       "Portfolio Showcase",
       "10-min early access",
+      "1 free Job Boost every month",
       "Advanced Analytics",
     ],
   },
@@ -143,6 +144,8 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     featureBullets: [
       "Featured Crown Badge",
       "20-min early access",
+      "Free unlimited Job Boosts",
+      "Reliability Shield — first strike every 6 months forgiven",
       "Priority Support",
     ],
   },

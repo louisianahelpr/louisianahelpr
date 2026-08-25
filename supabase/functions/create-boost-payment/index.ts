@@ -118,6 +118,46 @@ serve(async (req) => {
       );
     }
 
+    // Pro perk: ONE FREE BOOST per calendar month (owner, 2026-08-24) —
+    // tracked by profiles.boost_credit_used_month (YYYY-MM). After it's
+    // spent, Pro falls through to its 20% discount below. The month check
+    // and the stamp are one conditional UPDATE so two same-moment boosts
+    // can't both ride the credit.
+    if (subActive && subTier === "pro") {
+      const thisMonth = new Date().toISOString().slice(0, 7);
+      const { data: credited, error: creditErr } = await supabaseAdmin
+        .from("profiles")
+        .update({ boost_credit_used_month: thisMonth })
+        .eq("user_id", user.id)
+        .or(`boost_credit_used_month.is.null,boost_credit_used_month.neq.${thisMonth}`)
+        .select("user_id");
+      if (creditErr) {
+        console.error("[create-boost-payment] pro credit check failed:", creditErr);
+        // Fail toward the PAID path — never block a boost over the perk.
+      } else if ((credited?.length ?? 0) > 0) {
+        const boostExpires = new Date(Date.now() + BOOST_DURATION_HOURS * 60 * 60 * 1000);
+        const { error: boostErr } = await supabaseAdmin
+          .from("jobs")
+          .update({
+            boost_expires_at: boostExpires.toISOString(),
+            boosted_at: new Date().toISOString(),
+          })
+          .eq("id", job_id);
+        if (boostErr) {
+          console.error("[create-boost-payment] pro credit boost flip failed:", boostErr);
+          return fail(500, "We couldn't apply your free monthly boost. Please try again.");
+        }
+        return new Response(
+          JSON.stringify({
+            free: true,
+            boost_expires_at: boostExpires.toISOString(),
+            message: "Job boosted — your free Pro boost this month",
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
+        );
+      }
+    }
+
     // Basic / Pro perk: 20% off boosts. Same Stripe Checkout flow as the
     // full-price case below, but the unit_amount is discounted and the
     // product description names the subscriber discount so the receipt is

@@ -12,6 +12,7 @@ import { formatDelay } from "./adminHealth/adminHealthHelpers";
 import { useHealthData } from "./adminHealth/useHealthData";
 import { toneBadgeClasses, toneTextClasses } from "@/components/admin/tones";
 import { useFillRate } from "./adminHealth/useFillRate";
+import { useConfigChecks, type CheckTone } from "./adminHealth/useConfigChecks";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
@@ -21,6 +22,7 @@ const AdminHealth = () => {
   const [sendingTestPush, setSendingTestPush] = useState(false);
 
   const { fillDays, setFillDays, fillSort, fillSortAsc, fillData, fillFetching, sortedParishes, handleFillSort } = useFillRate();
+  const { data: configChecks } = useConfigChecks();
 
   // Send a test push to the admin's own user_id. Verifies the entire
   // pipeline (push_tokens lookup → APNs/FCM auth → device delivery)
@@ -100,6 +102,51 @@ const AdminHealth = () => {
           </div>
         </div>
       )}
+
+      {/* Configuration checks. Everything here is a defect the 2026-08-25 audit
+          found by hand, and they share the trait that makes them dangerous:
+          the app looks healthy while they are true. A test Stripe key still
+          renders checkout; a job with no recorded fee still shows a price.
+          Running them continuously is the difference between finding this in
+          an audit and finding it on the screen you already open. */}
+      <AdminCard
+        title="Configuration Checks"
+        subtitle="Problems that do not surface anywhere else in the app."
+      >
+        {!configChecks || configChecks.length === 0 ? (
+          <p className="text-ds-11 text-muted-foreground">Running checks…</p>
+        ) : (
+          <ul className="space-y-2">
+            {configChecks.map((c) => {
+              const dot: Record<CheckTone, string> = {
+                ok: "bg-[hsl(var(--bark))]",
+                warn: "bg-[hsl(var(--burnt-sienna))]",
+                danger: "bg-destructive",
+                unknown: "bg-muted-foreground",
+              };
+              return (
+                <li key={c.id} className="flex items-start gap-3 rounded-ds-sm border border-border bg-card p-3">
+                  <span
+                    className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", dot[c.tone])}
+                    aria-hidden="true"
+                  />
+                  <div className="min-w-0">
+                    <p className="text-ds-13 font-semibold text-foreground">
+                      {c.label}
+                      {/* The dot is decorative; the state has to reach a screen
+                          reader as words, not as a colour. */}
+                      <span className="sr-only">
+                        {c.tone === "ok" ? " — passing" : c.tone === "unknown" ? " — could not check" : " — needs attention"}
+                      </span>
+                    </p>
+                    <p className="text-ds-11 text-muted-foreground leading-tight">{c.detail}</p>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </AdminCard>
 
       {/* Status overview. Refresh used to float right-aligned on a bare row
           above these three tiles with a phone-width band of nothing beside

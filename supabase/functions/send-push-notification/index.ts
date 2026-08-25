@@ -62,6 +62,7 @@
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { signEs256Jwt, signRs256Jwt } from '../_shared/jwt.ts'
+import { postSlackOpsAlert } from '../_shared/slack-alerts.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -480,6 +481,49 @@ Deno.serve(async (req) => {
   }
   const tokens = (rawTokens ?? []) as PushToken[]
   if (tokens.length === 0) {
+    // An ordinary user with no push token is unremarkable — they never granted
+    // permission, and the in-app notification is waiting for them next time
+    // they open the app.
+    //
+    // An ADMIN with no push token is an outage in the alarm system. Fraud
+    // flags, dispute escalations, auto-suspends and stuck-payment alerts all
+    // fan out through this function, and every one of them is the signal that
+    // something needs a human NOW. Landing them only in a bell icon nobody is
+    // looking at is the same as not sending them: the 2026-08-25 audit found
+    // zero admin tokens registered platform-wide, so every ops alert this
+    // project has fired had, in practice, no recipient.
+    //
+    // So the alert escalates to the ops channel instead of evaporating. Only
+    // on this branch — the role lookup costs nothing on the hot path because
+    // the hot path has tokens and returns above.
+    try {
+      const { data: adminRole } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('user_id', payload.user_id)
+        .eq('role', 'admin')
+        .maybeSingle()
+
+      if (adminRole) {
+        // Not awaited on a latency path elsewhere in this codebase, but here
+        // the request is otherwise finished and the whole point is delivery,
+        // so it is worth the round-trip. postSlackOpsAlert never throws.
+        await postSlackOpsAlert({
+          kind: 'custom',
+          severity: 'warning',
+          title: 'Admin alert undeliverable — no push token',
+          message: payload.title + ' — ' + payload.body,
+          fields: {
+            admin_user_id: payload.user_id,
+            deep_link: payload.link ?? '(none)',
+          },
+        })
+      }
+    } catch (e) {
+      // Never let the fallback's own failure change this function's outcome.
+      console.error('[send-push-notification] admin Slack fallback failed:', e)
+    }
+
     return new Response(
       JSON.stringify({ sent: 0, failed: 0, no_tokens: true }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },

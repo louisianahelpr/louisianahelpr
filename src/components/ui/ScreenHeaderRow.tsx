@@ -29,7 +29,7 @@ import { cn } from "@/lib/utils";
  * leave the screen with ZERO headings for as long as search was open. "Exactly
  * one h1 per screen" has to hold in every state, not just at rest.
  */
-export const SCREEN_HEADER_ROW_MIN_HEIGHT = "44px";
+const SCREEN_HEADER_ROW_MIN_HEIGHT = "44px";
 
 export interface ScreenHeaderRowProps {
   /** The screen's name — rendered as its single `<h1>`. */

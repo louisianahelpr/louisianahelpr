@@ -40,7 +40,3 @@ export const formatSeatPriceAnnual = (annualPriceCents: number): string =>
 /** Months saved by paying annually — 12 minus the annual/monthly ratio. */
 export const seatAnnualMonthsFree = (priceCents: number, annualPriceCents: number): number =>
   priceCents === 0 ? 0 : Math.max(0, 12 - Math.round(annualPriceCents / priceCents));
-
-/** Look up a tier by its key. */
-export const getBusinessSeatTier = (key: BusinessSeatTierKey) =>
-  BUSINESS_SEAT_TIERS.find((t) => t.key === key);

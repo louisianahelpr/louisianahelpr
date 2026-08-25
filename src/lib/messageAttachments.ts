@@ -32,7 +32,7 @@ export function buildAttachmentPath(jobId: string, senderId: string, file: File)
 
 /** HEIC/HEIF can't be decoded by canvas in WKWebView (or most browsers),
  *  so its EXIF — including GPS — can't be scrubbed client-side. */
-export function isHeicMime(mime: string | null | undefined): boolean {
+function isHeicMime(mime: string | null | undefined): boolean {
   return mime === "image/heic" || mime === "image/heif";
 }
 
@@ -154,7 +154,7 @@ export function getMessageAttachmentFilename(path: string, fallback = "Attachmen
 }
 
 /** Maximum voice note size: 10 MB (60s audio at ~128kbps = ~1 MB — 10× headroom). */
-export const VOICE_NOTE_MAX_BYTES = 10 * 1024 * 1024;
+const VOICE_NOTE_MAX_BYTES = 10 * 1024 * 1024;
 
 export function isAudioMime(mime: string | null | undefined): boolean {
   return !!mime && mime.startsWith("audio/");

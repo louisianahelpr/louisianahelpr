@@ -101,14 +101,3 @@ export const hapticError = () => safe(
   () => Haptics.notification({ type: NotificationType.Error }),
   "result",
 );
-
-/**
- * Test-only escape hatch — resets the memoized plugin-availability flag
- * so tests that flip `window.Capacitor` between cases don't see a stale
- * `true` from a prior case.
- *
- * Production code never imports this.
- */
-export const __resetHapticsPluginCacheForTests = () => {
-  _hapticsAvailable = null;
-};

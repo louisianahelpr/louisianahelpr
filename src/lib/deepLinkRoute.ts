@@ -34,7 +34,7 @@
  * for hosts declared there, but we also enforce in JS so a misconfigured
  * test build or an Android quirk can't smuggle in a foreign host.
  */
-export const ALLOWED_DEEP_LINK_HOSTS = new Set<string>([
+const ALLOWED_DEEP_LINK_HOSTS = new Set<string>([
   "louisianahelpr.com",
   "www.louisianahelpr.com",
 ]);

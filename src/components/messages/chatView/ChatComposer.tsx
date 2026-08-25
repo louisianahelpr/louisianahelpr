@@ -32,7 +32,7 @@ import type { Conversation, Message } from "../types";
  * wrapper in ChatView has already lifted the dock by `keyboardInset`, so the
  * inset must NOT be added again — a flat 8px gap is all that's wanted.
  */
-export function dockPaddingBottom(keyboardInset: number): string {
+function dockPaddingBottom(keyboardInset: number): string {
   return keyboardInset > 0 ? "8px" : "max(var(--safe-area-bottom, 0px), 12px)";
 }
 

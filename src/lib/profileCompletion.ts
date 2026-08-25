@@ -38,11 +38,6 @@ export interface ProfileCompletion {
   nextLabel: string | null;
 }
 
-// Kept for callers that still ask whether IDV is settled; the completion
-// checklist no longer uses it (verification is gated at first post / first
-// accepted job, not a profile to-do).
-export const IDV_DONE_STATUSES = ["verified", "pending", "processing", "manual_review"];
-
 /**
  * Compute profile completion from whatever values the caller has on
  * hand. Accepts a loose input shape so the live Edit-Profile form can

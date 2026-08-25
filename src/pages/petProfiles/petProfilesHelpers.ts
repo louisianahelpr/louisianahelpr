@@ -22,7 +22,7 @@ export type PetFormValues = Omit<PetInsert, "owner_id">;
 // it from the payload also leaves any pre-existing column value untouched on
 // update, so removing it loses nothing. Add it back alongside a real photo
 // picker + a consumer that displays it, not before.
-export const BLANK_FORM: PetFormValues = {
+const BLANK_FORM: PetFormValues = {
   name: "",
   species: "dog",
   breed: "",

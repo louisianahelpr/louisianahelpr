@@ -169,25 +169,9 @@ export const GIFT_OCCASIONS: GiftOccasion[] = [
 ];
 
 /** Flat design lookup — the persisted `design_id` resolves through this. */
-export const DESIGN_BY_ID: Record<string, GiftCardDesign> = Object.fromEntries(
+const DESIGN_BY_ID: Record<string, GiftCardDesign> = Object.fromEntries(
   GIFT_OCCASIONS.flatMap((o) => o.designs.map((d) => [d.id, d])),
 );
 
 export const DEFAULT_OCCASION = GIFT_OCCASIONS[0];
 export const DEFAULT_DESIGN = DEFAULT_OCCASION.designs[0];
-
-/**
- * Resolve a stored design id back to a design, falling back to the default.
- *
- * Never throws on an unknown id: a card sent by an older build, or one whose
- * design was retired, must still render. Losing the artwork is acceptable;
- * failing to show someone their gift is not.
- */
-export function designById(id: string | null | undefined): GiftCardDesign {
-  return (id && DESIGN_BY_ID[id]) || DEFAULT_DESIGN;
-}
-
-/** Label for a stored occasion id — for the recipient's view and receipts. */
-export function occasionLabel(id: string | null | undefined): string | null {
-  return GIFT_OCCASIONS.find((o) => o.id === id)?.label ?? null;
-}

@@ -5,8 +5,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { hapticLight } from "@/lib/haptics";
 import { type EnrichedApplication } from "../activityConstants";
 
-export const DECLINE_NOTE_MAX = 200;
-export const DECLINE_REASONS = ["Found someone else", "Job is on hold", "Not the right fit"] as const;
+const DECLINE_NOTE_MAX = 200;
+const DECLINE_REASONS = ["Found someone else", "Job is on hold", "Not the right fit"] as const;
 
 interface DeclineApplicantSheetProps {
   declineTarget: EnrichedApplication | null;

@@ -25,20 +25,3 @@ const KEY = "helpr_last_auth_method";
 export function setLastAuthMethod(method: AuthMethod): void {
   safeStorage.setItem(KEY, method);
 }
-
-export function getLastAuthMethod(): AuthMethod | null {
-  const raw = safeStorage.getItem(KEY);
-  if (raw === "email" || raw === "google" || raw === "apple") return raw;
-  return null;
-}
-
-export function authMethodLabel(method: AuthMethod): string {
-  switch (method) {
-    case "google":
-      return "Google";
-    case "apple":
-      return "Apple";
-    case "email":
-      return "email and password";
-  }
-}

@@ -12,4 +12,3 @@
 // The parity test at legalVersions.parity.test.ts guards drift.
 
 export const LATEST_TERMS_VERSION = "Jun 2026";
-export const LATEST_PRIVACY_VERSION = "Jun 2026";

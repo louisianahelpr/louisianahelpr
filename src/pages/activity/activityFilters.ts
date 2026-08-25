@@ -159,7 +159,7 @@ export function bucketPostedJob(job: { status: string }): Bucket {
  * `helper_confirmed_at` is the discriminator for the second: an application
  * can read `accepted` while the helper still has to say yes.
  */
-export function needsHelperResponse(app: {
+function needsHelperResponse(app: {
   status: string;
   job?: { status?: string; direct_offer_status?: string | null; helper_confirmed_at?: string | null } | null;
 }): boolean {

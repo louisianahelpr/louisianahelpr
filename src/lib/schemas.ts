@@ -18,7 +18,7 @@ import { z } from "zod";
 // The "small" profile slice every consumer renders — avatar, name, ban /
 // approval / IDV state. Mismatches here drive blank Profile screens,
 // missing avatars in Messages, and incorrect "verified" badges.
-export const sharedProfileSchema = z
+const sharedProfileSchema = z
   .object({
     user_id: z.string(),
     full_name: z.string().nullable(),

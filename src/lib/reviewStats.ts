@@ -33,7 +33,7 @@ export async function fetchRatingStats(
  * rating. Reviewees with no rows are simply absent from the Map — callers
  * should default to `{ count: 0, avg: 0 }` when a key is missing.
  */
-export function aggregateRatings(
+function aggregateRatings(
   rows: { reviewee_id: string; rating: number }[] | null | undefined,
 ): Map<string, { count: number; avg: number }> {
   const map = new Map<string, { count: number; avg: number }>();

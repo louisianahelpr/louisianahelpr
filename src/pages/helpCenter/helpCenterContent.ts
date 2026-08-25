@@ -245,37 +245,3 @@ export const FAQ_SECTIONS: FaqSection[] = [
 ];
 
 // ─── More-resources cards ─────────────────────────────────────────────────────
-
-export const RESOURCES: {
-  icon: LucideIcon;
-  label: string;
-  desc: string;
-  to: string;
-  accent: string;
-  accentBg: string;
-}[] = [
-  {
-    icon: BookOpen,
-    label: "How Helpr works",
-    desc: "Post, hire, and get paid — end to end.",
-    to: "/#how-it-works",
-    accent: "hsl(var(--bark))",
-    accentBg: "hsl(var(--bark) / 0.1)",
-  },
-  {
-    icon: Scale,
-    label: "Rules & safety",
-    desc: "Community rules, disputes, and protections.",
-    to: "/legal?tab=community",
-    accent: "hsl(var(--burnt-sienna))",
-    accentBg: "hsl(var(--burnt-sienna) / 0.1)",
-  },
-  {
-    icon: Briefcase,
-    label: "Browse Jobs",
-    desc: "See what neighbors need help with right now.",
-    to: "/jobs",
-    accent: "hsl(var(--success-ink))",
-    accentBg: "hsl(var(--success-ink) / 0.12)",
-  },
-];

@@ -51,7 +51,7 @@ export function captureJobRef(ref: string | null): JobLinkRef | null {
  * e.g. "user applied → tag application with its source".
  * Returns `null` if no ref has been captured this session.
  */
-export function readJobRef(): JobLinkRef | null {
+function readJobRef(): JobLinkRef | null {
   try {
     return (sessionStorage.getItem(KEY) as JobLinkRef | null);
   } catch {

@@ -14,7 +14,7 @@ import { safeStorage } from "@/lib/safeStorage";
  * The number is re-validated as soon as the live query lands, but the
  * cached value is what paints on the FIRST frame.
  */
-export const UNREAD_CACHE_KEY = "helpr_nav_unread_count";
+const UNREAD_CACHE_KEY = "helpr_nav_unread_count";
 
 /** Read the cached unread count, defaulting to 0 if missing/malformed. */
 export function readCachedUnread(): number {

@@ -72,7 +72,7 @@ export const AUTH_PREFIXES = [
 // match an AUTH_PREFIXES entry. Currently just /family/accept — a public
 // invite acceptance flow that logged-out visitors can hit; showing them
 // the authed rail would be a wayfinding lie.
-export const AUTH_PREFIX_EXCLUSIONS = ["/family/accept"];
+const AUTH_PREFIX_EXCLUSIONS = ["/family/accept"];
 
 // `/admin` is NOT here any more. It was, back when the admin console rendered
 // its own top bar and its own left rail — a self-contained shell that did not

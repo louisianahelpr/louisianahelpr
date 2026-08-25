@@ -14,7 +14,7 @@ export interface CareerMilestone {
   };
 }
 
-export const CAREER_MILESTONES: CareerMilestone[] = [
+const CAREER_MILESTONES: CareerMilestone[] = [
   {
     id: "first_job",
     label: "First Job",

@@ -5,7 +5,7 @@ import type { TimelineItem } from "./types";
 // Format the divider label for a given message timestamp. "Today",
 // "Yesterday", or the locale's short date — read at a glance without
 // the full year noise for current-week messages.
-export const dateDividerLabel = (d: Date): string => {
+const dateDividerLabel = (d: Date): string => {
   const now = new Date();
   const startOf = (x: Date) =>
     new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();

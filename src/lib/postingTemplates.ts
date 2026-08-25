@@ -10,7 +10,7 @@ export interface PostingTemplate {
 // copy — a job posted with them unedited reads as spam to helprs. This
 // detects any leftover "[…]" token so the post flow can block until the
 // poster swaps in their real details (LH-23).
-export const PLACEHOLDER_PATTERN = /\[[^\]]+\]/;
+const PLACEHOLDER_PATTERN = /\[[^\]]+\]/;
 
 export function hasUnfilledPlaceholders(text: string): boolean {
   return PLACEHOLDER_PATTERN.test(text);

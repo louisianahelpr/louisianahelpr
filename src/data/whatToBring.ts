@@ -18,7 +18,7 @@
  * in `src/integrations/supabase/types.ts` (cleaning, yard_work, moving,
  * errands, handyman, painting, delivery, pet_care, assembly, other).
  */
-export const WHAT_TO_BRING: Record<string, readonly string[]> = {
+const WHAT_TO_BRING: Record<string, readonly string[]> = {
   cleaning: [
     "Rubber gloves",
     "Microfiber cloths",

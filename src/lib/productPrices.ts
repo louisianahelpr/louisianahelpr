@@ -38,10 +38,10 @@ export const BOOST_DISCOUNT_PCT = 20;
 export const BOOST_MIN_UNIT_AMOUNT_CENTS = 100;
 
 /** Tiers that pay a discounted boost. Elite is free; everyone else pays full. */
-export const BOOST_DISCOUNT_TIERS = ["basic", "pro"] as const;
+const BOOST_DISCOUNT_TIERS = ["basic", "pro"] as const;
 
 /** Tier whose boosts are included in the plan. */
-export const BOOST_FREE_TIER = "elite";
+const BOOST_FREE_TIER = "elite";
 
 export type BoostPrice =
   | { free: true }

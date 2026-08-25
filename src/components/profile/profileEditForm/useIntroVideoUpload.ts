@@ -22,12 +22,12 @@ import type { Profile } from "./types";
  */
 
 /** Mirrors the bucket's `file_size_limit`. */
-export const INTRO_VIDEO_MAX_BYTES = 30 * 1024 * 1024;
+const INTRO_VIDEO_MAX_BYTES = 30 * 1024 * 1024;
 
 /** Mirrors the bucket's `allowed_mime_types` — a file outside this list is
  *  rejected by storage anyway, so reject it up front with human copy rather
  *  than after a 30 MB round trip. */
-export const INTRO_VIDEO_MIME_WHITELIST = [
+const INTRO_VIDEO_MIME_WHITELIST = [
   "video/mp4",
   "video/quicktime",
   "video/webm",
@@ -43,7 +43,7 @@ const MB = (n: number) => `${(n / (1024 * 1024)).toFixed(1)} MB`;
 /** Storage path back out of a public URL, so Replace/Remove can delete the
  *  object it replaced. Returns null for any URL not in our bucket (a legacy
  *  or externally hosted URL is left untouched rather than guessed at). */
-export function introVideoStoragePath(url: string | null | undefined): string | null {
+function introVideoStoragePath(url: string | null | undefined): string | null {
   if (!url) return null;
   const marker = "/profile-videos/";
   const i = url.indexOf(marker);

@@ -95,7 +95,7 @@ type GateProfile = {
  * bypass the gate so they don't wake up to a locked app. See
  * mem://features/auto-approval-flow for the broader signup contract.
  */
-export const PROFILE_GATE_FIELDS = [
+const PROFILE_GATE_FIELDS = [
   { key: "full_name", label: "Full name" },
   { key: "avatar_url", label: "Profile picture" },
   { key: "bio", label: "About you (20+ characters)" },
@@ -110,7 +110,7 @@ export const PROFILE_GATE_FIELDS = [
   // "complete" must stay in sync; the form is the source of truth.
 ] as const;
 
-export const isFieldComplete = (
+const isFieldComplete = (
   profile: GateProfile | null,
   key: (typeof PROFILE_GATE_FIELDS)[number]["key"],
 ): boolean => {

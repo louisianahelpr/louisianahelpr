@@ -89,7 +89,7 @@ const expiresOptions = [
  * The top band is deliberately open-ended (`max: ""` → no cap), so no job is
  * ever hidden by a ceiling the user didn't choose.
  */
-export const BUDGET_BANDS = [
+const BUDGET_BANDS = [
   { key: "any", label: "Any", min: "", max: "" },
   { key: "to50", label: "Up to $50", min: "", max: "50" },
   { key: "50to150", label: "$50 – $150", min: "50", max: "150" },
@@ -119,7 +119,6 @@ function matchBudgetBand(minBudget: string, maxBudget: string): string | null {
 // signed-in browse toolbar and the signed-out /jobs board — builds its
 // sheet from these, so the controls can't drift apart between surfaces.
 
-export const SORT_OPTIONS = sortOptions;
 export const chipStyles = { chipBase, chipActive, chipIdle, chipRow };
 
 // Wrapping chip row, not a 2-column grid: five options in `grid-cols-2` left a
@@ -248,7 +247,7 @@ export const ExpiresContent = ({
   </div>
 );
 
-export const BudgetContent = ({
+const BudgetContent = ({
   minBudget, maxBudget, setMinBudget, setMaxBudget, onSelect,
 }: {
   minBudget: string;

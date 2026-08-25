@@ -527,18 +527,4 @@ const OnboardingTour = ({ profileComplete: _profileComplete = false, profileCrea
   );
 };
 
-// Small hook to restart tour from settings/profile. Clears every key
-// the tour writes so a manual restart is the canonical "start over."
-export const useOnboardingTour = () => {
-  const restart = () => {
-    safeStorage.removeItem(STORAGE_KEY);
-    safeStorage.removeItem(KEY_DISMISSED_AT);
-    safeStorage.removeItem(KEY_LATER_AT);
-    safeStorage.removeItem(KEY_STEP);
-    window.location.reload();
-  };
-  const isCompleted = () => getState().completed;
-  return { restart, isCompleted };
-};
-
 export default OnboardingTour;

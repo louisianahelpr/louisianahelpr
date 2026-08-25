@@ -10,7 +10,7 @@ function getSystemTheme(): "light" | "dark" {
     : "light";
 }
 
-export function applyTheme(theme: Theme) {
+function applyTheme(theme: Theme) {
   const resolved = theme === "system" ? getSystemTheme() : theme;
   document.documentElement.setAttribute("data-theme", resolved);
 }

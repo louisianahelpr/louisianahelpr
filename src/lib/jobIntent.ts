@@ -41,7 +41,7 @@ export function rememberJobIntent(jobId: string): void {
  * good for the next sign-in only. Leaving it behind would mean a visitor who
  * abandoned signup in March gets yanked into that job's apply sheet in May.
  */
-export function takeJobIntent(): string | null {
+function takeJobIntent(): string | null {
   const id = safeStorage.getItem(KEY);
   if (id) safeStorage.removeItem(KEY);
   return id || null;

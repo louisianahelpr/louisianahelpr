@@ -91,7 +91,7 @@ export function applicationStatusLabel(status: string | null | undefined): strin
  * ledger status column. "in_transit" must never leak as "In_transit" via
  * CSS `capitalize` — route all payout-status rendering through here.
  */
-export const PAYOUT_STATUS_LABELS: Record<string, string> = {
+const PAYOUT_STATUS_LABELS: Record<string, string> = {
   paid: "Paid",
   in_transit: "In transit",
   pending: "Pending",
@@ -109,7 +109,7 @@ export function payoutStatusLabel(status: string | null | undefined): string {
  * Canonical labels for the `jobs.payment_status` column.
  * "payout_pending" and "escrow" must never render raw in UI.
  */
-export const PAYMENT_STATUS_LABELS: Record<string, string> = {
+const PAYMENT_STATUS_LABELS: Record<string, string> = {
   unpaid: "Unpaid",
   escrow: "In escrow",
   payout_pending: "Payout pending",

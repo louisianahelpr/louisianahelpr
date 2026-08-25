@@ -109,9 +109,9 @@ export const PERSIST_MAX_AGE_MS = 1000 * 60 * 60 * 24;
  * in lockstep — a literal here and a literal in the persister would
  * drift silently if one is renamed.
  */
-export const PERSIST_CACHE_KEY = "helpr-rq-cache";
+const PERSIST_CACHE_KEY = "helpr-rq-cache";
 
-export const queryCachePersister = createAsyncStoragePersister({
+const queryCachePersister = createAsyncStoragePersister({
   storage: idbAsyncStorage,
   key: PERSIST_CACHE_KEY,
   // Coalesce frequent writes (e.g. during a list-scroll that refetches

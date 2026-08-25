@@ -39,7 +39,7 @@ function emitArchiveChanged(): void {
 }
 
 /** Stable key for one conversation — a job + the other participant. */
-export function conversationKey(jobId: string, otherUserId: string): string {
+function conversationKey(jobId: string, otherUserId: string): string {
   return `${jobId}_${otherUserId}`;
 }
 
@@ -108,17 +108,4 @@ export function isArchived(
   return Number.isFinite(lastMs) && Number.isFinite(archivedMs)
     ? lastMs <= archivedMs
     : true;
-}
-
-/** Un-archive a conversation — surface it in the inbox again. */
-export function unarchiveConversation(
-  userId: string,
-  jobId: string,
-  otherUserId: string,
-): void {
-  if (!userId) return;
-  const map = readMap(userId);
-  delete map[conversationKey(jobId, otherUserId)];
-  writeMap(userId, map);
-  emitArchiveChanged();
 }

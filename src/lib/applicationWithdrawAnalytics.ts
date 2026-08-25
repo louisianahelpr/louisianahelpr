@@ -45,7 +45,7 @@ const SESSION_KEY = "helpr_withdraw_reason_log_v1";
 const MAX_ENTRIES = 20;
 
 /** Read the rolling session log. Returns [] on any parse failure. */
-export function readWithdrawReasonLog(): WithdrawReasonEntry[] {
+function readWithdrawReasonLog(): WithdrawReasonEntry[] {
   try {
     const raw = sessionStorage.getItem(SESSION_KEY);
     if (!raw) return [];

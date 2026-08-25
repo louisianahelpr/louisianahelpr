@@ -43,7 +43,7 @@ export const TITLE_CARD_STYLE: CSSProperties = {
 
 export type PanelElevation = "raised" | "flat";
 
-export const PANEL_SHADOW: Record<PanelElevation, string> = {
+const PANEL_SHADOW: Record<PanelElevation, string> = {
   raised:
     "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
     "0 1px 2px hsl(var(--olivewood) / 0.06), " +

@@ -127,7 +127,7 @@ export function RecommendedJobCardSkeleton() {
  * chip). The skeleton reserves that chip's space so the loading state
  * mirrors what the user is about to see in the same slot.
  */
-export function NearbyJobCardSkeleton() {
+function NearbyJobCardSkeleton() {
   return (
     <div
       className="relative rounded-2xl border border-border/60 bg-card overflow-hidden shadow-[var(--card-shadow)]"
@@ -171,7 +171,7 @@ export function NearbyJobCardSkeleton() {
  * (the recent section's rail is the standard 1.5px width) and the meta
  * row's distance chip omitted (recent jobs may or may not be local).
  */
-export function RecentJobCardSkeleton() {
+function RecentJobCardSkeleton() {
   return (
     <div
       className="relative rounded-2xl border border-border/60 bg-card overflow-hidden shadow-[var(--card-shadow)]"

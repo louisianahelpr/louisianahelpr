@@ -70,9 +70,3 @@ export const useStatusBarStyle = () => {
     void setStatusBarStyle(content);
   }, [pathname]);
 };
-
-/**
- * Test-only export so unit tests can verify the resolver without
- * touching the Capacitor bridge.
- */
-export const __resolveStatusBarContentForTests = resolveContent;

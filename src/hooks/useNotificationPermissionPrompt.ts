@@ -38,7 +38,7 @@ import { safeStorage } from "@/lib/safeStorage";
 
 /** localStorage key — set the first time the user does anything that
  *  signals notifications would be useful (post a job, apply to a job). */
-export const FIRST_JOB_ACTION_KEY = "helpr_first_job_action_at";
+const FIRST_JOB_ACTION_KEY = "helpr_first_job_action_at";
 
 /** localStorage key — dismissal timestamp, so the banner doesn't loop
  *  back on every render after the user has closed it. */
@@ -49,17 +49,17 @@ const SNOOZE_MS = 30 * 24 * 60 * 60 * 1000;
 
 /** Record that the user just did a job action. Idempotent — once set,
  *  the timestamp is the first such action's time. */
-export const markJobActionPerformed = (now: number = Date.now()): void => {
+const markJobActionPerformed = (now: number = Date.now()): void => {
   if (safeStorage.getItem(FIRST_JOB_ACTION_KEY)) return;
   safeStorage.setItem(FIRST_JOB_ACTION_KEY, String(now));
 };
 
 /** Read-only check used by the hook. Exposed for tests. */
-export const hasPerformedJobAction = (): boolean =>
+const hasPerformedJobAction = (): boolean =>
   !!safeStorage.getItem(FIRST_JOB_ACTION_KEY);
 
 /** Pure resolver — exported for unit tests. */
-export const resolveShouldPrompt = (now: number = Date.now()): boolean => {
+const resolveShouldPrompt = (now: number = Date.now()): boolean => {
   if (!hasPerformedJobAction()) return false;
   const dismissed = safeStorage.getItem(PROMPT_DISMISSED_KEY);
   if (dismissed) {

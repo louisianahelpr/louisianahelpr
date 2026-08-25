@@ -18,9 +18,9 @@ import { EMPTY_FORM, PLATFORM_HELP, PLATFORM_LABELS } from "./types";
 // ---------------------------------------------------------------------------
 
 /** Lowest cleaning budget a host may set (matches the input's `min`). */
-export const CLEANING_BUDGET_MIN = 10;
+const CLEANING_BUDGET_MIN = 10;
 /** Highest cleaning budget a host may set (matches the input's `max`). */
-export const CLEANING_BUDGET_MAX = 999;
+const CLEANING_BUDGET_MAX = 999;
 
 export type CleaningBudgetCheck =
   | { value: number; error: null }
@@ -55,7 +55,7 @@ export function validateCleaningBudget(raw: string): CleaningBudgetCheck {
  * the first sync fails. Accepts http(s) URLs pointing at an .ics feed and
  * the webcal:// scheme Apple Calendar hands out.
  */
-export function validateIcalUrl(raw: string): string | null {
+function validateIcalUrl(raw: string): string | null {
   const trimmed = raw.trim();
   if (!trimmed) return null; // emptiness is handled by the disabled button
   if (/^webcal:\/\/.+/i.test(trimmed)) return null;

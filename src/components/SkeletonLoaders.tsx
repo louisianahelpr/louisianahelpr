@@ -33,7 +33,7 @@ export const JobCardSkeleton = () => (
   </div>
 );
 
-export const ConversationSkeleton = () => (
+const ConversationSkeleton = () => (
   // Frosted glass placeholder shaped like a real conversation row —
   // avatar circle on the left, name + job + last-message lines on the
   // right. Matches the brand's liquid-glass material so the loading
@@ -48,26 +48,6 @@ export const ConversationSkeleton = () => (
       <Skeleton className="h-3 w-24 rounded" />
       <Skeleton className="h-3 w-44 rounded" />
     </div>
-  </div>
-);
-
-export const ProfileCardSkeleton = () => (
-  <div className="rounded-2xl skeleton-glass p-6 text-center space-y-3">
-    <Skeleton className="w-20 h-20 rounded-full mx-auto" />
-    <Skeleton className="h-5 w-40 mx-auto" />
-    <Skeleton className="h-3 w-24 mx-auto" />
-    <Skeleton className="h-3 w-32 mx-auto" />
-  </div>
-);
-
-export const StatsSkeleton = () => (
-  <div className="grid grid-cols-3 gap-3">
-    {[1, 2, 3].map((i) => (
-      <div key={i} className="rounded-ds-md skeleton-glass p-3 text-center space-y-2">
-        <Skeleton className="h-8 w-12 mx-auto" />
-        <Skeleton className="h-3 w-16 mx-auto" />
-      </div>
-    ))}
   </div>
 );
 
@@ -89,19 +69,6 @@ export const ActivityCardSkeleton = () => (
       <Skeleton className="h-3 w-24 rounded" />
       <Skeleton className="h-3 w-20 rounded" />
     </div>
-  </div>
-);
-
-/**
- * Greeting title-card skeleton — fills the PageScaffold title card while
- * the feed loads. Mirrors the real two-line block (large `text-page-title`
- * headline + a small uppercase date eyebrow) so the card doesn't change
- * height when the greeting resolves.
- */
-export const DashboardTitleSkeleton = () => (
-  <div className="space-y-2">
-    <Skeleton className="h-7 w-1/2 rounded-md" />
-    <Skeleton className="h-3 w-2/5 rounded" />
   </div>
 );
 
@@ -141,22 +108,11 @@ export const DashboardSkeleton = () => (
   </>
 );
 
-export const MessagesSkeleton = () => (
-  <div className="space-y-4">
-    <Skeleton className="h-8 w-40" />
-    <div className="space-y-2">
-      {[1, 2, 3, 4].map((i) => (
-        <ConversationSkeleton key={i} />
-      ))}
-    </div>
-  </div>
-);
-
 /**
  * Identity hero skeleton — matches the new horizontal Profile header
  * (75px avatar + name/stats stacked to its right) inside a rounded-ds-lg squircle card.
  */
-export const IdentityHeroSkeleton = () => (
+const IdentityHeroSkeleton = () => (
   <div className="rounded-ds-lg bg-card shadow-[0_1px_2px_hsl(160_10%_12%/0.04),0_8px_28px_-12px_hsl(160_10%_12%/0.10)] p-4 flex items-center gap-4">
     <Skeleton className="w-[75px] h-[75px] rounded-2xl shrink-0" />
     <div className="flex-1 space-y-2.5">
@@ -174,7 +130,7 @@ export const IdentityHeroSkeleton = () => (
  * Menu group card skeleton — one of the three "neighborhood" boxes
  * (Account / Money / Settings) at rounded-ds-lg squircle radius.
  */
-export const MenuGroupCardSkeleton = () => (
+const MenuGroupCardSkeleton = () => (
   <div className="rounded-ds-lg bg-card shadow-[0_1px_2px_hsl(160_10%_12%/0.04),0_8px_28px_-12px_hsl(160_10%_12%/0.10)] min-h-[78px] p-3 flex flex-col items-center justify-center gap-2">
     <Skeleton className="w-9 h-9 rounded-ds-md" />
     <Skeleton className="h-3 w-12 rounded-md" />

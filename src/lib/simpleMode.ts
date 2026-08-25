@@ -45,7 +45,7 @@ const STORAGE_KEY = "helpr_simple_mode";
 // Senior Mode were two names for one larger-type feature; Senior survived.
 // This module keeps what it alone provides: first-paint application from
 // device storage / OS text size, before React or the profile has loaded.
-export const SIMPLE_MODE_CLASS = "senior-mode";
+const SIMPLE_MODE_CLASS = "senior-mode";
 
 /** iOS default body size. Dynamic Type scales this: 17 → 19/21/23/28/33/40/53. */
 const IOS_DEFAULT_BODY_PX = 17;
@@ -82,7 +82,7 @@ function osBodyPx(): number | null {
 }
 
 /** True when the OS asks for noticeably larger text than the iOS default. */
-export function osWantsLargeText(): boolean {
+function osWantsLargeText(): boolean {
   const px = osBodyPx();
   if (px === null) return false;
   // Guard against a browser that resolves the keyword to something unrelated:
@@ -103,14 +103,9 @@ function storedPreference(): boolean | null {
   }
 }
 
-export function isSimpleMode(): boolean {
+function isSimpleMode(): boolean {
   const explicit = storedPreference();
   return explicit !== null ? explicit : osWantsLargeText();
-}
-
-/** Whether the CURRENT state came from the OS rather than a stored choice. */
-export function isSimpleModeFromOS(): boolean {
-  return storedPreference() === null && osWantsLargeText();
 }
 
 /** Add/remove the class that index.css keys every override off. */

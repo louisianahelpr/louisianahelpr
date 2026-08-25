@@ -15,7 +15,7 @@
 import { useEffect, useState } from "react";
 import { safeStorage } from "@/lib/safeStorage";
 
-export const IMPERSONATION_KEY = "helpr.admin_impersonating.v1";
+const IMPERSONATION_KEY = "helpr.admin_impersonating.v1";
 
 export interface ImpersonationState {
   userId: string;
@@ -83,10 +83,7 @@ export const useImpersonation = () => {
  * Returns the current impersonation row from storage without forcing a
  * re-render or requiring the caller to use a hook.
  */
-export const isImpersonating = (): boolean => readState() !== null;
-
-/** Imperative getter for the current target — null when idle. */
-export const getImpersonationTarget = (): ImpersonationState | null => readState();
+const isImpersonating = (): boolean => readState() !== null;
 
 /**
  * Mutation guard: returns true when writes are allowed. While

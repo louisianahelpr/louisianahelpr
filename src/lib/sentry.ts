@@ -148,7 +148,7 @@ interface MinimalEvent {
   exception?: { values?: MinimalException[] };
 }
 
-export function isBenignEvent(event: MinimalEvent | null | undefined): boolean {
+function isBenignEvent(event: MinimalEvent | null | undefined): boolean {
   if (!event) return false;
 
   const firstException = event.exception?.values?.[0];
@@ -308,7 +308,7 @@ export function captureException(err: unknown, context?: Record<string, unknown>
  * See `docs/sentry-cold-launch-alert.md` for the dashboard-side recipe.
  */
 let coldLaunchTimerStarted = false;
-export function markColdLaunchStart() {
+function markColdLaunchStart() {
   if (!initialized || coldLaunchTimerStarted) return;
   coldLaunchTimerStarted = true;
   try {

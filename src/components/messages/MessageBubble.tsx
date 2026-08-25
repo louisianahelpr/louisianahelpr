@@ -23,7 +23,7 @@ const isSafeHttpsUrl = (raw: string): boolean => {
   }
 };
 
-export const renderMessageContent = (
+const renderMessageContent = (
   content: string,
   onImageClick: (url: string) => void,
 ) => {

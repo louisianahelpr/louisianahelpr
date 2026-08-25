@@ -75,7 +75,7 @@ export interface BuildJobInsertPayloadInput {
  * - Date only → expire at the end of the scheduled day.
  * - No date → never (null).
  */
-export function computeExpiresAt(dateNeeded: string, startTime: string): string | null {
+function computeExpiresAt(dateNeeded: string, startTime: string): string | null {
   if (startTime && dateNeeded) {
     return new Date(`${dateNeeded}T${startTime}`).toISOString();
   }

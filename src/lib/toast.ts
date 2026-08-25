@@ -113,36 +113,6 @@ export function errorToast(message: string, options: ErrorToastOptions = {}) {
   });
 }
 
-/**
- * Convenience preset — "you are offline" toast that stays on screen
- * until dismissed. Used by the global error boundary and any network-
- * sensitive flow that wants a persistent (rather than 4-second) signal.
- *
- * Stable `id` so reconnect → disconnect → reconnect cycles don't pile up.
- */
-export function offlineToast(opts: { onRetry?: () => void } = {}) {
-  return errorToast("You're offline", {
-    description: "Showing the last data we have. We'll reconnect when you're back.",
-    critical: true,
-    id: "offline-critical",
-    onRetry: opts.onRetry,
-  });
-}
-
-/**
- * Convenience preset — "your session expired" toast that persists until
- * the user taps Sign in again. Stable `id` to dedupe.
- */
-export function authExpiredToast(opts: { onSignIn?: () => void } = {}) {
-  return errorToast("Your session expired", {
-    description: "Sign in again to keep going.",
-    critical: true,
-    id: "auth-expired-critical",
-    onRetry: opts.onSignIn,
-    retryLabel: "Sign in",
-  });
-}
-
 export interface SuccessToastOptions {
   /** Inline description rendered below the title. */
   description?: string;

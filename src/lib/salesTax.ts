@@ -37,7 +37,7 @@ export function hasTaxableLine(category: string | null | undefined): boolean {
 }
 
 /** The taxable base in cents — the labor line only, never the fees. */
-export function taxableBaseCents(budgetCents: number, category: string | null | undefined): number {
+function taxableBaseCents(budgetCents: number, category: string | null | undefined): number {
   return isLaborTaxable(category) ? budgetCents : 0;
 }
 

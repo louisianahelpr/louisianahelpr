@@ -74,12 +74,30 @@ const signInWithTimeout = async (email: string, password: string) => {
     return await Promise.race([
       supabase.auth.signInWithPassword({ email, password }),
       new Promise<never>((_, reject) => {
-        timeoutId = window.setTimeout(() => reject(new Error("Login timed out. Please check your connection and try again.")), LOGIN_TIMEOUT_MS);
+        timeoutId = window.setTimeout(() => reject(
+          Object.assign(new Error("Login timed out. Please check your connection and try again."), { isTransport: true }),
+        ), LOGIN_TIMEOUT_MS);
       }),
     ]);
   } finally {
     if (timeoutId) window.clearTimeout(timeoutId);
   }
+};
+
+/**
+ * A failure that says nothing about the credentials: our own 15s race timeout,
+ * or a fetch that never reached the auth server. These must NOT enter the
+ * failed-attempt ledger — flaky wifi would otherwise soft-lock a legitimate
+ * user out for LOGIN_LOCKOUT_MS while their password was correct all along.
+ * A wrong password still counts, which is the point of the ledger.
+ */
+const isTransportFailure = (error: unknown): boolean => {
+  const e = error as { isTransport?: boolean; name?: string; message?: string } | null;
+  if (!e) return false;
+  if (e.isTransport === true) return true;
+  // supabase-js wraps an unreachable/5xx auth endpoint in this retryable class.
+  if (e.name === "AuthRetryableFetchError") return true;
+  return /failed to fetch|networkerror|network error|load failed|timed out/i.test(e.message ?? "");
 };
 
 const Login = () => {
@@ -92,6 +110,18 @@ const Login = () => {
     try {
       const hit = sessionStorage.getItem("helpr_signed_out_reason") === "inactivity";
       if (hit) sessionStorage.removeItem("helpr_signed_out_reason");
+      return hit;
+    } catch { return false; }
+  });
+  // One-shot note from Signup's already-registered branch. That branch
+  // deliberately refuses to confess whether the address exists (enumeration
+  // oracle), but it used to redirect here in total silence — the user pressed
+  // "Create account" and simply arrived on a different screen. The neutral
+  // line its own comment promised is shown here instead.
+  const [arrivedFromSignup] = useState<boolean>(() => {
+    try {
+      const hit = sessionStorage.getItem("helpr_signup_redirect") === "1";
+      if (hit) sessionStorage.removeItem("helpr_signup_redirect");
       return hit;
     } catch { return false; }
   });
@@ -170,6 +200,13 @@ const Login = () => {
     if (error) {
       setLoading(false);
       const now = Date.now();
+      // A timeout or an unreachable auth server is not a wrong password, so it
+      // must not spend one of the user's attempts (see isTransportFailure).
+      if (isTransportFailure(error)) {
+        hapticError();
+        toast.error(friendlyAuthError(error.message));
+        return;
+      }
       const next: LoginAttemptState = {
         attempts: [
           ...attemptState.attempts.filter((t) => now - t < LOGIN_ATTEMPT_WINDOW_MS),
@@ -288,6 +325,18 @@ const Login = () => {
           FROM /forgot-password made Back bounce you straight back into
           password reset. Sign-in is a top-level destination reached from all
           over; it needs one predictable parent. */}
+      {arrivedFromSignup && (
+        <div
+          className="flex items-start gap-3 px-4 py-3 mb-4 rounded-2xl"
+          style={{ background: "hsl(var(--bark) / 0.06)", border: "1px solid hsl(var(--bark) / 0.16)" }}
+          role="status"
+        >
+          <Clock className="w-5 h-5 shrink-0 mt-0.5" strokeWidth={1.75} style={{ color: "hsl(var(--bark))" }} />
+          <p className="text-ds-13 leading-snug" style={{ color: "hsl(var(--ink-deep))" }}>
+            If that email already has an account, sign in below. Forgot your password? Reset it and you'll be back in.
+          </p>
+        </div>
+      )}
       {signedOutForInactivity && (
         <div
           className="flex items-start gap-3 px-4 py-3 mb-4 rounded-2xl"

@@ -327,7 +327,10 @@ const Signup = () => {
         // an attacker probing signup vs reset can't tell either way
         // whether the address exists. A real logged-out user who
         // stumbles into this path is redirected to /login with the
-        // same generic message they'd see on ForgotPassword.
+        // same generic message they'd see on ForgotPassword — set here,
+        // read-and-cleared by Login. Without it the user pressed "Create
+        // account" and silently arrived on a different screen.
+        try { sessionStorage.setItem("helpr_signup_redirect", "1"); } catch { /* private mode */ }
         navigate("/login");
         return;
       }

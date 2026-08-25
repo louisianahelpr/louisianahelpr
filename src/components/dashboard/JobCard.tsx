@@ -481,7 +481,12 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
           <div className="flex items-center gap-x-2 flex-nowrap overflow-hidden">
             <span className="flex items-center gap-1 min-w-0">
               <MapPin className="w-2.5 h-2.5 shrink-0" />
-              <span className="truncate max-w-[150px] font-sans">{cityState}</span>
+              {/* min-w floor: the row above moved urgency out precisely so the
+                  city would stop collapsing first, but a rating chip still
+                  squeezed it — adjacent cards in one feed rendered "Lafayette",
+                  "Lafayet…" and "Lafay…" for the same parish. The floor keeps
+                  the parish recognisable; the cap still bounds it on wide cards. */}
+              <span className="truncate min-w-[6ch] max-w-[150px] font-sans">{cityState}</span>
             </span>
             {distanceLabel && (
               <span

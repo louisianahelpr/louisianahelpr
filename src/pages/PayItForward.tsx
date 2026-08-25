@@ -427,7 +427,15 @@ export default function PayItForward() {
                 <p className="font-serif italic text-ds-12 mb-2" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   Occasion
                 </p>
-                <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-1 px-1 pb-1 [-webkit-mask-image:linear-gradient(to_right,black_calc(100%-20px),transparent)] [mask-image:linear-gradient(to_right,black_calc(100%-20px),transparent)]">
+                {/* Scroll-rail on phone, wrapped grid from sm up. The rail's
+                    fade mask is the only "there's more" affordance, and it has
+                    no scrollbar — fine under a thumb, but on desktop it hid 3
+                    of the 6 occasions behind a gesture, clipped mid-word, while
+                    the column beside it sat empty. Each occasion swaps the card
+                    art AND the note placeholder, so a hidden one is hidden
+                    product. sm:flex-wrap drops the rail, the mask and the
+                    negative gutter together. */}
+                <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-1 px-1 pb-1 [-webkit-mask-image:linear-gradient(to_right,black_calc(100%-20px),transparent)] [mask-image:linear-gradient(to_right,black_calc(100%-20px),transparent)] sm:flex-wrap sm:overflow-x-visible sm:mx-0 sm:px-0 sm:[-webkit-mask-image:none] sm:[mask-image:none]">
                   {GIFT_OCCASIONS.map((o) => {
                     const active = o.id === occasionId;
                     return (

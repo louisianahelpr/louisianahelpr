@@ -17,7 +17,8 @@ import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 
 interface AuditEntry {
   id: string;
-  admin_id: string;
+  // NULL for automated writes (pg_cron / service-role) since 20260825140000.
+  admin_id: string | null;
   action: string;
   target_type: string | null;
   target_id: string | null;

@@ -4,6 +4,7 @@ import { OptimizedImage } from "@/components/ui/optimized-image";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Pencil, Play, Plus, Sparkles, Star, X } from "lucide-react";
 import { AttachmentLink } from "@/components/AttachmentLink";
+import CredentialBadge from "@/components/CredentialBadge";
 import { hapticLight } from "@/lib/haptics";
 import { type Job, type EnrichedApplication } from "../activityConstants";
 import { useApplicantComparison } from "./useApplicantComparison";
@@ -265,6 +266,13 @@ export function ApplicantsPanel({
                                   Pro
                                 </span>
                               )}
+                              {/* Licensed/Insured badges — the hiring surface
+                                  is exactly where a verified credential should
+                                  speak (owner, 2026-08-24). get_safe_profiles
+                                  returns the four credential fields; the badge
+                                  renders nothing unless a credential is
+                                  admin-verified or pending. */}
+                              <CredentialBadge credentials={app.profiles ?? {}} size="sm" />
                               {/* Intro video play icon — only shows when the
                                   helper has uploaded a 60s intro video. */}
                               {app.profiles?.intro_video_url && (

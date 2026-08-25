@@ -104,6 +104,12 @@ export type EnrichedApplication = Application & {
     /** "Available now" expiry — set to NOW()+4h when the helper signals
         readiness; shown as a green pill on the applicant card. */
     available_until?: string | null;
+    /** Credential trust signals — returned by get_safe_profiles since
+        2026-08-24 so CredentialBadge can render on the hiring surface. */
+    is_licensed?: boolean | null;
+    license_status?: string | null;
+    is_insured?: boolean | null;
+    insurance_status?: string | null;
   } | null;
   reviewCount?: number;
   avgRating?: number;

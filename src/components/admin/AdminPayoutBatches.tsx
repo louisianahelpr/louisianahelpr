@@ -14,12 +14,15 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 import { queryKeys } from "@/lib/queryKeys";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import type { PayoutBatch, PayoutLedgerRow } from "./adminPayoutBatches/types";
 import { loadHolds, saveHolds } from "./adminPayoutBatches/adminPayoutBatchesHelpers";
 import { BatchRow } from "./adminPayoutBatches/BatchRow";
 import { LedgerList } from "./adminPayoutBatches/LedgerList";
+import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 
 const AdminPayoutBatches = () => {
   const qc = useQueryClient();
@@ -211,23 +214,29 @@ const AdminPayoutBatches = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <p className="text-ds-11 text-muted-foreground">
-          Helprs with completed jobs awaiting payout. Trigger Stripe transfers in bulk per Helpr.
-        </p>
-        <Button variant="outline" size="sm" onClick={() => qc.invalidateQueries({ queryKey })} disabled={isFetching}>
-          {isFetching ? "Refreshing…" : "Refresh"}
-        </Button>
-      </div>
-
+    <AdminViewShell>
+      {/* One card owns the whole queue: the lead sentence is its subtitle,
+          Refresh is its header action (it was previously stranded beside that
+          sentence on a bare row), and the totals, tabs and rows are its body.
+          Money screens are where "which control belongs to which list?" is
+          least safe to leave ambiguous. */}
+      <AdminCard
+        title="Payout Queue"
+        subtitle="Completed jobs awaiting a Stripe transfer, batched per Helpr."
+        action={
+          <Button variant="outline" size="sm" onClick={() => qc.invalidateQueries({ queryKey })} disabled={isFetching}>
+            {isFetching ? "Refreshing…" : "Refresh"}
+          </Button>
+        }
+        contentClassName="space-y-4"
+      >
       {batches.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          <div className="rounded-ds-md liquid-glass p-4">
+          <div className="rounded-ds-md border border-border/60 bg-background/40 p-4">
             <p className="text-ds-11 uppercase tracking-wider text-muted-foreground">Helprs awaiting</p>
             <p className="text-ds-24 font-bold text-foreground mt-1">{batches.length}</p>
           </div>
-          <div className="rounded-ds-md liquid-glass p-4">
+          <div className="rounded-ds-md border border-border/60 bg-background/40 p-4">
             <p className="text-ds-11 uppercase tracking-wider text-muted-foreground">Total jobs</p>
             <p className="text-ds-24 font-bold text-foreground mt-1">{totalJobs}</p>
           </div>
@@ -291,7 +300,7 @@ const AdminPayoutBatches = () => {
         // instead of dropping to a lone "Loading…" line.
         <div className="space-y-2" aria-hidden="true">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="rounded-ds-md liquid-glass p-4 flex items-center gap-3">
+            <div key={i} className="rounded-ds-md border border-border/60 bg-background/40 p-4 flex items-center gap-3">
               <div className="flex-1 space-y-2">
                 <Skeleton className="h-4 w-2/5" />
                 <Skeleton className="h-3 w-1/3" />
@@ -302,18 +311,27 @@ const AdminPayoutBatches = () => {
         </div>
       ) : isError ? (
         <ErrorState
+          surfaceStyle={NESTED_EMPTY_SURFACE}
           variant="inline"
           title="We couldn't load payout batches."
           body="Tap Try again. No transfers were fired — the queue is server-side."
           onRetry={() => refetch()}
         />
       ) : visibleBatches.length === 0 ? (
-        <div className="rounded-ds-md liquid-glass p-8 text-center">
-          <CheckCircle2 className="w-8 h-8 text-primary mx-auto mb-2" />
-          <p className="text-ds-11 text-muted-foreground">
-            {tab === "ready" ? "All payouts are settled. Nothing to send." : "No payouts are currently on hold."}
-          </p>
-        </div>
+        /* The shared EmptyState. This screen hand-rolled an icon over a grey
+           line, so the money queue — the one an admin most needs to trust —
+           was the one that didn't look like the rest of the console. */
+        <EmptyState
+          surfaceStyle={NESTED_EMPTY_SURFACE}
+          variant="inline"
+          icon={CheckCircle2}
+          title={tab === "ready" ? "Nothing to send" : "Nothing on hold"}
+          body={
+          tab === "ready"
+          ? "Every payout is settled. Completed jobs queue here for transfer."
+          : "No payouts are currently held for review."
+          }
+        />
       ) : (
         <div className={`space-y-2 ${selected.size > 0 ? "pb-24" : ""}`}>
           {visibleBatches.map((batch) => (
@@ -333,6 +351,7 @@ const AdminPayoutBatches = () => {
           ))}
         </div>
       )}
+      </AdminCard>
 
       {/* Sticky bulk action bar — sits above the bottom nav (which itself
           honours the iOS safe-area inset) while a selection is active. */}
@@ -482,7 +501,7 @@ const AdminPayoutBatches = () => {
         }}
         secondaryLabel="Cancel"
       />
-    </div>
+    </AdminViewShell>
   );
 };
 

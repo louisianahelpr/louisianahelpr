@@ -10,10 +10,11 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
 import { formatShortDate } from "@/lib/format";
-import { AlertTriangle, CheckCircle2, Clock, User, Briefcase, MessageSquare, ExternalLink, Send, Search } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock, User, Briefcase, MessageSquare, ExternalLink, Send, Search, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 import { toneBadgeClasses, type Tone } from "@/components/admin/tones";
+import { AdminViewShell, AdminFilterStrip } from "@/components/admin/AdminViewShell";
 import { cn } from "@/lib/utils";
 import { report } from "@/lib/errorLogger";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -46,13 +47,15 @@ export type TriageState = "new" | "investigating" | "resolved" | "dismissed";
 
 const SLA_BREACH_HOURS = 24;
 
+type ReportFilter = "pending" | "investigating" | "resolved" | "dismissed" | "all";
+
 const AdminReports = () => {
   const navigate = useNavigate();
   const qc = useQueryClient();
   // Triage filter — `pending` is the legacy default and we treat it as
   // "new + investigating" so the queue keeps showing everything an
   // admin would expect under the old default.
-  const [filter, setFilter] = useState<"pending" | "investigating" | "resolved" | "dismissed" | "all">("pending");
+  const [filter, setFilter] = useState<ReportFilter>("pending");
   const [updating, setUpdating] = useState<string | null>(null);
   const [messageTarget, setMessageTarget] = useState<{ userId: string; name: string } | null>(null);
   const [messageText, setMessageText] = useState("");
@@ -228,6 +231,21 @@ const AdminReports = () => {
     setSendingMessage(false);
   };
 
+  // "New" is the label for the `pending` status because that is what the
+  // report badge says; keeping the two in one table stops them drifting.
+  const REPORT_FILTERS: {
+    value: ReportFilter;
+    label: string;
+    icon?: LucideIcon;
+    iconClassName?: string;
+  }[] = [
+    { value: "pending", label: "New", icon: Clock },
+    { value: "investigating", label: "Investigating", icon: Search },
+    { value: "resolved", label: "Resolved", icon: CheckCircle2 },
+    { value: "dismissed", label: "Dismissed", icon: CheckCircle2, iconClassName: "opacity-60" },
+    { value: "all", label: "All" },
+  ];
+
   const typeIcon = (type: string) => {
     if (type === "user") return <User className="w-4 h-4" />;
     if (type === "job") return <Briefcase className="w-4 h-4" />;
@@ -236,24 +254,32 @@ const AdminReports = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex gap-2 flex-wrap">
-        {(["pending", "investigating", "resolved", "dismissed", "all"] as const).map(f => (
+    <AdminViewShell>
+      {/* Five chips wrapped to two ragged rows at 375. One scrollable strip
+          with the shared edge fade instead — a cut-off chip then reads as
+          "there is more this way" rather than as a broken layout. */}
+      {/* Real Title Case text, not CSS `capitalize` over a lowercase status
+          key. Two reasons it matters here: the platform writes controls in
+          Title Case, and `capitalize` only paints — the ACCESSIBLE NAME stays
+          the raw "investigating", which is the lowercase twin of the
+          per-report ACTION button labelled "Investigating" further down the
+          same screen. A screen-reader user got two differently-cased buttons
+          with the same name, one of which changes a report's status. */}
+      <AdminFilterStrip label="Filter reports by status">
+        {REPORT_FILTERS.map(({ value, label, icon: Icon, iconClassName }) => (
           <Button
-            key={f}
-            variant={filter === f ? "default" : "outline"}
+            key={value}
+            variant={filter === value ? "default" : "outline"}
             size="sm"
-            onClick={() => setFilter(f)}
-            className="capitalize"
+            onClick={() => setFilter(value)}
+            aria-pressed={filter === value}
+            className="shrink-0"
           >
-            {f === "pending" && <Clock className="w-3.5 h-3.5 mr-1" />}
-            {f === "investigating" && <Search className="w-3.5 h-3.5 mr-1" />}
-            {f === "resolved" && <CheckCircle2 className="w-3.5 h-3.5 mr-1" />}
-            {f === "dismissed" && <CheckCircle2 className="w-3.5 h-3.5 mr-1 opacity-60" />}
-            {f === "pending" ? "New" : f}
+            {Icon && <Icon className={cn("w-3.5 h-3.5 mr-1", iconClassName)} />}
+            {label}
           </Button>
         ))}
-      </div>
+      </AdminFilterStrip>
 
       {isInitialLoading ? (
         <p className="text-muted-foreground text-ds-11 py-8 text-center">Loading reports…</p>
@@ -271,7 +297,7 @@ const AdminReports = () => {
       ) : (
         <div className="space-y-3">
           {reports.map(report => (
-            <div key={report.id} className="rounded-ds-md liquid-glass p-4 space-y-3">
+            <div key={report.id} className="rounded-2xl border border-border/60 bg-card shadow-[var(--card-shadow)] p-4 space-y-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-2">
                   {typeIcon(report.reported_type)}
@@ -330,8 +356,12 @@ const AdminReports = () => {
 
               {/* One line, not two: 7 action buttons kept on a single row —
                   fits without scroll on wide admin screens, scrolls horizontally
-                  rather than wrapping to a second line on narrow ones. */}
-              <div className="flex flex-nowrap gap-2 pt-1 overflow-x-auto [&>button]:shrink-0">
+                  rather than wrapping to a second line on narrow ones.
+                  The mask is the missing half of that decision: without it the
+                  row sliced "Assign to Me" clean through at 375 with no
+                  affordance, which reads as clipped rather than scrollable —
+                  the same fade AdminFilterStrip puts on chip rows. */}
+              <div className="flex flex-nowrap gap-2 pt-1 overflow-x-auto no-scrollbar [&>button]:shrink-0 [mask-image:linear-gradient(to_right,black_calc(100%-28px),transparent)]">
                 <Button
                   size="sm"
                   variant="outline"
@@ -436,7 +466,7 @@ const AdminReports = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </AdminViewShell>
   );
 };
 

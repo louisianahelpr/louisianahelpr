@@ -20,6 +20,8 @@ import {
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
+import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 
 interface PendingRow {
   user_id: string;
@@ -74,17 +76,19 @@ const AdminCredentialQueue = () => {
   };
 
   return (
-    <div className="space-y-4">
-      <p className="text-ds-11 text-muted-foreground">
-        Review uploaded license and insurance documents. Approving turns the badge live on the user's profile.
-      </p>
-
+    <AdminViewShell>
+      {/* `space-y-4` was one of the six off-shell spacings this view set; the
+          lead sentence describing the queue becomes its card subtitle. */}
+      <AdminCard
+        title="Pending Credentials"
+        subtitle="Approving turns the credential badge live on the user's profile."
+      >
       {isInitialLoading ? (
         // Shape-matched skeletons keep the surface from collapsing under a
         // bare spinner while the RPC resolves.
         <div className="space-y-3" aria-hidden="true">
           {[0, 1].map((i) => (
-            <div key={i} className="rounded-2xl liquid-glass p-4 space-y-3">
+            <div key={i} className="rounded-ds-md border border-border/60 bg-background/40 p-4 space-y-3">
               <div className="flex items-center gap-3">
                 <Skeleton className="w-10 h-10 rounded-full" />
                 <div className="flex-1 space-y-2">
@@ -98,6 +102,7 @@ const AdminCredentialQueue = () => {
         </div>
       ) : isError ? (
         <ErrorState
+          surfaceStyle={NESTED_EMPTY_SURFACE}
           variant="inline"
           title="We couldn't load the credential queue."
           body="Tap Try again. Submissions are safe — they're queued server-side."
@@ -105,16 +110,16 @@ const AdminCredentialQueue = () => {
         />
       ) : rows.length === 0 ? (
         <EmptyState
+          surfaceStyle={NESTED_EMPTY_SURFACE}
           variant="inline"
           icon={ShieldCheck}
-          eyebrow="All clear"
           title="No pending credentials"
-          body="License and insurance uploads land here as Helprs submit them."
+          body="Uploads land here as Helprs submit them."
         />
       ) : (
         <div className="space-y-3">
           {rows.map((r) => (
-            <div key={r.user_id} className="rounded-2xl liquid-glass p-4 space-y-3">
+            <div key={r.user_id} className="rounded-ds-md border border-border/60 bg-background/40 p-4 space-y-3">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center overflow-hidden text-ds-13 font-bold">
                   {r.avatar_url ? (
@@ -203,6 +208,7 @@ const AdminCredentialQueue = () => {
           ))}
         </div>
       )}
+      </AdminCard>
 
       <AlertDialog open={!!rejectTarget} onOpenChange={(o) => !o && setRejectTarget(null)}>
         <AlertDialogContent>
@@ -237,7 +243,7 @@ const AdminCredentialQueue = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </AdminViewShell>
   );
 };
 

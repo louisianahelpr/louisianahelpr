@@ -1,4 +1,5 @@
 import { AlertTriangle } from "lucide-react";
+import type { CSSProperties } from "react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 
@@ -21,6 +22,13 @@ interface ErrorStateProps {
   secondaryAction?: React.ReactNode;
   /** Card treatment — forwarded to EmptyState. Defaults to `dock`. */
   variant?: "dock" | "inline";
+  /** Surface override — forwarded to EmptyState. Same contract and the same
+   *  narrow licence: only for a caller that deliberately runs a different
+   *  card material. The admin console uses it to flatten this card when it
+   *  is nested inside an `AdminCard`, which would otherwise draw a white
+   *  tile inside a white tile. Optional, so every existing call site is
+   *  unaffected. */
+  surfaceStyle?: CSSProperties;
 }
 
 /**
@@ -45,11 +53,13 @@ export function ErrorState({
   retryDisabled = false,
   secondaryAction,
   variant = "dock",
+  surfaceStyle,
 }: ErrorStateProps) {
   return (
     <EmptyState
       icon={AlertTriangle}
       variant={variant}
+      surfaceStyle={surfaceStyle}
       eyebrow={eyebrow}
       title={title}
       body={body}

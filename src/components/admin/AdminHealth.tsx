@@ -13,6 +13,8 @@ import { useHealthData } from "./adminHealth/useHealthData";
 import { toneBadgeClasses, toneTextClasses } from "@/components/admin/tones";
 import { useFillRate } from "./adminHealth/useFillRate";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
+import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 
 const AdminHealth = () => {
   const qc = useQueryClient();
@@ -72,7 +74,7 @@ const AdminHealth = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <AdminViewShell>
       {/* Death-blow banner — every admin alert this codebase fans
           (auto-restrict, fraud, disputes, stuck-payments) routes via
           push_tokens. With zero admin tokens registered, it all goes
@@ -99,16 +101,21 @@ const AdminHealth = () => {
         </div>
       )}
 
-      <div className="flex items-center justify-end">
-        <Button variant="outline" size="sm" onClick={() => qc.invalidateQueries({ queryKey })} disabled={isFetching}>
-          <RefreshCw className={`w-3 h-3 mr-1 ${isFetching ? "animate-spin" : ""}`} /> Refresh
-        </Button>
-      </div>
-
-      {/* Status overview */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        <div className="rounded-ds-md liquid-glass p-5 space-y-2">
-          <div className="flex items-center justify-between">
+      {/* Status overview. Refresh used to float right-aligned on a bare row
+          above these three tiles with a phone-width band of nothing beside
+          it; it re-reads exactly this card's data, so it is its header
+          action. */}
+      <AdminCard
+        title="Platform Status"
+        action={
+          <Button variant="outline" size="sm" onClick={() => qc.invalidateQueries({ queryKey })} disabled={isFetching}>
+            <RefreshCw className={`w-3 h-3 mr-1 ${isFetching ? "animate-spin" : ""}`} /> Refresh
+          </Button>
+        }
+        contentClassName="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"
+      >
+        <div className="rounded-ds-md border border-border/60 bg-background/40 p-4 space-y-2">
+          <div className="flex items-center justify-between gap-2">
             <span className="text-ds-13 font-medium text-muted-foreground flex items-center gap-1.5">
               <Database className="w-4 h-4" /> Backend Functions
             </span>
@@ -116,18 +123,18 @@ const AdminHealth = () => {
           </div>
         </div>
 
-        <div className="rounded-ds-md liquid-glass p-5 space-y-2">
+        <div className="rounded-ds-md border border-border/60 bg-background/40 p-4 space-y-2">
           <span className="text-ds-13 font-medium text-muted-foreground flex items-center gap-1.5">
             <Mail className="w-4 h-4" /> Emails (24h)
           </span>
-          <div className="flex gap-3 text-ds-13">
+          <div className="flex flex-wrap gap-x-3 gap-y-1 text-ds-13">
             <span className={cn("font-semibold", toneTextClasses.success)}>{emailStats.sent} sent</span>
             <span className={cn("font-semibold", toneTextClasses.danger)}>{emailStats.failed} failed</span>
             <span className={cn("font-semibold", toneTextClasses.notice)}>{emailStats.suppressed} suppressed</span>
           </div>
         </div>
 
-        <div className="rounded-ds-md liquid-glass p-5 space-y-2">
+        <div className="rounded-ds-md border border-border/60 bg-background/40 p-4 space-y-2">
           <span className="text-ds-13 font-medium text-muted-foreground flex items-center gap-1.5">
             <ShieldAlert className="w-4 h-4" /> Fraud Flags
           </span>
@@ -135,21 +142,14 @@ const AdminHealth = () => {
             {fraudCount} unresolved
           </p>
         </div>
-      </div>
+      </AdminCard>
 
       {/* Sentry test — admin-only sanity check */}
-      <div className="rounded-ds-md liquid-glass p-5 space-y-3">
-        <div className="flex items-start justify-between gap-3 flex-wrap">
-          <div>
-            <h3 className="font-semibold text-foreground text-ds-13 flex items-center gap-1.5">
-              <Bug className="w-4 h-4" /> Sentry Smoke Test
-            </h3>
-            <p className="text-ds-11 text-muted-foreground mt-1 max-w-md">
-              Fires a test exception to confirm Sentry, PostHog, and error_logs are receiving events.
-              Should appear in Sentry within ~30 seconds.
-            </p>
-          </div>
-          <div className="flex gap-2">
+      <AdminCard
+        title={<span className="flex items-center gap-1.5"><Bug className="w-4 h-4 text-primary" /> Sentry Smoke Test</span>}
+        subtitle="Fires a test exception; it should appear in Sentry within ~30 seconds."
+      >
+        <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -175,14 +175,15 @@ const AdminHealth = () => {
             >
               Throw Uncaught
             </Button>
-          </div>
         </div>
-      </div>
+      </AdminCard>
 
       {/* Job activity (7 days) */}
-      <div className="rounded-ds-md liquid-glass p-5 space-y-3">
-        <h3 className="font-semibold text-foreground text-ds-13">Job Activity (Last 7 Days)</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <AdminCard
+        title="Job Activity"
+        subtitle="Last 7 days."
+        contentClassName="grid grid-cols-2 sm:grid-cols-4 gap-3"
+      >
           <div className="text-center">
             <p className="text-ds-24 font-bold text-foreground">{recentJobs.open}</p>
             <p className="text-ds-11 text-muted-foreground">New Jobs</p>
@@ -199,16 +200,13 @@ const AdminHealth = () => {
             <p className={cn("text-ds-24 font-bold", toneTextClasses.notice)}>{recentJobs.cancelled}</p>
             <p className="text-ds-11 text-muted-foreground">Cancelled</p>
           </div>
-        </div>
-      </div>
+      </AdminCard>
 
       {/* Marketplace pulse: parish-level supply/demand + responsiveness */}
-      <div className="rounded-ds-md liquid-glass p-5 space-y-4">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <h3 className="font-semibold text-foreground text-ds-13 flex items-center gap-1.5">
-            <MapPin className="w-4 h-4" /> Marketplace Pulse
-          </h3>
-          <div className="flex gap-3 text-ds-11">
+      <AdminCard
+        title={<span className="flex items-center gap-1.5"><MapPin className="w-4 h-4 text-primary" /> Marketplace Pulse</span>}
+        action={
+          <div className="flex flex-wrap items-center gap-2 text-ds-11">
             <span className="flex items-center gap-1 text-muted-foreground">
               <Zap className="w-3 h-3" /> Median first-app:
               <span className="text-foreground font-semibold">{formatDelay(medianTimeToFirstAppMin)}</span>
@@ -219,10 +217,11 @@ const AdminHealth = () => {
               </Badge>
             )}
           </div>
-        </div>
-
+        }
+      >
         {parishStats.length === 0 ? (
           <EmptyState
+            surfaceStyle={NESTED_EMPTY_SURFACE}
             variant="inline"
             icon={MapPin}
             title="No parish activity yet"
@@ -245,7 +244,7 @@ const AdminHealth = () => {
                 : undersupplied ? cn("font-semibold", toneTextClasses.warning)
                 : "text-foreground";
               return (
-                <div key={p.parish} className="grid grid-cols-12 gap-2 items-center rounded-ds-sm liquid-glass p-2 text-ds-13">
+                <div key={p.parish} className="grid grid-cols-12 gap-2 items-center rounded-ds-sm border border-border/60 bg-background/40 p-2 text-ds-13">
                   <div className="col-span-4 truncate text-foreground">{p.parish}</div>
                   <div className="col-span-3 text-right tabular-nums">{p.openJobs}</div>
                   <div className="col-span-3 text-right tabular-nums">{p.activeHelpers}</div>
@@ -257,22 +256,20 @@ const AdminHealth = () => {
             })}
           </div>
         )}
-      </div>
+      </AdminCard>
 
       {/* Fill-rate metrics — hidden when RPC not yet deployed (PGRST202) */}
       {fillData?.available && (
-        <div className="rounded-ds-md liquid-glass p-5 space-y-4">
-          {/* Header + period toggle */}
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <h3 className="font-semibold text-foreground text-ds-13 flex items-center gap-1.5">
-              <TrendingUp className="w-4 h-4" /> Marketplace Health
-            </h3>
+        <AdminCard
+          title={<span className="flex items-center gap-1.5"><TrendingUp className="w-4 h-4 text-primary" /> Marketplace Health</span>}
+          action={
             <div className="flex items-center gap-1 rounded-ds-sm bg-background/50 border border-border/40 p-0.5">
               {FILL_DAYS_OPTIONS.map((d) => (
                 <button
                   key={d}
                   type="button"
                   onClick={() => setFillDays(d)}
+                  aria-pressed={fillDays === d}
                   className={cn(
                     "px-2.5 py-1 text-ds-11 font-medium rounded-[4px] transition-colors",
                     fillDays === d
@@ -285,8 +282,9 @@ const AdminHealth = () => {
               ))}
               {fillFetching && <span className="ml-1 text-ds-10 text-muted-foreground motion-safe:animate-pulse">…</span>}
             </div>
-          </div>
-
+          }
+          contentClassName="space-y-4"
+        >
           {/* 3 stat cards */}
           <div className="grid grid-cols-3 gap-2 text-ds-13">
             <div className="rounded-ds-sm bg-background/50 border border-border/40 p-3 space-y-0.5">
@@ -345,7 +343,7 @@ const AdminHealth = () => {
                   : pct >= 40 ? cn("font-semibold", toneTextClasses.warning)
                   : "text-destructive font-semibold";
                 return (
-                  <div key={p.parish} className="grid grid-cols-12 gap-2 items-center rounded-ds-sm liquid-glass p-2 text-ds-13">
+                  <div key={p.parish} className="grid grid-cols-12 gap-2 items-center rounded-ds-sm border border-border/60 bg-background/40 p-2 text-ds-13">
                     <div className="col-span-5 truncate text-foreground">{p.parish}</div>
                     <div className="col-span-3 text-right tabular-nums">{p.total_jobs}</div>
                     <div className={cn("col-span-4 text-right tabular-nums", pctCls)}>
@@ -360,17 +358,14 @@ const AdminHealth = () => {
           {sortedParishes.length === 0 && fillData.total_jobs === 0 && (
             <p className="text-ds-11 text-muted-foreground">No job data for this period yet.</p>
           )}
-        </div>
+        </AdminCard>
       )}
 
       {/* Push notifications */}
-      <div className="rounded-ds-md liquid-glass p-5 space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-ds-13 font-semibold text-foreground flex items-center gap-2">
-            <Bell className="w-4 h-4 text-primary" /> Push notifications
-          </h3>
-        </div>
-
+      <AdminCard
+        title={<span className="flex items-center gap-2"><Bell className="w-4 h-4 text-primary" /> Push Notifications</span>}
+        contentClassName="space-y-4"
+      >
         {/* Token stats */}
         <div className="grid grid-cols-3 gap-2 text-ds-13">
           <div className="rounded-ds-sm bg-background/50 border border-border/40 p-3">
@@ -419,8 +414,8 @@ const AdminHealth = () => {
             )}
           </Button>
         </div>
-      </div>
-    </div>
+      </AdminCard>
+    </AdminViewShell>
   );
 };
 

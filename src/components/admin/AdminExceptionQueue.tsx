@@ -21,6 +21,8 @@ import { toneBadgeClasses, toneTextClasses } from "@/components/admin/tones";
 import { cn } from "@/lib/utils";
 import { report } from "@/lib/errorLogger";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
+import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 
 // Maps DB exception_type values to human-readable labels
 const EXCEPTION_TYPE_LABELS: Record<string, string> = {
@@ -145,20 +147,24 @@ const ExceptionQueueInner = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-2">
-        <p className="text-ds-11 text-muted-foreground">
-          Verification cases flagged for manual review — adverse actions, name mismatches, boards with no API.
-        </p>
-        {rows.length > 0 && (
-          <span className={cn("inline-flex items-center justify-center rounded-full text-ds-10 font-bold px-2 py-0.5 min-w-[1.4rem]", toneBadgeClasses.warning)}>
-            {rows.length}
-          </span>
-        )}
-      </div>
-
+    <AdminViewShell>
+      {/* The lead sentence and its count chip sat on the bare page background
+          above an untitled list. They describe the queue, so they become its
+          card's subtitle and header action. */}
+      <AdminCard
+        title="Open Exceptions"
+        subtitle="Verification cases flagged for manual review — adverse actions, name mismatches, boards with no API."
+        action={
+          rows.length > 0 ? (
+            <span className={cn("inline-flex items-center justify-center rounded-full text-ds-11 font-bold px-2.5 py-1 min-w-[1.75rem]", toneBadgeClasses.warning)}>
+              {rows.length}
+            </span>
+          ) : undefined
+        }
+      >
       {rows.length === 0 ? (
         <EmptyState
+          surfaceStyle={NESTED_EMPTY_SURFACE}
           variant="inline"
           icon={ClipboardList}
           title="No open exceptions"
@@ -167,7 +173,7 @@ const ExceptionQueueInner = () => {
       ) : (
         <div className="space-y-3">
           {rows.map((r) => (
-            <div key={r.id} className="rounded-2xl liquid-glass p-4 space-y-3">
+            <div key={r.id} className="rounded-ds-md border border-border/60 bg-background/40 p-4 space-y-3">
               <div className="flex items-start gap-3">
                 <div className={cn("w-10 h-10 shrink-0 rounded-full bg-warning/10 flex items-center justify-center text-ds-13 font-bold", toneTextClasses.warning)}>
                   <AlertTriangle className="w-4 h-4" />
@@ -217,6 +223,7 @@ const ExceptionQueueInner = () => {
           ))}
         </div>
       )}
+      </AdminCard>
 
       <AlertDialog open={!!resolveTarget} onOpenChange={(o) => !o && setResolveTarget(null)}>
         <AlertDialogContent>
@@ -242,7 +249,7 @@ const ExceptionQueueInner = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </AdminViewShell>
   );
 };
 

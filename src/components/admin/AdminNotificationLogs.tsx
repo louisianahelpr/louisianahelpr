@@ -18,6 +18,7 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 import { queryKeys } from "@/lib/queryKeys";
 import { toneTextClasses } from "@/components/admin/tones";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 
 interface LogRow {
   id: string;
@@ -182,17 +183,22 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
   const failureCount = rows.filter(r => r.status === "failed").length;
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-        <p className="text-ds-11 text-muted-foreground">
-          Every alert sent via in-app or email. Failed deliveries are highlighted in red.
-        </p>
-        <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
-          <RefreshCw className={cn("w-4 h-4 mr-2", isFetching && "animate-spin")} />
-          Refresh
-        </Button>
-      </div>
-
+    <AdminViewShell>
+      {/* The lead sentence, Refresh, the failure banner, four filter controls
+          and the table were six stacked blocks on the bare page. They are one
+          thing — a delivery log and the controls that scope it — so they are
+          one card: subtitle, header action, then filters over content. */}
+      <AdminCard
+        title="Delivery Log"
+        subtitle="Every alert sent via in-app or email. Failed deliveries are red."
+        action={
+          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+            <RefreshCw className={cn("w-4 h-4 mr-2", isFetching && "animate-spin")} />
+            Refresh
+          </Button>
+        }
+        contentClassName="space-y-4"
+      >
       {failureCount > 0 && (
         <div className="flex items-center gap-2 px-4 py-2.5 rounded-ds-md bg-destructive/10 border border-destructive/30 text-destructive text-ds-13">
           <AlertCircle className="w-4 h-4" />
@@ -254,7 +260,7 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
         </div>
       </div>
 
-      <div className="rounded-2xl border border-border overflow-hidden bg-card">
+      <div className="rounded-ds-md border border-border/60 overflow-hidden bg-background/40">
         {/* Desktop table — hidden on small screens */}
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-ds-13">
@@ -373,11 +379,13 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
         </div>
       </div>
 
-      <div className="flex items-center justify-between text-ds-13">
+      {/* Pager wraps rather than crushing the count against the buttons at
+          375, and uses the same "·" separator the rest of the app does. */}
+      <div className="flex flex-wrap items-center justify-between gap-3 text-ds-13">
         <span className="text-muted-foreground">
-          Page {page + 1} • Showing {filtered.length} of {rows.length} loaded
+          Page {page + 1} · Showing {filtered.length} of {rows.length} loaded
         </span>
-        <div className="flex gap-2">
+        <div className="flex gap-2 shrink-0">
           <Button variant="outline" size="sm" disabled={page === 0 || isFetching} onClick={() => setPage(p => Math.max(0, p - 1))}>
             Previous
           </Button>
@@ -386,7 +394,8 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
           </Button>
         </div>
       </div>
-    </div>
+      </AdminCard>
+    </AdminViewShell>
   );
 };
 

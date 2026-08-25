@@ -10,6 +10,7 @@ import { useInstantQuery } from "@/hooks/useInstantQuery";
 import { formatShortDate } from "@/lib/format";
 import { report } from "@/lib/errorLogger";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { AdminViewShell, AdminFilterStrip } from "@/components/admin/AdminViewShell";
 
 type Ticket = {
   id: string;
@@ -90,22 +91,30 @@ const AdminSupport = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex gap-2">
-        {(["pending", "resolved", "all"] as const).map(f => (
+    <AdminViewShell>
+      {/* Real Title Case text rather than CSS `capitalize` over the lowercase
+          status key: `capitalize` only paints, so the accessible name stayed
+          "pending"/"resolved" — the lowercase twins of the per-ticket
+          "Resolve"/"Dismiss" action buttons below. Same fix as AdminReports. */}
+      <AdminFilterStrip label="Filter tickets by status">
+        {([
+          { value: "pending", label: "Pending", icon: Clock },
+          { value: "resolved", label: "Resolved", icon: CheckCircle2 },
+          { value: "all", label: "All", icon: undefined },
+        ] as const).map(({ value, label, icon: Icon }) => (
           <Button
-            key={f}
-            variant={filter === f ? "default" : "outline"}
+            key={value}
+            variant={filter === value ? "default" : "outline"}
             size="sm"
-            onClick={() => setFilter(f)}
-            className="capitalize"
+            onClick={() => setFilter(value)}
+            aria-pressed={filter === value}
+            className="shrink-0"
           >
-            {f === "pending" && <Clock className="w-3.5 h-3.5 mr-1" />}
-            {f === "resolved" && <CheckCircle2 className="w-3.5 h-3.5 mr-1" />}
-            {f}
+            {Icon && <Icon className="w-3.5 h-3.5 mr-1" />}
+            {label}
           </Button>
         ))}
-      </div>
+      </AdminFilterStrip>
 
       {isInitialLoading ? (
         <p className="text-muted-foreground text-ds-11 py-8 text-center">Loading tickets…</p>
@@ -126,7 +135,7 @@ const AdminSupport = () => {
             const cat = categoryFromReason(ticket.reason);
             const subject = subjectFromReason(ticket.reason);
             return (
-              <div key={ticket.id} className="rounded-ds-md liquid-glass p-4 space-y-3">
+              <div key={ticket.id} className="rounded-2xl border border-border/60 bg-card shadow-[var(--card-shadow)] p-4 space-y-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-ds-sm bg-primary/10 flex items-center justify-center text-primary shrink-0">
@@ -182,7 +191,7 @@ const AdminSupport = () => {
           })}
         </div>
       )}
-    </div>
+    </AdminViewShell>
   );
 };
 

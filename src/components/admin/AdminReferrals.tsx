@@ -9,6 +9,8 @@ import { useInstantQuery } from "@/hooks/useInstantQuery";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { formatShortDate } from "@/lib/format";
+import { AdminViewShell, AdminCard, AdminFilterStrip } from "@/components/admin/AdminViewShell";
+import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 
 interface ReferralCode {
   id: string;
@@ -132,7 +134,7 @@ const AdminReferrals = () => {
       <div className="space-y-6" aria-hidden="true">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[0, 1, 2, 3].map(i => (
-            <div key={i} className="rounded-ds-md liquid-glass p-4 space-y-2">
+            <div key={i} className="rounded-2xl border border-border/60 bg-card shadow-[var(--card-shadow)] p-4 space-y-2">
               <Skeleton className="h-3 w-1/2" />
               <Skeleton className="h-7 w-2/3" />
             </div>
@@ -166,7 +168,7 @@ const AdminReferrals = () => {
   ];
 
   return (
-    <div className="space-y-6">
+    <AdminViewShell>
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
@@ -175,7 +177,7 @@ const AdminReferrals = () => {
           { label: "Total Earned", value: `$${totalEarned.toFixed(2)}`, icon: DollarSign },
           { label: "Cashed Out", value: `$${totalCashedOut.toFixed(2)}`, icon: Banknote },
         ].map(stat => (
-          <div key={stat.label} className="rounded-ds-md liquid-glass p-4">
+          <div key={stat.label} className="rounded-2xl border border-border/60 bg-card shadow-[var(--card-shadow)] p-4">
             <div className="flex items-center justify-between mb-1">
               <span className="text-ds-11 text-muted-foreground">{stat.label}</span>
               <stat.icon className="w-4 h-4 text-primary opacity-60" />
@@ -185,13 +187,15 @@ const AdminReferrals = () => {
         ))}
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 border-b border-border">
+      {/* Tabs. Four labels that each carry a count run past 375 — the strip
+          scrolls with the shared edge fade instead of squeezing. */}
+      <AdminFilterStrip label="Referral sections" className="gap-1 border-b border-border">
         {tabs.map(t => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
-            className={`px-4 py-2 text-ds-13 font-medium transition-colors border-b-2 -mb-px ${
+            aria-pressed={tab === t.id}
+            className={`shrink-0 px-4 py-2 text-ds-13 font-medium transition-colors border-b-2 -mb-px ${
               tab === t.id
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground"
@@ -200,7 +204,7 @@ const AdminReferrals = () => {
             {t.label}
           </button>
         ))}
-      </div>
+      </AdminFilterStrip>
 
       {/* Search */}
       {tab !== "overview" && (
@@ -220,8 +224,9 @@ const AdminReferrals = () => {
       {/* Overview */}
       {tab === "overview" && (
         <div className="space-y-4">
-          <div className="rounded-ds-md liquid-glass p-5 space-y-2">
-            <h3 className="text-ds-13 font-semibold text-foreground">Program Summary</h3>
+          {/* `text-ds-13 font-semibold` sans headings were a fourth section-
+              header treatment in the console. AdminCard carries the one. */}
+          <AdminCard title="Program Summary">
             <div className="grid grid-cols-2 gap-4 text-ds-13">
               <div>
                 <p className="text-muted-foreground">Users with codes</p>
@@ -250,11 +255,10 @@ const AdminReferrals = () => {
                 </p>
               </div>
             </div>
-          </div>
+          </AdminCard>
 
           {/* Recent activity */}
-          <div className="rounded-ds-md liquid-glass p-5 space-y-3">
-            <h3 className="text-ds-13 font-semibold text-foreground">Recent Credits</h3>
+          <AdminCard title="Recent Credits">
             {credits.slice(0, 5).map(c => (
               <div key={c.id} className="flex items-center justify-between text-ds-13 py-2 border-b border-border last:border-0">
                 <div>
@@ -273,13 +277,14 @@ const AdminReferrals = () => {
             ))}
             {credits.length === 0 && (
               <EmptyState
+                surfaceStyle={NESTED_EMPTY_SURFACE}
                 variant="inline"
                 icon={DollarSign}
                 title="No credits awarded yet"
                 body="Referral bonuses post here as soon as a referred user finishes their first job."
               />
             )}
-          </div>
+          </AdminCard>
         </div>
       )}
 
@@ -287,7 +292,7 @@ const AdminReferrals = () => {
       {tab === "codes" && (
         <div className="space-y-2">
           {filteredCodes.map(c => (
-            <div key={c.id} className="rounded-ds-md liquid-glass p-4 flex items-center justify-between">
+            <div key={c.id} className="rounded-2xl border border-border/60 bg-card shadow-[var(--card-shadow)] p-4 flex flex-wrap items-center justify-between gap-2">
               <div>
                 <p className="text-ds-13 font-medium text-foreground">{c.userName}</p>
                 <p className="text-ds-11 text-muted-foreground">Created {formatShortDate(c.created_at)}</p>
@@ -323,7 +328,7 @@ const AdminReferrals = () => {
       {tab === "referrals" && (
         <div className="space-y-2">
           {filteredReferrals.map(r => (
-            <div key={r.id} className="rounded-ds-md liquid-glass p-4">
+            <div key={r.id} className="rounded-2xl border border-border/60 bg-card shadow-[var(--card-shadow)] p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-ds-13 font-medium text-foreground">
@@ -362,7 +367,7 @@ const AdminReferrals = () => {
       {tab === "credits" && (
         <div className="space-y-2">
           {filteredCredits.map(c => (
-            <div key={c.id} className="rounded-ds-md liquid-glass p-4 flex items-center justify-between">
+            <div key={c.id} className="rounded-2xl border border-border/60 bg-card shadow-[var(--card-shadow)] p-4 flex flex-wrap items-center justify-between gap-2">
               <div>
                 <p className="text-ds-13 font-medium text-foreground">{c.userName}</p>
                 <p className="text-ds-11 text-muted-foreground">
@@ -391,7 +396,7 @@ const AdminReferrals = () => {
           )}
         </div>
       )}
-    </div>
+    </AdminViewShell>
   );
 };
 

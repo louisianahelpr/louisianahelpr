@@ -18,6 +18,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { toneTextClasses } from "@/components/admin/tones";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { cn } from "@/lib/utils";
+import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 
 interface Broadcast {
   id: string;
@@ -291,6 +292,7 @@ const AdminBroadcasts = () => {
         </div>
       ) : isError ? (
         <ErrorState
+          surfaceStyle={NESTED_EMPTY_SURFACE}
           variant="inline"
           title="We couldn't load broadcasts."
           body="Tap Try again. Your draft broadcasts are safe — this is just a fetch hiccup."
@@ -298,10 +300,11 @@ const AdminBroadcasts = () => {
         />
       ) : broadcasts.length === 0 ? (
         <EmptyState
+          surfaceStyle={NESTED_EMPTY_SURFACE}
           variant="inline"
           icon={Megaphone}
           title="Nothing scheduled"
-          body="Tap New Broadcast above to push an in-app banner to every signed-in user."
+          body="Tap New Broadcast to send one."
         />
       ) : (
         <div className="space-y-2">

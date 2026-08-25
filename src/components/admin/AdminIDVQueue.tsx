@@ -19,6 +19,7 @@ import { toneTextClasses } from "@/components/admin/tones";
 import { cn } from "@/lib/utils";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { AdminViewShell, AdminCard, AdminFilterStrip } from "@/components/admin/AdminViewShell";
+import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 
 interface IDVProfile {
   user_id: string;
@@ -235,7 +236,6 @@ const AdminIDVQueue = () => {
           scrollable strip. */}
       <AdminCard
         title="Verification Queue"
-        subtitle="Submissions Stripe could not clear automatically."
         action={
           <Button variant="outline" size="sm" onClick={load} disabled={isFetching}>
             <RefreshCw className={`w-4 h-4 mr-1 ${isFetching ? "animate-spin" : ""}`} /> Refresh
@@ -274,6 +274,7 @@ const AdminIDVQueue = () => {
            card drew a white tile inside a white tile — visible in the 375
            capture as a nested double border. */
         <EmptyState
+          surfaceStyle={NESTED_EMPTY_SURFACE}
           variant="inline"
           icon={ShieldCheck}
           title="Nothing in this status"

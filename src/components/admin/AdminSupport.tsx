@@ -92,19 +92,26 @@ const AdminSupport = () => {
 
   return (
     <AdminViewShell>
+      {/* Real Title Case text rather than CSS `capitalize` over the lowercase
+          status key: `capitalize` only paints, so the accessible name stayed
+          "pending"/"resolved" — the lowercase twins of the per-ticket
+          "Resolve"/"Dismiss" action buttons below. Same fix as AdminReports. */}
       <AdminFilterStrip label="Filter tickets by status">
-        {(["pending", "resolved", "all"] as const).map(f => (
+        {([
+          { value: "pending", label: "Pending", icon: Clock },
+          { value: "resolved", label: "Resolved", icon: CheckCircle2 },
+          { value: "all", label: "All", icon: undefined },
+        ] as const).map(({ value, label, icon: Icon }) => (
           <Button
-            key={f}
-            variant={filter === f ? "default" : "outline"}
+            key={value}
+            variant={filter === value ? "default" : "outline"}
             size="sm"
-            onClick={() => setFilter(f)}
-            aria-pressed={filter === f}
-            className="capitalize shrink-0"
+            onClick={() => setFilter(value)}
+            aria-pressed={filter === value}
+            className="shrink-0"
           >
-            {f === "pending" && <Clock className="w-3.5 h-3.5 mr-1" />}
-            {f === "resolved" && <CheckCircle2 className="w-3.5 h-3.5 mr-1" />}
-            {f}
+            {Icon && <Icon className="w-3.5 h-3.5 mr-1" />}
+            {label}
           </Button>
         ))}
       </AdminFilterStrip>

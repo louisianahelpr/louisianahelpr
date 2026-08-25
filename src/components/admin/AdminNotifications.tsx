@@ -196,7 +196,6 @@ const AdminNotifications = () => {
       {/* Master toggles */}
       <AdminCard
         title={<span className="flex items-center gap-2"><Bell className="w-4 h-4 text-primary" /> Master Controls</span>}
-        subtitle="Turn every channel on or off at once."
       >
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex items-center justify-between gap-3 flex-1 rounded-ds-sm border border-border bg-secondary/20 p-4">
@@ -241,7 +240,6 @@ const AdminNotifications = () => {
           run the full width the way a settings list should. */}
       <AdminCard
         title="Per-Category Settings"
-        subtitle="Fine-tune which notifications you receive and how."
         contentClassName="-mx-4 sm:-mx-5 -mb-4 sm:-mb-5 divide-y divide-border border-t border-border"
       >
         {NOTIFICATION_GROUPS.map((group) => (

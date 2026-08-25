@@ -13,6 +13,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import type { Json } from "@/integrations/supabase/types";
 import { toneBadgeClasses, type Tone } from "@/components/admin/tones";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
+import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 
 interface AuditEntry {
   id: string;
@@ -152,6 +153,7 @@ const AdminAuditLog = () => {
         </div>
       ) : isError ? (
         <ErrorState
+          surfaceStyle={NESTED_EMPTY_SURFACE}
           variant="inline"
           title="We couldn't load the audit log."
           body="Tap Try again. Every admin action is still recorded — this is just a fetch hiccup."
@@ -159,9 +161,9 @@ const AdminAuditLog = () => {
         />
       ) : entries.length === 0 ? (
         <EmptyState
+          surfaceStyle={NESTED_EMPTY_SURFACE}
           variant="inline"
           icon={FileText}
-          eyebrow="Quiet so far"
           title="No audit entries yet"
           body="Admin actions land here the moment anyone approves a user, resolves a dispute, or updates settings."
         />

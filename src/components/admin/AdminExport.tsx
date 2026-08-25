@@ -4,6 +4,7 @@ import { report } from "@/lib/errorLogger";
 import { Button } from "@/components/ui/button";
 import { Download, Users, Briefcase, DollarSign, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 
 const downloadCSV = (filename: string, header: string, rows: string[]) => {
   const blob = new Blob([header + "\n" + rows.join("\n")], { type: "text/csv" });
@@ -113,48 +114,40 @@ const AdminExport = () => {
     setExporting(null);
   };
 
+  // One row per dataset, so the three cards are provably identical instead
+  // of three hand-copied blocks that could drift apart the next time one is
+  // edited (they had already drifted from every other admin card by carrying
+  // a bare `font-semibold` h3 instead of the shared header treatment).
+  const DATASETS = [
+    { key: "users", icon: Users, title: "Users", body: "All user profiles including status, role, and subscription info.", label: "Export Users", run: exportUsers },
+    { key: "jobs", icon: Briefcase, title: "Jobs", body: "All jobs with status, budgets, and assignment details.", label: "Export Jobs", run: exportJobs },
+    { key: "earnings", icon: DollarSign, title: "Earnings", body: "Completed jobs with fee breakdowns for accounting.", label: "Export Earnings", run: exportEarnings },
+  ] as const;
+
   return (
-    <div className="space-y-6">
-      <p className="text-ds-11 text-muted-foreground">Export platform data as CSV files for reporting, accounting, and compliance.</p>
-
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="rounded-ds-md liquid-glass p-5 space-y-3">
-          <div className="w-9 h-9 rounded-ds-sm bg-primary/10 flex items-center justify-center">
-            <Users className="w-4 h-4 text-primary" />
+    <AdminViewShell>
+      <AdminCard
+        title="Data Exports"
+        subtitle="Platform data as CSV files for reporting, accounting, and compliance."
+        contentClassName="grid grid-cols-1 sm:grid-cols-3 gap-3"
+      >
+        {DATASETS.map(({ key, icon: Icon, title, body, label, run }) => (
+          <div key={key} className="rounded-ds-md border border-border/60 bg-background/40 p-4 space-y-3">
+            <div className="w-9 h-9 rounded-ds-sm bg-primary/10 flex items-center justify-center">
+              <Icon className="w-4 h-4 text-primary" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="font-display font-semibold text-foreground text-ds-13">{title}</h3>
+              <p className="text-ds-11 text-muted-foreground">{body}</p>
+            </div>
+            <Button size="sm" onClick={run} disabled={!!exporting}>
+              {exporting === key ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Download className="w-3 h-3 mr-1" />}
+              {label}
+            </Button>
           </div>
-          <h3 className="font-semibold text-foreground">Users</h3>
-          <p className="text-ds-11 text-muted-foreground">All user profiles including status, role, and subscription info.</p>
-          <Button size="sm" onClick={exportUsers} disabled={!!exporting}>
-            {exporting === "users" ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Download className="w-3 h-3 mr-1" />}
-            Export Users
-          </Button>
-        </div>
-
-        <div className="rounded-ds-md liquid-glass p-5 space-y-3">
-          <div className="w-9 h-9 rounded-ds-sm bg-primary/10 flex items-center justify-center">
-            <Briefcase className="w-4 h-4 text-primary" />
-          </div>
-          <h3 className="font-semibold text-foreground">Jobs</h3>
-          <p className="text-ds-11 text-muted-foreground">All jobs with status, budgets, and assignment details.</p>
-          <Button size="sm" onClick={exportJobs} disabled={!!exporting}>
-            {exporting === "jobs" ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Download className="w-3 h-3 mr-1" />}
-            Export Jobs
-          </Button>
-        </div>
-
-        <div className="rounded-ds-md liquid-glass p-5 space-y-3">
-          <div className="w-9 h-9 rounded-ds-sm bg-primary/10 flex items-center justify-center">
-            <DollarSign className="w-4 h-4 text-primary" />
-          </div>
-          <h3 className="font-semibold text-foreground">Earnings</h3>
-          <p className="text-ds-11 text-muted-foreground">Completed jobs with fee breakdowns for accounting.</p>
-          <Button size="sm" onClick={exportEarnings} disabled={!!exporting}>
-            {exporting === "earnings" ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Download className="w-3 h-3 mr-1" />}
-            Export Earnings
-          </Button>
-        </div>
-      </div>
-    </div>
+        ))}
+      </AdminCard>
+    </AdminViewShell>
   );
 };
 

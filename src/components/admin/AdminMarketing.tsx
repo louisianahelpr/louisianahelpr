@@ -4,8 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
+import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Send, Users, AlertTriangle } from "lucide-react";
@@ -83,11 +83,7 @@ const AdminMarketing = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <p className="text-ds-11 text-muted-foreground">
-        One-off announcement emails to segmented users. Honors promotional opt-out.
-      </p>
-
+    <AdminViewShell>
       <Alert>
         <AlertTriangle className="w-4 h-4" />
         <AlertDescription>
@@ -95,12 +91,16 @@ const AdminMarketing = () => {
         </AlertDescription>
       </Alert>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-ds-15">Compose</CardTitle>
-          <CardDescription>HTML body — keep it short, mobile-first.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      {/* shadcn `<Card>` was a THIRD card material in the admin console,
+          alongside the liquid-glass hand-rolls and AdminCard — and its
+          `CardTitle` set its own `text-ds-15`, so this screen's section
+          headings were a different size from every other admin screen's.
+          The stranded lead sentence becomes the first card's subtitle. */}
+      <AdminCard
+        title="Compose"
+        subtitle="One-off announcement email — keep the HTML body short and mobile-first."
+        contentClassName="space-y-4"
+      >
           <div className="space-y-2">
             <Label htmlFor="subject">Subject</Label>
             <Input
@@ -120,17 +120,13 @@ const AdminMarketing = () => {
               className="font-mono text-ds-11"
             />
           </div>
-        </CardContent>
-      </Card>
+      </AdminCard>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-ds-15 flex items-center gap-2">
-            <Users className="w-4 h-4" /> Audience
-          </CardTitle>
-          <CardDescription>Only verified, approved users will receive emails.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <AdminCard
+        title={<span className="flex items-center gap-2"><Users className="w-4 h-4 text-primary" /> Audience</span>}
+        subtitle="Only verified, approved users will receive emails."
+        contentClassName="space-y-4"
+      >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Segment</Label>
@@ -156,15 +152,12 @@ const AdminMarketing = () => {
               </div>
             )}
           </div>
-        </CardContent>
-      </Card>
+      </AdminCard>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-ds-15">Send</CardTitle>
-          <CardDescription>Test first, then send to the full segment.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <AdminCard
+        title="Send"
+        contentClassName="space-y-4"
+      >
           <div className="space-y-2">
             <Label htmlFor="test">Test email</Label>
             <div className="flex gap-2">
@@ -214,9 +207,8 @@ const AdminMarketing = () => {
               </p>
             </div>
           )}
-        </CardContent>
-      </Card>
-    </div>
+      </AdminCard>
+    </AdminViewShell>
   );
 };
 

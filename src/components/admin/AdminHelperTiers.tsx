@@ -11,6 +11,7 @@ import { unwrap } from "@/lib/supabaseResult";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { AdminViewShell, AdminCard, AdminFilterStrip } from "@/components/admin/AdminViewShell";
+import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 
 interface HelperTier {
   user_id: string;
@@ -83,7 +84,7 @@ const AdminHelperTiers = () => {
           become one scrollable strip. */}
       <AdminCard
         title="Approved Helprs by Tier"
-        subtitle={'Rising Star = recent review momentum (last 30 days). Reach out to feature them.'}
+        subtitle="Rising Star = recent review momentum (last 30 days). Reach out to feature them."
         contentClassName="space-y-4"
       >
       <AdminFilterStrip label="Filter Helprs by tier">
@@ -114,6 +115,7 @@ const AdminHelperTiers = () => {
         <p className="text-ds-11 text-muted-foreground">Loading tiers…</p>
       ) : isError ? (
         <ErrorState
+          surfaceStyle={NESTED_EMPTY_SURFACE}
           variant="inline"
           title="We couldn't load Helpr tiers."
           body="Tap Try again — this is read-only, nothing was changed."
@@ -121,11 +123,12 @@ const AdminHelperTiers = () => {
         />
       ) : visible.length === 0 ? (
         <EmptyState
-            variant="inline"
-            icon={Award}
-            title="Nobody in this tier"
-            body="Helprs move up as they complete jobs and earn reviews."
-          />
+          surfaceStyle={NESTED_EMPTY_SURFACE}
+          variant="inline"
+          icon={Award}
+          title="Nobody in this tier"
+          body="Helprs move up as they complete jobs and earn reviews."
+        />
       ) : (
         <div className="space-y-2">
           {visible.map((helper) => {

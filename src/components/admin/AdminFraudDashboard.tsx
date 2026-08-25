@@ -16,6 +16,7 @@ import { toneBadgeClasses, type Tone } from "@/components/admin/tones";
 import { report } from "@/lib/errorLogger";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
+import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 
 interface FraudFlag {
   id: string;
@@ -152,13 +153,14 @@ const AdminFraudDashboard = () => {
            most wants to read as "all clear" was the one that didn't look
            like its siblings. */
         <EmptyState
+          surfaceStyle={NESTED_EMPTY_SURFACE}
           variant="inline"
           icon={CheckCircle2}
           title={showResolved ? "No resolved flags" : "Nothing flagged"}
           body={
-            showResolved
-              ? "Nothing has been marked resolved yet — switch back to Show Unresolved."
-              : "No unresolved fraud flags. That is the good outcome."
+          showResolved
+          ? "Nothing has been marked resolved yet — switch back to Show Unresolved."
+          : "No unresolved fraud flags. That is the good outcome."
           }
         />
       ) : (

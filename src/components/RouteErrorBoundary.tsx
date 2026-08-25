@@ -56,6 +56,8 @@ interface InnerProps {
 
 interface InnerState {
   hasError: boolean;
+  /** True once a stale-chunk hard reload is actually in flight. */
+  recovering?: boolean;
   error: Error | null;
 }
 
@@ -77,7 +79,14 @@ class RouteErrorBoundaryInner extends React.Component<InnerProps, InnerState> {
     // user lands on the generic "This page hit a problem" fallback and is
     // stuck until they manually refresh.
     if (isChunkLoadError(error)) {
-      recoverFromChunkError();
+      // A reload is imminent when this returns true, so the full error card
+      // would only flash for a frame or two before the page goes away —
+      // which is what the owner was seeing and reasonably read as the site
+      // 404ing ("log in also loads 404 error then refreshes to log in").
+      // Render a quiet updating state instead. When recovery is NOT started
+      // (offline, or the 10s re-entry guard), the real card still shows with
+      // its Reload button, because then the user does have to act.
+      if (recoverFromChunkError()) this.setState({ recovering: true });
       return;
     }
     // `report()` fans out to Sentry, PostHog, and the Supabase error_logs
@@ -113,6 +122,20 @@ class RouteErrorBoundaryInner extends React.Component<InnerProps, InnerState> {
     if (!this.state.hasError) return this.props.children;
 
     const chunkError = isChunkLoadError(this.state.error);
+
+    // Reload already scheduled — say so plainly and get out of the way.
+    if (chunkError && this.state.recovering) {
+      return (
+        <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3 p-8 text-center" role="status">
+          <span style={{ color: "hsl(var(--bark))" }}>
+            <RefreshCw className="h-6 w-6 motion-safe:animate-spin" strokeWidth={1.75} />
+          </span>
+          <p className="font-serif italic text-ds-14" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            Updating to the latest version…
+          </p>
+        </div>
+      );
+    }
 
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center gap-5 p-8 text-center">

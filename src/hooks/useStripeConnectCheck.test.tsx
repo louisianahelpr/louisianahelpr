@@ -69,7 +69,7 @@ describe("useStripeConnectCheck", () => {
       outcome = await result.current.checkHelperStripeConnect();
     });
     expect(outcome.ok).toBe(false);
-    expect(outcome.reason).toMatch(/Unable to verify/i);
+    expect(outcome.reason).toMatch(/Couldn't verify/i);
     // Unknown status is not evidence the account is missing — no setup action.
     expect(outcome.needsPayoutSetup).toBeFalsy();
   });
@@ -82,7 +82,7 @@ describe("useStripeConnectCheck", () => {
       outcome = await result.current.checkHelperStripeConnect();
     });
     expect(outcome.ok).toBe(false);
-    expect(outcome.reason).toMatch(/Unable to verify/i);
+    expect(outcome.reason).toMatch(/Couldn't verify/i);
     // Unknown status is not evidence the account is missing — no setup action.
     expect(outcome.needsPayoutSetup).toBeFalsy();
   });

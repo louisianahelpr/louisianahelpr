@@ -66,7 +66,7 @@ const JobDetail = () => {
         // Guest preview disables poster-profile lookups (JobDetailDialog
         // gates the poster card behind !guest), so neutral poster fields
         // are enough — mirrors Jobs.tsx's toEnrichedJob mapping.
-        posterName: "User",
+        posterName: "a neighbor",
         posterReviewCount: 0,
         posterAvgRating: 0,
         isBoosted: !!data.boost_expires_at && new Date(data.boost_expires_at) > now,

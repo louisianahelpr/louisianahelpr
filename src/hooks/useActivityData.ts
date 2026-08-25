@@ -194,7 +194,7 @@ export async function fetchActivityData(userId: string): Promise<ActivityData> {
     }
     appliedApps = appsRes.data.map((a) => {
       const job = jobMap.get(a.job_id) || null;
-      return { ...a, job, posterName: job ? posterNameMap.get(job.customer_id) || "User" : "User" };
+      return { ...a, job, posterName: job ? posterNameMap.get(job.customer_id) || "a neighbor" : "a neighbor" };
     });
   }
 
@@ -225,7 +225,7 @@ export async function fetchActivityData(userId: string): Promise<ActivityData> {
       created_at: job.created_at,
       updated_at: job.updated_at,
       job,
-      posterName: directPosterNames.get(job.customer_id) || "User",
+      posterName: directPosterNames.get(job.customer_id) || "a neighbor",
     }));
     const existingIds = new Set(appliedApps.map((a) => a.job_id));
     appliedApps = [...synthetic.filter((s) => !existingIds.has(s.job_id)), ...appliedApps];

@@ -205,7 +205,7 @@ const AdminPayoutBatches = () => {
         });
       } catch (err: unknown) {
         report(err, { tags: { source: "AdminPayoutBatches.triggerBulkPayout" } });
-        toast.error(`${batch.helper_name}: ${err instanceof Error ? err.message : "Failed"}`);
+        toast.error(`Couldn't process the payout for ${batch.helper_name} — try again?`);
       }
     }
     setBulkPaying(false);

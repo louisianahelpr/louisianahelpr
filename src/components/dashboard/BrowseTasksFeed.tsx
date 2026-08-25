@@ -323,8 +323,8 @@ export function BrowseTasksFeed({
           title={
             filters.hasFilters
               ? (nearbyActive
-                ? `No jobs within ${currentMiles} mi of you.`
-                : "No jobs match your filters.")
+                ? `No tasks within ${currentMiles} mi of you.`
+                : "No tasks match your filters.")
               : `Nothing today, ${emptyStateGreeting}.`
           }
           body={

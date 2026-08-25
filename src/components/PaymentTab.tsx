@@ -219,7 +219,7 @@ export function PaymentTab({ earningsJobs, totalEarnings, onSeeEarnings }: Payme
                 className="font-serif italic leading-snug max-w-[260px] text-ds-13"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
-                Post a job or complete one — your spending and earnings will show up here.
+                Post a task or complete one — your spending and earnings will show up here.
               </p>
             </div>
           ) : (
@@ -272,7 +272,7 @@ export function PaymentTab({ earningsJobs, totalEarnings, onSeeEarnings }: Payme
                 style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
               />
               <p className="font-serif italic mt-1 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                {spentCount === 0 ? "no jobs yet" : `across ${spentCount} job${spentCount === 1 ? "" : "s"}`}
+                {spentCount === 0 ? "no tasks yet" : `across ${spentCount} task${spentCount === 1 ? "" : "s"}`}
               </p>
             </div>
             <div className="border-l border-border/40 pl-4">
@@ -286,7 +286,7 @@ export function PaymentTab({ earningsJobs, totalEarnings, onSeeEarnings }: Payme
                 style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
               />
               <p className="font-serif italic mt-1 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                {earnedCount === 0 ? "no jobs yet" : `from ${earnedCount} completed`}
+                {earnedCount === 0 ? "no tasks yet" : `from ${earnedCount} completed`}
               </p>
             </div>
           </div>

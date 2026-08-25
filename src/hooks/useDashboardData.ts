@@ -329,7 +329,7 @@ export function useDashboardData() {
           const stats = reviewStatsMap.get(j.customer_id);
           return {
             ...j,
-            posterName: nameMap.get(j.customer_id) || "User",
+            posterName: nameMap.get(j.customer_id) || "a neighbor",
             posterAvatarUrl: avatarMap.get(j.customer_id) ?? null,
             posterReviewCount: stats?.count ?? 0,
             posterAvgRating: stats?.avg ?? 0,

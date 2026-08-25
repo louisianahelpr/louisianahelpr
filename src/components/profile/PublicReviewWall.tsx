@@ -260,7 +260,7 @@ export function PublicReviewWall({
         rating: r.rating,
         feedback: r.feedback,
         createdAt: r.created_at,
-        reviewerName: nameMap.get(r.reviewer_id) ?? "Customer",
+        reviewerName: nameMap.get(r.reviewer_id) ?? "a neighbor",
         jobCategory: categoryMap.get(r.job_id) ?? null,
       }));
     },

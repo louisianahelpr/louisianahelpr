@@ -83,7 +83,7 @@ const AdminSupport = () => {
   const updateStatus = async (id: string, status: string) => {
     setUpdating(id);
     const { error } = await supabase.from("reports").update({ status }).eq("id", id);
-    if (error) toast.error(error.message);
+    if (error) toast.error("Couldn't update that ticket — try again?");
     else {
       qc.invalidateQueries({ queryKey });
     }

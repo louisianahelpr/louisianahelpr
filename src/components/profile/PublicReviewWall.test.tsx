@@ -320,7 +320,7 @@ describe("PublicReviewWall", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("falls back to 'Customer' when get_safe_profiles returns no row for a reviewer", async () => {
+  it("falls back to 'a neighbor' when get_safe_profiles returns no row for a reviewer", async () => {
     reviewQueryResult.data = [
       makeReview({ id: "r1", reviewer_id: "ghost", job_id: "j1" }),
     ];
@@ -335,7 +335,7 @@ describe("PublicReviewWall", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText("Customer")).toBeInTheDocument();
+      expect(screen.getByText("a neighbor")).toBeInTheDocument();
     });
   });
 

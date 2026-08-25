@@ -17,7 +17,7 @@ export type Database = {
       admin_audit_log: {
         Row: {
           action: string
-          admin_id: string
+          admin_id: string | null
           created_at: string
           details: Json | null
           id: string
@@ -26,7 +26,7 @@ export type Database = {
         }
         Insert: {
           action: string
-          admin_id: string
+          admin_id?: string | null
           created_at?: string
           details?: Json | null
           id?: string
@@ -35,7 +35,7 @@ export type Database = {
         }
         Update: {
           action?: string
-          admin_id?: string
+          admin_id?: string | null
           created_at?: string
           details?: Json | null
           id?: string
@@ -1990,6 +1990,7 @@ export type Database = {
           recurrence_interval: string | null
           recurrence_weeks: number | null
           recurring_helper_id: string | null
+          release_last_chance_notif_sent_at: string | null
           removal_reason: string | null
           removed_at: string | null
           removed_by: string | null
@@ -2101,6 +2102,7 @@ export type Database = {
           recurrence_interval?: string | null
           recurrence_weeks?: number | null
           recurring_helper_id?: string | null
+          release_last_chance_notif_sent_at?: string | null
           removal_reason?: string | null
           removed_at?: string | null
           removed_by?: string | null
@@ -2212,6 +2214,7 @@ export type Database = {
           recurrence_interval?: string | null
           recurrence_weeks?: number | null
           recurring_helper_id?: string | null
+          release_last_chance_notif_sent_at?: string | null
           removal_reason?: string | null
           removed_at?: string | null
           removed_by?: string | null
@@ -5855,6 +5858,7 @@ export type Database = {
       sweep_old_error_logs: { Args: never; Returns: number }
       sweep_old_notifications: { Args: never; Returns: number }
       sweep_pending_broadcast_fan_outs: { Args: never; Returns: number }
+      sweep_release_last_chance: { Args: never; Returns: number }
       toggle_thread_mute: {
         Args: { _job_id: string; _other_user_id: string }
         Returns: boolean

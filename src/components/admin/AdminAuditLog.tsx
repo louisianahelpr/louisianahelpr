@@ -38,16 +38,25 @@ const AdminAuditLog = () => {
 
       if (!data || data.length === 0) return [];
 
-      const adminIds = [...new Set(data.map((e) => e.admin_id))];
-      const profiles = unwrap(await supabase
-        .from("profiles")
-        .select("user_id, full_name")
-        .in("user_id", adminIds));
+      // admin_id is NULL for automated writes (pg_cron / service-role edge
+      // functions) — see 20260825140000. Those nulls must not reach `.in()`:
+      // postgrest serializes them as the literal `null`, and
+      // `user_id=in.(null,…)` is a uuid syntax error (22P02) that fails the
+      // whole query, so one system row would blank the entire tab.
+      const adminIds = [...new Set(data.map((e) => e.admin_id))]
+        .filter((id): id is string => !!id);
 
-      const nameMap = new Map(profiles?.map(p => [p.user_id, p.full_name]) || []);
+      const nameMap = new Map<string, string | null>();
+      if (adminIds.length > 0) {
+        const profiles = unwrap(await supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .in("user_id", adminIds));
+        for (const p of profiles ?? []) nameMap.set(p.user_id, p.full_name);
+      }
       return data.map((e) => ({
         ...e,
-        admin_name: formatName(nameMap.get(e.admin_id), "System"),
+        admin_name: formatName(e.admin_id ? nameMap.get(e.admin_id) : undefined, "System"),
       }));
     },
   });

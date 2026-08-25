@@ -168,11 +168,12 @@ export const DashboardHome = ({
         />
       </div>
 
-      {/* Priority alerts */}
+      {/* Priority alerts. No subtitle: "Queues with something waiting on you"
+          was a paraphrase of "Priority Alerts", and each row below already names
+          its own queue and count — three tellings of one fact. */}
       {hasAlerts && (
         <AdminCard
           title={<span className="flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-accent" /> Priority Alerts</span>}
-          subtitle="Queues with something waiting on you."
         >
           <div className="grid sm:grid-cols-2 gap-2.5 sm:gap-3">
             {stats.pendingApprovals > 0 && (
@@ -192,7 +193,9 @@ export const DashboardHome = ({
       )}
 
       {/* Financial Health — full width */}
-      <AdminCard title="Financial Health" subtitle="All-time totals. Tap any tile for the breakdown in Analytics.">
+      {/* Likewise no subtitle — the tiles inside carry "(all-time)" in their own
+          labels, so a header line saying "All-time totals" said it twice. */}
+      <AdminCard title="Financial Health">
         <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
           {/* Same figure, same name as Analytics — it was "Captured Revenue
               (all-time)" here and "Collected Revenue" there. And it is gross

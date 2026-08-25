@@ -570,14 +570,9 @@ const AdminAnalytics = () => {
           </Suspense>
         </div>
       </AdminCard>
-
-      {/* Footnote — what the money figures on this screen are built from, said
-          once at the bottom rather than repeated on every tile. */}
-      <p className="text-ds-10 text-muted-foreground leading-snug">
-        Collected and profit figures come from the <code className="text-foreground">jobs</code> table; payout and
-        settlement figures come from the <code className="text-foreground">payout_transfers</code> ledger. An em-dash
-        means the figure could not be derived — hover it for the reason.
-      </p>
+      {/* No closing footnote. Every em-dash on this screen already carries its
+          own reason in the tile's sub-line and its `title` — a paragraph down
+          here restating that would be the third telling of one fact. */}
     </AdminViewShell>
   );
 };

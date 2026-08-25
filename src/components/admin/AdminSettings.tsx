@@ -31,8 +31,6 @@ const FEE_LADDER: { id: SubscriptionTier; name: string; percent: number }[] = (
   ["free", "basic", "pro", "elite", ...(BUSINESS_ENABLED ? (["business"] as const) : [])] as SubscriptionTier[]
 ).map((id) => ({ id, name: TIER_PERKS[id].name, percent: TIER_PERKS[id].platformFeePercent }));
 
-const FEE_LADDER_LABEL = FEE_LADDER.map((t) => `${t.name} ${t.percent}`).join(" / ");
-
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
 // Known feature flags. Keeping this as a constants list (vs reading
@@ -323,27 +321,33 @@ const AdminSettings = () => {
         subtitle="Set by subscription tier, not by this screen."
         contentClassName="space-y-4"
       >
-        <div className="space-y-2">
-          <p className="text-ds-11 text-muted-foreground">
-            Each job resolves its own rates from the tier ladder — the poster's service fee and the Helpr's
-            commission both descend as their tier rises. The same table drives the /subscription page and the
-            payout functions, so there is one ladder, not a console copy of one.
-          </p>
-          <ul className="rounded-ds-sm bg-primary/5 p-3 space-y-1">
-            {FEE_LADDER.map((t) => (
-              <li key={t.id} className="flex items-center justify-between text-ds-11">
-                <span className="text-muted-foreground">{t.name}</span>
-                <span className="font-semibold text-foreground tabular-nums">{t.percent}%</span>
-              </li>
-            ))}
-          </ul>
-        </div>
+        {/* The ladder speaks for itself — the paragraph that used to sit above
+            it ("each job resolves its own rates from the tier ladder…") said
+            what the card's own subtitle already says. */}
+        <ul className="rounded-ds-sm bg-primary/5 p-3 space-y-1">
+          {FEE_LADDER.map((t) => (
+            <li key={t.id} className="flex items-center justify-between text-ds-11">
+              <span className="text-muted-foreground">{t.name}</span>
+              <span className="font-semibold text-foreground tabular-nums">{t.percent}%</span>
+            </li>
+          ))}
+        </ul>
+
+        {/* Absorbed from the separate "How the split fee model works" card that
+            used to sit at the bottom of this screen. Two cards explaining one
+            fee model, a page apart, is the duplication itself — not just the
+            prose inside them. */}
+        <ul className="text-ds-11 text-muted-foreground space-y-1.5 list-disc list-inside">
+          <li>Customer pays: job budget + their tier service fee + sales tax, floored at Stripe's cost</li>
+          <li>Helpr receives: job budget − their tier commission + urgent bonus</li>
+          <li>Platform keeps both — each at that party's own tier rate, so the take differs job to job</li>
+        </ul>
+
         <div className="space-y-1.5 border-t border-border/60 pt-3">
           <p className="text-ds-11 font-semibold text-foreground">Fallback rates</p>
           <p className="text-ds-11 text-muted-foreground">
-            Used only when a tier cannot be read at payout time. Stored in{" "}
-            <code className="text-foreground">platform_settings</code>, where the payout edge functions read them —
-            they are not editable here because they are a safety net, not a lever.
+            Used only when a tier can't be read at payout time. Stored in{" "}
+            <code className="text-foreground">platform_settings</code>, where the payout edge functions read them.
           </p>
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-ds-11">
             <span className="text-muted-foreground">
@@ -360,11 +364,11 @@ const AdminSettings = () => {
       <AdminCard
         className="max-w-md"
         title="Social Webhook URL"
-        subtitle={`Paste the Make.com webhook URL here. The "Send to Social" button on the Facebook Post Generator will send each post (text + image + timing) to this URL for scheduling.`}
+        subtitle={`Where the Facebook Post Generator's "Send to Social" posts go for scheduling.`}
         contentClassName="space-y-4"
       >
         <div className="space-y-2">
-          <Label htmlFor="socialWebhook">Webhook URL</Label>
+          <Label htmlFor="socialWebhook">Make.com webhook URL</Label>
           <Input
             id="socialWebhook"
             type="url"
@@ -385,7 +389,7 @@ const AdminSettings = () => {
       <AdminCard
         className="max-w-lg"
         title={<span className="flex items-center gap-2"><Flag className="w-4 h-4 text-primary" /> Feature Flags</span>}
-        subtitle="Server-side toggles for major user-facing surfaces. Off-state should always be a safe fallback (hide UI, no-op handlers). Persists immediately when toggled."
+        subtitle="Server-side toggles that persist immediately — off is always the safe fallback."
       >
         <div className="space-y-2.5">
           {KNOWN_FEATURE_FLAGS.map((flag) => {
@@ -421,9 +425,8 @@ const AdminSettings = () => {
         title={<span className="flex items-center gap-2"><Smartphone className="w-4 h-4 text-primary" /> Minimum Supported Build</span>}
         subtitle={
           <>
-            Native binaries with a build code lower than this are forced to update via the in-app ForceUpdate
-            blocker. Set to <code className="text-foreground">0</code> to disable the check. Bumps take effect on
-            the next app launch — no binary release required.
+            Binaries below this build code are forced to update on next launch; <code className="text-foreground">0</code>{" "}
+            disables the check.
           </>
         }
       >
@@ -494,18 +497,12 @@ const AdminSettings = () => {
         )}
       </AdminCard>
 
-      {/* How fees work — the explainer for the read-only card at the top.
-          Every percentage below now comes from the tier ladder or from the
-          stored fallback; the "total platform take" row is gone because there
-          is no single such number: the take on a job is the poster's tier rate
-          plus the Helpr's tier rate, and those two are independent. */}
-      <AdminCard className="max-w-md" title="How the Fee Model Works">
-        <ul className="text-ds-11 text-muted-foreground space-y-1.5 list-disc list-inside">
-          <li>Customer pays: job budget + their tier service fee ({FEE_LADDER_LABEL}; <strong className="text-foreground">{customerFee || "—"}%</strong> fallback) + sales tax, floored at Stripe's cost</li>
-          <li>Helpr receives: job budget − their tier commission (same ladder; <strong className="text-foreground">{helperFee || "—"}%</strong> fallback) + urgent bonus</li>
-          <li>Platform keeps: service fee from the customer + commission from the Helpr — both at each party's own tier rate, so the take differs job to job</li>
-        </ul>
-      </AdminCard>
+      {/* The "How the split fee model works" card that used to live here is
+          gone — its three bullets moved into the Fee Model card at the top of
+          this screen, beside the ladder they describe. Its "Total platform
+          take: 20%" row is gone for good: there is no single such number, since
+          a job's take is the poster's tier rate plus the Helpr's, independently
+          resolved. */}
 
       {/* Add Admin Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>

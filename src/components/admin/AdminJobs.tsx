@@ -321,7 +321,7 @@ const AdminJobs = () => {
           filteredJobs.length === 0
             ? undefined
             : `${filteredJobs.length} ${filteredJobs.length === 1 ? "job" : "jobs"}${
-                staleOnlyCount > 0 ? ` · ${staleOnlyCount} flagged only for a passed date, sorted last` : ""
+                staleOnlyCount > 0 ? ` · ${staleOnlyCount} stale-dated, sorted last` : ""
               }`
         }
         contentClassName="space-y-3"

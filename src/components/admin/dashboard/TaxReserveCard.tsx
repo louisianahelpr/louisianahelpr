@@ -106,6 +106,12 @@ export const TaxReserveCard = ({
               <button
                 key={opt}
                 type="button"
+                // The sibling segmented control (DateRangeBar) announces its
+                // selection and this one did not, so the only signal that a rate
+                // was chosen was a colour change — and with no fee base to apply
+                // it to, a click produced no observable response at all.
+                aria-pressed={active}
+                aria-label={`Reserve ${Math.round(opt * 100)}% for tax`}
                 onClick={() => setRatePersisted(opt)}
                 className={cn(
                   "px-1.5 h-6 rounded-md text-ds-10 font-semibold tabular-nums transition-colors",
@@ -130,16 +136,19 @@ export const TaxReserveCard = ({
         >
           {statsLoading || feesUnknown ? "—" : money(reserveAllTime)}
         </p>
+        {/* ONE line under the number, and it carries the MATH — not a third
+            paraphrase of "this is only an estimate". The card used to say that
+            three ways: here ("a conservative estimate on gross revenue — actual
+            tax owed is lower after expenses"), in the header ("not a payment"),
+            and again in the footer ("park this in a separate account… confirm
+            the exact rate"). The header keeps the identity, this keeps the
+            arithmetic, and the footer keeps the one thing neither says. */}
         <p className="text-ds-11 mt-1 leading-snug" style={feesUnknown ? { color: "hsl(var(--amber-ink))" } : undefined}>
           {feesUnknown ? (
-            <>
-              No platform fee is recorded on any captured job, so there is no fee base to reserve against.
-              Reconcile the fee columns before trusting a reserve figure.
-            </>
+            "No platform fee is recorded on any captured job, so there is no fee base to reserve against."
           ) : (
             <span className="text-muted-foreground">
               {Math.round(rate * 100)}% of {statsLoading ? "—" : money(totalFees)} all-time platform fees.
-              A conservative estimate on gross revenue — actual tax owed is lower after expenses.
             </span>
           )}
         </p>
@@ -168,7 +177,7 @@ export const TaxReserveCard = ({
       </div>
 
       <p className="text-ds-10 text-muted-foreground leading-snug italic">
-        Park this in a separate account as you earn it and pay quarterly estimates — confirm the exact rate with your CPA.
+        Confirm the exact rate with your CPA.
       </p>
     </div>
   );

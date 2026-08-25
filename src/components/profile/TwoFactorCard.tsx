@@ -195,7 +195,6 @@ function EnrollDialog({
       if (enrollError) throw enrollError;
       return {
         factorId: enrolled.id,
-        qrCode: enrolled.totp.qr_code,
         secret: enrolled.totp.secret,
       };
     },
@@ -243,15 +242,19 @@ function EnrollDialog({
           </p>
         ) : (
           <>
-            <div className="flex flex-col items-center gap-3">
-              <img
-                src={data.qrCode}
-                alt="Two-step verification QR code"
-                width={176}
-                height={176}
-                className="rounded-ds-md bg-white p-2"
-                style={{ border: "0.5px solid hsl(var(--olivewood) / 0.16)" }}
-              />
+            {/* No QR image: the owner removed every QR code from the app
+                (2026-08-25). Enrolment is unaffected — an authenticator app
+                accepts this setup key typed or pasted in, which is the same
+                secret the QR encoded. The key is the primary control now
+                rather than a fallback under the image, so it carries the
+                instruction that used to be implied by the picture. */}
+            <div className="flex flex-col items-center gap-2">
+              <p
+                className="font-serif italic text-ds-12 text-center"
+                style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+              >
+                In your authenticator app, choose “enter a setup key” and paste this:
+              </p>
               <button
                 type="button"
                 onClick={async () => {

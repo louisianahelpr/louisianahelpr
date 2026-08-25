@@ -50,8 +50,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
   const buildShareBody = (code: string) => {
     // Canonical origin, NOT `window.location.origin` — inside the shipped
     // iOS/Android build the page origin is `capacitor://localhost`, which
-    // resolves to nothing on the recipient's phone. Same rule as the QR
-    // code in ReferralExtras.
+    // resolves to nothing on the recipient's phone.
     const url = `${getPublicSiteUrl()}/signup?ref=${encodeURIComponent(code)}`;
     const text = `Join me on Louisiana Helpr — local job marketplace. Use code ${code} and we both earn $5 on your first job.`;
     return { url, text, combined: `${text}\n${url}` };
@@ -243,9 +242,8 @@ const ReferralSection = ({ userId }: { userId: string }) => {
         </div>
       )}
 
-      {/* QR + tier ladder — scan-in-person flow and a tactile sense of
-          "next milestone, how far to go". Self-contained so we don't
-          churn the parent on credit refreshes. */}
+      {/* Tier ladder — a tactile sense of "next milestone, how far to go".
+          Self-contained so we don't churn the parent on credit refreshes. */}
       <ReferralExtras
         referralCount={referralCount}
         totalEarned={totalCredits}

@@ -1,11 +1,16 @@
-// userBlocks.blockUser is the most consequential function here:
-// blocking another user auto-cancels any active job between them.
-// A bug that misses the cancellation step leaves a job running with
-// someone the user just blocked — bad UX. Escrow on those cancelled
-// jobs is refunded by the void-cancelled-payments cron (which sweeps
-// every cancelled + escrow job), NOT by a client invoke — a user JWT
-// can't authorize that function, so blockUser never calls it.
-
+// userBlocks.blockUser is the most consequential function here: blocking
+// another user settles any live job between them.
+//
+// It is now a single server-owned RPC (block_user_and_settle). The client used
+// to insert the block and then write `jobs` itself — cancellation_fee: 0,
+// cancellation_fee_status: null, and no consequence ladder — which made
+// "block the Helpr" a one-tap late cancel with no strike. These tests pin the
+// two properties that matter: the client never writes `jobs` in this path, and
+// an RPC failure fails CLOSED rather than falling back to the old client cancel.
+//
+// Escrow is still settled by the void-cancelled-payments cron (which sweeps
+// every cancelled + escrow job and recomputes the fee from trusted job
+// fields), NOT by a client invoke — a user JWT can't authorize that function.
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Builders for chained query mocks. Supabase's pseudo-fluent API needs
@@ -123,126 +128,78 @@ describe("areUsersBlocked", () => {
 });
 
 describe("blockUser", () => {
-  function setupHappyPath({ activeJobs = [] }: { activeJobs?: unknown[] } = {}) {
-    fromMock.mockImplementation((table: string) => {
-      if (table === "user_blocks") {
-        return { insert: insertMock, delete: deleteMock };
-      }
-      if (table === "jobs") {
-        return {
-          select: () => ({ or: () => ({ in: () => Promise.resolve({ data: activeJobs, error: null }) }) }),
-          update: updateMock,
-        };
-      }
-      return {};
-    });
-    insertMock.mockResolvedValue({ error: null });
-    updateEqMock.mockResolvedValue({ error: null });
-    invokeMock.mockResolvedValue({ data: {}, error: null });
-  }
-
-  it("inserts a user_blocks row with reason", async () => {
-    setupHappyPath();
-    const result = await blockUser("blocker", "blocked", "Harassment");
+  // blockUser no longer touches `jobs` at all. The whole gesture — block +
+  // settle every live shared job through the real cancellation rules + record
+  // the strike — is one server-owned RPC, so these tests assert the call and
+  // the failure handling, not a client-side cancel sequence.
+  it("calls block_user_and_settle with the target and trimmed reason", async () => {
+    rpcMock.mockResolvedValue({ data: { blocked: "blocked", settled: [] }, error: null });
+    const result = await blockUser("blocker", "blocked", "  Harassment  ");
     expect(result.ok).toBe(true);
-    expect(insertMock).toHaveBeenCalledWith({
-      blocker_id: "blocker",
-      blocked_id: "blocked",
-      reason: "Harassment",
+    expect(rpcMock).toHaveBeenCalledWith("block_user_and_settle", {
+      p_blocked: "blocked",
+      p_reason: "Harassment",
     });
   });
 
-  it("inserts with reason=null when none provided", async () => {
-    setupHappyPath();
+  it("sends reason=null when none is provided", async () => {
+    rpcMock.mockResolvedValue({ data: { settled: [] }, error: null });
     await blockUser("blocker", "blocked");
-    expect(insertMock).toHaveBeenCalledWith({
-      blocker_id: "blocker",
-      blocked_id: "blocked",
-      reason: null,
+    expect(rpcMock).toHaveBeenCalledWith("block_user_and_settle", {
+      p_blocked: "blocked",
+      p_reason: null,
     });
   });
 
-  it("treats duplicate-block (idempotent) as success, not error", async () => {
-    setupHappyPath();
-    insertMock.mockResolvedValue({ error: { message: "duplicate key value violates unique constraint" } });
+  it("returns the settled job ids the server reports", async () => {
+    rpcMock.mockResolvedValue({
+      data: {
+        settled: [
+          { job_id: "job-1", title: "Yard", cancellation_fee: 50, fee_percent: 25 },
+          { job_id: "job-2", title: "Move", cancellation_fee: 0, fee_percent: 0 },
+        ],
+      },
+      error: null,
+    });
     const result = await blockUser("blocker", "blocked");
-    expect(result.ok).toBe(true);
+    expect(result.cancelledJobIds).toEqual(["job-1", "job-2"]);
+    expect(result.settled[0].cancellation_fee).toBe(50);
   });
 
-  it("returns ok=false with error when insert fails for a non-duplicate reason", async () => {
-    setupHappyPath();
-    insertMock.mockResolvedValue({ error: { message: "RLS denied" } });
+  it("never writes the jobs table itself", async () => {
+    rpcMock.mockResolvedValue({ data: { settled: [] }, error: null });
+    await blockUser("blocker", "blocked");
+    expect(fromMock).not.toHaveBeenCalledWith("jobs");
+    expect(updateMock).not.toHaveBeenCalled();
+  });
+
+  it("never invokes void-cancelled-payments (a user JWT can't authorize it)", async () => {
+    rpcMock.mockResolvedValue({ data: { settled: [] }, error: null });
+    await blockUser("blocker", "blocked");
+    expect(invokeMock).not.toHaveBeenCalled();
+  });
+
+  it("fails closed on RPC error and does NOT fall back to a client-side cancel", async () => {
+    rpcMock.mockResolvedValue({ data: null, error: { message: "RLS denied", code: "42501" } });
     const result = await blockUser("blocker", "blocked");
     expect(result.ok).toBe(false);
     expect(result.error).toBe("RLS denied");
-  });
-
-  it("auto-cancels active jobs between the two users (refund left to the cron)", async () => {
-    const activeJobs = [
-      { id: "job-1", title: "Yard", customer_id: "blocker", helper_id: "blocked", status: "accepted" },
-      { id: "job-2", title: "Move", customer_id: "blocked", helper_id: "blocker", status: "in_progress" },
-    ];
-    setupHappyPath({ activeJobs });
-
-    const result = await blockUser("blocker", "blocked");
-    expect(result.ok).toBe(true);
-    expect(result.cancelledJobIds).toEqual(["job-1", "job-2"]);
-
-    // Each job got a status='cancelled' update
-    expect(updateMock).toHaveBeenCalledTimes(2);
-    const firstUpdateCall = updateMock.mock.calls[0][0];
-    expect(firstUpdateCall.status).toBe("cancelled");
-    expect(firstUpdateCall.cancelled_by).toBe("blocker");
-    expect(firstUpdateCall.cancellation_reason).toMatch(/blocked/i);
-    expect(firstUpdateCall.cancellation_fee).toBe(0);
-
-    // blockUser must NOT call void-cancelled-payments — a user JWT can't
-    // authorize it (guaranteed 401); the cron handles escrow instead.
-    expect(invokeMock).not.toHaveBeenCalled();
-  });
-
-  it("never invokes void-cancelled-payments, even with no active jobs", async () => {
-    setupHappyPath({ activeJobs: [] });
-    await blockUser("blocker", "blocked");
-    expect(invokeMock).not.toHaveBeenCalled();
-  });
-
-  it("reports (but does not throw) when a job fails to cancel", async () => {
-    const activeJobs = [{ id: "job-1", customer_id: "blocker", helper_id: "blocked" }];
-    setupHappyPath({ activeJobs });
-    updateEqMock.mockResolvedValue({ error: { message: "RLS denied" } });
-
-    const result = await blockUser("blocker", "blocked");
-    // Block itself still succeeds; the un-cancelled job is reported, not silent.
-    expect(result.ok).toBe(true);
-    expect(result.cancelledJobIds).toEqual([]);
+    expect(fromMock).not.toHaveBeenCalledWith("jobs");
     expect(reportMock).toHaveBeenCalledOnce();
     const [, opts] = reportMock.mock.calls[0];
-    expect((opts as { tags: { source: string } }).tags.source).toBe("userBlocks.autoCancelJob");
+    expect((opts as { tags: { source: string } }).tags.source).toBe("userBlocks.blockUserAndSettle");
   });
 
-  it("reports (but does not throw) when the active-jobs lookup fails", async () => {
-    fromMock.mockImplementation((table: string) => {
-      if (table === "user_blocks") return { insert: insertMock, delete: deleteMock };
-      if (table === "jobs") {
-        return {
-          select: () => ({ or: () => ({ in: () => Promise.resolve({ data: null, error: { message: "RLS denied" } }) }) }),
-          update: updateMock,
-        };
-      }
-      return {};
+  it("explains the merge-to-deploy window on PGRST202 instead of a raw error", async () => {
+    rpcMock.mockResolvedValue({
+      data: null,
+      error: { message: "Could not find the function", code: "PGRST202" },
     });
-    insertMock.mockResolvedValue({ error: null });
-
     const result = await blockUser("blocker", "blocked");
-    expect(result.ok).toBe(true);
-    expect(result.cancelledJobIds).toEqual([]);
-    expect(reportMock).toHaveBeenCalledOnce();
-    const [, opts] = reportMock.mock.calls[0];
-    expect((opts as { tags: { source: string } }).tags.source).toBe("userBlocks.activeJobsLookup");
+    expect(result.ok).toBe(false);
+    expect(result.error).toMatch(/deploying/i);
   });
 });
-
 describe("unblockUser", () => {
   it("deletes the block row and returns true on success", async () => {
     fromMock.mockReturnValue({ delete: deleteMock });
@@ -262,4 +219,3 @@ describe("unblockUser", () => {
     expect(await unblockUser("blocker", "blocked")).toBe(false);
   });
 });
-

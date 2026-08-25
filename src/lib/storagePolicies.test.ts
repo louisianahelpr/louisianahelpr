@@ -5,8 +5,8 @@
 // policy to arbitrate the conflict. A bucket that receives upsert uploads but
 // has ZERO SELECT-capable policy therefore fails EVERY client upload with
 // "new row violates row-level security policy" — this shipped twice (the
-// avatars "Enter app" blocker, then the profile-videos intro-video upload,
-// whose bucket didn't exist at all). These tests statically assert that every
+// avatars "Enter app" blocker, then the helper intro-video upload, whose
+// bucket didn't exist at all). These tests statically assert that every
 // bucket the client upserts into is backed by a migration that both creates
 // the bucket and grants it a SELECT (or ALL) policy.
 
@@ -25,7 +25,6 @@ const UPSERT_BUCKETS = [
   "business-documents",
   "id-documents",
   "job-photos",
-  "profile-videos",
   "user-documents",
 ] as const;
 

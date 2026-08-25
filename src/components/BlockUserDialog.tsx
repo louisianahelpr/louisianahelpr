@@ -17,7 +17,15 @@ import { Loader2, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { blockUser } from "@/lib/userBlocks";
-import { createNotification } from "@/lib/notifications";
+// The SAME ladder module the edge function charges from and CancellationDialog
+// quotes. Display-only here — the amount that actually moves is recomputed
+// server-side — but it has to agree with what the poster is about to be
+// charged, so it is read, never restated.
+import {
+  jobLocalMidnightMs,
+  cancellationFeePercent,
+} from "../../supabase/functions/_shared/cancellationFee";
+import { formatPriceExact } from "@/lib/format";
 
 interface BlockUserDialogProps {
   open: boolean;
@@ -44,6 +52,11 @@ export function BlockUserDialog({
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [activeJobCount, setActiveJobCount] = useState<number | null>(null);
+  // Estimated total late-cancellation fee across the live shared jobs, and
+  // whether the current user is the POSTER on any of them (only the poster
+  // pays the fee and takes the reliability strike).
+  const [estimatedFee, setEstimatedFee] = useState(0);
+  const [isPosterOnAny, setIsPosterOnAny] = useState(false);
 
   // Look up active jobs between the two users so we can warn the user
   useEffect(() => {
@@ -54,7 +67,7 @@ export function BlockUserDialog({
       if (!user) return;
       const { data, error } = await supabase
         .from("jobs")
-        .select("id")
+        .select("id, budget, date_needed, customer_id, helper_id")
         .or(
           `and(customer_id.eq.${user.id},helper_id.eq.${blockedUserId}),and(customer_id.eq.${blockedUserId},helper_id.eq.${user.id})`,
         )
@@ -66,7 +79,19 @@ export function BlockUserDialog({
         console.error("[BlockUserDialog] active-job lookup failed:", error);
         return;
       }
-      if (!cancelled) setActiveJobCount(data?.length ?? 0);
+      if (cancelled) return;
+      const rows = data ?? [];
+      setActiveJobCount(rows.length);
+      const mine = rows.filter((r) => r.customer_id === user.id);
+      setIsPosterOnAny(mine.length > 0);
+      setEstimatedFee(
+        mine.reduce((sum, r) => {
+          if (!r.date_needed || !(Number(r.budget) > 0) || !r.helper_id) return sum;
+          const hours = (jobLocalMidnightMs(r.date_needed) - Date.now()) / (1000 * 60 * 60);
+          const percent = cancellationFeePercent(true, hours);
+          return sum + Math.round(Number(r.budget) * percent) / 100;
+        }, 0),
+      );
     })();
     return () => {
       cancelled = true;
@@ -89,17 +114,9 @@ export function BlockUserDialog({
         return false;
       }
 
-      // Notify the blocked user about any cancelled jobs (no notification about the block itself)
-      for (const _jobId of result.cancelledJobIds) {
-        void _jobId;
-        await createNotification({
-          user_id: blockedUserId,
-          title: "Job cancelled",
-          message: "A job between you and another user has been cancelled.",
-          type: "warning",
-          link: "/my-jobs",
-        });
-      }
+      // The per-job notification is sent by block_user_and_settle, inside the
+      // same transaction that cancels the job — so it says the real fee and
+      // cannot be lost if this tab closes mid-gesture.
 
       onBlocked?.(result.cancelledJobIds);
       onClose();
@@ -127,7 +144,25 @@ export function BlockUserDialog({
                 <li>They won&apos;t be notified that you blocked them.</li>
                 {activeJobCount !== null && activeJobCount > 0 && (
                   <li className="not-italic font-sans font-medium" style={{ color: "hsl(var(--burnt-sienna))" }}>
-                    {activeJobCount} active job{activeJobCount === 1 ? "" : "s"} between you will be cancelled and refunded.
+                    {activeJobCount} active job{activeJobCount === 1 ? "" : "s"} between you will be cancelled.{" "}
+                    {isPosterOnAny ? (
+                      estimatedFee > 0 ? (
+                        <>
+                          This counts as a late cancellation: about{" "}
+                          ${formatPriceExact(estimatedFee)} in cancellation fees will be
+                          charged and paid to your Helpr, the rest of your escrow is
+                          refunded, and a cancellation strike is recorded on your account.
+                        </>
+                      ) : (
+                        <>
+                          You&rsquo;re far enough ahead of the job date that no
+                          cancellation fee applies — your escrow is refunded in full — but
+                          a cancellation strike is still recorded on your account.
+                        </>
+                      )
+                    ) : (
+                      <>Any escrow held on {activeJobCount === 1 ? "it" : "them"} settles under the normal cancellation rules.</>
+                    )}
                   </li>
                 )}
               </ul>

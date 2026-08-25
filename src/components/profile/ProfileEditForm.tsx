@@ -12,7 +12,6 @@ import type { ProfileEditFormProps } from "@/components/profile/profileEditForm/
 import { usePortfolio } from "@/components/profile/profileEditForm/usePortfolio";
 import { PhotoNameSection } from "@/components/profile/profileEditForm/PhotoNameSection";
 import { RecentWorkSection } from "@/components/profile/profileEditForm/RecentWorkSection";
-import { IntroVideoSection } from "@/components/profile/profileEditForm/IntroVideoSection";
 import { SaveBar } from "@/components/profile/profileEditForm/SaveBar";
 
 export type { ProfileEditFormProps } from "@/components/profile/profileEditForm/types";
@@ -41,7 +40,6 @@ export function ProfileEditForm({
   onIdUpload,
   onBack,
   onPortfolioChange,
-  onIntroVideoChange,
 }: ProfileEditFormProps) {
   const idStatus = profile?.idv_status ?? null;
   const hasId = !!profile?.id_document_url;
@@ -349,12 +347,6 @@ export function ProfileEditForm({
           handlePortfolioPick={handlePortfolioPick}
           removePortfolioAt={removePortfolioAt}
         />
-
-        {/* Intro video — the other piece of helpr-visible media. Sits with
-            Recent Work rather than on the Profile landing screen because
-            this is the screen that owns profile media and the "saves
-            automatically" model. */}
-        <IntroVideoSection profile={profile} onIntroVideoChange={onIntroVideoChange} />
 
         {/* Preview + autosave reassurance — closes the gap below the last
             card and lets the user see their public profile exactly as

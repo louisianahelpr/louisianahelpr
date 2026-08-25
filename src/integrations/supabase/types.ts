@@ -3242,6 +3242,7 @@ export type Database = {
           ban_status: string | null
           bio: string | null
           boost_credit_used_month: string | null
+          business_name: string | null
           created_at: string
           date_of_birth: string | null
           denial_email_count: number
@@ -3270,9 +3271,6 @@ export type Database = {
           insurance_reviewed_by: string | null
           insurance_status: string
           insurance_url: string | null
-          intro_video_duration_seconds: number | null
-          intro_video_thumbnail_url: string | null
-          intro_video_url: string | null
           is_insured: boolean
           is_legacy_user: boolean
           is_licensed: boolean
@@ -3333,6 +3331,7 @@ export type Database = {
           ban_status?: string | null
           bio?: string | null
           boost_credit_used_month?: string | null
+          business_name?: string | null
           created_at?: string
           date_of_birth?: string | null
           denial_email_count?: number
@@ -3361,9 +3360,6 @@ export type Database = {
           insurance_reviewed_by?: string | null
           insurance_status?: string
           insurance_url?: string | null
-          intro_video_duration_seconds?: number | null
-          intro_video_thumbnail_url?: string | null
-          intro_video_url?: string | null
           is_insured?: boolean
           is_legacy_user?: boolean
           is_licensed?: boolean
@@ -3424,6 +3420,7 @@ export type Database = {
           ban_status?: string | null
           bio?: string | null
           boost_credit_used_month?: string | null
+          business_name?: string | null
           created_at?: string
           date_of_birth?: string | null
           denial_email_count?: number
@@ -3452,9 +3449,6 @@ export type Database = {
           insurance_reviewed_by?: string | null
           insurance_status?: string
           insurance_url?: string | null
-          intro_video_duration_seconds?: number | null
-          intro_video_thumbnail_url?: string | null
-          intro_video_url?: string | null
           is_insured?: boolean
           is_legacy_user?: boolean
           is_licensed?: boolean
@@ -5519,6 +5513,7 @@ export type Database = {
         Args: never
         Returns: {
           avatar_url: string
+          business_name: string
           email: string
           full_name: string
           insurance_status: string
@@ -5644,13 +5639,11 @@ export type Database = {
         Returns: {
           avatar_url: string
           bio: string
+          business_name: string
           created_at: string
           full_name: string
           hourly_rate: number
           insurance_status: string
-          intro_video_duration_seconds: number
-          intro_video_thumbnail_url: string
-          intro_video_url: string
           is_id_verified: boolean
           is_insured: boolean
           is_licensed: boolean

@@ -194,9 +194,9 @@ SheetContent.displayName = SheetPrimitive.Content.displayName;
  * The 40x40 box stays — that is the tap target (>= 44pt with the surrounding
  * p-6), independent of whether anything is painted behind the glyph.
  *
- * Media overlays (PhotoLightbox, VideoPreviewModal) keep their translucent
- * disc on purpose: those Xs sit on arbitrary user photos/video, where a bare
- * glyph can land on a matching-colour region and disappear.
+ * Media overlays (PhotoLightbox) keep their translucent disc on purpose:
+ * those Xs sit on arbitrary user photos, where a bare glyph can land on a
+ * matching-colour region and disappear.
  */
 const SheetCloseButton = ({ top, right }: { top: string; right: string }) => (
   <SheetPrimitive.Close

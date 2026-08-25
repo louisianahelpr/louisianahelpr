@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { execFileSync } from "node:child_process";
 import {
@@ -32,7 +32,13 @@ function sourceFiles(): string[] {
   return execFileSync("git", ["ls-files", "src"], { cwd: process.cwd(), encoding: "utf8" })
     .trim()
     .split("\n")
-    .filter((f) => /\.(ts|tsx)$/.test(f) && !/\.test\./.test(f));
+    .filter((f) => /\.(ts|tsx)$/.test(f) && !/\.test\./.test(f))
+    // `git ls-files` reports what git TRACKS, which still includes a file
+    // deleted in the working tree but not yet staged. This test reads the
+    // working tree, so a pending deletion would blow it up with ENOENT
+    // before a single assertion ran — a red suite caused purely by the order
+    // someone happened to stage things in.
+    .filter((f) => existsSync(resolve(process.cwd(), f)));
 }
 
 /** Does this line talk about the escrow/dispute/revision clock? */

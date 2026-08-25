@@ -120,17 +120,26 @@ const ExceptionQueueInner = () => {
 
   const resolve = async (row: ExceptionRow, res: string) => {
     setBusy(row.id);
-    const { error } = await supabase
+    // `.select()` so "no row matched" is distinguishable from "resolved".
+    // Until the admin RLS policy landed, the only non-owner policy on this
+    // table was `auth.role() = 'service_role'`, which never matches an admin's
+    // JWT — so this update affected zero rows while the queue reported success.
+    const { data: updated, error } = await supabase
       .from("verification_exceptions")
       .update({
         status: "resolved",
         resolution: res.trim() || null,
         resolved_at: new Date().toISOString(),
       })
-      .eq("id", row.id);
+      .eq("id", row.id)
+      .select("id");
     setBusy(null);
     if (error) {
       toast.error(error.message);
+      return;
+    }
+    if (!updated || updated.length === 0) {
+      toast.error("That exception couldn't be resolved — you may not have permission to write to this queue.");
       return;
     }
     qc.invalidateQueries({ queryKey });

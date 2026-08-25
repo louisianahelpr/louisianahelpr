@@ -34,6 +34,8 @@ interface PendingRow {
   insurance_status: string;
   is_licensed: boolean;
   is_insured: boolean;
+  /** Claimed company name — check it against the name printed on the doc. */
+  business_name: string | null;
   submitted_at: string;
 }
 
@@ -132,6 +134,19 @@ const AdminCredentialQueue = () => {
                   <p className="font-semibold text-ds-13 text-foreground truncate">{r.full_name || "Unnamed"}</p>
                   <p className="text-ds-11 text-muted-foreground truncate">{r.email}</p>
                 </div>
+                {/* The claimed business name is part of what's being reviewed:
+                    approving publishes it next to the badge, so it has to
+                    match the name printed on the document below. Editing it
+                    later re-opens this row (trg_auto_pending_credentials). */}
+                {r.business_name && (
+                  <p
+                    className="text-ds-11 font-semibold shrink-0 max-w-[10rem] truncate"
+                    style={{ color: "hsl(var(--burnt-sienna))" }}
+                    title={`Claimed business name: ${r.business_name}`}
+                  >
+                    {r.business_name}
+                  </p>
+                )}
                 <p className="text-ds-11 text-muted-foreground shrink-0">
                   {formatShortDate(r.submitted_at)}
                 </p>

@@ -22,7 +22,11 @@ interface CredentialFields {
   insurance_status: string;
   license_rejection_reason: string | null;
   insurance_rejection_reason: string | null;
+  /** Optional company name off the licence / COI. Public only once verified. */
+  business_name: string | null;
 }
+
+const MAX_BUSINESS_NAME = 80;
 
 type Kind = "license" | "insurance";
 
@@ -97,7 +101,7 @@ const KIND_NOUN_TITLE: Record<Kind, string> = {
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
 const MAX_SIZE = 5 * 1024 * 1024;
 const SELECT_COLS =
-  "is_licensed,is_insured,license_url,insurance_url,license_status,insurance_status,license_rejection_reason,insurance_rejection_reason";
+  "is_licensed,is_insured,license_url,insurance_url,license_status,insurance_status,license_rejection_reason,insurance_rejection_reason,business_name";
 
 const EMPTY: CredentialFields = {
   is_licensed: false,
@@ -108,6 +112,7 @@ const EMPTY: CredentialFields = {
   insurance_status: "none",
   license_rejection_reason: null,
   insurance_rejection_reason: null,
+  business_name: null,
 };
 
 const formatBytes = (n: number) =>
@@ -121,6 +126,12 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
   const [drafts, setDrafts] = useState<Partial<Record<Kind, Draft>>>({});
   // Which SENT document the user is asking to pull back (drives the confirm).
   const [pullBack, setPullBack] = useState<Kind | null>(null);
+  // Business name — same draft-then-send shape as the documents: typing is
+  // local, nothing reaches the row until Save. `null` = not yet seeded from
+  // the server row (the query is still in flight or the user hasn't typed).
+  const [nameDraft, setNameDraft] = useState<string | null>(null);
+  const [savingName, setSavingName] = useState(false);
+  const [renameConfirm, setRenameConfirm] = useState(false);
 
   // React Query cache — renders instantly on revisit, refetches in background.
   const { data: fetched } = useQuery({
@@ -359,6 +370,52 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
   const licVerified = data.is_licensed && data.license_status === "verified";
   const insVerified = data.is_insured && data.insurance_status === "verified";
   const anyVerified = licVerified || insVerified;
+
+  // ── Business name ──────────────────────────────────────────────────────
+  // Offered only to someone who has claimed a credential. A sole trader with
+  // no licence and no COI has no company to name, and asking anyway invents a
+  // field they'd have to think about and skip.
+  const savedName = data.business_name ?? "";
+  const nameValue = nameDraft ?? savedName;
+  const trimmedName = nameValue.trim();
+  const nameTooLong = trimmedName.length > MAX_BUSINESS_NAME;
+  const nameDirty = trimmedName !== savedName.trim();
+  // Saving a NEW name over a live badge re-opens review — the same thing that
+  // happens when the document changes (`trg_auto_pending_credentials`). Warn
+  // before it happens rather than after the badge disappears.
+  const renameCostsBadge = nameDirty && anyVerified;
+
+  const saveBusinessName = async () => {
+    if (!nameDirty || nameTooLong || savingName) return;
+    setSavingName(true);
+    const next = trimmedName === "" ? null : trimmedName;
+    const { error } = await supabase
+      .from("profiles")
+      .update({ business_name: next })
+      .eq("user_id", userId);
+    setSavingName(false);
+    if (error) {
+      hapticError();
+      toast.error("We couldn't save your business name — please try again.");
+      return;
+    }
+    // Mirror the DB trigger locally so the badge doesn't sit there looking
+    // verified for a beat after the server already sent it back to review,
+    // then refetch and let the server win.
+    patchCache({
+      business_name: next,
+      ...(licVerified ? { license_status: "pending" } : {}),
+      ...(insVerified ? { insurance_status: "pending" } : {}),
+    });
+    setNameDraft(null);
+    void qc.invalidateQueries({ queryKey: queryKeys.credentials.byUser(userId) });
+    hapticSuccess();
+    toast.success(
+      anyVerified
+        ? "Saved — your badge is back in review while we check the new name."
+        : "Saved.",
+    );
+  };
 
   const renderCredentialCard = (kind: Kind) => {
     const { url, reason } = fieldsFor(kind);
@@ -651,6 +708,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
                 license_status: licVerified ? "verified" : "none",
                 is_insured: insVerified,
                 insurance_status: insVerified ? "verified" : "none",
+                business_name: data.business_name,
               }}
               size="md"
             />
@@ -660,6 +718,97 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
 
       {renderCredentialCard("license")}
       {renderCredentialCard("insurance")}
+
+      {/* Business name — offered ONLY once a credential is claimed. The name
+          on a licence or COI is part of what the admin verifies, so it lives
+          on this screen with the documents rather than in general profile
+          settings, and it re-enters review when it changes. */}
+      {(licensedOn || insuredOn) && (
+        <div className="rounded-2xl liquid-glass p-5 space-y-3">
+          <div>
+            <p
+              className="font-serif italic uppercase text-ds-10"
+              style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
+            >
+              Optional
+            </p>
+            <Label
+              htmlFor="business-name"
+              className="font-display italic font-bold leading-tight cursor-pointer text-headline-card"
+              style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+            >
+              Business Name
+            </Label>
+            <p className="font-serif italic mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              {anyVerified
+                ? "Shown beside your verified badge, so posters see who's licensed — not just that someone is."
+                : "If your license or COI is issued to a company, add the name exactly as it appears on the document."}
+            </p>
+          </div>
+
+          <Input
+            id="business-name"
+            type="text"
+            inputMode="text"
+            autoComplete="organization"
+            placeholder="e.g. Bayou Plumbing LLC"
+            maxLength={MAX_BUSINESS_NAME}
+            value={nameValue}
+            onChange={(e) => setNameDraft(e.target.value)}
+            aria-describedby="business-name-help"
+          />
+
+          <p
+            id="business-name-help"
+            className="font-serif italic leading-snug text-ds-11"
+            style={{ color: nameTooLong ? "hsl(var(--destructive))" : "hsl(var(--olivewood) / 0.8)" }}
+          >
+            {nameTooLong
+              ? `That's a bit long — please keep it under ${MAX_BUSINESS_NAME} characters.`
+              : renameCostsBadge
+                ? "Changing this sends your badge back to review — we check the new name against your document, same as we would a new copy."
+                : "It has to match the name on the document you send us."}
+          </p>
+
+          {nameDirty && (
+            <Button
+              variant="primary"
+              size="sm"
+              className="w-full"
+              disabled={savingName || nameTooLong}
+              onClick={() => {
+                if (renameCostsBadge) {
+                  setRenameConfirm(true);
+                  return;
+                }
+                void saveBusinessName();
+              }}
+            >
+              {savingName ? "Saving…" : trimmedName === "" ? "Remove Business Name" : "Save Business Name"}
+            </Button>
+          )}
+        </div>
+      )}
+
+      <BrandConfirmDialog
+        open={renameConfirm}
+        onOpenChange={(open) => { if (!open) setRenameConfirm(false); }}
+        title="Send Your Badge Back to Review?"
+        description={
+          trimmedName === ""
+            ? "Your badge comes off your profile while we re-check your documents without a business name. It comes back once we've looked — usually within one business day."
+            : `Your badge comes off your profile while we check “${trimmedName}” against the documents you sent. It comes back once we've looked — usually within one business day.`
+        }
+        primaryLabel="Save It"
+        primaryTone="sienna"
+        primaryHaptic="warning"
+        primaryDisabled={savingName}
+        onPrimary={() => {
+          setRenameConfirm(false);
+          void saveBusinessName();
+        }}
+        secondaryLabel="Keep It As Is"
+      />
 
       {/* Review-then-send. Attaching a file used to write `<kind>_url`
           immediately, which trips the DB trigger and drops the helper into the

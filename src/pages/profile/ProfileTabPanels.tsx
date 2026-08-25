@@ -201,7 +201,6 @@ export const ProfileTabPanels = ({
             onIdUpload={onIdUpload}
             onBack={onBackFromTab}
             onPortfolioChange={(urls) => setProfile((prev) => prev ? ({ ...prev, portfolio_urls: urls }) : prev)}
-            onIntroVideoChange={(fields) => setProfile((prev) => prev ? ({ ...prev, ...fields }) : prev)}
           />
         </Suspense>
       )}

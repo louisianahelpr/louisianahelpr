@@ -98,9 +98,6 @@ export type EnrichedApplication = Application & {
     /** Active subscription tier — drives the gold halo on Pro/Elite
         applicants so posters spot subscribed helpers at a glance. */
     subscription_tier?: string | null;
-    /** Intro video URL — shows a play icon on the applicant card when set. */
-    intro_video_url?: string | null;
-    intro_video_duration_seconds?: number | null;
     /** "Available now" expiry — set to NOW()+4h when the helper signals
         readiness; shown as a green pill on the applicant card. */
     available_until?: string | null;
@@ -110,6 +107,9 @@ export type EnrichedApplication = Application & {
     license_status?: string | null;
     is_insured?: boolean | null;
     insurance_status?: string | null;
+    /** Business name off the licence/COI. get_safe_profiles masks it unless a
+        credential is verified, so it is safe to hand straight to the badge. */
+    business_name?: string | null;
   } | null;
   reviewCount?: number;
   avgRating?: number;

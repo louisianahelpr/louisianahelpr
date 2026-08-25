@@ -2,14 +2,13 @@ import { useState, useCallback } from "react";
 import { formatName } from "@/lib/utils";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Pencil, Play, Plus, Sparkles, Star, X } from "lucide-react";
+import { ArrowLeft, Pencil, Plus, Sparkles, Star, X } from "lucide-react";
 import { AttachmentLink } from "@/components/AttachmentLink";
 import CredentialBadge from "@/components/CredentialBadge";
 import { hapticLight } from "@/lib/haptics";
 import { type Job, type EnrichedApplication } from "../activityConstants";
 import { useApplicantComparison } from "./useApplicantComparison";
 import { DeclineApplicantSheet } from "./DeclineApplicantSheet";
-import { VideoPreviewModal } from "./VideoPreviewModal";
 import { ApplicantsLoadingState, ApplicantsErrorState, ApplicantsEmptyState } from "./applicantsPanel/ApplicantsStates";
 import { ApplicantSortControls } from "./applicantsPanel/ApplicantSortControls";
 import { helperInitialsFrom, isImageAttachment } from "./applicantsPanel/applicantsPanelHelpers";
@@ -51,9 +50,6 @@ export function ApplicantsPanel({
   onTimeMap,
   distanceMap,
 }: ApplicantsPanelProps) {
-  // Video preview modal — stores the URL of the video currently playing.
-  const [playingVideoUrl, setPlayingVideoUrl] = useState<string | null>(null);
-
   // The counter-offer state (bid input, optimistic negotiation status, the
   // counter_application_bid RPC call) lived here until bidding was removed —
   // it was never used in production. Applicants are now hired or declined
@@ -273,25 +269,6 @@ export function ApplicantsPanel({
                                   renders nothing unless a credential is
                                   admin-verified or pending. */}
                               <CredentialBadge credentials={app.profiles ?? {}} size="sm" />
-                              {/* Intro video play icon — only shows when the
-                                  helper has uploaded a 60s intro video. */}
-                              {app.profiles?.intro_video_url && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    setPlayingVideoUrl(app.profiles!.intro_video_url!);
-                                  }}
-                                  aria-label="Play intro video"
-                                  className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 active:opacity-70 transition-opacity shrink-0"
-                                  style={{
-                                    background: "hsl(var(--burnt-sienna) / 0.08)",
-                                  }}
-                                >
-                                  <Play className="w-3 h-3" style={{ color: "hsl(var(--burnt-sienna))", fill: "hsl(var(--burnt-sienna))" }} />
-                                  <span className="text-ds-9 font-semibold" style={{ color: "hsl(var(--burnt-sienna))" }}>Intro</span>
-                                </button>
-                              )}
                               {/* Inline rating — compact ★ 4.9 (23) */}
                               {(app.reviewCount ?? 0) > 0 && (
                                 <span className="flex items-center gap-0.5 shrink-0">
@@ -498,10 +475,6 @@ export function ApplicantsPanel({
         onConfirm={handleDeclineConfirm}
       />
 
-      {/* Video modal — shown when poster taps a helper's intro video pill */}
-      {playingVideoUrl && (
-        <VideoPreviewModal url={playingVideoUrl} onClose={() => setPlayingVideoUrl(null)} />
-      )}
     </>
   );
 }

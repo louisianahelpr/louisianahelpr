@@ -6,6 +6,14 @@ export interface CredentialState {
   is_insured?: boolean | null;
   license_status?: string | null;
   insurance_status?: string | null;
+  /**
+   * Optional business name off the licence / COI. Rendered INSIDE the badge so
+   * a poster sees WHO is licensed, not just that someone is — and only while a
+   * credential is verified (see `trustedName`). The server agrees:
+   * `get_safe_profiles()` masks this column unless the same condition holds,
+   * so a client that forgot to gate it still cannot leak an unvetted claim.
+   */
+  business_name?: string | null;
 }
 
 /**
@@ -28,6 +36,7 @@ export function CredentialBadge({
     is_insured,
     license_status,
     insurance_status,
+    business_name,
   } = credentials;
 
   const licenseVerified = is_licensed && license_status === "verified";
@@ -49,6 +58,17 @@ export function CredentialBadge({
 
   const iconSize = size === "lg" ? "w-4 h-4" : size === "md" ? "w-3.5 h-3.5" : "w-3 h-3";
 
+  // The name rides the badge ONLY while something is verified. A pending or
+  // rejected credential proves nothing, so attaching a company name to it
+  // would dress an unreviewed claim in the badge's credibility.
+  const trustedName =
+    licenseVerified || insuranceVerified ? (business_name?.trim() || null) : null;
+  const nameSuffix = trustedName ? (
+    <span className="min-w-0 max-w-[10rem] truncate font-normal opacity-80" title={trustedName}>
+      · {trustedName}
+    </span>
+  ) : null;
+
   // Tier 1 — Both verified: literal gold seal. Top prestige across the
   // app, so it gets the heaviest gold treatment (matches the tier-gold-elite
   // tier badge for visual consistency).
@@ -56,13 +76,18 @@ export function CredentialBadge({
     return (
       <span
         className={cn(
-          "inline-flex items-center rounded-full font-semibold tier-gold-elite",
+          "inline-flex items-center rounded-full font-semibold tier-gold-elite max-w-full",
           sizeCls
         )}
-        title="Licensed & Insured — verified by Helpr"
+        title={
+          trustedName
+            ? `${trustedName} — licensed & insured, verified by Helpr`
+            : "Licensed & Insured — verified by Helpr"
+        }
       >
-        <ShieldCheck className={cn(iconSize, "verified-gold")} />
-        Licensed & Insured
+        <ShieldCheck className={cn(iconSize, "verified-gold", "shrink-0")} />
+        Licensed &amp; Insured
+        {nameSuffix}
       </span>
     );
   }
@@ -72,14 +97,15 @@ export function CredentialBadge({
     return (
       <span
         className={cn(
-          "inline-flex items-center rounded-full font-semibold border bg-primary/10 text-primary border-primary/30",
+          "inline-flex items-center rounded-full font-semibold border bg-primary/10 text-primary border-primary/30 max-w-full",
           sizeCls
         )}
-        title="License verified by Helpr"
+        title={trustedName ? `${trustedName} — license verified by Helpr` : "License verified by Helpr"}
       >
-        <BadgeCheck className={iconSize} />
+        <BadgeCheck className={cn(iconSize, "shrink-0")} />
         Licensed
-        {insurancePending && <span className="opacity-70">· Insurance pending</span>}
+        {nameSuffix}
+        {insurancePending && <span className="shrink-0 opacity-70">· Insurance pending</span>}
       </span>
     );
   }
@@ -87,14 +113,15 @@ export function CredentialBadge({
     return (
       <span
         className={cn(
-          "inline-flex items-center rounded-full font-semibold border bg-primary/10 text-primary border-primary/30",
+          "inline-flex items-center rounded-full font-semibold border bg-primary/10 text-primary border-primary/30 max-w-full",
           sizeCls
         )}
-        title="Insurance verified by Helpr"
+        title={trustedName ? `${trustedName} — insurance verified by Helpr` : "Insurance verified by Helpr"}
       >
-        <BadgeCheck className={iconSize} />
+        <BadgeCheck className={cn(iconSize, "shrink-0")} />
         Insured
-        {licensePending && <span className="opacity-70">· License pending</span>}
+        {nameSuffix}
+        {licensePending && <span className="shrink-0 opacity-70">· License pending</span>}
       </span>
     );
   }

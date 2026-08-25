@@ -84,11 +84,8 @@ interface CheckoutStepProps {
   parish?: string | null;
   /** Preferred helper stub — shown as a "Send to [name] first?" shortcut
    *  when the poster has a trusted repeat helper set on their profile. */
-  preferredHelper?: { id: string; name: string | null } | null;
   /** Whether the "send to preferred helper first" checkbox is checked. */
-  sendToPreferred?: boolean;
   /** Callback when the checkbox changes. */
-  onSendToPreferredChange?: (checked: boolean) => void;
 }
 
 export function CheckoutStep({
@@ -127,9 +124,6 @@ export function CheckoutStep({
   uploadProgress,
   onSubmit,
   parish,
-  preferredHelper,
-  sendToPreferred,
-  onSendToPreferredChange,
 }: CheckoutStepProps) {
   // The tax STRIPE WILL CHARGE, asked of Stripe rather than recomputed here.
   //
@@ -596,38 +590,6 @@ export function CheckoutStep({
           control types remain, and the split is meaningful rather than
           accidental: Switch for a sticky account PREFERENCE ("save card for
           next time"), Checkbox for a per-job CHOICE or consent. */}
-      {preferredHelper && onSendToPreferredChange && (
-        <label
-          htmlFor="send-to-preferred"
-          className="rounded-ds-md p-3 flex items-center gap-2.5 cursor-pointer min-h-[44px]"
-          style={{
-            background: "hsl(var(--bark) / 0.06)",
-            border: "0.5px solid hsl(var(--bark) / 0.15)",
-          }}
-        >
-          <Users className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--bark))" }} />
-          <div className="flex-1 min-w-0">
-            <p
-              className="font-sans font-semibold text-ds-13"
-              style={{ color: "hsl(var(--ink-deep))" }}
-            >
-              Send to {preferredHelper.name ?? "your trusted helper"} first?
-            </p>
-            <p
-              className="font-serif italic text-ds-11"
-              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-            >
-              Your trusted helper from past jobs
-            </p>
-          </div>
-          <Checkbox
-            id="send-to-preferred"
-            checked={!!sendToPreferred}
-            onCheckedChange={(checked) => onSendToPreferredChange(checked === true)}
-            className="shrink-0"
-          />
-        </label>
-      )}
 
       {/* Confirmation Checkbox — the full card is a <label> so tapping
           anywhere on it toggles the checkbox. This makes the tap target

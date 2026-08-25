@@ -643,8 +643,23 @@ export function PostedJobActions({
                   e.stopPropagation();
                   setDisputeActing(true);
                   try {
-                    const { error } = await supabase.from("jobs").update({ status: "completed", dispute_status: "resolved", dispute_resolved_at: new Date().toISOString() }).eq("id", job.id);
+                    // Two steps, both server-side: close the dispute record
+                    // (rpc_withdraw_dispute hands the job back to
+                    // 'in_progress'), then settle through the SAME release
+                    // path an ordinary completion uses. The old version wrote
+                    // status='completed' straight from the client and promised
+                    // the helper payment that no release path would ever pick
+                    // up — escrow stayed held forever.
+                    const { error } = await supabase.rpc("rpc_withdraw_dispute" as never, { _job_id: job.id } as never);
                     if (error) { hapticError(); toast.error("We couldn't mark that resolved — please try again."); return; }
+                    const { data: releaseData, error: releaseError } = await supabase.functions.invoke("create-payment", { body: { action: "release", jobId: job.id } });
+                    if (releaseError || releaseData?.error) {
+                      report(releaseError ?? new Error(String(releaseData?.error)), { tags: { source: "PostedJobCard.resolveDisputeRelease" }, context: { job_id: job.id } });
+                      hapticError();
+                      toast.error("Dispute closed, but the payment didn't release. Contact support so we can finish it.");
+                      onActionComplete();
+                      return;
+                    }
                     if (job.helper_id) await createNotification({ user_id: job.helper_id, title: "Dispute resolved ✓", message: `The poster confirmed the issue on "${job.title}" is resolved. Payment will be released.`, type: "payment", link: "/my-jobs?filter=completed" });
                     hapticSuccess();
                     onActionComplete();

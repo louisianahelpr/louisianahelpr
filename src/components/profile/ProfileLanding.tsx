@@ -1,10 +1,8 @@
 import { useStripeConnectStatus } from "@/hooks/useStripeConnectStatus";
 import type { ProfileLandingProps } from "./profileLanding/types";
 import { useProfileLandingDerived } from "./profileLanding/useProfileLandingDerived";
-import { useProfileQrCode } from "./profileLanding/useProfileQrCode";
 import { IdentityHeader } from "./profileLanding/IdentityHeader";
 import { SettingsSection } from "./profileLanding/SettingsSection";
-import { QrCodeModal } from "./profileLanding/QrCodeModal";
 
 export function ProfileLanding({
   profile,
@@ -23,7 +21,6 @@ export function ProfileLanding({
   earningsSparkline = null,
   totalEarnings = 0,
 }: ProfileLandingProps) {
-  const { qrOpen, setQrOpen, qrDataUrl } = useProfileQrCode(profile);
   // Owned here rather than passed in — see the note in `types.ts`. Cached,
   // so re-opening Profile in the same session paints the payout state on
   // the first frame instead of re-asking Stripe every mount.
@@ -58,7 +55,6 @@ export function ProfileLanding({
         hasPhoto={hasPhoto}
         memberSinceLabel={memberSinceLabel}
         earnedBadges={earnedBadges}
-        setQrOpen={setQrOpen}
       />
 
       {/* ── Settings & navigation ────────────────────────────────────
@@ -76,13 +72,6 @@ export function ProfileLanding({
         onRequestDelete={onRequestDelete}
       />
 
-      {/* ── QR code modal ─────────────────────────────────────────────── */}
-      <QrCodeModal
-        profile={profile}
-        qrOpen={qrOpen}
-        setQrOpen={setQrOpen}
-        qrDataUrl={qrDataUrl}
-      />
     </>
   );
 }

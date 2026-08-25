@@ -272,8 +272,8 @@
       }
       [data-theme="dark"] #root,
       [data-theme="dark"] #boot-loader {
-        background: radial-gradient(circle at 50% 46%, hsl(20 14% 13%) 0%, hsl(20 15% 9%) 52%, hsl(20 17% 6%) 100%) !important;
-        background-color: hsl(20 15% 9%) !important;
+        background: linear-gradient(160deg, hsl(220 15% 8%) 0%, hsl(220 12% 11%) 40%, hsl(200 15% 10%) 100%) !important;
+        background-color: hsl(220 15% 8%) !important;
       }
       /* Mirrors `[data-theme="dark"] .helpr-emblem` in src/index.css. It cannot
          reuse that class: index.css ships with the JS bundle, which has not
@@ -334,12 +334,12 @@
       React's createRoot().render() clears #root's children on its first
       commit, so this markup is removed the instant the app paints.
     -->
-    <div id="root" style="background:radial-gradient(circle at 50% 46%, hsl(220 20% 98%) 0%, hsl(220 14% 95%) 52%, hsl(220 13% 91%) 100%);background-color:hsl(220 14% 95%);min-height:100vh;">
+    <div id="root" style="background:linear-gradient(135deg, #F7F8FA 0%, #EDEFF3 100%);background-color:#F0F2F4;min-height:100vh;">
       <div
         id="boot-loader"
         role="status"
         aria-label="Loading Helpr"
-        style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 46%, hsl(220 20% 98%) 0%, hsl(220 14% 95%) 52%, hsl(220 13% 91%) 100%);background-color:hsl(220 14% 95%);"
+        style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg, #F7F8FA 0%, #EDEFF3 100%);background-color:#F0F2F4;"
       >
         <span class="boot-holder"><img
           class="boot-mark"

@@ -109,7 +109,7 @@ const config: CapacitorConfig = {
       // src/integrations/supabase/keychainStorageAdapter.ts.
       launchShowDuration: 0,
       launchAutoHide: false,
-      backgroundColor: '#F1F2F4', // COOL parchment — the exact hex of hsl(220 14% 95%), i.e. --parchment in index.css. Matches StatusBar (below), index.html's theme-color and the #root FCP shell, so cold-start never flashes a mismatched tint as splash hands off to the WebView.
+      backgroundColor: '#F1F2F4', // COOL parchment — the exact hex of hsl(220 14% 95%), i.e. --parchment in index.css. Matches StatusBar (below) and index.html's theme-color. The #root/#boot-loader shell and the app's page ground both paint the diagonal champagne gradient (#F7F8FA -> #EDEFF3); this flat value sits between those two endpoints, so the splash-to-WebView handoff stays within a couple of RGB units instead of flashing a different surface.
       //
       // This comment used to read "Warm parchment (hsl(36 16% 91%))" while the
       // value beside it was already cool. That is how P2 happened the first

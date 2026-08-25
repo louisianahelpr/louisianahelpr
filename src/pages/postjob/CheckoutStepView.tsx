@@ -1,5 +1,3 @@
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { CheckoutStep } from "@/components/postjob/CheckoutStep";
 import { CheckoutStepIndicator } from "./CheckoutStepIndicator";
 import type { usePostJobForm } from "./usePostJobForm";
@@ -17,31 +15,6 @@ interface CheckoutStepViewProps {
  * checkout was the page-header arrow, which the user often missed.
  */
 export function CheckoutStepView({ form }: CheckoutStepViewProps) {
-  // Fetch the preferred helper's name so the checkout card can show
-  // "Send to [Name] first?" — only fires when there's a preferredHelperId.
-  const preferredHelperId = form.preferredHelperId;
-  const { data: preferredHelperProfile } = useQuery({
-    queryKey: ["profile_stub", preferredHelperId],
-    queryFn: async () => {
-      const res = await supabase
-        .from("profiles")
-        .select("user_id, full_name")
-        .eq("user_id", preferredHelperId!)
-        .maybeSingle();
-      if (res.error) throw res.error;
-      return res.data;
-    },
-    enabled: !!preferredHelperId,
-    staleTime: 5 * 60_000,
-  });
-
-  const preferredHelper = preferredHelperId
-    ? {
-        id: preferredHelperId,
-        name: preferredHelperProfile?.full_name ?? null,
-      }
-    : null;
-
   return (
     <div key="checkout-step" className="space-y-6 animate-ds-page-in">
       <CheckoutStepIndicator onBackToForm={() => form.setStep("form")} />
@@ -89,9 +62,6 @@ export function CheckoutStepView({ form }: CheckoutStepViewProps) {
         uploadProgress={form.uploadProgress}
         onSubmit={form.handleSubmit}
         parish={form.parish}
-        preferredHelper={preferredHelper}
-        sendToPreferred={form.sendToPreferred}
-        onSendToPreferredChange={form.setSendToPreferred}
       />
     </div>
   );

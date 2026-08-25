@@ -8,14 +8,10 @@
 // scanned-vs-tapped flow lands the recipient at the same place.
 
 import { useEffect, useRef, useState } from "react";
-import QRCode from "qrcode";
 import { Trophy } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { getPublicSiteUrl } from "@/lib/authRedirects";
 import { formatPrice } from "@/lib/format";
-
-/** CSS display size of the QR code. Backing bitmap is 3x this (see below). */
-const QR_DISPLAY_PX = 120;
 
 interface ReferralExtrasProps {
   referralCode: string | null;
@@ -36,55 +32,7 @@ const LADDER = [
 ];
 
 export function ReferralExtras({ referralCode, referralCount, totalEarned }: ReferralExtrasProps) {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [qrError, setQrError] = useState(false);
 
-  // Render the QR onto a canvas every time the code changes. The
-  // `qrcode` lib draws synchronously once the encoder is ready;
-  // failures degrade quietly to a "tap the share button instead"
-  // hint below the canvas slot.
-  useEffect(() => {
-    if (!canvasRef.current || !referralCode) return;
-    // Canonical origin, NOT `window.location.origin`. The shipped app has no
-    // `server.url` (capacitor.config.ts), so inside the iOS/Android build the
-    // page origin is `capacitor://localhost` / `http://localhost` — and this QR
-    // exists precisely to be held up for someone ELSE's phone to scan at a job
-    // site, where that origin resolves to nothing at all.
-    const url = `${getPublicSiteUrl()}/signup?ref=${encodeURIComponent(referralCode)}`;
-    QRCode.toCanvas(
-      canvasRef.current,
-      url,
-      {
-        errorCorrectionLevel: "M",
-        margin: 2,
-        // Backing bitmap, not display size: the code is shown at 120 CSS px
-        // (see the canvas style below), which is 360 device px on a 3x phone.
-        // At 144 the compositor was upscaling every module edge; matching the
-        // device budget keeps the modules hard-edged for the camera.
-        width: 360,
-        color: {
-          dark: "#3a3d2e", // ink-deep equivalent in hex (lib doesn't read CSS vars)
-          light: "#f8f4e9", // parchment-ish
-        },
-      },
-      (err) => {
-        if (err) {
-          setQrError(true);
-          return;
-        }
-        // qrcode's canvas renderer sets `canvas.style.width/height` to the
-        // BACKING size (360px here) after drawing, clobbering the 120px
-        // display size React set inline. React never re-applies it (the prop
-        // didn't change), so the card rendered 360 CSS px wide and blew the
-        // whole referral screen past the viewport. Restore the display size.
-        const el = canvasRef.current;
-        if (el) {
-          el.style.width = `${QR_DISPLAY_PX}px`;
-          el.style.height = `${QR_DISPLAY_PX}px`;
-        }
-      },
-    );
-  }, [referralCode]);
 
   // Active rung — the *highest* milestone the user has reached. Drives
   // the "now" marker and rewards-claimed pill.
@@ -111,62 +59,6 @@ export function ReferralExtras({ referralCode, referralCount, totalEarned }: Ref
 
   return (
     <div className="space-y-4">
-      {/* ── QR card ──────────────────────────────────────────────── */}
-      <div className="rounded-2xl liquid-glass p-4 flex items-center gap-4">
-        {/* The frame is a FIXED light fill, not `--surface-band`: it is part of
-            the code's quiet zone, which the spec puts at ~4 light modules. The
-            encoder draws 2 (a bigger margin would shrink the data modules
-            inside the same 120px), so the rest is this 8px of padding — which
-            only counts if it stays light. On the theme-aware token it went dark
-            in dark mode and the code sat flush against a dark surface, a known
-            way to make an on-screen QR harder to acquire. Matches the `light`
-            colour passed to the encoder so the two read as one white margin. */}
-        <div
-          className="shrink-0 rounded-ds-md p-2"
-          style={{
-            background: "#f8f4e9",
-            border: "0.5px solid hsl(var(--border))",
-          }}
-        >
-          {referralCode ? (
-            <canvas
-              ref={canvasRef}
-              width={360}
-              height={360}
-              aria-label={`QR code for referral code ${referralCode}`}
-              role="img"
-              style={{ display: "block", width: QR_DISPLAY_PX, height: QR_DISPLAY_PX }}
-            />
-          ) : (
-            <div className="w-[120px] h-[120px] flex items-center justify-center text-muted-foreground">
-              <HelprSpinner size={20} />
-            </div>
-          )}
-        </div>
-        <div className="flex-1 min-w-0">
-          <h3
-            className="font-display italic font-bold leading-tight text-ds-16"
-            style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
-          >
-            In-person QR code
-          </h3>
-          <p
-            className="font-serif italic mt-1 leading-snug text-ds-12"
-            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-          >
-            Show this to a friend at a job site — they scan, sign up, and your code is auto-applied.
-          </p>
-          {qrError && (
-            <p
-              className="font-serif italic mt-1.5 leading-snug text-ds-12"
-              style={{ color: "hsl(var(--burnt-sienna))" }}
-            >
-              Couldn't draw the QR — use the share button above instead.
-            </p>
-          )}
-        </div>
-      </div>
-
       {/* ── Tier ladder ──────────────────────────────────────────── */}
       <div className="rounded-2xl liquid-glass p-4">
         <div className="flex items-baseline justify-between gap-2 mb-3">

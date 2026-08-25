@@ -1,6 +1,6 @@
 import {
   MapPin, ChevronRight as ChevronRightIcon,
-  Award, BadgeCheck, Building2, Camera, Crown, QrCode, Users,
+  Award, BadgeCheck, Building2, Camera, Crown, Users,
   Star, Share2, Edit,
 } from "lucide-react";
 import { useBusinessSeatTier } from "@/hooks/useBusinessSeatTier";
@@ -30,7 +30,6 @@ interface IdentityHeaderProps {
   hasPhoto: boolean;
   memberSinceLabel: string | null;
   earnedBadges: { ok: boolean; label: string }[];
-  setQrOpen: (open: boolean) => void;
 }
 
 export function IdentityHeader({
@@ -49,7 +48,6 @@ export function IdentityHeader({
   hasPhoto,
   memberSinceLabel,
   earnedBadges,
-  setQrOpen,
 }: IdentityHeaderProps) {
   // Crew/Team/Enterprise badge for a business member — see the note at the
   // render site for why it outranks the consumer tier chip.
@@ -419,19 +417,6 @@ export function IdentityHeader({
             </span>
           </button>
 
-          <button
-            type="button"
-            aria-label="My QR code"
-            disabled={!profile?.user_id}
-            onClick={() => { hapticLight(); setQrOpen(true); }}
-            className="flex flex-col items-center justify-center gap-1 min-h-[64px] rounded-ds-md px-1 py-2 active:scale-95 transition-transform disabled:opacity-50"
-            style={{ background: "hsl(var(--bark) / 0.06)" }}
-          >
-            <QrCode className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} />
-            <span className="text-ds-9 font-sans font-semibold" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-              QR Code
-            </span>
-          </button>
         </div>
 
         {/* Earnings sparkline teaser — a tiny last-6-weeks take-home

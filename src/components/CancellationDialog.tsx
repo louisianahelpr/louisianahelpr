@@ -233,6 +233,17 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
       }
 
       hapticSuccess();
+      // Cancelling used to end in silence — the dialog closed, the card
+      // vanished, and nothing said what happened to the money. That refund is
+      // the one outcome a poster needs stated, so this confirmation names it.
+      // It carries an action, which is also what lets it past the
+      // suppress-plain-success toast policy (see lib/toastPolicy.ts).
+      toast.success(
+        hasHelper && cancellationFee > 0
+          ? `Job cancelled. The $${formatPrice(cancellationFee)} cancellation fee applies — the rest returns to your card.`
+          : "Job cancelled — the full amount returns to your card.",
+        { action: { label: "Dismiss", onClick: () => { /* toast closes itself */ } } },
+      );
       onCancelled();
       onClose();
     } catch (err) {

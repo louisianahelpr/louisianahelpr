@@ -225,7 +225,6 @@ export function usePostJobForm() {
   // Preferred helper shortcut — when the poster has a trusted repeat helper,
   // a card at checkout lets them route this job to that helper first.
   // Defaults to true so the opt-in is pre-checked (opt-out, not opt-in).
-  const [sendToPreferred, setSendToPreferred] = useState(true);
 
   // Direct Offer state — set when arriving via /post-job?offerTo=<helperId>
   const [offerToHelperId, setOfferToHelperId] = useState<string | null>(null);
@@ -565,11 +564,8 @@ export function usePostJobForm() {
     confirmed,
     setConfirmed,
     // preferred helper shortcut
-    sendToPreferred,
-    setSendToPreferred,
     /** The poster's preferred repeat helper, derived from their profile.
      *  Shown as a "Send to [name] first?" card at checkout. */
-    preferredHelperId: (profile as unknown as { preferred_helper_id?: string | null })?.preferred_helper_id ?? null,
     // ai builder
     applyAiJob,
     // derived values

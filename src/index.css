@@ -654,6 +654,7 @@
 
 /* Dark mode page gradients */
 [data-theme="dark"] .bg-premium-page,
+[data-theme="dark"] html.web-desktop.app-shell body,
 [data-theme="dark"] .page-warmth {
   background-color: hsl(var(--parchment));
   background-image:
@@ -930,9 +931,21 @@ html.web-desktop {
 
      `body` carries the real page background, so it paints the full viewport
      and the boot gradient is covered the moment the app mounts — which is all
-     it was ever meant to survive. */
+     it was ever meant to survive.
+
+     It must paint the SAME gradient the frame does, not a flat fill. A flat
+     `--parchment` (220 14% 95% = #F0F2F4) sits between the gradient's two
+     endpoints, so the strip behind the panel was lighter than the frame at the
+     top-left and darker at the bottom-right — two surfaces meeting down the
+     panel's edge, which is the seam that kept coming back. Both layers are
+     `background-attachment: fixed`, so painting the identical gradient here
+     lines it up with the frame's pixel-for-pixel and the join disappears. Same
+     declaration as `.bg-premium-page`; if that gradient is ever retuned, this
+     must move with it. */
   html.web-desktop.app-shell body {
-    background-color: hsl(var(--parchment));
+    background-color: hsl(var(--background));
+    background-image: linear-gradient(135deg, #F7F8FA 0%, #EDEFF3 100%);
+    background-attachment: fixed;
   }
   html.web-desktop.app-shell #root {
     background: transparent !important;

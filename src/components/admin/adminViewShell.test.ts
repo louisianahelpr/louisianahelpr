@@ -25,8 +25,6 @@ import { resolve } from "node:path";
  * managed to pass while seven tabs were off-shell.
  */
 const SHELL = "space-y-6";
-/** `AdminViewShell` IS `space-y-5 sm:space-y-6` — the same rhythm, named. */
-const SHELL_COMPONENT = "AdminViewShell";
 const ROOT = resolve(__dirname, "../../..");
 
 /** The components /admin renders as views, read out of the router itself. */
@@ -40,19 +38,28 @@ function adminViews(): string[] {
 /** The wrapper on a component's MAIN render — the last top-level `return (`,
  *  not a loading or empty-state early return above it.
  *
- *  Returns the literal `"<AdminViewShell>"` for a view that has adopted the
- *  component. That adoption is the END STATE this test was written to drive
- *  toward, and without this branch it would have read as "not a plain <div>,
- *  nothing to compare" and skipped — so the views that actually did the work
- *  would be the only ones no longer covered. */
+ *  Two shapes count as the shell now. `<AdminViewShell>` is the component
+ *  form and is the goal state; a literal `space-y-6` div is the hand-rolled
+ *  form this test originally pinned, still correct but pre-adoption. Returns
+ *  the literal class string for a div, or SHELL for AdminViewShell, so the
+ *  assertion below can treat them the same. */
 function mainWrapper(name: string): string | null {
   const f = resolve(ROOT, `src/components/admin/${name}.tsx`);
   if (!existsSync(f)) return null;
   const src = readFileSync(f, "utf8");
-  const ms = [...src.matchAll(/return \(\s*\n\s*<(?:div className="([^"]*)"|(AdminViewShell)[\s>])/g)];
+  const ms = [...src.matchAll(/return \(\s*\n\s*<(AdminViewShell[\s>]|div className="([^"]*)")/g)];
   if (!ms.length) return null;
   const last = ms[ms.length - 1];
-  return last[2] ? SHELL_COMPONENT : last[1];
+  return last[2] ?? SHELL;
+}
+
+/** Views that render through the AdminViewShell component rather than a
+ *  hand-rolled `space-y-6` div. Adoption is one-way: a view in this list must
+ *  never regress to the hand-rolled form. */
+function usesShellComponent(name: string): boolean {
+  const f = resolve(ROOT, `src/components/admin/${name}.tsx`);
+  if (!existsSync(f)) return false;
+  return /<AdminViewShell[\s>]/.test(readFileSync(f, "utf8"));
 }
 
 describe("Admin views share one shell", () => {
@@ -70,14 +77,48 @@ describe("Admin views share one shell", () => {
     const wrong: string[] = [];
     for (const v of adminViews()) {
       const w = mainWrapper(v);
-      // A view whose top level isn't a plain <div className="…"> is not
-      // asserted here — it has a structural reason (a Fragment, an early
-      // centred loading state) and there is nothing to compare.
+      // A view whose top level isn't <AdminViewShell> or a plain
+      // <div className="…"> is not asserted here — it has a structural reason
+      // (a Fragment, an early centred loading state) and there is nothing to
+      // compare.
       if (w === null) continue;
-      if (w === SHELL_COMPONENT) continue;
       if (!w.startsWith("space-y-")) continue;
       if (w !== SHELL) wrong.push(`${v}: "${w}"`);
     }
     expect(wrong, `admin views off the shared shell ("${SHELL}")`).toEqual([]);
+  });
+
+  // Adoption is one-way. The long-tail views were migrated to the component
+  // on 2026-08-24; a regression to a hand-rolled `space-y-6` div would pass
+  // the assertion above (the spacing still matches) while silently losing the
+  // shell — which is exactly how the Profile-tab test managed to stay green
+  // through seven off-shell tabs.
+  const ADOPTED = [
+    "AdminAuditLog", "AdminBroadcasts", "AdminCredentialQueue", "AdminExceptionQueue",
+    "AdminExport", "AdminFraudDashboard", "AdminHealth", "AdminHelperTiers",
+    "AdminIDVQueue", "AdminMarketing", "AdminNotificationLogs", "AdminNotifications",
+    "AdminPayoutBatches", "AdminReferrals", "AdminReports", "AdminSubscriptions",
+    "AdminSupport",
+  ];
+
+  it("views that adopted AdminViewShell keep it", () => {
+    const regressed = ADOPTED.filter((v) => !usesShellComponent(v));
+    expect(regressed, "views that dropped <AdminViewShell>").toEqual([]);
+  });
+
+  it("no adopted view still hand-rolls a liquid-glass section card", () => {
+    // AdminCard is the ONE section-card material. A `liquid-glass` card in an
+    // adopted view means a section was added without it, which is how the
+    // console accumulated three competing card materials in the first place.
+    // Matched inside a className only — the word also appears in the comments
+    // that explain why these views stopped using it, and a bare substring
+    // search would flag its own documentation.
+    const offenders = ADOPTED.filter((v) => {
+      const f = resolve(ROOT, `src/components/admin/${v}.tsx`);
+      if (!existsSync(f)) return false;
+      return [...readFileSync(f, "utf8").matchAll(/className=(?:"([^"]*)"|\{`([^`]*)`\})/g)]
+        .some((m) => /\bliquid-glass\b/.test(m[1] ?? m[2] ?? ""));
+    });
+    expect(offenders, "adopted views still using .liquid-glass cards").toEqual([]);
   });
 });

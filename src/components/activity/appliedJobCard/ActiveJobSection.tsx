@@ -51,10 +51,10 @@ export function ActiveJobSection({
     queryFn: async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("auto_release_on_complete" as never)
+        .select("auto_release_on_complete")
         .eq("user_id", job.customer_id as string)
         .maybeSingle();
-      return !!(data as { auto_release_on_complete?: boolean } | null)?.auto_release_on_complete;
+      return !!data?.auto_release_on_complete;
     },
   });
 
@@ -70,7 +70,7 @@ export function ActiveJobSection({
   return (
     <div className="px-4 py-3 border-t border-[hsl(var(--olivewood)/0.1)] bg-card space-y-2.5" onClick={(e) => e.stopPropagation()}>
       {/* Live tracking for in-progress jobs */}
-      <JobTracking jobId={app.job_id} helperId={userId} isHelper={true} isOwner={false} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={job.helper_confirmed_at} helperDayofConfirmedAt={(job as unknown as { helper_dayof_confirmed_at?: string | null }).helper_dayof_confirmed_at ?? null} posterConfirmedAt={job.poster_confirmed_at} initialTracking={initialTracking} jobLatitude={job.latitude} jobLongitude={job.longitude} helperOnTheWayAt={job.helper_on_the_way_at} helperArrivedAt={job.helper_arrived_at} helperCompletedAt={job.helper_completed_at} posterCompletedAt={job.poster_completed_at} />
+      <JobTracking jobId={app.job_id} helperId={userId} isHelper={true} isOwner={false} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={job.helper_confirmed_at} helperDayofConfirmedAt={job.helper_dayof_confirmed_at} posterConfirmedAt={job.poster_confirmed_at} initialTracking={initialTracking} jobLatitude={job.latitude} jobLongitude={job.longitude} helperOnTheWayAt={job.helper_on_the_way_at} helperArrivedAt={job.helper_arrived_at} helperCompletedAt={job.helper_completed_at} posterCompletedAt={job.poster_completed_at} />
 
       {/* Pet care report card — only for pet_care jobs */}
       {job.category === "pet_care" && (
@@ -126,7 +126,7 @@ export function ActiveJobSection({
       )}
 
       {/* Job confirmation for helper during active job */}
-      <JobConfirmation jobId={app.job_id} isOwner={false} isHelper={true} posterConfirmedAt={job.poster_confirmed_at} helperConfirmedAt={job.helper_confirmed_at} helperDayofConfirmedAt={(job as unknown as { helper_dayof_confirmed_at?: string | null }).helper_dayof_confirmed_at ?? null} dateNeeded={job.date_needed} jobStatus={job.status} helperOnTheWayAt={job.helper_on_the_way_at} />
+      <JobConfirmation jobId={app.job_id} isOwner={false} isHelper={true} posterConfirmedAt={job.poster_confirmed_at} helperConfirmedAt={job.helper_confirmed_at} helperDayofConfirmedAt={job.helper_dayof_confirmed_at} dateNeeded={job.date_needed} jobStatus={job.status} helperOnTheWayAt={job.helper_on_the_way_at} />
       {/* Revision notice — HelperRevisionCard shows the formal
           job_revisions row (or falls back to jobs.revision_note).
           The "I'll fix it" / "Discuss" path lives there. */}

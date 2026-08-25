@@ -468,6 +468,7 @@ export type Database = {
           billing_mode: string
           created_at: string
           default_payment_method_id: string | null
+          extra_seats: number
           id: string
           monthly_budget: number | null
           monthly_budget_alert_at: number | null
@@ -493,6 +494,7 @@ export type Database = {
           billing_mode?: string
           created_at?: string
           default_payment_method_id?: string | null
+          extra_seats?: number
           id?: string
           monthly_budget?: number | null
           monthly_budget_alert_at?: number | null
@@ -518,6 +520,7 @@ export type Database = {
           billing_mode?: string
           created_at?: string
           default_payment_method_id?: string | null
+          extra_seats?: number
           id?: string
           monthly_budget?: number | null
           monthly_budget_alert_at?: number | null
@@ -680,6 +683,14 @@ export type Database = {
           decided_by: string | null
           decision_text: string | null
           evidence_urls: string[]
+          executed_at: string | null
+          execution_error: string | null
+          execution_helper_cents: number | null
+          execution_refund_cents: number | null
+          execution_refund_id: string | null
+          execution_started_at: string | null
+          execution_status: string | null
+          execution_transfer_id: string | null
           id: string
           job_id: string
           opener_id: string
@@ -693,6 +704,14 @@ export type Database = {
           decided_by?: string | null
           decision_text?: string | null
           evidence_urls?: string[]
+          executed_at?: string | null
+          execution_error?: string | null
+          execution_helper_cents?: number | null
+          execution_refund_cents?: number | null
+          execution_refund_id?: string | null
+          execution_started_at?: string | null
+          execution_status?: string | null
+          execution_transfer_id?: string | null
           id?: string
           job_id: string
           opener_id: string
@@ -706,6 +725,14 @@ export type Database = {
           decided_by?: string | null
           decision_text?: string | null
           evidence_urls?: string[]
+          executed_at?: string | null
+          execution_error?: string | null
+          execution_helper_cents?: number | null
+          execution_refund_cents?: number | null
+          execution_refund_id?: string | null
+          execution_started_at?: string | null
+          execution_status?: string | null
+          execution_transfer_id?: string | null
           id?: string
           job_id?: string
           opener_id?: string
@@ -1672,6 +1699,53 @@ export type Database = {
           },
         ]
       }
+      job_pets: {
+        Row: {
+          created_at: string
+          job_id: string
+          pet_id: string
+        }
+        Insert: {
+          created_at?: string
+          job_id: string
+          pet_id: string
+        }
+        Update: {
+          created_at?: string
+          job_id?: string
+          pet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_pets_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_pets_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_pets_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_pets_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pet_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_revisions: {
         Row: {
           created_at: string
@@ -1833,6 +1907,7 @@ export type Database = {
       }
       jobs: {
         Row: {
+          accepted_at: string | null
           bid_ceiling: number | null
           bid_deadline: string | null
           bids_sealed: boolean
@@ -1853,6 +1928,8 @@ export type Database = {
           customer_fee_amount: number | null
           customer_id: string
           date_needed: string
+          dayof_confirm_reminder_sent_at: string | null
+          dayof_unanswered_poster_alert_sent_at: string | null
           department: string | null
           description: string
           direct_offer_expires_at: string | null
@@ -1873,6 +1950,7 @@ export type Database = {
           helper_arrived_at: string | null
           helper_completed_at: string | null
           helper_confirmed_at: string | null
+          helper_dayof_confirmed_at: string | null
           helper_fee_percent: number | null
           helper_id: string | null
           helper_on_the_way_at: string | null
@@ -1907,8 +1985,11 @@ export type Database = {
           proof_before_urls: string[] | null
           protection_fee: number | null
           protection_opted_in: boolean
+          recurrence_days: number[] | null
           recurrence_end_date: string | null
           recurrence_interval: string | null
+          recurrence_weeks: number | null
+          recurring_helper_id: string | null
           removal_reason: string | null
           removed_at: string | null
           removed_by: string | null
@@ -1937,6 +2018,7 @@ export type Database = {
           zip_code: string | null
         }
         Insert: {
+          accepted_at?: string | null
           bid_ceiling?: number | null
           bid_deadline?: string | null
           bids_sealed?: boolean
@@ -1957,6 +2039,8 @@ export type Database = {
           customer_fee_amount?: number | null
           customer_id: string
           date_needed: string
+          dayof_confirm_reminder_sent_at?: string | null
+          dayof_unanswered_poster_alert_sent_at?: string | null
           department?: string | null
           description: string
           direct_offer_expires_at?: string | null
@@ -1977,6 +2061,7 @@ export type Database = {
           helper_arrived_at?: string | null
           helper_completed_at?: string | null
           helper_confirmed_at?: string | null
+          helper_dayof_confirmed_at?: string | null
           helper_fee_percent?: number | null
           helper_id?: string | null
           helper_on_the_way_at?: string | null
@@ -2011,8 +2096,11 @@ export type Database = {
           proof_before_urls?: string[] | null
           protection_fee?: number | null
           protection_opted_in?: boolean
+          recurrence_days?: number[] | null
           recurrence_end_date?: string | null
           recurrence_interval?: string | null
+          recurrence_weeks?: number | null
+          recurring_helper_id?: string | null
           removal_reason?: string | null
           removed_at?: string | null
           removed_by?: string | null
@@ -2041,6 +2129,7 @@ export type Database = {
           zip_code?: string | null
         }
         Update: {
+          accepted_at?: string | null
           bid_ceiling?: number | null
           bid_deadline?: string | null
           bids_sealed?: boolean
@@ -2061,6 +2150,8 @@ export type Database = {
           customer_fee_amount?: number | null
           customer_id?: string
           date_needed?: string
+          dayof_confirm_reminder_sent_at?: string | null
+          dayof_unanswered_poster_alert_sent_at?: string | null
           department?: string | null
           description?: string
           direct_offer_expires_at?: string | null
@@ -2081,6 +2172,7 @@ export type Database = {
           helper_arrived_at?: string | null
           helper_completed_at?: string | null
           helper_confirmed_at?: string | null
+          helper_dayof_confirmed_at?: string | null
           helper_fee_percent?: number | null
           helper_id?: string | null
           helper_on_the_way_at?: string | null
@@ -2115,8 +2207,11 @@ export type Database = {
           proof_before_urls?: string[] | null
           protection_fee?: number | null
           protection_opted_in?: boolean
+          recurrence_days?: number[] | null
           recurrence_end_date?: string | null
           recurrence_interval?: string | null
+          recurrence_weeks?: number | null
+          recurring_helper_id?: string | null
           removal_reason?: string | null
           removed_at?: string | null
           removed_by?: string | null
@@ -2307,7 +2402,7 @@ export type Database = {
         Insert: {
           created_at?: string
           emoji: string
-          job_id?: string
+          job_id: string
           message_id: string
           user_id: string
         }
@@ -2319,13 +2414,6 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "message_reactions_message_id_fkey"
-            columns: ["message_id"]
-            isOneToOne: false
-            referencedRelation: "messages"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "message_reactions_job_id_fkey"
             columns: ["job_id"]
@@ -2345,6 +2433,13 @@ export type Database = {
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_reactions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
             referencedColumns: ["id"]
           },
         ]
@@ -2403,13 +2498,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "messages_reply_to_id_fkey"
-            columns: ["reply_to_id"]
-            isOneToOne: false
-            referencedRelation: "messages"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "messages_job_id_fkey"
             columns: ["job_id"]
             isOneToOne: false
@@ -2428,6 +2516,13 @@ export type Database = {
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
             referencedColumns: ["id"]
           },
         ]
@@ -2651,33 +2746,6 @@ export type Database = {
           triggered_at_jobs_completed?: number | null
           user_id?: string
           user_role?: string | null
-        }
-        Relationships: []
-      }
-      parish_tax_rates: {
-        Row: {
-          id: string
-          local_rate: number
-          parish_name: string
-          state_rate: number
-          total_rate: number | null
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          local_rate?: number
-          parish_name: string
-          state_rate?: number
-          total_rate?: number | null
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          local_rate?: number
-          parish_name?: string
-          state_rate?: number
-          total_rate?: number | null
-          updated_at?: string
         }
         Relationships: []
       }
@@ -2985,11 +3053,11 @@ export type Database = {
           category: string | null
           claim_token: string | null
           created_at: string
+          design_id: string | null
           donor_id: string
           expires_at: string | null
           id: string
           job_id: string | null
-          design_id: string | null
           message: string | null
           occasion: string | null
           parent_credit_id: string | null
@@ -3007,11 +3075,11 @@ export type Database = {
           category?: string | null
           claim_token?: string | null
           created_at?: string
+          design_id?: string | null
           donor_id: string
           expires_at?: string | null
           id?: string
           job_id?: string | null
-          design_id?: string | null
           message?: string | null
           occasion?: string | null
           parent_credit_id?: string | null
@@ -3029,11 +3097,11 @@ export type Database = {
           category?: string | null
           claim_token?: string | null
           created_at?: string
+          design_id?: string | null
           donor_id?: string
           expires_at?: string | null
           id?: string
           job_id?: string | null
-          design_id?: string | null
           message?: string | null
           occasion?: string | null
           parent_credit_id?: string | null
@@ -3156,16 +3224,18 @@ export type Database = {
           application_count: number
           approval_email_count: number
           approval_status: string
+          auto_release_on_complete: boolean
           auto_suspended_until: string | null
-          availability: string | null
-          available_until: string | null
           auto_tip_cap: number | null
           auto_tip_mode: Database["public"]["Enums"]["auto_tip_mode"]
           auto_tip_value: number | null
+          availability: string | null
+          available_until: string | null
           avatar_url: string | null
           background_check_status: string
           ban_status: string | null
           bio: string | null
+          boost_credit_used_month: string | null
           created_at: string
           date_of_birth: string | null
           denial_email_count: number
@@ -3244,16 +3314,18 @@ export type Database = {
           application_count?: number
           approval_email_count?: number
           approval_status?: string
+          auto_release_on_complete?: boolean
           auto_suspended_until?: string | null
-          availability?: string | null
-          available_until?: string | null
           auto_tip_cap?: number | null
           auto_tip_mode?: Database["public"]["Enums"]["auto_tip_mode"]
           auto_tip_value?: number | null
+          availability?: string | null
+          available_until?: string | null
           avatar_url?: string | null
           background_check_status?: string
           ban_status?: string | null
           bio?: string | null
+          boost_credit_used_month?: string | null
           created_at?: string
           date_of_birth?: string | null
           denial_email_count?: number
@@ -3332,16 +3404,18 @@ export type Database = {
           application_count?: number
           approval_email_count?: number
           approval_status?: string
+          auto_release_on_complete?: boolean
           auto_suspended_until?: string | null
-          availability?: string | null
-          available_until?: string | null
           auto_tip_cap?: number | null
           auto_tip_mode?: Database["public"]["Enums"]["auto_tip_mode"]
           auto_tip_value?: number | null
+          availability?: string | null
+          available_until?: string | null
           avatar_url?: string | null
           background_check_status?: string
           ban_status?: string | null
           bio?: string | null
+          boost_credit_used_month?: string | null
           created_at?: string
           date_of_birth?: string | null
           denial_email_count?: number
@@ -3448,6 +3522,55 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      recurring_visit_releases: {
+        Row: {
+          created_at: string
+          helper_id: string
+          id: string
+          parent_job_id: string
+          reason: string | null
+          visit_date: string
+        }
+        Insert: {
+          created_at?: string
+          helper_id: string
+          id?: string
+          parent_job_id: string
+          reason?: string | null
+          visit_date: string
+        }
+        Update: {
+          created_at?: string
+          helper_id?: string
+          id?: string
+          parent_job_id?: string
+          reason?: string | null
+          visit_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_visit_releases_parent_job_id_fkey"
+            columns: ["parent_job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_visit_releases_parent_job_id_fkey"
+            columns: ["parent_job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_visit_releases_parent_job_id_fkey"
+            columns: ["parent_job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       referral_codes: {
         Row: {
@@ -4197,31 +4320,43 @@ export type Database = {
       tips: {
         Row: {
           amount: number
+          auto_prompt_sent_at: string | null
           created_at: string
+          failure_reason: string | null
           helper_id: string
           id: string
           job_id: string
           payment_status: string
+          source: string
+          stripe_payment_intent_id: string | null
           stripe_session_id: string | null
           tipper_id: string
         }
         Insert: {
           amount: number
+          auto_prompt_sent_at?: string | null
           created_at?: string
+          failure_reason?: string | null
           helper_id: string
           id?: string
           job_id: string
           payment_status?: string
+          source?: string
+          stripe_payment_intent_id?: string | null
           stripe_session_id?: string | null
           tipper_id: string
         }
         Update: {
           amount?: number
+          auto_prompt_sent_at?: string | null
           created_at?: string
+          failure_reason?: string | null
           helper_id?: string
           id?: string
           job_id?: string
           payment_status?: string
+          source?: string
+          stripe_payment_intent_id?: string | null
           stripe_session_id?: string | null
           tipper_id?: string
         }
@@ -4971,6 +5106,18 @@ export type Database = {
         }
         Returns: undefined
       }
+      accept_group_application: {
+        Args: {
+          p_application_id: string
+          p_deadline?: string
+          p_offer_message?: string
+        }
+        Returns: {
+          roster_complete: boolean
+          slots_filled: number
+          slots_total: number
+        }[]
+      }
       admin_list_business_accounts: {
         Args: never
         Returns: {
@@ -5000,6 +5147,10 @@ export type Database = {
           user_id: string
         }[]
       }
+      apply_job_denial_consequence: {
+        Args: { p_description: string; p_helper: string; p_job: string }
+        Returns: Json
+      }
       apply_to_job: {
         Args: { p_job_id: string; p_message: string; p_proposed_price?: number }
         Returns: string
@@ -5008,6 +5159,17 @@ export type Database = {
       are_users_blocked: {
         Args: { _user_a: string; _user_b: string }
         Returns: boolean
+      }
+      auto_start_due_jobs: { Args: never; Returns: number }
+      auto_tip_candidates: {
+        Args: { _since_hours?: number }
+        Returns: {
+          budget: number
+          customer_id: string
+          helper_id: string
+          job_id: string
+          tip_amount: number
+        }[]
       }
       business_activity_feed: {
         Args: { p_before?: string; p_business_id: string; p_limit?: number }
@@ -5027,6 +5189,10 @@ export type Database = {
         Returns: boolean
       }
       business_seat_limit: { Args: { _business_id: string }; Returns: number }
+      business_seat_limit_for_tier: {
+        Args: { _seat_tier: string }
+        Returns: number
+      }
       business_spend_summary: {
         Args: { p_business_id: string }
         Returns: {
@@ -5078,6 +5244,7 @@ export type Database = {
         Returns: number
       }
       expire_pending_direct_offers: { Args: never; Returns: number }
+      expire_unanswered_offers: { Args: never; Returns: number }
       extend_boosts_with_no_applications: {
         Args: never
         Returns: {
@@ -5201,6 +5368,26 @@ export type Database = {
           parish: string
         }[]
       }
+      get_job_pets: {
+        Args: { p_job_id: string }
+        Returns: {
+          age_years: number
+          behavioral_notes: string
+          breed: string
+          color_markings: string
+          emergency_contact: string
+          feeding_schedule: string
+          id: string
+          medical_notes: string
+          microchip_id: string
+          name: string
+          photo_url: string
+          species: string
+          vet_name: string
+          vet_phone: string
+          weight_lbs: number
+        }[]
+      }
       get_job_view_counts: {
         Args: { p_job_ids: string[] }
         Returns: {
@@ -5265,12 +5452,18 @@ export type Database = {
           budget: number
           category: string
           created_at: string
+          date_needed: string
+          helpers_needed: number
           id: string
+          is_group_job: boolean
           is_urgent: boolean
           latitude: number
+          location: string
           longitude: number
           parish: string
+          start_time: string
           title: string
+          urgent_fee: number
         }[]
       }
       get_parish_activity: {
@@ -5417,6 +5610,7 @@ export type Database = {
           photos: string[]
           pricing_mode: string
           rank_score: number
+          recurrence_interval: string
           special_requirements: string
           start_time: string
           title: string
@@ -5440,10 +5634,14 @@ export type Database = {
           created_at: string
           full_name: string
           hourly_rate: number
+          insurance_status: string
           intro_video_duration_seconds: number
           intro_video_thumbnail_url: string
           intro_video_url: string
           is_id_verified: boolean
+          is_insured: boolean
+          is_licensed: boolean
+          license_status: string
           location: string
           portfolio_urls: string[]
           profile_id: string
@@ -5493,6 +5691,12 @@ export type Database = {
         }
         Returns: boolean
       }
+      helper_cancel_booking: { Args: { p_job_id: string }; Returns: Json }
+      instant_book_claim: { Args: { p_job_id: string }; Returns: undefined }
+      is_business_admin: {
+        Args: { _business_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_business_member: {
         Args: { _business_id: string; _user_id: string }
         Returns: boolean
@@ -5501,6 +5705,7 @@ export type Database = {
         Args: { _business_id: string; _user_id: string }
         Returns: boolean
       }
+      is_caller_banned: { Args: never; Returns: boolean }
       is_category_taxable: {
         Args: { _category: Database["public"]["Enums"]["job_category"] }
         Returns: boolean
@@ -5579,9 +5784,17 @@ export type Database = {
         Returns: boolean
       }
       report_helper_no_show: { Args: { p_job_id: string }; Returns: Json }
+      resolve_auto_tip: {
+        Args: { _budget: number; _user: string }
+        Returns: number
+      }
       respond_to_counter_offer: {
         Args: { p_accept: boolean; p_application_id: string }
         Returns: undefined
+      }
+      respond_to_direct_offer: {
+        Args: { p_accept: boolean; p_job_id: string }
+        Returns: Json
       }
       respond_to_review: {
         Args: { _response_text: string; _review_id: string }
@@ -5634,6 +5847,7 @@ export type Database = {
         Returns: string
       }
       sweep_daily_job_digest: { Args: never; Returns: number }
+      sweep_dayof_confirm_reminders: { Args: never; Returns: number }
       sweep_expired_auto_bans: { Args: never; Returns: number }
       sweep_job_start_reminders: { Args: never; Returns: number }
       sweep_no_show_alerts: { Args: never; Returns: number }
@@ -5655,9 +5869,9 @@ export type Database = {
       }
     }
     Enums: {
-      auto_tip_mode: "off" | "percent" | "fixed"
       app_role: "admin" | "customer" | "helper"
       application_status: "pending" | "accepted" | "rejected"
+      auto_tip_mode: "off" | "percent" | "fixed"
       business_member_role: "owner" | "member"
       business_member_status: "pending" | "active" | "removed"
       job_category:
@@ -5811,6 +6025,7 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "customer", "helper"],
       application_status: ["pending", "accepted", "rejected"],
+      auto_tip_mode: ["off", "percent", "fixed"],
       business_member_role: ["owner", "member"],
       business_member_status: ["pending", "active", "removed"],
       job_category: [

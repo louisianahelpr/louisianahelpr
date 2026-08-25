@@ -97,9 +97,7 @@ const AutoTip = () => {
         // disabled preference — the CHECK constraint enforces this too.
         auto_tip_value: mode === "off" ? null : numericValue,
         auto_tip_cap: mode === "percent" ? numericCap : null,
-        // Cast: generated types predate migration 20260824238000; the column
-        // exists the moment db-deploy lands. Same pattern as JobConfirmation.
-        ...({ auto_release_on_complete: autoRelease } as never as Record<string, boolean>),
+        auto_release_on_complete: autoRelease,
       })
       .eq("user_id", user.id)
       .select("user_id");

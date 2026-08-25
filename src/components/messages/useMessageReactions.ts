@@ -172,7 +172,10 @@ export function useMessageReactions(jobId: string | null, viewerId: string | nul
             // from the parent message, so the client cannot get it wrong (or
             // point a reaction at a job it doesn't belong to).
             .upsert(
-              { message_id: messageId, user_id: viewerId, emoji },
+              // Cast: the regenerated types mark job_id required (NOT NULL),
+              // but the BEFORE trigger fills it — the omission is the
+              // security design, not an oversight (see comment above).
+              { message_id: messageId, user_id: viewerId, emoji } as never,
               { onConflict: "message_id,user_id" },
             );
 

@@ -116,7 +116,3 @@ export const adminNavGroups: { title: string; items: AdminNavItem[] }[] = [
     ],
   },
 ];
-
-
-/** Flat list, for consumers that don't want the grouping. */
-export const adminNavItems: AdminNavItem[] = adminNavGroups.flatMap((g) => g.items);

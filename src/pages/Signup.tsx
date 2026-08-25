@@ -423,7 +423,8 @@ const Signup = () => {
         : { title: "Create Account" }
       : { title: "About you" };
 
-  // No `desktopBrandPanel`: AuthBrandPane is only the H emblem, and it stacked
+  // No `desktopBrandPanel`: the AuthBrandPane component (deleted unused on
+  // 2026-08-25) was only the H emblem, and it stacked
   // ABOVE the form at lg+ while the heading row carried its own emblem below —
   // two marks, plus a tall vertical stack that pushed the Google button off the
   // bottom of a 922px-tall window. One emblem now sits beside the heading at

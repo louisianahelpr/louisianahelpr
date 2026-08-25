@@ -425,9 +425,9 @@ const Dashboard = () => {
               request — it pushed the job feed down on the home tab for a
               shortcut that only pays off for repeat customers. Rebooking a
               saved helper still lives on Profile -> Saved Helprs, which is
-              where the full list is. The component itself
-              (components/dashboard/YourHelpersRow.tsx) is kept, unrendered,
-              in case it returns somewhere with more room. */}
+              where the full list is. The component was kept unrendered for a
+              while in case it returned; it was deleted on 2026-08-25 in the
+              dead-code sweep and is recoverable from git history. */}
           {/* The "Finish your profile" completion nudge used to render
               here. It moved off the home feed onto the Profile landing
               screen (ProfileLanding's completion meter) so the job feed

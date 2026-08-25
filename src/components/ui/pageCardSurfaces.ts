@@ -12,10 +12,11 @@ import type { CSSProperties } from "react";
  * 100dvh viewport lock with it, which is wrong for an unbounded list.
  *
  * So the material is extracted here and the layout is not: PageScaffold still
- * owns the fixed-shell arrangement, {@link DocumentPageCards} owns the
- * document-scroll one, and both paint from this one definition. Copying the
- * numbers into a second file instead would have guaranteed the two drifted the
- * first time anyone touched an opacity.
+ * owns the fixed-shell arrangement and paints from this one definition. (A
+ * DocumentPageCards counterpart owned the document-scroll arrangement until it
+ * was deleted unused on 2026-08-25.) Copying the numbers into a second file
+ * instead would have guaranteed the two drifted the first time anyone touched
+ * an opacity.
  */
 
 export const TITLE_CARD_CLASS =

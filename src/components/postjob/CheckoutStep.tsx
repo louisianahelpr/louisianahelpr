@@ -528,7 +528,8 @@ export function CheckoutStep({
               tradeoff is real and was accepted knowingly: a first-time poster
               no longer gets a walkthrough of hold → verify → release before
               paying. If that turns out to cost conversions, the panel is one
-              import away — but five explanations of one mechanism read as a
+              git revert away — the unrendered component was deleted on
+              2026-08-25 — but five explanations of one mechanism read as a
               screen nervous about its own payment flow, and that costs more.
 
               The confirmation checkbox keeps its escrow wording deliberately:

@@ -18,8 +18,10 @@ interface TitleFieldProps {
  * possible right-hand paddings, on the first thing anyone types when posting a
  * job. A job title is a handful of words; the keyboard is already open.
  *
- * `useTitleDictation` is left in the tree unreferenced rather than deleted —
- * removing a hook is a separate call from removing a button.
+ * The `useTitleDictation` hook behind it was left unreferenced at the time —
+ * removing a hook being a separate call from removing a button. That call was
+ * made on 2026-08-25 and the hook is deleted; git history has it if dictation
+ * ever comes back.
  */
 export function TitleField({ title, setTitle, category }: TitleFieldProps) {
   return (

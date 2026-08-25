@@ -194,9 +194,14 @@ export function ConversationList({
   }, [orderedConversations, searchQuery, inboxFilter]);
 
   // Seed the default tab from the FIRST loaded page, once. See the state decl.
+  // Owner, 2026-08-25: "messages should open to unread not all" — so Unread is
+  // now the unconditional default, not conditional on there being unread. The
+  // caught-up case is not a dead screen: noTabMatches below renders "You're
+  // all caught up" for exactly this state, which is a better answer than
+  // silently showing All and leaving the user to notice the tab moved.
   useEffect(() => {
     if (inboxFilter !== null || conversations.length === 0) return;
-    setInboxFilter(conversations.some((c) => c.unread > 0) ? "unread" : "all");
+    setInboxFilter("unread");
   }, [conversations, inboxFilter]);
 
   // True when an active search filters every thread out — drives a tidy
@@ -343,7 +348,7 @@ export function ConversationList({
         { key: "active", label: "Active", count: activeThreads },
         { key: "all", label: "All", count: conversations.length },
       ]}
-      value={inboxFilter ?? "all"}
+      value={inboxFilter ?? "unread"}
       onChange={setInboxFilter}
     />
   );

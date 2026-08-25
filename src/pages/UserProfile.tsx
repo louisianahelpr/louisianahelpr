@@ -569,7 +569,14 @@ const UserProfile = () => {
 
             {/* ── Rating distribution + sub-ratings (1a/1b) ── Rides with the
                 reviews expansion; on its own it was a chart with no context. */}
-            {showReviews && <RatingBreakdown reviews={reviews} />}
+            {/* Only when there is something to break down. Expanding Reviews
+                rendered RatingBreakdown + PublicReviewWall + ReviewsSection at
+                once, so a profile with no reviews opened three empty panels
+                (owner, 2026-08-25: "it opens 3 blank tabs that shows no
+                reviews"). ReviewsSection owns the real "No reviews yet" state,
+                so the two supplementary panels stand down and the user gets one
+                honest answer instead of three blank ones. */}
+            {showReviews && reviews.length > 0 && <RatingBreakdown reviews={reviews} />}
 
             {/* No "As a job poster — N jobs posted" panel (owner: "remove, it
                 already says this above"). It opened from the "Posted" stat box
@@ -595,7 +602,7 @@ const UserProfile = () => {
                 visible on other-user profiles so prospective posters see
                 quotes from past customers without having to expand the
                 full reviews tab. Owner sees the existing toggle only. */}
-            {!isOwnProfile && showReviews && (
+            {!isOwnProfile && showReviews && stats.reviewCount > 0 && (
               <PublicReviewWall
                 helperId={userId!}
                 totalReviewCount={stats.reviewCount}

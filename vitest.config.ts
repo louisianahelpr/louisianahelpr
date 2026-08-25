@@ -4,6 +4,13 @@ import path from "path";
 
 export default defineConfig({
   plugins: [react()],
+  // NOT node_modules/.vite (the default). Vitest clears its dep-optimizer
+  // cache on start, and sharing the directory with the dev server means
+  // every `vitest run` deletes the RUNNING server's optimized deps — every
+  // cold lazy route then 504s ("Outdated Optimize Dep") until the server
+  // re-optimizes, which users see as app-wide "Update ready" / "Try again"
+  // screens. Cost a full overnight audit sweep before it was traced.
+  cacheDir: "node_modules/.vitest",
   test: {
     environment: "jsdom",
     globals: true,

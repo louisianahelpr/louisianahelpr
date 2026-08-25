@@ -1486,6 +1486,23 @@ input[type="radio"] {
   min-width: 44px;
 }
 
+/* Every search field in the app pairs `type="search"` with its own branded
+   clear button (BrowseSearchBar, ConversationList, ActivityHeader, the admin
+   tables, SavedHelpers…). WebKit ALSO draws its native cancel glyph inside
+   the same field, so typing produced two X's side by side — owner, 2026-08-25:
+   "there is 2 x buttons when you type in search". The app's own button is the
+   one that is styled, sized to a real target and wired to the right state, so
+   the native one goes. `type="search"` is kept for the semantics (and the iOS
+   keyboard's Search key). */
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-decoration,
+input[type="search"]::-webkit-search-results-button,
+input[type="search"]::-webkit-search-results-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
+}
+
 /* `.tap-44` — give a link a 44px-tall hit area WITHOUT changing layout.
  *
  * The rule above deliberately covers button/[role=button]/inputs but NOT

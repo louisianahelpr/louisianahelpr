@@ -61,6 +61,13 @@ const Toaster = ({ ...props }: ToasterProps) => {
       className="toaster group"
       position={position}
       visibleToasts={3}
+      // Owner, 2026-08-25: "if a message pops up in the corner they need an x
+      // to cancel it out before it fades". Error toasts in particular can sit
+      // for seconds over the control that produced them, and until now the
+      // only way to clear one was to wait or to swipe (undiscoverable on
+      // desktop, where there is no swipe). Sonner renders the button itself;
+      // it is styled below to match the toast rather than its default grey.
+      closeButton
       // Clear the status bar / notch instead of the dock. These offsets were
       // bottom-anchored to lift the toast above the BottomNav; with the anchor
       // moved to the top they would have pinned it back down to the bottom
@@ -76,6 +83,11 @@ const Toaster = ({ ...props }: ToasterProps) => {
           description: "!font-serif !italic !text-ds-12 !text-[hsl(var(--olivewood)/0.8)]",
           actionButton:
             "!bg-[hsl(var(--bark))] !text-[hsl(var(--parchment))] !font-sans !font-semibold !rounded-full !px-3 !h-8",
+          // Sits in the toast's top-left gutter by default. Sized to a real
+          // 24px target with brand ink, and only fully opaque on hover/focus
+          // so it reads as chrome rather than competing with the message.
+          closeButton:
+            "!bg-[hsl(var(--parchment))] !border !border-[hsl(var(--olivewood)/0.18)] !text-[hsl(var(--olivewood))] hover:!bg-[hsl(var(--parchment))] hover:!text-[hsl(var(--ink-deep))] hover:!border-[hsl(var(--olivewood)/0.35)] focus-visible:!ring-2 focus-visible:!ring-[hsl(var(--bark)/0.45)]",
           cancelButton:
             "!bg-transparent !text-[hsl(var(--olivewood)/0.8)] !font-sans !font-semibold !rounded-full !px-3 !h-8",
           success: "!bg-[hsl(var(--parchment)/0.96)] [&_[data-icon]]:!text-[hsl(var(--bark))]",

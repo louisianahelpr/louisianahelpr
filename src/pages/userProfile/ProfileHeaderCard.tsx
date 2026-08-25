@@ -135,8 +135,16 @@ export const ProfileHeaderCard = ({
           the original order, so the phone card is unchanged. */}
       <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-5">
         {/* ── IDENTITY ── */}
-        <div className="flex flex-col items-center text-center sm:items-start sm:text-left gap-2 sm:w-[212px] sm:shrink-0">
-          <div className="relative inline-block">
+        {/* Avatar LEFT, name/place/tenure RIGHT — the same row the signed-in
+            Profile tab uses (profileLanding/IdentityHeader: "flex flex-row
+            items-center gap-4"). This column stacked the avatar ABOVE the name
+            inside a fixed 212px rail, so the public profile and the owner's own
+            profile presented the same identity two different ways (owner,
+            2026-08-25: "name and location and since needs to be to the right of
+            picture just like it in when they click profile tab"). Phone keeps
+            the centred stack, where a row would leave the name no width. */}
+        <div className="flex flex-col items-center text-center sm:flex-row sm:items-center sm:text-left gap-2 sm:gap-4 sm:w-[420px] sm:shrink-0">
+          <div className="relative inline-block sm:shrink-0">
             {profile.avatar_url && !avatarFailed ? (
               <img
                 loading="lazy"
@@ -187,7 +195,7 @@ export const ProfileHeaderCard = ({
               </div>
             )}
           </div>
-          <div className="min-w-0 w-full">
+          <div className="min-w-0 w-full sm:flex-1">
             {/* h2, not h1: UserProfile already renders a <PageHeader> whose title
                 ("Profile" / "Profile Review") is this page's h1, so making the
                 person's name a second h1 gave /user/:id TWO top-level headings and

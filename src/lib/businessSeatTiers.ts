@@ -18,8 +18,6 @@ export {
   type BusinessSeatTierKey,
 } from "../../supabase/functions/_shared/businessSeatTiers";
 
-import { BUSINESS_SEAT_TIERS, type BusinessSeatTierKey } from "../../supabase/functions/_shared/businessSeatTiers";
-
 /**
  * Format a tier's monthly price for the in-app seat-plan rows, e.g. "Free"
  * or "$20/mo". The marketing page shows the bare priceLabel ("$20"); the

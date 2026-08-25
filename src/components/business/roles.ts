@@ -67,9 +67,6 @@ export const ROLE_LABEL: Record<ExtendedRole, string> = {
   owner: "Owner",
 };
 
-function canPost(role: ExtendedRole): boolean {
-  return role !== "viewer";
-}
 
 export function canApprove(role: ExtendedRole): boolean {
   return role === "owner" || role === "approver" || role === "admin";

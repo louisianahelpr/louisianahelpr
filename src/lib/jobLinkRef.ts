@@ -44,17 +44,3 @@ export function captureJobRef(ref: string | null): JobLinkRef | null {
   return r;
 }
 
-/**
- * Read back the last captured ref.
- *
- * Useful in analytics callbacks triggered after the job is opened,
- * e.g. "user applied → tag application with its source".
- * Returns `null` if no ref has been captured this session.
- */
-function readJobRef(): JobLinkRef | null {
-  try {
-    return (sessionStorage.getItem(KEY) as JobLinkRef | null);
-  } catch {
-    return null;
-  }
-}

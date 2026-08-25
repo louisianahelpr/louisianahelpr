@@ -8,12 +8,10 @@
  * surface, so the pill row and its popover machinery were removed and only
  * the reusable content blocks below survive.
  */
-import { X } from "lucide-react";
 import {
   categoryLabels, categoryColors,
 } from "@/components/activity/activityConstants";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
-import { budgetChipLabel } from "@/components/dashboard/browseTasksToolbar/constants";
 import { hapticLight } from "@/lib/haptics";
 
 export { categoryLabels };
@@ -69,47 +67,7 @@ const expiresOptions = [
   { value: "7d", label: "7 days" },
 ];
 
-/**
- * Budget presets, expressed in the SAME "" = unset dollar-string pair the
- * feeds already read (`useDashboardFilters` and `useOpenJobsFeed` both do
- * `budget < parseFloat(min)` / `budget > parseFloat(max)` and skip the test
- * entirely when the string is empty). Nothing downstream changes.
- *
- * Why bands and not the old dual-thumb $0–$500 slider:
- *   - two 10px thumbs at opposite ends of a track is the least thumb-friendly
- *     control in the sheet, and the only one that isn't a chip;
- *   - at rest the slider filled its whole track and read "$0 – $500+" — a
- *     control that LOOKS maxed-out and active while filtering nothing;
- *   - "$0 – $500+" plus a "Any budget" caption said the same thing twice;
- *   - the $500 ceiling was arbitrary on a board where jobs run past it, and
- *     `budgetToRange` silently clamped any stored max above $500 back down to
- *     the top of the track — so a restored saved search capped at $800 drew
- *     as "no cap" while still hiding every $801+ job.
- *
- * The top band is deliberately open-ended (`max: ""` → no cap), so no job is
- * ever hidden by a ceiling the user didn't choose.
- */
-const BUDGET_BANDS = [
-  { key: "any", label: "Any", min: "", max: "" },
-  { key: "to50", label: "Up to $50", min: "", max: "50" },
-  { key: "50to150", label: "$50 – $150", min: "50", max: "150" },
-  { key: "150to300", label: "$150 – $300", min: "150", max: "300" },
-  { key: "300plus", label: "$300+", min: "300", max: "" },
-] as const;
 
-/**
- * Which band the stored pair represents, or `null` when it matches none.
- *
- * `null` is reachable in real use: `SavedSearches` persists an arbitrary
- * `max_budget` number and restores it straight into `maxBudget`, so a search
- * saved under the old slider can hold e.g. 275. Rather than render every chip
- * idle while a filter is quietly applied (exactly the "looks like it isn't
- * filtering" bug we're fixing), `BudgetContent` surfaces that value as its own
- * active, clearable chip.
- */
-function matchBudgetBand(minBudget: string, maxBudget: string): string | null {
-  return BUDGET_BANDS.find((b) => b.min === minBudget && b.max === maxBudget)?.key ?? null;
-}
 
 // ---------------- Reusable filter content blocks ----------------
 //
@@ -247,53 +205,3 @@ export const ExpiresContent = ({
   </div>
 );
 
-const BudgetContent = ({
-  minBudget, maxBudget, setMinBudget, setMaxBudget, onSelect,
-}: {
-  minBudget: string;
-  maxBudget: string;
-  setMinBudget: (v: string) => void;
-  setMaxBudget: (v: string) => void;
-  onSelect?: () => void;
-}) => {
-  const activeBand = matchBudgetBand(minBudget, maxBudget);
-  // A stored pair that matches no preset (a saved search from the slider era)
-  // still filters the feed, so it gets its own lit, tap-to-clear chip instead
-  // of leaving the row looking untouched.
-  const hasCustomRange = activeBand === null && !!(minBudget || maxBudget);
-  return (
-    <div role="group" aria-label="Filter by budget" className="flex flex-wrap gap-1.5">
-      {BUDGET_BANDS.map((band) => {
-        const isActive = activeBand === band.key;
-        return (
-          <button
-            key={band.key}
-            type="button"
-            aria-pressed={isActive}
-            onClick={() => {
-              hapticLight();
-              setMinBudget(band.min);
-              setMaxBudget(band.max);
-              onSelect?.();
-            }}
-            className={`${chipBase} ${isActive ? chipActive : chipIdle}`}
-          >
-            {band.label}
-          </button>
-        );
-      })}
-      {hasCustomRange && (
-        <button
-          type="button"
-          aria-pressed
-          aria-label={`Clear custom budget filter (${budgetChipLabel(minBudget, maxBudget)})`}
-          onClick={() => { hapticLight(); setMinBudget(""); setMaxBudget(""); onSelect?.(); }}
-          className={`${chipBase} ${chipActive}`}
-        >
-          {budgetChipLabel(minBudget, maxBudget)}
-          <X className="w-2.5 h-2.5" strokeWidth={2.5} aria-hidden />
-        </button>
-      )}
-    </div>
-  );
-};

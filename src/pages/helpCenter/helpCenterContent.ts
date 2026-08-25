@@ -7,8 +7,6 @@ import {
   ShieldCheck,
   Settings,
   Crown,
-  BookOpen,
-  Scale,
 } from "lucide-react";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import { BUSINESS_ENABLED } from "@/config/businessEnabled";

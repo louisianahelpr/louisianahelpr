@@ -168,10 +168,6 @@ export const GIFT_OCCASIONS: GiftOccasion[] = [
   },
 ];
 
-/** Flat design lookup — the persisted `design_id` resolves through this. */
-const DESIGN_BY_ID: Record<string, GiftCardDesign> = Object.fromEntries(
-  GIFT_OCCASIONS.flatMap((o) => o.designs.map((d) => [d.id, d])),
-);
 
 export const DEFAULT_OCCASION = GIFT_OCCASIONS[0];
 export const DEFAULT_DESIGN = DEFAULT_OCCASION.designs[0];

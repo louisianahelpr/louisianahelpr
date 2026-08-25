@@ -33,23 +33,6 @@ export const JobCardSkeleton = () => (
   </div>
 );
 
-const ConversationSkeleton = () => (
-  // Frosted glass placeholder shaped like a real conversation row —
-  // avatar circle on the left, name + job + last-message lines on the
-  // right. Matches the brand's liquid-glass material so the loading
-  // state doesn't clash with the loaded UI.
-  <div className="rounded-ds-md skeleton-glass p-3 flex items-center gap-3">
-    <Skeleton className="w-10 h-10 rounded-full shrink-0" />
-    <div className="flex-1 space-y-1.5 min-w-0">
-      <div className="flex items-center justify-between gap-2">
-        <Skeleton className="h-4 w-32 rounded" />
-        <Skeleton className="h-3 w-12 rounded" />
-      </div>
-      <Skeleton className="h-3 w-24 rounded" />
-      <Skeleton className="h-3 w-44 rounded" />
-    </div>
-  </div>
-);
 
 export const ActivityCardSkeleton = () => (
   // Glass-tinted skeleton shaped like a real activity card. Matches the

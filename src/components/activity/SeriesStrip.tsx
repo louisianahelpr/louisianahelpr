@@ -56,28 +56,29 @@ export function SeriesStrip({
   const next = upcoming.length > 0 ? upcoming[0] : null;
   const dayList = recurrenceDays!.map((d) => WEEKDAY_LABELS[d]).join(", ");
 
+  // ONE line (owner, 2026-08-24: "kind of busy, make less hectic" — the
+  // first cut was a three-line box on a card that already stacks countdown,
+  // tracker and confirmation strips). The cancel-scope warning moved to the
+  // Cancel dialog, which is the only moment it matters.
   return (
     <div
-      className="mx-4 mb-2 px-3 py-2 rounded-ds-md space-y-0.5"
+      className="mx-4 mb-2 px-3 py-1.5 rounded-ds-md"
       style={{
         background: "hsl(var(--bark) / 0.06)",
         border: "0.5px solid hsl(var(--bark) / 0.18)",
       }}
     >
-      <p className="flex items-center gap-1.5 text-ds-11 font-semibold" style={{ color: "hsl(var(--bark))" }}>
+      <p className="flex items-center gap-1.5 text-ds-11 min-w-0" style={{ color: "hsl(var(--bark))" }}>
         <RefreshCw className="w-3 h-3 shrink-0" aria-hidden />
-        Series · {dayList} × {recurrenceWeeks} {recurrenceWeeks === 1 ? "week" : "weeks"} ({total} visits)
-      </p>
-      <p className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-        {created} of {total} visits created
-        {next
-          ? seriesHelperCommitted
-            ? ` · next ${formatJobDate(next)} — funds automatically 3 days ahead`
-            : ` · paused until a Helpr books this job`
-          : " · series complete"}
-      </p>
-      <p className="text-ds-10" style={{ color: "hsl(var(--olivewood) / 0.65)" }}>
-        Cancelling this job cancels the whole series — visits already funded are unaffected.
+        <span className="truncate">
+          <span className="font-semibold">{dayList} × {recurrenceWeeks} wk{recurrenceWeeks === 1 ? "" : "s"}</span>
+          {" · "}{created}/{total} visits
+          {next
+            ? seriesHelperCommitted
+              ? ` · next funds ${formatJobDate(next)}`
+              : " · paused until a Helpr books"
+            : " · complete"}
+        </span>
       </p>
     </div>
   );

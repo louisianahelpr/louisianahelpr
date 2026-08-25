@@ -2,7 +2,7 @@ import {
   jobLocalMidnightMs,
   cancellationFeePercent as sharedCancellationFeePercent,
 } from "../../supabase/functions/_shared/cancellationFee";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { createNotification } from "@/lib/notifications";
 import { report } from "@/lib/errorLogger";
@@ -42,6 +42,24 @@ type CancellationDialogProps = {
 };
 
 export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId, hasHelper, helperId: _helperId, helperName, helperFeePercent, open, onClose, onCancelled }: CancellationDialogProps) => {
+  // Is this a recurring PARENT? Fetched on open so the dialog can say the
+  // one thing the card no longer says (owner: card = less hectic; the
+  // cancel-scope warning belongs at the moment of cancelling).
+  const [isSeriesParent, setIsSeriesParent] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    let alive = true;
+    void supabase
+      .from("jobs")
+      .select("recurrence_days, parent_job_id")
+      .eq("id", jobId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (alive) setIsSeriesParent(!!data && !data.parent_job_id && (data.recurrence_days?.length ?? 0) > 0);
+      });
+    return () => { alive = false; };
+  }, [open, jobId]);
+
   const [reason, setReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
 
@@ -72,7 +90,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
     setCancelling(true);
     try {
       // Fetch authoritative job data to calculate fee server-side
-      const { data: jobData, error: fetchError } = await supabase.from("jobs").select("date_needed, budget, helper_id, helper_fee_percent").eq("id", jobId).single();
+      const { data: jobData, error: fetchError } = await supabase.from("jobs").select("date_needed, budget, helper_id, helper_fee_percent, recurrence_days, parent_job_id").eq("id", jobId).single();
       if (fetchError || !jobData) throw new Error("Couldn't verify job details");
 
       // SAME two functions the quote above uses, and the same ones
@@ -344,6 +362,22 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
               <p className="text-ds-11 text-muted-foreground italic">✓ These consequences don&apos;t apply to you — no Helpr has been selected.</p>
             )}
           </div>
+
+          {/* Series scope — stated HERE, at the decision, instead of living
+              permanently on the card (owner, 2026-08-24). */}
+          {isSeriesParent && (
+            <div
+              className="rounded-ds-md p-3"
+              style={{
+                background: "hsl(var(--bark) / 0.06)",
+                border: "0.5px solid hsl(var(--bark) / 0.22)",
+              }}
+            >
+              <p className="text-ds-12 font-sans" style={{ color: "hsl(var(--ink-deep))" }}>
+                <strong>This cancels the whole series.</strong> Every future visit stops; visits already funded are unaffected.
+              </p>
+            </div>
+          )}
 
           {/* Fee summary callout — surfaces the exact dollar amount before
               the user taps confirm so there's no ambiguity. Only shown when

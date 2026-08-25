@@ -157,7 +157,10 @@ function PostedJobCardInner({
                      {viewCount} {viewCount === 1 ? "view" : "views"}
                    </span>
                  )}
-                 {job.is_recurring && (
+                 {/* Interval word only when the SeriesStrip isn't already
+                     stating the full shape (owner: less hectic — one series
+                     statement per card, not two). */}
+                 {job.is_recurring && !(job.recurrence_days && job.recurrence_days.length > 0) && (
                    <span className="flex items-center gap-1"><RefreshCw className="w-3 h-3 shrink-0 text-primary" /> {formatRecurrenceInterval(job.recurrence_interval)}</span>
                  )}
                  {job.is_group_job && (

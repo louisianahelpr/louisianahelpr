@@ -3,7 +3,20 @@ import { render, screen } from "@testing-library/react";
 import { CancellationDialog } from "./CancellationDialog";
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
-vi.mock("@/integrations/supabase/client", () => ({ supabase: { from: vi.fn() } }));
+vi.mock("@/integrations/supabase/client", () => ({
+  supabase: {
+    // The dialog's open-effect reads the job's series columns; give the
+    // mock a resolvable chain so the fee-breakdown tests stay focused.
+    from: vi.fn(() => ({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null })),
+          single: vi.fn(() => Promise.resolve({ data: null, error: null })),
+        })),
+      })),
+    })),
+  },
+}));
 vi.mock("@/lib/notifications", () => ({ createNotification: vi.fn() }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 

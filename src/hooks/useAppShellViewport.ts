@@ -126,7 +126,7 @@ export const setNotFoundPathname = (pathname: string | null) => {
   reapplyShellClasses?.();
 };
 
-const isDocumentScrollRoute = (pathname: string) => {
+export const isDocumentScrollRoute = (pathname: string) => {
   // The 404 catch-all is document-scroll — see setNotFoundPathname above.
   if (notFoundPathname === pathname) return true;
   if (
@@ -156,7 +156,7 @@ const isDocumentScrollRoute = (pathname: string) => {
    this query in the other hook. If the JS gate and the `lg:` utilities
    disagree, the shell paints desktop chrome while the components inside it
    are still laying out for mobile. */
-const WEB_DESKTOP_QUERY = "(min-width: 900px)";
+export const WEB_DESKTOP_QUERY = "(min-width: 900px)";
 
 /**
  * Toggles the `app-shell` class on <html> based on the current route.

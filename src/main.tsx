@@ -8,6 +8,7 @@ import { hydrate as hydrateStorage } from "./lib/safeStorage";
 import { recoverFromChunkError } from "./lib/chunkReload";
 import { initSimpleMode } from "./lib/simpleMode";
 import { applyToastPolicy } from "./lib/toastPolicy";
+import { applyPrePaintShellClasses } from "./lib/prePaintShellClasses";
 
 // Build identifier — exposed on window so a deploy with only doc/cosmetic
 // changes still produces a new bundle hash, evicting stale CacheFirst
@@ -116,6 +117,11 @@ if (import.meta.env.PROD && typeof navigator !== "undefined" && "serviceWorker" 
 // Instead we kick the post-paint init chain immediately and let hydrate
 // race the first paint. See `src/lib/safeStorage.ts` for the durable
 // storage contract.
+// BEFORE the first paint, not in an effect: otherwise every desktop page
+// paints full-width and then reflows 248px narrower when the rail class
+// lands. See prePaintShellClasses for the full reasoning.
+applyPrePaintShellClasses();
+
 createRoot(document.getElementById("root")!).render(<App />);
 // Suppress success/info toasts before any code can fire one. Failures still
 // surface — see src/lib/toastPolicy.ts for why the split exists.

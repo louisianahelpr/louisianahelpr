@@ -37,6 +37,20 @@
 // cycle: productPrices imports only lib/format, which imports nothing.
 import { BOOST_DISCOUNT_PCT } from "@/lib/productPrices";
 
+/**
+ * How long a "Once" (one-time) tier purchase actually entitles the buyer.
+ *
+ * This is NOT a perpetual unlock. `stripe-webhook`'s checkoutSessionCompleted
+ * handler stamps `subscription_expires_at = now + 30 days` for any session
+ * whose `billing_cycle` is `one_time`, after which the tier lapses to Free.
+ * The purchase surface said only "one-time" next to two genuinely-recurring
+ * cycles, so the entitlement sold and the entitlement displayed disagreed.
+ *
+ * Keep in step with that handler — the edge runtime can't import from `src/`,
+ * so the two are mirrored by hand and this comment is the link between them.
+ */
+export const ONE_TIME_PASS_DAYS = 30;
+
 export type SubscriptionTier = "free" | "basic" | "pro" | "elite" | "business";
 
 export interface TierPerks {

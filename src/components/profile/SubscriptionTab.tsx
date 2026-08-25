@@ -11,6 +11,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/queryKeys";
 import { functionErrorMessage } from "@/lib/supabaseResult";
+import { ONE_TIME_PASS_DAYS } from "@/lib/subscriptionTiers";
 import { tierConfig, TierIcon } from "@/components/profile/subscriptionTab/tierConfig";
 import { PauseOfferDialog } from "@/components/profile/subscriptionTab/PauseOfferDialog";
 import { CancelSurveyDialog } from "@/components/profile/subscriptionTab/CancelSurveyDialog";
@@ -366,9 +367,9 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
             style={{ color: "hsl(var(--olivewood) / 0.85)" }}
           >
             <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
-              One-time pass — 30 days.
+              One-time pass — {ONE_TIME_PASS_DAYS} days.
             </span>{" "}
-            Pay once, keep the perks for 30 days, no auto-renew.
+            Pay once, keep the perks for {ONE_TIME_PASS_DAYS} days, no auto-renew.
           </p>
         </div>
       )}

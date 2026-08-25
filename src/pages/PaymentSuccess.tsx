@@ -371,7 +371,13 @@ const PaymentSuccess = () => {
           <span className="text-display-eyebrow">
             {isHeld ? "All set" : confirmState === "checking" ? "Checking" : "Heads up"}
           </span>
-          <h1 className="text-page-title leading-tight mt-1 truncate">{heading}</h1>
+          {/* No `truncate` here. PLATFORM_CONVENTIONS exempts centred
+              full-screen outcome states from the one-line-title rule for
+              exactly this reason: with it, the unconfirmed-payment heading
+              cut to "We couldn't confirm your …" at 375 — the one screen
+              where the user most needs the whole sentence. Wrapping is the
+              lesser evil, same call as DashboardBlockedScreen. */}
+          <h1 className="text-page-title leading-tight mt-1 text-balance">{heading}</h1>
           <p
             className="font-sans text-ds-13 leading-relaxed"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}

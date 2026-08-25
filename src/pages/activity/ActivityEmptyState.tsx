@@ -63,11 +63,11 @@ export function ActivityEmptyState({
   const totalCount = isPosted ? postedJobsCount : appliedAppsCount;
   const isTrulyEmpty = totalCount === 0;
   // No eyebrow: "Nothing yet" / "No matches" said exactly what the title
-  // below it already says ("Nothing posted yet." / "No jobs in this view."),
+  // below it already says ("Nothing posted yet" / "No jobs in this view"),
   // so it read as the same sentence twice in two type sizes.
   const title = isTrulyEmpty
-    ? (isPosted ? "Nothing posted yet." : "No applications yet.")
-    : "No jobs in this view.";
+    ? (isPosted ? "Nothing posted yet" : "No applications yet")
+    : "No jobs in this view";
   // Cross-tab nudge: posted-empty hints at the helper side, applied-empty
   // hints at posting. For the filtered-but-empty case the copy depends on
   // *why* it's empty — a search with no hits, an "all" filter (no other

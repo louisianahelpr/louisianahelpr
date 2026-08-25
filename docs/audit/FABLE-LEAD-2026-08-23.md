@@ -297,6 +297,8 @@ seen working in the wild tonight).
 |---|---|
 | `6c15357de` | **Un-broke Vitest on main.** `f29ebfbe0` (parallel session) deleted `supabase/functions/spawn-recurring-jobs` but left `recurringSeries.test.ts` reading the deleted file — the Test workflow had been red on every push since. The guard's intent survives stronger: the test now pins the function's ABSENCE (a reappearing second spawn path fails CI), and the orphaned `config.toml` entry went with it. |
 | `24aa5b444` | **R26 fix — CSP allowlists.** The Capacitor meta-CSP (`index.html`) never allowed `cdn.apple-mapkit.com` / `*.apple-mapkit.com`, so every map in the shipped native app dies at the CSP layer (dev shows the same; prod web was already fine via `vercel.json`). It also blocked `api.pwnedpasswords.com` — the signup leaked-password check was silently skipped — and prod web blocked that same call, so the HIBP domain was added to `vercel.json` connect-src too. Pure allowlist additions for calls the shipped code already makes. |
+| `03dacb8c2` | **Vitest no longer breaks the running dev server.** Vitest and `vite dev` shared `node_modules/.vite`; vitest clears that cache on start, so every local `vitest run` deleted the live server's optimized deps and each cold lazy route 504'd ("Outdated Optimize Dep") until re-optimize — surfacing to users as app-wide "Update ready"/"Try again" screens. `vitest.config.ts` now pins `cacheDir: node_modules/.vitest`. This was the root cause of tonight's mid-sweep 504 cascade (not the source commits themselves). |
+| `743ddc615` | **SecurityTab dark-mode glare.** The active-sessions rows used hardcoded `hsla(0,0%,100%,.55)` white glass — correct on light, glaring on dark. Swapped to `hsl(var(--ivory-sand)/0.55)`; measured resolution: light = identical `rgba(255,255,255,.55)` (zero visual change), dark = `rgba(29,32,37,.55)`. Caught visually in the dark sweep block. |
 
 ## NEW FINDINGS — R26 onward
 
@@ -344,15 +346,25 @@ line-level source audit of every funnel form (report reproduced above as
 R29–R33/R35–R37/R41). The session restart destroyed the guest screenshot
 archive; guest METRICS (overflow/console/title) were clean at all four widths.
 
-**Authed surface (test account `Audit Weblane`, admin-elevated):** 61 routes ×
-4 widths × 2 themes sweep — in progress at time of writing; cells reviewed so
-far: all 18 profile tabs (titles/h1 consistent, payment≡earnings alias
-coherent), dashboard/my-jobs/messages/post-job entry/gift-card/benefits/
-wrapped/payment-success at 375, admin home/users at 375+768. Zero horizontal
-overflow in any captured cell. Remaining at write time: full 1440/1536 + dark
-blocks, dashboard-with-dismissed-welcome recaptures, and the post-commit
-"Update ready" cells — the sweep + recapture completes tonight and this doc
-gets the final table.
+**Authed surface (test account `Audit Weblane`, admin-elevated) — FINAL:** the
+sweep ran to completion: **480 cells captured** (61 routes × 4 widths × 2
+themes, minus the handful the mid-sweep commit polluted). Metrics verdict
+across every captured cell: **zero horizontal overflow, zero stray console
+errors** (after excluding the two known dev-only warnings and the mid-sweep
+504 pollution, whose root cause is now fixed at `03dacb8c2`). Visually
+reviewed before the environment was destroyed: all 18 profile tabs, the five
+bottom-nav destinations, gift-card/benefits/wrapped/payment-success, and the
+admin home/users/people/payouts views across 375/768/1440 light plus the dark
+block samples — the one dark-block defect found (SecurityTab white glass) is
+fixed at `743ddc615`. What did NOT survive: the screenshot/metrics archive and
+the recapture of the ~8 polluted dark cells — two Claude Code restarts plus a
+scratchpad cleanup deleted the artifacts and the sweep tooling before the
+per-cell table could be written into this doc. The findings themselves are all
+recorded above; nothing found was lost. **Morning follow-up (mechanical, ~1
+hr): one clean re-run of the authed sweep (rebuild the small Playwright driver
++ sweep script; keep `npx vitest run` away from it — or rely on `03dacb8c2`
+which removes that hazard) to produce the archival per-cell table and the
+few dark cells never visually reviewed.**
 
 **Excluded by brief:** iOS simulator (other session's lane); live-Stripe charge
 paths (prod keys are LIVE — no test-mode environment exists tonight); prod-DB

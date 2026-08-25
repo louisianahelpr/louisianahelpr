@@ -184,6 +184,19 @@ for (const route of ROUTES) {
     await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true, rules: listRules });
     await boot(page, route);
 
+    // The inbox opens on its Unread tab by owner instruction (2026-08-25,
+    // "messages should open to unread not all"), and the seeded customer has
+    // read everything — so /messages lands on a deliberately empty tab with
+    // all 30 threads one tap away under All. This spec is about the dock
+    // hiding on scroll, not about which tab is default, so switch to the tab
+    // that actually has rows instead of asserting the old default back.
+    if (route === "/messages") {
+      await page.getByRole("tab", { name: /^All/ }).or(
+        page.getByRole("button", { name: /^All/ }),
+      ).first().click();
+      await page.waitForTimeout(600);
+    }
+
     // The premise of the whole spec: there IS something to scroll. Without
     // this guard a route that quietly stopped rendering rows would report a
     // dock that "correctly stays visible".

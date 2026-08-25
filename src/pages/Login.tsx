@@ -132,6 +132,22 @@ const Login = () => {
   // the user explicitly wants "log in → home". Deep content links surface
   // their own in-app routing once the user is home.
   const postLoginDest = "/dashboard";
+  // ProtectedRoute writes ?redirect= when it bounces a logged-out visitor off
+  // a gated route. The comment above has always said it is read "ONLY to
+  // explain the bounce in the header copy" — but nothing read it, so a guest
+  // following a deep link was dumped here with no idea why. It explains the
+  // bounce now; sign-in still lands on the dashboard, unchanged.
+  const bouncedFromGatedRoute = Boolean(searchParams.get("redirect"));
+  // ONE notice slot, highest-priority reason first — three independent banners
+  // could otherwise stack into a wall of yellow above the form.
+  const notice =
+    signedOutForInactivity
+      ? "You were signed out after 30 minutes of inactivity. Sign back in to pick up where you left off."
+      : arrivedFromSignup
+        ? "If that email already has an account, sign in below. Forgot your password? Reset it and you'll be back in."
+        : bouncedFromGatedRoute
+          ? "That page needs an account. Sign in and we'll take you to your dashboard."
+          : null;
   const queryClient = useQueryClient();
   usePageMeta({
     title: "Log In — Helpr",
@@ -325,7 +341,7 @@ const Login = () => {
           FROM /forgot-password made Back bounce you straight back into
           password reset. Sign-in is a top-level destination reached from all
           over; it needs one predictable parent. */}
-      {arrivedFromSignup && (
+      {notice && (
         <div
           className="flex items-start gap-3 px-4 py-3 mb-4 rounded-2xl"
           style={{ background: "hsl(var(--bark) / 0.06)", border: "1px solid hsl(var(--bark) / 0.16)" }}
@@ -333,19 +349,7 @@ const Login = () => {
         >
           <Clock className="w-5 h-5 shrink-0 mt-0.5" strokeWidth={1.75} style={{ color: "hsl(var(--bark))" }} />
           <p className="text-ds-13 leading-snug" style={{ color: "hsl(var(--ink-deep))" }}>
-            If that email already has an account, sign in below. Forgot your password? Reset it and you'll be back in.
-          </p>
-        </div>
-      )}
-      {signedOutForInactivity && (
-        <div
-          className="flex items-start gap-3 px-4 py-3 mb-4 rounded-2xl"
-          style={{ background: "hsl(var(--bark) / 0.06)", border: "1px solid hsl(var(--bark) / 0.16)" }}
-          role="status"
-        >
-          <Clock className="w-5 h-5 shrink-0 mt-0.5" strokeWidth={1.75} style={{ color: "hsl(var(--bark))" }} />
-          <p className="text-ds-13 leading-snug" style={{ color: "hsl(var(--ink-deep))" }}>
-            You were signed out after 30 minutes of inactivity. Sign back in to pick up where you left off.
+            {notice}
           </p>
         </div>
       )}

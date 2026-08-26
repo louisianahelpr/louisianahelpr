@@ -92,10 +92,33 @@ export function rateLimitResponse(
   );
 }
 
-// appUrl.ts re-export — returns a stable test origin so redirect-URL assertions
-// are deterministic and don't depend on the Origin request header.
+// appUrl.ts re-exports — a stable test origin so redirect-URL assertions are
+// deterministic and don't depend on the Origin request header.
+//
+// These mirror supabase/functions/_shared/appUrl.ts rather than stubbing it:
+// the redirect URL is what Stripe sends the payer back to, so a mock that
+// merely returned a fixed string would let a genuine regression in the
+// native hand-back pass its tests. Keep them in step with the real module.
 export function getAppUrl(): string {
   return "https://www.louisianahelpr.com";
+}
+
+/**
+ * Tags the redirect with `native=1` so the in-app browser sheet can hand back
+ * to the app. Same shape as the real implementation, including the ?/& choice.
+ */
+export function buildRedirectUrl(path: string, native = false): string {
+  const base = `${getAppUrl()}${path}`;
+  if (!native) return base;
+  return `${base}${base.includes("?") ? "&" : "?"}native=1`;
+}
+
+/**
+ * Reads the native hint off a request body, defaulting to false so a caller
+ * that doesn't send it keeps web behaviour.
+ */
+export function isNativeRequest(body: unknown): boolean {
+  return typeof body === "object" && body !== null && (body as { native?: unknown }).native === true;
 }
 
 /** Captures every Slack ops alert the function tried to post. */

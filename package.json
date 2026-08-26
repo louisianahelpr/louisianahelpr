@@ -20,6 +20,7 @@
     "test:watch": "vitest",
     "test:e2e:happy": "PLAYWRIGHT_WEB_SERVER=1 playwright test --project=happy-path",
     "typecheck": "tsc -b --noEmit",
+    "check:edge": "node scripts/check-edge-syntax.cjs",
     "db:types": "npx supabase gen types typescript --project-id fncmgoasalhdgfwzhsqa --schema public > src/integrations/supabase/types.ts && echo '✓ Regenerated src/integrations/supabase/types.ts (needs SUPABASE_ACCESS_TOKEN env var or supabase login)'",
     "db:diff": "npx supabase db diff --linked --schema public",
     "images:avif": "node scripts/generate-avif.mjs",

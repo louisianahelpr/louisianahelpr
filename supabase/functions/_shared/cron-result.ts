@@ -41,9 +41,9 @@
  * on the stated assumption that no two HTTP crons share a start second. That
  * assumption was false: four pairs share a schedule, including
  * `void-cancelled-payments` with `auto-expire-jobs` on `0 * * * *` — and
- * `auto-release-payment` (*/30) lands on the same second every hour, making it
- * a three-way tie across two money crons. An alert could name the wrong
- * function and send someone reading it to the wrong file mid-incident.
+ * `auto-release-payment`, which runs every 30 minutes, lands on the same second
+ * every hour, making it a three-way tie across two money crons. An alert could
+ * name the wrong function and send someone to the wrong file mid-incident.
  *
  * Exact attribution from pg_net alone is impossible: `net.http_request_queue`
  * holds the URL, but its rows are deleted the moment the request resolves, so

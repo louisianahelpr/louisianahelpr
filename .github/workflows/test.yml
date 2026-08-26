@@ -81,6 +81,16 @@ jobs:
       - name: TypeScript type check
         run: npx tsc -b --noEmit
 
+      # `tsc -b` above covers src/ ONLY — supabase/functions is Deno, with
+      # https:// imports tsc cannot resolve, so it is excluded from tsconfig.
+      # The tests that touch those files read them as TEXT. That leaves edge
+      # functions with no syntax gate at all: a stray comment terminator inside
+      # a JSDoc block passed lint, typecheck and 1825 tests, reached main, and
+      # only appeared as "failed to create the graph" once Deno tried to bundle
+      # it. Deno aborts the entire deploy on one such error.
+      - name: Edge function syntax check
+        run: npm run check:edge
+
       - name: Production build
         # Public Vite vars are committed in .env (publishable keys only — safe to expose).
         # Runtime secrets (Stripe, Resend, Slack, HubSpot, etc.) live on Supabase Edge

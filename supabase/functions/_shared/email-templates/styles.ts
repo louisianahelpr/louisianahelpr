@@ -83,9 +83,9 @@ export const main = {
 export const container = { padding: '32px 28px', maxWidth: '480px' }
 
 /**
- * Wordmark IMAGE styling. The wordmark is an <Img>, not text — see the note on
- * the wordmark note above for why. Width is set on the element too (Outlook ignores
- * CSS width on images), and `display:block` kills the baseline gap.
+ * Wordmark IMAGE styling. The wordmark is an <Img>, not text — see the note
+ * above for why. Width is set on the element too (Outlook ignores CSS width on
+ * images), and `display:block` kills the baseline gap.
  */
 export const logo = {
   display: 'block' as const,

@@ -111,19 +111,28 @@ serve(async (req) => {
     .not("recurrence_days", "is", null)
     .not("recurring_helper_id", "is", null)
     .is("parent_job_id", null)
-    // 'cancelled' only. jobs.status is the `job_status` ENUM (open, accepted,
-    // in_progress, completed, cancelled, revision_requested, disputed,
-    // pending_approval) — there is no 'expired' member, and naming one made
-    // Postgres reject the whole read with `invalid input value for enum
-    // job_status: "expired"`. That surfaced here as seriesErr -> HTTP 500, on
-    // every single daily run, so no recurring series has ever produced a second
-    // visit: the first visit funds at checkout and the schedule then silently
-    // stops forever.
+    // jobs.status is the `job_status` ENUM, and its ONLY members are: open,
+    // accepted, in_progress, completed, cancelled, revision_requested,
+    // disputed, pending_approval. This filter previously named 'expired',
+    // which is not one of them, so Postgres rejected the whole read with
+    // `invalid input value for enum job_status: "expired"`. That surfaced as
+    // seriesErr -> HTTP 500 on every single daily run, so no recurring series
+    // ever produced a second visit: the first visit funds at checkout and the
+    // schedule then silently stops forever. Every value below is a real member
+    // — if one is ever added here, check it against the enum first.
+    //
+    // 'cancelled' — the series is over, by the poster's own hand.
+    //
+    // 'disputed' — PAUSE, not stop (owner decision 2026-08-25). While a visit
+    // is being contested we do not bill the poster for further visits; because
+    // this is a filter and not a flag, charging resumes by itself the moment
+    // the dispute resolves and the row leaves 'disputed'. No separate
+    // resume path to forget to call.
     //
     // 'completed' deliberately stays IN scope — the parent row IS visit one, so
     // it flips to completed as soon as that visit is done while visits 2..N are
     // still owed. Excluding it would end every series after its first visit.
-    .neq("status", "cancelled");
+    .not("status", "in", "(cancelled,disputed)");
 
   if (seriesErr) {
     console.error("[charge-recurring-visits] series read failed", seriesErr);

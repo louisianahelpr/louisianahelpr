@@ -124,15 +124,14 @@ const Signup = () => {
   const validateAboutYouStep = async () => {
     const errors: Record<string, string> = {};
 
-    // Profile photo is REQUIRED — it carries a red asterisk, so the validator
-    // has to enforce it. Note this adds real signup friction: a photo is a
-    // bigger ask than a name, and it now blocks account creation.
-    if (!avatarFile) errors.avatar = "Upload a profile photo";
     if (!firstName.trim()) errors.firstName = "Add your first name";
     if (!lastName.trim()) errors.lastName = "Add your last name";
     // Avatar, phone and DOB are DEFERRED — not required to create the
     // account (keeps signup "under a minute"). They're soft-prompted later on
-    // first post/apply. Each is still validated *when the user provides it*, so
+    // first post/apply, and /complete-profile gates on the photo before the
+    // account can do anything, so requiring it here only moved the same ask to
+    // the most expensive moment: before the account exists, where abandoning
+    // costs the user everything they had typed and costs us the signup. Each is still validated *when the user provides it*, so
     // a supplied value can't be malformed or under-age. (City used to be in
     // this list; it is no longer collected at signup at all.)
     if (phone.trim() && phone.replace(/\D/g, "").length < 10) {

@@ -129,7 +129,7 @@ export function SignupStep2(props: SignupStep2Props) {
             pushed First/Last to x=273 while every field below started at
             x=129 — a visible step down the form's left edge. */}
         <div className="space-y-2 text-center pb-3">
-          <Label htmlFor="avatar" className={labelCls}>Profile photo <span aria-hidden style={{ color: "hsl(var(--destructive))" }}>*</span></Label>
+          <Label htmlFor="avatar" className={labelCls}>Profile photo <span className="font-normal" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>(optional)</span></Label>
           <div className="flex flex-col items-center gap-1.5">
           <label className="cursor-pointer group relative inline-block active:scale-[0.98] transition-transform rounded-full focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring">
             <div
@@ -163,9 +163,9 @@ export function SignupStep2(props: SignupStep2Props) {
               <Camera className="w-3.5 h-3.5" strokeWidth={2.25} />
             </div>
             {/* sr-only (not `hidden`): display:none removes the input from the
-                tab order, and the photo is REQUIRED — a keyboard-only user
-                could never finish signup. sr-only keeps it focusable; the
-                dashed circle shows the ring via focus-within. */}
+                tab order, which would put the photo out of a keyboard-only
+                user's reach entirely. sr-only keeps it focusable; the dashed
+                circle shows the ring via focus-within. */}
             <input
               id="avatar"
               type="file"

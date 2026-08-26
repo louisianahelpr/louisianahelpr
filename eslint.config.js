@@ -15,6 +15,44 @@ import tseslint from "typescript-eslint";
    would wrongly ban the hero's 3.5rem (56px, above the ceiling).
      px  : 1–40      → banned (the scale covers 9–40)
      rem : 0–2.99    → banned (≈ up to 47px; the hero starts at 3.5rem)   */
+// `window.location.*` must never be handed to anything OFF this device.
+//
+// Inside the shipped iOS/Android build the page origin is
+// `capacitor://localhost`, which is not a URL anyone else can resolve. Stripe
+// rejects it outright (`url_invalid` → the edge function 500s, which is how
+// Connect onboarding was silently dead on iOS), an email client cannot open it,
+// and an invite link built from it is useless to the person you send it to.
+//
+// Use getPublicReturnUrl() (come back to this page) or getPublicOrigin()
+// (canonical origin) from @/lib/authRedirects — both keep the real origin on
+// web so preview deploys still return to themselves.
+//
+// Deliberately narrow: this flags the shapes where the value ESCAPES — stored
+// in a variable, interpolated into a URL string, or passed as an object
+// property (return_url:, emailRedirectTo:, url:). It does NOT flag local
+// inspection like `new URL(path, window.location.origin)` or attaching the
+// current href to an error report, which never leave the device, and it does
+// NOT flag `window.location.href = "/login"`, which is ordinary navigation.
+const LOCATION_MEMBER =
+  ':matches(' +
+  'MemberExpression[property.name=/^(href|origin)$/][object.property.name="location"],' +
+  'MemberExpression[property.name=/^(href|origin)$/][object.name="location"]' +
+  ')';
+
+const LOCATION_LEAK_MESSAGE =
+  "Don't hand window.location.href/origin to anything that leaves this device — " +
+  "in the native build it is `capacitor://localhost`, which Stripe rejects and " +
+  "no email client or recipient can open. Use getPublicReturnUrl() or " +
+  "getPublicOrigin() from @/lib/authRedirects. " +
+  "(Local-only use, e.g. `new URL(p, window.location.origin)`, is fine — " +
+  "disable this line with a comment saying why it stays on-device.)";
+
+const NATIVE_ORIGIN_RULES = [
+  { selector: `VariableDeclarator > ${LOCATION_MEMBER}`, message: LOCATION_LEAK_MESSAGE },
+  { selector: `TemplateLiteral > ${LOCATION_MEMBER}`, message: LOCATION_LEAK_MESSAGE },
+  { selector: `Property > ${LOCATION_MEMBER}`, message: LOCATION_LEAK_MESSAGE },
+];
+
 const DS_TYPE_CLASS_RULE = {
   selector:
     "Literal[value=/text-\\[(?:(?:[1-9]|[1-3][0-9]|40)(?:\\.[0-9]+)?px|[0-2](?:\\.[0-9]+)?rem)\\]/]",
@@ -151,7 +189,7 @@ export default tseslint.config(
       // way to set brand colours here and must stay legal. Sizes above the
       // scale's 40px ceiling are also allowed — the marketing hero ramp
       // (3.5rem…7.25rem) genuinely has no rung.
-      "no-restricted-syntax": ["error", DS_TYPE_CLASS_RULE, DS_TYPE_INLINE_RULE],
+      "no-restricted-syntax": ["error", DS_TYPE_CLASS_RULE, DS_TYPE_INLINE_RULE, ...NATIVE_ORIGIN_RULES],
 
     },
   },

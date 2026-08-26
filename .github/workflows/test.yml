@@ -99,3 +99,15 @@ jobs:
 
       - name: Vitest
         run: npm test
+
+      - name: Dead code (knip)
+        # Fails on unused files / unused + unlisted dependencies. Unused *exports*
+        # and types are reported as warnings (see rules in knip.json) — there is a
+        # real backlog there that needs per-symbol verification, and failing on it
+        # today would only invite blanket ignores.
+        run: npm run deadcode
+
+      - name: Dead edge functions
+        # knip treats every supabase/functions/*/index.ts as an entry point, so it
+        # cannot see a function nothing invokes. This checks the other direction.
+        run: npm run deadcode:functions

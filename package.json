@@ -28,7 +28,9 @@
     "check:launch": "HELPR_LAUNCH=1 bash scripts/check-launch-flags.sh",
     "dev:staging": "vite --mode staging",
     "db:staging:link": "npx supabase link --project-ref okpxtpfvwtmbuxugqsws",
-    "db:staging:push": "npx supabase db push"
+    "db:staging:push": "npx supabase db push",
+    "deadcode": "knip",
+    "deadcode:functions": "node scripts/check-dead-edge-functions.mjs"
   },
   "lint-staged": {
     "*.{ts,tsx}": "eslint --fix"
@@ -126,6 +128,7 @@
     "eslint-plugin-react-refresh": "^0.5.4",
     "globals": "^17.11.0",
     "jsdom": "30.0.1",
+    "knip": "^6.32.2",
     "postcss": "^8.5.26",
     "rollup-plugin-visualizer": "^7.1.1",
     "sharp": "^0.35.3",

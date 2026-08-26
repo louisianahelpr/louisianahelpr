@@ -1,0 +1,45 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+
+  "entry": [
+    "src/main.tsx",
+    "src/test/setup.ts",
+    "src/**/*.{test,spec}.{ts,tsx}",
+    "e2e/**/*.ts",
+    "scripts/**/*.mjs",
+    "supabase/functions/*/index.ts"
+  ],
+
+  "project": [
+    "src/**/*.{ts,tsx}",
+    "supabase/functions/**/*.ts",
+    "scripts/**/*.mjs",
+    "e2e/**/*.ts"
+  ],
+
+  "ignore": [
+    "src/integrations/supabase/types.ts"
+  ],
+
+  "ignoreDependencies": [
+    "npm",
+    "puppeteer"
+  ],
+
+  "rules": {
+    "files": "error",
+    "dependencies": "error",
+    "devDependencies": "error",
+    "optionalPeerDependencies": "error",
+    "unlisted": "error",
+    "binaries": "error",
+    "unresolved": "error",
+
+    "exports": "warn",
+    "nsExports": "warn",
+    "types": "warn",
+    "nsTypes": "warn",
+    "duplicates": "warn",
+    "enumMembers": "warn"
+  }
+}

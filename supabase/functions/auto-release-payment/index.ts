@@ -51,6 +51,23 @@ serve(async (req) => {
       .select("id, title, helper_id, customer_id, budget, platform_fee_amount, urgent_fee, poster_completed_at, helper_completed_at, stripe_session_id, stripe_payment_intent_id, status, is_group_job, helpers_needed")
       .in("status", ["in_progress", "revision_requested", "accepted"])
       .eq("payment_status", "escrow")
+      // A requested revision STOPS the payout clock. The 24h window is keyed on
+      // helper_completed_at/poster_completed_at, and asking for a revision
+      // resets neither — CompletionChoiceSheet writes only status,
+      // revision_note and revision_requested_at. So a poster who requested a
+      // revision 23 hours after the helper marked done had the job
+      // auto-completed and paid out minutes later, against a UI that had just
+      // promised them a 72-hour fix window and "Payment stays held until you
+      // confirm" (HelperRevisionCard). They paid in full for work they had
+      // formally sent back.
+      //
+      // Same guard sweep_release_last_chance (20260824263000) already uses, and
+      // its existence is the tell: that sweep deliberately skips revision jobs
+      // when sending the "releases in ~2 hours" warning, so the one poster who
+      // most needed the nudge was also the only one guaranteed not to get it.
+      // If revision jobs should ever settle on their own, that needs its own
+      // pass keyed on revision_deadline — not this one.
+      .is("revision_requested_at", null)
       .or(`poster_completed_at.lte.${cutoff},helper_completed_at.lte.${cutoff}`);
 
     if (error) throw error;

@@ -149,13 +149,36 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Activity check — keep anyone who has touched the platform
-        const [{ count: jobCount }, { count: appCount }, { count: msgCount }] = await Promise.all([
+        // Activity check — keep anyone who has touched the platform.
+        //
+        // These errors MUST be checked. Destructuring only `count` left the
+        // guard failing OPEN into an irreversible delete: on any read failure
+        // PostgREST returns count === null, `?? 0` turned that into 0, and
+        // "the read broke" became "this account has never done anything" — so
+        // a live user with jobs, applications and messages was handed to
+        // auth.admin.deleteUser with cascades behind it, up to
+        // MAX_DELETES_PER_RUN of them, while the response still read
+        // ok: true, deleted: N.
+        //
+        // This is the same hole commit 289d3ca45 closed one guard above for
+        // user_roles, on the reasoning that a missed cleanup run is free and a
+        // deleted admin is not. That applies with more force here: the roles
+        // guard protects admins, this one protects everybody.
+        const [jobsRes, appsRes, msgsRes] = await Promise.all([
           supabase.from("jobs").select("id", { count: "exact", head: true }).or(`customer_id.eq.${u.id},helper_id.eq.${u.id}`),
           supabase.from("applications").select("id", { count: "exact", head: true }).eq("helper_id", u.id),
           supabase.from("messages").select("id", { count: "exact", head: true }).eq("sender_id", u.id),
         ]);
-        if ((jobCount ?? 0) > 0 || (appCount ?? 0) > 0 || (msgCount ?? 0) > 0) {
+        const activityErr = jobsRes.error ?? appsRes.error ?? msgsRes.error;
+        if (activityErr) {
+          console.error(
+            `[cleanup-abandoned-accounts] activity check failed for ${u.id}; skipping rather than deleting on an unverified account`,
+            activityErr,
+          );
+          skipped.push(u.id);
+          continue;
+        }
+        if ((jobsRes.count ?? 0) > 0 || (appsRes.count ?? 0) > 0 || (msgsRes.count ?? 0) > 0) {
           skipped.push(u.id);
           continue;
         }

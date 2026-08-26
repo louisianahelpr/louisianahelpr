@@ -25,7 +25,23 @@ Deno.serve(async (req) => {
 
     const now = new Date().toISOString();
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const today = new Date().toISOString().split("T")[0];
+    // jobs.date_needed is a bare DATE that only means anything in Louisiana's
+    // zone, so "today" has to be computed there too. toISOString() gave the UTC
+    // date, which between 19:00 and midnight Central is already TOMORROW — so
+    // an open job dated today with a 21:00 start satisfied `date_needed < today`
+    // and got cancelled that same evening, hours before it was due, telling the
+    // poster its "scheduled time passed with no helper assigned" while helpers
+    // could still see and want it.
+    //
+    // en-CA formats as YYYY-MM-DD, which is what the DATE comparison needs.
+    // Same computation as todayMs() in src/lib/jobDate.ts, which exists to be
+    // the one correct reader of this column.
+    const today = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Chicago",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date());
 
     // 1. Expire accepted jobs that were accepted 24h+ ago but never started
     // `helper_confirmed_at IS NULL` is the real predicate for "stale

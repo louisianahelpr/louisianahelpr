@@ -104,8 +104,14 @@ Deno.serve(async (req) => {
           title: "Your helpr marked the job done",
           message: `"${job.title}" — please confirm completion or request a revision. Payment auto-releases in ~24h.`,
           type: "job_updates",
+          // No job_id here: public.notifications is (id, user_id, title,
+          // message, type, read, link, created_at) and no migration ever adds
+          // a job_id column. Passing one made PostgREST reject the INSERT with
+          // PGRST204, which threw into the per-job catch below — so this
+          // reminder has never once been delivered since the function was
+          // written, while the run still returned HTTP 200 with sent: 0. The
+          // link already carries the poster to the job.
           link: "/my-posts?filter=in_progress",
-          job_id: job.id,
         });
 
         if (notifErr) {

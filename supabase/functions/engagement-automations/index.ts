@@ -1,6 +1,19 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { brand } from '../_shared/email-templates/styles.ts'
 
+// Declared because line 163 already used it. That reference was the only one
+// in the file and resolved to nothing, so the CAN-SPAM fail-closed branch —
+// the one that aborts the whole send when the suppression list can't be read —
+// threw a ReferenceError instead of returning its intended 503. The outer catch
+// swallowed it into results.errors and the run answered HTTP 200 with
+// `errors: ["corsHeaders is not defined"]`, which names nothing about
+// suppression and is invisible to the cron watcher (it only sees non-2xx).
+// Nothing type-checks edge functions before deploy, so this shipped.
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+}
+
 const SITE_NAME = "Louisiana Helpr"
 const SENDER_DOMAIN = "louisianahelpr.com"
 const FROM_DOMAIN = "louisianahelpr.com"

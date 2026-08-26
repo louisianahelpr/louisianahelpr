@@ -232,6 +232,23 @@ test.describe("Messages composer — sits ON the safe area, not past it", () => 
    * both correct on device and SET here — a browser reports no inset at all,
    * so without the variable a home-indicator layout is simply untestable.
    */
+  /**
+   * measureDock is a STRING of page-side JS, so page.evaluate cannot infer what
+   * comes back and every field read off it was `unknown` — which is why this
+   * file was invisible to tsc until e2e joined the build. Naming the shape once
+   * restores the checking without changing what runs in the browser.
+   */
+  type DockMetrics = {
+    error?: string;
+    paddingBottom: number;
+    dockBottom: number;
+    dockTop: number;
+    viewportBottom: number;
+    // null when the composer input is absent — the assertions guard for it.
+    inputBottom: number | null;
+    gap: number | null;
+  };
+
   const measureDock = `(() => {
     const dock = document.querySelector(".glass-dock");
     if (!dock) return { error: "composer dock not found" };
@@ -253,7 +270,7 @@ test.describe("Messages composer — sits ON the safe area, not past it", () => 
     await gotoMessages(page);
     await openFirstThread(page);
 
-    const m = await page.evaluate(measureDock);
+    const m = await page.evaluate<DockMetrics>(measureDock);
     expect(m.error).toBeUndefined();
     // The old `env(..., 12px)` gave 0 here — the input sat on the edge.
     expect(m.paddingBottom).toBeGreaterThanOrEqual(12);
@@ -272,7 +289,7 @@ test.describe("Messages composer — sits ON the safe area, not past it", () => 
       document.documentElement.style.setProperty("--safe-area-bottom", "34px"),
     );
 
-    const m = await page.evaluate(measureDock);
+    const m = await page.evaluate<DockMetrics>(measureDock);
     expect(m.paddingBottom).toBe(34);
     expect(Math.abs(m.dockBottom - m.viewportBottom)).toBeLessThanOrEqual(1);
     // The input row itself stops above the home-indicator strip.

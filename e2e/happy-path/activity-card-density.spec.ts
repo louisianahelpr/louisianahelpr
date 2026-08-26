@@ -645,7 +645,7 @@ test.describe("My Posts — card density + header", () => {
     // It used to be carried by a neutral "Open · no applicants yet" stripe on
     // the card; it is a tab now, which is the version you can filter by.
     await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
-    const lonely = { ...(SEED_JOBS.find((j) => j.status === "open") as Row), id: "10000000-0000-4000-8000-0000000000ff" };
+    const lonely: Row = { ...(SEED_JOBS.find((j) => j.status === "open") as Row), id: "10000000-0000-4000-8000-0000000000ff" };
     await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true, rules: [jobsRule([lonely])] });
     await page.goto("/my-posts?filter=waiting");
     await page.waitForSelector("h1");

@@ -174,7 +174,7 @@ function injectedFailureRule(): MockRules[number] {
  * flat 20s in the handler would add 20s of context-close time to every single
  * loading test. The caller flips it the moment the page has been measured.
  */
-function installLoadingDelay(page: Page, gate: { released: boolean }, maxMs = 20_000): Promise<void> {
+function installLoadingDelay(page: Page, gate: { released: boolean }, maxMs = 20_000): Promise<unknown> {
   return page.route(
     (url) => isTargetRestCall(url.pathname, "GET") || isTargetRestCall(url.pathname, "POST"),
     async (route) => {

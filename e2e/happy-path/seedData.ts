@@ -34,6 +34,32 @@
 // SEED_TABLES from here). They MUST stay in step: rows keyed to a different
 // helper id simply will not appear on the helper-role screens, which looks
 // like "the seed did not work" rather than an id mismatch.
+import type { Database } from "@/integrations/supabase/types";
+
+/**
+ * Row shapes straight from the GENERATED schema. Rule 3 in the header above
+ * ("every non-nullable column is present, so a row is shape-valid against the
+ * real schema") was previously enforced by nothing but care, and care missed a
+ * real one: the messages fixture set `recipient_id`, a column that exists
+ * nowhere — `messages.receiver_id` is the real name. The rows still loaded,
+ * because a mock just replays JSON, so the unread filter
+ * (`receiver_id === uid && !read`) matched nothing and the specs asserting
+ * "0 unread" passed for entirely the wrong reason. It stayed invisible for
+ * months and only surfaced when the inbox began opening on Unread.
+ *
+ * `Insert` rather than `Row` is deliberate: it keeps DB-defaulted columns
+ * (`id`, `created_at`) optional while still rejecting a column that does not
+ * exist, which is the failure mode that actually bit.
+ *
+ * The `satisfies` on each export below is what does the work — it type-checks
+ * every literal WITHOUT widening the export, so `SEED_JOBS[0].id` stays a
+ * string and the specs that index into these arrays keep their inference.
+ */
+type Tables = Database["public"]["Tables"];
+type JobsInsert = Tables["jobs"]["Insert"];
+type MessagesInsert = Tables["messages"]["Insert"];
+type ApplicationsInsert = Tables["applications"]["Insert"];
+
 export const CUSTOMER_ID = "00000000-0000-4000-8000-00000000c1ce";
 export const HELPER_ID = "00000000-0000-4000-8000-00000000he1p";
 
@@ -76,8 +102,13 @@ type JobSeed = {
   id: string;
   title: string;
   description: string;
-  category: string;
-  status: string;
+  // Derived from the generated schema rather than typed as `string`: these two
+  // are Postgres ENUMS, so a plain `string` here let a fixture invent a
+  // category or status the database would reject, and the mock would happily
+  // replay it. Sourcing them from JobsInsert means an invalid value is a
+  // compile error at the fixture, which is where it is cheap to notice.
+  category: NonNullable<JobsInsert["category"]>;
+  status: NonNullable<JobsInsert["status"]>;
   budget: number;
   location: string;
   date_needed: string;
@@ -105,7 +136,7 @@ const JOB_BASE = {
   review_reminder_sent: false,
   revision_count: 0,
   updated_at: NOW,
-};
+} satisfies Partial<JobsInsert>;
 
 const JOB_SEEDS: JobSeed[] = [
   {
@@ -203,7 +234,7 @@ const JOB_SEEDS: JobSeed[] = [
   },
 ];
 
-export const SEED_JOBS = JOB_SEEDS.map((j) => ({ ...JOB_BASE, ...j }));
+export const SEED_JOBS = JOB_SEEDS.map((j) => ({ ...JOB_BASE, ...j })) satisfies JobsInsert[];
 
 /** Applicants for the open job — drives ApplicantsPanel and its empty→full state. */
 export const SEED_APPLICATIONS = [
@@ -233,7 +264,7 @@ export const SEED_APPLICATIONS = [
     negotiation_status: "countered",
     counter_price: 185,
   },
-];
+] satisfies ApplicationsInsert[];
 
 /** A thread with both sides, an unread, and a long message for bubble wrapping. */
 export const SEED_MESSAGES = [
@@ -279,7 +310,7 @@ export const SEED_MESSAGES = [
     read: false,
     is_system: false,
   },
-];
+] satisfies MessagesInsert[];
 
 export const SEED_REVIEWS = [
   {

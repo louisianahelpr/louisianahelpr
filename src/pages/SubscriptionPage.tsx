@@ -40,13 +40,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import {
+  ONE_TIME_PASS_DAYS,
   TIER_PERKS,
   toSubscriptionTier,
   type SubscriptionTier,
 } from "@/lib/subscriptionTiers";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 
-type BillingCycle = "monthly" | "annual";
+/* "one_time" buys a fixed-length pass rather than a subscription — see
+   ONE_TIME_PASS_DAYS. It is the same value create-pro-checkout expects as
+   `billing_cycle`, so the toggle's state forwards verbatim. */
+type BillingCycle = "monthly" | "annual" | "one_time";
 
 // Local mirror of the `formatTierPrices` helper in
 // `src/components/profile/subscriptionTab/tierConfig.tsx`. Kept in-file so
@@ -374,7 +378,7 @@ export default function SubscriptionPage() {
                 boxShadow: "var(--elev-inset-hairline)",
               }}
             >
-              {(["monthly", "annual"] as const).map((cycle) => {
+              {(["monthly", "annual", "one_time"] as const).map((cycle) => {
                 const active = billingCycle === cycle;
                 return (
                   <button
@@ -395,11 +399,37 @@ export default function SubscriptionPage() {
                       letterSpacing: "-0.005em",
                     }}
                   >
-                    {cycle === "monthly" ? "Monthly" : "Annual"}
+                    {cycle === "monthly"
+                      ? "Monthly"
+                      : cycle === "annual"
+                        ? "Annual"
+                        : "Once"}
                   </button>
                 );
               })}
             </div>
+            {/* One-time pass explainer. "Once" without a duration reads as
+                "pay once, member forever"; the pass actually grants
+                ONE_TIME_PASS_DAYS days — the webhook stamps
+                subscription_expires_at at now + that many days on a one_time
+                checkout (stripe-webhook/handlers/checkoutSessionCompleted.ts).
+                Same wording as the in-app Membership tab so the two storefronts
+                describe one product. */}
+            {billingCycle === "one_time" && (
+              <p
+                className="mt-4 mx-auto max-w-md font-serif italic leading-snug text-ds-13"
+                style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+              >
+                <span
+                  className="not-italic font-display font-bold"
+                  style={{ color: "hsl(var(--ink-deep))" }}
+                >
+                  One-time pass — {ONE_TIME_PASS_DAYS} days.
+                </span>{" "}
+                Pay once, keep the perks for {ONE_TIME_PASS_DAYS} days, no
+                auto-renew.
+              </p>
+            )}
             {currentTier !== "free" && (
               <button
                 type="button"
@@ -476,9 +506,13 @@ export default function SubscriptionPage() {
                 if (isFree) return { amount: "$0", suffix: null, saveChip: null };
                 const info = formatPaidTierPrices(tier as "basic" | "pro" | "elite");
                 const isAnnual = billingCycle === "annual";
+                const isOnce = billingCycle === "one_time";
+                // A one-time pass costs the same as one month (TIER_PERKS.price
+                // is the single source for both), so the amount is the monthly
+                // figure with a duration suffix rather than a rate suffix.
                 return {
                   amount: isAnnual ? `$${info.yearlyTotal}` : `$${info.monthlyPrice}`,
-                  suffix: isAnnual ? "/yr" : "/mo",
+                  suffix: isAnnual ? "/yr" : isOnce ? "once" : "/mo",
                   saveChip: isAnnual ? info.annualSave : null,
                 };
               })();
@@ -677,6 +711,7 @@ export default function SubscriptionPage() {
                       const paidTierId = tier as "basic" | "pro" | "elite";
                       const priceInfo = formatPaidTierPrices(paidTierId);
                       const isAnnual = billingCycle === "annual";
+                      const isOnce = billingCycle === "one_time";
                       return (
                         <>
                           <div className="mt-5 flex items-baseline gap-2 flex-wrap">
@@ -696,7 +731,7 @@ export default function SubscriptionPage() {
                               className="font-sans font-medium text-ds-13"
                               style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                             >
-                              {isAnnual ? "/yr" : "/mo"}
+                              {isAnnual ? "/yr" : isOnce ? "once" : "/mo"}
                             </span>
                           </div>
                           {/* The "or $X/mo billed annually" line that used to sit
@@ -801,7 +836,22 @@ export default function SubscriptionPage() {
                             </li>
                           ) : null;
                         })()}
-                        {perks.featureBullets.map((bullet) => (
+                        {/* The bullets in subscriptionTiers.ts are written for a
+                            RECURRING plan, and the Once cycle renders that same
+                            list under a one-time price — so Pro advertised "1
+                            free Job Boost every month" on a pass that only ever
+                            sees one month. Restate a per-month perk for the
+                            single period the pass actually covers rather than
+                            promise a cadence it cannot reach. Same rewrite the
+                            in-app Membership tab applies, so the two
+                            storefronts describe one product. */}
+                        {perks.featureBullets
+                          .map((b) =>
+                            billingCycle === "one_time"
+                              ? b.replace(/\s*every month$/i, ` for your ${ONE_TIME_PASS_DAYS} days`)
+                              : b,
+                          )
+                          .map((bullet) => (
                           <li
                             key={bullet}
                             className="flex items-start gap-2 font-sans text-ds-13 leading-relaxed"
@@ -902,7 +952,9 @@ export default function SubscriptionPage() {
                           {upgrading && (
                             <Loader2 className="mr-2 w-4 h-4 animate-spin" />
                           )}
-                          {perks.ctaLabel}
+                          {/* "Buy" on the one-time cycle — ctaLabel is written
+                              for a subscription, and a 30-day pass is not one. */}
+                          {billingCycle === "one_time" ? "Buy" : perks.ctaLabel}
                           <ArrowRight
                             className="ml-2 w-4 h-4 transition-transform duration-300 group-hover:translate-x-1"
                             strokeWidth={1.5}

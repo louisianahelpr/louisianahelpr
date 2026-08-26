@@ -18,10 +18,11 @@ interface OfferedActionsProps {
 /**
  * Declining after you were SELECTED from your own application files a
  * `job_denial` violation on the shared reliability ladder
- * (`apply_job_denial_consequence`, migration 20260824243000): the first
+ * (`apply_job_denial_consequence`, migration 20260829010000): the first
  * strike is recorded with only a courtesy warning, the second is a final
- * warning, the third suspends the account for 7 days, and a fourth is a
- * permanent ban. A helper could walk most of the way up that ladder from a
+ * warning, the third suspends the account for 7 days, and a fourth restricts
+ * it for 7 days while an admin reviews it for a permanent ban — which is never
+ * automatic. A helper could walk most of the way up that ladder from a
  * single unconfirmed tap on a button labelled only "Decline", while
  * WITHDRAWING an application (which costs nothing) got a whole sheet with a
  * mandatory reason. This confirm inverts that back.

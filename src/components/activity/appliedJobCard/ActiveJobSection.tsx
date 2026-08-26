@@ -86,9 +86,12 @@ export function ActiveJobSection({
     }
     hapticError(); // a strike is never a success moment
     const result = data as { action?: string; outcome?: string } | null;
-    if (result?.action === "permanent_ban") {
-      // Fourth strike. Mirror the decline / cancel-booking paths: hard-load so
-      // the banned session is torn down rather than left live behind the list.
+    if (result?.action === "pending_ban_review" || result?.action === "permanent_ban") {
+      // Fourth strike — as of 20260829010000 a REVERSIBLE 7-day restriction
+      // pending admin review, not an automatic permanent ban. Mirror the
+      // decline / cancel-booking paths: hard-load so the restricted session is
+      // torn down rather than left live behind the list. The retired
+      // "permanent_ban" string is still handled for the pre-deploy window.
       window.location.assign("/account-banned");
       return;
     }

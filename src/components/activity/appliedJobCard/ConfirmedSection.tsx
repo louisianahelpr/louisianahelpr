@@ -27,7 +27,8 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
 
   // The sanctioned exit (owner, 2026-08-24): cancelling a committed booking
   // reopens the job and counts a reliability strike on the shared ladder
-  // (2 warnings → 7-day suspension → permanent ban). The dialog states that
+  // (2 warnings → 7-day suspension → 7-day restriction pending admin review).
+  // The dialog states that
   // BEFORE the tap — the consequence is the point, not a surprise.
   const handleCancelBooking = async () => {
     setCancelling(true);
@@ -45,10 +46,13 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
     }
     hapticError(); // a strike is not a success moment
     const action = (data as { action?: string } | null)?.action;
-    if (action === "permanent_ban") {
-      // Fourth strike. Mirror the decline path (useOfferHandlers): a
-      // permanent ban is not a toast — hard-load the banned screen so the
-      // banned session is torn down rather than left live behind /my-jobs.
+    if (action === "pending_ban_review" || action === "permanent_ban") {
+      // Fourth strike. As of 20260829010000 this is `pending_ban_review` — a
+      // REVERSIBLE 7-day restriction while an admin decides. Mirror the decline
+      // path (useOfferHandlers): not a toast — hard-load the banned screen so
+      // the restricted session is torn down rather than left live behind
+      // /my-jobs. The retired "permanent_ban" string is still handled for the
+      // window between this code shipping and the migration reaching prod.
       window.location.assign("/account-banned");
       return;
     }

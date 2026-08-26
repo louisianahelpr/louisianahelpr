@@ -606,9 +606,15 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
         // the temporary variant with the return date).
         toast.warning("Third strike — your account is suspended for 7 days.");
         window.location.assign("/account-banned");
-      } else if (actionTaken === "permanent_ban") {
+      } else if (actionTaken === "pending_ban_review" || actionTaken === "permanent_ban") {
         hapticError();
-        // Same reasoning as CancellationDialog: a permanent ban is not a toast.
+        // Fourth strike. As of 20260829010000 this comes back as
+        // `pending_ban_review` — a REVERSIBLE 7-day restriction while an admin
+        // decides, matching the message and cancellation ladders. The retired
+        // "permanent_ban" string is still handled because there is a window
+        // between this code shipping and the migration landing on prod.
+        //
+        // Same reasoning as CancellationDialog either way: this is not a toast.
         // Send them to the banned screen, which reads ban_status off the
         // profile and states the rule, the reason and the support path — and
         // does not auto-dismiss.

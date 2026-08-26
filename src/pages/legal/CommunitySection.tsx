@@ -5,6 +5,13 @@ import {
 import { PolicyRowItem, PolicySection } from "@/components/policy/CollapsedPolicy";
 import { HideOnSearch, TldrCard, PolicyFooter } from "./LegalChrome";
 import { LAST_UPDATED } from "./legalSections";
+// The reliability ladder is stated ONCE, in reliabilityLadder.ts, which
+// reliabilityLadder.parity.test.ts pins to the SQL that enforces it. This page
+// used to restate it as its own three-bullet list ending in an automatic
+// permanent ban at the 3rd strike — the SQL has four rungs and, since
+// 20260829010000, never bans automatically at all. Binding copy in a legal
+// document is the LAST place a restated consequence should live.
+import { RELIABILITY_LADDER_RUNGS } from "@/lib/reliabilityLadder";
 // Derive the escrow auto-release schedule instead of restating it in prose.
 // These are the platform's binding promises about when money moves, so they
 // must follow the config the cron enforces (guarded by escrowTiming.parity.test).
@@ -237,10 +244,16 @@ export const CommunityContent = () => (
         icon={AlertTriangle}
         title="Cancellation strikes (posters)"
         body={
+          /* Transcribed from what apply_cancellation_violation_consequence
+             ACTUALLY does (20260829010000). This list used to promise an
+             automatic, unappealable ban on the 3rd strike; the ladder has
+             never done that — it applies a REVERSIBLE 7-day restriction
+             and notifies admins to decide. The in-app CancellationDialog
+             already said so, so the legal page was the odd one out. */
           <ul className="list-disc pl-4 space-y-0.5">
             <li><strong className="text-foreground">1st strike:</strong> Written warning recorded; admins notified.</li>
-            <li><strong className="text-foreground">2nd strike:</strong> Final warning. One more = permanent ban.</li>
-            <li><strong className="text-foreground">3rd strike:</strong> Permanent ban. Final, no appeal.</li>
+            <li><strong className="text-foreground">2nd strike:</strong> Final warning.</li>
+            <li><strong className="text-foreground">3rd strike and beyond:</strong> Your account is restricted for 7 days while an admin reviews the case. They decide what happens next — a permanent ban is never automatic.</li>
             <li>Cancelling a job <em>before</em> a Helpr is assigned does <strong>not</strong> count toward strikes (timing-based fees still apply).</li>
           </ul>
         }
@@ -250,9 +263,9 @@ export const CommunityContent = () => (
         title="Job-denial strikes (Helprs)"
         body={
           <ul className="list-disc pl-4 space-y-0.5">
-            <li><strong className="text-foreground">1st strike:</strong> Written warning. Only apply to jobs you can commit to.</li>
-            <li><strong className="text-foreground">2nd strike:</strong> Final warning.</li>
-            <li><strong className="text-foreground">3rd strike:</strong> Permanent ban.</li>
+            {RELIABILITY_LADDER_RUNGS.map((rung) => (
+              <li key={rung}>{rung}</li>
+            ))}
             <li>Withdrawing your application <em>before</em> being selected does not count.</li>
           </ul>
         }

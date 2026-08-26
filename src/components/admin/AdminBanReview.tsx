@@ -25,18 +25,40 @@ import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 
 /**
- * Ban Review — the human half of the message-scanner ladder.
+ * Ban Review — the human half of EVERY consequence ladder.
  *
- * The scanner's third strike used to permanently ban the account from the
- * OFFENDER'S OWN CLIENT, with nobody ever looking at it. It now records the
+ * The message scanner's third strike used to permanently ban the account from
+ * the OFFENDER'S OWN CLIENT, with nobody ever looking at it. It now records the
  * case as `user_violations.action_taken = 'pending_ban_review'` and applies a
- * REVERSIBLE 7-day restriction (see apply_message_violation_consequence,
- * 20260825183000). This view is where a person reads the actual blocked
- * messages and decides: confirm the permanent ban, or dismiss it and lift the
- * restriction. Both decisions go through the admin-user-actions edge function,
+ * REVERSIBLE 7-day restriction. As of 20260829010000 all three ladders behave
+ * that way and feed this one queue — off-platform contact
+ * (`off_platform`), cancelling on a committed Helpr (`cancel_with_helper`) and
+ * reliability strikes (`job_denial`), which was the last one still
+ * auto-banning. The queue filters on `action_taken` alone and derives its
+ * evidence from each case's own `violation_type`, so a new ladder feeding it
+ * needs nothing here except a label below. This view is where a person reads
+ * the actual evidence and decides: confirm the permanent ban, or dismiss it
+ * and lift the restriction. Both decisions go through the admin-user-actions edge function,
  * which re-checks the caller is an admin server-side and writes an
  * admin_audit_log row — a client write would put us back where we started.
  */
+
+/**
+ * What to CALL the evidence, per ladder. Getting this wrong is not cosmetic:
+ * an admin deciding a ban reads "3 blocked messages" and goes looking for
+ * messages that do not exist. Every violation_type that can reach
+ * `pending_ban_review` needs an entry; the fallback is deliberately vague
+ * rather than wrong.
+ */
+const caseNoun = (violationType: string, count: number): string => {
+  const nouns: Record<string, [string, string]> = {
+    off_platform: ["blocked message", "blocked messages"],
+    cancel_with_helper: ["cancellation", "cancellations"],
+    job_denial: ["reliability strike", "reliability strikes"],
+  };
+  const pair = nouns[violationType] ?? ["violation", "violations"];
+  return count === 1 ? pair[0] : pair[1];
+};
 
 interface ViolationRow {
   id: string;
@@ -187,7 +209,7 @@ const BanReviewInner = () => {
     <AdminViewShell>
       <AdminCard
         title="Pending Ban Reviews"
-        subtitle="Accounts the message scanner stopped after a third blocked message. Each is restricted for 7 days — nothing is permanent until you say so."
+        subtitle="Accounts a consequence ladder stopped — blocked messages, cancellations on a committed Helpr, or reliability strikes. Each is restricted for 7 days; nothing is permanent until you say so."
         action={
           cases.length > 0 ? (
             <span className={cn("inline-flex items-center justify-center rounded-full text-ds-11 font-bold px-2.5 py-1 min-w-[1.75rem]", toneBadgeClasses.warning)}>
@@ -218,10 +240,7 @@ const BanReviewInner = () => {
                         {c.full_name || "Unnamed user"}
                       </p>
                       <span className={cn("inline-flex items-center rounded-full text-ds-10 font-semibold px-2 py-0.5", toneBadgeClasses.warning)}>
-                        {c.history.length}{" "}
-                        {c.violation_type === "cancel_with_helper"
-                          ? c.history.length === 1 ? "cancellation" : "cancellations"
-                          : c.history.length === 1 ? "blocked message" : "blocked messages"}
+                        {c.history.length} {caseNoun(c.violation_type, c.history.length)}
                       </span>
                     </div>
                     <p className="text-ds-11 text-muted-foreground truncate">{c.email}</p>

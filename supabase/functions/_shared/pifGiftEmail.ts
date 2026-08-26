@@ -63,7 +63,7 @@ export function renderPifGiftEmail(opts: PifGiftEmailOpts): { html: string; text
 <html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/></head>
 <body style="background:#F0F2F4;font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif;margin:0;padding:24px;color:#2E2F22;">
   <div style="max-width:480px;margin:0 auto;background:#fff;border-radius:14px;padding:32px 28px;border:1px solid #CBCFD8;">
-    <img src="https://www.louisianahelpr.com/helpr-wordmark.png" alt="Louisiana Helpr" width="150" style="display:block;width:150px;max-width:150px;height:auto;border:0;outline:none;text-decoration:none;margin:0 0 24px;" />
+    <img src="https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/brand-asset" alt="Louisiana Helpr" width="150" style="display:block;width:150px;max-width:150px;height:auto;border:0;outline:none;text-decoration:none;margin:0 0 24px;" />
     <h1 style="font-size:22px;font-weight:700;margin:0 0 16px;line-height:1.3;">${donor} sent you a ${amount} Helpr credit</h1>
     <p style="font-size:15px;line-height:1.6;margin:0 0 16px;color:#55656D;">
       Someone wants to help you get something done. Your <strong style="color:#2E2F22;">${amount} credit</strong> can go toward any job on Helpr — cleaning, yard work, handyman help, groceries, and more.

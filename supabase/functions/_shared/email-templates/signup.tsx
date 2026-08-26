@@ -9,6 +9,7 @@ import {
   Head,
   Heading,
   Html,
+  Img,
   Link,
   Preview,
   Text,
@@ -44,7 +45,7 @@ export const SignupEmail = ({
     <Preview>Verify your email to get started on Helpr</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Text style={logo}>Helpr</Text>
+        <Img src="https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/brand-asset" alt="Louisiana Helpr" width="150" style={logo} />
         <Heading style={h1}>Confirm your email to get started.</Heading>
         <Text style={text}>
           Tap the button below to verify your email so we can finish setting up your{' '}

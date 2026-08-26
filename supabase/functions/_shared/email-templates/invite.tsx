@@ -9,6 +9,7 @@ import {
   Head,
   Heading,
   Html,
+  Img,
   Link,
   Preview,
   Text,
@@ -41,7 +42,7 @@ export const InviteEmail = ({
     <Preview>You've been invited to join Helpr</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Text style={logo}>Helpr</Text>
+        <Img src="https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/brand-asset" alt="Louisiana Helpr" width="150" style={logo} />
         <Heading style={h1}>You've been invited to Helpr.</Heading>
         <Text style={text}>
           A neighbor invited you to join{' '}

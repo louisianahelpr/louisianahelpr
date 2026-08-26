@@ -16,6 +16,12 @@ project_id = "fncmgoasalhdgfwzhsqa"
   # always established before the first map mounts.
   [functions.mapkit-token]
     verify_jwt = false
+  # An email client fetching the wordmark sends no Authorization header, so
+  # this must be anonymous. It returns one static public logo and reads
+  # nothing — see the function header for why emails cannot use the website.
+  [functions.brand-asset]
+    verify_jwt = false
+
   [functions.auth-email-hook]
     verify_jwt = false
   [functions.create-payment]

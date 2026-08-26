@@ -9,6 +9,7 @@ import {
   Head,
   Heading,
   Html,
+  Img,
   Preview,
   Text,
 } from 'npm:@react-email/components@0.0.22'
@@ -37,7 +38,7 @@ export const MagicLinkEmail = ({
     <Preview>Your Helpr login link</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Text style={logo}>Helpr</Text>
+        <Img src="https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/brand-asset" alt="Louisiana Helpr" width="150" style={logo} />
         <Heading style={h1}>Your login link</Heading>
         <Text style={text}>
           Click the button below to log in to Helpr. This link will expire shortly.

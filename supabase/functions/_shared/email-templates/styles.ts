@@ -54,15 +54,22 @@ export const brand = {
  * approval notice from a phishing attempt, rendered as the default word
  * -processor serif.
  *
- * All eleven wordmarks are now <img> tags pointing at /helpr-wordmark.png with
- * alt="Louisiana Helpr", which is standard email practice and also settles P3
- * (the alt text is the full name, not the short one).
+ * Every wordmark is an <Img> with alt="Louisiana Helpr", which is standard
+ * email practice and also settles P3 (the alt text is the full name, not the
+ * short one). This note used to claim that had already happened while all six
+ * auth templates still rendered `<Text style={logo}>Helpr</Text>` — the fix was
+ * described but never applied, so the emails kept shipping in Times New Roman.
  *
- * This stack is kept for genuine display TEXT inside a template, where a serif
- * fallback is acceptable because the words are content rather than logo.
+ * The image is served by the `brand-asset` edge function rather than by the
+ * marketing site: www.louisianahelpr.com sits behind Vercel's security
+ * checkpoint, and Gmail's and Apple Mail's image proxies both receive a 429
+ * challenge page instead of the PNG. Confirmed from two separate networks.
+ *
+ * The Bodoni/Didot stack that used to live here is gone with the last text
+ * wordmark. It was kept "in case a template wants display text", nothing ever
+ * did, and leaving it invited the next person to reach for a face that mail
+ * clients cannot load.
  */
-export const displayFontStack =
-  "'Bodoni Moda', Didot, 'Times New Roman', Georgia, serif"
 
 /** Body face. Montserrat is the app's sans; degrades to the usual grotesques. */
 export const bodyFontStack =
@@ -75,12 +82,20 @@ export const main = {
 
 export const container = { padding: '32px 28px', maxWidth: '480px' }
 
+/**
+ * Wordmark IMAGE styling. The wordmark is an <Img>, not text — see the note on
+ * the wordmark note above for why. Width is set on the element too (Outlook ignores
+ * CSS width on images), and `display:block` kills the baseline gap.
+ */
 export const logo = {
-  fontSize: '28px',
-  fontWeight: 'bold' as const,
-  color: brand.bark,
+  display: 'block' as const,
+  width: '150px',
+  maxWidth: '150px',
+  height: 'auto' as const,
   margin: '0 0 24px',
-  fontFamily: displayFontStack,
+  border: '0',
+  outline: 'none',
+  textDecoration: 'none',
 }
 
 export const h1 = {

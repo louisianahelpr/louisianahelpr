@@ -23,8 +23,6 @@ import {
   AUTO_COMPLETE_HOURS,
   PAYOUT_HOLD_HOURS,
 } from "../../supabase/functions/_shared/escrowTiming";
-import { SEAT_TIER_TO_SUBSCRIPTION } from "../../supabase/functions/_shared/seatTierGrant";
-import { TIER_PERKS } from "@/lib/subscriptionTiers";
 
 const FUNCTIONS_DIR = join(process.cwd(), "supabase", "functions");
 const MIGRATIONS_DIR = join(process.cwd(), "supabase", "migrations");
@@ -111,27 +109,6 @@ describe("R18 — money duplications that had no guard", () => {
     // decision is visible to the next reader rather than looking like an
     // omission.
     expect(STRIPE_FLAT_CENTS).toBeGreaterThan(0);
-  });
-
-  // ── 4. seat plan → fee rung, asserted against the perks table ──────────
-  //
-  // _shared/seatTierGrant.ts maps a business seat plan onto the membership
-  // tier whose fee rung the owner gets, and nothing checked that the tier it
-  // names still exists in TIER_PERKS — so a renamed or retired tier would
-  // grant a rung that silently resolves to undefined.
-  it("every seat grant names a tier that TIER_PERKS still defines", () => {
-    const entries = Object.entries(SEAT_TIER_TO_SUBSCRIPTION);
-    expect(entries.length, "seat plan map is empty").toBeGreaterThan(0);
-    for (const [plan, granted] of entries) {
-      if (granted == null) continue; // a plan that grants nothing is legitimate
-      expect(
-        TIER_PERKS[granted as keyof typeof TIER_PERKS],
-        `seatTierGrant("${plan}") grants "${granted}", which TIER_PERKS does not define`,
-      ).toBeDefined();
-      expect(
-        typeof TIER_PERKS[granted as keyof typeof TIER_PERKS].platformFeePercent,
-      ).toBe("number");
-    }
   });
 
   // ── 5. the Stripe product → tier map, now single-source ────────────────

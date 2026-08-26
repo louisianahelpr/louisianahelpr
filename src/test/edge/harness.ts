@@ -160,14 +160,6 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/adminIds.ts";`,
   );
 
-  // Business seat fee ladder: `_shared/seatTierGrant.ts` is pure TypeScript
-  // (plain lookup tables + one pure function), so the generated file points at
-  // the REAL module. The commission a seat plan actually buys stays under test
-  // rather than being mocked away — same rationale as helperFees/posterFees.
-  out = out.replace(
-    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/seatTierGrant\.ts["'];?/g,
-    `import {$1} from "../../../supabase/functions/_shared/seatTierGrant.ts";`,
-  );
 
   return out;
 }

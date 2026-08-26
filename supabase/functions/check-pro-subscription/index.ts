@@ -169,13 +169,13 @@ serve(async (req) => {
     //
     // REVOKING IS THE DANGEROUS BRANCH (R7), so it is now guarded twice.
     //
-    // (a) profiles.subscription_tier is SHARED with business seat grants
-    //     (see stripe-webhook/handlers/businessSeatGrant.ts, which flags the
-    //     collision in-code). A seat-holding owner who has no PERSONAL
-    //     subscription used to have their seat tier wiped by simply opening
-    //     the dashboard — this poll would find no personal sub and clear the
-    //     column out from under the other feature. Never clear a tier this
-    //     function did not grant.
+    // (a) profiles.subscription_tier was SHARED with the business seat grants
+    //     that the Business product used to write. That product was removed on
+    //     2026-08-25 and no new seat tier can be granted, but the guard STAYS:
+    //     `businesses` rows were deliberately kept, some still carry a
+    //     seat_tier, and without this check the next poll would clear a tier
+    //     this function never granted — the exact bug it was written for.
+    //     Never clear a tier this function did not grant.
     // (b) the write's error was dropped, so a failed revoke looked identical
     //     to a successful one.
     const { data: ownedBusiness, error: ownedBusinessError } = await supabaseAdmin

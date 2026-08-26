@@ -2,7 +2,6 @@ import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
 import { PRODUCT_TO_TIER } from "../constants.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
-import { applyBusinessSeatGrant } from "./businessSeatGrant.ts";
 
 export async function handleCustomerSubscriptionUpdated(
   event: Stripe.Event,
@@ -11,18 +10,10 @@ export async function handleCustomerSubscriptionUpdated(
   const { stripe, supabase, logStep } = ctx;
   const subscription = event.data.object as Stripe.Subscription;
 
-  // Business seat plans are handled first and terminate here. Their commission
-  // discount (Crew 11 / Team 10 / Enterprise 8 vs the standard 12) is applied or
-  // revoked directly off this event, rather than waiting for the customer to
-  // open a business page in the app — which is what previously left a paying
-  // Crew owner on the standard 12% indefinitely.
-  if (await applyBusinessSeatGrant(subscription, ctx)) return;
-
-  // Business seat subscriptions share the same Stripe customer as personal
-  // subscriptions (both look up customer by email). Guard before any DB write:
-  // if this product isn't a personal tier, skip — updating subscription_tier
-  // for a business event would wipe or null-out the user's personal Pro/Elite
-  // tier on every renewal or status change of their business seats.
+  // Guard before any DB write: only personal tier products may touch
+  // subscription_tier. A non-tier product sharing this Stripe customer (a
+  // legacy business seat subscription, say) would otherwise wipe or null out
+  // the user's personal Pro/Elite tier on every renewal or status change.
   const productId = subscription.items.data[0]?.price.product as string | undefined;
   if (!productId || !PRODUCT_TO_TIER[productId]) {
     logStep("Non-personal subscription updated — skipping profile tier update", { productId, status: subscription.status });

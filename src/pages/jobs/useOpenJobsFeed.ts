@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { SHOW_SEED_JOBS_PUBLICLY } from "@/config/showSeedJobs";
 
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -52,7 +53,21 @@ export const useOpenJobsFeed = ({
       // unwrap surfaces a failed fetch as the query's error state (drives
       // <ErrorState/>) instead of silently degrading to a blank feed.
       const rows = unwrap(
-        await supabase.rpc("get_ranked_open_jobs", { p_limit: PAGE_SIZE, p_offset: offset }),
+        await supabase.rpc("get_ranked_open_jobs", {
+          p_limit: PAGE_SIZE,
+          p_offset: offset,
+          // Fixture rows are filtered in the RPC, not here: this feed
+          // paginates, so dropping rows after the fetch would return short
+          // pages and break the "was that a full page?" check below.
+          //
+          // The argument is passed ONLY when we actually need the filter.
+          // Migrations deploy on merge, so between this commit landing and
+          // db-deploy finishing, the 3-argument signature does not exist yet
+          // and sending it would 404 the whole guest feed (PGRST202). Omitting
+          // it uses the 2-arg form that has always existed, and the new
+          // parameter defaults to true server-side — identical behaviour.
+          ...(SHOW_SEED_JOBS_PUBLICLY ? {} : { p_include_seed: false }),
+        }),
       );
       const jobs = (rows ?? []) as unknown as PublicJob[];
       return { jobs, nextOffset: jobs.length === PAGE_SIZE ? offset + PAGE_SIZE : null };

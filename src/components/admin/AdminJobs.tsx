@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
 import { formatName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Flag, CheckCircle2, Briefcase } from "lucide-react";
@@ -120,20 +121,29 @@ const AdminJobs = () => {
     try {
       // Soft-delete: mark as cancelled with removal reason
       const { data: { user } } = await supabase.auth.getUser();
-      const { error } = await supabase
-        .from("jobs")
-        .update({
-          status: "cancelled",
-          cancellation_reason: `[Admin removed] ${deleteReason}`,
-          cancelled_at: new Date().toISOString(),
-          cancelled_by: user?.id || null,
-          removal_reason: deleteReason,
-          removed_at: new Date().toISOString(),
-          removed_by: user?.id || null,
-        })
-        .eq("id", detailJob.id);
-
-      if (error) throw error;
+      // .select("id"): an admin removal that matches zero rows returns
+      // error === null, and both parties used to be notified that a job was
+      // removed while it stayed live on the board.
+      unwrapMutation(
+        await supabase
+          .from("jobs")
+          .update({
+            status: "cancelled",
+            cancellation_reason: `[Admin removed] ${deleteReason}`,
+            cancelled_at: new Date().toISOString(),
+            cancelled_by: user?.id || null,
+            removal_reason: deleteReason,
+            removed_at: new Date().toISOString(),
+            removed_by: user?.id || null,
+          })
+          .eq("id", detailJob.id)
+          .select("id"),
+        {
+          action: "remove this job",
+          rejectedMessage: "This job wasn't removed — it may have already been cancelled. Refresh the list.",
+          context: { jobId: detailJob.id },
+        },
+      );
 
       // Notify the job poster
       await supabase.from("notifications").insert({
@@ -161,7 +171,7 @@ const AdminJobs = () => {
       setDeleteReason("");
       setDetailJob(null);
     } catch (err: any) {
-      toast.error("Couldn't remove that job: " + err.message);
+      toast.error(mutationErrorMessage(err, "Couldn't remove that job: " + err.message));
     } finally {
       setDeleting(false);
     }

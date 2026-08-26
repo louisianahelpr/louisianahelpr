@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui
 import { Camera, ImagePlus, X, CheckCircle2, Image } from "lucide-react";
 import { toast } from "sonner";
 import { report } from "@/lib/errorLogger";
+import { unwrapMutation, isWriteRejected, mutationErrorMessage } from "@/lib/mutationResult";
 import { hasRequiredProof, requiredProof } from "@/lib/photoProofPolicy";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { pickImagesNative } from "@/lib/nativeCamera";
@@ -69,11 +70,25 @@ export const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProof
     }
 
     const updateField = type === "before" ? { proof_before_urls: urls } : { proof_after_urls: urls };
-    const { error: updateError } = await supabase.from("jobs").update(updateField).eq("id", jobId);
-    if (updateError) {
-      console.error("[PhotoProof] failed to save photo URLs:", updateError);
-      report(updateError, { tags: { source: "PhotoProof.save" } });
-      toast.error("Photos uploaded but couldn't be saved to the job. Please try again.");
+    // .select("id"): without it a jobs update that matches zero rows (RLS, a
+    // job that already moved on) returns error === null, and the dialog closed
+    // as if the proof photos were attached.
+    try {
+      unwrapMutation(
+        await supabase.from("jobs").update(updateField).eq("id", jobId).select("id"),
+        {
+          action: "attach these photos to the job",
+          rejectedMessage: "Photos uploaded, but they couldn't be attached to this job — it may have already been closed.",
+          context: { jobId, proofType: type },
+        },
+      );
+    } catch (updateError) {
+      if (!isWriteRejected(updateError)) {
+        report(updateError, { tags: { source: "PhotoProof.save" } });
+      }
+      toast.error(
+        mutationErrorMessage(updateError, "Photos uploaded but couldn't be saved to the job. Please try again."),
+      );
       setUploading(false);
       return;
     }

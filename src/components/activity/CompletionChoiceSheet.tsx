@@ -25,6 +25,7 @@ import {
   SheetHero,
 } from "@/components/ui/sheet";
 import { supabase } from "@/integrations/supabase/client";
+import { unwrapMutation } from "@/lib/mutationResult";
 import { toast } from "sonner";
 import { hapticSuccess, hapticError, hapticMedium } from "@/lib/haptics";
 import { createNotification } from "@/lib/notifications";
@@ -124,7 +125,7 @@ export function CompletionChoiceSheet({
 
       // Legacy path — always run to keep jobs.status in sync for all read paths
       const now = new Date().toISOString();
-      const { error: jobErr } = await supabase.from("jobs").update({
+      const { data: jobRows, error: jobErr } = await supabase.from("jobs").update({
         status: "revision_requested",
         revision_note: description.trim(),
         revision_requested_at: now,
@@ -143,9 +144,19 @@ export function CompletionChoiceSheet({
           }
           return (data?.revision_count ?? 0) + 1;
         })()),
-      }).eq("id", jobId);
+      }).eq("id", jobId).select("id");
 
-      if (jobErr) throw jobErr;
+      // .select("id") + row check: this is the write that holds the payment in
+      // escrow while the fix happens. A zero-row update returns error === null,
+      // and the helper would be notified about a revision the job never entered.
+      unwrapMutation(
+        { data: jobRows, error: jobErr },
+        {
+          action: "request this revision",
+          rejectedMessage: "This revision couldn't be requested — the job may have already been completed or cancelled. Pull to refresh.",
+          context: { jobId },
+        },
+      );
 
       // Notify helper
       if (helperId) {

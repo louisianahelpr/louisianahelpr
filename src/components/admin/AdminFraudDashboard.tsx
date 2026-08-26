@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
 import { formatName } from "@/lib/utils";
 import { formatCategory } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -85,12 +86,23 @@ const AdminFraudDashboard = () => {
 
   const resolveFlag = async (flag: FraudFlag) => {
     setResolving(flag.id);
-    const { error } = await supabase.from("fraud_flags")
-      .update({ resolved: true })
-      .eq("id", flag.id);
-
-    if (error) toast.error(error.message);
-    else {
+    // .select("id"): a zero-row update returns error === null, and the flag
+    // would vanish from the dashboard while staying unresolved in the table.
+    let resolved = true;
+    try {
+      unwrapMutation(
+        await supabase.from("fraud_flags").update({ resolved: true }).eq("id", flag.id).select("id"),
+        {
+          action: "resolve this fraud flag",
+          rejectedMessage: "This flag wasn't resolved — it may have already been handled. Refresh the dashboard.",
+          context: { flagId: flag.id, flagType: flag.flag_type },
+        },
+      );
+    } catch (err) {
+      resolved = false;
+      toast.error(mutationErrorMessage(err, "Couldn't resolve that flag — try again."));
+    }
+    if (resolved) {
       await logAdminAction("resolve_fraud_flag", "fraud_flag", flag.id, { flag_type: flag.flag_type, user_id: flag.user_id });
       qc.invalidateQueries({ queryKey });
     }

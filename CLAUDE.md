@@ -102,6 +102,11 @@ this list tight; project-specific trivia belongs in code comments, not here.
   trustworthy again). The nightly `db-drift-detect.yml` opens a GitHub issue on
   schema drift. For a deep audit, verify by object existence
   (`to_regclass`/`to_regprocedure`/`information_schema`).
+- **Never hand-type a migration timestamp.** `npm run migration:new -- <slug>`
+  stamps the clock and refuses a version that already exists;
+  `src/test/migrationVersions.test.ts` fails CI if any two versions collide
+  (a collision fails `supabase db push` on `schema_migrations_pkey` and reds
+  the prod deploy — it happened three times in one day).
 - **Migrations must be replay-safe.** A from-scratch rebuild runs every
   migration in timestamp order. Guard DDL against objects that may not exist
   yet (`REVOKE`/`ALTER` on a function defined by a *later* migration →
@@ -110,6 +115,18 @@ this list tight; project-specific trivia belongs in code comments, not here.
 - **Never drop the Supabase `error`.** `const { data } = await supabase...`
   silently swallows failures into a blank screen. In a React Query `queryFn`
   use `unwrap()` (`src/lib/supabaseResult.ts`); elsewhere check `error`.
+- **A null `error` does NOT mean the write happened.** An UPDATE or DELETE that
+  matches **zero rows** — RLS, a stale id, a `BEFORE UPDATE` trigger, or a guard
+  predicate that no longer holds — returns `{ data: [], error: null }`, so
+  `const { error } = await supabase.from(X).update(…)` sails down the success
+  path over a row that never changed. That is the single most common serious bug
+  found in this codebase (escrow releases, ban ladders, invite claims, admin
+  queue resolutions). On any write that costs money, trust, or safety: add
+  `.select("id")` and pass the result through `unwrapMutation()`
+  (`src/lib/mutationResult.ts`), which throws + `report()`s a zero-row result and
+  gives you human copy via `mutationErrorMessage()`. Leaving a write unguarded is
+  fine ONLY when zero rows is a legitimate outcome (a conditional
+  `.eq("status", "pending")` race) — say so in a comment.
 - **Realtime subscriptions:** give every `postgres_changes` channel a
   server-side `filter` scoped to the user (an unfiltered `event: "*"`
   receives every platform-wide write), and a unique channel-name nonce via

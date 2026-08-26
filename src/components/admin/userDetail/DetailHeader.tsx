@@ -1,5 +1,7 @@
+import { toast } from "sonner";
 import { Pencil, RefreshCw, MailIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatName } from "@/lib/utils";
@@ -69,11 +71,26 @@ export function DetailHeader({
               className="h-8"
               onClick={async () => {
                 const currentCount = viewProfile.application_count || 1;
-                await supabase.from("profiles").update({
-                  approval_status: "pending",
-                  denial_reason: null,
-                  application_count: currentCount + 1,
-                }).eq("id", viewProfile.id);
+                // .select("id"): this write was entirely unchecked — neither an
+                // error nor a zero-row result stopped the panel from closing as
+                // if the account had been moved back to Pending.
+                try {
+                  unwrapMutation(
+                    await supabase.from("profiles").update({
+                      approval_status: "pending",
+                      denial_reason: null,
+                      application_count: currentCount + 1,
+                    }).eq("id", viewProfile.id).select("id"),
+                    {
+                      action: "move this account back to Pending",
+                      rejectedMessage: "This account wasn't moved to Pending — nothing was changed. Check your admin permissions and try again.",
+                      context: { profileId: viewProfile.id },
+                    },
+                  );
+                } catch (err) {
+                  toast.error(mutationErrorMessage(err, "Couldn't move that account to Pending — try again."));
+                  return;
+                }
                 loadProfiles();
                 setViewProfile(null);
               }}

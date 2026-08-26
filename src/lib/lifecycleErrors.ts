@@ -14,6 +14,8 @@
  *
  * Unknown codes fall through to the caller's own fallback string.
  */
+import { isWriteRejected } from "./mutationResult";
+
 const LIFECYCLE_REASONS: Record<string, string> = {
   // report_helper_no_show
   job_not_funded:
@@ -36,6 +38,11 @@ const LIFECYCLE_REASONS: Record<string, string> = {
  * not one we have specific wording for (so the caller keeps its own fallback).
  */
 export function lifecycleErrorMessage(error: unknown): string | null {
+  // A write that matched zero rows carries its own human sentence (see
+  // mutationResult.ts). It never has a Postgres code to match on, so it has to
+  // be handled before the code table.
+  if (isWriteRejected(error)) return error.userMessage;
+
   const raw =
     typeof error === "string"
       ? error

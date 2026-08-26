@@ -15,9 +15,9 @@ import { useEffect, useState } from "react";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { unwrap } from "@/lib/supabaseResult";
 import { hapticSuccess } from "@/lib/haptics";
 import { toast } from "sonner";
 import { report } from "@/lib/errorLogger";
@@ -96,13 +96,22 @@ export default function FamilyDashboard() {
 
   const revokeMut = useMutation({
     mutationFn: async (relationshipId: string) => {
-      const res = unwrap(
+      // .select("id") + unwrapMutation, not bare unwrap(): revoking access that
+      // matches zero rows (RLS, a relationship already revoked) returns
+      // error === null, and the row would vanish from the list while the
+      // caregiver kept their access.
+      return unwrapMutation(
         await supabase
           .from("care_relationships")
           .update({ status: "revoked" })
           .eq("id", relationshipId)
+          .select("id"),
+        {
+          action: "remove this access",
+          rejectedMessage: "Access wasn't removed — it may have already been revoked. Refresh and check.",
+          context: { relationshipId },
+        },
       );
-      return res;
     },
     onSuccess: () => {
       setPendingRevokeId(null);
@@ -111,7 +120,7 @@ export default function FamilyDashboard() {
     },
     onError: (err: Error) => {
       report(err, { severity: "warning", tags: { source: "FamilyDashboard.revoke" } });
-      toast.error("Couldn't remove access — try again.");
+      toast.error(mutationErrorMessage(err, "Couldn't remove access — try again."));
     },
   });
 

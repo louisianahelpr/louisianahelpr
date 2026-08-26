@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { unwrapMutation } from "@/lib/mutationResult";
 import { createNotification } from "@/lib/notifications";
 import { report } from "@/lib/errorLogger";
 import { isIdvRequirementPaused } from "@/lib/featureFlags";
@@ -207,11 +208,23 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
           toast.error("This job is no longer open — it may already be assigned.");
           return;
         }
-        const { error: appErr } = await supabase
-          .from("applications")
-          .update({ status: "accepted", ...(initialMessage ? { offer_message: initialMessage } : {}) })
-          .eq("id", deadlineDialogApp.id);
-        if (appErr) {
+        // .select("id"): the job row is already flipped to `accepted` by this
+        // point. If this second write silently matches nothing the applicant
+        // keeps seeing "pending" for a job that is theirs — so treat a zero-row
+        // result exactly like an error and roll the whole thing back.
+        try {
+          unwrapMutation(
+            await supabase
+              .from("applications")
+              .update({ status: "accepted", ...(initialMessage ? { offer_message: initialMessage } : {}) })
+              .eq("id", deadlineDialogApp.id)
+              .select("id"),
+            {
+              action: "send this offer",
+              context: { applicationId: deadlineDialogApp.id, jobId: selectedJob.id },
+            },
+          );
+        } catch {
           rollbackActivity(snapshot);
           hapticError();
           toast.error("Couldn't send the offer — please try again.");

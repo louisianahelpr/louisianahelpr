@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { formatName } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
 import { createNotification } from "@/lib/notifications";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -141,19 +142,50 @@ const AdminReports = () => {
     setUpdating(id);
     // assigned_to lives in a recent migration; cast through any so this
     // works against generated types that may not include the column yet.
-    const { error } = await (supabase.from as any)("reports")
+    // .select("id") on both paths: a zero-row update returns error === null, and
+    // the queue would log an audit entry claiming this admin took the report.
+    const { data: rows, error } = await (supabase.from as any)("reports")
       .update({ assigned_to: user.id, status: "investigating" })
-      .eq("id", id);
+      .eq("id", id)
+      .select("id");
     if (error) {
       // 42703 = undefined column → migration hasn't been applied yet.
       // Fall back to status-only so the queue keeps working.
       if (error.code === "42703") {
-        const { error: fallbackErr } = await supabase.from("reports")
-          .update({ status: "investigating" as any })
-          .eq("id", id);
-        if (fallbackErr) toast.error(fallbackErr.message);
+        try {
+          unwrapMutation(
+            await supabase.from("reports")
+              .update({ status: "investigating" as any })
+              .eq("id", id)
+              .select("id"),
+            {
+              action: "assign this report to yourself",
+              rejectedMessage: "This report wasn't assigned — someone else may have taken it. Refresh the queue.",
+              context: { reportId: id },
+            },
+          );
+        } catch (fallbackErr) {
+          toast.error(mutationErrorMessage(fallbackErr, "Couldn't assign that report — try again."));
+        }
       } else {
         toast.error(error.message);
+      }
+    } else if (!rows || rows.length === 0) {
+      // Zero rows on the primary path — same treatment as the fallback: report
+      // it and say so, rather than logging an audit entry for a no-op.
+      try {
+        unwrapMutation(
+          { data: [], error: null },
+          {
+            action: "assign this report to yourself",
+            rejectedMessage: "This report wasn't assigned — someone else may have taken it. Refresh the queue.",
+            context: { reportId: id },
+          },
+        );
+      } catch (err) {
+        toast.error(mutationErrorMessage(err, "Couldn't assign that report — try again."));
+        setUpdating(null);
+        return;
       }
     }
     // `void supabase.from(...).insert(...)` never sent this: PostgrestBuilder
@@ -168,9 +200,20 @@ const AdminReports = () => {
   const updateStatus = async (id: string, status: string) => {
     setUpdating(id);
     const { data: { user } } = await supabase.auth.getUser();
-    const { error } = await supabase.from("reports").update({ status }).eq("id", id);
-    if (error) {
-      toast.error(error.message);
+    // .select("id"): resolving a report that matches zero rows returns
+    // error === null — the queue used to log an audit entry and re-render as
+    // resolved over a report that never changed.
+    try {
+      unwrapMutation(
+        await supabase.from("reports").update({ status }).eq("id", id).select("id"),
+        {
+          action: "update this report",
+          rejectedMessage: "This report wasn't updated — someone else may have handled it. Refresh the queue.",
+          context: { reportId: id, status },
+        },
+      );
+    } catch (err) {
+      toast.error(mutationErrorMessage(err, "Couldn't update that report — try again."));
       setUpdating(null);
       return;
     }

@@ -8,6 +8,7 @@
 
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
 import {
   Dialog,
   DialogContent,
@@ -47,18 +48,29 @@ export function DenyUserDialog({ profile, onClose, onSuccess }: DenyUserDialogPr
   const denyUser = async () => {
     if (!profile) return;
     setDenying(true);
-    const { error } = await supabase
-      .from("profiles")
-      .update({
-        approval_status: "denied",
-        denial_reason: reason.trim() || null,
-        denial_email_count: 1,
-        last_denial_email_at: new Date().toISOString(),
-      })
-      .eq("id", profile.id);
-
-    if (error) {
-      toast.error(error.message);
+    // .select("id"): a denial that matches zero rows returns error === null,
+    // and this used to go on to notify and email the applicant about a decision
+    // the profile never recorded.
+    try {
+      unwrapMutation(
+        await supabase
+          .from("profiles")
+          .update({
+            approval_status: "denied",
+            denial_reason: reason.trim() || null,
+            denial_email_count: 1,
+            last_denial_email_at: new Date().toISOString(),
+          })
+          .eq("id", profile.id)
+          .select("id"),
+        {
+          action: "deny this account",
+          rejectedMessage: "This account wasn't denied — nothing was changed. Check your admin permissions and try again.",
+          context: { profileId: profile.id, targetUserId: profile.user_id },
+        },
+      );
+    } catch (err) {
+      toast.error(mutationErrorMessage(err, "Couldn't deny that account — try again."));
       setDenying(false);
       return;
     }

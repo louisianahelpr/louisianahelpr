@@ -10,6 +10,7 @@ import { AlertTriangle, Upload, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { report } from "@/lib/errorLogger";
+import { unwrapMutation } from "@/lib/mutationResult";
 import { hapticHeavy, hapticSuccess, hapticError } from "@/lib/haptics";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -136,15 +137,24 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
         // Fallback — RPC not deployed yet. Direct-update the legacy
         // columns so the disputed state is still surfaced everywhere
         // that reads from `jobs`.
-        const { error } = await supabase.from("jobs").update({
-          status: disputedStatus,
-          dispute_reason: reasonText,
-          dispute_evidence_urls: evidenceUrls,
-          disputed_at: new Date().toISOString(),
-          disputed_by: userId,
-        }).eq("id", jobId);
-
-        if (error) throw error;
+        // .select("id"): the legacy fallback writes the disputed state that
+        // holds the payment. If RLS or a stale id makes it match zero rows the
+        // update returns error === null, and this would have gone on to alert
+        // admins about a dispute the job row never entered.
+        unwrapMutation(
+          await supabase.from("jobs").update({
+            status: disputedStatus,
+            dispute_reason: reasonText,
+            dispute_evidence_urls: evidenceUrls,
+            disputed_at: new Date().toISOString(),
+            disputed_by: userId,
+          }).eq("id", jobId).select("id"),
+          {
+            action: "open a dispute on this job",
+            rejectedMessage: "This job couldn't be disputed — it may have already been resolved or closed. Refresh and try again.",
+            context: { jobId },
+          },
+        );
       }
 
       // Bulk-fan to admins in one INSERT.

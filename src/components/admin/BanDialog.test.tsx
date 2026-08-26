@@ -12,6 +12,7 @@ const fromMock = vi.fn();
 const insertMock = vi.fn();
 const updateMock = vi.fn();
 const eqMock = vi.fn();
+const selectMock = vi.fn();
 const getUserMock = vi.fn();
 
 vi.mock("@/integrations/supabase/client", () => ({
@@ -52,14 +53,19 @@ describe("BanDialog", () => {
     insertMock.mockReset();
     updateMock.mockReset();
     eqMock.mockReset();
+    selectMock.mockReset();
     getUserMock.mockReset();
     toastSuccess.mockReset();
     toastError.mockReset();
     createNotificationMock.mockReset();
     logAdminActionMock.mockReset();
 
-    // Default: chained .from().insert/update/eq returns OK
-    eqMock.mockResolvedValue({ error: null });
+    // Default: chained .from().insert/update/eq[.select] returns OK.
+    // The profiles writes end in `.select("user_id")` so unwrapMutation can see
+    // the affected-row count — a ban that matched zero rows used to look
+    // identical to a ban that landed.
+    selectMock.mockResolvedValue({ data: [{ user_id: "user-id-1" }], error: null });
+    eqMock.mockReturnValue({ select: selectMock, then: (r: (v: unknown) => unknown) => r({ error: null }) });
     insertMock.mockResolvedValue({ error: null });
     updateMock.mockReturnValue({ eq: eqMock });
     fromMock.mockReturnValue({
@@ -96,13 +102,18 @@ describe("BanDialog", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: /Issue Warning/ }));
 
-    await waitFor(() => expect(insertMock).toHaveBeenCalled());
+    // Wait on the LAST step of the submit chain, not the first. Waiting for
+    // the insert and then asserting onSuccess synchronously assumes the whole
+    // promise chain flushes inside waitFor's first poll — true on an idle
+    // machine, and the reason this test went red under load while being
+    // perfectly correct in isolation.
+    await waitFor(() => expect(onSuccess).toHaveBeenCalled());
     // First insert: user_violations row
+    expect(insertMock).toHaveBeenCalled();
     expect(fromMock).toHaveBeenCalledWith("user_violations");
     // Then update: profiles.ban_status='final_warning'
     expect(fromMock).toHaveBeenCalledWith("profiles");
     expect(logAdminActionMock).toHaveBeenCalled();
-    expect(onSuccess).toHaveBeenCalled();
   });
 
   it("switches CTA copy when temp-ban tier is selected", () => {

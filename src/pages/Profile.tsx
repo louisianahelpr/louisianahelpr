@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
 import { signOutWithPushCleanup } from "@/lib/authSignOut";
 import { ProfilePageSkeleton } from "@/components/SkeletonLoaders";
 import AppShell from "@/components/AppShell";
@@ -386,9 +387,25 @@ const ProfilePage = () => {
     const path = `${user.id}/id-${Date.now()}.${ext}`;
     const { error: upErr } = await supabase.storage.from("id-documents").upload(path, file, { upsert: true });
     if (upErr) { toast.error("Couldn't upload your ID — " + upErr.message); setIdUploading(false); return; }
-    const { error: updErr } = await supabase.from("profiles").update({ id_document_url: path, idv_status: "pending" }).eq("user_id", user.id);
-    if (updErr) toast.error("Got your ID, but couldn't save it to your profile. Try again?");
-    else {
+    // .select("user_id"): the file is in storage already — this is the write
+    // that puts it in the verification queue. A zero-row update returns
+    // error === null, and the card would show "pending" for an ID no reviewer
+    // would ever see.
+    let saved = true;
+    try {
+      unwrapMutation(
+        await supabase.from("profiles").update({ id_document_url: path, idv_status: "pending" }).eq("user_id", user.id).select("user_id"),
+        {
+          action: "submit your ID for verification",
+          rejectedMessage: "Got your ID, but it couldn't be submitted for verification — please try again.",
+          context: { userId: user.id },
+        },
+      );
+    } catch (updErr) {
+      saved = false;
+      toast.error(mutationErrorMessage(updErr, "Got your ID, but couldn't save it to your profile. Try again?"));
+    }
+    if (saved) {
       setProfile(prev => prev ? ({ ...prev, id_document_url: path, idv_status: "pending" }) : prev);
     }
     setIdUploading(false);

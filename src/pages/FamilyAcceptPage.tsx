@@ -10,6 +10,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { hapticSuccess } from "@/lib/haptics";
@@ -121,18 +122,29 @@ export default function FamilyAcceptPage() {
 
     setAccepting(true);
     try {
-      const { error: updateErr } = await supabase
-        .from("care_relationships")
-        .update({ status: "active" })
-        .eq("id", invite.id)
-        .eq("care_recipient_id", user.id); // Security: only the recipient can accept
-      if (updateErr) throw updateErr;
+      // .select("id"): this claim is filtered by BOTH the invite id and the
+      // recipient — the shape where a policy or a mismatched recipient makes the
+      // UPDATE match zero rows with error === null. Without the row count the
+      // page showed "Invite accepted" over a relationship still marked pending.
+      unwrapMutation(
+        await supabase
+          .from("care_relationships")
+          .update({ status: "active" })
+          .eq("id", invite.id)
+          .eq("care_recipient_id", user.id) // Security: only the recipient can accept
+          .select("id"),
+        {
+          action: "accept this invite",
+          rejectedMessage: "This invite couldn't be accepted — it may have expired, been withdrawn, or been sent to a different account.",
+          context: { inviteId: invite.id },
+        },
+      );
 
       hapticSuccess();
       setAccepted(true);
     } catch (err) {
       report(err as Error, { severity: "warning", tags: { source: "FamilyAcceptPage.accept" } });
-      toast.error("Couldn't accept invite — please try again.");
+      toast.error(mutationErrorMessage(err, "Couldn't accept invite — please try again."));
     } finally {
       setAccepting(false);
     }

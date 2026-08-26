@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
 import { formatName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -82,9 +83,23 @@ const AdminSupport = () => {
 
   const updateStatus = async (id: string, status: string) => {
     setUpdating(id);
-    const { error } = await supabase.from("reports").update({ status }).eq("id", id);
-    if (error) toast.error("Couldn't update that ticket — try again?");
-    else {
+    // .select("id"): a zero-row update returns error === null, and the ticket
+    // would re-render as resolved while the row stayed open.
+    let updated = true;
+    try {
+      unwrapMutation(
+        await supabase.from("reports").update({ status }).eq("id", id).select("id"),
+        {
+          action: "update this ticket",
+          rejectedMessage: "This ticket wasn't updated — someone else may have handled it. Refresh the queue.",
+          context: { ticketId: id, status },
+        },
+      );
+    } catch (err) {
+      updated = false;
+      toast.error(mutationErrorMessage(err, "Couldn't update that ticket — try again?"));
+    }
+    if (updated) {
       qc.invalidateQueries({ queryKey });
     }
     setUpdating(null);

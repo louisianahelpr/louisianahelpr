@@ -15,6 +15,7 @@
  * migration shipped to production). Either way the UI is the same.
  */
 import { useEffect, useState } from "react";
+import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
 import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -156,20 +157,37 @@ export const DisputeTimelineDialog = ({
 
       if (dispute) {
         const merged = [...(dispute.evidence_urls || []), ...newUrls];
-        const { error } = await (supabase.from as any)("disputes")
-          .update({ evidence_urls: merged })
-          .eq("id", dispute.id);
-        if (error) throw error;
+        // .select("id"): evidence that silently fails to attach is evidence
+        // the admin deciding this dispute never sees, while the uploader was
+        // told it landed.
+        unwrapMutation(
+          await (supabase.from as any)("disputes")
+            .update({ evidence_urls: merged })
+            .eq("id", dispute.id)
+            .select("id"),
+          {
+            action: "attach this evidence to the dispute",
+            rejectedMessage: "This evidence couldn't be attached — the dispute may have already been decided.",
+            context: { disputeId: dispute.id },
+          },
+        );
         setDispute({ ...dispute, evidence_urls: merged });
       } else {
         // Legacy path — append onto jobs.dispute_evidence_urls.
         const existing = legacy?.evidence_urls || [];
         const merged = [...existing, ...newUrls];
-        const { error } = await supabase
-          .from("jobs")
-          .update({ dispute_evidence_urls: merged })
-          .eq("id", jobId);
-        if (error) throw error;
+        unwrapMutation(
+          await supabase
+            .from("jobs")
+            .update({ dispute_evidence_urls: merged })
+            .eq("id", jobId)
+            .select("id"),
+          {
+            action: "attach this evidence to the dispute",
+            rejectedMessage: "This evidence couldn't be attached — the dispute may have already been decided.",
+            context: { jobId },
+          },
+        );
       }
 
       hapticSuccess();
@@ -177,7 +195,7 @@ export const DisputeTimelineDialog = ({
       onUpdated();
     } catch (err: unknown) {
       hapticError();
-      toast.error(err instanceof Error ? err.message : "Couldn't upload your evidence — try again?");
+      toast.error(mutationErrorMessage(err, err instanceof Error ? err.message : "Couldn't upload your evidence — try again?"));
     } finally {
       setSubmitting(false);
     }

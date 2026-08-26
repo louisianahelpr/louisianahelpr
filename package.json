@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "migration:new": "node scripts/new-migration.mjs",
     "predev": "rm -rf node_modules/.vite",
     "dev": "vite",
     "build": "vite build",

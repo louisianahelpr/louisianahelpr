@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { lifecycleErrorMessage } from "@/lib/lifecycleErrors";
+import { unwrapMutation } from "@/lib/mutationResult";
 import { createNotification } from "@/lib/notifications";
 import { report } from "@/lib/errorLogger";
 import { checkProximity } from "@/lib/locationUtils";
@@ -305,12 +306,26 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
     try {
       // Optimistic: flip the card to "In Progress" immediately.
       const snapshot = optimisticallyPatchJob(jobId, { status: "in_progress" });
-      const { error } = await supabase.from("jobs").update({ status: "in_progress" }).eq("id", jobId);
-      if (error) {
+      // .select("id"): a zero-row update (RLS, the job already moved on)
+      // returns error === null, which used to leave the card optimistically
+      // showing "In Progress" over a row that never changed.
+      let started = true;
+      try {
+        unwrapMutation(
+          await supabase.from("jobs").update({ status: "in_progress" }).eq("id", jobId).select("id"),
+          {
+            action: "start this job",
+            rejectedMessage: "We couldn't start this job — it may have already started or been cancelled. Pull to refresh.",
+            context: { jobId },
+          },
+        );
+      } catch (err) {
+        started = false;
         rollbackActivity(snapshot);
         hapticError();
-        toast.error("We couldn't start the job just now — please try again.");
-      } else {
+        toast.error(lifecycleErrorMessage(err) ?? "We couldn't start the job just now — please try again.");
+      }
+      if (started) {
         const job = postedJobs.find(j => j.id === jobId);
         if (job?.helper_id) {
           await createNotification({ user_id: job.helper_id, title: "✅ Job started!", message: `The poster confirmed "${job.title}" has started.`, type: "success", link: "/my-jobs?filter=in_progress" });
@@ -330,8 +345,21 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
       // Optimistic: mark arrival confirmed on the card right away.
       const arrivedAt = new Date().toISOString();
       const snapshot = optimisticallyPatchJob(jobId, { poster_confirmed_arrival_at: arrivedAt });
-      const { error } = await supabase.from("jobs").update({ poster_confirmed_arrival_at: arrivedAt }).eq("id", jobId);
-      if (error) { rollbackActivity(snapshot); hapticError(); toast.error("We couldn't confirm arrival just now — please try again."); return; }
+      try {
+        unwrapMutation(
+          await supabase.from("jobs").update({ poster_confirmed_arrival_at: arrivedAt }).eq("id", jobId).select("id"),
+          {
+            action: "confirm arrival",
+            rejectedMessage: "We couldn't confirm arrival — this job may have already been cancelled. Pull to refresh.",
+            context: { jobId },
+          },
+        );
+      } catch (err) {
+        rollbackActivity(snapshot);
+        hapticError();
+        toast.error(lifecycleErrorMessage(err) ?? "We couldn't confirm arrival just now — please try again.");
+        return;
+      }
       const job = postedJobs.find(j => j.id === jobId);
       if (job?.helper_id) {
         await createNotification({ user_id: job.helper_id, title: "✅ Arrival confirmed", message: `The poster confirmed you've arrived for "${job.title}".`, type: "success", link: "/my-jobs?filter=in_progress" });
@@ -348,8 +376,21 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
       // Optimistic: mark "helpr working" confirmed on the card right away.
       const workingAt = new Date().toISOString();
       const snapshot = optimisticallyPatchJob(jobId, { poster_confirmed_working_at: workingAt });
-      const { error } = await supabase.from("jobs").update({ poster_confirmed_working_at: workingAt }).eq("id", jobId);
-      if (error) { rollbackActivity(snapshot); hapticError(); toast.error("We couldn't confirm that just now — please try again."); return; }
+      try {
+        unwrapMutation(
+          await supabase.from("jobs").update({ poster_confirmed_working_at: workingAt }).eq("id", jobId).select("id"),
+          {
+            action: "confirm the Helpr is working",
+            rejectedMessage: "We couldn't confirm that — this job may have already been cancelled. Pull to refresh.",
+            context: { jobId },
+          },
+        );
+      } catch (err) {
+        rollbackActivity(snapshot);
+        hapticError();
+        toast.error(lifecycleErrorMessage(err) ?? "We couldn't confirm that just now — please try again.");
+        return;
+      }
       const job = postedJobs.find(j => j.id === jobId);
       if (job?.helper_id) {
         await createNotification({ user_id: job.helper_id, title: "✅ Work confirmed", message: `The poster confirmed you're working on "${job.title}".`, type: "success", link: "/my-jobs?filter=in_progress" });

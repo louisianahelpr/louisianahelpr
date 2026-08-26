@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { unwrapMutation } from "@/lib/mutationResult";
 import { formatName } from "@/lib/utils";
 import { formatPriceExact } from "@/lib/format";
 import { CheckCircle2, AlertTriangle, History } from "lucide-react";
@@ -267,11 +268,21 @@ const AdminDisputes = () => {
         // status. payout split + decision text aren't surfaced
         // anywhere in this path, but the dispute is at least closed.
         const newStatus = helperShare === 0 ? "cancelled" : "completed";
-        const { error } = await supabase
-          .from("jobs")
-          .update({ status: newStatus, dispute_resolved_at: new Date().toISOString() })
-          .eq("id", job.id);
-        if (error) throw error;
+        // .select("id"): closing a dispute that matches zero rows returns
+        // error === null, and the admin would then be walked through settling
+        // money against a job still marked disputed.
+        unwrapMutation(
+          await supabase
+            .from("jobs")
+            .update({ status: newStatus, dispute_resolved_at: new Date().toISOString() })
+            .eq("id", job.id)
+            .select("id"),
+          {
+            action: "close this dispute",
+            rejectedMessage: "This dispute couldn't be closed — the job may have already been resolved. Refresh the queue.",
+            context: { jobId: job.id, newStatus },
+          },
+        );
       }
 
       // ── Execute the split ──────────────────────────────────────────

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -182,20 +183,31 @@ const AdminIDVQueue = () => {
 
   const approveUser = async (p: IDVProfile, opts?: { silent?: boolean }) => {
     setActioning(p.user_id);
-    const { error } = await supabase
-      .from("profiles")
-      .update({
-        idv_status: "verified",
-        approval_status: "approved",
-      })
-      .eq("user_id", p.user_id);
-
-    if (error) {
+    // .select("user_id"): this is the write that clears someone to work. A
+    // zero-row update returns error === null, and the queue used to go on to
+    // notify and email "You're cleared" over an unchanged profile.
+    try {
+      unwrapMutation(
+        await supabase
+          .from("profiles")
+          .update({
+            idv_status: "verified",
+            approval_status: "approved",
+          })
+          .eq("user_id", p.user_id)
+          .select("user_id"),
+        {
+          action: "approve this verification",
+          rejectedMessage: "This verification wasn't approved — the profile is unchanged. Check your admin permissions and try again.",
+          context: { targetUserId: p.user_id },
+        },
+      );
+    } catch (err) {
       setActioning(null);
       // Throw in bulk so the caller can count it as a failure; toast when the
       // admin clicked this one row directly.
-      if (opts?.silent) throw error;
-      toast.error(error.message);
+      if (opts?.silent) throw err;
+      toast.error(mutationErrorMessage(err, "Couldn't approve that verification — try again."));
       return;
     }
 
@@ -229,17 +241,30 @@ const AdminIDVQueue = () => {
 
   const denyUser = async (p: IDVProfile) => {
     setActioning(p.user_id);
-    const { error } = await supabase
-      .from("profiles")
-      .update({
-        idv_status: "failed",
-        approval_status: "denied",
-        denial_reason: "Identity verification could not be confirmed.",
-      })
-      .eq("user_id", p.user_id);
+    let denied = true;
+    try {
+      unwrapMutation(
+        await supabase
+          .from("profiles")
+          .update({
+            idv_status: "failed",
+            approval_status: "denied",
+            denial_reason: "Identity verification could not be confirmed.",
+          })
+          .eq("user_id", p.user_id)
+          .select("user_id"),
+        {
+          action: "deny this verification",
+          rejectedMessage: "This verification wasn't denied — the profile is unchanged. Check your admin permissions and try again.",
+          context: { targetUserId: p.user_id },
+        },
+      );
+    } catch (err) {
+      denied = false;
+      toast.error(mutationErrorMessage(err, "Couldn't deny that verification — try again."));
+    }
     setActioning(null);
-    if (error) toast.error(error.message);
-    else {
+    if (denied) {
       await logAdminAction("idv_manual_deny", "user", p.user_id, { previous_status: p.idv_status });
       setSelected(null);
       load();

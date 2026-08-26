@@ -15,6 +15,7 @@ import { useEffect, useState } from "react";
 import { AlertTriangle, ChevronDown, MessageSquare, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { unwrapMutation } from "@/lib/mutationResult";
 import { toast } from "sonner";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
 import { createNotification } from "@/lib/notifications";
@@ -90,12 +91,29 @@ export function HelperRevisionCard({
     try {
       // Update the formal table if this isn't a legacy fallback
       if (revision?.id && revision.id !== "legacy") {
-        const { error } = await supabase
+        // .select("id"): acknowledging a revision that matches zero rows returns
+        // error === null, and the poster would be told the Helpr had seen a
+        // request the revision row still shows as open.
+        const { data: rows, error } = await supabase
           .from("job_revisions")
           .update({ status: "accepted" })
-          .eq("id", revision.id);
+          .eq("id", revision.id)
+          .select("id");
         if (error && error.code !== "PGRST202") {
           throw error;
+        }
+        // PGRST202 = the table isn't deployed yet; that path is the legacy
+        // fallback and deliberately keeps going. Anything else must have moved
+        // a row.
+        if (!error) {
+          unwrapMutation(
+            { data: rows, error: null },
+            {
+              action: "acknowledge this revision",
+              rejectedMessage: "This revision couldn't be acknowledged — it may have already been resolved. Pull to refresh.",
+              context: { revisionId: revision.id },
+            },
+          );
         }
       }
 

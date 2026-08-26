@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -282,8 +283,18 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
           update.is_insured = true;
         }
       });
-      const { error: updErr } = await supabase.from("profiles").update(update).eq("user_id", userId);
-      if (updErr) throw updErr;
+      // .select("user_id"): the file is already in storage by this point — this
+      // is the write that actually submits it for review. A zero-row update
+      // returns error === null and the card would show "pending review" for a
+      // document no admin would ever see in the queue.
+      unwrapMutation(
+        await supabase.from("profiles").update(update).eq("user_id", userId).select("user_id"),
+        {
+          action: "submit your credentials",
+          rejectedMessage: "Your documents uploaded, but they couldn't be submitted for review — please try again.",
+          context: { userId },
+        },
+      );
       linked = true;
 
       // The status columns are admin/backend-only — `prevent_self_escalation()`
@@ -342,13 +353,25 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
       kind === "license"
         ? { license_url: null, is_licensed: false, license_status: "none", license_rejection_reason: null }
         : { insurance_url: null, is_insured: false, insurance_status: "none", insurance_rejection_reason: null };
-    const { error } = await supabase.from("profiles").update(update).eq("user_id", userId);
-    setRemoving(false);
-    if (error) {
+    // .select("user_id"): withdrawing a credential that matches zero rows
+    // returns error === null, and the badge would disappear locally while the
+    // document stayed live on the profile.
+    try {
+      unwrapMutation(
+        await supabase.from("profiles").update(update).eq("user_id", userId).select("user_id"),
+        {
+          action: "withdraw this document",
+          rejectedMessage: "We couldn't withdraw that document — please refresh and try again.",
+          context: { userId, kind },
+        },
+      );
+    } catch (err) {
+      setRemoving(false);
       hapticError();
-      toast.error("We couldn't update your credentials — please try again.");
+      toast.error(mutationErrorMessage(err, "We couldn't update your credentials — please try again."));
       return;
     }
+    setRemoving(false);
     patchCache(update);
     void qc.invalidateQueries({ queryKey: queryKeys.credentials.byUser(userId) });
   };

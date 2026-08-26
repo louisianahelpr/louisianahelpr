@@ -1,5 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import type { TablesUpdate } from "@/integrations/supabase/types";
+import { unwrapMutation, isWriteRejected, mutationErrorMessage } from "@/lib/mutationResult";
 import { channelNonce } from "@/lib/realtimeChannel";
 import { Button } from "@/components/ui/button";
 import { haversineMiles } from "@/lib/geo";
@@ -479,27 +481,41 @@ export function JobTracking({
       updated_at: now,
     });
 
-    const { error: writeErr } = tracking && tracking.id !== "temp"
-      ? await supabase
-          .from("job_tracking")
-          .update({
-            status: newStatus,
-            latitude: loc?.lat || null,
-            longitude: loc?.lng || null,
-            updated_at: now,
-          })
-          .eq("id", tracking.id)
-      : await supabase.from("job_tracking").insert({
-          job_id: jobId,
-          helper_id: helperId,
-          status: newStatus,
-          latitude: loc?.lat || null,
-          longitude: loc?.lng || null,
-        });
-    if (writeErr) {
-      report(writeErr, { tags: { source: "JobTracking.updateStatus" } });
+    // .select("id") on both branches: the tracking row is the source of truth
+    // for the helper's own view, and an update that matches zero rows returns
+    // error === null — the card would have kept the optimistic status forever.
+    try {
+      unwrapMutation(
+        tracking && tracking.id !== "temp"
+          ? await supabase
+              .from("job_tracking")
+              .update({
+                status: newStatus,
+                latitude: loc?.lat || null,
+                longitude: loc?.lng || null,
+                updated_at: now,
+              })
+              .eq("id", tracking.id)
+              .select("id")
+          : await supabase.from("job_tracking").insert({
+              job_id: jobId,
+              helper_id: helperId,
+              status: newStatus,
+              latitude: loc?.lat || null,
+              longitude: loc?.lng || null,
+            }).select("id"),
+        {
+          action: "update your status",
+          rejectedMessage: "We couldn't update your status — this job may have been cancelled. Pull to refresh.",
+          context: { jobId, newStatus },
+        },
+      );
+    } catch (writeErr) {
+      if (!isWriteRejected(writeErr)) {
+        report(writeErr, { tags: { source: "JobTracking.updateStatus" } });
+      }
       hapticError();
-      toast.error("Couldn't update your status — try again?");
+      toast.error(mutationErrorMessage(writeErr, "Couldn't update your status — try again?"));
       setUpdating(false);
       loadTracking();
       return;
@@ -551,11 +567,25 @@ export function JobTracking({
       }
       // This stamp is what enters the job into the payout pipeline — if it
       // silently fails the helper never gets paid, so surface it and stop.
-      const { error: doneErr } = await supabase.from("jobs").update({ helper_completed_at: now }).eq("id", jobId);
-      if (doneErr) {
-        report(doneErr, { tags: { source: "JobTracking.helperCompleted" } });
+      // .select("id"): "silently fails" includes matching zero rows, which
+      // returns error === null. Without the row count this stamp could no-op
+      // (RLS, a job that already moved on) and the helper would be told the
+      // payout clock had started.
+      try {
+        unwrapMutation(
+          await supabase.from("jobs").update({ helper_completed_at: now }).eq("id", jobId).select("id"),
+          {
+            action: "mark the job complete",
+            rejectedMessage: "We couldn't mark this job complete — it may have already been completed or cancelled. Pull to refresh.",
+            context: { jobId },
+          },
+        );
+      } catch (doneErr) {
+        if (!isWriteRejected(doneErr)) {
+          report(doneErr, { tags: { source: "JobTracking.helperCompleted" } });
+        }
         hapticError();
-        toast.error("Couldn't mark the job complete — try again?");
+        toast.error(mutationErrorMessage(doneErr, "Couldn't mark the job complete — try again?"));
         setUpdating(false);
         loadTracking();
         return;
@@ -574,18 +604,34 @@ export function JobTracking({
       // for the helper's own view, so a failure here does not invalidate the
       // action — it just means the poster won't see it. Hence: report, and tell
       // the truth in the toast, rather than aborting the whole transition.
+      //
+      // .select("id") on all three: a zero-row update is the same phantom
+      // success as an error here, and is the more likely of the two (RLS on
+      // jobs the helper doesn't own, or a job cancelled out from under them).
       const stampErrors: string[] = [];
+      const stampJob = async (
+        patch: TablesUpdate<"jobs">,
+        label: string,
+        source: string,
+      ) => {
+        try {
+          unwrapMutation(
+            await supabase.from("jobs").update(patch).eq("id", jobId).select("id"),
+            { action: `update the poster's ${label}`, context: { jobId } },
+          );
+        } catch (err) {
+          if (!isWriteRejected(err)) report(err, { tags: { source } });
+          stampErrors.push(label);
+        }
+      };
       if (job && job.status === "accepted") {
-        const { error } = await supabase.from("jobs").update({ status: "in_progress" }).eq("id", jobId);
-        if (error) { report(error, { tags: { source: "JobTracking.statusInProgress" } }); stampErrors.push("status"); }
+        await stampJob({ status: "in_progress" }, "status", "JobTracking.statusInProgress");
       }
       if (newStatus === "arrived") {
-        const { error } = await supabase.from("jobs").update({ helper_arrived_at: now }).eq("id", jobId);
-        if (error) { report(error, { tags: { source: "JobTracking.arrivedAt" } }); stampErrors.push("arrival time"); }
+        await stampJob({ helper_arrived_at: now }, "arrival time", "JobTracking.arrivedAt");
       }
       if (newStatus === "on_the_way") {
-        const { error } = await supabase.from("jobs").update({ helper_on_the_way_at: now }).eq("id", jobId);
-        if (error) { report(error, { tags: { source: "JobTracking.onTheWayAt" } }); stampErrors.push("departure time"); }
+        await stampJob({ helper_on_the_way_at: now }, "departure time", "JobTracking.onTheWayAt");
       }
       if (stampErrors.length > 0) {
         hapticError();

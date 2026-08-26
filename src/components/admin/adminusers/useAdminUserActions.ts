@@ -7,6 +7,7 @@
  * calls the loadProfiles / close-dialog callbacks provided by the parent.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { unwrapMutation, isWriteRejected, mutationErrorMessage } from "@/lib/mutationResult";
 import { createNotification } from "@/lib/notifications";
 import { logAdminAction } from "@/lib/adminAudit";
 import { report } from "@/lib/errorLogger";
@@ -26,17 +27,32 @@ export const makeAdminUserActions = ({
   setResending,
 }: ActionDeps) => {
   const approveUser = async (profile: Profile) => {
-    const { error } = await supabase.from("profiles").update({
-      approval_status: "approved",
-      approval_email_count: 1,
-      last_approval_email_at: new Date().toISOString(),
-      // Clear denial info so re-approved users are fully removed from the Denied tab
-      denial_reason: null,
-      denial_email_count: 0,
-      last_denial_email_at: null,
-    }).eq("id", profile.id);
-    if (error) toast.error(error.message);
-    else {
+    // .select("id"): approval is the gate between "can't use the platform" and
+    // "can". A zero-row update returns error === null, and this used to go on
+    // to email the user that they were approved when nothing had changed.
+    let approved = true;
+    try {
+      unwrapMutation(
+        await supabase.from("profiles").update({
+          approval_status: "approved",
+          approval_email_count: 1,
+          last_approval_email_at: new Date().toISOString(),
+          // Clear denial info so re-approved users are fully removed from the Denied tab
+          denial_reason: null,
+          denial_email_count: 0,
+          last_denial_email_at: null,
+        }).eq("id", profile.id).select("id"),
+        {
+          action: "approve this account",
+          rejectedMessage: "This account wasn't approved — nothing was changed. Check your admin permissions and try again.",
+          context: { profileId: profile.id, targetUserId: profile.user_id },
+        },
+      );
+    } catch (err) {
+      approved = false;
+      toast.error(mutationErrorMessage(err, "Couldn't approve that account — try again."));
+    }
+    if (approved) {
       await logAdminAction("approve_user", "user", profile.user_id, { name: profile.full_name });
       await createNotification({
         user_id: profile.user_id, title: "Account approved!",
@@ -133,11 +149,27 @@ export const makeAdminUserActions = ({
       return;
     }
 
-    const { error: profileErr } = await supabase
-      .from("profiles").update({ ban_status: "active" }).eq("user_id", profile.user_id);
-    if (profileErr) {
-      report(profileErr, { tags: { source: "AdminUsers.unbanUser.profile" } });
-      toast.error("Ban row cleared, but the account status didn't update — re-check this user.");
+    // .select("user_id"): `profiles.ban_status` is the flag the app actually
+    // reads. A zero-row update here returns error === null and would report the
+    // ban as lifted while the user stayed locked out.
+    try {
+      unwrapMutation(
+        await supabase
+          .from("profiles").update({ ban_status: "active" }).eq("user_id", profile.user_id)
+          .select("user_id"),
+        {
+          action: "lift this ban",
+          rejectedMessage: "Ban row cleared, but the account status didn't update — re-check this user.",
+          context: { targetUserId: profile.user_id },
+        },
+      );
+    } catch (profileErr) {
+      if (!isWriteRejected(profileErr)) {
+        report(profileErr, { tags: { source: "AdminUsers.unbanUser.profile" } });
+      }
+      toast.error(
+        mutationErrorMessage(profileErr, "Ban row cleared, but the account status didn't update — re-check this user."),
+      );
       loadProfiles();
       return;
     }

@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { createNotification } from "@/lib/notifications";
 import { report } from "@/lib/errorLogger";
+import { unwrapMutation, isWriteRejected } from "@/lib/mutationResult";
 import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -124,8 +125,17 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
         cancellation_fee_status: serverFee > 0 ? "pending" : null,
       };
 
-      const { error } = await supabase.from("jobs").update(updateData).eq("id", jobId);
-      if (error) throw error;
+      // .select("id") + unwrapMutation: a cancellation that matches zero rows
+      // (already cancelled, RLS, stale id) returns error === null, and this
+      // used to go on to promise a refund for a job that never moved.
+      unwrapMutation(
+        await supabase.from("jobs").update(updateData).eq("id", jobId).select("id"),
+        {
+          action: "cancel this job",
+          rejectedMessage: "This job couldn't be cancelled — it may have already been cancelled or completed. Refresh and check.",
+          context: { jobId },
+        },
+      );
 
       // The held Stripe payment is NOT voided here: void-cancelled-payments
       // only accepts cron/service-role auth (a client JWT gets a 401 — a
@@ -215,7 +225,11 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
       onCancelled();
       onClose();
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Couldn't cancel — please try again";
+      const message = isWriteRejected(err)
+        ? err.userMessage
+        : err instanceof Error
+          ? err.message
+          : "Couldn't cancel — please try again";
       hapticError();
       toast.error(message);
     } finally {

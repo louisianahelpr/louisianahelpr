@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
-import { getAppUrl } from "../_shared/appUrl.ts";
+import { getAppUrl, buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 import { BGC_FEE_CENTS } from "../_shared/productPrices.ts";
 
 const corsHeaders = {
@@ -77,6 +77,9 @@ serve(async (req) => {
     const { data, error: authErr } = await supabaseClient.auth.getUser(token);
     if (authErr) console.error("[create-bgc-payment] auth.getUser error:", authErr.message);
     const user = data.user;
+    // Native callers ask for a return URL the app can intercept; absent/false
+    // keeps the plain web URL, so an older client is unaffected.
+    const isNative = isNativeRequest(await req.json().catch(() => ({})));
     if (!user?.email) return fail(401, "Your session expired — sign in again to continue.");
 
     const supabaseAdmin = createClient(
@@ -138,8 +141,8 @@ serve(async (req) => {
           user_id: user.id,
         },
       },
-      success_url: `${getAppUrl()}/profile?bgc=success`,
-      cancel_url: `${getAppUrl()}/profile?bgc=cancelled`,
+      success_url: buildRedirectUrl(`/profile?bgc=success`, isNative),
+      cancel_url: buildRedirectUrl(`/profile?bgc=cancelled`, isNative),
       metadata: {
         kind: "background_check",
         user_id: user.id,

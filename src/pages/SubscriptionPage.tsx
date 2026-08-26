@@ -248,7 +248,7 @@ export default function SubscriptionPage() {
         {
           // billing_cycle mirrors the toggle so Stripe charges the price
           // (monthly vs annual) the user actually saw on the card they tapped.
-          body: { tier, billing_cycle: billingCycle },
+          body: { tier, billing_cycle: billingCycle, native: isNativePlatform },
         },
       );
       if (error) throw error;
@@ -271,6 +271,7 @@ export default function SubscriptionPage() {
     try {
       const { data, error } = await supabase.functions.invoke(
         "pro-customer-portal",
+        { body: { native: isNativePlatform } },
       );
       if (error) throw error;
       const url = (data as { url?: string })?.url;

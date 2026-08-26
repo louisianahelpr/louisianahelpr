@@ -22,6 +22,7 @@ import {
   formatDollarsWhole,
 } from "@/lib/moneyLimits";
 import { openExternalUrl } from "@/lib/openExternalUrl";
+import { isNativePlatform } from "@/lib/nativeInit";
 
 /**
  * useJobSubmit — owns the review-gate, pre-submit checks, and the full
@@ -435,6 +436,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
         body: {
           action: "escrow",
           jobId: jobData.id,
+          native: isNativePlatform,
           // Optional opt-in: ask Stripe to save the card for off-session
           // future-use. The edge function decides whether to honor it.
           //

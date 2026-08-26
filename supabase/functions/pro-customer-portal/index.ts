@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
-import { getAppUrl } from "../_shared/appUrl.ts";
+import { getAppUrl, buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -15,6 +15,8 @@ serve(async (req) => {
   );
 
   try {
+    // Read once: native callers get a return URL the app can intercept.
+    const isNative = isNativeRequest(await req.json().catch(() => ({})));
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("No authorization header");
 
@@ -36,7 +38,7 @@ serve(async (req) => {
     const customerId = customers.data[0].id;
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: customerId,
-      return_url: `${getAppUrl()}/profile`,
+      return_url: buildRedirectUrl(`/profile`, isNative),
     });
 
     return new Response(JSON.stringify({ url: portalSession.url }), {

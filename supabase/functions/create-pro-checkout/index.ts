@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
-import { getAppUrl } from "../_shared/appUrl.ts";
+import { getAppUrl, buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 import { PRO_PRICE_MAP } from "../_shared/proTiers.ts";
 
 // billing_cycle: "monthly" | "annual" | "one_time". Price IDs derive from the
@@ -38,7 +38,9 @@ serve(async (req) => {
     }
     const user = data.user;
 
-    const { tier, billing_cycle = "monthly", billing_day } = await req.json();
+    const proBody = await req.json();
+    const { tier, billing_cycle = "monthly", billing_day } = proBody;
+    const isNative = isNativeRequest(proBody);
     const cycle = PRICE_MAP[billing_cycle];
     if (!cycle) throw new Error("Invalid billing_cycle. Use: monthly, annual, or one_time");
     const priceId = cycle[tier];
@@ -76,8 +78,8 @@ serve(async (req) => {
       customer_email: customerId ? undefined : user.email,
       line_items: [{ price: priceId, quantity: 1 }],
       mode: isOneTime ? "payment" : "subscription",
-      success_url: `${getAppUrl()}/profile?pro=success`,
-      cancel_url: `${getAppUrl()}/profile?pro=cancel`,
+      success_url: buildRedirectUrl(`/profile?pro=success`, isNative),
+      cancel_url: buildRedirectUrl(`/profile?pro=cancel`, isNative),
       // Stamp the buyer's user_id so the webhook can grant the tier by primary
       // key. Without it the webhook could only match on `.eq("email", …)`, and
       // profiles.email carries no unique constraint — a case variant or a stale

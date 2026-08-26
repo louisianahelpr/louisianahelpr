@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { functionErrorMessage } from "@/lib/supabaseResult";
 import { toast } from "sonner";
 import { openExternalUrl } from "@/lib/openExternalUrl";
+import { isNativePlatform } from "@/lib/nativeInit";
 
 type IdvStatus =
   | "not_started"
@@ -58,7 +59,7 @@ export function IDVPromptDialog({
   const handleStart = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("stripe-idv-start", { body: {} });
+      const { data, error } = await supabase.functions.invoke("stripe-idv-start", { body: { native: isNativePlatform } });
       // A non-2xx makes the SDK return a FunctionsHttpError whose `.message` is
       // the useless "Edge Function returned a non-2xx status code" — which is
       // literally all the user saw for as long as this flow was broken. The

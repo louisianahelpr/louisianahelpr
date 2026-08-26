@@ -23,7 +23,10 @@
     "db:diff": "npx supabase db diff --linked --schema public",
     "images:avif": "node scripts/generate-avif.mjs",
     "prepare": "husky || true",
-    "check:launch": "HELPR_LAUNCH=1 bash scripts/check-launch-flags.sh"
+    "check:launch": "HELPR_LAUNCH=1 bash scripts/check-launch-flags.sh",
+    "dev:staging": "vite --mode staging",
+    "db:staging:link": "npx supabase link --project-ref okpxtpfvwtmbuxugqsws",
+    "db:staging:push": "npx supabase db push"
   },
   "lint-staged": {
     "*.{ts,tsx}": "eslint --fix"

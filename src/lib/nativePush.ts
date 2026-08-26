@@ -25,7 +25,8 @@ import {
   registerServiceWorker,
   requestPushPermission as requestWebPushPermission,
 } from "@/lib/pushNotifications";
-import { normalizeDeepLinkUrl } from "@/lib/deepLinkRoute";
+import { Browser } from "@capacitor/browser";
+import { normalizeDeepLinkUrl, NATIVE_RETURN_SCHEME } from "@/lib/deepLinkRoute";
 import { claimDeepLinkLaunch } from "@/lib/nativeLaunchMutex";
 import { captureJobRef } from "@/lib/jobLinkRef";
 
@@ -233,7 +234,7 @@ export function useNativePushSetup() {
         // the guest dashboard they were just rendered onto.
         const { App } = await import("@capacitor/app");
 
-        const handleIncomingUrl = (rawUrl: string) => {
+        const handleIncomingUrl = async (rawUrl: string) => {
           try {
             // Parse for analytics (host + raw path) even if we end up
             // ignoring the URL — we still want to know how often
@@ -246,6 +247,20 @@ export function useNativePushSetup() {
               rawPath = parsed.pathname;
             } catch { /* fall through to track('') */ }
             track(AhaEvent.AppOpenedFromDeepLink, { host, path: rawPath });
+
+            // A `helpr://` URL means Stripe just handed us back from the
+            // in-app browser sheet. Close it first — otherwise we route
+            // underneath a sheet that is still covering the screen and the
+            // user sees nothing change.
+            if (rawUrl.startsWith(`${NATIVE_RETURN_SCHEME}:`)) {
+              try {
+                await Browser.close();
+              } catch (err) {
+                // Already dismissed, or no sheet open. Routing is what
+                // matters; never let this stop the hand-back.
+                report(err, { tags: { source: "nativeReturn.browserClose" } });
+              }
+            }
 
             const internal = normalizeDeepLinkUrl(rawUrl);
             if (internal) {
@@ -261,7 +276,11 @@ export function useNativePushSetup() {
         };
 
         await App.addListener("appUrlOpen", (event) => {
-          handleIncomingUrl(event.url);
+          // Listener signature is sync; the handler awaits Browser.close(), so
+          // surface any rejection rather than letting it become an unhandled one.
+          void handleIncomingUrl(event.url).catch((err) =>
+            report(err, { tags: { source: "appUrlOpen" } }),
+          );
         });
 
         // Cold-launch: if the app was opened FROM a Universal Link
@@ -274,7 +293,7 @@ export function useNativePushSetup() {
         // happened yet.
         try {
           const launch = await App.getLaunchUrl();
-          if (launch?.url) handleIncomingUrl(launch.url);
+          if (launch?.url) await handleIncomingUrl(launch.url);
         } catch (err) {
           report(err, { tags: { source: "getLaunchUrl" } });
         }

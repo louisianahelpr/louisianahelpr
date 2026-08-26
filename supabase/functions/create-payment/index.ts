@@ -8,7 +8,7 @@ import { stripeProcessingCostCents, netUrgentFeeDollars } from "../_shared/strip
 import { posterFeePercentForTier, posterServiceFeeCents } from "../_shared/posterFees.ts";
 import { isLaborTaxable } from "../_shared/salesTax.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
-import { getAppUrl } from "../_shared/appUrl.ts";
+import { getAppUrl, buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { formatPayoutDollars } from "../_shared/money.ts";
 
@@ -66,6 +66,7 @@ serve(async (req) => {
     if (!user?.email) throw new Error("Not authenticated");
 
     const body = await req.json();
+    const isNative = isNativeRequest(body);
     const { action } = body;
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
@@ -129,7 +130,7 @@ serve(async (req) => {
 
         if (redeem?.outcome === "settled") {
           // Gift fully covered the budget — job is funded, nothing to charge.
-          return new Response(JSON.stringify({ url: `${getAppUrl()}/payment-success?job_id=${jobId}` }), {
+          return new Response(JSON.stringify({ url: buildRedirectUrl(`/payment-success?job_id=${jobId}`, isNative) }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
           });
         }
@@ -164,8 +165,8 @@ serve(async (req) => {
           payment_intent_data: {
             metadata: { job_id: jobId, customer_id: user.id, pif_credit_id: pifCreditId },
           },
-          success_url: `${getAppUrl()}/payment-success?job_id=${jobId}`,
-          cancel_url: `${getAppUrl()}/post-job`,
+          success_url: buildRedirectUrl(`/payment-success?job_id=${jobId}`, isNative),
+          cancel_url: buildRedirectUrl(`/post-job`, isNative),
           metadata: { job_id: jobId, customer_id: user.id, pif_credit_id: pifCreditId },
         }, {
           idempotencyKey: `pif-diff-${jobId}`,
@@ -338,8 +339,8 @@ serve(async (req) => {
         mode: "payment",
         automatic_tax: { enabled: true },
         payment_intent_data: paymentIntentExtras,
-        success_url: `${getAppUrl()}/payment-success?job_id=${jobId}`,
-        cancel_url: `${getAppUrl()}/post-job`,
+        success_url: buildRedirectUrl(`/payment-success?job_id=${jobId}`, isNative),
+        cancel_url: buildRedirectUrl(`/post-job`, isNative),
         metadata: { job_id: jobId, customer_id: user.id, onboarding_fee_charged: owesOnboardingFee ? "true" : "false", onboarding_fee_cents: String(onboardingFeeCents) },
       }, {
         // Idempotency: a double-submit (double-tap, retried request) for the same
@@ -661,8 +662,8 @@ serve(async (req) => {
           },
           application_fee_amount: tipFeeCents,
         },
-        success_url: `${getAppUrl()}/my-posts?tip=success`,
-        cancel_url: `${getAppUrl()}/my-posts`,
+        success_url: buildRedirectUrl(`/my-posts?tip=success`, isNative),
+        cancel_url: buildRedirectUrl(`/my-posts`, isNative),
         metadata: { job_id: jobId, tipper_id: user.id, helper_id: helperId, type: "tip" },
       }, {
         // Dedupe client retries (double-tap, network retry) without blocking a

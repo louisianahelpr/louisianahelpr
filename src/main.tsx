@@ -9,6 +9,7 @@ import { recoverFromChunkError } from "./lib/chunkReload";
 import { initSimpleMode } from "./lib/simpleMode";
 import { applyToastPolicy } from "./lib/toastPolicy";
 import { applyPrePaintShellClasses } from "./lib/prePaintShellClasses";
+import { bounceToNativeAppIfReturning } from "./lib/nativeReturnBounce";
 
 // Build identifier — exposed on window so a deploy with only doc/cosmetic
 // changes still produces a new bundle hash, evicting stale CacheFirst
@@ -122,7 +123,20 @@ if (import.meta.env.PROD && typeof navigator !== "undefined" && "serviceWorker" 
 // lands. See prePaintShellClasses for the full reasoning.
 applyPrePaintShellClasses();
 
-createRoot(document.getElementById("root")!).render(<App />);
+// If this page is a Stripe return being shown inside the app's in-app browser
+// sheet, hand control back to the app instead of rendering a web page the user
+// has to dismiss by hand. Runs BEFORE render so there's no flash of the site.
+// No-ops for ordinary web visits and inside the native app itself.
+if (bounceToNativeAppIfReturning()) {
+  // A scheme navigation is in flight; rendering now would only paint a screen
+  // that is about to be replaced. If the scheme doesn't resolve the browser
+  // stays put and the render below still runs on the next tick.
+  setTimeout(() => {
+    createRoot(document.getElementById("root")!).render(<App />);
+  }, 0);
+} else {
+  createRoot(document.getElementById("root")!).render(<App />);
+}
 // Suppress success/info toasts before any code can fire one. Failures still
 // surface — see src/lib/toastPolicy.ts for why the split exists.
 applyToastPolicy();

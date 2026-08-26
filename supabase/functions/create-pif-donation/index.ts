@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
-import { getAppUrl } from "../_shared/appUrl.ts";
+import { getAppUrl, buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 import { posterServiceFeeCents } from "../_shared/posterFees.ts";
 
 const corsHeaders = {
@@ -59,6 +59,7 @@ serve(async (req) => {
     if (!user?.email) return fail(401, "Your session expired — sign in again to continue.");
 
     const body = await req.json().catch(() => ({}));
+    const isNative = isNativeRequest(body);
     const amountDollars = Number(body?.amount);
     const recipientEmailRaw = typeof body?.recipient_email === "string" ? body.recipient_email : "";
     const category = typeof body?.category === "string" ? body.category.slice(0, 40) : "Any";
@@ -148,8 +149,8 @@ serve(async (req) => {
       mode: "payment",
       automatic_tax: { enabled: true },
       payment_intent_data: { metadata: sharedMeta },
-      success_url: `${getAppUrl()}/pay-it-forward?gift=success`,
-      cancel_url: `${getAppUrl()}/pay-it-forward?gift=cancelled`,
+      success_url: buildRedirectUrl(`/pay-it-forward?gift=success`, isNative),
+      cancel_url: buildRedirectUrl(`/pay-it-forward?gift=cancelled`, isNative),
       metadata: sharedMeta,
     }, {
       // Same donor + recipient + amount collapses to ONE charge on a double-tap

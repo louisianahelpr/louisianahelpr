@@ -97,6 +97,28 @@
 		<string>com.googleusercontent.apps.830470550612-4q4rslusnsu72c62vo18udtjb638q8is</string>
 	</array>
 	</dict>
+		<!--
+		  Private scheme used to hand a Stripe return back to the app.
+
+		  Payments open in an in-app browser sheet, and iOS deliberately refuses
+		  to re-enter an app from a Universal Link opened inside that same app's
+		  SFSafariViewController — so the https success_url cannot bounce us
+		  home on its own. Stripe in turn only accepts http(s) for success_url,
+		  so the return is a two-step: Stripe -> our tagged https page ->
+		  helpr:///path -> here. See src/lib/nativeReturnBounce.ts.
+
+		  Registering it here is also the trust boundary: this scheme is only
+		  deliverable to this bundle, which is why src/lib/deepLinkRoute.ts is
+		  allowed to route it without the https host allowlist.
+		-->
+		<dict>
+		<key>CFBundleURLName</key>
+		<string>com.Helpr.nativereturn</string>
+		<key>CFBundleURLSchemes</key>
+	<array>
+		<string>helpr</string>
+	</array>
+		</dict>
 	</array>
 
 	<!--

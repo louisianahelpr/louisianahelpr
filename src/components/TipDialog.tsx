@@ -8,6 +8,7 @@ import { Gift } from "lucide-react";
 import { toast } from "sonner";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import { openExternalUrl } from "@/lib/openExternalUrl";
+import { isNativePlatform } from "@/lib/nativeInit";
 
 interface TipDialogProps {
   jobId: string;
@@ -31,7 +32,7 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
     setSending(true);
     try {
       const { data, error } = await supabase.functions.invoke("create-payment", {
-        body: { action: "tip", jobId, amount: tipAmount },
+        body: { action: "tip", jobId, amount: tipAmount, native: isNativePlatform },
       });
       // A non-2xx makes the SDK throw a FunctionsHttpError whose message is the
       // useless "Edge Function returned a non-2xx status code" — while the real

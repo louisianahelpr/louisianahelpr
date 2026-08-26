@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
-import { getAppUrl } from "../_shared/appUrl.ts";
+import { getAppUrl, buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 import { BOOST_FEE_CENTS, BOOST_DURATION_HOURS, BOOST_DISCOUNT_PCT, BOOST_MIN_UNIT_AMOUNT_CENTS } from "../_shared/productPrices.ts";
 
 const corsHeaders = {
@@ -47,7 +47,9 @@ serve(async (req) => {
     const user = data.user;
     if (!user?.email) return fail(401, "Your session expired — sign in again to boost.");
 
-    const { job_id } = await req.json().catch(() => ({}));
+    const rawBody = await req.json().catch(() => ({}));
+    const { job_id } = rawBody;
+    const isNative = isNativeRequest(rawBody);
     if (!job_id) return fail(400, "Missing job to boost.");
 
     const supabaseAdmin = createClient(
@@ -229,8 +231,8 @@ serve(async (req) => {
           duration_hours: String(BOOST_DURATION_HOURS),
         },
       },
-      success_url: `${getAppUrl()}/dashboard?boosted=${job_id}`,
-      cancel_url: `${getAppUrl()}/dashboard?boost_cancelled=${job_id}`,
+      success_url: buildRedirectUrl(`/dashboard?boosted=${job_id}`, isNative),
+      cancel_url: buildRedirectUrl(`/dashboard?boost_cancelled=${job_id}`, isNative),
       metadata: {
         kind: "job_boost",
         job_id,

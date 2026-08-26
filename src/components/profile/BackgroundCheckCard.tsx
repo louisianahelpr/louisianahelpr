@@ -8,6 +8,7 @@ import { report } from "@/lib/errorLogger";
 import { functionErrorMessage } from "@/lib/supabaseResult";
 import { BGC_FEE_CENTS, formatFeeUsd } from "@/lib/productPrices";
 import { openExternalUrl } from "@/lib/openExternalUrl";
+import { isNativePlatform } from "@/lib/nativeInit";
 
 const BGC_PRICE = formatFeeUsd(BGC_FEE_CENTS);
 
@@ -57,7 +58,7 @@ export function BackgroundCheckCard({ status }: { status: string }) {
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("create-bgc-payment", {
-        body: {},
+        body: { native: isNativePlatform },
       });
       if (error) {
         // FunctionsHttpError hides the real reason in the response body.

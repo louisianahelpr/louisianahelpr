@@ -13,6 +13,7 @@ import { fetchReferralData } from "@/hooks/useReferralData";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import { report } from "@/lib/errorLogger";
 import { openExternalUrl } from "@/lib/openExternalUrl";
+import { isNativePlatform } from "@/lib/nativeInit";
 
 // NpsPrompt is mounted as the final step in the post-completion sequence —
 // after review/tip/share. It self-gates on eligibility (2nd qualifying job
@@ -187,7 +188,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
     setSaving(true);
     try {
       const { data, error } = await supabase.functions.invoke("create-payment", {
-        body: { action: "tip", jobId, amount, tipAttemptId: tipAttemptIdRef.current },
+        body: { action: "tip", jobId, amount, tipAttemptId: tipAttemptIdRef.current, native: isNativePlatform },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);

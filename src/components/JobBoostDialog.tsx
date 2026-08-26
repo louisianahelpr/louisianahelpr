@@ -10,6 +10,7 @@ import { hapticSuccess, hapticError } from "@/lib/haptics";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { BOOST_DISCOUNT_PCT, BOOST_DURATION_HOURS, boostPriceForTier, formatFeeUsd } from "@/lib/productPrices";
 import { openExternalUrl } from "@/lib/openExternalUrl";
+import { isNativePlatform } from "@/lib/nativeInit";
 
 interface JobBoostDialogProps {
   jobId: string;
@@ -47,7 +48,7 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
     setBoosting(true);
     try {
       const { data, error } = await supabase.functions.invoke("create-boost-payment", {
-        body: { job_id: jobId },
+        body: { job_id: jobId, native: isNativePlatform },
       });
       // A non-2xx makes the SDK return a FunctionsHttpError whose message is
       // the unhelpful "Edge Function returned a non-2xx status code". The real,

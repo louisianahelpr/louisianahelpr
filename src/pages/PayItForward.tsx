@@ -39,6 +39,7 @@ import { GiftCardPreview } from "./payItForward/GiftCardPreview";
 import { CreditCard } from "./payItForward/CreditCard";
 import { EmptyState } from "./payItForward/EmptyState";
 import { openExternalUrl } from "@/lib/openExternalUrl";
+import { isNativePlatform } from "@/lib/nativeInit";
 
 // Client-side shape check only — the edge function is the authority (it also
 // enforces the bounds and the self-gift block server-side). We mirror the
@@ -255,6 +256,7 @@ export default function PayItForward() {
           message: note.trim(),
           occasion: occasionId,
           design_id: design.id,
+          native: isNativePlatform,
         },
       });
       if (error) {

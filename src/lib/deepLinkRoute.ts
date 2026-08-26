@@ -34,6 +34,13 @@
  * for hosts declared there, but we also enforce in JS so a misconfigured
  * test build or an Android quirk can't smuggle in a foreign host.
  */
+/**
+ * The app's own URL scheme, registered in ios/App/App/Info.plist. Declared here
+ * rather than alongside the bounce helper so this module stays dependency-light
+ * and unit-testable without pulling in Capacitor.
+ */
+export const NATIVE_RETURN_SCHEME = "helpr";
+
 const ALLOWED_DEEP_LINK_HOSTS = new Set<string>([
   "louisianahelpr.com",
   "www.louisianahelpr.com",
@@ -66,7 +73,17 @@ export function normalizeDeepLinkUrl(rawUrl: string): string | null {
     return null;
   }
 
-  if (!ALLOWED_DEEP_LINK_HOSTS.has(url.host)) return null;
+  // The app's own custom scheme (`helpr:///payment-success?…`) is how a Stripe
+  // return escapes the in-app browser sheet — iOS refuses to re-enter an app
+  // from a Universal Link opened inside that same app's SFSafariViewController,
+  // so the https success_url bounces through the scheme instead (see
+  // src/lib/nativeReturnBounce.ts). It carries no host by construction, so the
+  // host allowlist below would reject it; the scheme is only deliverable to us
+  // because it is registered in our own Info.plist, which is the same trust
+  // boundary the allowlist provides for https links.
+  const isNativeReturnScheme = url.protocol === `${NATIVE_RETURN_SCHEME}:`;
+
+  if (!isNativeReturnScheme && !ALLOWED_DEEP_LINK_HOSTS.has(url.host)) return null;
 
   // Strip trailing slash so /jobs/ and /jobs match the same branch.
   const path = url.pathname.replace(/\/+$/, "") || "/";

@@ -15,6 +15,7 @@ import { tierConfig, TierIcon } from "@/components/profile/subscriptionTab/tierC
 import { PauseOfferDialog } from "@/components/profile/subscriptionTab/PauseOfferDialog";
 import { CancelSurveyDialog } from "@/components/profile/subscriptionTab/CancelSurveyDialog";
 import { openExternalUrl } from "@/lib/openExternalUrl";
+import { isNativePlatform } from "@/lib/nativeInit";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -108,7 +109,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
   const openStripePortal = async () => {
     setLoadingPortal(true);
     try {
-      const { data, error } = await supabase.functions.invoke("pro-customer-portal");
+      const { data, error } = await supabase.functions.invoke("pro-customer-portal", { body: { native: isNativePlatform } });
       if (error) throw error;
       if (data?.url) await openExternalUrl(data.url, () => void refreshSubscription());
     } catch (err: unknown) {
@@ -125,7 +126,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
     try {
       const billing_cycle = billingInterval === "one_time" ? "one_time" : billingInterval;
       const { data, error } = await supabase.functions.invoke("create-pro-checkout", {
-        body: { tier, billing_cycle },
+        body: { tier, billing_cycle, native: isNativePlatform },
       });
       if (error) throw error;
       if (data?.url) await openExternalUrl(data.url, () => void refreshSubscription());

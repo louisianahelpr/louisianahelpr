@@ -9,6 +9,48 @@ export const getPublicSiteUrl = () => {
 };
 
 /**
+ * The https:// URL to hand a third party (Stripe, an OAuth provider) so it can
+ * send the user back to where they are standing.
+ *
+ * MUST NOT be `window.location.href`. Inside the shipped iOS/Android build the
+ * page origin is `capacitor://localhost`, and that is not a URL anyone else can
+ * resolve: Stripe rejects it outright with `url_invalid` and returns a 400, so
+ * the edge function 500s and the user just sees a button that does nothing.
+ * That is exactly how Connect onboarding was failing on device (found
+ * 2026-08-25) — the tap reached the server, Stripe refused the return_url, and
+ * the error never made it anywhere the user could see it.
+ *
+ * On the web we keep the real href so a preview/staging deploy returns to
+ * itself rather than bouncing the user to production. On native there is no
+ * meaningful current origin, so we rebuild the same path against the canonical
+ * site — the universal-link domain, which routes back into the app.
+ */
+/**
+ * The origin to build links that must resolve OFF this device — verification
+ * emails, OAuth returns, invite links, share sheets.
+ *
+ * Same reason as getPublicReturnUrl: on native the origin is
+ * `capacitor://localhost`, which is meaningless to an email client, an OAuth
+ * provider, or whoever you just sent an invite to. Web keeps its real origin so
+ * preview deploys stay self-contained.
+ */
+export const getPublicOrigin = (): string => {
+  if (typeof window === "undefined") return getPublicSiteUrl();
+  return window.location.protocol.startsWith("http")
+    ? window.location.origin
+    : getPublicSiteUrl();
+};
+
+export const getPublicReturnUrl = (): string => {
+  if (typeof window === "undefined") return getPublicSiteUrl();
+
+  const isCapacitorOrigin = !window.location.protocol.startsWith("http");
+  if (!isCapacitorOrigin) return window.location.href;
+
+  return `${getPublicSiteUrl()}${window.location.pathname}${window.location.search}`;
+};
+
+/**
  * Sanitize a post-login `?redirect=` target. Returns the path only when it
  * is a safe SAME-ORIGIN relative path — guarding against open-redirect
  * attacks where a crafted `?redirect=https://evil.com` or `//evil.com`

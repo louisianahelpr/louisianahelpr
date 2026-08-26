@@ -14,6 +14,7 @@ import { track, AhaEvent } from "@/lib/analytics";
 import { ppoTrackingProps } from "@/lib/ppoAttribution";
 import { safeStorage } from "@/lib/safeStorage";
 import { openExternalUrl } from "@/lib/openExternalUrl";
+import { getPublicReturnUrl } from "@/lib/authRedirects";
 import { queryKeys } from "@/lib/queryKeys";
 import { useAuthReady } from "@/hooks/useAuthReady";
 
@@ -100,7 +101,7 @@ export function PayoutSetupForm() {
   const handleOnboard = async () => {
     setOnboarding(true);
     try {
-      const returnUrl = window.location.href;
+      const returnUrl = getPublicReturnUrl();
       const action = status?.connected && !status?.details_submitted ? "update_onboarding" : "onboard";
       // Funnel: helper started Stripe Connect onboarding. Critical because
       // helpers can complete jobs and never get paid if they never finish
@@ -127,7 +128,7 @@ export function PayoutSetupForm() {
 
   const handleManageDashboard = async () => {
     try {
-      const returnUrl = window.location.href;
+      const returnUrl = getPublicReturnUrl();
       const { data, error } = await supabase.functions.invoke("stripe-connect", {
         body: { action: "dashboard", return_url: returnUrl },
       });
@@ -167,7 +168,7 @@ export function PayoutSetupForm() {
     setConfirmReset(false);
     setResetting(true);
     try {
-      const returnUrl = window.location.href;
+      const returnUrl = getPublicReturnUrl();
       const { data, error } = await supabase.functions.invoke("stripe-connect", {
         body: { action: "reset", return_url: returnUrl },
       });

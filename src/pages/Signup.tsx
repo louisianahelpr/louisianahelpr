@@ -22,6 +22,7 @@ import {
 } from "./signup/signupHelpers";
 import { SignupStep1 } from "./signup/SignupStep1";
 import { SignupStep2 } from "./signup/SignupStep2";
+import { getPublicOrigin } from "@/lib/authRedirects";
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -294,7 +295,7 @@ const Signup = () => {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/account-pending`,
+          emailRedirectTo: `${getPublicOrigin()}/account-pending`,
           data: { full_name: fullName },
         },
       });

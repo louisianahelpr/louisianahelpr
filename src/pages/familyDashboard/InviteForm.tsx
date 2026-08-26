@@ -10,6 +10,7 @@ import {
   UserPlus,
   ChevronRight,
 } from "lucide-react";
+import { getPublicSiteUrl } from "@/lib/authRedirects";
 
 // ─── Invite form ─────────────────────────────────────────────────────────────
 
@@ -86,7 +87,7 @@ export function InviteForm({
     },
     onSuccess: async (token) => {
       hapticSuccess();
-      const url = `${window.location.origin}/family/accept/${token}`;
+      const url = `${getPublicSiteUrl()}/family/accept/${token}`;
       // Nothing is emailed here — we only create a pending invite row and hand
       // the caller a link, so the copy must not claim the invite was "sent".
       // The clipboard API rejects outright in a non-secure context and in some

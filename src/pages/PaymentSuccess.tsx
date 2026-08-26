@@ -33,6 +33,7 @@ import { report } from "@/lib/errorLogger";
 import { safeStorage } from "@/lib/safeStorage";
 import { formatPrice } from "@/lib/format";
 import { MaterialsPanel } from "@/components/postjob/MaterialsPanel";
+import { getPublicSiteUrl } from "@/lib/authRedirects";
 
 // Visual lifecycle preview — replaces the dense paragraph that used to
 // sit in this same slot. Keeps the same content (4 stages from job-state
@@ -156,7 +157,7 @@ const PaymentSuccess = () => {
     if (sharing || !resolvedJobId) return;
     setSharing(true);
     void hapticLight();
-    const url = `${window.location.origin}/dashboard?job=${resolvedJobId}`;
+    const url = `${getPublicSiteUrl()}/dashboard?job=${resolvedJobId}`;
     try {
       if (Capacitor.isNativePlatform()) {
         await Share.share({ url, title: "Job posted on Helpr", dialogTitle: "Share this job" });

@@ -16,6 +16,7 @@ import { SocialLogin } from "@capgo/capacitor-social-login";
 import { supabase } from "@/integrations/supabase/client";
 import { friendlyAuthError } from "@/lib/authErrors";
 import { setLastAuthMethod } from "@/lib/lastAuthMethod";
+import { getPublicOrigin } from "@/lib/authRedirects";
 
 export type SocialProvider = "apple" | "google";
 
@@ -184,7 +185,7 @@ export async function signInWithProvider(
       options: {
         redirectTo:
           opts.redirectTo ??
-          (typeof window !== "undefined" ? `${window.location.origin}/dashboard` : undefined),
+          `${getPublicOrigin()}/dashboard`,
       },
     });
     if (error) {

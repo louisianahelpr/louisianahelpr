@@ -26,6 +26,7 @@ import HelprMark from "@/components/HelprMark";
 import type { Database } from "@/integrations/supabase/types";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
 import { sumHelperTakeHomeDollars } from "@/lib/helperEarnings";
+import { getPublicSiteUrl } from "@/lib/authRedirects";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
@@ -212,7 +213,7 @@ const WorkRecord = () => {
     await shareNative({
       title: "My Helpr Work Record",
       text: lines.join("\n"),
-      url: window.location.origin,
+      url: getPublicSiteUrl(),
       dialogTitle: "Share my Helpr Work Record",
     });
   }

@@ -8,6 +8,7 @@ import {
   X,
 } from "lucide-react";
 import type { CareRelationship, ProfileStub } from "./types";
+import { getPublicSiteUrl } from "@/lib/authRedirects";
 
 /** A single card for one care-recipient that this caregiver manages. */
 export function CareRecipientCard({
@@ -115,7 +116,7 @@ export function CareRecipientCard({
           <button
             onClick={() => {
               hapticLight();
-              const url = `${window.location.origin}/family/accept/${relationship.invite_token}`;
+              const url = `${getPublicSiteUrl()}/family/accept/${relationship.invite_token}`;
               void navigator.clipboard.writeText(url).then(() => {
               });
             }}

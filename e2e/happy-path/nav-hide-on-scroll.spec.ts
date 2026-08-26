@@ -26,6 +26,7 @@
  */
 import { test, expect, FAKE_CUSTOMER, installSupabaseMocks, seedAuthedSession, type MockRule } from "./fixtures";
 import type { Page } from "@playwright/test";
+import { defaultInboxTab } from "../../src/lib/inboxDefault";
 
 /** Someone else's account — Home's feed hides jobs you posted yourself. */
 const OTHER_POSTER = "33333333-3333-4333-8333-333333333333";
@@ -195,13 +196,13 @@ for (const route of ROUTES) {
     await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true, rules: listRules });
     await boot(page, route);
 
-    // The inbox opens on its Unread tab by owner instruction (2026-08-25,
-    // "messages should open to unread not all"), and the seeded customer has
-    // read everything — so /messages lands on a deliberately empty tab with
-    // all 30 threads one tap away under All. This spec is about the dock
-    // hiding on scroll, not about which tab is default, so switch to the tab
-    // that actually has rows instead of asserting the old default back.
-    if (route === "/messages") {
+    // This spec is about the dock hiding on scroll, not about which inbox tab
+    // is default — so it asks the rule rather than restating it. The seeded
+    // customer has read everything, so defaultInboxTab lands on All and the
+    // rows are already there; if the rule ever changes to open somewhere with
+    // no rows, this switches to a tab that has some instead of failing on a
+    // premise it only assumed.
+    if (route === "/messages" && defaultInboxTab(0) !== "all") {
       await page.getByRole("tab", { name: /^All/ }).or(
         page.getByRole("button", { name: /^All/ }),
       ).first().click();

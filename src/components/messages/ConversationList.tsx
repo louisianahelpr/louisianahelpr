@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
+import { defaultInboxTab } from "@/lib/inboxDefault";
 import { MessageSquare, Pin, Search, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { hapticLight } from "@/lib/haptics";
@@ -194,14 +195,14 @@ export function ConversationList({
   }, [orderedConversations, searchQuery, inboxFilter]);
 
   // Seed the default tab from the FIRST loaded page, once. See the state decl.
-  // Owner, 2026-08-25: "messages should open to unread not all" — so Unread is
-  // now the unconditional default, not conditional on there being unread. The
-  // caught-up case is not a dead screen: noTabMatches below renders "You're
-  // all caught up" for exactly this state, which is a better answer than
-  // silently showing All and leaving the user to notice the tab moved.
+  // The rule itself lives in `defaultInboxTab` so the app and its tests read it
+  // from ONE place: Unread when there IS unread, otherwise All. Opening a
+  // caught-up inbox on an empty Unread tab hid every thread the user had behind
+  // "You're all caught up", with nothing to say the tab had moved.
   useEffect(() => {
     if (inboxFilter !== null || conversations.length === 0) return;
-    setInboxFilter("unread");
+    const unreadCount = conversations.reduce((n, c) => n + (c.unread > 0 ? 1 : 0), 0);
+    setInboxFilter(defaultInboxTab(unreadCount));
   }, [conversations, inboxFilter]);
 
   // True when an active search filters every thread out — drives a tidy

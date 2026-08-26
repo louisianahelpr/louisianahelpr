@@ -62,6 +62,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      # Pre-flight BEFORE touching prod. A duplicate timestamp makes
+      # `supabase db push` die on a schema_migrations PK conflict and blocks
+      # every migration queued behind it, so catching it here turns a broken
+      # prod pipeline into a red build with an actionable message.
+      - name: Guard against duplicate migration timestamps
+        run: ./scripts/check-migration-timestamps.sh
+
       - name: Check secrets present
         id: precheck
         run: |

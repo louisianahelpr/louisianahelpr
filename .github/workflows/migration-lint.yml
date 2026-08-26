@@ -19,6 +19,14 @@ on:
   # SQL that would have failed silently on the manual deploy path. The
   # paths filter keeps the spend bounded: only fires when migrations
   # actually change.
+  # Also on direct pushes to main: this repo commits straight to main (no PR
+  # ceremony), so a pull_request-only trigger left this check dormant — it had
+  # not run since 2026-08-20 while migrations kept shipping.
+  push:
+    branches: [main]
+    paths:
+      - "supabase/migrations/**"
+      - ".github/workflows/migration-lint.yml"
   pull_request:
     branches: [main]
     paths:

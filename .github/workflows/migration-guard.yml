@@ -18,10 +18,20 @@ permissions:
 # timestamp prefixes of every migration in the tree.
 
 on:
+  # BOTH triggers on purpose. This repo commits straight to main, so a
+  # pull_request-only guard never runs on the path that actually ships — which
+  # is exactly how the 20260826040000 collision reached prod on 2026-08-25.
+  push:
+    branches: [main]
+    paths:
+      - "supabase/migrations/**"
+      - "scripts/check-migration-timestamps.sh"
+      - ".github/workflows/migration-guard.yml"
   pull_request:
     branches: [main]
     paths:
       - "supabase/migrations/**"
+      - "scripts/check-migration-timestamps.sh"
       - ".github/workflows/migration-guard.yml"
   workflow_dispatch:
 
@@ -40,36 +50,4 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Scan for duplicate timestamp prefixes
-        run: |
-          set -euo pipefail
-
-          # Extract the numeric prefix (everything before the first _) from
-          # every migration filename. Filenames are conventionally
-          # <timestamp>_<description>.sql — e.g.
-          #   20260518181500_reject_other_applications_on_accept.sql
-          # The prefix alone is what Supabase uses as the version key in
-          # schema_migrations, so collisions there are the actual bug.
-          PREFIXES=$(ls supabase/migrations/*.sql 2>/dev/null \
-            | sed -E 's|.*/([0-9]+)_.*|\1|' \
-            | sort)
-
-          if [ -z "$PREFIXES" ]; then
-            echo "No migration files found — nothing to check."
-            exit 0
-          fi
-
-          DUPLICATES=$(echo "$PREFIXES" | uniq -d)
-
-          if [ -n "$DUPLICATES" ]; then
-            echo "❌ Duplicate migration timestamps: $(echo "$DUPLICATES" | tr '\n' ' '). Each migration must have a unique timestamp prefix."
-            echo ""
-            echo "Files involved:"
-            for D in $DUPLICATES; do
-              ls supabase/migrations/${D}_*.sql 2>/dev/null || true
-            done
-            echo ""
-            echo "Fix: rename the newer file with a later timestamp (UTC, e.g. \$(date -u +%Y%m%d%H%M%S))."
-            exit 1
-          fi
-
-          echo "✅ No duplicate migration timestamps."
+        run: ./scripts/check-migration-timestamps.sh

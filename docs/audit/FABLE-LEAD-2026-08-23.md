@@ -442,3 +442,58 @@ none is lost; ✅ = fixed and verified, ⏳ = open.
   signup → returns to that job rather than dropping the destination.
 - ⏳ Post + Jobs pages "are bad" — needs the deep pass.
 - ⏳ Deep landing + footer audit (requested; not yet run as its own pass).
+
+---
+
+## Session close — 2026-08-26 (decisions taken, and what is blocked on you)
+
+### Decided and shipped
+
+- **R47 MapKit — owner chose "secrets first, then remove".** Verified live this
+  session: `POST /functions/v1/mapkit-token` still answers
+  `503 {"error":"not_configured","detail":"Set APPLE_MAPKIT_PRIVATE_KEY,
+  APPLE_MAPKIT_KEY_ID and APPLE_MAPKIT_TEAM_ID."}`. So the origin-locked path
+  has **never minted a token**, and removing the fallback today would not
+  degrade maps "if the function goes down" — it would break every map in
+  production immediately. Removal is therefore sequenced AFTER the secrets
+  exist. **Not yet applied.** See "Blocked on you" below.
+- **Membership "Once" — owner: "just add a once toggle next to monthly and
+  annual and wire it up".** Done (`b83f49d24`). The public storefront now
+  offers the same three cycles as the in-app tab, closing the R27 divergence in
+  the direction of showing the pass publicly. The pricing incoherence itself is
+  **unchanged and deliberate**: a Once pass still costs the same as one month
+  (`TIER_PERKS.price` feeds both), so it remains strictly worse value than
+  Monthly for the buyer. Two of the three copy problems that created were
+  fixed, mirroring what the in-app tab already did — the 30-day explainer, the
+  "1 free Job Boost every month" → "for your 30 days" rewrite, and "Buy"
+  instead of "Upgrade".
+- **Seed rows — owner: keep visible until launch.** Unchanged. `is_seed` exists,
+  admin aggregates already exclude it, and `npm run check:launch` now fails a
+  release build while `SHOW_SEED_JOBS_PUBLICLY` is still `true`.
+
+### Still wrong, and knowingly so
+
+- **Elite's Once bullet still promises a cadence the pass cannot reach:**
+  "Reliability Shield — first strike every 6 months forgiven", rendered under a
+  30-day pass. The rewrite that fixes Pro's bullet only matches a trailing
+  "every month", and this string has "forgiven" after the cadence. Reworded
+  copy is a product-voice call, so it is reported rather than guessed at. Same
+  limitation exists in the in-app tab.
+- **A Once pass costs the same as Monthly.** Now visible on both storefronts
+  rather than one. Owner has seen this and chosen to ship it.
+
+### Blocked on you — credentials only you can supply
+
+1. **MapKit secrets** (unblocks the R47 removal). Apple Developer →
+   Certificates, Identifiers & Profiles → **Keys** → create a key with
+   **MapKit JS** enabled. That gives a `.p8` file (the private key), a **Key
+   ID**, and your **Team ID**. Set all three as Supabase Edge Function secrets:
+   `APPLE_MAPKIT_PRIVATE_KEY` (full file contents including the BEGIN/END
+   lines), `APPLE_MAPKIT_KEY_ID`, `APPLE_MAPKIT_TEAM_ID`. Then the endpoint
+   stops 503-ing and the fallback can be deleted safely.
+2. **Staging database password** (unblocks schema replication). Dashboard →
+   the **Louisiana Helpr — Staging** project → Settings → Database → Reset
+   database password. Then `npm run db:staging:link` + `npm run db:staging:push`
+   replays all 471 migrations. Expect that replay to be a genuine test of
+   whether production is rebuildable from the repo; a failure there is a
+   finding, not a setup problem. See `docs/STAGING.md`.

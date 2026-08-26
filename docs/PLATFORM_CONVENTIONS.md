@@ -154,3 +154,30 @@ Rules that make the split hold:
   It stays reachable at `/signup?type=business` and from Sign in.
 - **Auth screens are label-only** — no field placeholders (the MFA code field's
   format hint is the one exception).
+
+## 8. What a headless browser cannot verify
+
+Added 2026-08-26 after a fix was reported as shipped without ever being seen.
+
+The audit sweeps drive headless Chromium. It renders the app's own DOM
+faithfully, so layout, overflow, colour and copy are all provable there. It
+does **not** render browser-drawn (user-agent) widgets, and
+`getComputedStyle(el, "::-webkit-…")` silently returns the *host element's*
+styles when the pseudo-element is not exposed — so a check against it reads as
+a clean pass while proving nothing.
+
+Concretely, these are NOT verifiable headlessly and need a real browser (or a
+headed screenshot) before anyone claims they are fixed:
+
+- `::-webkit-search-cancel-button` — the native "clear" X inside
+  `input[type="search"]`. Every search field in this app also renders its own
+  X, so the two stack up; `index.css` suppresses the native one. Headless draws
+  neither, so before/after look identical.
+- Native `<select>`, date/time and file pickers.
+- Scrollbar chrome, autofill background, spellcheck underlines.
+- `:autofill`, and anything a password manager injects.
+
+Rule: if the thing you changed is drawn by the browser rather than by the app,
+say "shipped, unverified — needs a real browser" rather than "verified". A
+stylesheet assertion (the rule is present and matches) is worth stating, but it
+is evidence the rule *loaded*, not that the pixel changed.

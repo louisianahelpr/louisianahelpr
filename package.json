@@ -22,7 +22,8 @@
     "db:types": "npx supabase gen types typescript --project-id fncmgoasalhdgfwzhsqa --schema public > src/integrations/supabase/types.ts && echo '✓ Regenerated src/integrations/supabase/types.ts (needs SUPABASE_ACCESS_TOKEN env var or supabase login)'",
     "db:diff": "npx supabase db diff --linked --schema public",
     "images:avif": "node scripts/generate-avif.mjs",
-    "prepare": "husky || true"
+    "prepare": "husky || true",
+    "check:launch": "HELPR_LAUNCH=1 bash scripts/check-launch-flags.sh"
   },
   "lint-staged": {
     "*.{ts,tsx}": "eslint --fix"

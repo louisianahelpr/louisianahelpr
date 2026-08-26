@@ -22,22 +22,9 @@
 // shows up in production.
 
 import { describe, it, expect } from "vitest";
-import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { walkSource, readSource } from "./helpers/walkSource";
 
 const ROOTS = ["src", "supabase/functions"];
-const EXTS = [".ts", ".tsx"];
-const SKIP_DIRS = new Set(["node_modules", "dist", "coverage", ".git"]);
-
-function walk(dir: string, out: string[] = []): string[] {
-  for (const entry of readdirSync(dir)) {
-    if (SKIP_DIRS.has(entry)) continue;
-    const full = join(dir, entry);
-    if (statSync(full).isDirectory()) walk(full, out);
-    else if (EXTS.some((e) => entry.endsWith(e))) out.push(full);
-  }
-  return out;
-}
 
 /**
  * Matches a `.from("profiles")` whose following `.select("…")` names `role` as
@@ -48,22 +35,21 @@ function walk(dir: string, out: string[] = []): string[] {
 const PROFILES_SELECT = /\.from\(\s*["']profiles["']\s*\)[\s\S]{0,200}?\.select\(\s*["']([^"']*)["']/g;
 
 describe("dropped-column guard", () => {
-  // 30s, not the 5s default. This walks every .ts/.tsx under src/ and
-  // supabase/functions and reads each one synchronously — fast alone (~700ms)
-  // but it competes with 184 other suites for the same disk, and it timed out
-  // twice during the 2026-08-25 audit while passing instantly in isolation.
-  // A source-scan guard that fails only under load reads as flake and gets
-  // ignored, which would quietly retire the guard.
+  // Walks every .ts/.tsx under src/ and supabase/functions — ~700ms alone, but
+  // it competes with 180+ other suites for the same disk, so it keeps the
+  // generous timeout. The OTHER half of its 2026-08-25 flakiness was not
+  // slowness at all: it read the edge harness's transient *.gen.ts modules and
+  // died on ENOENT when they were cleaned up mid-walk. walkSource skips
+  // generated modules and readSource tolerates a file that vanishes.
   it("no source file selects `role` from `profiles` — the column was dropped in 2026-05", () => {
     const offenders: string[] = [];
-    for (const root of ROOTS) {
-      for (const file of walk(root)) {
-        if (file.endsWith("droppedColumns.test.ts")) continue;
-        const src = readFileSync(file, "utf8");
-        for (const m of src.matchAll(PROFILES_SELECT)) {
-          const columns = m[1].split(",").map((c) => c.trim().split(":")[0].trim());
-          if (columns.includes("role")) offenders.push(`${file} → select("${m[1]}")`);
-        }
+    for (const file of walkSource(ROOTS)) {
+      if (file.endsWith("droppedColumns.test.ts")) continue;
+      const src = readSource(file);
+      if (src === null) continue; // deleted mid-walk; cannot be an offender
+      for (const m of src.matchAll(PROFILES_SELECT)) {
+        const columns = m[1].split(",").map((c) => c.trim().split(":")[0].trim());
+        if (columns.includes("role")) offenders.push(`${file} → select("${m[1]}")`);
       }
     }
     expect(

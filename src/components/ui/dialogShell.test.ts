@@ -35,8 +35,6 @@ const BANNED = ["max-w-xs", "max-w-sm", "max-w-md"];
 const STRUCTURAL_EXCEPTIONS: Record<string, string> = {
   "JobDetailDialog.tsx": "deliberately wide on desktop — lg:max-w-3xl xl:max-w-4xl",
   "PhotoLightbox.tsx": "media viewer — sized to the viewport",
-  "AdminCommandPalette.tsx":
-    "a search affordance, not a content dialog — it holds one input and a result list, and reads as a palette rather than a page at the shared measure",
 };
 
 function dialogFiles(): string[] {

@@ -183,6 +183,33 @@ jobs:
             RAISE NOTICE 'realtime function shim skipped: %', SQLERRM;
           END $$;
 
+          -- 4b. auth.jwt() shim.
+          --
+          -- The CI image ships auth.uid()/auth.role() but NOT auth.jwt(), so
+          -- any policy that reads a JWT claim dies with "function auth.jwt()
+          -- does not exist" and takes the whole replay down with it. That is a
+          -- gap in this harness, not a defect in the migration — on real
+          -- Supabase the function exists — so shim it to the same definition
+          -- Supabase uses.
+          --
+          -- Created only when absent: CREATE OR REPLACE would silently
+          -- overwrite the real implementation if a future image does ship one,
+          -- which would turn a passing smoke run into a meaningless one.
+          DO $$ BEGIN
+            IF to_regprocedure('auth.jwt()') IS NULL THEN
+              CREATE FUNCTION auth.jwt() RETURNS jsonb
+                LANGUAGE sql STABLE
+                AS $jwt$
+                  SELECT coalesce(
+                    nullif(current_setting('request.jwt.claim', true), ''),
+                    nullif(current_setting('request.jwt.claims', true), '')
+                  )::jsonb
+                $jwt$;
+            END IF;
+          EXCEPTION WHEN OTHERS THEN
+            RAISE NOTICE 'auth.jwt() shim skipped: %', SQLERRM;
+          END $$;
+
           -- 5. auth.users column shims (older image schemas).
           DO $$ BEGIN
             ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS email_confirmed_at timestamptz;

@@ -17,7 +17,7 @@ import { execSync } from "node:child_process";
  *   max-w-md ... PermissionRationaleDialog, TermsReconsentDialog,
  *                BrandConfirmDialog, AdminPayoutBatches, DeleteAccountDialog
  *   max-w-sm ... ReviewForm, ReassignMemberDialog, WelcomeModal
- *   max-w-xs ... QrCodeModal
+ *   max-w-xs ... QrCodeModal (since deleted with the QR feature)
  *
  * BrandConfirmDialog is the shell behind every confirm in the app (Log Out,
  * Decline This Job, Delete Account), so that one alone made the most-seen
@@ -35,6 +35,8 @@ const BANNED = ["max-w-xs", "max-w-sm", "max-w-md"];
 const STRUCTURAL_EXCEPTIONS: Record<string, string> = {
   "JobDetailDialog.tsx": "deliberately wide on desktop — lg:max-w-3xl xl:max-w-4xl",
   "PhotoLightbox.tsx": "media viewer — sized to the viewport",
+  "AdminCommandPalette.tsx":
+    "a search affordance, not a content dialog — it holds one input and a result list, and reads as a palette rather than a page at the shared measure",
 };
 
 function dialogFiles(): string[] {

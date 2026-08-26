@@ -197,7 +197,7 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
         <CancellationDialog
           jobId={props.cancelDialogJob.id} jobTitle={props.cancelDialogJob.title}
           jobDate={props.cancelDialogJob.date_needed} jobBudget={props.cancelDialogJob.budget}
-          userId={props.user.id} hasHelper={!!props.cancelDialogJob.helper_id}
+          hasHelper={!!props.cancelDialogJob.helper_id}
           helperId={props.cancelDialogJob.helper_id}
           helperName={props.cancelDialogJob.helper_id ? (props.helperNames?.[props.cancelDialogJob.helper_id] || "the Helpr") : undefined}
           helperFeePercent={props.cancelDialogJob.helper_fee_percent}

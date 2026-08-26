@@ -4,9 +4,10 @@ import {
 } from "../../supabase/functions/_shared/cancellationFee";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { createNotification } from "@/lib/notifications";
-import { report } from "@/lib/errorLogger";
-import { unwrapMutation, isWriteRejected } from "@/lib/mutationResult";
+// unwrapMutation is gone with the client-side UPDATE it guarded; isWriteRejected
+// stays so this dialog keeps rendering a rejected write's own message if any
+// future write lands here.
+import { isWriteRejected } from "@/lib/mutationResult";
 import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,7 +28,8 @@ type CancellationDialogProps = {
   jobTitle: string;
   jobDate: string;
   jobBudget: number;
-  userId: string;
+  /* No `userId`: the cancelling identity is auth.uid() inside
+     poster_cancel_job now, so the client no longer asserts who it is. */
   hasHelper: boolean;
   helperId?: string | null;
   helperName?: string;
@@ -42,7 +44,7 @@ type CancellationDialogProps = {
   onCancelled: () => void;
 };
 
-export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId, hasHelper, helperId: _helperId, helperName, helperFeePercent, open, onClose, onCancelled }: CancellationDialogProps) => {
+export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, hasHelper, helperId: _helperId, helperName, helperFeePercent, open, onClose, onCancelled }: CancellationDialogProps) => {
   // Is this a recurring PARENT? Fetched on open so the dialog can say the
   // one thing the card no longer says (owner: card = less hectic; the
   // cancel-scope warning belongs at the moment of cancelling).
@@ -90,124 +92,92 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
   const handleCancel = async () => {
     setCancelling(true);
     try {
-      // Fetch authoritative job data to calculate fee server-side
-      const { data: jobData, error: fetchError } = await supabase.from("jobs").select("date_needed, budget, helper_id, helper_fee_percent, recurrence_days, parent_job_id").eq("id", jobId).single();
-      if (fetchError || !jobData) throw new Error("Couldn't verify job details");
-
-      // SAME two functions the quote above uses, and the same ones
-      // void-cancelled-payments charges from. This block used to re-inline
-      // `new Date(date_needed + "T00:00:00")` and a hand-copied ladder — the
-      // exact local-zone parse the comment 20 lines above says was removed —
-      // so the fee we PERSIST was computed in the browser's timezone while the
-      // fee we SHOWED was computed in the platform's.
+      // ONE call, ONE transaction, ONE outcome.
       //
-      // Chicago agreed with itself, which is why it survived. Anywhere else it
-      // did not: a $200 job cancelled 24.5h out was quoted 0% and written to
-      // the row as 25% ($50) with late_cancellation = true from America/
-      // New_York. The money that actually MOVES was always right — the edge
-      // function recomputes from _shared/cancellationFee — but every number
-      // derived from the persisted row was not: the fee pill both parties see,
-      // admin late-cancel revenue, and the helper's penalty record.
-      const serverHasHelper = !!jobData.helper_id;
-      const serverHoursUntil =
-        (jobLocalMidnightMs(jobData.date_needed) - Date.now()) / (1000 * 60 * 60);
-      const serverFeePercent = sharedCancellationFeePercent(serverHasHelper, serverHoursUntil);
-      const serverFee = Math.round(jobData.budget * serverFeePercent) / 100;
-      const serverIsLate = serverHoursUntil < 24 && serverHoursUntil > 0;
-
-      const updateData = {
-        status: "cancelled" as const,
-        cancelled_by: userId,
-        cancelled_at: new Date().toISOString(),
-        cancellation_reason: reason.trim() || null,
-        late_cancellation: serverIsLate,
-        cancellation_fee: serverFee,
-        cancellation_fee_status: serverFee > 0 ? "pending" : null,
-      };
-
-      // .select("id") + unwrapMutation: a cancellation that matches zero rows
-      // (already cancelled, RLS, stale id) returns error === null, and this
-      // used to go on to promise a refund for a job that never moved.
-      unwrapMutation(
-        await supabase.from("jobs").update(updateData).eq("id", jobId).select("id"),
-        {
-          action: "cancel this job",
-          rejectedMessage: "This job couldn't be cancelled — it may have already been cancelled or completed. Refresh and check.",
-          context: { jobId },
-        },
+      // This used to be three independent client round-trips: an UPDATE that
+      // wrote status/cancelled_by/cancellation_fee/cancellation_fee_status
+      // straight onto `jobs`, then a createNotification(), then a SEPARATE
+      // apply_cancellation_violation_consequence() RPC. Nothing bound them.
+      // A client that simply never made the third call cancelled a job with a
+      // Helpr committed and recorded no strike — the ladder was opt-in, and
+      // the opt-out was free. The fee was client-computed too, so the number
+      // persisted on the row was whatever the caller sent.
+      //
+      // poster_cancel_job (migration 20260828020000) does all three server-
+      // side in one transaction and DERIVES the fee from the same
+      // cancellation_fee_percent/job_hours_until_start ladder
+      // void-cancelled-payments recomputes from. The cancellation columns are
+      // no longer writable by a client at all (trg_cancellation_requires_rpc),
+      // so there is no path to the state change that skips the strike.
+      const { data: verdict, error } = await supabase.rpc(
+        "poster_cancel_job" as any,
+        { p_job_id: jobId, p_reason: reason.trim() || null } as any,
       );
+      if (error) {
+        // PGRST202 = merged but not yet deployed (db-deploy.yml runs on the
+        // merge commit), so for a few minutes this RPC does not exist yet.
+        // There is deliberately NO fallback to the old client-side UPDATE:
+        // during that same window the guarding trigger is also absent, so the
+        // fallback would succeed AND skip the ladder — it would re-open the
+        // exact hole this change closes, on a timer. Say so and stop.
+        if (String(error.code ?? "") === "PGRST202") {
+          throw new Error(
+            "Cancelling is briefly unavailable while an update finishes rolling out. Please try again in a few minutes.",
+          );
+        }
+        // The RPC raises terse identifiers, and a PostgrestError is a plain
+        // object — not an Error — so rethrowing it raw would fall past both
+        // arms of the catch below and surface the generic "please try again"
+        // for cases we can explain precisely. Translate the ones it defines.
+        // `not_cancellable` is the state this dialog is most likely to hit: it
+        // is the already-cancelled / already-finished race the previous
+        // zero-row unwrapMutation guard existed to catch, now answered by the
+        // server instead of inferred from a row count.
+        const human: Record<string, string> = {
+          not_cancellable:
+            "This job couldn't be cancelled — it may have already been cancelled, finished, or opened as a dispute. Refresh and check.",
+          not_authorized: "Only the person who posted this job can cancel it.",
+          job_not_found: "This job no longer exists. Refresh and check.",
+          not_authenticated: "Please sign in again to cancel this job.",
+        };
+        throw new Error(
+          human[String(error.message ?? "").trim()] ??
+            error.message ??
+            "Couldn't cancel — please try again",
+        );
+      }
+
+      const result = (verdict ?? {}) as {
+        action?: string;
+        cancellation_fee?: number;
+        had_helper?: boolean;
+      };
+      const appliedFee = Number(result.cancellation_fee ?? 0);
 
       // The held Stripe payment is NOT voided here: void-cancelled-payments
       // only accepts cron/service-role auth (a client JWT gets a 401 — a
       // previous invoke from here failed on every call and was removed). The
       // hourly cron sweeps jobs with cancellation_fee_status='pending' and
       // processes the refund, so it lands within ~an hour of cancelling.
-
-      // Notify the helper about the cancellation and their compensation.
-      // The amount is an ESTIMATE from the job-frozen fee percent — the
-      // actual transfer (void-cancelled-payments) resolves the helper's live
-      // tier, which can differ (e.g. Elite 8% vs frozen 10%).
-      if (serverHasHelper && jobData.helper_id && serverFee > 0) {
-        const commissionPercent = jobData.helper_fee_percent ?? HELPER_FEE_LEGACY_FALLBACK_PERCENT;
-        const platformCut = Math.round(serverFee * (commissionPercent / 100) * 100) / 100;
-        const helperPayout = Math.max(0, serverFee - platformCut);
-
-        await createNotification({
-          user_id: jobData.helper_id,
-          title: "Job cancelled — you'll be compensated",
-          message: `"${jobTitle}" was cancelled by the poster. You'll receive approximately $${formatPrice(helperPayout)} as a cancellation fee (${serverFeePercent}% of the budget minus platform fee), processed within the hour.`,
-          type: "payment",
-          link: "/my-jobs",
-        });
-      }
-
-      // The consequence ladder is SERVER-owned (apply_cancellation_violation_consequence,
-      // migration 20260826040000). This block used to run it here: it counted
-      // prior violations in the browser and, on the third cancel, inserted a
-      // `permanent` user_bans row with banned_by pointing at the offender
-      // themselves, set profiles.ban_status, and redirected to /account-banned.
       //
-      // RLS rejects both of those writes for a non-admin, so the ban never
-      // actually landed — the user was sent to a ban screen while the database
-      // still said `active`, and no admin ever saw a case. Same bug the message
-      // scanner had (20260825183000), same fix: report the event, let the server
-      // decide, act only on the verdict it returns.
-      if (hasHelper) {
-        // `as any`: the RPC ships with this change's migration, so the
-        // generated types.ts doesn't know it yet — same escape hatch
-        // logViolation.ts uses for the message ladder.
-        const { data: verdict, error: ladderErr } = await supabase.rpc(
-          "apply_cancellation_violation_consequence" as any,
-          { p_job_id: jobId } as any,
-        );
+      // The Helpr's "you'll be compensated" notification is now written by the
+      // RPC in the same transaction, so a client that closes the tab mid-flow
+      // can no longer cancel someone's job without telling them.
 
-        if (ladderErr) {
-          // PGRST202 = merged but not yet deployed (db-deploy.yml runs on the
-          // merge commit). The cancellation itself already succeeded, so say
-          // nothing and let the strike go unrecorded for those few minutes.
-          // There is deliberately NO client-side fallback: a ban this client
-          // cannot legitimately write is not a fallback, it is theatre.
-          if (String(ladderErr.code ?? "") !== "PGRST202") {
-            report(ladderErr, { tags: { source: "CancellationDialog.applyConsequence" } });
-          }
-        } else {
-          const action = (verdict as { action?: string } | null)?.action;
-          if (action === "warning") {
-            toast.warning("Cancellation warning (1 of 2) — cancelling again after a Helpr commits is a final warning.");
-          } else if (action === "final_warning") {
-            toast.warning("Final warning — one more cancellation after a Helpr commits and your account is restricted for 7 days pending review.");
-          } else if (action === "pending_ban_review") {
-            // A restriction is the most consequential message this product can
-            // send, and a toast auto-dismisses. Route to the page that reads
-            // the real ban_status off the profile, so it persists and says why.
-            // window.location, not useNavigate: a full document load tears down
-            // every cached authed query rather than leaving a restricted
-            // session live in memory behind the screen, and it keeps this
-            // component renderable without a Router (its unit tests rely on that).
-            window.location.assign("/account-banned");
-            return;
-          }
-        }
+      if (result.action === "warning") {
+        toast.warning("Cancellation warning (1 of 2) — cancelling again after a Helpr commits is a final warning.");
+      } else if (result.action === "final_warning") {
+        toast.warning("Final warning — one more cancellation after a Helpr commits and your account is restricted for 7 days pending review.");
+      } else if (result.action === "pending_ban_review") {
+        // A restriction is the most consequential message this product can
+        // send, and a toast auto-dismisses. Route to the page that reads the
+        // real ban_status off the profile, so it persists and says why.
+        // window.location, not useNavigate: a full document load tears down
+        // every cached authed query rather than leaving a restricted session
+        // live in memory behind the screen, and it keeps this component
+        // renderable without a Router (its unit tests rely on that).
+        window.location.assign("/account-banned");
+        return;
       }
 
       hapticSuccess();
@@ -216,9 +186,12 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, userId
       // the one outcome a poster needs stated, so this confirmation names it.
       // It carries an action, which is also what lets it past the
       // suppress-plain-success toast policy (see lib/toastPolicy.ts).
+      // The amount the SERVER applied, not the estimate this dialog rendered.
+      // They agree (same ladder, same Chicago-midnight clock), but the row is
+      // the authority now that the client no longer writes it.
       toast.success(
-        hasHelper && cancellationFee > 0
-          ? `Job cancelled. The $${formatPrice(cancellationFee)} cancellation fee applies — the rest returns to your card.`
+        appliedFee > 0
+          ? `Job cancelled. The $${formatPrice(appliedFee)} cancellation fee applies — the rest returns to your card.`
           : "Job cancelled — the full amount returns to your card.",
         { action: { label: "Dismiss", onClick: () => { /* toast closes itself */ } } },
       );

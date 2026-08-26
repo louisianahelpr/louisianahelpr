@@ -22,6 +22,11 @@ import { resolve } from "node:path";
  * exists", and no value-level test can see that — the mirror will always agree
  * with itself. What must be true is that the file contains no hand-rolled date
  * parse or inline ladder at all.
+ *
+ * Since 20260828020000 the file must also contain no PERSISTED fee: the write
+ * moved server-side into poster_cancel_job, because a client that can write
+ * the fee can forge it and a client that can write status='cancelled' can skip
+ * the reliability ladder. The last test below pins that.
  */
 const RAW = readFileSync(
   resolve(__dirname, "CancellationDialog.tsx"),
@@ -65,12 +70,49 @@ describe("CancellationDialog derives every fee from the shared module", () => {
     expect(hits, `inline fee ladder found: ${hits.join(", ")}`).toEqual([]);
   });
 
-  it("computes the persisted fee from the same percent as the quote", () => {
-    // Both the display quote and the write must run the shared percent fn.
+  it("does not persist the fee at all — the server derives it", () => {
+    // SUPERSEDES the old "both the quote and the write call the shared percent
+    // fn" assertion. That test encoded a weaker architecture: the client wrote
+    // status/cancelled_by/cancellation_fee/cancellation_fee_status onto `jobs`
+    // itself, so the best it could ask for was that the write agree with the
+    // quote. It could not ask whether the write should exist.
+    //
+    // It should not. Any client that can write `cancellation_fee` can write
+    // ANY cancellation_fee, and any client that can write `status='cancelled'`
+    // can do it without the reliability ladder that lives in the RPC — which
+    // is exactly what a helper did (migration 20260828020000). The columns are
+    // now server-owned (trg_cancellation_requires_rpc) and the fee is derived
+    // inside poster_cancel_job from the SQL twins of this same ladder
+    // (cancellation_fee_percent / job_hours_until_start), so the quote below
+    // is display-only and there is no second number to disagree with it.
+    //
+    // The invariant that must not regress: this file cancels through the RPC
+    // and never through a direct write of a cancellation column.
+    expect(SRC).toContain("poster_cancel_job");
+
+    const guarded = [
+      "cancellation_fee",
+      "cancellation_fee_status",
+      "cancelled_by",
+      "cancelled_at",
+      "late_cancellation",
+    ];
+    // Guarded columns may only appear as object KEYS in a write payload —
+    // which is precisely what must not exist here any more.
+    for (const col of guarded) {
+      const asWriteKey = new RegExp(`\\b${col}\\s*:`, "g");
+      const hits = SRC.match(asWriteKey) ?? [];
+      expect(
+        hits,
+        `${col} is written client-side; it is set by poster_cancel_job`,
+      ).toEqual([]);
+    }
+
+    // And no client-side status flip to 'cancelled' either.
+    expect(SRC).not.toMatch(/status\s*:\s*["']cancelled["']/);
+
+    // The display quote still runs the shared ladder, exactly once.
     const calls = SRC.match(/sharedCancellationFeePercent\(/g) ?? [];
-    expect(
-      calls.length,
-      "expected the shared percent fn on BOTH the quote and the persisted write",
-    ).toBeGreaterThanOrEqual(2);
+    expect(calls.length, "the displayed quote must use the shared ladder").toBe(1);
   });
 });

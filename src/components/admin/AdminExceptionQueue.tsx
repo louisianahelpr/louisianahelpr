@@ -118,6 +118,63 @@ const ExceptionQueueInner = () => {
     },
   });
 
+  /**
+   * Bulk selection, keyed by exception id.
+   *
+   * Bulk resolve IS offered here, unlike the credential and IDV queues, and
+   * the difference is who reads the text. A rejection reason is sent to the
+   * applicant, so one reason pasted across a batch is either wrong for most of
+   * them or too generic to act on. A resolution note is INTERNAL audit trail,
+   * and exceptions genuinely arrive in batches with one shared cause ("board
+   * had no API, verified manually offline"). One note across that batch is
+   * accurate rather than lazy.
+   *
+   * The note is REQUIRED for bulk, though: an empty note on one row is a
+   * judgement call, but on twenty it erases why any of them were cleared.
+   */
+  const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkRunning, setBulkRunning] = useState(false);
+
+  const toggleChecked = (id: string) =>
+    setCheckedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  /** Sequential, so one failure does not obscure the rest. */
+  const resolveChecked = async (note: string) => {
+    const targets = rows.filter((r) => checkedIds.has(r.id));
+    if (targets.length === 0 || !note.trim()) return;
+    setBulkRunning(true);
+    let ok = 0;
+    const failures: string[] = [];
+    for (const row of targets) {
+      const { data: updated, error } = await supabase
+        .from("verification_exceptions")
+        .update({
+          status: "resolved",
+          resolution: note.trim(),
+          resolved_at: new Date().toISOString(),
+        })
+        .eq("id", row.id)
+        .select("id");
+      if (error || !updated || updated.length === 0) {
+        failures.push(row.full_name || row.email || row.id);
+      } else ok++;
+    }
+    setBulkRunning(false);
+    setBulkOpen(false);
+    setCheckedIds(new Set());
+    setResolution("");
+    qc.invalidateQueries({ queryKey });
+    if (failures.length === 0) toast.success(`Resolved ${ok}`);
+    else if (ok === 0) toast.error(`Could not resolve ${failures.length} — you may not have permission to write to this queue.`);
+    else toast.warning(`Resolved ${ok}, ${failures.length} failed — ${failures.join(", ")}`);
+  };
+
   const resolve = async (row: ExceptionRow, res: string) => {
     setBusy(row.id);
     // `.select()` so "no row matched" is distinguishable from "resolved".
@@ -181,9 +238,39 @@ const ExceptionQueueInner = () => {
         />
       ) : (
         <div className="space-y-3">
+          {checkedIds.size > 0 && (
+            <div className="flex items-center justify-between gap-3 rounded-ds-md border border-primary/30 bg-primary/5 px-3 py-2">
+              <span className="text-ds-13 font-medium text-foreground">
+                {checkedIds.size} selected
+              </span>
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="ghost" disabled={bulkRunning} onClick={() => setCheckedIds(new Set())}>
+                  Clear
+                </Button>
+                <Button
+                  size="sm"
+                  disabled={bulkRunning}
+                  onClick={() => {
+                    setResolution("");
+                    setBulkOpen(true);
+                  }}
+                >
+                  Resolve {checkedIds.size}
+                </Button>
+              </div>
+            </div>
+          )}
           {rows.map((r) => (
             <div key={r.id} className="rounded-ds-md border border-border/60 bg-background/40 p-4 space-y-3">
               <div className="flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  className="mt-3 shrink-0 h-4 w-4 accent-[hsl(var(--primary))]"
+                  checked={checkedIds.has(r.id)}
+                  onChange={() => toggleChecked(r.id)}
+                  disabled={bulkRunning}
+                  aria-label={`Select the ${EXCEPTION_TYPE_LABELS[r.exception_type] ?? r.exception_type} exception for ${r.full_name || r.email || "this user"}`}
+                />
                 <div className={cn("w-10 h-10 shrink-0 rounded-full bg-warning/10 flex items-center justify-center text-ds-13 font-bold", toneTextClasses.warning)}>
                   <AlertTriangle className="w-4 h-4" />
                 </div>
@@ -254,6 +341,34 @@ const ExceptionQueueInner = () => {
               }}
             >
               Mark Resolved
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={bulkOpen} onOpenChange={(o) => !o && setBulkOpen(false)}>
+        <AlertDialogContent>
+          <AlertDialogHero
+            title={`Resolve ${checkedIds.size} Exceptions`}
+            subtitle="One note is recorded against every selected exception."
+          />
+          <Textarea
+            aria-label="Resolution note for all selected exceptions"
+            placeholder="e.g. Board has no API — all verified manually against the state portal"
+            value={resolution}
+            onChange={(e) => setResolution(e.target.value)}
+            rows={3}
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkRunning}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={bulkRunning || !resolution.trim()}
+              onClick={(e) => {
+                // Keep the dialog mounted while the loop runs.
+                e.preventDefault();
+                resolveChecked(resolution);
+              }}
+            >
+              {bulkRunning ? "Resolving…" : `Mark ${checkedIds.size} Resolved`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

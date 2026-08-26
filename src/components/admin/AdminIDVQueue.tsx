@@ -125,7 +125,62 @@ const AdminIDVQueue = () => {
     }
   };
 
-  const approveUser = async (p: IDVProfile) => {
+  /**
+   * Bulk selection, keyed by user_id. Named `checkedIds` because `selected`
+   * already means "the one row whose detail drawer is open" in this file.
+   *
+   * Approve only, deliberately — same rule as the credential queue. A denial
+   * carries a reason the applicant reads and acts on, and one reason pasted
+   * across a batch is either wrong for most of them or so generic it tells
+   * them nothing. Denying stays per-row, where the reason box is.
+   */
+  const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
+  const [bulkRunning, setBulkRunning] = useState(false);
+
+  /** Only rows an admin may actually act on can be ticked. */
+  const isActionable = (p: IDVProfile) =>
+    p.idv_status === "manual_review" || p.idv_status === "failed";
+
+  const toggleChecked = (id: string) =>
+    setCheckedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  /**
+   * Sequential, not Promise.all: each approval writes a profile row, inserts a
+   * notification and invokes an email function. Firing twenty of those at once
+   * is how you discover a rate limit mid-incident, and a queue this size is
+   * not worth the risk.
+   */
+  const approveChecked = async () => {
+    if (checkedIds.size === 0) return;
+    setBulkRunning(true);
+    const targets = profiles.filter((p) => checkedIds.has(p.user_id) && isActionable(p));
+    let ok = 0;
+    const failures: string[] = [];
+    for (const p of targets) {
+      try {
+        await approveUser(p, { silent: true });
+        ok++;
+      } catch (e) {
+        report(e, { tags: { source: "AdminIDVQueue.approveChecked" } });
+        failures.push(formatName(p.full_name, "an applicant"));
+      }
+    }
+    setBulkRunning(false);
+    setCheckedIds(new Set());
+    load();
+    // Report the partial outcome honestly — a blanket "Approved" after two of
+    // five succeeded is how a queue silently keeps stale rows.
+    if (failures.length === 0) toast.success(`Approved ${ok}`);
+    else if (ok === 0) toast.error(`Could not approve ${failures.length}`);
+    else toast.warning(`Approved ${ok}, ${failures.length} failed — ${failures.join(", ")}`);
+  };
+
+  const approveUser = async (p: IDVProfile, opts?: { silent?: boolean }) => {
     setActioning(p.user_id);
     const { error } = await supabase
       .from("profiles")
@@ -137,6 +192,9 @@ const AdminIDVQueue = () => {
 
     if (error) {
       setActioning(null);
+      // Throw in bulk so the caller can count it as a failure; toast when the
+      // admin clicked this one row directly.
+      if (opts?.silent) throw error;
       toast.error(error.message);
       return;
     }
@@ -164,6 +222,7 @@ const AdminIDVQueue = () => {
 
     setActioning(null);
     await logAdminAction("idv_manual_approve", "user", p.user_id, { previous_status: p.idv_status });
+    if (opts?.silent) return;
     setSelected(null);
     load();
   };
@@ -264,6 +323,24 @@ const AdminIDVQueue = () => {
         })}
       </AdminFilterStrip>
 
+      {/* Appears only once something is ticked, so the default queue reads
+          exactly as it did before bulk existed. */}
+      {checkedIds.size > 0 && (
+        <div className="flex items-center justify-between gap-3 rounded-ds-md border border-primary/30 bg-primary/5 px-3 py-2">
+          <span className="text-ds-13 font-medium text-foreground">
+            {checkedIds.size} selected
+          </span>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="ghost" disabled={bulkRunning} onClick={() => setCheckedIds(new Set())}>
+              Clear
+            </Button>
+            <Button size="sm" variant="primary" disabled={bulkRunning} onClick={approveChecked}>
+              {bulkRunning ? "Approving…" : `Approve ${checkedIds.size}`}
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* List */}
       {isInitialLoading ? (
         <div className="flex items-center justify-center py-12">
@@ -288,6 +365,16 @@ const AdminIDVQueue = () => {
             );
             return (
               <div key={p.user_id} className="rounded-ds-md border border-border/60 bg-background/40 p-4 flex items-center justify-between gap-3">
+                {isActionable(p) && (
+                  <input
+                    type="checkbox"
+                    className="shrink-0 h-4 w-4 accent-[hsl(var(--primary))]"
+                    checked={checkedIds.has(p.user_id)}
+                    onChange={() => toggleChecked(p.user_id)}
+                    disabled={bulkRunning}
+                    aria-label={`Select ${formatName(p.full_name, "this applicant")} for bulk approval`}
+                  />
+                )}
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="font-semibold text-foreground text-ds-13 truncate">{formatName(p.full_name, "—")}</p>

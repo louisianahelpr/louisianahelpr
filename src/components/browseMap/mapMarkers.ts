@@ -63,12 +63,14 @@ export function clusterIcon(cluster: { getChildCount: () => number }) {
 
 export function pinIcon(category: string, isUrgent: boolean) {
   const color = categoryHue(category);
-  const ring = isUrgent ? "stroke=\"#A0613B\" stroke-width=\"2.5\"" : "";
+  const sienna = resolveToken("--burnt-sienna", "#A0613B");
+  const parchment = resolveToken("--parchment", "#FAF8F5");
+  const ring = isUrgent ? `stroke="${sienna}" stroke-width="2.5"` : "";
   const html = `
     <svg width="28" height="36" viewBox="0 0 28 36" xmlns="http://www.w3.org/2000/svg">
       <path d="M14 0C6.27 0 0 6.27 0 14c0 9.5 14 22 14 22s14-12.5 14-22C28 6.27 21.73 0 14 0z"
         fill="${color}" ${ring} />
-      <circle cx="14" cy="14" r="5" fill="#FAF8F5" />
+      <circle cx="14" cy="14" r="5" fill="${parchment}" />
     </svg>
   `;
   return divIcon({

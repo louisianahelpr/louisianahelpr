@@ -36,7 +36,7 @@ export function ReviewsTab({ profileReviews, profileReviewsLeft }: ReviewsTabPro
         ) : (
           <div className="space-y-2">
             {profileReviews.map((r, i) => (
-              <div key={i} className="p-3 rounded-lg bg-secondary/30 border border-border">
+              <div key={i} className="p-3 rounded-2xl bg-secondary/30 border border-border">
                 <div className="flex items-start justify-between gap-2 mb-1">
                   <div className="min-w-0">
                     <p className="text-ds-13 font-medium text-foreground">From {r.reviewer_name}</p>
@@ -67,7 +67,7 @@ export function ReviewsTab({ profileReviews, profileReviewsLeft }: ReviewsTabPro
         ) : (
           <div className="space-y-2">
             {profileReviewsLeft.map((r, i) => (
-              <div key={i} className="p-3 rounded-lg bg-secondary/30 border border-border">
+              <div key={i} className="p-3 rounded-2xl bg-secondary/30 border border-border">
                 <div className="flex items-start justify-between gap-2 mb-1">
                   <div className="min-w-0">
                     <p className="text-ds-13 font-medium text-foreground">For {r.reviewee_name}</p>

@@ -10,7 +10,22 @@
  */
 import { safeStorage } from "@/lib/safeStorage";
 
-const BRAND_COLORS = ["#5E6544", "#8C947D", "#A0613B", "#D4A55F", "#FAF8F5"];
+function getBrandColors(): string[] {
+  if (typeof window === "undefined")
+    return ["#5E6544", "#8C947D", "#A0613B", "#D4A55F", "#FAF8F5"];
+  const s = getComputedStyle(document.documentElement);
+  const r = (v: string, fb: string) => {
+    const val = s.getPropertyValue(v).trim();
+    return val ? `hsl(${val})` : fb;
+  };
+  return [
+    r("--bark", "#5E6544"),
+    r("--sage", "#8C947D"),
+    r("--burnt-sienna", "#A0613B"),
+    r("--gold-warm", "#D4A55F"),
+    r("--parchment", "#FAF8F5"),
+  ];
+}
 
 const STORAGE_KEYS: Record<CelebrateEvent, string> = {
   first_post: "helpr_post_count",
@@ -43,7 +58,7 @@ export async function maybeCelebrate(
       particleCount,
       spread: 70,
       origin: { y: originY },
-      colors: BRAND_COLORS,
+      colors: getBrandColors(),
       scalar: 0.9,
     });
     safeStorage.setItem(key, String(current + 1));

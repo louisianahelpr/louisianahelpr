@@ -88,7 +88,7 @@ export function EmailsTab({
       )}
       {/* Approval email tracking */}
       {viewProfile.approval_status === "approved" && (
-        <div className="rounded-lg bg-primary/5 border border-primary/20 p-3 space-y-2">
+        <div className="rounded-2xl bg-primary/5 border border-primary/20 p-3 space-y-2">
           <p className="text-ds-11 font-medium text-foreground flex items-center gap-1.5">
             <MailIcon className="w-3.5 h-3.5" /> Approval Email Status
           </p>
@@ -117,7 +117,7 @@ export function EmailsTab({
 
       {/* Verification email tracking — for unverified pending users */}
       {viewProfile.approval_status === "pending" && !isVerifiedEmail(viewProfile) && (
-        <div className="rounded-lg bg-accent/5 border border-accent/20 p-3 space-y-2">
+        <div className="rounded-2xl bg-accent/5 border border-accent/20 p-3 space-y-2">
           <p className="text-ds-11 font-medium text-foreground flex items-center gap-1.5">
             <MailIcon className="w-3.5 h-3.5" /> Verification Email Status
           </p>
@@ -144,7 +144,7 @@ export function EmailsTab({
 
       {/* Denial email tracking */}
       {viewProfile.approval_status === "denied" && (
-        <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-3 space-y-2">
+        <div className="rounded-2xl bg-destructive/5 border border-destructive/20 p-3 space-y-2">
           <p className="text-ds-11 font-medium text-foreground flex items-center gap-1.5">
             <MailIcon className="w-3.5 h-3.5" /> Denial Email Status
           </p>

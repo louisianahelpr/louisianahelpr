@@ -55,11 +55,24 @@ export const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProof
     if (files.length === 0) { toast.error("Add at least one photo."); return; }
     setUploading(true);
     const urls: string[] = [...existingUrls];
+    // Track failures per-file. A `continue` on upload error used to be the
+    // ONLY handling: if every file failed, `urls` stayed exactly equal to
+    // `existingUrls`, the jobs update below wrote that unchanged array,
+    // matched a row, and the dialog closed reporting success — with nothing
+    // attached. Proof photos gate completion and payout, so "looks saved,
+    // saved nothing" is the worst possible failure here. Observed live during
+    // the 2026-08-26 lifecycle run, where it was initially misread as a CSP
+    // problem; the uploads were simply failing and saying so to no one.
+    let failedUploads = 0;
     for (const file of files) {
       const ext = file.name.split(".").pop();
       const path = `${jobId}/${type}-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
       const { error } = await supabase.storage.from("proof-photos").upload(path, file);
-      if (error) { report(error, { tags: { source: "PhotoProof.upload", proof_type: type } }); continue; }
+      if (error) {
+        failedUploads += 1;
+        report(error, { tags: { source: "PhotoProof.upload", proof_type: type } });
+        continue;
+      }
       const { data, error: signError } = await supabase.storage.from("proof-photos").createSignedUrl(path, 60 * 60 * 24 * 365);
       if (signError) {
         report(signError, { tags: { source: "PhotoProof.createSignedUrl", proof_type: type } });
@@ -67,6 +80,24 @@ export const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProof
       } else if (data?.signedUrl) {
         urls.push(data.signedUrl);
       }
+    }
+
+    // Nothing new landed in storage — do not write, and do not close as if it
+    // had. Returning here keeps the chosen files in the dialog so the user can
+    // simply retry rather than re-picking them.
+    if (failedUploads === files.length) {
+      toast.error(
+        files.length === 1
+          ? "That photo didn't upload. Check your connection and try again."
+          : "None of those photos uploaded. Check your connection and try again.",
+      );
+      setUploading(false);
+      return;
+    }
+    if (failedUploads > 0) {
+      toast.warning(
+        `${failedUploads} of ${files.length} photos didn't upload — the rest were attached.`,
+      );
     }
 
     const updateField = type === "before" ? { proof_before_urls: urls } : { proof_after_urls: urls };

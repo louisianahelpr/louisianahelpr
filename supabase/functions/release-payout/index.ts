@@ -106,7 +106,7 @@ serve(async (req) => {
   const { data: job, error: jobErr } = await supabaseAdmin
     .from("jobs")
     .select(
-      "id, title, status, payment_status, helper_id, customer_id, budget, urgent_fee, dispute_status, disputed_at, is_group_job, helpers_needed, stripe_payment_intent_id, stripe_session_id",
+      "id, title, status, payment_status, helper_id, customer_id, budget, urgent_fee, dispute_status, disputed_at, is_group_job, helpers_needed, stripe_payment_intent_id, stripe_session_id, helper_fee_percent",
     )
     .eq("id", body.job_id)
     .single();
@@ -392,7 +392,21 @@ serve(async (req) => {
     console.error(`[release-payout] platform_settings read failed for job ${job.id} — refusing default-fee payout:`, feeSettingsErr);
     return jsonResponse({ error: "fee configuration unavailable — retry" }, 500);
   }
-  const fallbackFeePercent = feeSettings.helper_fee_percent;
+  // Prefer the rate FROZEN onto the job when escrow was funded, and fall back
+  // to the global only if the job predates that column. create-payment,
+  // process-scheduled-payouts, execute-dispute-split and
+  // void-cancelled-payments all resolve it this way; release-payout went
+  // straight to the global, so on a tier-read failure it settled a free
+  // helper at the stored 10% instead of their real 12% — the platform
+  // under-charging itself on the primary payout path.
+  const frozenPercent =
+    job.helper_fee_percent === null || job.helper_fee_percent === undefined
+      ? null
+      : Number(job.helper_fee_percent);
+  const fallbackFeePercent =
+    frozenPercent !== null && Number.isFinite(frozenPercent)
+      ? frozenPercent
+      : feeSettings.helper_fee_percent;
   const helperFeePercent = await getHelperFeePercent(
     supabaseAdmin,
     job.helper_id,

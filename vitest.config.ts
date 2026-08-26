@@ -16,6 +16,25 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
+    // Vitest's default is 5s, which this suite outgrew. Nothing here is
+    // genuinely slow — the failures were all the same shape: a spec that does
+    // `await import("./Component")` and renders it, on a machine that is also
+    // building something else. Transform + import of a real component tree is
+    // easily seconds under load, so BrowseMap, AdminUserDetailDialog and
+    // stripe-webhook would each time out and then pass alone, which is the
+    // signature of a starved runner rather than a slow test.
+    //
+    // That shape of red is worse than useless: it trains everyone to re-run
+    // instead of reading the failure, and a real regression hides in the noise.
+    // 20s is far below anything a human waits on (the whole suite is ~30s) and
+    // far above the transform cliff.
+    //
+    // If a test needs MORE than this, it is doing too much — give that one a
+    // per-test timeout rather than raising the global again.
+    testTimeout: 20_000,
+    // Same reasoning for setup/teardown: beforeAll that seeds a fake DB or
+    // mounts a provider tree hits the same contention.
+    hookTimeout: 20_000,
     // Publishable Vite vars for the Supabase client constructed at import time.
     // Previously read from a committed .env (now untracked, F-SEC-01); test.env
     // populates import.meta.env directly so createClient() doesn't throw.

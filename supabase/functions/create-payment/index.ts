@@ -179,7 +179,11 @@ serve(async (req) => {
       // here misprices every escrow created during a config outage.
       const { data: settings, error: settingsErr } = await supabaseAdmin
         .from("platform_settings")
-        .select("customer_fee_percent, helper_fee_percent, platform_fee_percent, onboarding_fee_cents")
+        // platform_fee_percent is deliberately NOT selected: nothing below
+        // binds it, and the stored value (15) matches no rate in the tier
+        // ladder, so reading it here only invites someone to start trusting it.
+        // The poster-side rate comes from the poster's own tier below.
+        .select("customer_fee_percent, helper_fee_percent, onboarding_fee_cents")
         .limit(1).single();
       if (settingsErr || settings?.customer_fee_percent == null || settings?.helper_fee_percent == null) {
         console.error(`[create-payment] platform_settings read failed — refusing to price escrow with default fees:`, settingsErr);

@@ -4,9 +4,8 @@
  *
  * knip can see dead *modules*, but it cannot see a dead *edge function*: every
  * `supabase/functions/<name>/index.ts` is an entry point by definition — it is
- * invoked over HTTP by name, never imported. That blind spot is exactly how
- * business-seat-portal, send-business-invite-email, create-business-seat-checkout
- * and check-business-seat-subscription sat dead for weeks.
+ * invoked over HTTP by name, never imported. That blind spot is exactly how the
+ * four business-seat functions sat dead for weeks before anyone noticed.
  *
  * So we check the other direction: for each deployed function, is its name
  * mentioned anywhere that could actually invoke it — client code, e2e, scripts,
@@ -30,14 +29,8 @@ const FUNCTIONS_DIR = join(root, "supabase/functions");
  * feature-flagged work that looks unreferenced but is not.
  */
 const KNOWN_UNREFERENCED = {
-  "boost-job": "superseded by create-boost-payment (the only boost path JobBoostDialog calls) — awaiting owner decision to delete",
-  "business-seat-portal": "business-seats feature never wired to the client — awaiting owner decision to delete",
-  "create-business-seat-checkout": "business-seats feature never wired to the client — awaiting owner decision to delete",
-  "check-business-seat-subscription": "business-seats feature never wired to the client (migration hits are comments only) — awaiting owner decision",
-  "send-business-invite-email": "business-seats feature never wired to the client (migration hit is a comment) — awaiting owner decision",
+  "boost-job": "superseded by create-boost-payment, the only boost path JobBoostDialog calls — awaiting owner decision to delete",
   "helpr-pass-wallet": "Helpr Pass wallet-pass endpoint, built ahead of the client surface — keep until that ships",
-  "daily-match-digest": "cron-invoked, but no cron.schedule migration exists for it — verify against prod cron.job before deleting",
-  "saved-helper-availability-push": "cron-invoked, but no cron.schedule migration exists for it — verify against prod cron.job before deleting",
 };
 
 const SEARCH_ROOTS = ["src", "e2e", "scripts", ".github", "supabase/migrations", "supabase/config.toml"];

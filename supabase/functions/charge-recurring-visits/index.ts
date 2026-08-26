@@ -41,6 +41,7 @@ import {
 import { posterFeePercentForTier, posterServiceFeeCents } from "../_shared/posterFees.ts";
 import { isLaborTaxable } from "../_shared/salesTax.ts";
 import { recurringVisitDates } from "../_shared/recurringSchedule.ts";
+import { cronResult } from "../_shared/cron-result.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -503,9 +504,17 @@ serve(async (req) => {
     });
   }
 
-  return new Response(JSON.stringify({ ok: true, dryRun, today, horizon, ...results }), {
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
+  // `results.errors` already excludes declines — this function separated the
+  // two from the start (`declined` is its own field, and the Slack alert above
+  // drops to 'info' when errors is zero). So the counter is already
+  // defects-only and can decide the status code as-is: a declined card must
+  // never page, a failed insert-after-charge must.
+  return cronResult(
+    "charge-recurring-visits",
+    { dryRun, today, horizon, ...results },
+    { count: results.errors },
+    corsHeaders,
+  );
 });
 
 /**

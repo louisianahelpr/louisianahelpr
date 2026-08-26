@@ -8,11 +8,17 @@ import { stripeProcessingCostCents } from "../_shared/stripeFees.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { formatPayoutDollars } from "../_shared/money.ts";
+import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Every path below that logs "money already moved but the DB write failed"
+  // records here. Those are the worst defects this function can produce: Stripe
+  // and Postgres disagree, and only a human can reconcile them.
+  const defects = defectTracker();
 
   try {
     // Fail loud on missing config — previously masked by `?? ""` / `|| ""`
@@ -94,6 +100,7 @@ serve(async (req) => {
       // money on the platform balance with no signal. Alert instead of skipping.
       if (helperProfileErr) {
         console.error(`[void-cancelled-payments] helper profile read failed for ${job.helper_id} (job ${job.id}):`, helperProfileErr);
+            defects.record(`helper profile read ${job.id}: ${helperProfileErr.message}`);
         await postSlackOpsAlert({
           kind: "payout_failed",
           severity: "warning",
@@ -181,6 +188,7 @@ serve(async (req) => {
           const { error: abUpdateErr } = await supabaseAdmin.from("jobs").update({ payment_status: "abandoned" }).eq("id", job.id);
           if (abUpdateErr) {
             console.error(`[void-cancelled-payments] failed to mark job ${job.id} abandoned (unpaid):`, abUpdateErr.message);
+            defects.record(`mark abandoned (unpaid) ${job.id}: ${abUpdateErr.message}`);
           } else {
             abandonedCount++;
           }
@@ -196,6 +204,7 @@ serve(async (req) => {
           const { error: abMissingErr } = await supabaseAdmin.from("jobs").update({ payment_status: "abandoned" }).eq("id", job.id);
           if (abMissingErr) {
             console.error(`[void-cancelled-payments] failed to mark job ${job.id} abandoned (session 404):`, abMissingErr.message);
+            defects.record(`mark abandoned (session 404) ${job.id}: ${abMissingErr.message}`);
           } else {
             abandonedCount++;
           }
@@ -226,6 +235,7 @@ serve(async (req) => {
             const { error: piBackfillErr } = await supabaseAdmin.from("jobs").update({ stripe_payment_intent_id: paymentIntentId }).eq("id", job.id);
             if (piBackfillErr) {
               console.error(`[void-cancelled-payments] failed to backfill stripe_payment_intent_id for job ${job.id}:`, piBackfillErr.message);
+            defects.record(`PI backfill ${job.id}: ${piBackfillErr.message}`);
             }
           }
         } catch (e: any) {
@@ -239,6 +249,7 @@ serve(async (req) => {
         const { error: noPayErr } = await supabaseAdmin.from("jobs").update({ payment_status: "cancelled" }).eq("id", job.id);
         if (noPayErr) {
           console.error(`[void-cancelled-payments] failed to cancel job ${job.id} (no payment):`, noPayErr.message);
+            defects.record(`cancel (no payment) ${job.id}: ${noPayErr.message}`);
           results.push({ job_id: job.id, title: job.title, status: "no_payment_found", updated: false, error: noPayErr.message });
         } else {
           results.push({ job_id: job.id, title: job.title, status: "no_payment_found", updated: true });
@@ -272,6 +283,7 @@ serve(async (req) => {
             }).eq("id", job.id);
             if (feeCapErr) {
               console.error(`[void-cancelled-payments] DB update failed for job ${job.id} after fee capture (money already moved):`, feeCapErr.message);
+            defects.record(`DB/Stripe divergence after fee capture ${job.id}: ${feeCapErr.message}`);
             }
             refunded++;
             results.push({ job_id: job.id, title: job.title, status: "fee_captured", cancellation_fee: cancellationFee });
@@ -282,6 +294,7 @@ serve(async (req) => {
             const { error: voidErr } = await supabaseAdmin.from("jobs").update({ payment_status: "cancelled" }).eq("id", job.id);
             if (voidErr) {
               console.error(`[void-cancelled-payments] DB update failed for job ${job.id} after PI cancel (money already voided):`, voidErr.message);
+            defects.record(`DB/Stripe divergence after PI cancel ${job.id}: ${voidErr.message}`);
             }
             voided++;
             results.push({ job_id: job.id, title: job.title, status: "voided", amount: pi.amount / 100 });
@@ -337,6 +350,7 @@ serve(async (req) => {
             }, { onConflict: "stripe_refund_id", ignoreDuplicates: true });
             if (refundLedgerErr) {
               console.error(`[void-cancelled-payments] refund ledger write failed for refund ${refund.id} (job ${job.id}); refund succeeded, reconcile manually:`, refundLedgerErr);
+              defects.record(`refund ledger write ${job.id}: ${refundLedgerErr.message}`);
               // The refund already left Stripe, so we never throw — but a dropped
               // ledger row is a real Stripe↔ledger divergence a human must
               // reconcile, so surface it to ops rather than leaving it in a log.
@@ -395,6 +409,7 @@ serve(async (req) => {
           }).eq("id", job.id);
           if (refundStatusErr) {
             console.error(`[void-cancelled-payments] DB update failed for job ${job.id} after refund (money already moved):`, refundStatusErr.message);
+            defects.record(`DB/Stripe divergence after refund ${job.id}: ${refundStatusErr.message}`);
           }
           refunded++;
           results.push({ job_id: job.id, title: job.title, status: refundAmount > 0 ? "refunded" : "zero_refund", amount: Math.max(0, refundAmount) / 100, cancellation_fee_transferred: cancellationFee > 0 });
@@ -407,6 +422,7 @@ serve(async (req) => {
           const { error: alreadyRefErr } = await supabaseAdmin.from("jobs").update({ payment_status: "refunded" }).eq("id", job.id);
           if (alreadyRefErr) {
             console.error(`[void-cancelled-payments] DB update failed for job ${job.id} (already_refunded):`, alreadyRefErr.message);
+            defects.record(`DB update (already_refunded) ${job.id}: ${alreadyRefErr.message}`);
           }
           refunded++;
           results.push({ job_id: job.id, title: job.title, status: "already_refunded" });
@@ -416,18 +432,14 @@ serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ success: true, voided, refunded, abandoned: abandonedCount, total: jobs?.length || 0, results }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
+    return cronResult(
+      "void-cancelled-payments",
+      { success: true, voided, refunded, abandoned: abandonedCount, total: jobs?.length || 0, results },
+      defects.defects,
+      corsHeaders,
+    );
   } catch (error) {
     console.error("[void-cancelled-payments] fatal:", error);
-    return new Response(
-      JSON.stringify({
-        error: "Internal server error",
-        detail: (error as Error).message,
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 },
-    );
+    return cronError("void-cancelled-payments", "Internal server error", corsHeaders);
   }
 });

@@ -5,6 +5,7 @@ import { getHelperFeePercent, helperCommissionDollars, DEFAULT_TIER_FEE_PERCENT 
 import { netUrgentFeeDollars } from "../_shared/stripeFees.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { formatPayoutDollars } from "../_shared/money.ts";
+import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,6 +17,11 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Declared before the config block so every failure path below — including
+  // the two instant-release read failures that deliberately fail open — has
+  // somewhere to record itself.
+  const defects = defectTracker();
 
   try {
     // Fail loud on missing config — previously masked by `?? ""` / `|| ""`
@@ -91,6 +97,7 @@ serve(async (req) => {
       // Fail open to the normal 24h path — instant is an acceleration, never
       // a dependency.
       console.error("[auto-release-payment] instant-release candidate query failed:", recentErr);
+      defects.record(`instant-release candidate query: ${recentErr.message}`);
     }
     const instantIds = new Set<string>();
     if (recentDone && recentDone.length > 0) {
@@ -102,6 +109,7 @@ serve(async (req) => {
         .eq("auto_release_on_complete", true);
       if (flagErr) {
         console.error("[auto-release-payment] instant-release flag query failed:", flagErr);
+        defects.record(`instant-release flag query: ${flagErr.message}`);
       } else {
         const flaggedSet = new Set((flagged || []).map((p) => p.user_id));
         for (const j of recentDone) {
@@ -276,6 +284,7 @@ serve(async (req) => {
           message: "The scheduled auto-release run failed to query jobs due for payout. Matured payouts may be stranded until this is investigated.",
           fields: { db_error: dueJobsErr.message },
         });
+        defects.record(`due-payouts query: ${dueJobsErr.message}`);
       }
 
       for (const job of dueJobs ?? []) {
@@ -308,23 +317,36 @@ serve(async (req) => {
       }
     }
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        released, results,
-        paid, payoutResults,
-        autoPayoutEnabled,
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+    // Which of these statuses are DEFECTS, and which are the guards working:
+    //   verify_failed  — the Stripe call threw. Defect.
+    //   update_failed  — the escrow release UPDATE was rejected. Defect, and
+    //                    money-critical: the job stays in escrow silently.
+    //   skipped_no_pi / pi_status_* / skipped_status_changed — outcomes. The
+    //                    last one is the chargeback race being caught correctly,
+    //                    which must never page.
+    // Payout attempts that came back not-ok or threw mean a MATURED payout did
+    // not move. That is the single most expensive thing this function can fail
+    // at silently, so it counts even though release-payout may have declined it
+    // for a reason of its own.
+    for (const r of results) {
+      if (r.status === "verify_failed" || r.status === "update_failed") {
+        defects.record(`${r.status} ${r.job_id}${r.error ? `: ${r.error}` : ""}`);
+      }
+    }
+    for (const p of payoutResults) {
+      if (p.status === "failed" || p.status === "errored") {
+        defects.record(`payout ${p.status} ${p.job_id}: ${p.detail ?? ""}`);
+      }
+    }
+
+    return cronResult(
+      "auto-release-payment",
+      { success: true, released, results, paid, payoutResults, autoPayoutEnabled },
+      defects.defects,
+      corsHeaders,
     );
   } catch (error) {
     console.error("[auto-release-payment] fatal:", error);
-    return new Response(
-      JSON.stringify({
-        error: "Internal server error",
-        detail: (error as Error).message,
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
-    );
+    return cronError("auto-release-payment", "Internal server error", corsHeaders);
   }
 });

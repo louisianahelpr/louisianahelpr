@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { loadAdminIds } from "../_shared/adminIds.ts";
+import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -46,6 +47,7 @@ Deno.serve(async (req) => {
     if (fetchErr) throw fetchErr;
 
     const resolved: string[] = [];
+    const defects = defectTracker();
 
     for (const job of expiredDisputes || []) {
       const disputeStatus = job.dispute_status || "open";
@@ -63,7 +65,12 @@ Deno.serve(async (req) => {
               type: "warning",
               link: "/admin",
             });
-            if (notifErr) console.error(`[auto-resolve-disputes] escalation reminder insert failed for admin ${adminId}, job ${job.id}:`, notifErr);
+            if (notifErr) {
+              console.error(`[auto-resolve-disputes] escalation reminder insert failed for admin ${adminId}, job ${job.id}:`, notifErr);
+              // An overdue dispute whose reminder never lands is a dispute
+              // nobody is watching.
+              defects.record(`escalation reminder admin ${adminId} job ${job.id}: ${notifErr.message}`);
+            }
           }
         }
         continue;
@@ -84,6 +91,7 @@ Deno.serve(async (req) => {
             : session.payment_intent?.id ?? null;
         } catch (e) {
           console.error(`[auto-resolve-disputes] failed to retrieve session for job ${job.id}:`, e);
+          defects.record(`session retrieve ${job.id}: ${e instanceof Error ? e.message : String(e)}`);
         }
       }
       if (!paymentIntentId) {
@@ -98,6 +106,7 @@ Deno.serve(async (req) => {
         }
       } catch (e) {
         console.error(`[auto-resolve-disputes] failed to verify PI for job ${job.id}:`, e);
+        defects.record(`PI verify ${job.id}: ${e instanceof Error ? e.message : String(e)}`);
         continue;
       }
 
@@ -174,20 +183,24 @@ Deno.serve(async (req) => {
 
       if (notifications.length > 0) {
         const { error: notifErr } = await supabase.from("notifications").insert(notifications);
-        if (notifErr) console.error(`[auto-resolve-disputes] resolution notifications insert failed for job ${job.id}:`, notifErr);
+        if (notifErr) {
+          console.error(`[auto-resolve-disputes] resolution notifications insert failed for job ${job.id}:`, notifErr);
+          defects.record(`resolution notifications ${job.id}: ${notifErr.message}`);
+        }
       }
       resolved.push(job.id);
     }
 
-    return new Response(
-      JSON.stringify({ resolved: resolved.length, ids: resolved }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    // "No payment intent" and "PI not succeeded" are deliberately NOT defects —
+    // both leave the dispute for an admin, which is the designed behaviour.
+    return cronResult(
+      "auto-resolve-disputes",
+      { resolved: resolved.length, ids: resolved },
+      defects.defects,
+      corsHeaders,
     );
   } catch (err) {
     console.error("Auto-resolve disputes error:", err);
-    return new Response(
-      JSON.stringify({ error: err.message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return cronError("auto-resolve-disputes", (err as Error).message, corsHeaders);
   }
 });

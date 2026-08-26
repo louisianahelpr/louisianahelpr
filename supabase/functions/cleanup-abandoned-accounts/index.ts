@@ -24,6 +24,7 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { verifyCronSecret } from "../_shared/cron-auth.ts";
+import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 
 /**
  * Hard ceiling on irreversible deletions in a single invocation. Sized so a
@@ -58,6 +59,13 @@ Deno.serve(async (req) => {
   const deferred: string[] = [];
   const skipped: string[] = [];
   const errors: { id: string; error: string }[] = [];
+  // `skipped` is NOT page-worthy: it counts admins, approved accounts and
+  // active users, all of which are the guards working correctly. But three of
+  // its call sites are broken READS, and since those now skip instead of
+  // deleting (the fail-open fix), a permanently broken read would make this
+  // cron quietly stop cleaning up while still answering ok: true. That is the
+  // failure mode this counter exists to surface.
+  const defects = defectTracker();
 
   try {
     // Pull every user (paginated). Auth admin API doesn't support filtering by date.
@@ -108,6 +116,7 @@ Deno.serve(async (req) => {
         if (profileErr) {
           console.error(`[cleanup-abandoned-accounts] profile read failed for ${u.id} — skipping:`, profileErr);
           skipped.push(u.id);
+          defects.record(`profile read ${u.id}: ${profileErr.message}`);
           continue;
         }
 
@@ -142,6 +151,7 @@ Deno.serve(async (req) => {
             `[cleanup-abandoned-accounts] role lookup failed for ${u.id}, skipping to avoid deleting an admin: ${rolesError.message}`,
           );
           skipped.push(u.id);
+          defects.record(`role lookup ${u.id}: ${rolesError.message}`);
           continue;
         }
         if (roles?.some((r) => r.role === "admin")) {
@@ -176,6 +186,7 @@ Deno.serve(async (req) => {
             activityErr,
           );
           skipped.push(u.id);
+          defects.record(`activity check ${u.id}: ${activityErr.message}`);
           continue;
         }
         if ((jobsRes.count ?? 0) > 0 || (appsRes.count ?? 0) > 0 || (msgsRes.count ?? 0) > 0) {
@@ -221,9 +232,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    return new Response(
-      JSON.stringify({
-        ok: true,
+    return cronResult(
+      "cleanup-abandoned-accounts",
+      {
         dryRun,
         cutoff,
         scanned: candidates.length,
@@ -239,17 +250,21 @@ Deno.serve(async (req) => {
         // Ids only in dryRun — this is the list an operator reads before
         // arming the real run. A live run returns counts, not a roster.
         ...(dryRun ? { wouldDelete: deleted } : {}),
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      },
+      {
+        // Failed deletes plus failed reads. Both mean the run did not do the
+        // work it was scheduled to do.
+        count: errors.length + defects.count,
+        reasons: [...errors.map((e) => `delete ${e.id}: ${e.error}`), ...defects.reasons],
+      },
+      corsHeaders,
     );
   } catch (e) {
     // Log the real error to Supabase edge-function logs (operator-visible) without
     // leaking stack traces / SQL details in the HTTP response body (CodeQL CWE-209).
     const msg = e instanceof Error ? e.message : String(e);
     console.error("cleanup-abandoned-accounts failed:", msg, e);
-    return new Response(
-      JSON.stringify({ ok: false, error: "Internal server error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    // Body stays generic (CodeQL CWE-209); the real message is in the logs.
+    return cronError("cleanup-abandoned-accounts", "Internal server error", corsHeaders);
   }
 });

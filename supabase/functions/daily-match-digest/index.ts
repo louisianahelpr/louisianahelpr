@@ -9,6 +9,7 @@
 // deleted; a re-run on the same data does nothing.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";
+import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -24,6 +25,8 @@ Deno.serve(async (req) => {
   const serviceRoleKey = (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"))!;
   const cronSecret = Deno.env.get("CRON_SECRET");
   const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+  const defects = defectTracker();
 
   try {
     const authHeader = req.headers.get("Authorization");
@@ -43,9 +46,7 @@ Deno.serve(async (req) => {
 
     if (queueErr) throw queueErr;
     if (!queueRows || queueRows.length === 0) {
-      return new Response(JSON.stringify({ users: 0, queued: 0 }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return cronResult("daily-match-digest", { users: 0, queued: 0 }, { count: 0 }, corsHeaders);
     }
 
     // 2. Group by user_id.
@@ -104,18 +105,23 @@ Deno.serve(async (req) => {
         .from("match_digest_queue")
         .delete()
         .in("id", queueIds);
-      if (deleteErr) console.warn("queue drain failed (will retry next run):", deleteErr.message);
+      if (deleteErr) {
+        console.warn("queue drain failed (will retry next run):", deleteErr.message);
+        // "Retries next run" is only comforting if the next run succeeds. A
+        // permanently failing drain re-sends the SAME digest every day forever,
+        // and the run reports 200 the whole time.
+        defects.record(`queue drain (${queueIds.length} rows): ${deleteErr.message}`);
+      }
     }
 
-    return new Response(
-      JSON.stringify({ users: byUser.size, queued: queueRows.length }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    return cronResult(
+      "daily-match-digest",
+      { users: byUser.size, queued: queueRows.length },
+      defects.defects,
+      corsHeaders,
     );
   } catch (error: any) {
     console.error("daily-match-digest error:", error?.message ?? error);
-    return new Response(JSON.stringify({ error: error?.message ?? "digest failed" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return cronError("daily-match-digest", error?.message ?? "digest failed", corsHeaders);
   }
 });

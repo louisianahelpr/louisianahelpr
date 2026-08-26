@@ -28,6 +28,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { stripeProcessingCostCents } from "../_shared/stripeFees.ts";
+import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -84,6 +85,12 @@ serve(async (req) => {
     }
 
     const results = { considered: candidates?.length ?? 0, charged: 0, prompted: 0, failed: 0 };
+    // `results.failed` is NOT the page-worthy counter. It mixes real defects
+    // (a read that errored) with business outcomes that recur forever by
+    // design: a helper with no connected account, a poster with no saved card,
+    // a declined card. Paging on it would fire every hour for one bad card,
+    // which is how a watcher gets muted. `defects` counts only the broken ones.
+    const defects = defectTracker();
 
     for (const c of candidates ?? []) {
       const jobId = c.job_id as string;
@@ -113,6 +120,7 @@ serve(async (req) => {
         if ((claimErr as { code?: string } | null)?.code !== "23505") {
           log("ERROR claiming tip row", { jobId, error: claimErr?.message });
           results.failed++;
+          defects.record(`claim ${jobId}: ${claimErr?.message}`);
         }
         continue;
       }
@@ -151,6 +159,7 @@ serve(async (req) => {
           // Never swallowed: if this insert fails the poster is back to
           // silence, which is the exact failure mode being guarded against.
           log("ERROR writing tip-failure notification", { jobId, error: notifyErr.message });
+          defects.record(`tip-failure notification ${jobId}: ${notifyErr.message}`);
         }
       };
 
@@ -169,6 +178,7 @@ serve(async (req) => {
           log("ERROR reading helper profile — deleting claim for retry", { jobId, error: helperProfileErr.message });
           await supabase.from("tips").delete().eq("id", tipRow.id);
           results.failed++;
+          defects.record(`helper profile read ${jobId}: ${helperProfileErr.message}`);
           continue;
         }
 
@@ -188,6 +198,7 @@ serve(async (req) => {
           log("ERROR reading poster auth record — deleting claim for retry", { jobId, error: authUserErr.message });
           await supabase.from("tips").delete().eq("id", tipRow.id);
           results.failed++;
+          defects.record(`poster auth read ${jobId}: ${authUserErr.message}`);
           continue;
         }
         const email = authUser?.user?.email;
@@ -276,16 +287,10 @@ serve(async (req) => {
     }
 
     log("done", results);
-    return new Response(JSON.stringify(results), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return cronResult("auto-tip-charge", results, defects.defects, corsHeaders);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     log("FATAL", { error: message });
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return cronError("auto-tip-charge", message, corsHeaders);
   }
 });

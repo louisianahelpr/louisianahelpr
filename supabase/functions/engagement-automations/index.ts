@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { brand } from '../_shared/email-templates/styles.ts'
+import { cronResult } from '../_shared/cron-result.ts'
 
 // Declared because line 163 already used it. That reference was the only one
 // in the file and resolved to nothing, so the CAN-SPAM fail-closed branch —
@@ -479,7 +480,15 @@ Deno.serve(async (_req) => {
 
   console.log('Engagement automations completed:', results)
 
-  return new Response(JSON.stringify(results), {
-    headers: { 'Content-Type': 'application/json' },
-  })
+  // `results.errors` collects failed enqueues and anything the top-level catch
+  // swallowed. That is exactly where `corsHeaders is not defined` landed — a
+  // ReferenceError reported inside a 200 body that nothing was reading. Every
+  // entry is a defect (a mail that should have been queued and was not), never
+  // a business outcome, so the count decides the status code directly.
+  return cronResult(
+    'engagement-automations',
+    results,
+    { count: results.errors.length, reasons: results.errors },
+    corsHeaders,
+  )
 })

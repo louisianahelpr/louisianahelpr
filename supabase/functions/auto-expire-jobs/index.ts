@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";
+import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -194,6 +195,10 @@ Deno.serve(async (req) => {
     // actually set and applies the same 5-strike ladder decline_job_offer
     // does (owner: an expired offer reopens the job AND counts as a decline).
     let unansweredExpired = 0;
+    // PGRST202 is deliberately NOT a defect: it means the migration merged but
+    // db-deploy has not finished, which is expected for a few minutes on every
+    // deploy. Any other RPC error is a real one.
+    const defects = defectTracker();
     try {
       const { data: unRpc, error: unRpcErr } = await supabase.rpc("expire_unanswered_offers");
       if (unRpcErr) {
@@ -201,12 +206,14 @@ Deno.serve(async (req) => {
         // Expected for a few minutes on every deploy; not worth an error line.
         if (unRpcErr.code !== "PGRST202") {
           console.error("expire_unanswered_offers error:", unRpcErr);
+          defects.record(`expire_unanswered_offers: ${unRpcErr.message}`);
         }
       } else {
         unansweredExpired = (unRpc as number) || 0;
       }
     } catch (e) {
       console.error("Unanswered offer expiry call failed:", e);
+      defects.record(`expire_unanswered_offers threw: ${e instanceof Error ? e.message : String(e)}`);
     }
 
     // 4. Expire pending direct offers (24h window)
@@ -215,28 +222,29 @@ Deno.serve(async (req) => {
       const { data: expRpc, error: expRpcErr } = await supabase.rpc("expire_pending_direct_offers");
       if (expRpcErr) {
         console.error("expire_pending_direct_offers error:", expRpcErr);
+        if (expRpcErr.code !== "PGRST202") defects.record(`expire_pending_direct_offers: ${expRpcErr.message}`);
       } else {
         directOfferExpired = (expRpc as number) || 0;
       }
     } catch (e) {
       console.error("Direct offer expiry call failed:", e);
+      defects.record(`expire_pending_direct_offers threw: ${e instanceof Error ? e.message : String(e)}`);
     }
 
-    return new Response(
-      JSON.stringify({
+    return cronResult(
+      "auto-expire-jobs",
+      {
         message: `Expired ${expiredCount} accepted jobs, cancelled ${cancelledCount} past-time open jobs, expired ${unansweredExpired} unanswered offers, expired ${directOfferExpired} direct offers`,
         expiredCount,
         cancelledCount,
         unansweredExpired,
         directOfferExpired,
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      },
+      defects.defects,
+      corsHeaders,
     );
   } catch (error) {
     console.error("Auto-expire error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return cronError("auto-expire-jobs", (error as Error).message, corsHeaders);
   }
 });

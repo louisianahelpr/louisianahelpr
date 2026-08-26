@@ -24,6 +24,7 @@
 //   20260612440000_payment_confirm_reminder.sql.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";
+import { cronError, cronResult } from "../_shared/cron-result.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -93,6 +94,7 @@ Deno.serve(async (req) => {
     }
 
     const results: Array<{ job_id: string; status: "sent" | "error"; error?: string }> = [];
+    const markFailures: string[] = [];
 
     for (const job of jobs ?? []) {
       try {
@@ -130,6 +132,9 @@ Deno.serve(async (req) => {
           // abort.  The next cron run will send a second notification for this
           // job — acceptable trade-off vs. silently losing the mark.
           console.error(`[payment-confirm-reminder] failed to mark job ${job.id}`, markErr);
+          // Counted as a defect: the write is broken, and the visible symptom
+          // is the poster being nudged twice about the same job.
+          markFailures.push(`mark ${job.id}: ${markErr.message}`);
         }
 
         results.push({ job_id: job.id, status: "sent" });
@@ -146,16 +151,24 @@ Deno.serve(async (req) => {
       `[payment-confirm-reminder] processed ${results.length} jobs: ${sent} sent, ${errors} errors`,
     );
 
-    return new Response(
-      JSON.stringify({ processed: results.length, sent, errors, results }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    // Every `error` here is a failed notification INSERT — a defect, never a
+    // business outcome. This is the exact counter that read 14 while the run
+    // answered 200, so it is the one that now decides the status code.
+    return cronResult(
+      "payment-confirm-reminder",
+      { processed: results.length, sent, errors, results },
+      {
+        count: errors + markFailures.length,
+        reasons: [
+          ...results.filter((r) => r.status === "error").map((r) => `notify ${r.job_id}: ${r.error}`),
+          ...markFailures,
+        ],
+      },
+      corsHeaders,
     );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("[payment-confirm-reminder] unexpected error", message);
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return cronError("payment-confirm-reminder", message, corsHeaders);
   }
 });

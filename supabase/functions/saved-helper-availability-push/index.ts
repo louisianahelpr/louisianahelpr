@@ -17,6 +17,7 @@
 // then bump the cursor.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";
+import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -30,6 +31,8 @@ Deno.serve(async (req) => {
   const serviceRoleKey = (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"))!;
   const cronSecret = Deno.env.get("CRON_SECRET");
   const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+  const defects = defectTracker();
 
   try {
     const authHeader = req.headers.get("Authorization");
@@ -45,9 +48,7 @@ Deno.serve(async (req) => {
       .select("customer_id, helper_id");
     if (favsErr) throw favsErr;
     if (!favorites || favorites.length === 0) {
-      return new Response(JSON.stringify({ pairs: 0, notified: 0 }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return cronResult("saved-helper-availability-push", { pairs: 0, notified: 0 }, { count: 0 }, corsHeaders);
     }
 
     const helperIds = [...new Set(favorites.map((f) => f.helper_id))];
@@ -138,18 +139,22 @@ Deno.serve(async (req) => {
         .from("profiles")
         .update({ saved_helper_seen: cursor })
         .eq("user_id", customerId);
-      if (updateErr) console.warn("cursor update failed:", customerId, updateErr.message);
+      if (updateErr) {
+        console.warn("cursor update failed:", customerId, updateErr.message);
+        // A cursor that never advances re-pings the same customer about the
+        // same helper on every run — indefinitely, at 200.
+        defects.record(`cursor update ${customerId}: ${updateErr.message}`);
+      }
     }
 
-    return new Response(
-      JSON.stringify({ pairs: favorites.length, notified: notifications.length }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    return cronResult(
+      "saved-helper-availability-push",
+      { pairs: favorites.length, notified: notifications.length },
+      defects.defects,
+      corsHeaders,
     );
   } catch (error: any) {
     console.error("saved-helper-availability-push error:", error?.message ?? error);
-    return new Response(JSON.stringify({ error: error?.message ?? "push failed" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return cronError("saved-helper-availability-push", error?.message ?? "push failed", corsHeaders);
   }
 });

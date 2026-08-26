@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";
 import { sumHelperTakeHomeDollars } from "../_shared/helperEarnings.ts";
 import { DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
+import { cronError, cronResult } from "../_shared/cron-result.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -38,9 +39,7 @@ Deno.serve(async (req) => {
     );
 
     if (helperIds.length === 0) {
-      return new Response(JSON.stringify({ sent: 0, message: "No users have worked a job yet" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return cronResult("weekly-helper-report", { sent: 0, message: "No users have worked a job yet" }, { count: 0 }, corsHeaders);
     }
 
     const { data: helpers, error: helpersError } = await supabase
@@ -52,9 +51,7 @@ Deno.serve(async (req) => {
 
     if (helpersError) throw helpersError;
     if (!helpers || helpers.length === 0) {
-      return new Response(JSON.stringify({ sent: 0, message: "No Pro+ helpers found" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return cronResult("weekly-helper-report", { sent: 0, message: "No Pro+ helpers found" }, { count: 0 }, corsHeaders);
     }
 
     const now = new Date();
@@ -142,15 +139,9 @@ Deno.serve(async (req) => {
       sent++;
     }
 
-    return new Response(
-      JSON.stringify({ sent, total: activeHelpers.length }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return cronResult("weekly-helper-report", { sent, total: activeHelpers.length }, { count: 0 }, corsHeaders);
   } catch (error: any) {
     console.error("Weekly report error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return cronError("weekly-helper-report", error.message, corsHeaders);
   }
 });

@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { cronError, cronResult } from "../_shared/cron-result.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -42,14 +43,13 @@ Deno.serve(async (req) => {
     const count = data?.length ?? 0;
     console.log(`[CLEANUP] Deleted ${count} old read notifications`);
 
-    return new Response(JSON.stringify({ deleted: count }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    // Nothing partial to report: the delete either applied or threw to the
+    // catch. The value added here is `fn`, so the sweep attributes a failure to
+    // this function rather than to cleanup-abandoned-accounts, which shares its
+    // 0 9 * * * slot.
+    return cronResult("cleanup-notifications", { deleted: count }, { count: 0 }, corsHeaders);
   } catch (err) {
     console.error("[CLEANUP] Error:", err);
-    return new Response(JSON.stringify({ error: err.message }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+    return cronError("cleanup-notifications", (err as Error).message, corsHeaders);
   }
 });

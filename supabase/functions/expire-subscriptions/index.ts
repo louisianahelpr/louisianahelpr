@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
+import { cronError, cronResult } from "../_shared/cron-result.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -37,9 +38,7 @@ serve(async (req) => {
 
     if (!expired || expired.length === 0) {
       console.log("[EXPIRE-SUBS] No expired subscriptions found");
-      return new Response(JSON.stringify({ cleared: 0 }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return cronResult("expire-subscriptions", { cleared: 0 }, { count: 0 }, corsHeaders);
     }
 
     console.log(`[EXPIRE-SUBS] Found ${expired.length} expired subscription(s)`);
@@ -78,14 +77,20 @@ serve(async (req) => {
 
     console.log(`[EXPIRE-SUBS] Cleared ${expired.length} expired subscription(s)`);
 
-    return new Response(JSON.stringify({ cleared: expired.length }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    // The tiers are already cleared, so a failed notification does not fail the
+    // run — but it is still a defect: the user silently loses their pass with no
+    // word about why, which is exactly the kind of quiet breakage that goes
+    // unnoticed for months.
+    return cronResult(
+      "expire-subscriptions",
+      { cleared: expired.length, notified: notifErr ? 0 : notifications.length },
+      notifErr
+        ? { count: 1, reasons: [`expiry notifications insert (${userIds.length} users): ${notifErr.message}`] }
+        : { count: 0 },
+      corsHeaders,
+    );
   } catch (error) {
     console.error("[expire-subscriptions] error:", error);
-    return new Response(JSON.stringify({ error: "Internal server error" }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+    return cronError("expire-subscriptions", "Internal server error", corsHeaders);
   }
 });

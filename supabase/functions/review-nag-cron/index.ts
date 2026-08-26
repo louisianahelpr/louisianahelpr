@@ -21,6 +21,7 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -46,6 +47,7 @@ serve(async (req) => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
   const serviceKey = (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")) ?? "";
   const supabase = createClient(supabaseUrl, serviceKey);
+  const defects = defectTracker();
 
   // send-notification-email handles user pref filtering (email_reviews).
   // Fire-and-forget — failures shouldn't block the next nag.
@@ -66,6 +68,7 @@ serve(async (req) => {
       });
     } catch (e) {
       console.error("[review-nag-cron] send-email failed:", (e as Error).message);
+      defects.record(`send-email ${user_id}: ${(e as Error).message}`);
     }
   };
 
@@ -141,6 +144,7 @@ serve(async (req) => {
         });
         if (insertErr) {
           console.error("[review-nag-cron] notification insert failed:", insertErr);
+          defects.record(`notification insert ${party.user_id}: ${insertErr.message}`);
           continue;
         }
 
@@ -151,20 +155,14 @@ serve(async (req) => {
       }
     }
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        jobs_checked: jobs?.length ?? 0,
-        nags_sent,
-        results,
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
+    return cronResult(
+      "review-nag-cron",
+      { success: true, jobs_checked: jobs?.length ?? 0, nags_sent, results },
+      defects.defects,
+      corsHeaders,
     );
   } catch (err) {
     console.error("[review-nag-cron] error:", err);
-    return new Response(
-      JSON.stringify({ error: (err as Error).message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    return cronError("review-nag-cron", (err as Error).message, corsHeaders);
   }
 });

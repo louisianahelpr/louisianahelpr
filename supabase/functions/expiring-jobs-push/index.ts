@@ -18,6 +18,7 @@
 // Schedule: once daily — recommend 9am Central (14:00 UTC).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";
+import { cronError, cronResult } from "../_shared/cron-result.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -65,13 +66,11 @@ Deno.serve(async (req) => {
 
     if (fetchErr) {
       console.error("[expiring-jobs-push] failed to fetch expiring jobs", fetchErr);
-      return new Response(JSON.stringify({ error: fetchErr.message }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return cronError("expiring-jobs-push", fetchErr.message, corsHeaders);
     }
 
     const results: Array<{ job_id: string; status: "sent" | "error"; error?: string }> = [];
+    const markFailures: string[] = [];
 
     for (const job of jobs ?? []) {
       try {
@@ -104,6 +103,8 @@ Deno.serve(async (req) => {
           // Log it — the next cron run will send a second in-app notification.
           // Acceptable trade-off vs. silently losing the update.
           console.error(`[expiring-jobs-push] failed to mark job ${job.id}`, markErr);
+          // A defect: the write is broken, and the poster gets nudged twice.
+          markFailures.push(`mark ${job.id}: ${markErr.message}`);
         }
 
         results.push({ job_id: job.id, status: "sent" });
@@ -118,16 +119,23 @@ Deno.serve(async (req) => {
 
     console.log(`[expiring-jobs-push] processed ${results.length} jobs: ${sent} sent, ${errors} errors`);
 
-    return new Response(
-      JSON.stringify({ processed: results.length, sent, errors, results }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    // Failed notification INSERTs are defects, not outcomes — the same counter
+    // shape that hid payment-confirm-reminder's total failure behind a 200.
+    return cronResult(
+      "expiring-jobs-push",
+      { processed: results.length, sent, errors, results },
+      {
+        count: errors + markFailures.length,
+        reasons: [
+          ...results.filter((r) => r.status === "error").map((r) => `notify ${r.job_id}: ${r.error}`),
+          ...markFailures,
+        ],
+      },
+      corsHeaders,
     );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("[expiring-jobs-push] unexpected error", message);
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return cronError("expiring-jobs-push", message, corsHeaders);
   }
 });

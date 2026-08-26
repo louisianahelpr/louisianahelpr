@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { verifyCronSecret } from '../_shared/cron-auth.ts'
+import { cronError, cronResult, defectTracker } from '../_shared/cron-result.ts'
 
 // Email delivery is via Resend exclusively. Helpr's auth-email-hook
 // renders templates locally with @react-email/components and enqueues
@@ -85,6 +86,13 @@ Deno.serve(async (req) => {
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
+  // A Resend rejection is an OUTCOME, not a defect: a bounced or malformed
+  // address fails identically forever, and this cron runs every 5 minutes, so
+  // counting sends would page ~288 times a day over one bad address. Those are
+  // already recorded per-row as email_send_log.status = 'failed'. Only genuine
+  // breakage is tracked here.
+  const defects = defectTracker()
+
   // 1. Check rate-limit cooldown and read queue config
   // Fail closed. `retry_after_until` is the cooldown Resend told us to observe
   // after rate-limiting us. Dropping the error meant a failed config read left
@@ -99,17 +107,14 @@ Deno.serve(async (req) => {
 
   if (stateError) {
     console.error('[process-email-queue] send-state read failed:', stateError.message)
-    return new Response(
-      JSON.stringify({ skipped: true, reason: 'send_state_unavailable' }),
-      { status: 503, headers: { 'Content-Type': 'application/json' } }
-    )
+    // Already non-2xx, so the sweep sees it; naming the function makes the
+    // alert point at the right file.
+    return cronError('process-email-queue', `send-state read failed: ${stateError.message}`, {}, 503)
   }
 
   if (state?.retry_after_until && new Date(state.retry_after_until) > new Date()) {
-    return new Response(
-      JSON.stringify({ skipped: true, reason: 'rate_limited' }),
-      { headers: { 'Content-Type': 'application/json' } }
-    )
+    // Observing a provider cooldown is correct behaviour, not a failure.
+    return cronResult('process-email-queue', { skipped: true, reason: 'rate_limited' }, { count: 0 })
   }
 
   const batchSize = state?.batch_size ?? DEFAULT_BATCH_SIZE
@@ -214,6 +219,9 @@ Deno.serve(async (req) => {
             msg_id: msg.msg_id,
             error: alreadySentError.message,
           })
+          // The only thing standing between a racing worker and a double-send.
+          // If this read is broken, mail silently stops moving.
+          defects.record(`duplicate-send check ${msg.msg_id}: ${alreadySentError.message}`)
           continue
         }
 
@@ -308,9 +316,10 @@ Deno.serve(async (req) => {
             })
             .eq('id', 1)
 
-          return new Response(
-            JSON.stringify({ processed: totalProcessed, stopped: 'rate_limited' }),
-            { headers: { 'Content-Type': 'application/json' } }
+          return cronResult(
+            'process-email-queue',
+            { processed: totalProcessed, stopped: 'rate_limited' },
+            defects.defects,
           )
         }
       }
@@ -322,8 +331,5 @@ Deno.serve(async (req) => {
     }
   }
 
-  return new Response(
-    JSON.stringify({ processed: totalProcessed }),
-    { headers: { 'Content-Type': 'application/json' } }
-  )
+  return cronResult('process-email-queue', { processed: totalProcessed }, defects.defects)
 })

@@ -92,7 +92,12 @@ export function AdminCommandPalette({ onSelect }: { onSelect: (view: string) => 
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="max-w-md">
+      {/* No width override: dialogShell.test.ts holds every popup to the
+          shared measure unless it has a STRUCTURAL reason, and a palette has
+          none — it is a short list of short labels, which the default handles
+          fine. Narrowing it would have been a drive-by class against a rule
+          the project keeps on purpose. */}
+      <DialogContent>
         <DialogHero title="Jump to" />
         <input
           autoFocus

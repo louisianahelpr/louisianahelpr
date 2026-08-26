@@ -68,6 +68,13 @@ jobs:
         # instead of failing the run if package-lock.json drifts.
         run: npm install --no-audit --no-fund --legacy-peer-deps
 
+      - name: Migration version collision
+        # A duplicate version silently breaks `supabase db push` for every
+        # LATER migration too, and the pre-commit hook that also checks this
+        # is skippable (--no-verify, or a bypassed hooksPath). Cheap to run
+        # here so it cannot reach main.
+        run: sh scripts/check-migration-versions.sh
+
       - name: ESLint
         run: npm run lint
 

@@ -38,6 +38,7 @@ import { GIFT_OCCASIONS, DEFAULT_OCCASION, DEFAULT_DESIGN } from "./payItForward
 import { GiftCardPreview } from "./payItForward/GiftCardPreview";
 import { CreditCard } from "./payItForward/CreditCard";
 import { EmptyState } from "./payItForward/EmptyState";
+import { openExternalUrl } from "@/lib/openExternalUrl";
 
 // Client-side shape check only — the edge function is the authority (it also
 // enforces the bounds and the self-gift block server-side). We mirror the
@@ -261,7 +262,7 @@ export default function PayItForward() {
       }
       if (data?.error) throw new Error(data.error);
       if (!data?.url) throw new Error("Couldn't start your gift card. Please try again.");
-      window.location.href = data.url;
+      await openExternalUrl(data.url);
     },
     onError: (e) => {
       report(e, { tags: { source: "PayItForward.donate" } });

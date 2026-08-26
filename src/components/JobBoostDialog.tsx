@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { BOOST_DISCOUNT_PCT, BOOST_DURATION_HOURS, boostPriceForTier, formatFeeUsd } from "@/lib/productPrices";
+import { openExternalUrl } from "@/lib/openExternalUrl";
 
 interface JobBoostDialogProps {
   jobId: string;
@@ -66,7 +67,7 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
       // Redirect to Stripe Checkout. The webhook will flip the boost flags
       // on the job once payment captures, so we don't update the DB here.
       hapticSuccess();
-      window.location.href = data.url;
+      await openExternalUrl(data.url, () => { setBoosting(false); onBoosted?.(); onClose(); });
     } catch (err: any) {
       hapticError();
       toast.error(err.message || "Couldn't start your boost — try again?");

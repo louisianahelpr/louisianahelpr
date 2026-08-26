@@ -44,6 +44,7 @@ import {
   toSubscriptionTier,
   type SubscriptionTier,
 } from "@/lib/subscriptionTiers";
+import { openExternalUrl } from "@/lib/openExternalUrl";
 
 type BillingCycle = "monthly" | "annual";
 
@@ -254,7 +255,7 @@ export default function SubscriptionPage() {
       if ((data as { error?: string })?.error)
         throw new Error((data as { error: string }).error);
       const url = (data as { url?: string })?.url;
-      if (url) window.location.href = url;
+      if (url) await openExternalUrl(url);
       else throw new Error("Couldn't start checkout. Please try again.");
     } catch (err) {
       const message =
@@ -273,7 +274,7 @@ export default function SubscriptionPage() {
       );
       if (error) throw error;
       const url = (data as { url?: string })?.url;
-      if (url) window.location.href = url;
+      if (url) await openExternalUrl(url);
       else throw new Error("Couldn't open billing portal");
     } catch {
       toast.error("Couldn't open your billing portal — try again?");

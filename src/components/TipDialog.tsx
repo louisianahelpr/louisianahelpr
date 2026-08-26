@@ -7,6 +7,7 @@ import { CurrencyInput } from "@/components/ui/currency-input";
 import { Gift } from "lucide-react";
 import { toast } from "sonner";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
+import { openExternalUrl } from "@/lib/openExternalUrl";
 
 interface TipDialogProps {
   jobId: string;
@@ -39,7 +40,7 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
       // could never work reported a generic failure. Read the body first.
       if (error) throw new Error(await functionErrorMessage(error, "Couldn't send your tip — try again?"));
       if (data?.error) throw new Error(data.error);
-      if (data?.url) { hapticSuccess(); window.location.href = data.url; }
+      if (data?.url) { hapticSuccess(); await openExternalUrl(data.url, () => onClose()); }
       else throw new Error("Couldn't start checkout. Please try again.");
     } catch (err: any) {
       hapticError();

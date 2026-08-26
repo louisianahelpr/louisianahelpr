@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { fetchReferralData } from "@/hooks/useReferralData";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import { report } from "@/lib/errorLogger";
+import { openExternalUrl } from "@/lib/openExternalUrl";
 
 // NpsPrompt is mounted as the final step in the post-completion sequence —
 // after review/tip/share. It self-gates on eligibility (2nd qualifying job
@@ -190,7 +191,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      if (data?.url) window.location.href = data.url;
+      if (data?.url) await openExternalUrl(data.url);
       else throw new Error("Couldn't start checkout. Please try again.");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Couldn't send that tip — please try again";

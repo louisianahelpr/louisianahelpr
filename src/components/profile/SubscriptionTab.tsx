@@ -14,6 +14,7 @@ import { ONE_TIME_PASS_DAYS } from "@/lib/subscriptionTiers";
 import { tierConfig, TierIcon } from "@/components/profile/subscriptionTab/tierConfig";
 import { PauseOfferDialog } from "@/components/profile/subscriptionTab/PauseOfferDialog";
 import { CancelSurveyDialog } from "@/components/profile/subscriptionTab/CancelSurveyDialog";
+import { openExternalUrl } from "@/lib/openExternalUrl";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -109,7 +110,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
     try {
       const { data, error } = await supabase.functions.invoke("pro-customer-portal");
       if (error) throw error;
-      if (data?.url) window.location.href = data.url;
+      if (data?.url) await openExternalUrl(data.url, () => void refreshSubscription());
     } catch (err: unknown) {
       // functionErrorMessage digs the edge function's real reason out of the
       // response body — the SDK's own .message is just "non-2xx status code".
@@ -127,7 +128,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
         body: { tier, billing_cycle },
       });
       if (error) throw error;
-      if (data?.url) window.location.href = data.url;
+      if (data?.url) await openExternalUrl(data.url, () => void refreshSubscription());
     } catch (err: unknown) {
       toast.error(await functionErrorMessage(err, "Couldn't start checkout — try again?"));
     } finally {

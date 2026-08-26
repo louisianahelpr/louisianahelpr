@@ -19,7 +19,7 @@
     "test:watch": "vitest",
     "test:e2e:happy": "PLAYWRIGHT_WEB_SERVER=1 playwright test --project=happy-path",
     "typecheck": "tsc -b --noEmit",
-    "db:types": "npx supabase gen types typescript --project-id fncmgoasalhdgfwzhsqa --schema public > src/integrations/supabase/types.ts && echo '\u2713 Regenerated src/integrations/supabase/types.ts (needs SUPABASE_ACCESS_TOKEN env var or supabase login)'",
+    "db:types": "npx supabase gen types typescript --project-id fncmgoasalhdgfwzhsqa --schema public > src/integrations/supabase/types.ts && echo '✓ Regenerated src/integrations/supabase/types.ts (needs SUPABASE_ACCESS_TOKEN env var or supabase login)'",
     "db:diff": "npx supabase db diff --linked --schema public",
     "images:avif": "node scripts/generate-avif.mjs",
     "prepare": "husky || true"
@@ -30,6 +30,7 @@
   "dependencies": {
     "@aparajita/capacitor-biometric-auth": "^10.0.0",
     "@capacitor/app": "^8.1.1",
+    "@capacitor/browser": "^8.0.4",
     "@capacitor/camera": "^8.2.1",
     "@capacitor/cli": "^8.4.2",
     "@capacitor/core": "^8.4.2",

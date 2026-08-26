@@ -13,6 +13,7 @@ import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { track, AhaEvent } from "@/lib/analytics";
 import { ppoTrackingProps } from "@/lib/ppoAttribution";
 import { safeStorage } from "@/lib/safeStorage";
+import { openExternalUrl } from "@/lib/openExternalUrl";
 import { queryKeys } from "@/lib/queryKeys";
 import { useAuthReady } from "@/hooks/useAuthReady";
 
@@ -110,9 +111,13 @@ export function PayoutSetupForm() {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      if (data?.url) {
-        window.location.href = data.url;
-      }
+      if (!data?.url) throw new Error("Stripe didn't return a setup link — try again in a moment.");
+      // Native returns here when the sheet is dismissed; re-read status so a
+      // completed (or abandoned) onboarding is reflected without a manual pull.
+      await openExternalUrl(data.url, () => {
+        setOnboarding(false);
+        void loadData();
+      });
     } catch (err: unknown) {
       hapticError();
       toast.error(err instanceof Error ? err.message : "We couldn't start payout setup — try again in a moment.");
@@ -128,9 +133,8 @@ export function PayoutSetupForm() {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      if (data?.url) {
-        window.location.href = data.url;
-      }
+      if (!data?.url) throw new Error("Stripe didn't return a dashboard link — try again in a moment.");
+      await openExternalUrl(data.url, () => void loadData());
     } catch (err: unknown) {
       hapticError();
       toast.error(err instanceof Error ? err.message : "We couldn't open your Stripe dashboard — try again in a moment.");
@@ -169,9 +173,11 @@ export function PayoutSetupForm() {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      if (data?.url) {
-        window.location.href = data.url;
-      }
+      if (!data?.url) throw new Error("Stripe didn't return a setup link — try again in a moment.");
+      await openExternalUrl(data.url, () => {
+        setResetting(false);
+        void loadData();
+      });
     } catch (err: unknown) {
       hapticError();
       toast.error(err instanceof Error ? err.message : "We couldn't reset your account just now — try again in a moment.");

@@ -7,6 +7,7 @@ import { hapticError } from "@/lib/haptics";
 import { report } from "@/lib/errorLogger";
 import { functionErrorMessage } from "@/lib/supabaseResult";
 import { BGC_FEE_CENTS, formatFeeUsd } from "@/lib/productPrices";
+import { openExternalUrl } from "@/lib/openExternalUrl";
 
 const BGC_PRICE = formatFeeUsd(BGC_FEE_CENTS);
 
@@ -76,7 +77,7 @@ export function BackgroundCheckCard({ status }: { status: string }) {
         hapticError();
         return;
       }
-      window.location.href = data.url;
+      await openExternalUrl(data.url);
     } catch (err) {
       report(err, { tags: { area: "background_check.start" } });
       toast.error("Couldn't start your background check — try again?");

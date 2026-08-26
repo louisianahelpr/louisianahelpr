@@ -21,6 +21,7 @@ import {
   URGENT_FEE_FLOOR_DOLLARS,
   formatDollarsWhole,
 } from "@/lib/moneyLimits";
+import { openExternalUrl } from "@/lib/openExternalUrl";
 
 /**
  * useJobSubmit — owns the review-gate, pre-submit checks, and the full
@@ -497,7 +498,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
       // Show the blocking overlay before the redirect so the user can't
       // re-tap submit during the navigation delay on slow networks.
       setRedirecting(true);
-      window.location.href = paymentUrl;
+      await openExternalUrl(paymentUrl);
     } catch (err) {
       report(err, { tags: { source: "PostJob.paymentInvoke" }, context: { job_id: jobData.id } });
       // Delete the job since payment setup failed

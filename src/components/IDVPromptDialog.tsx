@@ -5,6 +5,7 @@ import { ShieldCheck, Camera, FileCheck2, Loader2, AlertTriangle, Hourglass } fr
 import { supabase } from "@/integrations/supabase/client";
 import { functionErrorMessage } from "@/lib/supabaseResult";
 import { toast } from "sonner";
+import { openExternalUrl } from "@/lib/openExternalUrl";
 
 type IdvStatus =
   | "not_started"
@@ -75,7 +76,7 @@ export function IDVPromptDialog({
       // the verification return_url lands the user back in the app.
       onOpenChange(false);
       onLaunched?.();
-      window.location.href = data.url;
+      await openExternalUrl(data.url);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Couldn't start verification";
       toast.error(msg);

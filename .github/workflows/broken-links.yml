@@ -46,19 +46,44 @@ jobs:
             "https://www.louisianahelpr.com/data-rights"
           )
           FAIL=0
+          THROTTLED=0
+          # Browser-ish UA: the site's bot protection answers a bare curl with
+          # 429, which is what made this check red and ignored.
+          UA="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36"
           for URL in "${URLS[@]}"; do
-            CODE=$(curl -s -o /dev/null -w "%{http_code}" -L "$URL")
-            if [ "$CODE" = "200" ]; then
-              echo "✅ $CODE  $URL"
-            else
-              echo "❌ $CODE  $URL"
-              FAIL=1
-            fi
+            CODE=""
+            # Retry 429 with backoff. A 429 means the server ANSWERED and chose
+            # to throttle us — it is not a broken page, and failing on it is a
+            # false alarm that trains everyone to ignore this workflow.
+            for ATTEMPT in 1 2 3 4; do
+              CODE=$(curl -s -o /dev/null -w "%{http_code}" -L --max-time 20 -A "$UA" "$URL" || echo "000")
+              [ "$CODE" != "429" ] && break
+              sleep $((ATTEMPT * 5))
+            done
+            case "$CODE" in
+              200)
+                echo "✅ $CODE  $URL"
+                ;;
+              429)
+                # Still throttled after backoff: inconclusive, not broken.
+                echo "⚠️  $CODE  $URL  (rate-limited after 4 attempts — not treated as broken)"
+                THROTTLED=$((THROTTLED + 1))
+                ;;
+              *)
+                echo "❌ $CODE  $URL"
+                FAIL=1
+                ;;
+            esac
+            sleep 2
           done
           if [ "$FAIL" -eq 1 ]; then
             echo ""
             echo "💡 One or more critical pages are broken. Fix before App Store submission."
             exit 1
+          fi
+          if [ "$THROTTLED" -gt 0 ]; then
+            echo ""
+            echo "::warning::$THROTTLED page(s) stayed rate-limited (429) — reachability unconfirmed for those, but nothing was found broken."
           fi
 
       - name: Run lychee link checker on homepage

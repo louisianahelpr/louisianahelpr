@@ -22,6 +22,17 @@ permissions:
 # - Uploads screenshots only on failure (test-results/)
 
 on:
+  # Also on direct pushes to main. This repo commits straight to main, so a
+  # pull_request-only trigger left this check dormant — the same way
+  # migration-guard, migration-lint and db-smoke were until 2026-08-26.
+  #
+  # Free and cheap, deliberately: the repo is public and this runs on
+  # ubuntu-latest, where GitHub Actions is unmetered; the in-job paths filter
+  # below skips the Playwright work and goes green in seconds when no UI file
+  # changed; and cancel-in-progress drops superseded runs. It also tests the
+  # PRODUCTION site by default, which on main is exactly what just shipped.
+  push:
+    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:

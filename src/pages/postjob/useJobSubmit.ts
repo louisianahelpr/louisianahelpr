@@ -251,8 +251,13 @@ export function useJobSubmit(params: UseJobSubmitParams) {
       }
     }
 
-    // Check open job limit (server enforces too, but show friendly message)
-    const { count: openCount, error: openCountErr } = await supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", user.id).eq("status", "open");
+    // Check open job limit (server enforces too, but show friendly message).
+    // `.neq("payment_status", "abandoned")` mirrors enforce_open_job_limit: a
+    // job void-cancelled-payments wrote off after a declined checkout is
+    // invisible to helpers and can never be funded, so it must not hold a
+    // slot. Drift here would show a friendly "you're at 5" toast for a post
+    // the server would happily accept.
+    const { count: openCount, error: openCountErr } = await supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", user.id).eq("status", "open").neq("payment_status", "abandoned");
     if (openCountErr) {
       report(openCountErr, { tags: { source: "usePostJobForm.openJobLimit" } });
       toast.error("Couldn't check your open job count — please try again.");

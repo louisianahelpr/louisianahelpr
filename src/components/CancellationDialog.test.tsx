@@ -50,21 +50,31 @@ function pinEvening() {
 }
 
 describe("CancellationDialog fee breakdown", () => {
-  it("derives the platform fee % from the job's frozen helper_fee_percent", () => {
+  // The poster cannot resolve the assigned helper's tier — `profiles` RLS lets a
+  // user read only their own row — and the job's stamped `helper_fee_percent` is
+  // create-payment's escrow-time GLOBAL rate, not this helper's. (Quoting it
+  // told a poster the helper would receive $54.00 on a job where
+  // void-cancelled-payments transferred $55.20.) So the dialog quotes the
+  // ladder's HIGHEST commission, making the helper figure a guaranteed floor.
+  it("quotes the helper's share as a floor, using the highest ladder rate", () => {
     pinEvening();
-    render(<CancellationDialog {...makeProps({ jobDate: isoDateHoursFromNow(6), helperFeePercent: 8 })} />);
-    expect(screen.getByText("Platform fee (8%)")).toBeInTheDocument();
-    // 25% of $100 = $25 fee; 8% platform cut = $2; helper gets $23.
-    expect(screen.getByText("−$2")).toBeInTheDocument();
-    expect(screen.getByText("$23")).toBeInTheDocument();
+    render(<CancellationDialog {...makeProps({ jobDate: isoDateHoursFromNow(6) })} />);
+    expect(screen.getByText("Platform fee (up to 12%)")).toBeInTheDocument();
+    // 25% of $100 = $25 fee; 12% platform cut = $3; helper gets at least $22.
+    expect(screen.getByText("−$3")).toBeInTheDocument();
+    expect(screen.getByText("at least $22")).toBeInTheDocument();
   });
 
-  it("falls back to 10% when helper_fee_percent is absent", () => {
+  it("ignores the job's stamped helper_fee_percent entirely", () => {
     pinEvening();
-    render(<CancellationDialog {...makeProps({ jobDate: isoDateHoursFromNow(6), helperFeePercent: null })} />);
-    expect(screen.getByText("Platform fee (10%)")).toBeInTheDocument();
-    expect(screen.getByText("−$2.50")).toBeInTheDocument();
-    expect(screen.getByText("$22.50")).toBeInTheDocument();
+    render(
+      <CancellationDialog
+        {...makeProps({ jobDate: isoDateHoursFromNow(6), helperFeePercent: 8 })}
+      />,
+    );
+    // Would have read "Platform fee (8%)" / "$23" under the old stamped rule.
+    expect(screen.getByText("Platform fee (up to 12%)")).toBeInTheDocument();
+    expect(screen.queryByText("$23")).not.toBeInTheDocument();
   });
 
   it("shows free cancellation (no breakdown) when 24+ hours out", () => {

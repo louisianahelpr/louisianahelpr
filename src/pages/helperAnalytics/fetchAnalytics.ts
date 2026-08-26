@@ -31,7 +31,7 @@ export async function fetchAnalytics(userId: string) {
       // passes through on top. Selecting them is what lets
       // helperTakeHomeDollars resolve the real figure — see helperEarnings.ts.
       .select(
-        "id, budget, platform_fee_amount, helper_fee_percent, urgent_fee, is_group_job, helpers_needed, category, updated_at, helper_arrived_at, date_needed, start_time",
+        "id, budget, platform_fee_amount, helper_fee_percent, urgent_fee, is_group_job, helpers_needed, category, updated_at, helper_arrived_at, date_needed, start_time, payment_status",
       )
       .eq("helper_id", userId)
       .eq("status", "completed")

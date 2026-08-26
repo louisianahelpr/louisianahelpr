@@ -32,6 +32,7 @@ interface JobRow {
   helper_id: string | null;
   customer_id: string | null;
   status: string;
+  payment_status: string | null;
   budget: number;
   platform_fee_amount: number | null;
   helper_fee_percent: number | null;
@@ -60,7 +61,7 @@ export function ProfileStatsTrend({ helperId, feeFallbackPercent }: ProfileStats
       since.setMonth(since.getMonth() - 12);
       const { data, error } = await supabase
         .from("jobs")
-        .select("id, helper_id, customer_id, status, budget, platform_fee_amount, helper_fee_percent, helpers_needed, is_group_job, urgent_fee, helper_completed_at, poster_completed_at, created_at")
+        .select("id, helper_id, customer_id, status, payment_status, budget, platform_fee_amount, helper_fee_percent, helpers_needed, is_group_job, urgent_fee, helper_completed_at, poster_completed_at, created_at")
         .eq("status", "completed")
         .or(`helper_id.eq.${helperId},customer_id.eq.${helperId}`)
         .gte("created_at", since.toISOString())

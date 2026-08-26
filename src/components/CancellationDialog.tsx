@@ -14,7 +14,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { AlertTriangle, Ban, ShieldAlert, DollarSign, CheckCircle, Clock, ArrowRight, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
-import { HELPER_FEE_LEGACY_FALLBACK_PERCENT } from "@/lib/legacyFeeFallback";
+import { tierFeePercent } from "@/lib/subscriptionTiers";
+
+/** Highest commission on the tier ladder (free = 12%). Quoting it makes any
+ *  helper-share estimate a guaranteed floor rather than an optimistic guess. */
+const MAX_HELPER_FEE_PERCENT = tierFeePercent("free");
 // The ladder this dialog quotes IS the ladder Community Rules publishes —
 // read the same two constants CommunitySection does rather than restating
 // "25"/"50" as prose.
@@ -33,18 +37,12 @@ type CancellationDialogProps = {
   hasHelper: boolean;
   helperId?: string | null;
   helperName?: string;
-  /** Commission % frozen on the job row (`jobs.helper_fee_percent`). The
-   * actual transfer resolves the helper's live tier server-side
-   * (void-cancelled-payments); this drives the client estimate so the
-   * breakdown matches the canonical `job.helper_fee_percent ?? 10` pattern
-   * instead of a hardcoded 10%. */
-  helperFeePercent?: number | null;
   open: boolean;
   onClose: () => void;
   onCancelled: () => void;
 };
 
-export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, hasHelper, helperId: _helperId, helperName, helperFeePercent, open, onClose, onCancelled }: CancellationDialogProps) => {
+export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, hasHelper, helperId: _helperId, helperName, open, onClose, onCancelled }: CancellationDialogProps) => {
   // Is this a recurring PARENT? Fetched on open so the dialog can say the
   // one thing the card no longer says (owner: card = less hectic; the
   // cancel-scope warning belongs at the moment of cancelling).
@@ -85,7 +83,23 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, hasHel
     ? "Less than 24 hours before job"
     : "24+ hours before job";
   const cancellationFee = Math.round(jobBudget * cancellationFeePercent) / 100;
-  const commissionPercent = helperFeePercent ?? HELPER_FEE_LEGACY_FALLBACK_PERCENT;
+  // The helper's share of the cancellation fee, from the POSTER's side.
+  //
+  // This used to read `jobs.helper_fee_percent`, on the belief that the column
+  // freezes the assigned helper's commission rate. It does not: `create-payment`
+  // stamps it from the GLOBAL `platform_settings.helper_fee_percent` at escrow
+  // time, before any helper exists on the job, while `void-cancelled-payments`
+  // re-resolves the helper's LIVE tier when it actually transfers. On a real
+  // test job this dialog quoted the helper $54.00 and Stripe sent $55.20.
+  //
+  // The poster cannot resolve the helper's tier: `profiles` RLS lets a user
+  // read only their OWN row (verified against pg_policies), and no public view
+  // exposes `subscription_tier`. So quote the FLOOR instead of a false exact:
+  // the free tier's 12% is the highest commission on the ladder, so the figure
+  // shown is the least the helper can receive and is labelled "at least". A
+  // number shown to a helper may never exceed what they are paid; the same
+  // discipline applies to a number shown ABOUT a helper.
+  const commissionPercent = MAX_HELPER_FEE_PERCENT;
   const platformCut = Math.round(cancellationFee * commissionPercent) / 100;
   const helperPayout = Math.max(0, Math.round((cancellationFee - platformCut) * 100) / 100);
 
@@ -284,12 +298,12 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, hasHel
                     <span className="font-semibold text-foreground">${formatPrice(cancellationFee)}</span>
                   </div>
                   <div className="flex justify-between text-ds-11">
-                    <span className="text-muted-foreground">Platform fee ({commissionPercent}%)</span>
+                    <span className="text-muted-foreground">Platform fee (up to {commissionPercent}%)</span>
                     <span className="text-muted-foreground">−${formatPrice(platformCut)}</span>
                   </div>
                   <div className="border-t border-border pt-1.5 flex justify-between text-ds-11">
                     <span className="text-muted-foreground">{helperName || "Helpr"} receives</span>
-                    <span className="font-semibold text-primary">${formatPrice(helperPayout)}</span>
+                    <span className="font-semibold text-primary">at least ${formatPrice(helperPayout)}</span>
                   </div>
                 </div>
               )}

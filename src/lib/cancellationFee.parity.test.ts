@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 // The edge helper lives in the Deno functions tree but is plain TS (no Deno
 // imports at module scope), so vitest can import it directly. This is the guard
 // that keeps the server-side cancellation-fee math (the authority that moves
@@ -150,5 +152,84 @@ describe("job start is timezone-independent", () => {
     const at10h = Date.parse("2026-09-19T14:00:00-05:00");  // 10h out
     expect(cancellationFeePercent(true, (jobLocalMidnightMs(job) - at2h) / 3_600_000)).toBe(50);
     expect(cancellationFeePercent(true, (jobLocalMidnightMs(job) - at10h) / 3_600_000)).toBe(25);
+  });
+});
+
+// ── late_cancellation must agree with the fee ladder ─────────────────────────
+// The flag and the money drifted: both SQL writers stamped
+// `late_cancellation = hours < 24 AND hours > 0`, so a job cancelled AFTER its
+// start time was recorded "not late" while `cancellation_fee_percent` charged
+// it the top 50% tier. Fixed in
+// supabase/migrations/20260830010000_late_cancellation_includes_post_start.sql
+// by routing both writers through `public.is_late_cancellation()`.
+//
+// These pin the boundary from three directions so it cannot silently move
+// again: the semantic rule, the reconciler's expectation, and the SQL text.
+
+/** Mirror of public.is_late_cancellation(boolean, numeric). */
+function isLateCancellation(hasHelper: boolean, hoursUntil: number | null): boolean {
+  return hasHelper && hoursUntil !== null && hoursUntil < 24;
+}
+
+describe("late_cancellation boundary parity", () => {
+  it("is true exactly where the fee ladder charges, and false where it does not", () => {
+    for (const h of [-100, -2.95, -0.01, 0, 0.01, 1.99, 2, 23.99, 24, 24.01, 100]) {
+      const charged = cancellationFeePercent(true, h) > 0;
+      expect(isLateCancellation(true, h), `hours=${h}`).toBe(charged);
+    }
+  });
+
+  it("calls a post-start cancellation late — it is the worst case, not an exempt one", () => {
+    // The measured defect: job 6c7f58e6 at -2.95h stored late_cancellation=false
+    // while being charged $60 of a $120 budget (the 50% tier).
+    expect(cancellationFeePercent(true, -2.95)).toBe(50);
+    expect(isLateCancellation(true, -2.95)).toBe(true);
+  });
+
+  it("has no meaning without a helper, matching the 0% tier", () => {
+    for (const h of [-5, 1, 23, 48]) {
+      expect(isLateCancellation(false, h)).toBe(false);
+      expect(cancellationFeePercent(false, h)).toBe(0);
+    }
+  });
+
+  it("matches money-reconciliation's expectedLate rule for helper-assigned jobs", () => {
+    // supabase/functions/money-reconciliation/index.ts: `const expectedLate = hrs < 24`,
+    // evaluated only when job.helper_id is set.
+    for (const h of [-10, 0, 12, 23.99, 24, 30]) {
+      expect(isLateCancellation(true, h)).toBe(h < 24);
+    }
+  });
+});
+
+describe("late_cancellation SQL writers stay on the shared helper", () => {
+  const sql = readFileSync(
+    resolve(
+      process.cwd(),
+      "supabase/migrations/20260830010000_late_cancellation_includes_post_start.sql",
+    ),
+    "utf8",
+  );
+
+  it("defines is_late_cancellation with the < 24 bound and no lower guard", () => {
+    const body = sql.slice(sql.indexOf("FUNCTION public.is_late_cancellation"));
+    const decl = body.slice(0, body.indexOf("$function$;"));
+    expect(decl).toContain("p_hours_until < 24");
+    // A resurrected `> 0` here is exactly the bug this migration removed.
+    expect(decl).not.toMatch(/p_hours_until\s*>\s*0/);
+  });
+
+  it("has both writers delegate to it rather than re-typing the bound", () => {
+    // Comments quote the OLD expression on purpose (that is the changelog), so
+    // grade the executable SQL only.
+    const code = sql
+      .split("\n")
+      .filter((l) => !l.trimStart().startsWith("--"))
+      .join("\n");
+    // The definition plus one call in each of poster_cancel_job and
+    // block_user_and_settle.
+    expect(code.match(/public\.is_late_cancellation\(/g)?.length).toBeGreaterThanOrEqual(3);
+    expect(code).not.toMatch(/late_cancellation\s*=\s*\(v_hours IS NOT NULL/);
+    expect(code).not.toMatch(/v_late\s*:=\s*\(v_hours/);
   });
 });

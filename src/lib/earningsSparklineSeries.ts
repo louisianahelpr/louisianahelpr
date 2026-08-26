@@ -14,6 +14,10 @@ import { helperTakeHomeDollars } from "@/lib/helperEarnings";
 
 interface JobLike {
   status: string;
+  /** Needed so an unsettled row is priced at the helper's live tier rather
+   *  than create-payment's escrow-time global stamp — see helperEarnings.ts
+   *  `isSettledForDisplay`. Callers pass full `jobs` rows, which carry it. */
+  payment_status?: string | null;
   budget: number;
   platform_fee_amount?: number | null;
   helper_fee_percent?: number | null;

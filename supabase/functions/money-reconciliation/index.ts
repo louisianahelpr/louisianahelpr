@@ -42,6 +42,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { computeCancellationFee, hoursUntilJob } from "../_shared/cancellationFee.ts";
 import { helperCommissionDollars, feePercentForTier } from "../_shared/helperFees.ts";
+import { AUTO_COMPLETE_HOURS } from "../_shared/escrowTiming.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 
 /** Offending ids reported per check. A bad day must not emit a 10MB payload. */
@@ -50,6 +51,25 @@ const MAX_IDS_PER_CHECK = 10;
 const SCAN_LIMIT = 5000;
 /** Money compares are on dollars; tolerate half a cent of float noise. */
 const EPSILON = 0.005;
+/**
+ * How long the settlement crons are allowed to take before an unsettled
+ * terminal job counts as a real finding.
+ *
+ * `void-cancelled-payments` runs hourly (:10) and `auto-release-payment` every
+ * 30 minutes, so a job that just flipped terminal legitimately sits in escrow
+ * for up to an hour before anything moves it. Without this grace,
+ * `escrow_on_terminal_job` fired `critical` on every normal cancellation — and
+ * a critical that fires on normal operation is how people learn to ignore the
+ * alarm, which defeats the point of having one. Two hours = cron cadence plus
+ * slack; a genuinely stuck job is still reported on the next daily run.
+ *
+ * This mirrors the grace the sibling `cancellation_fee_status_incoherent`
+ * check already gives itself (it only grades jobs whose escrow has actually
+ * been settled) — same idea, expressed in time because this check's whole
+ * subject is the un-settled state.
+ */
+const SETTLE_WINDOW_HOURS = 2;
+const SETTLE_WINDOW_MS = SETTLE_WINDOW_HOURS * 60 * 60 * 1000;
 
 type Severity = "critical" | "warning" | "info";
 
@@ -90,6 +110,21 @@ class Check {
     };
   }
 }
+
+/** Epoch ms for a nullable timestamp column, or null when unusable. */
+const ts = (v: unknown): number | null => {
+  if (!v) return null;
+  const n = new Date(v as string).getTime();
+  return Number.isFinite(n) ? n : null;
+};
+
+/** The later of two nullable timestamps, or null when neither is usable. */
+const latest = (a: unknown, b: unknown): number | null => {
+  const x = ts(a), y = ts(b);
+  if (x === null) return y;
+  if (y === null) return x;
+  return Math.max(x, y);
+};
 
 const money = (v: unknown): number => {
   const n = Number(v ?? 0);
@@ -149,8 +184,8 @@ serve(async (req) => {
       ),
       tierDrift: new Check(
         "helper_fee_percent_off_tier_ladder",
-        "info",
-        "The frozen jobs.helper_fee_percent differs from the helper's CURRENT subscription tier rate. Often benign (the tier changed after payout) — informational only.",
+        "warning",
+        "jobs.helper_fee_percent differs from the helper's tier rate. This was graded 'info' on the premise that the tier merely changed after payout — that premise is FALSE for every job: the column is stamped from a global setting at ESCROW time, before any helper exists, so it never encoded a tier in the first place. A hit here means the helper's subscription discount was not applied to their commission.",
       ),
       releasedNoTransfer: new Check(
         "released_without_payout_transfer",
@@ -165,7 +200,7 @@ serve(async (req) => {
       escrowTerminal: new Check(
         "escrow_on_terminal_job",
         "critical",
-        "payment_status='escrow' on a cancelled/completed job — funds are held against a job that has already ended.",
+        `payment_status='escrow' on a cancelled/completed job more than ${SETTLE_WINDOW_HOURS}h after it ended (and, for completed jobs, past the ${AUTO_COMPLETE_HOURS}h auto-complete window) — the settlement cron should have moved these and did not.`,
       ),
       feeNoHelper: new Check(
         "cancellation_fee_without_helper",
@@ -176,6 +211,18 @@ serve(async (req) => {
         "dispute_flag_without_row",
         "warning",
         "jobs.has_active_dispute = true with no matching row in disputes — escrow can be frozen by a dispute that does not exist.",
+      ),
+      // The inverse, and the one that was ACTUALLY happening. Until the
+      // trg_sync_has_active_dispute trigger landed, rpc_open_dispute set
+      // status='disputed' + dispute_status='open' and NOTHING ever wrote the
+      // flag — so disputeNoRow above keyed on a value that was always false
+      // and could never fire: a dead check that read as a passing one. This
+      // catches the live dispute the flag failed to record, which is what
+      // silently un-gated can_review_job.
+      disputeFlagMissing: new Check(
+        "dispute_state_without_flag",
+        "critical",
+        "A job is in a live dispute (status='disputed', or dispute_status open/escalated/stripe_chargeback/reversal_hold) but has_active_dispute = false — the review gate and every other reader of the flag see an undisputed job.",
       ),
       timeCredits: new Check(
         "time_credit_balance_drift",
@@ -195,7 +242,8 @@ serve(async (req) => {
       .select(
         "id, is_seed, status, payment_status, budget, date_needed, cancelled_at, helper_id, " +
           "cancellation_fee, cancellation_fee_status, late_cancellation, platform_fee_amount, " +
-          "helper_fee_percent, is_group_job, helpers_needed, has_active_dispute",
+          "helper_fee_percent, is_group_job, helpers_needed, has_active_dispute, dispute_status, " +
+          "poster_completed_at, helper_completed_at, updated_at",
       )
       .limit(SCAN_LIMIT);
     if (!includeSeed) jobQuery = jobQuery.eq("is_seed", false);
@@ -269,10 +317,33 @@ serve(async (req) => {
     }
 
     // ── Impossible escrow states ─────────────────────────────────────────────
+    const nowMs = Date.now();
     for (const job of jobRows) {
-      if (job.payment_status === "escrow" && (job.status === "cancelled" || job.status === "completed")) {
-        checks.escrowTerminal.add({ job_id: job.id, status: job.status });
-      }
+      if (job.payment_status !== "escrow") continue;
+      if (job.status !== "cancelled" && job.status !== "completed") continue;
+
+      // When did this job become terminal? That is the clock the settlement
+      // cron runs against, so it is the clock the grace is measured from.
+      const terminalAt = job.status === "cancelled"
+        ? ts(job.cancelled_at)
+        // A completed job legitimately holds escrow through the auto-complete
+        // window (one party marked it done, the other still has AUTO_COMPLETE_HOURS
+        // to confirm or dispute) before auto-release-payment touches it.
+        : latest(job.poster_completed_at, job.helper_completed_at);
+      // Fall back to updated_at rather than skipping: an unknown timestamp must
+      // not become a silent exemption.
+      const base = terminalAt ?? ts(job.updated_at) ?? 0;
+      const graceMs = SETTLE_WINDOW_MS +
+        (job.status === "completed" ? AUTO_COMPLETE_HOURS * 60 * 60 * 1000 : 0);
+
+      if (nowMs - base <= graceMs) continue;
+
+      checks.escrowTerminal.add({
+        job_id: job.id,
+        status: job.status,
+        terminal_at: terminalAt === null ? null : new Date(base).toISOString(),
+        hours_stuck: Math.round(((nowMs - base) / 3_600_000) * 100) / 100,
+      });
     }
 
     // ── Released / paying-out jobs ───────────────────────────────────────────
@@ -387,6 +458,23 @@ serve(async (req) => {
         for (const id of flaggedJobIds) {
           if (!withDispute.has(id)) checks.disputeNoRow.add({ job_id: id });
         }
+      }
+    }
+
+    // Inverse direction. Mirrors trg_sync_has_active_dispute's predicate
+    // exactly, so a finding here means the derived flag stopped being derived
+    // (trigger dropped, disabled, or renamed out of its post-escalation sort
+    // slot) — not that some individual write path forgot to set it.
+    for (const job of jobRows) {
+      const ds = (job.dispute_status ?? null) as string | null;
+      const settled = ds === "resolved" || ds === "auto_resolved";
+      const live = !settled && (job.status === "disputed" || ds !== null);
+      if (live && job.has_active_dispute !== true) {
+        checks.disputeFlagMissing.add({
+          job_id: job.id,
+          status: job.status,
+          dispute_status: ds,
+        });
       }
     }
 

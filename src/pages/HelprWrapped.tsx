@@ -50,7 +50,7 @@ async function fetchWrappedStats(userId: string): Promise<WrappedStats> {
       .lte("created_at", yearEnd),
     supabase
       .from("jobs")
-      .select("id, budget, category, customer_id, helper_fee_percent, platform_fee_amount, urgent_fee, helpers_needed, is_group_job")
+      .select("id, budget, category, customer_id, helper_fee_percent, platform_fee_amount, urgent_fee, helpers_needed, is_group_job, payment_status")
       .eq("helper_id", userId)
       .eq("status", "completed")
       .gte("created_at", yearStart)

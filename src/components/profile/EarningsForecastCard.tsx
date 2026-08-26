@@ -68,6 +68,7 @@ interface ForecastRow {
   is_group_job: boolean | null;
   platform_fee_amount: number | null;
   helper_fee_percent: number | null;
+  payment_status: string | null;
   urgent_fee: number | null;
   status: Job["status"];
 }
@@ -109,9 +110,12 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
       const rows = unwrap(
         await supabase
           .from("jobs")
-          // platform_fee_amount is required by helperTakeHomeDollars —
-          // it's the stamped-fee authority on completed non-group rows.
-          .select("budget, helpers_needed, is_group_job, platform_fee_amount, helper_fee_percent, urgent_fee, status")
+          // platform_fee_amount is required by helperTakeHomeDollars — it's the
+          // stamped-fee authority on RELEASED non-group rows. payment_status is
+          // required too: this card projects jobs that have NOT been paid out,
+          // whose stamped fee is create-payment's escrow-time global rate, not
+          // this helper's tier. See isSettledForDisplay in helperEarnings.ts.
+          .select("budget, helpers_needed, is_group_job, platform_fee_amount, helper_fee_percent, urgent_fee, status, payment_status")
           .eq("helper_id", helperId)
           .in("status", [...FORECAST_STATUSES, COMPLETED_STATUS])
           .gte("date_needed", startISO)

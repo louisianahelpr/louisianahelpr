@@ -1,4 +1,4 @@
-import { helperTakeHomeDollars } from "@/lib/helperEarnings";
+import { helperDisplayFeePercent, helperTakeHomeDollars } from "@/lib/helperEarnings";
 import { HELPER_FEE_LEGACY_FALLBACK_PERCENT } from "@/lib/legacyFeeFallback";
 import type { AppliedApp, Job } from "../activityConstants";
 
@@ -59,20 +59,27 @@ export function deriveAppliedJobCardState(
   // fee are split across the roster there (#114).
   //
   // FEE PRECEDENCE (owner decision, 2026-08-20): "the price on their dashboard
-  // and the ones they post should always match their tier — helper's tier at
-  // acceptance, but also make it correct in their dash."
-  //   1. `job.helper_fee_percent` — the rate LOCKED when they were accepted.
-  //      That is the tier-at-acceptance rate, and it must win once set.
-  //   2. otherwise the viewer's CURRENT tier rate — this card also renders jobs
-  //      that have not reached escrow, where no rate exists yet.
-  //   3. only then the legacy constant, for a signed-out/unknown-tier render.
+  // and the ones they post should always match their tier."
   //
-  // This previously went straight from (1) to (3). Every job in production has
-  // a NULL helper_fee_percent, so EVERY helper was quoted the legacy 10%
-  // regardless of tier — a Free helper who owes 12% was shown 10% on their own
-  // dashboard while the job sheet, which computes from tier, said 12%.
+  // The rate that matches their tier is the HELPER'S LIVE TIER, resolved the
+  // same way every payout path resolves it (`getHelperFeePercent` in
+  // supabase/functions/_shared/helperFees.ts). `job.helper_fee_percent` is NOT
+  // "the rate locked when they were accepted" — this comment used to claim that
+  // and the claim is false. `create-payment` stamps that column from the GLOBAL
+  // `platform_settings.helper_fee_percent` at ESCROW time, which is before any
+  // helper is assigned, so it cannot possibly encode a specific helper's tier.
+  // Only a RELEASED job carries a stamp worth trusting: the payout functions
+  // re-stamp it with the live tier as they transfer.
+  //
+  // Measured on one $120 job, Elite helper: this card said $108 (stamped 10)
+  // while Stripe transferred $110.40 (live 8). In the FREE direction it is
+  // worse — the card said $108 against a real $105.60, a displayed take-home
+  // HIGHER than the payout, which `JobPrice.tsx` states must never happen.
+  //
+  // `isSettledForDisplay`/`helperDisplayFeePercent` (helperEarnings.ts) own the
+  // rule; this card only supplies the viewer's tier as the live rate.
   const fallbackFeePercent = viewerTierFeePercent ?? HELPER_FEE_LEGACY_FALLBACK_PERCENT;
-  const commissionPercent = job.helper_fee_percent ?? fallbackFeePercent;
+  const commissionPercent = helperDisplayFeePercent(job, fallbackFeePercent);
   const payout = helperTakeHomeDollars(job, fallbackFeePercent);
 
   const isMinimalCard = isRejected || isCancelled;

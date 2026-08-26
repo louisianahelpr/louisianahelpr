@@ -68,6 +68,54 @@ export interface HelperEarningsJob {
   is_group_job?: boolean | null;
   /** Roster size on a group job. Null/0/absent all resolve to a single helper. */
   helpers_needed?: number | null;
+  /**
+   * `jobs.payment_status`. Supply it on any surface that can show a job which
+   * has NOT been paid out yet — see {@link isSettledForDisplay}. Omitting it
+   * asserts "every row I pass has already been paid out", which is true for
+   * the completed-jobs history surfaces and false for anything live.
+   */
+  payment_status?: string | null;
+}
+
+/**
+ * Is this row's stamped fee a RECORD OF WHAT WAS PAID, or just escrow-time
+ * bookkeeping?
+ *
+ * `create-payment` stamps `helper_fee_percent` / `platform_fee_amount` from
+ * the GLOBAL `platform_settings.helper_fee_percent` at ESCROW time — before
+ * any helper is assigned, so it cannot encode a specific helper's tier. Every
+ * path that actually moves money (`release-payout`,
+ * `process-scheduled-payouts`, the dispute split in `create-payment`) then
+ * re-resolves the helper's LIVE tier via `getHelperFeePercent` and RE-STAMPS
+ * both columns on the way out — but only on release.
+ *
+ * So the stamp is authoritative exactly once `payment_status === "released"`.
+ * Before that it is the global rate (10 in prod) applied to a helper who may
+ * owe 12 or 8 — which is how an Elite helper's $120 job showed "$108" on their
+ * own card while Stripe transferred $110.40, and how a FREE helper is shown
+ * $108 against a real $105.60: a displayed take-home HIGHER than the payout,
+ * the one thing `JobPrice.tsx` says must never happen.
+ *
+ * A caller that does not supply `payment_status` opts out (undefined ⇒ treated
+ * as settled), preserving the historical earnings surfaces that only ever
+ * query completed/released rows.
+ */
+export function isSettledForDisplay(job: HelperEarningsJob): boolean {
+  if (job.payment_status === undefined) return true;
+  return job.payment_status === "released";
+}
+
+/**
+ * The commission percent to SHOW for this job: the stamped per-job rate once
+ * the job is settled, otherwise the helper's live tier rate — the same rate
+ * `getHelperFeePercent` will resolve when the payout actually runs.
+ */
+export function helperDisplayFeePercent(
+  job: HelperEarningsJob,
+  feeFallbackPercent: number,
+): number {
+  if (!isSettledForDisplay(job)) return feeFallbackPercent;
+  return job.helper_fee_percent ?? feeFallbackPercent;
 }
 
 /**
@@ -97,8 +145,13 @@ export function helperPlatformFeeDollars(
 ): number {
   const shares = helperShareCount(job);
   const perHelperBudget = (job.budget ?? 0) / shares;
-  const derived = (perHelperBudget * (job.helper_fee_percent ?? feeFallbackPercent)) / 100;
+  const derived =
+    (perHelperBudget * helperDisplayFeePercent(job, feeFallbackPercent)) / 100;
   if (shares !== 1) return derived;
+  // An UNSETTLED row's stamped amount is escrow-time bookkeeping off the global
+  // rate, not this helper's fee — see isSettledForDisplay. Only a released row's
+  // stamp is the record of what the payout actually deducted.
+  if (!isSettledForDisplay(job)) return derived;
   return job.platform_fee_amount ?? derived;
 }
 

@@ -34,6 +34,20 @@ export const CUSTOMER_FEE_LEGACY_FALLBACK_PERCENT = 10;
  * the column is genuinely absent.
  *
  * Written because two admin surfaces read it as
+ * NOTE ON WHAT THIS COLUMN ACTUALLY MEANS. `jobs.helper_fee_percent` is NOT
+ * "the helper's commission rate for this job". `create-payment` stamps it from
+ * the GLOBAL `platform_settings.helper_fee_percent` at ESCROW time — before any
+ * helper is assigned — so on an unpaid job it is a record of the platform's
+ * posted rate, nothing about the helper. Only when the job reaches
+ * `payment_status = 'released'` do the payout paths (`release-payout`,
+ * `process-scheduled-payouts`, the dispute split) re-stamp it with the helper's
+ * live tier, at which point it IS the record of what was deducted.
+ *
+ * This function is therefore for AUDIT surfaces — admin analytics, the admin
+ * user/job tabs — which legitimately want the value as recorded. Anything that
+ * shows a HELPER their take-home must use `helperDisplayFeePercent` /
+ * `helperTakeHomeDollars` (src/lib/helperEarnings.ts) instead.
+ *
  * `Number(j.helper_fee_percent) || HELPER_FEE_LEGACY_FALLBACK_PERCENT`. `||`
  * treats 0 as missing, so a legitimately COMPED job — commission deliberately
  * set to 0% — was silently restated at 10%, and admin saw a helper paid less

@@ -1,4 +1,5 @@
 import { formatPriceFloor } from "@/lib/format";
+import { helperDisplayFeePercent } from "@/lib/helperEarnings";
 import { HELPER_FEE_LEGACY_FALLBACK_PERCENT } from "@/lib/legacyFeeFallback";
 import type { Job } from "../activityConstants";
 
@@ -19,12 +20,18 @@ export function CancellationFeePill({
   if (!status) return null;
   // NET, not gross. `jobs.cancellation_fee` is what the POSTER is charged;
   // the helper's share arrives minus the platform commission, so quoting the
-  // gross as "paid to you" promised money that never lands. Same fee
-  // precedence as the payout math (frozen per-job percent, then the viewer's
-  // tier rate, then the legacy constant) and the payout-floor formatter — a
-  // payout figure may never read above the payout.
-  const feePercent =
-    job.helper_fee_percent ?? fallbackFeePercent ?? HELPER_FEE_LEGACY_FALLBACK_PERCENT;
+  // gross as "paid to you" promised money that never lands.
+  //
+  // Same fee rule as the payout math: `void-cancelled-payments` re-resolves the
+  // helper's LIVE tier (`getHelperFeePercent`) when it transfers, and a
+  // cancelled job is never `released`, so its stamped `helper_fee_percent` is
+  // still escrow-time bookkeeping off the global rate. Use the viewer's tier —
+  // `helperDisplayFeePercent` enforces that. Paired with the payout-floor
+  // formatter, a payout figure can never read above the payout.
+  const feePercent = helperDisplayFeePercent(
+    job,
+    fallbackFeePercent ?? HELPER_FEE_LEGACY_FALLBACK_PERCENT,
+  );
   const netAmt = `$${formatPriceFloor(job.cancellation_fee * (1 - feePercent / 100))}`;
   const statusCopy: Record<string, string> = {
     pending: `Cancellation fee — ${netAmt} to you after the platform fee, pending`,

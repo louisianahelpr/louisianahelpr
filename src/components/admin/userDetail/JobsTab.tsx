@@ -111,7 +111,7 @@ export function JobsTab({ viewProfile, profileJobs }: JobsTabProps) {
             const earning = calcEarning(j);
             const dateRef = j.poster_completed_at || j.helper_completed_at || j.created_at;
             return (
-              <div key={j.id} className="p-3 rounded-lg bg-secondary/30 border border-border">
+              <div key={j.id} className="p-3 rounded-2xl bg-secondary/30 border border-border">
                 <div className="flex items-start justify-between gap-2 mb-1">
                   <p className="text-ds-13 font-medium text-foreground line-clamp-1">{j.title}</p>
                   <span className={`text-ds-10 px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${jobStatusColorClasses(j.status)}`}>{jobStatusLabel(j.status)}</span>

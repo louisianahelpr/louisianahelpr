@@ -220,4 +220,51 @@ describe("usePullToRefresh", () => {
     expect(actual).toBeGreaterThan(threshold);
     expect(actual).toBeLessThan(diff);
   });
+
+  it("binds the touch listeners once and keeps tracking across many moves", async () => {
+    // Regression guard for the frozen pull.
+    //
+    // The listeners used to be rebound on every render, and that cleanup called
+    // cancelAnimationFrame WITHOUT clearing `rafId`. Whenever a render landed
+    // in the same frame as a queued flush, the "is a frame already queued?"
+    // guard stayed permanently true and no further frame was ever scheduled —
+    // the indicator froze after ONE update while the finger kept moving.
+    // Measured in Chromium at 4x CPU throttle: the indicator sat at its 24px
+    // floor for all 60 frames of a drag and the hook rendered twice in total.
+    //
+    // The race itself is not reproducible in jsdom (`act` flushes rAF
+    // deterministically, so a render can never interleave with a pending
+    // frame). What IS deterministic — and is the root cause — is the rebinding.
+    // So this asserts the listeners are attached exactly once no matter how
+    // many renders the drag causes, and that every move still lands.
+    const addSpy = vi.spyOn(HTMLDivElement.prototype, "addEventListener");
+    render(<Harness onRefresh={vi.fn().mockResolvedValue(undefined)} />);
+    const el = screen.getByTestId("container");
+
+    await act(async () => {
+      fireTouch(el, "touchstart", 0);
+    });
+
+    const seen: number[] = [];
+    for (const y of [10, 20, 30, 40, 50]) {
+      await act(async () => {
+        fireTouch(el, "touchmove", y);
+      });
+      await waitFor(() => {
+        expect(Number(el.getAttribute("data-pull-distance"))).toBe(y);
+      });
+      seen.push(Number(el.getAttribute("data-pull-distance")));
+    }
+
+    expect(seen).toEqual([10, 20, 30, 40, 50]);
+
+    // Six renders' worth of drag, still exactly one touchmove listener.
+    // Filter to the scroll container: React 18 also delegates touch events on
+    // its own root container div, which is an HTMLDivElement too.
+    const touchmoveBinds = addSpy.mock.calls.filter(
+      (c, i) => c[0] === "touchmove" && addSpy.mock.instances[i] === el
+    );
+    expect(touchmoveBinds).toHaveLength(1);
+    addSpy.mockRestore();
+  });
 });

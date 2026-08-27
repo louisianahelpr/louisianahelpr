@@ -179,20 +179,67 @@ export const usePullToRefresh = ({
     }
   }, [pulling, disabled, cancelPendingFrame, threshold, onRefresh]);
 
+  // Latest handlers, read through a ref so the listeners below can be bound
+  // ONCE for the life of the container instead of being torn down and rebound
+  // on every render.
+  //
+  // Rebinding per render is what wedged the pull. The old cleanup ran on every
+  // handler-identity change (i.e. every single frame of the drag, since
+  // `pullDistance` state feeds `refreshing`/`pulling` deps) and it called
+  // `cancelAnimationFrame(rafId.current)` WITHOUT resetting `rafId.current` to
+  // null. Cancel a frame that was queued in the same frame a render landed in,
+  // and `rafId.current` stays permanently non-null — so the
+  // `if (rafId.current === null)` guard in handleTouchMove never passes again
+  // and NO further frame is ever scheduled. Measured: the indicator froze at
+  // its 24px floor for all 60 frames of a drag and the hook re-rendered twice
+  // total. That is the "laggy / not smooth" pull the owner reported: it wasn't
+  // slow, it had stopped tracking the finger altogether.
+  const handlers = useRef({ handleTouchStart, handleTouchMove, handleTouchEnd });
+  handlers.current = { handleTouchStart, handleTouchMove, handleTouchEnd };
+
+  // The node the listeners are currently attached to, plus their detach fn.
+  const bound = useRef<{ el: HTMLDivElement; off: () => void } | null>(null);
+
+  // No dep array on purpose: several callers render the scroll container
+  // conditionally (Profile hides it while loading), so `containerRef.current`
+  // can be null on the first commit and only appear on a later one. This runs
+  // after every render but no-ops unless the node actually changed, so it is
+  // an identity check — not a rebind — on the frames that matter.
   useEffect(() => {
     const el = containerRef.current;
+    if (bound.current?.el === el) return;
+    bound.current?.off();
+    bound.current = null;
     if (!el) return;
-    el.addEventListener("touchstart", handleTouchStart, { passive: true });
-    el.addEventListener("touchmove", handleTouchMove, { passive: true });
-    el.addEventListener("touchend", handleTouchEnd);
-    return () => {
-      el.removeEventListener("touchstart", handleTouchStart);
-      el.removeEventListener("touchmove", handleTouchMove);
-      // A frame queued mid-gesture must not fire after teardown.
-      if (rafId.current !== null) cancelAnimationFrame(rafId.current);
-      el.removeEventListener("touchend", handleTouchEnd);
+    const onStart = (e: TouchEvent) => handlers.current.handleTouchStart(e);
+    const onMove = (e: TouchEvent) => handlers.current.handleTouchMove(e);
+    const onEnd = () => handlers.current.handleTouchEnd();
+    el.addEventListener("touchstart", onStart, { passive: true });
+    el.addEventListener("touchmove", onMove, { passive: true });
+    el.addEventListener("touchend", onEnd);
+    bound.current = {
+      el,
+      off: () => {
+        el.removeEventListener("touchstart", onStart);
+        el.removeEventListener("touchmove", onMove);
+        el.removeEventListener("touchend", onEnd);
+      },
     };
-  }, [handleTouchStart, handleTouchMove, handleTouchEnd]);
+  });
+
+  // Unmount only. Detaching (and cancelling the queued frame) belongs here and
+  // NOT in the per-render effect above — that is what used to fire mid-drag.
+  useEffect(
+    () => () => {
+      bound.current?.off();
+      bound.current = null;
+      if (rafId.current !== null) {
+        cancelAnimationFrame(rafId.current);
+        rafId.current = null;
+      }
+    },
+    []
+  );
 
   return {
     containerRef,

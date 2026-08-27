@@ -206,7 +206,13 @@ export default function StrSettings() {
 
       <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pt-4 pb-8">
 
-        <div className="lg:grid lg:grid-cols-12 lg:gap-8 lg:items-start">
+        {/* SINGLE COLUMN on desktop (owner). This was a 12-col split with a
+              desktop-only "How it works" rail beside the calendars. The rail is
+              STACKED rather than deleted — its cadence note lives nowhere else
+              (the pitch moved to the empty state, the mechanics stayed here), so
+              removing the column would have removed the content with it. The
+              aside keeps its `hidden lg:block`, so mobile is unchanged. */}
+          <div className="space-y-4">
           {/* Desktop-only left rail.
               This used to repeat the "Never scramble for a cleaner again"
               pitch that the empty state below already makes — the same two

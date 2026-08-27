@@ -216,7 +216,10 @@ const PetProfiles = () => {
         </div>
 
         {/* ─── Desktop (lg+): split-column ─────────────────────────────── */}
-        <div className="hidden lg:grid lg:grid-cols-12 lg:gap-8 lg:items-start">
+        {/* SINGLE COLUMN on desktop (owner). Was a 12-col split (pets rail |
+            detail pane); they now stack. Still `hidden lg:*` so the separate
+            mobile stacked list above is untouched. */}
+        <div className="hidden lg:block space-y-4">
           {/* Left rail — pets list */}
           <aside className="lg:col-span-4 xl:col-span-4 space-y-3">
             <div className="rounded-ds-lg liquid-glass overflow-hidden">

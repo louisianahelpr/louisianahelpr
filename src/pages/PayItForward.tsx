@@ -338,7 +338,9 @@ export default function PayItForward() {
         {/* Desktop splits into a sticky context/action rail on the left and the
             gift history listings on the right. Mobile stays a single stacked
             column — the grid degrades to grid-cols-1 below lg. */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 xl:gap-12 items-start">
+        {/* SINGLE COLUMN on desktop (owner). Was a 12-col split; both halves
+            carry content, so they stack instead of one being dropped. */}
+        <div className="space-y-6">
           {/* ── Left rail: context + primary action ─────────────────────────── */}
           <aside className="lg:col-span-5 xl:col-span-4 space-y-6 lg:sticky lg:top-6 lg:self-start">
             {/* What is this? */}

@@ -1131,6 +1131,29 @@ html.web-desktop {
   overscroll-behavior: contain;
 }
 
+/* Zoom buttons: centre the glyph in the button it is actually in.
+   Leaflet centres the "+" / "−" with `line-height: 30px` on a 30px-tall
+   anchor. The app's 44px minimum tap target grows that anchor to ~44px but
+   NOT the line-height, so the glyph stays parked in the top 30px of a 44px
+   box. Measured on the iOS simulator (2026-08-27) by cropping the control out
+   of a device screenshot and taking each glyph's ink bounding box against its
+   button box: the "+" sat 6.33pt and the "−" 7.00pt ABOVE the button's
+   vertical centre, in buttons 43.3pt and 44.3pt tall. Horizontally both were
+   already centred to within 0.33pt, so this corrects the vertical axis only.
+   Owner: the + / − are not optically centred in their buttons.
+
+   Flex centring rather than a corrected line-height, because the height comes
+   from the tap-target rule and is not a constant this file should have to
+   track. `line-height: 1` keeps the text box tight so the flex centring is
+   what positions the glyph. */
+.leaflet-control-zoom a.leaflet-control-zoom-in,
+.leaflet-control-zoom a.leaflet-control-zoom-out {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
 /* Leaflet's default attribution control ships #0078A8 links on its own
    80%-opaque white chip, which composites over the OSM tiles to 4.0:1 at 11px
    — an axe AA failure on /dashboard. Attribution is REQUIRED by the Leaflet /

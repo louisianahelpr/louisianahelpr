@@ -453,9 +453,15 @@ export const ProfileHeaderCard = ({
                   coords (otherwise the count would be 0).
                 - rendered count once geolocation resolves. We always
                   show the count even when zero — a "0 jobs near you"
-                  fact is a legitimate trust input. Hidden entirely on
-                  your own profile so you don't see your own count. */}
-            {!isOwnProfile && (() => {
+                  fact is a legitimate trust input.
+
+                Shown on your own profile too (owner, 2026-08-27: "make
+                Preview truly public"). It reads "N jobs within 25mi of
+                you" against YOUR location, which is exactly the sentence
+                a nearby visitor sees; hiding it meant the preview omitted
+                one of the strongest proof lines on the page. Opt-in
+                either way — nothing geolocates until the pill is tapped. */}
+            {(() => {
               const hasNearbyEligibleJobs = workedJobs.some(
                 (j) => j.status === "completed" && typeof j.latitude === "number" && typeof j.longitude === "number",
               );
@@ -556,10 +562,13 @@ export const ProfileHeaderCard = ({
             {/* "No disputes on record" trust signal — shown only when
                 the dispute count query confirms 0 disputes. Hidden
                 while the query is loading (to avoid flash of "clean"
-                for accounts with disputes), and hidden entirely on
-                own profile (already seeing yours). PGRST202 = table
-                not deployed → query returns null → badge stays hidden. */}
-            {!isOwnProfile && hasCleanRecord && (
+                for accounts with disputes). Shown on your own profile
+                too (owner, 2026-08-27: "make Preview truly public") — it
+                is a public trust badge, and its absence from the preview
+                made a clean record look like it wasn't being advertised.
+                PGRST202 = table not deployed → query returns null →
+                badge stays hidden. */}
+            {hasCleanRecord && (
               <div className="flex items-center justify-center sm:justify-start mt-1.5">
                 <span
                   className="font-serif italic text-ds-12"

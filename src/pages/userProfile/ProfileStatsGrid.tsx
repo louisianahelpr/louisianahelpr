@@ -5,7 +5,6 @@ type Props = {
   stats: ProfileStatsShape;
   postedJobsCount: number;
   workedJobsCount: number;
-  isOwnProfile: boolean;
   showReviews: boolean;
   showPostedJobs: boolean;
   showWorkedJobs: boolean;
@@ -18,7 +17,6 @@ export const ProfileStatsGrid = ({
   stats,
   postedJobsCount,
   workedJobsCount,
-  isOwnProfile,
   showReviews,
   showPostedJobs,
   showWorkedJobs,
@@ -27,7 +25,11 @@ export const ProfileStatsGrid = ({
   onToggleWorked,
 }: Props) => {
   const activeSection = showReviews ? "reviews" : showPostedJobs ? "posted" : showWorkedJobs ? "worked" : null;
-  const hasSelection = activeSection !== null && !isOwnProfile;
+  // No `&& !isOwnProfile` (owner, 2026-08-27: "make Preview truly public").
+  // The owner used to get a permanently 3-up grid while every visitor got a
+  // grid that collapsed to the one selected tile — so the preview showed a
+  // layout no stranger has ever seen. One behaviour for everyone now.
+  const hasSelection = activeSection !== null;
 
   // Radius now matches the `rounded-2xl` card convention, but these three
   // deliberately keep `border bg-card p-3` instead of `liquid-glass p-5`:
@@ -88,17 +90,7 @@ export const ProfileStatsGrid = ({
     </button>
   );
 
-  if (isOwnProfile) {
-    return (
-      <div className="grid grid-cols-3 gap-2">
-        {reviewBtn}
-        {postedBtn}
-        {workedBtn}
-      </div>
-    );
-  }
-
-  // For other users: show only the selected button, or all if none selected
+  // Show only the selected button, or all if none selected
   if (hasSelection) {
     return (
       <div className="grid grid-cols-1 gap-2">

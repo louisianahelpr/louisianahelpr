@@ -564,7 +564,6 @@ const UserProfile = () => {
               // number above it is now true.
               postedJobsCount={postedTotalCount}
               workedJobsCount={completedWorkedJobs.length}
-              isOwnProfile={isOwnProfile}
               showReviews={showReviews}
               showPostedJobs={showPostedJobs}
               showWorkedJobs={showWorkedJobs}
@@ -606,21 +605,30 @@ const UserProfile = () => {
 
             {/* Skill endorsements — pills showing the helper's endorsed
                 skills. Past clients (mutual job count > 0) see a + button
-                to endorse. Own profile hides the section here (managed
-                in ProfileLanding instead). */}
-            {!isOwnProfile && (
-              <SkillEndorsements
-                profileUserId={userId!}
-                viewerUserId={currentUserId}
-                canEndorse={!isOwnProfile && mutualJobsCount > 0}
-              />
-            )}
+                to endorse.
 
-            {/* Recent reviews — public trust-signal wall (#86). Always
-                visible on other-user profiles so prospective posters see
-                quotes from past customers without having to expand the
-                full reviews tab. Owner sees the existing toggle only. */}
-            {!isOwnProfile && showReviews && stats.reviewCount > 0 && (
+                Rendered for EVERYONE, owner included (owner, 2026-08-27:
+                "show them — make Preview truly public"). This page IS the
+                preview of what a stranger sees, so hiding a whole public
+                section from the person previewing it defeated its purpose.
+
+                `canEndorse` keeps its `!isOwnProfile` guard on purpose —
+                that is the one thing a visitor gets that the owner must
+                not: the + button. Self-endorsement isn't a truthful
+                preview, it's an abusable affordance. Section public,
+                control not. */}
+            <SkillEndorsements
+              profileUserId={userId!}
+              viewerUserId={currentUserId}
+              canEndorse={!isOwnProfile && mutualJobsCount > 0}
+            />
+
+            {/* Recent reviews — public trust-signal wall (#86). Shown to
+                everyone, owner included (owner, 2026-08-27), so the
+                preview reproduces what a prospective poster actually
+                reads. Read-only: quotes from past customers, no control
+                that could let anyone review themselves. */}
+            {showReviews && stats.reviewCount > 0 && (
               <PublicReviewWall
                 helperId={userId!}
                 totalReviewCount={stats.reviewCount}

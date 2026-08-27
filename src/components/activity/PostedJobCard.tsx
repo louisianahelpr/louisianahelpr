@@ -1,7 +1,7 @@
 import { memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, RotateCcw, Users, RefreshCw, Clock, Check, ChevronDown, ChevronUp } from "lucide-react";
+import { CheckCircle2, RotateCcw, Users, RefreshCw, Clock, Check, ChevronDown } from "lucide-react";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
 import { SeriesStrip } from "@/components/activity/SeriesStrip";
 import { JobCountdown } from "@/components/activity/JobCountdown";
@@ -65,8 +65,11 @@ function PostedJobCardInner({
 }: PostedJobCardProps) {
   const navigate = useNavigate();
 
-  const meta = completedJobMeta[job.id];
-  const isFullyCompleted = job.status === "completed" && meta?.tipped && meta?.reviewed;
+  // `isFullyCompleted` used to live here and gated two things: whether the
+  // card was expandable at all, and whether the collapsed-only Re-Post button
+  // showed. Both are gone — every card expands, and every card hides its body
+  // until it does — so "archived completed" is no longer a special layout.
+  // The "Tipped & Reviewed" strip below reads completedJobMeta directly.
   const isExpanded = expandedJobId === job.id;
 
   // A description that merely restates the title is not a description.
@@ -114,6 +117,26 @@ function PostedJobCardInner({
    */
   const metaRow = (
               <JobCardMetaRow
+                // The card's ONE expand affordance. Every posted card is
+                // collapsed on arrival now (owner, 2026-08-27), so it needs a
+                // visible control saying there is more underneath — there was
+                // none: the only chevron on this card lived in the
+                // "Tipped & Reviewed" strip, which renders on archived cards
+                // and nowhere else.
+                //
+                // A bare rotating glyph, pinned to the end of the meta line, is
+                // what the code around it has described for a while ("move the
+                // details arrow up and remove the words details") without
+                // anything actually passing `trailing`. It costs no row.
+                // Non-interactive: the whole card is the hit target (see
+                // JobCardShell), so a nested button here would be a control
+                // inside a control.
+                trailing={
+                  <ChevronDown
+                    aria-hidden
+                    className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
+                  />
+                }
                 dateNeeded={job.date_needed}
                 startTime={job.start_time}
                 flexibleLabel="Flexible time"
@@ -164,7 +187,15 @@ function PostedJobCardInner({
 
   return (
           <JobCardShell
-            expandable={isFullyCompleted || hasDescription || hasRequirements}
+            // EVERY card expands now, not just the ones with a description or
+            // an archived-completed summary. A posted card opens collapsed
+            // (owner, 2026-08-27: it used to arrive with the tracker, the
+            // Applicants button and the whole Share/Boost/Edit/Cancel row
+            // already open, so four jobs filled several screens and none of
+            // them could be compared at a glance), and what is behind the tap
+            // is now the card's whole body — so the tap has to be offered on
+            // all of them.
+            expandable
             expanded={isExpanded}
             onToggle={() => setExpandedJobId(isExpanded ? null : job.id)}
             // scroll-mt keeps a card's title from ghosting up under the
@@ -201,7 +232,13 @@ function PostedJobCardInner({
                 open one shows its applicant count, a cancelled one leads with
                 "Re-Post This Job". */}
 
-            {/* Summary */}
+            {/* Summary — BEHIND THE EXPAND (owner, 2026-08-27).
+                Collapsed, a posted card is its title, its price and its meta
+                line (location · date · time), which is what a poster scans a
+                list of their own jobs FOR. Everything from here down — the
+                brief, the live tracker, the state chips, the countdowns, the
+                revision panel — appears on tap. */}
+            {isExpanded && (
             <div className="px-4 py-2.5 space-y-2">
               {/* Under the title on EVERY width (owner: "move back under
                 title globally"). This was `lg:hidden`, with a second copy
@@ -430,8 +467,7 @@ function PostedJobCardInner({
                 </div>
               )}
             </div>
-
-
+            )}
 
             {/* Completed hint */}
             {job.status === "completed" && (() => {
@@ -441,8 +477,11 @@ function PostedJobCardInner({
               if (hasTipped && hasReviewed) {
                 return (
                   <div className="px-4 py-1.5 border-t border-[hsl(var(--olivewood)/0.1)] bg-card flex items-center justify-between">
-                    <span className="text-ds-11 text-muted-foreground flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Tipped & Reviewed</span>
-                    {isExpanded ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
+                    {/* No chevron here any more — the meta row's `trailing`
+                        slot carries the card's one expand glyph now, so this
+                        strip would have been a second one on the same card,
+                        two rows apart. */}
+                    <span className="text-ds-11 text-muted-foreground flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Tipped &amp; Reviewed</span>
                   </div>
                 );
               }
@@ -451,30 +490,26 @@ function PostedJobCardInner({
               // "Leave a review" strip directly above the action row that
               // already carries a Tip chip and a Review chip — a label with no
               // control, naming the buttons underneath it. The chips ARE the
-              // prompt. Only the fully-archived summary above survives, and it
-              // stays because it also carries the expand chevron.
+              // prompt. Only the fully-archived summary above survives.
               return null;
             })()}
 
-            {/* Re-post CTA — completed jobs that are fully archived (tipped & reviewed).
-                The actions section (below) already shows "Hire again"/"Re-post" for
-                jobs still awaiting tip/review, so this surfaces only when the card
-                collapses into its archived state and that section is hidden. */}
-            {job.status === "completed" && isFullyCompleted && !isExpanded && (
-              <div className="px-4 pb-3 pt-1">
-                <Button
-                  variant="primary"
-                  size="sm"
-                  className="w-full rounded-ds-md"
-                  onClick={(e) => { e.stopPropagation(); navigate(job.helper_id ? `/post-job?rebook=${job.id}&offerTo=${job.helper_id}` : `/post-job?rebook=${job.id}`); }}
-                >
-                  <RotateCcw className="w-4 h-4 mr-1.5" /> Re-Post
-                </Button>
-              </div>
-            )}
+            {/* A collapsed-only "Re-Post" button used to sit here, for archived
+                completed jobs. It existed because the action row below was the
+                one thing hidden when an archived card was collapsed, so Re-Post
+                had to be re-offered outside it. Now EVERY card hides its
+                actions until it is expanded, and expanding an archived card
+                reveals PostedJobActions with its own Re-post — so this was the
+                only action visible on a collapsed card, on one status out of
+                six. Nothing is lost: it is the same destination, one tap in. */}
 
-            {/* Additional details - collapsible for fully completed jobs */}
-            {(!isFullyCompleted || isExpanded) && (
+            {/* Additional details — BEHIND THE EXPAND, on every status (owner,
+                2026-08-27). The gate used to be `!isFullyCompleted ||
+                isExpanded`, i.e. collapsed only ever hid anything on an
+                archived completed job; an open job showed its photos, its
+                Applicants button and the full Share / Boost / Edit / Cancel row
+                on arrival. No action was removed — they all live one tap in. */}
+            {isExpanded && (
             <div>
               {(job.photos || []).length > 0 && (
                 <div className="px-4 py-3 space-y-3 border-t border-border/30">

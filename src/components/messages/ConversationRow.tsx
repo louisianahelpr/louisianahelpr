@@ -145,9 +145,9 @@ const ConversationRowBase = ({
   // earnings list. No bespoke per-surface palette.
   //
   // `assigned` isn't in the job_status enum — it's a legacy
-  // conversation-row alias for the offered-not-yet-confirmed window.
-  // Keep its bespoke "Awarded" copy and route its color through the
-  // sienna-tinted `in_progress` slot so it reads as "in motion".
+  // conversation-row alias for the offered-not-yet-confirmed window. Its
+  // colour still routes through the sienna-tinted `in_progress` slot so it
+  // reads as "in motion"; its label no longer says "Awarded".
   const statusChip = c.jobStatus && (() => {
     const s = c.jobStatus;
     const allowed: Record<string, true> = {
@@ -157,7 +157,15 @@ const ConversationRowBase = ({
     if (!allowed[s]) return null;
     const palette =
       s === "accepted" ? jobStatusColor("in_progress") : jobStatusColor(s);
-    const label = s === "accepted" ? "Awarded" : jobStatusLabel(s);
+    // No "Awarded" special-case. statusLabels.ts is the single source of
+    // truth and its own docs say: do NOT introduce synonyms ("Awarded",
+    // "Done", "Selected") for an existing enum value. This file and
+    // ChatHeader both overrode it anyway, so `accepted` read as "Awarded"
+    // in the messages chip and header while every other surface said
+    // "Accepted" — the exact three-labels-one-state bug that module was
+    // written to close. Owner dislikes "Awarded"; the canonical label is
+    // what they get.
+    const label = jobStatusLabel(s);
     return { label, color: palette.text, bg: palette.bg };
   })();
 

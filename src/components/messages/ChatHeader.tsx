@@ -201,7 +201,15 @@ export function ChatHeader({
               // sienna-tinted `in_progress` slot so it reads as "in motion".
               const palette =
                 status === "accepted" ? jobStatusColor("in_progress") : jobStatusColor(status);
-              const label = status === "accepted" ? "Awarded" : jobStatusLabel(status);
+              // No "Awarded" special-case. statusLabels.ts is the single source of
+              // truth and its own docs say: do NOT introduce synonyms ("Awarded",
+              // "Done", "Selected") for an existing enum value. This file and
+              // ChatHeader both overrode it anyway, so `accepted` read as "Awarded"
+              // in the messages chip and header while every other surface said
+              // "Accepted" — the exact three-labels-one-state bug that module was
+              // written to close. Owner dislikes "Awarded"; the canonical label is
+              // what they get.
+              const label = jobStatusLabel(status);
               return (
                 <span
                   className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0 ml-auto"

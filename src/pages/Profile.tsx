@@ -143,7 +143,16 @@ const ProfilePage = () => {
     setTab((prev) => (prev === urlTab ? prev : urlTab));
   }, [searchParams]);
 
-  const userId = user?.id;
+  // Fall back to the id useAuthReady already holds. The local `user` state is
+  // only populated once `authLoading` flips false — i.e. after the profiles +
+  // user_roles round has landed — but every per-tab query below is keyed and
+  // filtered on nothing more than the user id, which the restored session
+  // carries from frame one. Reading `user?.id` alone therefore held all of
+  // them back a full network round (~215ms measured RTT) for data they never
+  // needed. They now issue in parallel with that round instead of after it.
+  // The page skeleton still waits on `loading`, so nothing renders half-
+  // populated; the requests are simply already in flight when it clears.
+  const userId = user?.id ?? cachedUser?.id;
 
   // Per-tab data — each section is its own `enabled`-gated React Query keyed
   // under ["profile", userId, <section>], so switching away from a tab and

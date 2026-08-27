@@ -1,7 +1,7 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
-import { initNative } from "./lib/nativeInit";
+import { initNative, hideSplash } from "./lib/nativeInit";
 import { installGlobalErrorHandlers } from "./lib/errorLogger";
 import { initShakeToReport } from "./lib/shakeToReport";
 import { hydrate as hydrateStorage } from "./lib/safeStorage";
@@ -140,6 +140,17 @@ if (bounceToNativeAppIfReturning()) {
 // Suppress success/info toasts before any code can fire one. Failures still
 // surface — see src/lib/toastPolicy.ts for why the split exists.
 applyToastPolicy();
+// Hand the native splash off to the app's own first paint. Two rAFs: the
+// first is scheduled before React has committed + painted, the second runs
+// on the frame after pixels are on screen. The splash background
+// (#F1F2F4, capacitor.config.ts) matches index.html's #boot-loader and the
+// app's page ground, so the handoff is seamless rather than a flash.
+// Web = no-op. A 1.5s safety net in nativeInit.ts force-hides regardless.
+requestAnimationFrame(() =>
+  requestAnimationFrame(() => {
+    void hideSplash();
+  }),
+);
 
 void hydrateStorage();
 

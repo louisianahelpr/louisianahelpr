@@ -56,6 +56,25 @@
 -- the same account.updated webhook that already carries the whole account
 -- object, are what let the blocked state say something useful. Zero extra
 -- Stripe API calls.
+-- REPLAY-ORDER GUARD. This migration reads
+-- profiles.stripe_identity_verified, but the migration that ADDS that column
+-- (20260901010000_stripe_identity_verified_cache.sql) sorts AFTER this one by
+-- timestamp. Prod was fine only because that column happened to be applied
+-- already; a from-scratch replay ran this first and died with
+-- "column p.stripe_identity_verified does not exist", which is what reddened
+-- DB Smoke on d7d03b59 and would have reddened the Supabase Preview check on
+-- every future migration PR.
+--
+-- Both statements are `if not exists` and are byte-identical to the ones in
+-- the later migration, so whichever runs first creates the columns and the
+-- other is a no-op. Renaming this file instead would have desynced prod's
+-- schema_migrations ledger from the filenames, which CLAUDE.md forbids.
+alter table public.profiles
+  add column if not exists stripe_identity_verified boolean not null default false;
+
+alter table public.profiles
+  add column if not exists stripe_identity_verified_at timestamptz;
+
 ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS stripe_charges_enabled boolean NOT NULL DEFAULT false;
 

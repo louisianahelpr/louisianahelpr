@@ -6,8 +6,10 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { useQueryClient } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useActivityBadgeCounts } from "@/hooks/useActivityBadgeCounts";
+import { prefetchRecentPostedJobs } from "@/hooks/useRecentPostedJobs";
 import { prefetchRoute, prefetchRoutesWhenIdle } from "@/lib/routePrefetch";
 import { hapticLight, hapticMedium } from "@/lib/haptics";
 import { TabButton } from "@/components/mobileNav/TabButton";
@@ -27,6 +29,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   const location = useLocation();
   const navigate = useNavigate();
   const reducedMotion = useReducedMotion();
+  const queryClient = useQueryClient();
   const { user, profile, isLoading } = useCurrentUser();
   const isGuest = !isLoading && !user;
   // A pending user can browse/apply, but /post-job stays gated until
@@ -72,12 +75,42 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   // first inbox query is even issued. See `prefetchRoutesWhenIdle` for the
   // measurement. Skipped whenever the dock isn't shown (guests, marketing
   // pages), so nobody prefetches tabs they can't reach.
+  //
+  // `/post-job` is in the list even though it is not a tab: it is reached from
+  // the centre FAB, so it was the one authed destination this never warmed,
+  // and its chunk load sat in front of the entry screen's own query.
   useEffect(() => {
     if (dockHidden) return;
-    return prefetchRoutesWhenIdle(
-      [...leftItems, ...rightItems].map((i) => i.path),
-    );
-  }, [dockHidden]);
+    return prefetchRoutesWhenIdle([
+      ...[...leftItems, ...rightItems].map((i) => i.path),
+      ...(isPendingApproval ? [] : ["/post-job"]),
+    ]);
+  }, [dockHidden, isPendingApproval]);
+
+  // Warm the post-job entry screen's DATA too, not just its chunk. "Repost a
+  // recent job" is the only data-backed tile there and its request could not
+  // be ISSUED until the lazy chunk had loaded and mounted — measured 293ms
+  // behind the static tiles beside it (375px, production build, 200ms/request).
+  // Warming it here spends that round trip in the user's reading time instead
+  // of on their tap. Deliberately a separate idle pass from the chunk warm
+  // above so a slow data fetch can never hold up the chunk prefetch.
+  useEffect(() => {
+    if (dockHidden || isPendingApproval || !user?.id) return;
+    const userId = user.id;
+    const w = window as unknown as {
+      requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+    const run = () => prefetchRecentPostedJobs(queryClient, userId);
+    if (typeof w.requestIdleCallback === "function") {
+      const id = w.requestIdleCallback(run, { timeout: 3000 });
+      return () => w.cancelIdleCallback?.(id);
+    }
+    // Safari / WKWebView has no requestIdleCallback — same fallback timer
+    // prefetchRoutesWhenIdle uses, held back until the current route settles.
+    const t = window.setTimeout(run, 1500);
+    return () => window.clearTimeout(t);
+  }, [dockHidden, isPendingApproval, user?.id, queryClient]);
 
   const [gateOpen, setGateOpen] = useState(false);
   // Long-press quick-action sheet — one sheet, with content keyed by which

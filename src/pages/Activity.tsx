@@ -131,7 +131,28 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
       current.set("q", trimmedQuery);
       changed = true;
     }
-    if (changed) setSearchParams(current, { replace: true });
+    // Compare against the LIVE URL, not React's copy, before writing.
+    //
+    // `changed` above is computed from searchParamsRef, i.e. React's view of
+    // the params. If a write does not produce a re-render, that view stays
+    // stale — so the effect recomputes "changed" from the pre-write value and
+    // writes the SAME string again. Re-triggered by `setSearchParams`, whose
+    // identity is not stable across location changes (the old comment here
+    // claimed it was), that is an unbounded loop.
+    //
+    // WebKit throws at 100 replaceState calls in 10s, which unmounts the route
+    // into the error boundary. That is the crash the owner hit on /my-jobs; it
+    // SURVIVED the first fix (d36a90b17), which only removed searchParams from
+    // the dep array. window.location.search is the one source that cannot go
+    // stale, so this comparison terminates the loop regardless of why the
+    // effect re-ran.
+    if (changed) {
+      const next = current.toString();
+      const live = typeof window !== "undefined"
+        ? window.location.search.replace(/^\?/, "")
+        : "";
+      if (next !== live) setSearchParams(current, { replace: true });
+    }
     // `searchParams` is read through a ref and is NOT a dependency. The
     // comment here used to claim exactly that while the array below listed
     // it — so this effect re-ran on its own write, and with the URL→state

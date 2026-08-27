@@ -315,11 +315,42 @@ export function IdentityHeader({
           </div>
         </div>
 
-        {/* Affordance row — Reviews · Share · Edit · Preview, side by
-            side in four even boxes. The Reviews box keeps the star +
-            rating so the headline trust signal stays visible; the other
-            three are the profile's primary self-actions. */}
+        {/* Affordance row — Share · Reviews · Edit · Preview, side by side in
+            four even boxes. The Reviews box keeps the star + rating so the
+            headline trust signal stays visible; the other three are the
+            profile's primary self-actions.
+
+            ORDER (owner, 2026-08-27). It used to run Reviews · Share · Edit ·
+            Preview, which put Share — the thing you do LAST, once the profile
+            is worth sending — in front of the two controls that get it into
+            that state. Edit then Preview now read in workflow order: change it,
+            then check what you changed. Share leads the row by the owner's
+            call. Reorder only: every box keeps its existing styling, sizing
+            and behaviour. */}
         <div className="mt-3.5 grid grid-cols-4 gap-2">
+          <button
+            type="button"
+            aria-label="Share your profile"
+            disabled={!userId}
+            onClick={() => {
+              hapticLight();
+              const ratingText = avgRating ? avgRating.toFixed(1) + "★" : "New Helpr";
+              void shareNative({
+                title: `${displayName} on Helpr`,
+                text: `${displayName} · ${completedCount} job${completedCount === 1 ? "" : "s"} · ${ratingText}\n\nHire me on Helpr:`,
+                url: `https://www.louisianahelpr.com/user/${userId}`,
+                dialogTitle: "Share your profile",
+              });
+            }}
+            className="flex flex-col items-center justify-center gap-1 min-h-[64px] rounded-ds-md px-1 py-2 active:scale-95 transition-transform disabled:opacity-50"
+            style={{ background: "hsl(var(--bark) / 0.06)" }}
+          >
+            <Share2 className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} />
+            <span className="text-ds-9 font-sans font-semibold" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+              Share
+            </span>
+          </button>
+
           <button
             type="button"
             onClick={() => { hapticLight(); onSelectTab("reviews"); }}
@@ -344,29 +375,6 @@ export function IdentityHeader({
             </span>
             <span className="text-ds-9 font-sans font-semibold" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
               {reviewCount === 1 ? "1 review" : `${reviewCount} reviews`}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            aria-label="Share your profile"
-            disabled={!userId}
-            onClick={() => {
-              hapticLight();
-              const ratingText = avgRating ? avgRating.toFixed(1) + "★" : "New Helpr";
-              void shareNative({
-                title: `${displayName} on Helpr`,
-                text: `${displayName} · ${completedCount} job${completedCount === 1 ? "" : "s"} · ${ratingText}\n\nHire me on Helpr:`,
-                url: `https://www.louisianahelpr.com/user/${userId}`,
-                dialogTitle: "Share your profile",
-              });
-            }}
-            className="flex flex-col items-center justify-center gap-1 min-h-[64px] rounded-ds-md px-1 py-2 active:scale-95 transition-transform disabled:opacity-50"
-            style={{ background: "hsl(var(--bark) / 0.06)" }}
-          >
-            <Share2 className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} />
-            <span className="text-ds-9 font-sans font-semibold" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-              Share
             </span>
           </button>
 

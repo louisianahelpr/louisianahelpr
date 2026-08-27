@@ -311,7 +311,7 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
 
         <div className="space-y-1.5">
           <Label htmlFor="support-subject" className="text-ds-11">
-            Subject <span className="text-muted-foreground/60">(optional)</span>
+            Subject <span className="font-normal text-muted-foreground">(optional)</span>
           </Label>
           <Input
             id="support-subject"
@@ -343,7 +343,7 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
 
         {selected.key === "report" && (
           <div className="space-y-1.5">
-            <Label className="text-ds-11">Screenshot <span className="text-muted-foreground/60">(optional)</span></Label>
+            <Label className="text-ds-11">Screenshot <span className="font-normal text-muted-foreground">(optional)</span></Label>
             <input
               ref={fileInputRef}
               type="file"

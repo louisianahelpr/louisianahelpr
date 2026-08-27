@@ -407,12 +407,9 @@ none is lost; ✅ = fixed and verified, ⏳ = open.
   aggregate queries incl. the quarterly tax reserve.
 
 ### Open — triaged, not yet fixed
-- ⏳ **Block vs Report use different dialog shells.** Confirmed: `ReportDialog`
-  = `Dialog`+`DialogHero`; `BlockUserDialog` = `AlertDialog`+`AlertDialogHero`.
-  BlockUserDialog collects a Textarea reason, so it is NOT a pure confirm and
-  `AlertDialog` is the wrong primitive for it. Owner also reports mute /
-  report / block "open at different places with different backgrounds and
-  layouts" — treat as one sweep over every safety popup, not three fixes.
+- ✅ **Block vs Report use different dialog shells — FIXED (`8ad6c06e1`).**
+  `ReportDialog`, `BlockUserDialog`, and `MuteSheet` all now use
+  `Dialog`+`DialogContent`+`DialogHero`.
 - ⏳ **Browse Jobs → 404** and **Login → 404 then refreshes in.** Production
   deployments are all READY on the current commit and `vercel.json`'s SPA
   rewrite is correct, so this is NOT a stale deploy. Prime suspect is the
@@ -423,21 +420,25 @@ none is lost; ✅ = fixed and verified, ⏳ = open.
   filter button doesn't scroll until you click out and back in** — likely the
   same class (first interaction lost). High value: it makes the whole app feel
   broken.
-- ⏳ Help Center: large gap title→content; topic tabs should default COLLAPSED.
-- ⏳ Legal: Terms/Rules/Privacy squished mid-bar; space them out, move search left.
-- ⏳ Public profile: name/location/since belong right of the avatar (match the
-  Profile tab); career milestones can move up; info is messy. "Reviews" opens
-  3 blank tabs.
-- ⏳ Job card: "Verified" shouldn't render there; "1 day left" belongs on the
-  line above. Done-stage card offers Message/Approve but not Review or Tip.
-- ⏳ Toasts/error popups need a dismiss (X) before they fade.
-- ⏳ Search field renders two X buttons.
-- ⏳ Messages should open to Unread, not All.
-- ⏳ **Can't file a dispute; can't report a no-show.** For no-show the deployed
-  RPC has hard guards (job must be FUNDED; scheduled start must have PASSED;
-  one report per job) — if the test job is unfunded or future-dated the block
-  is CORRECT and the defect is that the reason never reaches the user. Verify
-  which before changing the guard.
+- ✅ Help Center gap/collapsed tabs — FIXED (`9c34369d5`).
+- ✅ Legal tab bar spacing / search left — FIXED (`2805ee382`).
+- ✅ Public profile layout (name/location right of avatar) — FIXED
+  (`372981c68`, `0ffe99fb1`). Reviews-tab blank state also fixed
+  (`src/pages/UserProfile.tsx` — real empty state instead of 3 blank tabs).
+- ✅ Job card: Verified badge removed, countdown moved to meta line — FIXED
+  (`d4c2f769b`). Done-stage Review/Tip gating is correct-by-design (unlocks
+  at Approve, which is the escrow release); an explainer was added
+  (`3a6a46a5f`) instead of exposing the actions early.
+- ✅ Toasts/error popups need a dismiss (X) before they fade — FIXED, Sonner
+  `<Toaster>` `closeButton` (`src/components/ui/sonner.tsx`).
+- ✅ Search field renders two X buttons — FIXED, native WebKit search-cancel
+  icon suppressed in `src/index.css`, leaving only the custom X.
+- ✅ Messages should open to Unread, not All — FIXED (`c3d508bfb`),
+  `defaultInboxTab()` opens Unread whenever there is any.
+- ✅ **Can't file a dispute; can't report a no-show — FIXED (`2d1faf935`).**
+  Guards were correct and untouched (funded/start-passed/one-per-job); the
+  defect was the precondition codes never surfacing to the user. Shared
+  mapper in `src/lib/lifecycleErrors.ts` now turns codes into human copy.
 - ⏳ Shared job link for a signed-out visitor: confirm `/jobs/:id` preview →
   signup → returns to that job rather than dropping the destination.
 - ⏳ Post + Jobs pages "are bad" — needs the deep pass.

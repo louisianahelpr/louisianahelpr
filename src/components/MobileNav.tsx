@@ -8,7 +8,7 @@ import {
 import { motion } from "framer-motion";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useActivityBadgeCounts } from "@/hooks/useActivityBadgeCounts";
-import { prefetchRoute } from "@/lib/routePrefetch";
+import { prefetchRoute, prefetchRoutesWhenIdle } from "@/lib/routePrefetch";
 import { hapticLight, hapticMedium } from "@/lib/haptics";
 import { TabButton } from "@/components/mobileNav/TabButton";
 import { UserAvatar } from "@/components/UserAvatar";
@@ -62,6 +62,21 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   useEffect(() => {
     document.documentElement.classList.toggle("no-bottom-nav", dockHidden);
     return () => document.documentElement.classList.remove("no-bottom-nav");
+  }, [dockHidden]);
+
+  // Warm the tab chunks while the user is reading the page they're already on.
+  // The per-tab `onPrefetch` (hover / focus / touchstart) was the only caller of
+  // `prefetchRoute`, and on a phone touchstart lands a handful of ms before the
+  // tap — so every tab switch still paid the full lazy-chunk waterfall.
+  // Messages is the worst of them: three dependent levels of chunk before its
+  // first inbox query is even issued. See `prefetchRoutesWhenIdle` for the
+  // measurement. Skipped whenever the dock isn't shown (guests, marketing
+  // pages), so nobody prefetches tabs they can't reach.
+  useEffect(() => {
+    if (dockHidden) return;
+    return prefetchRoutesWhenIdle(
+      [...leftItems, ...rightItems].map((i) => i.path),
+    );
   }, [dockHidden]);
 
   const [gateOpen, setGateOpen] = useState(false);

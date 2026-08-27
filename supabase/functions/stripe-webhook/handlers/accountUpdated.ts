@@ -1,6 +1,7 @@
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
+import { stripeIdentityVerified } from "../../_shared/stripeIdentity.ts";
 
 export async function handleAccountUpdated(
   event: Stripe.Event,
@@ -16,7 +17,7 @@ export async function handleAccountUpdated(
   // logged and no retry. The 500 path makes Stripe redeliver instead.
   const { data: helperProfile, error: helperProfileError } = await supabase
     .from("profiles")
-    .select("user_id, full_name, approval_status, email_verified")
+    .select("user_id, full_name, approval_status, email_verified, stripe_identity_verified")
     .eq("stripe_account_id", account.id)
     .maybeSingle();
   if (helperProfileError) {
@@ -24,6 +25,36 @@ export async function handleAccountUpdated(
   }
 
   if (helperProfile) {
+    // Cache Stripe's identity verdict so the profile badge can be backed by a
+    // fact instead of by `idv_status` (an upload/admin state nobody reviews).
+    // See _shared/stripeIdentity.ts for why this is NOT `payouts_enabled`.
+    // Doing it here means zero extra Stripe API calls: this event already
+    // carries the whole account object.
+    const identityVerified = stripeIdentityVerified(account);
+    if (identityVerified !== helperProfile.stripe_identity_verified) {
+      const { error: idvErr } = await supabase
+        .from("profiles")
+        .update({
+          stripe_identity_verified: identityVerified,
+          // Stamp only on the transition INTO verified; clearing leaves the
+          // historical timestamp alone rather than pretending it never happened.
+          ...(identityVerified ? { stripe_identity_verified_at: new Date().toISOString() } : {}),
+        })
+        .eq("user_id", helperProfile.user_id);
+      if (idvErr) {
+        // Log, don't throw: this is a display badge, and failing the whole
+        // webhook here would also block the money-side auto-approval below.
+        // The next account.updated event re-attempts it, and until then the
+        // badge stays in its previous (never over-claiming) state.
+        logStep("⚠️ failed to cache Stripe identity verdict", {
+          userId: helperProfile.user_id,
+          error: idvErr.message,
+        });
+      } else {
+        logStep("Cached Stripe identity verdict", { userId: helperProfile.user_id, identityVerified });
+      }
+    }
+
     if (account.charges_enabled && account.payouts_enabled) {
       // Auto-approve: Stripe verified identity (free database matching: SSN/IRS/credit bureau)
       // Requirement: email verified + Stripe charges + payouts enabled

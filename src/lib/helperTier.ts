@@ -6,8 +6,8 @@
  * looks identical to one with 30 5-star jobs. This computes a four-step
  * ladder (0 / 1 Verified / 2 Trusted / 3 Top Rated) from data we already have:
  *
- *   - `profiles.approval_status`     — admin/IDV approval
- *   - `profiles.idv_status`          — Stripe Identity result
+ *   - `profiles.approval_status`         — admin/IDV approval
+ *   - `profiles.stripe_identity_verified` — Stripe Connect's identity verdict
  *   - `profiles.stripe_account_id`   — Stripe Connect onboarding
  *   - completed-job count + avg rating from existing per-helpr stats
  *
@@ -31,7 +31,15 @@ export type HelperTier = 0 | 1 | 2 | 3;
  */
 export interface HelperTierProfile {
   approval_status?: string | null;
-  idv_status?: string | null;
+  /**
+   * Stripe Connect's identity verdict, cached by the `account.updated`
+   * webhook. This replaced `idv_status` as the Tier-1 gate: `idv_status` is
+   * flipped by the ID-upload flow and by an admin manual-approve that nobody
+   * actually performs, so the publicly-rendered "Verified" rung asserted a
+   * human ID review that never happened. See
+   * supabase/functions/_shared/stripeIdentity.ts.
+   */
+  stripe_identity_verified?: boolean | null;
   stripe_account_id?: string | null;
 }
 
@@ -56,7 +64,7 @@ export const TIER_THRESHOLDS = {
 
 const isTier1Verified = (profile: HelperTierProfile): boolean => {
   if (profile.approval_status !== "approved") return false;
-  if (profile.idv_status !== "verified") return false;
+  if (profile.stripe_identity_verified !== true) return false;
   // Stripe Connect onboarding: presence of an account id is the project's
   // existing signal (see EarningsTab + ProfileLanding). Live payouts
   // status is fetched per-render from /stripe APIs and isn't needed for
@@ -124,7 +132,7 @@ export function describeTierProgress(
     // Climbing onto the ladder — list the missing onboarding signals.
     const missing: string[] = [];
     if (profile?.approval_status !== "approved") missing.push("Finish account approval");
-    if (profile?.idv_status !== "verified") missing.push("Verify your ID");
+    if (profile?.stripe_identity_verified !== true) missing.push("Finish Stripe identity verification");
     if (!profile?.stripe_account_id) missing.push("Connect Stripe for payouts");
     return { nextTier: 1, missing };
   }

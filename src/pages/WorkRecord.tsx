@@ -34,7 +34,7 @@ interface WorkRecordData {
   profile: {
     full_name: string | null;
     approval_status: string;
-    idv_status: string | null;
+    stripe_identity_verified: boolean | null;
     created_at: string;
   };
   completedJobs: Job[];
@@ -91,13 +91,13 @@ const WorkRecord = () => {
       // /wrapped and /profile resolve it.
       const profileRes = await supabase
         .from("profiles")
-        .select("full_name, approval_status, idv_status, created_at, subscription_tier, subscription_expires_at")
+        .select("full_name, approval_status, stripe_identity_verified, created_at, subscription_tier, subscription_expires_at")
         .eq("user_id", userId)
         .single();
       const profileRow = unwrap(profileRes) as {
         full_name: string | null;
         approval_status: string;
-        idv_status: string | null;
+        stripe_identity_verified: boolean | null;
         created_at: string;
         subscription_tier: string | null;
         subscription_expires_at: string | null;
@@ -105,7 +105,7 @@ const WorkRecord = () => {
       const profile = {
         full_name: profileRow.full_name,
         approval_status: profileRow.approval_status,
-        idv_status: profileRow.idv_status,
+        stripe_identity_verified: profileRow.stripe_identity_verified,
         created_at: profileRow.created_at,
       };
       const feeFallbackPercent = tierFeePercent(
@@ -206,7 +206,7 @@ const WorkRecord = () => {
       data.avgRating !== null
         ? `${data.avgRating.toFixed(1)}★ average across ${data.reviewCount} review${data.reviewCount === 1 ? "" : "s"}`
         : null,
-      data.profile.idv_status === "verified" ? "ID verified by Helpr" : null,
+      data.profile.stripe_identity_verified === true ? "Identity verified by Stripe" : null,
       "Verify this record: admin@louisianahelpr.com",
     ].filter((l): l is string => !!l);
 
@@ -332,16 +332,16 @@ const WorkRecord = () => {
                   </div>
                   <div>
                     <p className="text-ds-10 font-sans font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">
-                      ID Verified
+                      ID verified by Stripe
                     </p>
                     <p className="text-ds-13 font-semibold inline-flex items-center gap-1">
-                      {data.profile.idv_status === "verified" ? (
+                      {data.profile.stripe_identity_verified === true ? (
                         <>
                           <CheckCircle className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} />
                           <span style={{ color: "hsl(var(--bark))" }}>Verified</span>
                         </>
                       ) : (
-                        <span style={{ color: "hsl(var(--olivewood) / 0.8)" }}>Pending</span>
+                        <span style={{ color: "hsl(var(--olivewood) / 0.8)" }}>Not verified</span>
                       )}
                     </p>
                   </div>
@@ -464,16 +464,24 @@ const WorkRecord = () => {
                   className="font-serif italic text-ds-11 leading-relaxed mx-auto"
                   style={{ color: "hsl(var(--olivewood) / 0.8)", textWrap: "balance" }}
                 >
-                  {/* "verified" is only true of an account whose identity Helpr
-                      actually checked. This sheet gets handed to landlords and
-                      lenders, so on a Pending account it states what it can
-                      support — the job history — and nothing more. */}
-                  {data.profile.idv_status === "verified" ? (
-                    <>This record was generated from Helpr&rsquo;s verified job history on {today}.</>
+                  {/* "verified" is only true of an account whose identity
+                      STRIPE actually checked (profiles.stripe_identity_verified,
+                      cached from the account.updated webhook). It is NOT
+                      `idv_status` — that is an upload/admin state nobody
+                      reviews, so it could never support this claim. This sheet
+                      gets handed to landlords and lenders, so on an unverified
+                      account it states what it can support — the job history —
+                      and nothing more. */}
+                  {data.profile.stripe_identity_verified === true ? (
+                    <>
+                      This record was generated from Helpr&rsquo;s job history on {today}. This
+                      member&rsquo;s identity was verified by Stripe.
+                    </>
                   ) : (
                     <>
                       This record was generated from this member&rsquo;s completed job history on
-                      Helpr on {today}. Identity verification is still pending.
+                      Helpr on {today}. This member&rsquo;s identity has not been verified by
+                      Stripe.
                     </>
                   )}{" "}
                   Helpr is a Louisiana-based labor marketplace.

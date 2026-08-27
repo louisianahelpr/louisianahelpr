@@ -75,7 +75,13 @@ export function useProfileLandingDerived({
   // unverified items are still nudged via the completion meter +
   // Credentials tab.
   const earnedBadges = ([
-    { ok: profile?.idv_status === "verified", label: "ID verified" },
+    // Backed by Stripe's verdict, NOT `idv_status`. `idv_status` is flipped by
+    // the upload flow and by an admin manual-approve nobody actually performs,
+    // so it asserted a human ID review that does not happen.
+    // `stripe_identity_verified` is cached from the account.updated webhook and
+    // is TRUE only when Stripe has no outstanding identity requirement — see
+    // supabase/functions/_shared/stripeIdentity.ts.
+    { ok: profile?.stripe_identity_verified === true, label: "ID verified by Stripe" },
     { ok: profile?.license_status === "verified", label: "Licensed" },
     { ok: profile?.insurance_status === "verified", label: "Insured" },
   ]).filter((b) => b.ok);

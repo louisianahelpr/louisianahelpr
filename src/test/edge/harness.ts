@@ -112,6 +112,16 @@ function rewriteExternalImports(src: string): string {
     `$1 {$2} from "../../../supabase/functions/_shared/productTiers.ts";`,
   );
 
+  // Stripe identity verdict: `_shared/stripeIdentity.ts` is pure TypeScript
+  // (its only import is a TYPE-only Stripe import, stripped on transpile), so
+  // the generated file points at the REAL module. The rule deciding whether a
+  // helper may display "ID verified" is a trust claim — it stays under test
+  // rather than being mocked away.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/stripeIdentity\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/stripeIdentity.ts";`,
+  );
+
   // Stripe processing-cost floor: `_shared/stripeFees.ts` is likewise pure
   // TypeScript (plain constants + arithmetic, no Deno/remote imports), so the
   // generated file points at the REAL module — the actual withholding math the

@@ -14,7 +14,7 @@ import {
 
 const verifiedProfile: HelperTierProfile = {
   approval_status: "approved",
-  idv_status: "verified",
+  stripe_identity_verified: true,
   stripe_account_id: "acct_TEST123",
 };
 
@@ -35,16 +35,31 @@ describe("computeHelperTier — Tier 0 (no badge)", () => {
     ).toBe(0);
   });
 
-  it("returns 0 when idv_status is not 'verified'", () => {
+  it("returns 0 unless STRIPE verified the identity", () => {
+    // The Tier-1 gate is deliberately `stripe_identity_verified`, not the old
+    // `idv_status`: the latter is set by an ID upload + an admin review that
+    // nobody performs, so the publicly-shown "Verified" rung was an unearned
+    // claim. Anything short of an explicit `true` must not earn the rung.
     expect(
-      computeHelperTier({ ...verifiedProfile, idv_status: "not_started" }, zeroStats),
+      computeHelperTier({ ...verifiedProfile, stripe_identity_verified: false }, zeroStats),
     ).toBe(0);
     expect(
-      computeHelperTier({ ...verifiedProfile, idv_status: "failed" }, zeroStats),
+      computeHelperTier({ ...verifiedProfile, stripe_identity_verified: null }, zeroStats),
     ).toBe(0);
     expect(
-      computeHelperTier({ ...verifiedProfile, idv_status: null }, zeroStats),
+      computeHelperTier({ ...verifiedProfile, stripe_identity_verified: undefined }, zeroStats),
     ).toBe(0);
+  });
+
+  it("does not accept a legacy 'verified' idv_status as identity verification", () => {
+    // A profile row still carrying the old admin/upload state must NOT earn
+    // the rung — `idv_status` is no longer part of the ladder's input at all.
+    const legacy = {
+      approval_status: "approved",
+      stripe_account_id: "acct_123",
+      idv_status: "verified",
+    };
+    expect(computeHelperTier(legacy, zeroStats)).toBe(0);
   });
 
   it("returns 0 when stripe_account_id is missing", () => {
@@ -175,7 +190,7 @@ describe("describeTierProgress", () => {
   it("at tier 0, lists every missing onboarding signal", () => {
     const hint = describeTierProgress(
       0,
-      { approval_status: "pending", idv_status: null, stripe_account_id: null },
+      { approval_status: "pending", stripe_identity_verified: false, stripe_account_id: null },
       zeroStats,
     );
     expect(hint.nextTier).toBe(1);

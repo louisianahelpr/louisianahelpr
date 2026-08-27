@@ -130,7 +130,7 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         // relies on), so a direct select is fine.
         supabase
           .from("profiles")
-          .select("id_document_url, approval_status, idv_status, stripe_account_id, background_check_status")
+          .select("id_document_url, approval_status, stripe_identity_verified, stripe_account_id, background_check_status")
           .eq("user_id", userId!)
           .maybeSingle(),
         // Count-only queries — `head: true` skips row payload, so these
@@ -468,13 +468,17 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         // Serialize so React Query's cache survives a window reload (Date
         // objects don't round-trip JSON). Re-hydrate at the call site.
         lastActiveIso: lastActiveAt ? lastActiveAt.toISOString() : null,
-        isIdVerified: !!idCheckRes.data?.id_document_url,
+        // Was `!!id_document_url` — i.e. merely HAVING UPLOADED A FILE earned
+        // a public "Verified Helpr" ribbon shown to strangers, even though
+        // nobody reviews the upload. Now it is Stripe's identity verdict.
+        // See supabase/functions/_shared/stripeIdentity.ts.
+        isIdVerified: idCheckRes.data?.stripe_identity_verified === true,
         backgroundCheckStatus: (idCheckRes.data?.background_check_status ?? "none") as string,
         // Verification-ladder inputs — passed straight through to
         // HelperTierBadge. Null-safe if the row read was blocked.
         tierProfile: {
           approval_status: idCheckRes.data?.approval_status ?? null,
-          idv_status: idCheckRes.data?.idv_status ?? null,
+          stripe_identity_verified: idCheckRes.data?.stripe_identity_verified ?? null,
           stripe_account_id: idCheckRes.data?.stripe_account_id ?? null,
         },
         posterReputation,

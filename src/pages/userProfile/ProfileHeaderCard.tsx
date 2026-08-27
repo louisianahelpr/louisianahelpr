@@ -37,7 +37,7 @@ type Props = {
   hasCleanRecord: boolean;
   petCareSignal: PetCareSignal | null | undefined;
   badges: HelperBadge[];
-  tierProfile: { approval_status: string | null; idv_status: string | null; stripe_account_id: string | null } | null;
+  tierProfile: { approval_status: string | null; stripe_identity_verified: boolean | null; stripe_account_id: string | null } | null;
   stats: ProfileStatsShape;
   hasSubmittedCredentials: boolean;
   workedJobs: ProfileJob[];
@@ -88,13 +88,19 @@ export const ProfileHeaderCard = ({
           "radial-gradient(60% 80% at 0% 100%, hsl(165 18% 78% / 0.18) 0%, transparent 60%)",
       }}
     >
-      {/* Verified Helpr ribbon — visible top-right corner badge
-          for ID-verified helpers. Promotes the trust signal from
-          a small chip to a prominent marker posters see at first
-          glance. Gold-warm so it reads as recognition, not status. */}
+      {/* ID-verified ribbon — visible top-right corner badge for helpers
+          whose identity STRIPE verified. Promotes the trust signal from a
+          small chip to a prominent marker posters see at first glance.
+          Gold-warm so it reads as recognition, not status.
+
+          It used to fire on `!!id_document_url` — merely having UPLOADED a
+          document earned a "Verified" ribbon in front of strangers deciding
+          whether to let this person into their home, even though nobody
+          reviews the upload. It now reads `stripe_identity_verified`; the
+          label names Stripe so it claims exactly what was actually done. */}
       {isIdVerified && (
         <div
-          aria-label="Verified Helpr"
+          aria-label="Identity verified by Stripe"
           className="absolute top-3 right-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full"
           style={{
             background: "hsl(var(--gold-warm) / 0.14)",
@@ -110,7 +116,7 @@ export const ProfileHeaderCard = ({
             className="font-sans font-bold uppercase tracking-wider text-ds-10"
             style={{ color: "hsl(var(--gold-warm))", letterSpacing: "0.16em" }}
           >
-            Verified
+            Stripe verified
           </span>
         </div>
       )}
@@ -183,7 +189,7 @@ export const ProfileHeaderCard = ({
                 // components/profile/profileLanding/IdentityHeader.tsx — this is
                 // the public-profile copy of it.
                 role="img"
-                aria-label="ID verified"
+                aria-label="ID verified by Stripe"
                 className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center"
                 style={{
                   background: "hsl(var(--bark))",

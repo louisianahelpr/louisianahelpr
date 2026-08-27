@@ -126,10 +126,13 @@ export function IdentityHeader({
                 as aria-prohibited-attr. role="img" makes it a labelled graphic,
                 which is what it actually is — a status glyph whose entire
                 meaning lives in the label. */}
-            {hasPhoto && profile?.idv_status === "verified" && (
+            {/* Stripe's verdict, not `idv_status` — see
+                useProfileLandingDerived and
+                supabase/functions/_shared/stripeIdentity.ts. */}
+            {hasPhoto && profile?.stripe_identity_verified === true && (
               <div
                 role="img"
-                aria-label="ID verified"
+                aria-label="ID verified by Stripe"
                 className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center pointer-events-none"
                 style={{
                   background: "hsl(var(--bark))",
@@ -280,7 +283,7 @@ export function IdentityHeader({
                 <HelperTierBadge
                   profile={{
                     approval_status: profile?.approval_status ?? null,
-                    idv_status: profile?.idv_status ?? null,
+                    stripe_identity_verified: profile?.stripe_identity_verified ?? null,
                     stripe_account_id: profile?.stripe_account_id ?? null,
                   }}
                   stats={{

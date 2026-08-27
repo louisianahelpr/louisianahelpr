@@ -3302,6 +3302,8 @@ export type Database = {
           skills: string | null
           sms_consent: boolean
           stripe_account_id: string | null
+          stripe_identity_verified: boolean
+          stripe_identity_verified_at: string | null
           subscription_expires_at: string | null
           subscription_tier: string | null
           terms_accepted_at: string | null
@@ -3391,6 +3393,8 @@ export type Database = {
           skills?: string | null
           sms_consent?: boolean
           stripe_account_id?: string | null
+          stripe_identity_verified?: boolean
+          stripe_identity_verified_at?: string | null
           subscription_expires_at?: string | null
           subscription_tier?: string | null
           terms_accepted_at?: string | null
@@ -3480,6 +3484,8 @@ export type Database = {
           skills?: string | null
           sms_consent?: boolean
           stripe_account_id?: string | null
+          stripe_identity_verified?: boolean
+          stripe_identity_verified_at?: string | null
           subscription_expires_at?: string | null
           subscription_tier?: string | null
           terms_accepted_at?: string | null

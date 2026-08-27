@@ -211,8 +211,8 @@ export function ConversationList({
     !!searchQuery.trim() && filteredConversations.length === 0;
 
   /* And the same thing for a TAB that filters everything out.
-     `isEmpty` asks whether the whole inbox is empty, so it stayed false while
-     the Unread tab was showing nothing — and the list column rendered as a
+     `hasThreads` asks whether the whole inbox has anything, so it stayed true
+     while the Unread tab was showing nothing — and the list column rendered as a
      blank white panel with no message at all. A caught-up inbox is a good
      outcome; it should say so rather than look broken. */
   const noTabMatches =
@@ -296,11 +296,32 @@ export function ConversationList({
     [userId, pinNonce],
   );
 
-  // Empty inbox (loaded, no error, zero threads). When there's nothing
-  // to list, the redundant secondary "Conversations / All threads"
-  // header is pure noise stacked above the empty-state card — it's
-  // hidden so the empty state reads as one clean panel.
-  const isEmpty = !loading && !loadError && conversations.length === 0;
+  // Are there threads to ACT ON? This gates every control on the page — the
+  // Unread/Active/All tabs, the Select/Search cluster, and the select-mode
+  // action bar — none of which have anything to operate on without them.
+  //
+  // Note what it is NOT: the negation of "is the inbox empty". The gate used to
+  // be `!isEmpty`, where `isEmpty = !loading && …length === 0`, and the `!loading`
+  // made an unanswered inbox count as non-empty. So the tabs rendered during the
+  // load and then vanished the instant the query came back with zero — the owner
+  // saw exactly that and described it as "Messages opens different then realized
+  // there are no messages and changes the view of the screen". Measured at 375
+  // on the built app: the thread area sat at y=122 while loading and snapped to
+  // y=65 when the empty state landed, a 57px jump.
+  //
+  // Phrased as a positive — "we KNOW there are threads" — loading is treated as
+  // "not yet", so nothing appears that later has to be taken away.
+  //
+  // This cannot be made jump-free in both directions: the loading frame has to
+  // guess one of the two outcomes, and whichever it guesses, the other one moves
+  // by the tab row's height. It now guesses "no controls", so the empty inbox —
+  // the reported bug, and the case where a control genuinely disappears — is
+  // stable from first paint, and the populated inbox instead gains the tab row
+  // once, in the same frame its four skeletons are replaced by real rows.
+  // Reserving the height instead would not help the empty case at all: it would
+  // collapse on load exactly as it does today, or keep a permanent 57px dead
+  // band above the empty state.
+  const hasThreads = !loading && !loadError && conversations.length > 0;
 
   // Header second line, matching the Activity pages ("My Jobs" / "All · 4").
   //
@@ -364,7 +385,8 @@ export function ConversationList({
               Hidden on an empty inbox so the empty state reads as one
               clean panel. */}
           {/* The header renders ALWAYS, including when the inbox is empty.
-              It used to be gated on `!isEmpty`, which meant an empty Messages
+              It used to be gated on the inverse of the controls' gate, which meant an
+              empty Messages
               had no title bar at all — the screen just opened on the empty
               illustration with nothing naming it, while My Jobs beside it kept
               its title. It also left the page with ZERO h1, so a screen reader
@@ -463,9 +485,9 @@ export function ConversationList({
                         the Unread tab carries that number now, and the caption
                         beside a tab that already says it is the same fact
                         twice. */}
-                    {embedded && !isEmpty && inboxTabs}
+                    {embedded && hasThreads && inboxTabs}
                   </div>
-                  <div className={`flex items-center gap-1 shrink-0 ${isEmpty ? "hidden" : ""}`}>
+                  <div className={`flex items-center gap-1 shrink-0 ${hasThreads ? "" : "hidden"}`}>
                     <button
                       onClick={enterSelectMode}
                       aria-label="Select conversations"
@@ -491,7 +513,7 @@ export function ConversationList({
               there is no room for them beside a visible "Messages" title and
               the Select / Search cluster. Hidden while search or select mode
               has taken the row over: one control at a time. */}
-          {!embedded && !isEmpty && !searchOpen && !selectMode && (
+          {!embedded && hasThreads && !searchOpen && !selectMode && (
             <div className="shrink-0 px-4 pt-2.5 pb-1 overflow-x-auto scrollbar-hide">
               {inboxTabs}
             </div>
@@ -707,7 +729,7 @@ export function ConversationList({
               The count moved in here with it; the toolbar's "N/3 selected"
               text is gone, because with both present the same number was on
               screen twice. */}
-          {selectMode && !isEmpty && (
+          {selectMode && hasThreads && (
             <div
               role="toolbar"
               aria-label="Bulk hide action bar"

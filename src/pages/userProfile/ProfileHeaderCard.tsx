@@ -136,8 +136,9 @@ export const ProfileHeaderCard = ({
           record — reply time, accept rate, on-time, revisions, cancellations,
           disputes, what they do, and how they describe themselves.
 
-          Below `sm` it collapses back to the original single centred stack, in
-          the original order, so the phone card is unchanged. */}
+          Below `sm` the two halves stack (identity above the record) rather
+          than sitting side by side. The identity half itself is a row at every
+          width now — see the note on it below. */}
       <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-5">
         {/* ── IDENTITY ── */}
         {/* Avatar LEFT, name/place/tenure RIGHT — the same row the signed-in
@@ -146,10 +147,25 @@ export const ProfileHeaderCard = ({
             inside a fixed 212px rail, so the public profile and the owner's own
             profile presented the same identity two different ways (owner,
             2026-08-25: "name and location and since needs to be to the right of
-            picture just like it in when they click profile tab"). Phone keeps
-            the centred stack, where a row would leave the name no width. */}
-        <div className="flex flex-col items-center text-center sm:flex-row sm:items-center sm:text-left gap-2 sm:gap-4 sm:w-[420px] sm:shrink-0">
-          <div className="relative inline-block sm:shrink-0">
+            picture just like it in when they click profile tab").
+
+            NOW ON PHONE TOO (owner, 2026-08-27). The row was `sm:` only, so the
+            surface the owner actually looks at — the phone / the native app —
+            still centred the avatar with the name stacked underneath, and the
+            public profile went on presenting the same identity two different
+            ways depending on the width. IdentityHeader is a bare
+            `flex flex-row items-center gap-4` at every width on an 88px avatar
+            in the same 375pt column, so "a row leaves the name no width" was
+            never true; this is the same row on a 96px avatar.
+
+            TWO children, not five. Avatar, then ONE column holding name, place,
+            tenure, presence, shared history and the trust badges — the same
+            shape IdentityHeader uses. They used to be five siblings of the flex
+            container, which on `sm:flex-row` laid the presence chip, the mutual
+            pill and the badge rail out as three more COLUMNS beside the name
+            instead of stacking under it. */}
+        <div className="flex flex-row items-center text-left gap-4 sm:w-[420px] sm:shrink-0">
+          <div className="relative inline-block shrink-0">
             {profile.avatar_url && !avatarFailed ? (
               <img
                 loading="lazy"
@@ -157,7 +173,7 @@ export const ProfileHeaderCard = ({
                 src={profile.avatar_url}
                 alt={`${displayName} profile picture`}
                 onError={() => setAvatarFailed(true)}
-                className="w-24 h-24 rounded-ds-avatar squircle mx-auto object-cover"
+                className="w-24 h-24 rounded-ds-avatar squircle object-cover"
                 style={{ boxShadow: "0 0 0 2px hsl(var(--bark) / 0.18)" }}
               />
             ) : (
@@ -172,7 +188,7 @@ export const ProfileHeaderCard = ({
                   // the 28px *pill* token — a pill radius stacked on squircle
                   // corner-smoothing, the same conflict as the old
                   // `rounded-full` + `squircle` pairing.
-                  "w-24 h-24 rounded-ds-avatar squircle bg-gradient-to-br text-[hsl(var(--ink-deep))] drop-shadow-sm flex items-center justify-center mx-auto text-ds-24 font-display italic font-bold",
+                  "w-24 h-24 rounded-ds-avatar squircle bg-gradient-to-br text-[hsl(var(--ink-deep))] drop-shadow-sm flex items-center justify-center text-ds-24 font-display italic font-bold",
                   avatarGradientFor(userId),
                 )}
                 style={{ boxShadow: "0 0 0 2px hsl(var(--bark) / 0.18)" }}
@@ -200,7 +216,9 @@ export const ProfileHeaderCard = ({
               </div>
             )}
           </div>
-          <div className="min-w-0 w-full sm:flex-1">
+          {/* The one info column that sits to the right of the avatar. */}
+          <div className="min-w-0 flex-1">
+          <div className="min-w-0">
             {/* h2, not h1: UserProfile already renders a <PageHeader> whose title
                 ("Profile" / "Profile Review") is this page's h1, so making the
                 person's name a second h1 gave /user/:id TWO top-level headings and
@@ -216,7 +234,7 @@ export const ProfileHeaderCard = ({
                 very bottom of the page, far from the name it describes. */}
             {(profile.location || profile.created_at) && (
               <p
-                className="font-serif italic flex flex-wrap items-center justify-center sm:justify-start gap-x-1.5 gap-y-0.5 mt-0.5 text-ds-13"
+                className="font-serif italic flex flex-wrap items-center justify-start gap-x-1.5 gap-y-0.5 mt-0.5 text-ds-13"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 {profile.location && (
@@ -293,7 +311,7 @@ export const ProfileHeaderCard = ({
                 </span>
               </div>
             )}
-            <div className="pt-2 flex flex-wrap justify-center sm:justify-start gap-1.5">
+            <div className="pt-2 flex flex-wrap justify-start gap-1.5">
               {/* Verification ladder (#112) — sits with credentials
                   because both answer "should I trust this person?",
                   separate from the performance badges above. The
@@ -342,6 +360,7 @@ export const ProfileHeaderCard = ({
                 </span>
               )}
             </div>
+          </div>
         </div>
 
         {/* ── THE RECORD ── */}

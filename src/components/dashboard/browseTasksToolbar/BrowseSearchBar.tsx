@@ -67,8 +67,15 @@ export function BrowseSearchBar({
       <div className="flex items-center gap-2">
         <div className="relative flex-1 min-w-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+          {/* Deliberately NOT autoFocus. This field is inside the "Refine
+              Your Search" sheet, which is opened by the filter button — a
+              control whose job is sort/view/category, not text entry. Focusing
+              on open threw up the iOS keyboard every time, covering the
+              Category chips and half the sort row the poster actually came
+              for, and forcing a dismiss before they could tap anything.
+              Tapping the field still focuses it; the keyboard now appears
+              when it is asked for. */}
           <input
-            autoFocus
             type="search"
             aria-label="Search jobs"
             placeholder="Search jobs…"

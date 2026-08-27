@@ -37,6 +37,28 @@ check() {
   fi
 }
 
+# Numeric floor check. `check` is a literal grep, which is wrong for the build
+# number: CURRENT_PROJECT_VERSION is a FLOOR that fastlane bumps past
+# TestFlight's latest on every archive (see the Fastfile), so pinning the
+# literal made this fail on every run once the number moved off the seed value
+# — and print "your repo is OUT OF DATE, pull from GitHub Desktop" at a repo
+# that was perfectly in sync. Assert the invariant that actually holds.
+check_min() {
+  local label="$1"
+  local file="$2"
+  local key="$3"
+  local floor="$4"
+  local actual
+  actual=$(grep -oE "$key = [0-9]+;" "$file" | grep -oE '[0-9]+' | sort -n | head -1)
+  if [ -n "$actual" ] && [ "$actual" -ge "$floor" ]; then
+    printf "  ${GREEN}✓${NC} %s   (found: %s)\n" "$label" "$actual"
+    pass=$((pass+1))
+  else
+    printf "  ${RED}✗${NC} %s   (found: %s, need >= %s)\n" "$label" "${actual:-none}" "$floor"
+    fail=$((fail+1))
+  fi
+}
+
 echo ""
 echo "=== iOS metadata check ==="
 echo ""
@@ -55,7 +77,7 @@ check "Team = P85MCK558V"                  "$PBXPROJ" "DEVELOPMENT_TEAM = P85MCK
 check "Display Name = Louisiana Helpr"     "$PBXPROJ" 'INFOPLIST_KEY_CFBundleDisplayName = "Louisiana Helpr";'
 check "Category = lifestyle"               "$PBXPROJ" 'INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";'
 check "Marketing Version = 1.0.4"          "$PBXPROJ" "MARKETING_VERSION = 1.0.4;"
-check "Build floor >= 19"                  "$PBXPROJ" "CURRENT_PROJECT_VERSION = 19;"
+check_min "Build floor >= 19"              "$PBXPROJ" "CURRENT_PROJECT_VERSION" 19
 check "Deployment target = 15.0"           "$PBXPROJ" "IPHONEOS_DEPLOYMENT_TARGET = 15.0;"
 
 echo ""

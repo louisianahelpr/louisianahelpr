@@ -1,11 +1,7 @@
 import { memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import {
-  CheckCircle2, RotateCcw,
-  Users, RefreshCw, Clock,
-  Check, ChevronDown, ChevronUp, Eye,
-} from "lucide-react";
+import { CheckCircle2, RotateCcw, Users, RefreshCw, Clock, Check, ChevronDown, ChevronUp } from "lucide-react";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
 import { SeriesStrip } from "@/components/activity/SeriesStrip";
 import { JobCountdown } from "@/components/activity/JobCountdown";
@@ -65,8 +61,7 @@ function PostedJobCardInner({
   initialTracking,
   initialGroupHelpers,
   onActionComplete,
-  viewCount,
-  jobAnalytics,
+
 }: PostedJobCardProps) {
   const navigate = useNavigate();
 
@@ -150,12 +145,11 @@ function PostedJobCardInner({
                     one that keeps it — it is the actionable one, and it is
                     where a poster goes to act on the number. The pill now says
                     only "Pick someone" (see postedActiveState). */}
-                {viewCount != null && viewCount > 0 && (
-                   <span className="flex items-center gap-1 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                     <Eye className="w-3 h-3 shrink-0" />
-                     {viewCount} {viewCount === 1 ? "view" : "views"}
-                   </span>
-                 )}
+                {/* The view count is deliberately NOT here either. It was
+                    stated twice on one card — this chip and the Activity
+                    panel below the tracker — and the owner's ruling on the
+                    pair was "show only when applicants is clicked". Both are
+                    gone; reach now lives solely in the Applicants panel. */}
                  {/* Interval word only when the SeriesStrip isn't already
                      stating the full shape (owner: less hectic — one series
                      statement per card, not two). */}
@@ -515,33 +509,14 @@ function PostedJobCardInner({
                 />
               )}
 
-              {/* Analytics mini-panel — reach/views readout. The applicant
-                  count is intentionally NOT shown here: the Applicants button
-                  already surfaces it, so repeating it as "N applied" is noise.
-                  The bid-range line that used to close this panel is gone with
-                  the accept_bids mode itself — zero posters ever used it. */}
-              {jobAnalytics && jobAnalytics.viewCount > 0 && (
-                <div
-                  className="mx-4 rounded-ds-md px-3 py-2.5 space-y-1.5 mb-2"
-                  style={{ background: "hsl(var(--parchment) / 0.4)", border: "1px solid hsl(var(--olivewood) / 0.1)" }}
-                >
-                  <p className="text-ds-11 font-semibold uppercase tracking-[0.1em]" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                    Activity
-                  </p>
-                  <div className="flex flex-wrap gap-x-4 gap-y-1">
-                    {jobAnalytics.viewCount > 0 && (
-                      <span className="text-ds-12 flex items-center gap-1" style={{ color: "hsl(var(--ink-deep) / 0.7)" }}>
-                        <Eye className="w-3 h-3" /> {jobAnalytics.viewCount} {jobAnalytics.viewCount === 1 ? "view" : "views"}
-                      </span>
-                    )}
-                    {jobAnalytics.conversionRate !== null && (
-                      <span className="text-ds-12" style={{ color: "hsl(var(--ink-deep) / 0.55)" }}>
-                        {jobAnalytics.conversionRate}% applied
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
+              {/* The Activity panel (views / % applied) used to sit here.
+                  Owner: "just remove it from there. Show it when applicants is
+                  clicked." Reach is a number you consult while deciding
+                  between applicants, not standing information the card owes
+                  you on every scroll — so it now lives in the Applicants
+                  panel's header (ApplicantsPanel.tsx) and nowhere else. The
+                  meta row's duplicate "N views" chip went with it, by the same
+                  ruling: one place, on demand. */}
 
               {/* Actions */}
               <PostedJobActions

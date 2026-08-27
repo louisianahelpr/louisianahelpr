@@ -107,7 +107,9 @@ export const PostedJobsTab = ({
 
   // Per-job analytics (view counts + conversion + bid range) for the
   // PostedJobCard mini-panel.
-  const { viewCounts, jobAnalyticsMap } = useJobAnalytics(jobs, applicantCounts);
+  // viewCounts is no longer read: the card stopped rendering reach, and the
+  // Applicants panel takes the richer jobAnalyticsMap entry instead.
+  const { jobAnalyticsMap } = useJobAnalytics(jobs, applicantCounts);
 
   // Filter the incoming jobs through the dismissed set so a previously
   // hidden cancelled job stays hidden across re-renders. Cancelled jobs
@@ -135,8 +137,6 @@ export const PostedJobsTab = ({
         helperNames={helperNames}
         completedJobMeta={completedJobMeta}
         startRequestedJobIds={startRequestedJobIds}
-        viewCount={viewCounts[job.id]}
-        jobAnalytics={jobAnalyticsMap[job.id]}
         // `latestTracking[job.id]` may legitimately be `null` ("we
         // looked, no row exists") — the card forwards that down so
         // <JobTracking> skips its own initial fetch. If the key is
@@ -270,6 +270,7 @@ export const PostedJobsTab = ({
           repeatHireMap={repeatHireMap}
           onTimeMap={onTimeMap}
           distanceMap={distanceMap}
+          jobAnalytics={jobAnalyticsMap[selectedJob.id]}
         />
       )}
     </div>

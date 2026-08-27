@@ -54,14 +54,7 @@ export interface PostedJobCardProps {
   /** Refetch the posted-jobs feed after an inline mutation (dispute
       resolve/escalate) instead of a full-page reload. */
   onActionComplete: () => void;
-  /** Number of unique helprs who have viewed this job. Only shown when > 0. */
-  viewCount?: number;
-  /** Pre-computed analytics for this job — views, applicant count, and
-   *  conversion rate. The bid min/max/avg fields went out with the
-   *  accept_bids pricing mode (zero production usage). */
-  jobAnalytics?: {
-    viewCount: number;
-    applicantCount: number;
-    conversionRate: number | null;
-  };
+  /* viewCount / jobAnalytics used to live here. Reach is no longer rendered
+     on the card at all — it moved into the Applicants panel, which receives
+     jobAnalytics directly from PostedJobsTab. */
 }

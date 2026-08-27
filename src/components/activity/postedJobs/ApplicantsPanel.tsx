@@ -2,12 +2,13 @@ import { useState, useCallback } from "react";
 import { formatName } from "@/lib/utils";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Pencil, Plus, Sparkles, Star, X } from "lucide-react";
+import { ArrowLeft, Eye, Pencil, Plus, Sparkles, Star, X } from "lucide-react";
 import { AttachmentLink } from "@/components/AttachmentLink";
 import CredentialBadge from "@/components/CredentialBadge";
 import { hapticLight } from "@/lib/haptics";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import { type Job, type EnrichedApplication } from "../activityConstants";
+import { type JobAnalytics } from "./useJobAnalytics";
 import { useApplicantComparison } from "./useApplicantComparison";
 import { DeclineApplicantSheet } from "./DeclineApplicantSheet";
 import { ApplicantsLoadingState, ApplicantsErrorState, ApplicantsEmptyState } from "./applicantsPanel/ApplicantsStates";
@@ -33,6 +34,10 @@ interface ApplicantsPanelProps {
   repeatHireMap: Map<string, number>;
   onTimeMap: Map<string, number>;
   distanceMap: Map<string, number>;
+  /** Reach for the selected job. Undefined until the view-count query
+      resolves, or when the job has never been viewed — the readout is
+      simply omitted in both cases rather than rendering a zero. */
+  jobAnalytics?: JobAnalytics;
 }
 
 export function ApplicantsPanel({
@@ -50,6 +55,7 @@ export function ApplicantsPanel({
   repeatHireMap,
   onTimeMap,
   distanceMap,
+  jobAnalytics,
 }: ApplicantsPanelProps) {
   // The counter-offer state (bid input, optimistic negotiation status, the
   // counter_application_bid RPC call) lived here until bidding was removed —
@@ -133,6 +139,24 @@ export function ApplicantsPanel({
               {selectedJob.title}
             </p>
           </div>
+          {/* Reach, on demand. This readout used to sit on the job card itself
+              (once in the meta row, again in an "Activity" panel under the
+              tracker — the same number twice). Owner: show it when applicants
+              is clicked. This is where a poster is actually weighing whether
+              the post is working, so it is the one place it earns its space. */}
+          {jobAnalytics && jobAnalytics.viewCount > 0 && (
+            <div className="shrink-0 text-right" aria-label="Post reach">
+              <span className="flex items-center justify-end gap-1 text-ds-12" style={{ color: "hsl(var(--ink-deep) / 0.7)" }}>
+                <Eye className="w-3 h-3 shrink-0" aria-hidden />
+                {jobAnalytics.viewCount} {jobAnalytics.viewCount === 1 ? "view" : "views"}
+              </span>
+              {jobAnalytics.conversionRate !== null && (
+                <span className="block text-ds-11" style={{ color: "hsl(var(--ink-deep) / 0.55)" }}>
+                  {jobAnalytics.conversionRate}% applied
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Modal body — capped at iPad-comfortable width */}

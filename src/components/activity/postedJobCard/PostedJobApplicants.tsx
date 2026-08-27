@@ -104,30 +104,13 @@ export function PostedJobApplicants({
           );
         }
 
-        if (apps !== undefined && apps.length === 0) {
-          return (
-            <div
-              className="rounded-ds-md px-3 py-2.5 space-y-1.5"
-              style={{
-                background: "hsl(var(--olivewood) / 0.05)",
-                border: "0.5px solid hsl(var(--olivewood) / 0.16)",
-              }}
-            >
-              <p
-                className="font-display italic font-bold text-ds-14"
-                style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
-              >
-                No applicants yet
-              </p>
-              <p
-                className="font-serif italic leading-snug text-ds-12"
-                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-              >
-                Share your job or Boost it (below) to reach more Helprs nearby.
-              </p>
-            </div>
-          );
-        }
+        // Nobody has applied yet: render NOTHING. This used to be a bordered
+        // "No applicants yet" panel telling the poster to Share or Boost —
+        // directly above the Share and Boost buttons that say so themselves.
+        // Owner asked for it gone. An empty state earns its space only when
+        // the surrounding screen would otherwise be unreadable; here the
+        // Applicants button and the action row already carry the state.
+        if (apps !== undefined && apps.length === 0) return null;
 
         // Render the inline applicant list with TrustRow
         // showing each applicant's completed jobs and rating.

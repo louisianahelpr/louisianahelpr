@@ -39,6 +39,105 @@ interface JobsPage {
   nextOffset: number | null;
 }
 
+export type DashboardContext = Awaited<ReturnType<typeof fetchDashboardContext>>;
+
+/** Per-user dashboard context (fee / availability / applied set / blocks).
+ *
+ *  Hoisted to module scope so the feed query can RACE it via
+ *  queryClient.ensureQueryData instead of waiting a whole round-trip for it.
+ *  None of these four values is needed to ISSUE the jobs request — only to
+ *  filter the rows it returns — so gating the feed on `!!ctx` cost one full
+ *  serial network round (~215ms measured) before the first card could paint.
+ */
+export async function fetchDashboardContext(
+  userId: string | null,
+) {
+  if (!userId) return null;
+    // Wrap in try/catch so a network-level failure in any of the four
+    // sub-queries is surfaced via report() (PostHog + error_logs) instead
+    // of a silent partial state. We RETHROW so React Query flips into its
+    // error state — callers downstream depend on `ctx` being either
+    // fully-formed or absent.
+    let feeRes, availRes, appliedRes, blocksRes;
+    try {
+      [feeRes, availRes, appliedRes, blocksRes] = await Promise.all([
+        supabase.rpc("get_public_platform_settings"),
+        supabase
+          .from("helper_availability")
+          .select("day_of_week, is_available, start_time, end_time")
+          .eq("helper_id", userId)
+          .is("specific_date", null)
+          .order("day_of_week"),
+        supabase
+          .from("applications")
+          .select("job_id")
+          .eq("helper_id", userId),
+        supabase
+          .from("user_blocks")
+          .select("blocker_id, blocked_id")
+          .or(`blocker_id.eq.${userId},blocked_id.eq.${userId}`),
+      ]);
+    } catch (ctxErr) {
+      report(ctxErr, {
+        // "error" not "warning" — this throw bricks the dashboard for every
+        // signed-in user. The Sentry alert rule for `permission denied for`
+        // (added 2026-05-28 after PR #355 / #358 missed paging on exactly
+        // this code path) filters on level=error, so leaving it at warning
+        // re-creates the silent-regression we just paid for.
+        severity: "error",
+        tags: { source: "dashboard.ctx_query" },
+        context: { user_id: userId },
+      });
+      throw ctxErr;
+    }
+
+    // Promise.all doesn't reject on Supabase PostgrestError shapes — those
+    // come back as { data: null, error }. Spot-check each result so we
+    // don't silently treat a failed sub-query as "empty" — and so PostHog/
+    // error_logs sees the real PostgrestError next time this fires.
+    const subResults = [
+      { sub: "get_public_platform_settings", error: feeRes.error },
+      { sub: "helper_availability", error: availRes.error },
+      { sub: "applications", error: appliedRes.error },
+      { sub: "user_blocks", error: blocksRes.error },
+    ];
+    for (const { sub, error } of subResults) {
+      if (!error) continue;
+      report(new Error(`dashboard.ctx sub-query failed: ${sub}: ${error.message ?? "unknown"}`), {
+        // Promoted from "warning" — the get_public_platform_settings RPC
+        // here is the same one that bricks the post-job form (see
+        // usePostJobForm.ts). Treat any subquery failure on the dashboard
+        // ctx fetch as a real error so the new "permission denied for"
+        // alert rule catches it.
+        severity: "error",
+        tags: { source: "dashboard.ctx_subquery", sub },
+        context: {
+          user_id: userId,
+          code: error.code,
+          message: error.message,
+          details: error.details,
+        },
+      });
+    }
+    // Don't throw on sub-errors — degrade gracefully. Empty defaults
+    // below give the user a usable dashboard (no availability flag, no
+    // blocks, etc.) instead of an outright error state.
+
+    const feeRow = Array.isArray(feeRes.data) ? (feeRes.data)[0] : null;
+    // Fall back to the canonical FREE-tier rate (12%), not a magic 10 — a
+    // helper with no fee row is on the free plan, and the subscription page
+    // already advertises free = 12% / pro = 10% / elite = 8% (LH-30).
+    const platformFee = feeRow?.helper_fee_percent ?? TIER_PERKS.free.platformFeePercent;
+    const helperAvailability = availRes.data ?? [];
+    const appliedJobIds = new Set((appliedRes.data ?? []).map((a) => a.job_id));
+    const blockedUserIds = new Set<string>();
+    for (const row of (blocksRes.data ?? [])) {
+      if (row.blocker_id === userId) blockedUserIds.add(row.blocked_id);
+      if (row.blocked_id === userId) blockedUserIds.add(row.blocker_id);
+    }
+    return { platformFee, helperAvailability, appliedJobIds, blockedUserIds };
+}
+
 export function useDashboardData() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -56,93 +155,7 @@ export function useDashboardData() {
   // Cached separately so it doesn't re-fetch when the next page of jobs loads.
   const { data: ctx, isLoading: ctxLoading, isFetching: ctxFetching } = useQuery({
     queryKey: queryKeys.dashboard.context(user?.id),
-    queryFn: async () => {
-      if (!user) return null;
-      const userId = user.id;
-      // Wrap in try/catch so a network-level failure in any of the four
-      // sub-queries is surfaced via report() (PostHog + error_logs) instead
-      // of a silent partial state. We RETHROW so React Query flips into its
-      // error state — callers downstream depend on `ctx` being either
-      // fully-formed or absent.
-      let feeRes, availRes, appliedRes, blocksRes;
-      try {
-        [feeRes, availRes, appliedRes, blocksRes] = await Promise.all([
-          supabase.rpc("get_public_platform_settings"),
-          supabase
-            .from("helper_availability")
-            .select("day_of_week, is_available, start_time, end_time")
-            .eq("helper_id", userId)
-            .is("specific_date", null)
-            .order("day_of_week"),
-          supabase
-            .from("applications")
-            .select("job_id")
-            .eq("helper_id", userId),
-          supabase
-            .from("user_blocks")
-            .select("blocker_id, blocked_id")
-            .or(`blocker_id.eq.${userId},blocked_id.eq.${userId}`),
-        ]);
-      } catch (ctxErr) {
-        report(ctxErr, {
-          // "error" not "warning" — this throw bricks the dashboard for every
-          // signed-in user. The Sentry alert rule for `permission denied for`
-          // (added 2026-05-28 after PR #355 / #358 missed paging on exactly
-          // this code path) filters on level=error, so leaving it at warning
-          // re-creates the silent-regression we just paid for.
-          severity: "error",
-          tags: { source: "dashboard.ctx_query" },
-          context: { user_id: userId },
-        });
-        throw ctxErr;
-      }
-
-      // Promise.all doesn't reject on Supabase PostgrestError shapes — those
-      // come back as { data: null, error }. Spot-check each result so we
-      // don't silently treat a failed sub-query as "empty" — and so PostHog/
-      // error_logs sees the real PostgrestError next time this fires.
-      const subResults = [
-        { sub: "get_public_platform_settings", error: feeRes.error },
-        { sub: "helper_availability", error: availRes.error },
-        { sub: "applications", error: appliedRes.error },
-        { sub: "user_blocks", error: blocksRes.error },
-      ];
-      for (const { sub, error } of subResults) {
-        if (!error) continue;
-        report(new Error(`dashboard.ctx sub-query failed: ${sub}: ${error.message ?? "unknown"}`), {
-          // Promoted from "warning" — the get_public_platform_settings RPC
-          // here is the same one that bricks the post-job form (see
-          // usePostJobForm.ts). Treat any subquery failure on the dashboard
-          // ctx fetch as a real error so the new "permission denied for"
-          // alert rule catches it.
-          severity: "error",
-          tags: { source: "dashboard.ctx_subquery", sub },
-          context: {
-            user_id: userId,
-            code: error.code,
-            message: error.message,
-            details: error.details,
-          },
-        });
-      }
-      // Don't throw on sub-errors — degrade gracefully. Empty defaults
-      // below give the user a usable dashboard (no availability flag, no
-      // blocks, etc.) instead of an outright error state.
-
-      const feeRow = Array.isArray(feeRes.data) ? (feeRes.data)[0] : null;
-      // Fall back to the canonical FREE-tier rate (12%), not a magic 10 — a
-      // helper with no fee row is on the free plan, and the subscription page
-      // already advertises free = 12% / pro = 10% / elite = 8% (LH-30).
-      const platformFee = feeRow?.helper_fee_percent ?? TIER_PERKS.free.platformFeePercent;
-      const helperAvailability = availRes.data ?? [];
-      const appliedJobIds = new Set((appliedRes.data ?? []).map((a) => a.job_id));
-      const blockedUserIds = new Set<string>();
-      for (const row of (blocksRes.data ?? [])) {
-        if (row.blocker_id === userId) blockedUserIds.add(row.blocked_id);
-        if (row.blocked_id === userId) blockedUserIds.add(row.blocker_id);
-      }
-      return { platformFee, helperAvailability, appliedJobIds, blockedUserIds };
-    },
+    queryFn: () => fetchDashboardContext(user?.id ?? null),
     enabled: !!user && !userLoading,
     // SWR window for the dashboard ctx (settings / availability / applied set
     // / blocks). 2 minutes is generous enough that tab-switching back to the
@@ -172,8 +185,26 @@ export function useDashboardData() {
     initialPageParam: 0,
     queryFn: async ({ pageParam }): Promise<JobsPage> => {
       const offset = pageParam as number;
-      const blockedUserIds = ctx?.blockedUserIds ?? new Set<string>();
-      const appliedJobIds = ctx?.appliedJobIds ?? new Set<string>();
+      // The ctx fetch (fee / availability / applied set / blocks) is only
+      // needed to FILTER the rows below — never to ISSUE the jobs request. So
+      // kick it off here and await it *after* the jobs query is already in
+      // flight, so the two rounds overlap instead of stacking. This query used
+      // to carry `enabled: !!ctx`, which serialised them and cost a full extra
+      // network round (~215ms measured RTT) before the first card could paint.
+      // ensureQueryData dedupes against the ctx useQuery above, so this never
+      // fires a second request.
+      //
+      // A ctx failure must not brick the feed — it only costs the applied /
+      // blocked filters, and the ctx useQuery surfaces the error separately.
+      const ctxSettled: Promise<DashboardContext> = user
+        ? queryClient
+            .ensureQueryData({
+              queryKey: queryKeys.dashboard.context(user.id),
+              queryFn: () => fetchDashboardContext(user.id),
+              staleTime: 2 * 60 * 1000,
+            })
+            .catch(() => null)
+        : Promise.resolve(null);
 
       // Phase 1: jobs page. Range is inclusive on both ends, so request
       // PAGE_SIZE + 1 rows to know whether another page exists without a count.
@@ -220,7 +251,7 @@ export function useDashboardData() {
             // along with the precise location). Asking for them returned a
             // PostgREST 400 that silently emptied the dashboard. The
             // nearby-radius filter falls back to the location string match.
-            "id, title, description, category, budget, date_needed, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_flexible_schedule, is_recurring, is_group_job, helpers_needed, estimated_hours, special_requirements, photos, boosted_at, boost_expires_at, expires_at, start_time, recurrence_interval, recurrence_end_date, parent_job_id, payment_status, location, pricing_mode",
+            "id, title, description, category, budget, date_needed, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_flexible_schedule, is_recurring, is_group_job, helpers_needed, estimated_hours, special_requirements, photos, boosted_at, boost_expires_at, expires_at, start_time, recurrence_interval, recurrence_end_date, parent_job_id, payment_status, location, pricing_mode, applicant_count",
           )
           .neq("payment_status", "abandoned");
 
@@ -246,6 +277,11 @@ export function useDashboardData() {
         throw viewErr;
       }
 
+      // Both rounds are done by now — join them here, not before the fetch.
+      const ctxData = await ctxSettled;
+      const blockedUserIds = ctxData?.blockedUserIds ?? new Set<string>();
+      const appliedJobIds = ctxData?.appliedJobIds ?? new Set<string>();
+
       const rawAll = ((rawJobsRes ?? []) as any[]).filter((j) => !blockedUserIds.has(j.customer_id));
       const hasMore = rawAll.length > PAGE_SIZE;
       const rawJobs = hasMore ? rawAll.slice(0, PAGE_SIZE) : rawAll;
@@ -256,26 +292,13 @@ export function useDashboardData() {
 
       // Phase 2: enrich page with poster names + review stats + subscription tier (for Search Priority).
       const posterIds = [...new Set(rawJobs.map((j) => j.customer_id))];
-      const [profilesRes, reviewStatsMap, posterTiersRes, countsRes] = await withTimeout(Promise.all([
+      const [profilesRes, reviewStatsMap, posterTiersRes] = await withTimeout(Promise.all([
         supabase.rpc("get_safe_profiles", { user_ids: posterIds }),
         fetchRatingStats(posterIds),
         supabase
           .from("profiles")
           .select("user_id, subscription_tier, subscription_expires_at")
           .in("user_id", posterIds),
-        // Applicant counts — lives in the open_jobs_browse view (added in
-        // migration 20260616120000) but pulled here as a SEPARATE,
-        // best-effort query rather than in the main feed select above. The
-        // main select is unwrap()'d, so a missing column (before the
-        // migration is manually pushed) would throw and brick the whole
-        // feed. Here we read `.data` directly (no unwrap), so a pre-deploy
-        // PGRST/42703 "column does not exist" simply resolves to no data and
-        // the "N applied" chip stays hidden. Fold this back into the main
-        // select to save a round-trip once the migration is live on prod.
-        supabase
-          .from("open_jobs_browse")
-          .select("id, applicant_count")
-          .in("id", rawJobs.map((j) => j.id)),
       ]), JOBS_QUERY_TIMEOUT_MS, "Loading tasks timed out");
 
       const nameMap = new Map(
@@ -294,12 +317,13 @@ export function useDashboardData() {
           (p as { is_id_verified?: boolean }).is_id_verified ?? false,
         ]) || [],
       );
-      // Applicant counts keyed by job id — see the best-effort query above.
-      // `.data` is null pre-deploy, yielding an empty map (no count shown).
+      // Applicant counts now come straight off the main feed select —
+      // `applicant_count` has been live on the open_jobs_browse view since
+      // migration 20260616120000 (verified present on prod), so the separate
+      // best-effort round-trip that used to re-query the same view for the
+      // same rows is gone.
       const applicantCountMap = new Map<string, number>(
-        (countsRes.data as Array<{ id: string; applicant_count: number | null }> | null)?.map(
-          (r) => [r.id, r.applicant_count ?? 0],
-        ) || [],
+        rawJobs.map((j) => [j.id as string, (j.applicant_count as number | null) ?? 0]),
       );
 
       // Build poster tier map — only count tier if subscription hasn't expired
@@ -352,7 +376,10 @@ export function useDashboardData() {
       return { jobs: enriched, nextOffset: hasMore ? offset + PAGE_SIZE : null };
     },
     getNextPageParam: (lastPage) => lastPage.nextOffset ?? undefined,
-    enabled: !!user && !userLoading && !!ctx,
+    // NOTE: deliberately NOT gated on `!!ctx` — see the ensureQueryData race
+    // in the queryFn above. Gating here made the feed wait a full round-trip
+    // for data it only uses to filter the response.
+    enabled: !!user && !userLoading,
     // Spotty rural/coastal signal: a background refetch (window-focus,
     // pull-to-refresh) keeps the LAST successful feed on screen with a quiet
     // updating state instead of collapsing to skeletons mid-scroll. Only the

@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { usePushPermissionNudge } from "@/lib/pushPermissionNudge";
 import { useStripeConnectCheck } from "@/hooks/useStripeConnectCheck";
+import type { AwardBlockReason } from "@/lib/awardGate";
 import type {
   Job,
   Application,
@@ -36,11 +36,7 @@ export function useActivityActions({
   helperNames = {},
   completedJobMeta = {},
 }: UseActivityActionsArgs) {
-  const { checkHelperStripeConnect } = useStripeConnectCheck();
-  // Held here (a hook) and handed down: the handler factories are plain
-  // functions, so a failed payout check can only offer a "Set up payouts"
-  // action if the router comes from this layer.
-  const navigate = useNavigate();
+  const { checkHelperAwardEligibility } = useStripeConnectCheck();
   const triggerPushNudge = usePushPermissionNudge();
 
   // UI state
@@ -80,9 +76,11 @@ export function useActivityActions({
   const [reviewTarget, setReviewTarget] = useState<{ id: string; name: string } | null>(null);
   const [helperReviewJob, setHelperReviewJob] = useState<{ jobId: string; posterId: string; posterName: string } | null>(null);
 
-  const [idvDialogOpen, setIdvDialogOpen] = useState(false);
-  const [idvStatus, setIdvStatus] = useState<string | undefined>(undefined);
-  const [idvFailureReason, setIdvFailureReason] = useState<string | undefined>(undefined);
+  // Why this helper cannot be awarded the job they just tried to take, or null.
+  // Replaces the old idvDialogOpen/idvStatus/idvFailureReason trio: those
+  // described a Stripe Identity session nobody reviewed, and the dialog they
+  // drove asserted a check that never happened. See src/lib/awardGate.ts.
+  const [awardBlockReason, setAwardBlockReason] = useState<AwardBlockReason | null>(null);
   const [pendingAcceptApp, setPendingAcceptApp] = useState<Application | null>(null);
   // In-flight guards for offer response and poster confirm actions.
   const [respondingHelperAppId, setRespondingHelperAppId] = useState<string | null>(null);
@@ -110,8 +108,7 @@ export function useActivityActions({
     user,
     refresh,
     setStatusFilter,
-    checkHelperStripeConnect,
-    navigate,
+    checkHelperAwardEligibility,
     triggerPushNudge,
     optimisticallyPatchJob,
     rollbackActivity,
@@ -122,9 +119,7 @@ export function useActivityActions({
     deadlineDialogApp,
     setDeadlineDialogApp,
     setPendingAcceptApp,
-    setIdvStatus,
-    setIdvFailureReason,
-    setIdvDialogOpen,
+    setAwardBlockReason,
     setW9Context,
     setW9DialogOpen,
     setRespondingHelperAppId,
@@ -188,9 +183,7 @@ export function useActivityActions({
     reviewJob, setReviewJob,
     reviewTarget, setReviewTarget,
     helperReviewJob, setHelperReviewJob,
-    idvDialogOpen, setIdvDialogOpen,
-    idvStatus,
-    idvFailureReason,
+    awardBlockReason, setAwardBlockReason,
     pendingAcceptApp, setPendingAcceptApp,
     w9DialogOpen, setW9DialogOpen,
     w9Context,

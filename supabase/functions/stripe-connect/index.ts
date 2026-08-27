@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
+import { stripeIdentityVerified } from "../_shared/stripeIdentity.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -115,9 +116,28 @@ serve(async (req) => {
       return { accountId, profile };
     };
 
+    /**
+     * Which requirement set the Account Link should collect.
+     *
+     * DEFAULT `currently_due` — the minimum Stripe needs to start paying out.
+     *
+     * `eventually_due` is requested by the acceptance gate's "finish
+     * verification" CTA, and it is not a nicety. The identity verdict
+     * (_shared/stripeIdentity.ts) is only TRUE when NOTHING identity-shaped is
+     * outstanding in ANY bucket — `eventually_due` and `future_requirements`
+     * included. A `currently_due`-only link therefore cannot clear that gate:
+     * the helper completes Stripe's flow, comes back, and is still blocked,
+     * forever. Collecting `eventually_due` is what makes the blocked state
+     * escapable, so the two must stay in step.
+     */
+    const collectionOptions = (collect?: string) =>
+      collect === "eventually_due"
+        ? { fields: "eventually_due" as const, future_requirements: "include" as const }
+        : { fields: "currently_due" as const, future_requirements: "omit" as const };
+
     // ─── ONBOARD: Create account + return Account Link URL ───
     if (action === "onboard") {
-      const { return_url } = body;
+      const { return_url, collect } = body;
       const { accountId } = await getOrCreateAccount();
 
       const accountLink = await stripe.accountLinks.create({
@@ -125,10 +145,7 @@ serve(async (req) => {
         refresh_url: return_url || "https://www.louisianahelpr.com/profile",
         return_url: return_url || "https://www.louisianahelpr.com/profile",
         type: "account_onboarding",
-        collection_options: {
-          fields: "currently_due",
-          future_requirements: "omit",
-        },
+        collection_options: collectionOptions(collect),
       });
 
       return new Response(JSON.stringify({ success: true, url: accountLink.url, account_id: accountId }), {
@@ -237,11 +254,52 @@ serve(async (req) => {
       const account = await stripe.accounts.retrieve(profile.stripe_account_id);
       const transfersCapability = account.capabilities?.transfers;
 
+      // Re-sync the cached gate columns from this live read.
+      //
+      // The acceptance gate (migration 20260827191647) is enforced in Postgres
+      // against `profiles.stripe_payouts_enabled` / `stripe_identity_verified`,
+      // which are normally written by the `account.updated` webhook. Those
+      // columns default FALSE with no backfill, so a helper who onboarded
+      // BEFORE they existed — and has had no Connect event since — would be
+      // blocked by a cache that is merely empty rather than by anything Stripe
+      // actually says.
+      //
+      // This write-back makes that self-healing instead of requiring a bulk job
+      // against live Stripe: the client re-runs `status` on the very attempt
+      // that is about to be blocked, so a stale cache corrects itself on the
+      // first try. It costs no extra Stripe call — the account is already
+      // retrieved above — and it can only ever move the columns towards what
+      // Stripe currently reports.
+      //
+      // Failure is logged, not thrown: the caller asked for a status, and the
+      // stale value it replaces is the conservative one (gate stays closed).
+      const { error: cacheErr } = await supabaseAdmin
+        .from("profiles")
+        .update({
+          stripe_charges_enabled: account.charges_enabled === true,
+          stripe_payouts_enabled: account.payouts_enabled === true,
+          stripe_identity_verified: stripeIdentityVerified(account),
+          ...(stripeIdentityVerified(account)
+            ? { stripe_identity_verified_at: new Date().toISOString() }
+            : {}),
+        })
+        .eq("user_id", user.id);
+      if (cacheErr) {
+        console.error(`[stripe-connect] status cache write-back failed for ${user.id}:`, cacheErr);
+      }
+
       return new Response(JSON.stringify({
         connected: true,
         details_submitted: account.details_submitted ?? false,
         payouts_enabled: account.payouts_enabled ?? false,
         charges_enabled: account.charges_enabled,
+        // Stripe's identity verdict, computed from the requirements ledger —
+        // NOT payouts_enabled, which Stripe grants during a grace window and
+        // enforces identity on later (_shared/stripeIdentity.ts pins two live
+        // accounts that had payouts_enabled while unverified). Returned so the
+        // client can explain the acceptance gate from the same read that
+        // refreshed the server's cache, instead of a second, divergent query.
+        identity_verified: stripeIdentityVerified(account),
         transfers_status: transfersCapability || "inactive",
         requirements: account.requirements?.currently_due || [],
         account_id: account.id,
@@ -378,7 +436,7 @@ serve(async (req) => {
 
     // ─── UPDATE ONBOARDING: Return new Account Link for incomplete accounts ───
     if (action === "update_onboarding") {
-      const { return_url } = body;
+      const { return_url, collect } = body;
       const { data: profile, error: profileReadErr } = await supabaseAdmin
         .from("profiles")
         .select("stripe_account_id")
@@ -393,10 +451,7 @@ serve(async (req) => {
         refresh_url: return_url || "https://www.louisianahelpr.com/profile",
         return_url: return_url || "https://www.louisianahelpr.com/profile",
         type: "account_onboarding",
-        collection_options: {
-          fields: "currently_due",
-          future_requirements: "omit",
-        },
+        collection_options: collectionOptions(collect),
       });
 
       return new Response(JSON.stringify({ url: accountLink.url }), {

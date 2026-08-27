@@ -3302,8 +3302,10 @@ export type Database = {
           skills: string | null
           sms_consent: boolean
           stripe_account_id: string | null
+          stripe_charges_enabled: boolean
           stripe_identity_verified: boolean
           stripe_identity_verified_at: string | null
+          stripe_payouts_enabled: boolean
           subscription_expires_at: string | null
           subscription_tier: string | null
           terms_accepted_at: string | null
@@ -3393,8 +3395,10 @@ export type Database = {
           skills?: string | null
           sms_consent?: boolean
           stripe_account_id?: string | null
+          stripe_charges_enabled?: boolean
           stripe_identity_verified?: boolean
           stripe_identity_verified_at?: string | null
+          stripe_payouts_enabled?: boolean
           subscription_expires_at?: string | null
           subscription_tier?: string | null
           terms_accepted_at?: string | null
@@ -3484,8 +3488,10 @@ export type Database = {
           skills?: string | null
           sms_consent?: boolean
           stripe_account_id?: string | null
+          stripe_charges_enabled?: boolean
           stripe_identity_verified?: boolean
           stripe_identity_verified_at?: string | null
+          stripe_payouts_enabled?: boolean
           subscription_expires_at?: string | null
           subscription_tier?: string | null
           terms_accepted_at?: string | null
@@ -5653,6 +5659,7 @@ export type Database = {
           is_id_verified: boolean
           is_insured: boolean
           is_licensed: boolean
+          is_payout_ready: boolean
           license_status: string
           location: string
           portfolio_urls: string[]
@@ -5695,6 +5702,10 @@ export type Database = {
       get_user_repeat_hire_percent: {
         Args: { p_user_id: string }
         Returns: number
+      }
+      helper_award_block_reason: {
+        Args: { p_user_id: string }
+        Returns: string | null
       }
       has_role: {
         Args: {

@@ -2,15 +2,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrapMutation } from "@/lib/mutationResult";
 import { createNotification } from "@/lib/notifications";
 import { report } from "@/lib/errorLogger";
-import { isIdvRequirementPaused } from "@/lib/featureFlags";
 import { toast } from "sonner";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import { track, AhaEvent } from "@/lib/analytics";
 import { ppoTrackingProps } from "@/lib/ppoAttribution";
 import { fireSuccessMoment } from "@/lib/successMoment";
-import type { NavigateFunction } from "react-router-dom";
 import type { usePushPermissionNudge } from "@/lib/pushPermissionNudge";
 import type { useStripeConnectCheck } from "@/hooks/useStripeConnectCheck";
+import { awardBlockFromError, posterAwardBlockMessage, type AwardBlockReason } from "@/lib/awardGate";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import type {
   Job,
@@ -29,11 +28,13 @@ export interface OfferHandlersDeps extends OptimisticJobCache {
   user: SupaUser | null;
   refresh: () => void | Promise<unknown>;
   setStatusFilter: (filter: string) => void;
-  checkHelperStripeConnect: ReturnType<typeof useStripeConnectCheck>["checkHelperStripeConnect"];
-  /** Router push, supplied by the calling hook — this factory is not a React
-      component, so it cannot call `useNavigate` itself. Used to make the
-      payout-setup failure tappable instead of a dead-end toast. */
-  navigate: NavigateFunction;
+  /**
+   * The acceptance gate: payout-ready AND Stripe-identity-verified, from one
+   * live Stripe read. Replaces the previous pair of gates (a Connect status
+   * probe plus an `idv_status = 'verified'` check) — see src/lib/awardGate.ts
+   * for why two gates disagreeing about the word "verified" was the problem.
+   */
+  checkHelperAwardEligibility: ReturnType<typeof useStripeConnectCheck>["checkHelperAwardEligibility"];
   triggerPushNudge: ReturnType<typeof usePushPermissionNudge>;
   selectedJob: Job | null;
   setSelectedJob: (job: Job | null) => void;
@@ -42,9 +43,7 @@ export interface OfferHandlersDeps extends OptimisticJobCache {
   deadlineDialogApp: EnrichedApplication | null;
   setDeadlineDialogApp: (app: EnrichedApplication | null) => void;
   setPendingAcceptApp: (app: Application | null) => void;
-  setIdvStatus: (status: string | undefined) => void;
-  setIdvFailureReason: (reason: string | undefined) => void;
-  setIdvDialogOpen: (open: boolean) => void;
+  setAwardBlockReason: (reason: AwardBlockReason | null) => void;
   setW9Context: (ctx: { jobId: string; businessId: string | null } | null) => void;
   setW9DialogOpen: (open: boolean) => void;
   setRespondingHelperAppId: (id: string | null) => void;
@@ -55,8 +54,7 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
     user,
     refresh,
     setStatusFilter,
-    checkHelperStripeConnect,
-    navigate,
+    checkHelperAwardEligibility,
     triggerPushNudge,
     optimisticallyPatchJob,
     rollbackActivity,
@@ -67,9 +65,7 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
     deadlineDialogApp,
     setDeadlineDialogApp,
     setPendingAcceptApp,
-    setIdvStatus,
-    setIdvFailureReason,
-    setIdvDialogOpen,
+    setAwardBlockReason,
     setW9Context,
     setW9DialogOpen,
     setRespondingHelperAppId,
@@ -233,6 +229,21 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
       } else {
         rollbackActivity(snapshot);
         hapticError();
+        // The server-side acceptance gate (trigger jobs_award_gate) refusing
+        // THIS applicant. The poster can do nothing about someone else's Stripe
+        // account, so name the situation plainly rather than offering them a
+        // fix that isn't theirs to make. The applicant card also carries this
+        // as a "Can't be hired yet" chip, so reaching here should be rare.
+        const blocked = awardBlockFromError(error);
+        if (blocked) {
+          toast.error(
+            posterAwardBlockMessage(
+              blocked,
+              deadlineDialogApp.profiles?.full_name ?? undefined,
+            ),
+          );
+          return;
+        }
         toast.error(
           msg.includes("job_not_open")
             ? "This job is no longer open — it may already be assigned."
@@ -272,36 +283,20 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
 
   const respondToDirectOffer = async (app: Application, accept: boolean) => {
     if (accept) {
-      // Same two gates as an application accept — a helper who can't be paid
-      // must not be able to take a job, whichever door they came through.
-      const stripeCheck = await checkHelperStripeConnect();
-      if (!stripeCheck.ok) {
-        hapticError();
-        toast.error(stripeCheck.reason, stripeCheck.needsPayoutSetup
-          ? { action: { label: "Set up payouts", onClick: () => navigate("/profile?tab=payment") } }
-          : undefined);
-        return;
-      }
-      const { data: prof, error: profErr } = await supabase
-        .from("profiles")
-        .select("idv_status, idv_failure_reason")
-        .eq("user_id", user!.id)
-        .single();
-      if (profErr) {
-        report(profErr, { tags: { source: "useOfferHandlers.directOffer.idvGate" } });
+      // The same gate as an application accept — a helper Stripe can't pay, or
+      // hasn't finished identifying, must not be able to take a job, whichever
+      // door they came through.
+      const gate = await checkHelperAwardEligibility();
+      if (gate.indeterminate) {
+        // "We couldn't ask" is not "you're not verified". Saying the second
+        // when we only know the first is what used to trap a verified helper.
         hapticError();
         toast.error("Couldn't check your verification status — please try again.");
         return;
       }
-      const profIdvStatus = (prof as { idv_status?: string })?.idv_status;
-      // Operators can pause the IDV requirement during a Stripe Identity
-      // outage (Admin -> Settings). Fails closed: an unreadable flag keeps the
-      // gate up, so a dropped fetch can never quietly stop requiring IDV.
-      if (profIdvStatus !== "verified" && !(await isIdvRequirementPaused())) {
+      if (!gate.ok && gate.reason) {
         setPendingAcceptApp(app);
-        setIdvStatus(profIdvStatus);
-        setIdvFailureReason((prof as { idv_failure_reason?: string })?.idv_failure_reason);
-        setIdvDialogOpen(true);
+        setAwardBlockReason(gate.reason);
         return;
       }
     }
@@ -342,6 +337,12 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
         await refresh();
         return;
       }
+      const blocked = awardBlockFromError(error);
+      if (blocked) {
+        setPendingAcceptApp(app);
+        setAwardBlockReason(blocked);
+        return;
+      }
       report(error, { tags: { source: "useOfferHandlers.respondToDirectOffer" } });
       toast.error("Couldn't record your response — please try again.");
       return;
@@ -366,45 +367,22 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
       return;
     }
     if (accept) {
-      const stripeCheck = await checkHelperStripeConnect();
-      if (!stripeCheck.ok) {
-        hapticError();
-        // A blocked accept has to carry its own way out. The old copy told the
-        // helper to go find Profile -> Payment Settings themselves; the toast
-        // now takes them there, which is also why the message got shorter.
-        // Same destination the rest of the app uses for payout setup
-        // (PayoutSetupDialog, EarningsTab).
-        toast.error(stripeCheck.reason, stripeCheck.needsPayoutSetup
-          ? { action: { label: "Set up payouts", onClick: () => navigate("/profile?tab=payment") } }
-          : undefined);
-        return;
-      }
-
-      // Identity verification gate — required before first accept. On a
-      // transient fetch failure, `prof` is undefined and reads as
-      // "not verified" — which used to look identical to a truly
-      // unverified user and trapped an already-verified helper in the
-      // IDV dialog. Surface the error explicitly instead.
-      const { data: prof, error: profErr } = await supabase
-        .from("profiles")
-        .select("idv_status, idv_failure_reason")
-        .eq("user_id", user.id)
-        .single();
-      if (profErr) {
-        report(profErr, { tags: { source: "useOfferHandlers.idvGate" } });
+      // The acceptance gate: payout-ready AND identity verified by Stripe.
+      // A blocked accept has to carry its own way out — never a refusal with
+      // nowhere to go — so the failure opens AwardGateDialog, which names the
+      // missing half and links into the right Stripe flow for it.
+      const gate = await checkHelperAwardEligibility();
+      if (gate.indeterminate) {
+        // On a dropped check `ok` is false but we know nothing. That used to
+        // read as "not verified" and trapped an already-verified helper in the
+        // IDV dialog with no way out. Say what actually happened.
         hapticError();
         toast.error("Couldn't check your verification status — please try again.");
         return;
       }
-      const profIdvStatus = (prof as { idv_status?: string })?.idv_status;
-      // Operators can pause the IDV requirement during a Stripe Identity
-      // outage (Admin -> Settings). Fails closed: an unreadable flag keeps the
-      // gate up, so a dropped fetch can never quietly stop requiring IDV.
-      if (profIdvStatus !== "verified" && !(await isIdvRequirementPaused())) {
+      if (!gate.ok && gate.reason) {
         setPendingAcceptApp(app);
-        setIdvStatus(profIdvStatus);
-        setIdvFailureReason((prof as { idv_failure_reason?: string })?.idv_failure_reason);
-        setIdvDialogOpen(true);
+        setAwardBlockReason(gate.reason);
         return;
       }
 
@@ -434,6 +412,16 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
       if (confirmError) {
         rollbackActivity(snapshot);
         hapticError();
+        // The server gate can still refuse here even though we checked above —
+        // the Stripe state may have moved between the check and the write, and
+        // the trigger is the authority. Show the same explained blocked state
+        // rather than a generic failure the helper can't act on.
+        const blocked = awardBlockFromError(confirmError);
+        if (blocked) {
+          setPendingAcceptApp(app);
+          setAwardBlockReason(blocked);
+          return;
+        }
         toast.error("Couldn't accept the job — please try again.");
         return;
       }

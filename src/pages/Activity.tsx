@@ -27,8 +27,8 @@ const AppliedJobsTab = lazy(() =>
 // These dialogs are conditionally mounted (only when the user triggers an
 // action), so lazy-loading them avoids including their subtrees in the
 // initial chunk entirely.
-const IDVPromptDialog = lazy(() =>
-  import("@/components/IDVPromptDialog").then((m) => ({ default: m.IDVPromptDialog })),
+const AwardGateDialog = lazy(() =>
+  import("@/components/AwardGateDialog").then((m) => ({ default: m.AwardGateDialog })),
 );
 const W9CollectionDialog = lazy(() => import("@/components/W9CollectionDialog"));
 import { useActivityActions } from "@/pages/activity/useActivityActions";
@@ -524,14 +524,17 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
         helperNames={helperNames}
         onRefresh={refresh}
       />
-      {actions.idvDialogOpen && (
+      {actions.awardBlockReason && (
         <Suspense fallback={null}>
-          <IDVPromptDialog
-            open={actions.idvDialogOpen}
-            onOpenChange={(o) => { actions.setIdvDialogOpen(o); if (!o) actions.setPendingAcceptApp(null); }}
-            reason={actions.pendingAcceptApp ? "Helpr requires a one-time ID + selfie check before you accept your first job. Posters won't see their full address until you're verified." : undefined}
-            status={actions.idvStatus as never}
-            failureReason={actions.idvFailureReason}
+          <AwardGateDialog
+            open={!!actions.awardBlockReason}
+            onOpenChange={(o) => {
+              if (!o) {
+                actions.setAwardBlockReason(null);
+                actions.setPendingAcceptApp(null);
+              }
+            }}
+            reason={actions.awardBlockReason}
           />
         </Suspense>
       )}

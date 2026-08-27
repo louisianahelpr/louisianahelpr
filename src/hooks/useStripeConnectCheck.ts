@@ -1,7 +1,12 @@
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  awardBlockReasonFromStatus,
+  type AwardBlockReason,
+  type AwardGateStatus,
+} from "@/lib/awardGate";
 
-type ConnectStatus = {
+type ConnectStatus = AwardGateStatus & {
   connected: boolean;
   details_submitted: boolean;
   payouts_enabled: boolean;
@@ -20,6 +25,20 @@ export type StripeConnectCheckResult = {
    * path — a button beats "Go to Profile → Payment Settings".
    */
   needsPayoutSetup?: boolean;
+};
+
+export type AwardEligibility = {
+  /** True when this helper may be awarded a job right now. */
+  ok: boolean;
+  /** Which requirement is missing; null when `ok`. */
+  reason: AwardBlockReason | null;
+  /**
+   * True only when the check itself failed (network, edge function down) — as
+   * opposed to a definite "not eligible". The two must never render the same:
+   * telling a verified helper they are unverified because a fetch dropped is
+   * the bug that used to trap them in the old IDV dialog with no way out.
+   */
+  indeterminate?: boolean;
 };
 
 export function useStripeConnectCheck() {
@@ -52,5 +71,33 @@ export function useStripeConnectCheck() {
     }
   }, []);
 
-  return { checkHelperStripeConnect, checking };
+  /**
+   * The full acceptance gate: payout-ready AND Stripe-identity-verified.
+   *
+   * One live Stripe read serves both halves, and that same edge-function call
+   * writes the verdict back onto the `profiles` columns the server trigger
+   * enforces (migration 20260827191647) — so the answer shown here and the
+   * answer the database will give are the same fact, refreshed together.
+   *
+   * This SUPERSEDES the old `idv_status = 'verified'` check rather than adding
+   * to it. `idv_status` is the unreviewed upload/admin flag; asserting identity
+   * from it was the thing commit 47eef666 set out to stop.
+   */
+  const checkHelperAwardEligibility = useCallback(async (): Promise<AwardEligibility> => {
+    setChecking(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("stripe-connect", {
+        body: { action: "status" },
+      });
+      if (error) throw error;
+      const reason = await awardBlockReasonFromStatus(data as ConnectStatus | null);
+      return { ok: reason === null, reason };
+    } catch {
+      return { ok: false, reason: null, indeterminate: true };
+    } finally {
+      setChecking(false);
+    }
+  }, []);
+
+  return { checkHelperStripeConnect, checkHelperAwardEligibility, checking };
 }

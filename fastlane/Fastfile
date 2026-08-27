@@ -928,7 +928,21 @@ platform :ios do
 
   # ─────────────────────────────────────────────────────────────────────
   # sync_app_icon — regenerates every iOS AppIcon.appiconset PNG from the
-  # single source-of-truth file at public/apple-touch-icon.png (1024×1024).
+  # single source-of-truth file at public/app-icon-1024.png (1024×1024).
+  #
+  # This lane used to read public/apple-touch-icon.png. That file was
+  # downscaled to 180×180 on 2026-05-18 (52d6a9b3e, "Trim ~1.4 MB of
+  # oversized PNG icons from the web bundle"), which silently turned this
+  # lane into an icon-destroyer: ImageMagick happily UPSCALES 180px to
+  # 1024px, so a run would have overwritten all 18 icons with blur — and
+  # the workflow commits the result. Nobody noticed, because the lane is
+  # manual-dispatch only and has been red in CI since 2026-05-11.
+  #
+  # The pipeline that actually ships icons is scripts/generate-ios-icons.mjs
+  # (wired into deploy.yml), which reads public/app-icon-1024.png; the
+  # committed icon-1024.png is byte-identical to that file. This lane now
+  # reads the same source and refuses anything that is not 1024×1024, so a
+  # future downscale fails loudly instead of shipping a blurry app icon.
   #
   # Run locally:  bundle exec fastlane ios sync_app_icon
   # Run in CI:    Actions → "iOS Icon Sync" → Run workflow
@@ -936,9 +950,9 @@ platform :ios do
   # Requires `magick` (ImageMagick 7) in PATH. macOS runners have it via
   # Homebrew; ubuntu-latest installs it in the workflow.
   # ─────────────────────────────────────────────────────────────────────
-  desc "Regenerate iOS AppIcon set from public/apple-touch-icon.png"
+  desc "Regenerate iOS AppIcon set from public/app-icon-1024.png"
   lane :sync_app_icon do
-    source = File.join(REPO_ROOT, "public/apple-touch-icon.png")
+    source = File.join(REPO_ROOT, "public/app-icon-1024.png")
     UI.user_error!("Missing source icon: #{source}") unless File.exist?(source)
 
     appiconset = File.join(REPO_ROOT, "ios/App/App/Assets.xcassets/AppIcon.appiconset")
@@ -970,6 +984,20 @@ platform :ios do
     convert = `command -v convert`.strip
     bin = !magick.empty? ? "magick" : (!convert.empty? ? "convert" : nil)
     UI.user_error!("ImageMagick not found in PATH (need `magick` or `convert`)") if bin.nil?
+
+    # Refuse to upscale. Every target below is a DOWNscale from 1024, so a
+    # smaller source silently yields blurry icons rather than an error —
+    # which is exactly what happened when the old source was downscaled to
+    # 180×180 and sat there unnoticed for three months.
+    identify = "#{bin} identify -format \"%wx%h\" #{Shellwords.escape(source)}"
+    dims = `#{identify}`.strip
+    unless dims == "1024x1024"
+      UI.user_error!(
+        "Source icon must be exactly 1024x1024, got #{dims.empty? ? 'unreadable' : dims} " \
+        "(#{source}). Regenerate it with `node scripts/build-app-icon.mjs` — do NOT " \
+        "point this lane at a smaller file; every size here is a downscale from 1024."
+      )
+    end
 
     targets.each do |filename, size|
       out = File.join(appiconset, filename)

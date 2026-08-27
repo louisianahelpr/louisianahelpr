@@ -1,7 +1,7 @@
 name: iOS Icon Sync
 
 # Manual-only — regenerates every iOS AppIcon size from the single source
-# of truth at public/apple-touch-icon.png and commits the result.
+# of truth at public/app-icon-1024.png and commits the result.
 #
 # Run from the Actions tab → "iOS Icon Sync" → "Run workflow" any time
 # the marketing icon changes. Cheap (Linux runner, no Xcode, no signing).
@@ -52,5 +52,5 @@ jobs:
             echo "No icon changes — nothing to commit."
             exit 0
           fi
-          git commit -m "chore(ios): sync AppIcon set from public/apple-touch-icon.png"
+          git commit -m "chore(ios): sync AppIcon set from public/app-icon-1024.png"
           git push

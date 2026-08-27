@@ -425,11 +425,11 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                     >
                       {tier.name}
                     </h3>
-                    {isActive && (
-                      <span className="text-ds-9 not-italic font-semibold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary flex items-center gap-1">
-                        <CheckCircle className="w-2.5 h-2.5" /> Current
-                      </span>
-                    )}
+                    {/* The "Current" chip used to sit here beside the title.
+                        It now renders as a button in the CTA column on the
+                        right, in the same slot every other card puts
+                        Subscribe/Change — so the eye finds each card's status
+                        in one place instead of two. Owner's call. */}
                     <span
                       className="font-serif italic truncate text-ds-11"
                       style={{ color: "hsl(var(--olivewood) / 0.8)" }}
@@ -513,11 +513,26 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                       {saveBadge}
                     </span>
                   )}
-                  {/* Free carries no CTA in either direction: there is nothing
-                      to buy when you are already on it, and when you are on a
-                      paid tier it is context for what the fee comparison means,
-                      not a "downgrade" button — cancelling lives in the manage-
-                      membership flow, which is where it belongs. */}
+                  {/* The tier you are on states so HERE, in the same column
+                      and the same shape as every other card's CTA — including
+                      Free, which is why this sits above the !isFree guard
+                      below. It is inert by design: there is nothing to buy on
+                      the plan you already have, and leaving the slot empty was
+                      what pushed "Current" up beside the title as a chip.
+                      Rendered as a real disabled <Button> rather than a
+                      styled span so it inherits the exact box, height and
+                      typography of the Subscribe buttons it lines up with. */}
+                  {isActive && (
+                    <Button variant="outline" size="sm" disabled aria-current="true">
+                      <CheckCircle className="w-3.5 h-3.5" aria-hidden /> Current
+                    </Button>
+                  )}
+                  {/* Free carries no BUY CTA in either direction: there is
+                      nothing to buy when you are already on it, and when you
+                      are on a paid tier it is context for what the fee
+                      comparison means, not a "downgrade" button — cancelling
+                      lives in the manage-membership flow, which is where it
+                      belongs. */}
                   {!isActive && !isFree && (
                     <Button
                       variant={isPro ? "primary" : "outline"}

@@ -3261,6 +3261,7 @@ export type Database = {
           id: string
           id_document_url: string | null
           id_verification_status: string
+          idv_attempt_count: number
           idv_attempted_at: string | null
           idv_confidence: number | null
           idv_failure_reason: string | null
@@ -3354,6 +3355,7 @@ export type Database = {
           id?: string
           id_document_url?: string | null
           id_verification_status?: string
+          idv_attempt_count?: number
           idv_attempted_at?: string | null
           idv_confidence?: number | null
           idv_failure_reason?: string | null
@@ -3447,6 +3449,7 @@ export type Database = {
           id?: string
           id_document_url?: string | null
           id_verification_status?: string
+          idv_attempt_count?: number
           idv_attempted_at?: string | null
           idv_confidence?: number | null
           idv_failure_reason?: string | null
@@ -5702,6 +5705,10 @@ export type Database = {
       get_user_repeat_hire_percent: {
         Args: { p_user_id: string }
         Returns: number
+      }
+      claim_idv_attempt: {
+        Args: { p_max_attempts?: number; p_user_id: string }
+        Returns: Json
       }
       helper_award_block_reason: {
         Args: { p_user_id: string }

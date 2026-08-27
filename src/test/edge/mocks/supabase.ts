@@ -39,6 +39,10 @@ export interface SupabaseScenario {
   reads: Record<string, TableResult>;
   /** rpc name -> resolved data */
   rpc: Record<string, unknown>;
+  /** rpc name -> error to return instead of data. Fail-closed paths need it. */
+  rpcErrors?: Record<string, { message: string; code?: string }>;
+  /** Every rpc() call, in order — lets a test assert an RPC was NOT made. */
+  rpcCalls?: Array<{ name: string; args: unknown }>;
   /**
    * Captured writes, in order. `filters` records the `eq`/`neq`/`in` calls that
    * were chained onto the write — the filters themselves are no-ops for
@@ -64,6 +68,8 @@ export function freshScenario(): SupabaseScenario {
     authError: null,
     reads: {},
     rpc: {},
+    rpcErrors: {},
+    rpcCalls: [],
     writes: [],
     writeErrors: {},
     writeSelectRows: {},
@@ -246,9 +252,11 @@ export function createClient(_url: string, _key: string): SupabaseClientMock {
         }),
       },
     },
-    rpc: vi.fn(async (name: string) => ({
-      data: scenario.rpc[name],
-      error: null,
-    })),
+    rpc: vi.fn(async (name: string, args?: unknown) => {
+      scenario.rpcCalls?.push({ name, args });
+      const err = scenario.rpcErrors?.[name];
+      if (err) return { data: null, error: err };
+      return { data: scenario.rpc[name], error: null };
+    }),
   };
 }

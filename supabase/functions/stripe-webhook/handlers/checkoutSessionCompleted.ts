@@ -3,6 +3,7 @@ import type { WebhookContext } from "../context.ts";
 import { PRODUCT_TO_TIER, ONE_TIME_PRODUCTS } from "../constants.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { sendPifGiftEmail } from "../../_shared/pifGiftEmail.ts";
+import { settleOnboardingFee } from "./settleOnboardingFee.ts";
 
 export async function handleCheckoutSessionCompleted(
   event: Stripe.Event,
@@ -232,6 +233,21 @@ export async function handleCheckoutSessionCompleted(
         logStep("Boost applied", { jobId: boostJobId, expires: expires.toISOString() });
       }
     }
+  }
+
+  // Standalone account-setup-fee checkout (from pay-onboarding-fee). It has no
+  // job and no escrow, so it never reaches the job-scoped settlement below —
+  // hence its own branch, calling the same claim-or-refund.
+  if (kind === "onboarding_fee") {
+    const feePiId = typeof session.payment_intent === "string"
+      ? session.payment_intent
+      : (session.payment_intent as any)?.id;
+    if (!feePiId) {
+      logStep("WARNING: onboarding_fee checkout with no payment_intent", { sessionId: session.id });
+    } else {
+      await settleOnboardingFee(session, feePiId, { stripe, supabase, logStep });
+    }
+    return;
   }
 
   // Handle paid background-check completion — payment captured, so kick
@@ -666,111 +682,12 @@ export async function handleCheckoutSessionCompleted(
       logStep("Stored payment_intent and escrow status on job", { jobId, pi: piId, repay: isRepay });
     }
 
-    // Mark poster's onboarding fee paid if it was charged on this session.
-    //
-    // Race protection: two checkouts opened in parallel can each carry
-    // the $2 fee in their line items if both were generated before the
-    // first one's webhook fired. The atomic UPDATE below only flips
-    // the flag if it was still false at write time. If the WHERE
-    // clause matches (1 row updated), this checkout was the first
-    // and the charge is legitimate. If it doesn't match (0 rows),
-    // another path already collected the fee — refund this $2.
+    // Collect the one-time setup fee this session carried, exactly once.
+    // Claim-or-refund lives in settleOnboardingFee so the standalone
+    // `pay-onboarding-fee` checkout shares one implementation of the
+    // "never charged twice" guarantee rather than a second copy of it.
     if ((session.metadata as any)?.onboarding_fee_charged === "true") {
-      const posterId = (session.metadata as any)?.customer_id;
-      if (posterId) {
-        const { data: flipped, error: feeErr } = await supabase
-          .from("profiles")
-          .update({ onboarding_fee_paid: true, onboarding_fee_charged_at: new Date().toISOString() })
-          .eq("user_id", posterId)
-          .eq("onboarding_fee_paid", false)
-          .select("user_id");
-
-        if (feeErr) {
-          logStep("ERROR atomic flip onboarding fee", { error: feeErr.message });
-        } else if (flipped && flipped.length > 0) {
-          logStep("Onboarding fee marked paid for poster", { posterId });
-        } else {
-          // Flag was already true — duplicate fee charged. Auto-refund $2.
-          // Stripe idempotency key keyed on session.id so webhook
-          // re-deliveries don't create multiple refunds for the same
-          // duplicate charge.
-          try {
-            const ONBOARDING_FEE_CENTS = parseInt((session.metadata as any)?.onboarding_fee_cents || "200", 10);
-            const refund = await stripe.refunds.create(
-              {
-                payment_intent: piId,
-                amount: ONBOARDING_FEE_CENTS,
-                reason: "requested_by_customer",
-                metadata: {
-                  reason: "duplicate_onboarding_fee",
-                  session_id: session.id,
-                  user_id: posterId,
-                },
-              },
-              { idempotencyKey: `dup-onboarding-fee-${session.id}` },
-            );
-            // Ledger the refund (best-effort). is_partial: this only refunds
-            // the $2 fee off a PI that also holds the job escrow, so it is not
-            // a full-PI refund. job_id is null — this is a profile/onboarding
-            // fee, not a job's escrow, so a per-job reconciliation query must
-            // NOT attribute it to the job on this session.
-            const { error: refundLedgerErr } = await supabase.from("payment_refunds").upsert({
-              job_id: null,
-              customer_id: posterId,
-              stripe_refund_id: refund.id,
-              stripe_payment_intent_id: piId,
-              amount_cents: Math.round(Number(refund.amount ?? ONBOARDING_FEE_CENTS)),
-              currency: refund.currency ?? "usd",
-              is_partial: true,
-              reason: "duplicate onboarding fee",
-              source: "duplicate_onboarding_fee",
-              initiated_by_user_id: null,
-            }, { onConflict: "stripe_refund_id", ignoreDuplicates: true });
-            if (refundLedgerErr) {
-              logStep("ERROR ledgering duplicate onboarding fee refund", {
-                error: refundLedgerErr.message,
-                refundId: refund.id,
-                sessionId: session.id,
-              });
-              // The refund already left Stripe, so we never throw — but a dropped
-              // ledger row is a real Stripe↔ledger divergence a human must
-              // reconcile, so surface it to ops rather than leaving it in a log.
-              await postSlackOpsAlert({
-                kind: "custom",
-                severity: "warning",
-                title: "Refund ledger write failed",
-                message: "A Stripe refund succeeded but its payment_refunds row was not written. Reconcile manually.",
-                fields: {
-                  refund_id: refund.id,
-                  session_id: session.id,
-                  source: "duplicate_onboarding_fee",
-                  db_error: refundLedgerErr.message,
-                },
-              });
-            }
-            await supabase.from("notifications").insert({
-              user_id: posterId,
-              type: "payment",
-              title: "Duplicate fee refunded",
-              message:
-                "We caught a duplicate $2 onboarding fee on your account and refunded it. The fee is one-time only — you won't see it again.",
-              link: "/profile",
-              read: false,
-            });
-            logStep("Refunded duplicate onboarding fee", {
-              posterId,
-              sessionId: session.id,
-              refundId: refund.id,
-            });
-          } catch (refundErr) {
-            logStep("ERROR refunding duplicate onboarding fee", {
-              error: (refundErr as Error).message,
-              posterId,
-              sessionId: session.id,
-            });
-          }
-        }
-      }
+      await settleOnboardingFee(session, piId, { stripe, supabase, logStep });
     }
   } else if (jobId) {
     logStep("WARNING: checkout completed for job but no payment_intent on session", { jobId });

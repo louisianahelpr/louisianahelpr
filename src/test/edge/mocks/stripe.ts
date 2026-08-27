@@ -53,6 +53,14 @@ export interface StripeMock {
   webhooks: {
     constructEventAsync: ReturnType<typeof vi.fn>;
   };
+  /** Stripe Identity — every create here is billed to the platform, which is
+   *  why stripe-idv-start's cost guard has tests at all. */
+  identity: {
+    verificationSessions: {
+      create: ReturnType<typeof vi.fn>;
+      retrieve: ReturnType<typeof vi.fn>;
+    };
+  };
 }
 
 /**
@@ -99,6 +107,12 @@ export const stripeMock: StripeMock = {
   webhooks: {
     constructEventAsync: vi.fn(),
   },
+  identity: {
+    verificationSessions: {
+      create: vi.fn(),
+      retrieve: vi.fn(),
+    },
+  },
 };
 
 /** Clears all call history + implementations on the shared Stripe mock. */
@@ -115,6 +129,7 @@ export function resetStripeMock() {
     stripeMock.charges,
     stripeMock.subscriptions,
     stripeMock.webhooks,
+    stripeMock.identity.verificationSessions,
   ]) {
     for (const fn of Object.values(group)) {
       (fn as ReturnType<typeof vi.fn>).mockReset();

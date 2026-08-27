@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui
 import { Button } from "@/components/ui/button";
 import { ShieldCheck, Camera, FileCheck2, Loader2, AlertTriangle, Hourglass } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { functionErrorMessage } from "@/lib/supabaseResult";
+import { functionErrorBody, functionErrorMessage } from "@/lib/supabaseResult";
 import { toast } from "sonner";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { isNativePlatform } from "@/lib/nativeInit";
@@ -61,6 +61,35 @@ export function IDVPromptDialog({
     status === "failed" || status === "requires_input" || status === "manual_review";
   const isPending = status === "processing";
 
+  // Set when the server refuses because the one-time account setup fee is
+  // outstanding. That is the ONE refusal the user can act on, so it swaps the
+  // button for a pay-now button rather than leaving them reading a toast about
+  // a fee with no way to settle it.
+  const [feeDue, setFeeDue] = useState<string | null>(null);
+
+  const handlePayFee = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("pay-onboarding-fee", {
+        body: { native: isNativePlatform },
+      });
+      if (error) throw new Error(await functionErrorMessage(error, "Couldn't open checkout"));
+      if (data?.alreadyPaid) {
+        // Settled by another path (a job post, a payout) since we last looked.
+        setFeeDue(null);
+        toast.success("Your setup fee is already paid — try verification again.");
+        return;
+      }
+      if (!data?.url) throw new Error("Couldn't open checkout — try again in a moment.");
+      onOpenChange(false);
+      await openExternalUrl(data.url);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Couldn't open checkout");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleStart = async () => {
     setLoading(true);
     try {
@@ -69,7 +98,16 @@ export function IDVPromptDialog({
       // the useless "Edge Function returned a non-2xx status code" — which is
       // literally all the user saw for as long as this flow was broken. The
       // real reason is in the JSON body; `functionErrorMessage` reads it.
-      if (error) throw new Error(await functionErrorMessage(error, "Couldn't start verification"));
+      if (error) {
+        const body = await functionErrorBody(error);
+        const msg = await functionErrorMessage(error, "Couldn't start verification");
+        if (body?.needsOnboardingFee === true) {
+          // Not a failure to report and forget — it's a step with a next step.
+          setFeeDue(msg);
+          return;
+        }
+        throw new Error(msg);
+      }
       if (data?.alreadyVerified) {
         onOpenChange(false);
         onLaunched?.();
@@ -224,6 +262,23 @@ export function IDVPromptDialog({
           </div>
         )}
 
+        {/* Setup fee outstanding — the refusal that has an answer. */}
+        {feeDue && (
+          <div
+            className="flex items-start gap-3 p-3 rounded-ds-md border mt-2"
+            style={{
+              backgroundColor: "hsl(var(--amber-tint) / 0.10)",
+              borderColor: "hsl(var(--amber-tint) / 0.30)",
+            }}
+          >
+            <AlertTriangle className="w-5 h-5 mt-0.5 shrink-0" style={{ color: "hsl(var(--amber-ink))" }} />
+            <div className="text-ds-13 text-foreground">
+              <p className="font-medium">One thing first</p>
+              <p className="text-ds-11 text-muted-foreground mt-1">{feeDue}</p>
+            </div>
+          </div>
+        )}
+
         {isPending && (
           <p
             className="font-serif italic px-1 py-2 text-ds-13"
@@ -237,7 +292,18 @@ export function IDVPromptDialog({
           <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={loading} className="rounded-ds-md h-11">
             {isPending || isAdminReview ? "OK" : "Not Now"}
           </Button>
-          {!isPending && !isAdminReview && (
+          {!isPending && !isAdminReview && feeDue && (
+            <Button
+              variant="primary"
+              onClick={handlePayFee}
+              disabled={loading}
+              className="rounded-ds-md h-11"
+            >
+              {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              Pay setup fee
+            </Button>
+          )}
+          {!isPending && !isAdminReview && !feeDue && (
             <Button
               variant="primary"
               onClick={handleStart}

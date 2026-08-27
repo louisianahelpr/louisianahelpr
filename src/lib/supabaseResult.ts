@@ -55,3 +55,29 @@ export async function functionErrorMessage(
   }
   return fallback;
 }
+
+/**
+ * functionErrorBody — the whole JSON body of a failed `functions.invoke`.
+ *
+ * `functionErrorMessage` returns only the human string, which is right for a
+ * toast but loses the machine-readable flags our edge functions send alongside
+ * it (e.g. `needsOnboardingFee`, `attemptLimitReached`). Those flags are what
+ * let a refusal offer the ONE tap that resolves it instead of dead-ending, so
+ * the caller needs the object, not the sentence.
+ *
+ * Returns `null` when the body isn't JSON or was already consumed.
+ */
+export async function functionErrorBody(
+  error: unknown,
+): Promise<Record<string, unknown> | null> {
+  const ctx = (error as { context?: unknown } | null)?.context;
+  if (ctx instanceof Response) {
+    try {
+      const body = await ctx.clone().json();
+      if (body && typeof body === "object") return body as Record<string, unknown>;
+    } catch {
+      // Not JSON — nothing to recover.
+    }
+  }
+  return null;
+}

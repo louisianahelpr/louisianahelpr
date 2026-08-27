@@ -85,6 +85,17 @@ test.describe("customer sees helper application", () => {
     // 1. Posted job title surfaces.
     await expect(page.getByText(POSTED_JOB.title)).toBeVisible({ timeout: 15_000 });
 
+    // 1b. Open the card. A posted card arrives COLLAPSED (owner, 2026-08-27):
+    //     title, price and the meta line, with the tracker, the Applicants
+    //     button and the action row behind the tap. The count is one tap in,
+    //     which is where a poster acts on it. `force: true` because the
+    //     affordance is JobCardShell's sr-only button, which can never satisfy
+    //     Playwright's "element is on top" check.
+    await page
+      .getByRole("button", { name: "Expand Job Details" })
+      .first()
+      .click({ force: true });
+
     // 2. Applicant-count surface — the "customer sees that a helper has
     //    applied" contract. The count lives on the primary button, which is
     //    also the control that acts on it.

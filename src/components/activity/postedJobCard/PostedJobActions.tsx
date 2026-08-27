@@ -104,7 +104,28 @@ export function PostedJobActions({
   if (job.status === "cancelled") return null;
 
   return (
-    <div className="border-t border-[hsl(var(--olivewood)/0.1)] bg-card px-4 py-3">
+    // STOP THE CLICK HERE (owner: "the job card shouldn't expand every time a
+    // button is clicked at the bottom of the card").
+    //
+    // The card shell owns the expand toggle — a deliberate decision, the
+    // chevron was dropped in favour of it — so every click inside the card
+    // bubbles up to it. Tapping Share, Boost, Edit or Cancel therefore fired
+    // the action AND toggled the card underneath it. Now that cards open
+    // collapsed, that stray toggle would COLLAPSE the row you just tapped.
+    //
+    // One wrapper rather than a stopPropagation on each of a dozen handlers:
+    // this subtree is nothing but controls, so there is no click in it that
+    // was ever meant to reach the shell. Same pattern the JobTracking and
+    // IncomingReportCard blocks in PostedJobCard already use, and the same one
+    // PostedJobApplicants uses on its own root.
+    //
+    // It cannot swallow anything a child needs: this is the OUTERMOST node of
+    // the subtree, so every child handler has already run by the time the
+    // event reaches it — stopping here only prevents the shell's toggle.
+    <div
+      className="border-t border-[hsl(var(--olivewood)/0.1)] bg-card px-4 py-3"
+      onClick={(e) => e.stopPropagation()}
+    >
       <div className="space-y-2">
         {job.status === "open" && (() => {
           // Boost cooldown — show when the job is currently

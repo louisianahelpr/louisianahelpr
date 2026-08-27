@@ -391,11 +391,14 @@ function PostedJobCardInner({
                           it done cannot still be asking whether they turned up,
                           and that impossible pair was on screen (owner: "they
                           can't be done and you haven't even marked them
-                          arrived"). */}
+                          arrived"). Its handler stops propagation for the same
+                          reason as the tracker wrapper below: the card shell
+                          owns the expand toggle, so an unguarded control fires
+                          its action AND collapses the card under the finger. */}
                       {job.helper_arrived_at
                         && !job.poster_confirmed_arrival_at
                         && !job.helper_completed_at && (
-                        <Button size="sm" className="w-full" onClick={() => onConfirmArrival(job.id)}>
+                        <Button size="sm" className="w-full" onClick={(e) => { e.stopPropagation(); onConfirmArrival(job.id); }}>
                           <CheckCircle2 className="w-4 h-4 mr-1" /> Confirm Arrival
                         </Button>
                       )}
@@ -520,9 +523,14 @@ function PostedJobCardInner({
                 </div>
               )}
 
-              {/* Features for active jobs */}
+              {/* Features for active jobs.
+                  The wrapper stops propagation: JobConfirmation and
+                  GroupJobHelpers both own real controls (confirm / decline, the
+                  group-helper roster) and neither stops it internally, so
+                  without this every tap in them also toggled the card open or
+                  shut. Same pattern as the tracker wrapper above. */}
               {(job.status === "in_progress" || job.status === "accepted") && (
-                <div className="px-4 pb-3 space-y-3">
+                <div className="px-4 pb-3 space-y-3" onClick={(e) => e.stopPropagation()}>
                   <JobConfirmation jobId={job.id} isOwner={true} isHelper={false} posterConfirmedAt={job.poster_confirmed_at} helperConfirmedAt={job.helper_confirmed_at} helperDayofConfirmedAt={job.helper_dayof_confirmed_at} dateNeeded={job.date_needed} jobStatus={job.status} helperOnTheWayAt={job.helper_on_the_way_at} />
                   {job.is_group_job && <GroupJobHelpers jobId={job.id} helpersNeeded={job.helpers_needed || 2} isOwner={true} initialHelpers={initialGroupHelpers} />}
 

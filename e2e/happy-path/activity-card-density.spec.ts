@@ -193,6 +193,49 @@ async function dismissNudge(page: Page) {
   await page.waitForTimeout(400);
 }
 
+/**
+ * Open the first posted card.
+ *
+ * A posted card arrives COLLAPSED (owner, 2026-08-27) — title, price and the
+ * meta line, nothing else. The tracker, the Applicants button, the photo strip
+ * and the whole action row live behind the tap, so any test asserting on them
+ * has to open the card first, exactly as a poster does.
+ *
+ * `force: true` for the same reason the description test gives: the affordance
+ * is JobCardShell's sr-only button, which always fails Playwright's
+ * "element is on top" check.
+ */
+async function expandCard(page: Page) {
+  const toggle = page.getByRole("button", { name: "Expand Job Details" }).first();
+  await expect(toggle).toBeAttached();
+  await toggle.click({ force: true });
+  await expect(
+    page.getByRole("button", { name: "Collapse Job Details" }).first(),
+  ).toBeAttached();
+}
+
+/**
+ * Open the nth posted card and read something out of it, then close it again.
+ *
+ * Only ONE card can be open at a time — `expandedJobId` in Activity holds a
+ * single id — so a test that needs to compare a detail across two cards has to
+ * visit them one at a time rather than expanding both and querying the page.
+ */
+async function withCardExpanded<T>(
+  page: Page,
+  index: number,
+  read: () => Promise<T>,
+): Promise<T> {
+  const toggles = page.getByRole("button", { name: /Expand Job Details/ });
+  await toggles.nth(index).click({ force: true });
+  const value = await read();
+  await page
+    .getByRole("button", { name: "Collapse Job Details" })
+    .first()
+    .click({ force: true });
+  return value;
+}
+
 /** The layout invariants that must hold on every variant of every screen. */
 async function assertFits(page: Page) {
   const overflow = await page.evaluate(() => {
@@ -330,6 +373,7 @@ test.describe("My Posts — card density + header", () => {
     await settle(page);
 
     await dismissNudge(page);
+    await expandCard(page);
     // The card is identified by its live tracker, not by a status band: the
     // per-card stripe was removed once the filter tabs took over saying what
     // state a job is in. See ActivityBucket in activityFilters.ts.
@@ -360,6 +404,7 @@ test.describe("My Posts — card density + header", () => {
     await settle(page);
 
     await dismissNudge(page);
+    await expandCard(page);
     await expect(page.getByRole("button", { name: /no-show/i })).toHaveCount(1);
     await page.screenshot({ path: `${SHOTS}/actions-3up-with-noshow-375.png`, fullPage: true });
 
@@ -398,6 +443,7 @@ test.describe("My Posts — card density + header", () => {
     await page.waitForSelector("h1");
     await settle(page);
     await dismissNudge(page);
+    await expandCard(page);
 
     const row = page.getByRole("group", { name: "Job progress" });
     await expect(row).toHaveCount(1);
@@ -485,12 +531,22 @@ test.describe("My Posts — card density + header", () => {
     await settle(page);
     await dismissNudge(page);
 
-    const messages = page.getByRole("button", { name: "Message Helpr" });
-    await expect(messages).toHaveCount(2);
-    const colours = await messages.evaluateAll((els) =>
-      els.map((el) => getComputedStyle(el).backgroundColor),
-    );
-    expect(colours[0], `Message renders ${colours[0]} vs ${colours[1]}`).toBe(colours[1]);
+    // One card at a time. Posted cards open collapsed and `expandedJobId` holds
+    // a single id, so the two rows cannot be on screen together any more — the
+    // colours are sampled in turn instead. The contract is unchanged: the same
+    // control, on a job whose helpr has finished and on one whose has not, is
+    // the same colour.
+    const readMessageColour = async () => {
+      const btn = page.getByRole("button", { name: "Message Helpr" });
+      await expect(btn).toHaveCount(1);
+      return btn.evaluate((el) => getComputedStyle(el).backgroundColor);
+    };
+    const colourA = await withCardExpanded(page, 0, readMessageColour);
+    const colourB = await withCardExpanded(page, 1, readMessageColour);
+    expect(colourA, `Message renders ${colourA} vs ${colourB}`).toBe(colourB);
+
+    // Re-open the first card for the order assertions below.
+    await expandCard(page);
 
     // Order within the first card's row: SOS · Message.
     //
@@ -526,6 +582,7 @@ test.describe("My Posts — card density + header", () => {
     await page.waitForSelector("h1");
     await settle(page);
     await dismissNudge(page);
+    await expandCard(page);
 
     await page.getByRole("button", { name: "Message Helpr" }).first().click();
     await page.waitForURL(/\/messages\?/);
@@ -533,6 +590,53 @@ test.describe("My Posts — card density + header", () => {
     // Landing on the bare list — the old behaviour — leaves both params null.
     expect(url.searchParams.get("userId"), "helpr not addressed").toBe(HELPER_ID);
     expect(url.searchParams.get("jobId"), "job not addressed").toBeTruthy();
+  });
+
+  // The action row must not toggle the card it sits in.
+  //
+  // JobCardShell owns the expand handler on the whole card — a deliberate
+  // decision (the chevron was dropped in favour of it) — so every click inside
+  // a card bubbles up to it unless something stops it. Tapping Share, Boost,
+  // Edit or Cancel therefore fired the action AND toggled the card (owner,
+  // 2026-08-27: "the job card shouldn't expand every time a button is clicked
+  // at the bottom of the card"). Now that cards open collapsed, that stray
+  // toggle COLLAPSES the row under the finger that just used it.
+  //
+  // This asserts both halves, because asserting only that the tap landed is
+  // exactly the failure mode that let it ship: the action does its thing, AND
+  // the card is still open afterwards.
+  test("an action in the bottom row does not toggle the card", async ({ page, context, baseURL }) => {
+    await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
+    await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true });
+    await page.goto("/my-posts?filter=all");
+    await page.waitForSelector("h1");
+    await settle(page);
+    await dismissNudge(page);
+    await expandCard(page);
+
+    const expanded = page.getByRole("button", { name: "Collapse Job Details" }).first();
+    await expect(expanded).toHaveAttribute("aria-expanded", "true");
+
+    // Edit — the one of the four that opens something we can assert on.
+    // The row is below the fold on a 375pt card, and this page is a fixed
+    // 100dvh shell, so bring it into view rather than expecting it to be there.
+    const edit = page.locator("button").filter({ hasText: /^Edit$/ }).first();
+    await expect(edit).toBeAttached();
+    await edit.scrollIntoViewIfNeeded();
+    await edit.click();
+
+    // The action happened...
+    await expect(page.getByRole("dialog")).toBeVisible();
+
+    // ...and the card underneath did NOT collapse. Dismiss the modal first:
+    // Radix marks everything outside an open dialog aria-hidden, so the card's
+    // own toggle is unreachable by role while it is up — and an "element not
+    // found" there would look exactly like a collapse.
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "Collapse Job Details" }).first(),
+    ).toHaveAttribute("aria-expanded", "true");
   });
 
   test("the card-level toggle carries aria-expanded and flips on click", async ({ page, context, baseURL }) => {

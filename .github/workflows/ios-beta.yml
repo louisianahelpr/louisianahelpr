@@ -180,6 +180,13 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
           VITE_APPLE_MAPKIT_TOKEN: ${{ secrets.VITE_APPLE_MAPKIT_TOKEN }}
+          # Bake the commit SHA in as the Sentry release tag so the runtime
+          # `release` the shipped app reports matches the release the
+          # "Upload iOS sourcemaps to Sentry" step below creates. Without
+          # this the app reports the "1.0.0" fallback (src/lib/sentry.ts) and
+          # the uploaded maps are attached to a release nothing references —
+          # stack traces stay minified.
+          VITE_SENTRY_RELEASE: ${{ github.sha }}
         run: |
           test -n "$VITE_SUPABASE_URL" || { echo "::error::VITE_SUPABASE_URL is empty — the build would ship an app that cannot boot. Set the repo secret."; exit 1; }
           test -n "$VITE_SUPABASE_PUBLISHABLE_KEY" || { echo "::error::VITE_SUPABASE_PUBLISHABLE_KEY is empty — the build would ship an app that cannot boot. Set the repo secret."; exit 1; }
@@ -228,8 +235,54 @@ jobs:
           rm -rf ios/App/App/public
           npx cap sync ios
 
+      - name: Strip sourcemaps from the native bundle
+        # `cap sync` copies dist/ wholesale, so every chunk's .js.map lands in
+        # the .ipa — 20.3 MB of maps against 5.2 MB of JS as of 2026-08-27,
+        # i.e. ~20 MB added to every user's App Store download.
+        #
+        # Nothing reads them: vite.config.ts uses `sourcemap: "hidden"`, so no
+        # `//# sourceMappingURL=` comment is emitted and no runtime ever looks
+        # for a map beside a chunk. Sentry symbolicates from maps UPLOADED by
+        # .github/workflows/sentry-release.yml, never from the device copy.
+        #
+        # dist/ keeps its maps — only ios/App/App/public/ is pruned — so the
+        # upload step below still has the full set.
+        run: npm run strip:ios-sourcemaps
+
       - name: Verify iOS bundle is fresh and offline-only
         run: node scripts/verify-ios-bundle.mjs
+
+      - name: Upload iOS sourcemaps to Sentry
+        # sentry-release.yml symbolicates the WEB build (`npm run build`). The
+        # iOS build (`npm run build:ios`, VITE_CAPACITOR_BUILD=1) produces a
+        # different entry chunk, so ~35 of its 386 chunks have hashes the web
+        # upload never covered. Uploading the iOS maps here closes that gap.
+        #
+        # No-ops with a warning when the Sentry secrets are absent, so the
+        # TestFlight build never fails on account of observability wiring.
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+        run: |
+          if [ -z "$SENTRY_AUTH_TOKEN" ] || [ -z "$SENTRY_ORG" ] || [ -z "$SENTRY_PROJECT" ]; then
+            echo "::warning::Sentry secrets not configured — skipping iOS sourcemap upload. Native crash reports will show minified frames. Add SENTRY_AUTH_TOKEN, SENTRY_ORG and SENTRY_PROJECT to repo secrets."
+            exit 0
+          fi
+          npx @sentry/cli@2 releases new "$GITHUB_SHA"
+          npx @sentry/cli@2 releases files "$GITHUB_SHA" \
+            upload-sourcemaps ./dist/assets --url-prefix '~/assets'
+          npx @sentry/cli@2 releases finalize "$GITHUB_SHA"
+
+      - name: Archive iOS sourcemaps as a build artifact
+        # Fallback symbolication path: even with Sentry unconfigured, the maps
+        # for this exact build are retrievable for 30 days rather than lost.
+        uses: actions/upload-artifact@v7
+        with:
+          name: ios-sourcemaps-${{ github.sha }}
+          if-no-files-found: warn
+          retention-days: 30
+          path: dist/assets/*.map
 
       - name: Verify Fastlane workspace and required secrets
         working-directory: ${{ github.workspace }}

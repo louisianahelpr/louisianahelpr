@@ -69,6 +69,21 @@ if (!existsSync(assetsDir)) fail('Missing iOS bundled assets directory.');
 const jsAssets = readdirSync(assetsDir).filter((file) => file.endsWith('.js'));
 if (!jsAssets.length) fail('No JavaScript assets were copied into the iOS bundle.');
 
+// Sourcemaps must never ride into the .ipa. `cap sync` copies dist/ wholesale
+// and dist/ holds a .map per chunk (`sourcemap: "hidden"` in vite.config.ts),
+// so without `npm run strip:ios-sourcemaps` that is ~20 MB of files no runtime
+// ever reads — "hidden" emits no `//# sourceMappingURL=` comment, and Sentry
+// symbolicates from UPLOADED maps, not from the copy on the device. Fail loudly
+// if the strip step is ever dropped from a sync path.
+const strayMaps = readdirSync(assetsDir).filter((file) => /\.(js|css)\.map$/.test(file));
+if (strayMaps.length) {
+  fail(
+    `iOS bundle ships ${strayMaps.length} sourcemap(s) (e.g. ${strayMaps[0]}). ` +
+    'They add ~20 MB to every App Store download and are never read at runtime. ' +
+    'Run `npm run strip:ios-sourcemaps` after `npx cap sync ios`.',
+  );
+}
+
 const iconSize = statSync(appIcon).size;
 if (iconSize < 100_000) fail('iOS marketing icon looks too small; expected the full Helpr green/white icon.');
 

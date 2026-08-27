@@ -11,7 +11,7 @@
     "build:ios": "npm run sync:ios-metadata && VITE_CAPACITOR_BUILD=1 vite build",
     "sync:ios-metadata": "node scripts/sync-ios-metadata.mjs",
     "clear:xcode-cache": "node scripts/clear-xcode-cache.mjs",
-    "sync:ios": "npm run clear:xcode-cache && npm run sync:ios-metadata && npx cap sync ios && npm run sync:ios-metadata && bash scripts/verify-ios-metadata.sh",
+    "sync:ios": "npm run clear:xcode-cache && npm run sync:ios-metadata && npx cap sync ios && npm run strip:ios-sourcemaps && npm run sync:ios-metadata && bash scripts/verify-ios-metadata.sh",
     "fix:xcode": "npm run build:ios && npm run sync:ios",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
@@ -30,7 +30,8 @@
     "db:staging:link": "npx supabase link --project-ref okpxtpfvwtmbuxugqsws",
     "db:staging:push": "npx supabase db push",
     "deadcode": "knip",
-    "deadcode:functions": "node scripts/check-dead-edge-functions.mjs"
+    "deadcode:functions": "node scripts/check-dead-edge-functions.mjs",
+    "strip:ios-sourcemaps": "node scripts/strip-ios-sourcemaps.mjs"
   },
   "lint-staged": {
     "*.{ts,tsx}": "eslint --fix"

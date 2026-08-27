@@ -632,6 +632,11 @@ platform :ios do
     unless ENV["CI"]
       sh("cd .. && npm run build:ios")
       sh("cd .. && npx cap sync ios")
+      # `cap sync` copies dist/ wholesale, sourcemaps included — ~20 MB of
+      # .js.map that no runtime ever reads (see the script's header comment).
+      # Prune them before the archive so they don't ride into the .ipa. CI
+      # does the same in its own sync step in .github/workflows/ios-beta.yml.
+      sh("cd .. && npm run strip:ios-sourcemaps")
     end
     sync_metadata_to_xcode!
     assert_ios_identity!

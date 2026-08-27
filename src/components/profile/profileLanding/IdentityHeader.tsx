@@ -1,8 +1,9 @@
 import {
   MapPin, ChevronRight as ChevronRightIcon,
   Award, BadgeCheck, Camera, Crown,
-  Star, Share2, Edit,
+  Star, Share2, Edit, Eye,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { avatarGradientFor } from "@/lib/avatarGradient";
 import { formatPriceFloor } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -48,13 +49,14 @@ export function IdentityHeader({
   memberSinceLabel,
   earnedBadges,
 }: IdentityHeaderProps) {
+  const navigate = useNavigate();
 
   return (
     <>
       {/* ── Identity header ──────────────────────────────────────────
           A confident profile header: avatar with the ID-verified badge,
           name + tier, location/tenure, bio, earned trust badges, and a
-          four-up affordance row (Reviews · Share · Edit · QR). The same
+          four-up affordance row (Reviews · Share · Edit · Preview). The same
           radial Sienna→Verdigris backdrop as the Dashboard greeting
           card. */}
       <div
@@ -310,7 +312,7 @@ export function IdentityHeader({
           </div>
         </div>
 
-        {/* Affordance row — Reviews · Share · Edit · QR code, side by
+        {/* Affordance row — Reviews · Share · Edit · Preview, side by
             side in four even boxes. The Reviews box keeps the star +
             rating so the headline trust signal stays visible; the other
             three are the profile's primary self-actions. */}
@@ -378,6 +380,29 @@ export function IdentityHeader({
             </span>
           </button>
 
+          {/* Preview — your own public profile, exactly as an applicant or a
+              poster sees it (`/user/:id`, the same page the Share link above
+              points at). Share hands the link to someone ELSE; there was no way
+              to look at it yourself without copying the link out and pasting it
+              back in. Owner-approved as the fourth affordance.
+
+              The row was already `grid-cols-4` with three children, so this
+              fills the column that was sitting empty — nothing else changes
+              size. Disabled with no id for the same reason Share is: the
+              destination does not exist yet. */}
+          <button
+            type="button"
+            aria-label="Preview your public profile"
+            disabled={!userId}
+            onClick={() => { hapticLight(); if (userId) navigate(`/user/${userId}`); }}
+            className="flex flex-col items-center justify-center gap-1 min-h-[64px] rounded-ds-md px-1 py-2 active:scale-95 transition-transform disabled:opacity-50"
+            style={{ background: "hsl(var(--bark) / 0.06)" }}
+          >
+            <Eye className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} />
+            <span className="text-ds-9 font-sans font-semibold" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+              Preview
+            </span>
+          </button>
         </div>
 
         {/* Earnings sparkline teaser — a tiny last-6-weeks take-home

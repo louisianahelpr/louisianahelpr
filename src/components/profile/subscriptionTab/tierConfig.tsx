@@ -1,5 +1,5 @@
 import { Crown, Leaf, Sparkles, Star } from "lucide-react";
-import { TIER_PERKS } from "@/lib/subscriptionTiers";
+import { ONE_TIME_PASS_DAYS, TIER_PERKS } from "@/lib/subscriptionTiers";
 
 export type TierIconName = "leaf" | "star" | "sparkles" | "crown";
 
@@ -46,7 +46,12 @@ function formatTierPrices(tierId: "basic" | "pro" | "elite") {
   return {
     monthly: `$${monthlyPrice}/mo`,
     annual: `$${yearlyTotal}/yr`,
-    oneTime: `$${monthlyPrice} one-time`,
+    // The one-time pass lapses after ONE_TIME_PASS_DAYS — it is not a
+    // perpetual licence. That expiry used to be disclosed only by a banner
+    // above the cards; the banner is gone (owner, 2026-08-27) so the duration
+    // now rides on the price itself, which is the one line every buyer reads
+    // before paying. Do not shorten this back to "one-time".
+    oneTime: `$${monthlyPrice} · ${ONE_TIME_PASS_DAYS} days`,
     annualSave: `Save ${savePct}%`,
   };
 }

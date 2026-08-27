@@ -304,30 +304,16 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
       {/* Manage row used to live here — now consolidated into the
           "Your plan" hero above when actively subscribed. */}
 
-      {/* One-time pass explainer — "Once" needs a duration or it reads as
-          "pay once, member forever". The pass grants 30 days: the webhook
-          stamps subscription_expires_at now+30d on a one_time checkout
-          (stripe-webhook/handlers/checkoutSessionCompleted.ts). */}
-      {billingInterval === "one_time" && (
-        <div
-          className="rounded-ds-md px-3 py-2 flex items-center gap-2"
-          style={{
-            background: "hsl(var(--bark) / 0.06)",
-            border: "0.5px solid hsl(var(--bark) / 0.20)",
-          }}
-        >
-          <Sparkles className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--bark))" }} strokeWidth={2.25} />
-          <p
-            className="font-serif italic leading-snug text-ds-12"
-            style={{ color: "hsl(var(--olivewood) / 0.85)" }}
-          >
-            <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
-              One-time pass — {ONE_TIME_PASS_DAYS} days.
-            </span>{" "}
-            Pay once, keep the perks for {ONE_TIME_PASS_DAYS} days, no auto-renew.
-          </p>
-        </div>
-      )}
+      {/* The one-time pass explainer banner that lived here was removed at the
+          owner's direction (2026-08-27). "Once" still needs a duration or it
+          reads as "pay once, member forever" — the pass grants
+          ONE_TIME_PASS_DAYS and then lapses (the webhook stamps
+          subscription_expires_at now+30d on a one_time checkout,
+          stripe-webhook/handlers/checkoutSessionCompleted.ts). That disclosure
+          did not go away with the banner: it moved onto the price line itself,
+          which now reads "$5 · 30 days" (tierConfig.tsx `oneTime`). Do not
+          remove it from there too — it is the only pre-purchase statement of
+          the expiry (consumer-disclosure / App Store 3.1.1). */}
 
       {/* Lock-in rate pill — only shown when annual is the chosen cycle.
           Concrete commitment hook: "lock in current pricing for a year". */}

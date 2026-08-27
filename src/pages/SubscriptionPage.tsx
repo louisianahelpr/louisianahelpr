@@ -408,28 +408,19 @@ export default function SubscriptionPage() {
                 );
               })}
             </div>
-            {/* One-time pass explainer. "Once" without a duration reads as
-                "pay once, member forever"; the pass actually grants
-                ONE_TIME_PASS_DAYS days — the webhook stamps
+            {/* The one-time pass explainer banner that lived here was removed
+                at the owner's direction (2026-08-27). "Once" without a duration
+                reads as "pay once, member forever"; the pass actually grants
+                ONE_TIME_PASS_DAYS days and then lapses (the webhook stamps
                 subscription_expires_at at now + that many days on a one_time
-                checkout (stripe-webhook/handlers/checkoutSessionCompleted.ts).
-                Same wording as the in-app Membership tab so the two storefronts
-                describe one product. */}
-            {billingCycle === "one_time" && (
-              <p
-                className="mt-4 mx-auto max-w-md font-serif italic leading-snug text-ds-13"
-                style={{ color: "hsl(var(--olivewood) / 0.85)" }}
-              >
-                <span
-                  className="not-italic font-display font-bold"
-                  style={{ color: "hsl(var(--ink-deep))" }}
-                >
-                  One-time pass — {ONE_TIME_PASS_DAYS} days.
-                </span>{" "}
-                Pay once, keep the perks for {ONE_TIME_PASS_DAYS} days, no
-                auto-renew.
-              </p>
-            )}
+                checkout, stripe-webhook/handlers/checkoutSessionCompleted.ts).
+                That disclosure moved onto the price line itself — the suffix on
+                a one_time cycle is now "· N days" instead of "once", on both
+                the compact phone row and the desktop price block. Keep it
+                there: it is the only pre-purchase statement of the expiry
+                (consumer-disclosure / App Store 3.1.1), and the in-app
+                Membership tab (tierConfig.tsx `oneTime`) says the same thing so
+                the two storefronts describe one product. */}
             {currentTier !== "free" && (
               <button
                 type="button"
@@ -512,7 +503,7 @@ export default function SubscriptionPage() {
                 // figure with a duration suffix rather than a rate suffix.
                 return {
                   amount: isAnnual ? `$${info.yearlyTotal}` : `$${info.monthlyPrice}`,
-                  suffix: isAnnual ? "/yr" : isOnce ? "once" : "/mo",
+                  suffix: isAnnual ? "/yr" : isOnce ? `· ${ONE_TIME_PASS_DAYS} days` : "/mo",
                   saveChip: isAnnual ? info.annualSave : null,
                 };
               })();
@@ -736,7 +727,7 @@ export default function SubscriptionPage() {
                               className="font-sans font-medium text-ds-13"
                               style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                             >
-                              {isAnnual ? "/yr" : isOnce ? "once" : "/mo"}
+                              {isAnnual ? "/yr" : isOnce ? `· ${ONE_TIME_PASS_DAYS} days` : "/mo"}
                             </span>
                           </div>
                           {/* The "or $X/mo billed annually" line that used to sit

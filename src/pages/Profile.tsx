@@ -632,7 +632,29 @@ const ProfilePage = () => {
              (header, back button, tab list). The boundary is rebuilt
              every time the user switches tabs so the previous tab's
              error state is cleared automatically. */
-          <div className="w-full page-measure mx-auto h-full overflow-y-auto pt-3 lg:pt-5 pb-[calc(var(--safe-area-bottom,0px)_+_96px_+_1rem)]">
+          /* NO `pt-3 lg:pt-5` here. The container ABOVE this already carries
+              `pt-3 lg:pt-5` — the same double-padding that was removed from the
+              landing branch (see the container comment above: "Two paddings
+              where its four siblings have one"). The landing branch's
+              PullToRefreshWrapper was fixed; this one, which every non-landing
+              TAB renders through, kept its own copy, so all 18 tabs paid the
+              inset twice and their titles sat a full `pt-3` lower than
+              everything else.
+
+              Measured on the iOS simulator (2026-08-27), distance from the
+              bottom of the safe area to the top of the title's ink, and from
+              the bottom of the ink to the top of the first content card:
+
+                screen                       above    below
+                Profile Review (reference)   28.0pt   35.3pt
+                Account Security tab         40.7pt   26.3pt   <- 12.7pt lower
+
+              12.7pt measured against 12pt of duplicated padding. Removing the
+              copy puts every tab title on the same line as Profile Review's and
+              makes the gap above and below the title very nearly equal, which
+              is what the owner asked for ("it needs to be the same height above
+              and below"). */
+          <div className="w-full page-measure mx-auto h-full overflow-y-auto pb-[calc(var(--safe-area-bottom,0px)_+_96px_+_1rem)]">
           <SectionBoundary key={tab} label={`the ${tab.replace(/_/g, " ")} section`}>
           {/* `key={tab}` on the boundary re-mounts this wrapper on every
               tab switch, so `animate-ds-page-in` replays its entrance each

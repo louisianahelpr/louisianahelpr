@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 // stays so this dialog keeps rendering a rejected write's own message if any
 // future write lands here.
 import { isWriteRejected } from "@/lib/mutationResult";
+import { report } from "@/lib/errorLogger";
 import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -55,7 +56,19 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, hasHel
       .select("recurrence_days, parent_job_id")
       .eq("id", jobId)
       .maybeSingle()
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        // A dropped error here is user-visible, not cosmetic: on failure this
+        // falls back to isSeriesParent=false and silently hides the
+        // whole-series cancellation warning, so someone cancelling a
+        // recurring parent is shown single-occurrence copy. Keep the safe
+        // fallback, but make the failure observable instead of invisible.
+        if (error) {
+          report(error, {
+            severity: "warning",
+            tags: { source: "CancellationDialog.seriesParentLookup" },
+            context: { job_id: jobId },
+          });
+        }
         if (alive) setIsSeriesParent(!!data && !data.parent_job_id && (data.recurrence_days?.length ?? 0) > 0);
       });
     return () => { alive = false; };

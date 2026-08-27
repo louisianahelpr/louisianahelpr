@@ -279,7 +279,18 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
     setOfferToHelperId(offerTo);
     supabase
       .rpc("get_safe_profiles", { user_ids: [offerTo] })
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        // Not fatal — the offer still targets the right helper id — but a
+        // silent drop leaves the form naming nobody while the post is
+        // already pointed at someone, so the poster can't confirm who they
+        // are offering to. Report it rather than swallow it.
+        if (error) {
+          report(error, {
+            severity: "warning",
+            tags: { source: "useJobFormEffects.offerToHelperName" },
+            context: { helper_id: offerTo },
+          });
+        }
         const prof = Array.isArray(data) ? data[0] : null;
         if (prof) setOfferToHelperName(prof.full_name || "this Helpr");
       });

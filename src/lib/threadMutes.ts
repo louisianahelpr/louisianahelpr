@@ -25,6 +25,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { safeStorage } from "@/lib/safeStorage";
+import { report } from "@/lib/errorLogger";
 
 const STORAGE_KEY = "helpr_muted_threads_v2";
 // Legacy key from before the snooze TTL existed — migrated lazily on
@@ -250,7 +251,18 @@ export async function getMutedThreadMap(
   });
 
   if (error) {
-    if (isMissingRpc(error)) return localResolved;
+    // A missing RPC is the expected pre-deploy state — the local fallback IS
+    // the answer there, so stay quiet. Any OTHER failure is indistinguishable
+    // from "nothing is muted": every server-side mute badge silently
+    // disappears and muted threads start notifying again. Same fallback, but
+    // no longer invisible.
+    if (!isMissingRpc(error)) {
+      report(error, {
+        severity: "warning",
+        tags: { source: "threadMutes.get_muted_threads" },
+        context: { pair_count: pairs.length },
+      });
+    }
     return localResolved;
   }
 

@@ -67,7 +67,7 @@ and in what order to fix it*. Same checks, two axes, not a duplicate list.
 
 ### §1 — How to run it (method & process)
 
-**The five non-negotiables — every audit obeys these BEFORE it starts, and any
+**The six non-negotiables — every audit obeys these BEFORE it starts, and any
 one violated is a defect in the audit itself, not a shortcut.** These exist
 because the standard has repeatedly been implemented as spot-checks that miss
 things a peer-quality audit (e.g. Cowork's 18-page reports) catches. All five
@@ -104,7 +104,53 @@ apply concurrently — none substitutes for another:
    it down, keep going, fix in a batch. The user is welcome to redirect scope
    after seeing the worklist — that is the point.
 
-If a defect you eventually ship was catchable by one of the five above, the
+6. **"Configured" is not "working" — prove behaviour by EXECUTION, never by
+   reading.** Rule 2 above closes the visual loophole; this one closes the
+   functional loophole it leaves open. The highest-yield defect class in this
+   codebase is the SILENT NO-OP: something wired up correctly, that does
+   nothing, and throws no error. Source reading cannot catch these — the code
+   looks right, which IS the failure mode. CI is green, tests pass, nothing is
+   logged.
+
+   Every one of these was live in production while audits reported the app
+   clean (2026-08-27, all found in one session, none by reading code):
+   - `SplashScreen.launchShowDuration: 0` — a legal value that makes the
+     Capacitor splash NEVER render. Found by reading the PLUGIN'S OWN iOS
+     source in `node_modules/`, not the config or its comment.
+   - The Sentry sourcemap upload had never once run — it gates on secrets that
+     do not exist, so it SKIPS and reports `success`. 400/400 green runs. Every
+     production stack trace has been unreadable.
+   - `mapkit-token` returns 503 `not_configured` on every call — the map is
+     broken for every user and the client degrades silently.
+   - Pull-to-refresh stopped tracking the finger after one frame (a
+     `cancelAnimationFrame` that never nulled its id). Reads as "laggy".
+   - The CSP blocked `nominatim.openstreetmap.org`, the app's only geocoder, so
+     every posted job got null coordinates and never appeared on the map. Both
+     call sites swallow the failure with `catch { return null }`.
+   - The public "Verified Helpr" ribbon was driven by `!!id_document_url` — it
+     meant a file had been uploaded, nothing more.
+   - A migration deployed to prod GREEN while making the repo un-rebuildable
+     (it read a column added by a later-timestamped migration).
+
+   So: for anything that is configured, scheduled, gated, or integrated, the
+   audit MUST produce evidence of execution, not of correct-looking code:
+   - an HTTP status from actually calling the endpoint,
+   - a workflow run's per-STEP conclusion (a skipped step inside a successful
+     run is the trap — check steps, never just the run),
+   - `gh secret list` / `gh variable list` proving a gate's secret exists,
+   - a cron's `job_run_details` AND what it actually processed (a cron that
+     fires `net.http_post` succeeds the moment the request is QUEUED),
+   - the plugin/library's own source in `node_modules/` when a config value's
+     meaning is not obvious — never the docs, never the comment beside it,
+   - the driven interaction itself, asserting the RESULT changed, not that the
+     handler was bound.
+
+   Treat every `catch {}`, every `?? fallback`, every `if (!x) return`, and
+   every `continue-on-error` as a place a feature can be silently dead. A
+   comment asserting an invariant is not evidence the invariant holds — several
+   of the above had comments stating the opposite of what the code did.
+
+If a defect you eventually ship was catchable by one of the six above, the
 audit missed it because of a process defect, not because the finding was
 obscure. This is the mandate the rest of §1 serves — the "Three methods" block
 below is HOW you execute (1) and (2); the phased "sweep → batch-fix → verify"

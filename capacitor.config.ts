@@ -96,8 +96,10 @@ const config: CapacitorConfig = {
   },
   plugins: {
     SplashScreen: {
-      // Show the splash immediately and hide it as soon as React mounts
-      // (see src/lib/nativeInit.ts → initNative). Apple HIG: hide ASAP.
+      // Show the splash immediately and hide it as soon as React paints
+      // (see src/main.tsx — the double-rAF right after createRoot().render;
+      // it is deliberately NOT hidden from initNative any more). Apple HIG:
+      // hide ASAP.
       // A 1.5s safety-net timeout in nativeInit.ts force-hides the splash
       // even if init fails (this comment said 4s; it was tightened and the
       // comment was not).
@@ -107,7 +109,26 @@ const config: CapacitorConfig = {
       // sits on that forever. That is what a "loads but never opens" launch
       // looks like — see the HARD CAP note in
       // src/integrations/supabase/keychainStorageAdapter.ts.
-      launchShowDuration: 0,
+      // launchShowDuration MUST be non-zero. Read
+      // node_modules/@capacitor/splash-screen/ios/.../SplashScreen.swift:
+      // `showOnLaunch()` calls buildViews() and then
+      // `if config.launchShowDuration == 0 { return }` — it returns BEFORE
+      // showSplash(), so the splash view is never added to the parent view
+      // and `isVisible` stays false. A 0 here does not mean "show it and let
+      // JS hide it"; it means the Capacitor splash NEVER APPEARS AT ALL, and
+      // hide() is then a no-op too (`if !isVisible { return }`).
+      //
+      // That is exactly the bug the owner reported on TestFlight: the iOS
+      // LaunchScreen storyboard covered the pre-WebView phase, then was torn
+      // down the instant the WebView's view controller appeared, revealing
+      // the app already mid-load. No branded splash, ever.
+      //
+      // With launchAutoHide:false the showDuration value is otherwise unused
+      // (SplashScreen.swift only arms the auto-hide timer when autoHide is
+      // true), so this number is just "non-zero" — the splash stays up until
+      // src/main.tsx hides it at first paint, with the 1.5s safety net in
+      // src/lib/nativeInit.ts as the backstop.
+      launchShowDuration: 500,
       launchAutoHide: false,
       backgroundColor: '#F1F2F4', // COOL parchment — the exact hex of hsl(220 14% 95%), i.e. --parchment in index.css. Matches StatusBar (below) and index.html's theme-color. The #root/#boot-loader shell and the app's page ground both paint the diagonal champagne gradient (#F7F8FA -> #EDEFF3); this flat value sits between those two endpoints, so the splash-to-WebView handoff stays within a couple of RGB units instead of flashing a different surface.
       //

@@ -110,8 +110,13 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   // back (or browser back/forward) restores the view. Skip the write
   // when the value is already the URL default to avoid noisy history
   // entries on first load.
+  // Latest params, readable without subscribing to them. Assigned during
+  // render so the effect below always sees the current URL even though it
+  // deliberately does not depend on it.
+  const searchParamsRef = useRef(searchParams);
+  searchParamsRef.current = searchParams;
   useEffect(() => {
-    const current = new URLSearchParams(searchParams);
+    const current = new URLSearchParams(searchParamsRef.current);
     let changed = false;
     if (statusFilter === defaultFilter) {
       if (current.has("filter")) { current.delete("filter"); changed = true; }
@@ -308,7 +313,17 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
 
 
 
-  const headerEl = isTrulyEmpty ? null : (
+  // The header renders ALWAYS — including on an empty list. It used to be
+  // replaced by null, which took the page title down with the filter tabs and
+  // left the empty view headless: the panel appeared to lose its identity the
+  // moment data resolved to zero, and Activity/Messages both "changed the
+  // view of the screen" after load. Owner: the title should still be there.
+  //
+  // What is genuinely dead on an empty list is the CONTROLS — status tabs and
+  // a "0 tasks" count have nothing to act on — so those are what drop out, by
+  // passing an empty filter list. Title stays, controls go, layout is stable
+  // from first paint whether the list has items or not.
+  const headerEl = (
     <ActivityHeader
       title={tab === "posted" ? "My Posts" : "My Jobs"}
       // Desktop: the app bar already identifies the app, so the page name is
@@ -318,7 +333,8 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
       // Desktop has room for the tabs beside the screen name; phone puts them
       // on their own line under it. Same tabs either way.
       inlineFilters={isWebDesktop}
-      activeStatusFilters={activeStatusFilters}
+      // Empty list => no tabs and no count; see the note above headerEl.
+      activeStatusFilters={isTrulyEmpty ? [] : activeStatusFilters}
       activeCounts={activeCounts}
       statusFilter={statusFilter}
       setStatusFilter={setStatusFilter}
@@ -354,20 +370,9 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               {headerEl}
             </div>
           )}
-          {/* Secondary header (status title + search/filter) is hidden
-              when there's nothing to act on — see `isTrulyEmpty`.
-
-              ActivityHeader carries this page's ONLY <h1>, so suppressing it
-              left the empty view with zero headings — a screen reader landed
-              on an unlabelled page with nothing to navigate by. The visible
-              design is deliberate and unchanged; the title is restored to the
-              accessibility tree only, so the document always has exactly one
-              h1 whether or not there is anything to list. */}
-          {isTrulyEmpty && (
-            <h1 className="sr-only">
-              {tab === "posted" ? "My Posts" : "My Jobs"}
-            </h1>
-          )}
+          {/* The sr-only <h1> that used to stand in here is gone: the real
+              ActivityHeader h1 now renders on the empty list too, so adding
+              this one would give the document TWO h1s. */}
 
           <PullToRefreshWrapper
             ref={containerRef}

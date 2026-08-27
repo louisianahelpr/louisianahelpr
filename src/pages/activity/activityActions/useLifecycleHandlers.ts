@@ -331,6 +331,7 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
           await createNotification({ user_id: job.helper_id, title: "✅ Job started!", message: `The poster confirmed "${job.title}" has started.`, type: "success", link: "/my-jobs?filter=in_progress" });
         }
         hapticSuccess();
+        toast.success("Job started!");
         await refresh();
         setStatusFilter("in_progress");
       }
@@ -364,6 +365,8 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
       if (job?.helper_id) {
         await createNotification({ user_id: job.helper_id, title: "✅ Arrival confirmed", message: `The poster confirmed you've arrived for "${job.title}".`, type: "success", link: "/my-jobs?filter=in_progress" });
       }
+      hapticSuccess();
+      toast.success("Arrival confirmed!");
       refresh();
     } finally {
       setConfirmingArrivalJobId(null);
@@ -395,6 +398,8 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
       if (job?.helper_id) {
         await createNotification({ user_id: job.helper_id, title: "✅ Work confirmed", message: `The poster confirmed you're working on "${job.title}".`, type: "success", link: "/my-jobs?filter=in_progress" });
       }
+      hapticSuccess();
+      toast.success("Work confirmed!");
       refresh();
     } finally {
       setConfirmingWorkingJobId(null);

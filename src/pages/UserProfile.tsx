@@ -21,7 +21,6 @@ import { HelperPortfolio } from "@/components/HelperPortfolio";
 import { PublicReviewWall } from "@/components/profile/PublicReviewWall";
 import { SkillEndorsements } from "@/components/profile/SkillEndorsements";
 import { CareerMilestones } from "@/components/profile/CareerMilestones";
-import { ProfileCompletionCard } from "@/components/profile/ProfileCompletionCard";
 import { ProfileHeaderCard } from "./userProfile/ProfileHeaderCard";
 import BackgroundCheckCard from "@/components/profile/BackgroundCheckCard";
 import { ProfileStatsGrid } from "./userProfile/ProfileStatsGrid";
@@ -506,7 +505,15 @@ const UserProfile = () => {
                 repeatHirePercent: data?.repeatHirePercent ?? 0,
                 credentialTier: data?.credentialTier ?? 0,
               }}
-              showProgress={isOwnProfile}
+              // FALSE, always — not `isOwnProfile` (owner, 2026-08-27). The
+              // progress half of this card is a to-do ("First Job — 0/1 job,
+              // 1 to go"), which is a private goal, not a fact about the
+              // person. A visitor never sees it, so showing it here made the
+              // preview differ from the public view it is meant to reproduce.
+              // Earned milestones still render for everyone, exactly as a
+              // visitor sees them; with none earned the card self-hides, which
+              // is also what a visitor gets.
+              showProgress={false}
             />
           </div>
 
@@ -517,17 +524,28 @@ const UserProfile = () => {
               This column takes the scroll so the masthead can stay
               pinned as the viewer reads reviews. */}
           <div className="space-y-5">
-            {/* Profile completion nudge — only shown to the owner, hidden at 100% */}
-            {isOwnProfile && userId && (
-              <ProfileCompletionCard
-                avatarUrl={profile.avatar_url}
-                bio={profile.bio}
-                skills={profile.skills}
-                completedJobs={stats.completedJobs}
-                reviewCount={stats.reviewCount}
-                userId={userId}
-              />
-            )}
+            {/* The "Boost your profile" completion card used to sit here, on the
+                owner's own view of this page. It is gone (owner, 2026-08-27:
+                "preview shouldn't have that at all").
+
+                THIS PAGE IS THE PREVIEW. Its whole job is to show the user what
+                a stranger sees — the header literally reads "How others see you
+                · A preview from a poster's perspective". A completion meter and
+                a self-improvement checklist are things no visitor can ever see,
+                so putting them here made the preview lie about the one thing it
+                exists to report.
+
+                It was also contradicting the meter it duplicated: this card
+                scored five fields of its own (photo 25 / bio 20 / skills 20 /
+                three completed jobs 20 / one review 15) and read 45% on the very
+                account whose Edit-Profile meter — the shared
+                `getProfileCompletion` helper — read 100%. Profile completion now
+                lives in exactly one place: Edit Profile.
+
+                Nothing became unreachable. Every incomplete row on that
+                checklist navigated to `/profile?tab=profile` (photo, bio,
+                skills) or `/dashboard` (find jobs); both are one tap from the
+                bottom nav, and the Edit-Profile form owns those fields. */}
 
             {/* Paid background-check → public Background-Checked badge.
                 Own profile only; self-hides into a confirmation once verified. */}

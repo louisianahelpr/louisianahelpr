@@ -35,6 +35,15 @@
 // below advertises it, so it reads the number rather than restating it — no
 // cycle: productPrices imports only lib/format, which imports nothing.
 import { BOOST_DISCOUNT_PCT } from "@/lib/productPrices";
+// The display NAMES live in `_shared/tierNames.ts` so the edge functions that
+// print a tier at a user (expire-subscriptions' "your pass ended" notice, the
+// Helpr Pass wallet TIER field) read the SAME strings as the app — a Deno
+// function cannot import this module's `@/lib/...` aliases. `TIER_PERKS.name`
+// below is populated from it, and `tierNames.parity.test.ts` pins the two
+// together. Re-exported so UI code has one import for tier naming.
+import { TIER_DISPLAY_NAMES, tierDisplayName } from "../../supabase/functions/_shared/tierNames";
+
+export { tierDisplayName };
 
 /**
  * How long a "Once" (one-time) tier purchase actually entitles the buyer.
@@ -77,7 +86,7 @@ export interface TierPerks {
 
 export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
   free: {
-    name: "Free",
+    name: TIER_DISPLAY_NAMES.free,
     price: null,
     annualPrice: null,
     platformFeePercent: 12,
@@ -93,7 +102,7 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     featureBullets: ["Access to all open jobs", "Basic applicant visibility"],
   },
   basic: {
-    name: "Basic",
+    name: TIER_DISPLAY_NAMES.basic,
     price: 5,
     // Annual = $50/yr → monthly-equivalent 4.17 (2 months free vs $60/yr
     // at monthly). Matches the "2 months free" pattern used by Pro/Elite.
@@ -119,7 +128,7 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     ],
   },
   pro: {
-    name: "Pro",
+    name: TIER_DISPLAY_NAMES.pro,
     price: 10,
     annualPrice: 8.33,
     platformFeePercent: 10,
@@ -141,7 +150,7 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     ],
   },
   elite: {
-    name: "Elite",
+    name: TIER_DISPLAY_NAMES.elite,
     price: 15,
     annualPrice: 12.5,
     platformFeePercent: 8,
@@ -163,7 +172,7 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     ],
   },
   business: {
-    name: "Business",
+    name: TIER_DISPLAY_NAMES.business,
     // NOT a consumer subscription price. Business is billed per-seat
     // (Starter free · Crew $20/mo · Team $30/mo · Enterprise $40/mo) —
     // see supabase/functions/_shared/businessSeatTiers.ts. These stay

@@ -6,6 +6,7 @@ import { cn, formatName } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
 import { jobStatusColorClasses } from "@/lib/statusColors";
 import { jobStatusLabel, paymentStatusLabel } from "@/lib/statusLabels";
+import { tierDisplayName } from "@/lib/subscriptionTiers";
 // formatPriceExact for the payout column: it is budget minus fee to the cent,
 // and an admin reconciling against Stripe needs the real figure, not a rounded one.
 import { formatCategory, formatPrice, formatPriceExact, formatShortDate } from "@/lib/format";
@@ -72,7 +73,7 @@ export const UsersDrillDown = ({ users, roleByUser }: { users: Profile[]; roleBy
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
                 {u.subscription_tier && (
-                  <Badge className="text-ds-10 bg-primary/10 text-primary capitalize">{u.subscription_tier}</Badge>
+                  <Badge className="text-ds-10 bg-primary/10 text-primary">{tierDisplayName(u.subscription_tier)}</Badge>
                 )}
                 <Badge className={`text-ds-11 capitalize ${statusColor(u.approval_status)}`}>{u.approval_status}</Badge>
               </div>
@@ -102,8 +103,8 @@ export const SubscriptionsDrillDown = ({ users }: { users: Profile[] }) => {
           const count = users.filter(u => t === "all" || (t === "free" ? !u.subscription_tier : u.subscription_tier === t)).length;
           return (
             <button key={t} onClick={() => setTierFilter(t)} aria-pressed={tierFilter === t}
-              className={`flex-1 px-3 py-1.5 rounded-md text-ds-11 font-medium transition-colors capitalize ${tierFilter === t ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
-              {t} ({count})
+              className={`flex-1 px-3 py-1.5 rounded-md text-ds-11 font-medium transition-colors ${tierFilter === t ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+              {t === "all" ? "All" : tierDisplayName(t)} ({count})
             </button>
           );
         })}
@@ -121,7 +122,7 @@ export const SubscriptionsDrillDown = ({ users }: { users: Profile[] }) => {
               u.subscription_tier === "basic" ? "bg-secondary text-secondary-foreground" :
               "bg-muted text-muted-foreground"
             }`}>
-              {u.subscription_tier || "Free"}
+              {tierDisplayName(u.subscription_tier)}
             </Badge>
           </div>
         ))}

@@ -16,6 +16,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
+import { TIER_DISPLAY_NAMES } from "../_shared/tierNames.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -69,7 +70,7 @@ Deno.serve(async (req) => {
     if (!subActive || subTier !== "elite") {
       return new Response(
         JSON.stringify({
-          error: "Helpr Pass is an Elite-tier perk.",
+          error: `Helpr Pass is a ${TIER_DISPLAY_NAMES.elite} perk.`,
           required_tier: "elite",
         }),
         {
@@ -99,7 +100,7 @@ Deno.serve(async (req) => {
         Deno.env.get("PASS_TYPE_IDENTIFIER") ?? "pass.com.louisianahelpr.helprpass",
       teamIdentifier: Deno.env.get("APPLE_TEAM_ID") ?? "TEAMID",
       organizationName: "Louisiana Helpr",
-      description: "Helpr Pass — Elite member ID",
+      description: `Helpr Pass — ${TIER_DISPLAY_NAMES.elite} member ID`,
       serialNumber: user.id,
       backgroundColor: "rgb(94, 101, 68)", // bark
       foregroundColor: "rgb(248, 244, 235)", // parchment
@@ -114,7 +115,7 @@ Deno.serve(async (req) => {
             label: "RATING",
             value: avgRating != null ? `${avgRating} ★` : "New",
           },
-          { key: "tier", label: "TIER", value: "Elite" },
+          { key: "tier", label: "TIER", value: TIER_DISPLAY_NAMES.elite },
         ],
         auxiliaryFields: [
           {

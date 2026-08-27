@@ -6,6 +6,7 @@ import { ArrowLeft, Pencil, Plus, Sparkles, Star, X } from "lucide-react";
 import { AttachmentLink } from "@/components/AttachmentLink";
 import CredentialBadge from "@/components/CredentialBadge";
 import { hapticLight } from "@/lib/haptics";
+import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import { type Job, type EnrichedApplication } from "../activityConstants";
 import { useApplicantComparison } from "./useApplicantComparison";
 import { DeclineApplicantSheet } from "./DeclineApplicantSheet";
@@ -247,7 +248,7 @@ export function ApplicantsPanel({
                                     letterSpacing: "0.08em",
                                   }}
                                 >
-                                  Elite
+                                  {TIER_PERKS.elite.name}
                                 </span>
                               )}
                               {isPro && (
@@ -259,7 +260,7 @@ export function ApplicantsPanel({
                                     letterSpacing: "0.08em",
                                   }}
                                 >
-                                  Pro
+                                  {TIER_PERKS.pro.name}
                                 </span>
                               )}
                               {/* Licensed/Insured badges — the hiring surface

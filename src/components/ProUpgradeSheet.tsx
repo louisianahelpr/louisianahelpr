@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import { Dialog, DialogContent, DialogHeader, DialogHero, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Crown, Star, Check, type LucideIcon } from "lucide-react";
@@ -38,8 +39,11 @@ export function ProUpgradeSheet({
 }: ProUpgradeSheetProps) {
   const navigate = useNavigate();
 
+  // Branded name, from TIER_PERKS — this string reaches the user in the sheet
+  // body and on the CTA ("See Helpr Pro Plans"), and must read the same as
+  // the plan card it sends them to.
   const tierLabel =
-    requiredTier === "elite" ? "Elite" : requiredTier === "basic" ? "Basic" : "Pro";
+    requiredTier === "elite" ? TIER_PERKS.elite.name : requiredTier === "basic" ? TIER_PERKS.basic.name : TIER_PERKS.pro.name;
   const TierIcon =
     requiredTier === "elite" ? Crown : requiredTier === "basic" ? Star : Sparkles;
   // Basic's accent is bark — the same treatment its badge preview and the

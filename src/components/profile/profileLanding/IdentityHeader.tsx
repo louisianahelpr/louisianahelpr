@@ -7,6 +7,7 @@ import { avatarGradientFor } from "@/lib/avatarGradient";
 import { formatPriceFloor } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import HelperTierBadge from "@/components/profile/HelperTierBadge";
+import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import { EarningsSparkline } from "@/components/profile/EarningsSparkline";
 import { hapticLight } from "@/lib/haptics";
 import { shareNative } from "@/lib/nativeShare";
@@ -176,7 +177,7 @@ export function IdentityHeader({
                     letterSpacing: "0.08em",
                   }}
                 >
-                  <Star className="w-2.5 h-2.5" /> Basic
+                  <Star className="w-2.5 h-2.5" /> {TIER_PERKS.basic.name}
                 </span>
               )}
               {tier === "pro" && (
@@ -192,7 +193,7 @@ export function IdentityHeader({
                       Elite a Crown, so a bare word read as a different kind of
                       chip rather than the middle of one ladder. Award sits
                       naturally between the two. */}
-                  <Award className="w-2.5 h-2.5" /> Pro
+                  <Award className="w-2.5 h-2.5" /> {TIER_PERKS.pro.name}
                 </span>
               )}
               {tier === "elite" && (
@@ -204,7 +205,7 @@ export function IdentityHeader({
                     letterSpacing: "0.08em",
                   }}
                 >
-                  <Crown className="w-2.5 h-2.5" /> Elite
+                  <Crown className="w-2.5 h-2.5" /> {TIER_PERKS.elite.name}
                 </span>
               )}
             </div>

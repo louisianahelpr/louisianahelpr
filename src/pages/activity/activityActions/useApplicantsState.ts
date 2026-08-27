@@ -73,10 +73,22 @@ export function useApplicantsState(user: SupaUser | null) {
           avgRating: stats?.avg ?? 0,
         };
       });
-      // Boosted Visibility: Pro/Elite helpers appear first in applicant lists
-      const tierOrder = (tier: string | null | undefined) => tier === "elite" ? 3 : tier === "pro" ? 2 : tier === "basic" ? 1 : 0;
-      enriched.sort((a, b) => tierOrder(a.profiles?.subscription_tier) - tierOrder(b.profiles?.subscription_tier));
-      enriched.reverse();
+      // Priority Placement: the perk TIER_PERKS advertises for Helpr Pro, Helpr
+      // Elite AND Business — paid helpers float to the top of the poster's
+      // applicant list.
+      //
+      // Two fixes here. (1) `business` was missing from the ladder, so a
+      // Business account — which sits ABOVE Elite on every other rung (6%
+      // commission, priorityPlacement: true) — ranked joint-last with Free.
+      // (2) The sort was ascending and then `.reverse()`d to correct itself.
+      // That produced the right tier order but also reversed ties, so helpers
+      // on the SAME tier came back in reverse application order — the earliest
+      // applicant sank to the bottom of their band. Sorting descending directly
+      // keeps Array.prototype.sort's stability, so within a tier the original
+      // (application) order is preserved.
+      const tierOrder = (tier: string | null | undefined) =>
+        tier === "business" ? 4 : tier === "elite" ? 3 : tier === "pro" ? 2 : tier === "basic" ? 1 : 0;
+      enriched.sort((a, b) => tierOrder(b.profiles?.subscription_tier) - tierOrder(a.profiles?.subscription_tier));
       return enriched;
     }
     return [];

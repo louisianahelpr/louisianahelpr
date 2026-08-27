@@ -43,8 +43,20 @@ serve(async (req) => {
     const isNative = isNativeRequest(proBody);
     const cycle = PRICE_MAP[billing_cycle];
     if (!cycle) throw new Error("Invalid billing_cycle. Use: monthly, annual, or one_time");
-    const priceId = cycle[tier];
-    if (!priceId) throw new Error("Invalid tier. Use: pro or elite");
+    // Validate `tier` against an explicit allowlist BEFORE using it as an index.
+    // Two reasons, both real: (1) the old check was `if (!priceId)` on a raw
+    // `cycle[tier]` lookup, so an inherited key like "constructor" or
+    // "__proto__" resolved to something truthy-but-not-a-price and was handed
+    // to Stripe as `line_items[0].price`; (2) the old error message said "Use:
+    // pro or elite" while `basic` has been a valid, live-priced tier for some
+    // time — a caller debugging a Basic checkout was told their correct input
+    // was invalid.
+    const ALLOWED_TIERS = ["basic", "pro", "elite"] as const;
+    if (!ALLOWED_TIERS.includes(tier)) {
+      throw new Error(`Invalid tier. Use: ${ALLOWED_TIERS.join(", ")}`);
+    }
+    const priceId = cycle[tier as (typeof ALLOWED_TIERS)[number]];
+    if (!priceId) throw new Error(`No Stripe price configured for tier "${tier}" on the ${billing_cycle} cycle.`);
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",

@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { PRODUCT_TO_TIER } from "../_shared/productTiers.ts";
+import { tierDisplayName } from "../_shared/tierNames.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -128,7 +129,7 @@ serve(async (req) => {
                 await supabaseAdmin.from("notifications").insert({
                   user_id: referral.referrer_id,
                   title: "Bonus credit earned",
-                  message: `Someone you referred upgraded to ${tier.charAt(0).toUpperCase() + tier.slice(1)} — you earned $10.`,
+                  message: `Someone you referred upgraded to ${tierDisplayName(tier)} — you earned $10.`,
                   type: "payment",
                   link: "/profile?tab=referral",
                   read: false,

@@ -132,7 +132,7 @@ const TierBadgePreview = ({ tier }: { tier: string }) => {
         className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-flex items-center gap-1"
         style={{ color: "hsl(var(--bark))", background: "hsl(var(--bark) / 0.10)", letterSpacing: "0.08em" }}
       >
-        <Star className="w-2.5 h-2.5" /> Basic
+        <Star className="w-2.5 h-2.5" /> {TIER_PERKS.basic.name}
       </span>
     );
   }
@@ -142,7 +142,7 @@ const TierBadgePreview = ({ tier }: { tier: string }) => {
         className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-flex items-center gap-1"
         style={{ color: "hsl(var(--burnt-sienna))", background: "hsl(var(--burnt-sienna) / 0.12)", letterSpacing: "0.08em" }}
       >
-        <Award className="w-2.5 h-2.5" /> Pro
+        <Award className="w-2.5 h-2.5" /> {TIER_PERKS.pro.name}
       </span>
     );
   }
@@ -152,7 +152,7 @@ const TierBadgePreview = ({ tier }: { tier: string }) => {
         className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-flex items-center gap-1"
         style={{ color: "hsl(var(--gold-warm))", background: "hsl(var(--gold-warm) / 0.14)", letterSpacing: "0.08em" }}
       >
-        <Crown className="w-2.5 h-2.5" /> Elite
+        <Crown className="w-2.5 h-2.5" /> {TIER_PERKS.elite.name}
       </span>
     );
   }
@@ -592,8 +592,13 @@ export default function SubscriptionPage() {
                       </span>
                     )}
 
-                    {/* Tier name — big Bodoni. Bare "Basic / Pro / Elite"
-                        ("Free" for the free tier). */}
+                    {/* Tier name — big Bodoni, printed EXACTLY as TIER_PERKS
+                        stores it: "Helpr Basic / Helpr Pro / Helpr Elite" (Free
+                        has no prefix because it is not a Helpr plan). This used
+                        to strip the "Helpr " prefix so the cards read "Basic /
+                        Pro / Elite"; the owner's 2026-08-24 naming rule is that
+                        the brand leads the tier name everywhere a human reads
+                        it, so the prefix stays. */}
                     {/* No conditional margin. This used to add mt-3 whenever a
                         chip sat above the title — but the "Current" chip is gone
                         and "Recommended" is now absolutely positioned in the
@@ -1035,9 +1040,10 @@ export default function SubscriptionPage() {
                       const perks = TIER_PERKS[tier];
                       const isFree = tier === "free";
                       const isFeatured = tier === "pro";
-                      const displayName = isFree
-                        ? "Free"
-                        : perks.name;
+                      // Printed exactly as TIER_PERKS stores it — the compare
+                      // table's column headers must match the plan-card titles
+                      // above them, and both carry the "Helpr " prefix.
+                      const displayName = isFree ? "Free" : perks.name;
                       return (
                         <th
                           key={tier}

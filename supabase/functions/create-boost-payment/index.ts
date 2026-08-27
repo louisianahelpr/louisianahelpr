@@ -4,6 +4,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { getAppUrl, buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 import { BOOST_FEE_CENTS, BOOST_DURATION_HOURS, BOOST_DISCOUNT_PCT, BOOST_MIN_UNIT_AMOUNT_CENTS } from "../_shared/productPrices.ts";
+import { TIER_DISPLAY_NAMES } from "../_shared/tierNames.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -105,13 +106,13 @@ serve(async (req) => {
         .eq("id", job_id);
       if (boostErr) {
         console.error("[create-boost-payment] elite boost flip failed:", boostErr);
-        return fail(500, "We couldn't apply your Elite boost. Please try again.");
+        return fail(500, `We couldn't apply your ${TIER_DISPLAY_NAMES.elite} boost. Please try again.`);
       }
       return new Response(
         JSON.stringify({
           free: true,
           boost_expires_at: boostExpires.toISOString(),
-          message: "Job boosted — included with Elite",
+          message: `Job boosted — included with ${TIER_DISPLAY_NAMES.elite}`,
         }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -153,7 +154,7 @@ serve(async (req) => {
           JSON.stringify({
             free: true,
             boost_expires_at: boostExpires.toISOString(),
-            message: "Job boosted — your free Pro boost this month",
+            message: `Job boosted — your free ${TIER_DISPLAY_NAMES.pro} boost this month`,
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
         );
@@ -191,7 +192,7 @@ serve(async (req) => {
     const productName = isBoostDiscountTier
       ? (flooredBelowDiscount
           ? "Job Boost — 24-hour featured placement"
-          : `Job Boost — 24-hour featured placement (${BOOST_DISCOUNT_PCT}% off with ${subTier === "basic" ? "Basic" : "Pro"})`)
+          : `Job Boost — 24-hour featured placement (${BOOST_DISCOUNT_PCT}% off with ${subTier === "basic" ? TIER_DISPLAY_NAMES.basic : TIER_DISPLAY_NAMES.pro})`)
       : "Job Boost — 24-hour featured placement";
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {

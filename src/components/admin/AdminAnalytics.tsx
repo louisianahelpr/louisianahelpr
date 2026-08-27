@@ -4,6 +4,7 @@ import { report } from "@/lib/errorLogger";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Activity, AlertTriangle, BarChart3, Briefcase, CheckCircle, Clock, CreditCard, Crown, DollarSign, Loader2, PieChart, Sparkles, Star, TrendingUp, Users, XCircle } from "lucide-react";
+import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { MetricCard, StatusRow, MRRRow, CohortRetentionCard, FunnelCard } from "./AdminAnalyticsCards";
 import { UsersDrillDown, SubscriptionsDrillDown, CategoriesDrillDown, PayoutsDrillDown, JobsDrillDown } from "./AdminAnalyticsDrilldowns";
@@ -373,10 +374,10 @@ const AdminAnalytics = () => {
           <p className="text-ds-24 font-bold text-foreground">${totalSubRevenue.toFixed(2)}<span className="text-ds-13 font-normal text-muted-foreground">/mo</span></p>
           <div className="grid grid-cols-4 gap-2 mt-4">
             {[
-              { label: "Elite", count: subElite, color: "bg-accent/20 text-accent" },
-              { label: "Pro", count: subPro, color: "bg-primary/10 text-primary" },
-              { label: "Basic", count: subBasic, color: "Bg-secondary Text-secondary-foreground" },
-              { label: "Free", count: subFree, color: "Bg-muted Text-muted-foreground" },
+              { label: TIER_PERKS.elite.name, count: subElite, color: "bg-accent/20 text-accent" },
+              { label: TIER_PERKS.pro.name, count: subPro, color: "bg-primary/10 text-primary" },
+              { label: TIER_PERKS.basic.name, count: subBasic, color: "Bg-secondary Text-secondary-foreground" },
+              { label: TIER_PERKS.free.name, count: subFree, color: "Bg-muted Text-muted-foreground" },
             ].map(t => (
               <div key={t.label} className="text-center">
                 <p className="text-ds-17 font-bold text-foreground">{t.count}</p>
@@ -547,9 +548,9 @@ const AdminAnalytics = () => {
           <p className="text-ds-28 font-bold text-foreground tabular-nums leading-none">${totalSubRevenue.toFixed(2)}</p>
           <p className="text-ds-11 text-muted-foreground mt-1">Projected annual: ${(totalSubRevenue * 12).toFixed(2)}</p>
           <div className="mt-4 space-y-1.5">
-            <MRRRow tier="Elite" count={subElite} amount={subElite * SUB_PRICE.elite} />
-            <MRRRow tier="Pro" count={subPro} amount={subPro * SUB_PRICE.pro} />
-            <MRRRow tier="Basic" count={subBasic} amount={subBasic * SUB_PRICE.basic} />
+            <MRRRow tier={TIER_PERKS.elite.name} count={subElite} amount={subElite * SUB_PRICE.elite} />
+            <MRRRow tier={TIER_PERKS.pro.name} count={subPro} amount={subPro * SUB_PRICE.pro} />
+            <MRRRow tier={TIER_PERKS.basic.name} count={subBasic} amount={subBasic * SUB_PRICE.basic} />
           </div>
         </AdminCard>
       </div>

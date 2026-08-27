@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { cronError, cronResult } from "../_shared/cron-result.ts";
+import { tierDisplayName } from "../_shared/tierNames.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -66,8 +67,10 @@ serve(async (req) => {
     // than silently dropped.
     const notifications = expired.map(p => ({
       user_id: p.user_id,
-      title: "Subscription expired",
-      message: `Your ${p.subscription_tier} pass ended. Renew anytime in Profile → Plans.`,
+      title: "Membership expired",
+      // tierDisplayName, not the raw column: this used to interpolate the id
+      // straight in and tell a lapsing member "Your pro pass ended."
+      message: `Your ${tierDisplayName(p.subscription_tier)} membership ended. Renew anytime in Profile → Membership.`,
       type: "info",
       link: "/profile?tab=subscription",
     }));

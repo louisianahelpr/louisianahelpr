@@ -1,6 +1,7 @@
 import { Wallet, RefreshCw, Loader2, Banknote, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatCents } from "./earningsTabHelpers";
+import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import {
   instantPayoutFeeLabel,
   instantPayoutMinLabel,
@@ -118,7 +119,7 @@ export function WalletCard({
                     {/* Basic is the cheapest tier that unlocks instant
                         payouts (TIER_PERKS.basic) — the chip names the real
                         gate, matching the paywall sheet. */}
-                    Basic
+                    {TIER_PERKS.basic.name}
                   </span>
                 )}
               </div>

@@ -35,6 +35,7 @@
     "src",
     "supabase/functions/_shared/businessSeatTiers.ts",
     "supabase/functions/_shared/proTiers.ts",
+    "supabase/functions/_shared/tierNames.ts",
     "supabase/functions/_shared/helperFees.ts",
     "supabase/functions/_shared/productPrices.ts",
     "supabase/functions/_shared/escrowTiming.ts",

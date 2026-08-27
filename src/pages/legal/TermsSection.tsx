@@ -119,8 +119,9 @@ export const TermsContent = () => (
         title="Split fee model"
         body={
           <>
-            <p><strong className="text-foreground">Poster service fee:</strong> added at checkout by your plan — {TIER_PERKS.free.platformFeePercent}% Free, {TIER_PERKS.basic.platformFeePercent}% Basic, {TIER_PERKS.pro.platformFeePercent}% Pro, {TIER_PERKS.elite.platformFeePercent}% Elite (minimum covers card processing on small jobs).</p>
-            <p><strong className="text-foreground">Helpr platform fee:</strong> deducted from payout by plan — {TIER_PERKS.free.platformFeePercent}% Free, {TIER_PERKS.basic.platformFeePercent}% Basic, {TIER_PERKS.pro.platformFeePercent}% Pro, {TIER_PERKS.elite.platformFeePercent}% Elite.</p>
+            <p><strong className="text-foreground">Poster service fee:</strong> added at checkout by your plan — {TIER_PERKS.free.platformFeePercent}% Free, {TIER_PERKS.basic.platformFeePercent}% {TIER_PERKS.basic.name}, {TIER_PERKS.pro.platformFeePercent}% {TIER_PERKS.pro.name}, {TIER_PERKS.elite.platformFeePercent}% {TIER_PERKS.elite.name} (minimum covers card processing on small jobs).</p>
+            <p><strong className="text-foreground">Helpr platform fee:</strong> deducted from payout by plan — {TIER_PERKS.free.platformFeePercent}% Free, {TIER_PERKS.basic.platformFeePercent}% {TIER_PERKS.basic.name}, {TIER_PERKS.pro.platformFeePercent}% {TIER_PERKS.pro.name}, {TIER_PERKS.elite.platformFeePercent}% {TIER_PERKS.elite.name}.</p>
+
             <p><strong className="text-foreground">Total platform take:</strong> the poster's plan-based service fee plus the Helpr's plan-based fee.</p>
             <p><strong className="text-foreground">Urgent job fee:</strong> {formatDollarsWhole(URGENT_FEE_FLOOR_DOLLARS)} minimum bonus that goes to the Helpr, added by the poster for priority placement.</p>
             {/* Job Boost and Tipping moved here verbatim from the Profile → Legal

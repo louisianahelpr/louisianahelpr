@@ -1,3 +1,4 @@
+import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import { TIER_COLORS } from "../adminAnalyticsConstants";
 import { netUrgentFeeDollars } from "@/lib/stripeFees";
 import { HELPER_FEE_LEGACY_FALLBACK_PERCENT } from "@/lib/legacyFeeFallback";
@@ -312,10 +313,10 @@ export const computeMetrics = (
 
   // Subscription pie data
   const subPieData = [
-    { name: "Elite", value: subElite, color: TIER_COLORS.elite },
-    { name: "Pro", value: subPro, color: TIER_COLORS.pro },
-    { name: "Basic", value: subBasic, color: TIER_COLORS.basic },
-    { name: "Free", value: subFree, color: TIER_COLORS.free },
+    { name: TIER_PERKS.elite.name, value: subElite, color: TIER_COLORS.elite },
+    { name: TIER_PERKS.pro.name, value: subPro, color: TIER_COLORS.pro },
+    { name: TIER_PERKS.basic.name, value: subBasic, color: TIER_COLORS.basic },
+    { name: TIER_PERKS.free.name, value: subFree, color: TIER_COLORS.free },
   ].filter(d => d.value > 0);
 
   // Top helpers (by completed jobs)

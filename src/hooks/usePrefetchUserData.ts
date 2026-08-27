@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/queryKeys";
 import { fetchReferralData } from "@/hooks/useReferralData";
-import { fetchActivityData } from "@/hooks/useActivityData";
+import { prefetchActivityCores } from "@/hooks/useActivityData";
 import { prefetchRoute } from "@/lib/routePrefetch";
 
 /**
@@ -34,11 +34,10 @@ export function usePrefetchUserData(userId: string | undefined) {
         queryFn: () => fetchReferralData(userId),
         staleTime: 60 * 1000,
       });
-      queryClient.prefetchQuery({
-        queryKey: queryKeys.activity.byUser(userId),
-        queryFn: () => fetchActivityData(userId),
-        staleTime: 60 * 1000,
-      });
+      // Both Activity tabs' CORE queries (the per-tab first-paint data). The
+      // deferred detail queries are keyed on the core result, so they can't be
+      // warmed from here — and nothing waits on them to paint.
+      prefetchActivityCores(queryClient, userId);
       // Route chunks — first paint of the destination is now ~instant.
       prefetchRoute("/my-posts");
       prefetchRoute("/my-jobs");

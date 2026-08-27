@@ -1,5 +1,5 @@
 import type { User as SupaUser } from "@supabase/supabase-js";
-import type { ActivityData } from "@/hooks/useActivityData";
+import type { PostedActivity, AppliedActivity } from "@/hooks/useActivityData";
 import type {
   Job,
   Application,
@@ -29,9 +29,14 @@ export interface UseActivityActionsArgs {
  * Optimistic cache helpers shared by every money-path handler. Kept as a
  * discrete shape so the handler builders can be typed without re-deriving it.
  */
+export interface ActivitySnapshot {
+  posted: PostedActivity | undefined;
+  applied: AppliedActivity | undefined;
+}
+
 export interface OptimisticJobCache {
-  optimisticallyPatchJob: (jobId: string, patch: Partial<Job>) => ActivityData | undefined;
-  rollbackActivity: (snapshot: ActivityData | undefined) => void;
+  optimisticallyPatchJob: (jobId: string, patch: Partial<Job>) => ActivitySnapshot | undefined;
+  rollbackActivity: (snapshot: ActivitySnapshot | undefined) => void;
 }
 
 export type { Job, Application, EnrichedApplication, AppliedApp };

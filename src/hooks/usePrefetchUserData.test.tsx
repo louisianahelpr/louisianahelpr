@@ -9,14 +9,14 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 
 const fetchReferralMock = vi.fn();
-const fetchActivityMock = vi.fn();
+const prefetchActivityCoresMock = vi.fn();
 const prefetchRouteMock = vi.fn();
 
 vi.mock("@/hooks/useReferralData", () => ({
   fetchReferralData: (...args: unknown[]) => fetchReferralMock(...args),
 }));
 vi.mock("@/hooks/useActivityData", () => ({
-  fetchActivityData: (...args: unknown[]) => fetchActivityMock(...args),
+  prefetchActivityCores: (...args: unknown[]) => prefetchActivityCoresMock(...args),
 }));
 vi.mock("@/lib/routePrefetch", () => ({
   prefetchRoute: (...args: unknown[]) => prefetchRouteMock(...args),
@@ -28,7 +28,7 @@ let originalRIC: typeof window.requestIdleCallback | undefined;
 
 beforeEach(() => {
   fetchReferralMock.mockReset().mockResolvedValue({});
-  fetchActivityMock.mockReset().mockResolvedValue({});
+  prefetchActivityCoresMock.mockReset();
   prefetchRouteMock.mockReset();
   // Default: requestIdleCallback present and runs synchronously
   originalRIC = window.requestIdleCallback;
@@ -69,7 +69,7 @@ describe("usePrefetchUserData", () => {
     const { wrapper } = makeWrapper();
     renderHook(() => usePrefetchUserData(undefined), { wrapper });
     expect(fetchReferralMock).not.toHaveBeenCalled();
-    expect(fetchActivityMock).not.toHaveBeenCalled();
+    expect(prefetchActivityCoresMock).not.toHaveBeenCalled();
     expect(prefetchRouteMock).not.toHaveBeenCalled();
   });
 
@@ -78,7 +78,7 @@ describe("usePrefetchUserData", () => {
     renderHook(() => usePrefetchUserData("user-1"), { wrapper });
 
     expect(fetchReferralMock).toHaveBeenCalledWith("user-1");
-    expect(fetchActivityMock).toHaveBeenCalledWith("user-1");
+    expect(prefetchActivityCoresMock).toHaveBeenCalledWith(expect.anything(), "user-1");
   });
 
   it("prefetches all 4 likely-next-nav routes (my-posts, my-jobs, jobs, profile)", () => {

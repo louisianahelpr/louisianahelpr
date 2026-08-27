@@ -172,7 +172,9 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     loading, loadError, postedJobs, appliedApps, applicantCounts,
     startRequestedJobIds, helperNames, completedJobMeta,
     helperReviewedJobIds, latestTracking, groupHelpersByJob, refresh,
-  } = useActivityData(user);
+    // Only THIS tab's data blocks the first card. The other tab's core query
+    // is warmed on idle inside the hook, so switching still comes out of cache.
+  } = useActivityData(user, tab);
 
   // Customer-first-bid push nudge — fires the high-intent re-ask the
   // first time this customer sees at least one applicant on a job they
@@ -211,13 +213,10 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
       applicantCounts,
     });
 
-  // Pull-to-refresh — per-tab refresh wrapper. The underlying
-  // useActivityData query is a single key covering both posted and
-  // applied data (server-side join economy), so a refetch hits both;
-  // but each Activity instance ("/my-posts" vs "/my-jobs") tracks its
-  // own pull-state and its own "last refreshed at" timestamp so the
-  // tabs feel independent and one tab's stale-while-revalidating
-  // refresh doesn't visually leak into the other.
+  // Pull-to-refresh — refetches this tab's core + detail queries only (the
+  // other tab has its own keys and its own idle warm), and each Activity
+  // instance ("/my-posts" vs "/my-jobs") tracks its own pull-state so one
+  // tab's refresh never leaks into the other.
   const tabRefresh = useCallback(async () => {
     await refresh();
   }, [refresh]);

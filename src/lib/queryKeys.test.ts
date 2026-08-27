@@ -19,8 +19,33 @@ describe("queryKeys", () => {
   });
 
   describe("activity", () => {
-    it("byUser key shape: ['activity', userId]", () => {
-      expect(queryKeys.activity.byUser("user-1")).toEqual(["activity", "user-1"]);
+    it("per-tab key shapes: ['activity', tab, userId]", () => {
+      expect(queryKeys.activity.posted("user-1")).toEqual(["activity", "posted", "user-1"]);
+      expect(queryKeys.activity.applied("user-1")).toEqual(["activity", "applied", "user-1"]);
+    });
+
+    it("the two tabs never share a key (My Posts must not serve My Jobs)", () => {
+      expect(queryKeys.activity.posted("user-1")).not.toEqual(queryKeys.activity.applied("user-1"));
+    });
+
+    it("detail keys carry the id sets they will look up", () => {
+      const a = queryKeys.activity.postedDetail("user-1", { helperIds: ["h1"] });
+      const b = queryKeys.activity.postedDetail("user-1", { helperIds: ["h2"] });
+      expect(a).not.toEqual(b);
+      expect(queryKeys.activity.appliedDetail("user-1", { posterIds: [] })).toEqual([
+        "activity", "appliedDetail", "user-1", { posterIds: [] },
+      ]);
+    });
+
+    it("every activity key starts with the ['activity'] prefix the realtime channel invalidates", () => {
+      for (const key of [
+        queryKeys.activity.posted("user-1"),
+        queryKeys.activity.applied("user-1"),
+        queryKeys.activity.postedDetail("user-1", {}),
+        queryKeys.activity.appliedDetail("user-1", {}),
+      ]) {
+        expect(key[0]).toBe("activity");
+      }
     });
 
     it("domain prefix: ['activity']", () => {
@@ -252,7 +277,8 @@ describe("queryKeys", () => {
 
   describe("isolation invariants", () => {
     it("different users yield different keys (no cross-user cache pollution)", () => {
-      expect(queryKeys.activity.byUser("user-1")).not.toEqual(queryKeys.activity.byUser("user-2"));
+      expect(queryKeys.activity.posted("user-1")).not.toEqual(queryKeys.activity.posted("user-2"));
+      expect(queryKeys.activity.applied("user-1")).not.toEqual(queryKeys.activity.applied("user-2"));
       expect(queryKeys.profile.byId("user-1")).not.toEqual(queryKeys.profile.byId("user-2"));
       expect(queryKeys.referral.byUser("user-1")).not.toEqual(queryKeys.referral.byUser("user-2"));
       expect(queryKeys.currentUser.byId("user-1")).not.toEqual(queryKeys.currentUser.byId("user-2"));
@@ -262,7 +288,7 @@ describe("queryKeys", () => {
     });
 
     it("same user + same factory yields identical keys (cache hit invariant)", () => {
-      expect(queryKeys.activity.byUser("user-1")).toEqual(queryKeys.activity.byUser("user-1"));
+      expect(queryKeys.activity.posted("user-1")).toEqual(queryKeys.activity.posted("user-1"));
       expect(queryKeys.currentUser.byId("user-1")).toEqual(queryKeys.currentUser.byId("user-1"));
       expect(queryKeys.jobHistory.byUser("user-1")).toEqual(queryKeys.jobHistory.byUser("user-1"));
     });

@@ -47,9 +47,22 @@ export const queryKeys = {
     open: () => ["jobs", "open"] as const,
     publicDetail: (jobId: string) => ["jobs", "publicDetail", jobId] as const,
   },
+  /**
+   * Activity is FOUR keys, not one — see the header comment in
+   * `useActivityData.ts`. `all` is the prefix every one of them shares, so the
+   * realtime channel can invalidate the whole family in a single call.
+   *
+   * The two `*Detail` keys carry the id sets their fetch will look up, so a
+   * detail refetches exactly when what it would ask for has changed.
+   */
   activity: {
     all: ["activity"] as const,
-    byUser: (userId: string) => ["activity", userId] as const,
+    posted: (userId: string) => ["activity", "posted", userId] as const,
+    postedDetail: (userId: string, inputs: unknown) =>
+      ["activity", "postedDetail", userId, inputs] as const,
+    applied: (userId: string) => ["activity", "applied", userId] as const,
+    appliedDetail: (userId: string, inputs: unknown) =>
+      ["activity", "appliedDetail", userId, inputs] as const,
   },
   referral: {
     all: ["referral"] as const,

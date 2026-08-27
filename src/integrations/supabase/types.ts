@@ -128,17 +128,13 @@ export type Database = {
       applications: {
         Row: {
           attachment_urls: string[] | null
-          counter_price: number | null
           created_at: string
           helper_id: string
           id: string
           job_id: string
           message: string | null
-          negotiation_status: string
           offer_message: string | null
           poster_viewed_at: string | null
-          proposed_price: number | null
-          proposed_rate: number | null
           stake_amount: number | null
           stake_status: string | null
           status: Database["public"]["Enums"]["application_status"]
@@ -146,17 +142,13 @@ export type Database = {
         }
         Insert: {
           attachment_urls?: string[] | null
-          counter_price?: number | null
           created_at?: string
           helper_id: string
           id?: string
           job_id: string
           message?: string | null
-          negotiation_status?: string
           offer_message?: string | null
           poster_viewed_at?: string | null
-          proposed_price?: number | null
-          proposed_rate?: number | null
           stake_amount?: number | null
           stake_status?: string | null
           status?: Database["public"]["Enums"]["application_status"]
@@ -164,17 +156,13 @@ export type Database = {
         }
         Update: {
           attachment_urls?: string[] | null
-          counter_price?: number | null
           created_at?: string
           helper_id?: string
           id?: string
           job_id?: string
           message?: string | null
-          negotiation_status?: string
           offer_message?: string | null
           poster_viewed_at?: string | null
-          proposed_price?: number | null
-          proposed_rate?: number | null
           stake_amount?: number | null
           stake_status?: string | null
           status?: Database["public"]["Enums"]["application_status"]
@@ -1908,9 +1896,6 @@ export type Database = {
       jobs: {
         Row: {
           accepted_at: string | null
-          bid_ceiling: number | null
-          bid_deadline: string | null
-          bids_sealed: boolean
           boost_auto_extended: boolean
           boost_expires_at: string | null
           boosted_at: string | null
@@ -2021,9 +2006,6 @@ export type Database = {
         }
         Insert: {
           accepted_at?: string | null
-          bid_ceiling?: number | null
-          bid_deadline?: string | null
-          bids_sealed?: boolean
           boost_auto_extended?: boolean
           boost_expires_at?: string | null
           boosted_at?: string | null
@@ -2134,9 +2116,6 @@ export type Database = {
         }
         Update: {
           accepted_at?: string | null
-          bid_ceiling?: number | null
-          bid_deadline?: string | null
-          bids_sealed?: boolean
           boost_auto_extended?: boolean
           boost_expires_at?: string | null
           boosted_at?: string | null
@@ -5174,7 +5153,7 @@ export type Database = {
         Returns: Json
       }
       apply_to_job: {
-        Args: { p_job_id: string; p_message: string; p_proposed_price?: number }
+        Args: { p_job_id: string; p_message: string }
         Returns: string
       }
       approve_pending_job: { Args: { p_job_id: string }; Returns: boolean }
@@ -5245,10 +5224,6 @@ export type Database = {
         Returns: boolean
       }
       count_profiles: { Args: never; Returns: number }
-      counter_application_bid: {
-        Args: { p_application_id: string; p_counter_price: number }
-        Returns: undefined
-      }
       create_business_api_key: {
         Args: { _business_id: string; _name: string }
         Returns: Json
@@ -5822,10 +5797,6 @@ export type Database = {
       resolve_auto_tip: {
         Args: { _budget: number; _user: string }
         Returns: number
-      }
-      respond_to_counter_offer: {
-        Args: { p_accept: boolean; p_application_id: string }
-        Returns: undefined
       }
       respond_to_direct_offer: {
         Args: { p_accept: boolean; p_job_id: string }

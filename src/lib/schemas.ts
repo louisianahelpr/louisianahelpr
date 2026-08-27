@@ -74,7 +74,6 @@ const applicationRowSchema = z
     helper_id: z.string(),
     status: z.string(),
     message: z.string().nullable(),
-    proposed_rate: z.number().nullable(),
     attachment_urls: z.array(z.string()).nullable(),
     created_at: z.string(),
     updated_at: z.string(),

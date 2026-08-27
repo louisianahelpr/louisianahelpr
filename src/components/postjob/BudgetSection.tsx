@@ -25,10 +25,12 @@ import { formatPrice } from "@/lib/format";
  *
  * "Smart price" was retired earlier and folded into the suggestion chip.
  *
- * The `jobs.pricing_mode`, `bid_ceiling`, `bid_deadline` and `bids_sealed`
- * columns still exist — dropping them is a separate migration — but nothing
- * in the client reads or writes them any more, and `pricing_mode` keeps its
- * 'set_price' default for the rows that remain.
+ * The bid columns (`applications.proposed_price` / `counter_price` /
+ * `negotiation_status` / `proposed_rate` and `jobs.bid_ceiling` /
+ * `bid_deadline` / `bids_sealed`), the counter-offer RPCs and the
+ * `trg_enforce_bid_price_lock` trigger were all dropped on 2026-08-27.
+ * `jobs.pricing_mode` survives — its CHECK now allows only 'set_price', and
+ * the `open_jobs_browse` view still projects it.
  */
 
 interface BudgetSuggestion {

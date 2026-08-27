@@ -123,7 +123,6 @@ type JobSeed = {
  * rather than in fifteen literals.
  */
 const JOB_BASE = {
-  bids_sealed: false,
   boost_auto_extended: false,
   credential_tier: 0,
   has_active_dispute: false,
@@ -245,10 +244,8 @@ export const SEED_APPLICATIONS = [
     status: "pending",
     message:
       "I clean three move-outs a week and can bring my own supplies if that helps.",
-    proposed_price: 175,
     created_at: AGO(1),
     updated_at: AGO(1),
-    negotiation_status: "none",
   },
   {
     id: "20000000-0000-4000-8000-000000000002",
@@ -258,11 +255,8 @@ export const SEED_APPLICATIONS = [
     // Accented name + long text: the applicant-card layout probe.
     message:
       "Available this weekend. I have worked with Renée on similar jobs in Mid-City and can send references.",
-    proposed_price: 190,
     created_at: AGO(2),
     updated_at: AGO(2),
-    negotiation_status: "countered",
-    counter_price: 185,
   },
 ] satisfies ApplicationsInsert[];
 

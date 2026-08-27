@@ -58,8 +58,23 @@ const DeleteAccountDialog = lazy(() => import("@/components/profile/DeleteAccoun
  *
  * An earlier attempt keyed on `location.key` and still failed, because back was
  * a PUSH at the time (seven sub-pages passed `onBack={() => navigate("/profile")}`)
- * and a push mints a NEW key, so the saved offset was never looked up. That is
- * fixed (PageHeader `backTo`), so the key is stable across the round trip.
+ * and a push mints a NEW key, so the saved offset was never looked up. That was
+ * fixed for the seven real sub-ROUTES (PageHeader `backTo`) — but it was never
+ * true for the seventeen in-page TABS, which is the round trip the owner
+ * actually reported: "if you're scrolled on the profile tab and you click a
+ * profile tab then press back, it brings you all the way back up to the top."
+ *
+ * Those tabs are not navigations. `setTab` is component state, mirrored into
+ * `?tab=` by a `setSearchParams(..., { replace: true })` effect — and a replace
+ * still mints a BRAND NEW `location.key`; it replaces the entry, key and all.
+ * So one trip into a tab and back burned three distinct keys, the landing
+ * looked up the third, and the offset saved under the first was unreachable.
+ * Measured at 375px: scroll to 400 → open Notifications → back → scrollTop 0.
+ *
+ * Keyed on the PATHNAME instead, which is what this always wanted. There is one
+ * Profile landing and one scroll position for it; `key` was only ever standing
+ * in for "this page", and it was a stand-in that changed underneath us every
+ * time the tab param moved.
  */
 const profileScrollByKey = new Map<string, number>();
 
@@ -281,7 +296,8 @@ const ProfilePage = () => {
   // profile sub-page. See profileScrollByKey above for why the global handler
   // cannot do this for /profile.
   const routeLocation = useLocation();
-  const routeKey = routeLocation.key;
+  // Pathname, not `key` — see profileScrollByKey above.
+  const routeKey = routeLocation.pathname;
   useEffect(() => {
     // `loading` is in the deps deliberately. Profile early-returns a SKELETON
     // while loading, so PullToRefreshWrapper — and therefore containerRef — does

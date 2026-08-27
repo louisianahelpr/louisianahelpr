@@ -322,6 +322,13 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   // a "0 tasks" count have nothing to act on — so those are what drop out, by
   // passing an empty filter list. Title stays, controls go, layout is stable
   // from first paint whether the list has items or not.
+  // One source of truth for "this tab has nothing to list" — the scroll
+  // wrapper's padding and the empty-state branch must agree, or the empty
+  // card gets inset inside the panel card and doubles the frame.
+  const showEmptyState =
+    (tab === "posted" && filteredPostedJobs.length === 0) ||
+    (tab === "applied" && filteredAppliedApps.length === 0);
+
   const headerEl = (
     <ActivityHeader
       title={tab === "posted" ? "My Posts" : "My Jobs"}
@@ -379,9 +386,16 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
             refreshing={refreshing}
             isPulling={isPulling}
             canTrigger={canTrigger}
-            className="flex-1 min-h-0 px-4 pt-3 pb-0"
+            // The list needs side padding so cards clear the panel edge. The
+            // EMPTY state must not have it: EmptyState renders its own
+            // `dock` card, so 16px of inset put that card inside the
+            // PageScaffold panel card and you saw TWO nested rounded frames
+            // a few px apart (visible on device, My Jobs / My Posts). The
+            // comment below already said this card "fills the panel" — the
+            // padding was what stopped it.
+            className={showEmptyState ? "flex-1 min-h-0 pb-0" : "flex-1 min-h-0 px-4 pt-3 pb-0"}
           >
-          {(tab === "posted" && filteredPostedJobs.length === 0) || (tab === "applied" && filteredAppliedApps.length === 0) ? (
+          {showEmptyState ? (
             // Empty state — a liquid-glass card that fills the panel and
             // bleeds beneath the dock (flat bottom, no hard edge), matching
             // the Dashboard / Messages empty-state pattern.

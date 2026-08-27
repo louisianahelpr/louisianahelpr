@@ -151,6 +151,86 @@ function DataExportCard() {
   );
 }
 
+// ---------- Documents ----------
+
+/**
+ * ONE ENTRY PER LEGAL DOCUMENT (owner, 2026-08-27: "Legal and policies in
+ * profile ... it's all jumbled together" — specifically, Terms, Community
+ * Rules and Privacy were visually mashed into one block with no clear
+ * separation between documents).
+ *
+ * The tab used to be two flat stacks: three near-identical "policy document"
+ * cards, then ONE nine-row "Jump to a section" list whose rows silently mixed
+ * Community Rules sections with Terms sections. Nothing on the screen said
+ * which document a shortcut belonged to, or where one document ended and the
+ * next began.
+ *
+ * Now the tab is three labelled document blocks, in the same order the three
+ * cards were already in. Each block carries its document's name, the link to
+ * its full text, and only its OWN section shortcuts — so a shortcut can never
+ * again be read as belonging to the wrong policy.
+ *
+ * PRESENTATION ONLY: this tab still states no policy of its own. Every clause
+ * lives in src/pages/legal/; these are navigation labels and the deep links
+ * are unchanged, one for one, from the flat list they replace.
+ */
+interface LegalDocument {
+  key: string;
+  /** In-app route to the full text (a <Navigate> to /legal?tab=…). */
+  to: string;
+  icon: typeof FileText;
+  title: string;
+  body: string;
+  /** Deep links into this document's own sections. May be empty. */
+  sections: { to: string; icon: typeof FileText; title: string }[];
+}
+
+const LEGAL_DOCUMENTS: LegalDocument[] = [
+  {
+    key: "community",
+    to: "/rules",
+    icon: FileText,
+    title: "Community Rules",
+    body: "How Helpr works — every guideline that governs jobs, payments, and conduct.",
+    sections: [
+      // "The basics" is this section's OWN title in CommunitySection. The row
+      // was labelled "Community Rules" back when the shortcuts were one flat
+      // list and every label had to carry its document's name; under the
+      // Community Rules heading it now merely restated it — and it never
+      // matched the heading it actually scrolls you to.
+      { to: "/legal?tab=community#basics", icon: Building2, title: "The basics" },
+      { to: "/legal?tab=community#posting-accepting", icon: Clock, title: "Budget limits, editing & new-Helpr limits" },
+      { to: "/legal?tab=community#cancellations", icon: XCircle, title: "Cancellations, response times & no-shows" },
+      { to: "/legal?tab=community#escrow-release", icon: Wallet, title: "How your payment is held & released" },
+      { to: "/legal?tab=community#disputes", icon: Scale, title: "Revisions, disputes & admin review" },
+      { to: "/legal?tab=community#strikes-bans", icon: Siren, title: "Strikes, bans & how we detect violations" },
+      { to: "/legal?tab=community#money-taxes", icon: HeartPulse, title: "Money & taxes" },
+    ],
+  },
+  {
+    key: "terms",
+    to: "/terms",
+    icon: Scale,
+    title: "Terms of service",
+    body: "The contract between you and Helpr when you use the platform.",
+    sections: [
+      { to: "/legal?tab=terms#payment-escrow-fees", icon: DollarSign, title: "Platform fees & the split fee model" },
+      { to: "/legal?tab=terms#subscription-tiers", icon: Crown, title: "Membership tiers & pricing" },
+    ],
+  },
+  {
+    key: "privacy",
+    to: "/privacy",
+    icon: Shield,
+    title: "Privacy policy",
+    body: "What we collect, how we use it, and how we keep it safe.",
+    // No section shortcuts. The Privacy block carries the data-export control
+    // instead — that is the right this document grants, and the Privacy Policy
+    // links here for it in writing.
+    sections: [],
+  },
+];
+
 // ---------- Page ----------
 
 export function LegalTab({ onBack }: { onBack: () => void }) {
@@ -167,126 +247,142 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
         onBack={onBack}
       />
 
-      {/* Anchor docs — dedicated full-text pages.
-          AFFORDANCE: these three rows NAVIGATE IN-APP. `/rules`, `/terms` and
-          `/privacy` are <Navigate> redirects to `/legal?tab=…` (see App.tsx),
-          which renders inside AppShell on native — nothing leaves the app, no
-          browser opens, no new window. They carried an `ExternalLink` (↗)
-          glyph, which promised exactly that. On a legal screen, where the
-          whole question is where your data goes, a lying affordance is worse
-          than cosmetic, so they now carry the app's forward chevron (›) — the
-          same glyph SupportInline's "Browse the Help Center" row uses for the
-          same behaviour.
+      {/* ONE BLOCK PER DOCUMENT. The separation is carried by three things at
+          once, because a single one of them was not enough to read as a
+          boundary on a screen of identically-styled squircles:
+            1. a numbered, ruled document heading naming the policy;
+            2. an indented, hairline-railed column holding that document's own
+               shortcuts, so they visibly hang off their heading; and
+            3. real vertical air (`space-y-8`) between blocks — more than the
+               gap between any two rows inside one.
 
-          The screen's three affordances, kept distinct:
-            ›  chevron-right  → navigates in-app        (these three rows)
-            ⌄  chevron-down   → expands in place        (PolicySection /
-                                                         PolicyRowItem below)
+          AFFORDANCE: the document cards NAVIGATE IN-APP. `/rules`, `/terms`
+          and `/privacy` are <Navigate> redirects to `/legal?tab=…` (App.tsx),
+          which renders inside AppShell on native — nothing leaves the app. They
+          once carried an `ExternalLink` (↗) glyph, which promised exactly that.
+          On a legal screen, where the whole question is where your data goes, a
+          lying affordance is worse than cosmetic, so they carry the app's
+          forward chevron (›).
+
+          The screen's affordances, kept distinct:
+            ›  chevron-right  → navigates in-app        (every row here)
             ↗  external-link  → opens outside the app   (nothing on this
                                                          screen does; if a row
                                                          ever does, it keeps ↗) */}
-      <div>
-        {/* Same heading treatment as "Jump to a section" below, so the tab
-            reads as two labelled groups rather than one undifferentiated
-            stack of cards. */}
-        <div className="space-y-2">
-          <h2 className="font-display font-bold text-foreground text-ds-13 px-1">
-            Policy documents
-          </h2>
-          {([
-            { to: "/rules", icon: FileText, title: "Community Rules", body: "How Helpr works — every guideline that governs jobs, payments, and conduct." },
-            { to: "/terms", icon: Scale, title: "Terms of service", body: "The contract between you and Helpr when you use the platform." },
-            { to: "/privacy", icon: Shield, title: "Privacy policy", body: "What we collect, how we use it, and how we keep it safe." },
-          ]).map(({ to, icon: Icon, title, body }) => (
-            <Link
-              key={to}
-              to={to}
-              className="glass-press block rounded-2xl liquid-glass squircle p-4 transition-all hover:-translate-y-0.5 hover:shadow-md"
-            >
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-ds-md bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                  <Icon className="w-4 h-4" strokeWidth={2.25} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  {/* Clean font-display heading — matches the shared
-                      PolicySection cards below so the whole tab speaks
-                      one type language. */}
-                  <p className="font-display font-bold text-foreground leading-tight text-ds-15">
-                    {title}
-                  </p>
-                  <p className="text-ds-11 text-muted-foreground mt-1 leading-snug">
-                    {body}
-                  </p>
-                </div>
-                {/* aria-hidden: the row's accessible name already comes from
-                    the title + body text ("Community Rules, How Helpr works —
-                    …"), which describes in-app navigation and never claims a
-                    new window. The glyph is decoration on top of that. */}
-                <ChevronRight aria-hidden className="w-4 h-4 text-muted-foreground shrink-0 mt-1" />
+      <div className="space-y-8">
+        {LEGAL_DOCUMENTS.map((doc, index) => {
+          const Icon = doc.icon;
+          return (
+            <section key={doc.key} aria-labelledby={`legal-doc-${doc.key}`} className="space-y-2">
+              {/* Document heading — "1 / 3 · Community Rules" over a rule.
+                  The counter is what makes the boundary unambiguous: it says
+                  not just that this is a document, but WHICH of the three,
+                  so the end of one and the start of the next is impossible to
+                  miss while scrolling. */}
+              <div
+                className="flex items-baseline gap-2 px-1 pb-1.5"
+                style={{ borderBottom: "1.5px solid hsl(var(--olivewood) / 0.22)" }}
+              >
+                <span
+                  className="font-sans font-semibold text-ds-11 tabular-nums shrink-0"
+                  style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                >
+                  {index + 1}/{LEGAL_DOCUMENTS.length}
+                </span>
+                <h2
+                  id={`legal-doc-${doc.key}`}
+                  className="font-display font-bold text-foreground text-ds-15 leading-tight"
+                >
+                  {doc.title}
+                </h2>
               </div>
-            </Link>
-          ))}
-        </div>
-      </div>
 
-      {/* Data rights sit directly under the anchor docs, ABOVE the section
-          shortcuts. The Privacy Policy row is right above it and links here
-          for portability ("Download a complete copy of your data…"), so the
-          control it promises has to be the next thing you see, not something
-          you scroll a list of shortcuts to reach. */}
-      <DataExportCard />
+              {/* The document itself. */}
+              <Link
+                to={doc.to}
+                className="glass-press block rounded-2xl liquid-glass squircle p-4 transition-all hover:-translate-y-0.5 hover:shadow-md"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-ds-md bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                    <Icon className="w-4 h-4" strokeWidth={2.25} aria-hidden />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-display font-bold text-foreground leading-tight text-ds-15">
+                      Read the full {doc.title.toLowerCase()}
+                    </p>
+                    <p className="text-ds-11 text-muted-foreground mt-1 leading-snug">
+                      {doc.body}
+                    </p>
+                  </div>
+                  {/* aria-hidden: the row's accessible name already comes from
+                      its title + body text, which describes in-app navigation
+                      and never claims a new window. The glyph is decoration on
+                      top of that. */}
+                  <ChevronRight aria-hidden className="w-4 h-4 text-muted-foreground shrink-0 mt-1" />
+                </div>
+              </Link>
 
-      {/* Jump to a section.
-          THIS USED TO BE THE PROBLEM. The tab carried four accordions holding
-          ~17 hand-written summaries of the cancellation windows, strike ladders,
-          fee split, dispute steps, budget limits and verification rules — every
-          one of which is also stated, in different words, on /legal. Two copies
-          of a policy that describes how real money moves is not a convenience;
-          it is a second thing to keep in sync, and it had already drifted (the
-          tab restated the urgent fee as a platform charge while Terms says that
-          money goes to the Helpr, and described sales tax on a different base
-          than the Community Rules do).
+              {/* This document's own sections.
+                  THESE USED TO BE THE PROBLEM — nine rows in one undivided
+                  list, seven of them Community Rules and two of them Terms,
+                  with nothing distinguishing the two. They are indented under
+                  their document now, behind a hairline rail.
 
-          So the summaries are gone and these rows point at the canonical
-          section instead. `/legal` owns the text; this tab owns getting you
-          there. The two things that lived ONLY here — the conduct basics, and
-          the Job Boost / Tipping fee statements — were moved verbatim into
-          CommunitySection and TermsSection rather than deleted with the rest.
+                  (Earlier still, the tab carried ~17 hand-written SUMMARIES of
+                  the cancellation windows, strike ladders, fee split, dispute
+                  steps, budget limits and verification rules — a second
+                  wording of copy /legal already owned, which had already
+                  drifted. Those are gone; these rows point at the canonical
+                  section. `/legal` owns the text, this tab owns getting you
+                  there. PolicySection auto-expands and scrolls to a matching
+                  `anchorId`.) */}
+              {doc.sections.length > 0 && (
+                <div
+                  className="ml-3 pl-3 space-y-2 pt-1"
+                  style={{ borderLeft: "1.5px solid hsl(var(--olivewood) / 0.14)" }}
+                >
+                  <h3
+                    className="font-sans font-semibold text-ds-11 uppercase tracking-[0.12em] px-1"
+                    style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                  >
+                    Jump to a section
+                  </h3>
+                  {doc.sections.map(({ to, icon: SectionIcon, title }) => (
+                    <Link
+                      key={to}
+                      to={to}
+                      className="glass-press flex items-center gap-3 rounded-2xl liquid-glass squircle px-4 py-3 transition-all hover:-translate-y-0.5 hover:shadow-md"
+                    >
+                      {/* Smaller badge than the document card above: same
+                          anatomy, one step down the hierarchy, so a section
+                          shortcut never reads as loud as a whole document. */}
+                      <div className="w-8 h-8 rounded-ds-md bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                        <SectionIcon className="w-4 h-4" strokeWidth={2.25} aria-hidden />
+                      </div>
+                      <p className="flex-1 min-w-0 font-sans font-semibold text-foreground text-ds-13 leading-snug">
+                        {title}
+                      </p>
+                      <ChevronRight aria-hidden className="w-4 h-4 text-muted-foreground shrink-0" />
+                    </Link>
+                  ))}
+                </div>
+              )}
 
-          Deep links carry the tab AND the section hash; PolicySection
-          auto-expands and scrolls to a matching `anchorId`. */}
-      <div className="space-y-2">
-        <h2 className="font-display font-bold text-foreground text-ds-13 px-1 pt-1">
-          Jump to a section
-        </h2>
-        {([
-          { to: "/legal?tab=community#basics", icon: Building2, title: "Community Rules" },
-          { to: "/legal?tab=community#posting-accepting", icon: Clock, title: "Budget limits, editing & new-Helpr limits" },
-          { to: "/legal?tab=community#cancellations", icon: XCircle, title: "Cancellations, response times & no-shows" },
-          { to: "/legal?tab=community#escrow-release", icon: Wallet, title: "How your payment is held & released" },
-          { to: "/legal?tab=terms#payment-escrow-fees", icon: DollarSign, title: "Platform fees & the split fee model" },
-          { to: "/legal?tab=terms#subscription-tiers", icon: Crown, title: "Membership tiers & pricing" },
-          { to: "/legal?tab=community#disputes", icon: Scale, title: "Revisions, disputes & admin review" },
-          { to: "/legal?tab=community#strikes-bans", icon: Siren, title: "Strikes, bans & how we detect violations" },
-          { to: "/legal?tab=community#money-taxes", icon: HeartPulse, title: "Money & taxes" },
-        ]).map(({ to, icon: Icon, title }) => (
-          <Link
-            key={to}
-            to={to}
-            className="glass-press flex items-center gap-3 rounded-2xl liquid-glass squircle px-4 py-3 transition-all hover:-translate-y-0.5 hover:shadow-md"
-          >
-            {/* Smaller badge than the three anchor-doc cards above: same
-                anatomy, one step down the hierarchy, so a section shortcut
-                never reads as loud as a whole policy document. */}
-            <div className="w-8 h-8 rounded-ds-md bg-primary/10 text-primary flex items-center justify-center shrink-0">
-              <Icon className="w-4 h-4" strokeWidth={2.25} aria-hidden />
-            </div>
-            <p className="flex-1 min-w-0 font-sans font-semibold text-foreground text-ds-13 leading-snug">
-              {title}
-            </p>
-            <ChevronRight aria-hidden className="w-4 h-4 text-muted-foreground shrink-0" />
-          </Link>
-        ))}
+              {/* Data rights belong to the Privacy Policy and travel with it:
+                  that document promises this export IN WRITING and links here
+                  for it, so the control it promises sits inside its own block
+                  rather than floating between documents. */}
+              {doc.key === "privacy" && (
+                <div
+                  className="ml-3 pl-3 pt-1"
+                  style={{ borderLeft: "1.5px solid hsl(var(--olivewood) / 0.14)" }}
+                >
+                  <DataExportCard />
+                </div>
+              )}
+            </section>
+          );
+        })}
       </div>
     </div>
   );

@@ -127,14 +127,39 @@ describe("Legal & policies — data rights", () => {
 
   it("still leads to the three anchor policy documents", () => {
     renderTab();
-    // "Community Rules" is now the ONE name for this doc (it was "Platform
-    // rules" here and "Community guidelines" in the jump list below), so the
-    // matcher carries the row's body copy to tell the policy-document card
-    // apart from the jump-list row that points at the same rules.
+    // Each document's block opens with a "Read the full …" card. The matcher
+    // carries the row's body copy too, so the Community Rules card is told
+    // apart from the section shortcut pointing at the same rules.
     expect(
-      screen.getByRole("link", { name: /Community Rules How Helpr works/ }),
+      screen.getByRole("link", { name: /Read the full community rules How Helpr works/ }),
     ).toHaveAttribute("href", "/rules");
-    expect(screen.getByRole("link", { name: /Terms of service/ })).toHaveAttribute("href", "/terms");
-    expect(screen.getByRole("link", { name: /Privacy policy/ })).toHaveAttribute("href", "/privacy");
+    expect(
+      screen.getByRole("link", { name: /Read the full terms of service/ }),
+    ).toHaveAttribute("href", "/terms");
+    expect(
+      screen.getByRole("link", { name: /Read the full privacy policy/ }),
+    ).toHaveAttribute("href", "/privacy");
+  });
+
+  it("separates the three documents — every shortcut sits under its own policy", () => {
+    renderTab();
+    // The owner's complaint was that Terms, Community Rules and Privacy read
+    // as one undivided block. Each document must carry its own heading, and
+    // the section shortcuts must be scoped to the document they belong to —
+    // the two Terms rows used to sit in the same flat list as the seven
+    // Community Rules ones with nothing telling them apart.
+    const headings = ["Community Rules", "Terms of service", "Privacy policy"].map((name) =>
+      screen.getByRole("heading", { level: 2, name }),
+    );
+    expect(headings).toHaveLength(3);
+
+    const termsBlock = headings[1].closest("section");
+    expect(termsBlock).not.toBeNull();
+    const feesRow = screen.getByRole("link", { name: /Platform fees & the split fee model/ });
+    expect(feesRow).toHaveAttribute("href", "/legal?tab=terms#payment-escrow-fees");
+    expect(termsBlock).toContainElement(feesRow);
+    expect(termsBlock).not.toContainElement(
+      screen.getByRole("link", { name: /Cancellations, response times & no-shows/ }),
+    );
   });
 });

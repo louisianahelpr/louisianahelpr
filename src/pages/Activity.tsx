@@ -127,10 +127,16 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
       changed = true;
     }
     if (changed) setSearchParams(current, { replace: true });
-    // setSearchParams is stable; deps intentionally exclude searchParams
-    // to prevent the loop that would form if the effect listened to
-    // its own write.
-  }, [statusFilter, searchQuery, defaultFilter, searchParams, setSearchParams]);
+    // `searchParams` is read through a ref and is NOT a dependency. The
+    // comment here used to claim exactly that while the array below listed
+    // it — so this effect re-ran on its own write, and with the URL→state
+    // effect and the auto-tab effect both keyed on `searchParams` too, a
+    // realtime refetch could set the three oscillating. On iOS that is not
+    // a soft loop: WebKit throws "Attempt to use history.replaceState()
+    // more than 100 times per 10 seconds", which unmounts the route into
+    // the error boundary — the owner hit it as a crash on /my-jobs, logged
+    // in error_logs 2026-08-27 18:14 with this exact message.
+  }, [statusFilter, searchQuery, defaultFilter, setSearchParams]);
 
   // Sync filter when URL search params change externally (e.g. navigating
   // from a notification or via browser back/forward — not from our own

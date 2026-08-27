@@ -91,12 +91,13 @@ describe("TIER_PERKS fee model", () => {
 
   it("carries the current tier display names (rebrand guard)", () => {
     // Owner's 2026-08-24 naming rule: the brand leads the tier name
-    // everywhere a human reads it — "Helpr Basic / Helpr Pro / Helpr Elite".
+    // everywhere a human reads it — bare "Basic / Pro / Elite" as of
+    // 2026-08-27 (the "Helpr " prefix was reversed by the owner).
     // Free and Business stay unprefixed (see tierNames.parity.test.ts).
     expect(TIER_PERKS.free.name).toBe("Free");
-    expect(TIER_PERKS.basic.name).toBe("Helpr Basic");
-    expect(TIER_PERKS.pro.name).toBe("Helpr Pro");
-    expect(TIER_PERKS.elite.name).toBe("Helpr Elite");
+    expect(TIER_PERKS.basic.name).toBe("Basic");
+    expect(TIER_PERKS.pro.name).toBe("Pro");
+    expect(TIER_PERKS.elite.name).toBe("Elite");
     expect(TIER_PERKS.business.name).toBe("Business");
   });
 });

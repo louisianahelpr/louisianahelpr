@@ -1,6 +1,11 @@
 // The ONE place a raw `profiles.subscription_tier` id becomes a name a human
-// reads. The owner's 2026-08-24 naming rule is that the brand leads the tier
-// name — "Helpr Basic / Helpr Pro / Helpr Elite" — everywhere it is displayed.
+// reads. Tiers are named by the tier alone — "Basic / Pro / Elite".
+//
+// This reversed an earlier rule (2026-08-24) that put the brand in front of
+// every tier: inside the app the brand is already established by the app you
+// are standing in, so "Helpr Elite" on a Helpr screen spent a word to say
+// nothing. Owner's call, 2026-08-27. The centralisation is the durable part —
+// whichever way the names read, they read that way in one file.
 //
 // WHY THIS LIVES IN `_shared` RATHER THAN NEXT TO TIER_PERKS. The display names
 // are already stored in `TIER_PERKS[tier].name` (src/lib/subscriptionTiers.ts),
@@ -13,15 +18,11 @@
 // `src/lib/tierNames.parity.test.ts` asserts these strings and TIER_PERKS never
 // drift apart. Mirrors the `_shared/proTiers.ts` + `src/lib/proTiers.ts` pattern.
 //
-// "Free" and "Business" deliberately carry NO prefix: Free is the absence of a
-// Helpr plan, and Business is billed per-seat on the businessSeatTiers ladder,
-// not as a consumer "Helpr <tier>" membership.
-
 export const TIER_DISPLAY_NAMES: Record<string, string> = {
   free: "Free",
-  basic: "Helpr Basic",
-  pro: "Helpr Pro",
-  elite: "Helpr Elite",
+  basic: "Basic",
+  pro: "Pro",
+  elite: "Elite",
   business: "Business",
 };
 
@@ -31,7 +32,7 @@ export const TIER_DISPLAY_NAMES: Record<string, string> = {
  * Null / undefined / empty / unknown → "Free", matching `toSubscriptionTier`'s
  * safe default: an unrecognized id must never be printed back at the user raw
  * (the bug this replaces printed a bare, lowercase, un-branded id).
- * Case is normalized so a legacy "PRO" row still reads "Helpr Pro".
+ * Case is normalized so a legacy "PRO" row still reads "Pro".
  */
 export function tierDisplayName(raw: string | null | undefined): string {
   return TIER_DISPLAY_NAMES[(raw ?? "").toLowerCase()] ?? TIER_DISPLAY_NAMES.free;

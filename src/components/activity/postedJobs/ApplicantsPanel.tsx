@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { formatName } from "@/lib/utils";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 import { Button } from "@/components/ui/button";
@@ -103,7 +104,18 @@ export function ApplicantsPanel({
     distanceMap,
   });
 
-  return (
+  // PORTALLED TO <body> ON PURPOSE — do not "simplify" this back to a plain
+  // return. The panel is a `fixed inset-0` full-screen overlay, but a
+  // `position: fixed` element is positioned against the nearest ancestor
+  // carrying a transform/filter/backdrop-filter, NOT the viewport. Activity
+  // renders inside PageScaffold and PageTransition, both framer-motion
+  // `motion.div`s, so an animating ancestor became the containing block and
+  // `inset-0` resolved to the JOB CARD's box: the owner saw the Applicants
+  // header pinned partway down the screen with "My Posts" still above it and
+  // a grey band where the overlay had been clipped. Rendering into <body>
+  // puts the overlay outside every transformed ancestor, so inset-0 means the
+  // viewport again, whatever the page animates.
+  return createPortal(
     <>
       {/* Applicants full-screen comparison view */}
       <div className="fixed inset-0 z-50 flex flex-col motion-safe:animate-in motion-safe:slide-in-from-right motion-safe:duration-200"
@@ -500,6 +512,7 @@ export function ApplicantsPanel({
         onConfirm={handleDeclineConfirm}
       />
 
-    </>
+    </>,
+    document.body,
   );
 }

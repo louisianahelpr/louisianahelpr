@@ -4,7 +4,7 @@
 // print the same string, because a user can meet the same tier on a plan card,
 // a profile badge, a Helpr Pass, and an expiry notification within one session
 // — and the owner's naming rule (2026-08-24) is that the brand LEADS the tier
-// name: "Helpr Basic / Helpr Pro / Helpr Elite".
+// name: "Basic / Pro / Elite" (bare — see the naming-rule test below).
 //
 // This is the same drift guard proTiers.parity.test.ts applies to the price
 // map: one source, asserted from both directions so a future edit to either
@@ -24,12 +24,14 @@ describe("tier display names (client TIER_PERKS <-> edge tierNames)", () => {
     }
   });
 
-  it("carries the branded consumer names (owner naming rule)", () => {
-    // The rule these pin: "Helpr" leads the tier name everywhere a human reads
-    // it. A rename that drops the prefix must update this test deliberately.
-    expect(TIER_DISPLAY_NAMES.basic).toBe("Helpr Basic");
-    expect(TIER_DISPLAY_NAMES.pro).toBe("Helpr Pro");
-    expect(TIER_DISPLAY_NAMES.elite).toBe("Helpr Elite");
+  it("carries the bare tier names (owner naming rule, 2026-08-27)", () => {
+    // Tiers are named by the tier alone. This REVERSED an earlier rule that
+    // prefixed every tier with "Helpr" — inside the app the brand is already
+    // established by the app you are standing in. A rename in either
+    // direction must update this test deliberately.
+    expect(TIER_DISPLAY_NAMES.basic).toBe("Basic");
+    expect(TIER_DISPLAY_NAMES.pro).toBe("Pro");
+    expect(TIER_DISPLAY_NAMES.elite).toBe("Elite");
   });
 
   it("leaves Free and Business unprefixed on purpose", () => {
@@ -39,9 +41,9 @@ describe("tier display names (client TIER_PERKS <-> edge tierNames)", () => {
     expect(TIER_DISPLAY_NAMES.business).toBe("Business");
   });
 
-  it("every consumer paid tier is prefixed - no bare name can slip back in", () => {
+  it("no 'Helpr ' prefix can creep back onto a consumer tier", () => {
     for (const tier of ["basic", "pro", "elite"] as const) {
-      expect(TIER_PERKS[tier].name.startsWith("Helpr ")).toBe(true);
+      expect(TIER_PERKS[tier].name.startsWith("Helpr ")).toBe(false);
     }
   });
 
@@ -53,7 +55,7 @@ describe("tier display names (client TIER_PERKS <-> edge tierNames)", () => {
     expect(tierDisplayName(undefined)).toBe("Free");
     expect(tierDisplayName("")).toBe("Free");
     expect(tierDisplayName("enterprise")).toBe("Free");
-    expect(tierDisplayName("PRO")).toBe("Helpr Pro");
-    expect(tierDisplayName("Elite")).toBe("Helpr Elite");
+    expect(tierDisplayName("PRO")).toBe("Pro");
+    expect(tierDisplayName("Elite")).toBe("Elite");
   });
 });

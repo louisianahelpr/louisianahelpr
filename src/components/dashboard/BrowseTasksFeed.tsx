@@ -220,12 +220,19 @@ export function BrowseTasksFeed({
       // because it also happened to be a recommendation.
       .filter(j => !savedOnly || savedJobIds.has(j.id))
       .filter(j => {
-        // Hide jobs already shown in Recommended or Nearby sections
-        if (!filters.hasFilters) {
-          const inRecommended = recommendedJobs.some(rj => rj.id === j.id);
-          const inNearby = filters.nearbyJobs.some(nj => nj.id === j.id);
-          if (inRecommended || inNearby) return false;
-        }
+        // Hide jobs already rendered by the Recommended section above.
+        //
+        // This used to ALSO drop anything in `filters.nearbyJobs`, dating from
+        // a time when the feed rendered a separate "Nearby" band. That band is
+        // gone — `nearbyJobs` is not rendered by this component or by
+        // Dashboard.tsx — so the exclusion was deleting open jobs from the
+        // feed with no section showing them instead. Proven at runtime: with 6
+        // jobs in the user's own city and 3 skill-matching jobs elsewhere,
+        // `nearbyJobs` claimed the first 5 local jobs while `recommendedJobs`
+        // (skill score 3 > location score 2) held the 3 out-of-town ones plus
+        // 2 local, leaving 3 local jobs excluded here and rendered nowhere.
+        // Only exclude what a section actually renders.
+        if (!filters.hasFilters && recommendedJobs.some(rj => rj.id === j.id)) return false;
         return true;
       })
       // Two-sided liquidity signal — float urgent jobs to the top of the
@@ -240,7 +247,7 @@ export function BrowseTasksFeed({
       ? recommendedJobs.filter(j => !dismissedJobIds.has(j.id))
       : [];
     return { visibleJobs: visible, recommendedVisible: recommended };
-  }, [filters.filteredJobs, filters.hasFilters, filters.nearbyJobs, recommendedJobs, dismissedJobIds, savedOnly, savedJobIds]);
+  }, [filters.filteredJobs, filters.hasFilters, recommendedJobs, dismissedJobIds, savedOnly, savedJobIds]);
 
   return (
     <>

@@ -44,14 +44,36 @@ export function useReducedMotion(): boolean {
  * Call once at the app root.
  */
 export function useDynamicTypeSync(): number {
-  const [scale, setScale] = useState(1);
+  // Measured in the state INITIALISER, not in the effect.
+  //
+  // It used to start at 1 ("no enlargement") and correct itself after mount.
+  // That default is not neutral: App.tsx ORs this against `profile.senior_mode`
+  // to drive the `senior-mode` class, and `initSimpleMode()` has ALREADY put
+  // that class on <html> synchronously before first paint. So on any device
+  // with iOS text size at xxLarge or above, the sequence was:
+  //
+  //   pre-paint  senior-mode ON   (initSimpleMode, correct)
+  //   mount      senior-mode OFF  (this hook still reporting 1)  ← text shrinks
+  //   +1 tick    senior-mode ON   (measurement lands)            ← text grows back
+  //
+  // i.e. the whole app opened at the large type scale and then visibly shrank,
+  // on every screen. Measured on the iOS simulator at Dynamic Type
+  // "accessibility-extra-large" (2026-08-27): the class was removed and
+  // re-added within two mutations of mount. Owner: "profile review opens then
+  // gets smaller", "all profile tabs open big then get smaller".
+  //
+  // The measurement is a synchronous DOM read with no side effects, so doing it
+  // during the first render is safe and makes the first render already correct.
+  // The effect stays for the CSS variable (a write, which does not belong in a
+  // render) and is unchanged otherwise.
+  const [scale] = useState(() => {
+    if (typeof window === "undefined" || typeof document === "undefined") return 1;
+    return Math.min(Math.max(measureDynamicTypeScale(), 0.85), 1.5);
+  });
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const root = document.documentElement;
-    const clamped = Math.min(Math.max(measureDynamicTypeScale(), 0.85), 1.5);
-    root.style.setProperty("--user-text-scale", String(clamped));
-    setScale(clamped);
-  }, []);
+    document.documentElement.style.setProperty("--user-text-scale", String(scale));
+  }, [scale]);
   return scale;
 }
 

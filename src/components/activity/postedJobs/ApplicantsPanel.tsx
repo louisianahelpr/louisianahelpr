@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { formatName } from "@/lib/utils";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Eye, Pencil, Plus, Sparkles, Star, X } from "lucide-react";
+import { ArrowLeft, Eye, Pencil, Plus, ShieldAlert, ShieldCheck, Sparkles, Star, X } from "lucide-react";
 import { AttachmentLink } from "@/components/AttachmentLink";
 import CredentialBadge from "@/components/CredentialBadge";
 import { hapticLight } from "@/lib/haptics";
@@ -306,6 +306,18 @@ export function ApplicantsPanel({
                                   renders nothing unless a credential is
                                   admin-verified or pending. */}
                               <CredentialBadge credentials={app.profiles ?? {}} size="sm" />
+                              {/* Verification status — the same two facts the
+                                  server gate enforces before this helper can be
+                                  awarded the job (migration 20260827191647).
+                                  Shown BEFORE the poster taps Hire for two
+                                  reasons: it is a safety signal on a decision
+                                  about letting a stranger into your home, and
+                                  it stops the card offering a Hire the database
+                                  will refuse. */}
+                              <ApplicantVerificationChip
+                                idVerified={app.profiles?.is_id_verified === true}
+                                payoutReady={app.profiles?.is_payout_ready === true}
+                              />
                               {/* Inline rating — compact ★ 4.9 (23) */}
                               {(app.reviewCount ?? 0) > 0 && (
                                 <span className="flex items-center gap-0.5 shrink-0">
@@ -376,7 +388,17 @@ export function ApplicantsPanel({
                                 variant="primary"
                                 size="sm"
                                 className="rounded-ds-md btn-press"
-                                aria-label={`Select ${helperName}`}
+                                // Not disabled when unverified. The chip beside
+                                // the name already says why they can't be hired
+                                // yet, and a poster who taps anyway gets a toast
+                                // naming the reason (useOfferHandlers reads the
+                                // server's refusal) — which beats a dead
+                                // control that explains nothing.
+                                aria-label={
+                                  app.profiles?.is_id_verified === true
+                                    ? `Select ${helperName}`
+                                    : `Select ${helperName} — not verified yet, so this may be declined`
+                                }
                                 onClick={() => onAcceptApplication(app)}
                               >
                                 Hire
@@ -514,5 +536,45 @@ export function ApplicantsPanel({
 
     </>,
     document.body,
+  );
+}
+
+/**
+ * The applicant's standing against the acceptance gate, in one chip.
+ *
+ * Verified is stated positively because it is the signal a poster is actually
+ * shopping for. The blocked states are stated as facts about Stripe rather than
+ * as a judgement of the person — a helper who simply hasn't finished onboarding
+ * is not untrustworthy, and the poster is reading this about a real neighbour.
+ *
+ * "ID verified" here means Stripe Connect has no outstanding identity
+ * requirement — never the old `idv_status` upload flag, which nobody reviews.
+ */
+function ApplicantVerificationChip({
+  idVerified,
+  payoutReady,
+}: {
+  idVerified: boolean;
+  payoutReady: boolean;
+}) {
+  if (idVerified) {
+    return (
+      <span
+        className="inline-flex items-center gap-1 shrink-0 rounded-full px-2 py-0.5 text-ds-10 font-sans font-semibold"
+        style={{ background: "hsl(var(--sage) / 0.14)", color: "hsl(var(--sage))" }}
+      >
+        <ShieldCheck className="w-3 h-3" strokeWidth={2} aria-hidden="true" />
+        ID verified by Stripe
+      </span>
+    );
+  }
+  return (
+    <span
+      className="inline-flex items-center gap-1 shrink-0 rounded-full px-2 py-0.5 text-ds-10 font-sans font-semibold"
+      style={{ background: "hsl(var(--amber-tint) / 0.16)", color: "hsl(var(--amber-ink))" }}
+    >
+      <ShieldAlert className="w-3 h-3" strokeWidth={2} aria-hidden="true" />
+      {payoutReady ? "Stripe still verifying" : "Payout setup unfinished"}
+    </span>
   );
 }

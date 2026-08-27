@@ -46,12 +46,17 @@ export function IDVPromptDialog({
 }: IDVPromptDialogProps) {
   const [loading, setLoading] = useState(false);
 
-  // Owner policy (Lexi 2026-05-06): one Stripe Identity attempt per user.
-  // If it fails, no self-service retry — admin reviews manually via
-  // AdminIDVQueue. Saves Stripe Identity costs on dead accounts and on
-  // users repeatedly failing automated checks. The 'failed' /
-  // 'requires_input' states therefore route into the "admin review" UI,
-  // not a "try again" CTA.
+  // Owner policy (Lexi 2026-05-06): one Stripe Identity attempt per user. If
+  // it fails, no self-service retry — that saves Stripe Identity cost on dead
+  // accounts and on users repeatedly failing automated checks.
+  //
+  // What this state no longer means (2026-08-27): it used to say an admin
+  // would review the ID upload manually, via AdminIDVQueue. That queue has
+  // been retired — nobody worked it, and the owner confirmed the uploads were
+  // never reviewed — so the promise was false. The copy below now says what is
+  // actually true: this attempt is finished, and the identity signal that
+  // matters comes from Stripe Connect (profiles.stripe_identity_verified),
+  // which is a separate flow reachable from payout settings.
   const isAdminReview =
     status === "failed" || status === "requires_input" || status === "manual_review";
   const isPending = status === "processing";
@@ -87,7 +92,7 @@ export function IDVPromptDialog({
   };
 
   const headline = isAdminReview
-    ? "Verification under admin review"
+    ? "That check didn't go through"
     : isPending
       ? "Verification in progress"
       : "Verify your identity";
@@ -133,9 +138,10 @@ export function IDVPromptDialog({
           </p>
         )}
 
-        {/* Admin-review state — show Stripe's reason for transparency, but
-            no self-service retry CTA. Per owner policy, Stripe Identity is
-            charged once; failures route to manual admin review. */}
+        {/* Failed state — show Stripe's reason for transparency, but no
+            self-service retry CTA. Per owner policy, Stripe Identity is
+            charged once. It no longer promises an admin review, because there
+            is no longer a queue for one (see the note above). */}
         {isAdminReview && (
           <div
             className="flex items-start gap-3 p-3 rounded-ds-md border mt-2"
@@ -151,7 +157,7 @@ export function IDVPromptDialog({
                 {failureReason || "Stripe couldn't confirm your identity automatically from the photos provided."}
               </p>
               <p className="text-ds-11 text-muted-foreground mt-2">
-                An admin will review your ID upload manually. You'll receive a notification when it's resolved — typically within 24 hours.
+                We don't re-run this check. Your identity for accepting jobs is confirmed through your Stripe payout account instead — finish that in Profile → Payment Settings and the verified badge follows automatically.
               </p>
             </div>
           </div>

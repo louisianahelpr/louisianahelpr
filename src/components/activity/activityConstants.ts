@@ -110,6 +110,13 @@ export type EnrichedApplication = Application & {
     /** Business name off the licence/COI. get_safe_profiles masks it unless a
         credential is verified, so it is safe to hand straight to the badge. */
     business_name?: string | null;
+    /** Stripe's identity verdict — `profiles.stripe_identity_verified`, NOT
+        the unreviewed `idv_status`. Half of the acceptance gate the server
+        enforces (migration 20260827191647); shown on the applicant card so a
+        poster can weigh it before deciding who to let into their home. */
+    is_id_verified?: boolean | null;
+    /** The other half: a Stripe payout account that can actually be paid. */
+    is_payout_ready?: boolean | null;
   } | null;
   reviewCount?: number;
   avgRating?: number;

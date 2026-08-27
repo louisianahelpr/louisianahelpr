@@ -8,6 +8,7 @@ import { hapticLight } from "@/lib/haptics";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { PageScaffold } from "@/components/ui/PageScaffold";
+
 import { EmptyState } from "@/components/ui/EmptyState";
 import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllustration";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -78,6 +79,16 @@ interface ConversationListProps {
 function byLastAtDesc(a: Conversation, b: Conversation): number {
   return new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime();
 }
+
+/**
+ * Title-card padding. The SAME value as ActivityHeader's
+ * ACTIVITY_HEADER_PADDING — that identity is the whole point: this card is
+ * supposed to have My Posts' exact geometry. Copied rather than imported
+ * because importing it pulls the Activity page module into the Messages
+ * chunk for two utility classes. `!` because PageScaffold concatenates
+ * rather than merges. If one moves, move the other.
+ */
+const MESSAGES_HEADER_PADDING = "!py-1.5 lg:!py-2";
 
 /**
  * ConversationList — the inbox surface of the Messages page: the
@@ -355,11 +366,10 @@ export function ConversationList({
     onRefresh: async () => { if (userId) await loadConversations(userId); },
   });
 
-  // No title card: the "Messages" section name lives in the top bar
-  // (Instagram/Facebook pattern — passed as `title` to DashboardHeader
-  // below), and the "N threads" chip that used to be the card's only
-  // content just restated the thread list directly beneath it. Same
-  // call as My Posts / My Jobs, which dropped their count box too.
+  // The title card holds the toolbar itself — the name, the Select/Search
+  // cluster and (on phone) the Unread/Active/All tabs. It does NOT hold a
+  // "N threads" chip: that restated the thread list directly beneath it, the
+  // same count box My Posts / My Jobs dropped.
 
   const inboxTabs = (
     <UnderlineTabs
@@ -375,7 +385,19 @@ export function ConversationList({
     />
   );
 
-  const listBody = (
+  /* THE TITLE CARD, on phone and native (owner, 2026-08-27).
+     Messages used to render its name INSIDE the content panel, under a
+     hairline, so the whole screen was one tall box while Home, My Posts and
+     My Jobs beside it were a floating title card, a gap, then the panel. One
+     screen out of four wearing a different shell is the kind of difference a
+     reader feels without being able to name.
+
+     Same split Activity makes, and for the same reason: on the DESKTOP website
+     this stays the panel's first child under a hairline (owner: "merge into
+     1"), because there the app bar and the side rail already say where you
+     are. Phone and native get the two-card stack. `embedded` is exactly that
+     desktop mode here — see the prop's docs. */
+  const headerEl = (
     <>
           {/* Thin list toolbar — iOS shows only the nav title over the
               list, so the old "Conversations" eyebrow + "All threads"
@@ -398,8 +420,21 @@ export function ConversationList({
               have nothing to act on when the list is empty. */}
           {(
             <div
-              className="shrink-0 flex items-center gap-3 px-4"
-              style={{ minHeight: "52px", borderBottom: "1px solid hsl(var(--olivewood) / 0.1)" }}
+              // In the title card the card owns the horizontal padding and
+              // there is nothing below to rule off from — the gap does that.
+              // Embedded (desktop) keeps both, because there it IS the panel's
+              // first row.
+              className={`shrink-0 flex items-center gap-3 ${embedded ? "px-4" : ""}`}
+              style={{
+                // The 52px floor is an IN-PANEL toolbar measure: it kept the
+                // row from collapsing onto the list under it. In the title
+                // card the card's own padding governs the height, and every
+                // control in the row already carries its own 44pt target — so
+                // keeping it made this card 6pt taller than the identical
+                // card on My Posts, measured on device.
+                minHeight: embedded ? "52px" : undefined,
+                borderBottom: embedded ? "1px solid hsl(var(--olivewood) / 0.1)" : undefined,
+              }}
             >
               {selectMode ? (
                 /* Select mode — live "N/3 selected" counter fills the row.
@@ -514,10 +549,15 @@ export function ConversationList({
               the Select / Search cluster. Hidden while search or select mode
               has taken the row over: one control at a time. */}
           {!embedded && hasThreads && !searchOpen && !selectMode && (
-            <div className="shrink-0 px-4 pt-2.5 pb-1 overflow-x-auto scrollbar-hide">
+            <div className="shrink-0 pt-1.5 overflow-x-auto scrollbar-hide">
               {inboxTabs}
             </div>
           )}
+    </>
+  );
+
+  const listBody = (
+    <>
           {/* NO horizontal padding on these two branches. EmptyState/ErrorState
               render their own `dock` card; inset inside the page panel — which
               is itself a rounded card — that produced TWO nested rounded
@@ -805,7 +845,12 @@ export function ConversationList({
   if (embedded) {
     // `relative` so the embedded select-mode action bar anchors to this
     // pane instead of the viewport.
-    return <div className="relative flex-1 min-h-0 flex flex-col">{listBody}</div>;
+    return (
+      <div className="relative flex-1 min-h-0 flex flex-col">
+        {headerEl}
+        {listBody}
+      </div>
+    );
   }
 
   return (
@@ -814,10 +859,10 @@ export function ConversationList({
     // redundant count line removed from Activity, /jobs, and the browse
     // toolbar. The desktop split's bar keeps its UNREAD pill, which is real
     // information you can't get by glancing at the list.
-    // The page's h1 lives in the toolbar row above (visible on phone/native,
+    // The page's h1 lives in the toolbar row (visible on phone/native,
     // sr-only when embedded, and an sr-only stand-in during search/select
-    // modes) — PageScaffold renders no title card here.
-    <PageScaffold>
+    // modes), which is what the title card renders.
+    <PageScaffold titleCard={headerEl} titleCardClassName={MESSAGES_HEADER_PADDING}>
       {listBody}
     </PageScaffold>
   );

@@ -518,15 +518,21 @@ export function ConversationList({
               {inboxTabs}
             </div>
           )}
+          {/* NO horizontal padding on these two branches. EmptyState/ErrorState
+              render their own `dock` card; inset inside the page panel — which
+              is itself a rounded card — that produced TWO nested rounded
+              frames a few px apart, visible on device. The thread LIST below
+              keeps its padding, because rows do need to clear the panel edge.
+              Same defect and same fix as Activity's empty state. */}
           {!loading && loadError && conversations.length === 0 ? (
-            <div className="px-3 pt-4 flex-1 min-h-0 flex">
+            <div className="flex-1 min-h-0 flex">
               <ErrorState
                 title="We couldn't load your messages."
                 onRetry={() => { if (userId) loadConversations(userId); }}
               />
             </div>
           ) : !loading && conversations.length === 0 ? (
-            <div className="px-3 pt-4 flex-1 min-h-0 flex">
+            <div className="flex-1 min-h-0 flex">
               <EmptyState
                 icon={MessageSquare}
                 illustration={<EmptyStateIllustration variant="inbox" />}

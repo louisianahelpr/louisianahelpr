@@ -4,7 +4,7 @@ import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload, Loader2, Check, MapPin, Eye } from "lucide-react";
+import { Upload, Loader2, Check, MapPin, Eye, ChevronRight } from "lucide-react";
 import { getProfileCompletion } from "@/lib/profileCompletion";
 import { lookupParishByZip } from "@/lib/parishLookup";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
@@ -116,28 +116,30 @@ export function ProfileEditForm({
   } = usePortfolio({ profile, onPortfolioChange });
 
   // ─── Profile completion meter ──────────────────────────────────────
-  // Shared getProfileCompletion helper. The checklist tracks only the
-  // post-signup enhancements (ZIP / ID / work photos), but the percentage
-  // also counts the core signup fields so a finished profile never reads
-  // as 0%. Core flags use the live form values where this form edits them
-  // (bio / phone / city) and the saved row otherwise (name / avatar / DOB
-  // / ID doc persist outside the text-field save bar).
-  const coreComplete = [
-    !!profile?.full_name?.trim(),
-    !!profile?.avatar_url,
-    bioOk,
-    !!profile?.date_of_birth,
-    !!phone.trim(),
-    !!location.trim(),
-    !!profile?.id_document_url,
-  ];
+  // Four genuinely OPTIONAL fields (phone, ZIP, government ID, work
+  // photos) — see profileCompletion.ts for why the mandatory signup /
+  // CompleteProfile fields are no longer counted. Live form values where
+  // this form owns them (phone, ZIP); the saved row for the two that
+  // persist outside the text-field save bar (ID doc, portfolio).
   const completion = getProfileCompletion({
+    phone,
     zipCode,
-    idvStatus: idStatus,
+    idDocumentUrl: profile?.id_document_url,
     portfolioCount: portfolioUrls.length,
-    core: coreComplete,
   });
   const completionPct = completion.pct;
+
+  // Every incomplete row is a real tap target: all four controls live on
+  // THIS screen, so the row scrolls to its field and focuses it where the
+  // field is focusable. An unreachable checklist row is worse than none.
+  const goToItem = (anchorId: string) => {
+    const el = document.getElementById(anchorId);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+      el.focus({ preventScroll: true });
+    }
+  };
 
   return (
     // Bottom padding clears the sticky save bar (16+44+16 = 76px) plus a
@@ -198,9 +200,42 @@ export function ProfileEditForm({
               }}
             />
           </div>
-          {/* No "Next: …" line — getProfileCompletion's actionable checklist
-              is deliberately empty (see profileCompletion.ts), so nextLabel
-              is always null and the line could never render. */}
+          {/* The actionable checklist. Only INCOMPLETE rows render — a
+              finished item is already reported by the number above it, and
+              a list of ticks is a list of nothing to do. At 100% the whole
+              list disappears and one line of confirmation takes its place. */}
+          {completion.next ? (
+            <ul className="space-y-1 pt-1">
+              {completion.items.filter((i) => !i.done).map((item) => (
+                <li key={item.anchorId}>
+                  <button
+                    type="button"
+                    onClick={() => goToItem(item.anchorId)}
+                    className="w-full flex items-center gap-2 text-left py-1.5 rounded-ds-md active:scale-[0.99] transition-transform"
+                  >
+                    <span
+                      className="shrink-0 w-3.5 h-3.5 rounded-full border"
+                      style={{ borderColor: "hsl(var(--burnt-sienna) / 0.5)" }}
+                      aria-hidden
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-ds-12 font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
+                        {item.label}
+                      </span>
+                      <span className="block font-serif italic text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                        {item.hint}
+                      </span>
+                    </span>
+                    <ChevronRight className="shrink-0 w-3.5 h-3.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }} aria-hidden />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="font-serif italic text-ds-11 pt-1" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              Everything optional is filled in — your profile is as complete as it gets.
+            </p>
+          )}
         </div>
 
         {/* Contact section */}
@@ -295,7 +330,7 @@ export function ProfileEditForm({
             that every other card on this form tells you at a glance. This one
             is the section a helpr is most anxious about, and it opened with a
             status chip floating alone against a blank row. */}
-        <div className="rounded-2xl liquid-glass p-5 space-y-4">
+        <div id="id-verification-card" className="rounded-2xl liquid-glass p-5 space-y-4 scroll-mt-24">
           <div className="flex items-baseline justify-between gap-2">
             <h2 className="text-ds-11 font-medium leading-none" style={{ color: "hsl(var(--ink-deep))" }}>
               ID verification
@@ -341,6 +376,7 @@ export function ProfileEditForm({
             scoped to the user's id. The user explicitly asked for this in
             their Edit-profile screenshot review. */}
         <RecentWorkSection
+          anchorId="work-portfolio-card"
           portfolioUrls={portfolioUrls}
           portfolioUploading={portfolioUploading}
           portfolioInputRef={portfolioInputRef}

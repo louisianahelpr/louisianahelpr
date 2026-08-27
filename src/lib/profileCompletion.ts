@@ -1,91 +1,147 @@
-// Profile-completion checklist — single source of truth, shared by the
-// Profile landing hero meter, the Edit-Profile meter, and the Dashboard
-// "finish your profile" banner.
+// Profile-completion checklist — single source of truth, consumed by the
+// Edit-Profile meter.
 //
-// Two distinct jobs, deliberately split:
+// ─── WHY THIS WAS REBUILT (owner, 2026-08-27: "make it count things that
+//     vary") ───────────────────────────────────────────────────────────────
 //
-//  - `items` is the ACTIONABLE checklist — only the three genuine
-//    post-signup enhancements (ZIP, ID verified, work photos). Profile
-//    photo, name, phone, DOB, city, bio and the government-ID document
-//    are all required at signup (Step 2), so listing them would clutter
-//    the checklist with things every user already did.
+// The previous version counted eight fields: full_name, avatar_url, bio,
+// date_of_birth, phone, location, id_document_url and ZIP. Its own comments
+// asserted that all eight were "required at signup", concluded that the
+// honest checklist was therefore empty, and shipped a progress bar that read
+// 100% on every real account — a meter that could not meter, above an
+// actionable list that was literally `[]`.
 //
-//  - `pct` is the HONEST progress bar — it spans the core signup fields
-//    (passed in via `core`) AND the three enhancements. A normally-
-//    onboarded account therefore reads as mostly-complete and climbing,
-//    never a discouraging "0%". (An earlier version counted only the
-//    three enhancements, so a brand-new-but-fully-onboarded profile
-//    showed 0% — the first thing a returning user saw on Profile.)
+// The premise was half wrong, which is what made it unfixable in place.
+// Walking the two real gates:
 //
-// Callers that don't have the core fields on hand can omit `core`; the
-// percentage then spans the enhancements only (the legacy behaviour).
+//   • Signup.tsx enforces first name, last name and date of birth. Avatar,
+//     phone and bio are explicitly DEFERRED there ("keeps signup under a
+//     minute"); city is not collected at signup at all.
+//   • CompleteProfile.tsx — the required post-signup gate — enforces city,
+//     bio (>= 20 chars) and profile photo, and explicitly does NOT require
+//     the government ID ("Government-issued ID is intentionally NOT in the
+//     required checklist").
+//
+// So the true mandatory set is: name, DOB, photo, bio, city. Every one of
+// those is satisfied before an account can do anything, which is exactly why
+// counting them pinned the bar at 100%.
+//
+// What is left over is genuinely optional, and that is what this now counts:
+//
+//   1. Phone number       — profiles.phone
+//   2. ZIP code           — profiles.zip_code
+//   3. Government ID      — profiles.id_document_url
+//   4. Work photos        — profiles.portfolio_urls (at least one)
+//
+// Four items, UNWEIGHTED — 25% each. No weighting scheme, because none could
+// be explained to a user in one sentence, and an unexplainable number is just
+// a different flavour of the lie this replaced.
+//
+// ─── THE THREE RULES EACH ITEM OBEYS ─────────────────────────────────────
+//
+//  • OPTIONAL. None of the four is enforced by Signup or CompleteProfile
+//    (see the walk above), so the number genuinely moves between accounts.
+//
+//  • REACHABLE. All four are edited on the Edit-Profile screen that renders
+//    this meter, so every incomplete row scrolls to its own control via
+//    `anchorId`. A checklist row you cannot act on is worse than no row.
+//
+//  • DOABLE NOW. Nothing here is earned history. Completed jobs and reviews
+//    received are deliberately absent: the old Preview card counted "three
+//    completed jobs" and "one review", which told the user to finish their
+//    profile by waiting for a stranger to hire them.
+//
+// ─── DELIBERATELY EXCLUDED ───────────────────────────────────────────────
+//
+//  • Skills (profiles.skills) and hourly rate (profiles.hourly_rate) — both
+//    are optional columns that Profile.tsx WRITES on save, but neither has an
+//    input anywhere in `src/`. Nothing can set them, so a row for either
+//    would be permanently unclearable. Fix the editors first, then add them.
+//  • Intro video — the `profiles.intro_video_*` columns were dropped by
+//    migration 20260827120000. There is no field to complete.
+//  • Trade license / insurance (Credentials tab) — real, optional and
+//    reachable, but trade-specific: a pet sitter has neither and never will,
+//    so it would cap most accounts below 100% forever. That is precisely the
+//    "a finished profile reported 70%" failure this file already learned.
+//  • "Available now" (profiles.available_until) — a 4-hour toggle that
+//    expires. A completed item that un-completes itself overnight is not
+//    profile completion.
+//  • ID *verification status* rather than the uploaded document — waiting on
+//    a reviewer is not something the user can do right now, so item 3 counts
+//    the upload, which is entirely in their hands.
 
 export interface ProfileCompletionItem {
+  /** Short row label, e.g. "Phone number". */
   label: string;
+  /** One line saying what completing it buys the user. */
+  hint: string;
   done: boolean;
+  /** DOM id of the control on Edit Profile that completes this item. */
+  anchorId: string;
 }
 
 export interface ProfileCompletion {
-  /** Actionable post-signup enhancements — what the UI checklist lists. */
+  /** All four optional items, complete and incomplete alike. */
   items: ProfileCompletionItem[];
-  /** Completed count across core + enhancements (matches `pct`). */
+  /** How many are done. */
   done: number;
-  /** Total count across core + enhancements (matches `pct`). */
+  /** How many there are (4). */
   total: number;
-  /** Overall completion percentage across core + enhancements. */
+  /** Percentage, 25% per item. */
   pct: number;
-  /** First incomplete *enhancement* label, or null when all are done. */
-  nextLabel: string | null;
+  /** First incomplete item, or null when everything is done. */
+  next: ProfileCompletionItem | null;
 }
 
+/** DOM ids of the Edit-Profile controls each item scrolls to. */
+export const PROFILE_COMPLETION_ANCHORS = {
+  phone: "phone",
+  zip: "zipCode",
+  idDocument: "id-verification-card",
+  workPhotos: "work-portfolio-card",
+} as const;
+
 /**
- * Compute profile completion from whatever values the caller has on
- * hand. Accepts a loose input shape so the live Edit-Profile form can
- * pass in-progress field values while the read-only views pass the
- * saved profile row.
+ * Compute profile completion from whatever the caller has on hand. The live
+ * Edit-Profile form passes in-progress field values; anything else can pass
+ * the saved profile row.
  */
 export function getProfileCompletion(input: {
+  phone?: string | null;
   zipCode?: string | null;
-  idvStatus?: string | null;
+  idDocumentUrl?: string | null;
   portfolioCount?: number;
-  /**
-   * Completion flags for the core fields signup already collects (name,
-   * photo, bio, DOB, phone, city, ID doc). When supplied they count
-   * toward `pct` so a finished signup doesn't read as 0%. Omit for the
-   * enhancements-only percentage.
-   */
-  core?: boolean[];
 }): ProfileCompletion {
-  // The checklist was wrong on all three rows, so it is now empty by default.
-  //
-  //  • ZIP code is collected at SIGNUP, so listing it told an onboarded user to
-  //    add something they already gave us. It now counts as a core field.
-  //  • ID verification is gated at the first post or first accepted job — not
-  //    a profile chore. Nagging for it on day one asks people to verify before
-  //    they have decided to use the product, and made "Verify ID" look
-  //    outstanding for accounts that will never need it.
-  //  • Work photos are OPTIONAL. An optional extra must not sit in a list
-  //    titled "Finish your profile" or count against a completion percentage —
-  //    that is how a finished profile reported 70%.
-  //
-  // What is left is nothing, which is the honest answer for a normally
-  // onboarded account: the card hides and the meter reads 100%. If a genuinely
-  // required post-signup step is ever added, it goes here.
-  const items: ProfileCompletionItem[] = [];
+  const items: ProfileCompletionItem[] = [
+    {
+      label: "Phone number",
+      hint: "So posters can reach you about a job.",
+      done: !!input.phone && input.phone.replace(/\D/g, "").length >= 10,
+      anchorId: PROFILE_COMPLETION_ANCHORS.phone,
+    },
+    {
+      label: "ZIP code",
+      hint: "Places you in the right parish for nearby jobs.",
+      done: !!input.zipCode && String(input.zipCode).trim().length > 0,
+      anchorId: PROFILE_COMPLETION_ANCHORS.zip,
+    },
+    {
+      label: "Government ID",
+      hint: "Unlocks the Verified badge on your public profile.",
+      done: !!input.idDocumentUrl,
+      anchorId: PROFILE_COMPLETION_ANCHORS.idDocument,
+    },
+    {
+      label: "Work photos",
+      hint: "Posters hire the helpr whose work they can see.",
+      done: (input.portfolioCount ?? 0) > 0,
+      anchorId: PROFILE_COMPLETION_ANCHORS.workPhotos,
+    },
+  ];
 
-  // ZIP joins the core set: required at signup, so it belongs in the
-  // percentage rather than the to-do list.
-  const zipDone = !!input.zipCode && String(input.zipCode).trim().length > 0;
-  const core = [...(input.core ?? []), zipDone];
-  // `pct` / `done` / `total` span core + enhancements; `items` (the
-  // visible checklist) stays scoped to the actionable enhancements.
-  const enhancementsDone = items.filter((i) => i.done).length;
-  const coreDone = core.filter(Boolean).length;
-  const done = enhancementsDone + coreDone;
-  const total = items.length + core.length;
-  const pct = total > 0 ? Math.round((done / total) * 100) : 100;
-  // "Next" always points at an actionable enhancement — never a core
-  // field, which is satisfied at signup and absent from the checklist.
-  const nextLabel = items.find((i) => !i.done)?.label ?? null;
-  return { items, done, total, pct, nextLabel };
+  const total = items.length;
+  const done = items.filter((i) => i.done).length;
+  const pct = Math.round((done / total) * 100);
+  const next = items.find((i) => !i.done) ?? null;
+  return { items, done, total, pct, next };
 }

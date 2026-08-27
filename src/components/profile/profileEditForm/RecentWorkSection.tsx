@@ -2,6 +2,8 @@ import { Loader2, ImagePlus, X } from "lucide-react";
 import { MAX_PORTFOLIO } from "./usePortfolio";
 
 interface RecentWorkSectionProps {
+  /** DOM id so the profile-completion checklist can scroll here. */
+  anchorId?: string;
   portfolioUrls: string[];
   portfolioUploading: boolean;
   portfolioInputRef: React.RefObject<HTMLInputElement>;
@@ -16,6 +18,7 @@ interface RecentWorkSectionProps {
  * explicitly asked for this in their Edit-profile screenshot review.
  */
 export function RecentWorkSection({
+  anchorId,
   portfolioUrls,
   portfolioUploading,
   portfolioInputRef,
@@ -23,7 +26,7 @@ export function RecentWorkSection({
   removePortfolioAt,
 }: RecentWorkSectionProps) {
   return (
-    <div className="rounded-2xl liquid-glass p-5 space-y-4">
+    <div id={anchorId} className="rounded-2xl liquid-glass p-5 space-y-4 scroll-mt-24">
       {/* Titled — the counter used to float alone on the right, so the card
           opened with "0/6" and no word saying what it counted. */}
       <div className="flex items-center justify-between gap-2">

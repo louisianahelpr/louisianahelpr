@@ -49,11 +49,4 @@ export interface ProfileLandingProps {
   statsError?: boolean;
   /** Retries just the helper-stats sub-section. */
   onRetryStats?: () => void;
-  /**
-   * Last-6-weeks take-home earnings, oldest → newest, for the header
-   * sparkline teaser. `null` (not enough signal) hides the teaser.
-   */
-  earningsSparkline?: number[] | null;
-  /** Total lifetime take-home, shown beside the sparkline. */
-  totalEarnings?: number;
 }

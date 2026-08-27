@@ -42,7 +42,7 @@ export const InviteEmail = ({
     <Preview>You've been invited to join Helpr</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Img src="https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/brand-asset" alt="Louisiana Helpr" width="150" style={logo} />
+        <Img src="https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/brand-asset" alt="Helpr" width="80" style={logo} />
         <Heading style={h1}>You've been invited to Helpr.</Heading>
         <Text style={text}>
           A neighbor invited you to join{' '}

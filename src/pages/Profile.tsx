@@ -22,7 +22,6 @@ import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { splitName } from "@/lib/splitName";
 import { requireOnline } from "@/lib/requireOnline";
 import { functionErrorMessage } from "@/lib/supabaseResult";
-import { buildEarningsSparklineSeries } from "@/lib/earningsSparklineSeries";
 import {
   useProfileStats,
   useProfileReviews,
@@ -568,11 +567,8 @@ const ProfilePage = () => {
     helperFeeFallbackPct,
   );
 
-  // Last-6-weeks take-home series for the header sparkline teaser. Shares the
-  // same per-job resolution as `totalEarnings` above (so the line and the
-  // number agree). Returns null when there isn't enough signal to draw a
-  // meaningful line, in which case ProfileLanding hides the teaser entirely.
-  const earningsSparkline = buildEarningsSparklineSeries(earningsJobs, helperFeeFallbackPct);
+// The last-6-weeks sparkline series was computed here for the header
+  // teaser that the owner removed on 2026-08-27; nothing consumes it now.
 
   return (
     <>
@@ -626,8 +622,7 @@ const ProfilePage = () => {
               onRequestLogout={() => setShowLogoutDialog(true)}
               statsError={statsQuery.isError}
               onRetryStats={() => { statsQuery.refetch(); }}
-              earningsSparkline={earningsSparkline}
-              totalEarnings={totalEarnings}
+
             />
           </PullToRefreshWrapper>
         ) : (

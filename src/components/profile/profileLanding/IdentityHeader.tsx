@@ -1,15 +1,13 @@
 import {
-  MapPin, ChevronRight as ChevronRightIcon,
+  MapPin,
   Award, BadgeCheck, Camera, Crown,
   Star, Share2, Edit, Eye,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { avatarGradientFor } from "@/lib/avatarGradient";
-import { formatPriceFloor } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import HelperTierBadge from "@/components/profile/HelperTierBadge";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
-import { EarningsSparkline } from "@/components/profile/EarningsSparkline";
 import { hapticLight } from "@/lib/haptics";
 import { shareNative } from "@/lib/nativeShare";
 import type { Profile } from "./types";
@@ -24,8 +22,6 @@ interface IdentityHeaderProps {
   reviewCount: number;
   completedCount: number;
   onSelectTab: (key: string) => void;
-  earningsSparkline: number[] | null;
-  totalEarnings: number;
   tier: string;
   hasPhoto: boolean;
   memberSinceLabel: string | null;
@@ -42,8 +38,6 @@ export function IdentityHeader({
   reviewCount,
   completedCount,
   onSelectTab,
-  earningsSparkline,
-  totalEarnings,
   tier,
   hasPhoto,
   memberSinceLabel,
@@ -416,43 +410,14 @@ export function IdentityHeader({
           </button>
         </div>
 
-        {/* Earnings sparkline teaser — a tiny last-6-weeks take-home
-            trend that taps through to the full Earnings screen. Only
-            renders when there's enough signal to draw a meaningful line
-            (the parent passes null otherwise), so it never shows an empty
-            or flat chart. */}
-        {earningsSparkline && earningsSparkline.length >= 2 && (
-          <button
-            type="button"
-            onClick={() => { hapticLight(); onSelectTab("earnings"); }}
-            aria-label="View your earnings"
-            className="mt-3.5 pt-3.5 w-full min-h-[44px] flex items-center justify-between gap-3 text-left active:opacity-70 transition-opacity"
-            style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.10)" }}
-          >
-            <div className="min-w-0">
-              <p
-                className="font-serif italic uppercase text-ds-9"
-                style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-              >
-                Earnings · Last 6 Weeks
-              </p>
-              <p className="text-ds-15 font-bold leading-tight mt-0.5" style={{ color: "hsl(var(--ink-deep))" }}>
-                {/* Floored, not rounded: this is take-home
-                    (sumHelperTakeHomeDollars from Profile.tsx), and a payout
-                    figure may never read above the payout. */}
-                ${formatPriceFloor(totalEarnings)}
-                <span className="ml-1.5 text-ds-10 font-medium text-muted-foreground">total</span>
-              </p>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <EarningsSparkline
-                values={earningsSparkline}
-                label="Your earnings over the last 6 weeks"
-              />
-              <ChevronRightIcon className="w-4 h-4" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
-            </div>
-          </button>
-        )}
+        {/* Earnings · Last 6 Weeks used to sit here — a sparkline teaser that
+            tapped through to the Earnings tab. Removed 2026-08-27 (owner:
+            "remove earnings last 6 weeks entirely from the profile view, it's
+            already in a tab"). Same reasoning that moved the activity trend
+            out below: the landing is identity, and the number already has a
+            home one tap away. `earningsSparkline`/`totalEarnings` left the
+            prop surface with it; Profile.tsx still computes totalEarnings for
+            the Earnings tab, which takes it directly. */}
 
         {/* Activity trend used to sit here. Moved to the Earnings tab's
             analytics section (owner decision): the Profile landing is

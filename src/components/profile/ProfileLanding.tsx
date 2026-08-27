@@ -18,8 +18,6 @@ export function ProfileLanding({
   onNavigate,
   onRequestDelete,
   onRequestLogout,
-  earningsSparkline = null,
-  totalEarnings = 0,
 }: ProfileLandingProps) {
   // Owned here rather than passed in — see the note in `types.ts`. Cached,
   // so re-opening Profile in the same session paints the payout state on
@@ -49,8 +47,6 @@ export function ProfileLanding({
         reviewCount={reviewCount}
         completedCount={completedCount}
         onSelectTab={onSelectTab}
-        earningsSparkline={earningsSparkline}
-        totalEarnings={totalEarnings}
         tier={tier}
         hasPhoto={hasPhoto}
         memberSinceLabel={memberSinceLabel}

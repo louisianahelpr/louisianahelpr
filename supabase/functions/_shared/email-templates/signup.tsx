@@ -45,7 +45,7 @@ export const SignupEmail = ({
     <Preview>Verify your email to get started on Helpr</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Img src="https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/brand-asset" alt="Louisiana Helpr" width="150" style={logo} />
+        <Img src="https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/brand-asset" alt="Helpr" width="80" style={logo} />
         <Heading style={h1}>Confirm your email to get started.</Heading>
         <Text style={text}>
           Tap the button below to verify your email so we can finish setting up your{' '}

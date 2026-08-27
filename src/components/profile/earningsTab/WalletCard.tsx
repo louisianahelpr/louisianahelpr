@@ -61,9 +61,10 @@ export function WalletCard({
         <div>
           <div className="flex items-center gap-1.5 mb-1">
             <Banknote className="w-3 h-3 text-primary" />
-            <span className="font-serif italic uppercase text-ds-9" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
-              Available
-            </span>
+            {/* Owner removed the small-caps eyebrow; kept sr-only so the money
+                figure still announces which balance it is. Sighted users get
+                it from the icon + the "ready to pay out" line below. */}
+            <span className="sr-only">Available</span>
           </div>
           <p className="font-display italic font-bold tabular-nums leading-none text-ds-28" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>
             {formatCents(availableTotal)}
@@ -75,9 +76,8 @@ export function WalletCard({
         <div className="border-l border-border/40 pl-4">
           <div className="flex items-center gap-1.5 mb-1">
             <Loader2 className="w-3 h-3" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
-            <span className="font-serif italic uppercase text-ds-9" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
-              Pending
-            </span>
+            {/* See the "Available" note above — sr-only for the same reason. */}
+            <span className="sr-only">Pending</span>
           </div>
           <p className="font-display italic font-bold tabular-nums leading-none text-ds-28" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>
             {formatCents(pendingTotal)}

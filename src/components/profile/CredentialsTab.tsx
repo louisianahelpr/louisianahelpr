@@ -749,12 +749,9 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
       {(licensedOn || insuredOn) && (
         <div className="rounded-2xl liquid-glass p-5 space-y-3">
           <div>
-            <p
-              className="font-serif italic uppercase text-ds-10"
-              style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-            >
-              Optional
-            </p>
+            {/* Small-caps "Optional" eyebrow removed at the owner's direction
+                (2026-08-27). The field is not required anywhere and the
+                Business Name label below is its own heading. */}
             <Label
               htmlFor="business-name"
               className="font-display italic font-bold leading-tight cursor-pointer text-headline-card"
@@ -857,12 +854,9 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
               <Send className="w-4 h-4" />
             </span>
             <div className="flex-1 min-w-0">
-              <p
-                className="font-serif italic uppercase text-ds-10"
-                style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-              >
-                Ready to send
-              </p>
+              {/* Small-caps "Ready to send" eyebrow removed at the owner's
+                  direction (2026-08-27) — the h3 below already says the
+                  documents are attached, so nothing is lost. */}
               <h3
                 className="font-display italic font-bold leading-tight text-ds-16"
                 style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}

@@ -50,18 +50,13 @@ const PaymentTab = lazy(() => import("@/components/PaymentTab").then(m => ({ def
  * Quiet in-page section rule. Deliberately NOT a second header: the merged
  * tab has exactly one ProfileTabHeader (title + back button) at the top, and
  * three stacked panels each carrying its own header is precisely the shape
- * the owner rejected. This is a label on a hairline — enough to say where one
- * section ends, not enough to read as another screen.
+ * the owner rejected. The small-caps label that used to sit on this hairline
+ * was removed at the owner's direction (2026-08-27) — the rule alone now
+ * separates sections, so this takes no props.
  */
-function SectionRule({ label }: { label: string }) {
+function SectionRule() {
   return (
     <div className="flex items-center gap-3 pt-2">
-      <span
-        className="font-serif italic uppercase text-ds-9 shrink-0"
-        style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-      >
-        {label}
-      </span>
       <div className="flex-1 h-px" style={{ background: "hsl(var(--olivewood) / 0.12)" }} />
     </div>
   );
@@ -229,7 +224,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
 
   const payoutSection = (
     <section ref={payoutSectionRef} className="scroll-mt-4 space-y-4">
-      <SectionRule label="Payout & payments" />
+      <SectionRule />
       <Suspense fallback={null}>
         <PaymentTab earningsJobs={earningsJobs} totalEarnings={totalEarnings} />
       </Suspense>
@@ -298,7 +293,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
       )}
 
       {/* ─── YOUR MONEY ─── */}
-      <SectionRule label="Your money" />
+      <SectionRule />
       <section className="space-y-3">
         {/* Payout data failed to load — say so, with a Retry. Without this
             the tab silently rendered the "not connected" journey to a
@@ -372,9 +367,10 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
               <div key={label} className="rounded-ds-md liquid-glass px-3 py-3 transition-all hover:-translate-y-0.5">
                 <div className="flex items-center gap-1 mb-1">
                   <Icon className="w-3 h-3 text-primary" />
-                  <span className="font-serif italic uppercase text-ds-10" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
-                    {label}
-                  </span>
+                  {/* Owner removed the small-caps eyebrow; kept sr-only so the
+                      tile still announces which figure it is (the icon and the
+                      `sub` line carry it visually). */}
+                  <span className="sr-only">{label}</span>
                 </div>
                 <p className="font-display italic font-bold tabular-nums leading-none text-ds-18" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
                   {value}
@@ -395,7 +391,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           four blocks below it, and the goal buried inside the wallet
           section — so "what am I about to earn" was answered in three
           places a reader had to find. */}
-      <SectionRule label="Coming up" />
+      <SectionRule />
       {/* Forward-looking "Projected by Sunday" card. Sums net take across
           accepted/in-progress jobs whose date_needed falls in the current
           week. Only renders for approved helpers — pre-onboarding helpers
@@ -444,7 +440,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           different source and no label saying which was which. They are one
           section now, ordered widest to narrowest: what landed in the bank,
           then each transfer, then the jobs behind them. */}
-      <SectionRule label="History" />
+      <SectionRule />
 
 {/* Payout history — inline year picker, no big empty box */}
       {stripeData?.connected && (
@@ -481,7 +477,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           The breakdown charts and the analytics dashboard are the same kind of
           thing — trends, not records — so they share one heading instead of
           the charts floating unlabelled above a rule that said "Analytics". */}
-      <SectionRule label="Insights" />
+      <SectionRule />
 
       {/* PIE + YTD vs PRIOR-YTD compare ───────────────────
           Self-hides if there's no completed-job data. Sits between the

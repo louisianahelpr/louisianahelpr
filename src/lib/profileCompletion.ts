@@ -30,10 +30,11 @@
 //
 //   1. Phone number       — profiles.phone
 //   2. ZIP code           — profiles.zip_code
-//   3. Government ID      — profiles.id_document_url
-//   4. Work photos        — profiles.portfolio_urls (at least one)
+//   3. Skills & services  — profiles.skills
+//   4. Government ID      — profiles.id_document_url
+//   5. Work photos        — profiles.portfolio_urls (at least one)
 //
-// Four items, UNWEIGHTED — 25% each. No weighting scheme, because none could
+// Five items, UNWEIGHTED — 20% each. No weighting scheme, because none could
 // be explained to a user in one sentence, and an unexplainable number is just
 // a different flavour of the lie this replaced.
 //
@@ -53,10 +54,14 @@
 //
 // ─── DELIBERATELY EXCLUDED ───────────────────────────────────────────────
 //
-//  • Skills (profiles.skills) and hourly rate (profiles.hourly_rate) — both
-//    are optional columns that Profile.tsx WRITES on save, but neither has an
-//    input anywhere in `src/`. Nothing can set them, so a row for either
-//    would be permanently unclearable. Fix the editors first, then add them.
+//  • Hourly rate (profiles.hourly_rate) — RETIRED 2026-08-27, not merely
+//    unbuilt. The platform prices jobs poster-side, so a helper hourly rate
+//    describes nothing the app charges on; every surface that rendered it has
+//    been removed and Profile.tsx no longer writes it. The column still exists
+//    because four RPCs select it, but it is not a profile field any more, so
+//    it is not a completion item.
+//    (Skills was excluded here for the opposite reason — it had no editor.
+//    That editor was restored on the same date, so skills is item 3 above.)
 //  • Intro video — the `profiles.intro_video_*` columns were dropped by
 //    migration 20260827120000. There is no field to complete.
 //  • Trade license / insurance (Credentials tab) — real, optional and
@@ -85,9 +90,9 @@ export interface ProfileCompletion {
   items: ProfileCompletionItem[];
   /** How many are done. */
   done: number;
-  /** How many there are (4). */
+  /** How many there are (5). */
   total: number;
-  /** Percentage, 25% per item. */
+  /** Percentage, 20% per item. */
   pct: number;
   /** First incomplete item, or null when everything is done. */
   next: ProfileCompletionItem | null;
@@ -97,6 +102,7 @@ export interface ProfileCompletion {
 export const PROFILE_COMPLETION_ANCHORS = {
   phone: "phone",
   zip: "zipCode",
+  skills: "skills",
   idDocument: "id-verification-card",
   workPhotos: "work-portfolio-card",
 } as const;
@@ -109,6 +115,7 @@ export const PROFILE_COMPLETION_ANCHORS = {
 export function getProfileCompletion(input: {
   phone?: string | null;
   zipCode?: string | null;
+  skills?: string | null;
   idDocumentUrl?: string | null;
   portfolioCount?: number;
 }): ProfileCompletion {
@@ -124,6 +131,13 @@ export function getProfileCompletion(input: {
       hint: "Places you in the right parish for nearby jobs.",
       done: !!input.zipCode && String(input.zipCode).trim().length > 0,
       anchorId: PROFILE_COMPLETION_ANCHORS.zip,
+    },
+    {
+      label: "Skills & services",
+      hint: "Decides which jobs get matched and sent to you.",
+      // Comma-separated string; blank and "  ,  " both mean no skills.
+      done: (input.skills ?? "").split(",").some((s) => s.trim().length > 0),
+      anchorId: PROFILE_COMPLETION_ANCHORS.skills,
     },
     {
       label: "Government ID",

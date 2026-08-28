@@ -42,14 +42,6 @@ export const LAST_UPDATED: Record<TabKey, string> = {
   privacy: "Jun 2026",
 };
 
-// Short editorial line shown under the tab strip so each policy view
-// opens with a human, plain-English framing instead of a blank jump
-// straight into dense sections.
-export const TAB_TAGLINES: Record<TabKey, string> = {
-  terms: "The agreement you accept when you use Helpr.",
-  community: "How we keep jobs fair, safe, and accountable.",
-  privacy: "What we collect, why, and the control you keep.",
-};
 
 export const TAB_LABELS: Record<TabKey, string> = {
   terms: "Terms",

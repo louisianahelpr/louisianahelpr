@@ -239,8 +239,14 @@ const Legal = () => {
   // "Last updated" survives in two quieter places: the tabular-nums span on the
   // right of this row (so the revision date is still visible without scrolling
   // — it's legally useful), and each policy's PolicyFooter at the end of the
-  // document. The poster subhead is dropped because TAB_TAGLINES already
-  // carries the same framing one line further down.
+  // document. The poster subhead is dropped because it restated the tab the
+  // reader had just chosen.
+  //
+  // This comment used to justify that by saying "TAB_TAGLINES already carries
+  // the same framing one line further down". It did not — TAB_TAGLINES was
+  // written but never rendered anywhere, so the page had been silently short
+  // one line of framing while the code asserted it was showing it. Owner's
+  // call (2026-08-27): drop the unused strings rather than surface them.
   //
   // This header and the content container below BOTH use the reference pages'
   // `px-5 sm:px-8 lg:px-12`, so Legal's left edge lines up with Help Center,

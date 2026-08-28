@@ -168,43 +168,20 @@ serve(async (req) => {
 
     // No valid personal subscription or pass.
     //
-    // REVOKING IS THE DANGEROUS BRANCH (R7), so it is now guarded twice.
+    // REVOKING IS THE DANGEROUS BRANCH (R7), so the write's error is checked
+    // below: it used to be dropped, and a failed revoke then looked identical
+    // to a successful one.
     //
-    // (a) profiles.subscription_tier was SHARED with the business seat grants
-    //     that the Business product used to write. That product was removed on
-    //     2026-08-25 and no new seat tier can be granted, but the guard STAYS:
-    //     `businesses` rows were deliberately kept, some still carry a
-    //     seat_tier, and without this check the next poll would clear a tier
-    //     this function never granted — the exact bug it was written for.
-    //     Never clear a tier this function did not grant.
-    // (b) the write's error was dropped, so a failed revoke looked identical
-    //     to a successful one.
-    const { data: ownedBusiness, error: ownedBusinessError } = await supabaseAdmin
-      .from("businesses")
-      .select("id, seat_tier")
-      .eq("owner_id", user.id)
-      .maybeSingle();
-
-    if (ownedBusinessError) {
-      // Fail CLOSED: if we cannot prove the tier is ours to clear, leave it.
-      console.error(
-        "[check-pro-subscription] business lookup failed; leaving tier untouched:",
-        ownedBusinessError.message,
-      );
-      return new Response(
-        JSON.stringify({ subscribed: false, tier: profile.subscription_tier ?? null }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
-      );
-    }
-
-    if (ownedBusiness?.seat_tier) {
-      // The tier on this profile belongs to the seat plan, not to us.
-      return new Response(
-        JSON.stringify({ subscribed: false, tier: profile.subscription_tier ?? null }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
-      );
-    }
-
+    // There was a second guard here — a `businesses` lookup that refused to
+    // clear the tier when the caller owned a business carrying a `seat_tier`,
+    // because profiles.subscription_tier was SHARED with the seat grants the
+    // Business product wrote. That product's backend was removed on
+    // 2026-08-25 and the `businesses` table is now dropped, so no seat tier
+    // can exist to protect; the only tiers this column can hold are the ones
+    // this function and the one-time-pass flow grant, both checked above.
+    // Verified before removing it: every remaining businesses row was
+    // test/seed data and every one of those owners already had
+    // subscription_tier NULL, so the guard was protecting nothing for anyone.
     const { error: clearError } = await supabaseAdmin.from("profiles").update({
       subscription_tier: null,
       subscription_expires_at: null,

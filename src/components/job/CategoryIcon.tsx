@@ -22,25 +22,23 @@ import { categoryLabels } from "@/components/activity/activityConstants";
 import { getCategoryIcon } from "@/lib/categoryIcons";
 
 /**
- * Canonical job-category union. Derived from `categoryLabels` keys so
- * adding a new category in `activityConstants.ts` automatically widens
- * this union — no manual sync required.
+ * Canonical job-category union — re-exported from `@/lib/jobCategories`,
+ * which types it off the GENERATED Postgres enum
+ * (`Database["public"]["Enums"]["job_category"]`).
  *
- * The literal list below is the freeze of those keys at the time of
- * writing; the `keyof typeof` extraction below the list keeps it honest
- * (TS errors here if labels change without the extraction being run).
+ * This file used to declare its own hand-typed literal union, with a comment
+ * claiming it was "derived from categoryLabels keys" and that a
+ * `keyof typeof` extraction "keeps it honest". No such extraction existed —
+ * it was a frozen list, and it had drifted: the database has 12 categories,
+ * the list had 10, missing `storm_prep` and `events`. Both are live category
+ * values, so this union was rejecting valid data.
+ *
+ * Re-exported rather than deleted so existing importers keep working; there
+ * is now exactly one definition, and it cannot drift from the database
+ * because it is generated from it.
  */
-export type JobCategory =
-  | "cleaning"
-  | "yard_work"
-  | "moving"
-  | "errands"
-  | "handyman"
-  | "painting"
-  | "delivery"
-  | "pet_care"
-  | "assembly"
-  | "other";
+export type { JobCategory } from "@/lib/jobCategories";
+import type { JobCategory } from "@/lib/jobCategories";
 
 export interface CategoryIconProps extends Omit<LucideProps, "ref"> {
   /**

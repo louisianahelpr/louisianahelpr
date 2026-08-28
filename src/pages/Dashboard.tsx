@@ -18,6 +18,7 @@ import { BrowseSearchBar } from "@/components/dashboard/browseTasksToolbar/Brows
 import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
 import { BrowseTasksActions } from "@/components/dashboard/browseTasksToolbar/BrowseTasksActions";
 import { BrowseTasksFeed } from "@/components/dashboard/BrowseTasksFeed";
+import { PushNotificationPrompt } from "@/components/PushNotificationPrompt";
 import { useIsWebDesktop } from "@/components/DesktopSidebarNav";
 import { Map, MapPinned } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -431,6 +432,19 @@ const Dashboard = () => {
               here. It moved off the home feed onto the Profile landing
               screen (ProfileLanding's completion meter) so the job feed
               is no longer pushed below the fold. */}
+
+          {/* The soft push opt-in — the READER half of
+              useNotificationPermissionPrompt, which had a writer but no
+              consumer, so it had never appeared to anyone. Self-suppressing:
+              renders null until the user has posted or applied, and null once
+              permission is decided or the prompt is snoozed. So the cold home
+              screen still shows nothing here, which is what the 2026-05-29
+              redesign asked for when it pulled the cold-launch version. Slim
+              one-line pill by design — it must not push the feed below the
+              fold. `:has(>*)` keeps the padding off when it renders null. */}
+          <div className="px-4 [&:has(>*)]:pb-2">
+            <PushNotificationPrompt />
+          </div>
 
           {/* Promo/nudge banner slot intentionally empty — the home screen
               shows the greeting, the saved-helpers row, "For you", and the

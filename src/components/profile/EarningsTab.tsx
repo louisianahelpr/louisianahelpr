@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { TrendingUp, Gift, Briefcase, Zap, Info } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
@@ -31,6 +31,7 @@ import type { EarningsTabProps } from "@/components/profile/earningsTab/types";
 import { buildPayoutsCsv } from "@/components/profile/earningsTab/earningsTabHelpers";
 import { useEarningsData } from "@/components/profile/earningsTab/useEarningsData";
 import { EarningsToolsMenu } from "@/components/profile/earningsTab/EarningsToolsMenu";
+import { EarningsViewSwitcher, type EarningsView } from "@/components/profile/earningsTab/EarningsViewSwitcher";
 import { ThresholdBanner } from "@/components/profile/earningsTab/ThresholdBanner";
 import { WalletCard } from "@/components/profile/earningsTab/WalletCard";
 import { PayoutHistory } from "@/components/profile/earningsTab/PayoutHistory";
@@ -67,12 +68,6 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   const { profile } = useCurrentUser();
   const [payoutDialogOpen, setPayoutDialogOpen] = useState(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
-  // Payout setup is a section of this screen, not a tab of its own — the
-  // wallet's "Payout settings" affordances scroll to it.
-  const payoutSectionRef = useRef<HTMLElement | null>(null);
-  const scrollToPayout = () => {
-    payoutSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
   // Instant Payout comes with ANY paid membership — Basic and up (see
   // TIER_PERKS.basic). Free helpers see a paywall when they tap Cash out.
   // Subscription must be active (not expired) to count; a NULL expiry on a
@@ -182,6 +177,10 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   });
 
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  /* Which quarter of the tab is on screen. See EarningsViewSwitcher for why
+     the four groups became a switch rather than four hairline rules. Opens on
+     "money" — the wallet is what a helpr comes here for. */
+  const [view, setView] = useState<EarningsView>("money");
 
   // ─── 1099-K threshold awareness ───────────────────────────────
   // Once YTD payouts cross the FEDERAL gross threshold we surface a quiet,
@@ -222,9 +221,16 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   // PaymentTab now (#7), driven off the payout_transfers ledger so
   // it's reachable directly from the Payment settings surface.
 
+  /* The payout-setup block. It renders in TWO places on purpose:
+     - inline near the top when Stripe is NOT connected, because then it is the
+       only thing on the screen a helpr can act on and every other view is
+       either empty or about money that cannot move yet;
+     - as the "Payouts" view once connected — settings, read rarely.
+     No SectionRule and no scroll ref any more: a view does not need a hairline
+     to separate it from what is no longer on screen, and "Payout settings"
+     selects the view instead of scrolling a long column to reach it. */
   const payoutSection = (
-    <section ref={payoutSectionRef} className="scroll-mt-4 space-y-4">
-      <SectionRule />
+    <section className="space-y-4">
       <Suspense fallback={null}>
         <PaymentTab earningsJobs={earningsJobs} totalEarnings={totalEarnings} />
       </Suspense>
@@ -240,10 +246,10 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           <EarningsToolsMenu
             onExportPdf={() => setExportDialogOpen(true)}
             onExportCsv={handleExportCSV}
-            // Payout setup is a section of THIS screen now, so "Payout
-            // settings" scrolls to it instead of navigating to a tab that no
-            // longer has its own entry point.
-            onNavigatePayment={scrollToPayout}
+            // Payout setup is a VIEW of this screen now, so "Payout settings"
+            // selects it rather than scrolling down a 25-card column to reach
+            // it (or navigating to a tab that no longer has its own entry).
+            onNavigatePayment={() => setView("payouts")}
           />
         }
       />
@@ -292,8 +298,13 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
         />
       )}
 
-      {/* ─── YOUR MONEY ─── */}
-      <SectionRule />
+      {/* ONE VIEW AT A TIME. Everything above this line is either global
+          (header, celebration) or urgent (the 1099 banner, the connect card),
+          so it stays put; the four groups below take turns. */}
+      <EarningsViewSwitcher value={view} onChange={setView} />
+
+      {/* ─── MONEY ─── what I have, and what is coming ─── */}
+      {view === "money" && (
       <section className="space-y-3">
         {/* Payout data failed to load — say so, with a Retry. Without this
             the tab silently rendered the "not connected" journey to a
@@ -383,14 +394,17 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           </div>
         )}
 
-      </section>
-
       {/* ─── COMING UP ────────────────────────────────────────────
           The three forward-looking things, together. They used to be
           scattered: the forecast above the connect card, the week strip
           four blocks below it, and the goal buried inside the wallet
           section — so "what am I about to earn" was answered in three
-          places a reader had to find. */}
+          places a reader had to find.
+
+          They ride in the SAME view as the wallet rather than a fifth tab:
+          "what I have" and "what is landing this week" are one glance, and
+          splitting them would put the forecast a tap away from the balance it
+          forecasts. */}
       <SectionRule />
       {/* Forward-looking "Projected by Sunday" card. Sums net take across
           accepted/in-progress jobs whose date_needed falls in the current
@@ -433,14 +447,23 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
       )}
 
 
+      </section>
+      )}
+
       {/* ─── HISTORY ──────────────────────────────────────────────
           THREE lists of past money used to sit in a row with nothing
           separating them — Stripe's payout history inside the wallet block,
           the per-transfer ledger, and the per-job earnings list — each with a
           different source and no label saying which was which. They are one
-          section now, ordered widest to narrowest: what landed in the bank,
-          then each transfer, then the jobs behind them. */}
-      <SectionRule />
+          view now, ordered widest to narrowest: what landed in the bank, then
+          each transfer, then the jobs behind them.
+
+          This is the longest region on an active helpr by a wide margin — up
+          to 25 job rows plus both ledgers — and it is also the one nobody
+          reads on a normal visit. Behind its own tab it costs nothing until
+          asked for. */}
+      {view === "history" && (
+      <section className="space-y-4">
 
 {/* Payout history — inline year picker, no big empty box */}
       {stripeData?.connected && (
@@ -469,15 +492,21 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
         feeFallbackPct={helperFeeFallbackPct}
       />
 
-      {/* ─── ANALYTICS ───────────────────────────────────────────────
-          Was the standalone /analytics page ("Earnings & Analytics"). Same
-          dashboard, rendered here as a section under a quiet rule instead of
-          behind a second Profile row with a second header. */}
+      </section>
+      )}
+
       {/* ─── INSIGHTS ─────────────────────────────────────────────
-          The breakdown charts and the analytics dashboard are the same kind of
-          thing — trends, not records — so they share one heading instead of
-          the charts floating unlabelled above a rule that said "Analytics". */}
-      <SectionRule />
+          The breakdown charts and the analytics dashboard (the former
+          standalone /analytics page) are the same kind of thing — trends, not
+          records — so they share one view instead of the charts floating
+          unlabelled above a rule that said "Analytics".
+
+          This is the heaviest region in the tab: two chart cards here plus
+          HelperAnalyticsBody's ~9 cards and two more charts. Because only the
+          SELECTED view mounts, a helpr checking their balance no longer pays
+          to build four charts they never scrolled to. */}
+      {view === "insights" && (
+      <section className="space-y-4">
 
       {/* PIE + YTD vs PRIOR-YTD compare ───────────────────
           Self-hides if there's no completed-job data. Sits between the
@@ -489,25 +518,33 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
       <Suspense fallback={null}>
         <HelperAnalyticsBody />
       </Suspense>
+      </section>
+      )}
 
-      {/* ─── PAYOUT & PAYMENTS ───────────────────────────────────────
-          Was the "payment" Profile tab. `onSeeEarnings` is deliberately not
-          passed: its "See full breakdown →" link jumped to the Earnings tab,
-          which is the very screen it is now sitting inside.
+      {/* ─── PAYOUTS ─────────────────────────────────────────────────
+          Was the "payment" Profile tab, then the last block of a very long
+          column. `onSeeEarnings` is deliberately not passed: its "See full
+          breakdown →" link jumped to the Earnings tab, which is the very
+          screen it is sitting inside.
 
-          Rendered at the BOTTOM once Stripe is connected — settings, read
-          rarely — and near the TOP when it is not, because then it is the only
-          thing on the page a helpr can act on and the whole screen is waiting
-          on it. See `payoutSection` above. */}
-      {stripeData?.connected && payoutSection}
+          Only when Stripe IS connected — a helpr who has not connected gets
+          this same block inline near the top instead (see `payoutSection`),
+          because then it is the whole screen's business and should not be
+          hidden behind a tab. */}
+      {view === "payouts" && stripeData?.connected && payoutSection}
 
-      {/* Muted legal/tax disclosure — bottom of page */}
+      {/* The tax note belongs to the payout view, not to whatever happens to
+          be last on the page. It used to sit under the analytics dashboard,
+          restating the 1099-K threshold the banner above had already named. */}
+      {view === "payouts" && (
+
       <p className="text-ds-11 text-muted-foreground/80 leading-relaxed pt-2 flex gap-1.5">
         <Info className="w-3 h-3 mt-0.5 shrink-0" />
         <span>
           <strong className="text-muted-foreground">Tax reporting:</strong> The IRS requires a Form 1099-K for Helprs who exceed {form1099kGrossLabel()} in gross payments and {FORM_1099K_TRANSACTION_THRESHOLD} transactions in a calendar year — a federal filing, not a Louisiana one. Stripe issues these automatically — no action needed.
         </span>
       </p>
+      )}
 
       <ProUpgradeSheet
         open={upgradeOpen}

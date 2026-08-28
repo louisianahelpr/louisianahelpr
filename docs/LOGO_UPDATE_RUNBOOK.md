@@ -43,8 +43,9 @@ too if `scripts/generate-ios-icons.mjs` runs locally.
 ### 1b. Replace UI logo assets in `src/assets/`
 
 ```bash
-# 3 sizes × 3 formats = 9 files:
-src/assets/helpr-logo-{96,256,1024}.{png,webp,avif}
+# 2 UI rungs × 3 formats + the 1024 icon source = 7 files:
+src/assets/helpr-logo-{96,256}.{png,webp,avif}
+src/assets/helpr-logo-1024.png
 ```
 
 > **Set trimmed 2026-08-19.** This list used to name a 512 rung and
@@ -55,7 +56,11 @@ src/assets/helpr-logo-{96,256,1024}.{png,webp,avif}
 > `.webp`/`.avif` this list promised had never existed at all). `index.html`
 > already carried a comment noting `helpr-icon-96.png` was never imported.
 > `helpr-logo-64.png` was deleted on 2026-08-27 for the same reason: still
-> unreferenced eight days on, so nothing had picked it up. Actual consumers
+> unreferenced eight days on, so nothing had picked it up. On the same day
+> `helpr-logo-1024.{webp,avif}` (164K) went too: 1024 is not a UI rung — the
+> only consumer of that size is `scripts/build-app-icon.mjs`, which reads the
+> PNG. So the 1024 rung is PNG-only now, and `npm run images:avif` no longer
+> has a 1024 webp to derive an avif from. Actual consumers
 > today: `HelprMark.tsx` (96 +
 > 256), `HelprSpinner.tsx` (96), `WelcomeScreen.tsx` (96),
 > `scripts/build-app-icon.mjs` (1024).

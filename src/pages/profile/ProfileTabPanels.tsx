@@ -84,6 +84,8 @@ export interface ProfileTabPanelsProps {
   setZipCode: (v: string) => void;
   bio: string;
   setBio: (v: string) => void;
+  skills: string;
+  setSkills: (v: string) => void;
   initials: string;
   avatarBroken: boolean;
   setAvatarBroken: (v: boolean) => void;
@@ -140,6 +142,8 @@ export const ProfileTabPanels = ({
   setZipCode,
   bio,
   setBio,
+  skills,
+  setSkills,
   initials,
   avatarBroken,
   setAvatarBroken,
@@ -189,6 +193,8 @@ export const ProfileTabPanels = ({
             setZipCode={setZipCode}
             bio={bio}
             setBio={setBio}
+            skills={skills}
+            setSkills={setSkills}
             initials={initials}
             avatarBroken={avatarBroken}
             setAvatarBroken={setAvatarBroken}

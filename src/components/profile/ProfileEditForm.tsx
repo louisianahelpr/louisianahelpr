@@ -28,6 +28,8 @@ export function ProfileEditForm({
   setZipCode,
   bio,
   setBio,
+  skills,
+  setSkills,
   initials,
   avatarBroken,
   setAvatarBroken,
@@ -63,6 +65,10 @@ export function ProfileEditForm({
   const bioOk = bio.trim().length >= 20;
   const phoneValid = phone.replace(/\D/g, "").length >= 10;
   const locationValid = location.trim().length > 0;
+  // Skills are stored as ONE comma-separated string (profiles.skills) — the
+  // format every consumer already parses. Split here only to count and to
+  // preview the pills the public profile will render.
+  const skillList = skills.split(",").map((s) => s.trim()).filter(Boolean);
 
   // Dirty check — the Save bar drives only the text fields (avatar /
   // ID / portfolio persist on their own). Disabled when nothing in
@@ -71,7 +77,8 @@ export function ProfileEditForm({
     phone !== (profile?.phone ?? "") ||
     location !== (profile?.location ?? "") ||
     zipCode !== (profile?.zip_code ?? "") ||
-    bio !== (profile?.bio ?? "");
+    bio !== (profile?.bio ?? "") ||
+    skills !== (profile?.skills ?? "");
 
   // Resolve parish from ZIP for an inline confirmation under the field
   // (it's the value used for Louisiana sales tax). Mirrors the silent
@@ -124,6 +131,7 @@ export function ProfileEditForm({
   const completion = getProfileCompletion({
     phone,
     zipCode,
+    skills,
     idDocumentUrl: profile?.id_document_url,
     portfolioCount: portfolioUrls.length,
   });
@@ -283,6 +291,53 @@ export function ProfileEditForm({
               </p>
             )}
           </div>
+        </div>
+
+        {/* Skills & services — restored 2026-08-27. `profiles.skills` had been
+            written on save since April but had no input anywhere in `src/`
+            (deleted by an unlabelled bot rewrite), so all 23 live profiles had
+            it blank and the public-profile skill pills never rendered.
+
+            STORAGE FORMAT: one comma-separated string, unchanged. Every
+            consumer parses it that way — instant-job-match, useDashboardData's
+            recommendation scoring, SavedHelperCard, useSavedHelpers' search
+            filter and ProfileHeaderCard's pills — so a chip picker or an array
+            column would have meant touching all five. A plain text field with
+            a live pill preview gives the chip affordance without changing what
+            is persisted. */}
+        <div className="rounded-2xl liquid-glass p-5 space-y-3">
+          <div className="flex items-baseline justify-between gap-3">
+            <Label htmlFor="skills" className="text-ds-11 block">Skills &amp; services</Label>
+            {skillList.length > 0 && (
+              <span className="text-ds-11 font-medium text-success inline-flex items-center gap-1">
+                <Check className="w-3 h-3" strokeWidth={3} /> {skillList.length} listed
+              </span>
+            )}
+          </div>
+          <Input
+            id="skills"
+            value={skills}
+            onChange={(e) => setSkills(e.target.value)}
+            placeholder="Cleaning, yard work, moving…"
+            autoCapitalize="words"
+            enterKeyHint="next"
+            className="h-10"
+          />
+          {skillList.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {skillList.map((s, i) => (
+                <span
+                  key={`${s}-${i}`}
+                  className="px-2 py-0.5 rounded-full text-ds-11 font-medium bg-primary/10 text-primary"
+                >
+                  {s}
+                </span>
+              ))}
+            </div>
+          )}
+          <p className="font-serif italic leading-snug text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            Separate each with a comma. These show as tags on your public profile and decide which jobs get matched to you.
+          </p>
         </div>
 
         {/* Bio section */}

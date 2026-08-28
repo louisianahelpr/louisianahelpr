@@ -676,6 +676,8 @@ const ProfilePage = () => {
             setZipCode={setZipCode}
             bio={bio}
             setBio={setBio}
+            skills={skills}
+            setSkills={setSkills}
             initials={initials}
             avatarBroken={avatarBroken}
             setAvatarBroken={setAvatarBroken}

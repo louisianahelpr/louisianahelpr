@@ -14,6 +14,8 @@ export interface ProfileEditFormProps {
   setZipCode: (v: string) => void;
   bio: string;
   setBio: (v: string) => void;
+  skills: string;
+  setSkills: (v: string) => void;
   initials: string;
   avatarBroken: boolean;
   setAvatarBroken: (v: boolean) => void;

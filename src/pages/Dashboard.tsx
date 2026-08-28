@@ -430,8 +430,25 @@ const Dashboard = () => {
               screen still shows nothing here, which is what the 2026-05-29
               redesign asked for when it pulled the cold-launch version. Slim
               one-line pill by design — it must not push the feed below the
-              fold. `:has(>*)` keeps the padding off when it renders null. */}
-          <div className="px-4 [&:has(>*)]:pb-2">
+              fold. `:has(>*)` keeps the padding off when it renders null.
+
+              `empty:hidden` is load-bearing, not decoration. This div is a
+              `beforePanel` sibling inside PageScaffold's `flex flex-col
+              gap-3 lg:gap-4` column — so even fully empty (0×0, no padding)
+              it still cost one extra flex GAP between the title card and the
+              panel below, on top of the gap the column already puts between
+              every pair of siblings. Measured: Home's title-card-bottom to
+              first-card-top ran 38px against My Posts' 25px for the
+              identical PageScaffold gap — the entire 13px difference was
+              this one empty flex item's phantom gap, not a real padding
+              value anywhere. `PushNotificationPrompt` returns null (no DOM
+              node at all) on the cold path most sessions hit, which is
+              exactly when `:empty` matches and `display:none` pulls this
+              item out of the flex flow, closing the gap on both sides of it
+              — so Home lands on the SAME 25px rhythm every other screen
+              already uses instead of drifting by whatever this slot happens
+              to render. */}
+          <div className="px-4 [&:has(>*)]:pb-2 empty:hidden">
             <PushNotificationPrompt />
           </div>
 

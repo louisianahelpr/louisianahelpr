@@ -45,7 +45,6 @@ too if `scripts/generate-ios-icons.mjs` runs locally.
 ```bash
 # 3 sizes × 3 formats = 9 files:
 src/assets/helpr-logo-{96,256,1024}.{png,webp,avif}
-src/assets/helpr-logo-64.png     # currently unreferenced by code (see note)
 ```
 
 > **Set trimmed 2026-08-19.** This list used to name a 512 rung and
@@ -55,8 +54,9 @@ src/assets/helpr-logo-64.png     # currently unreferenced by code (see note)
 > `helpr-logo-512.{png,webp,avif}` (448K) and `helpr-icon-96.png` (32K; the
 > `.webp`/`.avif` this list promised had never existed at all). `index.html`
 > already carried a comment noting `helpr-icon-96.png` was never imported.
-> `helpr-logo-64.png` is kept but is also currently unreferenced — delete it
-> too if nothing picks it up. Actual consumers today: `HelprMark.tsx` (96 +
+> `helpr-logo-64.png` was deleted on 2026-08-27 for the same reason: still
+> unreferenced eight days on, so nothing had picked it up. Actual consumers
+> today: `HelprMark.tsx` (96 +
 > 256), `HelprSpinner.tsx` (96), `WelcomeScreen.tsx` (96),
 > `scripts/build-app-icon.mjs` (1024).
 

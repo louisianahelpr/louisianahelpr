@@ -13,6 +13,7 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import RouteErrorBoundary from "@/components/RouteErrorBoundary";
 import RouteSuspenseFallback from "@/components/RouteSuspenseFallback";
 import GuestBrowseSkeleton from "@/components/GuestBrowseSkeleton";
+import DashboardRouteSkeleton from "@/components/DashboardRouteSkeleton";
 // OfflineBanner statically imports WifiOff from lucide-react, which would
 // otherwise pull the entire lucide chunk onto the critical initial load path.
 // It's only ever visible when the network drops (rare), so lazy-loading is safe.
@@ -168,7 +169,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           and apply while they wait on review. Verification still gates the
           moments that require it (accept, payout) inside the components.
           `denied`/banned users are still redirected — see ProtectedRoute. */}
-      <Route path="/dashboard" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowPending><Dashboard /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/dashboard" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowPending fallback={<DashboardRouteSkeleton />}><Dashboard /></ProtectedRoute>, <DashboardRouteSkeleton />)}</RouteErrorBoundary>} />
       <Route path="/profile" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowUnapproved><Profile /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/post-job" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PostJob /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/my-jobs" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowPending><Activity defaultTab="applied" /></ProtectedRoute>)}</RouteErrorBoundary>} />

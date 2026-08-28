@@ -33,6 +33,17 @@ interface ProtectedRouteProps {
    * fully enforced for pending users.
    */
   allowPending?: boolean;
+  /**
+   * Fallback rendered during the "session not known yet" window below.
+   * Defaults to the generic `RouteSuspenseFallback`. Pass a page-shaped
+   * skeleton (e.g. `DashboardRouteSkeleton`) for a route whose own lazy
+   * chunk already renders a page-shaped Suspense fallback (via `routeEl`'s
+   * second argument) — otherwise the two fallbacks disagree and the user
+   * sees the generic bones swap in for a beat before the real page-shaped
+   * skeleton (Dashboard's own `loading` branch) takes over. Same shape in
+   * both places collapses that hop into one continuous state.
+   */
+  fallback?: React.ReactNode;
 }
 
 // Routes a half-onboarded user is allowed to visit without being bounced
@@ -132,6 +143,7 @@ const ProtectedRoute = ({
   children,
   allowUnapproved = false,
   allowPending = false,
+  fallback = <RouteSuspenseFallback />,
 }: ProtectedRouteProps) => {
   const { user, profile, isLoading, isError, refresh } = useCurrentUser();
   const location = useLocation();
@@ -169,8 +181,11 @@ const ProtectedRoute = ({
   if (isLoading && !user) {
     // Cold-start moment only: no session known yet. Use the calm, static
     // brand-mark + skeleton fallback (same one the per-route Suspense
-    // boundary uses) instead of the spinning H.
-    return <RouteSuspenseFallback />;
+    // boundary uses by default) instead of the spinning H — or the
+    // caller's page-shaped `fallback`, so a route whose Suspense boundary
+    // already shows a page-shaped skeleton doesn't swap to the generic
+    // bones for this one beat.
+    return <>{fallback}</>;
   }
 
   if (!user) {

@@ -12,7 +12,7 @@ interface JobDetailFooterProps {
   isSaved?: boolean;
   onToggleSave?: (jobId: string, saved: boolean) => void;
   onClose: () => void;
-  onApply: (jobId: string) => void;
+  onApply: (jobId: string) => void | boolean | Promise<void | boolean>;
   onReport: (jobId: string) => void;
   navigate: (to: string) => void;
   viewerUserId: string | null;
@@ -261,7 +261,14 @@ export const JobDetailFooter = ({
       ) : (
         <Button
           size="lg"
-          onClick={() => { onApply(job.id); onClose(); }}
+          /* NO onClose() here any more. The dialog decides what happens next:
+             on the feed it swaps its own body to the apply step in place, so
+             closing from inside the footer would tear the sheet down and make
+             the apply surface fade in at the middle of an empty screen — the
+             exact position jump this flow was rebuilt to remove (owner,
+             2026-08-28). Guests never reach this branch; the guest footer
+             above navigates on its own. */
+          onClick={() => onApply(job.id)}
           className="btn-liquid-fill flex-1 min-w-0 rounded-ds-md h-11 sm:h-12 px-3 group relative overflow-hidden"
           style={{
             // Two-stop bark gradient under the glass surface — subtle

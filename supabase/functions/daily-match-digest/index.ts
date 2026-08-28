@@ -60,6 +60,23 @@ Deno.serve(async (req) => {
       byUser.get(row.user_id)!.push(row);
     }
 
+    // 2b. Mask the street address before it reaches a notification. Digest
+    //     recipients are the general helper pool (never the awarded helper —
+    //     those are notified separately once offered), so the full street
+    //     address must never be interpolated here. Reuse the same Postgres
+    //     function open_jobs_browse uses, so there is exactly one masking
+    //     rule. Batch by unique raw location to avoid one RPC round-trip per
+    //     row.
+    const uniqueLocations = Array.from(
+      new Set((queueRows as QueueRow[]).map((r) => r.jobs?.location).filter((l): l is string => !!l)),
+    );
+    const maskedByLocation = new Map<string, string>();
+    for (const loc of uniqueLocations) {
+      const { data: masked, error: maskErr } = await supabase.rpc("mask_job_location", { loc });
+      if (maskErr) throw maskErr;
+      maskedByLocation.set(loc, masked ?? "");
+    }
+
     // 3. Build one notification per user.
     const notifications: Array<{
       user_id: string;
@@ -75,12 +92,13 @@ Deno.serve(async (req) => {
       // Headline pick — first job is the "lead" so the user has a
       // concrete thing to tap. Rest goes into the message tail.
       const lead = rows[0].jobs!;
+      const leadLocation = maskedByLocation.get(lead.location) ?? "";
       const others = count - 1;
       const title = `Today's matches — ${count} job${count === 1 ? "" : "s"} for you`;
       const message =
         others > 0
-          ? `${lead.title} in ${lead.location} · $${lead.budget}, plus ${others} more. Tap to browse.`
-          : `${lead.title} in ${lead.location} · $${lead.budget}. Tap to review and apply.`;
+          ? `${lead.title} in ${leadLocation} · $${lead.budget}, plus ${others} more. Tap to browse.`
+          : `${lead.title} in ${leadLocation} · $${lead.budget}. Tap to review and apply.`;
       notifications.push({
         user_id: userId,
         title,

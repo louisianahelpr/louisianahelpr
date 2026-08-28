@@ -60,6 +60,19 @@ Deno.serve(async (req) => {
 
     if (jobError || !job) throw new Error("Job not found or not eligible for matching");
 
+    // Mask the street address before it ever reaches a notification. Match
+    // recipients here are pulled from the general helper pool (jobs with a
+    // pending direct offer are excluded above), so nobody in this fan-out has
+    // been awarded the job — the full address must never be interpolated
+    // into their notification. Reuse the same Postgres function the
+    // open_jobs_browse view uses, so there is exactly one masking rule.
+    const { data: maskedLocation, error: maskError } = await supabase.rpc(
+      "mask_job_location",
+      { loc: job.location },
+    );
+    if (maskError) throw maskError;
+    const displayLocation = maskedLocation ?? "";
+
     // Verify the caller owns the job — always, not just when a token happened
     // to be attached.
     if (callerId !== job.customer_id) {
@@ -227,7 +240,7 @@ Deno.serve(async (req) => {
           user_id: h.user_id,
           // Category emoji in the title for faster glance recognition.
           title: `${emoji} Match for you${job.is_urgent ? " · Urgent" : ""}`,
-          message: `${job.title} in ${job.location} · $${job.budget}. Tap to review and apply.`,
+          message: `${job.title} in ${displayLocation} · $${job.budget}. Tap to review and apply.`,
           type: "job_match",
           link: `/dashboard?quickApply=${job.id}`,
           read: false,

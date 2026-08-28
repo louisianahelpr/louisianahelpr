@@ -203,7 +203,20 @@ Deno.serve(async (req) => {
   // Instead, we start them all and let them finish in the background.
   // Any individual failure is logged by send-push-notification itself.
   const jobTitle = (job as any).title as string
-  const jobLocation = (job as any).location as string | null
+  // Mask the street address before it reaches a push notification — these
+  // go to every eligible nearby helper, none of whom has been awarded the
+  // job. Reuse the same Postgres function open_jobs_browse uses, so there
+  // is exactly one masking rule.
+  const rawJobLocation = (job as any).location as string | null
+  let jobLocation: string | null = null
+  if (rawJobLocation) {
+    const { data: masked, error: maskErr } = await supabase.rpc('mask_job_location', { loc: rawJobLocation })
+    if (maskErr) {
+      console.warn('mask_job_location failed, omitting location from push body:', maskErr.message)
+    } else {
+      jobLocation = masked ?? null
+    }
+  }
 
   const notifyPromises = eligibleHelpers.map((userId) =>
     fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {

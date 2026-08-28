@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import {
   CheckCircle2, Star, Users,
   RefreshCw, XCircle,
-  ChevronUp, ChevronDown, Eye, Pencil,
+  Eye, Pencil,
 } from "lucide-react";
 import { PhotoProofGroup } from "@/components/PhotoProof";
 import type { AppliedApp } from "./activityConstants";
@@ -211,14 +211,9 @@ function AppliedJobCardInner({
               directly above the Accept/Decline pair. Same trim the posted card
               makes. */}
           <div className={`px-4 pt-2.5 space-y-2 ${hasActionSection && !isMinimalCard ? "pb-1.5" : "pb-3"}`}>
-            {/* The chevron goes through JobCardMetaRow's own `trailing` slot,
-                which exists for exactly this and is what PostedJobCard uses.
-                This card wrapped the meta row in a bespoke flex and hung its
-                own button outside — two sibling cards in the same tab, same
-                control, different structure. The glyph is one rotating
-                ChevronDown now too, copied from PostedJobCard: swapping
-                ChevronUp/ChevronDown with no transition made the identical
-                control animate on one card and snap on the other. */}
+            {/* No chevron glyph on this card (owner: remove it) — the whole
+                card is the expand/collapse tap target (JobCardShell), so no
+                visible control is needed to say there's more. */}
 
             {/* Description behind a tap — expands IN PLACE on this card (it IS
                 the detail surface for an applied job; there is no separate
@@ -435,8 +430,10 @@ function AppliedJobCardInner({
           {/* Fully done (reviewed) - collapsible */}
           {isFullyDone && (
             <div className="px-4 py-1.5 border-t border-[hsl(var(--olivewood)/0.1)] bg-card flex items-center justify-between">
+              {/* No chevron glyph here (owner: remove it) — the whole card is
+                  still the expand/collapse tap target (see JobCardShell); only
+                  the visible glyph is gone. */}
               <span className="text-ds-11 text-muted-foreground flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Reviewed</span>
-              {isExpanded ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
             </div>
           )}
           {isFullyDone && isExpanded && (

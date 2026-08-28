@@ -16,7 +16,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { HelperAvailabilityDisplay } from "@/components/HelperAvailabilityDisplay";
-import { computeBadges } from "@/components/HelperBadges";
+import { computeBadges, HelperBadges } from "@/components/HelperBadges";
 import { HelperPortfolio } from "@/components/HelperPortfolio";
 import { PublicReviewWall } from "@/components/profile/PublicReviewWall";
 import { SkillEndorsements } from "@/components/profile/SkillEndorsements";
@@ -24,6 +24,7 @@ import { CareerMilestones } from "@/components/profile/CareerMilestones";
 import { ProfileHeaderCard } from "./userProfile/ProfileHeaderCard";
 import BackgroundCheckCard from "@/components/profile/BackgroundCheckCard";
 import { ProfileStatsGrid } from "./userProfile/ProfileStatsGrid";
+import { TrackRecordCard } from "./userProfile/TrackRecordCard";
 import { RatingBreakdown } from "./userProfile/RatingBreakdown";
 import { ReviewsSection } from "./userProfile/ReviewsSection";
 import { JobsList } from "./userProfile/JobsList";
@@ -464,6 +465,55 @@ const UserProfile = () => {
               isIdVerified={isIdVerified}
               lastActiveLabel={lastActiveLabel}
               mutualJobsCount={mutualJobsCount}
+              tierProfile={tierProfile}
+              stats={stats}
+              hasSubmittedCredentials={hasSubmittedCredentials}
+            />
+
+            {/* STATS ABOVE MILESTONES (owner, 2026-08-28: "needs better
+                reorganized"). Rating, jobs posted and jobs completed are the
+                numbers a visitor scans first and the ones every other section
+                elaborates on; they used to render BELOW Career Milestones, so
+                the page led with a single "First Job" badge and buried the
+                4.5-star average under it. Facts first, then the badges awarded
+                for them. */}
+            <ProfileStatsGrid
+              stats={stats}
+              // postedTotalCount, NOT postedJobs.length — the `postedJobs`
+              // fetch carries a .limit(20), so the stat read "20 Posted" for
+              // anyone with more than 20 jobs. The exact count is already
+              // fetched on this same load (count: exact, head: true) and was
+              // simply never wired up. The list below still shows 20; the
+              // number above it is now true.
+              postedJobsCount={postedTotalCount}
+              workedJobsCount={completedWorkedJobs.length}
+              showReviews={showReviews}
+              showPostedJobs={showPostedJobs}
+              showWorkedJobs={showWorkedJobs}
+              onToggleReviews={() => {
+                setShowReviews(!showReviews);
+                setShowPostedJobs(false);
+                setShowWorkedJobs(false);
+              }}
+              onTogglePosted={() => {
+                setShowPostedJobs(!showPostedJobs);
+                setShowReviews(false);
+                setShowWorkedJobs(false);
+              }}
+              onToggleWorked={() => {
+                setShowWorkedJobs(!showWorkedJobs);
+                setShowReviews(false);
+                setShowPostedJobs(false);
+              }}
+            />
+
+            {/* THE RECORD — reply time, accept rate, on-time, revisions,
+                cancellations, poster rating, pet care, nearby proof. Extracted
+                from inside ProfileHeaderCard, where these nine signals were
+                nine centred one-line rows wedged between the avatar and the
+                bio. See TrackRecordCard for the full rationale. */}
+            <TrackRecordCard
+              isOwnProfile={isOwnProfile}
               responseMetrics={responseMetrics}
               onTimeArrivalRate={onTimeArrivalRate}
               revisionFrequency={revisionFrequency}
@@ -471,10 +521,6 @@ const UserProfile = () => {
               posterReputation={posterReputation}
               hasCleanRecord={hasCleanRecord}
               petCareSignal={petCareSignal}
-              badges={badges}
-              tierProfile={tierProfile}
-              stats={stats}
-              hasSubmittedCredentials={hasSubmittedCredentials}
               workedJobs={workedJobs}
               showNearbyProof={showNearbyProof}
               onShowNearbyProof={() => setShowNearbyProof(true)}
@@ -515,6 +561,18 @@ const UserProfile = () => {
               // is also what a visitor gets.
               showProgress={false}
             />
+
+            {/* Earned performance badges ("Rising Star" and friends). These
+                rendered at the very bottom of the identity card, centred under
+                the bio — a lone award chip floating below a paragraph of prose,
+                with the milestones section that awards exactly this kind of
+                thing sitting a few hundred pixels lower. Same kind of object,
+                so: same place. */}
+            {badges.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                <HelperBadges badges={badges} />
+              </div>
+            )}
           </div>
 
           {/* ── RIGHT COLUMN (activity + reviews) ──
@@ -553,36 +611,6 @@ const UserProfile = () => {
               <BackgroundCheckCard status={backgroundCheckStatus} />
             )}
 
-            {/* Stats */}
-            <ProfileStatsGrid
-              stats={stats}
-              // postedTotalCount, NOT postedJobs.length — the `postedJobs`
-              // fetch carries a .limit(20), so the stat read "20 Posted" for
-              // anyone with more than 20 jobs. The exact count is already
-              // fetched on this same load (count: exact, head: true) and was
-              // simply never wired up. The list below still shows 20; the
-              // number above it is now true.
-              postedJobsCount={postedTotalCount}
-              workedJobsCount={completedWorkedJobs.length}
-              showReviews={showReviews}
-              showPostedJobs={showPostedJobs}
-              showWorkedJobs={showWorkedJobs}
-              onToggleReviews={() => {
-                setShowReviews(!showReviews);
-                setShowPostedJobs(false);
-                setShowWorkedJobs(false);
-              }}
-              onTogglePosted={() => {
-                setShowPostedJobs(!showPostedJobs);
-                setShowReviews(false);
-                setShowWorkedJobs(false);
-              }}
-              onToggleWorked={() => {
-                setShowWorkedJobs(!showWorkedJobs);
-                setShowReviews(false);
-                setShowPostedJobs(false);
-              }}
-            />
 
             {/* ── Rating distribution + sub-ratings (1a/1b) ── Rides with the
                 reviews expansion; on its own it was a chart with no context. */}

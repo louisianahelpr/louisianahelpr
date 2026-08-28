@@ -1,21 +1,11 @@
 import { useState } from "react";
-import { MapPin, Clock, CheckCircle, Phone, ClipboardList, ShieldCheck, Star, Users, Timer, RotateCcw } from "lucide-react";
-import { HelperBadges, type HelperBadge } from "@/components/HelperBadges";
+import { MapPin, Clock, Phone, ShieldCheck, Users } from "lucide-react";
 import CredentialBadge from "@/components/CredentialBadge";
 import HelperTierBadge from "@/components/profile/HelperTierBadge";
 import type { Database } from "@/integrations/supabase/types";
 import { cn } from "@/lib/utils";
 import { avatarGradientFor } from "@/lib/avatarGradient";
-import type { GeoState } from "@/hooks/useUserLocation";
-import type {
-  ProfileJob,
-  ProfileStatsShape,
-  ResponseMetrics,
-  CancellationRate,
-  PosterReputation,
-  LastActiveLabel,
-  PetCareSignal,
-} from "./types";
+import type { ProfileStatsShape, LastActiveLabel } from "./types";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -28,24 +18,9 @@ type Props = {
   isIdVerified: boolean;
   lastActiveLabel: LastActiveLabel | null;
   mutualJobsCount: number;
-  responseMetrics: ResponseMetrics;
-  onTimeArrivalRate: number | null;
-  revisionFrequency: number | null;
-  cancellationRate: CancellationRate;
-  /** Their rating AS A POSTER — a different thing from the helper rating. */
-  posterReputation: PosterReputation | null;
-  hasCleanRecord: boolean;
-  petCareSignal: PetCareSignal | null | undefined;
-  badges: HelperBadge[];
   tierProfile: { approval_status: string | null; stripe_identity_verified: boolean | null; stripe_account_id: string | null } | null;
   stats: ProfileStatsShape;
   hasSubmittedCredentials: boolean;
-  workedJobs: ProfileJob[];
-  showNearbyProof: boolean;
-  onShowNearbyProof: () => void;
-  viewerLoc: GeoState;
-  jobsNearbyCount: number | null;
-  nearbyRadiusMi: number;
 };
 
 export const ProfileHeaderCard = ({
@@ -57,23 +32,9 @@ export const ProfileHeaderCard = ({
   isIdVerified,
   lastActiveLabel,
   mutualJobsCount,
-  responseMetrics,
-  onTimeArrivalRate,
-  revisionFrequency,
-  cancellationRate,
-  posterReputation,
-  hasCleanRecord,
-  petCareSignal,
-  badges,
   tierProfile,
   stats,
   hasSubmittedCredentials,
-  workedJobs,
-  showNearbyProof,
-  onShowNearbyProof,
-  viewerLoc,
-  jobsNearbyCount,
-  nearbyRadiusMi,
 }: Props) => {
   // A truthy-but-broken avatar_url (stale storage path, 404) would otherwise
   // pass the null/empty guard below, fail to load, and paint the alt text.
@@ -363,248 +324,35 @@ export const ProfileHeaderCard = ({
           </div>
         </div>
 
-        {/* ── THE RECORD ── */}
-        <div className="flex-1 min-w-0 text-center sm:text-left">
-            {/* Response Metrics inline */}
-            {responseMetrics.totalApplications > 0 && (
-              <div className="flex items-center justify-center sm:justify-start gap-3 mt-2 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                {responseMetrics.avgResponseHours !== null && (
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    <span className="font-display italic font-bold tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>
-                      {responseMetrics.avgResponseHours < 1
-                        ? `${Math.round(responseMetrics.avgResponseHours * 60)}m`
-                        : responseMetrics.avgResponseHours < 24
-                        ? `${responseMetrics.avgResponseHours.toFixed(1)}h`
-                        : `${Math.round(responseMetrics.avgResponseHours / 24)}d`}
-                    </span>
-                    <span>avg reply</span>
-                  </span>
-                )}
-                {responseMetrics.acceptanceRate !== null && (
-                  <>
-                    <span style={{ color: "hsl(var(--burnt-sienna) / 0.35)" }}>·</span>
-                    <span className="flex items-center gap-1">
-                      <CheckCircle className="w-3 h-3" />
-                      <span className="font-display italic font-bold tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>
-                        {responseMetrics.acceptanceRate.toFixed(0)}%
-                      </span>
-                      <span>accept rate</span>
-                    </span>
-                  </>
-                )}
-              </div>
-            )}
-            {/* On-time arrival + revision frequency (#6). Derived from
-                helper_arrived_at vs date_needed/start_time + revision_count
-                on the last 50 completed jobs. Both require a minimum
-                sample of 5 to surface, so they only appear once the
-                helper has accumulated enough history to be meaningful.
-                Skipped silently when the schema doesn't yield a usable
-                signal (no arrived_at timestamps recorded yet). */}
-            {(onTimeArrivalRate !== null || revisionFrequency !== null) && (
-              <div className="flex items-center justify-center sm:justify-start gap-3 mt-1.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                {onTimeArrivalRate !== null && (
-                  <span className="flex items-center gap-1">
-                    <Timer className="w-3 h-3" />
-                    <span
-                      className="font-display italic font-bold tabular-nums"
-                      style={{
-                        color:
-                          onTimeArrivalRate >= 85
-                            ? "hsl(var(--ink-deep))"
-                            : onTimeArrivalRate >= 65
-                            ? "hsl(var(--gold-warm))"
-                            : "hsl(var(--burnt-sienna))",
-                      }}
-                    >
-                      {onTimeArrivalRate.toFixed(0)}%
-                    </span>
-                    <span>on-time</span>
-                  </span>
-                )}
-                {onTimeArrivalRate !== null && revisionFrequency !== null && (
-                  <span style={{ color: "hsl(var(--burnt-sienna) / 0.35)" }}>·</span>
-                )}
-                {revisionFrequency !== null && (
-                  <span className="flex items-center gap-1">
-                    <RotateCcw className="w-3 h-3" />
-                    <span
-                      className="font-display italic font-bold tabular-nums"
-                      style={{
-                        color:
-                          revisionFrequency <= 10
-                            ? "hsl(var(--ink-deep))"
-                            : revisionFrequency <= 25
-                            ? "hsl(var(--gold-warm))"
-                            : "hsl(var(--burnt-sienna))",
-                      }}
-                    >
-                      {revisionFrequency.toFixed(0)}%
-                    </span>
-                    <span>revisions</span>
-                  </span>
-                )}
-              </div>
-            )}
-            {/* "Did N jobs nearby" social proof (#31). Two states:
-                - opt-in pill when viewer hasn't granted geo yet AND the
-                  helper has at least one completed worked job with
-                  coords (otherwise the count would be 0).
-                - rendered count once geolocation resolves. We always
-                  show the count even when zero — a "0 jobs near you"
-                  fact is a legitimate trust input.
+        {/* ── BIO ── */}
+        {/* What used to be "THE RECORD": nine performance stats, a nearby-jobs
+            navigation button and the bio, all stacked in one column. The nine
+            stats moved out to TrackRecordCard and the earned badges to
+            CareerMilestones (owner, 2026-08-28: "this needs better
+            reorganized"). This card holds IDENTITY only now — who they are and
+            how they describe themselves — so the two halves of the row are
+            finally the same kind of thing.
 
-                Shown on your own profile too (owner, 2026-08-27: "make
-                Preview truly public"). It reads "N jobs within 25mi of
-                you" against YOUR location, which is exactly the sentence
-                a nearby visitor sees; hiding it meant the preview omitted
-                one of the strongest proof lines on the page. Opt-in
-                either way — nothing geolocates until the pill is tapped. */}
-            {(() => {
-              const hasNearbyEligibleJobs = workedJobs.some(
-                (j) => j.status === "completed" && typeof j.latitude === "number" && typeof j.longitude === "number",
-              );
-              if (!hasNearbyEligibleJobs) return null;
-              if (!showNearbyProof) {
-                return (
-                  <div className="mt-1.5 flex justify-center sm:justify-start">
-                    <button
-                      onClick={onShowNearbyProof}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-ds-11 font-medium transition-colors"
-                      style={{
-                        color: "hsl(var(--bark))",
-                        background: "hsl(var(--bark) / 0.06)",
-                        border: "0.5px solid hsl(var(--bark) / 0.18)",
-                      }}
-                    >
-                      <MapPin className="w-3 h-3" />
-                      Show Jobs Near You
-                    </button>
-                  </div>
-                );
-              }
-              if (viewerLoc.status === "loading") {
-                return (
-                  <div className="mt-1.5 flex items-center justify-center sm:justify-start gap-1 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                    <MapPin className="w-3 h-3" />
-                    <span className="italic">Checking nearby…</span>
-                  </div>
-                );
-              }
-              if (viewerLoc.status === "error") {
-                return (
-                  <div className="mt-1.5 flex items-center justify-center sm:justify-start gap-1 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                    <MapPin className="w-3 h-3" />
-                    <span className="italic">Location unavailable</span>
-                  </div>
-                );
-              }
-              if (jobsNearbyCount === null) return null;
-              return (
-                <div className="mt-1.5 flex items-center justify-center sm:justify-start gap-1 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                  <MapPin className="w-3 h-3" />
-                  <span className="font-display italic font-bold tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>
-                    {jobsNearbyCount}
-                  </span>
-                  <span>{jobsNearbyCount === 1 ? "job" : "jobs"} within {nearbyRadiusMi}mi of you</span>
-                </div>
-              );
-            })()}
-                {/* THEIR RATING AS A POSTER. The whole "As a job poster" panel used
-                to sit lower down the page and was removed because its headline
-                number — jobs posted — was the "Posted" stat box restated a few
-                hundred pixels below itself (owner: "remove, it already says
-                this above"). But the panel carried one thing nothing else on
-                the app shows: what HELPERS thought of working for this person.
-                A helpr deciding whether to take your job had no signal about
-                you at all.
-
-                So the duplicate stayed removed and the unique fact moved here,
-                into the record column beside the helper-side numbers, as one
-                line. Hidden under three reviews — the query itself requires
-                three before it returns anything, so an average built from one
-                bad day never becomes somebody's reputation. */}
-            {posterReputation !== null && (
-              <div className="flex items-center justify-center sm:justify-start gap-1 mt-1.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                <Star className="w-3 h-3" style={{ fill: "hsl(var(--bark))", color: "hsl(var(--bark))" }} />
-                <span className="font-display italic font-bold tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>
-                  {posterReputation.avgRating.toFixed(1)}
-                </span>
-                <span>as a poster · {posterReputation.reviewCount} review{posterReputation.reviewCount === 1 ? "" : "s"}</span>
-              </div>
-            )}
-
-        {/* Cancellation rate (#30) — combined helper + poster jobs.
-                Only renders once the user has >=5 lifetime jobs so a
-                single early cancellation doesn't read as "100% cancel
-                rate". Color shifts olive→amber→sienna at 5%/15% so the
-                signal degrades gracefully rather than feeling punitive. */}
-            {cancellationRate.rate !== null && (
-              <div className="flex items-center justify-center sm:justify-start gap-1 mt-1.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                <span
-                  className="font-display italic font-bold tabular-nums"
-                  style={{
-                    color:
-                      cancellationRate.rate < 5
-                        ? "hsl(var(--ink-deep))"
-                        : cancellationRate.rate < 15
-                        ? "hsl(var(--gold-warm))"
-                        : "hsl(var(--burnt-sienna))",
-                  }}
-                >
-                  {cancellationRate.rate.toFixed(0)}%
-                </span>
-                <span>cancel rate</span>
-                <span style={{ color: "hsl(var(--olivewood) / 0.8)" }}>· {cancellationRate.cancelled}/{cancellationRate.total} jobs</span>
-              </div>
-            )}
-            {/* "No disputes on record" trust signal — shown only when
-                the dispute count query confirms 0 disputes. Hidden
-                while the query is loading (to avoid flash of "clean"
-                for accounts with disputes). Shown on your own profile
-                too (owner, 2026-08-27: "make Preview truly public") — it
-                is a public trust badge, and its absence from the preview
-                made a clean record look like it wasn't being advertised.
-                PGRST202 = table not deployed → query returns null →
-                badge stays hidden. */}
-            {hasCleanRecord && (
-              <div className="flex items-center justify-center sm:justify-start mt-1.5">
-                <span
-                  className="font-serif italic text-ds-12"
-                  style={{ color: "hsl(var(--success-ink))" }}
-                >
-                  ✓ No disputes on record
-                </span>
-              </div>
-            )}
-            {/* Pet care trust signal — only shown when there's real history */}
-            {petCareSignal && petCareSignal.distinctPets > 0 && (
-              <div className="flex items-center justify-center sm:justify-start mt-1.5">
-                <span
-                  className="inline-flex items-center gap-1 font-serif italic text-ds-12"
-                  style={{ color: "hsl(var(--petcare-ink))" }}
-                >
-                  <ClipboardList className="w-3 h-3" />
-                  Cared for {petCareSignal.distinctPets} {petCareSignal.distinctPets === 1 ? "pet" : "pets"} · {petCareSignal.reportCount} {petCareSignal.reportCount === 1 ? "report" : "reports"} sent
-                </span>
-              </div>
-            )}
+            Left-aligned at every width. It was `text-center sm:text-left`,
+            which on a phone centred every child while the bio underneath them
+            stayed left-aligned, so the card mixed two alignments in one
+            column. */}
+        <div className="flex-1 min-w-0 text-left">
             {profile.phone && (
-              <p className="font-serif italic mt-1.5 flex items-center justify-center sm:justify-start gap-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              <p className="font-serif italic flex items-center gap-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 <Phone className="w-3 h-3" />{profile.phone}
               </p>
             )}
             {profile.bio && (
               <p
-                className="font-serif italic mt-3 leading-relaxed text-left text-ds-14"
+                className="font-serif italic mt-2 leading-relaxed text-ds-14"
                 style={{ color: "hsl(var(--ink-deep) / 0.88)" }}
               >
                 {profile.bio}
               </p>
             )}
             {profile.skills && (
-              <div className="flex flex-wrap gap-1.5 justify-center sm:justify-start mt-3">
+              <div className="flex flex-wrap gap-1.5 mt-3">
                 {profile.skills.split(",").map(s => s.trim()).filter(Boolean).map((s, i) => (
                   <span
                     key={i}
@@ -618,11 +366,6 @@ export const ProfileHeaderCard = ({
                     {s}
                   </span>
                 ))}
-              </div>
-            )}
-            {badges.length > 0 && (
-              <div className="flex flex-wrap justify-center sm:justify-start gap-1 mt-3">
-                <HelperBadges badges={badges} />
               </div>
             )}
         </div>

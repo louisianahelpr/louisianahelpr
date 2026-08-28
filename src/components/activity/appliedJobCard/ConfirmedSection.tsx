@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { hapticError } from "@/lib/haptics";
 import { JobCountdown } from "@/components/activity/JobCountdown";
+import { DirectionsButton } from "./DirectionsButton";
 import { JobPetCareSheet } from "@/components/activity/JobPetCareSheet";
 import { JobConfirmation } from "@/components/JobConfirmation";
 import { JobTracking, type TrackingData } from "@/components/JobTracking";
@@ -86,6 +87,11 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
       <JobTracking jobId={app.job_id} helperId={userId} isHelper={true} isOwner={false} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={job.helper_confirmed_at} helperDayofConfirmedAt={job.helper_dayof_confirmed_at} posterConfirmedAt={job.poster_confirmed_at} initialTracking={initialTracking} jobLatitude={job.latitude} jobLongitude={job.longitude} helperOnTheWayAt={job.helper_on_the_way_at} helperArrivedAt={job.helper_arrived_at} helperArrivalVerifiedAt={job.helper_arrival_verified_at} posterConfirmedArrivalAt={job.poster_confirmed_arrival_at} helperCompletedAt={job.helper_completed_at} posterCompletedAt={job.poster_completed_at} />
       {/* Job confirmation for helper */}
       <JobConfirmation jobId={app.job_id} isOwner={false} isHelper={true} posterConfirmedAt={job.poster_confirmed_at} helperConfirmedAt={job.helper_confirmed_at} helperDayofConfirmedAt={job.helper_dayof_confirmed_at} dateNeeded={job.date_needed} jobStatus={job.status} helperOnTheWayAt={job.helper_on_the_way_at} />
+      {/* Directions sits with Message, above the exit link: this is the
+          BOOKED state — the job is confirmed and the next physical thing the
+          helpr does is drive to it. Until now the only route to the maps app
+          was the truncated city name in the meta row. */}
+      <DirectionsButton location={job.location} />
       <Button size="sm" variant="outline" style={messageButtonStyle} className="w-full" onClick={() => navigate(job.customer_id ? `/messages?jobId=${app.job_id}&userId=${job.customer_id}` : "/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
       {/* Quiet, but present: the alternative to a sanctioned exit is a
           ghost, and a ghost is worse for everyone including the ghoster. */}

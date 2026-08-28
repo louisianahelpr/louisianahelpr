@@ -16,6 +16,7 @@ import { report } from "@/lib/errorLogger";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
 import { JobConfirmation } from "@/components/JobConfirmation";
 import { JobTracking, type TrackingData } from "@/components/JobTracking";
+import { DirectionsButton } from "./DirectionsButton";
 import { HelperRevisionCard } from "@/components/activity/HelperRevisionCard";
 import type { AppliedApp, Job } from "../activityConstants";
 
@@ -308,6 +309,11 @@ export function ActiveJobSection({
             </>
           );
         })()}
+        {/* Still needed AFTER the job goes live: "in progress" covers
+            on-the-way and on-site, and a helpr who has tapped "I'm on my way"
+            is precisely the person reaching for navigation. Hidden once they
+            have arrived — they are already there. */}
+        {!job.helper_arrived_at && <DirectionsButton location={job.location} />}
         <Button size="sm" variant="outline" style={messageButtonStyle} className="w-full" onClick={() => navigate(job.customer_id ? `/messages?jobId=${app.job_id}&userId=${job.customer_id}` : "/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
         {/* The sanctioned exit for a job already underway. This REPLACES the
             stopgap line that used to sit here ("once a job starts it can only

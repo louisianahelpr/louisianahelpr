@@ -6,6 +6,8 @@ import { CheckCircle2, Clock, AlertTriangle, ShieldCheck, CalendarClock } from "
 import { parseLocalDate } from "@/lib/dateUtils";
 import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
+import { unwrapMutation, mutationErrorMessage, isWriteRejected } from "@/lib/mutationResult";
+import { report } from "@/lib/errorLogger";
 
 export function JobConfirmation({
   jobId,
@@ -118,14 +120,41 @@ export function JobConfirmation({
     // index signature widens to `[x: string]: never`. Runtime accepts any
     // valid column name; the `field` variable is constrained above to one of
     // two known column names.
-    const { error } = await supabase
-      .from("jobs")
-      .update({ [field]: new Date().toISOString() } as never)
-      .eq("id", jobId);
-    if (error) {
+    //
+    // .select("id") + unwrapMutation, NOT a bare `const { error }`: this is the
+    // ONE write behind the step the card itself calls "what unlocks the rest of
+    // the tracker", and an UPDATE that matches zero rows (RLS, a job cancelled
+    // out from under the card, a stale id) returns `{ data: [], error: null }`.
+    // Without the row count this sailed down the success path — it set the
+    // local "confirmed ✓" state AND notified the other party that a
+    // confirmation had happened, while `poster_confirmed_at` /
+    // `helper_dayof_confirmed_at` stayed null and the tracker never advanced
+    // past Accepted. Both sides then believed a step had completed that had
+    // not. (CLAUDE.md: "a null error does NOT mean the write happened".)
+    let confirmFailed = false;
+    try {
+      unwrapMutation(
+        await supabase
+          .from("jobs")
+          .update({ [field]: new Date().toISOString() } as never)
+          .eq("id", jobId)
+          .select("id"),
+        {
+          action: "confirm the job",
+          rejectedMessage:
+            "We couldn't record that confirmation — this job may have been cancelled. Pull to refresh.",
+          context: { jobId, field },
+        },
+      );
+    } catch (err) {
+      if (!isWriteRejected(err)) {
+        report(err, { tags: { source: "JobConfirmation.handleConfirm" } });
+      }
+      confirmFailed = true;
       hapticError();
-      toast.error("We couldn't confirm just now — please try again.");
-    } else {
+      toast.error(mutationErrorMessage(err, "We couldn't confirm just now — please try again."));
+    }
+    if (!confirmFailed) {
       hapticSuccess();
       setLocalConfirmedAt(new Date().toISOString());
       onConfirm?.();

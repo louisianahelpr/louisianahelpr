@@ -157,6 +157,47 @@ below is HOW you execute (1) and (2); the phased "sweep → batch-fix → verify
 loop is HOW you execute (4) and (5); §3's dimension checklist is HOW you cover
 (3). If a rule below appears to conflict with one of the five, the five win.
 
+**The report has THREE buckets, not two — and the third is mandatory.** Every
+audit report, of any size, from a full sweep to a one-screen look, must be
+filed under exactly these headings:
+
+1. **Verified working** — with the artifact, per claim.
+2. **Defects** — with the artifact, per claim.
+3. **UNVERIFIED — could not reach, and why** — everything in scope that you did
+   not actually operate, each with the reason (no session, no seed data, no
+   simulator, gated behind a role you don't hold, needs a live Stripe event,
+   ran out of budget). One line each is enough; the reason matters more than
+   the prose.
+
+The third bucket exists because of a specific, repeated failure. A session that
+could not reach something had only two places to file it — "clean" or "bugs
+found" — and untested things kept landing under *clean*. That is how the app
+was reported healthy while a splash screen that never rendered, a
+never-executed Sentry upload, and a 503ing `mapkit-token` sat in production.
+An audit with no third section is asserting it operated 100% of its scope; if
+that is not literally true, the report is wrong.
+
+**A large UNVERIFIED section is a GOOD outcome. A small one, or an absent one,
+with thin evidence elsewhere, is a bad report.** This is not a scoring trick —
+it is the actual preference. Ten verified screens and thirty honestly
+unreachable ones is a useful, actionable report. Forty screens called clean
+with no artifacts is worse than useless, because it will be trusted. Nothing in
+this standard penalises admitting you could not reach something; the only
+penalised thing is claiming you did.
+
+Two rules that make the buckets hold:
+- **Anything in bucket 1 or 2 needs an artifact** — an HTTP status, a SQL
+  result, a screenshot path, command output, or a commit SHA. A claim with no
+  artifact belongs in bucket 3, not bucket 1. Run
+  `npm run check:audit-evidence -- <your-report.md>` before filing; it prints
+  claims found / with evidence / without.
+- **Reconcile with the ledger.** `docs/audit/COVERAGE_LEDGER.md` records what
+  has genuinely been walked. Anything you actually operated gets its row
+  updated *with the artifact*; anything you didn't should be recognisable in
+  bucket 3. A "clean" report filed against a ledger showing most of the app
+  never walked is self-evidently incomplete — say so in the report rather than
+  letting the reader discover it.
+
 **Three methods, all mandatory — nothing gets missed.** This is the definition
 of the method; everything in §1 serves it. Every audit uses ALL three:
 1. **Code review** — read the actual source line-by-line (not grep alone) and
@@ -1588,9 +1629,13 @@ on the way to their first success.
   will not re-prompt after a usage reset; assume the in-flight work still needs
   finishing and drive it to completion.
 - The audit ends with an explicit **coverage manifest**: every page × every
-  dimension × surface, each marked checked-clean / issue-found. Every cell is
-  filled and resolved — a blank or "unverified" cell is a failure of the audit,
-  not a pass.
+  dimension × surface, each marked checked-clean / issue-found / UNVERIFIED.
+  Every cell is filled — a *blank* cell is a failure of the audit. An
+  **UNVERIFIED** cell is not: it is the honest, required answer whenever you
+  could not actually operate that cell, and it must carry the reason and be
+  reflected in the report's third bucket (§1, "The report has THREE buckets").
+  What is never acceptable is marking a cell checked-clean when all you did was
+  read the source.
 
 Deliver findings as a structured list: `page · surface · dimension · file:line ·
 severity · proposed fix`. If a dimension was genuinely clean, say so explicitly

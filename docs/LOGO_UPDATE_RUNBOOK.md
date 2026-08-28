@@ -43,8 +43,8 @@ too if `scripts/generate-ios-icons.mjs` runs locally.
 ### 1b. Replace UI logo assets in `src/assets/`
 
 ```bash
-# 2 UI rungs × 3 formats + the 1024 icon source = 7 files:
-src/assets/helpr-logo-{96,256}.{png,webp,avif}
+# 2 UI rungs × 2 formats + the 1024 icon source = 5 files:
+src/assets/helpr-logo-{96,256}.{png,webp}
 src/assets/helpr-logo-1024.png
 ```
 
@@ -59,14 +59,19 @@ src/assets/helpr-logo-1024.png
 > unreferenced eight days on, so nothing had picked it up. On the same day
 > `helpr-logo-1024.{webp,avif}` (164K) went too: 1024 is not a UI rung — the
 > only consumer of that size is `scripts/build-app-icon.mjs`, which reads the
-> PNG. So the 1024 rung is PNG-only now, and `npm run images:avif` no longer
-> has a 1024 webp to derive an avif from. Actual consumers
+> PNG. Actual consumers
 > today: `HelprMark.tsx` (96 +
 > 256), `HelprSpinner.tsx` (96), `WelcomeScreen.tsx` (96),
 > `scripts/build-app-icon.mjs` (1024).
-
-Use `npm run images:avif` (per the existing script) to regenerate
-WebP + AVIF from the new PNG sources.
+>
+> **AVIF pipeline retired 2026-08-28.** `scripts/generate-avif.mjs`, the
+> `npm run images:avif` script, and the checked-in `helpr-logo-{96,256}.avif`
+> files were removed — zero `.avif` references existed anywhere in `src/`,
+> `index.html`, or `vite.config.ts`, so the format was generated but never
+> shipped. `HelprMark.tsx` only ever imported the `.webp` rungs shown above.
+> Regenerate WebP from new PNG sources with `sharp` directly if a future
+> logo change needs it (see `scripts/build-app-icon.mjs` for the pattern);
+> there's no `npm run images:*` shortcut for WebP alone.
 
 ### 1c. Trigger iOS Icon Sync workflow
 

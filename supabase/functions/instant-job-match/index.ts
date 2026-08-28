@@ -127,7 +127,21 @@ Deno.serve(async (req) => {
       .map((h) => {
         let score = 0;
         const helperLoc = (h.location || "").toLowerCase();
-        const helperSkills = (h.skills || "").toLowerCase().split(",").map((s: string) => s.trim());
+        // `.filter(Boolean)` is load-bearing. Without it an empty `skills`
+        // yields [""] — and `"cleaning".includes("")` is TRUE — so BOTH skill
+        // rules below fired for every helper who had not set skills, handing
+        // them a free +3. Since `profiles.skills` has had no editor anywhere in
+        // the app since 4112a6e02 (an unlabelled bot rewrite that deleted the
+        // input but left the save path), that was EVERY profile in the
+        // database: 0 of 23 have skills set. So `.filter(h => h.score > 0)`
+        // below filtered nobody, and "relevance" collapsed to the tier
+        // tie-break — every job post notified an arbitrary top-20 of all
+        // approved helpers. An empty skill list must match nothing.
+        const helperSkills = (h.skills || "")
+          .toLowerCase()
+          .split(",")
+          .map((s: string) => s.trim())
+          .filter(Boolean);
 
         // Location match
         if (helperLoc && (jobLocation.includes(helperLoc) || helperLoc.includes(jobLocation))) {

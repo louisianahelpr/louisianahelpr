@@ -61,6 +61,7 @@ export function ChatTimeline({
   loadingMore,
   loadOlderMessages,
   chatLoadError,
+  composerLocked,
   chatLoading,
   onRetryLoad,
   isOtherTyping,
@@ -86,6 +87,10 @@ export function ChatTimeline({
   loadingMore: boolean;
   loadOlderMessages: () => void;
   chatLoadError: boolean;
+  /** True when the composer is replaced by the poster-first lock. The empty
+      state must not then tell the viewer to "send the first message" — they
+      have no way to. See ChatComposer for the lock itself. */
+  composerLocked?: boolean;
   /** True while a newly-opened conversation's messages are still being
    *  fetched — renders `ChatBubbleSkeleton` instead of the blank window
    *  or the misleading "Say hello." empty state. */
@@ -181,13 +186,15 @@ export function ChatTimeline({
               className="font-display italic font-bold text-ds-17"
               style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
             >
-              Say hello.
+              {composerLocked ? "No messages yet." : "Say hello."}
             </p>
             <p
               className="font-serif italic text-ds-13 max-w-[260px]"
               style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
-              Send the first message to get the job moving.
+              {composerLocked
+                ? "The poster starts this conversation."
+                : "Send the first message to get the job moving."}
             </p>
           </div>
         </div>

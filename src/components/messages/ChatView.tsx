@@ -217,12 +217,22 @@ export function ChatView({
     chatContainerRef,
   });
 
-  // Poster-first rule: an applicant cannot open a job conversation — only
-  // the poster may send the first message (stops posters being flooded by
+  // Poster-first rule: a PENDING APPLICANT cannot open a job conversation —
+  // only the poster may send the first message (stops posters being flooded by
   // applicants). The applicant's composer stays locked until at least one
   // inbound message from the poster exists. The only other participant in
   // a job thread is the poster, so any message we didn't send is theirs.
-  const isApplicant = !activeConvo.viewerIsPoster;
+  //
+  // "Applicant" must mean *applicant*, not merely "not the poster". This
+  // deliberately mirrors `public.can_message_in_job`, the WITH CHECK on the
+  // `Users can send messages` INSERT policy, which permits three classes:
+  // the poster, the assigned/offered helper, and anyone the poster messaged
+  // first. Case 2 was previously missing here, so the lock survived
+  // acceptance and silenced the hired helper for the rest of the job — while
+  // the server would happily have accepted the insert. Keep these in step:
+  // the client may never be STRICTER than the RLS policy.
+  const isApplicant =
+    !activeConvo.viewerIsPoster && !activeConvo.viewerIsAssignedHelper;
   const posterHasMessaged = messages.some((m) => m.sender_id !== userId);
   const composerLocked = isApplicant && !posterHasMessaged;
 
@@ -329,6 +339,7 @@ export function ChatView({
             loadOlderMessages={loadOlderMessages}
             chatLoadError={chatLoadError}
             chatLoading={chatLoading}
+            composerLocked={composerLocked}
             onRetryLoad={onRetryLoad}
             isOtherTyping={isOtherTyping}
             bottomRef={bottomRef}

@@ -55,6 +55,11 @@ export type Conversation = {
   /** True when the current user posted the job — drives poster-specific
       quick reply set in the chat composer. */
   viewerIsPoster?: boolean;
+  /** True when the current user is the job's assigned (`helper_id`) or
+      offered (`offered_to_helper_id`) helper. Mirrors case 2 of the
+      `can_message_in_job` RLS check, so the client's poster-first lock
+      cannot be stricter than the server's own rule. */
+  viewerIsAssignedHelper?: boolean;
   lastMessage: string;
   lastAt: string;
   unread: number;

@@ -236,3 +236,63 @@ describe("ConversationRow — the avatar agrees with the name", () => {
     expect(initial).not.toBe("A");
   });
 });
+
+// The poster-first composer lock is meant to hold only while an application is
+// PENDING. It used to key off "not the poster", so it survived acceptance and
+// silenced the hired helper mid-job — while `public.can_message_in_job` (the
+// WITH CHECK on the messages INSERT policy) would have accepted the write.
+// These pin the flag the lock now reads, so the client can never drift back to
+// being stricter than the RLS rule it mirrors.
+describe("fetchConversations — viewerIsAssignedHelper mirrors can_message_in_job", () => {
+  const POSTER = CAMILLE_AUTH;
+
+  function withJobs(rows: Record<string, unknown>[]) {
+    fromMock.mockImplementation((table: string) => {
+      if (table === "messages") return makeBuilder(messagesResponse);
+      if (table === "jobs") return makeBuilder({ data: rows, error: null });
+      return makeBuilder({ data: [], error: null });
+    });
+  }
+
+  beforeEach(() => {
+    messagesResponse = {
+      data: [message({ job_id: "job-1", sender_id: ME, receiver_id: POSTER })],
+      error: null,
+    };
+  });
+
+  it("is true when the viewer is the job's assigned helper", async () => {
+    withJobs([
+      { id: "job-1", title: "Mow a corner lot", status: "in_progress", customer_id: POSTER, helper_id: ME, offered_to_helper_id: null },
+    ]);
+    const [convo] = await fetchConversations(ME, thumbRef());
+    expect(convo.viewerIsPoster).toBe(false);
+    expect(convo.viewerIsAssignedHelper).toBe(true);
+  });
+
+  it("is true when the job is merely OFFERED to the viewer", async () => {
+    withJobs([
+      { id: "job-1", title: "Mow a corner lot", status: "open", customer_id: POSTER, helper_id: null, offered_to_helper_id: ME },
+    ]);
+    const [convo] = await fetchConversations(ME, thumbRef());
+    expect(convo.viewerIsAssignedHelper).toBe(true);
+  });
+
+  it("is FALSE for a pending applicant — the poster-first lock must still apply", async () => {
+    withJobs([
+      { id: "job-1", title: "Mow a corner lot", status: "open", customer_id: POSTER, helper_id: null, offered_to_helper_id: null },
+    ]);
+    const [convo] = await fetchConversations(ME, thumbRef());
+    expect(convo.viewerIsPoster).toBe(false);
+    expect(convo.viewerIsAssignedHelper).toBe(false);
+  });
+
+  it("does not mistake the poster for the assigned helper", async () => {
+    withJobs([
+      { id: "job-1", title: "Mow a corner lot", status: "in_progress", customer_id: ME, helper_id: POSTER, offered_to_helper_id: null },
+    ]);
+    const [convo] = await fetchConversations(ME, thumbRef());
+    expect(convo.viewerIsPoster).toBe(true);
+    expect(convo.viewerIsAssignedHelper).toBe(false);
+  });
+});

@@ -11,9 +11,9 @@ import { hapticSuccess, hapticError } from "@/lib/haptics";
 import { parseLocalDate } from "@/lib/dateUtils";
 import { formatShortDate } from "@/lib/format";
 import { usePermissionRationale } from "@/hooks/usePermissionRationale";
+import { arrivalEstablished, arrivalGateMessage, arrivalState, arrivalStateLabel } from "@/lib/arrivalGate";
 import { report } from "@/lib/errorLogger";
 import { hasRequiredProof, requiredProof } from "@/lib/photoProofPolicy";
-import BrandConfirmDialog from "@/components/ui/BrandConfirmDialog";
 import { isNativePlatform } from "@/lib/nativeInit";
 
 // Lazy-load the Leaflet tracking map so the ~45KB Leaflet bundle is only
@@ -220,6 +220,8 @@ export function JobTracking({
   posterConfirmedAt: initialPosterConfirmedAt,
   helperOnTheWayAt: initialHelperOnTheWayAt,
   helperArrivedAt: initialHelperArrivedAt,
+  helperArrivalVerifiedAt: initialHelperArrivalVerifiedAt,
+  posterConfirmedArrivalAt: initialPosterConfirmedArrivalAt,
   helperCompletedAt: initialHelperCompletedAt,
   posterCompletedAt: initialPosterCompletedAt,
   initialTracking,
@@ -258,6 +260,16 @@ export function JobTracking({
    */
   helperOnTheWayAt?: string | null;
   helperArrivedAt?: string | null;
+  /**
+   * The two-party arrival evidence (see `src/lib/arrivalGate.ts`).
+   * `helperArrivalVerifiedAt` is stamped only when the SERVER computed the
+   * helper within 500ft; `posterConfirmedArrivalAt` is the poster's vouch.
+   * The tracker's Arrived step used to light identically for all three cases,
+   * which is how a poster ended up looking at "Working" while still being
+   * asked to confirm an arrival — two ladders drawn as one.
+   */
+  helperArrivalVerifiedAt?: string | null;
+  posterConfirmedArrivalAt?: string | null;
   helperCompletedAt?: string | null;
   posterCompletedAt?: string | null;
   /**
@@ -289,8 +301,6 @@ export function JobTracking({
   // fire one fetch per rendered card (N+1 across active jobs on Activity).
   const [tracking, setTracking] = useState<TrackingData | null>(initialTracking ?? null);
   const [updating, setUpdating] = useState(false);
-  // Arrival with no GPS fix — see the note in `updateStatus`.
-  const [manualArrivalOpen, setManualArrivalOpen] = useState(false);
   const [helperConfirmedAt, setHelperConfirmedAt] = useState(initialHelperConfirmedAt);
   const [posterConfirmedAt, setPosterConfirmedAt] = useState(initialPosterConfirmedAt);
   // Lifecycle stamps off the jobs row, mirrored into state so the realtime
@@ -298,6 +308,8 @@ export function JobTracking({
   const [jobStamps, setJobStamps] = useState({
     onTheWayAt: initialHelperOnTheWayAt ?? null,
     arrivedAt: initialHelperArrivedAt ?? null,
+    arrivalVerifiedAt: initialHelperArrivalVerifiedAt ?? null,
+    posterConfirmedArrivalAt: initialPosterConfirmedArrivalAt ?? null,
     helperCompletedAt: initialHelperCompletedAt ?? null,
     posterCompletedAt: initialPosterCompletedAt ?? null,
   });
@@ -310,10 +322,12 @@ export function JobTracking({
     setJobStamps({
       onTheWayAt: initialHelperOnTheWayAt ?? null,
       arrivedAt: initialHelperArrivedAt ?? null,
+      arrivalVerifiedAt: initialHelperArrivalVerifiedAt ?? null,
+      posterConfirmedArrivalAt: initialPosterConfirmedArrivalAt ?? null,
       helperCompletedAt: initialHelperCompletedAt ?? null,
       posterCompletedAt: initialPosterCompletedAt ?? null,
     });
-  }, [initialHelperOnTheWayAt, initialHelperArrivedAt, initialHelperCompletedAt, initialPosterCompletedAt]);
+  }, [initialHelperOnTheWayAt, initialHelperArrivedAt, initialHelperArrivalVerifiedAt, initialPosterConfirmedArrivalAt, initialHelperCompletedAt, initialPosterCompletedAt]);
   // Keep the batched-tracking prop in sync after activity refreshes — when
   // the parent refetches its batched job_tracking rows, the new value flows
   // back into the card (e.g. cache invalidation after a write).
@@ -370,6 +384,8 @@ export function JobTracking({
             setJobStamps((prev) => ({
               onTheWayAt: updated.helper_on_the_way_at !== undefined ? updated.helper_on_the_way_at : prev.onTheWayAt,
               arrivedAt: updated.helper_arrived_at !== undefined ? updated.helper_arrived_at : prev.arrivedAt,
+              arrivalVerifiedAt: updated.helper_arrival_verified_at !== undefined ? updated.helper_arrival_verified_at : prev.arrivalVerifiedAt,
+              posterConfirmedArrivalAt: updated.poster_confirmed_arrival_at !== undefined ? updated.poster_confirmed_arrival_at : prev.posterConfirmedArrivalAt,
               helperCompletedAt: updated.helper_completed_at !== undefined ? updated.helper_completed_at : prev.helperCompletedAt,
               posterCompletedAt: updated.poster_completed_at !== undefined ? updated.poster_completed_at : prev.posterCompletedAt,
             }));
@@ -419,59 +435,70 @@ export function JobTracking({
     return location;
   };
 
-  const getDistanceFt = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-    const R = 20902231; // Earth radius in feet
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  };
 
-  const updateStatus = async (newStatus: string, opts?: { skipProximity?: boolean }) => {
+  const updateStatus = async (newStatus: string) => {
     if (!helperId) return;
     setUpdating(true);
+    const now0 = new Date().toISOString();
     const loc = await getLocation();
 
-    // ARRIVAL, when we can see where they are and when we cannot.
+    // ARRIVAL IS A TWO-PARTY, SERVER-VERIFIED EVENT.
     //
-    // With coordinates this stays a hard 500ft proximity check — that is the
-    // anti-fraud rule, and we have the evidence to enforce it.
+    // The client no longer decides whether the helper is close enough — it
+    // hands its coordinates to `mark_helper_arrival`, which does the haversine
+    // itself and stamps `helper_arrival_verified_at` only when the answer is
+    // yes. The verdict is what the completion gate reads, and it is not a
+    // value this code can send.
     //
-    // WITHOUT coordinates it used to be a dead end: "Enable GPS in Settings to
-    // mark Arrived", and nothing else. A helpr who has location switched off —
-    // or whose phone simply failed to get a fix — could not mark arrived, could
-    // not reach Working, could not reach Done, and therefore could not be paid,
-    // for a job they were physically standing at (owner: "if they dont have
-    // their location on, they need a way to show they have arrived").
-    //
-    // So: no fix, no proof, but still an answer. We ask them to attest it in a
-    // confirm dialog and write the row with null coordinates, which is itself
-    // the signal — the poster's tracker shows the coordinate stamp when there
-    // is one and says "Location not shared" when there is not, so a
-    // self-reported arrival never passes itself off as a GPS-verified one.
+    // NO FIX, OR TOO FAR, IS NOT A DEAD END. The helper still marks the claim
+    // (`helper_arrived_at`) — the poster genuinely needs to know someone says
+    // they're here — but a bare claim does NOT unlock wrap-up on its own. The
+    // recourse is the poster: they can see the helper standing in front of
+    // them, and their "Confirm They Arrived" tap satisfies the gate. That is
+    // deliberate. Requiring location with no recourse would turn the accidental
+    // trap this replaces (an unreachable `job_checkins` fallback) into policy,
+    // and a helper inside a metal building would still be unable to get paid.
+    let arrivalVerified: boolean | null = null;
     if (newStatus === "arrived") {
-      if (!loc) {
-        if (!opts?.skipProximity) {
-          setUpdating(false);
-          setManualArrivalOpen(true);
-          return;
-        }
-      } else {
-        const { data: job, error: jobErr } = await supabase.from("jobs").select("latitude, longitude").eq("id", jobId).single();
-        if (jobErr) report(jobErr, { tags: { source: "JobTracking.arrivedProximity" } });
-        if (job?.latitude && job?.longitude) {
-          const dist = getDistanceFt(loc.lat, loc.lng, Number(job.latitude), Number(job.longitude));
-          if (dist > 500) {
-            hapticError();
-            toast.error(`Couldn't mark arrived — you're about ${Math.round(dist)}ft from the job site. Move closer and try again.`);
-            setUpdating(false);
-            return;
-          }
-        }
+      const { data: verdict, error: arrivalErr } = await supabase.rpc("mark_helper_arrival", {
+        p_job_id: jobId,
+        p_lat: loc?.lat ?? null,
+        p_lng: loc?.lng ?? null,
+      });
+      if (arrivalErr) {
+        report(arrivalErr, { tags: { source: "JobTracking.markArrival" } });
+        hapticError();
+        toast.error(
+          arrivalErr.code === "PGRST202"
+            // Short window between merge and the auto-deploy landing.
+            ? "Arrival check-in is updating — try again in a minute."
+            : "Couldn't mark you arrived — try again?",
+        );
+        setUpdating(false);
+        loadTracking();
+        return;
+      }
+      const v = verdict as { verified?: boolean; distance_ft?: number | null } | null;
+      arrivalVerified = !!v?.verified;
+      setJobStamps((prev) => ({
+        ...prev,
+        arrivedAt: prev.arrivedAt ?? now0,
+        arrivalVerifiedAt: arrivalVerified ? (prev.arrivalVerifiedAt ?? now0) : prev.arrivalVerifiedAt,
+      }));
+      if (!arrivalVerified) {
+        // Say exactly what happened and exactly what unblocks them. Never
+        // "enable GPS in Settings" and nothing else — that was the dead end.
+        const far = v?.distance_ft != null;
+        toast.warning(
+          far
+            ? `Marked arrived, but you're about ${v!.distance_ft}ft from the job site so we couldn't confirm it. Ask the poster to tap "Confirm They Arrived" — that unlocks wrap-up.`
+            : "Marked arrived, but we couldn't get your location to confirm it. Turn Location on in Settings, or ask the poster to tap \"Confirm They Arrived\" — either one unlocks wrap-up.",
+          { duration: 9000 },
+        );
       }
     }
 
-    const now = new Date().toISOString();
+    const now = now0;
     setTracking(prev => prev ? { ...prev, status: newStatus, latitude: loc?.lat || prev.latitude, longitude: loc?.lng || prev.longitude, updated_at: now } : {
       id: "temp",
       status: newStatus,
@@ -534,13 +561,24 @@ export function JobTracking({
       // payout request — they keep the 24h review window instead.
       const { data: gate, error: gateErr } = await supabase
         .from("jobs")
-        .select("proof_before_urls, proof_after_urls, poster_confirmed_working_at, helper_arrived_at")
+        .select("proof_before_urls, proof_after_urls, poster_confirmed_working_at, helper_arrived_at, helper_arrival_verified_at, poster_confirmed_arrival_at")
         .eq("id", jobId)
         .single();
       if (gateErr) {
         report(gateErr, { tags: { source: "JobTracking.doneGateFetch" } });
         hapticError();
         toast.error("Couldn't check the job's completion requirements — try again?");
+        setUpdating(false);
+        loadTracking();
+        return;
+      }
+      // ARRIVAL FIRST — the same rule completeJob and the DB trigger use.
+      // This replaces nothing on this path (the tracker's Done step never
+      // checked location at all), but it is the gate the payout CTA now
+      // enforces, and the two must not disagree again.
+      if (!arrivalEstablished(gate)) {
+        hapticError();
+        toast.error(arrivalGateMessage(gate), { duration: 8000 });
         setUpdating(false);
         loadTracking();
         return;
@@ -627,9 +665,11 @@ export function JobTracking({
       if (job && job.status === "accepted") {
         await stampJob({ status: "in_progress" }, "status", "JobTracking.statusInProgress");
       }
-      if (newStatus === "arrived") {
-        await stampJob({ helper_arrived_at: now }, "arrival time", "JobTracking.arrivedAt");
-      }
+      // `helper_arrived_at` is NOT stamped here any more — mark_helper_arrival
+      // above wrote it (and the status transition) inside the same transaction
+      // that decided whether the arrival was verified. Stamping it a second
+      // time from the client would be the only writer able to set it without a
+      // proximity verdict attached.
       if (newStatus === "on_the_way") {
         await stampJob({ helper_on_the_way_at: now }, "departure time", "JobTracking.onTheWayAt");
       }
@@ -690,6 +730,13 @@ export function JobTracking({
   // them and moved down the row as the job advanced. A helpr tracking their own
   // job needs no one named, hence the `isHelper` gate at the call site.
   const firstName = helperName?.trim().split(/\s+/)[0] ?? null;
+
+  const currentArrivalState = arrivalState({
+    helper_arrived_at: jobStamps.arrivedAt,
+    helper_arrival_verified_at: jobStamps.arrivalVerifiedAt,
+    poster_confirmed_arrival_at: jobStamps.posterConfirmedArrivalAt,
+  });
+  const arrivalCaption = arrivalStateLabel(currentArrivalState);
 
   const displaySteps = includePostingSteps ? [...PRE_STATUSES, ...STATUSES] : STATUSES;
   const displayIdx = includePostingSteps
@@ -893,6 +940,28 @@ export function JobTracking({
                       row keeps the tight rhythm the heading-name move bought
                       it. `items-start` on the row means the taller column
                       hangs below the others rather than pushing them down. */}
+                  {/* ARRIVED CARRIES ITS OWN VERIFICATION STATE (owner:
+                      "light it when helpr says they arrived but poster has to
+                      confirm"). The step lights on the helper's mark, and this
+                      caption says which of the three things that mark actually
+                      is — poster-confirmed, location-confirmed, or a claim
+                      still waiting on the poster. Without it the tracker drew
+                      all three identically, which is how a poster ended up
+                      reading "Working" while their card still asked them to
+                      confirm the arrival: two ladders, one drawing. */}
+                  {s.key === "arrived" && arrivalCaption && (
+                    <span
+                      className="w-full text-ds-9 font-sans font-semibold text-center leading-tight"
+                      style={{
+                        color:
+                          currentArrivalState === "claimed"
+                            ? "hsl(var(--amber-ink))"
+                            : "hsl(var(--bark))",
+                      }}
+                    >
+                      {arrivalCaption}
+                    </span>
+                  )}
                   {s.key === "on_the_way" &&
                     tracking?.status === "on_the_way" &&
                     tracking.eta_minutes != null && (
@@ -1089,23 +1158,6 @@ export function JobTracking({
         );
       })()}
 
-      {/* NO GPS FIX — the manual attestation. See `updateStatus`. */}
-      <BrandConfirmDialog
-        open={manualArrivalOpen}
-        onOpenChange={setManualArrivalOpen}
-        title="Mark Yourself Arrived?"
-        description="We couldn't get your location, so we can't confirm you're at the job site. You can still tell the poster you're here."
-        callout={{
-          text: "The poster will see this arrival was self-reported, not GPS-confirmed. Turning location on in Settings confirms it automatically.",
-        }}
-        primaryLabel="Yes, I'm Here"
-        primaryTone="bark"
-        onPrimary={() => {
-          setManualArrivalOpen(false);
-          void updateStatus("arrived", { skipProximity: true });
-        }}
-        secondaryLabel="Not Yet"
-      />
     </div>
   );
 }

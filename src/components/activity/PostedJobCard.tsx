@@ -35,7 +35,6 @@ function PostedJobCardInner({
   setExpandedJobId,
   helperNames,
   completedJobMeta,
-  startRequestedJobIds,
   userId,
   onBoost,
   onEdit,
@@ -48,8 +47,6 @@ function PostedJobCardInner({
   onReview,
   onDispute,
   onViewDispute,
-  onConfirmStart,
-  confirmingStartJobId,
   onConfirmArrival,
   confirmingArrivalJobId,
   onConfirmWorking,
@@ -435,7 +432,7 @@ function PostedJobCardInner({
               {/* Visible live tracking */}
               {showsTracker && (
                 <div onClick={(e) => e.stopPropagation()}>
-                  <JobTracking includePostingSteps jobId={job.id} helperId={job.helper_id} helperName={helperName} isHelper={false} isOwner={true} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={job.helper_confirmed_at} helperDayofConfirmedAt={job.helper_dayof_confirmed_at} posterConfirmedAt={job.poster_confirmed_at} initialTracking={initialTracking} jobLatitude={job.latitude} jobLongitude={job.longitude} helperOnTheWayAt={job.helper_on_the_way_at} helperArrivedAt={job.helper_arrived_at} helperCompletedAt={job.helper_completed_at} posterCompletedAt={job.poster_completed_at} />
+                  <JobTracking includePostingSteps jobId={job.id} helperId={job.helper_id} helperName={helperName} isHelper={false} isOwner={true} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={job.helper_confirmed_at} helperDayofConfirmedAt={job.helper_dayof_confirmed_at} posterConfirmedAt={job.poster_confirmed_at} initialTracking={initialTracking} jobLatitude={job.latitude} jobLongitude={job.longitude} helperOnTheWayAt={job.helper_on_the_way_at} helperArrivedAt={job.helper_arrived_at} helperArrivalVerifiedAt={job.helper_arrival_verified_at} posterConfirmedArrivalAt={job.poster_confirmed_arrival_at} helperCompletedAt={job.helper_completed_at} posterCompletedAt={job.poster_completed_at} />
                 </div>
               )}
 
@@ -576,7 +573,6 @@ function PostedJobCardInner({
                 userId={userId}
                 helperNames={helperNames}
                 completedJobMeta={completedJobMeta}
-                startRequestedJobIds={startRequestedJobIds}
                 onBoost={onBoost}
                 onEdit={onEdit}
                 onCancel={onCancel}
@@ -588,8 +584,6 @@ function PostedJobCardInner({
                 onReview={onReview}
                 onDispute={onDispute}
                 onViewDispute={onViewDispute}
-                onConfirmStart={onConfirmStart}
-                confirmingStartJobId={confirmingStartJobId}
                 onConfirmArrival={onConfirmArrival}
                 confirmingArrivalJobId={confirmingArrivalJobId}
                 onConfirmWorking={onConfirmWorking}

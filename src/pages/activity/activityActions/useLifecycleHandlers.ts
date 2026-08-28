@@ -3,7 +3,7 @@ import { lifecycleErrorMessage } from "@/lib/lifecycleErrors";
 import { unwrapMutation } from "@/lib/mutationResult";
 import { createNotification } from "@/lib/notifications";
 import { report } from "@/lib/errorLogger";
-import { checkProximity } from "@/lib/locationUtils";
+import { arrivalEstablished, arrivalGateMessage } from "@/lib/arrivalGate";
 import { toast } from "sonner";
 import { formatName } from "@/lib/utils";
 import { hapticLight, hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
@@ -38,7 +38,6 @@ export interface LifecycleHandlersDeps extends OptimisticJobCache {
   setReviewJob: (job: Job | null) => void;
   setConfirmingArrivalJobId: (id: string | null) => void;
   setConfirmingWorkingJobId: (id: string | null) => void;
-  setConfirmingStartJobId: (id: string | null) => void;
 }
 
 export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
@@ -61,7 +60,6 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
     setReviewJob,
     setConfirmingArrivalJobId,
     setConfirmingWorkingJobId,
-    setConfirmingStartJobId,
   } = deps;
 
   const tryCancelJob = async (job: Job) => {
@@ -92,33 +90,37 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
       if (isHelper) {
         const job = appliedApps.find(a => a.job_id === jobId)?.job;
         if (job) {
-          // GPS proximity check with photo fallback
-          const proximity = await checkProximity(job.latitude, job.longitude);
-          if (!proximity.allowed) {
-            // Check if helper has a verified arrival check-in (GPS or photo fallback)
-            const { data: arrivalCheckins, error: arrivalErr } = await supabase
-              .from("job_checkins")
-              .select("id")
-              .eq("job_id", jobId)
-              .eq("user_id", user!.id)
-              .in("type", ["arrival", "arrival_photo"])
-              .limit(1);
-            // Gate fails CLOSED (a read error → no proof of arrival → block),
-            // but never silently: surface it so a transient failure that's
-            // wrongly blocking a legit completion is traceable.
-            if (arrivalErr) {
-              report(arrivalErr, { tags: { area: "activity", op: "completeJob.arrivalRead" }, context: { jobId } });
-            }
-
-            if (!arrivalCheckins?.length) {
-              const miles = ((proximity.distance || 0) / 5280).toFixed(1);
-              hapticError();
-              toast.error(
-                `You need to be within 500ft of the job site (or have a verified arrival check-in) to wrap up. You're about ${miles} miles away — if your GPS is off, use "Check In with Photo" instead.`,
-                { duration: 8000 }
-              );
-              return;
-            }
+          // ARRIVAL, not a second proximity check.
+          //
+          // This used to re-run a live 500ft GPS check at wrap-up time, with a
+          // fallback that read `job_checkins` — a table nothing in the app has
+          // ever written (0 rows in prod). So the fallback could never fire,
+          // and a helper who had walked back to their van, or was inside a
+          // metal building, was hard-blocked from the write that gets them
+          // paid — and pointed at a "Check In with Photo" control that does
+          // not exist anywhere in the codebase.
+          //
+          // Stepping away at the END of a job is normal and is not evidence of
+          // fraud. What matters is that they WERE there, which the arrival
+          // ladder records at the moment it was true: server-verified GPS, or
+          // the poster's vouch (see arrivalGate.ts). The same rule is enforced
+          // by enforce_helper_completion_gates, so this is the message, not
+          // the gate.
+          const { data: arrivalRow, error: arrivalErr } = await supabase
+            .from("jobs")
+            .select("helper_arrived_at, helper_arrival_verified_at, poster_confirmed_arrival_at")
+            .eq("id", jobId)
+            .single();
+          // Fails CLOSED (read error → can't prove arrival → block), but never
+          // silently: surface it so a transient failure that's wrongly
+          // blocking a legit completion is traceable.
+          if (arrivalErr) {
+            report(arrivalErr, { tags: { area: "activity", op: "completeJob.arrivalRead" }, context: { jobId } });
+          }
+          if (!arrivalEstablished(arrivalRow)) {
+            hapticError();
+            toast.error(arrivalGateMessage(arrivalRow), { duration: 8000 });
+            return;
           }
 
           // ONE shared proof rule (photoProofPolicy): before & after photos
@@ -301,44 +303,6 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
     } catch (err) { hapticError(); toast.error(err instanceof Error ? err.message : "We couldn't resolve that revision — please try again."); }
   };
 
-  const confirmStartJob = async (jobId: string) => {
-    setConfirmingStartJobId(jobId);
-    try {
-      // Optimistic: flip the card to "In Progress" immediately.
-      const snapshot = optimisticallyPatchJob(jobId, { status: "in_progress" });
-      // .select("id"): a zero-row update (RLS, the job already moved on)
-      // returns error === null, which used to leave the card optimistically
-      // showing "In Progress" over a row that never changed.
-      let started = true;
-      try {
-        unwrapMutation(
-          await supabase.from("jobs").update({ status: "in_progress" }).eq("id", jobId).select("id"),
-          {
-            action: "start this job",
-            rejectedMessage: "We couldn't start this job — it may have already started or been cancelled. Pull to refresh.",
-            context: { jobId },
-          },
-        );
-      } catch (err) {
-        started = false;
-        rollbackActivity(snapshot);
-        hapticError();
-        toast.error(lifecycleErrorMessage(err) ?? "We couldn't start the job just now — please try again.");
-      }
-      if (started) {
-        const job = postedJobs.find(j => j.id === jobId);
-        if (job?.helper_id) {
-          await createNotification({ user_id: job.helper_id, title: "✅ Job started!", message: `The poster confirmed "${job.title}" has started.`, type: "success", link: "/my-jobs?filter=in_progress" });
-        }
-        hapticSuccess();
-        toast.success("Job started!");
-        await refresh();
-        setStatusFilter("in_progress");
-      }
-    } finally {
-      setConfirmingStartJobId(null);
-    }
-  };
 
   const confirmArrival = async (jobId: string) => {
     setConfirmingArrivalJobId(jobId);
@@ -473,7 +437,6 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
     tryCancelJob,
     completeJob,
     resolveRevision,
-    confirmStartJob,
     confirmArrival,
     confirmWorking,
     handleNoShow,

@@ -30,6 +30,18 @@ permissions:
 # The key below is the PUBLISHABLE (anon) key, safe to commit — it ships in
 # the client bundle. The value it replaced was the OLD project's anon JWT,
 # dead since the same migration.
+#
+# REMOVED 2026-08-27: a second step probed
+# /functions/v1/get-stripe-public-key. No such function exists — there is no
+# source for it under supabase/functions/ and nothing in src/ or the other
+# functions calls it; the live URL returns 404. Because the assertion only
+# tripped on >= 500, the 404 sailed through and the step printed
+# "✅ Stripe public key endpoint healthy (HTTP 404)" on every run. It was
+# deleted rather than repointed: there is no real endpoint it was meant to
+# hit, so tightening the assertion would only have produced a check that
+# fails forever. Any future probe added here must assert the exact status it
+# expects (== 401, == 200), never merely "< 500" — a not-found endpoint
+# passes that test.
 
 on:
   # Runs daily. This was switched off in April 2026 to stop "burning Actions
@@ -69,9 +81,14 @@ jobs:
 
       - name: Hit health-check endpoint
         # health-check requires server-to-server auth via CRON_SECRET (Bearer token).
-        # If CRON_SECRET isn't configured as a repo secret, the step is skipped
-        # rather than failing — the hourly schedule will still catch real outages
-        # once the secret is added.
+        #
+        # A missing CRON_SECRET now FAILS. It used to `exit 0`, which meant an
+        # unset, expired or rotated-away secret rendered as a green check that
+        # had in fact probed nothing — the same "reports healthy without
+        # looking" failure as the removed get-stripe-public-key step below.
+        # The secret has been configured since 2026-08-19, so the skip branch is
+        # only reachable if someone deletes it, which is exactly the event this
+        # check should shout about rather than absorb.
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           SUPABASE_ANON_KEY: sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP
@@ -79,9 +96,9 @@ jobs:
           set -e
           URL="https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/health-check"
           if [ -z "$CRON_SECRET" ]; then
-            echo "⚠️  CRON_SECRET repo secret not set — skipping health-check probe."
-            echo "    Add it under Settings → Secrets and variables → Actions to enable this check."
-            exit 0
+            echo "❌ CRON_SECRET repo secret not set — this workflow cannot probe anything."
+            echo "    Add it under Settings → Secrets and variables → Actions."
+            exit 1
           fi
           echo "Pinging $URL"
           HTTP_CODE=$(curl -s -o /tmp/response.json -w "%{http_code}" \
@@ -96,23 +113,3 @@ jobs:
             exit 1
           fi
           echo "✅ Edge functions are responding"
-
-      - name: Verify Stripe public key endpoint
-        # get-stripe-public-key validates the caller's JWT, so we just confirm
-        # the function boots (anything other than 5xx means the runtime is alive).
-        env:
-          SUPABASE_ANON_KEY: sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP
-        run: |
-          set -e
-          URL="https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/get-stripe-public-key"
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
-            -H "apikey: $SUPABASE_ANON_KEY" \
-            "$URL")
-          echo "get-stripe-public-key: HTTP $HTTP_CODE"
-          # 401/403 = function booted and rejected unauth call (expected, healthy)
-          # 5xx    = function crashed on boot (unhealthy)
-          if [ "$HTTP_CODE" -ge 500 ]; then
-            echo "❌ get-stripe-public-key returned $HTTP_CODE — function crashed on boot"
-            exit 1
-          fi
-          echo "✅ Stripe public key endpoint healthy (HTTP $HTTP_CODE)"

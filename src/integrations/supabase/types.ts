@@ -1845,6 +1845,7 @@ export type Database = {
           expiring_notif_sent: boolean | null
           flag_reasons: string[] | null
           has_active_dispute: boolean
+          helper_arrival_verified_at: string | null
           helper_arrived_at: string | null
           helper_completed_at: string | null
           helper_confirmed_at: string | null
@@ -1955,6 +1956,7 @@ export type Database = {
           expiring_notif_sent?: boolean | null
           flag_reasons?: string[] | null
           has_active_dispute?: boolean
+          helper_arrival_verified_at?: string | null
           helper_arrived_at?: string | null
           helper_completed_at?: string | null
           helper_confirmed_at?: string | null
@@ -2065,6 +2067,7 @@ export type Database = {
           expiring_notif_sent?: boolean | null
           flag_reasons?: string[] | null
           has_active_dispute?: boolean
+          helper_arrival_verified_at?: string | null
           helper_arrived_at?: string | null
           helper_completed_at?: string | null
           helper_confirmed_at?: string | null
@@ -5594,6 +5597,10 @@ export type Database = {
       mark_applications_viewed: {
         Args: { p_job_id: string }
         Returns: undefined
+      }
+      mark_helper_arrival: {
+        Args: { p_job_id: string; p_lat?: number | null; p_lng?: number | null }
+        Returns: Json
       }
       mask_job_location: { Args: { loc: string }; Returns: string }
       move_to_dlq: {

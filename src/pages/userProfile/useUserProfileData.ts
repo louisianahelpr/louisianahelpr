@@ -6,6 +6,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { queryKeys } from "@/lib/queryKeys";
 import { unwrap } from "@/lib/supabaseResult";
 import { report } from "@/lib/errorLogger";
+import { pickRequestedProfile } from "@/lib/safeProfiles";
 import type { ProfileReview, ProfileJob } from "./types";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
@@ -80,8 +81,40 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
       // error the same as an empty result and fall through to the direct
       // select below, which RLS already gates to approved rows (and the
       // owner's own row) — so the page loads instead of hard-failing.
+      //
+      // Do NOT take row [0] blind. `get_safe_profiles` matches EITHER
+      // `profiles.user_id` OR `profiles.id` (deliberately — see
+      // 20260817230000_get_safe_profiles_resolve_by_profile_id.sql; Messages
+      // needs it because messages.sender_id has no FK and prod stores profile
+      // ids there). Those are two key spaces over one table, so a single uuid
+      // can be person A's user_id AND person B's id at the same time. On prod
+      // today 6bdc1f67-...a6147 is Audit Helper's auth id and ALSO Eli
+      // Thibodeaux's profiles.id — so asking for the helper who applied to your
+      // job returned Eli's name, avatar, bio and trust record. This is the
+      // vetting screen; showing the wrong human here is the worst thing it can
+      // do, and it did it silently: no error, no empty result.
+      //
+      // So re-match what came back against what we asked for. A dropped row
+      // falls through to the self-select / not-found path below, which is the
+      // right outcome: an honest "profile unavailable" beats a wrong identity.
       const profileRes = await supabase.rpc("get_safe_profiles", { user_ids: [userId!] });
-      let prof = (profileRes.error ? null : profileRes.data?.[0] ?? null) as any;
+      const profileRows = (profileRes.error ? [] : profileRes.data ?? []) as Array<
+        { user_id?: string | null; profile_id?: string | null }
+      >;
+      let prof = pickRequestedProfile(profileRows, userId) as any;
+
+      if (!prof && profileRows.length > 0) {
+        // Rows came back and not one of them answers the id we asked for. That
+        // is a data-integrity fact worth seeing, not a quiet miss.
+        report(new Error("get_safe_profiles returned only non-matching rows"), {
+          severity: "warning",
+          tags: {
+            source: "useUserProfileData",
+            requestedUserId: userId ?? "",
+            returnedUserIds: profileRows.map((r) => r?.user_id ?? "null").join(","),
+          },
+        });
+      }
 
       if (!prof) {
         prof = unwrap(

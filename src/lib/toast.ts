@@ -149,4 +149,3 @@ export function successToast(message: string, options: SuccessToastOptions = {})
   });
 }
 
-export { toast };

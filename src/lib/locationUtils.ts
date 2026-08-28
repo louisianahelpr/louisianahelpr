@@ -43,38 +43,3 @@ export function getCity(location: string): string {
 export function distanceInFeet(lat1: number, lng1: number, lat2: number, lng2: number): number {
   return haversineMiles(lat1, lng1, lat2, lng2) * 5280;
 }
-
-const PROXIMITY_THRESHOLD_FEET = 500;
-
-/**
- * Check if the user is within 500ft of the job site.
- * Returns { allowed: true } or { allowed: false, distance: number }.
- * If the job has no coordinates or geolocation fails, allows the action (graceful fallback).
- */
-export async function checkProximity(
-  jobLat: number | null | undefined,
-  jobLng: number | null | undefined
-): Promise<{ allowed: boolean; distance?: number }> {
-  // If job has no coordinates, allow (can't validate)
-  if (!jobLat || !jobLng) return { allowed: true };
-
-  if (!navigator.geolocation) return { allowed: true };
-
-  return new Promise((resolve) => {
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const dist = distanceInFeet(pos.coords.latitude, pos.coords.longitude, jobLat, jobLng);
-        if (dist <= PROXIMITY_THRESHOLD_FEET) {
-          resolve({ allowed: true, distance: dist });
-        } else {
-          resolve({ allowed: false, distance: Math.round(dist) });
-        }
-      },
-      () => {
-        // Geolocation denied/failed — allow gracefully
-        resolve({ allowed: true });
-      },
-      { timeout: 10000 }
-    );
-  });
-}

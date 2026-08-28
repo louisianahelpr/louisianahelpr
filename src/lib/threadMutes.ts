@@ -294,19 +294,6 @@ export async function getMutedThreadMap(
 }
 
 /**
- * Back-compat shim: prior callers wanted a Set<threadKey>. Derives one
- * from the richer `getMutedThreadMap`. New code should call
- * `getMutedThreadMap` directly to access the `until` timestamp.
- */
-export async function getMutedThreadSet(
-  userId: string,
-  pairs: Array<{ jobId: string; otherUserId: string }>,
-): Promise<Set<string>> {
-  const map = await getMutedThreadMap(userId, pairs);
-  return new Set([...map.keys()]);
-}
-
-/**
  * Stable thread-key helper for callers using the returned Set/Map above.
  */
 export function threadMuteKey(jobId: string, otherUserId: string): string {

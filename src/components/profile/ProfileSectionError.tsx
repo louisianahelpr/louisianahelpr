@@ -47,5 +47,3 @@ export function ProfileSectionError({ section, onRetry }: ProfileSectionErrorPro
     </div>
   );
 }
-
-export default ProfileSectionError;

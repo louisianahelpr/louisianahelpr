@@ -135,7 +135,17 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProofProps) 
 
   return (
     <>
-      <Button size="sm" variant={hasPhotos ? "ghost" : "outline"} onClick={() => setOpen(true)} className={hasPhotos ? "text-primary" : ""}>
+      {/* This trigger only ever renders inside PhotoProofGroup's two-column
+          grid (the two call sites below), so sizing it to its column is safe.
+          `whitespace-normal` overrides the Button base's `whitespace-nowrap`,
+          which is what forced the overflow; `h-auto` + `leading-tight` let it
+          become two lines rather than clip. No label text is changed. */}
+      <Button
+        size="sm"
+        variant={hasPhotos ? "ghost" : "outline"}
+        onClick={() => setOpen(true)}
+        className={`w-full min-w-0 h-auto min-h-9 py-1.5 whitespace-normal leading-tight ${hasPhotos ? "text-primary" : ""}`}
+      >
         {hasPhotos ? <CheckCircle2 className="w-4 h-4 mr-1" /> : <Camera className="w-4 h-4 mr-1" />}
         {type === "before" ? "Before" : "After"} {hasPhotos ? `(${existingUrls.length})` : "Photos"}
       </Button>
@@ -336,9 +346,16 @@ export const PhotoProofGroup = ({
 
       {/* Content */}
       <div className="p-3">
+        {/* `min-w-0` on both columns is load-bearing. A grid track defaults to
+            minmax(auto, 1fr), so its MINIMUM width is the intrinsic width of
+            its content — and the content is a `whitespace-nowrap` Button. At
+            402pt the two buttons' intrinsic widths exceed the card, so the
+            tracks grew past it: "Before Photos" was clipped underneath "After
+            Photos", which overflowed the card's right edge. min-w-0 lets the
+            tracks shrink to their fair half; the button below wraps to fit. */}
         <div className="grid grid-cols-2 gap-3">
           {/* Before column */}
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 min-w-0">
             <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-wider">Before</p>
             {hasBefore ? (
               <div className="flex gap-1.5 flex-wrap">
@@ -362,7 +379,7 @@ export const PhotoProofGroup = ({
           </div>
 
           {/* After column */}
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 min-w-0">
             <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-wider">After</p>
             {hasAfter ? (
               <div className="flex gap-1.5 flex-wrap">

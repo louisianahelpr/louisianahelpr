@@ -1,7 +1,15 @@
 import { type ReactNode } from "react";
+import { categoryColors, categoryLabels } from "./activityConstants";
+import { CategoryIcon } from "@/components/job/CategoryIcon";
 
 interface JobCardTitleBarProps {
   title: string;
+  /**
+   * Job category, e.g. "cleaning". Renders the same icon + italic-serif label
+   * in the same palette Browse's JobCard uses. Omitted -> no chip at all,
+   * so callers without a category are unchanged.
+   */
+  category?: string | null;
   /** Pre-formatted amount string (e.g. `"42"` or `"38.50"`). */
   amount: string;
   /** Optional native tooltip on the currency chip — e.g. budget + fee breakdown. */
@@ -23,12 +31,35 @@ interface JobCardTitleBarProps {
  * that never truncates. — the top bar shared by the
  * poster and helper activity cards. Visually identical across both surfaces.
  */
-export function JobCardTitleBar({ title, amount, amountTitle, meta }: JobCardTitleBarProps) {
+export function JobCardTitleBar({ title, category, amount, amountTitle, meta }: JobCardTitleBarProps) {
+  const catStyle = categoryColors[category ?? ""] ?? categoryColors.other;
   return (
     <div
       className="w-full px-4 py-2.5 text-left"
       style={{ borderBottom: "0.5px solid hsl(var(--olivewood) / 0.10)" }}
     >
+      {/* Category chip. Browse anchors its equivalent as an absolutely
+          positioned tab in the card's top-left corner; that shape cannot be
+          reused verbatim here because this bar's own title starts at the top
+          of the card, so an overlapping tab would sit on top of the job name.
+          It is placed inline above the title instead — same icon, same italic
+          serif label, same per-category palette, so it reads as the same
+          object without fighting the title for the corner. */}
+      {category ? (
+        <div className="mb-1.5">
+          <span
+            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-ds-sm border text-ds-10 font-semibold leading-none ${catStyle.badge}`}
+          >
+            <CategoryIcon
+              category={category}
+              aria-hidden
+              className="w-2.5 h-2.5 shrink-0"
+              strokeWidth={2.25}
+            />
+            <span className="font-serif italic">{categoryLabels[category] || category}</span>
+          </span>
+        </div>
+      ) : null}
       <div className="flex items-center justify-between">
       <h3
         className="font-display italic font-bold leading-snug truncate min-w-0 text-headline-card"

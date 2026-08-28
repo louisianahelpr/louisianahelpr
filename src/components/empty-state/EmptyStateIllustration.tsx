@@ -25,11 +25,14 @@ export function EmptyStateIllustration({
   className?: string;
 }) {
   const Comp = MAP[variant];
-  return (
-    <Comp
-      className={
-        className ?? "mx-auto mb-4 h-24 w-24 text-[hsl(var(--burnt-sienna))]"
-      }
-    />
-  );
+  // Most illustrations fill a square viewBox, so one square default fits them
+  // all. `reviews` is a five-star ROW — wide and short — and forcing it into
+  // the square box letterboxed it, leaving a large dead gap above the title.
+  // It gets a width-driven, auto-height default so it occupies only the space
+  // it actually draws in.
+  const defaultClass =
+    variant === "reviews"
+      ? "mx-auto mb-4 h-auto w-28 text-[hsl(var(--burnt-sienna))]"
+      : "mx-auto mb-4 h-24 w-24 text-[hsl(var(--burnt-sienna))]";
+  return <Comp className={className ?? defaultClass} />;
 }

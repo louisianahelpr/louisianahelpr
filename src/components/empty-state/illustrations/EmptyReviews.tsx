@@ -34,7 +34,16 @@ export function EmptyReviews({ className }: { className?: string }) {
   return (
     <svg
       className={className}
-      viewBox="0 0 120 120"
+      // Cropped to the row's actual bounds instead of the shared 0 0 120 120.
+      // The stars occupy y36-58 — 22 of 120 units, 18% of the box — so at the
+      // shared `h-24 w-24` roughly 78px of the 96px render was empty air, and
+      // the gap between the stars and "No reviews yet" read as a layout bug.
+      // A five-star row is inherently wide and short; the other five
+      // illustrations genuinely fill their square, so this one gets a viewBox
+      // that matches its shape (and a non-square default in
+      // EmptyStateIllustration) rather than being letterboxed inside theirs.
+      // 2 units of padding each side clears the 1.5-wide stroke.
+      viewBox="2 34 116 26"
       fill="none"
       stroke="currentColor"
       strokeWidth="1.5"

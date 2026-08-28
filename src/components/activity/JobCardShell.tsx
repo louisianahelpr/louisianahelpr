@@ -1,4 +1,5 @@
 import { type ReactNode } from "react";
+import { categoryColors } from "./activityConstants";
 
 interface JobCardShellProps {
   /** When false, the card is non-interactive (no expand-on-click, no keyboard role). */
@@ -7,6 +8,13 @@ interface JobCardShellProps {
   onToggle: () => void;
   /** Extra classes appended to the shared `rounded-2xl liquid-glass …` base. */
   className?: string;
+  /**
+   * Job category, e.g. "cleaning". Paints the left colour rail — the same
+   * `categoryColors[…].dot` stripe Browse's JobCard uses, so one job reads
+   * with one colour wherever it appears. Omit (or pass an unknown category)
+   * and the rail falls back to the shared "other" colour.
+   */
+  category?: string | null;
   children: ReactNode;
 }
 
@@ -21,16 +29,27 @@ export function JobCardShell({
   expanded,
   onToggle,
   className,
+  category,
   children,
 }: JobCardShellProps) {
+  const railClass = (categoryColors[category ?? ""] ?? categoryColors.other).dot;
   const interactiveClass = expandable
     ? "cursor-pointer focus-within:outline-none focus-within:ring-2 focus-within:ring-primary"
     : "";
   return (
     <div
-      className={`rounded-2xl liquid-glass overflow-hidden hover:shadow-md transition-all duration-200 ${interactiveClass} ${className ?? ""}`.trim()}
+      className={`relative rounded-2xl liquid-glass overflow-hidden hover:shadow-md transition-all duration-200 ${interactiveClass} ${className ?? ""}`.trim()}
       onClick={expandable ? onToggle : undefined}
     >
+      {/* Category rail — the full-height colour stripe down the left edge,
+          identical in width and colour to Browse's JobCard rail so My Posts /
+          My Jobs and the feed agree about what colour a job is. It sits inside
+          the existing `overflow-hidden rounded-2xl` clip, so it takes the
+          card's rounded corners; `relative` was added above to anchor it.
+          Purely decorative, hence aria-hidden — the category is announced by
+          the text chip in JobCardTitleBar, not by this. The card body is
+          padded px-4 (16px) against this 6px rail, so nothing shifts. */}
+      <span aria-hidden className={`absolute left-0 top-0 bottom-0 w-1.5 z-10 ${railClass}`} />
       {/*
         The keyboard affordance is a real (screen-reader-only) <button>, not
         role="button" on this wrapper. As a wrapper role it made every card a

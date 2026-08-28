@@ -162,9 +162,11 @@ function AppliedJobCardInner({
           expandable={!isMinimalCard}
           expanded={isExpanded}
           onToggle={() => setExpandedJobId(isExpanded ? null : app.job_id)}
+          category={job.category}
         >
           <JobCardTitleBar
             title={job.title || "Job"}
+            category={job.category}
             // FLOORED, matching JobPrice (owner, 2026-08-19: the headline
             // take-home floors — a payout figure may never read above the
             // payout). Browse, the job-detail pill and this card all quote

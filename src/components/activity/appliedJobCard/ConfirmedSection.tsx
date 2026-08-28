@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
-import { messageButtonStyle } from "@/components/activity/JobActionRow";
+import { jobActionChipStyle, JOB_ACTION_FULL_CLASS } from "@/components/activity/JobActionRow";
 import { MessageSquare, CalendarX2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -72,6 +72,14 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
 
   return (
     <div className="px-4 py-3 border-t border-[hsl(var(--olivewood)/0.1)] bg-card space-y-2.5" onClick={(e) => e.stopPropagation()}>
+      {/* Confirmation leads, because it happens FIRST (owner: "confirmation
+          needs to go before job starts because that comes first"). The card
+          used to open with "Job starts in 2d 15h" and bury "Confirmation opens
+          in 1d 1h" below the tracker — so the countdown the helpr had to act
+          on SOONER was the one further down the card, under the step they
+          could not reach yet. Chronological order top to bottom: confirm the
+          day before, then the job starts, then the tracker runs on the day. */}
+      <JobConfirmation jobId={app.job_id} isOwner={false} isHelper={true} posterConfirmedAt={job.poster_confirmed_at} helperConfirmedAt={job.helper_confirmed_at} helperDayofConfirmedAt={job.helper_dayof_confirmed_at} dateNeeded={job.date_needed} jobStatus={job.status} helperOnTheWayAt={job.helper_on_the_way_at} />
       {/* Job countdown */}
       <JobCountdown dateNeeded={job.date_needed} startTime={job.start_time} label="Job starts in" />
       {/* The pets, and everything the owner already wrote down about them.
@@ -85,14 +93,12 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
           to do the app's job, on a job the app already knows the date of. */}
       {/* Tracking — only active on the day of the job */}
       <JobTracking jobId={app.job_id} helperId={userId} isHelper={true} isOwner={false} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={job.helper_confirmed_at} helperDayofConfirmedAt={job.helper_dayof_confirmed_at} posterConfirmedAt={job.poster_confirmed_at} initialTracking={initialTracking} jobLatitude={job.latitude} jobLongitude={job.longitude} helperOnTheWayAt={job.helper_on_the_way_at} helperArrivedAt={job.helper_arrived_at} helperArrivalVerifiedAt={job.helper_arrival_verified_at} posterConfirmedArrivalAt={job.poster_confirmed_arrival_at} helperCompletedAt={job.helper_completed_at} posterCompletedAt={job.poster_completed_at} />
-      {/* Job confirmation for helper */}
-      <JobConfirmation jobId={app.job_id} isOwner={false} isHelper={true} posterConfirmedAt={job.poster_confirmed_at} helperConfirmedAt={job.helper_confirmed_at} helperDayofConfirmedAt={job.helper_dayof_confirmed_at} dateNeeded={job.date_needed} jobStatus={job.status} helperOnTheWayAt={job.helper_on_the_way_at} />
       {/* Directions sits with Message, above the exit link: this is the
           BOOKED state — the job is confirmed and the next physical thing the
           helpr does is drive to it. Until now the only route to the maps app
           was the truncated city name in the meta row. */}
       <DirectionsButton location={job.location} />
-      <Button size="sm" variant="outline" style={messageButtonStyle} className="w-full" onClick={() => navigate(job.customer_id ? `/messages?jobId=${app.job_id}&userId=${job.customer_id}` : "/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
+      <Button size="sm" variant="outline" style={jobActionChipStyle("neutral")} className={JOB_ACTION_FULL_CLASS} onClick={() => navigate(job.customer_id ? `/messages?jobId=${app.job_id}&userId=${job.customer_id}` : "/messages")}><MessageSquare className="w-4 h-4" />Message</Button>
       {/* Quiet, but present: the alternative to a sanctioned exit is a
           ghost, and a ghost is worse for everyone including the ghoster. */}
       <button

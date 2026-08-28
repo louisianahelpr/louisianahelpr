@@ -200,8 +200,14 @@ function PostedJobCardInner({
             // translucent (~0.85 opacity) page title card when it scrolls
             // to the top of the list.
             className="group relative scroll-mt-3"
+            category={job.category}
           >
-            <JobCardTitleBar title={job.title} amount={formatPrice(job.budget)} meta={metaRow} />
+            <JobCardTitleBar
+              title={job.title}
+              category={job.category}
+              amount={formatPrice(job.budget)}
+              meta={metaRow}
+            />
             {/* The series, made visible — parents only (see SeriesStrip). */}
             {!job.parent_job_id && (
               <SeriesStrip

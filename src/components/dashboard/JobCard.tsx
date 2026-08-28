@@ -216,7 +216,11 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
   // Stagger entry via CSS animation-delay — avoids pulling framer-motion into
   // the dashboard's hot list path (saves ~42KB on iOS cold start).
   const entryDelay = `${Math.min(index * 70, 500)}ms`;
-  const ratingDisplay = (job.posterReviewCount ?? 0) > 0 ? job.posterAvgRating?.toFixed(1) : null;
+  // The poster's average rating used to render here as a star + number.
+  // Removed (owner, 2026-08-27) under the same rule already applied to the
+  // "Verified" cue below: poster attributes belong on the poster's profile
+  // and the job detail view, not on a scanning list card whose job is place /
+  // date / time / price, not who posted it.
 
   // Warm JobDetailDialog's two head-count queries in the ~80ms gap
   // between touchstart and click on mobile — by the time the dialog's
@@ -478,6 +482,15 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               important local-marketplace signal was the first thing dropped.
               Urgency now gets its own row below, which is also what the
               My Posts / My Jobs cards already do. */}
+          {/* STAYS ON ONE LINE — never wraps (owner: "should never go to a
+              second line. all job cards should remain same size always").
+              A wrapping row was tried and rejected: it fixed the truncation but
+              made a group-job card one line taller than every card around it,
+              and equal card height is the stronger rule. Feed cards are scanned
+              as a column, so a single tall card reads as a layout break.
+              The width the group-job chip needs is bought back below instead —
+              see the `is_group_job` chip, which drops its separator and rides
+              tighter than the rest of the row. */}
           <div className="flex items-center gap-x-2 flex-nowrap overflow-hidden">
             <span className="flex items-center gap-1 min-w-0">
               <MapPin className="w-2.5 h-2.5 shrink-0" />
@@ -540,15 +553,6 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 </>
               )}
             </span>
-            {ratingDisplay && (
-              <>
-                <span className="opacity-30">·</span>
-                <span className="flex items-center gap-0.5">
-                  <Star className="w-2.5 h-2.5 fill-accent text-accent shrink-0" />
-                  <span className="font-medium text-foreground">{ratingDisplay}</span>
-                </span>
-              </>
-            )}
             {/* No poster "Verified" cue here (owner, 2026-08-25: "Verified
                 should not be here"). It competed with the meta a browsing
                 Helpr actually decides on — place, date, time, rating — and
@@ -561,18 +565,22 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 on small phones. Freshness is still signalled by the "New"
                 chip (<30m) at the head of the row. */}
             {job.is_group_job && (
-              <>
-                <span className="opacity-30">·</span>
-                <span
-                  className="flex items-center gap-1"
-                  style={{ color: "hsl(var(--primary))" }}
-                >
-                  <Users className="w-2.5 h-2.5 shrink-0" strokeWidth={2.25} aria-label="Helprs needed" />
-                  <span className="font-sans font-medium">
-                    {job.helpers_needed ?? 2}
-                  </span>
+              // No leading "·" and a tighter gap than its siblings. Every chip
+              // on this nowrap row is width the city does not get, and the city
+              // is the only item that shrinks — so a multi-person job used to
+              // render "Abbev." while single-helper cards next to it showed
+              // "Abbeville" in full. Dropping the separator and halving the gap
+              // returns ~14px to the parish for the cost of nothing legible:
+              // the person icon already separates this from the time beside it.
+              <span
+                className="flex items-center gap-0.5 shrink-0 ml-0.5"
+                style={{ color: "hsl(var(--primary))" }}
+              >
+                <Users className="w-2.5 h-2.5 shrink-0" strokeWidth={2.25} aria-label="Helprs needed" />
+                <span className="font-sans font-medium">
+                  {job.helpers_needed ?? 2}
                 </span>
-              </>
+              </span>
             )}
             {job.is_recurring && (
               // Same sub-360px guard as the age chip: hide the

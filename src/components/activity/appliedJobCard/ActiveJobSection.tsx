@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { messageButtonStyle } from "@/components/activity/JobActionRow";
+import { jobActionChipStyle, JOB_ACTION_FULL_CLASS } from "@/components/activity/JobActionRow";
 import { Button } from "@/components/ui/button";
 import { AUTO_COMPLETE_HOURS, hoursToMs } from "../../../../supabase/functions/_shared/escrowTiming";
 import { CheckCircle2, MessageSquare, RefreshCw, Check, ClipboardList, CalendarX2 } from "lucide-react";
@@ -314,7 +314,7 @@ export function ActiveJobSection({
             is precisely the person reaching for navigation. Hidden once they
             have arrived — they are already there. */}
         {!job.helper_arrived_at && <DirectionsButton location={job.location} />}
-        <Button size="sm" variant="outline" style={messageButtonStyle} className="w-full" onClick={() => navigate(job.customer_id ? `/messages?jobId=${app.job_id}&userId=${job.customer_id}` : "/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
+        <Button size="sm" variant="outline" style={jobActionChipStyle("neutral")} className={JOB_ACTION_FULL_CLASS} onClick={() => navigate(job.customer_id ? `/messages?jobId=${app.job_id}&userId=${job.customer_id}` : "/messages")}><MessageSquare className="w-4 h-4" />Message</Button>
         {/* The sanctioned exit for a job already underway. This REPLACES the
             stopgap line that used to sit here ("once a job starts it can only
             be completed or disputed") — true when it was written, and the

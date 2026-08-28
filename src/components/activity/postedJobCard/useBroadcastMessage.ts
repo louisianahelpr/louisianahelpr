@@ -1,3 +1,20 @@
+/**
+ * PARKED, NOT DEAD — deliberately kept with no caller.
+ *
+ * 016acc4b9 removed the inline applicant preview from PostedJobApplicants
+ * (owner: "applicants should not show here, only when the applicants button is
+ * clicked"). The "Message all N applicants" composer lived only in that block,
+ * so this hook lost its only consumer. That commit flagged the capability as a
+ * decision to make rather than silently dropping it — see the note at the top
+ * of PostedJobApplicants.tsx — so the implementation is kept intact for a
+ * rebuild inside ApplicantsPanel.
+ *
+ * knip.json runs `"files": "error"`, so an unused file REDS THE BUILD (it is
+ * what took `Test` red on 016acc4b9, the only failing rule; unused *exports*
+ * and duplicates are merely warnings). This file is therefore listed in
+ * knip.json's `ignore`. Delete both together if the decision lands on "no
+ * broadcast" — the ignore entry must not outlive the file.
+ */
 import { useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";

@@ -87,7 +87,13 @@ const AdminAnalytics = () => {
 
       const [profilesRes, tipsRes, rolesRes, transfersRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("is_seed", false),
-        supabase.from("tips").select("*"),
+        // Seed-filtered like every other source in this loader. `tips` has no
+        // `is_seed` column of its own, so we constrain through the job it
+        // belongs to with an inner join. Without this the Money grid rendered
+        // an impossible state: "$0.00 Payments Collected" (seed-filtered)
+        // beside "Tips Collected: $45.00" (not) — both seeded tips sit on
+        // seeded jobs, so the tile was reporting test data as real revenue.
+        supabase.from("tips").select("*, jobs!inner(is_seed)").eq("jobs.is_seed", false),
         supabase.from("user_roles").select("user_id, role"),
         // THE LEDGER. "Helpr Payouts" used to be recomputed from job budgets
         // with a fee fallback, which overstated it — see computeMetrics.

@@ -279,7 +279,7 @@ const OnboardingTour = ({ profileComplete: _profileComplete = false, profileCrea
   if (!visible && showResumePill && location.pathname === "/dashboard") {
     return (
       <div
-        className="fixed left-1/2 -translate-x-1/2 z-[55] animate-in fade-in-0 slide-in-from-bottom-2 duration-300"
+        className="fixed left-1/2 -translate-x-1/2 z-[55] motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 duration-300"
         style={{
           bottom: "calc(var(--safe-area-bottom, 0px) + 5.5rem)",
         }}
@@ -336,7 +336,7 @@ const OnboardingTour = ({ profileComplete: _profileComplete = false, profileCrea
           aria-labelledby="onboarding-tour-title"
           className="fixed z-50 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-md focus:outline-none"
         >
-          <div className="rounded-2xl liquid-glass shadow-2xl overflow-hidden animate-in fade-in-0 zoom-in-95 duration-300">
+          <div className="rounded-2xl liquid-glass shadow-2xl overflow-hidden motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 duration-300">
           {/* Progress bar */}
           <div className="px-5 pt-4 pb-1">
             <div className="flex items-center justify-between mb-2">

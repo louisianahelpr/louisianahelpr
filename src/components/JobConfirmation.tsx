@@ -200,7 +200,7 @@ export function JobConfirmation({
   return (
     <>
       <div
-        className="rounded-2xl liquid-glass p-5 space-y-3"
+        className="rounded-2xl liquid-glass p-3 space-y-1.5"
         style={{
           background:
             "radial-gradient(80% 100% at 50% 0%, hsl(var(--burnt-sienna) / 0.08) 0%, transparent 60%)",
@@ -208,30 +208,30 @@ export function JobConfirmation({
       >
         <div>
           <h3
-            className="font-display italic font-bold leading-tight text-headline-card"
+            className="font-display italic font-bold leading-tight text-ds-14"
             style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
           >
             Still on for this one?
           </h3>
         </div>
         <p
-          className="font-serif italic leading-relaxed text-ds-14"
+          className="font-serif italic leading-snug text-ds-12"
           style={{ color: "hsl(var(--olivewood) / 0.85)" }}
         >
           Tap to let the other party know it's a go.
           {hoursUntilJob > 0 && ` Scheduled in ${urgencyText}.`}
         </p>
         <p
-          className="font-serif italic text-ds-12"
+          className="font-serif italic text-ds-11"
           style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
           {jobDate.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
           {hoursUntilJob > 0 && ` · ${urgencyText} away`}
         </p>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <span
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-ds-11 font-sans font-semibold"
+            className="flex items-center gap-1 px-2 py-0.5 rounded-full text-ds-10 font-sans font-semibold"
             style={
               myConfirmed
                 ? { background: "hsl(var(--bark) / 0.10)", color: "hsl(var(--bark))", border: "0.5px solid hsl(var(--bark) / 0.22)" }
@@ -242,7 +242,7 @@ export function JobConfirmation({
             You: {myConfirmed ? "Confirmed" : "Pending"}
           </span>
           <span
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-ds-11 font-sans font-semibold"
+            className="flex items-center gap-1 px-2 py-0.5 rounded-full text-ds-10 font-sans font-semibold"
             style={
               otherConfirmed
                 ? { background: "hsl(var(--bark) / 0.10)", color: "hsl(var(--bark))", border: "0.5px solid hsl(var(--bark) / 0.22)" }
@@ -255,7 +255,7 @@ export function JobConfirmation({
         </div>
 
         {myConfirmed && (
-          <p className="font-serif italic inline-flex items-center gap-1 text-ds-11" style={{ color: "hsl(var(--bark) / 0.85)" }}>
+          <p className="font-serif italic inline-flex items-center gap-1 text-ds-10" style={{ color: "hsl(var(--bark) / 0.85)" }}>
             <ShieldCheck className="w-3 h-3" />
             Confirmed {new Date(myConfirmed).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
           </p>
@@ -266,9 +266,9 @@ export function JobConfirmation({
             variant="primary"
             size="sm"
             onClick={() => setShowConfirmDialog(true)}
-            className="w-full rounded-ds-md"
+            className="w-full rounded-ds-md h-8 text-ds-12"
           >
-            <CheckCircle2 className="w-4 h-4 mr-1" />
+            <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
             I'm Still On
           </Button>
         )}

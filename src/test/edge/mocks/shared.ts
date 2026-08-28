@@ -35,13 +35,6 @@ export function jsonResponse(
   });
 }
 
-export function errorResponse(
-  message: string,
-  status: number,
-  headers: Record<string, string>,
-): Response {
-  return jsonResponse({ error: message }, status, headers);
-}
 
 /**
  * Controls what `checkRateLimit` returns. Default: allowed. Set

@@ -393,7 +393,7 @@ const Legal = () => {
               type="button"
               onClick={() => setQuery("")}
               aria-label="Clear search"
-              className="absolute right-9 top-1/2 -translate-y-1/2 w-6 h-6 inline-flex items-center justify-center rounded-full btn-press hover:bg-primary/5"
+              className="absolute right-9 top-1/2 -translate-y-1/2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-full btn-press hover:bg-primary/5"
               style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               <X className="w-4 h-4" />
@@ -405,7 +405,7 @@ const Legal = () => {
             type="button"
             onClick={closeSearch}
             aria-label="Close search"
-            className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 inline-flex items-center justify-center rounded-full btn-press hover:bg-primary/5"
+            className="absolute right-2 top-1/2 -translate-y-1/2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-full btn-press hover:bg-primary/5"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             <ChevronLeft className="w-4 h-4" />

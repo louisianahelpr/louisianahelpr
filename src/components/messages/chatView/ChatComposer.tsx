@@ -144,7 +144,7 @@ export function ChatComposer({
             type="button"
             onClick={onCancelReply}
             aria-label="Cancel reply"
-            className="shrink-0 h-8 w-8 -mr-1 -mt-1 inline-flex items-center justify-center rounded-full"
+            className="shrink-0 min-h-[44px] min-w-[44px] -mr-1 -mt-1 inline-flex items-center justify-center rounded-full"
             style={{ color: "hsl(var(--olivewood))" }}
           >
             <X className="w-4 h-4" strokeWidth={2} />

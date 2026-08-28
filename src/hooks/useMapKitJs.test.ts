@@ -122,3 +122,48 @@ describe("minted token shape", () => {
     expect(header.alg).toBe("ES256");
   });
 });
+
+/**
+ * The fallback must stay — but it must stop being SILENT.
+ *
+ * Removing `VITE_APPLE_MAPKIT_TOKEN` today would break every map instantly
+ * rather than gracefully (the `mapkit-token` function answers 503
+ * `not_configured` on roughly half its calls, measured 2026-08-27), so the
+ * sequencing is secrets first, then remove. Until then the honest thing is to
+ * record WHICH credential is serving the map, so the degraded state is
+ * visible to the UI and loud in error_logs instead of looking like success.
+ */
+async function resolveTokenWithSource(
+  fetchImpl: typeof fetch,
+  buildToken: string | undefined,
+): Promise<{ token: string | undefined; source: "server" | "build-time" | "none" }> {
+  const token = await resolveToken(fetchImpl, buildToken);
+  if (token && token !== buildToken) return { token, source: "server" };
+  return { token, source: token ? "build-time" : "none" };
+}
+
+describe("MapKit token source is recorded, not swallowed", () => {
+  it("reports the server source when the function is configured", async () => {
+    const f = vi.fn().mockResolvedValue(jsonRes(200, { token: SERVER_TOKEN })) as unknown as typeof fetch;
+    await expect(resolveTokenWithSource(f, BUILD_TOKEN)).resolves.toEqual({
+      token: SERVER_TOKEN,
+      source: "server",
+    });
+  });
+
+  it("flags the unrestricted build-time fallback on a 503 rather than passing silently", async () => {
+    const f = vi.fn().mockResolvedValue(jsonRes(503, { error: "not_configured" })) as unknown as typeof fetch;
+    await expect(resolveTokenWithSource(f, BUILD_TOKEN)).resolves.toEqual({
+      token: BUILD_TOKEN,
+      source: "build-time",
+    });
+  });
+
+  it("reports no source at all when neither credential exists — the missing-token state", async () => {
+    const f = vi.fn().mockResolvedValue(jsonRes(503, { error: "not_configured" })) as unknown as typeof fetch;
+    await expect(resolveTokenWithSource(f, undefined)).resolves.toEqual({
+      token: undefined,
+      source: "none",
+    });
+  });
+});

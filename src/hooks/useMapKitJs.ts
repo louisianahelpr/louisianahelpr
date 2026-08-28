@@ -59,10 +59,33 @@ const AUTH_CONFIRM_TIMEOUT_MS = 5_000;
  *  the map, and the fallback is a fully working token. */
 const SERVER_TOKEN_TIMEOUT_MS = 3_000;
 
-// Reported ONCE per session, not per call: MapKit re-invokes the authorization
-// callback on every refresh, so an unconditional report would flood Sentry
-// with the same misconfiguration.
-let serverTokenFailureReported = false;
+// Reported once per DISTINCT REASON, not once per session and not once per
+// call. MapKit re-invokes the authorization callback on every refresh, so an
+// unconditional report would flood error_logs with the same line; but a single
+// once-ever flag hid the second failure mode behind the first (a 503 on the
+// first call and a timeout on the tenth are different problems, and only the
+// 503 was ever written down).
+const reportedTokenFailures = new Set<string>();
+
+/**
+ * Whether the map currently on screen is being served by the UNRESTRICTED
+ * build-time token. True means: the origin-locked server path failed and we
+ * fell back to a credential that is compiled into the public JS bundle and can
+ * be lifted out of it by any visitor.
+ *
+ * Exposed so the UI can say so calmly instead of rendering a map that looks
+ * exactly like a correctly-configured one. See `useMapKitTokenSource`.
+ */
+export type MapKitTokenSource = "unknown" | "server" | "build-time" | "none";
+
+let tokenSource: MapKitTokenSource = "unknown";
+const tokenSourceListeners = new Set<(s: MapKitTokenSource) => void>();
+
+function setTokenSource(next: MapKitTokenSource) {
+  if (tokenSource === next) return;
+  tokenSource = next;
+  tokenSourceListeners.forEach((fn) => fn(next));
+}
 
 let cachedStatus: MapKitStatus = "idle";
 let pending: Promise<MapKitStatus> | null = null;
@@ -134,11 +157,23 @@ async function fetchServerToken(): Promise<string | null> {
  * working feature for months.
  */
 function reportServerTokenFailure(reason: string) {
-  if (serverTokenFailureReported) return;
-  serverTokenFailureReported = true;
-  report(new Error(`MapKit falling back to the unrestricted build-time token: ${reason}`), {
-    tags: { source: "useMapKitJs.fetchServerToken" },
-  });
+  if (reportedTokenFailures.has(reason)) return;
+  reportedTokenFailures.add(reason);
+  // `severity: "error"`, explicitly. This is not a degraded nicety: while it
+  // is true, every map in production is authorized by a credential sitting in
+  // the public bundle with no origin claim, and the daily checks must keep
+  // tripping over it until APPLE_MAPKIT_PRIVATE_KEY / _KEY_ID / _TEAM_ID are
+  // set. Measured 2026-08-27: 101x 503 against 96x 200 in 24h.
+  report(
+    new Error(`MapKit falling back to the unrestricted build-time token: ${reason}`),
+    {
+      severity: "error",
+      tags: {
+        source: "useMapKitJs.fetchServerToken",
+        mapkit_token_source: "build-time-unrestricted",
+      },
+    },
+  );
 }
 
 /**
@@ -149,8 +184,18 @@ function reportServerTokenFailure(reason: string) {
  */
 async function resolveToken(): Promise<string | undefined> {
   const served = await fetchServerToken();
-  if (served) return served;
-  return getBuildTimeToken();
+  if (served) {
+    setTokenSource("server");
+    return served;
+  }
+  const built = getBuildTimeToken();
+  // The fallback STAYS — deleting it today would break every map instantly
+  // rather than gracefully, and the owner's sequencing is "secrets first, then
+  // remove". What changes is that it is no longer silent: the session is
+  // marked degraded, so the surfaces that draw a map can say the map is not
+  // trustworthy instead of drawing one that looks fine.
+  setTokenSource(built ? "build-time" : "none");
+  return built;
 }
 
 function loadScript(): Promise<MapKitStatus> {
@@ -295,4 +340,25 @@ export function useMapKitJs(): MapKitStatus {
   }, []);
 
   return status;
+}
+
+/**
+ * Which credential MapKit is running on right now.
+ *
+ * Callers use this to distinguish "the map is fine" from "the map is only up
+ * because we fell back to a token anyone can copy out of the bundle". It is a
+ * module-level value with a subscription rather than component state because
+ * MapKit resolves the token once per session (and again on refresh), long
+ * before or after any given component mounts.
+ */
+export function useMapKitTokenSource(): MapKitTokenSource {
+  const [source, setSource] = useState<MapKitTokenSource>(tokenSource);
+  useEffect(() => {
+    setSource(tokenSource);
+    tokenSourceListeners.add(setSource);
+    return () => {
+      tokenSourceListeners.delete(setSource);
+    };
+  }, []);
+  return source;
 }

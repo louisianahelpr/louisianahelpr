@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useMapKitJs } from "@/hooks/useMapKitJs";
+import { MapPinOff } from "lucide-react";
 
 function resolveToken(varName: string, fallback: string): string {
   if (typeof document === "undefined") return fallback;
@@ -142,6 +143,37 @@ export function AppleMapPreview({ street, city, state, zipCode }: AppleMapPrevie
       annotationRef.current = null;
     };
   }, []);
+
+  // HONEST, not invisible. This used to `return null` for every non-ready
+  // status, so a MapKit that could not authorize at all looked identical to a
+  // half-typed address — the map simply never appeared and nothing anywhere
+  // said why. Once the user has typed enough of an address to expect a
+  // preview, an unusable MapKit gets a calm panel that says so.
+  //
+  // Deliberately calm and deliberately non-blocking: the address text in the
+  // form is the source of truth, the job posts fine without a preview, and the
+  // Helpr who receives it gets a Directions button that never touches MapKit.
+  // Nobody is stranded by this.
+  if (enoughAddress && (mapKitStatus === "missing-token" || mapKitStatus === "error")) {
+    return (
+      <div
+        role="status"
+        className="w-full h-32 rounded-2xl overflow-hidden flex flex-col items-center justify-center gap-1.5 px-4 text-center"
+        style={{
+          border: "0.5px solid hsl(var(--olivewood) / 0.22)",
+          background: "hsl(var(--olivewood) / 0.05)",
+        }}
+      >
+        <MapPinOff className="w-5 h-5" style={{ color: "hsl(var(--olivewood) / 0.7)" }} aria-hidden="true" />
+        <p className="text-ds-11" style={{ color: "hsl(var(--olivewood))" }}>
+          Map preview isn’t available right now.
+        </p>
+        <p className="text-ds-10 text-muted-foreground">
+          Your address is still saved and your Helpr will still get directions.
+        </p>
+      </div>
+    );
+  }
 
   if (mapKitStatus !== "ready" || !resolved) {
     return null;

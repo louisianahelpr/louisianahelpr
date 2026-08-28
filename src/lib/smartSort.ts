@@ -27,6 +27,29 @@ export interface HelperLocation {
   lng: number;
 }
 
+/**
+ * Shared "pay/date" comparator for the non-smart sort modes (highest_pay /
+ * lowest_pay / ending_soon / newest). Pulled out so every place that renders
+ * a slice of jobs — the main filtered feed AND the "Picked for you"
+ * recommended band — orders by the SAME rule the Sort By control names.
+ *
+ * Before this existed, the recommended band kept its own recommendation-
+ * score order regardless of `sortBy`, so changing Sort By on the unfiltered
+ * Browse feed appeared to do nothing: most of the visible jobs were sitting
+ * in the recommended band, which never reordered. `smart` is intentionally
+ * NOT handled here — callers that support it should keep their own
+ * pre-computed rank map (see `smartIndexByJobId` in useDashboardFilters);
+ * for the recommended band, "smart" order is the recommendation score itself.
+ */
+export function compareJobsBySortMode(a: EnrichedJob, b: EnrichedJob, sortBy: string): number {
+  switch (sortBy) {
+    case "highest_pay": return b.budget - a.budget;
+    case "lowest_pay": return a.budget - b.budget;
+    case "ending_soon": return new Date(a.date_needed).getTime() - new Date(b.date_needed).getTime();
+    default: return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  }
+}
+
 /** Recency half-life — score halves every ~4 days of age. */
 const RECENCY_HALFLIFE_MS = 4 * 24 * 60 * 60 * 1000;
 

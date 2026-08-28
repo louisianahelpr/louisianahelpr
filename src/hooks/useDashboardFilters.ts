@@ -5,7 +5,7 @@ import type { EnrichedJob } from "@/components/dashboard/types";
 import type { Database } from "@/integrations/supabase/types";
 import { haversineMiles, parseNearbyFilter } from "@/lib/geo";
 import { useUserLocation } from "@/hooks/useUserLocation";
-import { sortJobsSmart } from "@/lib/smartSort";
+import { sortJobsSmart, compareJobsBySortMode } from "@/lib/smartSort";
 import { earlyAccessDelayMs, resolveEarlyAccessTier } from "@/lib/earlyAccess";
 import type { MapJobFilterInput } from "@/components/browseMap/mapFilter";
 
@@ -286,10 +286,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
           const bi = smartIndexByJobId?.get(b.id) ?? Number.MAX_SAFE_INTEGER;
           return ai - bi;
         }
-        case "highest_pay": return b.budget - a.budget;
-        case "lowest_pay": return a.budget - b.budget;
-        case "ending_soon": return new Date(a.date_needed).getTime() - new Date(b.date_needed).getTime();
-        default: return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        default: return compareJobsBySortMode(a, b, sortBy);
       }
     }), [allJobs, userId, searchQuery, selectedCategory, minBudget, maxBudget, locationFilter, nearbyMiles, userLoc, expiresWithin, helprTier, earlyAccessTier, matchAvailability, helperAvailability, sortBy, boostedOnly, urgentOnly, earlyAccessExempt, profile?.parish, profile?.location, smartIndexByJobId, todayLocalDate]);
 

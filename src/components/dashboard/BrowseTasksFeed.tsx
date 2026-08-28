@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/skeletons/JobCardSkeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getCachedUserLocation } from "@/hooks/useUserLocation";
+import { compareJobsBySortMode } from "@/lib/smartSort";
 import { useProfile } from "@/hooks/useProfile";
 import { useHelprActivity } from "@/hooks/useHelprActivity";
 import type { EnrichedJob } from "@/components/dashboard/types";
@@ -243,11 +244,21 @@ export function BrowseTasksFeed({
     // No "Picked for you" band while filtering to saved — the user asked for
     // one specific list, and a personalised section above it is the app
     // answering a question it wasn't asked.
+    //
+    // Order within the band follows the Sort By control (except "smart",
+    // which keeps the recommendation-score order that IS this band's
+    // notion of "smart"). Without this, Sort By on the default unfiltered
+    // feed looked like a no-op: this band holds up to 5 of the visible
+    // jobs and never reordered when sortBy changed, since it was built
+    // purely from the recommendation score. See compareJobsBySortMode.
     const recommended = !filters.hasFilters && !savedOnly
-      ? recommendedJobs.filter(j => !dismissedJobIds.has(j.id))
+      ? recommendedJobs
+          .filter(j => !dismissedJobIds.has(j.id))
+          .slice()
+          .sort((a, b) => filters.sortBy === "smart" ? 0 : compareJobsBySortMode(a, b, filters.sortBy))
       : [];
     return { visibleJobs: visible, recommendedVisible: recommended };
-  }, [filters.filteredJobs, filters.hasFilters, recommendedJobs, dismissedJobIds, savedOnly, savedJobIds]);
+  }, [filters.filteredJobs, filters.hasFilters, filters.sortBy, recommendedJobs, dismissedJobIds, savedOnly, savedJobIds]);
 
   return (
     <>

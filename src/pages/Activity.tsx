@@ -40,6 +40,7 @@ import {
 import { ActivityHeader, ACTIVITY_HEADER_PADDING } from "@/pages/activity/ActivityHeader";
 import { ActivityEmptyState } from "@/pages/activity/ActivityEmptyState";
 import { usePushPermissionNudge } from "@/lib/pushPermissionNudge";
+import { useSearchParamMirror } from "@/hooks/useSearchParamMirror";
 import SectionBoundary from "@/components/SectionBoundary";
 import { defaultStatusFilterFor } from "@/components/activity/activityConstants";
 
@@ -106,88 +107,43 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     // Run once on mount — highlightAppId is stable (useState initial value).
   }, []);
 
-  // Push filter/search changes back into the URL so navigating away and
-  // back (or browser back/forward) restores the view. Skip the write
-  // when the value is already the URL default to avoid noisy history
-  // entries on first load.
-  // Latest params, readable without subscribing to them. Assigned during
-  // render so the effect below always sees the current URL even though it
-  // deliberately does not depend on it.
-  const searchParamsRef = useRef(searchParams);
-  searchParamsRef.current = searchParams;
-  useEffect(() => {
-    const current = new URLSearchParams(searchParamsRef.current);
-    let changed = false;
-    if (statusFilter === defaultFilter) {
-      if (current.has("filter")) { current.delete("filter"); changed = true; }
-    } else if (current.get("filter") !== statusFilter) {
-      current.set("filter", statusFilter);
-      changed = true;
-    }
-    const trimmedQuery = searchQuery.trim();
-    if (!trimmedQuery) {
-      if (current.has("q")) { current.delete("q"); changed = true; }
-    } else if (current.get("q") !== trimmedQuery) {
-      current.set("q", trimmedQuery);
-      changed = true;
-    }
-    // Compare against the LIVE URL, not React's copy, before writing.
-    //
-    // `changed` above is computed from searchParamsRef, i.e. React's view of
-    // the params. If a write does not produce a re-render, that view stays
-    // stale — so the effect recomputes "changed" from the pre-write value and
-    // writes the SAME string again. Re-triggered by `setSearchParams`, whose
-    // identity is not stable across location changes (the old comment here
-    // claimed it was), that is an unbounded loop.
-    //
-    // WebKit throws at 100 replaceState calls in 10s, which unmounts the route
-    // into the error boundary. That is the crash the owner hit on /my-jobs; it
-    // SURVIVED the first fix (d36a90b17), which only removed searchParams from
-    // the dep array. window.location.search is the one source that cannot go
-    // stale, so this comparison terminates the loop regardless of why the
-    // effect re-ran.
-    if (changed) {
-      const next = current.toString();
-      const live = typeof window !== "undefined"
-        ? window.location.search.replace(/^\?/, "")
-        : "";
-      if (next !== live) setSearchParams(current, { replace: true });
-    }
-    // `searchParams` is read through a ref and is NOT a dependency. The
-    // comment here used to claim exactly that while the array below listed
-    // it — so this effect re-ran on its own write, and with the URL→state
-    // effect and the auto-tab effect both keyed on `searchParams` too, a
-    // realtime refetch could set the three oscillating. On iOS that is not
-    // a soft loop: WebKit throws "Attempt to use history.replaceState()
-    // more than 100 times per 10 seconds", which unmounts the route into
-    // the error boundary — the owner hit it as a crash on /my-jobs, logged
-    // in error_logs 2026-08-27 18:14 with this exact message.
-  }, [statusFilter, searchQuery, defaultFilter, setSearchParams]);
-
-  // Sync filter when URL search params change externally (e.g. navigating
-  // from a notification or via browser back/forward — not from our own
-  // write above, which already matches local state).
+  // Mirror filter + search into the URL through the SHARED hook.
   //
-  // We read the latest local filter/query through refs rather than listing
-  // them as effect deps. If they were deps, this effect would also fire on
-  // a *local* selection — at which point `searchParams` is still the
-  // pre-write value (the Effect above's `setSearchParams` hasn't committed
-  // a re-render yet), so it would read "no filter" and clobber the
-  // just-applied selection back to the default. Depending only on the URL
-  // means this runs solely for genuine external navigation.
-  const statusFilterRef = useRef(statusFilter);
-  const searchQueryRef = useRef(searchQuery);
-  statusFilterRef.current = statusFilter;
-  searchQueryRef.current = searchQuery;
-  useEffect(() => {
-    const paramFilter = searchParams.get("filter") ?? defaultFilter;
-    if (paramFilter !== statusFilterRef.current) setStatusFilter(paramFilter);
-    const paramQuery = searchParams.get("q") ?? "";
-    if (paramQuery !== searchQueryRef.current.trim()) {
-      setSearchQuery(paramQuery);
-      if (paramQuery) setSearchOpen(true);
-    }
-  }, [searchParams, defaultFilter]);
+  // This screen used to hand-roll the same job in three interacting effects,
+  // and it is the reason /my-jobs and /my-posts kept crashing into the route
+  // error boundary. The failure mode is not obvious: `setSearchParams`
+  // navigates unconditionally AND its identity churns on every location
+  // change, so an effect that both writes it and depends on it re-arms itself.
+  // WebKit throws at ~100 replaceState calls in 10s, which unmounts the route.
+  // error_logs shows 19 of the last 20 RouteErrorBoundary entries are exactly
+  // that message, across /browse, /my-jobs and /my-posts.
+  //
+  // /browse had the identical bug and was cured by moving onto
+  // useSearchParamMirror, which decides OUTSIDE the updater (so the navigator
+  // is never called on a no-op) and reaches setSearchParams through a ref (so
+  // its identity cannot feed back into the deps). /browse has been clean since.
+  // Activity was the last screen still hand-rolling it; this converges it.
+  //
+  // Empty string means "default" to the hook, so the param is DROPPED rather
+  // than written when the filter is at its default and the search is blank —
+  // preserving the previous behaviour of keeping a pristine view's URL clean.
+  // `highlight` is not listed here and is therefore left untouched by the
+  // hook; the one-shot effect above still strips it on mount.
+  useSearchParamMirror(
+    {
+      filter: statusFilter === defaultFilter ? "" : statusFilter,
+      q: searchQuery.trim(),
+    },
+    (read) => {
+      const nextFilter = read("filter") || defaultFilter;
+      if (nextFilter !== statusFilter) setStatusFilter(nextFilter);
+      const nextQuery = read("q");
+      if (nextQuery !== searchQuery.trim()) {
+        setSearchQuery(nextQuery);
+        if (nextQuery) setSearchOpen(true);
+      }
+    },
+  );
 
   const {
     loading, loadError, postedJobs, appliedApps, applicantCounts,
@@ -268,9 +224,16 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
      deep link and a deliberate tap both mean "show me this one, even empty".
      Same rule the Messages inbox uses for its Unread tab. */
   const autoTabbedRef = useRef<string | null>(null);
+  // Depends on the query STRING, not the `searchParams` object. The object is
+  // freshly allocated on every location change, so as a dep it re-arms this
+  // effect after each of our own URL writes — the same feedback shape that
+  // made the mirror above loop into WebKit's replaceState throttle. The
+  // `autoTabbedRef` guard already made a loop impossible here, so this is
+  // defence in depth and changes no behaviour: same value, read once per tab.
+  const searchString = searchParams.toString();
   useEffect(() => {
     if (autoTabbedRef.current === tab) return;
-    if (searchParams.get("filter")) { autoTabbedRef.current = tab; return; }
+    if (new URLSearchParams(searchString).get("filter")) { autoTabbedRef.current = tab; return; }
     if (loading) return;
     const total = Object.values(activeCounts).reduce((a, b) => a + (b || 0), 0);
     if (total === 0) return;
@@ -279,7 +242,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     const firstFilled = activeStatusFilters.find((f) => (activeCounts[f.key] ?? 0) > 0);
     if (firstFilled) setStatusFilter(firstFilled.key);
     // `activeStatusFilters` is a stable per-tab list; the counts are what move.
-  }, [tab, loading, activeCounts, defaultFilter, activeStatusFilters, searchParams]);
+  }, [tab, loading, activeCounts, defaultFilter, activeStatusFilters, searchString]);
 
   // "Truly empty" — the underlying list has zero items (not merely
   // filtered down to none). When there's nothing at all, the secondary

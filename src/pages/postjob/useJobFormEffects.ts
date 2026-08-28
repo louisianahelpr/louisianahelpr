@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { lookupParishByZip } from "@/lib/parishLookup";
 import { report } from "@/lib/errorLogger";
+import { pickRequestedProfile } from "@/lib/safeProfiles";
 import { posterFeePercentForTier } from "@/lib/posterFees";
 import { CUSTOMER_FEE_LEGACY_FALLBACK_PERCENT } from "@/lib/legacyFeeFallback";
 import { validateResult } from "@/lib/validateResult";
@@ -291,7 +292,16 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
             context: { helper_id: offerTo },
           });
         }
-        const prof = Array.isArray(data) ? data[0] : null;
+        // Re-match rather than trusting row [0]. `get_safe_profiles` matches
+        // profiles.user_id OR profiles.id, and one uuid can be person A's
+        // user_id and person B's id at once (live on prod: 6bdc1f67-...a6147).
+        // Taking [0] blind can name the WRONG helper on a screen whose whole
+        // job is confirming who this offer goes to — the post would still
+        // target `offerTo` correctly, so the poster gets no chance to notice.
+        const rows = (Array.isArray(data) ? data : []) as Array<
+          { user_id?: string | null; profile_id?: string | null; full_name?: string | null }
+        >;
+        const prof = pickRequestedProfile(rows, offerTo);
         if (prof) setOfferToHelperName(prof.full_name || "this Helpr");
       });
   }, [searchParams]);

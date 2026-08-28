@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.17"
   }
   public: {
     Tables: {
@@ -260,103 +260,6 @@ export type Database = {
         }
         Relationships: []
       }
-      business_api_keys: {
-        Row: {
-          business_id: string
-          created_at: string
-          created_by: string | null
-          id: string
-          key_hash: string
-          key_last4: string | null
-          last_used_at: string | null
-          name: string
-          revoked_at: string | null
-        }
-        Insert: {
-          business_id: string
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          key_hash: string
-          key_last4?: string | null
-          last_used_at?: string | null
-          name: string
-          revoked_at?: string | null
-        }
-        Update: {
-          business_id?: string
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          key_hash?: string
-          key_last4?: string | null
-          last_used_at?: string | null
-          name?: string
-          revoked_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "business_api_keys_business_id_fkey"
-            columns: ["business_id"]
-            isOneToOne: false
-            referencedRelation: "businesses"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      business_job_templates: {
-        Row: {
-          active: boolean
-          business_id: string
-          created_at: string
-          created_by: string | null
-          id: string
-          last_run_at: string | null
-          name: string
-          next_run_at: string | null
-          schedule_cron: string
-          schedule_label: string | null
-          template_payload: Json
-          updated_at: string
-        }
-        Insert: {
-          active?: boolean
-          business_id: string
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          last_run_at?: string | null
-          name: string
-          next_run_at?: string | null
-          schedule_cron: string
-          schedule_label?: string | null
-          template_payload?: Json
-          updated_at?: string
-        }
-        Update: {
-          active?: boolean
-          business_id?: string
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          last_run_at?: string | null
-          name?: string
-          next_run_at?: string | null
-          schedule_cron?: string
-          schedule_label?: string | null
-          template_payload?: Json
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "business_job_templates_business_id_fkey"
-            columns: ["business_id"]
-            isOneToOne: false
-            referencedRelation: "businesses"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       business_members: {
         Row: {
           business_id: string
@@ -400,50 +303,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "business_members_business_id_fkey"
-            columns: ["business_id"]
-            isOneToOne: false
-            referencedRelation: "businesses"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      business_webhooks: {
-        Row: {
-          active: boolean
-          business_id: string
-          created_at: string
-          events: string[]
-          id: string
-          last_delivery_at: string | null
-          last_delivery_status: string | null
-          secret: string
-          url: string
-        }
-        Insert: {
-          active?: boolean
-          business_id: string
-          created_at?: string
-          events?: string[]
-          id?: string
-          last_delivery_at?: string | null
-          last_delivery_status?: string | null
-          secret: string
-          url: string
-        }
-        Update: {
-          active?: boolean
-          business_id?: string
-          created_at?: string
-          events?: string[]
-          id?: string
-          last_delivery_at?: string | null
-          last_delivery_status?: string | null
-          secret?: string
-          url?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "business_webhooks_business_id_fkey"
             columns: ["business_id"]
             isOneToOne: false
             referencedRelation: "businesses"
@@ -663,6 +522,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      cron_run_log: {
+        Row: {
+          body: Json
+          created_at: string
+          id: number
+          jobname: string
+          occurred_at: string
+          response_id: number
+          status_code: number | null
+        }
+        Insert: {
+          body?: Json
+          created_at?: string
+          id?: never
+          jobname: string
+          occurred_at: string
+          response_id: number
+          status_code?: number | null
+        }
+        Update: {
+          body?: Json
+          created_at?: string
+          id?: never
+          jobname?: string
+          occurred_at?: string
+          response_id?: number
+          status_code?: number | null
+        }
+        Relationships: []
+      }
+      cron_work_expectations: {
+        Row: {
+          candidate_key: string
+          disposition_keys: string[]
+          jobname: string
+          min_streak: number
+          note: string
+        }
+        Insert: {
+          candidate_key: string
+          disposition_keys: string[]
+          jobname: string
+          min_streak?: number
+          note?: string
+        }
+        Update: {
+          candidate_key?: string
+          disposition_keys?: string[]
+          jobname?: string
+          min_streak?: number
+          note?: string
+        }
+        Relationships: []
       }
       disputes: {
         Row: {
@@ -5115,39 +5028,33 @@ export type Database = {
           slots_total: number
         }[]
       }
-      admin_list_business_accounts: {
-        Args: never
-        Returns: {
-          billing_mode: string
-          business_id: string
-          business_name: string
-          created_at: string
-          last_activity_at: string
-          member_count: number
-          owner_email: string
-          owner_id: string
-          owner_name: string
-          seat_tier: string
-          total_gmv_cents: number
-          verification_status: string
-        }[]
+      apply_cancellation_violation_consequence: {
+        Args: { p_job_id: string }
+        Returns: Json
       }
-      admin_list_business_members: {
-        Args: { _business_id: string }
-        Returns: {
-          email: string
-          full_name: string
-          joined_at: string
-          member_id: string
-          role: string
-          status: string
-          user_id: string
-        }[]
+      apply_consequence_ladder: {
+        Args: {
+          p_admin_message_format: string
+          p_ban_reason: string
+          p_clamp_to_worse_status: boolean
+          p_copy: Json
+          p_description: string
+          p_effects: string[]
+          p_job_id: string
+          p_permanent_requires_review: boolean
+          p_prior_count: number
+          p_rungs: string[]
+          p_suspension_days: number
+          p_user: string
+          p_violation_type: string
+        }
+        Returns: Json
       }
       apply_job_denial_consequence: {
         Args: { p_description: string; p_helper: string; p_job: string }
         Returns: Json
       }
+      apply_low_rating_flag: { Args: { p_reviewee_id: string }; Returns: Json }
       apply_message_violation_consequence: {
         Args: { p_content: string; p_description: string }
         Returns: Json
@@ -5172,40 +5079,13 @@ export type Database = {
           tip_amount: number
         }[]
       }
-      business_activity_feed: {
-        Args: { p_before?: string; p_business_id: string; p_limit?: number }
-        Returns: {
-          actor_id: string
-          actor_name: string
-          amount: number
-          department: string
-          event_at: string
-          event_type: string
-          job_id: string
-          job_title: string
-        }[]
+      block_user_and_settle: {
+        Args: { p_blocked: string; p_reason?: string }
+        Returns: Json
       }
-      business_budget_alert_check: {
-        Args: { p_business_id: string }
-        Returns: boolean
-      }
-      business_seat_limit: { Args: { _business_id: string }; Returns: number }
       business_seat_limit_for_tier: {
         Args: { _seat_tier: string }
         Returns: number
-      }
-      business_spend_summary: {
-        Args: { p_business_id: string }
-        Returns: {
-          email: string
-          full_name: string
-          in_escrow_amount: number
-          paid_amount: number
-          pending_amount: number
-          posted_amount: number
-          posted_count: number
-          user_id: string
-        }[]
       }
       can_message_in_job: {
         Args: { _job_id: string; _sender: string }
@@ -5215,7 +5095,15 @@ export type Database = {
         Args: { _job_id: string; _reviewer_id: string }
         Returns: boolean
       }
+      cancellation_fee_percent: {
+        Args: { p_has_helper: boolean; p_hours_until: number }
+        Returns: number
+      }
       check_dispute_velocity: { Args: { p_user_id: string }; Returns: boolean }
+      claim_idv_attempt: {
+        Args: { p_max_attempts?: number; p_user_id: string }
+        Returns: Json
+      }
       cleanup_observability_tables: { Args: never; Returns: undefined }
       cleanup_stripe_webhook_events: { Args: never; Returns: undefined }
       clear_available_now: { Args: never; Returns: undefined }
@@ -5224,10 +5112,6 @@ export type Database = {
         Returns: boolean
       }
       count_profiles: { Args: never; Returns: number }
-      create_business_api_key: {
-        Args: { _business_id: string; _name: string }
-        Returns: Json
-      }
       decline_job_offer: { Args: { p_application_id: string }; Returns: Json }
       delete_email: {
         Args: { message_id: number; queue_name: string }
@@ -5405,18 +5289,6 @@ export type Database = {
           other_user_id: string
         }[]
       }
-      get_my_business_verification: {
-        Args: never
-        Returns: {
-          business_id: string
-          business_name: string
-          is_owner: boolean
-          verification_document_type: string
-          verification_document_url: string
-          verification_rejection_reason: string
-          verification_status: string
-        }[]
-      }
       get_my_saved_helpers: {
         Args: never
         Returns: {
@@ -5486,19 +5358,6 @@ export type Database = {
           total_payout: number
         }[]
       }
-      get_pending_business_verifications: {
-        Args: never
-        Returns: {
-          business_id: string
-          business_name: string
-          document_type: string
-          document_url: string
-          owner_email: string
-          owner_id: string
-          owner_name: string
-          submitted_at: string
-        }[]
-      }
       get_pending_credentials: {
         Args: never
         Returns: {
@@ -5514,15 +5373,6 @@ export type Database = {
           license_url: string
           submitted_at: string
           user_id: string
-        }[]
-      }
-      get_pending_invite_for_email: {
-        Args: { _email: string }
-        Returns: {
-          business_id: string
-          business_name: string
-          invite_id: string
-          invited_by_name: string
         }[]
       }
       get_platform_benchmarks: {
@@ -5576,6 +5426,7 @@ export type Database = {
         Args: never
         Returns: {
           customer_fee_percent: number
+          feature_flags: Json
           helper_fee_percent: number
           hybrid_idv_enabled: boolean
           id: string
@@ -5585,7 +5436,7 @@ export type Database = {
         }[]
       }
       get_ranked_open_jobs: {
-        Args: { p_limit?: number; p_offset?: number }
+        Args: { p_include_seed?: boolean; p_limit?: number; p_offset?: number }
         Returns: {
           boost_expires_at: string
           boosted_at: string
@@ -5668,7 +5519,6 @@ export type Database = {
           user_id: string
         }[]
       }
-      get_user_business_ids: { Args: { _user_id: string }; Returns: string[] }
       get_user_credential_tier: { Args: { p_user_id: string }; Returns: number }
       get_user_last_active: {
         Args: { user_ids: string[] }
@@ -5681,14 +5531,6 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: number
       }
-      claim_idv_attempt: {
-        Args: { p_max_attempts?: number; p_user_id: string }
-        Returns: Json
-      }
-      helper_award_block_reason: {
-        Args: { p_user_id: string }
-        Returns: string | null
-      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -5699,6 +5541,10 @@ export type Database = {
       helper_abort_job: {
         Args: { p_job_id: string; p_reason: string }
         Returns: Json
+      }
+      helper_award_block_reason: {
+        Args: { p_user_id: string }
+        Returns: string
       }
       helper_cancel_booking: { Args: { p_job_id: string }; Returns: Json }
       instant_book_claim: { Args: { p_job_id: string }; Returns: undefined }
@@ -5720,13 +5566,17 @@ export type Database = {
         Returns: boolean
       }
       is_helper_shadowbanned: { Args: { _helper_id: string }; Returns: boolean }
+      is_late_cancellation: {
+        Args: { p_has_helper: boolean; p_hours_until: number }
+        Returns: boolean
+      }
       is_thread_muted: {
         Args: { _job_id: string; _other_user_id: string; _user: string }
         Returns: boolean
       }
-      is_user_verified_business_member: {
-        Args: { _user_id: string }
-        Returns: boolean
+      job_hours_until_start: {
+        Args: { p_at: string; p_date_needed: string }
+        Returns: number
       }
       log_notification: {
         Args: {
@@ -5755,10 +5605,15 @@ export type Database = {
         }
         Returns: number
       }
+      poster_cancel_job: {
+        Args: { p_job_id: string; p_reason?: string }
+        Returns: Json
+      }
       process_referral: {
         Args: { p_new_user_id: string; p_referral_code: string }
         Returns: boolean
       }
+      prune_cron_run_log: { Args: never; Returns: undefined }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
@@ -5766,14 +5621,6 @@ export type Database = {
           msg_id: number
           read_ct: number
         }[]
-      }
-      reassign_business_jobs: {
-        Args: {
-          p_business_id: string
-          p_from_user_id: string
-          p_to_user_id: string
-        }
-        Returns: number
       }
       record_job_view: { Args: { p_job_id: string }; Returns: string }
       record_profile_view: {
@@ -5804,14 +5651,6 @@ export type Database = {
       }
       respond_to_review: {
         Args: { _response_text: string; _review_id: string }
-        Returns: undefined
-      }
-      review_business_verification: {
-        Args: {
-          _business_id: string
-          _decision: string
-          _rejection_reason?: string
-        }
         Returns: undefined
       }
       review_credential: {
@@ -5853,6 +5692,7 @@ export type Database = {
         Args: { _job_id: string; _other_user_id: string; _until: string }
         Returns: string
       }
+      sweep_cron_http_failures: { Args: never; Returns: Json }
       sweep_daily_job_digest: { Args: never; Returns: number }
       sweep_dayof_confirm_reminders: { Args: never; Returns: number }
       sweep_expired_auto_bans: { Args: never; Returns: number }
@@ -5863,12 +5703,9 @@ export type Database = {
       sweep_old_notifications: { Args: never; Returns: number }
       sweep_pending_broadcast_fan_outs: { Args: never; Returns: number }
       sweep_release_last_chance: { Args: never; Returns: number }
+      sweep_silent_cron_failures: { Args: never; Returns: Json }
       toggle_thread_mute: {
         Args: { _job_id: string; _other_user_id: string }
-        Returns: boolean
-      }
-      update_business_member_role: {
-        Args: { p_member_id: string; p_role: string }
         Returns: boolean
       }
       user_has_pending_application: {

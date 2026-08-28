@@ -22,8 +22,8 @@ import { adminNavGroups } from "@/components/admin/adminNavGroups";
 import { useSidePanel } from "@/components/sidePanelOpen";
 import { useActivityBadgeCounts } from "@/hooks/useActivityBadgeCounts";
 import { prefetchRoute } from "@/lib/routePrefetch";
-import { AUTH_PREFIXES, NO_NAV_PREFIXES, isDesktopRailRoute } from "@/lib/desktopNavRoutes";
-export { AUTH_PREFIXES, NO_NAV_PREFIXES, isDesktopRailRoute };
+import { isDesktopRailRoute } from "@/lib/desktopNavRoutes";
+export { isDesktopRailRoute };
 
 /**
  * DesktopSidebarNav — the persistent left-rail navigation shown ONLY on the

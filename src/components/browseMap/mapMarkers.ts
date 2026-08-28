@@ -5,7 +5,7 @@
 // in the get_open_jobs_for_map RPC). Untouched here regardless.
 
 import { divIcon, point as leafletPoint } from "leaflet";
-import { categoryHue, categoryHues } from "@/lib/categoryHues";
+import { categoryHue } from "@/lib/categoryHues";
 import type { MapJob } from "./config";
 
 function resolveToken(varName: string, fallback: string): string {
@@ -17,20 +17,6 @@ function resolveToken(varName: string, fallback: string): string {
 // Fix Leaflet's default-icon-not-found problem when bundlers can't
 // resolve the asset paths. We use a small inline div-icon instead so
 // pins render reliably across web + Capacitor iOS.
-// Per-category pin colour. Reads the ONE canonical palette
-// (`categoryHues`) that the feed cards, category chips and detail dialog
-// also paint from, so a pin and its job card are the same colour.
-//
-// This used to be a second, independent hex palette that had drifted from
-// the card palette on every single category (errands was gold here and
-// olive-lime there) and was missing `storm_prep` and `events` outright, so
-// both painted neutral grey. Re-exported under the old name so existing
-// importers keep working; `categoryHue()` handles the unknown-category
-// fallback.
-export const categoryColors: Record<string, string> = Object.fromEntries(
-  Object.keys(categoryHues).map((k) => [k, categoryHue(k)]),
-);
-
 // Branded cluster bubble. react-leaflet-cluster's built-in cluster styling
 // relies on the leaflet.markercluster default CSS (not imported here, to
 // keep the bundle lean), which made a cluster render as a tiny unstyled

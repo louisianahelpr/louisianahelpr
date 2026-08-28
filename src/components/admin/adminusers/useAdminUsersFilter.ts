@@ -6,7 +6,7 @@
  * refactor.
  */
 import type { Profile } from "../adminUserHelpers";
-import { isPendingReview, isAwaitingEmail, isVerifiedEmail } from "../adminUserHelpers";
+import { isPendingReview, isAwaitingEmail } from "../adminUserHelpers";
 
 export type Tab = "pending" | "awaiting_email" | "approved" | "denied" | "banned" | "all";
 export type SortDir =
@@ -161,6 +161,3 @@ export const getTabCounts = (
 
   return { pendingCount, awaitingEmailCount, bannedCount, approvedCount, deniedCount, allCount };
 };
-
-// Unused but exported to avoid import-only-types errors
-export { isVerifiedEmail };

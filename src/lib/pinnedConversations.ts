@@ -120,12 +120,6 @@ export async function loadPins(userId: string): Promise<Set<string>> {
   return server;
 }
 
-/** True when the given conversation is currently pinned for the user. */
-export function isPinned(userId: string, jobId: string, otherUserId: string): boolean {
-  if (!userId) return false;
-  return getPinnedSet(userId).has(pinnedKey(jobId, otherUserId));
-}
-
 /**
  * The full pinned-key set — used by the inbox to sort pinned threads to the
  * top in one synchronous pass. Falls back to the durable mirror when

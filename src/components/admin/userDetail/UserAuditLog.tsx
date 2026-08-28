@@ -12,7 +12,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
-import { History, ShieldAlert, Bell, FileText, UserCheck } from "lucide-react";
+import { History, ShieldAlert, Bell, UserCheck } from "lucide-react";
 import { report } from "@/lib/errorLogger";
 import { formatName } from "@/lib/utils";
 
@@ -224,9 +224,5 @@ export const UserAuditLog = ({ userId }: UserAuditLogProps) => {
     </div>
   );
 };
-
-// Convenience icon import for the timeline header — pulled from this
-// file so the consumer doesn't have to import lucide just for the chip.
-export { FileText as UserAuditLogIcon };
 
 export default UserAuditLog;

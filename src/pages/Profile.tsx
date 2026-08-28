@@ -217,7 +217,6 @@ const ProfilePage = () => {
   const [parish, setParish] = useState<string | null>(null);
   const [bio, setBio] = useState("");
   const [skills, setSkills] = useState("");
-  const [hourlyRate, setHourlyRate] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -245,7 +244,6 @@ const ProfilePage = () => {
         setParish(cachedProfile.parish || null);
         setBio(cachedProfile.bio || "");
         setSkills(cachedProfile.skills || "");
-        setHourlyRate(cachedProfile.hourly_rate?.toString() || "");
         setDateOfBirth(cachedProfile.date_of_birth || "");
         setSeniorMode(!!(cachedProfile as unknown as { senior_mode?: boolean }).senior_mode);
       }
@@ -385,7 +383,6 @@ const ProfilePage = () => {
     const { error } = await supabase.from("profiles").update({
       full_name: merged, phone: phone.trim(), location: location.trim(),
       bio: bio.trim(), skills: skills.trim(),
-      hourly_rate: hourlyRate ? parseFloat(hourlyRate) : null,
       date_of_birth: dateOfBirth || null,
       zip_code: zipCode.replace(/\D/g, "").slice(0, 5) || null,
       parish: parish,

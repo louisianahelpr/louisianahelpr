@@ -14,7 +14,6 @@ export interface SavedHelper {
   bio: string | null;
   parish: string | null;
   skills: string | null;
-  hourly_rate: number | null;
   saved_at: string;
   completed_jobs_together: number;
   last_job_at: string | null;

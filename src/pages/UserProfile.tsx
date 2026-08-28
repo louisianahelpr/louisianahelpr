@@ -10,7 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Briefcase, Clock, Crown, MoreVertical, Flag, Ban, UserX } from "lucide-react";
+import { Briefcase, Crown, MoreVertical, Flag, Ban, UserX } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -681,15 +681,12 @@ const UserProfile = () => {
             {/* Worked Jobs expanded inline */}
             {showWorkedJobs && <JobsList jobs={completedWorkedJobs} variant="worked" />}
 
-            {profile.hourly_rate && (
-              <div className="rounded-2xl liquid-glass p-5 flex items-center gap-3">
-                <Clock className="w-5 h-5 text-primary" />
-                <div>
-                  <p className="text-ds-13 font-semibold text-foreground">${profile.hourly_rate}/hr</p>
-                  <p className="text-ds-11 text-muted-foreground">Hourly rate</p>
-                </div>
-              </div>
-            )}
+            {/* No hourly-rate card. Louisiana Helpr prices jobs POSTER-side:
+                the poster sets the price and the helper bids against it, so a
+                helper's own "$X/hr" is not a number anybody transacts on. It
+                was shown here for months but could never be set (its editor
+                had been deleted), so every profile omitted it anyway. Retired
+                deliberately 2026-08-27 rather than given an editor. */}
 
             {/* Availability */}
             <HelperAvailabilityDisplay helperId={userId!} />

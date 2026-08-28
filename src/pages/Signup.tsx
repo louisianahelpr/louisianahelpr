@@ -222,9 +222,14 @@ const Signup = () => {
     const avatarBase64 = avatarFile ? await fileToBase64(avatarFile) : null;
     const avatarExt = avatarFile ? avatarFile.name.split(".").pop() : null;
 
-    // The optional profile extras (skills, credentials, portfolio, etc.) that
-    // used to be collected on Step 3 are now added later from Profile — the
-    // edge function defaults every omitted field to null, same as a skip.
+    // The optional profile extras that used to be collected on Step 3 are
+    // handled two different ways now, and the difference matters:
+    //   • Skills, credentials and portfolio are added later from Edit Profile,
+    //     which has an input for each.
+    //   • Hourly rate is NOT — it was retired 2026-08-27 (poster-set pricing),
+    //     so nothing in the app ever sets it and no editor is coming.
+    // Either way the edge function defaults every omitted field to null, same
+    // as a skip.
     const { data: result, error: fnError } = await supabase.functions.invoke("complete-signup", {
       body: {
         userId,

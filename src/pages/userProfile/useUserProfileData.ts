@@ -87,7 +87,7 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         prof = unwrap(
           await supabase
             .from("profiles")
-            .select("user_id, full_name, avatar_url, bio, location, skills, hourly_rate, subscription_tier, portfolio_urls, created_at, background_check_status")
+            .select("user_id, full_name, avatar_url, bio, location, skills, subscription_tier, portfolio_urls, created_at, background_check_status")
             .eq("user_id", userId!)
             .maybeSingle(),
         );

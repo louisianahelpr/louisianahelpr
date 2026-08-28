@@ -138,8 +138,14 @@ jobs:
         run: npm run lint || true
         continue-on-error: true
 
+      # BLOCKING (owner, 2026-08-27). This step was named "TypeScript type
+      # check" but ended in `|| true`, so it could not fail — an App Store
+      # release could ship with type errors while this reported green. The
+      # lint step above is at least labelled advisory; this one read as a gate
+      # and was not one. It is already blocking on every push to main via
+      # test.yml, so this should not newly break a release that was passing.
       - name: TypeScript type check
-        run: npx tsc -b --noEmit || true
+        run: npx tsc -b --noEmit
 
       - name: Production build (verifies no build errors)
         run: npm run build

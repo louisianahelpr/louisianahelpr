@@ -4,7 +4,7 @@
  * that exists here ONLY as the fee-percent reference for business accounts.
  *
  * Consumer prices MUST equal the live Stripe Price objects (verified):
- *   pro  $10/mo  $100/yr   elite  $15/mo  $150/yr
+ *   pro  $10/mo  $100/yr   elite  $20/mo  $200/yr
  * `annualPrice` is stored as the monthly-equivalent of the annual plan
  * (yearly ÷ 12) because the /subscription page renders it as "$X/mo annual".
  *
@@ -151,8 +151,13 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
   },
   elite: {
     name: TIER_DISPLAY_NAMES.elite,
-    price: 15,
-    annualPrice: 12.5,
+    // Raised $15 → $20 by the owner on 2026-08-27. The test-mode Stripe
+    // Prices ($20/mo, $200/yr, $20 once) were created and the
+    // STRIPE_PRICE_ELITE_* secrets repointed at the same time; this row was
+    // the half of the change that had not landed yet, so the storefront was
+    // advertising $15 for a checkout that charged $20.
+    price: 20,
+    annualPrice: 16.67,
     platformFeePercent: 8,
     priorityPlacement: true,
     featuredBadge: true,

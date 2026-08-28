@@ -1,5 +1,5 @@
 // The ONE place a raw `profiles.subscription_tier` id becomes a name a human
-// reads. Tiers are named by the tier alone — "Basic / Pro / Elite".
+// reads. Tiers are named by the tier alone — "Basic / Pro / Plus / Elite".
 //
 // This reversed an earlier rule (2026-08-24) that put the brand in front of
 // every tier: inside the app the brand is already established by the app you
@@ -22,6 +22,9 @@ export const TIER_DISPLAY_NAMES: Record<string, string> = {
   free: "Free",
   basic: "Basic",
   pro: "Pro",
+  // "Plus", never "Helpr Plus" — the no-brand-prefix ruling above applies to
+  // every tier added after it, this one included.
+  plus: "Plus",
   elite: "Elite",
   business: "Business",
 };

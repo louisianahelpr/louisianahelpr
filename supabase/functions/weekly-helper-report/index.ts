@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
       .select("user_id, full_name, email, subscription_tier, subscription_expires_at")
       .in("user_id", helperIds)
       .eq("approval_status", "approved")
-      .in("subscription_tier", ["pro", "elite"]);
+      .in("subscription_tier", ["pro", "plus", "elite"]);
 
     if (helpersError) throw helpersError;
     if (!helpers || helpers.length === 0) {

@@ -40,7 +40,9 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
   // other direction, and their monthly perk was spent without being named.
   const thisMonth = new Date().toISOString().slice(0, 7);
   const hasFreeProBoost =
-    subActive && subTier === "pro" && profile?.boost_credit_used_month !== thisMonth;
+    subActive &&
+    (subTier === "pro" || subTier === "plus") &&
+    profile?.boost_credit_used_month !== thisMonth;
   const isSubscriber = price.free || hasFreeProBoost;
   const BOOST_PRICE = isSubscriber ? "" : formatFeeUsd(price.cents);
   const isDiscounted = !isSubscriber && price.discounted;

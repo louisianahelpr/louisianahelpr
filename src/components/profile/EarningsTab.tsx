@@ -89,7 +89,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   // tab disagree with every other earnings surface. A populated per-job
   // column still wins (it's the fee actually charged on that payout).
   const helperFeeFallbackPct = tierFeePercent(subTier, profile?.subscription_expires_at ?? null);
-  const canUseInstantPayout = subActive && (subTier === "pro" || subTier === "elite" || subTier === "basic");
+  const canUseInstantPayout = subActive && (subTier === "basic" || subTier === "pro" || subTier === "plus" || subTier === "elite");
   // Pagination for the earnings-history list. Power helpers with 100+
   // completed jobs were rendering them all; this caps the initial render
   // at PAGE and grows by PAGE on each Load-more tap.

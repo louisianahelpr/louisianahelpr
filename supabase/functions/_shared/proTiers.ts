@@ -20,7 +20,7 @@
 // runtime that provides the env sees the test IDs. Set the six vars via
 // `supabase secrets set` when swapping keys.
 
-export type ProTierKey = "basic" | "pro" | "elite";
+export type ProTierKey = "basic" | "pro" | "plus" | "elite";
 export type ProBillingCycle = "monthly" | "annual" | "one_time";
 
 // Read a Deno.env var safely — returns undefined outside a Deno runtime
@@ -41,16 +41,25 @@ const LIVE_PRO_PRICE_MAP: Record<ProBillingCycle, Record<ProTierKey, string>> = 
     // livemode, and match PRO_RECURRING_AMOUNT_CENTS (500 / 5000 / 500).
     basic: "price_1TAZjdKp2H4b7tECG4TDPOxd",
     pro: "price_1TAZkLKp2H4b7tEC0ACbAX2y",
+    // Plus was introduced 2026-08-27 while the app runs on a TEST Stripe key,
+    // so no LIVE Price object exists for it yet. The three placeholders below
+    // are deliberately shaped so they can never be mistaken for a real id, and
+    // `proTiers.parity.test.ts` asserts that shape — the env override
+    // (STRIPE_PRICE_PLUS_*, already set on the project) is what actually gets
+    // charged in test mode. Replace these when Plus is created in live mode.
+    plus: "price_TODO_LIVE_PLUS_MONTHLY",
     elite: "price_1TAZkSKp2H4b7tEClf0VNiEa",
   },
   annual: {
     basic: "price_1TAZkXKp2H4b7tECRBtNRne5",
     pro: "price_1TAZkbKp2H4b7tECZ7Qr6CZS",
+    plus: "price_TODO_LIVE_PLUS_ANNUAL",
     elite: "price_1TAZkcKp2H4b7tECagD42xRa",
   },
   one_time: {
     basic: "price_1TAZkdKp2H4b7tECtvvFRyJf",
     pro: "price_1TAZkeKp2H4b7tECnfZ7vF0C",
+    plus: "price_TODO_LIVE_PLUS_ONETIME",
     elite: "price_1TAZkeKp2H4b7tECmn27C8JM",
   },
 };
@@ -59,16 +68,19 @@ const ENV_KEY: Record<ProBillingCycle, Record<ProTierKey, string>> = {
   monthly: {
     basic: "STRIPE_PRICE_BASIC_MONTHLY",
     pro: "STRIPE_PRICE_PRO_MONTHLY",
+    plus: "STRIPE_PRICE_PLUS_MONTHLY",
     elite: "STRIPE_PRICE_ELITE_MONTHLY",
   },
   annual: {
     basic: "STRIPE_PRICE_BASIC_ANNUAL",
     pro: "STRIPE_PRICE_PRO_ANNUAL",
+    plus: "STRIPE_PRICE_PLUS_ANNUAL",
     elite: "STRIPE_PRICE_ELITE_ANNUAL",
   },
   one_time: {
     basic: "STRIPE_PRICE_BASIC_ONETIME",
     pro: "STRIPE_PRICE_PRO_ONETIME",
+    plus: "STRIPE_PRICE_PLUS_ONETIME",
     elite: "STRIPE_PRICE_ELITE_ONETIME",
   },
 };
@@ -85,16 +97,19 @@ export const PRO_PRICE_MAP: Record<ProBillingCycle, Record<ProTierKey, string>> 
   monthly: {
     get basic() { return readEnv(ENV_KEY.monthly.basic) ?? LIVE_PRO_PRICE_MAP.monthly.basic; },
     get pro() { return readEnv(ENV_KEY.monthly.pro) ?? LIVE_PRO_PRICE_MAP.monthly.pro; },
+    get plus() { return readEnv(ENV_KEY.monthly.plus) ?? LIVE_PRO_PRICE_MAP.monthly.plus; },
     get elite() { return readEnv(ENV_KEY.monthly.elite) ?? LIVE_PRO_PRICE_MAP.monthly.elite; },
   } as Record<ProTierKey, string>,
   annual: {
     get basic() { return readEnv(ENV_KEY.annual.basic) ?? LIVE_PRO_PRICE_MAP.annual.basic; },
     get pro() { return readEnv(ENV_KEY.annual.pro) ?? LIVE_PRO_PRICE_MAP.annual.pro; },
+    get plus() { return readEnv(ENV_KEY.annual.plus) ?? LIVE_PRO_PRICE_MAP.annual.plus; },
     get elite() { return readEnv(ENV_KEY.annual.elite) ?? LIVE_PRO_PRICE_MAP.annual.elite; },
   } as Record<ProTierKey, string>,
   one_time: {
     get basic() { return readEnv(ENV_KEY.one_time.basic) ?? LIVE_PRO_PRICE_MAP.one_time.basic; },
     get pro() { return readEnv(ENV_KEY.one_time.pro) ?? LIVE_PRO_PRICE_MAP.one_time.pro; },
+    get plus() { return readEnv(ENV_KEY.one_time.plus) ?? LIVE_PRO_PRICE_MAP.one_time.plus; },
     get elite() { return readEnv(ENV_KEY.one_time.elite) ?? LIVE_PRO_PRICE_MAP.one_time.elite; },
   } as Record<ProTierKey, string>,
 };
@@ -103,7 +118,7 @@ export const PRO_PRICE_MAP: Record<ProBillingCycle, Record<ProTierKey, string>> 
  * The canonical whole-cent amount each RECURRING Stripe Price must charge —
  * the ledger the drift-guard test asserts against. Derived from the displayed
  * tier prices in src/lib/subscriptionTiers.ts:
- *   monthly = TIER_PERKS[tier].price × 100        (pro $10 / elite $20)
+ *   monthly = TIER_PERKS[tier].price × 100   (pro $10 / plus $15 / elite $20)
  *   annual  = monthly × 10 (a full year at "2 months free")
  *                                                 (pro $100 / elite $200)
  * Bumping a price in subscriptionTiers.ts without re-pointing the Stripe Price
@@ -114,6 +129,6 @@ export const PRO_PRICE_MAP: Record<ProBillingCycle, Record<ProTierKey, string>> 
  * would itself be an un-guarded guess.
  */
 export const PRO_RECURRING_AMOUNT_CENTS: Record<"monthly" | "annual", Record<ProTierKey, number>> = {
-  monthly: { basic: 500, pro: 1000, elite: 2000 },
-  annual: { basic: 5000, pro: 10000, elite: 20000 },
+  monthly: { basic: 500, pro: 1000, plus: 1500, elite: 2000 },
+  annual: { basic: 5000, pro: 10000, plus: 15000, elite: 20000 },
 };

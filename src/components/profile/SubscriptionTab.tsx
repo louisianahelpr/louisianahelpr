@@ -190,13 +190,13 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                 background:
                   activeTierConfig.id === "elite"
                     ? "hsl(var(--gold-warm) / 0.18)"
-                    : activeTierConfig.id === "pro"
+                    : activeTierConfig.id === "pro" || activeTierConfig.id === "plus"
                       ? "hsl(var(--burnt-sienna) / 0.14)"
                       : "hsl(var(--bark) / 0.12)",
                 color:
                   activeTierConfig.id === "elite"
                     ? "hsl(var(--gold-warm))"
-                    : activeTierConfig.id === "pro"
+                    : activeTierConfig.id === "pro" || activeTierConfig.id === "plus"
                       ? "hsl(var(--burnt-sienna))"
                       : "hsl(var(--bark))",
               }}
@@ -359,16 +359,18 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
           // --gold-ink, not --gold-warm: this value is used as TEXT below, and
           // the brand gold measures 2.89:1 there. The accent colour itself is
           // unchanged — accentSoft still uses --gold-warm for the tint.
+          // Plus shares Pro's sienna: the gold belongs to Elite, because gold
+          // IS the Featured Crown Badge and Plus does not grant one.
           const accent =
             tier.id === "elite"
               ? "hsl(var(--gold-ink))"
-              : tier.id === "pro"
+              : tier.id === "pro" || tier.id === "plus"
                 ? "hsl(var(--burnt-sienna))"
                 : "hsl(var(--bark))";
           const accentSoft =
             tier.id === "elite"
               ? "hsl(var(--gold-warm) / 0.14)"
-              : tier.id === "pro"
+              : tier.id === "pro" || tier.id === "plus"
                 ? "hsl(var(--burnt-sienna) / 0.12)"
                 : "hsl(var(--bark) / 0.10)";
           return (

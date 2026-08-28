@@ -122,11 +122,12 @@ serve(async (req) => {
     }
 
     // Pro perk: ONE FREE BOOST per calendar month (owner, 2026-08-24) —
+    // inherited by Plus, which sits above Pro (2026-08-27).
     // tracked by profiles.boost_credit_used_month (YYYY-MM). After it's
     // spent, Pro falls through to its 20% discount below. The month check
     // and the stamp are one conditional UPDATE so two same-moment boosts
     // can't both ride the credit.
-    if (subActive && subTier === "pro") {
+    if (subActive && (subTier === "pro" || subTier === "plus")) {
       const thisMonth = new Date().toISOString().slice(0, 7);
       const { data: credited, error: creditErr } = await supabaseAdmin
         .from("profiles")
@@ -154,19 +155,19 @@ serve(async (req) => {
           JSON.stringify({
             free: true,
             boost_expires_at: boostExpires.toISOString(),
-            message: `Job boosted — your free ${TIER_DISPLAY_NAMES.pro} boost this month`,
+            message: `Job boosted — your free ${TIER_DISPLAY_NAMES[subTier] ?? TIER_DISPLAY_NAMES.pro} boost this month`,
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
         );
       }
     }
 
-    // Basic / Pro perk: 20% off boosts. Same Stripe Checkout flow as the
+    // Basic / Pro / Plus perk: 20% off boosts. Same Stripe Checkout flow as the
     // full-price case below, but the unit_amount is discounted and the
     // product description names the subscriber discount so the receipt is
     // legible. Elite is already returned above (free), and Free/Business
     // fall through to the full BOOST_FEE_CENTS price.
-    const isBoostDiscountTier = subActive && (subTier === "basic" || subTier === "pro");
+    const isBoostDiscountTier = subActive && (subTier === "basic" || subTier === "pro" || subTier === "plus");
     // MIN_UNIT_AMOUNT_CENTS: an absolute floor covering Stripe's per-charge
     // cost (~30¢ fixed + 2.9% variable) plus a thin platform margin, so a
     // future BOOST_FEE_CENTS drop can't silently invert unit economics on

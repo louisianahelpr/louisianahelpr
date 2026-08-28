@@ -692,7 +692,7 @@ const UserProfile = () => {
             <HelperAvailabilityDisplay helperId={userId!} />
 
             {/* Portfolio — Pro+ only */}
-            {(profile.subscription_tier === "pro" || profile.subscription_tier === "elite") && <HelperPortfolio helperId={userId!} />}
+            {(profile.subscription_tier === "pro" || profile.subscription_tier === "plus" || profile.subscription_tier === "elite") && <HelperPortfolio helperId={userId!} />}
 
 
           </div>

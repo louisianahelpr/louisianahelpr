@@ -8,6 +8,7 @@
 export const TIER_COLORS: Record<string, string> = {
   basic: "hsl(var(--secondary))",
   pro: "hsl(var(--primary))",
+  plus: "hsl(var(--burnt-sienna))",
   elite: "hsl(var(--accent))",
   free: "hsl(var(--muted))",
 };

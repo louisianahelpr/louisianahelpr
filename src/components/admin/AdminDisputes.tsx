@@ -153,7 +153,7 @@ const AdminDisputes = () => {
     const tierPriority = (uid: string | null) => {
       if (!uid) return 0;
       const t = tMap[uid];
-      return t === "elite" ? 3 : t === "pro" ? 2 : t === "basic" ? 1 : 0;
+      return t === "elite" ? 4 : t === "plus" ? 3 : t === "pro" ? 2 : t === "basic" ? 1 : 0;
     };
     const ageHours = (j: DisputedJob): number => {
       if (!j.disputed_at) return 0;

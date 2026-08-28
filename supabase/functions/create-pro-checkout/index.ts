@@ -51,7 +51,7 @@ serve(async (req) => {
     // pro or elite" while `basic` has been a valid, live-priced tier for some
     // time — a caller debugging a Basic checkout was told their correct input
     // was invalid.
-    const ALLOWED_TIERS = ["basic", "pro", "elite"] as const;
+    const ALLOWED_TIERS = ["basic", "pro", "plus", "elite"] as const;
     if (!ALLOWED_TIERS.includes(tier)) {
       throw new Error(`Invalid tier. Use: ${ALLOWED_TIERS.join(", ")}`);
     }

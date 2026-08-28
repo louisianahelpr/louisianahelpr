@@ -91,7 +91,7 @@ serve(async (req) => {
           // referrer an extra $10 credit on top of the standard $5.
           // Idempotent: skip if a "subscription_bonus" credit already
           // exists for this referral.
-          if (tier === "pro" || tier === "elite") {
+          if (tier === "pro" || tier === "plus" || tier === "elite") {
             const { data: referral } = await supabaseAdmin
               .from("referrals")
               .select("id, referrer_id, referral_code_id")

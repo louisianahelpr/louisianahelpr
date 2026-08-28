@@ -22,7 +22,7 @@ export const formatFeeUsd = (cents: number): string => `$${formatPriceExact(cent
 // The server's rule, in full:
 //   • active Elite            → free (the boost flags are flipped directly, no
 //                               Checkout session at all)
-//   • active Basic / Pro      → BOOST_DISCOUNT_PCT off BOOST_FEE_CENTS
+//   • active Basic/Pro/Plus   → BOOST_DISCOUNT_PCT off BOOST_FEE_CENTS
 //   • Free / Business / any   → BOOST_FEE_CENTS
 //     lapsed subscription
 //
@@ -38,7 +38,7 @@ export const BOOST_DISCOUNT_PCT = 20;
 export const BOOST_MIN_UNIT_AMOUNT_CENTS = 100;
 
 /** Tiers that pay a discounted boost. Elite is free; everyone else pays full. */
-const BOOST_DISCOUNT_TIERS = ["basic", "pro"] as const;
+const BOOST_DISCOUNT_TIERS = ["basic", "pro", "plus"] as const;
 
 /** Tier whose boosts are included in the plan. */
 const BOOST_FREE_TIER = "elite";

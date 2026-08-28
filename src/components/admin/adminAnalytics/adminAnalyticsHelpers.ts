@@ -232,11 +232,12 @@ export const computeMetrics = (
   // Subscription breakdown
   const subBasic = helpers.filter(h => h.subscription_tier === "basic").length;
   const subPro = helpers.filter(h => h.subscription_tier === "pro").length;
+  const subPlus = helpers.filter(h => h.subscription_tier === "plus").length;
   const subElite = helpers.filter(h => h.subscription_tier === "elite").length;
   const subFree = helpers.filter(h => !h.subscription_tier).length;
   // Monthly subscription revenue estimate (matches live Stripe pricing — see
   // SubscriptionTab tier list, the single source of truth for these numbers).
-  const totalSubRevenue = (subBasic * SUB_PRICE.basic) + (subPro * SUB_PRICE.pro) + (subElite * SUB_PRICE.elite);
+  const totalSubRevenue = (subBasic * SUB_PRICE.basic) + (subPro * SUB_PRICE.pro) + (subPlus * SUB_PRICE.plus) + (subElite * SUB_PRICE.elite);
 
   // Category breakdown
   const categoryMap: Record<string, number> = {};
@@ -314,6 +315,7 @@ export const computeMetrics = (
   // Subscription pie data
   const subPieData = [
     { name: TIER_PERKS.elite.name, value: subElite, color: TIER_COLORS.elite },
+    { name: TIER_PERKS.plus.name, value: subPlus, color: TIER_COLORS.plus },
     { name: TIER_PERKS.pro.name, value: subPro, color: TIER_COLORS.pro },
     { name: TIER_PERKS.basic.name, value: subBasic, color: TIER_COLORS.basic },
     { name: TIER_PERKS.free.name, value: subFree, color: TIER_COLORS.free },
@@ -362,6 +364,7 @@ export const computeMetrics = (
     totalRefunded,
     subBasic,
     subPro,
+    subPlus,
     subElite,
     subFree,
     totalSubRevenue,

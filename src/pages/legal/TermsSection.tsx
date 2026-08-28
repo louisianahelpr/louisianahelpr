@@ -119,8 +119,8 @@ export const TermsContent = () => (
         title="Split fee model"
         body={
           <>
-            <p><strong className="text-foreground">Poster service fee:</strong> added at checkout by your plan — {TIER_PERKS.free.platformFeePercent}% Free, {TIER_PERKS.basic.platformFeePercent}% {TIER_PERKS.basic.name}, {TIER_PERKS.pro.platformFeePercent}% {TIER_PERKS.pro.name}, {TIER_PERKS.elite.platformFeePercent}% {TIER_PERKS.elite.name} (minimum covers card processing on small jobs).</p>
-            <p><strong className="text-foreground">Helpr platform fee:</strong> deducted from payout by plan — {TIER_PERKS.free.platformFeePercent}% Free, {TIER_PERKS.basic.platformFeePercent}% {TIER_PERKS.basic.name}, {TIER_PERKS.pro.platformFeePercent}% {TIER_PERKS.pro.name}, {TIER_PERKS.elite.platformFeePercent}% {TIER_PERKS.elite.name}.</p>
+            <p><strong className="text-foreground">Poster service fee:</strong> added at checkout by your plan — {TIER_PERKS.free.platformFeePercent}% Free, {TIER_PERKS.basic.platformFeePercent}% {TIER_PERKS.basic.name}, {TIER_PERKS.pro.platformFeePercent}% {TIER_PERKS.pro.name}, {TIER_PERKS.plus.platformFeePercent}% {TIER_PERKS.plus.name}, {TIER_PERKS.elite.platformFeePercent}% {TIER_PERKS.elite.name} (minimum covers card processing on small jobs).</p>
+            <p><strong className="text-foreground">Helpr platform fee:</strong> deducted from payout by plan — {TIER_PERKS.free.platformFeePercent}% Free, {TIER_PERKS.basic.platformFeePercent}% {TIER_PERKS.basic.name}, {TIER_PERKS.pro.platformFeePercent}% {TIER_PERKS.pro.name}, {TIER_PERKS.plus.platformFeePercent}% {TIER_PERKS.plus.name}, {TIER_PERKS.elite.platformFeePercent}% {TIER_PERKS.elite.name}.</p>
 
             <p><strong className="text-foreground">Total platform take:</strong> the poster's plan-based service fee plus the Helpr's plan-based fee.</p>
             <p><strong className="text-foreground">Urgent job fee:</strong> {formatDollarsWhole(URGENT_FEE_FLOOR_DOLLARS)} minimum bonus that goes to the Helpr, added by the poster for priority placement.</p>
@@ -182,6 +182,7 @@ export const TermsContent = () => (
             <p><strong className="text-foreground">Free:</strong> standard access at a {TIER_PERKS.free.platformFeePercent}% platform fee.</p>
             <p><strong className="text-foreground">{TIER_PERKS.basic.name}:</strong> {legalFmtMo(TIER_PERKS.basic.price)} — reduced {TIER_PERKS.basic.platformFeePercent}% platform fee with instant payouts and {BOOST_DISCOUNT_PCT}% off job boosts.</p>
             <p><strong className="text-foreground">{TIER_PERKS.pro.name}:</strong> {legalFmtMo(TIER_PERKS.pro.price)} — reduced {TIER_PERKS.pro.platformFeePercent}% platform fee.</p>
+            <p><strong className="text-foreground">{TIER_PERKS.plus.name}:</strong> {legalFmtMo(TIER_PERKS.plus.price)} — {TIER_PERKS.plus.platformFeePercent}% platform fee.</p>
             <p><strong className="text-foreground">{TIER_PERKS.elite.name}:</strong> {legalFmtMo(TIER_PERKS.elite.price)} — lowest {TIER_PERKS.elite.platformFeePercent}% platform fee.</p>
             <p>Annual plans save about {ANNUAL_MONTHS_SAVED} month{ANNUAL_MONTHS_SAVED === 1 ? "" : "s"}. Stripe handles billing automatically.</p>
           </>

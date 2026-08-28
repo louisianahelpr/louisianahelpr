@@ -89,7 +89,7 @@ export const UsersDrillDown = ({ users, roleByUser }: { users: Profile[]; roleBy
 // ─── Drill-down: Subscriptions ───
 export const SubscriptionsDrillDown = ({ users }: { users: Profile[] }) => {
   const [tierFilter, setTierFilter] = useState<string>("all");
-  const tiers = ["all", "elite", "pro", "basic", "free"];
+  const tiers = ["all", "elite", "plus", "pro", "basic", "free"];
   const filtered = users.filter(u => {
     if (tierFilter === "all") return true;
     if (tierFilter === "free") return !u.subscription_tier;
@@ -118,6 +118,7 @@ export const SubscriptionsDrillDown = ({ users }: { users: Profile[] }) => {
             </div>
             <Badge className={`capitalize text-ds-11 ${
               u.subscription_tier === "elite" ? "bg-accent/20 text-accent" :
+              u.subscription_tier === "plus" ? "bg-primary/20 text-primary" :
               u.subscription_tier === "pro" ? "bg-primary/10 text-primary" :
               u.subscription_tier === "basic" ? "bg-secondary text-secondary-foreground" :
               "bg-muted text-muted-foreground"

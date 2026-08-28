@@ -52,10 +52,15 @@ function PostedJobCardInner({
   onConfirmWorking,
   confirmingWorkingJobId,
   onLoadApplications,
-  onLoadInlineApplicants,
-  inlineApplicants,
-  loadingApplicants,
-  applicantErrors,
+  // No longer read here — the inline applicant preview that consumed these
+  // was removed (owner: "applicants should not show here, only when the
+  // applicants button is clicked"). Still required on the prop type because
+  // PostedJobsTab's fetch/state plumbing for them is untouched; only this
+  // card's own render stopped using them.
+  onLoadInlineApplicants: _onLoadInlineApplicants,
+  inlineApplicants: _inlineApplicants,
+  loadingApplicants: _loadingApplicants,
+  applicantErrors: _applicantErrors,
   initialTracking,
   initialGroupHelpers,
   onActionComplete,
@@ -553,14 +558,8 @@ function PostedJobCardInner({
               {job.status === "open" && (
                 <PostedJobApplicants
                   job={job}
-                  userId={userId}
-                  isExpanded={isExpanded}
                   applicantCounts={applicantCounts}
-                  inlineApplicants={inlineApplicants}
-                  loadingApplicants={loadingApplicants}
-                  applicantErrors={applicantErrors}
                   onLoadApplications={onLoadApplications}
-                  onLoadInlineApplicants={onLoadInlineApplicants}
                 />
               )}
 

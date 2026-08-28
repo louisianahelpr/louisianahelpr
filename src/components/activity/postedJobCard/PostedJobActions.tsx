@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { messageButtonStyle } from "@/components/activity/JobActionRow";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -23,6 +22,7 @@ import {
   JobActionRow,
   JobActionChip,
   JOB_ACTION_CHIP_CLASS,
+  JOB_ACTION_FULL_CLASS,
   jobActionChipStyle,
 } from "../JobActionRow";
 import { ShareJobButton } from "@/components/jobs/ShareJobButton";
@@ -222,31 +222,40 @@ export function PostedJobActions({
                 "Job starts in 4d 14h". This one restated both in flat grey with
                 no number at all. Owner: "needs better organization globally."
                 One fact, one place — the countdown that actually moves. */}
+            {/* Full-width, but on the SHARED full-width treatment now — it was
+                the solid `default` CTA, the loudest surface the app has, on a
+                card whose every other control is a tint. */}
             {startRequestedJobIds.has(job.id) && !job.helper_confirmed_at && (
-              <Button size="sm" className="w-full" disabled={confirmingStartJobId === job.id} onClick={() => onConfirmStart(job.id)}>
-                <CheckCircle2 className="w-4 h-4 mr-1" />
+              <Button size="sm" variant="outline" className={JOB_ACTION_FULL_CLASS} style={jobActionChipStyle("primary")} disabled={confirmingStartJobId === job.id} onClick={() => onConfirmStart(job.id)}>
+                <CheckCircle2 className="w-4 h-4" />
                 {confirmingStartJobId === job.id ? "Starting…" : "Confirm Start"}
               </Button>
             )}
-            <div className="flex gap-2">
-              <Button size="sm" variant="outline" style={messageButtonStyle} className="flex-1" onClick={() => navigate(job.helper_id ? `/messages?jobId=${job.id}&userId=${job.helper_id}` : "/messages")}><MessageSquare className="w-4 h-4 mr-1" /> Message</Button>
-              {/* TINTED, not a solid red slab (owner: "cancel should be the
-                  lighter red, for the other tabs also"). Solid destructive is
-                  the loudest surface the app has and it belongs to a
-                  confirmation dialog's final button — on a card it made
-                  "Cancel this job" the visually dominant thing on a job that
-                  is going perfectly. Same triple the `danger` chip uses, so
-                  every Cancel in Activity now reads at one volume. */}
-              <Button
-                size="sm"
-                variant="outline"
-                className="flex-1 border-0"
-                style={jobActionChipStyle("danger")}
+            {/* ONE chip row, same as every other state's (owner: "button
+                inconsistency in size etc."). These two were the last hand-rolled
+                pair in the card: a `flex gap-2` of horizontal outline Buttons at
+                text-ds-15/font-bold, directly above and below icon-over-label
+                chip rows at gap-1.5 and text-ds-11. Same actions, same colours —
+                Message keeps `info` (the one Message tone the whole app shares)
+                and Cancel keeps `danger` (owner: "cancel should be the lighter
+                red"), so the semantic coding is untouched and only the geometry
+                is now the row geometry. */}
+            <JobActionRow columns={2}>
+              <JobActionChip
+                icon={MessageSquare}
+                label="Message"
+                ariaLabel="Message Helpr"
+                tone="info"
+                onClick={() => navigate(job.helper_id ? `/messages?jobId=${job.id}&userId=${job.helper_id}` : "/messages")}
+              />
+              <JobActionChip
+                icon={XCircle}
+                label="Cancel"
+                ariaLabel="Cancel job"
+                tone="danger"
                 onClick={() => onCancel(job)}
-              >
-                <XCircle className="w-4 h-4 mr-1" /> Cancel
-              </Button>
-            </div>
+              />
+            </JobActionRow>
             {/* NO SHARE once a helpr is assigned (owner: "not sure this is
                 necessary in some places"). Share exists to get more eyes on a
                 job that still needs someone — on an OPEN job it is one of the
@@ -269,8 +278,8 @@ export function PostedJobActions({
               /* A VOUCH, not homework (owner, 2026-08-24): these taps no
                  longer gate the helper's payout — they're evidence, so they
                  dress like the quiet secondary action they are. */
-              <Button size="sm" variant="outline" className="w-full border-0" style={jobActionChipStyle("primary")} disabled={confirmingArrivalJobId === job.id} onClick={() => onConfirmArrival(job.id)}>
-                <CheckCircle2 className="w-4 h-4 mr-1" /> {confirmingArrivalJobId === job.id ? "…" : "Confirm They Arrived"}
+              <Button size="sm" variant="outline" className={JOB_ACTION_FULL_CLASS} style={jobActionChipStyle("primary")} disabled={confirmingArrivalJobId === job.id} onClick={() => onConfirmArrival(job.id)}>
+                <CheckCircle2 className="w-4 h-4" /> {confirmingArrivalJobId === job.id ? "…" : "Confirm They Arrived"}
               </Button>
             )}
             {/* Confirm Working */}
@@ -280,8 +289,8 @@ export function PostedJobActions({
                   <Wrench className="w-3.5 h-3.5 shrink-0" />
                   <span className="font-medium">Is the Helpr working?</span>
                 </div>
-                <Button size="sm" variant="outline" className="w-full border-0" style={jobActionChipStyle("primary")} disabled={confirmingWorkingJobId === job.id} onClick={() => onConfirmWorking(job.id)}>
-                  <CheckCircle2 className="w-4 h-4 mr-1" /> {confirmingWorkingJobId === job.id ? "…" : "Confirm They're Working"}
+                <Button size="sm" variant="outline" className={JOB_ACTION_FULL_CLASS} style={jobActionChipStyle("primary")} disabled={confirmingWorkingJobId === job.id} onClick={() => onConfirmWorking(job.id)}>
+                  <CheckCircle2 className="w-4 h-4" /> {confirmingWorkingJobId === job.id ? "…" : "Confirm They're Working"}
                 </Button>
               </div>
             )}
@@ -686,8 +695,14 @@ export function PostedJobActions({
             )}
             {/* Disputer actions: Mark Resolved or Escalate */}
             {isDisputer && disputeStatus === "open" && (
-              <div className="grid grid-cols-2 gap-2">
-                <Button size="sm" disabled={disputeActing} className="w-full bg-success text-success-foreground hover:bg-success/90 disabled:opacity-60" onClick={async (e) => {
+              /* Same JobActionRow every other state uses — this was a
+                 hand-rolled `grid-cols-2 gap-2` of a SOLID success button
+                 beside an outline one, the loudest pair in the card, on the
+                 card that least needs shouting. Tones carry the semantics
+                 instead: `approve` for the resolution, `danger` for the
+                 escalation. */
+              <JobActionRow columns={2}>
+                <JobActionChip icon={CheckCircle2} label="Mark Resolved" ariaLabel="Mark this dispute resolved" tone="approve" disabled={disputeActing} onClick={async (e) => {
                   e.stopPropagation();
                   setDisputeActing(true);
                   try {
@@ -714,8 +729,8 @@ export function PostedJobActions({
                   } finally {
                     setDisputeActing(false);
                   }
-                }}><CheckCircle2 className="w-4 h-4 mr-1" /> Mark Resolved</Button>
-                <Button size="sm" variant="outline" disabled={disputeActing} className="w-full text-[hsl(var(--danger-ink))] border-destructive/30 hover:bg-destructive/5 disabled:opacity-60" onClick={async (e) => {
+                }} />
+                <JobActionChip icon={AlertTriangle} label="Escalate" ariaLabel="Escalate this dispute to an admin" tone="danger" disabled={disputeActing} onClick={async (e) => {
                   e.stopPropagation();
                   setDisputeActing(true);
                   try {
@@ -729,8 +744,8 @@ export function PostedJobActions({
                   } finally {
                     setDisputeActing(false);
                   }
-                }}><AlertTriangle className="w-4 h-4 mr-1" /> Escalate to Admin</Button>
-              </div>
+                }} />
+              </JobActionRow>
             )}
             {/* NOT gated on isDisputer: when the HELPR opened the dispute (they
                 couldn't finish), the poster is the party with no controls and
@@ -738,18 +753,38 @@ export function PostedJobActions({
             {awaitingAdmin && (
               <div className="text-ds-11 text-center text-muted-foreground px-2 py-1.5 rounded bg-muted/50">Admin is reviewing this dispute. You'll be notified of the outcome, and nothing is charged or released until then.</div>
             )}
+            {/* The one legitimately full-width control on this card — it opens
+                the dispute's whole timeline, not a one-word action — so it takes
+                the shared full-width treatment rather than a bare outline. */}
             <Button
               size="sm"
               variant="outline"
-              className="w-full"
+              className={JOB_ACTION_FULL_CLASS}
+              style={jobActionChipStyle("neutral")}
               onClick={(e) => { e.stopPropagation(); onViewDispute(job); }}
             >
-              <AlertTriangle className="w-4 h-4 mr-1" /> View Timeline & Add Evidence
+              <AlertTriangle className="w-4 h-4" /> View Timeline & Add Evidence
             </Button>
-            <div className="grid grid-cols-2 gap-2">
-              <Button size="sm" variant="outline" style={messageButtonStyle} className="w-full" onClick={() => navigate(`/messages?jobId=${job.id}&userId=${job.helper_id}`)}><MessageSquare className="w-4 h-4 mr-1" /> Message Helpr</Button>
-              <Button size="sm" variant="outline" className="w-full" onClick={() => navigate("/support")}><AlertTriangle className="w-4 h-4 mr-1" /> Contact Admin</Button>
-            </div>
+            {/* Message keeps the ONE Message tone (`info`); Contact Admin is a
+                neutral escape hatch, not a destructive act, so it takes
+                `neutral` rather than the bare outline it had — which was the
+                only control in the whole card wearing no tone at all. */}
+            <JobActionRow columns={2}>
+              <JobActionChip
+                icon={MessageSquare}
+                label="Message"
+                ariaLabel="Message Helpr"
+                tone="info"
+                onClick={() => navigate(`/messages?jobId=${job.id}&userId=${job.helper_id}`)}
+              />
+              <JobActionChip
+                icon={AlertTriangle}
+                label="Contact Admin"
+                ariaLabel="Contact an admin about this dispute"
+                tone="neutral"
+                onClick={() => navigate("/support")}
+              />
+            </JobActionRow>
           </div>
           );
         })()}

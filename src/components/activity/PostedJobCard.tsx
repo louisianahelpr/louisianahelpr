@@ -17,6 +17,7 @@ import { formatPrice, formatPriceExact, formatRecurrenceInterval } from "@/lib/f
 import { type PostedJobCardProps } from "./postedJobCard/types";
 import { PostedJobApplicants } from "./postedJobCard/PostedJobApplicants";
 import { PostedJobActions } from "./postedJobCard/PostedJobActions";
+import { JOB_ACTION_FULL_CLASS, jobActionChipStyle } from "./JobActionRow";
 
 /**
  * PostedJobCard — one card in the poster's "my posts" feed: the job
@@ -398,8 +399,16 @@ function PostedJobCardInner({
                       {job.helper_arrived_at
                         && !job.poster_confirmed_arrival_at
                         && !job.helper_completed_at && (
-                        <Button size="sm" className="w-full" onClick={(e) => { e.stopPropagation(); onConfirmArrival(job.id); }}>
-                          <CheckCircle2 className="w-4 h-4 mr-1" /> Confirm Arrival
+                        /* Same full-width treatment as its twin in
+                           PostedJobActions ("Confirm They Arrived") — this one
+                           was the solid `default` CTA while the identical
+                           action one state later was a quiet tint, so the same
+                           decision shouted or whispered depending on which
+                           branch rendered it. Both are the `primary` tint now.
+                           (The label divergence is reported, not silently
+                           changed.) */
+                        <Button size="sm" variant="outline" className={JOB_ACTION_FULL_CLASS} style={jobActionChipStyle("primary")} onClick={(e) => { e.stopPropagation(); onConfirmArrival(job.id); }}>
+                          <CheckCircle2 className="w-4 h-4" /> Confirm Arrival
                         </Button>
                       )}
                     </div>

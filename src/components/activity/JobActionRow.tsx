@@ -42,6 +42,30 @@ const COLS: Record<number, string> = {
 export const JOB_ACTION_CHIP_CLASS =
   "w-full h-auto min-h-[44px] flex-col gap-0.5 px-1 py-1.5 glass-press border-0";
 
+/**
+ * The FULL-WIDTH sibling of the chip, for the one-decision-per-row controls
+ * that legitimately span the card (Confirm Start / Confirm They Arrived /
+ * Confirm They're Working / View Timeline).
+ *
+ * It exists because those four were the last places in the posted-job card
+ * still drawing their own button: three different treatments across four
+ * buttons that all mean "acknowledge a step" — two solid `default` CTAs
+ * (Confirm Start, the card-body Confirm Arrival) beside two tinted outlines
+ * (Confirm They Arrived, Confirm They're Working), at text-ds-15/font-bold
+ * next to a chip row at text-ds-11/font-medium. Same height (size="sm" is
+ * h-11, exactly the chip's 44px min) but nothing else matched, which is what
+ * "button inconsistency in size etc." was pointing at.
+ *
+ * Deliberately NOT the chip's stacked icon-over-label: a control that owns a
+ * whole row reads better horizontally, and stacking a lone chip across the
+ * card would leave a 44px band of empty tint either side of the icon. What it
+ * DOES share is the 44px tap target, the row's type scale and weight, and the
+ * `jobActionChipStyle` tone palette — so the full-width control and the chips
+ * under it read as one system rather than two.
+ */
+export const JOB_ACTION_FULL_CLASS =
+  "w-full h-11 min-h-[44px] gap-1.5 px-3 text-ds-11 font-medium glass-press border-0";
+
 export type JobActionTone =
   | "info"
   | "boost"

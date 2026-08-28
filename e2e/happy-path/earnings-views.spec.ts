@@ -43,6 +43,23 @@ test("earnings tab renders one view at a time", async ({ helperPage: page }) => 
   // Opens on Money — the wallet is what a helpr comes here for.
   await expect(page.getByRole("tab", { name: "Money" })).toHaveAttribute("aria-selected", "true");
 
+  // Every tab is a full 44px HIG tap target. A segmented control is often
+  // drawn at ~36px, and this one briefly was — by overriding the bare
+  // `button { min-height: 44px }` in index.css to get there. That override
+  // came out: the 2026-08-28 a11y sweep raised Legal's search buttons,
+  // ChatComposer's cancel-reply and SavedSearches' notify/delete from 24-32px
+  // to min-44px, and a brand-new control shipping under that bar the same week
+  // would just be the next thing on the list.
+  const boxes = await page.evaluate(() =>
+    [...document.querySelectorAll('[role="tab"]')].map((b) => {
+      const r = b.getBoundingClientRect();
+      return { text: (b.textContent || "").trim(), height: r.height };
+    }),
+  );
+  for (const b of boxes) {
+    expect(b.height, `"${b.text}" tap target is under the 44px minimum`).toBeGreaterThanOrEqual(44);
+  }
+
   for (const name of Object.keys(MARKERS)) {
     await page.getByRole("tab", { name }).click();
     // The heavier views mount lazily (analytics dashboard, payout settings).

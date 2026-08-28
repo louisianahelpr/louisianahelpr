@@ -61,10 +61,15 @@ export function EarningsViewSwitcher({
             onClick={() => { hapticLight(); onChange(key); }}
             className="flex-1 min-w-0 rounded-ds-sm font-sans text-ds-12 font-semibold transition-colors whitespace-nowrap px-3"
             style={{
-              // Inline, not a `min-h-` utility: index.css sets a bare
-              // `button { min-height: 44px }` that wins over the Tailwind
-              // arbitrary value, so the class would silently render 44px.
-              minHeight: "36px",
+              // NO min-height override here. index.css sets a bare
+              // `button { min-height: 44px }` for the HIG touch minimum, and
+              // this control deliberately lets it stand: a segmented control
+              // is often drawn at ~36px, but that is below the tap target this
+              // codebase holds every other control to — see the 2026-08-28
+              // sweep that raised Legal's search buttons, ChatComposer's
+              // cancel-reply and SavedSearches' notify/delete from 24-32px to
+              // min-44px. A brand-new control shipping under the bar the same
+              // week would just be the next thing on that list.
               background: active ? "hsl(var(--parchment))" : "transparent",
               color: active ? "hsl(var(--ink-deep))" : "hsl(var(--olivewood) / 0.85)",
               boxShadow: active

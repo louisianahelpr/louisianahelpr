@@ -1,0 +1,226 @@
+name: Schedule Heartbeat
+
+# Catches scheduled workflows that have stopped running — the CI equivalent of
+# the silent-cron detector in 20260829020000_silent_cron_failure_detector.sql,
+# and added for the same reason.
+#
+# The failure this exists for: broken-links, lighthouse and security-audit all
+# had cron schedules committed on 2026-04-24 and then accumulated 1, 2 and 1
+# scheduled runs respectively over the following four months. Nothing surfaced
+# that. A workflow that is not running produces no red X, no notification and
+# no entry anywhere anyone looks; its Actions page simply shows the last run,
+# green, from whenever it last ran. It is indistinguishable from a healthy
+# workflow until someone reads the timestamps. That is the same shape as
+# `processed: 14, sent: 0` — a check that reports success while doing nothing.
+#
+# The most likely cause is GitHub's own policy: it disables `schedule` triggers
+# on repos with no activity for 60 days, and does not re-enable them when
+# activity resumes. So this watches for BOTH symptoms:
+#
+#   1. The workflow's state is not `active` — GitHub disabled it for
+#      inactivity, or someone disabled it manually (the `test.yml` case, where
+#      a workflow everyone believed was gating commits had been switched off
+#      and had not run since 2026-04-26).
+#   2. The workflow is active but its newest `schedule`-triggered run is older
+#      than its cadence allows.
+#
+# The staleness window per workflow is its period plus a full extra period of
+# slack, so one skipped or delayed run never pages — only a stopped schedule
+# does. Same principle as the streak counter in the SQL detector: a check that
+# cries wolf gets muted, and a muted check is a dead check.
+#
+# Only workflows with a real cron are listed. A dispatch-only workflow has no
+# expected cadence, so "it has not run" is not a defect and it is deliberately
+# NOT watched — a rule that cannot tell right from wrong is worse than no rule.
+# When you add or remove a `schedule:` block, update WATCHED below.
+
+on:
+  # 11:23 UTC — its own minute, no collision with any other cron here
+  # (06:00 db-drift, 06:00 Sun lighthouse, 08:00 Mon security-audit,
+  # 09:00 Tue broken-links, 13:00 edge-function-smoke).
+  schedule:
+    - cron: "23 11 * * *"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+  issues: write
+
+concurrency:
+  group: schedule-heartbeat
+  cancel-in-progress: true
+
+jobs:
+  heartbeat:
+    name: Check scheduled workflows are still firing
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        # Needed so the WATCHED list can be cross-checked against the files
+        # that actually exist — a name left in the list after its workflow was
+        # deleted would otherwise be a watcher watching nothing.
+        uses: actions/checkout@v7
+
+      - name: Check every scheduled workflow has run recently
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -eo pipefail
+
+          # file:max_age_days — cadence plus one full period of slack.
+          WATCHED="
+          broken-links.yml:14
+          db-drift-detect.yml:3
+          edge-function-smoke.yml:3
+          lighthouse.yml:14
+          security-audit.yml:14
+          "
+
+          NOW=$(date -u +%s)
+          STALE_COUNT=0
+          : > /tmp/rows.md
+
+          for ENTRY in $WATCHED; do
+            FILE="${ENTRY%%:*}"
+            MAX_DAYS="${ENTRY##*:}"
+
+            if [ ! -f ".github/workflows/$FILE" ]; then
+              # Listed here but gone from the repo — the list is stale, which
+              # is itself worth failing on rather than silently skipping.
+              echo "::error::WATCHED lists $FILE but .github/workflows/$FILE does not exist."
+              exit 1
+            fi
+
+            STATE=$(gh api "repos/$REPO/actions/workflows/$FILE" --jq '.state' 2>/dev/null || echo "unknown")
+            LAST=$(gh api "repos/$REPO/actions/workflows/$FILE/runs?event=schedule&per_page=1" \
+                     --jq '.workflow_runs[0].created_at // ""' 2>/dev/null || echo "")
+
+            if [ "$STATE" != "active" ]; then
+              STALE_COUNT=$((STALE_COUNT + 1))
+              echo "| \`$FILE\` | **state: $STATE** | — | 🔴 disabled |" >> /tmp/rows.md
+              echo "::error::$FILE is not active (state=$STATE) — its schedule will never fire."
+              continue
+            fi
+
+            if [ -z "$LAST" ]; then
+              STALE_COUNT=$((STALE_COUNT + 1))
+              echo "| \`$FILE\` | active | _never_ | 🔴 no scheduled run ever |" >> /tmp/rows.md
+              echo "::error::$FILE has never had a schedule-triggered run."
+              continue
+            fi
+
+            LAST_EPOCH=$(date -u -d "$LAST" +%s)
+            AGE_DAYS=$(( (NOW - LAST_EPOCH) / 86400 ))
+
+            if [ "$AGE_DAYS" -gt "$MAX_DAYS" ]; then
+              STALE_COUNT=$((STALE_COUNT + 1))
+              echo "| \`$FILE\` | active | $LAST (${AGE_DAYS}d ago) | 🔴 stale (> ${MAX_DAYS}d) |" >> /tmp/rows.md
+              echo "::error::$FILE last ran on schedule ${AGE_DAYS}d ago, budget is ${MAX_DAYS}d."
+            else
+              echo "| \`$FILE\` | active | $LAST (${AGE_DAYS}d ago) | ✅ |" >> /tmp/rows.md
+              echo "✅ $FILE — last scheduled run ${AGE_DAYS}d ago (budget ${MAX_DAYS}d)"
+            fi
+          done
+
+          echo "stale=$STALE_COUNT" >> $GITHUB_OUTPUT
+
+          {
+            echo "## Scheduled workflow heartbeat — $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo ""
+            echo "**$STALE_COUNT** scheduled workflow(s) are not firing as expected."
+            echo ""
+            echo "| Workflow | State | Last scheduled run | |"
+            echo "| --- | --- | --- | --- |"
+            cat /tmp/rows.md
+            echo ""
+            echo "---"
+            echo ""
+            echo "**Likely causes, in order:**"
+            echo "- GitHub disables \`schedule\` triggers on repos with **60 days of no activity** and does not re-enable them. Re-enable with \`gh workflow enable <file>\`."
+            echo "- The workflow was disabled by hand (\`gh workflow list --all\` shows \`disabled_manually\`). This is what happened to \`test.yml\`, which everyone believed was gating commits while it had not run since 2026-04-26."
+            echo "- The \`schedule:\` block was commented out in the file but left in this workflow's \`WATCHED\` list."
+            echo ""
+            echo "_Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}_"
+          } > /tmp/issue-body.md
+
+          echo "body<<HEARTBEAT_EOF" >> $GITHUB_OUTPUT
+          cat /tmp/issue-body.md >> $GITHUB_OUTPUT
+          echo "HEARTBEAT_EOF" >> $GITHUB_OUTPUT
+
+      - name: Open / update stalled-schedule issue
+        if: steps.check.outputs.stale != '0'
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const body = ${{ toJSON(steps.check.outputs.body) }};
+            const title = `🔴 ${{ steps.check.outputs.stale }} scheduled workflow(s) have stopped running`;
+
+            const { data: existing } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              labels: "schedule-stalled",
+              per_page: 5,
+            });
+
+            if (existing.length > 0) {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing[0].number,
+                title,
+                body,
+              });
+              console.log(`Updated existing heartbeat issue #${existing[0].number}`);
+            } else {
+              const { data: created } = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: ["schedule-stalled"],
+              });
+              console.log(`Opened heartbeat issue #${created.number}`);
+            }
+
+      - name: Close stalled-schedule issue when clean
+        if: steps.check.outputs.stale == '0'
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const { data: existing } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              labels: "schedule-stalled",
+              per_page: 5,
+            });
+            for (const issue of existing) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: `✅ All watched schedules are firing again as of ${new Date().toISOString()}. Auto-closing — will reopen if one stalls.`,
+              });
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                state: "closed",
+              });
+              console.log(`Closed heartbeat issue #${issue.number}`);
+            }
+
+      - name: Fail the run when a schedule has stalled
+        # The issue is the durable signal; this makes the workflow itself go
+        # red so it shows up in `gh run list` and the Actions tab too. It runs
+        # last so the issue is always filed first.
+        if: steps.check.outputs.stale != '0'
+        run: |
+          echo "❌ ${{ steps.check.outputs.stale }} scheduled workflow(s) have stopped running — see the open 'schedule-stalled' issue."
+          exit 1

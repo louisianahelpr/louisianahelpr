@@ -146,7 +146,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   );
 
   const {
-    loading, loadError, postedJobs, appliedApps, applicantCounts,
+    loading, loadError, postedJobs, appliedApps, applicantCounts, pendingApplicantCounts,
     helperNames, completedJobMeta,
     helperReviewedJobIds, latestTracking, groupHelpersByJob, refresh,
     // Only THIS tab's data blocks the first card. The other tab's core query
@@ -187,7 +187,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
       statusFilter,
       searchQuery,
       userId: user?.id,
-      applicantCounts,
+      pendingApplicantCounts,
     });
 
   // Pull-to-refresh — refetches this tab's core + detail queries only (the

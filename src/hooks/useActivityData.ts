@@ -60,6 +60,8 @@ export interface GroupHelperLite {
 export interface PostedActivity {
   postedJobs: Job[];
   applicantCounts: Record<string, number>;
+  /** Applications still awaiting the poster's decision — drives "Needs you". */
+  pendingApplicantCounts: Record<string, number>;
 }
 
 /** Decoration for My Posts — resolves after the list is on screen. */
@@ -88,6 +90,7 @@ export interface AppliedActivityDetail {
 const EMPTY_POSTED: PostedActivity = {
   postedJobs: [],
   applicantCounts: {},
+  pendingApplicantCounts: {},
 };
 
 const EMPTY_POSTED_DETAIL: PostedActivityDetail = {
@@ -130,7 +133,10 @@ export async function fetchPostedActivity(userId: string): Promise<PostedActivit
   // one query per Activity load, forever, for a control nobody could see.
   const [jobsRes, appCountRes] = await Promise.all([
     supabase.from("jobs").select("*").eq("customer_id", userId).order("created_at", { ascending: false }),
-    supabase.from("applications").select("job_id, jobs!inner(customer_id)").eq("jobs.customer_id", userId),
+    // `status` rides along so the two counts below can be told apart. Without
+    // it every application ever filed counted as an applicant, including the
+    // ones already declined.
+    supabase.from("applications").select("job_id, status, jobs!inner(customer_id)").eq("jobs.customer_id", userId),
   ]);
 
   // Surface a failed primary fetch so the screen can show an ErrorState
@@ -143,14 +149,33 @@ export async function fetchPostedActivity(userId: string): Promise<PostedActivit
   if (appCountRes.error) {
     report(appCountRes.error, { severity: "warning", tags: { source: "useActivityData.applicantCounts" } });
   }
+  /* TWO counts, deliberately.
+
+     `applicantCounts` is EVERY application on the job. It is what the
+     "Applicants (N)" button and the views→applications conversion rate in
+     useJobAnalytics want: a declined applicant still applied, and dropping
+     them would understate the funnel.
+
+     `pendingApplicantCounts` is only the ones still awaiting a decision, and
+     it is what the "Needs you" bucket wants. The bucket used to read the
+     total, so an open job whose every applicant had been DECLINED sat under
+     "Needs you" forever, insisting on a decision the poster had already made
+     — and moved back out the moment any other field changed. Two different
+     questions ("how many applied" vs "how many am I holding up"), so two
+     different numbers. */
   const applicantCounts: Record<string, number> = {};
+  const pendingApplicantCounts: Record<string, number> = {};
   (appCountRes.data ?? []).forEach((a) => {
     applicantCounts[a.job_id] = (applicantCounts[a.job_id] || 0) + 1;
+    if (a.status === "pending") {
+      pendingApplicantCounts[a.job_id] = (pendingApplicantCounts[a.job_id] || 0) + 1;
+    }
   });
 
   return {
     postedJobs: jobsRes.data ?? [],
     applicantCounts,
+    pendingApplicantCounts,
   };
 }
 
@@ -662,6 +687,7 @@ export function useActivityData(user: SupaUser | null, tab: "posted" | "applied"
     postedJobs: posted.postedJobs,
     appliedApps: appliedAppsWithNames,
     applicantCounts: posted.applicantCounts,
+    pendingApplicantCounts: posted.pendingApplicantCounts,
     helperNames: postedD.helperNames,
     completedJobMeta: postedD.completedJobMeta,
     declinedJobIds: applied.declinedJobIds,

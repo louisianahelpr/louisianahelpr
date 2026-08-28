@@ -190,4 +190,78 @@ describe("Activity — whose move is it", () => {
     expect(postedActivityBucket({ status: "completed" })).toBe("done");
     expect(postedActivityBucket({ status: "cancelled" })).toBe("done");
   });
+
+  it("releases a job from Needs you once a revision sends the work back", () => {
+    // THE BUCKET-JUMPING BUG (owner, 2026-08-28: "My post jumps a lot between
+    // needs you and scheduled").
+    //
+    // `helper_completed_at` is deliberately NOT cleared when the poster asks
+    // for changes — it is a record of what happened, and JobTracking makes the
+    // same allowance in the progress tracker. But the bucket read the bare
+    // stamp as "a submission is waiting on me", so once a revision round-trip
+    // finished the job was pinned to Needs you forever, and any write that
+    // arrived without the field flipped it to Scheduled and back.
+    const submitted = "2026-08-01T00:00:00Z";
+    const sentBack = "2026-08-02T00:00:00Z";
+    const resubmitted = "2026-08-03T00:00:00Z";
+
+    // Work is back with the helpr: nothing is on the poster's desk.
+    expect(
+      postedActivityBucket({
+        status: "in_progress",
+        helper_completed_at: submitted,
+        revision_requested_at: sentBack,
+        poster_completed_at: null,
+      }),
+    ).toBe("scheduled");
+
+    // Re-submitted AFTER the revision — the poster owes a decision again.
+    expect(
+      postedActivityBucket({
+        status: "in_progress",
+        helper_completed_at: resubmitted,
+        revision_requested_at: sentBack,
+        poster_completed_at: null,
+      }),
+    ).toBe("needs_you");
+
+    // The revision itself is still the poster's move while it is open.
+    expect(
+      postedActivityBucket({
+        status: "revision_requested",
+        helper_completed_at: submitted,
+        revision_requested_at: sentBack,
+      }),
+    ).toBe("needs_you");
+
+    // A job that never had a revision is unchanged by any of this.
+    expect(
+      postedActivityBucket({
+        status: "in_progress",
+        helper_completed_at: submitted,
+        poster_completed_at: null,
+      }),
+    ).toBe("needs_you");
+
+    // An unparseable stamp falls through to the old behaviour — ask for a
+    // look rather than silently hide submitted work.
+    expect(
+      postedActivityBucket({
+        status: "in_progress",
+        helper_completed_at: submitted,
+        revision_requested_at: "not a date",
+        poster_completed_at: null,
+      }),
+    ).toBe("needs_you");
+  });
+
+  it("counts only applications still awaiting a decision", () => {
+    // The second half of the jumping report. The count fed here used to be
+    // EVERY application ever filed, so an open job whose applicants had all
+    // been declined kept insisting it needed the poster — a decision they had
+    // already made. The caller now passes the pending-only count; this pins
+    // the contract that the argument means "awaiting me", not "ever applied".
+    expect(postedActivityBucket({ status: "open" }, 2)).toBe("needs_you");
+    expect(postedActivityBucket({ status: "open" }, 0)).toBe("waiting");
+  });
 });

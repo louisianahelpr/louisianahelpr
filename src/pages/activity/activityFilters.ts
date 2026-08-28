@@ -80,6 +80,40 @@ export const APPLIED_STATUS_FILTERS: StatusFilter[] = BUCKET_FILTERS;
  * every open job would read as "waiting", which is the opposite of true for the
  * ones with a queue.
  */
+/**
+ * Is there a submission sitting on the poster's approval RIGHT NOW?
+ *
+ * `helper_completed_at` is NOT cleared when the poster sends work back for a
+ * revision — it is kept deliberately, as a record of what happened (see the
+ * note in JobTracking.tsx, which makes the same allowance in the progress
+ * tracker). So the raw stamp answers "has this helpr ever submitted", not "is
+ * a submission waiting on me".
+ *
+ * Reading it as the latter is what made a job stick in "Needs you" forever
+ * after a revision round-trip: the poster asks for changes, the helpr goes
+ * back to work, the job returns to in_progress — and the stale stamp still
+ * out-ranked the `in_progress → scheduled` line below it. Any later write that
+ * arrived without the field flipped the card to Scheduled and the next one
+ * flipped it back, which is the bucket "jumping" the owner reported.
+ *
+ * A submission counts only if it is NEWER than the last revision request.
+ * Unparseable timestamps compare false and fall through to the old behaviour
+ * (treat as outstanding), which is the safe side: it asks for a look rather
+ * than hiding work.
+ */
+function submissionAwaitingPoster(j: {
+  helper_completed_at?: string | null;
+  poster_completed_at?: string | null;
+  revision_requested_at?: string | null;
+}): boolean {
+  if (!j.helper_completed_at || j.poster_completed_at) return false;
+  if (!j.revision_requested_at) return true;
+  const submitted = Date.parse(j.helper_completed_at);
+  const sentBack = Date.parse(j.revision_requested_at);
+  if (Number.isNaN(submitted) || Number.isNaN(sentBack)) return true;
+  return submitted > sentBack;
+}
+
 export function postedActivityBucket(
   j: {
     status: string;
@@ -87,15 +121,17 @@ export function postedActivityBucket(
     helper_confirmed_at?: string | null;
     helper_completed_at?: string | null;
     poster_completed_at?: string | null;
+    revision_requested_at?: string | null;
     direct_offer_status?: string | null;
   },
-  applicantCount = 0,
+  /** Applications still AWAITING a decision — not every application ever filed. */
+  pendingApplicantCount = 0,
 ): ActivityBucket {
   if (j.status === "completed" || j.status === "cancelled") return "done";
   // Work submitted and not yet approved, a revision I asked for, or an open
   // dispute — all three are a decision sitting with me.
   if (j.status === "revision_requested" || j.status === "disputed") return "needs_you";
-  if (j.helper_completed_at && !j.poster_completed_at) return "needs_you";
+  if (submissionAwaitingPoster(j)) return "needs_you";
   if (j.status === "in_progress") return "scheduled";
   if (j.status === "accepted") {
     // Booked and confirmed is scheduled; booked and unconfirmed is me waiting
@@ -103,7 +139,7 @@ export function postedActivityBucket(
     return j.helper_confirmed_at ? "scheduled" : "waiting";
   }
   if (j.status === "open") {
-    return applicantCount > 0 ? "needs_you" : "waiting";
+    return pendingApplicantCount > 0 ? "needs_you" : "waiting";
   }
   return "waiting";
 }
@@ -185,9 +221,11 @@ export interface UseActivityFiltersArgs {
   statusFilter: string;
   searchQuery: string;
   userId: string | undefined;
-  /** Applications per posted job id — decides whether an OPEN job is waiting
-   *  for applicants or waiting on the poster to read the ones it has. */
-  applicantCounts?: Record<string, number>;
+  /** Applications STILL AWAITING A DECISION, per posted job id — decides
+   *  whether an OPEN job is waiting for applicants or waiting on the poster to
+   *  read the ones it has. Deliberately not the total: a job whose every
+   *  applicant was declined is not asking the poster for anything. */
+  pendingApplicantCounts?: Record<string, number>;
 }
 
 export function useActivityFilters({
@@ -196,7 +234,7 @@ export function useActivityFilters({
   statusFilter,
   searchQuery,
   userId,
-  applicantCounts,
+  pendingApplicantCounts,
 }: UseActivityFiltersArgs) {
   const searchLower = searchQuery.toLowerCase().trim();
 
@@ -216,7 +254,7 @@ export function useActivityFilters({
         statusFilter === "done"
       ) {
         statusMatch =
-          postedActivityBucket(j, applicantCounts?.[j.id] ?? 0) === statusFilter;
+          postedActivityBucket(j, pendingApplicantCounts?.[j.id] ?? 0) === statusFilter;
       }
       else if (statusFilter === "all") statusMatch = true;
       else if (statusFilter === "active") statusMatch = bucketPostedJob(j) === "active";
@@ -231,7 +269,7 @@ export function useActivityFilters({
         return j.title.toLowerCase().includes(searchLower) || j.description.toLowerCase().includes(searchLower) || j.location.toLowerCase().includes(searchLower);
       }
       return true;
-    }), [postedJobs, statusFilter, searchLower, applicantCounts]);
+    }), [postedJobs, statusFilter, searchLower, pendingApplicantCounts]);
 
   const filteredAppliedApps = useMemo(() => {
     const query = searchLower;
@@ -312,7 +350,7 @@ export function useActivityFilters({
     const counts: Record<string, number> = { all: postedJobs.length, active: 0, open: 0, direct_offer: 0, offered: 0, accepted: 0, in_progress: 0, revision_requested: 0, completed: 0, cancelled: 0, disputed: 0, needs_you: 0, waiting: 0, scheduled: 0, done: 0 };
     postedJobs.forEach((j) => {
       // See the note in appliedCounts — bucket tallies stay out of the chain.
-      counts[postedActivityBucket(j, applicantCounts?.[j.id] ?? 0)]++;
+      counts[postedActivityBucket(j, pendingApplicantCounts?.[j.id] ?? 0)]++;
       if (bucketPostedJob(j) === "active") counts.active++;
       if (j.offered_to_helper_id && j.direct_offer_status === "pending") counts.direct_offer++;
       if (j.status === "accepted" && !j.helper_confirmed_at) counts.offered++;
@@ -323,7 +361,7 @@ export function useActivityFilters({
     // so its chip count must include both terminal-negative states.
     counts.cancelled = (counts.cancelled || 0) + (counts.disputed || 0);
     return counts;
-  }, [postedJobs, applicantCounts]);
+  }, [postedJobs, pendingApplicantCounts]);
 
   return { filteredPostedJobs, filteredAppliedApps, appliedCounts, postedCounts };
 }

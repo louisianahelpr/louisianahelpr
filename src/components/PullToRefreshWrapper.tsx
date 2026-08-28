@@ -21,7 +21,20 @@ const PullToRefreshWrapper = forwardRef<HTMLDivElement, PullToRefreshWrapperProp
     <div ref={ref} className={`relative overflow-auto ${className}`} style={style}>
       {(isPulling || refreshing) && (
         <div
-          className="flex flex-col items-center justify-center gap-1.5 transition-all duration-200"
+          // Height tracks `pullDistance`, which is written once per rAF frame
+          // during an active drag so the indicator matches the finger exactly
+          // (see usePullToRefresh.ts). A CSS transition on that height is
+          // fine for the release snap-back, but applying it WHILE isPulling
+          // means every one of those per-frame height writes gets eased over
+          // 200ms instead of applied instantly — the indicator visibly chases
+          // a moving target all the way through the drag instead of tracking
+          // the finger 1:1. That reads as laggy/rubbery pull-to-refresh, a
+          // separate bug from the frozen-gesture one fixed in bb55f70a6 (that
+          // one stopped tracking entirely; this one tracks late). Only
+          // transition once the finger has released.
+          className={`flex flex-col items-center justify-center gap-1.5 ${
+            isPulling ? "" : "transition-all duration-200"
+          }`}
           style={{ height: refreshing ? 64 : Math.max(pullDistance, 24) }}
         >
           {/* Frosted-circle icon — matches the empty-state icon recipe

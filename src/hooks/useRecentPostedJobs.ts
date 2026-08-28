@@ -19,7 +19,7 @@ export interface RecentPostedJob {
 const DEFAULT_LIMIT = 3;
 
 /** One key family, so the hook and the nav's prefetch cannot disagree. */
-export const recentPostedJobsKey = (userId: string | undefined, limit: number) =>
+const recentPostedJobsKey = (userId: string | undefined, limit: number) =>
   ["recent-posted-jobs", userId, limit] as const;
 
 /** A minute of staleness is invisible here — a job you just posted is not

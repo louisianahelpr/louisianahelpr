@@ -1,7 +1,7 @@
 import { Check, ChevronDown, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export interface ChecklistItem {
+interface ChecklistItem {
   label: string;
   done: boolean;
 }

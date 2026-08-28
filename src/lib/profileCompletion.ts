@@ -75,7 +75,7 @@
 //    a reviewer is not something the user can do right now, so item 3 counts
 //    the upload, which is entirely in their hands.
 
-export interface ProfileCompletionItem {
+interface ProfileCompletionItem {
   /** Short row label, e.g. "Phone number". */
   label: string;
   /** One line saying what completing it buys the user. */

@@ -1,7 +1,7 @@
 import { ShieldCheck, BadgeCheck, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export interface CredentialState {
+interface CredentialState {
   is_licensed?: boolean | null;
   is_insured?: boolean | null;
   license_status?: string | null;

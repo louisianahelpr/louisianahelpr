@@ -1,11 +1,6 @@
 import type { User as SupaUser } from "@supabase/supabase-js";
 import type { PostedActivity, AppliedActivity } from "@/hooks/useActivityData";
-import type {
-  Job,
-  Application,
-  EnrichedApplication,
-  AppliedApp,
-} from "@/components/activity/activityConstants";
+import type { Job, AppliedApp } from "@/components/activity/activityConstants";
 
 /**
  * useActivityActions — data-loading + all action handlers for the Activity
@@ -38,5 +33,3 @@ export interface OptimisticJobCache {
   optimisticallyPatchJob: (jobId: string, patch: Partial<Job>) => ActivitySnapshot | undefined;
   rollbackActivity: (snapshot: ActivitySnapshot | undefined) => void;
 }
-
-export type { Job, Application, EnrichedApplication, AppliedApp };

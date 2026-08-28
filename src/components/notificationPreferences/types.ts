@@ -40,7 +40,7 @@ export interface Prefs {
 // Boolean-valued keys only — `Row` references the per-category
 // toggles, and Prefs now includes string-valued keys (quiet_start /
 // quiet_end) that have no place in the per-category switch grid.
-export type BoolPrefKey = {
+type BoolPrefKey = {
   [K in keyof Prefs]: Prefs[K] extends boolean ? K : never;
 }[keyof Prefs];
 

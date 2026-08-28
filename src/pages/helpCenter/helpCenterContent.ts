@@ -94,7 +94,7 @@ export const SECTION_ACCENTS: Record<string, string> = {
 
 // ─── FAQ data ─────────────────────────────────────────────────────────────────
 
-export interface FaqItem {
+interface FaqItem {
   q: string;
   a: string;
 }

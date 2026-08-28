@@ -28,7 +28,7 @@ function preferredAudioMime(): string {
   return ""; // browser default
 }
 
-export type VoiceRecorderState =
+type VoiceRecorderState =
   | "idle"
   | "requesting"   // mic permission in-flight
   | "recording"

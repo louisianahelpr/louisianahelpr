@@ -35,7 +35,7 @@ export interface WithdrawReasonChoice {
   detail?: string;
 }
 
-export interface WithdrawReasonEntry extends WithdrawReasonChoice {
+interface WithdrawReasonEntry extends WithdrawReasonChoice {
   appId: string;
   jobId?: string | null;
   loggedAt: string;

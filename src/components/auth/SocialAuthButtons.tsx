@@ -27,7 +27,7 @@ import {
   type SocialSignInResult,
 } from "@/lib/socialAuth";
 
-export type SocialAuthLabelMode = "signin" | "signup";
+type SocialAuthLabelMode = "signin" | "signup";
 
 interface SocialAuthButtonsProps {
   // Label mode — "signin" → "Sign in with Apple", "signup" → "Sign up with Apple".

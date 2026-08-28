@@ -7,7 +7,7 @@ import { safeStorage } from "@/lib/safeStorage";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 /** Shape returned by the `stripe-connect` edge function's `status` action. */
-export interface StripeConnectStatus {
+interface StripeConnectStatus {
   connected: boolean;
   details_submitted: boolean;
   payouts_enabled: boolean;

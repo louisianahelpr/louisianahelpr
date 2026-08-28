@@ -12,7 +12,7 @@ const DIRECT_PAY_PHRASES = /\b(pay\s*me\s*direct|off\s*the\s*app|outside\s*the\s
 const normalizeDigits = (s: string): string =>
   s.replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0));
 
-export type ViolationType = "phone_number" | "email" | "payment_app" | "direct_pay";
+type ViolationType = "phone_number" | "email" | "payment_app" | "direct_pay";
 
 export type DetectedViolation = {
   type: ViolationType;

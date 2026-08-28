@@ -85,25 +85,25 @@ export interface AppliedActivityDetail {
   latestTracking: Record<string, TrackingData | null>;
 }
 
-export const EMPTY_POSTED: PostedActivity = {
+const EMPTY_POSTED: PostedActivity = {
   postedJobs: [],
   applicantCounts: {},
 };
 
-export const EMPTY_POSTED_DETAIL: PostedActivityDetail = {
+const EMPTY_POSTED_DETAIL: PostedActivityDetail = {
   helperNames: {},
   completedJobMeta: {},
   latestTracking: {},
   groupHelpersByJob: {},
 };
 
-export const EMPTY_APPLIED: AppliedActivity = {
+const EMPTY_APPLIED: AppliedActivity = {
   appliedApps: [],
   declinedJobIds: new Set(),
   helperReviewedJobIds: new Set(),
 };
 
-export const EMPTY_APPLIED_DETAIL: AppliedActivityDetail = {
+const EMPTY_APPLIED_DETAIL: AppliedActivityDetail = {
   posterNames: {},
   latestTracking: {},
 };

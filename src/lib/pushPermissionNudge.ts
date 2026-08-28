@@ -138,7 +138,7 @@ export async function readPushPermission(): Promise<
  *   - permission is already granted (no value in nudging)
  *   - notifications aren't supported on this platform at all
  */
-export async function shouldNudgeForReason(
+async function shouldNudgeForReason(
   reason: NudgeReason,
   now: number = Date.now(),
 ): Promise<boolean> {

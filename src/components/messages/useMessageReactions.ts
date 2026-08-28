@@ -24,7 +24,6 @@ import { hapticLight } from "@/lib/haptics";
 
 /** The six iMessage tapbacks. Must match the CHECK constraint on the table. */
 export const TAPBACKS = ["❤️", "👍", "👎", "😂", "‼️", "❓"] as const;
-export type Tapback = (typeof TAPBACKS)[number];
 
 export interface Reaction {
   messageId: string;

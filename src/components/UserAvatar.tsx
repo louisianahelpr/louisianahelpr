@@ -25,7 +25,7 @@ import { cn } from "@/lib/utils";
  *   we route it through `transformedImageUrl` at the requested pixel
  *   size to avoid loading multi-MB originals into a 44px circle.
  */
-export interface UserAvatarProps
+interface UserAvatarProps
   extends Omit<React.ComponentPropsWithoutRef<typeof Avatar>, "children"> {
   /** Stable hash seed — typically `user_id`. Drives the fallback gradient. */
   userId: string | null | undefined;

@@ -20,8 +20,8 @@
 import { track, AhaEvent } from "@/lib/analytics";
 import { safeStorage } from "@/lib/safeStorage";
 
-export type PpoTestId = "trust" | "visual" | "local";
-export type PpoArm = "control" | "treatment";
+type PpoTestId = "trust" | "visual" | "local";
+type PpoArm = "control" | "treatment";
 
 export interface PpoAttribution {
   testId: PpoTestId;
@@ -42,7 +42,7 @@ const STORAGE_KEY = "helpr_ppo_attribution";
  * Fill in real `applePptId` values once you create each test in App Store
  * Connect → Custom Product Pages → Product Page Optimization.
  */
-export const PPO_TESTS: Record<PpoTestId, {
+const PPO_TESTS: Record<PpoTestId, {
   hypothesis: string;
   control: { label: string };
   treatments: Array<{ applePptId: string; label: string }>;

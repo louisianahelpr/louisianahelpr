@@ -7,7 +7,7 @@
 // NOTE: /jobs is deliberately absent — it's the PUBLIC guest browse page
 // (rendered inside PublicLayout with the marketing Navbar + Footer), so the
 // authed left rail must not cover it. Its authed counterpart is /dashboard.
-export const AUTH_PREFIXES = [
+const AUTH_PREFIXES = [
   // Admin. Removing it from NO_NAV_PREFIXES only stopped the nav being
   // suppressed — `isDesktopRailRoute` is an ALLOW-list, so it also has to be
   // named here or the nav still never renders. Both halves are required; this
@@ -84,7 +84,7 @@ const AUTH_PREFIX_EXCLUSIONS = ["/family/accept"];
 //
 // The auth screens stay: those are deliberately focused flows with nothing to
 // navigate to, which is a different situation from a console you need to leave.
-export const NO_NAV_PREFIXES = ["/login", "/signup", "/forgot-password", "/reset-password"];
+const NO_NAV_PREFIXES = ["/login", "/signup", "/forgot-password", "/reset-password"];
 
 /**
  * True when the desktop sidebar rail owns navigation for `pathname` — i.e. a

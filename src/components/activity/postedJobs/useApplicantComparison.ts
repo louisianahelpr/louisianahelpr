@@ -4,7 +4,7 @@ import { type EnrichedApplication } from "../activityConstants";
 
 export type ApplicantSort = "recommended" | "rated" | "soonest";
 
-export type ScoredApp = {
+type ScoredApp = {
   app: EnrichedApplication;
   score: number;
   signals: string[];

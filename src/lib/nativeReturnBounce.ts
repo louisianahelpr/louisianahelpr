@@ -28,7 +28,7 @@ import { isNativePlatform } from "@/lib/nativeInit";
 import { NATIVE_RETURN_SCHEME } from "@/lib/deepLinkRoute";
 
 /** Query flag the edge functions append to `success_url` for native callers. */
-export const NATIVE_RETURN_PARAM = "native";
+const NATIVE_RETURN_PARAM = "native";
 
 /**
  * If this page was opened as a native payment return, hand off to the app.

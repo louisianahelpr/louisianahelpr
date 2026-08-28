@@ -12,7 +12,7 @@ export const MESSAGE_ATTACHMENT_MIME_WHITELIST = [
   "application/pdf",
 ] as const;
 
-export type MessageAttachmentMime = (typeof MESSAGE_ATTACHMENT_MIME_WHITELIST)[number];
+type MessageAttachmentMime = (typeof MESSAGE_ATTACHMENT_MIME_WHITELIST)[number];
 
 export function isImageMime(mime: string | null | undefined): boolean {
   return !!mime && mime.startsWith("image/");
@@ -39,7 +39,7 @@ function isHeicMime(mime: string | null | undefined): boolean {
 // Strips EXIF (and other metadata) from an image by drawing it onto a
 // canvas and re-encoding. Returns a fresh Blob. Skips non-image files;
 // HEIC never reaches this (uploadMessageAttachment rejects it first).
-export async function stripImageExif(file: File): Promise<Blob> {
+async function stripImageExif(file: File): Promise<Blob> {
   if (!file.type.startsWith("image/") || isHeicMime(file.type)) return file;
 
   const bitmap = await createImageBitmap(file);

@@ -28,7 +28,7 @@
 
 import { Capacitor } from "@capacitor/core";
 
-export type ImageResizeMode = "cover" | "contain" | "fill";
+type ImageResizeMode = "cover" | "contain" | "fill";
 
 export interface ImageTransformOptions {
   /** Target CSS width of the rendered box, in px. */

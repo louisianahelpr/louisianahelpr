@@ -43,9 +43,6 @@ type Report = {
 // pending/reviewed values. We surface 'new' as the default replacement
 // for 'pending' but tolerate both so the queue keeps working between
 // merge and the manual `supabase db push`.
-// Exported for future consumers (analytics, reports drilldowns).
-export type TriageState = "new" | "investigating" | "resolved" | "dismissed";
-
 const SLA_BREACH_HOURS = 24;
 
 type ReportFilter = "pending" | "investigating" | "resolved" | "dismissed" | "all";

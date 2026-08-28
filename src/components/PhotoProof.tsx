@@ -17,7 +17,7 @@ type PhotoProofProps = {
   onUploaded: () => void;
 };
 
-export const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProofProps) => {
+const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProofProps) => {
   const [open, setOpen] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);

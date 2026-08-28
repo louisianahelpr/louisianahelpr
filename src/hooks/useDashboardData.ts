@@ -39,7 +39,7 @@ interface JobsPage {
   nextOffset: number | null;
 }
 
-export type DashboardContext = Awaited<ReturnType<typeof fetchDashboardContext>>;
+type DashboardContext = Awaited<ReturnType<typeof fetchDashboardContext>>;
 
 /** Per-user dashboard context (fee / availability / applied set / blocks).
  *
@@ -49,7 +49,7 @@ export type DashboardContext = Awaited<ReturnType<typeof fetchDashboardContext>>
  *  filter the rows it returns — so gating the feed on `!!ctx` cost one full
  *  serial network round (~215ms measured) before the first card could paint.
  */
-export async function fetchDashboardContext(
+async function fetchDashboardContext(
   userId: string | null,
 ) {
   if (!userId) return null;

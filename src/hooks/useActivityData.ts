@@ -31,8 +31,8 @@ import { report } from "@/lib/errorLogger";
    The rule for which side of that line a field falls on is NOT "is it cheap" —
    it is "would the card render something WRONG without it". `applicantCounts`
    decides whether an open job sits in the "Needs you" bucket or "Waiting"
-   (postedActivityBucket), and `startRequestedJobIds` / `helperReviewedJobIds`
-   decide which primary button a card shows — so those stay in the core fetch
+   (postedActivityBucket), and `helperReviewedJobIds`
+   decides which primary button a card shows — so those stay in the core fetch
    even though each costs a query, and they were rewritten as embedded `!inner`
    filters on the user so they no longer have to WAIT for the job-id list
    first. Helper/poster names, tip+review badges, tracking rows and group-helper
@@ -60,7 +60,6 @@ export interface GroupHelperLite {
 export interface PostedActivity {
   postedJobs: Job[];
   applicantCounts: Record<string, number>;
-  startRequestedJobIds: Set<string>;
 }
 
 /** Decoration for My Posts — resolves after the list is on screen. */
@@ -78,7 +77,6 @@ export interface AppliedActivity {
   appliedApps: AppliedApp[];
   declinedJobIds: Set<string>;
   helperReviewedJobIds: Set<string>;
-  startRequestedJobIds: Set<string>;
 }
 
 /** Decoration for My Jobs — resolves after the list is on screen. */
@@ -90,7 +88,6 @@ export interface AppliedActivityDetail {
 export const EMPTY_POSTED: PostedActivity = {
   postedJobs: [],
   applicantCounts: {},
-  startRequestedJobIds: new Set(),
 };
 
 export const EMPTY_POSTED_DETAIL: PostedActivityDetail = {
@@ -104,7 +101,6 @@ export const EMPTY_APPLIED: AppliedActivity = {
   appliedApps: [],
   declinedJobIds: new Set(),
   helperReviewedJobIds: new Set(),
-  startRequestedJobIds: new Set(),
 };
 
 export const EMPTY_APPLIED_DETAIL: AppliedActivityDetail = {
@@ -127,14 +123,14 @@ const isActiveStatus = (s: string | null | undefined) =>
  * against production since the nav badges shipped.
  */
 export async function fetchPostedActivity(userId: string): Promise<PostedActivity> {
-  const [jobsRes, appCountRes, startCheckinsRes] = await Promise.all([
+  // The third read here used to be `job_checkins WHERE type = 'start_request'`,
+  // feeding a `startRequestedJobIds` set that gated the poster's "Confirm
+  // Start" button. Nothing in this app has ever inserted a job_checkins row
+  // (0 in prod), so the set was always empty and the button never rendered —
+  // one query per Activity load, forever, for a control nobody could see.
+  const [jobsRes, appCountRes] = await Promise.all([
     supabase.from("jobs").select("*").eq("customer_id", userId).order("created_at", { ascending: false }),
     supabase.from("applications").select("job_id, jobs!inner(customer_id)").eq("jobs.customer_id", userId),
-    supabase
-      .from("job_checkins")
-      .select("job_id, jobs!inner(customer_id)")
-      .eq("type", "start_request")
-      .eq("jobs.customer_id", userId),
   ]);
 
   // Surface a failed primary fetch so the screen can show an ErrorState
@@ -147,10 +143,6 @@ export async function fetchPostedActivity(userId: string): Promise<PostedActivit
   if (appCountRes.error) {
     report(appCountRes.error, { severity: "warning", tags: { source: "useActivityData.applicantCounts" } });
   }
-  if (startCheckinsRes.error) {
-    report(startCheckinsRes.error, { severity: "warning", tags: { source: "useActivityData.startCheckins" } });
-  }
-
   const applicantCounts: Record<string, number> = {};
   (appCountRes.data ?? []).forEach((a) => {
     applicantCounts[a.job_id] = (applicantCounts[a.job_id] || 0) + 1;
@@ -159,7 +151,6 @@ export async function fetchPostedActivity(userId: string): Promise<PostedActivit
   return {
     postedJobs: jobsRes.data ?? [],
     applicantCounts,
-    startRequestedJobIds: new Set((startCheckinsRes.data ?? []).map((c) => c.job_id)),
   };
 }
 
@@ -280,7 +271,7 @@ export async function fetchPostedActivityDetail(
  * read: the job rows behind the applications, without which there is no card.
  */
 export async function fetchAppliedActivity(userId: string): Promise<AppliedActivity> {
-  const [appsRes, directOffersRes, violationsRes, helperReviewsRes, startCheckinsRes] = await Promise.all([
+  const [appsRes, directOffersRes, violationsRes, helperReviewsRes] = await Promise.all([
     supabase.from("applications").select("*").eq("helper_id", userId).order("created_at", { ascending: false }),
     supabase
       .from("jobs")
@@ -292,11 +283,6 @@ export async function fetchAppliedActivity(userId: string): Promise<AppliedActiv
     // No `.in("job_id", …)` any more — one column, scoped to reviews this user
     // wrote, so it can be issued in wave 1 instead of waiting for the app list.
     supabase.from("reviews").select("job_id").eq("reviewer_id", userId),
-    supabase
-      .from("job_checkins")
-      .select("job_id, jobs!inner(helper_id)")
-      .eq("type", "start_request")
-      .eq("jobs.helper_id", userId),
   ]);
 
   const primaryError = appsRes.error || directOffersRes.error;
@@ -320,9 +306,6 @@ export async function fetchAppliedActivity(userId: string): Promise<AppliedActiv
   }
   if (helperReviewsRes.error) {
     report(helperReviewsRes.error, { severity: "warning", tags: { source: "useActivityData.helperReviews" } });
-  }
-  if (startCheckinsRes.error) {
-    report(startCheckinsRes.error, { severity: "warning", tags: { source: "useActivityData.helperStartCheckins" } });
   }
 
   let appliedApps: AppliedApp[] = [];
@@ -365,7 +348,6 @@ export async function fetchAppliedActivity(userId: string): Promise<AppliedActiv
       (violationsRes.data ?? []).map((v) => v.job_id).filter((id): id is string => Boolean(id)),
     ),
     helperReviewedJobIds: new Set((helperReviewsRes.data ?? []).map((r) => r.job_id)),
-    startRequestedJobIds: new Set((startCheckinsRes.data ?? []).map((c) => c.job_id)),
   };
 }
 
@@ -621,7 +603,7 @@ export function useActivityData(user: SupaUser | null, tab: "posted" | "applied"
       .on("postgres_changes", { event: "*", schema: "public", table: "jobs", filter: `customer_id=eq.${userId}` }, invalidate)
       .on("postgres_changes", { event: "*", schema: "public", table: "jobs", filter: `helper_id=eq.${userId}` }, invalidate)
       .on("postgres_changes", { event: "*", schema: "public", table: "jobs", filter: `offered_to_helper_id=eq.${userId}` }, invalidate)
-      // job_tracking / applications / reviews / job_checkins — scoped to
+      // job_tracking / applications / reviews — scoped to
       // rows involving this user so platform-wide write churn on these
       // high-volume tables never fans out to every connected client.
       // Each table has exactly one user-facing column that covers the
@@ -629,7 +611,6 @@ export function useActivityData(user: SupaUser | null, tab: "posted" | "applied"
       .on("postgres_changes", { event: "*", schema: "public", table: "job_tracking", filter: `helper_id=eq.${userId}` }, invalidate)
       .on("postgres_changes", { event: "*", schema: "public", table: "applications", filter: `helper_id=eq.${userId}` }, invalidate)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "reviews", filter: `reviewee_id=eq.${userId}` }, invalidate)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "job_checkins", filter: `user_id=eq.${userId}` }, invalidate)
       .subscribe();
     return () => {
       if (debounce) clearTimeout(debounce);
@@ -681,7 +662,6 @@ export function useActivityData(user: SupaUser | null, tab: "posted" | "applied"
     postedJobs: posted.postedJobs,
     appliedApps: appliedAppsWithNames,
     applicantCounts: posted.applicantCounts,
-    startRequestedJobIds: isPosted ? posted.startRequestedJobIds : applied.startRequestedJobIds,
     helperNames: postedD.helperNames,
     completedJobMeta: postedD.completedJobMeta,
     declinedJobIds: applied.declinedJobIds,

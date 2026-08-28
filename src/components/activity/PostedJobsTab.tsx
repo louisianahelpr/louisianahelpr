@@ -24,7 +24,6 @@ interface PostedJobsTabProps {
   setExpandedJobId: (id: string | null) => void;
   helperNames: Record<string, string>;
   completedJobMeta: Record<string, { tipped: boolean; reviewed: boolean }>;
-  startRequestedJobIds: Set<string>;
   /** Batched per-card tracking + group-helper data, pre-fetched by
       useActivityData. Hoisted here so each <JobTracking>/<GroupJobHelpers>
       doesn't re-fetch on mount (N+1 across active cards). */
@@ -44,8 +43,6 @@ interface PostedJobsTabProps {
   /** Open the read-only timeline + follow-up evidence uploader for a
    *  job that's already in dispute. */
   onViewDispute: (job: Job) => void;
-  onConfirmStart: (jobId: string) => void;
-  confirmingStartJobId: string | null;
   onConfirmArrival: (jobId: string) => void;
   confirmingArrivalJobId: string | null;
   onConfirmWorking: (jobId: string) => void;
@@ -76,10 +73,10 @@ interface PostedJobsTabProps {
 
 export const PostedJobsTab = ({
   jobs, applicantCounts, expandedJobId, setExpandedJobId,
-  helperNames, completedJobMeta, startRequestedJobIds,
+  helperNames, completedJobMeta,
   latestTracking, groupHelpersByJob, userId,
   onBoost, onEdit, onCancel, onComplete, completingJobId,
-  onRevision, onNoShow, onTip, onReview, onDispute, onViewDispute, onConfirmStart, confirmingStartJobId, onConfirmArrival, confirmingArrivalJobId, onConfirmWorking, confirmingWorkingJobId,
+  onRevision, onNoShow, onTip, onReview, onDispute, onViewDispute, onConfirmArrival, confirmingArrivalJobId, onConfirmWorking, confirmingWorkingJobId,
   onLoadApplications, selectedJob, setSelectedJob, applications,
   applicationsLoading = false, applicationsError = false,
   onAcceptApplication, onDeclineApplication, onLoadInlineApplicants,
@@ -136,7 +133,6 @@ export const PostedJobsTab = ({
         setExpandedJobId={setExpandedJobId}
         helperNames={helperNames}
         completedJobMeta={completedJobMeta}
-        startRequestedJobIds={startRequestedJobIds}
         // `latestTracking[job.id]` may legitimately be `null` ("we
         // looked, no row exists") — the card forwards that down so
         // <JobTracking> skips its own initial fetch. If the key is
@@ -156,8 +152,6 @@ export const PostedJobsTab = ({
         onReview={onReview}
         onDispute={onDispute}
         onViewDispute={onViewDispute}
-        onConfirmStart={onConfirmStart}
-        confirmingStartJobId={confirmingStartJobId}
         onConfirmArrival={onConfirmArrival}
         confirmingArrivalJobId={confirmingArrivalJobId}
         onConfirmWorking={onConfirmWorking}

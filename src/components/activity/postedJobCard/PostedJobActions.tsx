@@ -33,7 +33,6 @@ interface PostedJobActionsProps {
   userId: string;
   helperNames: Record<string, string>;
   completedJobMeta: Record<string, { tipped: boolean; reviewed: boolean }>;
-  startRequestedJobIds: Set<string>;
   onBoost: (jobId: string) => void;
   onEdit: (job: Job) => void;
   onCancel: (job: Job) => void;
@@ -45,8 +44,6 @@ interface PostedJobActionsProps {
   onReview: (job: Job) => void;
   onDispute: (job: Job) => void;
   onViewDispute: (job: Job) => void;
-  onConfirmStart: (jobId: string) => void;
-  confirmingStartJobId: string | null;
   onConfirmArrival: (jobId: string) => void;
   confirmingArrivalJobId: string | null;
   onConfirmWorking: (jobId: string) => void;
@@ -65,7 +62,6 @@ export function PostedJobActions({
   userId,
   helperNames,
   completedJobMeta,
-  startRequestedJobIds,
   onBoost,
   onEdit,
   onCancel,
@@ -77,8 +73,6 @@ export function PostedJobActions({
   onReview,
   onDispute,
   onViewDispute,
-  onConfirmStart,
-  confirmingStartJobId,
   onConfirmArrival,
   confirmingArrivalJobId,
   onConfirmWorking,
@@ -222,15 +216,14 @@ export function PostedJobActions({
                 "Job starts in 4d 14h". This one restated both in flat grey with
                 no number at all. Owner: "needs better organization globally."
                 One fact, one place — the countdown that actually moves. */}
-            {/* Full-width, but on the SHARED full-width treatment now — it was
-                the solid `default` CTA, the loudest surface the app has, on a
-                card whose every other control is a tint. */}
-            {startRequestedJobIds.has(job.id) && !job.helper_confirmed_at && (
-              <Button size="sm" variant="outline" className={JOB_ACTION_FULL_CLASS} style={jobActionChipStyle("primary")} disabled={confirmingStartJobId === job.id} onClick={() => onConfirmStart(job.id)}>
-                <CheckCircle2 className="w-4 h-4" />
-                {confirmingStartJobId === job.id ? "Starting…" : "Confirm Start"}
-              </Button>
-            )}
+            {/* REMOVED: "Confirm Start". It was gated on
+                `startRequestedJobIds`, built from `job_checkins` rows of type
+                'start_request' — and NOTHING in this codebase has ever written
+                a job_checkins row (0 in prod), so the button could never
+                render for anyone. What it did was set status = 'in_progress',
+                which the helper's own On the Way / Arrived transition already
+                does. A control that can never appear, for a state change that
+                happens anyway, is not a feature to wire up — it's dead. */}
             {/* ONE chip row, same as every other state's (owner: "button
                 inconsistency in size etc."). These two were the last hand-rolled
                 pair in the card: a `flex gap-2` of horizontal outline Buttons at

@@ -96,12 +96,10 @@ function makeChainable(table: string) {
 
 const POSTED_JOBS_KEY = "jobs|select,eq:customer_id=u1,order:created_at";
 const APPLICANT_COUNT_KEY = "applications|select,eq:jobs.customer_id=u1";
-const POSTED_CHECKINS_KEY = "job_checkins|select,eq:type=start_request,eq:jobs.customer_id=u1";
 const APPS_KEY = "applications|select,eq:helper_id=u1,order:created_at";
 const OFFERS_KEY = "jobs|select,eq:offered_to_helper_id=u1,eq:direct_offer_status=pending,order:created_at";
 const VIOLATIONS_KEY = "user_violations|select,eq:user_id=u1,eq:violation_type=job_denial";
 const HELPER_REVIEWS_KEY = "reviews|select,eq:reviewer_id=u1";
-const HELPER_CHECKINS_KEY = "job_checkins|select,eq:type=start_request,eq:jobs.helper_id=u1";
 
 // ---------------------------------------------------------------------------
 
@@ -110,7 +108,6 @@ describe("fetchPostedActivity — My Posts core", () => {
     const result = await fetchPostedActivity("u1");
     expect(result.postedJobs).toEqual([]);
     expect(result.applicantCounts).toEqual({});
-    expect(result.startRequestedJobIds.size).toBe(0);
   });
 
   it("counts applications per posted job", async () => {
@@ -123,25 +120,16 @@ describe("fetchPostedActivity — My Posts core", () => {
     const result = await fetchPostedActivity("u1");
     expect(result.postedJobs).toHaveLength(1);
     expect(result.applicantCounts["j1"]).toBe(3);
-    expect(result.startRequestedJobIds.has("j1")).toBe(false);
   });
 
-  it("populates startRequestedJobIds from job_checkins type=start_request", async () => {
-    setResponse(POSTED_JOBS_KEY, { data: [{ id: "j1", customer_id: "u1", status: "in_progress" }], error: null });
-    setResponse(POSTED_CHECKINS_KEY, { data: [{ job_id: "j1" }], error: null });
 
-    const result = await fetchPostedActivity("u1");
-    expect(result.startRequestedJobIds.has("j1")).toBe(true);
-  });
-
-  // The whole point of the split: the counts and check-ins are scoped by an
+  // The whole point of the split: the enrichment reads are scoped by an
   // embedded `jobs!inner` filter on the USER, not by an `.in(jobIds)` list, so
   // they go out in the SAME wave as the jobs query instead of waiting for it.
-  it("issues the applicant-count and check-in reads without waiting for the job ids", async () => {
+  it("issues the applicant-count read without waiting for the job ids", async () => {
     setResponse(POSTED_JOBS_KEY, { data: [{ id: "j1", customer_id: "u1", status: "open" }], error: null });
     await fetchPostedActivity("u1");
     expect(issued).toContain(APPLICANT_COUNT_KEY);
-    expect(issued).toContain(POSTED_CHECKINS_KEY);
     // No id-list variant anywhere.
     expect(issued.some((k) => k.startsWith("applications|select,in:job_id="))).toBe(false);
   });
@@ -285,14 +273,11 @@ describe("fetchAppliedActivity — My Jobs core", () => {
     setResponse(APPS_KEY, { data: [{ id: "a1", job_id: "j1", helper_id: "u1" }], error: null });
     setResponse("jobs|select,in:id=j1", { data: [{ id: "j1", customer_id: "poster-1" }], error: null });
     setResponse(HELPER_REVIEWS_KEY, { data: [{ job_id: "j1" }], error: null });
-    setResponse(HELPER_CHECKINS_KEY, { data: [{ job_id: "j1" }], error: null });
 
     const result = await fetchAppliedActivity("u1");
     expect(result.helperReviewedJobIds.has("j1")).toBe(true);
-    expect(result.startRequestedJobIds.has("j1")).toBe(true);
-    // Both were issued BEFORE the dependent jobs-by-id read.
+    // Issued BEFORE the dependent jobs-by-id read.
     expect(issued.indexOf(HELPER_REVIEWS_KEY)).toBeLessThan(issued.indexOf("jobs|select,in:id=j1"));
-    expect(issued.indexOf(HELPER_CHECKINS_KEY)).toBeLessThan(issued.indexOf("jobs|select,in:id=j1"));
   });
 
   it("throws when the jobs-behind-the-applications read fails", async () => {

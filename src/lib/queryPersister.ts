@@ -46,8 +46,7 @@ const idbAsyncStorage = {
  * properties), so any persisted query whose data holds a Set would
  * rehydrate it as a plain object and blow up the first time the consumer
  * calls `.has()`/`.add()`. The activity feed (useActivityData) returns
- * three such Sets — startRequestedJobIds, declinedJobIds,
- * helperReviewedJobIds — which is exactly how My Posts / My Jobs crashed
+ * two such Sets — declinedJobIds and helperReviewedJobIds — which is exactly how My Posts / My Jobs crashed
  * to an error boundary after a cold start rehydrated the persisted cache.
  */
 const SET_MARKER = "__rq_set__";

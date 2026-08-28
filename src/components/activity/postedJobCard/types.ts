@@ -10,7 +10,6 @@ export interface PostedJobCardProps {
   setExpandedJobId: (id: string | null) => void;
   helperNames: Record<string, string>;
   completedJobMeta: Record<string, { tipped: boolean; reviewed: boolean }>;
-  startRequestedJobIds: Set<string>;
   userId: string;
   /** Job-lifecycle handlers, owned by the parent ActivityTab. */
   onBoost: (jobId: string) => void;
@@ -26,9 +25,6 @@ export interface PostedJobCardProps {
   /** Open the read-only timeline + follow-up evidence uploader for a
    *  job that's already in dispute. */
   onViewDispute: (job: Job) => void;
-  onConfirmStart: (jobId: string) => void;
-  /** Non-null (=== job.id) while the confirmStart DB write is in-flight. */
-  confirmingStartJobId: string | null;
   onConfirmArrival: (jobId: string) => void;
   /** Non-null (=== job.id) while the confirmArrival DB write is in-flight. */
   confirmingArrivalJobId: string | null;

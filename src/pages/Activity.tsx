@@ -191,7 +191,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
 
   const {
     loading, loadError, postedJobs, appliedApps, applicantCounts,
-    startRequestedJobIds, helperNames, completedJobMeta,
+    helperNames, completedJobMeta,
     helperReviewedJobIds, latestTracking, groupHelpersByJob, refresh,
     // Only THIS tab's data blocks the first card. The other tab's core query
     // is warmed on idle inside the hook, so switching still comes out of cache.
@@ -449,7 +449,6 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               setExpandedJobId={actions.setExpandedJobId}
               helperNames={helperNames}
               completedJobMeta={completedJobMeta}
-              startRequestedJobIds={startRequestedJobIds}
               latestTracking={latestTracking}
               groupHelpersByJob={groupHelpersByJob}
               userId={user!.id}
@@ -464,8 +463,6 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               onReview={actions.openReviewForPosted}
               onDispute={actions.setDisputeJob}
               onViewDispute={actions.setViewDisputeJob}
-              onConfirmStart={actions.confirmStartJob}
-              confirmingStartJobId={actions.confirmingStartJobId}
               onConfirmArrival={actions.confirmArrival}
               confirmingArrivalJobId={actions.confirmingArrivalJobId}
               onConfirmWorking={actions.confirmWorking}

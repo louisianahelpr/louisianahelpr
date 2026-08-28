@@ -271,7 +271,7 @@ const Jobs = () => {
               this board matches the native guest board (/browse), which has
               never carried them. With only two children left there is no wrap
               to orchestrate, so the `order-*` classes went with them. */}
-          <div className="flex items-center gap-3 mt-4 mb-3 md:mt-5 md:mb-4 animate-in fade-in slide-in-from-bottom-4 duration-400">
+          <div className="flex items-center gap-3 mt-4 mb-3 md:mt-5 md:mb-4 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4 duration-400">
             <div className="shrink-0">
 {/* to="/" — NOT bare history-back. These are top-nav / footer
                   destinations reachable from anywhere, so `navigate(-1)` sent
@@ -402,7 +402,7 @@ const Jobs = () => {
                           }
                         }}
                         aria-label={`View details for ${job.title}`}
-                        className="block w-full h-full text-left rounded-2xl cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary animate-in fade-in slide-in-from-bottom-2 duration-300"
+                        className="block w-full h-full text-left rounded-2xl cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 duration-300"
                         style={
                           flatIndex < MAX_STAGGER_CARDS
                             ? { animationDelay: `${flatIndex * 40}ms`, animationFillMode: "both" }

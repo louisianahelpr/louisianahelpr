@@ -461,15 +461,25 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                       .map((feature) => (
                         <li
                           key={feature}
-                          className="inline-flex items-center gap-1 font-sans text-ds-11"
+                          // `items-start` + a shrink-0 icon nudged to the
+                          // first line's optical center, matching the public
+                          // /subscription card. This was `inline-flex
+                          // items-center` around a BARE text node, so a bullet
+                          // that wrapped laid the check out inline with the
+                          // flowed text: Elite's Reliability Shield rendered as
+                          // "Reliability Shield — first" / "✓ strike every 6
+                          // months" / "forgiven". Shortening copy only hides
+                          // that; the next wrap (any tier, any larger Dynamic
+                          // Type size) brings it back.
+                          className="flex items-start gap-1 font-sans text-ds-11"
                           style={{ color: "hsl(var(--olivewood) / 0.85)" }}
                         >
                           <CheckCircle
-                            className="w-2.5 h-2.5 shrink-0"
+                            className="w-2.5 h-2.5 shrink-0 mt-[3px]"
                             style={{ color: accent }}
                             strokeWidth={2.5}
                           />
-                          {feature}
+                          <span>{feature}</span>
                         </li>
                       ))}
                   </ul>

@@ -28,12 +28,15 @@ permissions:
 #     look right with real data" check depended on someone remembering to
 #     click workflow_dispatch by hand.
 #   - The error-state sweep is a NEW gate over a surface that has never been
-#     gated and currently reports real findings; wiring it in before those are
-#     closed would just red main. Still dispatch-only for now — same reasoning
-#     that kept the empty-state sweep opt-in until its own findings were closed.
+#     gated and currently reports real findings — putting it on every push/PR
+#     would just red main before those are triaged. It runs automatically
+#     ONCE A WEEK instead (Wednesday 05:00 UTC, 2026-08-29), same as the
+#     seeded sweep: weekly cadence is cheap enough to afford, and evidence
+#     needs to exist somewhere other than "run it by hand" for anyone to ever
+#     act on it.
 #
-# The error-state sweep and the full 4-variant matrix are still a
-# `workflow_dispatch` click away (see the inputs below).
+# The full 4-variant matrix is still a `workflow_dispatch` click away (see
+# the inputs below) for an ad-hoc deeper pass.
 #
 # COST — measured, not guessed
 # ----------------------------
@@ -63,7 +66,11 @@ on:
     # — the actual "does this look right" pass that was previously only run
     # by hand). Distinct time from every other Sunday UTC cron in this repo
     # (lighthouse 06:00, cloud Docs Drift 06:00, cloud iOS/Capacitor 06:30).
-    - cron: "30 5 * * 0" # Sunday 05:30 UTC
+    - cron: "30 5 * * 0" # Sunday 05:30 UTC — resolves to 'seeded' below
+    # Weekly error-state sweep (queries 500/hang across the route catalog).
+    # A separate cron so `github.event.schedule` disambiguates which one
+    # fired; picked Wednesday to spread runner load off Sunday.
+    - cron: "0 5 * * 3" # Wednesday 05:00 UTC — resolves to 'error' below
   workflow_dispatch:
     inputs:
       sweeps:
@@ -139,12 +146,13 @@ jobs:
       - name: Resolve run scope
         id: scope
         env:
-          # A scheduled run has no `inputs` at all, so the fallback below
-          # picks 'seeded' specifically for the schedule event — that's the
-          # whole point of the cron trigger (see the `on:` block above).
-          # workflow_dispatch and push/pull_request keep their existing
-          # defaults ('empty' unless a dispatch input says otherwise).
-          SWEEPS: ${{ github.event.inputs.sweeps || (github.event_name == 'schedule' && 'seeded' || 'empty') }}
+          # A scheduled run has no `inputs` at all. Two crons share the
+          # `schedule` event, so `github.event.schedule` (the exact cron
+          # string that fired) disambiguates which sweep to run — Sunday
+          # 05:30 UTC -> seeded, Wednesday 05:00 UTC -> error. dispatch and
+          # push/pull_request keep their existing defaults ('empty' unless a
+          # dispatch input says otherwise).
+          SWEEPS: ${{ github.event.inputs.sweeps || (github.event.schedule == '30 5 * * 0' && 'seeded') || (github.event.schedule == '0 5 * * 3' && 'error') || 'empty' }}
           VARIANTS: ${{ github.event.inputs.variants || 'phone-light' }}
         run: |
           set -euo pipefail

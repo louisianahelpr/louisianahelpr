@@ -69,14 +69,28 @@ describe("stripe-idv-start cost guard", () => {
     scenario.rpc.claim_idv_attempt = {
       claimed: false,
       reason: "attempt_limit_reached",
-      attempt: 3,
-      max_attempts: 3,
+      attempt: 1,
+      max_attempts: 1,
     };
     const fn = await load();
     const res = await fn.fetch(fn.request({ headers: AUTH, body: {} }));
 
     expect(stripeMock.identity.verificationSessions.create).not.toHaveBeenCalled();
     expect(res.status).toBe(429);
+  });
+
+  it("does not touch Stripe for an account already in manual review", async () => {
+    // The one paid attempt is spent and a human has it. A second session here
+    // would bill the platform again AND stomp the reviewable state back to
+    // 'pending', dropping the person out of the admin queue.
+    seedFreshHelper();
+    scenario.rpc.claim_idv_attempt = { claimed: false, reason: "in_manual_review" };
+    const fn = await load();
+    const res = await fn.fetch(fn.request({ headers: AUTH, body: {} }));
+
+    expect(stripeMock.identity.verificationSessions.create).not.toHaveBeenCalled();
+    expect(res.status).toBe(429);
+    expect((await json(res)).inManualReview).toBe(true);
   });
 
   it("does not touch Stripe for a banned account", async () => {
@@ -101,7 +115,7 @@ describe("stripe-idv-start cost guard", () => {
 
   it("creates exactly one session, keyed to the claimed attempt, when the claim succeeds", async () => {
     seedFreshHelper();
-    scenario.rpc.claim_idv_attempt = { claimed: true, reason: null, attempt: 1, max_attempts: 3 };
+    scenario.rpc.claim_idv_attempt = { claimed: true, reason: null, attempt: 1, max_attempts: 1 };
     stripeMock.identity.verificationSessions.create.mockResolvedValue({
       id: "vs_1",
       url: "https://verify.stripe.com/vs_1",

@@ -138,10 +138,15 @@ serve(async (req) => {
             { needsOnboardingFee: true },
           );
         case "attempt_limit_reached":
+        case "in_manual_review":
+          // Not a dead end and not a "get in touch": the account is already in
+          // the admin identity review queue, and the only thing the person has
+          // to do is wait. Saying anything else invites them to hunt for a
+          // retry that deliberately does not exist.
           return fail(
             429,
-            "You've used all your identity checks. Get in touch and we'll take a look.",
-            { attemptLimitReached: true },
+            "Your ID check is with our team now. We review these by hand and email you as soon as it's done — usually within 24 hours.",
+            { attemptLimitReached: true, inManualReview: true },
           );
         case "account_restricted":
           return fail(403, "This account can't start verification right now.");

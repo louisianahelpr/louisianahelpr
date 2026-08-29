@@ -14,7 +14,6 @@ type IdvStatus =
   | "processing"
   | "verified"
   | "failed"
-  | "requires_input"
   | "manual_review"
   | "skipped"
   | undefined;
@@ -27,9 +26,15 @@ interface IDVPromptDialogProps {
   /** Called after the Stripe Identity tab is launched. */
   onLaunched?: () => void;
   /**
-   * Current verification status. When 'failed' or 'requires_input' the dialog
-   * switches to "try again" mode and surfaces the failure reason. Defaults to
-   * first-time-prompt UI when omitted.
+   * Current verification status. `manual_review` (and the legacy `failed`,
+   * which the 20260829 migration converts) switches the dialog to
+   * "a human has this" mode and surfaces the reason the automated check
+   * couldn't confirm it. Defaults to first-time-prompt UI when omitted.
+   *
+   * NOTE: the values here must all be members of the `profiles.idv_status`
+   * CHECK constraint (not_started / pending / processing / verified / failed /
+   * manual_review / skipped). `requires_input` was listed here and is NOT a
+   * legal value — it is a *Stripe* session status, never a column value.
    */
   status?: IdvStatus;
   /** Stripe-supplied or admin-entered reason the prior attempt failed. */
@@ -46,19 +51,21 @@ export function IDVPromptDialog({
 }: IDVPromptDialogProps) {
   const [loading, setLoading] = useState(false);
 
-  // Owner policy (Lexi 2026-05-06): one Stripe Identity attempt per user. If
-  // it fails, no self-service retry — that saves Stripe Identity cost on dead
-  // accounts and on users repeatedly failing automated checks.
+  // Owner policy (Lexi 2026-08-28): "1 try for $2 and then send to admin for
+  // manual verification." The $2 onboarding fee funds exactly one billable
+  // Stripe Identity session, so there is no self-service retry — but there is
+  // never a dead end either. A spent attempt lands the account in
+  // `manual_review`, which the admin identity review queue lists and an admin
+  // clears with one tap.
   //
-  // What this state no longer means (2026-08-27): it used to say an admin
-  // would review the ID upload manually, via AdminIDVQueue. That queue has
-  // been retired — nobody worked it, and the owner confirmed the uploads were
-  // never reviewed — so the promise was false. The copy below now says what is
-  // actually true: this attempt is finished, and the identity signal that
-  // matters comes from Stripe Connect (profiles.stripe_identity_verified),
-  // which is a separate flow reachable from payout settings.
-  const isAdminReview =
-    status === "failed" || status === "requires_input" || status === "manual_review";
+  // What this state used to say (and why it was wrong): it told the user "We
+  // don't re-run this check" and pointed them at Stripe Connect payout setup.
+  // That was a dead end dressed as a next step — payout setup writes
+  // `profiles.stripe_identity_verified`, a DIFFERENT column that the jobs
+  // INSERT policy does not read, so finishing it cleared nothing and the
+  // person still could not post. `failed` is kept in the test below only
+  // because rows written before the fix may still carry it.
+  const isAdminReview = status === "failed" || status === "manual_review";
   const isPending = status === "processing";
 
   // Set when the server refuses because the one-time account setup fee is
@@ -130,7 +137,7 @@ export function IDVPromptDialog({
   };
 
   const headline = isAdminReview
-    ? "That check didn't go through"
+    ? "We're checking this by hand"
     : isPending
       ? "Verification in progress"
       : "Verify your identity";
@@ -176,10 +183,10 @@ export function IDVPromptDialog({
           </p>
         )}
 
-        {/* Failed state — show Stripe's reason for transparency, but no
-            self-service retry CTA. Per owner policy, Stripe Identity is
-            charged once. It no longer promises an admin review, because there
-            is no longer a queue for one (see the note above). */}
+        {/* Automated check spent — show the reason for transparency, no retry
+            CTA (the one paid attempt is gone), and a real next step: a person
+            is reviewing it and will email. See the note above for why this no
+            longer points at Stripe Connect payout setup. */}
         {isAdminReview && (
           <div
             className="flex items-start gap-3 p-3 rounded-ds-md border mt-2"
@@ -192,10 +199,11 @@ export function IDVPromptDialog({
             <div className="text-ds-13 text-foreground">
               <p className="font-medium">What happened</p>
               <p className="text-ds-11 text-muted-foreground mt-1">
-                {failureReason || "Stripe couldn't confirm your identity automatically from the photos provided."}
+                {failureReason || "The automated check couldn't confirm your identity from the photos provided."}
               </p>
-              <p className="text-ds-11 text-muted-foreground mt-2">
-                We don't re-run this check. Your identity for accepting jobs is confirmed through your Stripe payout account instead — finish that in Profile → Payment Settings and the verified badge follows automatically.
+              <p className="font-medium mt-2">What happens next</p>
+              <p className="text-ds-11 text-muted-foreground mt-1">
+                Someone on our team is reviewing your ID by hand. You'll get an email and a notification as soon as it's done — usually within 24 hours. There's nothing else for you to do.
               </p>
             </div>
           </div>

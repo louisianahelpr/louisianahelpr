@@ -249,14 +249,33 @@ serve(async (req) => {
           updateData.legacy_manual_review = true;
         }
       } else if (event.type === "identity.verification_session.requires_input") {
-        updateData.idv_status = "failed";
+        // NOT 'failed'. The account gets exactly ONE billable Stripe Identity
+        // attempt (claim_idv_attempt, capped at 1 because the $2 onboarding fee
+        // funds one Stripe charge), so 'failed' was a permanent ban from
+        // posting: the jobs INSERT policy requires idv_status='verified', and
+        // the client's dead-end copy pointed at Stripe Connect payout setup,
+        // which is a different column the policy never reads.
+        //
+        // This event fires when a SUBMITTED check could not be confirmed — the
+        // platform has already been billed for it — so there is no free retry
+        // to offer. A human decides instead. 'manual_review' is a legal value
+        // of the idv_status CHECK constraint and is what the admin identity
+        // review queue lists.
+        //
+        // A user who merely closes the tab without submitting fires no event at
+        // all and stays 'pending' with a live session, so the reuse path in
+        // stripe-idv-start still hands them their session back for free. Only a
+        // real, billed failure lands here.
+        updateData.idv_status = "manual_review";
         updateData.idv_failure_reason = session.last_error?.reason || "Verification could not be completed";
         updateData.legacy_manual_review = true;
       } else if (event.type === "identity.verification_session.processing") {
         updateData.idv_status = "processing";
       } else if (event.type === "identity.verification_session.canceled") {
-        updateData.idv_status = "failed";
-        updateData.idv_failure_reason = "User canceled verification";
+        // Same reasoning as requires_input: the one attempt is spent, so the
+        // only honest next step is a human, not a terminal 'failed'.
+        updateData.idv_status = "manual_review";
+        updateData.idv_failure_reason = "Verification was canceled before it finished";
         updateData.legacy_manual_review = true;
       }
 

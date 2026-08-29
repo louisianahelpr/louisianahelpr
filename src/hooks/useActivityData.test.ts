@@ -53,8 +53,8 @@ beforeEach(() => {
 
   fromMock.mockImplementation((table: string) => makeChainable(table));
 
-  rpcMock.mockImplementation(async (fn: string, args: { user_ids: string[] }) => {
-    const key = `rpc:${fn}:${args.user_ids?.join(",")}`;
+  rpcMock.mockImplementation(async (fn: string, args?: { user_ids: string[] }) => {
+    const key = args?.user_ids ? `rpc:${fn}:${args.user_ids.join(",")}` : `rpc:${fn}`;
     issued.push(key);
     return responses[key] ?? { data: [], error: null };
   });
@@ -97,7 +97,8 @@ function makeChainable(table: string) {
 const POSTED_JOBS_KEY = "jobs|select,eq:customer_id=u1,order:created_at";
 const APPLICANT_COUNT_KEY = "applications|select,eq:jobs.customer_id=u1";
 const APPS_KEY = "applications|select,eq:helper_id=u1,order:created_at";
-const OFFERS_KEY = "jobs|select,eq:offered_to_helper_id=u1,eq:direct_offer_status=pending,order:created_at";
+const OFFERS_KEY = "rpc:get_my_pending_direct_offers";
+const APPLIED_JOBS_KEY = "rpc:get_jobs_for_my_applications";
 const VIOLATIONS_KEY = "user_violations|select,eq:user_id=u1,eq:violation_type=job_denial";
 const HELPER_REVIEWS_KEY = "reviews|select,eq:reviewer_id=u1";
 
@@ -247,7 +248,7 @@ describe("fetchAppliedActivity — My Jobs core", () => {
       data: [{ id: "a1", job_id: "j1", helper_id: "u1", status: "pending" }],
       error: null,
     });
-    setResponse("jobs|select,in:id=j1", {
+    setResponse(APPLIED_JOBS_KEY, {
       data: [{ id: "j1", customer_id: "poster-1", title: "Yard work" }],
       error: null,
     });
@@ -262,7 +263,7 @@ describe("fetchAppliedActivity — My Jobs core", () => {
 
   it("populates declinedJobIds from job_denial violations", async () => {
     setResponse(APPS_KEY, { data: [{ id: "a1", job_id: "j1", helper_id: "u1" }], error: null });
-    setResponse("jobs|select,in:id=j1", { data: [{ id: "j1", customer_id: "poster-1" }], error: null });
+    setResponse(APPLIED_JOBS_KEY, { data: [{ id: "j1", customer_id: "poster-1" }], error: null });
     setResponse(VIOLATIONS_KEY, { data: [{ job_id: "j1" }], error: null });
 
     const result = await fetchAppliedActivity("u1");
@@ -271,18 +272,18 @@ describe("fetchAppliedActivity — My Jobs core", () => {
 
   it("populates helperReviewedJobIds and start-request check-ins in the FIRST wave", async () => {
     setResponse(APPS_KEY, { data: [{ id: "a1", job_id: "j1", helper_id: "u1" }], error: null });
-    setResponse("jobs|select,in:id=j1", { data: [{ id: "j1", customer_id: "poster-1" }], error: null });
+    setResponse(APPLIED_JOBS_KEY, { data: [{ id: "j1", customer_id: "poster-1" }], error: null });
     setResponse(HELPER_REVIEWS_KEY, { data: [{ job_id: "j1" }], error: null });
 
     const result = await fetchAppliedActivity("u1");
     expect(result.helperReviewedJobIds.has("j1")).toBe(true);
     // Issued BEFORE the dependent jobs-by-id read.
-    expect(issued.indexOf(HELPER_REVIEWS_KEY)).toBeLessThan(issued.indexOf("jobs|select,in:id=j1"));
+    expect(issued.indexOf(HELPER_REVIEWS_KEY)).toBeLessThan(issued.indexOf(APPLIED_JOBS_KEY));
   });
 
   it("throws when the jobs-behind-the-applications read fails", async () => {
     setResponse(APPS_KEY, { data: [{ id: "a1", job_id: "j1", helper_id: "u1" }], error: null });
-    setResponse("jobs|select,in:id=j1", { data: null, error: { message: "boom" } });
+    setResponse(APPLIED_JOBS_KEY, { data: null, error: { message: "boom" } });
     await expect(fetchAppliedActivity("u1")).rejects.toEqual({ message: "boom" });
   });
 
@@ -304,7 +305,7 @@ describe("fetchAppliedActivity — My Jobs core", () => {
       data: [{ id: "j1", customer_id: "poster-1", title: "Same job", created_at: "2026-01-01", updated_at: "2026-01-01" }],
       error: null,
     });
-    setResponse("jobs|select,in:id=j1", {
+    setResponse(APPLIED_JOBS_KEY, {
       data: [{ id: "j1", customer_id: "poster-1", title: "Same job" }],
       error: null,
     });

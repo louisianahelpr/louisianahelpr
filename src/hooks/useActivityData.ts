@@ -298,12 +298,15 @@ export async function fetchPostedActivityDetail(
 export async function fetchAppliedActivity(userId: string): Promise<AppliedActivity> {
   const [appsRes, directOffersRes, violationsRes, helperReviewsRes] = await Promise.all([
     supabase.from("applications").select("*").eq("helper_id", userId).order("created_at", { ascending: false }),
-    supabase
-      .from("jobs")
-      .select("*")
-      .eq("offered_to_helper_id", userId)
-      .eq("direct_offer_status", "pending")
-      .order("created_at", { ascending: false }),
+    // Pending direct offers come through an RPC, not the table. The street
+    // address in `jobs.location` is withheld until the offer is ACCEPTED, and
+    // RLS is row-level — a policy that grants the row hands over every column.
+    // `get_my_pending_direct_offers()` returns the same rows (same filter,
+    // same ordering) with `mask_job_location()` applied, exactly as the browse
+    // RPCs already do. Accepting the offer stamps `helper_id = me`, and the
+    // unchanged "Users can view their own jobs" policy then gives the full
+    // address.
+    supabase.rpc("get_my_pending_direct_offers"),
     supabase.from("user_violations").select("job_id").eq("user_id", userId).eq("violation_type", "job_denial"),
     // No `.in("job_id", …)` any more — one column, scoped to reviews this user
     // wrote, so it can be issued in wave 1 instead of waiting for the app list.
@@ -336,13 +339,24 @@ export async function fetchAppliedActivity(userId: string): Promise<AppliedActiv
   let appliedApps: AppliedApp[] = [];
   const apps = appsRes.data ?? [];
   if (apps.length > 0) {
-    const jobIds = [...new Set(apps.map((a) => a.job_id))];
-    const jobsRes = await supabase.from("jobs").select("*").in("id", jobIds);
+    const jobIds = new Set(apps.map((a) => a.job_id));
+    // Also an RPC rather than `.in("id", jobIds)`, for the same reason as the
+    // direct offers above: a helper with a merely PENDING application is not
+    // entitled to the poster's street address, and no RLS policy can withhold
+    // one column. `get_jobs_for_my_applications()` returns the identical row
+    // set (proven equal to the policy predicates over live data) with the
+    // address masked to "City, ST" — unless I'm the poster or the assigned
+    // helper, who still get it in full. The RPC is keyed off my applications
+    // server-side, so it needs no id list; we still intersect with `jobIds`
+    // to keep the map scoped to the apps in this payload.
+    const jobsRes = await supabase.rpc("get_jobs_for_my_applications");
     // The applied-jobs list is meaningless without the job rows behind it —
     // a failed jobs fetch would leave every app with `job: null` and render
     // a blank tab. Surface it as a query error, like the primary fetches.
     if (jobsRes.error) throw jobsRes.error;
-    const jobMap = new Map((jobsRes.data ?? []).map((j) => [j.id, j]));
+    const jobMap = new Map(
+      (jobsRes.data ?? []).filter((j) => jobIds.has(j.id)).map((j) => [j.id, j]),
+    );
     appliedApps = apps.map((a) => ({ ...a, job: jobMap.get(a.job_id) || null }));
   }
 
@@ -627,7 +641,14 @@ export function useActivityData(user: SupaUser | null, tab: "posted" | "applied"
       // client. postgres_changes filters are single-column — hence three.
       .on("postgres_changes", { event: "*", schema: "public", table: "jobs", filter: `customer_id=eq.${userId}` }, invalidate)
       .on("postgres_changes", { event: "*", schema: "public", table: "jobs", filter: `helper_id=eq.${userId}` }, invalidate)
-      .on("postgres_changes", { event: "*", schema: "public", table: "jobs", filter: `offered_to_helper_id=eq.${userId}` }, invalidate)
+      // Pending direct offers are NOT covered by a `jobs` filter any more: the
+      // helper has no RLS SELECT grant on an unaccepted offer (that policy
+      // leaked the street address), and Realtime only delivers rows the
+      // subscriber can read. The DB trigger that creates the offer also
+      // inserts a notification addressed to the offered helper, so this
+      // channel carries the same wake-up — and it is a row the helper is
+      // genuinely entitled to.
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` }, invalidate)
       // job_tracking / applications / reviews — scoped to
       // rows involving this user so platform-wide write churn on these
       // high-volume tables never fans out to every connected client.

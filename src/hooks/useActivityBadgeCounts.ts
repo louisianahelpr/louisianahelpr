@@ -112,18 +112,18 @@ export function useActivityBadgeCounts(userId: string | undefined): ActivityBadg
           writeCached(POSTS_CACHE_KEY, next);
         });
 
-      // Direct offers extended to me, still awaiting my response.
-      supabase
-        .from("jobs")
-        .select("id", { count: "exact", head: true })
-        .eq("offered_to_helper_id", userId)
-        .eq("direct_offer_status", "pending")
-        .then(({ count, error }) => {
-          if (error) return;
-          const next = count || 0;
-          setJobsCount(next);
-          writeCached(JOBS_CACHE_KEY, next);
-        });
+      // Direct offers extended to me, still awaiting my response. Via the RPC,
+      // not the table: an unaccepted offer is no longer RLS-readable, because
+      // granting that row also handed over the poster's street address. The
+      // RPC returns the same rows with the address masked. A helper has at
+      // most a handful of open offers, so counting the returned rows costs no
+      // more than the head-count round-trip it replaces.
+      supabase.rpc("get_my_pending_direct_offers").then(({ data, error }) => {
+        if (error) return;
+        const next = data?.length || 0;
+        setJobsCount(next);
+        writeCached(JOBS_CACHE_KEY, next);
+      });
     };
 
     loadCounts();
@@ -132,7 +132,7 @@ export function useActivityBadgeCounts(userId: string | undefined): ActivityBadg
       .channel(`nav-activity-badges-${userId}-${channelNonce()}`)
       // postgres_changes filters are single-column and scoped per project
       // rule (no unfiltered `event: "*"`). The Jobs badge (direct offers to
-      // me) updates live via the offered_to_helper_id filter. The Posts
+      // me) updates live via the notifications INSERT below. The Posts
       // badge (foreign applicants on my jobs) can't be filtered by poster —
       // `applications` has no customer_id column — so a stranger's INSERT
       // won't push live; instead the count re-reads whenever a job I own
@@ -149,9 +149,14 @@ export function useActivityBadgeCounts(userId: string | undefined): ActivityBadg
         { event: "*", schema: "public", table: "jobs", filter: `customer_id=eq.${userId}` },
         () => loadCounts(),
       )
+      // Not a `jobs` filter any more: the helper has no RLS SELECT grant on an
+      // unaccepted offer (that policy leaked the street address) and Realtime
+      // only delivers rows the subscriber can read. The trigger that creates
+      // the offer also inserts a notification addressed to the offered helper,
+      // so this channel is the same wake-up on a row they're entitled to.
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "jobs", filter: `offered_to_helper_id=eq.${userId}` },
+        { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
         () => loadCounts(),
       )
       .subscribe();

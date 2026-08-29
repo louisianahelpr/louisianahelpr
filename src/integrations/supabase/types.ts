@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.17"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -4842,6 +4842,10 @@ export type Database = {
           slots_total: number
         }[]
       }
+      admin_delete_review: {
+        Args: { _reason: string; _review_id: string }
+        Returns: undefined
+      }
       apply_cancellation_violation_consequence: {
         Args: { p_job_id: string }
         Returns: Json
@@ -4877,7 +4881,6 @@ export type Database = {
         Args: { p_job_id: string; p_message: string }
         Returns: string
       }
-      approve_pending_job: { Args: { p_job_id: string }; Returns: boolean }
       are_users_blocked: {
         Args: { _user_a: string; _user_b: string }
         Returns: boolean
@@ -5082,6 +5085,126 @@ export type Database = {
           view_count: number
         }[]
       }
+      get_jobs_for_my_applications: {
+        Args: never
+        Returns: {
+          accepted_at: string | null
+          boost_auto_extended: boolean
+          boost_expires_at: string | null
+          boosted_at: string | null
+          budget: number
+          business_id: string | null
+          cancellation_fee: number | null
+          cancellation_fee_status: string | null
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          category: Database["public"]["Enums"]["job_category"]
+          commission_tax_amount: number | null
+          created_at: string
+          credential_tier: number
+          customer_fee_amount: number | null
+          customer_id: string
+          date_needed: string
+          dayof_confirm_reminder_sent_at: string | null
+          dayof_unanswered_poster_alert_sent_at: string | null
+          department: string | null
+          description: string
+          direct_offer_expires_at: string | null
+          direct_offer_status: string | null
+          dispute_deadline: string | null
+          dispute_evidence_urls: string[] | null
+          dispute_helper_response: string | null
+          dispute_reason: string | null
+          dispute_resolved_at: string | null
+          dispute_status: string | null
+          disputed_at: string | null
+          disputed_by: string | null
+          estimated_hours: number | null
+          expires_at: string | null
+          expiring_notif_sent: boolean | null
+          flag_reasons: string[] | null
+          has_active_dispute: boolean
+          helper_arrival_verified_at: string | null
+          helper_arrived_at: string | null
+          helper_completed_at: string | null
+          helper_confirmed_at: string | null
+          helper_dayof_confirmed_at: string | null
+          helper_fee_percent: number | null
+          helper_id: string | null
+          helper_on_the_way_at: string | null
+          helpers_needed: number | null
+          id: string
+          instant_book: boolean
+          is_auto_created: boolean
+          is_flexible_schedule: boolean
+          is_group_job: boolean | null
+          is_recurring: boolean | null
+          is_seed: boolean
+          is_urgent: boolean | null
+          late_cancellation: boolean | null
+          latitude: number | null
+          location: string
+          longitude: number | null
+          no_show_alert_sent_at: string | null
+          offered_to_helper_id: string | null
+          parent_job_id: string | null
+          parish: string | null
+          payment_confirm_notif_sent: boolean | null
+          payment_status: string | null
+          payout_scheduled_at: string | null
+          photos: string[] | null
+          platform_fee_amount: number | null
+          platform_fee_percent: number | null
+          poster_completed_at: string | null
+          poster_confirmed_arrival_at: string | null
+          poster_confirmed_at: string | null
+          poster_confirmed_working_at: string | null
+          pricing_mode: string
+          proof_after_urls: string[] | null
+          proof_before_urls: string[] | null
+          protection_fee: number | null
+          protection_opted_in: boolean
+          recurrence_days: number[] | null
+          recurrence_end_date: string | null
+          recurrence_interval: string | null
+          recurrence_weeks: number | null
+          recurring_helper_id: string | null
+          release_last_chance_notif_sent_at: string | null
+          removal_reason: string | null
+          removed_at: string | null
+          removed_by: string | null
+          requires_w9: boolean
+          response_deadline: string | null
+          review_reminder_sent: boolean
+          revision_acceptance_deadline: string | null
+          revision_completed_at: string | null
+          revision_count: number
+          revision_deadline: string | null
+          revision_note: string | null
+          revision_requested_at: string | null
+          sales_tax_amount: number | null
+          sales_tax_rate: number | null
+          scope_video_thumbnail_url: string | null
+          scope_video_url: string | null
+          special_requirements: string | null
+          start_reminder_sent_at: string | null
+          start_time: string | null
+          status: Database["public"]["Enums"]["job_status"]
+          stripe_payment_intent_id: string | null
+          stripe_session_id: string | null
+          title: string
+          updated_at: string
+          urgent_fee: number | null
+          zip_code: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "jobs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_marketplace_activity_count: { Args: never; Returns: number }
       get_monthly_profile_view_count: {
         Args: { p_user_id: string }
@@ -5094,6 +5217,126 @@ export type Database = {
           mute_until: string
           other_user_id: string
         }[]
+      }
+      get_my_pending_direct_offers: {
+        Args: never
+        Returns: {
+          accepted_at: string | null
+          boost_auto_extended: boolean
+          boost_expires_at: string | null
+          boosted_at: string | null
+          budget: number
+          business_id: string | null
+          cancellation_fee: number | null
+          cancellation_fee_status: string | null
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          category: Database["public"]["Enums"]["job_category"]
+          commission_tax_amount: number | null
+          created_at: string
+          credential_tier: number
+          customer_fee_amount: number | null
+          customer_id: string
+          date_needed: string
+          dayof_confirm_reminder_sent_at: string | null
+          dayof_unanswered_poster_alert_sent_at: string | null
+          department: string | null
+          description: string
+          direct_offer_expires_at: string | null
+          direct_offer_status: string | null
+          dispute_deadline: string | null
+          dispute_evidence_urls: string[] | null
+          dispute_helper_response: string | null
+          dispute_reason: string | null
+          dispute_resolved_at: string | null
+          dispute_status: string | null
+          disputed_at: string | null
+          disputed_by: string | null
+          estimated_hours: number | null
+          expires_at: string | null
+          expiring_notif_sent: boolean | null
+          flag_reasons: string[] | null
+          has_active_dispute: boolean
+          helper_arrival_verified_at: string | null
+          helper_arrived_at: string | null
+          helper_completed_at: string | null
+          helper_confirmed_at: string | null
+          helper_dayof_confirmed_at: string | null
+          helper_fee_percent: number | null
+          helper_id: string | null
+          helper_on_the_way_at: string | null
+          helpers_needed: number | null
+          id: string
+          instant_book: boolean
+          is_auto_created: boolean
+          is_flexible_schedule: boolean
+          is_group_job: boolean | null
+          is_recurring: boolean | null
+          is_seed: boolean
+          is_urgent: boolean | null
+          late_cancellation: boolean | null
+          latitude: number | null
+          location: string
+          longitude: number | null
+          no_show_alert_sent_at: string | null
+          offered_to_helper_id: string | null
+          parent_job_id: string | null
+          parish: string | null
+          payment_confirm_notif_sent: boolean | null
+          payment_status: string | null
+          payout_scheduled_at: string | null
+          photos: string[] | null
+          platform_fee_amount: number | null
+          platform_fee_percent: number | null
+          poster_completed_at: string | null
+          poster_confirmed_arrival_at: string | null
+          poster_confirmed_at: string | null
+          poster_confirmed_working_at: string | null
+          pricing_mode: string
+          proof_after_urls: string[] | null
+          proof_before_urls: string[] | null
+          protection_fee: number | null
+          protection_opted_in: boolean
+          recurrence_days: number[] | null
+          recurrence_end_date: string | null
+          recurrence_interval: string | null
+          recurrence_weeks: number | null
+          recurring_helper_id: string | null
+          release_last_chance_notif_sent_at: string | null
+          removal_reason: string | null
+          removed_at: string | null
+          removed_by: string | null
+          requires_w9: boolean
+          response_deadline: string | null
+          review_reminder_sent: boolean
+          revision_acceptance_deadline: string | null
+          revision_completed_at: string | null
+          revision_count: number
+          revision_deadline: string | null
+          revision_note: string | null
+          revision_requested_at: string | null
+          sales_tax_amount: number | null
+          sales_tax_rate: number | null
+          scope_video_thumbnail_url: string | null
+          scope_video_url: string | null
+          special_requirements: string | null
+          start_reminder_sent_at: string | null
+          start_time: string | null
+          status: Database["public"]["Enums"]["job_status"]
+          stripe_payment_intent_id: string | null
+          stripe_session_id: string | null
+          title: string
+          updated_at: string
+          urgent_fee: number | null
+          zip_code: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "jobs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       get_my_saved_helpers: {
         Args: never
@@ -5297,6 +5540,7 @@ export type Database = {
           is_payout_ready: boolean
           license_status: string
           location: string
+          matched_on: string
           portfolio_urls: string[]
           profile_id: string
           role: string
@@ -5354,9 +5598,10 @@ export type Database = {
       }
       helper_cancel_booking: { Args: { p_job_id: string }; Returns: Json }
       helper_mark_on_the_way: {
-        Args: { p_job_id: string; p_lat?: number | null; p_lng?: number | null }
+        Args: { p_job_id: string; p_lat?: number; p_lng?: number }
         Returns: string
       }
+      idv_requirement_paused: { Args: never; Returns: boolean }
       instant_book_claim: { Args: { p_job_id: string }; Returns: undefined }
       is_caller_banned: { Args: never; Returns: boolean }
       is_category_taxable: {
@@ -5394,7 +5639,7 @@ export type Database = {
         Returns: undefined
       }
       mark_helper_arrival: {
-        Args: { p_job_id: string; p_lat?: number | null; p_lng?: number | null }
+        Args: { p_job_id: string; p_lat?: number; p_lng?: number }
         Returns: Json
       }
       mask_job_location: { Args: { loc: string }; Returns: string }
@@ -5437,10 +5682,6 @@ export type Database = {
       reject_other_applications_on_accept: {
         Args: { p_accepted_application_id: string; p_job_id: string }
         Returns: undefined
-      }
-      reject_pending_job: {
-        Args: { p_job_id: string; p_reason?: string }
-        Returns: boolean
       }
       report_helper_no_show: { Args: { p_job_id: string }; Returns: Json }
       resolve_auto_tip: {

@@ -462,8 +462,8 @@ export function JobTracking({
     if (newStatus === "arrived") {
       const { data: verdict, error: arrivalErr } = await supabase.rpc("mark_helper_arrival", {
         p_job_id: jobId,
-        p_lat: loc?.lat ?? null,
-        p_lng: loc?.lng ?? null,
+        p_lat: loc?.lat ?? undefined,
+        p_lng: loc?.lng ?? undefined,
       });
       if (arrivalErr) {
         report(arrivalErr, { tags: { source: "JobTracking.markArrival" } });
@@ -525,8 +525,8 @@ export function JobTracking({
     if (newStatus === "on_the_way") {
       const { error: otwErr } = await supabase.rpc("helper_mark_on_the_way", {
         p_job_id: jobId,
-        p_lat: loc?.lat ?? null,
-        p_lng: loc?.lng ?? null,
+        p_lat: loc?.lat ?? undefined,
+        p_lng: loc?.lng ?? undefined,
       });
       if (!otwErr) {
         onTheWayAtomic = true;

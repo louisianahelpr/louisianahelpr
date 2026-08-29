@@ -6,6 +6,9 @@ import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { StatusBadge } from "@/components/StatusBadge";
 import { formatCategory, formatPrice, formatShortDate } from "@/lib/format";
+import { helperTakeHomeDollars } from "@/lib/helperEarnings";
+import { tierFeePercent } from "@/lib/subscriptionTiers";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
@@ -18,6 +21,27 @@ interface JobListTabProps {
 export function JobListTab({ variant, jobs, onBack }: JobListTabProps) {
   const navigate = useNavigate();
   const isPosted = variant === "posted";
+
+  // "Completed Jobs" is the one list that mixes both roles: its query is
+  // `.or(customer_id.eq.me, helper_id.eq.me)`, so a row here may be work you
+  // PAID for or work you WERE PAID for. Those are different quantities, and
+  // the list used to print the raw budget for both — so a job you worked read
+  // $140 here and $123 on the job card, in identical type.
+  //
+  // Whose money it is decides which number is right: on a job you posted the
+  // budget is what you paid; on a job you worked your take-home is the budget
+  // minus the platform fee, which is what My Jobs, Earnings & Payouts and Work
+  // Record all show. The whole job row is passed to the helper so
+  // `payment_status` travels with it and the fee-precedence rule applies.
+  const { user, profile: viewerProfile } = useCurrentUser();
+  const viewerFeePercent = tierFeePercent(
+    viewerProfile?.subscription_tier,
+    viewerProfile?.subscription_expires_at ?? null,
+  );
+  const amountFor = (job: Job) =>
+    !isPosted && job.helper_id && job.helper_id === user?.id
+      ? helperTakeHomeDollars(job, viewerFeePercent)
+      : job.budget ?? 0;
 
   return (
     <div className="space-y-4">
@@ -60,12 +84,12 @@ export function JobListTab({ variant, jobs, onBack }: JobListTabProps) {
                 </div>
                 {isPosted ? (
                   <div className="flex flex-col items-end gap-1 shrink-0">
-                    <span className="text-ds-15 font-bold text-primary tabular-nums">${formatPrice(job.budget ?? 0)}</span>
+                    <span className="text-ds-15 font-bold text-primary tabular-nums">${formatPrice(amountFor(job))}</span>
                     <StatusBadge status={job.status} className="text-ds-10" />
                   </div>
                 ) : (
                   <div className="flex flex-col items-end gap-1.5 shrink-0">
-                    <span className="text-ds-15 font-bold text-primary tabular-nums">${formatPrice(job.budget ?? 0)}</span>
+                    <span className="text-ds-15 font-bold text-primary tabular-nums">${formatPrice(amountFor(job))}</span>
                   </div>
                 )}
               </div>

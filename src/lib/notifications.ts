@@ -10,15 +10,17 @@ interface NotificationPayload {
 }
 
 /**
- * Creates an in-app notification via edge function (server-side insert)
- * and fires off an email notification if the user has email enabled.
- * This is fire-and-forget for the email — it won't block or fail the in-app notification.
- * On email failure, an admin notification is created for visibility.
+ * Creates an in-app notification via the create-notification edge function
+ * (server-side insert). The EMAIL is chained inside that function with the
+ * service key — never from here. send-notification-email is service-role-only
+ * (it will send arbitrary HTML as Helpr, so it must not trust a user JWT);
+ * the old client-side invoke could only ever 401, which meant every
+ * client-driven lifecycle email silently failed AND each failure fanned an
+ * "Email delivery failed" notification out to every admin.
  */
 export async function createNotification(payload: NotificationPayload) {
   const { user_id, title, message, type = "info", link = null } = payload;
 
-  // 1. Insert notification via edge function (service_role)
   const { error: fnError } = await supabase.functions.invoke("create-notification", {
     body: { user_id, title, message, type, link },
   });
@@ -27,22 +29,6 @@ export async function createNotification(payload: NotificationPayload) {
     report(fnError, { tags: { source: "createNotification.insert" } });
     return { error: fnError };
   }
-
-  // 2. Fire-and-forget: invoke the email notification edge function
-  supabase.functions
-    .invoke("send-notification-email", {
-      body: { user_id, title, message, type, link },
-    })
-    .then(({ error: emailErr }) => {
-      if (emailErr) {
-        report(emailErr, { tags: { source: "createNotification.email" } });
-        notifyAdminsOfEmailFailure(user_id, title, emailErr.message);
-      }
-    })
-    .catch((err) => {
-      report(err, { tags: { source: "createNotification.emailCatch" } });
-      notifyAdminsOfEmailFailure(user_id, title, err?.message || "Unknown error");
-    });
 
   return { error: null };
 }
@@ -56,42 +42,4 @@ export async function createNotifications(payloads: NotificationPayload[]) {
     payloads.map((p) => createNotification(p))
   );
   return results;
-}
-
-/**
- * Fire-and-forget: notify admins when an email fails to send.
- */
-const emailFailDebounce = new Map<string, number>();
-
-function notifyAdminsOfEmailFailure(targetUserId: string, emailTitle: string, errorMsg: string) {
-  const debounceKey = `email_fail_alert_${targetUserId}`;
-  const lastAlert = emailFailDebounce.get(debounceKey);
-  if (lastAlert && Date.now() - lastAlert < 60_000) return;
-  emailFailDebounce.set(debounceKey, Date.now());
-
-  // Use edge function to create admin notifications too
-  supabase
-    .from("user_roles")
-    .select("user_id")
-    .eq("role", "admin")
-    .then(({ data: admins, error }) => {
-      if (error) {
-        report(error, { severity: "warning", tags: { source: "notifyAdminsOfEmailFailure.query" } });
-        return;
-      }
-      if (!admins?.length) return;
-      for (const admin of admins) {
-        supabase.functions.invoke("create-notification", {
-          body: {
-            user_id: admin.user_id,
-            title: "⚠️ Email delivery failed",
-            message: `Failed to send "${emailTitle}" email for user ${targetUserId.slice(0, 8)}…: ${errorMsg}`,
-            type: "warning",
-            link: "/admin",
-          },
-        }).catch((err) => {
-          report(err, { severity: "warning", tags: { source: "notifyAdminsOfEmailFailure" } });
-        });
-      }
-    });
 }

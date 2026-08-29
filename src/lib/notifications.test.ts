@@ -1,10 +1,11 @@
 // createNotification is the standard wrapper for inserting in-app
-// notifications + firing the parallel email send. Bugs here either
-// silently drop notifications (user never hears about a state change)
-// or block on a slow email fan-out (UI freezes during state transitions).
+// notifications. The EMAIL is chained server-side inside the
+// create-notification edge function (send-notification-email is
+// service-role-only; a client invoke could only ever 401 — that broken
+// path shipped and every lifecycle email silently failed in prod).
 //
-// Important contract: in-app insert MUST succeed/fail synchronously,
-// the email fan-out is fire-and-forget and must NEVER block the caller.
+// Contract: the client makes exactly ONE invoke (create-notification)
+// and never calls send-notification-email directly.
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -78,7 +79,7 @@ describe("createNotification — happy path", () => {
     });
   });
 
-  it("fires email send-notification-email after the in-app insert succeeds", async () => {
+  it("makes NO direct send-notification-email invoke (email is server-chained)", async () => {
     invokeMock.mockResolvedValue({ data: {}, error: null });
 
     await createNotification({
@@ -86,14 +87,11 @@ describe("createNotification — happy path", () => {
       title: "T",
       message: "M",
     });
+    await new Promise((r) => setTimeout(r, 10));
 
-    // Allow the fire-and-forget chain to flush
-    await new Promise((r) => setTimeout(r, 0));
-
-    // Second call: send-notification-email
-    expect(invokeMock).toHaveBeenCalledWith("send-notification-email", {
-      body: expect.objectContaining({ user_id: "user-1", title: "T" }),
-    });
+    const emailCalls = invokeMock.mock.calls.filter((c) => c[0] === "send-notification-email");
+    expect(emailCalls).toHaveLength(0);
+    expect(invokeMock).toHaveBeenCalledOnce();
   });
 });
 
@@ -115,65 +113,6 @@ describe("createNotification — in-app failure", () => {
     );
     // Only the create-notification invoke fired; email never dispatched
     expect(invokeMock).toHaveBeenCalledOnce();
-  });
-});
-
-describe("createNotification — email failure path (fire-and-forget)", () => {
-  it("does NOT block caller when email invoke errors", async () => {
-    // First call: in-app insert succeeds
-    // Second call: email errors with a delay
-    let emailResolve: (v: unknown) => void = () => {};
-    const emailPromise = new Promise((resolve) => {
-      emailResolve = resolve;
-    });
-    invokeMock
-      .mockResolvedValueOnce({ data: {}, error: null })
-      .mockReturnValueOnce(emailPromise);
-
-    const start = Date.now();
-    const result = await createNotification({
-      user_id: "user-1",
-      title: "T",
-      message: "M",
-    });
-    const elapsed = Date.now() - start;
-
-    // Caller resolved BEFORE email fired
-    expect(result.error).toBeNull();
-    expect(elapsed).toBeLessThan(50);
-
-    // Now resolve the email with an error and let microtasks settle
-    emailResolve({ data: null, error: { message: "Resend timeout" } });
-    await new Promise((r) => setTimeout(r, 10));
-
-    // The error path should have been reported (admin notify is gated
-    // on user_roles.select() which we haven't mocked, but the report
-    // call fires unconditionally on email failure)
-    expect(reportMock).toHaveBeenCalled();
-    const sources = reportMock.mock.calls.map(
-      (c) => (c[1] as { tags: { source: string } }).tags.source,
-    );
-    expect(sources).toContain("createNotification.email");
-  });
-
-  it("does NOT throw when email invoke rejects", async () => {
-    invokeMock
-      .mockResolvedValueOnce({ data: {}, error: null })
-      .mockRejectedValueOnce(new Error("network down"));
-
-    const result = await createNotification({
-      user_id: "user-1",
-      title: "T",
-      message: "M",
-    });
-
-    expect(result.error).toBeNull();
-    await new Promise((r) => setTimeout(r, 10));
-
-    const sources = reportMock.mock.calls.map(
-      (c) => (c[1] as { tags: { source: string } }).tags.source,
-    );
-    expect(sources).toContain("createNotification.emailCatch");
   });
 });
 

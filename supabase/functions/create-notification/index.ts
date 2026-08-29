@@ -194,6 +194,31 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Chain the email HERE, with the service key. send-notification-email is
+    // service-role-only (it will send arbitrary HTML as Helpr, so it must
+    // never trust a user JWT) — which means the client's old direct invoke
+    // could only ever 401. Every client-driven lifecycle email (offer,
+    // arrival, confirmation, …) silently failed in prod and each failure
+    // fanned an alert notification out to every admin. This function has
+    // already authorized the caller (self / admin / job counterparty), so it
+    // is the trusted place to trigger delivery. Fire-and-forget: an email
+    // failure must not fail the in-app notification that already landed.
+    try {
+      const emailRes = await fetch(`${supabaseUrl}/functions/v1/send-notification-email`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${serviceRoleKey}`,
+        },
+        body: JSON.stringify({ user_id, title, message, type, link: sanitizedLink }),
+      });
+      if (!emailRes.ok) {
+        console.error("send-notification-email failed:", emailRes.status, await emailRes.text());
+      }
+    } catch (emailErr) {
+      console.error("send-notification-email unreachable:", emailErr);
+    }
+
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

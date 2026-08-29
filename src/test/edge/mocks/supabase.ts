@@ -187,7 +187,15 @@ class QueryBuilder implements PromiseLike<{ data: unknown; error: unknown }> {
     const writeErr = scenario.writeErrors[this.table];
     if (writeErr) return { data: null, error: writeErr };
     if (this.endsWithSelect) {
-      return { data: scenario.writeSelectRows[this.table] ?? [], error: null };
+      // Default to "the write matched a row" unless a test explicitly opts
+      // into the zero-row case via `scenario.writeSelectRows[table] = []`
+      // (see execute-dispute-split.test.ts / stripe-webhook.test.ts) — most
+      // scenarios set up `scenario.reads[table]` to assert the row exists and
+      // never think about the write-time `.select()` at all, so an empty
+      // default here would make every such test spuriously hit the "matched
+      // 0 rows" failure path the source code now checks for.
+      const override = scenario.writeSelectRows[this.table];
+      return { data: override ?? [{ id: "mock-matched-row" }], error: null };
     }
     return { data: null, error: null };
   }

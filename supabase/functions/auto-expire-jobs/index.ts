@@ -216,7 +216,9 @@ Deno.serve(async (req) => {
       defects.record(`expire_unanswered_offers threw: ${e instanceof Error ? e.message : String(e)}`);
     }
 
-    // 4. Expire pending direct offers (24h window)
+    // 4. Expire pending direct offers (window is whatever the poster picked
+    // in ResponseDeadlineDialog — 1/2/4/8h, stored per-offer as
+    // direct_offer_expires_at — not a fixed 24h)
     let directOfferExpired = 0;
     try {
       const { data: expRpc, error: expRpcErr } = await supabase.rpc("expire_pending_direct_offers");

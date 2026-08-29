@@ -10,6 +10,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHero,
+} from "@/components/ui/alert-dialog";
 import { formatShortDate } from "@/lib/format";
 import { AlertTriangle, CheckCircle2, Clock, User, Briefcase, MessageSquare, ExternalLink, Send, Search, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -58,6 +66,8 @@ const AdminReports = () => {
   const [messageTarget, setMessageTarget] = useState<{ userId: string; name: string } | null>(null);
   const [messageText, setMessageText] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [deleteReviewTarget, setDeleteReviewTarget] = useState<Report | null>(null);
+  const [deletingReview, setDeletingReview] = useState(false);
 
   const queryKey = ["admin-reports", filter];
   const { data: reports, isInitialLoading } = useInstantQuery<Report[]>({
@@ -192,6 +202,23 @@ const AdminReports = () => {
     await logAdminAction("report_assigned_self", "report", id);
     loadReports();
     setUpdating(null);
+  };
+
+  const deleteReportedReview = async () => {
+    if (!deleteReviewTarget) return;
+    setDeletingReview(true);
+    const { error } = await supabase.rpc("admin_delete_review" as never, {
+      _review_id: deleteReviewTarget.reported_id,
+      _reason: `Removed via report ${deleteReviewTarget.id}: ${deleteReviewTarget.reason}`,
+    } as never);
+    setDeletingReview(false);
+    if (error) {
+      toast.error(error.message || "Couldn't remove that review — try again.");
+      return;
+    }
+    toast.success("Review removed.");
+    await updateStatus(deleteReviewTarget.id, "resolved");
+    setDeleteReviewTarget(null);
   };
 
   const updateStatus = async (id: string, status: string) => {
@@ -453,6 +480,17 @@ const AdminReports = () => {
                     >
                       <Send className="w-3.5 h-3.5 mr-1" /> Message {report.reporter_exists === false ? "Reporter" : (report.reporter_name?.split(" ")[0] || "Reporter")}
                     </Button>
+                    {report.reported_type === "review" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => setDeleteReviewTarget(report)}
+                        disabled={updating === report.id}
+                      >
+                        Remove Review
+                      </Button>
+                    )}
                     <Button
                       size="sm"
                       onClick={() => updateStatus(report.id, "resolved")}
@@ -506,6 +544,22 @@ const AdminReports = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deleteReviewTarget} onOpenChange={(open) => { if (!open) setDeleteReviewTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHero
+            eyebrow="Remove Review"
+            title="Remove this review?"
+            subtitle="This permanently deletes the review. The reviewee's star rating recalculates immediately — this can't be undone."
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletingReview}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={deleteReportedReview} disabled={deletingReview} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {deletingReview ? "Removing…" : "Remove Review"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminViewShell>
   );
 };

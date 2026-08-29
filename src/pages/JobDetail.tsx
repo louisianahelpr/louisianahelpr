@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePendingSaveConsumer } from "@/hooks/usePendingSaveConsumer";
 import { useJobRef } from "@/hooks/useJobRef";
-import { usePageTitle } from "@/hooks/usePageTitle";
+import { usePageMeta } from "@/hooks/usePageMeta";
 import { queryKeys } from "@/lib/queryKeys";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import PublicLayout from "@/components/marketing/PublicLayout";
@@ -84,8 +84,21 @@ const JobDetail = () => {
 
   // This is the share-link landing page — the thing pasted into a text or a
   // Facebook group. A tab reading "Job Details — Helpr" for every shared link
-  // told the recipient nothing; the job's own title does.
-  usePageTitle(`${headingText} — Helpr`);
+  // told the recipient nothing; the job's own title does. Every other public
+  // page uses usePageMeta (title + description + canonical + OG), but this
+  // one only set the tab title — every social/search preview of a shared job
+  // link fell back to the generic homepage description and canonical instead
+  // of the job's own. usePageMeta covers both.
+  const jobDescription = job?.description?.trim()
+    ? job.description.trim().slice(0, 155) + (job.description.trim().length > 155 ? "…" : "")
+    : "Every job on Louisiana Helpr holds payment safely until the work is confirmed done — see the details and apply.";
+  usePageMeta({
+    title: `${headingText} — Helpr`,
+    description: jobDescription,
+    canonical: id ? `https://www.louisianahelpr.com/jobs/${id}` : "https://www.louisianahelpr.com/jobs",
+    ogTitle: headingText,
+    ogDescription: jobDescription,
+  });
 
   // Signed-in recipients land in their real dashboard apply flow.
   if (!authLoading && user) {

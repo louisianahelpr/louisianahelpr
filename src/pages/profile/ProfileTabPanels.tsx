@@ -219,6 +219,13 @@ export const ProfileTabPanels = ({
           URL and by the landing's payout-status row — still lands on the
           surface that owns payout setup, rather than on a tab with no entry
           point of its own. */}
+      {/* !user here means auth hasn't hydrated yet (a cold deep-link straight
+          into ?tab=earnings, not a signed-out state — Profile itself gates
+          on ProtectedRoute) — render the same Suspense skeleton the lazy
+          import uses rather than nothing, so the tab doesn't flash blank.
+          Kept as a sibling branch (not a ternary) so the `tab === "x" && (`
+          shell shape below stays intact for profileTabShell.test.ts. */}
+      {(tab === "earnings" || tab === "payment") && !user && <TabFallback />}
       {(tab === "earnings" || tab === "payment") && user && (
         <div className="space-y-3">
           {earningsQuery.isError && (
@@ -237,6 +244,7 @@ export const ProfileTabPanels = ({
         </div>
       )}
 
+      {tab === "schedule" && !user && <TabFallback />}
       {tab === "schedule" && user && (
         <div className="space-y-4">
           {scheduleQuery.isError && (
@@ -254,11 +262,11 @@ export const ProfileTabPanels = ({
         </div>
       )}
 
-      {tab === "availability" && user && (
+      {tab === "availability" && (!user ? <TabFallback /> : (
         <Suspense fallback={<TabFallback />}>
           <AvailabilityTab userId={user.id} onBack={onBackFromTab} />
         </Suspense>
-      )}
+      ))}
 
       {tab === "subscription" && (
         <Suspense fallback={<TabFallback />}>
@@ -347,6 +355,7 @@ export const ProfileTabPanels = ({
         </div>
       )}
 
+      {tab === "referral" && !user && <TabFallback />}
       {tab === "referral" && user && (
         <div className="space-y-4">
           <ProfileTabHeader
@@ -379,6 +388,7 @@ export const ProfileTabPanels = ({
         </div>
       )}
 
+      {tab === "credentials" && !user && <TabFallback />}
       {tab === "credentials" && user && (
         <div className="space-y-4">
           <Suspense fallback={<TabFallback />}>

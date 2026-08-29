@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { report } from "@/lib/errorLogger";
 import { functionErrorMessage } from "@/lib/supabaseResult";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
+import { logAdminAction } from "@/lib/adminAudit";
 import { categoriseReason, CATEGORY_LABELS } from "./adminDisputes/adminDisputesHelpers";
 import { FilterChipGroup } from "./adminDisputes/FilterChipGroup";
 import { DisputeCard } from "./adminDisputes/DisputeCard";
@@ -283,6 +284,13 @@ const AdminDisputes = () => {
             context: { jobId: job.id, newStatus },
           },
         );
+        // The primary rpc_decide_dispute path writes its own admin_audit_log
+        // row (see 20260708013421_dispute_decision_admin_audit_log.sql) — this
+        // legacy fallback bypasses that RPC entirely, so it needs its own.
+        await logAdminAction("decide_dispute_legacy_fallback", "job", job.id, {
+          new_status: newStatus,
+          decision_text: decisionText.trim(),
+        });
       }
 
       // ── Execute the split ──────────────────────────────────────────

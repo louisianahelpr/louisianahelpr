@@ -18,6 +18,14 @@ import { report } from "@/lib/errorLogger";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHero,
+} from "@/components/ui/alert-dialog";
 
 interface FraudFlag {
   id: string;
@@ -51,6 +59,7 @@ const AdminFraudDashboard = () => {
   const [filter, setFilter] = useState("all");
   const [showResolved, setShowResolved] = useState(false);
   const [resolving, setResolving] = useState<string | null>(null);
+  const [resolveTarget, setResolveTarget] = useState<FraudFlag | null>(null);
 
   const queryKey = ["admin-fraud-flags", filter, showResolved];
   const { data: flags, isInitialLoading } = useInstantQuery<FraudFlag[]>({
@@ -107,6 +116,7 @@ const AdminFraudDashboard = () => {
       qc.invalidateQueries({ queryKey });
     }
     setResolving(null);
+    setResolveTarget(null);
   };
 
   // Fraud flag types collapse to 3 severity tones — DANGER (money /
@@ -198,7 +208,7 @@ const AdminFraudDashboard = () => {
                   size="sm"
                   variant="outline"
                   disabled={resolving === flag.id}
-                  onClick={() => resolveFlag(flag)}
+                  onClick={() => setResolveTarget(flag)}
                 >
                   <CheckCircle2 className="w-3 h-3 mr-1" />
                   {resolving === flag.id ? "Resolving…" : "Resolve"}
@@ -209,6 +219,22 @@ const AdminFraudDashboard = () => {
         </div>
       )}
       </AdminCard>
+
+      <AlertDialog open={!!resolveTarget} onOpenChange={(open) => { if (!open) setResolveTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHero
+            eyebrow="Resolve Fraud Flag"
+            title="Mark this flag resolved?"
+            subtitle="This clears it from the active queue. Use this once you've confirmed the flagged activity isn't fraud, or have already acted on it."
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={!!resolving}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => resolveTarget && resolveFlag(resolveTarget)} disabled={!!resolving}>
+              {resolving ? "Resolving…" : "Resolve"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminViewShell>
   );
 };

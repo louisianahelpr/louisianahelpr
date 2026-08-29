@@ -20,6 +20,7 @@ import SectionBoundary from "@/components/SectionBoundary";
 import { toneBadgeClasses, toneTextClasses } from "@/components/admin/tones";
 import { cn } from "@/lib/utils";
 import { report } from "@/lib/errorLogger";
+import { logAdminAction } from "@/lib/adminAudit";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
@@ -163,7 +164,10 @@ const ExceptionQueueInner = () => {
         .select("id");
       if (error || !updated || updated.length === 0) {
         failures.push(row.full_name || row.email || row.id);
-      } else ok++;
+      } else {
+        ok++;
+        await logAdminAction("resolve_verification_exception", "verification_exception", row.id, { resolution: note.trim() });
+      }
     }
     setBulkRunning(false);
     setBulkOpen(false);
@@ -199,6 +203,7 @@ const ExceptionQueueInner = () => {
       toast.error("That exception couldn't be resolved — you may not have permission to write to this queue.");
       return;
     }
+    await logAdminAction("resolve_verification_exception", "verification_exception", row.id, { resolution: res.trim() || null });
     qc.invalidateQueries({ queryKey });
     setResolveTarget(null);
     setResolution("");

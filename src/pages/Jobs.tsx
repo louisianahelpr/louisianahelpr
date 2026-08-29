@@ -69,7 +69,7 @@ const Jobs = () => {
   const [expiresWithin, setExpiresWithin] = useState(() => seed("exp"));
   const [boostedOnly, setBoostedOnly] = useState(() => seed("boost") === "1");
   const [urgentOnly, setUrgentOnly] = useState(() => seed("urgent") === "1");
-  const [sortBy, setSortBy] = useState("smart");
+  const [sortBy, setSortBy] = useState(() => seed("sort") || "smart");
   // NOTE: there is no search box and no filter sheet on this surface any more.
   // The public web board matches the native guest board (/browse, DashboardGuest),
   // which carries no title-bar search/filter icons — a signed-out visitor has
@@ -96,6 +96,7 @@ const Jobs = () => {
       exp: expiresWithin,
       boost: boostedOnly ? "1" : "",
       urgent: urgentOnly ? "1" : "",
+      sort: sortBy === "smart" ? "" : sortBy,
     },
     (read) => {
       setSearch(read("q"));
@@ -105,6 +106,7 @@ const Jobs = () => {
       setExpiresWithin(read("exp"));
       setBoostedOnly(read("boost") === "1");
       setUrgentOnly(read("urgent") === "1");
+      setSortBy(read("sort") || "smart");
     },
     "jobs",
   );

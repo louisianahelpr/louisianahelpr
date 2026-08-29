@@ -353,15 +353,18 @@ serve(async (req) => {
       // fails: without stripe_session_id the double-payment guard is blind and
       // the frozen fee percents are lost — the unused Checkout Session is
       // harmless, so failing loudly here costs nothing.
-      const { error: escrowUpdateErr } = await supabaseAdmin.from("jobs").update({
+      const { data: escrowUpdated, error: escrowUpdateErr } = await supabaseAdmin.from("jobs").update({
         stripe_session_id: session.id,
         platform_fee_percent: customerFeePercent,
         platform_fee_amount: helperFeeAmount,
         customer_fee_amount: customerFeeAmount,
         helper_fee_percent: helperFeePercent,
-      }).eq("id", jobId);
-      if (escrowUpdateErr) {
-        console.error(`[create-payment] escrow session ${session.id} created for job ${jobId} but jobs.update failed:`, escrowUpdateErr);
+      }).eq("id", jobId).select("id");
+      // .select("id"): a zero-row match (error === null) would otherwise look
+      // identical to success here, leaving stripe_session_id unset — the
+      // double-payment guard goes blind and the frozen fee percents are lost.
+      if (escrowUpdateErr || !escrowUpdated || escrowUpdated.length === 0) {
+        console.error(`[create-payment] escrow session ${session.id} created for job ${jobId} but jobs.update failed:`, escrowUpdateErr ?? "matched 0 rows");
         throw new Error("Could not record the payment session — please try again");
       }
 
@@ -443,10 +446,14 @@ serve(async (req) => {
         updateFields.status = "in_progress";
       }
 
-      const { error: updateError } = await supabaseAdmin.from("jobs").update(updateFields).eq("id", jobId);
-      if (updateError) {
-        console.error("Failed to update job:", updateError);
-        throw new Error("Failed to update job status: " + updateError.message);
+      const { data: jobUpdated, error: updateError } = await supabaseAdmin.from("jobs").update(updateFields).eq("id", jobId).select("id");
+      // .select("id"): this is the write that flips status to "completed" and
+      // schedules the payout — a zero-row match (error === null) would fall
+      // through to scheduling a payout against a job that never actually
+      // transitioned, with nothing downstream to notice.
+      if (updateError || !jobUpdated || jobUpdated.length === 0) {
+        console.error("Failed to update job:", updateError ?? "matched 0 rows");
+        throw new Error("Failed to update job status: " + (updateError?.message ?? "job not found"));
       }
       console.log("Job updated successfully:", jobId, updateFields);
 
@@ -520,13 +527,13 @@ serve(async (req) => {
       if (job.customer_id !== user.id) throw new Error("Not authorized");
       if (job.status !== "in_progress") throw new Error("Job must be in progress to request revision");
 
-      const { error: revisionUpdateErr } = await supabaseAdmin.from("jobs").update({
+      const { data: revisionUpdated, error: revisionUpdateErr } = await supabaseAdmin.from("jobs").update({
         status: "revision_requested",
         revision_note: note || "The poster has requested revisions.",
         revision_requested_at: new Date().toISOString(),
-      }).eq("id", jobId);
-      if (revisionUpdateErr) {
-        console.error("[create-payment] request_revision update failed:", revisionUpdateErr);
+      }).eq("id", jobId).select("id");
+      if (revisionUpdateErr || !revisionUpdated || revisionUpdated.length === 0) {
+        console.error("[create-payment] request_revision update failed:", revisionUpdateErr ?? "matched 0 rows");
         throw new Error("Failed to record revision request — please try again");
       }
 
@@ -558,12 +565,12 @@ serve(async (req) => {
       const now = new Date();
       const acceptanceDeadline = new Date(now.getTime() + 72 * 60 * 60 * 1000);
 
-      const { error: resolveUpdateErr } = await supabaseAdmin.from("jobs").update({
+      const { data: resolveUpdated, error: resolveUpdateErr } = await supabaseAdmin.from("jobs").update({
         revision_completed_at: now.toISOString(),
         revision_acceptance_deadline: acceptanceDeadline.toISOString(),
-      }).eq("id", jobId);
-      if (resolveUpdateErr) {
-        console.error("[create-payment] resolve_revision update failed:", resolveUpdateErr);
+      }).eq("id", jobId).select("id");
+      if (resolveUpdateErr || !resolveUpdated || resolveUpdated.length === 0) {
+        console.error("[create-payment] resolve_revision update failed:", resolveUpdateErr ?? "matched 0 rows");
         throw new Error("Failed to record revision completion — please try again");
       }
 
@@ -851,14 +858,17 @@ serve(async (req) => {
       // The refund is already out — a failed status flip here must be LOUD,
       // or the job stays "in progress" on a refunded payment (helper still
       // sees it, auto-release could treat it as payable).
-      const { error: cancelUpdateErr } = await supabaseAdmin.from("jobs").update({
+      const { data: cancelUpdated, error: cancelUpdateErr } = await supabaseAdmin.from("jobs").update({
         payment_status: "cancelled",
         status: "cancelled",
         cancelled_at: new Date().toISOString(),
         cancelled_by: user.id,
-      }).eq("id", jobId);
-      if (cancelUpdateErr) {
-        console.error(`CRITICAL: refund issued for job ${jobId} (pi ${job.stripe_payment_intent_id}) but jobs.update to cancelled failed — manual reconciliation needed:`, cancelUpdateErr);
+      }).eq("id", jobId).select("id");
+      // .select("id"): a zero-row match here (error === null) is exactly the
+      // "refund issued but status never flipped" case the comment above warns
+      // about — must be caught the same as a real error, not silently passed.
+      if (cancelUpdateErr || !cancelUpdated || cancelUpdated.length === 0) {
+        console.error(`CRITICAL: refund issued for job ${jobId} (pi ${job.stripe_payment_intent_id}) but jobs.update to cancelled failed — manual reconciliation needed:`, cancelUpdateErr ?? "matched 0 rows");
         return new Response(JSON.stringify({
           error: "refund issued but job status update failed — contact support",
           stripe_payment_intent_id: job.stripe_payment_intent_id,
@@ -925,14 +935,14 @@ serve(async (req) => {
       // Transfer already sent — a failed flip would leave the job "disputed"
       // (permanently blocked by release-payout's dispute guard) while the
       // notifications below assert it was resolved. Fail loudly instead.
-      const { error: releaseUpdateErr } = await supabaseAdmin.from("jobs").update({
+      const { data: releaseUpdated, error: releaseUpdateErr } = await supabaseAdmin.from("jobs").update({
         status: "completed",
         payment_status: "released",
         helper_fee_percent: disputeFeePercent,
         platform_fee_amount: feeAmt,
-      }).eq("id", jobId);
-      if (releaseUpdateErr) {
-        console.error(`CRITICAL: dispute transfer sent for job ${jobId} but jobs.update to released failed — manual reconciliation needed:`, releaseUpdateErr);
+      }).eq("id", jobId).select("id");
+      if (releaseUpdateErr || !releaseUpdated || releaseUpdated.length === 0) {
+        console.error(`CRITICAL: dispute transfer sent for job ${jobId} but jobs.update to released failed — manual reconciliation needed:`, releaseUpdateErr ?? "matched 0 rows");
         return new Response(JSON.stringify({
           error: "transfer sent but job status update failed — manual reconciliation needed",
         }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 });
@@ -1100,12 +1110,12 @@ serve(async (req) => {
         }
 
       // Refund is out — same fail-loud rule as admin_release_dispute above.
-      const { error: refundUpdateErr } = await supabaseAdmin.from("jobs").update({
+      const { data: refundUpdated, error: refundUpdateErr } = await supabaseAdmin.from("jobs").update({
         status: "cancelled",
         payment_status: "refunded",
-      }).eq("id", jobId);
-      if (refundUpdateErr) {
-        console.error(`CRITICAL: refund issued for disputed job ${jobId} but jobs.update to refunded failed — manual reconciliation needed:`, refundUpdateErr);
+      }).eq("id", jobId).select("id");
+      if (refundUpdateErr || !refundUpdated || refundUpdated.length === 0) {
+        console.error(`CRITICAL: refund issued for disputed job ${jobId} but jobs.update to refunded failed — manual reconciliation needed:`, refundUpdateErr ?? "matched 0 rows");
         return new Response(JSON.stringify({
           error: "refund issued but job status update failed — manual reconciliation needed",
         }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 });
@@ -1243,15 +1253,15 @@ serve(async (req) => {
       // refunds leave the job state intact — the customer still owes the
       // remaining work or the helper still earned the unrefunded portion.
       if (!isPartial) {
-        const { error: generalRefundUpdateErr } = await supabaseAdmin.from("jobs").update({
+        const { data: generalRefundUpdated, error: generalRefundUpdateErr } = await supabaseAdmin.from("jobs").update({
           status: "cancelled",
           payment_status: "refunded",
           cancellation_reason: reason ? `[ADMIN REFUND] ${reason}` : "[ADMIN REFUND] Issued by support",
           cancelled_at: new Date().toISOString(),
           cancelled_by: user.id,
-        }).eq("id", jobId);
-        if (generalRefundUpdateErr) {
-          console.error(`CRITICAL: general refund issued for job ${jobId} but jobs.update to refunded failed — manual reconciliation needed:`, generalRefundUpdateErr);
+        }).eq("id", jobId).select("id");
+        if (generalRefundUpdateErr || !generalRefundUpdated || generalRefundUpdated.length === 0) {
+          console.error(`CRITICAL: general refund issued for job ${jobId} but jobs.update to refunded failed — manual reconciliation needed:`, generalRefundUpdateErr ?? "matched 0 rows");
           return new Response(JSON.stringify({
             error: "refund issued but job status update failed — manual reconciliation needed",
           }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 });

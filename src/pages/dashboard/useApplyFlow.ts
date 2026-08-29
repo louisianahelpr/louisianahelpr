@@ -71,21 +71,27 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
     return () => { cancelled = true; };
   }, [confirmApplyJobId, feedJob, fetchedJob]);
 
+  /* Returns TRUE only when the request was accepted and a confirm id was set.
+     The job-detail sheet uses that answer to decide whether to swap itself to
+     the apply step: every `return` below is a refusal (offline, impersonating,
+     signed out, your own post) that leaves confirmApplyJobId null, and
+     swapping on a refusal would show an apply form for no job. */
   const handleApplyRequest = useCallback(async (jobId: string) => {
-    if (!requireOnline()) return;
+    if (!requireOnline()) return false;
     // Read-only impersonation: when an admin is viewing the app as another
     // user (?impersonate=<id>), block writes so the admin can't accidentally
     // apply on the user's behalf. See useImpersonation.
-    if (!assertWritable()) return;
+    if (!assertWritable()) return false;
     hapticMedium(); // confirm tap on Apply
-    if (!user) { navigate("/login"); return; }
+    if (!user) { navigate("/login"); return false; }
     const job = allJobs.find((j) => j.id === jobId);
-    if (job && job.customer_id === user.id) { toast.error("You can't apply to your own post."); return; }
+    if (job && job.customer_id === user.id) { toast.error("You can't apply to your own post."); return false; }
 
     // Applying to a job never prompts identity verification — that gate belongs
     // to posting a job and to a helper's first accepted job, not to browsing +
     // applying. Go straight to the apply confirmation.
     setConfirmApplyJobId(jobId);
+    return true;
   }, [user, allJobs, navigate]);
 
   // Optimistic Apply. The moment a helper hits "Apply now" we:

@@ -1,6 +1,7 @@
-import { useRef } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHero } from "@/components/ui/dialog";
+import { ChevronLeft } from "lucide-react";
 import {
   Users, Repeat, Rocket, Zap,
 } from "lucide-react";
@@ -29,7 +30,9 @@ interface JobDetailDialogProps {
   userLat?: number | null;
   userLng?: number | null;
   onClose: () => void;
-  onApply: (jobId: string) => void;
+  /** Returning `false` means the request was refused (offline, signed out,
+   *  your own post) — the sheet then stays on the detail step. */
+  onApply: (jobId: string) => void | boolean | Promise<void | boolean>;
   onReport: (jobId: string) => void;
   /** Switching the dialog from one job to another (swipe gesture or similar-job tap). */
   onSelect?: (job: EnrichedJob) => void;
@@ -38,13 +41,33 @@ interface JobDetailDialogProps {
       The poster card, applicant banners, and authed look-ups are skipped —
       a guest only has the masked public RPC fields. */
   guest?: boolean;
+  /** Renders the APPLY STEP inside this same sheet.
+   *
+   *  When supplied, tapping Apply Now no longer closes the sheet and hands off
+   *  to a separate centred modal — it swaps this sheet's body in place, so the
+   *  whole apply flow happens on one surface anchored to one edge (owner,
+   *  2026-08-28: "I don't like how one opens at the bottom then the next is in
+   *  the middle"). Only the feed passes it; the guest surfaces (Jobs,
+   *  JobDetail, DashboardGuest) have no apply flow to render and keep the old
+   *  behaviour, where the footer's guest branch navigates to signup itself. */
+  applyStep?: (ctx: { onBack: () => void }) => ReactNode;
 }
 
 const JobDetailDialog = ({
-  job, effectiveFee, allJobs: _allJobs, isSaved, onToggleSave, userLat, userLng, onClose, onApply, onReport, onSelect: _onSelect, guest = false,
+  job, effectiveFee, allJobs: _allJobs, isSaved, onToggleSave, userLat, userLng, onClose, onApply, onReport, onSelect: _onSelect, guest = false, applyStep,
 }: JobDetailDialogProps) => {
   const navigate = useNavigate();
   const touchStartRef = useRef<{ x: number; y: number; t: number } | null>(null);
+
+  /* Which half of the sheet is showing. The apply UI used to be a separate
+     centred AlertDialog that opened AFTER this one closed; it is a step of
+     this same surface now. */
+  const [step, setStep] = useState<"detail" | "apply">("detail");
+  const jobId = job?.id ?? null;
+  // Back to the detail step whenever the sheet closes or swaps to another job
+  // — otherwise reopening the sheet, or swiping to the next job, would land
+  // straight on the apply form for a job the helpr has not read yet.
+  useEffect(() => { setStep("detail"); }, [jobId]);
 
   const {
     descExpanded, setDescExpanded,
@@ -185,6 +208,27 @@ const JobDetailDialog = ({
           _onSelect(_allJobs[nextIdx]);
         }}
       >
+        {step === "apply" && applyStep ? (
+          <div className="min-w-0">
+            {/* Back to the job, not out of the sheet. The apply step is a
+                continuation of the thing behind it, so the primary escape is
+                backwards — the top-right X still closes the whole sheet. */}
+            <button
+              type="button"
+              onClick={() => setStep("detail")}
+              className="inline-flex items-center gap-1 -ml-1 mb-1 min-h-[44px] font-sans text-ds-13 active:opacity-70 transition-opacity"
+              style={{ color: "hsl(var(--bark))" }}
+            >
+              <ChevronLeft className="w-4 h-4 shrink-0" strokeWidth={2.25} aria-hidden />
+              <span className="truncate">Back to job</span>
+            </button>
+            <DialogHero title={job.title} />
+            <div className="pt-3">
+              {applyStep({ onBack: () => setStep("detail") })}
+            </div>
+          </div>
+        ) : (
+        <>
         {/* Category chip, then the canonical popup title (DialogHero).
             The chip is rendered HERE rather than passed to DialogHero as an
             `eyebrow`: DialogHero accepts that prop but deliberately does not
@@ -505,7 +549,15 @@ const JobDetailDialog = ({
           isSaved={isSaved}
           onToggleSave={onToggleSave}
           onClose={onClose}
-          onApply={onApply}
+          onApply={async (id) => {
+            const accepted = await onApply(id);
+            // Without an apply step (the guest surfaces) this closes as it
+            // always did. With one, the sheet STAYS UP and swaps its body —
+            // but only if the request was actually accepted, or we would show
+            // an apply form for a job the flow just refused.
+            if (!applyStep) { onClose(); return; }
+            if (accepted !== false) setStep("apply");
+          }}
           onReport={onReport}
           navigate={navigate}
           viewerUserId={viewerUserId}
@@ -515,6 +567,8 @@ const JobDetailDialog = ({
         />
         </div>
         </div>
+        </>
+        )}
 
         <PhotoLightbox photos={photos} lightboxIndex={lightboxIndex} setLightboxIndex={setLightboxIndex} openInGridNonce={gridOpenNonce} />
       </DialogContent>

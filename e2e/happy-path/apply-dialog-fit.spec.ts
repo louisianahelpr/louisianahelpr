@@ -71,7 +71,11 @@ const POSTER_PROFILE = {
  * wrap now, so they are walked like everything else and must fit.
  */
 const MEASURE = `(() => {
-  const dlg = document.querySelector('[role="alertdialog"]');
+  // The apply step renders INSIDE the job-detail sheet now — one surface,
+  // two steps — so there is no separate [role="alertdialog"] to measure. The
+  // last open dialog is the sheet showing the apply step.
+  const dialogs = document.querySelectorAll('[role="dialog"],[role="alertdialog"]');
+  const dlg = dialogs[dialogs.length - 1];
   if (!dlg) return { error: "dialog not open" };
   const cs = getComputedStyle(dlg);
   const r = dlg.getBoundingClientRect();
@@ -208,8 +212,12 @@ for (const { name, width, job } of [
     const applyBtn = detail.getByRole("button", { name: /^(apply|book|bid|submit|place)\b/i }).first();
     await applyBtn.waitFor({ timeout: 10_000 });
     await applyBtn.click();
-    await page.locator('[role="alertdialog"]').waitFor({ timeout: 10_000 });
-    // Let the zoom-in/fade animation settle before measuring.
+    // The sheet STAYS UP and swaps to the apply step in place — it no longer
+    // closes and hands off to a centred modal, which is the position jump this
+    // flow was rebuilt to remove (owner, 2026-08-28). Wait for the step's own
+    // submit button rather than for a second dialog that never appears.
+    await detail.getByRole("button", { name: /^(apply now|book now)$/i }).waitFor({ timeout: 10_000 });
+    // Let the step cross-fade settle before measuring.
     await page.waitForTimeout(500);
 
     const m = (await page.evaluate(MEASURE)) as Measurement;

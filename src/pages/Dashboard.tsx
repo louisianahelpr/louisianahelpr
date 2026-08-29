@@ -32,6 +32,7 @@ import { DashboardBannedScreen, DashboardDeniedScreen } from "@/components/dashb
 // Dashboard route chunk small.
 const JobDetailDialog = lazy(() => import("@/components/dashboard/JobDetailDialog"));
 const JobQuickActionSheet = lazy(() => import("@/components/dashboard/JobQuickActionSheet").then(m => ({ default: m.JobQuickActionSheet })));
+const ApplyBody = lazy(() => import("@/components/dashboard/applyConfirmDialog/ApplyBody").then(m => ({ default: m.ApplyBody })));
 const ApplyConfirmDialog = lazy(() => import("@/components/dashboard/ApplyConfirmDialog").then(m => ({ default: m.ApplyConfirmDialog })));
 const ReportDialog = lazy(() => import("@/components/ReportDialog"));
 const OnboardingTour = lazy(() => import("@/components/OnboardingTour"));
@@ -666,10 +667,47 @@ const Dashboard = () => {
             onToggleSave={handleToggleSave}
             userLat={filters.userLoc?.status === "ready" ? filters.userLoc.lat : null}
             userLng={filters.userLoc?.status === "ready" ? filters.userLoc.lng : null}
-            onClose={closeDetailJob}
+            /* Dismissing the sheet abandons the apply too. Without clearing
+               the pending id, closing from the apply step left
+               confirmApplyJobId set with no detail sheet to host it — and the
+               standalone deep-link sheet below (which renders whenever that id
+               is set and does NOT match an open detail job) would immediately
+               pop the apply form back up on the bare feed. */
+            onClose={() => { setConfirmApplyJobId(null); closeDetailJob(); }}
             onApply={handleApplyRequest}
             onReport={setReportJobId}
             onSelect={openDetailJob}
+            /* THE APPLY STEP, RENDERED IN THE SAME SHEET.
+               Applying used to close this sheet and open a separate centred
+               AlertDialog, so one continuous act played as three motions
+               across two anchors (owner, 2026-08-28). ApplyBody now renders as
+               the second step of this surface; useApplyFlow still owns all the
+               state and the mutation, so nothing about submitting changed —
+               only where the markup mounts. */
+            applyStep={() =>
+              confirmApplyJob ? (
+                <Suspense fallback={null}>
+                  <ApplyBody
+                        open
+                        onClose={() => setConfirmApplyJobId(null)}
+                        confirmApplyJob={confirmApplyJob}
+                        platformFee={platformFee}
+                        applyMessage={applyMessage}
+                        setApplyMessage={setApplyMessage}
+                        applyFiles={applyFiles}
+                        setApplyFiles={setApplyFiles}
+                        applyLoading={applyLoading}
+                        handleApplyConfirm={() => {
+                          // Submitting takes the whole sheet down — the helpr
+                          // is done with this job either way, and the success
+                          // toast is the confirmation.
+                          handleApplyConfirm();
+                          closeDetailJob();
+                        }}
+                  />
+                </Suspense>
+              ) : null
+            }
           />
         </Suspense>
       )}
@@ -713,7 +751,11 @@ const Dashboard = () => {
       <QuickApplyHandler searchParams={searchParams} user={user} allJobs={allJobs} onApply={handleApplyRequest} />
 
 
-      {confirmApplyJobId && (
+      {/* STANDALONE apply sheet — only for the QuickApply deep link
+          (`?apply=<jobId>`), where no detail sheet is open to host the step.
+          When the detail sheet IS open it renders the apply step itself, and
+          mounting this too would stack a second surface over it. */}
+      {confirmApplyJobId && confirmApplyJobId !== detailJob?.id && (
         <Suspense fallback={null}>
           <ApplyConfirmDialog
             open={!!confirmApplyJobId}

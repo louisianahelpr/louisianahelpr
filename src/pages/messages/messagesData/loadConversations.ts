@@ -242,7 +242,7 @@ export async function fetchConversations(
     // bare word "User".
     otherUserName: other?.name || UNRESOLVED_PERSON,
     otherUserAvatarUrl: other?.avatarUrl ?? null,
-    jobTitle: jobMap.get(v.jobId)?.title || "Job",
+    jobTitle: jobMap.get(v.jobId)?.title || "a task",
     jobId: v.jobId,
     jobStatus: jobMap.get(v.jobId)?.status ?? null,
     // Track whether the current user is the poster on this job so the
@@ -346,7 +346,7 @@ export async function buildDeepLinkPlaceholder(
     otherUserId: deepLinkUserId,
     otherUserName: resolved?.name || UNRESOLVED_PERSON,
     otherUserAvatarUrl: resolved?.avatarUrl ?? null,
-    jobTitle: jobRes.data?.title || "Job",
+    jobTitle: jobRes.data?.title || "a task",
     jobId: deepLinkJobId,
     jobStatus: jobRes.data?.status ?? null,
     viewerIsPoster: jobRes.data?.customer_id === uid,

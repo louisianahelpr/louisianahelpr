@@ -23,8 +23,8 @@ import type { ApplyVars, ApplySnapshot, DashboardContextSlice } from "./dashboar
 const APPLY_RPC_MESSAGES: Record<string, string> = {
   "Already applied to this job": "You've already applied to this job.",
   "Cannot apply to your own job": "You can't apply to your own post.",
-  "Job is no longer accepting applications": "This job isn't accepting applications anymore.",
-  "Job not found": "This job is no longer available.",
+  "Job is no longer accepting applications": "This task isn't accepting applications anymore.",
+  "Job not found": "This task is no longer available.",
 };
 
 type UseApplyFlowArgs = {

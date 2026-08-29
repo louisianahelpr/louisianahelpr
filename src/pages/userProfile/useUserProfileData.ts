@@ -42,7 +42,7 @@ function enrichReviewRows(
       feedback: r.feedback,
       created_at: r.created_at,
       reviewerName: nameMap.get(r.reviewer_id) || "a neighbor",
-      jobTitle: j?.title || "Job",
+      jobTitle: j?.title || "a task",
       jobCategory: j?.category ?? null,
       response_text: r.response_text ?? null,
       response_at: r.response_at ?? null,

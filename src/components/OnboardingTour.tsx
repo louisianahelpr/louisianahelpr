@@ -35,14 +35,14 @@ const TOUR_STEPS: TourStep[] = [
   {
     id: "browse",
     title: "Explore the dashboard",
-    description: "Post jobs, browse open jobs, track applications, and manage everything from one place.",
+    description: "Post tasks, browse open tasks, track applications, and manage everything from one place.",
     icon: <Search className="w-6 h-6" />,
     action: "/dashboard",
   },
   {
     id: "post-job",
-    title: "Post or apply to jobs",
-    description: "Need help? Post a job with your budget. Want to earn? Browse and apply to jobs nearby.",
+    title: "Post or apply to tasks",
+    description: "Need help? Post a task with your budget. Want to earn? Browse and apply to tasks nearby.",
     icon: <Briefcase className="w-6 h-6" />,
     action: "/post-job",
   },

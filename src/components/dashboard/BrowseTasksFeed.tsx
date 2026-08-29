@@ -205,7 +205,7 @@ export function BrowseTasksFeed({
     const next = filters.filteredJobs.length;
     if (next > prev && !isFetchingNextPage) {
       const added = next - prev;
-      setInfiniteScrollMsg(`${added} more job${added === 1 ? "" : "s"} loaded`);
+      setInfiniteScrollMsg(`${added} more task${added === 1 ? "" : "s"} loaded`);
     }
     prevJobCountRef.current = next;
   }, [filters.filteredJobs.length, isFetchingNextPage]);
@@ -579,7 +579,7 @@ export function BrowseTasksFeed({
                 {isFetchingNextPage ? (
                   <span className="text-ds-11 text-muted-foreground inline-flex items-center gap-2">
                     <span className="w-3 h-3 rounded-full border-2 border-primary/30 border-t-primary motion-safe:animate-spin" />
-                    Loading more jobs…
+                    Loading more tasks…
                   </span>
                 ) : (
                   <Button

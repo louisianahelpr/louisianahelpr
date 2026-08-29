@@ -153,7 +153,7 @@ const JobDetail = () => {
             <EmptyState
               variant="inline"
               icon={Briefcase}
-              title="This job isn't available."
+              title="This task isn't available."
               body="It may have been filled, expired, or removed. New jobs are posted across Louisiana every day."
               action={
                 <Button

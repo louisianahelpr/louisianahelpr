@@ -158,7 +158,7 @@ const HelpCenter = () => {
   usePageMeta({
     title: "Help Center — Helpr",
     description:
-      "Answers, guides, and support for posters and Helprs — posting jobs, escrow, payments, safety, and account settings.",
+      "Answers, guides, and support for posters and Helprs — posting tasks, payments, safety, and account settings.",
     canonical: "https://www.louisianahelpr.com/help",
     ogTitle: "Louisiana Helpr Help Center",
     ogDescription:

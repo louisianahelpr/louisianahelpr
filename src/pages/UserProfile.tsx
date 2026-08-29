@@ -273,7 +273,7 @@ const UserProfile = () => {
             <EmptyState
               variant="inline"
               icon={UserX}
-              title="User not found"
+              title="Profile not found"
               body="This profile may have been removed, or the link is no longer valid."
               // Same guard as every other back affordance: a profile link
               // shared into a messaging app opens cold, and `navigate(-1)`

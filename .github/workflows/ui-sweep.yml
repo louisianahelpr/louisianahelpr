@@ -14,22 +14,26 @@ permissions:
 #   visual-audit-sweep — seeded/populated screens;     ASSERTS  (manual)
 #   error-state-sweep  — queries 500 / hang;           ASSERTS  (manual)
 #
-# Only the empty-state sweep runs automatically, at ONE variant (phone-light),
-# and that is a deliberate cost decision, not an oversight:
+# Only the empty-state sweep runs on every push/PR, at ONE variant
+# (phone-light), and that is a deliberate cost decision, not an oversight:
 #
 #   - The seeded sweep's describe is `mode: "serial"` (its aggregate gate test
 #     has to see every screen's result, which only works inside one worker), so
 #     it cannot be parallelised — ~166 screens x ~8s on a single worker is ~20
 #     minutes of runner time per push. Far too expensive to put on every commit
 #     for a repo whose owner already had a macOS cron disabled over ~$16/mo of
-#     Actions spend.
+#     Actions spend. It instead runs automatically ONCE A WEEK via the
+#     `schedule:` trigger below (2026-08-29) — the ~9 min cost is fine at
+#     weekly cadence, and this closes the gap where the actual "does this
+#     look right with real data" check depended on someone remembering to
+#     click workflow_dispatch by hand.
 #   - The error-state sweep is a NEW gate over a surface that has never been
 #     gated and currently reports real findings; wiring it in before those are
-#     closed would just red main. Same reasoning that kept the empty-state
-#     sweep opt-in until its own findings were closed.
+#     closed would just red main. Still dispatch-only for now — same reasoning
+#     that kept the empty-state sweep opt-in until its own findings were closed.
 #
-# Both are one `workflow_dispatch` click away (see the inputs below), and the
-# full 4-variant matrix is a dispatch input rather than a push trigger.
+# The error-state sweep and the full 4-variant matrix are still a
+# `workflow_dispatch` click away (see the inputs below).
 #
 # COST — measured, not guessed
 # ----------------------------
@@ -54,6 +58,12 @@ on:
     branches: [main]
   push:
     branches: [main]
+  schedule:
+    # Weekly seeded visual-audit-sweep (the ~186-screen, populated-data check
+    # — the actual "does this look right" pass that was previously only run
+    # by hand). Distinct time from every other Sunday UTC cron in this repo
+    # (lighthouse 06:00, cloud Docs Drift 06:00, cloud iOS/Capacitor 06:30).
+    - cron: "30 5 * * 0" # Sunday 05:30 UTC
   workflow_dispatch:
     inputs:
       sweeps:
@@ -103,10 +113,11 @@ jobs:
       # .github/workflows/e2e-happy-path.yml; see the note there.
       - name: Detect UI-relevant changes
         id: filter
-        # Skipped on workflow_dispatch: there is no base ref to diff against
-        # there, and a manual run is by definition asking for the sweep. The
-        # `if:` on every later step falls back to the event name for that case.
-        if: github.event_name != 'workflow_dispatch'
+        # Skipped on workflow_dispatch AND schedule: neither has a base ref to
+        # diff against, and both are by definition asking for the sweep to
+        # run regardless of what changed. The `if:` on every later step falls
+        # back to the event name for both cases.
+        if: github.event_name != 'workflow_dispatch' && github.event_name != 'schedule'
         uses: dorny/paths-filter@v4
         with:
           filters: |
@@ -128,7 +139,12 @@ jobs:
       - name: Resolve run scope
         id: scope
         env:
-          SWEEPS: ${{ github.event.inputs.sweeps || 'empty' }}
+          # A scheduled run has no `inputs` at all, so the fallback below
+          # picks 'seeded' specifically for the schedule event — that's the
+          # whole point of the cron trigger (see the `on:` block above).
+          # workflow_dispatch and push/pull_request keep their existing
+          # defaults ('empty' unless a dispatch input says otherwise).
+          SWEEPS: ${{ github.event.inputs.sweeps || (github.event_name == 'schedule' && 'seeded' || 'empty') }}
           VARIANTS: ${{ github.event.inputs.variants || 'phone-light' }}
         run: |
           set -euo pipefail
@@ -152,24 +168,24 @@ jobs:
           printf 'variants<<EOF\n%s\nEOF\n' "$VARIANTS" >> "$GITHUB_OUTPUT"
 
       - name: Setup Node
-        if: steps.filter.outputs.ui == 'true' || github.event_name == 'workflow_dispatch'
+        if: steps.filter.outputs.ui == 'true' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
         uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: "npm"
 
       - name: Install dependencies
-        if: steps.filter.outputs.ui == 'true' || github.event_name == 'workflow_dispatch'
+        if: steps.filter.outputs.ui == 'true' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
         # See test.yml — `install` not `ci`, so a drifting lockfile heals
         # instead of failing the run.
         run: npm install --no-audit --no-fund --legacy-peer-deps
 
       - name: Install Playwright Chromium browser
-        if: steps.filter.outputs.ui == 'true' || github.event_name == 'workflow_dispatch'
+        if: steps.filter.outputs.ui == 'true' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
         run: npx playwright install --with-deps chromium
 
       - name: Run sweep
-        if: steps.filter.outputs.ui == 'true' || github.event_name == 'workflow_dispatch'
+        if: steps.filter.outputs.ui == 'true' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
         env:
           # PLAYWRIGHT_WEB_SERVER=1 turns on the `npm run build && vite preview`
           # auto-start in playwright.config.ts. reuseExistingServer is false

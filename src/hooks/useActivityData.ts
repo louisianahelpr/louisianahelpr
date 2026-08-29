@@ -634,7 +634,27 @@ export function useActivityData(user: SupaUser | null, tab: "posted" | "applied"
         queryClient.invalidateQueries({ queryKey: queryKeys.activity.all });
       }, 800);
     };
-    const channel = supabase
+    // A failed channel is a SILENT failure — the app renders fine, it just
+    // never hears about anyone else's writes. Surface it so the next dead
+    // channel is a logged error, not a night of live debugging.
+    const observeStatus = (label: string) => (status: string, err?: Error) => {
+      if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+        report(err ?? new Error(`activity realtime channel ${status}`), {
+          severity: "warning",
+          tags: { source: "useActivityData.realtime", channel: label, status },
+        });
+      }
+    };
+    // CORE channel — jobs / notifications / job_tracking / applications.
+    // Every binding here MUST be on a table in the `supabase_realtime`
+    // publication: Realtime rejects a channel containing ANY binding on an
+    // unpublished table, and the whole channel dies — none of its bindings
+    // deliver. That is exactly how the poster's My Posts card went
+    // permanently stale (a `reviews` binding used to sit on this channel
+    // while `reviews` was unpublished, killing the jobs bindings with it).
+    // src/test/realtimePublication.test.ts now cross-checks every binding
+    // against the migrations' publication set.
+    const coreChannel = supabase
       .channel(`activity-realtime-${channelNonce()}`)
       // jobs: scope to rows that can appear in this user's activity feed via
       // server-side filters, so platform-wide job churn never reaches this
@@ -649,18 +669,25 @@ export function useActivityData(user: SupaUser | null, tab: "posted" | "applied"
       // channel carries the same wake-up — and it is a row the helper is
       // genuinely entitled to.
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` }, invalidate)
-      // job_tracking / applications / reviews — scoped to
-      // rows involving this user so platform-wide write churn on these
-      // high-volume tables never fans out to every connected client.
-      // Each table has exactly one user-facing column that covers the
-      // activity-feed perspective for the current user.
+      // job_tracking / applications — scoped to rows involving this user so
+      // platform-wide write churn on these high-volume tables never fans out
+      // to every connected client.
       .on("postgres_changes", { event: "*", schema: "public", table: "job_tracking", filter: `helper_id=eq.${userId}` }, invalidate)
       .on("postgres_changes", { event: "*", schema: "public", table: "applications", filter: `helper_id=eq.${userId}` }, invalidate)
+      .subscribe(observeStatus("activity-core"));
+    // reviews rides on its OWN channel: it was added to the publication by
+    // migration 20260829061737, but isolating it means that if publication
+    // membership ever regresses (or the deploy lags the code), only the
+    // review-received invalidation dies — the jobs/applications/tracking
+    // bindings above keep delivering.
+    const reviewsChannel = supabase
+      .channel(`activity-reviews-${channelNonce()}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "reviews", filter: `reviewee_id=eq.${userId}` }, invalidate)
-      .subscribe();
+      .subscribe(observeStatus("activity-reviews"));
     return () => {
       if (debounce) clearTimeout(debounce);
-      supabase.removeChannel(channel);
+      supabase.removeChannel(coreChannel);
+      supabase.removeChannel(reviewsChannel);
     };
   }, [userId, queryClient]);
 
@@ -668,16 +695,27 @@ export function useActivityData(user: SupaUser | null, tab: "posted" | "applied"
   const postedDetailRefetch = postedDetail.refetch;
   const appliedRefetch = appliedCore.refetch;
   const appliedDetailRefetch = appliedDetail.refetch;
-  const refresh = useCallback(() => {
+  const refresh = useCallback(async () => {
     // Only the visible tab — the other one is warmed on idle and revalidated
     // by realtime; refetching it here would put its waterfall back in front of
     // the pull-to-refresh spinner this tab is showing.
-    if (isPosted) {
-      postedRefetch();
-      postedDetailRefetch();
-    } else {
-      appliedRefetch();
-      appliedDetailRefetch();
+    //
+    // AWAITED, deliberately: pull-to-refresh awaits this callback to decide
+    // when to drop its spinner. The old fire-and-forget version resolved
+    // immediately, so the spinner vanished before the network round-trip —
+    // and when a refetch failed (e.g. expired token after an iOS resume) the
+    // gesture looked successful while the screen silently kept stale rows.
+    // React Query's refetch() never rejects (errors land in query state), so
+    // inspect the settled results and surface a failed pull-to-refresh.
+    const results = isPosted
+      ? await Promise.all([postedRefetch(), postedDetailRefetch()])
+      : await Promise.all([appliedRefetch(), appliedDetailRefetch()]);
+    const failed = results.find((r) => r.status === "error");
+    if (failed) {
+      report(failed.error ?? new Error("activity refresh refetch failed"), {
+        severity: "warning",
+        tags: { source: "useActivityData.refresh", tab: isPosted ? "posted" : "applied" },
+      });
     }
   }, [isPosted, postedRefetch, postedDetailRefetch, appliedRefetch, appliedDetailRefetch]);
 

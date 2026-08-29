@@ -16,13 +16,13 @@ incomplete audit, no matter how confident its prose.
 
 ---
 
-## Summary — as of 2026-08-27
+## Summary — as of 2026-08-29 (overnight cross-account money-path walk)
 
 | Status | Count | Share |
 | --- | ---: | ---: |
-| **WALKED** — operated end-to-end against real data, with a durable artifact | **0** | 0% |
-| **PARTIAL** — touched by an automated E2E spec (Chromium against a *mocked* Supabase) | **27** | 20% |
-| **NEVER WALKED** | **107** | 80% |
+| **WALKED** — operated end-to-end against real data, with a durable artifact | **12** | 9% |
+| **PARTIAL** — touched by an automated E2E spec (Chromium against a *mocked* Supabase) | **19** | 14% |
+| **NEVER WALKED** | **103** | 77% |
 | **Total tracked units** | **134** | |
 
 Breakdown of the 134: 37 real routes + 14 redirect routes + 18 Profile tabs +
@@ -95,22 +95,22 @@ Source of truth: the `<Route>` table in `src/App.tsx`. Enumerated, not guessed.
 | `/login` | Login | PARTIAL | never | E2E spec navigates here (mocked backend) |
 | `/signup` | Signup | PARTIAL | never | E2E spec navigates here (mocked backend) |
 | `/signup-pending` | SignupPending | NEVER WALKED | never | — |
-| `/complete-profile` | CompleteProfile | PARTIAL | never | E2E spec navigates here (mocked backend) |
+| `/complete-profile` | CompleteProfile | WALKED | 2026-08-29 · live |  Helper gate driven live (6/7 checklist → avatar → gate lifted, redirect to /dashboard) |
 | `/account-pending` | AccountPending | PARTIAL | never | E2E spec navigates here (mocked backend) |
 | `/account-denied` | AccountDenied | NEVER WALKED | never | — |
-| `/account-banned` | AccountBanned | NEVER WALKED | never | — |
+| `/account-banned` | AccountBanned | WALKED | 2026-08-29 · live |  Rendered live for temp-suspended helper before ban_status reset (suspension copy w/ Sep 1 date) |
 | `/forgot-password` | ForgotPassword | NEVER WALKED | never | — |
 | `/reset-password` | ResetPassword | NEVER WALKED | never | — |
-| `/dashboard` | Dashboard | PARTIAL | never | E2E spec navigates here (mocked backend) |
+| `/dashboard` | Dashboard | WALKED | 2026-08-29 · live |  Operated browse feed + Sort By both surfaces; highest_pay order matched `jobs.budget` DESC via SQL; fix 4e23af8d |
 | `/profile` | Profile | PARTIAL | never | E2E spec navigates here (mocked backend) |
-| `/post-job` | PostJob | PARTIAL | never | E2E spec navigates here (mocked backend) |
-| `/my-jobs` | Activity (applied) | PARTIAL | never | E2E spec navigates here (mocked backend) |
-| `/my-posts` | Activity (posted) | PARTIAL | never | E2E spec navigates here (mocked backend) |
+| `/post-job` | PostJob | WALKED | 2026-08-29 · live |  Full 3-step wizard driven in iOS sim → Stripe Checkout; PI pi_3U9dopKp2H4b7tEC1JOYhLbA succeeded, amount 8600 = displayed $86.00 |
+| `/my-jobs` | Activity (applied) | WALKED | 2026-08-29 · live |  Helper accepted offer → on-my-way → arrived → done in browser; jobs db21c20d transitions confirmed by SQL after each tap |
+| `/my-posts` | Activity (posted) | WALKED | 2026-08-29 · live |  Poster hired applicant, day-of confirm, confirmed arrival, Approve→release; jobs.status=completed + review row via SQL |
 | `/payment-success` | PaymentSuccess | NEVER WALKED | never | — |
 | `/user/:userId` | UserProfile | NEVER WALKED | never | — |
 | `/admin` | Admin | PARTIAL | never | E2E spec navigates here (mocked backend) |
-| `/messages` | Messages | PARTIAL | never | E2E spec navigates here (mocked backend) |
-| `/support` | Support | PARTIAL | never | E2E spec navigates here (mocked backend) |
+| `/messages` | Messages | WALKED | 2026-08-29 · live |  Two-way realtime chat between seeded accounts (browser↔iOS sim); both messages in notifications + thread render both sides |
+| `/support` | Support | WALKED | 2026-08-29 · live |  Renders Contact Support page (document.title "Contact Support — Helpr") |
 | `/legal` | Legal | PARTIAL | never | E2E spec navigates here (mocked backend) |
 | `/jobs` | Jobs (public) | PARTIAL | never | E2E spec navigates here (mocked backend) |
 | `/jobs/:id` | JobDetail | PARTIAL | never | E2E spec navigates here (mocked backend) |
@@ -123,7 +123,7 @@ Source of truth: the `<Route>` table in `src/App.tsx`. Enumerated, not guessed.
 | `/family/accept/:token` | FamilyAcceptPage (flagged) | NEVER WALKED | never | — |
 | `/home-history` | HomeHistory | PARTIAL | never | E2E spec navigates here (mocked backend) |
 | `/work-record` | WorkRecord | PARTIAL | never | E2E spec navigates here (mocked backend) |
-| `/help` | HelpCenter | PARTIAL | never | E2E spec navigates here (mocked backend) |
+| `/help` | HelpCenter | WALKED | 2026-08-29 · live |  Rendered live: 7 topic cards + contact block (get_page_text 2026-08-29) |
 | `/wrapped` | HelprWrapped | PARTIAL | never | E2E spec navigates here (mocked backend) |
 | `/benefits` | BenefitsPage | PARTIAL | never | E2E spec navigates here (mocked backend) |
 | `/pets` | PetProfiles | PARTIAL | never | E2E spec navigates here (mocked backend) |
@@ -161,8 +161,8 @@ Source of truth: `TAB_TITLES` in `src/pages/profile/types.ts`, plus the
 | --- | --- | --- | --- |
 | `landing` | Profile landing | NEVER WALKED | — |
 | `profile` | Edit Profile | NEVER WALKED | — |
-| `earnings` | Earnings & Payouts | NEVER WALKED | — |
-| `payment` | Earnings & Payouts (legacy deep link) | NEVER WALKED | — |
+| `earnings` | Earnings & Payouts | WALKED | 2026-08-29 · live | Live wallet renders (Net $101.20); Payouts sub-tab Refresh Status flipped stripe_payouts_enabled false→true (SQL) |
+| `payment` | Earnings & Payouts (legacy deep link) | WALKED | 2026-08-29 · live | Payouts pane: STRIPE TEST BANK ····6789 + Manage-on-Stripe; Refresh Status verified against Stripe API |
 | `schedule` | Schedule | NEVER WALKED | — |
 | `availability` | Availability | NEVER WALKED | — |
 | `security` | Account Security | NEVER WALKED | — |
@@ -171,7 +171,7 @@ Source of truth: `TAB_TITLES` in `src/pages/profile/types.ts`, plus the
 | `referral` | Referrals | NEVER WALKED | — |
 | `subscription` | Membership | NEVER WALKED | — |
 | `support` | Help & Support | NEVER WALKED | — |
-| `notifications` | Notifications | NEVER WALKED | — |
+| `notifications` | Notifications | WALKED | 2026-08-29 · live | Daily-match-digest toggle persisted across hard reload (aria-checked false→true→reverted) |
 | `posted_jobs` | Posted Jobs | NEVER WALKED | — |
 | `completed_jobs` | Completed Jobs | NEVER WALKED | — |
 | `warnings` | Warnings & Strikes | NEVER WALKED | — |
@@ -199,7 +199,21 @@ neither is the function appearing in `list_edge_functions` (deployed is not
 working — a function can be live and 503 on every call, which `mapkit-token`
 did).
 
-All 63 are `NEVER WALKED`. Record evidence as `2026-08-27 · curl → 200`.
+2026-08-29 reachability sweep: **all 63 deployed functions were executed via
+curl** (OPTIONS + POST, unauthenticated) and every status recorded — 0×404,
+0 orphans either direction; full status table in the 2026-08-29 overnight
+audit report. Beyond reachability, these were exercised end-to-end against
+prod: `create-payment` (real $86.00 test-mode checkout, PI succeeded),
+`stripe-webhook` (checkout.session.completed applied escrow),
+`create-notification` + `send-notification-email` + `process-email-queue`
+(notification → queued → status `sent` in `email_send_log`, after fix
+37c7913e), `stripe-connect` (Refresh Status flipped payout flags),
+`pro-customer-portal` (200 + billing portal URL authed),
+`ai-job-builder` (200, sane draft for a raking prompt),
+`mapkit-token` (200 JWT — prior permanent 503 is fixed),
+`cash-out-credits` (400 human copy authed). Known non-working:
+`helpr-pass-wallet` 501 (signing certs not provisioned, honest message),
+`create-bgc-payment` 503 (intentional provider-migration pause).
 
 `admin-delete-user`, `admin-resend-verification`, `admin-update-email`,
 `admin-user-actions`, `ai-job-builder`, `auth-email-hook`, `auto-expire-jobs`,

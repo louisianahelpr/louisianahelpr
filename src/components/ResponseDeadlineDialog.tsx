@@ -28,25 +28,43 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose }:
   const [hours, setHours] = useState("24");
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  // The failure reason, rendered INSIDE the dialog. onConfirm throws on any
+  // failure (server award gate, job no longer open, missing state) — a toast
+  // alone is transient and sits behind this open dialog, which is how a poster
+  // tapped Send four times against the jobs_award_gate refusal with no visible
+  // response at all. The dialog stays open and Send re-enables for a retry.
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const selectedLabel =
     deadlineOptions.find((o) => o.value === hours)?.label ?? `${hours} hours`;
 
   const handleConfirm = async () => {
     setSubmitting(true);
+    setErrorMessage(null);
     try {
       await onConfirm(parseInt(hours), message.trim() || undefined);
-    } catch {
-      // The confirm callback surfaces its own specific errors when it can;
-      // this catch is the backstop so a thrown failure never dies silently
-      // with the dialog stuck open and no explanation.
-      toast.error("Couldn't send the offer — please try again.");
+    } catch (err) {
+      // Surface the thrown reason inline. The confirm callback throws
+      // human-readable messages (award-gate refusals via
+      // posterAwardBlockMessage, RPC guard copy); anything without one gets
+      // the generic backstop so a failure never dies silently with the
+      // dialog stuck open and no explanation.
+      const msg = err instanceof Error && err.message.trim() ? err.message : null;
+      setErrorMessage(msg ?? "Couldn't send the offer — please try again.");
+      // Toast kept as a secondary signal (e.g. screen-reader/haptic parity
+      // with other flows); the inline block above is the primary surface.
+      toast.error(msg ?? "Couldn't send the offer — please try again.");
     } finally {
       setSubmitting(false);
     }
   };
 
+  const handleClose = () => {
+    setErrorMessage(null);
+    onClose();
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent>
         <DialogHero eyebrow="Send a direct offer" title="Set a Response Deadline" />
         <div className="space-y-4">
@@ -123,9 +141,33 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose }:
               ))}
             </ul>
           </div>
+          {/* Inline failure block — same burnt-sienna wash + hairline as the
+              denial-policy notice above, so a refusal reads in the dialog's
+              own visual language instead of a toast lost behind it. */}
+          {errorMessage && (
+            <div
+              role="alert"
+              className="rounded-ds-sm p-3"
+              style={{
+                background: "hsl(var(--burnt-sienna) / 0.08)",
+                border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
+              }}
+            >
+              <p className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+                <span
+                  className="inline-flex items-center gap-1.5 font-semibold align-[-2px]"
+                  style={{ color: "hsl(var(--burnt-sienna))" }}
+                >
+                  <TriangleAlert aria-hidden className="w-3.5 h-3.5 shrink-0" />
+                  Couldn't send:
+                </span>{" "}
+                {errorMessage}
+              </p>
+            </div>
+          )}
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={onClose} disabled={submitting}>Cancel</Button>
+          <Button variant="ghost" onClick={handleClose} disabled={submitting}>Cancel</Button>
           <Button onClick={handleConfirm} disabled={submitting}>
             {submitting ? "Sending…" : "Send Offer"}
           </Button>

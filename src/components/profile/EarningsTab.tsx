@@ -232,7 +232,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   const payoutSection = (
     <section className="space-y-4">
       <Suspense fallback={null}>
-        <PaymentTab earningsJobs={earningsJobs} totalEarnings={totalEarnings} />
+        <PaymentTab totalEarnings={totalEarnings} />
       </Suspense>
     </section>
   );

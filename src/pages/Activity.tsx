@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef, lazy, Suspense } from "react";
+import { useEffect, useState, useCallback, lazy, Suspense } from "react";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
@@ -213,37 +213,26 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   const activeStatusFilters = tab === "posted" ? POSTED_STATUS_FILTERS : APPLIED_STATUS_FILTERS;
   const activeCounts = tab === "posted" ? postedCounts : appliedCounts;
 
-  /* LAND ON A TAB THAT HAS SOMETHING IN IT.
-     The default is "Needs you" — the right first question — but a poster whose
-     only job is open with nobody applied yet has nothing needing them, and used
-     to arrive on an empty screen with the job they had just posted sitting one
-     tab over under Waiting. Same for a helpr between applications.
+  /* NO AUTO-TAB-SWITCH. The tab you are on is the tab you chose.
 
-     So: keep "Needs you" when it has items, otherwise fall through the buckets
-     in the order they are displayed and open on the first that does. Only ever
-     on the FIRST load of the tab, and never when the URL named a filter — a
-     deep link and a deliberate tap both mean "show me this one, even empty".
-     Same rule the Messages inbox uses for its Unread tab. */
-  const autoTabbedRef = useRef<string | null>(null);
-  // Depends on the query STRING, not the `searchParams` object. The object is
-  // freshly allocated on every location change, so as a dep it re-arms this
-  // effect after each of our own URL writes — the same feedback shape that
-  // made the mirror above loop into WebKit's replaceState throttle. The
-  // `autoTabbedRef` guard already made a loop impossible here, so this is
-  // defence in depth and changes no behaviour: same value, read once per tab.
-  const searchString = searchParams.toString();
-  useEffect(() => {
-    if (autoTabbedRef.current === tab) return;
-    if (new URLSearchParams(searchString).get("filter")) { autoTabbedRef.current = tab; return; }
-    if (loading) return;
-    const total = Object.values(activeCounts).reduce((a, b) => a + (b || 0), 0);
-    if (total === 0) return;
-    autoTabbedRef.current = tab;
-    if ((activeCounts[defaultFilter] ?? 0) > 0) return;
-    const firstFilled = activeStatusFilters.find((f) => (activeCounts[f.key] ?? 0) > 0);
-    if (firstFilled) setStatusFilter(firstFilled.key);
-    // `activeStatusFilters` is a stable per-tab list; the counts are what move.
-  }, [tab, loading, activeCounts, defaultFilter, activeStatusFilters, searchString]);
+     There used to be an effect here that, on the first load of a tab whose
+     default bucket came up empty, silently moved the selection to the first
+     bucket that had items. It contradicted this app's stated rule outright:
+     `defaultStatusFilterFor` in activityConstants.ts says there is
+     "deliberately NO automatic fallback to another tab (owner decision) — a
+     default that silently moves is harder to reason about than one that holds
+     still", and names ActivityEmptyState's pointer as the intended answer.
+     Two comments, one codebase, opposite instructions.
+
+     The rule wins, because the reason the effect existed is now handled
+     properly. That pointer had always NAMED where the items were ("Nothing
+     under needs you — but you have 3 in Scheduled") while the only button on
+     the panel pointed at Post a Job — so the fallback was papering over an
+     empty state that told you where to go and then wouldn't take you. It
+     offers the jump as a button now (see ActivityEmptyState), so landing on an
+     empty "Needs you" costs one deliberate tap instead of a silent move.
+
+     "Nothing needs you" is also good news, and worth seeing. */
 
   // "Truly empty" — the underlying list has zero items (not merely
   // filtered down to none). When there's nothing at all, the secondary
@@ -395,6 +384,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               statusLabels={activeStatusFilters}
               onRetry={refresh}
               onNavigate={navigate}
+              onSelectStatusFilter={setStatusFilter}
             />
           ) : (
             <div style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 96px)" }}>

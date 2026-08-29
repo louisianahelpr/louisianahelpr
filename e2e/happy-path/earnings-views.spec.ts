@@ -20,7 +20,11 @@ import { test, expect, FAKE_HELPER, installSupabaseMocks } from "./fixtures";
 const MARKERS: Record<string, RegExp> = {
   Money: /in progress/i,
   History: /Earning history/i,
-  Insights: /take-home/i,
+  // Was /take-home/i — that text came from HeroSummary, which was deleted
+  // once the tab's Money view made it the third statement of one number.
+  // The Pro upsell is the analytics dashboard's own, and renders whatever the
+  // account's data looks like.
+  Insights: /more insights with/i,
   Payouts: /Tax reporting:/i,
 };
 

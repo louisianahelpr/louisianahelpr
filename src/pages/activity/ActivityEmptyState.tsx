@@ -36,6 +36,9 @@ export interface ActivityEmptyStateProps {
   statusLabels?: { key: string; label: string }[];
   onRetry: () => void;
   onNavigate: (to: string) => void;
+  /** Switches the active status filter — lets the "your items are over
+   *  there" line actually take the reader there. */
+  onSelectStatusFilter?: (key: string) => void;
 }
 
 export function ActivityEmptyState({
@@ -49,6 +52,7 @@ export function ActivityEmptyState({
   statusLabels,
   onRetry,
   onNavigate,
+  onSelectStatusFilter,
 }: ActivityEmptyStateProps) {
   // A failed fetch leaves both lists empty — show a recoverable
   // ErrorState rather than a misleading "nothing posted yet".
@@ -84,6 +88,12 @@ export function ActivityEmptyState({
   const elsewhere = (statusLabels ?? [])
     .filter((f) => f.key !== statusFilter && f.key !== "all" && (statusCounts?.[f.key] ?? 0) > 0)
     .map((f) => `${statusCounts?.[f.key]} in ${f.label}`);
+  /* THE BUCKET TO OFFER. `elsewhere` is already every other filter holding
+     items; the fullest one is the single best place to send someone whose
+     current view is empty. */
+  const jumpTo = (statusLabels ?? [])
+    .filter((f) => f.key !== statusFilter && f.key !== "all" && (statusCounts?.[f.key] ?? 0) > 0)
+    .sort((a, b) => (statusCounts?.[b.key] ?? 0) - (statusCounts?.[a.key] ?? 0))[0];
   const filteredElsewhere =
     elsewhere.length === 0
       ? null
@@ -124,9 +134,30 @@ export function ActivityEmptyState({
         title={title}
         body={body}
         action={
-          <BarkPillButton onClick={() => onNavigate(ctaTo)}>
-            {ctaLabel}
-          </BarkPillButton>
+          /* WHEN WE KNOW WHERE THE ITEMS ARE, GO THERE.
+             The body line has named them since this component was written
+             ("Nothing under needs you — but you have 3 in Scheduled") but the
+             only button on the panel pointed the other way, at Post a Job — so
+             a reader was told exactly where their work was and handed a
+             control that went somewhere else. Naming a place is not the same
+             as offering it.
+
+             This is what lets Activity.tsx drop its auto-tab-switch: that
+             effect existed to stop people landing on an empty bucket, by
+             silently moving the tab under them, which is the thing
+             activityConstants' defaultStatusFilterFor explicitly rules out
+             ("deliberately NO automatic fallback… a default that silently
+             moves is harder to reason about than one that holds still"). The
+             pointer does the same job by asking instead of assuming. */
+          jumpTo && onSelectStatusFilter ? (
+            <BarkPillButton onClick={() => onSelectStatusFilter(jumpTo.key)}>
+              Show {jumpTo.label} ({statusCounts?.[jumpTo.key] ?? 0})
+            </BarkPillButton>
+          ) : (
+            <BarkPillButton onClick={() => onNavigate(ctaTo)}>
+              {ctaLabel}
+            </BarkPillButton>
+          )
         }
       />
     </div>

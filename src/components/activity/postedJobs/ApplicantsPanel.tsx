@@ -14,6 +14,7 @@ import { useApplicantComparison } from "./useApplicantComparison";
 import { DeclineApplicantSheet } from "./DeclineApplicantSheet";
 import { ApplicantsLoadingState, ApplicantsErrorState, ApplicantsEmptyState } from "./applicantsPanel/ApplicantsStates";
 import { ApplicantSortControls } from "./applicantsPanel/ApplicantSortControls";
+import { BroadcastComposer } from "./applicantsPanel/BroadcastComposer";
 import { helperInitialsFrom, isImageAttachment } from "./applicantsPanel/applicantsPanelHelpers";
 
 interface ApplicantsPanelProps {
@@ -513,6 +514,15 @@ export function ApplicantsPanel({
                     </div>
                   );
                 })}
+
+                {/* "Message all N Helprs" — below the list, where it was before
+                    016acc4b9 removed the inline applicant block it lived in.
+                    Self-hides under two pending applicants. */}
+                <BroadcastComposer
+                  job={selectedJob}
+                  posterId={selectedJob.customer_id}
+                  applications={applications}
+                />
               </div>
             )}
           </div>

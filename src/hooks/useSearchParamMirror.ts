@@ -1,5 +1,28 @@
 import { useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
+import { report } from "@/lib/errorLogger";
+
+/**
+ * Rolling write-rate instrumentation.
+ *
+ * WebKit throws past ~100 replaceState calls in a short window, which unmounts
+ * the route into the error boundary. Three separate fixes have been shipped for
+ * that loop (dep-array, live-URL compare, and moving Activity onto this hook)
+ * and error_logs shows /my-posts STILL crashing after all three — so the next
+ * step is evidence, not a fourth guess.
+ *
+ * This records every write this hook performs and, once a caller crosses
+ * WRITE_BURST inside WINDOW_MS, reports ONCE per mount with the actual loop
+ * participants: which keys changed, the before/after query strings, and the
+ * most recent adopt() decisions. That is precisely what has been missing —
+ * every previous fix was reasoned from reading the code.
+ *
+ * It reports at a threshold well under WebKit's limit so the evidence lands
+ * BEFORE the route dies, and it reports at most once per mount so a genuine
+ * loop cannot itself become a logging flood.
+ */
+const WINDOW_MS = 10_000;
+const WRITE_BURST = 25;
 
 /**
  * Keep a screen's view state (tabs, filters, search) in the URL, so a history
@@ -53,8 +76,25 @@ import { useSearchParams } from "react-router-dom";
 export function useSearchParamMirror(
   state: Record<string, string>,
   adopt: (read: (key: string) => string) => void,
+  /**
+   * Short screen identifier ("activity", "browse", …). Only used to label the
+   * runaway-write report, so a loop can be attributed to a screen without
+   * guessing from a minified stack.
+   */
+  label = "unknown",
 ) {
   const [searchParams, setSearchParams] = useSearchParams();
+
+  // Instrumentation state. Refs, so none of it can trigger a render and become
+  // part of the very loop it is measuring.
+  const writeTimesRef = useRef<number[]>([]);
+  const writeTrailRef = useRef<string[]>([]);
+  const reportedRef = useRef(false);
+  // What adopt() decided, most recent last. The write effect quotes this in its
+  // report: if the two effects are fighting, the answer shows up in the
+  // interleaving of adopt decisions against the write trail — exactly what
+  // reading the code has failed three times to reveal.
+  const adoptTrailRef = useRef<string[]>([]);
 
   // Serialised so the write effect depends on the VALUES, not on a fresh
   // object identity every render.
@@ -89,6 +129,35 @@ export function useSearchParamMirror(
     // so "no change" has to mean "do not call it" — not "call it with the
     // value it already has".
     if (!changed) return;
+
+    // ── instrumentation ────────────────────────────────────────────────────
+    // Record BEFORE writing, so a burst that ends in a crash is still counted.
+    const now = Date.now();
+    const times = writeTimesRef.current.filter((t) => now - t < WINDOW_MS);
+    times.push(now);
+    writeTimesRef.current = times;
+    const trail = writeTrailRef.current;
+    trail.push(`${search || "(empty)"} -> ${next.toString() || "(empty)"}`);
+    if (trail.length > 6) trail.shift();
+
+    if (times.length >= WRITE_BURST && !reportedRef.current) {
+      reportedRef.current = true;
+      report(new Error("useSearchParamMirror runaway writes"), {
+        severity: "error",
+        tags: {
+          source: "useSearchParamMirror",
+          mirror: label,
+          writesInWindow: times.length,
+          windowMs: WINDOW_MS,
+          desired: JSON.stringify(desired).slice(0, 300),
+          trail: trail.join(" | ").slice(0, 900),
+          adoptTrail: adoptTrailRef.current.join(" | ").slice(0, 500),
+          route: typeof window !== "undefined" ? window.location.pathname : "",
+        },
+      });
+    }
+    // ───────────────────────────────────────────────────────────────────────
+
     setSearchParamsRef.current(next, { replace: true });
     // Both deps are strings: once the write lands, `search` matches `desired`,
     // this re-runs once more, finds nothing changed, and stops.
@@ -101,12 +170,20 @@ export function useSearchParamMirror(
   const localRef = useRef(state);
   localRef.current = state;
 
+
   useEffect(() => {
     const params = new URLSearchParams(search);
     const read = (key: string) => params.get(key) ?? "";
     const local = localRef.current;
     const differs = Object.keys(local).some((key) => read(key) !== local[key]);
-    if (differs) adopt(read);
+    if (differs) {
+      const t = adoptTrailRef.current;
+      t.push(
+        `adopt@${search || "(empty)"} local=${JSON.stringify(local)}`,
+      );
+      if (t.length > 6) t.shift();
+      adopt(read);
+    }
     // `adopt` is intentionally not a dep: callers pass an inline closure, and
     // depending on it would re-run this on every render. (No eslint-disable is
     // needed now that the dep is the `search` STRING rather than the

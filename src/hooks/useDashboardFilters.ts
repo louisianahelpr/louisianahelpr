@@ -117,6 +117,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
       setBoostedOnly(read("boost") === "1");
       setUrgentOnly(read("urgent") === "1");
     },
+    "dashboard-filters",
   );
 
   const nearbyMiles = parseNearbyFilter(locationFilter);

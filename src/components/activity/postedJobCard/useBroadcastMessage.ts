@@ -1,19 +1,11 @@
 /**
- * PARKED, NOT DEAD — deliberately kept with no caller.
- *
- * 016acc4b9 removed the inline applicant preview from PostedJobApplicants
- * (owner: "applicants should not show here, only when the applicants button is
- * clicked"). The "Message all N applicants" composer lived only in that block,
- * so this hook lost its only consumer. That commit flagged the capability as a
- * decision to make rather than silently dropping it — see the note at the top
- * of PostedJobApplicants.tsx — so the implementation is kept intact for a
- * rebuild inside ApplicantsPanel.
- *
- * knip.json runs `"files": "error"`, so an unused file REDS THE BUILD (it is
- * what took `Test` red on 016acc4b9, the only failing rule; unused *exports*
- * and duplicates are merely warnings). This file is therefore listed in
- * knip.json's `ignore`. Delete both together if the decision lands on "no
- * broadcast" — the ignore entry must not outlive the file.
+ * REHOMED. Was briefly orphaned when 016acc4b9 removed the inline applicant
+ * preview this composer lived in; the owner's answer to the flagged question
+ * ("there shouldn't be an option to message all applicants at once?") was that
+ * posters should keep it, so it now backs
+ * postedJobs/applicantsPanel/BroadcastComposer.tsx behind the Applicants
+ * button. The send logic below is untouched from the original — only its
+ * caller moved.
  */
 import { useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";

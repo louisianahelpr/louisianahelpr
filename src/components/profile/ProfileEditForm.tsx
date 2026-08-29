@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload, Loader2, Check, MapPin, Eye, ChevronRight } from "lucide-react";
+import { Upload, Loader2, Check, MapPin, ChevronRight } from "lucide-react";
 import { getProfileCompletion } from "@/lib/profileCompletion";
 import { lookupParishByZip } from "@/lib/parishLookup";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
@@ -439,20 +438,14 @@ export function ProfileEditForm({
           removePortfolioAt={removePortfolioAt}
         />
 
-        {/* Preview + autosave reassurance — closes the gap below the last
-            card and lets the user see their public profile exactly as
-            applicants do, then clarifies the save model so the sticky
-            bar's "Save changes" doesn't read as "nothing saved yet". */}
-        {profile?.user_id && (
-          <Link
-            to={`/user/${profile.user_id}`}
-            className="rounded-2xl liquid-glass p-4 flex items-center justify-center gap-2 text-ds-13 font-semibold active:scale-[0.98] transition-all"
-            style={{ color: "hsl(var(--bark))" }}
-          >
-            <Eye className="w-4 h-4" strokeWidth={2} aria-hidden />
-            Preview my public profile
-          </Link>
-        )}
+        {/* No "Preview my public profile" here. It used to sit above the
+            autosave note, but the Profile landing already carries the same
+            entry point, and the landing is where Back from this tab lands
+            (owner: "should we remove since its on the profile page now" —
+            the button is right there in the profile). One preview affordance,
+            one place. The autosave note stays: it explains the save model so
+            the sticky bar's "Save changes" doesn't read as "nothing saved
+            yet", which is a different job entirely. */}
         {/* Same one-paragraph-one-typeface rule as RecentWorkSection: this
             sentence used to switch from serif italic to upright sans halfway
             through ("…save from the" / "bar below"). Emphasis is weight +

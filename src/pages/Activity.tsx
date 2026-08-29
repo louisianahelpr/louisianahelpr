@@ -143,6 +143,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
         if (nextQuery) setSearchOpen(true);
       }
     },
+    "activity",
   );
 
   const {

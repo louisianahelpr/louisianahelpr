@@ -106,6 +106,7 @@ const Jobs = () => {
       setBoostedOnly(read("boost") === "1");
       setUrgentOnly(read("urgent") === "1");
     },
+    "jobs",
   );
 
   // The landing "See all jobs" links sit far down the page, so the window is

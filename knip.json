@@ -18,8 +18,7 @@
   ],
 
   "ignore": [
-    "src/integrations/supabase/types.ts",
-    "src/components/activity/postedJobCard/useBroadcastMessage.ts"
+    "src/integrations/supabase/types.ts"
   ],
 
   "ignoreDependencies": [

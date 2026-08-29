@@ -5389,6 +5389,10 @@ export type Database = {
         Returns: string
       }
       helper_cancel_booking: { Args: { p_job_id: string }; Returns: Json }
+      helper_mark_on_the_way: {
+        Args: { p_job_id: string; p_lat?: number | null; p_lng?: number | null }
+        Returns: string
+      }
       instant_book_claim: { Args: { p_job_id: string }; Returns: undefined }
       is_caller_banned: { Args: never; Returns: boolean }
       is_category_taxable: {

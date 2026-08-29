@@ -508,10 +508,45 @@ export function JobTracking({
       updated_at: now,
     });
 
+    // ON THE WAY IS ONE TRANSACTION, NOT THREE WRITES.
+    //
+    // This transition used to be three sequential client writes (tracking
+    // upsert, jobs.status = in_progress, jobs.helper_on_the_way_at) — a run
+    // interrupted after write #2 left status = in_progress with NO tracking
+    // row and NO departure stamp (proven live 2026-08-28, job db21c20d). The
+    // RPC does all three atomically, validates the caller is the confirmed
+    // helper server-side, and — because status + timestamp land in ONE jobs
+    // update — the notify trigger fires once instead of twice.
+    //
+    // PGRST202 fallback: merge→deploy window for a brand-new RPC (same
+    // pattern as mark_helper_arrival above); the legacy sequence stays as
+    // the fallback body below.
+    let onTheWayAtomic = false;
+    if (newStatus === "on_the_way") {
+      const { error: otwErr } = await supabase.rpc("helper_mark_on_the_way", {
+        p_job_id: jobId,
+        p_lat: loc?.lat ?? null,
+        p_lng: loc?.lng ?? null,
+      });
+      if (!otwErr) {
+        onTheWayAtomic = true;
+        setJobStamps((prev) => ({ ...prev, onTheWayAt: prev.onTheWayAt ?? now }));
+      } else if (otwErr.code !== "PGRST202") {
+        report(otwErr, { tags: { source: "JobTracking.markOnTheWay" } });
+        hapticError();
+        toast.error("Couldn't mark you on the way — try again?");
+        setUpdating(false);
+        loadTracking();
+        return;
+      }
+      // PGRST202 → fall through to the legacy three-write sequence.
+    }
+
     // .select("id") on both branches: the tracking row is the source of truth
     // for the helper's own view, and an update that matches zero rows returns
     // error === null — the card would have kept the optimistic status forever.
     try {
+      if (!onTheWayAtomic)
       unwrapMutation(
         tracking && tracking.id !== "temp"
           ? await supabase
@@ -549,6 +584,7 @@ export function JobTracking({
     }
 
     // Auto-transition job status
+    let statusTransitioned = false;
     if (newStatus === "done") {
       // SAME GATES AS "I'm Done — Request Payout" (owner, 2026-08-24 E2E):
       // this button used to write helper_completed_at with no checks at all,
@@ -628,7 +664,7 @@ export function JobTracking({
         loadTracking();
         return;
       }
-    } else if (["on_the_way", "arrived", "working"].includes(newStatus)) {
+    } else if (["on_the_way", "arrived", "working"].includes(newStatus) && !onTheWayAtomic) {
       const { data: job, error: statusErr } = await supabase.from("jobs").select("status").eq("id", jobId).single();
       if (statusErr) report(statusErr, { tags: { source: "JobTracking.autoTransition" } });
       // These three writes used to drop their errors, while the `done` stamp
@@ -664,6 +700,7 @@ export function JobTracking({
       };
       if (job && job.status === "accepted") {
         await stampJob({ status: "in_progress" }, "status", "JobTracking.statusInProgress");
+        statusTransitioned = true;
       }
       // `helper_arrived_at` is NOT stamped here any more — mark_helper_arrival
       // above wrote it (and the status transition) inside the same transaction
@@ -682,19 +719,37 @@ export function JobTracking({
       }
     }
 
-    // Send notification to poster
-    if (isHelper) {
+    // Notify the poster — ONLY when no server-side writer already did.
+    //
+    // Every transit event used to notify TWICE (proven live 2026-08-28, job
+    // db21c20d): the notify_poster_on_status_change DB trigger
+    // (20260824070000, kept — it fires even if this client dies mid-flow)
+    // AND this block. Per-event server coverage:
+    //   - on_the_way : trigger on jobs.helper_on_the_way_at (stamped by the
+    //                  helper_mark_on_the_way RPC or the legacy stampJob) →
+    //                  client notification REMOVED.
+    //   - arrived    : trigger on jobs.helper_arrived_at (stamped by
+    //                  mark_helper_arrival) → REMOVED.
+    //   - done       : trigger on jobs.helper_completed_at → REMOVED.
+    //   - working    : trigger fires only on the accepted→in_progress status
+    //                  transition ("Work has started"). When the job is
+    //                  ALREADY in_progress (the normal case — on_the_way set
+    //                  it) no jobs column changes at the "working" tap, so no
+    //                  server writer exists and the client one is KEPT.
+    // Link: /my-posts?filter=scheduled — the old filter=in_progress is not a
+    // bucket Activity knows (needs_you/scheduled/waiting/done) and landed on
+    // the default list; a poster's in_progress job buckets as "scheduled".
+    if (isHelper && newStatus === "working" && !statusTransitioned) {
       const { data: job, error: notifyErr } = await supabase.from("jobs").select("title, customer_id").eq("id", jobId).single();
       if (notifyErr) report(notifyErr, { tags: { source: "JobTracking.notifyPoster" } });
       if (job?.customer_id) {
-        const statusLabel = STATUSES.find(s => s.key === newStatus)?.label || newStatus;
         const { createNotification } = await import("@/lib/notifications");
         await createNotification({
           user_id: job.customer_id,
-          title: `Helpr is ${statusLabel}`,
-          message: `Your Helpr updated their status to "${statusLabel}" for "${job.title}".`,
+          title: "Work has started",
+          message: `Your Helpr started working on "${job.title}".`,
           type: "info",
-          link: `/my-posts?filter=in_progress`,
+          link: `/my-posts?filter=scheduled`,
         });
       }
     }

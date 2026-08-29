@@ -31,7 +31,6 @@ import { getHelperFeePercent, helperCommissionDollars, DEFAULT_TIER_FEE_PERCENT 
 import { netUrgentFeeDollars } from "../_shared/stripeFees.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
-import { formatPayoutDollars } from "../_shared/money.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -675,23 +674,13 @@ serve(async (req) => {
   // Note: onboarding-fee flag was already flipped atomically above,
   // before the transfer ran, so no follow-up write is needed here.
 
-  // Notify helper that money is on the way. The transfer is "pending" until
-  // Stripe settles; transfer.paid webhook will flip the ledger row to 'paid'
-  // and we could send a second notification then.
-  const netDollars = payoutCents / 100;
-  const feeNote =
-    onboardingFeeDeductedCents > 0
-      ? ` (one-time $${(onboardingFeeDeductedCents / 100).toFixed(2)} onboarding fee deducted)`
-      : "";
-  await supabaseAdmin.from("notifications").insert({
-    user_id: job.helper_id,
-    title: "Payment released",
-    message: `Your earnings for "${job.title}" ($${formatPayoutDollars(netDollars)}) have been sent to your bank${feeNote}.`,
-    type: "payment",
-    // Dashboard reads no `tab` param — the canonical earnings screen is the
-    // profile tab (execute-dispute-split and /earnings both point there).
-    link: "/profile?tab=earnings",
-  });
+  // NO notification insert here (removed 2026-08-29): the jobs.payment_status
+  // → 'released' UPDATE above already fired the handle_payment_status
+  // DB trigger, which inserts "Payout released" for the helper. Inserting a
+  // second one here produced the "Payment released" + "Payout released"
+  // double proven live on job db21c20d. The trigger is kept as the single
+  // writer because it covers EVERY release path (dispute splits, admin
+  // releases), not just this function.
 
   return jsonResponse({
     success: true,

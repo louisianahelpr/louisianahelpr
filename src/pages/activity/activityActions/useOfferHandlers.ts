@@ -135,8 +135,29 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
     }
   };
 
+  /**
+   * Confirms the offer from ResponseDeadlineDialog. Every failure path THROWS
+   * an Error carrying the human-readable reason (after rolling back the
+   * optimistic patch) — the dialog catches it and renders the message inline,
+   * keeping itself open with Send re-enabled. It used to only fire a toast,
+   * which is transient and sat BEHIND the open dialog, so a server award-gate
+   * refusal looked like the button doing nothing (a poster tapped Send four
+   * times against jobs_award_gate with zero visible response).
+   */
   const confirmAcceptWithDeadline = async (deadlineHours: number, initialMessage?: string) => {
-    if (!deadlineDialogApp || !selectedJob || !user) return;
+    if (!deadlineDialogApp || !selectedJob || !user) {
+      // This used to `return` silently — the dialog stayed open and Send just
+      // did nothing. Report the impossible state and tell the user something.
+      report(new Error("confirmAcceptWithDeadline called without app/job/user"), {
+        tags: { source: "useOfferHandlers.confirmAcceptWithDeadline" },
+        context: {
+          hasApp: !!deadlineDialogApp,
+          hasJob: !!selectedJob,
+          hasUser: !!user,
+        },
+      });
+      throw new Error("Something went wrong preparing this offer — please close and try again.");
+    }
     const deadline = new Date(Date.now() + deadlineHours * 60 * 60 * 1000).toISOString();
     // Optimistic: move the posted job into the "Awaiting Response" bucket
     // (status accepted, no helper_confirmed_at) right away so the card jumps
@@ -188,8 +209,7 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
       if (rpcMissing && isGroupJob) {
         rollbackActivity(snapshot);
         hapticError();
-        toast.error("Group job acceptance isn't available yet — please try again shortly.");
-        return;
+        throw new Error("Group job acceptance isn't available yet — please try again shortly.");
       }
       if (rpcMissing) {
         const { data: jobRows, error: jobErr } = await supabase
@@ -201,8 +221,7 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
         if (jobErr || !jobRows || jobRows.length === 0) {
           rollbackActivity(snapshot);
           hapticError();
-          toast.error("This job is no longer open — it may already be assigned.");
-          return;
+          throw new Error("This job is no longer open — it may already be assigned.");
         }
         // .select("id"): the job row is already flipped to `accepted` by this
         // point. If this second write silently matches nothing the applicant
@@ -223,8 +242,7 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
         } catch {
           rollbackActivity(snapshot);
           hapticError();
-          toast.error("Couldn't send the offer — please try again.");
-          return;
+          throw new Error("Couldn't send the offer — please try again.");
         }
       } else {
         rollbackActivity(snapshot);
@@ -236,15 +254,14 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
         // as a "Can't be hired yet" chip, so reaching here should be rare.
         const blocked = awardBlockFromError(error);
         if (blocked) {
-          toast.error(
+          throw new Error(
             posterAwardBlockMessage(
               blocked,
               deadlineDialogApp.profiles?.full_name ?? undefined,
             ),
           );
-          return;
         }
-        toast.error(
+        throw new Error(
           msg.includes("job_not_open")
             ? "This job is no longer open — it may already be assigned."
             : msg.includes("application_not_found")
@@ -255,7 +272,6 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
                   ? "You can only accept applicants on a job you posted."
                   : "Couldn't send the offer — please try again.",
         );
-        return;
       }
     }
     await createNotification({ user_id: deadlineDialogApp.helper_id, title: "📋 New job offer!", message: `You've been selected for "${selectedJob.title}". Respond within ${deadlineHours} hour${deadlineHours > 1 ? "s" : ""} or the offer expires.`, type: "info", link: "/my-jobs?filter=offered" });

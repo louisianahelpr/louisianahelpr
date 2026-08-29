@@ -19,6 +19,9 @@ import { renderHook, act } from "@testing-library/react";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import type { ReactNode } from "react";
 import { useSearchParamMirror } from "./useSearchParamMirror";
+import { report } from "@/lib/errorLogger";
+
+vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 
 /**
  * Render the hook inside a real router and count how many distinct locations
@@ -143,5 +146,52 @@ describe("useSearchParamMirror", () => {
     const url = m.lastUrl();
     expect(url).toContain("job=abc123");
     expect(url).toContain("category=cleaning");
+  });
+});
+
+// ── Runaway-write instrumentation ────────────────────────────────────────────
+// The /my-posts replaceState crash survived three fixes, so the hook now
+// reports when it writes too fast. That tripwire is only worth shipping if it
+// actually trips — otherwise we would sit waiting on evidence that can never
+// arrive. These two tests pin both halves: it fires on a genuine runaway, and
+// it stays silent on the normal traffic the hook is supposed to produce.
+describe("useSearchParamMirror runaway-write reporting", () => {
+  it("reports once when writes exceed the burst threshold in the window", async () => {
+    vi.mocked(report).mockClear();
+
+    // Drive 40 DISTINCT states straight at the hook. Each one genuinely
+    // differs from the URL, so each is a legitimate write — which is exactly
+    // what a loop looks like from inside the hook: real writes, far too fast.
+    const m = renderMirror("/my-posts", () => {}, { filter: "v0" });
+    for (let i = 1; i <= 40; i++) {
+      await act(async () => {
+        m.rerender({ state: { filter: `v${i}` } });
+        await new Promise((r) => setTimeout(r, 0));
+      });
+    }
+
+    const calls = vi.mocked(report).mock.calls;
+    expect(calls.length, "a runaway must be reported").toBeGreaterThan(0);
+    expect(calls.length, "and reported at most once per mount").toBe(1);
+
+    const [err, opts] = calls[0] as [Error, { tags: Record<string, unknown> }];
+    expect(String(err.message)).toMatch(/runaway writes/i);
+    // The report is only useful if it carries the loop participants.
+    expect(opts.tags.source).toBe("useSearchParamMirror");
+    expect(Number(opts.tags.writesInWindow)).toBeGreaterThanOrEqual(25);
+    expect(String(opts.tags.trail)).toMatch(/->/);
+  });
+
+  it("stays silent for ordinary write traffic", async () => {
+    vi.mocked(report).mockClear();
+    // A handful of real filter changes is normal use, not a loop.
+    const m = renderMirror("/my-posts", () => {}, { filter: "" });
+    for (const v of ["a", "b", "c", ""]) {
+      await act(async () => {
+        m.rerender({ state: { filter: v } });
+        await new Promise((r) => setTimeout(r, 0));
+      });
+    }
+    expect(vi.mocked(report)).not.toHaveBeenCalled();
   });
 });

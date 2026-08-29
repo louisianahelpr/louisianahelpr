@@ -279,7 +279,19 @@ test("a hidden dock is taken out of the tab order, not just out of the a11y tree
 }) => {
   await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
   await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true, rules: listRules });
-  await boot(page, "/my-posts");
+  // DEEP-LINK TO A BUCKET THAT HAS ROWS. This spec is about the dock leaving
+  // the tab order when it hides, not about which bucket My Posts opens on —
+  // and it needs a scrollable list to hide the dock at all. The seeded jobs are
+  // open with no applications, so they sit under Waiting; My Posts opens on
+  // "Needs you", which for this fixture is legitimately empty.
+  //
+  // It used to land on them anyway, because Activity.tsx silently moved the
+  // selection to the first non-empty bucket on first load. That effect is gone
+  // (it contradicted defaultStatusFilterFor's "deliberately NO automatic
+  // fallback", and the empty state now offers the jump as a button instead), so
+  // this asks for the populated bucket by name — the same accommodation the
+  // inbox case above already makes for the same reason.
+  await boot(page, "/my-posts?filter=waiting");
 
   await wheel(page, 120, 8);
   expect(await navOffset(page), "dock hidden").toBeGreaterThan(100);

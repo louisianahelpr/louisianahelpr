@@ -15,7 +15,6 @@ import { useNavigate } from "react-router-dom";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { fetchAnalytics } from "@/pages/helperAnalytics/fetchAnalytics";
-import HeroSummary from "@/pages/helperAnalytics/HeroSummary";
 import EarningsByMonthCard from "@/pages/helperAnalytics/EarningsByMonthCard";
 import { TIER_PERKS, tierFeePercent } from "@/lib/subscriptionTiers";
 const ProfileStatsTrend = lazy(() => import("@/components/profile/ProfileStatsTrend"));
@@ -103,10 +102,19 @@ export const HelperAnalyticsBody = () => {
           ) : (
           <>
 
-          {/* ── Header: the hero is full-width above the grid ───────────
-              Page-level context, not an analytics tile, so it stays
-              full-width at every breakpoint. */}
-          <HeroSummary analytics={analytics} isLoading={isLoadingData} />
+          {/* NO HERO SUMMARY. It printed exactly two figures — lifetime
+              take-home and jobs completed — and both are the Money view's
+              "Net" tile, three taps away in the same tab. That was defensible
+              when this dashboard was the standalone /analytics PAGE and its
+              own comment said "nothing else on this dashboard states them";
+              once it became a view of the Earnings tab, something else did.
+
+              Nothing unique was lost: the hero had already been stripped of
+              its one non-duplicate line (an estimated "$X after Helpr fee"
+              that disagreed with the real ledger figure), which left it
+              restating two numbers and nothing more. The dashboard opens on
+              the trend chart now — the first thing here that is actually
+              about trends. */}
 
           {/* NO KPI STRIP. A desktop-only 4-tile summary — avg rating,
               success rate, profile views, repeat hire — used to sit here,

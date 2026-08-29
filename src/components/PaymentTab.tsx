@@ -9,9 +9,6 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { report } from "@/lib/errorLogger";
 import { unwrap } from "@/lib/supabaseResult";
 import { formatPriceExact } from "@/lib/format";
-import type { Database } from "@/integrations/supabase/types";
-
-type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
 /** Poster-side slice needed for the Spent tiles. */
 interface SpentJobRow {
@@ -30,14 +27,16 @@ interface PayoutSummaryRow {
 }
 
 interface PaymentTabProps {
-  earningsJobs: Job[];
+  /** Lifetime take-home. NOT printed here any more — the Money view's "Net"
+   *  tile owns that figure. Kept because the summary still has to know whether
+   *  ANY money has moved in either direction to pick its empty state. */
   totalEarnings: number;
   /** Optional: when provided, renders a "See full breakdown →" link
       that jumps to the Earnings tab. */
   onSeeEarnings?: () => void;
 }
 
-export function PaymentTab({ earningsJobs, totalEarnings, onSeeEarnings }: PaymentTabProps) {
+export function PaymentTab({ totalEarnings, onSeeEarnings }: PaymentTabProps) {
   const { user } = useCurrentUser();
   // Last-paid payout — pulls the most recent `paid` row from
   // payout_transfers (RLS scopes to helper_id automatically). Surfaces
@@ -105,11 +104,14 @@ export function PaymentTab({ earningsJobs, totalEarnings, onSeeEarnings }: Payme
     gcTime: 5 * 60_000,
   });
 
-  // Lifetime totals — completed jobs only so cancelled/expired don't
-  // inflate the headline numbers. Spent comes from poster-side rows,
-  // Earned from the helper-side jobs the parent already loaded.
-  const completedJobs = earningsJobs.filter((j) => j.status === "completed");
+  // Lifetime totals — completed jobs only so cancelled/expired don't inflate
+  // the headline. Only SPENT is printed now (see the note at the summary
+  // below); `lifetimeEarned` survives solely to answer "has any money moved at
+  // all" for the empty state.
   const lifetimeSpent = spentJobs.reduce((s, j) => s + j.budget, 0);
+  // Kept: `hasNoActivity` below still asks whether ANY money has moved in
+  // either direction, so the earned side is still a fact this component needs
+  // even though it no longer prints it.
   const lifetimeEarned = totalEarnings;
   // This-month slice — bucketed by completion timestamp (poster confirmation,
   // falling back to the helper's, then created_at for older rows that
@@ -124,23 +126,11 @@ export function PaymentTab({ earningsJobs, totalEarnings, onSeeEarnings }: Payme
         : new Date(j.created_at).getTime();
       return t >= monthStart;
     });
-  const monthCompleted = completedInMonth(completedJobs);
   const monthSpentJobs = completedInMonth(spentJobs);
   const monthSpent = monthSpentJobs.reduce((s, j) => s + j.budget, 0);
-  // Earnings-by-month isn't separately tracked here (totalEarnings is a
-  // single lifetime figure), so we estimate the month slice proportionally
-  // by completed-job share. Accurate enough for the summary preview;
-  // exact figures live on the Earnings tab.
-  const monthEarned =
-    completedJobs.length > 0
-      ? (monthCompleted.length / completedJobs.length) * lifetimeEarned
-      : 0;
-
   const [scope, setScope] = useState<"lifetime" | "month">("lifetime");
   const totalSpent = scope === "month" ? monthSpent : lifetimeSpent;
-  const totalEarnedView = scope === "month" ? monthEarned : lifetimeEarned;
   const spentCount = scope === "month" ? monthSpentJobs.length : spentJobs.length;
-  const earnedCount = scope === "month" ? monthCompleted.length : completedJobs.length;
   const monthLabel = now.toLocaleDateString("en-US", { month: "long" });
   // No money has ever moved — collapse the summary to a single empty
   // state (no scope toggle, no dual $0.00 columns, no triple "no
@@ -310,20 +300,19 @@ export function PaymentTab({ earningsJobs, totalEarnings, onSeeEarnings }: Payme
                 {spentCount === 0 ? "no tasks yet" : `across ${spentCount} task${spentCount === 1 ? "" : "s"}`}
               </p>
             </div>
-            <div className="border-l border-border/40 pl-4">
-              <p className="font-serif italic uppercase text-ds-9" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
-                Total earned
-              </p>
-              <AnimatedCounter
-                value={totalEarnedView}
-                prefix="$"
-                className="font-display italic font-bold tabular-nums leading-none mt-1 block text-ds-26"
-                style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
-              />
-              <p className="font-serif italic mt-1 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                {earnedCount === 0 ? "no tasks yet" : `from ${earnedCount} completed`}
-              </p>
-            </div>
+            {/* NO "TOTAL EARNED" COLUMN.
+                What this helpr has banked is stated by the Money view's "Net"
+                tile, from the same `totalEarnings` prop this column used — so
+                on one screen the figure appeared twice, and the month scope
+                made it worse: `monthEarned` here is an ESTIMATE (lifetime
+                take-home × the completed-job share of the month), while
+                MonthlyGoalCard sums the month's actual per-job payouts. Two
+                numbers labelled the same thing that could not agree, and
+                didn't.
+
+                SPENT stays, alone, because it is the only figure on this
+                screen about the reader as a POSTER — nothing else states it,
+                and it is the reason this summary exists at all. */}
           </div>
 
           {onSeeEarnings && (

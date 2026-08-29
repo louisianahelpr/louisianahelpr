@@ -60,7 +60,6 @@ const ScrollToTop = lazy(() => import("@/components/ScrollToTop"));
 const MobileNav = lazy(() => import("./components/MobileNav"));
 const DesktopSidebarNav = lazy(() => import("./components/DesktopSidebarNav"));
 const DesktopTopNav = lazy(() => import("./components/DesktopTopNav"));
-import { TopNavActionsProvider } from "./components/topNavActions";
 import { SidePanelProvider } from "./components/sidePanelOpen";
 import { FAMILY_ENABLED } from "@/config/familyEnabled";
 const PermissionRationaleDialog = lazy(() =>
@@ -567,7 +566,6 @@ const App = () => (
             <StrikeBanner />
           </Suspense>
           <SidePanelProvider>
-          <TopNavActionsProvider>
           <main
             id="main-content"
             className="w-full max-w-full no-scrollbar"
@@ -581,7 +579,6 @@ const App = () => (
             <PermissionRationaleDialog />
             <TermsReconsentDialog />
           </Suspense>
-          </TopNavActionsProvider>
           </SidePanelProvider>
           <SpeedInsightsRouted />
         </OfflineBannerLayoutProvider>

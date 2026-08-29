@@ -4,7 +4,6 @@ import NotificationPanel from "@/components/NotificationPanel";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { isDesktopRailRoute } from "@/lib/desktopNavRoutes";
-import { useTopNavActionsSlot } from "@/components/topNavActions";
 import { useSidePanel } from "@/components/sidePanelOpen";
 import { Menu } from "lucide-react";
 
@@ -40,9 +39,6 @@ const DesktopTopNav = () => {
   const isWebDesktop = useIsWebDesktop();
   const location = useLocation();
   const { user } = useCurrentUser();
-  // Whatever the current page pushed up — its status pill, search and filter
-  // controls, "Select", and so on. Null on pages that contribute nothing.
-  const pageActions = useTopNavActionsSlot();
   const { open, toggle } = useSidePanel();
 
   if (!isWebDesktop) return null;
@@ -69,7 +65,6 @@ const DesktopTopNav = () => {
             Normalised here, on the row, rather than by threading a size prop
             through NotificationPanel to its trigger. */}
         <div className="flex items-center gap-1.5 -mr-1 [&_button]:h-11 [&_button]:w-11">
-          {pageActions}
           <NotificationPanel />
           {/* The hamburger OPENS AND CLOSES the side panel — it does not open a
               menu sheet. It sits on the RIGHT (owner) because that is the edge

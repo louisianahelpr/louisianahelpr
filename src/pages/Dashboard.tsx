@@ -281,22 +281,10 @@ const Dashboard = () => {
     setConfirmDismissJobId(null);
   }, [confirmDismissJobId, setDismissedJobIds]);
 
-  // The live in-progress / upcoming pill, which rides the title bar's
-  // trailing cluster just before the bell. Built once and used by BOTH the
-  // pending and the loaded branch below: it is fed by its own query
-  // (`helper_upcoming_job`), independent of the feed's, so gating it on
-  // `loading` would hide a live commitment for as long as the feed took to
-  // arrive and then slide it in sideways once the feed landed. Self-hides
-  // when there is no accepted / in-progress job.
-  // Memoised because it is handed to useTopNavActions, which keys its effect on
-  // node identity. As a bare inline element this was a NEW object every render,
-  // so the effect re-fired, setState ran, and the component re-rendered —
-  // "Maximum update depth exceeded", an infinite loop on Home.
   // The in-progress pill is no longer rendered in the brand row (owner:
   // "remove"). That row is logo, filter, notification. The job it pointed at is
   // still one tap away via the Jobs tab, and DashboardInProgressBadge itself
   // stays — ScheduleTab imports `inProgressBadgeTarget` from it.
-
 
   if (loading) {
     // Loading state mirrors the *exact* loaded layout: the same

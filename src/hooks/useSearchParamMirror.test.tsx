@@ -195,3 +195,48 @@ describe("useSearchParamMirror runaway-write reporting", () => {
     expect(vi.mocked(report)).not.toHaveBeenCalled();
   });
 });
+
+// ── Circuit breaker ──────────────────────────────────────────────────────────
+// The breaker exists so a loop degrades into "the URL lags" instead of "the
+// screen unmounts into the error boundary". Both halves need pinning: it has to
+// actually stop writing under a runaway, and it must never interfere with the
+// ordinary writes the hook exists to perform.
+describe("useSearchParamMirror circuit breaker", () => {
+  it("stops navigating once a runaway passes the hard stop", async () => {
+    vi.mocked(report).mockClear();
+    const m = renderMirror("/my-posts", () => {}, { filter: "v0" });
+
+    // 120 distinct states — comfortably past WebKit's ~100 replaceState
+    // ceiling, which is the thing that was taking the route down.
+    for (let i = 1; i <= 120; i++) {
+      await act(async () => {
+        m.rerender({ state: { filter: `v${i}` } });
+        await new Promise((r) => setTimeout(r, 0));
+      });
+    }
+
+    // The breaker is only worth having if it caps navigations BELOW the limit
+    // that crashes WebKit. Asserting "fewer than 120" would pass a broken
+    // breaker; assert the actual ceiling.
+    expect(
+      m.navigations(),
+      "the breaker must cap navigations under WebKit's ~100 throttle",
+    ).toBeLessThan(100);
+    expect(vi.mocked(report)).toHaveBeenCalledTimes(1);
+  });
+
+  it("never interferes with ordinary writes", async () => {
+    vi.mocked(report).mockClear();
+    const m = renderMirror("/my-posts", () => {}, { filter: "" });
+    for (const v of ["a", "b", "c"]) {
+      await act(async () => {
+        m.rerender({ state: { filter: v } });
+        await new Promise((r) => setTimeout(r, 0));
+      });
+    }
+    // Three real changes must all reach the URL — a breaker that swallowed
+    // normal traffic would be a worse bug than the one it guards against.
+    expect(m.lastUrl()).toBe("/my-posts?filter=c");
+    expect(vi.mocked(report)).not.toHaveBeenCalled();
+  });
+});

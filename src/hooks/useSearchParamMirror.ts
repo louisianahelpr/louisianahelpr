@@ -25,6 +25,25 @@ const WINDOW_MS = 10_000;
 const WRITE_BURST = 25;
 
 /**
+ * Circuit breaker. Past this many writes inside WINDOW_MS the hook stops
+ * calling the navigator until the window rolls forward.
+ *
+ * WebKit throws past ~100 replaceState calls in a short window and takes the
+ * route down with it. 60 sits far enough under that to never be reached by
+ * real use — a human changing filters cannot produce 60 DISTINCT url writes in
+ * ten seconds — while still landing well below the throttle a loop would hit.
+ *
+ * This is a rate limiter, not a kill switch: `writeTimes` is a rolling window,
+ * so once the burst ages out writes resume normally. The cost of tripping is
+ * that the URL lags the on-screen state for a moment, which is strictly better
+ * than the current behaviour of unmounting the whole screen into the error
+ * boundary. The instrumentation above still fires at WRITE_BURST either way,
+ * so the breaker costs no diagnostic signal — it only stops the crash reaching
+ * people while we wait for a report.
+ */
+const WRITE_HARD_STOP = 60;
+
+/**
  * Keep a screen's view state (tabs, filters, search) in the URL, so a history
  * entry is a complete description of what the user was looking at.
  *
@@ -140,6 +159,12 @@ export function useSearchParamMirror(
     trail.push(`${search || "(empty)"} -> ${next.toString() || "(empty)"}`);
     if (trail.length > 6) trail.shift();
 
+    // Breaker: refuse the write rather than let the burst reach WebKit's
+    // throttle. Checked BEFORE the report so the burst is still counted, and
+    // placed after the trail push so the report still shows what was being
+    // attempted when it tripped.
+    const tripped = times.length > WRITE_HARD_STOP;
+
     if (times.length >= WRITE_BURST && !reportedRef.current) {
       reportedRef.current = true;
       report(new Error("useSearchParamMirror runaway writes"), {
@@ -153,9 +178,12 @@ export function useSearchParamMirror(
           trail: trail.join(" | ").slice(0, 900),
           adoptTrail: adoptTrailRef.current.join(" | ").slice(0, 500),
           route: typeof window !== "undefined" ? window.location.pathname : "",
+          breakerTripped: tripped,
         },
       });
     }
+
+    if (tripped) return;
     // ───────────────────────────────────────────────────────────────────────
 
     setSearchParamsRef.current(next, { replace: true });

@@ -349,15 +349,15 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     }
 
     if (error || !jobData) {
-      // 42501 is the jobs INSERT policy refusing the row. The raw text —
-      // "new row violates row-level security policy for table jobs" — is
-      // Postgres talking to a DBA, not to a poster who just filled a form and
-      // paid attention for five minutes. The only way to reach it now is a
-      // client/server disagreement about the identity gate, so say that.
-      const isRls = (error as { code?: string } | null)?.code === "42501";
+      // Never toast a raw PostgREST message. `error.message` on an RLS refusal
+      // is literally "new row violates row-level security policy for table
+      // jobs", which tells a poster nothing they can act on and reads like the
+      // app is broken. 42501 here means a server-side gate the client thought
+      // it had already cleared — in practice the identity check — so say that.
+      const isPolicyRefusal = (error as { code?: string } | null)?.code === "42501";
       toast.error(
-        isRls
-          ? "We couldn't post this job — your account still needs identity verification. Head to your profile to finish it."
+        isPolicyRefusal
+          ? "We couldn't post this because your account isn't cleared to post yet. Check your identity verification in Profile, then try again."
           : error?.message || "Couldn't post your job just yet — give it another try?",
       );
       setSaving(false);

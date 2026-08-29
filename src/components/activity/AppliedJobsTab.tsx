@@ -333,6 +333,14 @@ export const AppliedJobsTab = ({
       {apps.map((app) => (
         <div key={app.id}>{renderAppliedCard(app)}</div>
       ))}
+      {/* Mirrors the same trailing line in PostedJobsTab — a 1-2 card
+          bucket otherwise leaves most of the fixed-height AppShell panel
+          blank below the last card. */}
+      {apps.length <= 2 && (
+        <p className="text-center font-serif italic text-ds-12 py-6" style={{ color: "hsl(var(--olivewood) / 0.55)" }}>
+          That's everything here.
+        </p>
+      )}
     </div>
   );
 

@@ -230,6 +230,18 @@ export const PostedJobsTab = ({
       {visibleJobs.map((job) => (
         <div key={job.id}>{renderJobCard(job)}</div>
       ))}
+      {/* A single-status bucket with only 1-2 cards leaves most of the
+          fixed-height AppShell panel as a stark blank void below the last
+          card (found in the 2026-08-29 visual pass on the Done filter at
+          375px). A quiet trailing line, not a restructure of the scroll
+          shell, closes that gap the same way an empty state closes it —
+          content instead of nothing — without touching the grouped "All"
+          view or any other status filter's card count. */}
+      {visibleJobs.length <= 2 && (
+        <p className="text-center font-serif italic text-ds-12 py-6" style={{ color: "hsl(var(--olivewood) / 0.55)" }}>
+          That's everything here.
+        </p>
+      )}
     </div>
   );
 

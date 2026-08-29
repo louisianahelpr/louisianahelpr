@@ -260,137 +260,6 @@ export type Database = {
         }
         Relationships: []
       }
-      business_members: {
-        Row: {
-          business_id: string
-          created_at: string
-          extended_role: string | null
-          id: string
-          invited_at: string
-          invited_by: string | null
-          invited_email: string | null
-          joined_at: string | null
-          role: Database["public"]["Enums"]["business_member_role"]
-          status: Database["public"]["Enums"]["business_member_status"]
-          user_id: string | null
-        }
-        Insert: {
-          business_id: string
-          created_at?: string
-          extended_role?: string | null
-          id?: string
-          invited_at?: string
-          invited_by?: string | null
-          invited_email?: string | null
-          joined_at?: string | null
-          role?: Database["public"]["Enums"]["business_member_role"]
-          status?: Database["public"]["Enums"]["business_member_status"]
-          user_id?: string | null
-        }
-        Update: {
-          business_id?: string
-          created_at?: string
-          extended_role?: string | null
-          id?: string
-          invited_at?: string
-          invited_by?: string | null
-          invited_email?: string | null
-          joined_at?: string | null
-          role?: Database["public"]["Enums"]["business_member_role"]
-          status?: Database["public"]["Enums"]["business_member_status"]
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "business_members_business_id_fkey"
-            columns: ["business_id"]
-            isOneToOne: false
-            referencedRelation: "businesses"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      businesses: {
-        Row: {
-          billing_mode: string
-          created_at: string
-          default_payment_method_id: string | null
-          extra_seats: number
-          id: string
-          monthly_budget: number | null
-          monthly_budget_alert_at: number | null
-          name: string
-          owner_id: string
-          report_cadence: string
-          report_recipients: string[]
-          require_2fa: boolean
-          require_approval_above: number | null
-          seat_subscription_current_period_end: string | null
-          seat_subscription_id: string | null
-          seat_subscription_status: string | null
-          seat_tier: string
-          updated_at: string
-          verification_document_type: string | null
-          verification_document_url: string | null
-          verification_rejection_reason: string | null
-          verification_reviewed_at: string | null
-          verification_reviewed_by: string | null
-          verification_status: string
-        }
-        Insert: {
-          billing_mode?: string
-          created_at?: string
-          default_payment_method_id?: string | null
-          extra_seats?: number
-          id?: string
-          monthly_budget?: number | null
-          monthly_budget_alert_at?: number | null
-          name: string
-          owner_id: string
-          report_cadence?: string
-          report_recipients?: string[]
-          require_2fa?: boolean
-          require_approval_above?: number | null
-          seat_subscription_current_period_end?: string | null
-          seat_subscription_id?: string | null
-          seat_subscription_status?: string | null
-          seat_tier?: string
-          updated_at?: string
-          verification_document_type?: string | null
-          verification_document_url?: string | null
-          verification_rejection_reason?: string | null
-          verification_reviewed_at?: string | null
-          verification_reviewed_by?: string | null
-          verification_status?: string
-        }
-        Update: {
-          billing_mode?: string
-          created_at?: string
-          default_payment_method_id?: string | null
-          extra_seats?: number
-          id?: string
-          monthly_budget?: number | null
-          monthly_budget_alert_at?: number | null
-          name?: string
-          owner_id?: string
-          report_cadence?: string
-          report_recipients?: string[]
-          require_2fa?: boolean
-          require_approval_above?: number | null
-          seat_subscription_current_period_end?: string | null
-          seat_subscription_id?: string | null
-          seat_subscription_status?: string | null
-          seat_tier?: string
-          updated_at?: string
-          verification_document_type?: string | null
-          verification_document_url?: string | null
-          verification_rejection_reason?: string | null
-          verification_reviewed_at?: string | null
-          verification_reviewed_by?: string | null
-          verification_status?: string
-        }
-        Relationships: []
-      }
       care_relationships: {
         Row: {
           care_recipient_id: string
@@ -890,15 +759,7 @@ export type Database = {
           id?: string
           private_note?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "favorite_helpers_business_account_id_fkey"
-            columns: ["business_account_id"]
-            isOneToOne: false
-            referencedRelation: "businesses"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       fraud_flags: {
         Row: {
@@ -1308,13 +1169,6 @@ export type Database = {
           typed_signature?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "helper_w9_records_business_id_fkey"
-            columns: ["business_id"]
-            isOneToOne: false
-            referencedRelation: "businesses"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "helper_w9_records_job_id_fkey"
             columns: ["job_id"]
@@ -2141,13 +1995,6 @@ export type Database = {
           zip_code?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "jobs_business_id_fkey"
-            columns: ["business_id"]
-            isOneToOne: false
-            referencedRelation: "businesses"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "jobs_parent_job_id_fkey"
             columns: ["parent_job_id"]
@@ -5086,10 +4933,6 @@ export type Database = {
         Args: { p_blocked: string; p_reason?: string }
         Returns: Json
       }
-      business_seat_limit_for_tier: {
-        Args: { _seat_tier: string }
-        Returns: number
-      }
       can_message_in_job: {
         Args: { _job_id: string; _sender: string }
         Returns: boolean
@@ -5151,10 +4994,6 @@ export type Database = {
           subscription_tier: string
           user_id: string
         }[]
-      }
-      get_business_seat_limit: {
-        Args: { _business_id: string }
-        Returns: number
       }
       get_category_price_stats: {
         Args: { p_category: string; p_parish?: string }
@@ -5551,18 +5390,6 @@ export type Database = {
       }
       helper_cancel_booking: { Args: { p_job_id: string }; Returns: Json }
       instant_book_claim: { Args: { p_job_id: string }; Returns: undefined }
-      is_business_admin: {
-        Args: { _business_id: string; _user_id: string }
-        Returns: boolean
-      }
-      is_business_member: {
-        Args: { _business_id: string; _user_id: string }
-        Returns: boolean
-      }
-      is_business_owner: {
-        Args: { _business_id: string; _user_id: string }
-        Returns: boolean
-      }
       is_caller_banned: { Args: never; Returns: boolean }
       is_category_taxable: {
         Args: { _category: Database["public"]["Enums"]["job_category"] }
@@ -5724,8 +5551,6 @@ export type Database = {
       app_role: "admin" | "customer" | "helper"
       application_status: "pending" | "accepted" | "rejected"
       auto_tip_mode: "off" | "percent" | "fixed"
-      business_member_role: "owner" | "member"
-      business_member_status: "pending" | "active" | "removed"
       job_category:
         | "cleaning"
         | "yard_work"
@@ -5878,8 +5703,6 @@ export const Constants = {
       app_role: ["admin", "customer", "helper"],
       application_status: ["pending", "accepted", "rejected"],
       auto_tip_mode: ["off", "percent", "fixed"],
-      business_member_role: ["owner", "member"],
-      business_member_status: ["pending", "active", "removed"],
       job_category: [
         "cleaning",
         "yard_work",

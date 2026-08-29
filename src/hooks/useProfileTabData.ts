@@ -128,7 +128,7 @@ export function useProfileReviews(userId: string | undefined, enabled: boolean) 
         feedback: r.feedback,
         created_at: r.created_at,
         reviewerName: nameMap.get(r.reviewer_id) || "User",
-        jobTitle: jobMap.get(r.job_id) || "Job",
+        jobTitle: jobMap.get(r.job_id) || "a task",
       }));
     },
   });

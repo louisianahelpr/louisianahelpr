@@ -41,7 +41,7 @@ export const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
       if (feedJob.customer_id === user.id) {
         toast.error("You can't apply to your own post.");
       } else if (feedJob.status && feedJob.status !== "open") {
-        toast.error("This job isn't accepting applications anymore.");
+        toast.error("This task isn't accepting applications anymore.");
       } else {
         promptToApply(feedJob.title, feedJob.budget ?? null, !!(feedJob as { instant_book?: boolean }).instant_book);
       }
@@ -58,7 +58,7 @@ export const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
         .maybeSingle();
       if (cancelled) return;
       if (error || !data) {
-        toast.error("This job is no longer available.");
+        toast.error("This task is no longer available.");
         return;
       }
       if (data.customer_id === user.id) {
@@ -66,7 +66,7 @@ export const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
         return;
       }
       if (data.status && data.status !== "open") {
-        toast.error("This job isn't accepting applications anymore.");
+        toast.error("This task isn't accepting applications anymore.");
         return;
       }
       promptToApply(data.title, data.budget ?? null, !!(data as { instant_book?: boolean }).instant_book);

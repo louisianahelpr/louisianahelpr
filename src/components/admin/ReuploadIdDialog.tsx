@@ -1,7 +1,7 @@
 // ReuploadIdDialog — eighth extraction in the AdminUsers cleanup.
 // Sends the user a friendly email asking for a clearer ID photo,
-// flips their idv_status to "action needed". Owns its own note + busy
-// state.
+// resets their idv_status to "not_started" and hands back a verification
+// attempt. Owns its own note + busy state.
 
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -74,7 +74,9 @@ export function ReuploadIdDialog({ profile, onClose, onSuccess }: ReuploadIdDial
         <div className="space-y-3">
           <p className="text-ds-11 text-muted-foreground">
             Send {formatName(profile?.full_name)} a friendly email asking for a clearer ID photo.
-            Their IDV status will be set to <strong className="text-foreground">action needed</strong>.
+            Their verification resets to <strong className="text-foreground">not started</strong> and
+            they get a fresh verification attempt — the cap is one attempt, so without this they
+            cannot retry.
           </p>
           <div className="space-y-2">
             <p className="text-ds-11 font-medium text-muted-foreground uppercase tracking-wide">Note (optional)</p>

@@ -47,7 +47,7 @@ describe("ReuploadIdDialog", () => {
   it("renders the user's name and the IDV-status note", () => {
     render(<ReuploadIdDialog profile={sampleProfile} onClose={vi.fn()} />);
     expect(screen.getByText(/Marie B\./)).toBeInTheDocument();
-    expect(screen.getByText(/action needed/i)).toBeInTheDocument();
+    expect(screen.getByText(/not started/i)).toBeInTheDocument();
   });
 
   it("calls admin-user-actions with action='request_id_reupload' and the note", async () => {

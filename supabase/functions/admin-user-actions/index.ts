@@ -15,6 +15,11 @@ const SITE_URL = `https://${ROOT_DOMAIN}`
 type ActionType =
   | 'manual_verify'
   | 'request_id_reupload'
+  // The explicit "no" half of the manual_review queue. Deliberately lands on
+  // 'failed' rather than a ban: it is a decision another admin can read, see
+  // the reason for, and reverse with manual_verify or request_id_reupload,
+  // because the queue lists 'failed' alongside 'manual_review'.
+  | 'idv_reject'
   | 'reset_password'
   | 'formal_warning'
   | 'grant_admin'
@@ -209,12 +214,63 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
+    if (action === 'idv_reject') {
+      // NOT a terminal punishment. 'failed' is a readable, reversible parking
+      // state — the review queue lists it beside 'manual_review' precisely so
+      // another admin can pick the person back up. The reason is required by
+      // the client and stored, because it is the only thing the Helpr and the
+      // next admin have to go on.
+      const { data: rejectRows, error: rejectErr } = await admin.from('profiles').update({
+        idv_status: 'failed',
+        idv_failure_reason: note || 'An admin reviewed this verification and could not approve it.',
+      } as any).eq('user_id', targetUserId).select('user_id')
+      if (rejectErr) throw new Error(`Failed to reject verification: ${rejectErr.message}`)
+      if (!rejectRows || rejectRows.length === 0) {
+        throw new Error('Failed to reject verification: no profile row matched.')
+      }
+
+      const { error: auditErr } = await admin.from('admin_audit_log').insert({
+        admin_id: userData.user.id,
+        action: 'idv_reject',
+        target_id: targetUserId,
+        target_type: 'user',
+        details: { note },
+      })
+      if (auditErr) console.error('[admin-user-actions] audit log write FAILED — privileged action has no trail:', auditErr.message)
+
+      await admin.from('notifications').insert({
+        user_id: targetUserId,
+        title: 'We couldn\'t verify your ID',
+        message: note || 'An admin reviewed your verification and could not approve it. Contact support if you think this is wrong.',
+        type: 'warning',
+        link: '/support',
+      })
+
+      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+
     if (action === 'request_id_reupload') {
-      const { error: reuploadErr } = await admin.from('profiles').update({
-        idv_status: 'action_needed',
+      // 'action_needed' was never a legal value. profiles_idv_status_check
+      // allows only not_started/pending/processing/verified/failed/
+      // manual_review/skipped, so every call here threw 23514 and this action
+      // has been completely dead. Reconciled to 'not_started' — the state that
+      // genuinely means "you may start a verification".
+      //
+      // The attempt counter is reset in the same write, and that is the point
+      // of the action, not a bonus. claim_idv_attempt caps at ONE attempt, so
+      // leaving the count alone would send the Helpr an email asking them to
+      // re-upload and then refuse them with attempt_limit_reached — a second
+      // dead end dressed up as a fix. An admin asking for a re-upload IS the
+      // decision to grant another attempt.
+      const { data: reuploadRows, error: reuploadErr } = await admin.from('profiles').update({
+        idv_status: 'not_started',
+        idv_attempt_count: 0,
         idv_failure_reason: note || 'ID document was unclear. Please re-upload.',
-      } as any).eq('user_id', targetUserId)
+      } as any).eq('user_id', targetUserId).select('user_id')
       if (reuploadErr) throw new Error(`Failed to update IDV status: ${reuploadErr.message}`)
+      if (!reuploadRows || reuploadRows.length === 0) {
+        throw new Error('Failed to update IDV status: no profile row matched.')
+      }
 
       const { error: auditErr } = await admin.from('admin_audit_log').insert({
         admin_id: userData.user.id,

@@ -1,5 +1,6 @@
 import { type ReactNode } from "react";
-import { categoryColors } from "./activityConstants";
+import { categoryColors, categoryLabels } from "./activityConstants";
+import { CategoryIcon } from "@/components/job/CategoryIcon";
 
 interface JobCardShellProps {
   /** When false, the card is non-interactive (no expand-on-click, no keyboard role). */
@@ -32,7 +33,8 @@ export function JobCardShell({
   category,
   children,
 }: JobCardShellProps) {
-  const railClass = (categoryColors[category ?? ""] ?? categoryColors.other).dot;
+  const catStyle = categoryColors[category ?? ""] ?? categoryColors.other;
+  const railClass = catStyle.dot;
   const interactiveClass = expandable
     ? "cursor-pointer focus-within:outline-none focus-within:ring-2 focus-within:ring-primary"
     : "";
@@ -50,6 +52,32 @@ export function JobCardShell({
           the text chip in JobCardTitleBar, not by this. The card body is
           padded px-4 (16px) against this 6px rail, so nothing shifts. */}
       <span aria-hidden className={`absolute left-0 top-0 bottom-0 w-1.5 z-10 ${railClass}`} />
+      {/* Category tab — top-left, exactly as Browse / Home render it (owner:
+          "for post and jobs the category should be in the top left just like
+          home dashboard is"). Squared on the left so it continues the rail with
+          no seam, rounded nose on the right; every class here is Browse's
+          JobCard tab verbatim so one job reads identically in the feed and in
+          My Posts / My Jobs.
+
+          It overlays the top of the card, so JobCardTitleBar adds top padding
+          whenever a category is present — that is what keeps it off the job
+          title, which starts at the very top of the card on these surfaces
+          (Browse has the same arrangement via its own `pt-6`). */}
+      {category ? (
+        <div className="absolute top-0 left-0 z-20 flex items-stretch">
+          <span
+            className={`inline-flex items-center gap-1 pl-3 pr-2.5 py-1 rounded-l-none rounded-br-lg rounded-tr-none border-b border-r text-ds-10 font-semibold leading-none shadow-sm ${catStyle.badge}`}
+          >
+            <CategoryIcon
+              category={category}
+              aria-hidden
+              className="w-2.5 h-2.5 shrink-0"
+              strokeWidth={2.25}
+            />
+            <span className="font-serif italic">{categoryLabels[category] || category}</span>
+          </span>
+        </div>
+      ) : null}
       {/*
         The keyboard affordance is a real (screen-reader-only) <button>, not
         role="button" on this wrapper. As a wrapper role it made every card a

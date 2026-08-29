@@ -29,8 +29,6 @@ const FUNCTIONS_DIR = join(root, "supabase/functions");
  * feature-flagged work that looks unreferenced but is not.
  */
 const KNOWN_UNREFERENCED = {
-  "boost-job": "superseded by create-boost-payment, the only boost path JobBoostDialog calls — awaiting owner decision to delete",
-  "helpr-pass-wallet": "Helpr Pass wallet-pass endpoint, built ahead of the client surface — keep until that ships",
 };
 
 const SEARCH_ROOTS = ["src", "e2e", "scripts", ".github", "supabase/migrations", "supabase/config.toml"];

@@ -358,6 +358,76 @@ jobs:
           SELECT '✅ all previously-broken role functions return without error';
           SQL
 
+      - name: Smoke — RLS blocks a non-admin from admin_audit_log and platform_settings
+        # Regression lock for the 2026-08-25 admin audit, which verified this
+        # by hand against the live DB (has_role() + these two policies) but
+        # left nothing automated to catch a future policy edit that loosens
+        # them. admin_audit_log holds who-did-what-to-whom for every
+        # privileged action; platform_settings holds internal config (webhook
+        # URLs, fee knobs) restricted to admins since 20260419032529. Both are
+        # gated purely by RLS `has_role(auth.uid(), 'admin')` — there is no
+        # app-layer check backing them up — so this runs as the `authenticated`
+        # Postgres role with a real non-admin JWT claim, exactly as PostgREST
+        # would for a signed-in stranger's request, and fails if either table
+        # returns a row.
+        run: |
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          BEGIN;
+
+          -- Setup runs as the postgres superuser (RLS-exempt), so it can seed
+          -- a real row in each table — "nobody can see anything because the
+          -- table is empty" must not be able to pass this test.
+          DO $$
+          DECLARE
+            non_admin_id uuid := gen_random_uuid();
+            admin_id uuid := gen_random_uuid();
+          BEGIN
+            INSERT INTO auth.users (id, email) VALUES (non_admin_id, 'rls-nonadmin-smoke@helpr.test');
+            INSERT INTO auth.users (id, email) VALUES (admin_id, 'rls-admin-smoke@helpr.test');
+            INSERT INTO public.user_roles (user_id, role) VALUES (admin_id, 'admin');
+            INSERT INTO public.admin_audit_log (admin_id, action, target_id, target_type, details)
+              VALUES (admin_id, 'rls_smoke_test', non_admin_id, 'user', '{}'::jsonb);
+            IF NOT EXISTS (SELECT 1 FROM public.platform_settings LIMIT 1) THEN
+              INSERT INTO public.platform_settings DEFAULT VALUES;
+            END IF;
+          END $$;
+
+          -- Act as the non-admin, exactly as PostgREST does for their request:
+          -- the `authenticated` Postgres role, with a JWT claim naming them.
+          SET LOCAL ROLE authenticated;
+          SELECT set_config(
+            'request.jwt.claims',
+            (SELECT json_build_object('sub', id, 'role', 'authenticated')::text
+               FROM auth.users WHERE email = 'rls-nonadmin-smoke@helpr.test'),
+            true
+          );
+
+          DO $$
+          DECLARE
+            leaked_count int;
+          BEGIN
+            SELECT count(*) INTO leaked_count FROM public.admin_audit_log;
+            IF leaked_count > 0 THEN
+              RAISE EXCEPTION 'RLS REGRESSION: a non-admin read % row(s) from admin_audit_log', leaked_count;
+            END IF;
+
+            SELECT count(*) INTO leaked_count FROM public.platform_settings;
+            IF leaked_count > 0 THEN
+              RAISE EXCEPTION 'RLS REGRESSION: a non-admin read % row(s) from platform_settings', leaked_count;
+            END IF;
+          END $$;
+
+          -- Back to postgres to clean up — the non-admin role has no DELETE
+          -- policy on either table (correctly), so cleanup must run as owner.
+          RESET ROLE;
+          DELETE FROM public.admin_audit_log WHERE action = 'rls_smoke_test';
+          DELETE FROM public.user_roles WHERE user_id IN (SELECT id FROM auth.users WHERE email LIKE 'rls-%-smoke@helpr.test');
+          DELETE FROM auth.users WHERE email LIKE 'rls-%-smoke@helpr.test';
+
+          COMMIT;
+          SELECT '✅ non-admin cannot read admin_audit_log or platform_settings';
+          SQL
+
       - name: Static guard — no p.role = 'helper'-style hardcoded role strings
         # Belt-and-suspenders #2: even if the DB tests pass, fail the PR if
         # anyone reintroduces a string-literal role comparison in code that

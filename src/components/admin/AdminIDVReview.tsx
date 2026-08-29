@@ -95,6 +95,22 @@ const AdminIDVReview = () => {
   // through the same confirm sheet rather than firing on a single click.
   const [confirming, setConfirming] = useState<{ row: ReviewRow; decision: Decision } | null>(null);
   const [note, setNote] = useState("");
+  // Bulk selection, keyed by user_id — same pattern as AdminCredentialQueue.
+  // Approve only, same reasoning: "another try" and "reject" both carry a note
+  // the Helpr reads, and one note pasted across a batch is either wrong for
+  // most of them or too generic to act on. Approve carries no per-person text,
+  // so it's the one decision safe to batch.
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkRunning, setBulkRunning] = useState(false);
+
+  const toggleSelected = (userId: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(userId)) next.delete(userId);
+      else next.add(userId);
+      return next;
+    });
+  };
 
   // unwrap() throws into React Query so a failed read flips isError on rather
   // than degrading silently to "nobody is waiting" — the one wrong answer this
@@ -147,6 +163,53 @@ const AdminIDVReview = () => {
     }
   };
 
+  /**
+   * Approve every ticked Helpr.
+   *
+   * Approve only — bulk reject/reupload deliberately absent, see the note by
+   * `selected` above. Sequential rather than Promise.all: each call fans out
+   * an email + notification + audit-log insert, and firing twenty at once is
+   * how you find the rate limit during an incident.
+   *
+   * The edge function itself throws (and returns a non-2xx) if its `profiles`
+   * update errors, so a returned `error` here already reflects a real failed
+   * write, not just a request that was sent — see CLAUDE.md "a null error
+   * does NOT mean the write happened".
+   */
+  const approveSelected = async () => {
+    if (selected.size === 0) return;
+    setBulkRunning(true);
+    const targets = rows.filter((r) => selected.has(r.user_id));
+    let ok = 0;
+    const failures: string[] = [];
+    for (const row of targets) {
+      try {
+        const { error } = await supabase.functions.invoke("admin-user-actions", {
+          body: {
+            action: "manual_verify",
+            userId: row.user_id,
+            note: "",
+            reasonCategory: "",
+            bypassStrike: false,
+          },
+        });
+        if (error) throw error;
+        ok++;
+      } catch (err) {
+        report(err, { tags: { source: "AdminIDVReview.approveSelected" } });
+        failures.push(row.full_name || row.email || row.user_id);
+      }
+    }
+    setBulkRunning(false);
+    setSelected(new Set());
+    qc.invalidateQueries({ queryKey });
+    // Report the partial outcome honestly. A blanket "Approved" after two of
+    // five succeeded is how a queue silently keeps stale rows.
+    if (failures.length === 0) toast.success(`Approved ${ok} Helpr${ok === 1 ? "" : "s"}.`);
+    else if (ok === 0) toast.error(`None approved — ${failures.length} failed.`);
+    else toast.warning(`Approved ${ok}, but ${failures.length} failed: ${failures.join(", ")}.`);
+  };
+
   const waiting = rows.filter((r) => r.idv_status === "manual_review").length;
 
   return (
@@ -195,6 +258,25 @@ const AdminIDVReview = () => {
           />
         ) : (
           <div className="space-y-3">
+            {/* Bulk bar appears only once something is ticked, so the default
+                view of the queue is unchanged for the common single-decision
+                case. */}
+            {selected.size > 0 && (
+              <div className="flex items-center justify-between gap-3 rounded-ds-md border border-primary/30 bg-primary/5 p-3">
+                <p className="text-ds-13 font-semibold text-foreground">
+                  {selected.size} selected
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button size="sm" variant="ghost" disabled={bulkRunning} onClick={() => setSelected(new Set())}>
+                    Clear
+                  </Button>
+                  <Button size="sm" disabled={bulkRunning} onClick={approveSelected}>
+                    <CheckCircle2 className="w-4 h-4 mr-1" />
+                    {bulkRunning ? "Approving…" : `Approve ${selected.size}`}
+                  </Button>
+                </div>
+              </div>
+            )}
             {rows.map((r) => {
               const isFailed = r.idv_status === "failed";
               return (
@@ -203,6 +285,14 @@ const AdminIDVReview = () => {
                   className="rounded-ds-md border border-border/60 bg-background/40 p-4 space-y-3"
                 >
                   <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 shrink-0 accent-[hsl(var(--bark))]"
+                      checked={selected.has(r.user_id)}
+                      onChange={() => toggleSelected(r.user_id)}
+                      disabled={bulkRunning}
+                      aria-label={`Select ${r.full_name || r.email || "this Helpr"} for bulk approval`}
+                    />
                     <div className="w-10 h-10 rounded-full bg-accent/20 text-accent flex items-center justify-center text-ds-13 font-bold shrink-0">
                       {(r.full_name || r.email || "?").slice(0, 2).toUpperCase()}
                     </div>
@@ -265,7 +355,7 @@ const AdminIDVReview = () => {
                     <Button
                       size="sm"
                       className="flex-1 min-w-[8rem]"
-                      disabled={busy === r.user_id}
+                      disabled={busy === r.user_id || bulkRunning}
                       onClick={() => {
                         setConfirming({ row: r, decision: "manual_verify" });
                         setNote("");
@@ -277,7 +367,7 @@ const AdminIDVReview = () => {
                       size="sm"
                       variant="outline"
                       className="flex-1 min-w-[8rem]"
-                      disabled={busy === r.user_id}
+                      disabled={busy === r.user_id || bulkRunning}
                       onClick={() => {
                         setConfirming({ row: r, decision: "request_id_reupload" });
                         setNote("");
@@ -290,7 +380,7 @@ const AdminIDVReview = () => {
                         size="sm"
                         variant="outline"
                         className="flex-1 min-w-[8rem] border-destructive/40 text-destructive hover:bg-destructive/10"
-                        disabled={busy === r.user_id}
+                        disabled={busy === r.user_id || bulkRunning}
                         onClick={() => {
                           setConfirming({ row: r, decision: "idv_reject" });
                           setNote("");

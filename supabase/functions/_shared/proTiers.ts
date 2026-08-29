@@ -20,7 +20,7 @@
 // runtime that provides the env sees the test IDs. Set the six vars via
 // `supabase secrets set` when swapping keys.
 
-export type ProTierKey = "basic" | "pro" | "plus" | "elite";
+export type ProTierKey = "basic" | "pro" | "elite";
 export type ProBillingCycle = "monthly" | "annual" | "one_time";
 
 // Read a Deno.env var safely — returns undefined outside a Deno runtime
@@ -47,19 +47,16 @@ const LIVE_PRO_PRICE_MAP: Record<ProBillingCycle, Record<ProTierKey, string>> = 
     // `proTiers.parity.test.ts` asserts that shape — the env override
     // (STRIPE_PRICE_PLUS_*, already set on the project) is what actually gets
     // charged in test mode. Replace these when Plus is created in live mode.
-    plus: "price_TODO_LIVE_PLUS_MONTHLY",
     elite: "price_1TAZkSKp2H4b7tEClf0VNiEa",
   },
   annual: {
     basic: "price_1TAZkXKp2H4b7tECRBtNRne5",
     pro: "price_1TAZkbKp2H4b7tECZ7Qr6CZS",
-    plus: "price_TODO_LIVE_PLUS_ANNUAL",
     elite: "price_1TAZkcKp2H4b7tECagD42xRa",
   },
   one_time: {
     basic: "price_1TAZkdKp2H4b7tECtvvFRyJf",
     pro: "price_1TAZkeKp2H4b7tECnfZ7vF0C",
-    plus: "price_TODO_LIVE_PLUS_ONETIME",
     elite: "price_1TAZkeKp2H4b7tECmn27C8JM",
   },
 };
@@ -68,19 +65,16 @@ const ENV_KEY: Record<ProBillingCycle, Record<ProTierKey, string>> = {
   monthly: {
     basic: "STRIPE_PRICE_BASIC_MONTHLY",
     pro: "STRIPE_PRICE_PRO_MONTHLY",
-    plus: "STRIPE_PRICE_PLUS_MONTHLY",
     elite: "STRIPE_PRICE_ELITE_MONTHLY",
   },
   annual: {
     basic: "STRIPE_PRICE_BASIC_ANNUAL",
     pro: "STRIPE_PRICE_PRO_ANNUAL",
-    plus: "STRIPE_PRICE_PLUS_ANNUAL",
     elite: "STRIPE_PRICE_ELITE_ANNUAL",
   },
   one_time: {
     basic: "STRIPE_PRICE_BASIC_ONETIME",
     pro: "STRIPE_PRICE_PRO_ONETIME",
-    plus: "STRIPE_PRICE_PLUS_ONETIME",
     elite: "STRIPE_PRICE_ELITE_ONETIME",
   },
 };
@@ -129,6 +123,6 @@ export const PRO_PRICE_MAP: Record<ProBillingCycle, Record<ProTierKey, string>> 
  * would itself be an un-guarded guess.
  */
 export const PRO_RECURRING_AMOUNT_CENTS: Record<"monthly" | "annual", Record<ProTierKey, number>> = {
-  monthly: { basic: 500, pro: 1000, plus: 1500, elite: 2000 },
-  annual: { basic: 5000, pro: 10000, plus: 15000, elite: 20000 },
+  monthly: { basic: 500, pro: 1000, elite: 2000 },
+  annual: { basic: 5000, pro: 10000, elite: 20000 },
 };

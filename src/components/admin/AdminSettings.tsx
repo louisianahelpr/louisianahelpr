@@ -22,7 +22,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 // can no longer quote a ladder the platform does not charge — which is exactly
 // what the deleted editable inputs did (see the read-only card below).
 const FEE_LADDER: { id: SubscriptionTier; name: string; percent: number }[] = (
-  ["free", "basic", "pro", "plus", "elite"] as SubscriptionTier[]
+  ["free", "basic", "pro", "elite"] as SubscriptionTier[]
 ).map((id) => ({ id, name: TIER_PERKS[id].name, percent: TIER_PERKS[id].platformFeePercent }));
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];

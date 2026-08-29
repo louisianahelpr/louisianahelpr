@@ -87,7 +87,7 @@ export function useApplicantsState(user: SupaUser | null) {
       // keeps Array.prototype.sort's stability, so within a tier the original
       // (application) order is preserved.
       const tierOrder = (tier: string | null | undefined) =>
-        tier === "business" ? 5 : tier === "elite" ? 4 : tier === "plus" ? 3 : tier === "pro" ? 2 : tier === "basic" ? 1 : 0;
+        tier === "business" ? 4 : tier === "elite" ? 3 : tier === "pro" ? 2 : tier === "basic" ? 1 : 0;
       enriched.sort((a, b) => tierOrder(b.profiles?.subscription_tier) - tierOrder(a.profiles?.subscription_tier));
       return enriched;
     }

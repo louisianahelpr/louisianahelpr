@@ -232,12 +232,11 @@ export const computeMetrics = (
   // Subscription breakdown
   const subBasic = helpers.filter(h => h.subscription_tier === "basic").length;
   const subPro = helpers.filter(h => h.subscription_tier === "pro").length;
-  const subPlus = helpers.filter(h => h.subscription_tier === "plus").length;
   const subElite = helpers.filter(h => h.subscription_tier === "elite").length;
   const subFree = helpers.filter(h => !h.subscription_tier).length;
   // Monthly subscription revenue estimate (matches live Stripe pricing — see
   // SubscriptionTab tier list, the single source of truth for these numbers).
-  const totalSubRevenue = (subBasic * SUB_PRICE.basic) + (subPro * SUB_PRICE.pro) + (subPlus * SUB_PRICE.plus) + (subElite * SUB_PRICE.elite);
+  const totalSubRevenue = (subBasic * SUB_PRICE.basic) + (subPro * SUB_PRICE.pro) + (subElite * SUB_PRICE.elite);
 
   // Category breakdown
   const categoryMap: Record<string, number> = {};

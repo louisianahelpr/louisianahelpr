@@ -31,7 +31,7 @@ interface TierDisplay {
  * tab, /subscription, checkout, Legal) follows. Previously
  * each string was hardcoded here and drifted on any change.
  */
-function formatTierPrices(tierId: "basic" | "pro" | "plus" | "elite") {
+function formatTierPrices(tierId: "basic" | "pro" | "elite") {
   const perk = TIER_PERKS[tierId];
   // TIER_PERKS.pro/elite always have prices — TS narrows via non-null assertion
   // rather than falling back to a hardcoded default, so a config change to
@@ -99,24 +99,13 @@ export const tierConfig: TierDisplay[] = [
     features: [`Everything in ${TIER_PERKS.basic.name}`, ...TIER_PERKS.pro.featureBullets],
   },
   {
-    id: "plus",
-    name: TIER_PERKS.plus.name,
-    // Sparkles, same as Pro — the crown is Elite's Featured Crown Badge and
-    // must not appear on a tier that doesn't grant it.
-    iconName: "sparkles",
-    forWhom: "For Helprs who want a smaller cut.",
-    ...formatTierPrices("plus"),
-    feePercent: TIER_PERKS.plus.platformFeePercent,
-    features: [`Everything in ${TIER_PERKS.pro.name}`, ...TIER_PERKS.plus.featureBullets],
-  },
-  {
     id: "elite",
     name: TIER_PERKS.elite.name,
     iconName: "crown",
     forWhom: "For full-time Helprs.",
     ...formatTierPrices("elite"),
     feePercent: TIER_PERKS.elite.platformFeePercent,
-    features: [`Everything in ${TIER_PERKS.plus.name}`, ...TIER_PERKS.elite.featureBullets],
+    features: [`Everything in ${TIER_PERKS.pro.name}`, ...TIER_PERKS.elite.featureBullets],
   },
 ];
 

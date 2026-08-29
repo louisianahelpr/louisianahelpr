@@ -4,7 +4,7 @@
 // The helper's subscription tier sets the percentage the platform keeps from
 // each completed-job payout:
 //
-//     free → 12%   basic → 11%   pro → 10%   plus → 9%   elite → 8%
+//     free → 12%   basic → 11%   pro → 10%   elite → 8%
 //     business → 6%
 //
 // This MUST stay in lock-step with `src/lib/subscriptionTiers.ts` TIER_PERKS
@@ -23,7 +23,6 @@ export const TIER_FEE_PERCENT: Record<string, number> = {
   free: 12,
   basic: 11,
   pro: 10,
-  plus: 9,
   elite: 8,
   business: 6,
 };

@@ -370,7 +370,7 @@ export function useDashboardData() {
       // Stable sort preserves the boosted ordering inside each tier band
       // (already applied by the SQL ORDER BY boosted_at).
       const tierWeight = (tier: string | null | undefined) =>
-        tier === "elite" ? 3 : tier === "plus" ? 2 : tier === "pro" ? 1 : 0;
+        tier === "elite" ? 2 : tier === "pro" ? 1 : 0;
       enriched.sort((a, b) => tierWeight(b.posterSubscriptionTier) - tierWeight(a.posterSubscriptionTier));
 
       return { jobs: enriched, nextOffset: hasMore ? offset + PAGE_SIZE : null };

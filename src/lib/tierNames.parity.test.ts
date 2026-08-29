@@ -14,7 +14,7 @@ import { describe, it, expect } from "vitest";
 import { TIER_PERKS, tierDisplayName, type SubscriptionTier } from "./subscriptionTiers";
 import { TIER_DISPLAY_NAMES } from "../../supabase/functions/_shared/tierNames";
 
-const ALL_TIERS: SubscriptionTier[] = ["free", "basic", "pro", "plus", "elite", "business"];
+const ALL_TIERS: SubscriptionTier[] = ["free", "basic", "pro", "elite", "business"];
 
 describe("tier display names (client TIER_PERKS <-> edge tierNames)", () => {
   it("gives every tier the same name on both sides", () => {
@@ -31,8 +31,6 @@ describe("tier display names (client TIER_PERKS <-> edge tierNames)", () => {
     // direction must update this test deliberately.
     expect(TIER_DISPLAY_NAMES.basic).toBe("Basic");
     expect(TIER_DISPLAY_NAMES.pro).toBe("Pro");
-    // "Plus", NOT "Helpr Plus" — the tier added 2026-08-27 obeys the same rule.
-    expect(TIER_DISPLAY_NAMES.plus).toBe("Plus");
     expect(TIER_DISPLAY_NAMES.elite).toBe("Elite");
   });
 
@@ -44,7 +42,7 @@ describe("tier display names (client TIER_PERKS <-> edge tierNames)", () => {
   });
 
   it("no 'Helpr ' prefix can creep back onto a consumer tier", () => {
-    for (const tier of ["basic", "pro", "plus", "elite"] as const) {
+    for (const tier of ["basic", "pro", "elite"] as const) {
       expect(TIER_PERKS[tier].name.startsWith("Helpr ")).toBe(false);
     }
   });

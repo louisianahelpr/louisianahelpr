@@ -35,5 +35,4 @@ export const PRODUCT_TO_TIER: Record<string, string> = {
   // across modes, so listing both modes here is safe and it is what keeps
   // test-mode QA of a paid tier honest.
   "prod_UqSRFTWivuEMrl": "elite", // test: monthly + annual + one-time
-  "prod_V9ZB6TeGqdPHFI": "plus",  // test: monthly + annual + one-time
 };

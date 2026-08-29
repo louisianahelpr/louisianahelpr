@@ -16,7 +16,7 @@ import {
   PRO_RECURRING_AMOUNT_CENTS as EDGE_PRO_RECURRING_AMOUNT_CENTS,
 } from "../../supabase/functions/_shared/proTiers";
 
-const PAID_TIERS: ProTierKey[] = ["basic", "pro", "plus", "elite"];
+const PAID_TIERS: ProTierKey[] = ["basic", "pro", "elite"];
 const CYCLES: ProBillingCycle[] = ["monthly", "annual", "one_time"];
 
 describe("consumer subscription checkout price config (F-MONEY-01 drift guard)", () => {
@@ -27,7 +27,7 @@ describe("consumer subscription checkout price config (F-MONEY-01 drift guard)",
 
   it("maps exactly the four paid consumer tiers for every billing cycle", () => {
     for (const cycle of CYCLES) {
-      expect(Object.keys(PRO_PRICE_MAP[cycle]).sort()).toEqual(["basic", "elite", "plus", "pro"]);
+      expect(Object.keys(PRO_PRICE_MAP[cycle]).sort()).toEqual(["basic", "elite", "pro"]);
     }
   });
 
@@ -78,18 +78,6 @@ describe("consumer subscription checkout price config (F-MONEY-01 drift guard)",
     expect(PRO_PRICE_MAP.annual.elite).toBe("price_1TAZkcKp2H4b7tECagD42xRa");
     expect(PRO_PRICE_MAP.one_time.pro).toBe("price_1TAZkeKp2H4b7tECnfZ7vF0C");
     expect(PRO_PRICE_MAP.one_time.elite).toBe("price_1TAZkeKp2H4b7tECmn27C8JM");
-  });
-
-  it("Plus has no LIVE Price yet and says so in a shape no id can fake", () => {
-    // Plus was added 2026-08-27 while the app runs on a TEST Stripe key. Its
-    // three TEST Prices exist and are wired through STRIPE_PRICE_PLUS_*; the
-    // LIVE fallbacks are placeholders. Assert the placeholder shape so this
-    // stays VISIBLE — the Basic test below records what happened the last time
-    // a placeholder assertion was written so loosely it could not fail.
-    for (const cycle of CYCLES) {
-      const id = PRO_PRICE_MAP[cycle].plus;
-      expect(id, `${cycle} plus price id`).toMatch(/^price_TODO_LIVE_PLUS_[A-Z]+$/);
-    }
   });
 
   it("Basic Price IDs are either env-overridden (test) or the TODO placeholder (live)", () => {

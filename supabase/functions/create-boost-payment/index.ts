@@ -127,7 +127,7 @@ serve(async (req) => {
     // spent, Pro falls through to its 20% discount below. The month check
     // and the stamp are one conditional UPDATE so two same-moment boosts
     // can't both ride the credit.
-    if (subActive && (subTier === "pro" || subTier === "plus")) {
+    if (subActive && subTier === "pro") {
       const thisMonth = new Date().toISOString().slice(0, 7);
       const { data: credited, error: creditErr } = await supabaseAdmin
         .from("profiles")
@@ -167,7 +167,7 @@ serve(async (req) => {
     // product description names the subscriber discount so the receipt is
     // legible. Elite is already returned above (free), and Free/Business
     // fall through to the full BOOST_FEE_CENTS price.
-    const isBoostDiscountTier = subActive && (subTier === "basic" || subTier === "pro" || subTier === "plus");
+    const isBoostDiscountTier = subActive && (subTier === "basic" || subTier === "pro");
     // MIN_UNIT_AMOUNT_CENTS: an absolute floor covering Stripe's per-charge
     // cost (~30¢ fixed + 2.9% variable) plus a thin platform margin, so a
     // future BOOST_FEE_CENTS drop can't silently invert unit economics on

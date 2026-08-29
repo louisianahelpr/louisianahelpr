@@ -58,7 +58,7 @@ export function useApplicantComparison({
       const tier = app.profiles?.subscription_tier;
       // subscription_tier ("elite"=4, "plus"=3, "pro"=2, "basic"=1, else 0) is
       // the closest proxy for credentialTier available without a migration.
-      const credentialTier = tier === "elite" ? 4 : tier === "plus" ? 3 : tier === "pro" ? 2 : tier === "basic" ? 1 : 0;
+      const credentialTier = tier === "elite" ? 3 : tier === "pro" ? 2 : tier === "basic" ? 1 : 0;
       const neighborCount = neighborCountMap.get(app.helper_id) ?? 0;
       const data: ApplicantData = {
         userId: app.helper_id,

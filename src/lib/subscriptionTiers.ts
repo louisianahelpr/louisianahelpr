@@ -1,10 +1,10 @@
 /**
  * subscriptionTiers.ts — canonical perk definitions for the CONSUMER
- * membership tiers (Free / Basic / Pro / Plus / Elite) plus a Business row
+ * membership tiers (Free / Basic / Pro / Elite) plus a Business row
  * that exists here ONLY as the fee-percent reference for business accounts.
  *
  * Consumer prices MUST equal the live Stripe Price objects (verified):
- *   pro  $10/mo  $100/yr   plus $15/mo $150/yr   elite  $20/mo  $200/yr
+ *   pro  $10/mo  $100/yr   elite  $20/mo  $200/yr
  * `annualPrice` is stored as the monthly-equivalent of the annual plan
  * (yearly ÷ 12) because the /subscription page renders it as "$X/mo annual".
  *
@@ -19,19 +19,12 @@
  * functions still read.
  *
  * The tier IDs align with the subscription_tier column on profiles
- * ("basic", "pro", "plus", "elite", "business"). "free" is the
- * default/null case. The commission ladder is a clean six rungs:
- * free 12% → basic 11% → pro 10% → plus 9% → elite 8% → business 6%.
- *
- * PLUS positioning (added 2026-08-27, owner's call): $15/mo, 9% fee, sitting
- * between Pro and Elite. Its own NEW perk is the 15-minute early-access step
- * (Pro 10 → Plus 15 → Elite 20); everything else Plus grants it grants by
- * inheriting Pro, which the ladder requires — a higher tier can never hold
- * fewer perks than a lower one. Elite's three identity perks (Featured Crown
- * Badge, Reliability Shield, Priority Support) were deliberately NOT moved
- * down: which of them, if any, Plus should get is a pricing judgement for the
- * owner, not an interpolation, so Plus ships thin-but-honest rather than
- * advertising a perk that doesn't exist or gutting Elite without being asked.
+ * ("basic", "pro", "elite", "business"). "free" is the
+ * default/null case. The commission ladder is five rungs:
+ * free 12% → basic 11% → pro 10% → elite 8% → business 6%.
+ * There is deliberately NO 9% rung: the 9% step existed only for the Plus
+ * tier, which was removed on 2026-08-28, and Elite's larger fee drop is now
+ * the reason to climb to the top tier. Do not invent a replacement rung.
  *
  * BASIC positioning: entry paid tier ($5/mo) for helpers testing the
  * marketplace who want the utility perks (Instant Payouts, 5-min Early
@@ -69,16 +62,16 @@ export { tierDisplayName };
  */
 export const ONE_TIME_PASS_DAYS = 30;
 
-export type SubscriptionTier = "free" | "basic" | "pro" | "plus" | "elite" | "business";
+export type SubscriptionTier = "free" | "basic" | "pro" | "elite" | "business";
 
 export interface TierPerks {
   name: string;
   price: number | null;         // monthly USD, null = free
   annualPrice: number | null;   // annual plan's monthly-equivalent (yearly ÷ 12), null = free
-  platformFeePercent: number;   // % taken from helper payout — descends as price rises (free 12% → pro 10% → plus 9% → elite 8% → business 6%)
+  platformFeePercent: number;   // % taken from helper payout — descends as price rises (free 12% → pro 10% → elite 8% → business 6%)
   priorityPlacement: boolean;   // application floated higher in poster's recommended list
   featuredBadge: boolean;       // gold/crown badge on profile and applicant cards
-  earlyAccess: boolean;         // sees new jobs before non-subscribers (pro 10m / plus 15m / elite 20m)
+  earlyAccess: boolean;         // sees new jobs before non-subscribers (pro 10m / elite 20m)
   advancedAnalytics: boolean;   // earnings trends, category breakdown, best hours
   multiTech: boolean;           // business: manage a team of technicians under one account
   verifiedBusiness: boolean;    // business: verified entity badge surfaced to posters
@@ -159,30 +152,6 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
       "Advanced Analytics",
     ],
   },
-  plus: {
-    name: TIER_DISPLAY_NAMES.plus,
-    price: 15,
-    annualPrice: 12.5, // $150/yr ÷ 12
-    platformFeePercent: 9,
-    // Everything Pro grants, because a tier above Pro must never grant less.
-    priorityPlacement: true,
-    earlyAccess: true,        // 15 min — see earlyAccess.ts
-    advancedAnalytics: true,
-    // Elite-only, left alone on purpose (see the PLUS positioning note above).
-    featuredBadge: false,
-    dedicatedSupport: false,
-    multiTech: false,
-    verifiedBusiness: false,
-    tagline: "A lower cut on every job",
-    ctaLabel: "Upgrade",
-    // ONE bullet, and that is the honest state of this tier: the only thing
-    // Plus adds over Pro that is a real shipping feature is the extra five
-    // minutes of early access. Its actual value proposition is the 9% fee,
-    // which both storefronts render prominently and separately (which is why
-    // fees are deliberately absent from every tier's bullets). Do not pad this
-    // list with a perk that isn't built.
-    featureBullets: ["15-min early access"],
-  },
   elite: {
     name: TIER_DISPLAY_NAMES.elite,
     // Raised $15 → $20 by the owner on 2026-08-27. The test-mode Stripe
@@ -206,7 +175,7 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
       "Featured Crown Badge",
       "20-min early access",
       "Free unlimited Job Boosts",
-      "Reliability Shield — first strike every 6 months forgiven",
+      "Reliability Shield — 1 strike forgiven",
       "Priority Support",
     ],
   },
@@ -271,7 +240,7 @@ export function getPaysSelfBack(
  * Unknown / null / empty → "free" (the safe default that never charges a
  * user for perks they didn't opt into). */
 export function toSubscriptionTier(raw: string | null | undefined): SubscriptionTier {
-  if (raw === "basic" || raw === "pro" || raw === "plus" || raw === "elite" || raw === "business") return raw;
+  if (raw === "basic" || raw === "pro" || raw === "elite" || raw === "business") return raw;
   return "free";
 }
 
@@ -282,7 +251,7 @@ export function toSubscriptionTier(raw: string | null | undefined): Subscription
  * the edge payout resolver (`_shared/helperFees.ts` `getHelperFeePercent`) so the
  * commission the UI SHOWS a helper matches the fee their payout is actually
  * charged. The ladder is identical for poster and helper (free 12 / basic
- * 11 / pro 10 / plus 9 / elite 8 / business 6). Case is normalized so "PRO"
+ * 11 / pro 10 / elite 8 / business 6). Case is normalized so "PRO"
  * resolves like "pro".
  */
 export function tierFeePercent(

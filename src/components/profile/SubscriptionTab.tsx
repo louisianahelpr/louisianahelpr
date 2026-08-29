@@ -190,13 +190,13 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                 background:
                   activeTierConfig.id === "elite"
                     ? "hsl(var(--gold-warm) / 0.18)"
-                    : activeTierConfig.id === "pro" || activeTierConfig.id === "plus"
+                    : activeTierConfig.id === "pro"
                       ? "hsl(var(--burnt-sienna) / 0.14)"
                       : "hsl(var(--bark) / 0.12)",
                 color:
                   activeTierConfig.id === "elite"
                     ? "hsl(var(--gold-warm))"
-                    : activeTierConfig.id === "pro" || activeTierConfig.id === "plus"
+                    : activeTierConfig.id === "pro"
                       ? "hsl(var(--burnt-sienna))"
                       : "hsl(var(--bark))",
               }}
@@ -364,13 +364,13 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
           const accent =
             tier.id === "elite"
               ? "hsl(var(--gold-ink))"
-              : tier.id === "pro" || tier.id === "plus"
+              : tier.id === "pro"
                 ? "hsl(var(--burnt-sienna))"
                 : "hsl(var(--bark))";
           const accentSoft =
             tier.id === "elite"
               ? "hsl(var(--gold-warm) / 0.14)"
-              : tier.id === "pro" || tier.id === "plus"
+              : tier.id === "pro"
                 ? "hsl(var(--burnt-sienna) / 0.12)"
                 : "hsl(var(--bark) / 0.10)";
           return (
@@ -459,17 +459,25 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                           : f,
                       )
                       .map((feature) => (
+                        // items-START, not items-center, and the label lives
+                        // in its own min-w-0 span: with items-center and a
+                        // bare text child, a bullet long enough to wrap put
+                        // the check halfway down the text ("Reliability
+                        // Shield — first" / "\u2713 strike every 6 months" /
+                        // "forgiven"), reading as three bullets. Pinning the
+                        // icon to the first line keeps a wrapped bullet
+                        // legible as ONE bullet at any Dynamic Type size.
                         <li
                           key={feature}
-                          className="inline-flex items-center gap-1 font-sans text-ds-11"
+                          className="inline-flex items-start gap-1 font-sans text-ds-11"
                           style={{ color: "hsl(var(--olivewood) / 0.85)" }}
                         >
                           <CheckCircle
-                            className="w-2.5 h-2.5 shrink-0"
+                            className="w-2.5 h-2.5 shrink-0 mt-[0.32em]"
                             style={{ color: accent }}
                             strokeWidth={2.5}
                           />
-                          {feature}
+                          <span className="min-w-0">{feature}</span>
                         </li>
                       ))}
                   </ul>

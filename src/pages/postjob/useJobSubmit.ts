@@ -349,7 +349,17 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     }
 
     if (error || !jobData) {
-      toast.error(error?.message || "Couldn't post your job just yet — give it another try?");
+      // 42501 is the jobs INSERT policy refusing the row. The raw text —
+      // "new row violates row-level security policy for table jobs" — is
+      // Postgres talking to a DBA, not to a poster who just filled a form and
+      // paid attention for five minutes. The only way to reach it now is a
+      // client/server disagreement about the identity gate, so say that.
+      const isRls = (error as { code?: string } | null)?.code === "42501";
+      toast.error(
+        isRls
+          ? "We couldn't post this job — your account still needs identity verification. Head to your profile to finish it."
+          : error?.message || "Couldn't post your job just yet — give it another try?",
+      );
       setSaving(false);
       submittingRef.current = false;
       return;

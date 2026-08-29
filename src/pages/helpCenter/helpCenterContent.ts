@@ -165,7 +165,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
       },
       {
         q: "What fees does Helpr charge?",
-        a: `Free-account Helprs keep ${100 - TIER_PERKS.free.platformFeePercent}% (${TIER_PERKS.free.platformFeePercent}% platform fee). ${TIER_PERKS.basic.name} keeps ${100 - TIER_PERKS.basic.platformFeePercent}%, ${TIER_PERKS.pro.name} keeps ${100 - TIER_PERKS.pro.platformFeePercent}%, ${TIER_PERKS.plus.name} keeps ${100 - TIER_PERKS.plus.platformFeePercent}%, and ${TIER_PERKS.elite.name} ${100 - TIER_PERKS.elite.platformFeePercent}% (${TIER_PERKS.elite.platformFeePercent}% fee) — the platform fee drops as your plan tier rises. Posters pay a plan-based service fee at checkout too (${TIER_PERKS.free.platformFeePercent}% Free, ${TIER_PERKS.basic.platformFeePercent}% ${TIER_PERKS.basic.name}, ${TIER_PERKS.pro.platformFeePercent}% ${TIER_PERKS.pro.name}, ${TIER_PERKS.plus.platformFeePercent}% ${TIER_PERKS.plus.name}, ${TIER_PERKS.elite.platformFeePercent}% ${TIER_PERKS.elite.name}), with a small minimum so tiny jobs still cover card processing.`,
+        a: `Free-account Helprs keep ${100 - TIER_PERKS.free.platformFeePercent}% (${TIER_PERKS.free.platformFeePercent}% platform fee). ${TIER_PERKS.basic.name} keeps ${100 - TIER_PERKS.basic.platformFeePercent}%, ${TIER_PERKS.pro.name} keeps ${100 - TIER_PERKS.pro.platformFeePercent}%, and ${TIER_PERKS.elite.name} ${100 - TIER_PERKS.elite.platformFeePercent}% (${TIER_PERKS.elite.platformFeePercent}% fee) — the platform fee drops as your plan tier rises. Posters pay a plan-based service fee at checkout too (${TIER_PERKS.free.platformFeePercent}% Free, ${TIER_PERKS.basic.platformFeePercent}% ${TIER_PERKS.basic.name}, ${TIER_PERKS.pro.platformFeePercent}% ${TIER_PERKS.pro.name}, ${TIER_PERKS.elite.platformFeePercent}% ${TIER_PERKS.elite.name}), with a small minimum so tiny jobs still cover card processing.`,
       },
       {
         q: "What if there's a dispute?",
@@ -228,7 +228,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
       },
       {
         q: `What's the difference between ${TIER_PERKS.pro.name} and ${TIER_PERKS.elite.name}?`,
-        a: `${TIER_PERKS.elite.name} adds the featured crown badge (visible to all posters), 20-minute early job access before other helpers see it (${TIER_PERKS.pro.name} gets 10, ${TIER_PERKS.plus.name} 15), and dedicated priority support — on top of everything ${TIER_PERKS.pro.name} offers. ${TIER_PERKS.plus.name} sits between the two: everything ${TIER_PERKS.pro.name} has, 15-minute early access, and a ${TIER_PERKS.plus.platformFeePercent}% platform fee.`,
+        a: `${TIER_PERKS.elite.name} adds the featured crown badge (visible to all posters), 20-minute early job access before other helpers see it (${TIER_PERKS.pro.name} gets 10, ${TIER_PERKS.basic.name} 5), and dedicated priority support — on top of everything ${TIER_PERKS.pro.name} offers.`,
       },
     ],
   },

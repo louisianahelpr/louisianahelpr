@@ -14,7 +14,7 @@ import {
 import { stripeProcessingCostCents } from "./stripeFees";
 
 describe("poster-fee tier ladder + Stripe floor parity (UI ↔ edge)", () => {
-  const tiers = ["free", "basic", "pro", "plus", "elite", "business", "PRO", null, undefined, "nonsense"];
+  const tiers = ["free", "basic", "pro", "elite", "business", "PRO", null, undefined, "nonsense"];
 
   it("resolves the same fee percent for every tier on both runtimes", () => {
     for (const tier of tiers) {
@@ -26,7 +26,6 @@ describe("poster-fee tier ladder + Stripe floor parity (UI ↔ edge)", () => {
     expect(uiPosterFeePercentForTier("free")).toBe(12);
     expect(uiPosterFeePercentForTier("basic")).toBe(11);
     expect(uiPosterFeePercentForTier("pro")).toBe(10);
-    expect(uiPosterFeePercentForTier("plus")).toBe(9);
     expect(uiPosterFeePercentForTier("elite")).toBe(8);
     expect(uiPosterFeePercentForTier("business")).toBe(6);
   });

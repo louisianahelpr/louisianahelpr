@@ -8,5 +8,5 @@ export type DrillDown = "users" | "jobs" | "revenue" | "fees" | "subscriptions" 
 
 // Monthly subscription price per tier, in dollars. Single source of truth for
 // both the headline MRR and the per-tier breakdown (kept in sync with the
-// SubscriptionTab tier list — basic $5 / pro $10 / plus $15 / elite $20).
-export const SUB_PRICE = { basic: 5, pro: 10, plus: 15, elite: 20 } as const;
+// SubscriptionTab tier list — basic $5 / pro $10 / elite $20).
+export const SUB_PRICE = { basic: 5, pro: 10, elite: 20 } as const;

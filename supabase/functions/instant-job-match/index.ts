@@ -174,7 +174,7 @@ Deno.serve(async (req) => {
       .sort((a, b) => {
         // Tie-break score by tier: Elite > Pro > Basic > none.
         if (b.score !== a.score) return b.score - a.score;
-        const tierRank: Record<string, number> = { elite: 4, plus: 3, pro: 2, basic: 1 };
+        const tierRank: Record<string, number> = { elite: 3, pro: 2, basic: 1 };
         return (tierRank[b.subscription_tier ?? ""] ?? 0) - (tierRank[a.subscription_tier ?? ""] ?? 0);
       })
       .slice(0, 20); // Top 20 matches

@@ -16,9 +16,9 @@ interface ProUpgradeSheetProps {
   body: string;
   /** Bullet list of perks the user gets at this tier and up. */
   perks: string[];
-  /** Cheapest tier that unlocks the feature — "basic", "pro", "plus" or "elite".
+  /** Cheapest tier that unlocks the feature — "basic", "pro" or "elite".
       Determines copy + CTA destination. */
-  requiredTier?: "basic" | "pro" | "plus" | "elite";
+  requiredTier?: "basic" | "pro" | "elite";
 }
 
 /**
@@ -44,13 +44,12 @@ export function ProUpgradeSheet({
   // the plan card it sends them to.
   const tierLabel =
     requiredTier === "elite" ? TIER_PERKS.elite.name
-    : requiredTier === "plus" ? TIER_PERKS.plus.name
     : requiredTier === "basic" ? TIER_PERKS.basic.name
     : TIER_PERKS.pro.name;
   const TierIcon =
     requiredTier === "elite" ? Crown : requiredTier === "basic" ? Star : Sparkles;
-  // Plus shares Pro's sienna treatment: the gold is Elite's alone (it is what
-  // the Featured Crown Badge is made of) and bark is Basic's.
+  // Gold is Elite's alone (it is what the Featured Crown Badge is made of)
+  // and bark is Basic's; Pro keeps sienna.
   // Basic's accent is bark — the same treatment its badge preview and the
   // in-app tier card use.
   const accent =

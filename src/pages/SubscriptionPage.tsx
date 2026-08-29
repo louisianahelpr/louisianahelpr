@@ -58,7 +58,7 @@ type BillingCycle = "monthly" | "annual" | "one_time";
 // in the in-app SubscriptionTab config, but the numeric inputs are still
 // sourced from TIER_PERKS (single source of truth) — if a price moves in
 // subscriptionTiers.ts, both surfaces update in lockstep.
-function formatPaidTierPrices(tierId: "basic" | "pro" | "plus" | "elite") {
+function formatPaidTierPrices(tierId: "basic" | "pro" | "elite") {
   const perk = TIER_PERKS[tierId];
   const monthlyPrice = perk.price!;
   const annualMonthly = perk.annualPrice!;
@@ -84,7 +84,7 @@ function formatPaidTierPrices(tierId: "basic" | "pro" | "plus" | "elite") {
 // It was hidden while `_shared/proTiers.ts` carried placeholder Basic price
 // IDs, but LIVE_PRO_PRICE_MAP now holds verified live Prices for all three
 // Basic cycles, so the public page sells the same ladder the app does.
-const CONSUMER_TIERS: SubscriptionTier[] = ["free", "basic", "pro", "plus", "elite"];
+const CONSUMER_TIERS: SubscriptionTier[] = ["free", "basic", "pro", "elite"];
 
 // The benefits shown in the "Why upgrade" section.
 //
@@ -143,19 +143,6 @@ const TierBadgePreview = ({ tier }: { tier: string }) => {
         style={{ color: "hsl(var(--burnt-sienna))", background: "hsl(var(--burnt-sienna) / 0.12)", letterSpacing: "0.08em" }}
       >
         <Award className="w-2.5 h-2.5" /> {TIER_PERKS.pro.name}
-      </span>
-    );
-  }
-  if (tier === "plus") {
-    // Plus wears Pro's sienna Award chip, not Elite's gold crown: the crown IS
-    // the Featured Crown Badge, which is an Elite-only perk, so previewing one
-    // on Plus would advertise a perk Plus does not grant.
-    return (
-      <span
-        className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-flex items-center gap-1"
-        style={{ color: "hsl(var(--burnt-sienna))", background: "hsl(var(--burnt-sienna) / 0.12)", letterSpacing: "0.08em" }}
-      >
-        <Award className="w-2.5 h-2.5" /> {TIER_PERKS.plus.name}
       </span>
     );
   }
@@ -511,7 +498,7 @@ export default function SubscriptionPage() {
               // second rendering of one number, not a second number.
               const compactPrice = (() => {
                 if (isFree) return { amount: "$0", suffix: null, saveChip: null };
-                const info = formatPaidTierPrices(tier as "basic" | "pro" | "plus" | "elite");
+                const info = formatPaidTierPrices(tier as "basic" | "pro" | "elite");
                 const isAnnual = billingCycle === "annual";
                 const isOnce = billingCycle === "one_time";
                 // A one-time pass costs the same as one month (TIER_PERKS.price
@@ -720,7 +707,7 @@ export default function SubscriptionPage() {
                           </>
                         );
                       }
-                      const paidTierId = tier as "basic" | "pro" | "plus" | "elite";
+                      const paidTierId = tier as "basic" | "pro" | "elite";
                       const priceInfo = formatPaidTierPrices(paidTierId);
                       const isAnnual = billingCycle === "annual";
                       const isOnce = billingCycle === "one_time";
@@ -838,7 +825,7 @@ export default function SubscriptionPage() {
                             tier the page never showed). Pro and Elite carry
                             the cue, mirroring the in-app tierConfig; Basic,
                             like there, does not. */}
-                        {(tier === "pro" || tier === "plus" || tier === "elite") && (() => {
+                        {(tier === "pro" || tier === "elite") && (() => {
                           const belowKey = CONSUMER_TIERS[CONSUMER_TIERS.indexOf(tier) - 1];
                           const belowLabel = belowKey ? TIER_PERKS[belowKey]?.name ?? belowKey : null;
                           return belowLabel ? (

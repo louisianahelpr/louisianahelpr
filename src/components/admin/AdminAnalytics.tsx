@@ -175,7 +175,6 @@ const AdminAnalytics = () => {
     totalRefunded,
     subBasic,
     subPro,
-    subPlus,
     subElite,
     subFree,
     totalSubRevenue,
@@ -379,12 +378,11 @@ const AdminAnalytics = () => {
             <span className="text-ds-11 text-primary opacity-0 group-hover:opacity-100 transition-opacity">Details →</span>
           </div>
           <p className="text-ds-24 font-bold text-foreground">${totalSubRevenue.toFixed(2)}<span className="text-ds-13 font-normal text-muted-foreground">/mo</span></p>
-          {/* Five tiers as of 2026-08-27 (Plus). grid-cols-5 keeps them on one
-              row at the admin card's width rather than orphaning Free. */}
-          <div className="grid grid-cols-5 gap-2 mt-4">
+          {/* Four tiers. grid-cols-4 keeps them on one row at the admin
+              card's width rather than orphaning Free. */}
+          <div className="grid grid-cols-4 gap-2 mt-4">
             {[
               { label: TIER_PERKS.elite.name, count: subElite, color: "bg-accent/20 text-accent" },
-              { label: TIER_PERKS.plus.name, count: subPlus, color: "bg-primary/20 text-primary" },
               { label: TIER_PERKS.pro.name, count: subPro, color: "bg-primary/10 text-primary" },
               { label: TIER_PERKS.basic.name, count: subBasic, color: "Bg-secondary Text-secondary-foreground" },
               { label: TIER_PERKS.free.name, count: subFree, color: "Bg-muted Text-muted-foreground" },
@@ -559,7 +557,6 @@ const AdminAnalytics = () => {
           <p className="text-ds-11 text-muted-foreground mt-1">Projected annual: ${(totalSubRevenue * 12).toFixed(2)}</p>
           <div className="mt-4 space-y-1.5">
             <MRRRow tier={TIER_PERKS.elite.name} count={subElite} amount={subElite * SUB_PRICE.elite} />
-            <MRRRow tier={TIER_PERKS.plus.name} count={subPlus} amount={subPlus * SUB_PRICE.plus} />
             <MRRRow tier={TIER_PERKS.pro.name} count={subPro} amount={subPro * SUB_PRICE.pro} />
             <MRRRow tier={TIER_PERKS.basic.name} count={subBasic} amount={subBasic * SUB_PRICE.basic} />
           </div>

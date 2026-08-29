@@ -41,7 +41,7 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
   const thisMonth = new Date().toISOString().slice(0, 7);
   const hasFreeProBoost =
     subActive &&
-    (subTier === "pro" || subTier === "plus") &&
+    (subTier === "pro") &&
     profile?.boost_credit_used_month !== thisMonth;
   const isSubscriber = price.free || hasFreeProBoost;
   const BOOST_PRICE = isSubscriber ? "" : formatFeeUsd(price.cents);

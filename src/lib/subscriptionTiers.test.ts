@@ -20,15 +20,14 @@ import {
 // is intentionally null and the "paid tier has a price" invariant doesn't
 // apply. TIER_PERKS.business.platformFeePercent is still the real 6% fee
 // used by the ladder / commission math and IS covered by the fee tests.
-const PAID_CONSUMER_TIERS: SubscriptionTier[] = ["basic", "pro", "plus", "elite"];
-const ALL_TIERS: SubscriptionTier[] = ["free", "basic", "pro", "plus", "elite", "business"];
+const PAID_CONSUMER_TIERS: SubscriptionTier[] = ["basic", "pro", "elite"];
+const ALL_TIERS: SubscriptionTier[] = ["free", "basic", "pro", "elite", "business"];
 
 describe("TIER_PERKS fee model", () => {
-  it("uses the documented platform fee per tier (12 / 11 / 10 / 9 / 8 / 6)", () => {
+  it("uses the documented platform fee per tier (12 / 11 / 10 / 8 / 6)", () => {
     expect(TIER_PERKS.free.platformFeePercent).toBe(12);
     expect(TIER_PERKS.basic.platformFeePercent).toBe(11);
     expect(TIER_PERKS.pro.platformFeePercent).toBe(10);
-    expect(TIER_PERKS.plus.platformFeePercent).toBe(9);
     expect(TIER_PERKS.elite.platformFeePercent).toBe(8);
     expect(TIER_PERKS.business.platformFeePercent).toBe(6);
   });
@@ -49,9 +48,6 @@ describe("TIER_PERKS fee model", () => {
       TIER_PERKS.pro.platformFeePercent,
     );
     expect(TIER_PERKS.pro.platformFeePercent).toBeGreaterThan(
-      TIER_PERKS.plus.platformFeePercent,
-    );
-    expect(TIER_PERKS.plus.platformFeePercent).toBeGreaterThan(
       TIER_PERKS.elite.platformFeePercent,
     );
     expect(TIER_PERKS.elite.platformFeePercent).toBeGreaterThan(
@@ -65,7 +61,6 @@ describe("TIER_PERKS fee model", () => {
     expect(100 - TIER_PERKS.free.platformFeePercent).toBe(88);
     expect(100 - TIER_PERKS.basic.platformFeePercent).toBe(89);
     expect(100 - TIER_PERKS.pro.platformFeePercent).toBe(90);
-    expect(100 - TIER_PERKS.plus.platformFeePercent).toBe(91);
     expect(100 - TIER_PERKS.elite.platformFeePercent).toBe(92);
     expect(100 - TIER_PERKS.business.platformFeePercent).toBe(94);
   });
@@ -80,8 +75,7 @@ describe("TIER_PERKS fee model", () => {
       expect(TIER_PERKS[tier].annualPrice!).toBeLessThan(TIER_PERKS[tier].price!);
     }
     expect(TIER_PERKS.basic.price!).toBeLessThan(TIER_PERKS.pro.price!);
-    expect(TIER_PERKS.pro.price!).toBeLessThan(TIER_PERKS.plus.price!);
-    expect(TIER_PERKS.plus.price!).toBeLessThan(TIER_PERKS.elite.price!);
+    expect(TIER_PERKS.pro.price!).toBeLessThan(TIER_PERKS.elite.price!);
   });
 
   it("Business is intentionally price:null — it is not a consumer tier", () => {
@@ -103,7 +97,6 @@ describe("TIER_PERKS fee model", () => {
     expect(TIER_PERKS.free.name).toBe("Free");
     expect(TIER_PERKS.basic.name).toBe("Basic");
     expect(TIER_PERKS.pro.name).toBe("Pro");
-    expect(TIER_PERKS.plus.name).toBe("Plus");
     expect(TIER_PERKS.elite.name).toBe("Elite");
     expect(TIER_PERKS.business.name).toBe("Business");
   });

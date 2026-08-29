@@ -16,10 +16,12 @@ import { earlyAccessDelayMs } from "./earlyAccess";
  * worth a guard rather than a comment.
  */
 const SQL = readFileSync(
-  // The LATEST migration that redefines get_open_jobs_for_map — the body that
-  // is actually live. This used to point at 20260820001000, which three later
+  // The migration that redefines get_open_jobs_for_map with the body that is
+  // actually live. This used to point at 20260820001000, which later
   // migrations had already superseded, so the guard was grading a dead file.
-  resolve(__dirname, "../../supabase/migrations/20260828031042_plus_tier_early_access.sql"),
+  // 20260831010000 carries a byte-identical CASE (see that file's header for
+  // why a lower-numbered migration is the live one), so either grades the same.
+  resolve(__dirname, "../../supabase/migrations/20260829033645_remove_plus_tier_early_access.sql"),
   "utf8",
 );
 
@@ -27,16 +29,13 @@ const SQL = readFileSync(
 function sqlEarnedMinutes(): Record<string, number> {
   const earned: Record<string, number> = {};
   const eliteBusiness = SQL.match(/WHEN tier IN \('elite', 'business'\) THEN (\d+)/);
-  const plus = SQL.match(/WHEN tier = 'plus' THEN (\d+)/);
   const pro = SQL.match(/WHEN tier = 'pro' THEN (\d+)/);
   const basic = SQL.match(/WHEN tier = 'basic' THEN (\d+)/);
   expect(eliteBusiness, "elite/business branch missing from the SQL").not.toBeNull();
-  expect(plus, "plus branch missing from the SQL").not.toBeNull();
   expect(pro, "pro branch missing from the SQL").not.toBeNull();
   expect(basic, "basic branch missing from the SQL").not.toBeNull();
   earned.elite = Number(eliteBusiness![1]);
   earned.business = Number(eliteBusiness![1]);
-  earned.plus = Number(plus![1]);
   earned.pro = Number(pro![1]);
   earned.basic = Number(basic![1]);
   return earned;

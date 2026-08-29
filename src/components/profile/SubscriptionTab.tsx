@@ -190,13 +190,13 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                 background:
                   activeTierConfig.id === "elite"
                     ? "hsl(var(--gold-warm) / 0.18)"
-                    : activeTierConfig.id === "pro" || activeTierConfig.id === "plus"
+                    : activeTierConfig.id === "pro"
                       ? "hsl(var(--burnt-sienna) / 0.14)"
                       : "hsl(var(--bark) / 0.12)",
                 color:
                   activeTierConfig.id === "elite"
                     ? "hsl(var(--gold-warm))"
-                    : activeTierConfig.id === "pro" || activeTierConfig.id === "plus"
+                    : activeTierConfig.id === "pro"
                       ? "hsl(var(--burnt-sienna))"
                       : "hsl(var(--bark))",
               }}
@@ -364,13 +364,13 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
           const accent =
             tier.id === "elite"
               ? "hsl(var(--gold-ink))"
-              : tier.id === "pro" || tier.id === "plus"
+              : tier.id === "pro"
                 ? "hsl(var(--burnt-sienna))"
                 : "hsl(var(--bark))";
           const accentSoft =
             tier.id === "elite"
               ? "hsl(var(--gold-warm) / 0.14)"
-              : tier.id === "pro" || tier.id === "plus"
+              : tier.id === "pro"
                 ? "hsl(var(--burnt-sienna) / 0.12)"
                 : "hsl(var(--bark) / 0.10)";
           return (

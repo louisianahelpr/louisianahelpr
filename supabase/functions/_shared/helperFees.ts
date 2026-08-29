@@ -23,7 +23,6 @@ export const TIER_FEE_PERCENT: Record<string, number> = {
   free: 12,
   basic: 11,
   pro: 10,
-  plus: 9,
   elite: 8,
   business: 6,
 };

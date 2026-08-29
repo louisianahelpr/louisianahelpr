@@ -254,6 +254,14 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
       return true;
     })
     .sort((a, b) => {
+      // An EXPLICIT sort choice (Highest pay / Lowest pay / Newest /
+      // Ending soon) must dominate the visible order — the list has to
+      // LOOK sorted by what the user picked. The urgent / boosted /
+      // parish / poster-tier lifts below are ranking heuristics for the
+      // default "smart" feed; layering them ahead of an explicit sort
+      // left "Highest pay" sorting only within each priority stratum,
+      // which read as the control doing nothing (2026-08-28 regression).
+      if (sortBy !== "smart") return compareJobsBySortMode(a, b, sortBy);
       const aUrgent = a.is_urgent;
       const bUrgent = b.is_urgent;
       if (aUrgent && !bUrgent) return -1;

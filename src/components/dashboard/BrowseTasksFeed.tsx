@@ -238,9 +238,17 @@ export function BrowseTasksFeed({
       })
       // Two-sided liquidity signal — float urgent jobs to the top of the
       // "Everything else" feed. Stable sort: equal-urgency rows keep the
-      // feed's existing order, so this only lifts urgent jobs.
+      // feed's existing order, so this only lifts urgent jobs. Applied
+      // ONLY under the default "smart" sort — when the user picked an
+      // explicit Sort By mode, re-lifting urgent jobs here would scramble
+      // the order useDashboardFilters just produced (e.g. a $368 urgent
+      // job jumping above higher-paying ones under "Highest pay").
       .slice()
-      .sort((a, b) => Number(b.is_urgent ?? false) - Number(a.is_urgent ?? false));
+      .sort((a, b) =>
+        filters.sortBy === "smart"
+          ? Number(b.is_urgent ?? false) - Number(a.is_urgent ?? false)
+          : 0,
+      );
     // No "Picked for you" band while filtering to saved — the user asked for
     // one specific list, and a personalised section above it is the app
     // answering a question it wasn't asked.

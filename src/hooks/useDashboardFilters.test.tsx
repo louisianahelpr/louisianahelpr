@@ -287,6 +287,28 @@ describe("useDashboardFilters — sort priority chain", () => {
     expect(result.current.filteredJobs.map((j) => j.id)).toEqual(["high", "mid", "low"]);
   });
 
+  it("an explicit sort dominates urgent/boosted/parish/poster-tier lifts (unfiltered feed + highest_pay = strictly descending budgets)", () => {
+    // Regression: with urgent + boosted + same-parish jobs in the feed,
+    // the priority lifts ran AHEAD of the user's chosen sort, so
+    // "Highest pay" only sorted within each priority stratum and the
+    // list never looked sorted. Explicit sorts must win outright.
+    const jobs = [
+      makeJob({ id: "b119", budget: 119, is_urgent: true }),
+      makeJob({ id: "b368", budget: 368 }),
+      makeJob({ id: "b74", budget: 74, isBoosted: true }),
+      makeJob({ id: "b239", budget: 239, parish: "Jefferson" }),
+      makeJob({ id: "b175", budget: 175, is_urgent: true, isBoosted: true }),
+      makeJob({ id: "b61", budget: 61, posterSubscriptionTier: "elite" }),
+    ];
+    const { result } = setup(jobs, { profile: baseProfile, helprTier: "basic" });
+    act(() => result.current.setSortBy("highest_pay"));
+    const budgets = result.current.filteredJobs.map((j) => j.budget);
+    expect(budgets).toEqual([368, 239, 175, 119, 74, 61]);
+    for (let i = 1; i < budgets.length; i++) {
+      expect(budgets[i]).toBeLessThanOrEqual(budgets[i - 1]);
+    }
+  });
+
   it("sortBy='lowest_pay' orders by budget ascending", () => {
     const jobs = [
       makeJob({ id: "low", budget: 30 }),

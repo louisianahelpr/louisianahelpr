@@ -13,6 +13,9 @@ import { jobStatusColorClasses } from "@/lib/statusColors";
 import { jobStatusLabel } from "@/lib/statusLabels";
 import { todayLocalISO } from "@/lib/dateUtils";
 import { formatPrice } from "@/lib/format";
+import { helperTakeHomeDollars } from "@/lib/helperEarnings";
+import { tierFeePercent } from "@/lib/subscriptionTiers";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { formatTime12 } from "@/components/TimePickerSelect";
 import { inProgressBadgeTarget } from "@/components/dashboard/DashboardInProgressBadge";
 import { bucketPostedJob } from "@/pages/activity/activityFilters";
@@ -64,7 +67,17 @@ function scheduleRowTarget(job: Job, isPosted: boolean): { to: string; destinati
   return inProgressBadgeTarget(job);
 }
 
-const ScheduleCard = ({ job, isPosted }: { job: Job; isPosted: boolean }) => {
+const ScheduleCard = ({
+  job,
+  isPosted,
+  viewerFeePercent,
+}: {
+  job: Job;
+  isPosted: boolean;
+  /** The viewer's live tier rate, used only when the job carries no
+      trustworthy stamped fee — see `helperEarnings.isSettledForDisplay`. */
+  viewerFeePercent: number;
+}) => {
   const navigate = useNavigate();
   const { to, destination } = scheduleRowTarget(job, isPosted);
   const time = formatTime12(job.start_time);
@@ -97,7 +110,19 @@ const ScheduleCard = ({ job, isPosted }: { job: Job; isPosted: boolean }) => {
             {/* A currency symbol is typography, not an icon: the "$" belongs
                 in the same text node as the digits. A DollarSign glyph beside
                 a string that already carried one rendered as "$ $200". */}
-            <span className="tabular-nums">${formatPrice(job.budget)}</span>
+            {/* Whose money is this? On a job you POSTED the budget is what you
+                pay, so the raw figure is right. On a job you were ASSIGNED it
+                is not your money — your take-home is the budget minus the
+                platform fee, and that is the number every other helper-facing
+                surface shows (My Jobs, Earnings & Payouts, Work Record). This
+                row used to print the raw budget either way, so the same job
+                read $85 here and $74 on the job card, in identical type.
+                The whole job row is passed so `payment_status` comes with it:
+                these are LIVE jobs, so the escrow-time stamp must not be
+                trusted over the viewer's tier. */}
+            <span className="tabular-nums">
+              ${formatPrice(isPosted ? job.budget : helperTakeHomeDollars(job, viewerFeePercent))}
+            </span>
             <span className="flex items-center gap-1"><Clock className="w-3 h-3 shrink-0" /> {time}</span>
           </div>
         </div>
@@ -121,6 +146,14 @@ interface ScheduleTabProps {
 }
 
 export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack, hideHeader = false }: ScheduleTabProps) {
+  // The viewer's own tier rate — the fallback used for assigned jobs whose
+  // stamped fee isn't yet authoritative. Resolved once here rather than per
+  // card. Same ladder Earnings & Payouts and Work Record use.
+  const { profile: viewerProfile } = useCurrentUser();
+  const viewerFeePercent = tierFeePercent(
+    viewerProfile?.subscription_tier,
+    viewerProfile?.subscription_expires_at ?? null,
+  );
   const navigate = useNavigate();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -402,7 +435,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
                 </div>
               ) : (
                 selectedJobs.map((job) => (
-                  <ScheduleCard key={job.id} job={job} isPosted={postedJobs.some((j) => j.id === job.id)} />
+                  <ScheduleCard key={job.id} job={job} isPosted={postedJobs.some((j) => j.id === job.id)} viewerFeePercent={viewerFeePercent} />
                 ))
               )}
             </div>
@@ -463,7 +496,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
                 </div>
               ) : (
                 upcomingJobs.map((job) => (
-                  <ScheduleCard key={job.id} job={job} isPosted={postedJobs.some((j) => j.id === job.id)} />
+                  <ScheduleCard key={job.id} job={job} isPosted={postedJobs.some((j) => j.id === job.id)} viewerFeePercent={viewerFeePercent} />
                 ))
               )}
             </div>

@@ -55,6 +55,16 @@ export type Conversation = {
   /** True when the current user posted the job — drives poster-specific
       quick reply set in the chat composer. */
   viewerIsPoster?: boolean;
+  /** True when the current user is this job's assigned OR offered helper
+      (`jobs.helper_id` or `jobs.offered_to_helper_id`) — mirrors the second
+      arm of `public.can_message_in_job`, the RLS check on the messages
+      INSERT policy. A PENDING applicant (neither offered nor assigned) is
+      NOT covered by this and stays composer-locked until the poster
+      messages first — that half of the rule is real and server-enforced.
+      Drives ChatView's `composerLocked`: an accepted/offered helper must be
+      able to message the poster even before the poster has said anything,
+      e.g. once already en route to a job. */
+  viewerIsAssignedOrOfferedHelper?: boolean;
   lastMessage: string;
   lastAt: string;
   unread: number;

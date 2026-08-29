@@ -217,12 +217,22 @@ export function ChatView({
     chatContainerRef,
   });
 
-  // Poster-first rule: an applicant cannot open a job conversation — only
-  // the poster may send the first message (stops posters being flooded by
-  // applicants). The applicant's composer stays locked until at least one
-  // inbound message from the poster exists. The only other participant in
-  // a job thread is the poster, so any message we didn't send is theirs.
-  const isApplicant = !activeConvo.viewerIsPoster;
+  // Poster-first rule: a genuinely PENDING applicant cannot open a job
+  // conversation — only the poster may send the first message (stops
+  // posters being flooded by every applicant on a job). That applicant's
+  // composer stays locked until at least one inbound message from the
+  // poster exists. The only other participant in a job thread is the
+  // poster, so any message we didn't send is theirs.
+  //
+  // This rule does NOT apply once the helper has been offered the job or
+  // is already assigned to it — `public.can_message_in_job` (the WITH CHECK
+  // on the messages INSERT policy) explicitly permits the poster, the
+  // helper the job is offered to or assigned to, AND poster-messaged-first.
+  // The client used to only implement arms 1 and 3, locking out arm 2
+  // entirely — an accepted/offered helper (e.g. already `helper_on_the_way`
+  // to the job) could not message the poster back until the poster spoke
+  // first, on a funded and sometimes in-progress job. F-4, 2026-08-27.
+  const isApplicant = !activeConvo.viewerIsPoster && !activeConvo.viewerIsAssignedOrOfferedHelper;
   const posterHasMessaged = messages.some((m) => m.sender_id !== userId);
   const composerLocked = isApplicant && !posterHasMessaged;
 
@@ -323,6 +333,7 @@ export function ChatView({
             timeline={timeline}
             userId={userId}
             activeConvo={activeConvo}
+            composerLocked={composerLocked}
             lastOwnMessageId={lastOwnMessageId}
             hasMoreMessages={hasMoreMessages}
             loadingMore={loadingMore}

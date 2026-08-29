@@ -74,10 +74,19 @@ export function ChatComposer({
   onCancelReply?: () => void;
 }) {
   if (composerLocked) {
-    /* Poster-first lock — the applicant waits for the poster to
-       open the conversation. Replaces chips + quick replies +
-       composer so there's no disabled control to fight with. The
-       backend RLS policy enforces the same rule server-side. */
+    /* Poster-first lock — a genuinely PENDING applicant waits for the
+       poster to open the conversation. Replaces chips + quick replies +
+       composer so there's no disabled control to fight with.
+       `composerLocked` (ChatView) mirrors this server-side: the backend
+       RLS check, `public.can_message_in_job`, ALSO permits the helper
+       this job is offered to or already assigned to (not just the
+       poster and poster-messaged-first) — an offered/assigned helper is
+       never locked here, because `activeConvo.viewerIsAssignedOrOfferedHelper`
+       already excluded them upstream. This card only ever renders for the
+       arm the backend still blocks: a helper who has neither been offered
+       the job nor assigned to it. F-4, 2026-08-27 — this comment
+       previously claimed the client and backend rules matched when they
+       didn't; they now do. */
     return (
       <div
         className="pt-2 pb-3 glass-dock sticky bottom-0"

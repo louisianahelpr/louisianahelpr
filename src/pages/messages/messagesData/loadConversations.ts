@@ -57,13 +57,27 @@ function indexProfiles(
   }> | null,
 ): Map<string, ResolvedProfile> {
   const byId = new Map<string, ResolvedProfile>();
+  // Two passes, not one, and the order is load-bearing. `profiles.id` and
+  // `profiles.user_id` are different key spaces over the same table, so one
+  // uuid can be person A's user_id AND person B's profile_id at the same
+  // time (verified in prod: F-1, Eli Thibodeaux's profiles.id collided with
+  // Audit Helper's user_id). A single pass that writes both keys per row, in
+  // row order, lets whichever row happens to come later in the RPC result
+  // silently overwrite a correct user_id-keyed entry with an unrelated
+  // person's profile_id-keyed entry — same failure shape as the vetting-
+  // screen bug, just in this file's own lookup map instead of
+  // useUserProfileData's blind `data?.[0]`.
+  //
+  // Pass 1 claims every user_id key first — the strong, unambiguous match.
+  // Pass 2 only fills profile_id keys that pass 1 left empty, so a
+  // profile_id match can never clobber a user_id match for the same key.
   for (const p of rows ?? []) {
-    const resolved: ResolvedProfile = {
-      name: formatName(p.full_name),
-      avatarUrl: p.avatar_url ?? null,
-    };
-    if (p.user_id) byId.set(p.user_id, resolved);
-    if (p.profile_id) byId.set(p.profile_id, resolved);
+    if (!p.user_id) continue;
+    byId.set(p.user_id, { name: formatName(p.full_name), avatarUrl: p.avatar_url ?? null });
+  }
+  for (const p of rows ?? []) {
+    if (!p.profile_id || byId.has(p.profile_id)) continue;
+    byId.set(p.profile_id, { name: formatName(p.full_name), avatarUrl: p.avatar_url ?? null });
   }
   return byId;
 }
@@ -170,7 +184,7 @@ export async function fetchConversations(
   // degrade silently when the function isn't deployed (PGRST202).
   const [profilesRes, jobsRes, thumbUrlMap, mutedMap, lastActiveRes] = await Promise.all([
     supabase.rpc("get_safe_profiles", { user_ids: otherIds }),
-    supabase.from("jobs").select("id, title, status, customer_id").in("id", jobIds),
+    supabase.from("jobs").select("id, title, status, customer_id, helper_id, offered_to_helper_id").in("id", jobIds),
     getMessageAttachmentSignedUrls(imageThumbPaths),
     getMutedThreadMap(uid, mutePairs),
     (supabase.rpc as any)("get_user_last_active", { user_ids: otherIds }),
@@ -215,7 +229,7 @@ export async function fetchConversations(
       tags: { source: "loadConversations.jobs" },
     });
   }
-  const jobMap = new Map(jobsRes.data?.map((j) => [j.id, { title: j.title, status: j.status, customer_id: j.customer_id }]) || []);
+  const jobMap = new Map(jobsRes.data?.map((j) => [j.id, { title: j.title, status: j.status, customer_id: j.customer_id, helper_id: j.helper_id, offered_to_helper_id: j.offered_to_helper_id }]) || []);
 
   const convos: Conversation[] = [...convoMap.entries()].map(([, v]) => {
     const last = v.messages[0];
@@ -237,6 +251,12 @@ export async function fetchConversations(
     // Track whether the current user is the poster on this job so the
     // chat can render poster-specific quick replies (vs helper-specific).
     viewerIsPoster: jobMap.get(v.jobId)?.customer_id === uid,
+    // Mirrors `can_message_in_job`'s second arm exactly: the helper this
+    // job is offered to, OR already assigned to. See the field doc on
+    // `Conversation.viewerIsAssignedOrOfferedHelper` for why this exists.
+    viewerIsAssignedOrOfferedHelper:
+      jobMap.get(v.jobId)?.offered_to_helper_id === uid ||
+      jobMap.get(v.jobId)?.helper_id === uid,
     lastMessage: last.content,
     lastAt: last.created_at,
     unread: v.messages.filter((m) => m.receiver_id === uid && !m.read).length,
@@ -287,7 +307,7 @@ export async function buildDeepLinkPlaceholder(
   // placeholder thread so the user can start messaging.
   const [profileRes, jobRes] = await Promise.all([
     supabase.rpc("get_safe_profiles", { user_ids: [deepLinkUserId] }),
-    supabase.from("jobs").select("id, title, status, customer_id").eq("id", deepLinkJobId).maybeSingle(),
+    supabase.from("jobs").select("id, title, status, customer_id, helper_id, offered_to_helper_id").eq("id", deepLinkJobId).maybeSingle(),
   ]);
 
   // A FAILED read is not the same fact as an ABSENT row, and the dead-thread
@@ -331,6 +351,8 @@ export async function buildDeepLinkPlaceholder(
     jobId: deepLinkJobId,
     jobStatus: jobRes.data?.status ?? null,
     viewerIsPoster: jobRes.data?.customer_id === uid,
+    viewerIsAssignedOrOfferedHelper:
+      jobRes.data?.offered_to_helper_id === uid || jobRes.data?.helper_id === uid,
     lastMessage: "",
     lastAt: new Date().toISOString(),
     unread: 0,

@@ -56,6 +56,7 @@ export function ChatTimeline({
   timeline,
   userId,
   activeConvo,
+  composerLocked = false,
   lastOwnMessageId,
   hasMoreMessages,
   loadingMore,
@@ -81,6 +82,13 @@ export function ChatTimeline({
   /** px the timeline is dragged left, from useTimestampReveal. */
   reveal?: number;
   activeConvo: Conversation;
+  /** True while ChatView's poster-first lock is in effect for THIS viewer
+      (a genuinely pending applicant, not yet offered or assigned). When
+      true, the empty state below must not tell the viewer to "Say hello" —
+      they cannot: the composer dock renders the lock card instead of an
+      input. Defaults to false so every other ChatTimeline caller/test is
+      unaffected. F-4, 2026-08-27. */
+  composerLocked?: boolean;
   lastOwnMessageId: string | null;
   hasMoreMessages: boolean;
   loadingMore: boolean;
@@ -181,13 +189,15 @@ export function ChatTimeline({
               className="font-display italic font-bold text-ds-17"
               style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
             >
-              Say hello.
+              {composerLocked ? "No messages yet." : "Say hello."}
             </p>
             <p
               className="font-serif italic text-ds-13 max-w-[260px]"
               style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
-              Send the first message to get the job moving.
+              {composerLocked
+                ? "The poster will reach out here once they're ready."
+                : "Send the first message to get the job moving."}
             </p>
           </div>
         </div>

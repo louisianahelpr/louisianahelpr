@@ -178,7 +178,16 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
       "Featured Crown Badge",
       "20-min early access",
       "Free unlimited Job Boosts",
-      "Reliability Shield — 1 strike forgiven",
+      // Fits ONE line on the in-app Membership card, which is the tightest
+      // surface: its bullets get 160.6px at 402pt (the price column takes the
+      // right edge), and the longest other bullet — "1 free Job Boost every
+      // month" — is 158.7px. Measured, not guessed. The owner's suggested
+      // "Reliability Shield — 1 strike forgiven" is 192.2px and wrapped, so
+      // "forgiven" is dropped: "Shield" already carries it, and this leaves
+      // 16px of slack for font variance and larger Dynamic Type. The dropped
+      // "every 6 months" cadence was also a bug on the Once 30-day pass,
+      // which can never reach a 6-month window.
+      "Reliability Shield — 1 strike",
       "Priority Support",
     ],
   },

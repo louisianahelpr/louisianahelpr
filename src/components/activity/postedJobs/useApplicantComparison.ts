@@ -55,10 +55,21 @@ export function useApplicantComparison({
       // Map EnrichedApplication fields onto ApplicantData — pass null
       // for fields the current query doesn't return so the scoring
       // function skips those dimensions gracefully.
-      const tier = app.profiles?.subscription_tier;
-      // subscription_tier ("elite"=3, "pro"=2, "basic"=1, else 0) is
-      // the closest proxy for credentialTier available without a migration.
-      const credentialTier = tier === "elite" ? 3 : tier === "pro" ? 2 : tier === "basic" ? 1 : 0;
+      // credentialTier must come from VERIFIED credentials, never from the
+      // paid membership tier. The old subscription_tier proxy made
+      // scoreApplicant emit "Licensed" for every Pro and "Insured" for every
+      // Elite subscriber — a fabricated safety claim on the hiring surface
+      // (an Elite helper with license_status='none' rendered "Licensed ·
+      // Insured"). get_safe_profiles returns the real credential fields, and
+      // they only count when admin-verified, matching CredentialBadge's gate.
+      const p = app.profiles;
+      const licenseVerified = !!p?.is_licensed && p?.license_status === "verified";
+      const insuranceVerified = !!p?.is_insured && p?.insurance_status === "verified";
+      const credentialTier =
+        licenseVerified && insuranceVerified ? 3
+        : licenseVerified ? 2
+        : insuranceVerified ? 1 // score credit, but no "Licensed" signal
+        : 0;
       const neighborCount = neighborCountMap.get(app.helper_id) ?? 0;
       const data: ApplicantData = {
         userId: app.helper_id,

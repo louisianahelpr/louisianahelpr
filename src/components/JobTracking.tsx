@@ -1136,7 +1136,17 @@ export function JobTracking({
             : false;
         const lockMessage = isLocked
           ? startAt
-            ? `Actions unlock at ${new Date(startAt.getTime() - UNLOCK_BEFORE_MS).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}${today < jobDay! ? ` on ${formatShortDate(jobDay!)}` : ""}`
+            ? (() => {
+                // Date-stamp the UNLOCK moment, not the job's day — for an
+                // early-morning start the 2h-before unlock lands on the
+                // PREVIOUS calendar day (a 12:00 AM Aug 29 job unlocks
+                // 10:00 PM Aug 28; the old string said "on Aug 29").
+                const unlockAt = new Date(startAt.getTime() - UNLOCK_BEFORE_MS);
+                const unlockDay = new Date(unlockAt);
+                unlockDay.setHours(0, 0, 0, 0);
+                const dateSuffix = today < unlockDay ? ` on ${formatShortDate(unlockDay)}` : "";
+                return `Actions unlock at ${unlockAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}${dateSuffix}`;
+              })()
             : `Actions available on ${formatShortDate(jobDay!)}`
           : null;
 

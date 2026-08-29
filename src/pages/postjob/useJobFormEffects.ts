@@ -317,7 +317,7 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
 
   // Auto-save draft on field changes (debounced)
   const autoSave = useCallback(() => {
-    const location = `${streetAddress.trim()}, ${city.trim()}, ${addrState.trim()} ${zipCode.trim()}`;
+    const location = `${streetAddress.trim()}, ${city.trim()}, ${addrState.trim()} ${zipCode.replace(/\D/g, "").slice(0, 5)}`;
     if (title || description || streetAddress || budget) {
       saveDraft({ title, description, category, location, dateNeeded, startTime, estimatedHours, budget, specialRequirements, isRecurring, recurrenceInterval, recurrenceEndDate, isFlexibleSchedule, isUrgent, urgentFee, isGroupJob, helpersNeeded, credentialTier, includeMaterials, materialsNote, offerToHelperId });
     }

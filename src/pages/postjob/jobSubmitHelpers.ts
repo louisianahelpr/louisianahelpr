@@ -162,7 +162,10 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
     // category state is a plain string; the jobs column is the
     // job_category enum — cast at the boundary.
     category: category as Database["public"]["Enums"]["job_category"],
-    location: `${streetAddress.trim()}, ${city.trim()}, ${addrState.trim()} ${zipCode.trim()}`,
+    // Normalize the zip inside the human-readable location too — the raw
+    // field allows ZIP+4 length, so pasting/typing extra digits produced
+    // "LA 7050170501" on every card that renders `location`.
+    location: `${streetAddress.trim()}, ${city.trim()}, ${addrState.trim()} ${zipCode.replace(/\D/g, "").slice(0, 5)}`,
     zip_code: zipCode.replace(/\D/g, "").slice(0, 5) || null,
     parish: parish,
     date_needed: dateNeeded,

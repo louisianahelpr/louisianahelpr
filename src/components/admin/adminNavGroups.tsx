@@ -22,6 +22,7 @@ import {
   ScrollText,
   Settings,
   ShieldAlert,
+  ShieldCheck,
   Users,
 } from "lucide-react";
 
@@ -62,14 +63,18 @@ export const adminNavGroups: { title: string; items: AdminNavItem[] }[] = [
     // someone is waiting on a decision in each — so they earn their own heading
     // rather than being rows lost inside a nine-row "Operations" list.
     //
-    // "Identity Verify" was removed 2026-08-27. Nobody ever worked it: the
-    // owner confirmed the ID uploads it listed are not reviewed, yet its
-    // existence — and its manual approve button — implied a human check that
-    // never happened, and stamped `idv_status = 'verified'` on the strength of
-    // it. Identity is now Stripe's answer alone (profiles.stripe_identity_verified).
-    // The helper-facing UPLOAD flow is deliberately untouched.
+    // "Identity Verify" was removed 2026-08-27 because it listed EVERY ID
+    // upload and offered a manual approve on a review nobody performed —
+    // a human stamp with no human behind it, feeding a badge strangers trust.
+    //
+    // "Identity Review" (2026-08-29) is not that screen coming back. It lists
+    // only `manual_review` and `failed` — people Stripe BILLED for their one
+    // attempt and could not verify — and exists because 2f650f35 stopped
+    // making that outcome a permanent posting ban. Stripe still owns the pass;
+    // this owns the appeal, and its approvals are badged "Admin Verified".
     title: "Queues",
     items: [
+      { id: "idvreview", label: "Identity Review", icon: ShieldCheck },
       { id: "credentials", label: "License & Insurance", icon: FileCheck },
       { id: "exceptions", label: "Exception Queue", icon: ClipboardList },
     ],

@@ -44,10 +44,19 @@ export const statusBadge = (profile: Profile) => {
 // Shown for all users since IDV is required before accepting any job.
 export const stripeBadge = (profile: Profile) => {
   const s = profile.idv_status;
-  if (s === "verified" || s === "approved" || profile.legacy_manual_review) {
+  // An admin's manual approval is NOT Stripe's answer, and labelling it
+  // "Stripe Verified" was the exact conflation that got the old ID queue
+  // retired. Name who actually made the call.
+  if (profile.legacy_manual_review) {
+    return <Badge className="bg-primary/10 text-primary border-primary/20 text-ds-10 gap-0.5"><ShieldCheck className="w-2.5 h-2.5" />Admin Verified</Badge>;
+  }
+  if (s === "verified") {
     return <Badge className="bg-primary/10 text-primary border-primary/20 text-ds-10 gap-0.5"><ShieldCheck className="w-2.5 h-2.5" />Stripe Verified</Badge>;
   }
-  if (s === "manual_review" || s === "failed" || s === "requires_input" || s === "action_needed") {
+  // Only the values profiles_idv_status_check actually permits. "approved",
+  // "requires_input" and "action_needed" were listed here and are all
+  // unreachable — the constraint rejects every one of them.
+  if (s === "manual_review" || s === "failed") {
     return <Badge className="bg-accent/20 text-accent border-accent/30 text-ds-10 gap-0.5"><ShieldAlert className="w-2.5 h-2.5" />Stripe Flagged</Badge>;
   }
   return <Badge variant="outline" className="text-muted-foreground text-ds-10 gap-0.5"><ShieldAlert className="w-2.5 h-2.5" />ID Not Submitted</Badge>;

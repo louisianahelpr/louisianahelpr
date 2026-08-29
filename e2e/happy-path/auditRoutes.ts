@@ -316,7 +316,11 @@ export const ADMIN_VIEWS = [
   // was redundant). They are out of this list because they are out of the app —
   // /admin coerces their old deep links to home now, so sweeping them would
   // just be re-testing the dashboard under two extra names.
-  "tiers", "idv", "marketing", "credentials",
+  // "idv" was left behind here when the old ID queue was deleted (ab5817de),
+  // so the sweep spent two days visiting a view that no longer existed and
+  // silently grading the dashboard fallback instead. "idvreview" is the
+  // narrow manual_review/failed appeal queue that replaced it (2026-08-29).
+  "tiers", "idvreview", "marketing", "credentials",
   "exceptions",
   // banreview — the queue the message-violation ladder escalates into now that
   // a permanent ban is a person's decision instead of something the offender's

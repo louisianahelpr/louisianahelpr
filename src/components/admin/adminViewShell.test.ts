@@ -96,7 +96,7 @@ describe("Admin views share one shell", () => {
   const ADOPTED = [
     "AdminAuditLog", "AdminBroadcasts", "AdminCredentialQueue", "AdminExceptionQueue",
     "AdminExport", "AdminFraudDashboard", "AdminHealth", "AdminHelperTiers",
-    "AdminMarketing", "AdminNotificationLogs", "AdminNotifications",
+    "AdminIDVReview", "AdminMarketing", "AdminNotificationLogs", "AdminNotifications",
     "AdminPayoutBatches", "AdminReferrals", "AdminReports", "AdminSubscriptions",
     "AdminSupport",
   ];

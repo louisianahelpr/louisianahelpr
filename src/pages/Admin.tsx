@@ -37,11 +37,12 @@ const AdminPayoutBatches = lazy(() => import("@/components/admin/AdminPayoutBatc
 const AdminHelperTiers = lazy(() => import("@/components/admin/AdminHelperTiers"));
 const AdminNotificationLogs = lazy(() => import("@/components/admin/AdminNotificationLogs"));
 const AdminMarketing = lazy(() => import("@/components/admin/AdminMarketing"));
+const AdminIDVReview = lazy(() => import("@/components/admin/AdminIDVReview"));
 const AdminCredentialQueue = lazy(() => import("@/components/admin/AdminCredentialQueue"));
 const AdminExceptionQueue = lazy(() => import("@/components/admin/AdminExceptionQueue"));
 const AdminBanReview = lazy(() => import("@/components/admin/AdminBanReview"));
 
-type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "notiflogs" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "payouts" | "tiers" | "marketing" | "credentials" | "exceptions" | "banreview";
+type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "notiflogs" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "payouts" | "tiers" | "marketing" | "idvreview" | "credentials" | "exceptions" | "banreview";
 
 import { safeStorage } from "@/lib/safeStorage";
 import { adminNavGroups } from "@/components/admin/adminNavGroups";
@@ -67,6 +68,7 @@ const VIEW_LABELS: Record<View, string> = {
     referrals: "Referrals", subscriptions: "Subscriptions", fraud: "Fraud",
     audit: "Audit Log", health: "Health", export: "Export",
     payouts: "Payout Batches", tiers: "Helpr Tiers", marketing: "Marketing",
+    idvreview: "Identity Review",
     credentials: "License & Insurance",
     exceptions: "Exception Queue",
     banreview: "Ban Review",
@@ -439,6 +441,7 @@ const Admin = () => {
       case "export": return <AdminExport />;
       case "payouts": return <AdminPayoutBatches />;
       case "tiers": return <AdminHelperTiers />;
+      case "idvreview": return <AdminIDVReview />;
       case "credentials": return <AdminCredentialQueue />;
       case "exceptions": return <AdminExceptionQueue />;
       // The human half of the message-scanner ladder — deep-linked from the

@@ -20,9 +20,7 @@ const AUTH_PREFIXES = [
   // shares their prefix. They belong to the signed-in app chrome, so the
   // desktop left rail must own their navigation too — otherwise the page
   // renders with no rail and the #root inset never applies, floating the
-  // content full-bleed instead of to the right of the rail. NOTE: /family is
-  // deliberately excluded — its public /family/accept/:token invite sub-route
-  // shares the prefix and would surface the authed rail to logged-out invitees.
+  // content full-bleed instead of to the right of the rail.
   "/gift-card", "/str-settings", "/home-history", "/work-record",
   "/benefits", "/pets",
   // /auto-tip was the one strictly-authed settings page missing from this
@@ -43,12 +41,6 @@ const AUTH_PREFIXES = [
   // #root inset keyed off it — flicker off for a frame before /profile
   // turns them back on.
   "/data-rights",
-  // /family DOES get the authed desktop rail so wayfinding persists from
-  // /dashboard → /family instead of dropping the rail entirely. The
-  // public invite sub-route /family/accept/:token must still surface the
-  // marketing nav (logged-out invitees), so it's carved out below via
-  // AUTH_PREFIX_EXCLUSIONS.
-  "/family",
   // NOTE: /subscription is deliberately NOT in this list — it's a
   // marketing page (like /help, /legal), rendered inside
   // PublicLayout with the marketing Navbar + Footer + editorial hero.
@@ -69,10 +61,8 @@ const AUTH_PREFIXES = [
 ];
 
 // Path prefixes that MUST NOT get the rail even though they'd otherwise
-// match an AUTH_PREFIXES entry. Currently just /family/accept — a public
-// invite acceptance flow that logged-out visitors can hit; showing them
-// the authed rail would be a wayfinding lie.
-const AUTH_PREFIX_EXCLUSIONS = ["/family/accept"];
+// match an AUTH_PREFIXES entry.
+const AUTH_PREFIX_EXCLUSIONS: string[] = [];
 
 // `/admin` is NOT here any more. It was, back when the admin console rendered
 // its own top bar and its own left rail — a self-contained shell that did not

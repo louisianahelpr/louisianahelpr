@@ -70,7 +70,6 @@ const DOCUMENT_SCROLL_ROUTES = [
   "/gift-card",       // Gift Card — long-form document-scroll
   "/subscription", // Subscription tiers — long-form min-h-screen document-scroll
   "/str-settings", // Rental host automation — long-form min-h-screen document-scroll
-  "/family",      // Family & care dashboard + accept-invite (min-h-screen document-scroll)
   "/pets",        // My Pets — split-column desktop, document-scroll wrapper
   "/home-history", // HomeHistory (PageHeader + min-h-screen document-scroll)
   "/work-record",  // WorkRecord (PageHeader + min-h-screen document-scroll)

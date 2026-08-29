@@ -260,42 +260,6 @@ export type Database = {
         }
         Relationships: []
       }
-      care_relationships: {
-        Row: {
-          care_recipient_id: string
-          caregiver_id: string
-          created_at: string
-          id: string
-          invite_token: string | null
-          invite_token_expires_at: string | null
-          permissions: string[]
-          relationship: string
-          status: string
-        }
-        Insert: {
-          care_recipient_id: string
-          caregiver_id: string
-          created_at?: string
-          id?: string
-          invite_token?: string | null
-          invite_token_expires_at?: string | null
-          permissions?: string[]
-          relationship: string
-          status?: string
-        }
-        Update: {
-          care_recipient_id?: string
-          caregiver_id?: string
-          created_at?: string
-          id?: string
-          invite_token?: string | null
-          invite_token_expires_at?: string | null
-          permissions?: string[]
-          relationship?: string
-          status?: string
-        }
-        Relationships: []
-      }
       community_post_likes: {
         Row: {
           post_id: string

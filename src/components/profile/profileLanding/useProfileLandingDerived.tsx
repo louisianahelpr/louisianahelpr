@@ -1,12 +1,11 @@
 import {
-  Shield, ShieldAlert, Bell, Users, PawPrint, ClipboardList,
+  Shield, ShieldAlert, Bell, PawPrint, ClipboardList,
   CalendarDays, Heart, ShieldCheck, Home, Star, Gift, Coins, UserPlus,
   TrendingUp, Crown, FileText, Gavel, HelpCircle,
   AlertTriangle, Type, Clock,
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import type { MenuItem, Profile } from "./types";
-import { FAMILY_ENABLED } from "@/config/familyEnabled";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
 
 interface UseProfileLandingDerivedArgs {
@@ -244,22 +243,6 @@ export function useProfileLandingDerived({
           desc: "Color mode & Senior mode",
           tint: SECTION_TINT.account,
         },
-        /* Family & Care is behind FAMILY_ENABLED (off 2026-08-23, owner: "it
-           seems pointless — you literally just post the job on their behalf").
-           Spread rather than a ternary so the row leaves no empty slot in the
-           list when the flag is false. */
-        ...(FAMILY_ENABLED
-          ? [
-              {
-                key: "family",
-                label: "Family & Care",
-                icon: <Users className="w-5 h-5" />,
-                desc: "Manage jobs for a family member",
-                tint: SECTION_TINT.account,
-                href: "/family",
-              },
-            ]
-          : []),
         {
           key: "pets",
           label: "My Pets",

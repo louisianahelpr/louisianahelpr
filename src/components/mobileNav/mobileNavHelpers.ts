@@ -50,7 +50,7 @@ export const rightItems = [
 export const authPages = ["/dashboard", "/activity", "/my-posts", "/my-jobs", "/post-job", "/profile", "/messages", "/support", "/schedule", "/availability", "/user", "/earnings", "/jobs", "/browse", "/account-pending", "/saved-helpers",
   // Standalone settings sub-pages keep the bottom tab bar so they share the
   // same chrome as the Profile-tab settings (Notifications, Earnings, etc.).
-  "/pets", "/subscription", "/home-history", "/work-record", "/gift-card", "/benefits", "/family", "/wrapped", "/str-settings", "/help", "/data-rights"];
+  "/pets", "/subscription", "/home-history", "/work-record", "/gift-card", "/benefits", "/wrapped", "/str-settings", "/help", "/data-rights"];
 
 // /admin is a distinct console shell (its own full-height layout, header,
 // back button, and logout) — the consumer Posts/Jobs/Messages/Profile bar

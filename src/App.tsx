@@ -61,7 +61,6 @@ const MobileNav = lazy(() => import("./components/MobileNav"));
 const DesktopSidebarNav = lazy(() => import("./components/DesktopSidebarNav"));
 const DesktopTopNav = lazy(() => import("./components/DesktopTopNav"));
 import { SidePanelProvider } from "./components/sidePanelOpen";
-import { FAMILY_ENABLED } from "@/config/familyEnabled";
 const PermissionRationaleDialog = lazy(() =>
   import("@/components/PermissionRationaleDialog").then((m) => ({ default: m.PermissionRationaleDialog }))
 );
@@ -114,8 +113,6 @@ const BenefitsPage = lazy(() => import("./pages/BenefitsPage"));
 
 // Lazy load less-critical global components
 
-const FamilyDashboard = lazy(() => import("./pages/FamilyDashboard"));
-const FamilyAcceptPage = lazy(() => import("./pages/FamilyAcceptPage"));
 
 const StrikeBanner = lazy(() => import("./components/StrikeBanner"));
 
@@ -282,11 +279,6 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/gift-card" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PayItForward /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* Legacy /pay-it-forward → /gift-card (feature renamed). */}
       <Route path="/pay-it-forward" element={<Navigate to="/gift-card" replace />} />
-      {/* Family & Care — see src/config/familyEnabled.ts. Both routes go
-          together: with the dashboard gone, an invite link would land somebody
-          on a flow whose destination does not exist. */}
-      {FAMILY_ENABLED && <Route path="/family" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><FamilyDashboard /></ProtectedRoute>)}</RouteErrorBoundary>} />}
-      {FAMILY_ENABLED && <Route path="/family/accept/:token" element={<RouteErrorBoundary>{routeEl(<PageTransition><FamilyAcceptPage /></PageTransition>)}</RouteErrorBoundary>} />}
       {/* /analytics rendered the SAME body as the Earnings tab under a
           different title — an orphan route kept for deep links, and a second
           screen for one subject. It redirects now, so the bookmarks keep

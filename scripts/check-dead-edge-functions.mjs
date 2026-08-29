@@ -29,6 +29,7 @@ const FUNCTIONS_DIR = join(root, "supabase/functions");
  * feature-flagged work that looks unreferenced but is not.
  */
 const KNOWN_UNREFERENCED = {
+  "helpr-pass-wallet": "Apple/Google Wallet scaffold — not wired to client until Pass Type cert is provisioned",
 };
 
 const SEARCH_ROOTS = ["src", "e2e", "scripts", ".github", "supabase/migrations", "supabase/config.toml"];

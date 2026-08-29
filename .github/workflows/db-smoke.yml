@@ -384,7 +384,11 @@ jobs:
           BEGIN
             INSERT INTO auth.users (id, email) VALUES (non_admin_id, 'rls-nonadmin-smoke@helpr.test');
             INSERT INTO auth.users (id, email) VALUES (admin_id, 'rls-admin-smoke@helpr.test');
+            -- prevent_admin_role_self_grant() only allows service_role; SET LOCAL
+            -- scopes the role to this transaction so subsequent cleanup sees postgres.
+            EXECUTE 'SET LOCAL ROLE service_role';
             INSERT INTO public.user_roles (user_id, role) VALUES (admin_id, 'admin');
+            EXECUTE 'RESET ROLE';
             INSERT INTO public.admin_audit_log (admin_id, action, target_id, target_type, details)
               VALUES (admin_id, 'rls_smoke_test', non_admin_id, 'user', '{}'::jsonb);
             IF NOT EXISTS (SELECT 1 FROM public.platform_settings LIMIT 1) THEN

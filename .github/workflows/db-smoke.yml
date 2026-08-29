@@ -398,13 +398,17 @@ jobs:
 
           -- Act as the non-admin, exactly as PostgREST does for their request:
           -- the `authenticated` Postgres role, with a JWT claim naming them.
-          SET LOCAL ROLE authenticated;
+          -- set_config runs first (still postgres/superuser) because the
+          -- `authenticated` role lacks SELECT on auth.users; set_config with
+          -- is_local=true is transaction-scoped so the claim survives the
+          -- subsequent role switch.
           SELECT set_config(
             'request.jwt.claims',
             (SELECT json_build_object('sub', id, 'role', 'authenticated')::text
                FROM auth.users WHERE email = 'rls-nonadmin-smoke@helpr.test'),
             true
           );
+          SET LOCAL ROLE authenticated;
 
           DO $$
           DECLARE

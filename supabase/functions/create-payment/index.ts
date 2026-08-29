@@ -4,7 +4,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { getHelperFeePercent, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
-import { stripeProcessingCostCents, netUrgentFeeDollars } from "../_shared/stripeFees.ts";
+import { stripeProcessingCostCents, actualOrEstimatedFeeCents, netUrgentFeeDollars } from "../_shared/stripeFees.ts";
 import { posterFeePercentForTier, posterServiceFeeCents } from "../_shared/posterFees.ts";
 import { isLaborTaxable } from "../_shared/salesTax.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
@@ -789,17 +789,21 @@ serve(async (req) => {
       }
 
       if (cancelPaymentIntentId) {
-        const pi = await stripe.paymentIntents.retrieve(cancelPaymentIntentId);
+        const pi = await stripe.paymentIntents.retrieve(cancelPaymentIntentId, {
+          expand: ["latest_charge.balance_transaction"],
+        });
         if (pi.status === "succeeded") {
-          // Service fee is non-refundable: Stripe already took 2.9%+$0.30 on the
+          // Service fee is non-refundable: Stripe already took its cut on the
           // full capture and does NOT return it on a refund, so a full refund
           // leaves the platform out-of-pocket by that processing cost on every
           // free cancellation. Withhold the poster's service fee, floored at
-          // Stripe's actual processing cost so the platform never loses money to
-          // fees even when the service fee is tiny/missing on a legacy row.
+          // Stripe's ACTUAL processing cost for this specific charge (read from
+          // the balance transaction, not assumed) so the platform never loses
+          // money to fees regardless of payment method — cards, Klarna/Affirm/
+          // Afterpay, and ACH all carry different real rates.
           const capturedCents = pi.amount_received ?? pi.amount;
           const serviceFeeCents = Math.round(Number(job.customer_fee_amount ?? 0) * 100);
-          const nonRefundableCents = Math.max(serviceFeeCents, stripeProcessingCostCents(capturedCents));
+          const nonRefundableCents = Math.max(serviceFeeCents, actualOrEstimatedFeeCents(pi, capturedCents));
           const refundAmount = capturedCents - nonRefundableCents;
           // Idempotency key prevents a double-refund on concurrent cancel
           // requests (double-tap, network retry) from both succeeding before
@@ -1002,14 +1006,17 @@ serve(async (req) => {
       // admin_release_dispute has this same guard (line ~816); keep them in sync.
       if (!paymentIntentId) throw new Error("No payment intent found for this job — cannot issue refund");
       try {
-        const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+        const pi = await stripe.paymentIntents.retrieve(paymentIntentId, {
+          expand: ["latest_charge.balance_transaction"],
+        });
         if (pi.status === "succeeded") {
             // The poster WON the dispute, so they get the budget + service fee
-            // back — but Stripe's 2.9%+$0.30 on the original capture is NOT
-            // returned on a refund, so a full refund would leave the platform
-            // out-of-pocket by that processing cost. Withhold ONLY that
-            // unavoidable Stripe fee (never the service fee — the poster won the
-            // dispute), so the platform never loses money to fees here.
+            // back — but Stripe's cut on the original capture is NOT returned on
+            // a refund, so a full refund would leave the platform out-of-pocket
+            // by that processing cost. Withhold ONLY that unavoidable Stripe fee
+            // (never the service fee — the poster won the dispute), read from
+            // the charge's own balance transaction so it's correct regardless of
+            // payment method (card vs. Klarna/Affirm/Afterpay vs. ACH).
             const capturedCents = pi.amount_received ?? pi.amount;
 
             // A disputed job's escrow was always captured, so a non-positive or
@@ -1035,7 +1042,7 @@ serve(async (req) => {
               );
             }
 
-            const nonRefundableCents = stripeProcessingCostCents(capturedCents);
+            const nonRefundableCents = actualOrEstimatedFeeCents(pi, capturedCents);
             const refundAmount = capturedCents - nonRefundableCents;
             // A retried/double-clicked call within Stripe's ~24h key lifetime
             // returns the original refund. After key expiry, a repeat attempt

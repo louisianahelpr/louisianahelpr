@@ -4,7 +4,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { getHelperFeePercent, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
 import { computeCancellationFee } from "../_shared/cancellationFee.ts";
-import { stripeProcessingCostCents } from "../_shared/stripeFees.ts";
+import { actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { formatPayoutDollars } from "../_shared/money.ts";
@@ -258,7 +258,9 @@ serve(async (req) => {
       }
 
       try {
-        const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+        const pi = await stripe.paymentIntents.retrieve(paymentIntentId, {
+          expand: ["latest_charge.balance_transaction"],
+        });
 
         if (pi.status === "requires_capture") {
           // Uncaptured authorization. RECOMPUTE the fee server-side from trusted
@@ -316,15 +318,16 @@ serve(async (req) => {
           // Using job.budget alone left those amounts stranded on the platform
           // and never returned to the customer.
           const capturedCents = pi.amount_received ?? pi.amount;
-          // Service fee is non-refundable: Stripe already took 2.9%+$0.30 on the
+          // Service fee is non-refundable: Stripe already took its cut on the
           // full capture and does NOT return it on a refund, so refunding the
           // whole (budget + fee) would leave the platform out-of-pocket by that
           // processing cost on every cancellation. We withhold the poster's
-          // service fee, floored at Stripe's actual processing cost so the
-          // platform never loses money to fees even on a job whose service fee
-          // is tiny (or missing on a legacy row).
+          // service fee, floored at Stripe's ACTUAL processing cost for this
+          // specific charge (read from the balance transaction) so the platform
+          // never loses money regardless of payment method — cards, Klarna/
+          // Affirm/Afterpay, and ACH all carry different real rates.
           const serviceFeeCents = Math.round(Number(job.customer_fee_amount ?? 0) * 100);
-          const nonRefundableCents = Math.max(serviceFeeCents, stripeProcessingCostCents(capturedCents));
+          const nonRefundableCents = Math.max(serviceFeeCents, actualOrEstimatedFeeCents(pi, capturedCents));
           const refundAmount = capturedCents - Math.round(cancellationFee * 100) - nonRefundableCents;
           if (refundAmount > 0) {
             // Idempotency key prevents a double-refund if the cron overlaps or

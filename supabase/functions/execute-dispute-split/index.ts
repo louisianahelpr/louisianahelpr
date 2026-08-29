@@ -39,7 +39,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { getHelperFeePercent, helperCommissionDollars } from "../_shared/helperFees.ts";
-import { netUrgentFeeDollars, stripeProcessingCostCents } from "../_shared/stripeFees.ts";
+import { netUrgentFeeDollars, actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { formatPayoutDollars } from "../_shared/money.ts";
 
@@ -296,7 +296,9 @@ serve(async (req) => {
 
   let pi: Stripe.PaymentIntent;
   try {
-    pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+    pi = await stripe.paymentIntents.retrieve(paymentIntentId, {
+      expand: ["latest_charge.balance_transaction"],
+    });
   } catch (e) {
     console.error(`[execute-dispute-split] paymentIntents.retrieve failed for ${paymentIntentId}:`, e);
     return json({ error: "could not verify the escrow charge — retry" }, 502);
@@ -374,7 +376,7 @@ serve(async (req) => {
   const helperCents = Math.max(0, Math.round(helperPayoutDollars * 100));
   const platformFeeCents = Math.round(platformFeeDollars * 100);
 
-  const nonRefundableCents = stripeProcessingCostCents(capturedCents as number);
+  const nonRefundableCents = actualOrEstimatedFeeCents(pi, capturedCents as number);
   const refundableCents = Math.max(0, (capturedCents as number) - nonRefundableCents);
   const refundCents = Math.max(0, Math.round(refundableCents * posterShare));
 

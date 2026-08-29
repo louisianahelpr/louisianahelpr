@@ -32,6 +32,44 @@ export function stripeProcessingCostCents(amountCents: number): number {
 }
 
 /**
+ * The REAL, non-refundable fee Stripe kept on a specific charge, in CENTS —
+ * read from the charge's own balance transaction rather than assumed.
+ *
+ * `stripeProcessingCostCents` above assumes every charge cost 2.9% + $0.30,
+ * which is only true for a domestic card. This account also accepts Klarna/
+ * Affirm/Afterpay (5.99% + $0.30) and ACH/US bank account (0.8%, capped $5) —
+ * every one of those has a materially different real fee. A refund that
+ * withholds the CARD estimate on a Klarna-paid job under-withholds by ~3% of
+ * the charge, every time, silently: the platform pays that gap out of its own
+ * pocket. Reading the actual fee closes that gap for every current and future
+ * payment method, without hand-maintaining a rate table here.
+ *
+ * `pi` must be a PaymentIntent retrieved with
+ * `{ expand: ["latest_charge.balance_transaction"] }` — anything less (a
+ * string id, or a charge with an unexpanded balance_transaction) falls back
+ * to the card-rate estimate via `fallbackAmountCents`, so every call site
+ * still gets a safe floor even if the expand was missed or the transaction
+ * genuinely isn't available yet (e.g. an async payment method still settling).
+ */
+export function actualOrEstimatedFeeCents(
+  pi: { latest_charge?: unknown } | null | undefined,
+  fallbackAmountCents: number,
+): number {
+  const charge = pi?.latest_charge as
+    | { balance_transaction?: unknown }
+    | null
+    | undefined;
+  const balanceTransaction = charge?.balance_transaction as
+    | { fee?: unknown }
+    | null
+    | undefined;
+  if (balanceTransaction && typeof balanceTransaction.fee === "number") {
+    return balanceTransaction.fee;
+  }
+  return stripeProcessingCostCents(fallbackAmountCents);
+}
+
+/**
  * Stripe's PERCENTAGE-only cost (2.9%, no flat), in CENTS, for a line item that
  * rides BUNDLED inside a larger charge rather than as its own standalone charge.
  * Stripe's $0.30 flat is levied ONCE per transaction and is already borne by the

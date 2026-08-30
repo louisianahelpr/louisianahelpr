@@ -231,10 +231,21 @@ function AppliedJobCardInner({
                 permanent line for something the helper only needs when they
                 are actually weighing the job — and it was the reason the row
                 below existed at all. */}
+            {/* Avatar-badge row — matches PostedJobCard's "Offered to
+                {helper}" treatment (initial-letter circle + name link in a
+                tinted pill) exactly, rather than a bare text line, so
+                My Posts and My Jobs draw a "who's on the other side of
+                this job" fact the same way. */}
             {!isMinimalCard && isExpanded && app.posterName && (
-              <p className="text-ds-11 text-muted-foreground truncate">
-                Posted by <a href={`/user/${job.customer_id}`} onClick={(e) => e.stopPropagation()} className="font-medium text-primary hover:underline">{app.posterName}</a>
-              </p>
+              <div className="flex items-center gap-2 py-1.5 px-2.5 rounded-ds-sm bg-muted/40">
+                <div className="w-6 h-6 rounded-full bg-primary/15 text-primary flex items-center justify-center text-ds-10 font-bold shrink-0">
+                  {app.posterName[0].toUpperCase()}
+                </div>
+                <span className="text-ds-11 text-muted-foreground">Posted by</span>
+                <a href={`/user/${job.customer_id}`} onClick={(e) => e.stopPropagation()} className="text-ds-11 font-medium text-primary hover:underline truncate">
+                  {app.posterName}
+                </a>
+              </div>
             )}
             {!isMinimalCard && isExpanded && job.description.trim().toLowerCase() !== (job.title || "").trim().toLowerCase() && (
               <p className="text-ds-11 text-muted-foreground leading-relaxed">{job.description}</p>

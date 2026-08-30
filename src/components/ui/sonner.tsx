@@ -79,7 +79,12 @@ const Toaster = ({ ...props }: ToasterProps) => {
         classNames: {
           toast:
             "group toast !rounded-2xl !border-0 !shadow-[0_1px_2px_hsl(var(--olivewood)/0.06),0_14px_30px_-8px_hsl(var(--olivewood)/0.20)] !text-[hsl(var(--ink-deep))] !font-serif !italic !text-ds-14 !leading-snug !backdrop-blur-[18px] !backdrop-saturate-[160%] before:absolute before:inset-0 before:rounded-2xl before:border before:border-[hsl(var(--olivewood)/0.12)] before:pointer-events-none",
-          title: "!font-display !italic !font-bold !not-[font-serif] !text-ds-15 !leading-tight !text-[hsl(var(--ink-deep))]",
+          // `!whitespace-nowrap` (owner, 2026-08-30: "one line"). The toast
+          // is `w-auto` up to a max, and a short title like "Turn on
+          // notifications?" was wrapping to two lines anyway because the
+          // action + cancel + close buttons claimed the row first, squeezing
+          // the text column. The title is one line; the box widens to fit it.
+          title: "!font-display !italic !font-bold !not-[font-serif] !text-ds-15 !leading-tight !whitespace-nowrap !text-[hsl(var(--ink-deep))]",
           description: "!font-serif !italic !text-ds-12 !text-[hsl(var(--olivewood)/0.8)]",
           // Action ("View", "Retry", …) — the toast's one real control, so it
           // gets the app's primary-CTA surface in miniature: the same bark

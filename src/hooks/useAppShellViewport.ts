@@ -56,7 +56,6 @@ const DOCUMENT_SCROLL_ROUTES = [
   // container, and double-locking would let html overscroll bleed into
   // AppShell's scroll surface (iOS double-rubber-band).
   "/user",         // /user/:userId — UserProfile (PageHeader + min-h-screen)
-  "/post-job",     // PostJob (PageHeader + min-h-screen)
   "/admin",        // Admin dashboard (min-h-screen document-scroll + sidebar)
   "/subscription", // Subscription tiers — long-form min-h-screen document-scroll
   // /str-settings, /gift-card, /benefits, /auto-tip and /wrapped moved OFF

@@ -80,7 +80,7 @@ export function AiJobBuilder({ locationContext = "", onGenerated, open: controll
     // Brand-aligned: liquid-glass surface (was dashed border + bg-muted/30),
     // Sparkles icon in a sienna-tinted circle, font-display italic title.
     // Reads as a premium value-add instead of a developer-debug widget.
-    <div className="rounded-2xl liquid-glass overflow-hidden">
+    <div className="rounded-2xl liquid-glass overflow-hidden flex flex-col justify-center" style={{ minHeight: "104px" }}>
       <button
         type="button"
         onClick={() => setOpen(!open)}

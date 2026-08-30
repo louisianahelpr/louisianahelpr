@@ -258,6 +258,9 @@ const PetProfiles = () => {
                         pet={pet}
                         active={activePetId === pet.id && !desktopAdding}
                         onSelect={() => selectPetDesktop(pet)}
+                        onEdit={openEditMobile}
+                        onRequestDelete={setPetToDelete}
+                        deletePending={deleteMutation.isPending}
                       />
                     </li>
                   ))}
@@ -296,35 +299,12 @@ const PetProfiles = () => {
                 />
               )}
 
-              {/* Nothing renders here when there are NO pets. This pane's copy
-                  ("Care details appear here once you add a pet.") described a
-                  left/right split that no longer exists — the desktop layout is
-                  `hidden lg:block`, a single stacked column, so the pane sits
-                  UNDER the list rather than beside it. With zero pets that
-                  stacked a third empty block below the list card's own "No pets
-                  yet" empty state, both saying the same thing.
-
-                  With pets, the prompt still earns its place: something IS
-                  selectable above, and this says so. */}
-              {!desktopAdding && !activePet && !isLoading && !!pets?.length && (
-                <div
-                  className="rounded-ds-lg liquid-glass flex flex-col items-center justify-center text-center px-8 py-16"
-                >
-                  <PawPrint
-                    className="w-10 h-10 mb-3"
-                    style={{ color: "hsl(var(--bark) / 0.4)" }}
-                  />
-                  <p
-                    className="font-display text-ds-20 leading-tight"
-                    style={{ color: "hsl(var(--ink-deep))" }}
-                  >
-                    Pick a pet from the list
-                  </p>
-                  <p className="text-ds-12 text-muted-foreground mt-1.5 max-w-sm">
-                    Select a pet above to view their care details, or add a new one.
-                  </p>
-                </div>
-              )}
+              {/* No "Pick a pet from the list" prompt (owner, 2026-08-30:
+                  "remove"). The desktop layout is a single stacked column, so
+                  this sat directly UNDER the list it was pointing at — a
+                  full-height card whose only content was an instruction to use
+                  the thing immediately above it. Selecting a pet fills this
+                  space with the real detail pane; until then it stays empty. */}
 
               {isLoading && !activePet && (
                 <Skeleton className="rounded-ds-lg h-96" />

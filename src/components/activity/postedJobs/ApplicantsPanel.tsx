@@ -4,7 +4,7 @@ import { formatName } from "@/lib/utils";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 import { Button } from "@/components/ui/button";
 import { Eye, Pencil, Plus, ShieldAlert, ShieldCheck, Sparkles, Star, X } from "lucide-react";
-import PageHeader from "@/components/PageHeader";
+import AppPage from "@/components/AppPage";
 import { AttachmentLink } from "@/components/AttachmentLink";
 import CredentialBadge from "@/components/CredentialBadge";
 import { hapticLight } from "@/lib/haptics";
@@ -107,82 +107,73 @@ export function ApplicantsPanel({
   });
 
   // PORTALLED TO <body> ON PURPOSE — do not "simplify" this back to a plain
-  // return. The panel is a `fixed inset-0` full-screen overlay, but a
-  // `position: fixed` element is positioned against the nearest ancestor
-  // carrying a transform/filter/backdrop-filter, NOT the viewport. Activity
-  // renders inside PageScaffold and PageTransition, both framer-motion
-  // `motion.div`s, so an animating ancestor became the containing block and
-  // `inset-0` resolved to the JOB CARD's box: the owner saw the Applicants
-  // header pinned partway down the screen with "My Posts" still above it and
-  // a grey band where the overlay had been clipped. Rendering into <body>
-  // puts the overlay outside every transformed ancestor, so inset-0 means the
-  // viewport again, whatever the page animates.
+  // return. The panel is a full-screen overlay, but a `position: fixed`
+  // element (both this wrapper AND AppShell's own `.app-shell-frame`) is
+  // positioned against the nearest ancestor carrying a
+  // transform/filter/backdrop-filter, NOT the viewport. Activity renders
+  // inside PageScaffold and PageTransition, both framer-motion `motion.div`s,
+  // so an animating ancestor became the containing block and `inset-0`
+  // resolved to the JOB CARD's box: the owner saw the Applicants header
+  // pinned partway down the screen with "My Posts" still above it and a grey
+  // band where the overlay had been clipped. Rendering into <body> puts the
+  // overlay outside every transformed ancestor, so inset-0 (and AppShell's
+  // own fixed frame) means the viewport again, whatever the page animates.
   return createPortal(
     <>
-      {/* Applicants full-screen comparison view */}
-      <div className="fixed inset-0 z-50 flex flex-col motion-safe:animate-in motion-safe:slide-in-from-right motion-safe:duration-200"
-        // Same full-screen-overlay top inset as PetForm — see the note there.
-        style={{ background: "hsl(var(--parchment))", paddingTop: "var(--safe-area-top, 0px)" }}>
-        {/* Header — PageHeader for the title row (back + "Applicants" + reach),
-            with the job name kept as sheet-owned content directly beneath it.
-            NOT folded into PageHeader's `meta`: the owner's 2026-08-13 note
-            retiring `meta` is a standing design rule ("a title sitting next to
-            a back button must not carry a small line beneath it"), not just a
-            note that it was redundant that one time — so it stays off
-            app-wide. This sheet still needs to say which job it's showing
-            applicants for, so that line renders as this component's own
-            content, same as it always did, just below PageHeader instead of
-            inside a hand-rolled h2. `topInsetHandled` — the sheet's own root
-            already applies `paddingTop: var(--safe-area-top)` one line up. */}
-        <div
-          style={{
-            borderBottom: "0.5px solid hsl(var(--bark) / 0.12)",
-            background: "var(--surface-premium)",
-            backdropFilter: "blur(20px)",
-            WebkitBackdropFilter: "blur(20px)",
-          }}
-        >
-          <PageHeader
-            title="Applicants"
-            onBack={() => setSelectedJob(null)}
-            topInsetHandled
-            titleActions={
-              /* Reach, on demand. This readout used to sit on the job card
-                 itself (once in the meta row, again in an "Activity" panel
-                 under the tracker — the same number twice). Owner: show it
-                 when applicants is clicked. This is where a poster is actually
-                 weighing whether the post is working, so it is the one place
-                 it earns its space. */
-              jobAnalytics && jobAnalytics.viewCount > 0 ? (
-                <div className="shrink-0 text-right" aria-label="Post reach">
-                  <span className="flex items-center justify-end gap-1 text-ds-12" style={{ color: "hsl(var(--ink-deep) / 0.7)" }}>
-                    <Eye className="w-3 h-3 shrink-0" aria-hidden />
-                    {jobAnalytics.viewCount} {jobAnalytics.viewCount === 1 ? "view" : "views"}
+      {/* Applicants full-screen comparison view — the shared <AppPage> shell
+          (AppShell + ProfileTabHeader), same as every other in-app sub-screen.
+          `onBack` (not `backTo`) because "back" here is closing the overlay
+          via local state, not a route change — same pattern as PostJob. This
+          wrapper only supplies the slide-in transition + stacking; AppShell
+          itself already fills the viewport (`fixed inset-x-0 bottom-0`,
+          100dvh) so it doesn't need `inset-0`/background of its own. */}
+      <div className="fixed inset-0 z-50 motion-safe:animate-in motion-safe:slide-in-from-right motion-safe:duration-200">
+        <AppPage
+          title="Applicants"
+          onBack={() => setSelectedJob(null)}
+          titleActions={
+            /* Reach, on demand. This readout used to sit on the job card
+               itself (once in the meta row, again in an "Activity" panel
+               under the tracker — the same number twice). Owner: show it
+               when applicants is clicked. This is where a poster is actually
+               weighing whether the post is working, so it is the one place
+               it earns its space. */
+            jobAnalytics && jobAnalytics.viewCount > 0 ? (
+              <div className="shrink-0 text-right" aria-label="Post reach">
+                <span className="flex items-center justify-end gap-1 text-ds-12" style={{ color: "hsl(var(--ink-deep) / 0.7)" }}>
+                  <Eye className="w-3 h-3 shrink-0" aria-hidden />
+                  {jobAnalytics.viewCount} {jobAnalytics.viewCount === 1 ? "view" : "views"}
+                </span>
+                {jobAnalytics.conversionRate !== null && (
+                  <span className="block text-ds-11" style={{ color: "hsl(var(--ink-deep) / 0.55)" }}>
+                    {jobAnalytics.conversionRate}% applied
                   </span>
-                  {jobAnalytics.conversionRate !== null && (
-                    <span className="block text-ds-11" style={{ color: "hsl(var(--ink-deep) / 0.55)" }}>
-                      {jobAnalytics.conversionRate}% applied
-                    </span>
-                  )}
-                </div>
-              ) : undefined
-            }
-          />
-          {/* Same container geometry as PageHeader's `default` width
-              (`page-measure mx-auto px-5 lg:px-8 xl:px-12`) so this line sits
-              on the same left edge as the title above it. */}
-          <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 -mt-2 pb-3">
-            <p
-              className="text-ds-11 font-serif italic truncate"
-              style={{ color: "hsl(var(--olivewood) / 0.80)" }}
-            >
-              {selectedJob.title}
-            </p>
-          </div>
-        </div>
+                )}
+              </div>
+            ) : undefined
+          }
+        >
+          {/* Job name — kept as this component's own content directly beneath
+              the title, same as it always did. NOT folded into PageHeader's
+              `meta`: the owner's 2026-08-13 note retiring `meta` is a standing
+              design rule ("a title sitting next to a back button must not
+              carry a small line beneath it"), not just a note that it was
+              redundant that one time — so it stays off app-wide. AppPage has
+              no subtitle slot of its own, so this renders as a plain first
+              child, negative-margined up against the header's own bottom
+              padding the same way the hand-rolled version sat `-mt-2` under
+              PageHeader. */}
+          <p
+            className="text-ds-11 font-serif italic truncate -mt-4 mb-2"
+            style={{ color: "hsl(var(--olivewood) / 0.80)" }}
+          >
+            {selectedJob.title}
+          </p>
 
-        {/* Modal body — capped at iPad-comfortable width */}
-        <div className="flex-1 overflow-y-auto px-4 py-4">
+          {/* Capped at iPad-comfortable width — `.page-measure` (AppPage's
+              own column) carries no max-width of its own (see index.css),
+              so a reading/comfort measure like this one caps itself locally
+              rather than stacking a second column width. */}
           <div className="max-w-2xl mx-auto w-full">
             {applicationsLoading ? (
               /* Loading: 2 skeleton cards matching the real card height */
@@ -535,7 +526,7 @@ export function ApplicantsPanel({
               </div>
             )}
           </div>
-        </div>
+        </AppPage>
       </div>
 
       <DeclineApplicantSheet

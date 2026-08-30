@@ -14,8 +14,7 @@ import { resolve } from "node:path";
  * owner reported the same defect more than ten times while the suite stayed
  * green. Found by dumping the router's actual wrappers:
  *
- *   space-y-3 .............................................. schedule,
- *                                    posted_jobs, completed_jobs, warnings
+ *   space-y-3 .............................................. schedule, warnings
  *   space-y-5 .............................................. referral
  *   h-full min-h-0 flex flex-col gap-3 overflow-hidden ...... notifications
  *   space-y-4 .............................................. credentials
@@ -58,7 +57,7 @@ describe("Profile tabs share one shell", () => {
     // The other half: components that render their own ProfileTabHeader.
     const names = [
       "AccessibilityTab", "AvailabilityTab", "CredentialsTab", "EarningsTab",
-      "JobListTab", "LegalTab", "ReviewsTab", "SavedHelpersTab", "ScheduleTab",
+      "LegalTab", "ReviewsTab", "SavedHelpersTab", "ScheduleTab",
       "SecurityTab", "SubscriptionTab", "WarningsTab",
     ];
     const wrong: string[] = [];

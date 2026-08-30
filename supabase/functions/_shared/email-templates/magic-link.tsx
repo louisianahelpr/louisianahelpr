@@ -39,7 +39,7 @@ export const MagicLinkEmail = ({
     <Body style={main}>
       <Container style={container}>
         <Img src="https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/brand-asset" alt="Helpr" width="80" style={logo} />
-        <Heading style={h1}>Your login link</Heading>
+        <Heading style={h1}>Your Login Link</Heading>
         <Text style={text}>
           Click the button below to log in to Helpr. This link will expire shortly.
         </Text>

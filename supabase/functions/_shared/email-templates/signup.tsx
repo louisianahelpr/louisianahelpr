@@ -46,7 +46,7 @@ export const SignupEmail = ({
     <Body style={main}>
       <Container style={container}>
         <Img src="https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/brand-asset" alt="Helpr" width="80" style={logo} />
-        <Heading style={h1}>Confirm your email to get started.</Heading>
+        <Heading style={h1}>Confirm Your Email to Get Started.</Heading>
         <Text style={text}>
           Tap the button below to verify your email so we can finish setting up your{' '}
           <Link href={siteUrl} style={linkStyle}>

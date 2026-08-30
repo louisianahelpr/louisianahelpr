@@ -41,11 +41,11 @@ export const EmailChangeEmail = ({
 }: EmailChangeEmailProps) => (
   <Html lang="en" dir="ltr">
     <Head />
-    <Preview>Confirm your email change on Helpr</Preview>
+    <Preview>Confirm Your Email Change on Helpr</Preview>
     <Body style={main}>
       <Container style={container}>
         <Img src="https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/brand-asset" alt="Helpr" width="80" style={logo} />
-        <Heading style={h1}>Confirm your email change</Heading>
+        <Heading style={h1}>Confirm Your Email Change</Heading>
         <Text style={text}>
           You requested to change your email from{' '}
           <Link href={`mailto:${email}`} style={linkStyle}>

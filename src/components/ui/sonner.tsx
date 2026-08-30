@@ -83,11 +83,14 @@ const Toaster = ({ ...props }: ToasterProps) => {
           description: "!font-serif !italic !text-ds-12 !text-[hsl(var(--olivewood)/0.8)]",
           actionButton:
             "!bg-[hsl(var(--bark))] !text-[hsl(var(--parchment))] !font-sans !font-semibold !rounded-full !px-3 !h-8",
-          // Sits in the toast's top-left gutter by default. Sized to a real
-          // 24px target with brand ink, and only fully opaque on hover/focus
-          // so it reads as chrome rather than competing with the message.
+          // Sonner's default puts this half-outside the top-LEFT corner
+          // (translate(-35%,-35%)) — floating off the card rather than
+          // reading as part of the message. Repinned inside the toast's own
+          // top-right corner instead, sized to a real 24px target with brand
+          // ink, and only fully opaque on hover/focus so it reads as chrome
+          // rather than competing with the message.
           closeButton:
-            "!bg-[hsl(var(--parchment))] !border !border-[hsl(var(--olivewood)/0.18)] !text-[hsl(var(--olivewood))] hover:!bg-[hsl(var(--parchment))] hover:!text-[hsl(var(--ink-deep))] hover:!border-[hsl(var(--olivewood)/0.35)] focus-visible:!ring-2 focus-visible:!ring-[hsl(var(--bark)/0.45)]",
+            "!left-auto !right-2 !top-2 ![transform:none] !bg-[hsl(var(--parchment))] !border !border-[hsl(var(--olivewood)/0.18)] !text-[hsl(var(--olivewood))] hover:!bg-[hsl(var(--parchment))] hover:!text-[hsl(var(--ink-deep))] hover:!border-[hsl(var(--olivewood)/0.35)] focus-visible:!ring-2 focus-visible:!ring-[hsl(var(--bark)/0.45)]",
           cancelButton:
             "!bg-transparent !text-[hsl(var(--olivewood)/0.8)] !font-sans !font-semibold !rounded-full !px-3 !h-8",
           success: "!bg-[hsl(var(--parchment)/0.96)] [&_[data-icon]]:!text-[hsl(var(--bark))]",

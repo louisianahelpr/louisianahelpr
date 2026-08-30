@@ -39,7 +39,7 @@ export const RecoveryEmail = ({
     <Body style={main}>
       <Container style={container}>
         <Img src="https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/brand-asset" alt="Helpr" width="80" style={logo} />
-        <Heading style={h1}>Reset your password</Heading>
+        <Heading style={h1}>Reset Your Password</Heading>
         <Text style={text}>
           We received a request to reset your password. Click the button below to choose a new one.
         </Text>

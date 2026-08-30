@@ -32,7 +32,6 @@ import { DashboardBannedScreen, DashboardDeniedScreen } from "@/components/dashb
 // and only the dialogs the user actually opens get fetched, keeping the
 // Dashboard route chunk small.
 const JobDetailDialog = lazy(() => import("@/components/dashboard/JobDetailDialog"));
-const JobQuickActionSheet = lazy(() => import("@/components/dashboard/JobQuickActionSheet").then(m => ({ default: m.JobQuickActionSheet })));
 const ApplyBody = lazy(() => import("@/components/dashboard/applyConfirmDialog/ApplyBody").then(m => ({ default: m.ApplyBody })));
 const ApplyConfirmDialog = lazy(() => import("@/components/dashboard/ApplyConfirmDialog").then(m => ({ default: m.ApplyConfirmDialog })));
 const ReportDialog = lazy(() => import("@/components/ReportDialog"));
@@ -145,10 +144,6 @@ const Dashboard = () => {
   const { detailJob, openDetailJob, closeDetailJob } = useDetailJob({
     containerRef, searchParams, setSearchParams, allJobs,
   });
-  // Quick-action sheet — opened by a long-press on a JobCard. Lets the
-  // helpr save / hide / share / report without committing to opening
-  // the full detail dialog. Null = sheet closed.
-  const [quickActionJobId, setQuickActionJobId] = useState<string | null>(null);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
   // List vs Map view. The map shows the same open jobs as the list,
   // pinned to neighborhood-rounded coords (privacy via the
@@ -245,10 +240,6 @@ const Dashboard = () => {
 
   const handleDismissRequest = useCallback((jobId: string) => {
     setConfirmDismissJobId(jobId);
-  }, []);
-
-  const handleLongPressCard = useCallback((jobId: string) => {
-    setQuickActionJobId(jobId);
   }, []);
 
   const handleDismissConfirm = useCallback(() => {
@@ -596,7 +587,6 @@ const Dashboard = () => {
                     handleApplyRequest={handleApplyRequest}
                     handleDismissRequest={handleDismissRequest}
                     handleToggleSave={handleToggleSave}
-                    handleLongPressCard={handleLongPressCard}
                     confirmDismissJobId={confirmDismissJobId}
                     expandedCardId={expandedCardId}
                     setExpandedCardId={setExpandedCardId}
@@ -714,25 +704,6 @@ const Dashboard = () => {
           <ReportDialog open={!!reportJobId} onClose={() => setReportJobId(null)} reportedType="job" reportedId={reportJobId} />
         </Suspense>
       )}
-
-      {/* Long-press quick-action sheet. Lazy-loaded so the small extra
-          bundle only ships once a helpr actually long-presses a card. */}
-      {quickActionJobId && (() => {
-        const qaJob = allJobs.find((j) => j.id === quickActionJobId);
-        if (!qaJob) return null;
-        return (
-          <Suspense fallback={null}>
-            <JobQuickActionSheet
-              job={{ id: qaJob.id, title: qaJob.title, budget: qaJob.budget, category: qaJob.category }}
-              isSaved={savedJobIds.has(qaJob.id)}
-              onClose={() => setQuickActionJobId(null)}
-              onToggleSave={handleToggleSave}
-              onHide={handleDismissRequest}
-              onReport={setReportJobId}
-            />
-          </Suspense>
-        );
-      })()}
 
       {/* Birthday greeting — a popup, not chrome. It used to be mounted as a
           sibling of the (now removed) app bar inside PageScaffold's `header`

@@ -268,15 +268,16 @@ export function ChatView({
       }
     >
         <div
-          className={
-            // Embedded (desktop split) the pane can be very wide, so cap the
-            // conversation to a natural reading column and center it — bubbles
-            // spanning the full pane read as sparse. Standalone already gets a
-            // centered max-width column from ChatPaneShell, so no cap here.
-            embedded
-              ? "flex flex-col flex-1 min-h-0 w-full max-w-[780px] mx-auto transition-[padding] duration-150"
-              : "flex flex-col flex-1 min-h-0 transition-[padding] duration-150"
-          }
+          // The pane (embedded desktop split) or the page container
+          // (standalone — ChatPaneShell's own wrapper grows up to
+          // `2xl:max-w-7xl`, 1280px, sized for generic wide-page content, not
+          // a conversation) can both be much wider than a comfortable reading
+          // column, so this cap applies in BOTH cases: bubbles and the
+          // composer spanning near-full width read as sparse/oversized
+          // ("the bottom bar does not fit correctly" — the composer visibly
+          // outgrowing a normal chat's proportions on a wide standalone
+          // screen was this exact bug).
+          className="flex flex-col flex-1 min-h-0 w-full max-w-[780px] mx-auto transition-[padding] duration-150"
           // Only pad for the keyboard here. The sticky composer already adds
           // its own safe-area-inset-bottom — padding it on the wrapper too
           // double-counts the inset and leaves a dead gap below the composer.

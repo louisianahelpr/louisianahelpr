@@ -152,7 +152,7 @@ const JobDetailDialog = ({
         className={[
           "grid-cols-1",
           // 1. phone geometry
-          "left-0 top-auto bottom-0 translate-x-0 translate-y-0",
+          "left-0 top-auto bottom-0 translate-x-0 translate-y-0 [translate:0_0]",
           "w-full max-w-none max-h-[92dvh] rounded-b-none rounded-t-[28px]",
           // 2. phone animation
           "data-[state=open]:slide-in-from-left-0 data-[state=open]:slide-in-from-bottom-full data-[state=open]:zoom-in-100",

@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { hapticLight } from "@/lib/haptics";
+import { copyToClipboard } from "@/lib/nativeShare";
 
 interface ShareJobButtonProps {
   /** The job being shared — only the title/budget/category/id/city are referenced. */
@@ -145,40 +146,6 @@ export function ShareJobButton({
     setCopied(true);
     if (copiedTimer.current) clearTimeout(copiedTimer.current);
     copiedTimer.current = setTimeout(() => setCopied(false), 2000);
-  };
-
-  /**
-   * Copy `text`, returning whether it actually landed.
-   *
-   * Two rungs: the async Clipboard API, then the legacy `execCommand("copy")`
-   * off a detached textarea — still the only clipboard available in some
-   * embedded WebViews and on insecure origins, where `navigator.clipboard` is
-   * undefined. Returning a boolean (rather than throwing) is what lets the
-   * caller tell "copied" from "could not copy" and show the right thing.
-   */
-  const copyToClipboard = async (text: string): Promise<boolean> => {
-    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(text);
-      return true;
-    }
-    if (typeof document === "undefined" || typeof document.execCommand !== "function") {
-      return false;
-    }
-    const ta = document.createElement("textarea");
-    ta.value = text;
-    ta.setAttribute("readonly", "");
-    // Off-screen but still selectable. `display:none` would make the
-    // selection — and therefore the copy — fail silently.
-    ta.style.position = "fixed";
-    ta.style.top = "-9999px";
-    ta.style.opacity = "0";
-    document.body.appendChild(ta);
-    try {
-      ta.select();
-      return document.execCommand("copy");
-    } finally {
-      document.body.removeChild(ta);
-    }
   };
 
   const handleShare = async () => {

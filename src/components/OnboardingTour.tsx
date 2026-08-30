@@ -194,8 +194,11 @@ const OnboardingTour = ({ profileComplete = false }: OnboardingTourProps) => {
           <div className="p-5 pb-1 text-center space-y-2.5">
             <div className="flex items-center gap-4 text-left">
               {/* Icon sits bare — no tinted box — to the left of the copy. */}
+              {/* Fixed slot width so the copy starts at the same x on every
+                  step — the H emblem is ~37px wide, the lucide icons 24px,
+                  which otherwise shifted the text left and right per step. */}
               <div
-                className="shrink-0 flex items-center justify-center"
+                className="shrink-0 flex items-center justify-center min-w-[2.5rem]"
                 style={{ color: "hsl(var(--primary))" }}
               >
                 {currentStep.icon}

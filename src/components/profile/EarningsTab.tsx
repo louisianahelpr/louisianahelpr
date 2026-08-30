@@ -32,6 +32,7 @@ import { buildPayoutsCsv } from "@/components/profile/earningsTab/earningsTabHel
 import { useEarningsData } from "@/components/profile/earningsTab/useEarningsData";
 import { EarningsToolsMenu } from "@/components/profile/earningsTab/EarningsToolsMenu";
 import { EarningsViewSwitcher, type EarningsView } from "@/components/profile/earningsTab/EarningsViewSwitcher";
+import { EarningsRangeToggle, type EarningsRange } from "@/components/profile/earningsTab/EarningsRangeToggle";
 import { ThresholdBanner } from "@/components/profile/earningsTab/ThresholdBanner";
 import { WalletCard } from "@/components/profile/earningsTab/WalletCard";
 import { PayoutHistory } from "@/components/profile/earningsTab/PayoutHistory";
@@ -41,10 +42,16 @@ import { EarningHistory } from "@/components/profile/earningsTab/EarningHistory"
 // "Earnings & Analytics" (/analytics) and "Payout & Payments" were three
 // separate Profile entry points onto three screens about the same subject —
 // what you earned, what it says about your work, and where the money lands.
-// They are now ONE screen: this tab, with the analytics dashboard and the
-// payout setup as sections of it rather than destinations of their own. Both
-// are code-split because neither is needed for the first paint of the wallet.
-const HelperAnalyticsBody = lazy(() => import("@/pages/helperAnalytics/HelperAnalyticsBody").then(m => ({ default: m.HelperAnalyticsBody })));
+// They are now ONE screen: this tab, with the payout setup as a section of it
+// rather than a destination of its own. Code-split because it isn't needed
+// for the first paint of the wallet.
+//
+// The former "Insights" content (HelperAnalyticsBody — an Activity Trend
+// chart plus a grid of PRO-locked, non-functional teaser cards: earnings by
+// month, best categories, best days, success rate, profile views, repeat
+// hire, ratings & reviews) was removed 2026-08-30. None of it was wired to a
+// real Pro feature; it only ever showed a lock icon and an upgrade CTA. The
+// Insights view now shows the real, unlocked breakdown charts only.
 const PaymentTab = lazy(() => import("@/components/PaymentTab").then(m => ({ default: m.PaymentTab })));
 
 /**
@@ -181,6 +188,10 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
      the four groups became a switch rather than four hairline rules. Opens on
      "money" — the wallet is what a helpr comes here for. */
   const [view, setView] = useState<EarningsView>("money");
+  /* Which slice of time the Money view's numbers cover. Opens on "lifetime" —
+     the wallet balance is always lifetime; selecting "week" or "month" opts
+     into the forward-looking cards those ranges fold in (see EarningsRangeToggle). */
+  const [range, setRange] = useState<EarningsRange>("lifetime");
 
   // ─── 1099-K threshold awareness ───────────────────────────────
   // Once YTD payouts cross the FEDERAL gross threshold we surface a quiet,
@@ -298,10 +309,41 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
         />
       )}
 
+      {/* KEY TOTAL — lifetime take-home, promoted above the tabs so it is the
+          first number a helpr sees on the page rather than a small tile three
+          sections down. Skeleton-sized while `loading` so this line doesn't
+          pop in after the tabs below it and shove them down (#8). */}
+      {loading ? (
+        <div className="space-y-1.5 px-1">
+          <Skeleton className="h-3 w-24 rounded" />
+          <Skeleton className="h-8 w-32 rounded" />
+        </div>
+      ) : (
+        <div className="px-1">
+          <span className="sr-only">Total lifetime earnings</span>
+          <p
+            className="font-display italic font-bold tabular-nums leading-none text-ds-30"
+            style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
+          >
+            ${formatPriceExact(totalEarnings)}
+          </p>
+          <p className="font-serif italic mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            total earned · {completedJobs.length} job{completedJobs.length === 1 ? "" : "s"}
+          </p>
+        </div>
+      )}
+
       {/* ONE VIEW AT A TIME. Everything above this line is either global
           (header, celebration) or urgent (the 1099 banner, the connect card),
           so it stays put; the four groups below take turns. */}
       <EarningsViewSwitcher value={view} onChange={setView} />
+
+      {/* Date-range toggle — decides which slice of time the Money view's
+          numbers cover. Selecting "This Week" or "This Month" folds in the
+          Sunday-projection and monthly-goal cards that used to be
+          permanently visible on the page (see the `range === ...` gates
+          inside the Money view below). */}
+      <EarningsRangeToggle value={range} onChange={setRange} />
 
       {/* ─── MONEY ─── what I have, and what is coming ─── */}
       {view === "money" && (
@@ -395,34 +437,34 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
         )}
 
       {/* ─── COMING UP ────────────────────────────────────────────
-          The three forward-looking things, together. They used to be
-          scattered: the forecast above the connect card, the week strip
-          four blocks below it, and the goal buried inside the wallet
-          section — so "what am I about to earn" was answered in three
-          places a reader had to find.
+          Forward-looking content now lives BEHIND the date-range toggle
+          above, not permanently on the page (owner: the Sunday projection
+          and the monthly-goal streak card were always-visible even for a
+          helpr who opened the tab to check their lifetime total, which two
+          of these three cards have nothing to do with). Selecting "This
+          Week" or "This Month" opts in; "Lifetime"/"This Year" show neither.
 
-          They ride in the SAME view as the wallet rather than a fifth tab:
-          "what I have" and "what is landing this week" are one glance, and
-          splitting them would put the forecast a tap away from the balance it
-          forecasts. */}
-      <SectionRule />
-      {/* Forward-looking "Projected by Sunday" card. Sums net take across
-          accepted/in-progress jobs whose date_needed falls in the current
-          week. Only renders for approved helpers — pre-onboarding helpers
-          have no earnings yet so a $0 forecast is just noise. Placed at
-          the very top of the tab so the helper sees their pipeline before
-          the historical ledger. */}
-      <EarningsForecastCard
-        helperId={helperId}
-        enabled={profile?.approval_status === "approved"}
-        feeFallbackPercent={helperFeeFallbackPct}
-      />
+          The "Next 7 days" schedule strip stays unconditional — it isn't a
+          projection card, it's the roster of what's already on the
+          calendar, which is relevant regardless of range. */}
+      {range === "week" && (
+        <>
+          <SectionRule />
+          {/* "Projected by Sunday" card. Sums net take across
+              accepted/in-progress jobs whose date_needed falls in the current
+              week. Only renders for approved helpers — pre-onboarding helpers
+              have no earnings yet so a $0 forecast is just noise. */}
+          <EarningsForecastCard
+            helperId={helperId}
+            enabled={profile?.approval_status === "approved"}
+            feeFallbackPercent={helperFeeFallbackPct}
+          />
+        </>
+      )}
 
-      {/* "Next 7 days" upcoming-jobs strip — pairs with the dollar
-          forecast above to show the helper *which* jobs make up the
-          projection. Gated behind Stripe-connected so pre-onboarded
-          helpers (who can't accept jobs yet) don't see an empty week.
-          Closes #130. */}
+      {/* "Next 7 days" upcoming-jobs strip. Gated behind Stripe-connected so
+          pre-onboarded helpers (who can't accept jobs yet) don't see an
+          empty week. Closes #130. */}
       <HelperScheduleStrip
         helperId={helperId}
         enabled={
@@ -430,22 +472,26 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
         }
       />
 
-      {/* Monthly earnings goal — the only control for it in the app
-          (/analytics carried a second one; removed). localStorage-backed,
-          so no DB migration needed. */}
-      {!loading && (
-        <MonthlyGoalCard
-          completedJobs={completedJobs.map((j) => ({
-            // prefer helper_completed_at so the month bucket matches when
-            // the job was actually done, not when it was posted
-            created_at: j.helper_completed_at ?? j.created_at,
-            // Same shared take-home definition (and same group split) as the
-            // tab total above, so the goal ring and the Total tile agree.
-            netPayout: helperTakeHomeDollars(j, helperFeeFallbackPct),
-          }))}
-        />
+      {range === "month" && (
+        <>
+          <SectionRule />
+          {/* Monthly earnings goal — the only control for it in the app
+              (/analytics carried a second one; removed). localStorage-backed,
+              so no DB migration needed. */}
+          {!loading && (
+            <MonthlyGoalCard
+              completedJobs={completedJobs.map((j) => ({
+                // prefer helper_completed_at so the month bucket matches when
+                // the job was actually done, not when it was posted
+                created_at: j.helper_completed_at ?? j.created_at,
+                // Same shared take-home definition (and same group split) as the
+                // tab total above, so the goal ring and the Total tile agree.
+                netPayout: helperTakeHomeDollars(j, helperFeeFallbackPct),
+              }))}
+            />
+          )}
+        </>
       )}
-
 
       </section>
       )}
@@ -496,28 +542,19 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
       )}
 
       {/* ─── INSIGHTS ─────────────────────────────────────────────
-          The breakdown charts and the analytics dashboard (the former
-          standalone /analytics page) are the same kind of thing — trends, not
-          records — so they share one view instead of the charts floating
-          unlabelled above a rule that said "Analytics".
-
-          This is the heaviest region in the tab: two chart cards here plus
-          HelperAnalyticsBody's ~9 cards and two more charts. Because only the
-          SELECTED view mounts, a helpr checking their balance no longer pays
-          to build four charts they never scrolled to. */}
+          Just the real, unlocked breakdown charts. This view used to also
+          render HelperAnalyticsBody — an "Activity Trend" chart plus a grid
+          of PRO-locked teaser cards (earnings by month, best categories,
+          best days, success rate, profile views, repeat hire, ratings &
+          reviews) that were never wired to an actual Pro feature; they only
+          ever showed a lock icon and an upgrade CTA. Removed 2026-08-30
+          rather than kept as permanent non-functional furniture. */}
       {view === "insights" && (
       <section className="space-y-4">
 
       {/* PIE + YTD vs PRIOR-YTD compare ───────────────────
-          Self-hides if there's no completed-job data. Sits between the
-          payout history (the receipts) and the per-transfer ledger so
-          the helper sees their high-level breakdown before drilling
-          into individual transfers. */}
+          Self-hides if there's no completed-job data. */}
       <EarningsBreakdownCharts earningsJobs={earningsJobs} feeFallbackPercent={helperFeeFallbackPct} />
-
-      <Suspense fallback={null}>
-        <HelperAnalyticsBody />
-      </Suspense>
       </section>
       )}
 

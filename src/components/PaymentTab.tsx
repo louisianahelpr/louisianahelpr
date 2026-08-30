@@ -113,24 +113,37 @@ export function PaymentTab({ totalEarnings, onSeeEarnings }: PaymentTabProps) {
   // either direction, so the earned side is still a fact this component needs
   // even though it no longer prints it.
   const lifetimeEarned = totalEarnings;
-  // This-month slice — bucketed by completion timestamp (poster confirmation,
+  // Range slices — bucketed by completion timestamp (poster confirmation,
   // falling back to the helper's, then created_at for older rows that
   // predate completion timestamps).
   const now = new Date();
+  const dayOfWeek = now.getDay();
+  const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  const weekStartDate = new Date(now);
+  weekStartDate.setDate(now.getDate() + diffToMonday);
+  weekStartDate.setHours(0, 0, 0, 0);
+  const weekStart = weekStartDate.getTime();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-  const completedInMonth = <T extends { poster_completed_at: string | null; helper_completed_at: string | null; created_at: string }>(rows: T[]) =>
+  const yearStart = new Date(now.getFullYear(), 0, 1).getTime();
+  const completedSince = <T extends { poster_completed_at: string | null; helper_completed_at: string | null; created_at: string }>(rows: T[], sinceMs: number) =>
     rows.filter((j) => {
       const completedAt = j.poster_completed_at ?? j.helper_completed_at;
       const t = completedAt
         ? new Date(completedAt).getTime()
         : new Date(j.created_at).getTime();
-      return t >= monthStart;
+      return t >= sinceMs;
     });
-  const monthSpentJobs = completedInMonth(spentJobs);
-  const monthSpent = monthSpentJobs.reduce((s, j) => s + j.budget, 0);
-  const [scope, setScope] = useState<"lifetime" | "month">("lifetime");
-  const totalSpent = scope === "month" ? monthSpent : lifetimeSpent;
-  const spentCount = scope === "month" ? monthSpentJobs.length : spentJobs.length;
+  const weekSpentJobs = completedSince(spentJobs, weekStart);
+  const monthSpentJobs = completedSince(spentJobs, monthStart);
+  const yearSpentJobs = completedSince(spentJobs, yearStart);
+  const [scope, setScope] = useState<"lifetime" | "week" | "month" | "year">("lifetime");
+  const scopedJobs =
+    scope === "week" ? weekSpentJobs
+    : scope === "month" ? monthSpentJobs
+    : scope === "year" ? yearSpentJobs
+    : spentJobs;
+  const totalSpent = scope === "lifetime" ? lifetimeSpent : scopedJobs.reduce((s, j) => s + j.budget, 0);
+  const spentCount = scopedJobs.length;
   const monthLabel = now.toLocaleDateString("en-US", { month: "long" });
   // No money has ever moved — collapse the summary to a single empty
   // state (no scope toggle, no dual $0.00 columns, no triple "no
@@ -260,7 +273,9 @@ export function PaymentTab({ totalEarnings, onSeeEarnings }: PaymentTabProps) {
           >
             {([
               { key: "lifetime" as const, label: "Lifetime" },
+              { key: "week" as const, label: "This Week" },
               { key: "month" as const, label: monthLabel },
+              { key: "year" as const, label: "This Year" },
             ]).map((opt) => {
               const active = scope === opt.key;
               return (
@@ -287,7 +302,11 @@ export function PaymentTab({ totalEarnings, onSeeEarnings }: PaymentTabProps) {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <p className="font-serif italic uppercase text-ds-9" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
+              {/* No small-caps eyebrow — the app removed this pattern
+                  elsewhere (see EarningsTab.tsx). The dollar figure below is
+                  large and self-evidently the headline; a plain caption
+                  underneath still names the figure without shouting it. */}
+              <p className="font-serif italic text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 Total spent
               </p>
               <AnimatedCounter

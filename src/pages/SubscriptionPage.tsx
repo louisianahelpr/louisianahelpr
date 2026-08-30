@@ -33,7 +33,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, Award, Check, ChevronDown, Crown, Loader2, Star } from "lucide-react";
 import { toast } from "sonner";
-import BackButton from "@/components/BackButton";
+import PageHeader from "@/components/PageHeader";
 import PublicLayout from "@/components/marketing/PublicLayout";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { supabase } from "@/integrations/supabase/client";
@@ -291,40 +291,31 @@ export default function SubscriptionPage() {
   const inner = (
     <>
       {/* ── 1. Compact page header ──────────────────────────────────────── */}
-      {/* Back button LEFT of a normal-size title, same row shape as /jobs.
-          The container/padding match the sections below so the title lines
-          up with the plans grid. */}
-      <section className="px-5 sm:px-8 lg:px-12">
-        <div className="mx-auto page-measure">
-          <div className="flex items-center gap-3 mt-2 md:mt-6 mb-2 md:mb-4">
-            <div className="shrink-0">
-{/* to="/" — NOT bare history-back. These are top-nav / footer
-                  destinations reachable from anywhere, so `navigate(-1)` sent
-                  you to whatever you happened to view last: opening Terms, then
-                  Jobs, then pressing Back landed on Terms. A top-level page
-                  needs one predictable parent, and consistently the same one
-                  across all of them. */}
-              <BackButton to="/" />
-            </div>
-            <div className="flex flex-col leading-none min-w-0 flex-1">
-              <h1 className="text-page-title leading-tight truncate">
-                Membership
-              </h1>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Shared <PageHeader>, width="public" — that spec is
+          `page-measure px-5 sm:px-8 lg:px-12`, byte-identical to the gutter
+          ladder every section below uses, so the title lands in the same
+          column as the plans grid.
+
+          backTo="/" — NOT bare history-back, and NOT an onBack handler.
+          These are top-nav / footer destinations reachable from anywhere, so
+          `navigate(-1)` sent you to whatever you happened to view last:
+          opening Terms, then Jobs, then pressing Back landed on Terms. A
+          top-level page needs one predictable parent.
+
+          topInsetHandled — both shells above already clear the notch
+          (`pt-safe-top` on the native wrapper, PublicLayout's nav on web), so
+          absorbing `--safe-area-top` here would double-count it. */}
+      <PageHeader title="Membership" backTo="/" width="public" topInsetHandled />
 
       {/* ── 2. Plans / tiers ────────────────────────────────────────────── */}
-      {/* Tight pt-* — this section opens directly under the compact page
-          header, so a large top pad would read as a dead band rather than
-          as section separation. Tighter still below `sm`: on the phone this
-          masthead is pure preamble standing between the reader and the thing
-          they came to do. */}
+      {/* NO pt-* — this section opens directly under <PageHeader>, which owns
+          BOTH gaps around the title (`pt-4 pb-4`). Any top padding here stacks
+          onto that bottom gap and the title goes lopsided; see the long note in
+          PageHeader.tsx. (This previously carried `pt-3 sm:pt-8 lg:pt-10`.) */}
       <section
         id="plans"
         ref={tiersRef}
-        className="relative px-5 sm:px-8 lg:px-12 pt-3 sm:pt-8 lg:pt-10 pb-12 sm:pb-16 lg:pb-24 scroll-mt-24"
+        className="relative px-5 sm:px-8 lg:px-12 pb-12 sm:pb-16 lg:pb-24 scroll-mt-24"
       >
         {/* gap-6 below sm (was gap-12): at md+ the masthead and the grid are
             side by side and the gap is horizontal, but at phone width it is a

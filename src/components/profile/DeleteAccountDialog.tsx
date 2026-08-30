@@ -1,4 +1,4 @@
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHero } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHero } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
@@ -64,6 +64,13 @@ export function DeleteAccountDialog({
         <AlertDialogHero
           title={<><AlertTriangle className="w-5 h-5" /> Final confirmation</>}
         />
+        {/* The field used to carry the only instruction — a placeholder that
+            vanishes the moment you start typing, with nothing above it saying
+            why. `aria-label` covered screen readers; sighted users got a bare
+            box under a title. This is the visible instruction that stays put. */}
+        <AlertDialogDescription>
+          Type <span className="font-mono font-semibold">{CONFIRM_PHRASE}</span> below to confirm.
+        </AlertDialogDescription>
         <Input
           autoFocus
           aria-label={`Type ${CONFIRM_PHRASE} to confirm account deletion`}

@@ -41,23 +41,26 @@ const AUTH_PREFIXES = [
   // #root inset keyed off it — flicker off for a frame before /profile
   // turns them back on.
   "/data-rights",
-  // NOTE: /subscription is deliberately NOT in this list — it's a
-  // marketing page (like /help, /legal), rendered inside
-  // PublicLayout with the marketing Navbar + Footer + editorial hero.
-  // Adding it here surfaces the authed desktop rail alongside the
-  // marketing content for signed-in users, which reads as two navigation
-  // systems stacked and clashes with the editorial layout. Signed-in
-  // users on /subscription keep the marketing Navbar the same way
-  // signed-in users on /help do.
+  // ── The dual-surface pages ────────────────────────────────────────────
+  // /help, /legal, /support and /subscription are reachable BOTH logged out
+  // (marketing Footer destinations) and from inside the app (Profile → Legal
+  // & Policies / Help Center / Membership).
   //
-  // NOTE: /support was REMOVED from this list for exactly that reason. It
-  // was here when the route was a redirect into /profile?tab=support (a real
-  // authed app page). It now renders src/pages/Support.tsx inside
-  // PublicLayout and is reachable LOGGED OUT, so it belongs with /help and
-  // /subscription: marketing Navbar, no rail, no #root rail inset. Left in,
-  // a signed-in desktop visitor got the authed rail stacked against a
-  // marketing footer, plus PublicLayout's nav spacer sitting under a Navbar
-  // that had stepped aside — an empty band at the top of the page.
+  // They used to be deliberately EXCLUDED here, because PublicLayout gave
+  // everyone the marketing Navbar and the rail would have stacked a second
+  // navigation system on top of it. That reasoning died with the layout:
+  // PublicLayout now picks its chrome by AUTH (owner, 2026-08-30 — "there
+  // should be a public and signed in version of help and legal ... there
+  // should not be any redirection back to public pages once they are signed
+  // in"), so a signed-in visitor gets the app shell and NO marketing Navbar.
+  //
+  // Leaving them out at that point produced a page with no navigation AT ALL
+  // for signed-in users — no marketing nav (correctly gone), no rail, and the
+  // `#root` rail inset never applying. `isDesktopRailRoute` is an ALLOW-list,
+  // so they have to be named here for the rail to own their nav. Logged-out
+  // visitors are unaffected: the rail is additionally gated on `!!user` in
+  // useAppShellViewport, so it still never shows on the public surface.
+  "/help", "/legal", "/support", "/subscription",
 ];
 
 // Path prefixes that MUST NOT get the rail even though they'd otherwise

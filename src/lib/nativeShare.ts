@@ -52,10 +52,23 @@ export async function shareNative(content: ShareContent): Promise<void> {
       await Share.share({ title, text, url, dialogTitle });
       return;
     }
+    /* The clipboard tier MUST say something. It used to `return` silently, so
+       on any surface without `navigator.share` — desktop Safari and macOS
+       Chrome, which is where this was reported — tapping Share copied the link
+       and gave zero feedback. Indistinguishable from a dead button (owner,
+       2026-08-30: "does nothing"). The tier list at the top of this file always
+       described this step as "copy the link + toast a hint"; the toast was just
+       never written. */
     if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(clipboardText);
+      toast.success("Link copied", { description: "Paste it anywhere to share." });
       return;
     }
+    /* Last-ditch tier, also from the list at the top and also never
+       implemented: no share sheet AND no clipboard. Surface the URL so the
+       action still produces something the user can act on. */
+    toast("Copy this link", { description: url });
+    return;
   } catch (err) {
     const isCancel =
       err instanceof Error &&
@@ -68,6 +81,10 @@ export async function shareNative(content: ShareContent): Promise<void> {
     try {
       if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(clipboardText);
+        // Same silent-success bug as the tier above: the recovery path copied
+        // the link and said nothing, so a share that fell back after a
+        // NotAllowedError looked identical to a dead button.
+        toast.success("Link copied", { description: "Paste it anywhere to share." });
         return;
       }
     } catch {

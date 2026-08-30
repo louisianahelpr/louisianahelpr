@@ -18,6 +18,7 @@ import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { HelperAvailabilityDisplay } from "@/components/HelperAvailabilityDisplay";
 import { computeBadges, HelperBadges } from "@/components/HelperBadges";
 import { HelperPortfolio } from "@/components/HelperPortfolio";
+import { HelperWorkPhotos } from "@/components/profile/HelperWorkPhotos";
 import { PublicReviewWall } from "@/components/profile/PublicReviewWall";
 import { SkillEndorsements } from "@/components/profile/SkillEndorsements";
 import { CareerMilestones } from "@/components/profile/CareerMilestones";
@@ -176,7 +177,7 @@ const UserProfile = () => {
           meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}
           titleActions={headerActionPlaceholder}
         />
-        <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pt-4 pb-8">
+        <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pb-8">
           {/* The SAME wrapper the loaded body uses below — full page measure,
               one column, gap-6. It used to carry `max-w-2xl mx-auto`, a cap no
               other state on this page has: 86545cb12 moved all four states onto
@@ -250,7 +251,7 @@ const UserProfile = () => {
           meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}
           titleActions={headerActionPlaceholder}
         />
-        <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pt-4 pb-8">
+        <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pb-8">
           <div className="flex">
             <ErrorState variant="inline" onRetry={() => refetch()} />
           </div>
@@ -268,7 +269,7 @@ const UserProfile = () => {
           meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}
           titleActions={headerActionPlaceholder}
         />
-        <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pt-4 pb-8">
+        <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pb-8">
           <div className="flex">
             <EmptyState
               variant="inline"
@@ -428,7 +429,7 @@ const UserProfile = () => {
         }
       />
 
-      <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pt-4 pb-8">
+      <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pb-8">
         {/* Split-column desktop layout: the mobile-first single column
             (max-w-lg centered) widens to a two-column masthead + reviews
             layout at lg+. Below lg the grid collapses to one column and
@@ -718,6 +719,10 @@ const UserProfile = () => {
 
             {/* Availability */}
             <HelperAvailabilityDisplay helperId={userId!} />
+
+            {/* Recent work — photos the helper uploaded on their own profile.
+                Ungated on purpose; see HelperWorkPhotos for why. */}
+            <HelperWorkPhotos urls={profile.portfolio_urls ?? []} />
 
             {/* Portfolio — Pro+ only */}
             {(profile.subscription_tier === "pro" || profile.subscription_tier === "elite") && <HelperPortfolio helperId={userId!} />}

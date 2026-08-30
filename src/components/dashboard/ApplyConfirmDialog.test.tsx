@@ -110,7 +110,7 @@ describe("ApplyConfirmDialog", () => {
   it("calls setApplyMessage as the pitch is typed", () => {
     const props = makeProps();
     render(<ApplyConfirmDialog {...props} />);
-    fireEvent.change(screen.getByLabelText(/add a note/i), {
+    fireEvent.change(screen.getByLabelText(/note to the poster/i), {
       target: { value: "I have done this before." },
     });
     expect(props.setApplyMessage).toHaveBeenCalledWith("I have done this before.");
@@ -158,12 +158,16 @@ describe("ApplyConfirmDialog", () => {
     expect(screen.queryByText(/characters feels personal/)).not.toBeInTheDocument();
     expect(screen.queryByText(/reads personal/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Your pitch/i)).not.toBeInTheDocument();
-    // The one job-specific nudge survives — as the placeholder, where the
-    // helpr is already looking when they decide what to type.
-    expect(screen.getByLabelText(/add a note/i)).toHaveAttribute(
-      "placeholder",
-      expect.stringMatching(/earliest available start time/) as unknown as string,
-    );
+    // The last coaching surface — the placeholder tip — is gone too (owner,
+    // 2026-08-29). The field opens empty; the label carries the only prompt.
+    expect(screen.getByLabelText(/note to the poster/i)).not.toHaveAttribute("placeholder");
+  });
+
+  it("tells the helpr the poster reads the note, in the label itself", () => {
+    // One title, not a title plus a subtitle repeating it. "Add a note" alone
+    // read like a private memo, so people left it blank or wrote carelessly.
+    render(<ApplyConfirmDialog {...makeProps()} />);
+    expect(screen.getByLabelText(/note to the poster/i)).toBeInTheDocument();
   });
 
   it("hides the character counter until the cap is in sight", () => {
@@ -193,9 +197,14 @@ describe("ApplyConfirmDialog", () => {
     expect(box).toHaveAttribute("data-state", "checked");
   });
 
-  it("lists attached files", () => {
+  it("has no per-application file picker", () => {
+    // Certs and work photos are uploaded ONCE on the profile (Edit Profile →
+    // Recent work) and posters see them there via HelperWorkPhotos, so
+    // re-attaching the same file on every application was repeated work.
     const file = new File(["resume contents"], "resume.pdf", { type: "application/pdf" });
-    render(<ApplyConfirmDialog {...makeProps({ applyFiles: [file] })} />);
-    expect(screen.getByText("resume.pdf")).toBeInTheDocument();
+    const { container } = render(<ApplyConfirmDialog {...makeProps({ applyFiles: [file] })} />);
+    expect(screen.queryByText("resume.pdf")).not.toBeInTheDocument();
+    expect(screen.queryByText(/add attachments/i)).not.toBeInTheDocument();
+    expect(container.querySelector('input[type="file"]')).toBeNull();
   });
 });

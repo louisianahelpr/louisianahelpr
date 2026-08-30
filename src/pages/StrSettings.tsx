@@ -4,17 +4,19 @@
  * "Rental Host Automation" settings page. Lets users connect Airbnb / VRBO
  * iCal feeds so Helpr auto-posts a cleaning job each time a guest checks out.
  *
- * Document-scroll page (listed in DOCUMENT_SCROLL_ROUTES). Uses the canonical
- * PageHeader + min-h-screen wrapper — same pattern as PayItForward.
+ * AppShell page (owner, 2026-08-30: "app shell globally"). Chrome stays
+ * pinned; content scrolls in AppShell's internal container. Deliberately NOT
+ * in DOCUMENT_SCROLL_ROUTES — an AppShell page on that list gets a second
+ * scroll lock stacked on its own (iOS double-rubber-band).
  */
 
 import { useState } from "react";
 
-import { CalendarDays, Home, Plus, ChevronDown, ChevronUp } from "lucide-react";
+import { CalendarDays, Plus, ChevronDown, ChevronUp } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import PageHeader from "@/components/PageHeader";
+import AppPage from "@/components/AppPage";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
@@ -192,63 +194,24 @@ export default function StrSettings() {
     "affected.";
 
   return (
-    <div className="min-h-screen bg-premium-page pb-safe-nav">
-      {/* Geometry is the CANONICAL Profile sub-screen ladder, shared verbatim
-          with the Profile tab bodies (Profile.tsx) and PageHeader's `default`
-          width: max-w-5xl → lg:6xl → xl:7xl → 2xl:90rem on px-5 → lg:px-8 →
-          xl:px-12. This page used to run its own max-w-lg/px-4 ladder, and
-          shipped with NO back target at all — it is reached from the Profile
-          landing, so the chevron goes back there like every sibling. */}
-      <PageHeader
-        title="Host Automation"
-        backTo="/profile"
-      />
+    <AppPage title="Host Automation" backTo="/profile">
 
-      <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pt-4 pb-8">
-
-        {/* SINGLE COLUMN on desktop (owner). This was a 12-col split with a
-              desktop-only "How it works" rail beside the calendars. The rail is
-              STACKED rather than deleted — its cadence note lives nowhere else
-              (the pitch moved to the empty state, the mechanics stayed here), so
-              removing the column would have removed the content with it. The
-              aside keeps its `hidden lg:block`, so mobile is unchanged. */}
+        {/* ONE card, every breakpoint (owner, 2026-08-29: "merge into 1"). This
+            used to stack a desktop-only "How it works" rail ABOVE the
+            calendars — a leftover from an old 12-col split whose grid classes
+            (`lg:col-span-4` / `lg:col-span-8`) had gone dead the moment the
+            parent lost its `grid`, so the two "columns" just stacked as plain
+            block siblings: rail card, then empty-state card, both saying the
+            same cadence sentence one after another. That sentence already
+            lives inside whichever real card is showing (the empty state's
+            footnote, or the "Add a Calendar" card's footnote once connections
+            exist) — it was `lg:hidden` there specifically to make room for
+            the rail's desktop copy. Now that the rail is gone, both footnotes
+            below render unconditionally, and the cadence note has exactly one
+            home at every width. */}
           <div className="space-y-4">
-          {/* Desktop-only left rail.
-              This used to repeat the "Never scramble for a cleaner again"
-              pitch that the empty state below already makes — the same two
-              sentences twice on one screen. The pitch now lives once, in the
-              empty state; the rail carries the mechanics instead, which are
-              the thing a host still wants once calendars ARE connected and
-              the pitch has done its job. */}
-          <aside className="hidden lg:block lg:col-span-4">
-            <div className="rounded-ds-md p-5 lg:sticky lg:top-6" style={cardStyle}>
-              <div
-                className="rounded-full flex items-center justify-center mb-3"
-                style={{
-                  width: 44, height: 44,
-                  background: "hsl(var(--burnt-sienna) / 0.12)",
-                  border: "1.5px solid hsl(var(--burnt-sienna) / 0.3)",
-                }}
-              >
-                <Home className="w-5 h-5" style={{ color: "hsl(var(--bark))" }} />
-              </div>
-              <p
-                className="font-display italic font-bold text-ds-18"
-                style={{ color: "hsl(var(--ink-deep))" }}
-              >
-                How it works
-              </p>
-              <p
-                className="mt-2 text-ds-14"
-                style={{ color: "hsl(var(--olivewood) / 0.85)", lineHeight: 1.55 }}
-              >
-                {cadenceNote}
-              </p>
-            </div>
-          </aside>
-
           {/* Main column: calendars + add + help */}
-          <section className="lg:col-span-8 space-y-4 min-w-0">
+          <section className="space-y-4 min-w-0">
             {/* Connected calendars */}
             {isLoading ? (
               <div className="flex justify-center py-8">
@@ -286,11 +249,11 @@ export default function StrSettings() {
                 /* Fine print INSIDE the card. This sentence used to print on
                    the bare page background underneath the card, which no other
                    Profile sub-page does — /pets, /family and /home-history all
-                   keep their content in the card. `lg:hidden` because the
-                   desktop rail carries the same sentences at lg+. */
+                   keep their content in the card. Renders at every width now
+                   that the desktop rail duplicating it is gone. */
                 footnote={
                   <p
-                    className="lg:hidden text-ds-12 max-w-[26rem] mx-auto"
+                    className="text-ds-12 max-w-[26rem] mx-auto"
                     style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                   >
                     {cadenceNote}
@@ -354,11 +317,9 @@ export default function StrSettings() {
 
                   {/* Same fine print as the empty state's, in the same place
                       relative to the content: inside the last card rather than
-                      stranded on the page background beneath it. The desktop
-                      rail carries these sentences at lg+, so only one of the
-                      two is ever on screen. */}
+                      stranded on the page background beneath it. */}
                   <p
-                    className="lg:hidden px-4 pt-0.5 pb-3.5 text-ds-12"
+                    className="px-4 pt-0.5 pb-3.5 text-ds-12"
                     style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                   >
                     {cadenceNote}
@@ -368,7 +329,6 @@ export default function StrSettings() {
             )}
           </section>
         </div>
-      </div>
 
       {/* Removing is a soft-delete (`is_active: false`) and there is no
           archived view, so from the host's side it is permanent — the confirm
@@ -398,6 +358,6 @@ export default function StrSettings() {
         }}
         secondaryLabel="Keep Calendar"
       />
-    </div>
+    </AppPage>
   );
 }

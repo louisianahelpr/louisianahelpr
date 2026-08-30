@@ -2,10 +2,9 @@ import {
   Heart,
   DollarSign,
   ShoppingBag,
-  Clock,
   ExternalLink,
 } from "lucide-react";
-import PageHeader from "@/components/PageHeader";
+import AppPage from "@/components/AppPage";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
 interface BenefitItem {
@@ -77,12 +76,6 @@ const SECTIONS: BenefitSection[] = [
   },
 ];
 
-const COMING_SOON: string[] = [
-  "Commercial auto insurance",
-  "Equipment rental discounts",
-  "Professional development courses",
-  "Background check fee coverage",
-];
 
 // The shared SHEET surface — `.doc-card` from the document surface ladder in
 // index.css, the same rung /work-record uses. It replaces a hand-rolled
@@ -109,27 +102,8 @@ export default function BenefitsPage() {
   // announce these as links instead of buttons.
 
   return (
-    <div className="min-h-screen bg-premium-page pb-safe-nav">
-      {/* The intro copy that used to live in a saturated gradient hero now
-          rides in the standard PageHeader eyebrow/meta slots — the same calm
-          header treatment every other profile-linked page uses. */}
-      <PageHeader
-        title="Benefits & Perks"
-        eyebrow="Built for Helprs, by Helprs"
-        meta="Partner perks curated for Louisiana Helpr members — health coverage, financial tools, and supply discounts to help you earn more and keep more."
-        backTo="/profile"
-        // No `width` — the header takes its `default` geometry, which IS the
-        // body class below, so title and content share one edge at every size.
-      />
-
-            {/* CANONICAL DOCUMENT-SCROLL SHELL — identical on every page that wears
-          it: `min-h-screen bg-premium-page pb-safe-nav` > <PageHeader> (default
-          width) > `page-measure mx-auto px-5 lg:px-8 xl:px-12 pt-4 pb-8`.
-          The header's `default` width IS this body class, so the title and the
-          content share one left edge at every breakpoint. Owner: these pages
-          "should share layouts ... there should not be any off from the rest",
-          so do not give this page its own max-width or gutter ladder. */}
-      <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pt-4 pb-8 space-y-6">
+    <AppPage title="Benefits & Perks" backTo="/profile">
+      <div className="space-y-6">
         {/* Sections */}
         {SECTIONS.map((section) => (
           <div key={section.title} className={CARD_CLASS}>
@@ -182,32 +156,15 @@ export default function BenefitsPage() {
           </div>
         ))}
 
-        {/* Coming soon */}
-        <div className={`${CARD_CLASS} p-5`}>
-          <div className="flex items-center gap-2 mb-3">
-            <Clock className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} />
-            <h2 className="font-sans font-semibold text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>
-              Coming soon
-            </h2>
-          </div>
-          <ul className="space-y-1.5">
-            {COMING_SOON.map((item) => (
-              <li
-                key={item}
-                className="text-ds-13 flex items-center gap-2"
-                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-current shrink-0" />
-                {item}
-              </li>
-            ))}
-          </ul>
-        </div>
+        {/* "Coming soon" card removed (owner, 2026-08-30). It listed four
+            unshipped perks with no date attached — a promise the page could
+            not keep, closing a screen whose whole job is perks you can use
+            today. */}
 
         {/* No footer "Back to dashboard" button: the page already has the
             standard back affordance in its PageHeader (chevron, top-left), so a
             second full-width back button at the bottom was redundant chrome. */}
       </div>
-    </div>
+    </AppPage>
   );
 }

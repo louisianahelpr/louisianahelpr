@@ -3,7 +3,8 @@ import { createPortal } from "react-dom";
 import { formatName } from "@/lib/utils";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Eye, Pencil, Plus, ShieldAlert, ShieldCheck, Sparkles, Star, X } from "lucide-react";
+import { Eye, Pencil, Plus, ShieldAlert, ShieldCheck, Sparkles, Star, X } from "lucide-react";
+import PageHeader from "@/components/PageHeader";
 import { AttachmentLink } from "@/components/AttachmentLink";
 import CredentialBadge from "@/components/CredentialBadge";
 import { hapticLight } from "@/lib/haptics";
@@ -122,9 +123,18 @@ export function ApplicantsPanel({
       <div className="fixed inset-0 z-50 flex flex-col motion-safe:animate-in motion-safe:slide-in-from-right motion-safe:duration-200"
         // Same full-screen-overlay top inset as PetForm — see the note there.
         style={{ background: "hsl(var(--parchment))", paddingTop: "var(--safe-area-top, 0px)" }}>
-        {/* Header */}
+        {/* Header — PageHeader for the title row (back + "Applicants" + reach),
+            with the job name kept as sheet-owned content directly beneath it.
+            NOT folded into PageHeader's `meta`: the owner's 2026-08-13 note
+            retiring `meta` is a standing design rule ("a title sitting next to
+            a back button must not carry a small line beneath it"), not just a
+            note that it was redundant that one time — so it stays off
+            app-wide. This sheet still needs to say which job it's showing
+            applicants for, so that line renders as this component's own
+            content, same as it always did, just below PageHeader instead of
+            inside a hand-rolled h2. `topInsetHandled` — the sheet's own root
+            already applies `paddingTop: var(--safe-area-top)` one line up. */}
         <div
-          className="flex items-center gap-2 px-4 py-3"
           style={{
             borderBottom: "0.5px solid hsl(var(--bark) / 0.12)",
             background: "var(--surface-premium)",
@@ -132,44 +142,43 @@ export function ApplicantsPanel({
             WebkitBackdropFilter: "blur(20px)",
           }}
         >
-          <Button
-            variant="ghost"
-            size="sm"
-            className="btn-press -ml-1 h-9 w-9 p-0 shrink-0"
-            aria-label="Back to posted jobs"
-            onClick={() => setSelectedJob(null)}
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </Button>
-          <div className="min-w-0 flex-1">
-            <h2
-              className="font-display italic font-bold leading-tight truncate text-ds-17"
-              style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+          <PageHeader
+            title="Applicants"
+            onBack={() => setSelectedJob(null)}
+            topInsetHandled
+            titleActions={
+              /* Reach, on demand. This readout used to sit on the job card
+                 itself (once in the meta row, again in an "Activity" panel
+                 under the tracker — the same number twice). Owner: show it
+                 when applicants is clicked. This is where a poster is actually
+                 weighing whether the post is working, so it is the one place
+                 it earns its space. */
+              jobAnalytics && jobAnalytics.viewCount > 0 ? (
+                <div className="shrink-0 text-right" aria-label="Post reach">
+                  <span className="flex items-center justify-end gap-1 text-ds-12" style={{ color: "hsl(var(--ink-deep) / 0.7)" }}>
+                    <Eye className="w-3 h-3 shrink-0" aria-hidden />
+                    {jobAnalytics.viewCount} {jobAnalytics.viewCount === 1 ? "view" : "views"}
+                  </span>
+                  {jobAnalytics.conversionRate !== null && (
+                    <span className="block text-ds-11" style={{ color: "hsl(var(--ink-deep) / 0.55)" }}>
+                      {jobAnalytics.conversionRate}% applied
+                    </span>
+                  )}
+                </div>
+              ) : undefined
+            }
+          />
+          {/* Same container geometry as PageHeader's `default` width
+              (`page-measure mx-auto px-5 lg:px-8 xl:px-12`) so this line sits
+              on the same left edge as the title above it. */}
+          <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 -mt-2 pb-3">
+            <p
+              className="text-ds-11 font-serif italic truncate"
+              style={{ color: "hsl(var(--olivewood) / 0.80)" }}
             >
-              Applicants
-            </h2>
-            <p className="text-ds-11 font-serif italic truncate" style={{ color: "hsl(var(--olivewood) / 0.80)" }}>
               {selectedJob.title}
             </p>
           </div>
-          {/* Reach, on demand. This readout used to sit on the job card itself
-              (once in the meta row, again in an "Activity" panel under the
-              tracker — the same number twice). Owner: show it when applicants
-              is clicked. This is where a poster is actually weighing whether
-              the post is working, so it is the one place it earns its space. */}
-          {jobAnalytics && jobAnalytics.viewCount > 0 && (
-            <div className="shrink-0 text-right" aria-label="Post reach">
-              <span className="flex items-center justify-end gap-1 text-ds-12" style={{ color: "hsl(var(--ink-deep) / 0.7)" }}>
-                <Eye className="w-3 h-3 shrink-0" aria-hidden />
-                {jobAnalytics.viewCount} {jobAnalytics.viewCount === 1 ? "view" : "views"}
-              </span>
-              {jobAnalytics.conversionRate !== null && (
-                <span className="block text-ds-11" style={{ color: "hsl(var(--ink-deep) / 0.55)" }}>
-                  {jobAnalytics.conversionRate}% applied
-                </span>
-              )}
-            </div>
-          )}
         </div>
 
         {/* Modal body — capped at iPad-comfortable width */}

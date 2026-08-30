@@ -262,10 +262,11 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
       // left "Highest pay" sorting only within each priority stratum,
       // which read as the control doing nothing (2026-08-28 regression).
       if (sortBy !== "smart") return compareJobsBySortMode(a, b, sortBy);
-      const aUrgent = a.is_urgent;
-      const bUrgent = b.is_urgent;
-      if (aUrgent && !bUrgent) return -1;
-      if (!aUrgent && bUrgent) return 1;
+      // Boosted is the ONE true pin-to-top (owner, 2026-08-29: "that's the
+      // whole point of boosted") — it's a paid placement, so it has to
+      // actually place. Urgent is a badge, not a queue-jump: an urgent job
+      // sorts wherever it would anyway (by post time, parish, etc. below),
+      // it just gets the ⚡ label to signal it's time-sensitive.
       if (a.isBoosted && !b.isBoosted) return -1;
       if (!a.isBoosted && b.isBoosted) return 1;
       // Parish-proximity priority — jobs in the user's own parish float

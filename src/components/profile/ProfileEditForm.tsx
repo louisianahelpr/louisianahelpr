@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Check, MapPin } from "lucide-react";
 import { lookupParishByZip } from "@/lib/parishLookup";
+import { JOB_CATEGORY_LABELS } from "@/lib/jobCategories";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import type { ProfileEditFormProps } from "@/components/profile/profileEditForm/types";
 import { usePortfolio } from "@/components/profile/profileEditForm/usePortfolio";
@@ -13,6 +14,16 @@ import { RecentWorkSection } from "@/components/profile/profileEditForm/RecentWo
 import { SaveBar } from "@/components/profile/profileEditForm/SaveBar";
 
 export type { ProfileEditFormProps } from "@/components/profile/profileEditForm/types";
+
+// Preset skill chips — reuses the canonical job-category labels
+// (src/lib/jobCategories.ts) so a Helpr's offered skills line up with the
+// categories jobs actually get posted under, minus "Other" (that's the
+// free-text field below the chips, not a chip itself). "Moving" and
+// "Events" get a small wording nudge ("Moving Help" / "Event Help") since
+// these describe a *skill offered*, not a job category being posted.
+const SKILL_PRESETS: string[] = Object.entries(JOB_CATEGORY_LABELS)
+  .filter(([value]) => value !== "other")
+  .map(([value, label]) => (value === "moving" ? "Moving Help" : value === "events" ? "Event Help" : label));
 
 export function ProfileEditForm({
   profile,
@@ -54,6 +65,22 @@ export function ProfileEditForm({
   // preview the pills the public profile will render.
   const skillList = skills.split(",").map((s) => s.trim()).filter(Boolean);
 
+  // Presets vs. custom ("Other") — split skillList by whether each entry
+  // case-insensitively matches a preset chip label. Anything left over is
+  // custom text a Helpr typed (or a skill saved before this chip picker
+  // existed), so it must stay visible and editable, not silently dropped.
+  const presetLabelsLower = new Set(SKILL_PRESETS.map((s) => s.toLowerCase()));
+  const selectedPresets = skillList.filter((s) => presetLabelsLower.has(s.toLowerCase()));
+  const customSkills = skillList.filter((s) => !presetLabelsLower.has(s.toLowerCase()));
+
+  function toggleSkillPreset(label: string) {
+    const isSelected = skillList.some((s) => s.toLowerCase() === label.toLowerCase());
+    const next = isSelected
+      ? skillList.filter((s) => s.toLowerCase() !== label.toLowerCase())
+      : [...skillList, label];
+    setSkills(next.join(", "));
+  }
+
   // Dirty check — the Save bar drives only the text fields (avatar /
   // ID / portfolio persist on their own). Disabled when nothing in
   // this set has diverged from the saved profile.
@@ -70,6 +97,26 @@ export function ProfileEditForm({
   const [resolvedParish, setResolvedParish] = useState<string | null>(
     (profile?.parish ?? null),
   );
+
+  // "Other" skills free-text — kept as its own local buffer (not derived
+  // fresh from `skills` on every render) so typing a comma doesn't
+  // instantly re-join/trim the field out from under the cursor. Resynced
+  // only when the underlying saved profile's skills change (initial load /
+  // navigating back to this tab), same trigger as resolvedParish above.
+  const [customText, setCustomText] = useState(customSkills.join(", "));
+  useEffect(() => {
+    const saved = (profile?.skills ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+    const savedCustom = saved.filter((s) => !presetLabelsLower.has(s.toLowerCase()));
+    setCustomText(savedCustom.join(", "));
+    // presetLabelsLower is a stable module-derived Set each render; only
+    // profile?.skills should re-trigger this resync.
+  }, [profile?.skills]);
+
+  function handleCustomTextChange(value: string) {
+    setCustomText(value);
+    const customList = value.split(",").map((s) => s.trim()).filter(Boolean);
+    setSkills([...selectedPresets, ...customList].join(", "));
+  }
   useEffect(() => {
     const cleaned = zipCode.replace(/\D/g, "");
     if (cleaned.length !== 5) {
@@ -199,29 +246,46 @@ export function ProfileEditForm({
               </span>
             )}
           </div>
-          <Input
-            id="skills"
-            value={skills}
-            onChange={(e) => setSkills(e.target.value)}
-            placeholder="Cleaning, yard work, moving…"
-            autoCapitalize="words"
-            enterKeyHint="next"
-            className="h-10"
-          />
-          {skillList.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {skillList.map((s, i) => (
-                <span
-                  key={`${s}-${i}`}
-                  className="px-2 py-0.5 rounded-full text-ds-11 font-medium bg-primary/10 text-primary"
+          {/* Preset chips — tap to toggle in/out of the comma-separated
+              `skills` string. Same active/inactive chip language as
+              ReviewsTab's sort menu (bg-primary fill when selected). */}
+          <div className="flex flex-wrap gap-1.5">
+            {SKILL_PRESETS.map((label) => {
+              const active = skillList.some((s) => s.toLowerCase() === label.toLowerCase());
+              return (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => toggleSkillPreset(label)}
+                  aria-pressed={active}
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-ds-11 font-medium transition-colors active:scale-95 ${
+                    active
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-primary/10 text-primary hover:bg-primary/15"
+                  }`}
                 >
-                  {s}
-                </span>
-              ))}
-            </div>
-          )}
+                  {active && <Check className="w-3 h-3" strokeWidth={3} />}
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+          <div>
+            <Label htmlFor="skillsOther" className="text-ds-11 mb-1.5 block text-muted-foreground">
+              Other (not listed above)
+            </Label>
+            <Input
+              id="skillsOther"
+              value={customText}
+              onChange={(e) => handleCustomTextChange(e.target.value)}
+              placeholder="Anything else you offer…"
+              autoCapitalize="words"
+              enterKeyHint="done"
+              className="h-10"
+            />
+          </div>
           <p className="font-serif italic leading-snug text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            Separate each with a comma. These show as tags on your public profile and decide which jobs get matched to you.
+            Tap what applies, or type your own. These show as tags on your public profile and decide which jobs get matched to you.
           </p>
         </div>
 

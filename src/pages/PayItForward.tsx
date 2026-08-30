@@ -38,6 +38,8 @@ import { GIFT_OCCASIONS, DEFAULT_OCCASION, DEFAULT_DESIGN } from "./payItForward
 import { GiftCardPreview } from "./payItForward/GiftCardPreview";
 import { CreditCard } from "./payItForward/CreditCard";
 import { EmptyState } from "./payItForward/EmptyState";
+import { RecipientPicker } from "./payItForward/RecipientPicker";
+import type { RecipientMatch } from "./payItForward/RecipientPicker";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { isNativePlatform } from "@/lib/nativeInit";
 
@@ -69,6 +71,12 @@ export default function PayItForward() {
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [customAmount, setCustomAmount] = useState("");
   const [recipientEmail, setRecipientEmail] = useState("");
+  // Two ways to name a recipient: search by name (default — resolves to
+  // `recipient_id`, server-side email resolution in create-pif-donation) or
+  // type an email directly (the original flow, unchanged). Exactly one is
+  // active at a time.
+  const [recipientMode, setRecipientMode] = useState<"search" | "email">("search");
+  const [selectedRecipient, setSelectedRecipient] = useState<RecipientMatch | null>(null);
   const [note, setNote] = useState("");
   // Occasion drives which designs are offered and what the note placeholder
   // suggests; design is what the recipient actually sees. Both persist on the
@@ -81,7 +89,13 @@ export default function PayItForward() {
   const effectiveAmount = selectedAmount ?? (customAmount ? parseFloat(customAmount) : null);
   const trimmedRecipient = recipientEmail.trim().toLowerCase();
   const emailValid = EMAIL_RE.test(trimmedRecipient);
-  const isSelfGift = !!myEmail && trimmedRecipient === myEmail;
+  const isSelfGiftEmail = !!myEmail && trimmedRecipient === myEmail;
+  // In "search" mode the recipient is a picked profile, not typed text — the
+  // RPC already excludes the caller's own row, but guard here too in case a
+  // stale selection lingers across a mode switch.
+  const isSelfGiftSelected = !!user?.id && selectedRecipient?.user_id === user.id;
+  const hasValidRecipient =
+    recipientMode === "email" ? emailValid && !isSelfGiftEmail : !!selectedRecipient && !isSelfGiftSelected;
 
   // ── Stripe return handling (?gift=success | ?gift=cancelled) ───────────────
   useEffect(() => {
@@ -246,13 +260,20 @@ export default function PayItForward() {
       const amt = effectiveAmount;
       if (!amt || isNaN(amt) || amt < MIN_GIFT) throw new Error(`The smallest gift card is $${MIN_GIFT}.`);
       if (amt > MAX_GIFT) throw new Error(`The largest single gift card is $${MAX_GIFT}.`);
-      if (!emailValid) throw new Error("Enter a valid email for the person you're gifting.");
-      if (isSelfGift) throw new Error("You can't send a gift card to yourself.");
+      if (recipientMode === "email") {
+        if (!emailValid) throw new Error("Enter a valid email for the person you're gifting.");
+        if (isSelfGiftEmail) throw new Error("You can't send a gift card to yourself.");
+      } else {
+        if (!selectedRecipient) throw new Error("Search for and select who this gift is for.");
+        if (isSelfGiftSelected) throw new Error("You can't send a gift card to yourself.");
+      }
 
       const { data, error } = await supabase.functions.invoke("create-pif-donation", {
         body: {
           amount: amt,
-          recipient_email: trimmedRecipient,
+          ...(recipientMode === "email"
+            ? { recipient_email: trimmedRecipient }
+            : { recipient_id: selectedRecipient!.user_id }),
           message: note.trim(),
           occasion: occasionId,
           design_id: design.id,
@@ -296,8 +317,7 @@ export default function PayItForward() {
     effectiveAmount >= MIN_GIFT &&
     effectiveAmount <= MAX_GIFT &&
     !isNaN(effectiveAmount) &&
-    emailValid &&
-    !isSelfGift;
+    hasValidRecipient;
 
   return (
     <AppPage title="Gift Card" backTo="/profile">
@@ -371,46 +391,25 @@ export default function PayItForward() {
                 boxShadow: "inset 0 1px 1px 0 rgba(255,255,255,0.6)",
               }}
             >
-              {/* Recipient email */}
-              <div>
-                <p
-                  className="font-serif italic text-ds-12 mb-2"
-                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                >
-                  Recipient's email
-                </p>
-                <input
-                  type="email"
-                  inputMode="email"
-                  autoComplete="email"
-                  value={recipientEmail}
-                  onChange={(e) => setRecipientEmail(e.target.value)}
-                  aria-label="Recipient's email"
-                  className="w-full rounded-ds-sm py-2 px-3 text-ds-13 font-sans"
-                  style={{
-                    background: "hsl(var(--parchment) / 0.6)",
-                    border: `0.5px solid hsl(var(--bark) / ${recipientEmail && !emailValid ? "0.4" : "0.22"})`,
-                    color: "hsl(var(--ink-deep))",
-                    outline: "none",
-                  }}
-                />
-                {recipientEmail.trim() && !emailValid && (
-                  <p
-                    className="font-serif italic text-ds-11 mt-1.5"
-                    style={{ color: "hsl(var(--burnt-sienna))" }}
-                  >
-                    Enter a valid email address.
-                  </p>
-                )}
-                {isSelfGift && (
-                  <p
-                    className="font-serif italic text-ds-11 mt-1.5"
-                    style={{ color: "hsl(var(--burnt-sienna))" }}
-                  >
-                    You can't send a gift to yourself.
-                  </p>
-                )}
-              </div>
+              {/* Recipient — search by name (default) or type an email */}
+              <RecipientPicker
+                selected={selectedRecipient}
+                onSelect={setSelectedRecipient}
+                onClearSelected={() => setSelectedRecipient(null)}
+                mode={recipientMode}
+                onModeChange={(m) => {
+                  setRecipientMode(m);
+                  // Switching modes clears the other mode's half-entered
+                  // state so a stale email can't silently ride along with a
+                  // freshly-picked recipient (or vice versa).
+                  if (m === "search") setRecipientEmail("");
+                  else setSelectedRecipient(null);
+                }}
+                emailValue={recipientEmail}
+                onEmailChange={setRecipientEmail}
+                emailValid={emailValid}
+                isSelfGiftEmail={isSelfGiftEmail}
+              />
 
               {/* Occasion — a horizontal chip rail. Picking one swaps the
                   design set and the note placeholder, so the choice does real

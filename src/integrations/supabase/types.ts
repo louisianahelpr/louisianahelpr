@@ -5274,6 +5274,10 @@ export type Database = {
         Returns: undefined
       }
       rpc_withdraw_dispute: { Args: { _job_id: string }; Returns: undefined }
+      search_profiles_by_name: {
+        Args: { query: string }
+        Returns: { avatar_url: string; full_name: string; user_id: string }[]
+      }
       set_available_now: { Args: { p_hours?: number }; Returns: string }
       set_thread_snooze: {
         Args: { _job_id: string; _other_user_id: string; _until: string }

@@ -41,6 +41,16 @@ serve(async (req) => {
     (Deno.env.get("PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY")) ?? "",
   );
 
+  // Service-role client — used ONLY to resolve a picked-by-name recipient_id
+  // to their real email server-side. search_profiles_by_name (the client-
+  // facing RPC) deliberately never returns email; this is the one place that
+  // elevated access is used, and only to reproduce exactly what a typed
+  // email already does below.
+  const supabaseAdmin = createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+  );
+
   // Expected, user-facing failures return their own status + message so the
   // client can show the real reason instead of a generic non-2xx error.
   const fail = (status: number, message: string) =>
@@ -62,6 +72,15 @@ serve(async (req) => {
     const isNative = isNativeRequest(body);
     const amountDollars = Number(body?.amount);
     const recipientEmailRaw = typeof body?.recipient_email === "string" ? body.recipient_email : "";
+    // Optional: sender picked a recipient by name via search_profiles_by_name
+    // instead of typing an email. That RPC never returns email (it can't —
+    // profiles SELECT RLS blocks it for anyone but the owner), so we resolve
+    // the id to an email here with the service-role client, which already
+    // has full-table read access. This is the exact same trust model as a
+    // typed email: the sender picks who receives their own gift purchase,
+    // which benefits the recipient and costs only the sender who chose it —
+    // not a privilege-escalation or redirection concern.
+    const recipientIdRaw = typeof body?.recipient_id === "string" ? body.recipient_id : "";
     const category = typeof body?.category === "string" ? body.category.slice(0, 40) : "Any";
     const message = typeof body?.message === "string" ? body.message.slice(0, MAX_MESSAGE_LEN) : "";
     // Presentation only — which occasion the sender picked and which card
@@ -84,7 +103,44 @@ serve(async (req) => {
     }
 
     // ── Recipient validation ──
-    const recipientEmail = recipientEmailRaw.trim().toLowerCase();
+    // Either a typed email or a recipient_id from the name-search picker.
+    // recipient_id wins if both are somehow present — it came from an actual
+    // profile row, not free text.
+    let recipientEmail = recipientEmailRaw.trim().toLowerCase();
+    if (recipientIdRaw) {
+      if (recipientIdRaw === user.id) {
+        return fail(400, "You can't send a gift to yourself.");
+      }
+      // A client-supplied recipient_id must clear the SAME gate
+      // search_profiles_by_name enforces (approved, not banned) before we
+      // resolve it to a real email with the service-role client — otherwise
+      // this path is a stronger oracle than the search RPC it's meant to
+      // front for: search_profiles_by_name is rate-limited (20/min, 200/day)
+      // and filters to approved/non-banned rows only, but a raw recipient_id
+      // sent straight to this endpoint had neither check, so any client that
+      // already had (or guessed) a UUID could get back "found, here's
+      // proof this id exists" / "not found" plus a real email, at this
+      // endpoint's own request rate rather than the RPC's — re-opening
+      // exactly the scraping vector the RPC was built to close. The generic
+      // "couldn't find that person" message covers BOTH "no such user" and
+      // "exists but isn't eligible" so neither response distinguishes them.
+      const { data: eligibleProfile, error: profileErr } = await supabaseAdmin
+        .from("profiles")
+        .select("user_id")
+        .eq("user_id", recipientIdRaw)
+        .eq("approval_status", "approved")
+        .or("ban_status.is.null,ban_status.not.in.(temp_banned,permanently_banned)")
+        .maybeSingle();
+      if (profileErr || !eligibleProfile) {
+        return fail(400, "We couldn't find that person. Try searching again.");
+      }
+      const { data: targetAuthUser, error: lookupErr } =
+        await supabaseAdmin.auth.admin.getUserById(recipientIdRaw);
+      if (lookupErr || !targetAuthUser?.user?.email) {
+        return fail(400, "We couldn't find that person. Try searching again.");
+      }
+      recipientEmail = targetAuthUser.user.email.toLowerCase();
+    }
     if (!EMAIL_RE.test(recipientEmail)) {
       return fail(400, "Enter a valid email for the person you're gifting.");
     }

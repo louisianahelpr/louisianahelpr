@@ -34,7 +34,9 @@ const DialogOverlay = React.forwardRef<
       className,
     )}
     style={{
-      backgroundColor: "hsla(38, 22%, 22%, 0.26)",
+      // Lightened again 2026-08-29 (owner: "the background blur is too
+      // dark") — 26% still read as heavy on top of the 24px blur.
+      backgroundColor: "hsla(38, 22%, 22%, 0.14)",
       WebkitBackdropFilter: "blur(24px) saturate(1.5)",
     }}
     {...props}

@@ -22,8 +22,6 @@ interface SwipeableJobCardProps {
   /** Viewer's cached location — forwarded to JobCard for the distance pill. */
   userLat?: number | null;
   userLng?: number | null;
-  /** Long-press handler — forwarded to JobCard for the quick-action sheet. */
-  onLongPress?: (jobId: string) => void;
   /** Marks this as a top recommended pick — forwarded to JobCard's pill. */
   recommended?: boolean;
 }
@@ -51,7 +49,6 @@ const SwipeableJobCard = ({
   onToggleSave,
   userLat = null,
   userLng = null,
-  onLongPress,
   recommended = false,
 }: SwipeableJobCardProps) => {
   const reducedMotion = useReducedMotion();
@@ -242,7 +239,6 @@ const SwipeableJobCard = ({
             onToggleSave={onToggleSave}
             userLat={userLat}
             userLng={userLng}
-            onLongPress={onLongPress}
             recommended={recommended}
           />
         </div>

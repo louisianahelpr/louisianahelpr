@@ -72,7 +72,6 @@ interface JobCardCommonProps {
   onToggleSave: (jobId: string, saved: boolean) => void;
   userLat: number | null;
   userLng: number | null;
-  onLongPress?: (jobId: string) => void;
 }
 
 /**
@@ -111,7 +110,6 @@ function JobFeedCard({
       onToggleSave={common.onToggleSave}
       userLat={common.userLat}
       userLng={common.userLng}
-      onLongPress={common.onLongPress}
     />
   );
 }
@@ -174,8 +172,6 @@ interface BrowseTasksFeedProps {
   handleApplyRequest: (jobId: string) => void;
   handleDismissRequest: (jobId: string) => void;
   handleToggleSave: (jobId: string, saved: boolean) => void;
-  /** Long-press on a JobCard — opens the quick-action sheet. */
-  handleLongPressCard?: (jobId: string) => void;
   confirmDismissJobId: string | null;
   expandedCardId: string | null;
   setExpandedCardId: Dispatch<SetStateAction<string | null>>;
@@ -222,7 +218,6 @@ export function BrowseTasksFeed({
   handleApplyRequest,
   handleDismissRequest,
   handleToggleSave,
-  handleLongPressCard,
   confirmDismissJobId,
   expandedCardId,
   setExpandedCardId,
@@ -376,7 +371,6 @@ export function BrowseTasksFeed({
     onToggleSave: handleToggleSave,
     userLat,
     userLng,
-    onLongPress: handleLongPressCard,
   };
   const compactCardCommon: CompactCardCommonProps = {
     effectiveFee,

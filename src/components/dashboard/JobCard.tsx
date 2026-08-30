@@ -1,9 +1,8 @@
-import { memo, useCallback, type KeyboardEvent, type TouchEvent } from "react";
+import { memo, useCallback, type KeyboardEvent } from "react";
 import {
   MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Users, Repeat, CheckCheck,
 } from "lucide-react";
-import { hapticLight, hapticMedium } from "@/lib/haptics";
-import { useLongPress } from "@/hooks/useLongPress";
+import { hapticLight } from "@/lib/haptics";
 import { differenceInHours } from "date-fns";
 
 import { categoryLabels, categoryColors } from "@/components/activity/activityConstants";
@@ -60,14 +59,6 @@ interface JobCardProps {
   userLat?: number | null;
   userLng?: number | null;
   /**
-   * Long-press handler — when defined, a 500ms press on the card opens
-   * a quick-action sheet (Save / Hide / Share / Report) instead of the
-   * detail dialog. The dashboard owner (Dashboard.tsx) supplies this;
-   * guest mode leaves it undefined so a tap opens the read-only preview
-   * dialog instead.
-   */
-  onLongPress?: (jobId: string) => void;
-  /**
    * Marks this card as one of the top relevance-matched picks. When true a
    * small, unobtrusive "Recommended" pill renders near the category label.
    * Only the first couple of recommended cards set this — the rest of the
@@ -81,7 +72,7 @@ interface JobCardProps {
 // charcoal) across all categories so the brand reads consistently and
 // the colored badge stays the single accent in the row. The `accent`
 // gradient tints are kept for the boosted/recommended highlight strip.
-const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: _showApply = true, onSelect, index = 0, isExpanded: _isExpanded = false, onToggleExpand: _onToggleExpand, isSaved: _isSaved = false, onToggleSave: _onToggleSave, variant = "default", guestPricing = false, userLat = null, userLng = null, onLongPress, recommended = false }: JobCardProps) => {
+const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: _showApply = true, onSelect, index = 0, isExpanded: _isExpanded = false, onToggleExpand: _onToggleExpand, isSaved: _isSaved = false, onToggleSave: _onToggleSave, variant = "default", guestPricing = false, userLat = null, userLng = null, recommended = false }: JobCardProps) => {
   const isGuest = variant === "guest";
 
   // A tap always opens the job detail view. Saving lives behind the
@@ -92,21 +83,6 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
     onSelect(job);
   }, [job, onSelect]);
 
-  // Long-press hook — fires onLongPress after 500ms hold, falls through
-  // to a normal tap (onSelect via handleTap) when the user lifts before
-  // the threshold. We always create the hook to keep the component's
-  // render shape stable across renders, but ignore its props when there's
-  // no handler.
-  const longPress = useLongPress({
-    threshold: 500,
-    onLongPress: () => {
-      if (onLongPress) {
-        hapticMedium();
-        onLongPress(job.id);
-      }
-    },
-    onTap: handleTap,
-  });
   // Show the gross posted budget (vs the helper's net take-home) whenever
   // the full guest variant is active OR the lighter guestPricing flag is set.
   // Net "You earn" take-home is the default for guests too (they're shown an
@@ -236,10 +212,6 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
   // element by the caller (a <button> in Jobs.tsx that opens the preview),
   // so the card root must NOT be a nested interactive element — drop
   // role/tabIndex/handlers and let the wrapper own the tap.
-  // With onLongPress supplied, the press/release handlers from
-  // useLongPress own both tap (fires onSelect on short release) and
-  // long-press (fires the quick-action sheet at threshold). Without it
-  // we fall back to a plain onClick so the gesture surface stays simple.
   const interactiveProps = isGuest
     ? {
         // Guest: the whole card routes to /signup on tap (onSelect is
@@ -250,45 +222,20 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
         onClick: () => { hapticLight(); onSelect(job); },
         ...prefetchHandlers,
       }
-    : onLongPress
-      ? {
-          ...longPress,
-          ...prefetchHandlers,
-          // prefetchHandlers.onTouchStart would otherwise clobber
-          // longPress.onTouchStart (last-write-wins spread), leaving the
-          // long-press/tap lifecycle un-armed. This branch has no onClick,
-          // so taps depend entirely on longPress's touch handlers — losing
-          // onTouchStart made single taps misfire (needing a double-tap).
-          // Compose both: warm the prefetch AND begin the press lifecycle.
-          onTouchStart: (e: TouchEvent) => {
-            prefetchHandlers.onTouchStart();
-            longPress.onTouchStart(e);
-          },
-          role: "button" as const,
-          tabIndex: 0,
-          "aria-label": `View ${job.title} — ${priceAria}`,
-          onKeyDown: (e: KeyboardEvent) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              hapticLight();
-              onSelect(job);
-            }
-          },
-        }
-      : {
-          onClick: handleTap,
-          role: "button" as const,
-          tabIndex: 0,
-          "aria-label": `View ${job.title} — ${priceAria}`,
-          onKeyDown: (e: KeyboardEvent) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              hapticLight();
-              onSelect(job);
-            }
-          },
-          ...prefetchHandlers,
-        };
+    : {
+        onClick: handleTap,
+        role: "button" as const,
+        tabIndex: 0,
+        "aria-label": `View ${job.title} — ${priceAria}`,
+        onKeyDown: (e: KeyboardEvent) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            hapticLight();
+            onSelect(job);
+          }
+        },
+        ...prefetchHandlers,
+      };
 
   return (
     <div

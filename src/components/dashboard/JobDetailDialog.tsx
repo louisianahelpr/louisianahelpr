@@ -173,7 +173,22 @@ const JobDetailDialog = ({
           //    `max-h` matches the global 86vh for the same reason: two
           //    ceilings 2dvh apart on one component is a difference nobody
           //    chose.
-          "sm:left-[50%] sm:top-[7vh] sm:bottom-auto sm:translate-x-[-50%] sm:translate-y-0",
+          // `sm:[translate:-50%_0]`, not `sm:translate-x-[-50%] sm:translate-y-0`:
+          // the base DialogContent centers via the standalone `translate` CSS
+          // property (`[translate:-50%_-50%]`, chosen so tailwindcss-animate's
+          // keyframes — which write `transform` — never clobber it). Tailwind's
+          // `translate-x-*`/`translate-y-*` utilities set `--tw-translate-x/y`
+          // composed into `transform`, a DIFFERENT property from `translate` —
+          // so `sm:translate-y-0` was zeroing a `transform` that was never the
+          // one moving this box, while the base's real `translate-y: -50%`
+          // stayed in effect at every width. On a dialog taller than the
+          // viewport (top-anchored at 7vh, not vertically centered) that extra
+          // -50% shift pushed the whole card up past the top edge — the title/
+          // category/price header rendered above y=0, unreachably clipped by
+          // the fixed positioning (confirmed live: measured top -131px against
+          // an intended +32px/7vh). Overriding the SAME `translate` property
+          // the base uses is the only way to actually zero it.
+          "sm:left-[50%] sm:top-[7vh] sm:bottom-auto sm:[translate:-50%_0]",
           "sm:w-[calc(100%-2rem)] sm:max-w-lg sm:max-h-[86vh] sm:rounded-t-[28px] sm:rounded-b-[28px]",
           "sm:data-[state=open]:slide-in-from-left-1/2 sm:data-[state=open]:slide-in-from-top-4 sm:data-[state=open]:zoom-in-95",
           "sm:data-[state=closed]:slide-out-to-left-1/2 sm:data-[state=closed]:slide-out-to-top-4 sm:data-[state=closed]:zoom-out-95",

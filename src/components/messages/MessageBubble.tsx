@@ -320,6 +320,7 @@ export function MessageBubble({
             {showReadReceipt && (
               <ReadReceipt
                 read={m.read}
+                readAt={m.read_at}
                 sentByMe={mine}
                 recipientName={activeConvo?.otherUserName}
                 recipientAvatarUrl={activeConvo?.otherUserAvatarUrl}

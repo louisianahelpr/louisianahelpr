@@ -385,9 +385,11 @@ export function useMessagesData({
           ),
         );
         // Persist in the background — do NOT block the UI on the round-trip.
+        // `read_at` isn't in the generated types yet (migration lag — see
+        // supabase/migrations/20260830233932_add_messages_read_at.sql).
         void supabase
           .from("messages")
-          .update({ read: true })
+          .update({ read: true, read_at: new Date().toISOString() } as any)
           .in("id", unreadIds)
           .then(({ error: markError }) => {
             if (markError) {

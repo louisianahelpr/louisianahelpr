@@ -203,11 +203,11 @@ const NotificationPreferences = () => {
   // an inline spinner scoped to THIS switch while it's the one being
   // saved, rather than one global spinner floating in an unrelated spot.
   const SwitchSlot = ({
-    checked, onCheckedChange, disabled, ariaLabel, savingId,
+    checked, onCheckedChange, disabled, ariaLabel, savingId, title,
   }: {
-    checked: boolean; onCheckedChange: () => void; disabled: boolean; ariaLabel: string; savingId: string;
+    checked: boolean; onCheckedChange: () => void; disabled: boolean; ariaLabel: string; savingId: string; title?: string;
   }) => (
-    <div className="w-[51px] flex justify-center relative">
+    <div className="w-[51px] flex justify-center relative" title={title}>
       {loaded ? (
         <>
           <Switch checked={checked} onCheckedChange={onCheckedChange} disabled={disabled} aria-label={ariaLabel} />
@@ -310,6 +310,12 @@ const NotificationPreferences = () => {
             disabled={!loaded}
             ariaLabel="Email notifications master toggle"
             savingId="email_master"
+            // There's no dedicated email_enabled column — "on" here means
+            // "at least one email category is on" (see emailMasterEnabled
+            // above), so it reads as on from a partial state too. Toggling
+            // it always sets every category to the same value; it does not
+            // remember or restore a prior partial mix.
+            title="Turns all email categories on or off together"
           />
         </div>
       </div>
@@ -362,13 +368,15 @@ const NotificationPreferences = () => {
           {/* Email column placeholder — digest is a push-only delivery
               mode, but the dash keeps the two-column grid visually
               honest so the row reads as "app only, intentionally". */}
-          <div className="w-[51px] flex justify-center" aria-hidden>
+          <div className="w-[51px] flex justify-center" title="Push-only — no email version of this">
             <span
               className="font-serif text-ds-14"
-              style={{ color: "hsl(var(--olivewood) / 0.35)",}}
+              style={{ color: "hsl(var(--olivewood) / 0.3)" }}
+              aria-hidden
             >
               —
             </span>
+            <span className="sr-only">Push-only, no email version</span>
           </div>
         </div>
       </div>
@@ -414,13 +422,15 @@ const NotificationPreferences = () => {
               ariaLabel="Quiet hours"
               savingId="quiet_hours"
             />
-            <div className="w-[51px] flex justify-center" aria-hidden>
+            <div className="w-[51px] flex justify-center" title="Push-only — no email version of this">
               <span
                 className="font-serif text-ds-14"
-                style={{ color: "hsl(var(--olivewood) / 0.35)",}}
+                style={{ color: "hsl(var(--olivewood) / 0.3)" }}
+                aria-hidden
               >
                 —
               </span>
+              <span className="sr-only">Push-only, no email version</span>
             </div>
           </div>
         </div>

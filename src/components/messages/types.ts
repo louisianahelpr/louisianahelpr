@@ -11,6 +11,10 @@ export type Message = {
   receiver_id: string;
   content: string;
   read: boolean;
+  /** When `read` was set. Absent on older rows written before this column
+   *  existed and on unread messages — see
+   *  supabase/migrations/20260830233932_add_messages_read_at.sql. */
+  read_at?: string | null;
   created_at: string;
   attachment_url: string | null;
   attachment_mime: string | null;

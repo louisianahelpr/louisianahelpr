@@ -31,28 +31,28 @@ export const TypingIndicator = () => (
  * "seen" moment carries a face, not just a check. Only renders on the
  * sender's side.
  *
- * The state label ("Delivered"/"Read") is available on hover (native
+ * The state label ("Delivered"/"Read [time]") is available on hover (native
  * `title`) and on tap (the indicator is a real `<button>` that toggles an
  * inline text label — `title` never fires on touch, so hover-only would
- * leave phone/native users with no way to see it).
+ * leave phone/native users with no way to see it). The dotted underline is
+ * the tap affordance — nothing else about a bare checkmark/avatar hints
+ * it's interactive, and native has no hover to discover it by accident.
  *
- * NOTE — no per-message read TIMESTAMP is shown. `public.messages` only
- * has a boolean `read` column (see src/integrations/supabase/types.ts and
- * every `.update({ read: true })` call site — grepped, no `read_at` exists
- * anywhere in the schema). Rendering a real "Read 2:14 PM" needs a
- * migration adding `read_at timestamptz` plus wiring it through the
- * mark-read paths in src/pages/messages/useMessagesData.ts and
- * useMessagesRealtime.ts — both outside this session's scope (owned by a
- * parallel session on the Messages list). Stubbed to the boolean state's
- * label until that lands.
+ * `readAt` is `public.messages.read_at` (added by
+ * supabase/migrations/20260830233932_add_messages_read_at.sql) — absent on
+ * rows written before that column existed, so the reveal falls back to the
+ * bare "Read" label with no time in that case.
  */
 export const ReadReceipt = ({
   read,
+  readAt,
   sentByMe,
   recipientName,
   recipientAvatarUrl,
 }: {
   read: boolean;
+  /** ISO timestamp `read` flipped true, when known. */
+  readAt?: string | null;
   sentByMe: boolean;
   /** Required for the read-state initials fallback. */
   recipientName?: string | null;
@@ -82,7 +82,10 @@ export const ReadReceipt = ({
         aria-pressed={revealed}
         title="Delivered"
       >
-        <span className="text-ds-10 font-sans font-semibold" style={{ color: "hsl(var(--bark) / 0.55)" }}>
+        <span
+          className="text-ds-10 font-sans font-semibold underline decoration-dotted underline-offset-2"
+          style={{ color: "hsl(var(--bark) / 0.55)" }}
+        >
           ✓
         </span>
         {revealed && (
@@ -93,6 +96,9 @@ export const ReadReceipt = ({
       </button>
     );
   }
+  const readAtLabel = readAt
+    ? new Date(readAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+    : null;
   const initials = (recipientName ?? "")
     .split(/\s+/)
     .filter(Boolean)
@@ -108,15 +114,20 @@ export const ReadReceipt = ({
       // min-height/min-width override plus a `::before` hit target.
       style={{ minHeight: 0, minWidth: 0 }}
       className="relative inline-flex items-center gap-1 ml-1 before:absolute before:-inset-2.5 before:content-['']"
-      aria-label={recipientName ? `Read by ${recipientName}` : "Read"}
+      aria-label={
+        recipientName
+          ? `Read by ${recipientName}${readAtLabel ? ` at ${readAtLabel}` : ""}`
+          : `Read${readAtLabel ? ` at ${readAtLabel}` : ""}`
+      }
       aria-pressed={revealed}
-      title="Read"
+      title={readAtLabel ? `Read ${readAtLabel}` : "Read"}
     >
       <span
-        className="inline-flex items-center justify-center w-4 h-4 rounded-full overflow-hidden shrink-0"
+        className="inline-flex items-center justify-center w-4 h-4 rounded-full overflow-hidden shrink-0 outline outline-1 outline-dotted outline-offset-1"
         style={{
           background: "hsl(var(--bark) / 0.18)",
           border: "0.5px solid hsl(var(--bark) / 0.32)",
+          outlineColor: "hsl(var(--bark) / 0.4)",
         }}
       >
         {recipientAvatarUrl ? (
@@ -135,7 +146,7 @@ export const ReadReceipt = ({
       </span>
       {revealed && (
         <span className="text-ds-9 font-sans" style={{ color: "hsl(var(--bark) / 0.7)" }}>
-          Read
+          {readAtLabel ? `Read ${readAtLabel}` : "Read"}
         </span>
       )}
     </button>

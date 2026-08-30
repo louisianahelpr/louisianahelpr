@@ -197,7 +197,18 @@ export function ConversationList({
           ? orderedConversations.filter(
               (c) => c.jobStatus && LIVE_JOB_STATUSES.has(c.jobStatus),
             )
-          : orderedConversations;
+          : inboxFilter === "pinned"
+            ? (() => {
+                // Real filter, not a stub: pin state already exists
+                // (swipe-to-pin, see orderedConversations above) — the
+                // hamburger's "Pinned" entry just needed to read it instead
+                // of toasting "coming soon".
+                const pinnedSet = userId ? getPinnedSet(userId) : new Set<string>();
+                return orderedConversations.filter((c) =>
+                  pinnedSet.has(pinnedKey(c.jobId, c.otherUserId)),
+                );
+              })()
+            : orderedConversations;
     const q = searchQuery.trim().toLowerCase();
     if (!q) return byTab;
     return byTab.filter((c) => {
@@ -206,7 +217,7 @@ export function ConversationList({
       const title = c.jobTitle?.toLowerCase() ?? "";
       return name.includes(q) || snippet.includes(q) || title.includes(q);
     });
-  }, [orderedConversations, searchQuery, inboxFilter]);
+  }, [orderedConversations, searchQuery, inboxFilter, userId, pinNonce]);
 
   // Seed the default tab from the FIRST loaded page, once. See the state decl.
   // The rule itself lives in `defaultInboxTab` so the app and its tests read it
@@ -388,6 +399,23 @@ export function ConversationList({
     />
   );
 
+  // "Pinned" isn't one of the three visible tabs (reached via the hamburger
+  // instead), so with it active none of the underline tabs highlight —
+  // this chip is the only thing telling the user why the list shrank and
+  // how to get back.
+  const pinnedFilterChip = inboxFilter === "pinned" && (
+    <button
+      type="button"
+      onClick={() => setInboxFilter("all")}
+      className="flex items-center gap-1.5 px-4 py-1.5 text-ds-11 font-sans font-semibold shrink-0"
+      style={{ color: "hsl(var(--burnt-sienna))" }}
+    >
+      <Pin className="w-3 h-3" />
+      Showing pinned only
+      <X className="w-3 h-3" />
+    </button>
+  );
+
   /* THE TITLE CARD, on phone and native (owner, 2026-08-27).
      Messages used to render its name INSIDE the content panel, under a
      hairline, so the whole screen was one tall box while Home, My Posts and
@@ -564,14 +592,17 @@ export function ConversationList({
                           <CheckSquare className="w-4 h-4 mr-2" />
                           Select messages
                         </DropdownMenuItem>
-                        {/* Stubs — not wired to real data yet. Each just
-                            confirms receipt so the menu doesn't feel dead;
-                            wiring them up (a real pinned-only view, a soft-
-                            delete trash, and an inbox status filter reusing
-                            the Activity "Needs You / Scheduled / Waiting /
-                            Done" bucket concept from activityFilters.ts) is
-                            follow-up work, not part of this pass. */}
-                        <DropdownMenuItem onClick={() => toast("Pinned view coming soon")}>
+                        {/* Recently Deleted and the status filters below are
+                            still stubs — each just confirms receipt so the
+                            menu doesn't feel dead. Pinned is wired to the
+                            real pin state (swipe-to-pin already writes it,
+                            see getPinnedSet/pinnedKey above) since that data
+                            already existed; a soft-delete trash and an inbox
+                            status filter reusing the Activity "Needs You /
+                            Scheduled / Waiting / Done" bucket concept from
+                            activityFilters.ts still need real data behind
+                            them — follow-up work, not part of this pass. */}
+                        <DropdownMenuItem onClick={() => setInboxFilter("pinned")}>
                           <Pin className="w-4 h-4 mr-2" />
                           Pinned
                         </DropdownMenuItem>
@@ -607,6 +638,7 @@ export function ConversationList({
               {inboxTabs}
             </div>
           )}
+          {!searchOpen && !selectMode && pinnedFilterChip}
     </>
   );
 

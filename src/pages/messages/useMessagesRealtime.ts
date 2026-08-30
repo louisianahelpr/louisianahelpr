@@ -58,9 +58,13 @@ export function useMessagesRealtime({
             // A bare builder never fires — PostgrestBuilder issues its fetch
             // inside then(). This read-receipt was never sent, so messages the
             // user was actively reading stayed unread forever.
+            // `read_at` isn't in the generated types yet (migration lag —
+            // see supabase/migrations/20260830233932_add_messages_read_at.sql),
+            // same `as any` pattern used elsewhere in this file for
+            // brand-new columns.
             void supabase
               .from("messages")
-              .update({ read: true })
+              .update({ read: true, read_at: new Date().toISOString() } as any)
               .eq("id", msg.id)
               .then(({ error }) => {
                 if (error) report(error, { tags: { source: "useMessagesRealtime.markRead" } });

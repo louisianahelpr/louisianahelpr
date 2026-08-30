@@ -21,7 +21,7 @@ const TOUR_STEPS: TourStep[] = [
   {
     id: "welcome",
     title: "Welcome to Helpr.",
-    description: "A quick walk-through so you know where everything lives. Takes under a minute.",
+    description: "A quick walk-through so you know where everything lives.",
     icon: <HelprMark to={null} emblemOnly size="sm" />,
     position: "center",
   },
@@ -155,7 +155,7 @@ const OnboardingTour = ({ profileComplete = false, profileCreatedAt }: Onboardin
     // "experienced" — auto-mark complete and stop.
     if (profileCreatedAt) {
       const ageMs = Date.now() - new Date(profileCreatedAt).getTime();
-      if (ageMs > 60 * 60 * 1000) {
+      if (ageMs > 2 * 60 * 1000) {
         saveState({ ...s, seen: true, completed: true });
         setShowResumePill(false);
         return;
@@ -333,45 +333,41 @@ const OnboardingTour = ({ profileComplete = false, profileCreatedAt }: Onboardin
           <div className="rounded-2xl liquid-glass shadow-2xl overflow-hidden motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 duration-300">
           {/* Content */}
           <div className="p-6 text-center space-y-4">
-            <div
-              className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto"
-              style={{
-                backgroundColor: "hsl(var(--primary) / 0.10)",
-                border: "1px solid hsl(var(--primary) / 0.18)",
-                color: "hsl(var(--primary))",
-                boxShadow:
-                  "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
-                  "0 6px 18px -6px hsl(var(--primary) / 0.30)",
-              }}
-            >
-              {currentStep.icon}
-            </div>
-            <div className="space-y-2">
-              {/* `asChild` so Radix's accessibility wiring (aria-labelledby
-                  on Content, screen-reader title announcement) lands on
-                  our existing visual heading instead of injecting an
-                  extra wrapper. Same for the description below. */}
-              <DialogPrimitive.Title asChild>
-                <h3
-                  id="onboarding-tour-title"
-                  className="font-display italic font-bold leading-tight"
-                  style={{
-                    fontSize: "clamp(1.25rem, 2vw + 0.4rem, 1.55rem)",
-                    color: "hsl(var(--ink-deep))",
-                    letterSpacing: "-0.02em",
-                  }}
-                >
-                  {currentStep.title}
-                </h3>
-              </DialogPrimitive.Title>
-              <DialogPrimitive.Description asChild>
-                <p
-                  className="font-serif italic text-ds-15 leading-relaxed max-w-[360px] mx-auto"
-                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                >
-                  {currentStep.description}
-                </p>
-              </DialogPrimitive.Description>
+            <div className="flex items-center gap-4 text-left">
+              <div className="min-w-0 flex-1 space-y-2">
+                {/* `asChild` so Radix's accessibility wiring (aria-labelledby
+                    on Content, screen-reader title announcement) lands on
+                    our existing visual heading instead of injecting an
+                    extra wrapper. Same for the description below. */}
+                <DialogPrimitive.Title asChild>
+                  <h3
+                    id="onboarding-tour-title"
+                    className="font-display italic font-bold leading-tight"
+                    style={{
+                      fontSize: "clamp(1.25rem, 2vw + 0.4rem, 1.55rem)",
+                      color: "hsl(var(--ink-deep))",
+                      letterSpacing: "-0.02em",
+                    }}
+                  >
+                    {currentStep.title}
+                  </h3>
+                </DialogPrimitive.Title>
+                <DialogPrimitive.Description asChild>
+                  <p
+                    className="font-serif italic text-ds-15 leading-relaxed"
+                    style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                  >
+                    {currentStep.description}
+                  </p>
+                </DialogPrimitive.Description>
+              </div>
+              {/* Icon sits bare — no tinted box — to the right of the copy. */}
+              <div
+                className="shrink-0 w-10 h-10 flex items-center justify-center"
+                style={{ color: "hsl(var(--primary))" }}
+              >
+                {currentStep.icon}
+              </div>
             </div>
 
             {/* Step indicators ARE the "next" control now — click the
@@ -397,17 +393,22 @@ const OnboardingTour = ({ profileComplete = false, profileCreatedAt }: Onboardin
                     aria-label={`Step ${i + 1}: ${s.title}`}
                     disabled={!clickable}
                     onClick={() => handleDotClick(i)}
-                    className={`h-2.5 w-2.5 rounded-full transition-all duration-300 ${
-                      isDone
-                        ? "bg-primary"
-                        : isCurrent
-                        ? "bg-burnt-sienna scale-125 cursor-pointer"
-                        : clickable
-                        ? "bg-border cursor-pointer hover:bg-border/70"
-                        : "bg-border/50"
-                    }`}
-                    style={isCurrent && !isDone ? { backgroundColor: "hsl(var(--burnt-sienna))" } : undefined}
-                  />
+                    className="p-2.5 -m-2.5 flex items-center justify-center"
+                  >
+                    <span
+                      aria-hidden
+                      className={`block h-2.5 w-2.5 rounded-full transition-all duration-300 ${
+                        isDone
+                          ? "bg-primary"
+                          : isCurrent
+                          ? "bg-burnt-sienna scale-125 cursor-pointer"
+                          : clickable
+                          ? "bg-border cursor-pointer hover:bg-border/70"
+                          : "bg-border/50"
+                      }`}
+                      style={isCurrent && !isDone ? { backgroundColor: "hsl(var(--burnt-sienna))" } : undefined}
+                    />
+                  </button>
                 );
               })}
             </div>
@@ -437,7 +438,7 @@ const OnboardingTour = ({ profileComplete = false, profileCreatedAt }: Onboardin
                 onClick={handleSkip}
                 className="text-muted-foreground text-ds-11 rounded-ds-md"
               >
-                Skip Tour
+                Skip
               </Button>
             </div>
           </div>

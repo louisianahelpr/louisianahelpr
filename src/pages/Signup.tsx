@@ -126,15 +126,14 @@ const Signup = () => {
 
     if (!firstName.trim()) errors.firstName = "Add your first name";
     if (!lastName.trim()) errors.lastName = "Add your last name";
-    // Avatar, phone and DOB are DEFERRED — not required to create the
-    // account (keeps signup "under a minute"). They're soft-prompted later on
-    // first post/apply, and /complete-profile gates on the photo before the
-    // account can do anything, so requiring it here only moved the same ask to
-    // the most expensive moment: before the account exists, where abandoning
-    // costs the user everything they had typed and costs us the signup. Each is still validated *when the user provides it*, so
-    // a supplied value can't be malformed or under-age. (City used to be in
-    // this list; it is no longer collected at signup at all.)
-    if (phone.trim() && phone.replace(/\D/g, "").length < 10) {
+    // Avatar and phone are REQUIRED (owner decision 2026-08-29, reversing the
+    // prior "deferred to keep signup under a minute" choice) — both carry a
+    // red asterisk on their labels, so the validator must actually enforce
+    // them, same as DOB below. Bio remains optional/deferred.
+    if (!avatarFile) errors.avatar = "Add a profile photo";
+    if (!phone.trim()) {
+      errors.phone = "Add your phone number";
+    } else if (phone.replace(/\D/g, "").length < 10) {
       errors.phone = "Enter a valid 10-digit phone number";
     }
     // DOB is REQUIRED (it carries a red asterisk on the label, so the
@@ -367,7 +366,7 @@ const Signup = () => {
   // "Pick up right where you left off." was removed. `subtitle` is optional;
   // the header renders the <p> only when one is present.
   const stepHeading: { title: string; subtitle?: string } =
-    step === 1 ? { title: "Create Account" } : { title: "About you" };
+    step === 1 ? { title: "Create Account" } : { title: "About You" };
 
   // No `desktopBrandPanel`: the AuthBrandPane component (deleted unused on
   // 2026-08-25) was only the H emblem, and it stacked

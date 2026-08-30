@@ -129,7 +129,7 @@ export function SignupStep2(props: SignupStep2Props) {
             pushed First/Last to x=273 while every field below started at
             x=129 — a visible step down the form's left edge. */}
         <div className="space-y-2 text-center pb-3">
-          <Label htmlFor="avatar" className={labelCls}>Profile photo <span className="font-normal" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>(optional)</span></Label>
+          <Label htmlFor="avatar" className={labelCls}>Profile photo <span aria-hidden style={{ color: "hsl(var(--destructive))" }}>*</span></Label>
           <div className="flex flex-col items-center gap-1.5">
           <label className="cursor-pointer group relative inline-block active:scale-[0.98] transition-transform rounded-full focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring">
             <div
@@ -228,7 +228,7 @@ export function SignupStep2(props: SignupStep2Props) {
             <FieldError id="dob-error" message={fieldErrors.dateOfBirth} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="phone" className={labelCls}>Phone number</Label>
+            <Label htmlFor="phone" className={labelCls}>Phone number <span aria-hidden style={{ color: "hsl(var(--destructive))" }}>*</span></Label>
             <div className="relative">
               {/* Country code badge — Helpr is Louisiana-only, so every
                   number is +1. Showing it inline makes the formatting
@@ -247,6 +247,8 @@ export function SignupStep2(props: SignupStep2Props) {
                 inputMode="tel"
                 value={phone}
                 onChange={(e) => { setPhone(formatPhone(e.target.value)); clearFieldError?.("phone"); }}
+                required
+                aria-required="true"
                 autoComplete="tel"
                 maxLength={14}
                 aria-invalid={!!fieldErrors.phone}
@@ -268,7 +270,7 @@ export function SignupStep2(props: SignupStep2Props) {
             friction. The column is untouched and still settable from Profile.
             Owner decision 2026-08-22. */}
         <div className="space-y-2">
-          <Label htmlFor="bio" className={labelCls}>About you</Label>
+          <Label htmlFor="bio" className={labelCls}>About You <span className="font-normal" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>(optional)</span></Label>
           <Textarea
             id="bio"
             placeholder="Tell us a bit about yourself — whether you're looking for work or need help around the house…"

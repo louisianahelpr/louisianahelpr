@@ -138,7 +138,7 @@ const CompleteProfile = () => {
     return [
       { label: "Full name", done: firstName.trim().length > 0 && lastName.trim().length > 0 },
       { label: "Profile picture", done: Boolean(avatarFile || profile?.avatar_url) },
-      { label: "About you (20+ characters)", done: bio.trim().length >= 20 },
+      { label: "About You (20+ characters)", done: bio.trim().length >= 20 },
       { label: "Date of birth (18+)", done: Boolean(dateOfBirth) && ageOk },
       { label: "Phone number", done: phoneDigits.length === 10 },
       { label: "City", done: location.trim().length > 0 },
@@ -501,7 +501,7 @@ const CompleteProfile = () => {
 
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <Label htmlFor="bio">About you <span className="text-destructive">*</span></Label>
+                <Label htmlFor="bio">About You <span className="text-destructive">*</span></Label>
                 {/* "20" is a MINIMUM, not a cap — showing "91/20" once the
                     user is past it reads like an over-limit error. So:
                     "X/20 min" while short of the minimum, a check once met. */}

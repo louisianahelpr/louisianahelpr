@@ -139,7 +139,7 @@ export function SignupStep2(props: SignupStep2Props) {
           <div className="flex flex-col items-center gap-1.5">
           <label className="cursor-pointer group relative inline-block active:scale-[0.98] transition-transform rounded-full focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring">
             <div
-              className={`relative w-20 h-20 rounded-full border-2 border-dashed transition-colors flex items-center justify-center overflow-hidden ${fieldErrors.avatar ? "border-destructive" : "border-border group-hover:border-primary"}`}
+              className={`relative w-24 h-24 rounded-full border-2 border-dashed transition-colors flex items-center justify-center overflow-hidden ${fieldErrors.avatar ? "border-destructive" : "border-border group-hover:border-primary"}`}
               style={{
                 background:
                   "radial-gradient(circle at 50% 35%, hsl(var(--parchment)) 0%, hsl(var(--secondary) / 0.55) 100%)",

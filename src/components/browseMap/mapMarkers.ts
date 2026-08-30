@@ -64,9 +64,16 @@ export function pinElement(category: string, isUrgent: boolean): HTMLElement {
   const ring = isUrgent ? `stroke="${sienna}" stroke-width="2.5"` : "";
   const el = document.createElement("div");
   el.className = "browse-map-pin";
-  el.style.cssText = `width:${PIN_WIDTH}px;height:${PIN_HEIGHT}px;cursor:pointer;`;
+  // Container keeps the LOGICAL 28x36 size the caller anchors against
+  // (PIN_WIDTH/PIN_HEIGHT drive BrowseMap's anchorOffset math), but the
+  // SVG itself renders 4px larger on every side with `overflow: visible`
+  // so the urgent ring's 2.5px stroke has room to paint — the path's own
+  // outline touches the viewBox edge exactly, so a stroke centered on it
+  // was getting clipped by the SVG's own bounding box before this.
+  el.style.cssText = `width:${PIN_WIDTH}px;height:${PIN_HEIGHT}px;cursor:pointer;overflow:visible;`;
   el.innerHTML = `
-    <svg width="${PIN_WIDTH}" height="${PIN_HEIGHT}" viewBox="0 0 28 36" xmlns="http://www.w3.org/2000/svg">
+    <svg width="${PIN_WIDTH + 4}" height="${PIN_HEIGHT + 4}" viewBox="-2 -2 32 40"
+      style="overflow:visible;margin:-2px;" xmlns="http://www.w3.org/2000/svg">
       <path d="M14 0C6.27 0 0 6.27 0 14c0 9.5 14 22 14 22s14-12.5 14-22C28 6.27 21.73 0 14 0z"
         fill="${color}" ${ring} />
       <circle cx="14" cy="14" r="5" fill="${parchment}" />

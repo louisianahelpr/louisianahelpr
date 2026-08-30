@@ -486,7 +486,7 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
         <div
           aria-hidden
           data-testid="browse-map-job-count"
-          className="px-2.5 h-6 rounded-full flex items-center font-sans font-semibold text-ds-11 tracking-wide"
+          className="px-3 h-7 rounded-full flex items-center font-sans font-semibold text-ds-13 tracking-wide"
           style={{
             background: "hsla(0, 0%, 100%, 0.92)",
             color: "hsl(var(--bark))",
@@ -497,10 +497,10 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
           }}
         >
           {filtersActive
-            ? `${visibleJobs.length} ${visibleJobs.length === 1 ? "match" : "matches"}`
+            ? `${visibleJobs.length} ${visibleJobs.length === 1 ? "Match" : "Matches"}`
             : totalOpen !== null && totalOpen > visibleJobs.length
-              ? `${visibleJobs.length} of ${totalOpen} mapped`
-              : `${visibleJobs.length} ${visibleJobs.length === 1 ? "job" : "jobs"}`}
+              ? `${visibleJobs.length} of ${totalOpen} Mapped`
+              : `${visibleJobs.length} ${visibleJobs.length === 1 ? "Job" : "Jobs"}`}
         </div>
       </div>
       )}

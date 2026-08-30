@@ -164,7 +164,7 @@ describe("BrowseMap pins", () => {
     render(<BrowseMap />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("browse-map-job-count")).toHaveTextContent("3 jobs");
+      expect(screen.getByTestId("browse-map-job-count")).toHaveTextContent("3 Jobs");
     });
   });
 });

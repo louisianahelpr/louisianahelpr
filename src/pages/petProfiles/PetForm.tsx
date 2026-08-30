@@ -197,7 +197,6 @@ export function PetForm({
         behavioral_notes: form.behavioral_notes || null,
         emergency_contact: form.emergency_contact || null,
         feeding_schedule: form.feeding_schedule || null,
-        is_evacuation_registered: form.is_evacuation_registered ?? false,
         updated_at: new Date().toISOString(),
       };
       if (initialValues?.id) {
@@ -522,74 +521,6 @@ export function PetForm({
                 value={form.emergency_contact ?? ""}
                 onChange={(e) => set("emergency_contact", e.target.value)}
               />
-            </div>
-          </div>
-        </section>
-
-        {/* Evacuation */}
-        <section>
-          <h3
-            className="font-sans font-semibold text-ds-14 mb-3"
-            style={{ color: "hsl(var(--ink-deep))" }}
-          >
-            Hurricane &amp; evacuation
-          </h3>
-          <div className="rounded-ds-lg liquid-glass overflow-hidden px-4 py-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex-1 min-w-0">
-                <p className="text-ds-13 font-semibold text-foreground leading-tight">
-                  Register for evacuation help
-                </p>
-                <p className="text-ds-11 text-muted-foreground mt-0.5 leading-snug">
-                  During a declared emergency, Helpr volunteers can see your
-                  pet and offer transport to a safe location.
-                </p>
-                {/* Hurricane transport is a safety promise — the toggle must
-                    never imply the pet IS registered. Nothing persists until
-                    handleSave runs, and closing the sheet discards the flag,
-                    so surface the unsaved state persistently (a toast the user
-                    scrolls past is not good enough for this one). */}
-                {form.is_evacuation_registered !==
-                  (initialValues?.is_evacuation_registered ?? false) && (
-                  <p
-                    className="text-ds-11 mt-1 leading-snug font-medium"
-                    style={{ color: "hsl(var(--burnt-sienna))" }}
-                  >
-                    Not saved yet — tap “{initialValues ? "Save Changes" : "Add Pet"}”
-                    below to {form.is_evacuation_registered ? "register" : "unregister"} this pet.
-                  </p>
-                )}
-              </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={form.is_evacuation_registered}
-                onClick={() => {
-                  const next = !form.is_evacuation_registered;
-                  set("is_evacuation_registered", next);
-                  if (next) {
-                    // Honest copy: this only records an intent in the form.
-                    toast("Not registered yet — save this pet to finish registering", {
-                      icon: "🛟",
-                    });
-                  }
-                }}
-                className="shrink-0 w-12 h-7 rounded-full transition-colors focus:outline-none"
-                style={{
-                  background: form.is_evacuation_registered
-                    ? "hsl(var(--bark))"
-                    : "hsl(var(--olivewood) / 0.20)",
-                }}
-              >
-                <span
-                  className="block w-5 h-5 rounded-full bg-white shadow-sm transition-transform mx-1"
-                  style={{
-                    transform: form.is_evacuation_registered
-                      ? "translateX(20px)"
-                      : "translateX(0)",
-                  }}
-                />
-              </button>
             </div>
           </div>
         </section>

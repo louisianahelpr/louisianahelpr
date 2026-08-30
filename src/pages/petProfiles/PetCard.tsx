@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import {
   ChevronDown,
-  Stethoscope, AlertTriangle, Phone, Siren,
+  Stethoscope, AlertTriangle, Phone,
   UtensilsCrossed, Fingerprint,
 } from "lucide-react";
 import type { PetProfile } from "./types";
@@ -46,14 +46,6 @@ export function PetCard({
             {SPECIES_OPTIONS.find((s) => s.value === pet.species)?.label}
             {pet.breed ? ` · ${pet.breed}` : ""}
             {pet.age_years != null ? ` · ${pet.age_years}yr` : ""}
-            {pet.is_evacuation_registered && (
-              <span
-                className="ml-1.5 inline-flex items-center gap-0.5 text-ds-9 font-bold uppercase"
-                style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.08em" }}
-              >
-                🛟 Evac registered
-              </span>
-            )}
           </p>
         </div>
         <ChevronDown
@@ -138,18 +130,6 @@ export function PetCard({
             </div>
           )}
 
-          {/* Evacuation status */}
-          {pet.is_evacuation_registered && (
-            <div
-              className="flex items-start gap-2 rounded-ds-sm px-3 py-2"
-              style={{ background: "hsl(var(--burnt-sienna) / 0.08)", border: "1px solid hsl(var(--burnt-sienna) / 0.20)" }}
-            >
-              <Siren className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--burnt-sienna))" }} />
-              <p className="text-ds-12 leading-snug" style={{ color: "hsl(var(--burnt-sienna))" }}>
-                Registered for evacuation transport. Transport helpers can see this pet during declared emergencies.
-              </p>
-            </div>
-          )}
 
           {/* Actions */}
           <div className="flex gap-2 pt-1">

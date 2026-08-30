@@ -123,6 +123,59 @@ function useScrollDots(count = 3) {
     };
   }, [measure]);
 
+  // Mouse drag-to-scroll — touch devices already pan the row natively, but a
+  // desktop mouse has no way to move an `overflow-x-auto` strip with
+  // `scrollbar-hide` (no visible scrollbar to grab, and no wheel binding to
+  // the horizontal axis on a vertical mouse wheel). Without this the row was
+  // "styled scrollable" — the fade + dots implying there's more — but
+  // desktop pointer users had no actual way to reach it.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    let isDown = false;
+    let startX = 0;
+    let startScrollLeft = 0;
+    let moved = false;
+
+    const onPointerDown = (e: PointerEvent) => {
+      if (e.pointerType === "touch") return; // native touch scroll handles this
+      isDown = true;
+      moved = false;
+      startX = e.clientX;
+      startScrollLeft = el.scrollLeft;
+      el.setPointerCapture(e.pointerId);
+    };
+    const onPointerMove = (e: PointerEvent) => {
+      if (!isDown) return;
+      const dx = e.clientX - startX;
+      if (Math.abs(dx) > 3) moved = true;
+      el.scrollLeft = startScrollLeft - dx;
+    };
+    const endDrag = (e: PointerEvent) => {
+      if (!isDown) return;
+      isDown = false;
+      try { el.releasePointerCapture(e.pointerId); } catch { /* already released */ }
+      // Swallow the trailing click on a real drag so a chip under the
+      // cursor doesn't get toggled by the mouseup that ends the drag.
+      if (moved) {
+        const swallowClick = (ce: MouseEvent) => { ce.stopPropagation(); ce.preventDefault(); };
+        el.addEventListener("click", swallowClick, { capture: true, once: true });
+        setTimeout(() => el.removeEventListener("click", swallowClick, { capture: true }), 0);
+      }
+    };
+
+    el.addEventListener("pointerdown", onPointerDown);
+    el.addEventListener("pointermove", onPointerMove);
+    el.addEventListener("pointerup", endDrag);
+    el.addEventListener("pointercancel", endDrag);
+    return () => {
+      el.removeEventListener("pointerdown", onPointerDown);
+      el.removeEventListener("pointermove", onPointerMove);
+      el.removeEventListener("pointerup", endDrag);
+      el.removeEventListener("pointercancel", endDrag);
+    };
+  }, []);
+
   return { ref, active, scrollable, remeasure: measure };
 }
 
@@ -151,7 +204,8 @@ function ScrollChipRow({
           ref={ref}
           role="group"
           aria-label={ariaLabel}
-          className="flex gap-1.5 overflow-x-auto scrollbar-hide pr-6"
+          className="flex gap-1.5 overflow-x-auto scrollbar-hide pr-6 snap-x snap-proximity cursor-grab active:cursor-grabbing select-none"
+          style={{ touchAction: "pan-x" }}
         >
           {children}
         </div>
@@ -196,7 +250,7 @@ export const SortContent = ({
         type="button"
         aria-pressed={sortBy === opt.value}
         onClick={() => { hapticLight(); setSortBy(opt.value); onSelect?.(); }}
-        className={`shrink-0 ${chipBase} ${sortBy === opt.value ? chipActive : chipIdle}`}
+        className={`shrink-0 snap-start ${chipBase} ${sortBy === opt.value ? chipActive : chipIdle}`}
       >
         {opt.label}
       </button>
@@ -215,7 +269,7 @@ export const CategoryContent = ({
         <button
           key={key}
           onClick={() => { hapticLight(); setSelectedCategory(isActive ? null : key); onSelect?.(); }}
-          className={`shrink-0 ${chipBase} ${isActive ? chipActive : chipIdle}`}
+          className={`shrink-0 snap-start ${chipBase} ${isActive ? chipActive : chipIdle}`}
         >
           <CategoryIcon
             category={key}

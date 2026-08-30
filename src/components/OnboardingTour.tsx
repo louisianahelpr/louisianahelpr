@@ -107,10 +107,9 @@ const getResumeStep = (): number => {
 
 interface OnboardingTourProps {
   profileComplete?: boolean;
-  profileCreatedAt?: string | null;
 }
 
-const OnboardingTour = ({ profileComplete = false, profileCreatedAt }: OnboardingTourProps) => {
+const OnboardingTour = ({ profileComplete = false }: OnboardingTourProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [state, setState] = useState<OnboardingState>(() => {
@@ -149,19 +148,6 @@ const OnboardingTour = ({ profileComplete = false, profileCreatedAt }: Onboardin
       return;
     }
 
-    // Don't show the tour for existing users (account older than 2 minutes).
-    // This intentionally runs before the seen/later checks because an old
-    // account that *also* had a Later cookie should still be considered
-    // "experienced" — auto-mark complete and stop.
-    if (profileCreatedAt) {
-      const ageMs = Date.now() - new Date(profileCreatedAt).getTime();
-      if (ageMs > 2 * 60 * 1000) {
-        saveState({ ...s, seen: true, completed: true });
-        setShowResumePill(false);
-        return;
-      }
-    }
-
     // Snoozed via "Later" → show the resume pill but DON'T auto-open
     // the dialog. The user clicks the pill to relaunch from their saved
     // step. Pill stays until they either resume (which clears the
@@ -185,7 +171,7 @@ const OnboardingTour = ({ profileComplete = false, profileCreatedAt }: Onboardin
     saveState({ ...s, seen: true });
     const timer = setTimeout(() => setVisible(true), 1500);
     return () => clearTimeout(timer);
-  }, [location.pathname, profileCreatedAt]);
+  }, [location.pathname]);
 
   const updateState = useCallback((updates: Partial<OnboardingState>) => {
     setState(prev => {

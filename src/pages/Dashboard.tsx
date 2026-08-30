@@ -726,7 +726,7 @@ const Dashboard = () => {
       </Suspense>
 
       <Suspense fallback={null}>
-        <OnboardingTour profileCreatedAt={profile?.created_at} profileComplete={isProfileComplete(profile)} />
+        <OnboardingTour profileComplete={isProfileComplete(profile)} />
       </Suspense>
       <QuickApplyHandler searchParams={searchParams} user={user} allJobs={allJobs} onApply={handleApplyRequest} />
 

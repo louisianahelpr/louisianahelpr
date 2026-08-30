@@ -60,10 +60,16 @@ export function BrowseSearchBar({
   const showRecent = focused && filters.searchQuery.length === 0 && recent.length > 0;
 
   return (
-    // `relative` + an absolutely-positioned dropdown: the title card is a
-    // fixed-height band, so a suggestion list in normal flow would grow it and
-    // shove the feed down every time the field takes focus.
-    <div className="relative flex-1 min-w-0">
+    // The Recent-searches list used to be absolutely positioned so it
+    // wouldn't grow the title card. In practice that meant it floated OVER
+    // whatever was directly beneath the field — the category chip row, or
+    // the top of the feed — instead of making room for itself (owner:
+    // "should push down, not overlap"). It now renders in normal document
+    // flow: the title card grows by exactly the dropdown's height while it's
+    // open, and the panel below simply starts lower. `spellCheck={false}`
+    // on the input — a search query is not prose the browser should be
+    // second-guessing with red squiggles.
+    <div className="flex-1 min-w-0">
       <div className="flex items-center gap-2">
         <div className="relative flex-1 min-w-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
@@ -82,6 +88,7 @@ export function BrowseSearchBar({
             enterKeyHint="search"
             inputMode="search"
             autoComplete="off"
+            spellCheck={false}
             value={filters.searchQuery}
             onChange={(e) => filters.setSearchQuery(e.target.value)}
             onFocus={() => {
@@ -120,7 +127,7 @@ export function BrowseSearchBar({
 
       {showRecent && (
         <div
-          className="absolute left-0 right-0 top-full mt-1.5 z-50 rounded-ds-md overflow-hidden bg-card"
+          className="mt-1.5 rounded-ds-md overflow-hidden bg-card"
           style={{
             border: "0.5px solid hsl(var(--olivewood) / 0.18)",
             boxShadow: "0 12px 32px -12px hsl(var(--olivewood) / 0.35)",

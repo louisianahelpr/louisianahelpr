@@ -157,8 +157,11 @@ describe("Activity — whose move is it", () => {
     expect(appliedActivityBucket(a)).toBe("waiting");
   });
 
-  it("puts a rejection and a completed job in Done", () => {
-    expect(appliedActivityBucket(app({ status: "rejected", jobStatus: "open" }))).toBe("done");
+  it("puts a completed job in Done and a rejection in its own Cancelled bucket", () => {
+    // Cancelled is a separate terminal bucket from Done (product direction,
+    // 2026-08-30) — a rejection/cancellation did not "finish" the way a
+    // completed job did, so it no longer folds into the same tab.
+    expect(appliedActivityBucket(app({ status: "rejected", jobStatus: "open" }))).toBe("cancelled");
     expect(appliedActivityBucket(app({ status: "accepted", jobStatus: "completed" }))).toBe("done");
   });
 
@@ -186,9 +189,9 @@ describe("Activity — whose move is it", () => {
     expect(postedActivityBucket({ status: "accepted", helper_confirmed_at: "2026-08-01T00:00:00Z" })).toBe("scheduled");
   });
 
-  it("puts both terminal states in Done", () => {
+  it("puts Completed in Done and Cancelled in its own bucket", () => {
     expect(postedActivityBucket({ status: "completed" })).toBe("done");
-    expect(postedActivityBucket({ status: "cancelled" })).toBe("done");
+    expect(postedActivityBucket({ status: "cancelled" })).toBe("cancelled");
   });
 
   it("releases a job from Needs you once a revision sends the work back", () => {

@@ -201,20 +201,22 @@ const HomeHistory = () => {
                       )}
 
                       {/* Job card. DELIBERATE deviation from the
-                          `rounded-2xl liquid-glass p-5` card convention: this
-                          is the shared parchment "record" surface used by
-                          /work-record and /benefits (see the note on
-                          BenefitsPage's cardStyle). liquid-glass's opaque
-                          white fill would make these timeline entries read as
-                          app cards floating over the page rather than as
-                          entries on a single sheet. */}
+                          `rounded-2xl liquid-glass p-5` card convention — a
+                          plain white liquid-glass fill would make these
+                          timeline entries read as app cards floating over the
+                          page rather than as entries on a single record
+                          sheet. Uses `.doc-card`, the SAME document-surface
+                          material /work-record and /benefits use (the
+                          document surface ladder in index.css) — this used
+                          to hand-roll a `parchment/0.70` fill that measured
+                          2-6/255 from the page canvas (a card that did not
+                          read as a sheet, just a slightly different patch of
+                          page), the exact contrast bug already fixed on its
+                          two siblings. `.doc-card` sets material only
+                          (fill/border/shadow); the geometry classes below are
+                          unchanged. */}
                       <div
-                        className="rounded-ds-lg p-4 space-y-2.5"
-                        style={{
-                          background: "hsl(var(--parchment) / 0.70)",
-                          border: "1px solid hsl(var(--olivewood) / 0.10)",
-                          boxShadow: "0 1px 3px hsl(var(--olivewood) / 0.06), 0 4px 10px -4px hsl(var(--olivewood) / 0.08)",
-                        }}
+                        className="doc-card rounded-ds-lg p-4 space-y-2.5"
                       >
                         {/* Top row: category badge + title */}
                         <div className="flex items-start gap-2.5">

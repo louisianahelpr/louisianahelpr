@@ -60,6 +60,8 @@ project_id = "fncmgoasalhdgfwzhsqa"
   # its own Authorization header against CRON_SECRET / SECRET_KEY internally.
   [functions.auto-expire-jobs]
     verify_jwt = false
+  [functions.backfill-job-geocode]
+    verify_jwt = false
   [functions.auto-resolve-disputes]
     verify_jwt = false
   [functions.void-cancelled-payments]

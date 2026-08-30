@@ -148,7 +148,7 @@ const SignupPending = () => {
         </p>
 
         <div className="border-t pt-6 grid gap-4 sm:grid-cols-3 text-left" style={{ borderColor: "hsl(var(--olivewood) / 0.12)" }}>
-          <div className="flex items-start gap-3 sm:flex-col sm:gap-2">
+          <div className="flex items-start gap-3">
             {stepIcon(1)}
             <div>
               <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Verify your email</p>
@@ -158,7 +158,7 @@ const SignupPending = () => {
             </div>
           </div>
 
-          <div className="flex items-start gap-3 sm:flex-col sm:gap-2">
+          <div className="flex items-start gap-3">
             {stepIcon(2)}
             <div>
               <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>We'll sign you in</p>
@@ -168,7 +168,7 @@ const SignupPending = () => {
             </div>
           </div>
 
-          <div className="flex items-start gap-3 sm:flex-col sm:gap-2">
+          <div className="flex items-start gap-3">
             {stepIcon(3)}
             <div>
               <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Start right away</p>

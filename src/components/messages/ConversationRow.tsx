@@ -153,6 +153,12 @@ const ConversationRowBase = ({
     const allowed: Record<string, true> = {
       open: true, accepted: true, in_progress: true, completed: true,
       cancelled: true, revision_requested: true, disputed: true, assigned: true,
+      // `pending_approval` was missing here — a real job_status enum value
+      // (see statusLabels.ts / statusColors.ts) — so any conversation on a
+      // job awaiting business-poster approval silently rendered no chip at
+      // all, even though it counts as an "Active" thread (LIVE_JOB_STATUSES
+      // in ConversationList.tsx includes it).
+      pending_approval: true,
     };
     if (!allowed[s]) return null;
     const palette =

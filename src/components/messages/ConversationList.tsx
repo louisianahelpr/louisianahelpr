@@ -2,12 +2,18 @@ import { useEffect, useMemo, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
 import { defaultInboxTab } from "@/lib/inboxDefault";
-import { MessageSquare, Pin, Search, Trash2, X } from "lucide-react";
+import { CheckSquare, Menu, MessageSquare, Pin, Search, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { hapticLight } from "@/lib/haptics";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { PageScaffold } from "@/components/ui/PageScaffold";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 import { EmptyState } from "@/components/ui/EmptyState";
 import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllustration";
@@ -128,15 +134,12 @@ export function ConversationList({
   // a pure local filter over `conversations`, so no debounce needed.
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  /* Which slice of the inbox. Unread is the default WHEN THERE IS UNREAD —
-     opening a caught-up inbox on an empty "Unread" tab would be the app hiding
-     every conversation the user has to prove a point (owner: "i think unread
-     should be the default tab??"). Resolved once, on mount, from the first
-     load; changing tabs after that is the user's business.
+  /* Which slice of the inbox. All is the default (owner, 2026-08-30) — see
+     defaultInboxTab in lib/inboxDefault.ts. Resolved once, on mount, from
+     the first load; changing tabs after that is the user's business.
 
      `null` means "not chosen yet" so the effect below can seed it as soon as
-     the first page of threads lands — `conversations` is empty on the very
-     first render and a default computed then would always be "all". */
+     the first page of threads lands. */
   const [inboxFilter, setInboxFilter] = useState<string | null>(null);
   // Bump this nonce after a pin/unpin so the derived order re-reads
   // sessionStorage (the pin set is read directly to avoid a parallel
@@ -376,11 +379,11 @@ export function ConversationList({
       dense={embedded}
       ariaLabel="Filter conversations"
       tabs={[
+        { key: "all", label: "All", count: conversations.length },
         { key: "unread", label: "Unread", count: unreadThreads },
         { key: "active", label: "Active", count: activeThreads },
-        { key: "all", label: "All", count: conversations.length },
       ]}
-      value={inboxFilter ?? "unread"}
+      value={inboxFilter ?? "all"}
       onChange={setInboxFilter}
     />
   );
@@ -460,14 +463,22 @@ export function ConversationList({
                       placeholder="Search conversations…"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
+                      spellCheck={false}
                       className="w-full pl-9 pr-9 h-9 text-ds-13 rounded-ds-md glass-field focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"
                     />
                     {searchQuery && (
+                      // Fixed 24×24 circle, inset a touch further than the
+                      // old bare icon so its hover/active/focus-visible ring
+                      // stays inside the field's rounded-ds-md edge instead
+                      // of poking past it. The old version had no explicit
+                      // box — just an icon glyph — so the browser's default
+                      // focus outline and any hover fill drew flush against
+                      // (and past) the field boundary.
                       <button
                         type="button"
                         onClick={() => setSearchQuery("")}
                         aria-label="Clear search"
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground btn-press"
+                        className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--olivewood)/0.10)] active:bg-[hsl(var(--olivewood)/0.16)] btn-press transition-colors"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -524,14 +535,6 @@ export function ConversationList({
                   </div>
                   <div className={`flex items-center gap-1 shrink-0 ${hasThreads ? "" : "hidden"}`}>
                     <button
-                      onClick={enterSelectMode}
-                      aria-label="Select conversations"
-                      className="min-h-[44px] px-2 inline-flex items-center text-ds-13 font-medium btn-press"
-                      style={{ color: "hsl(var(--bark))" }}
-                    >
-                      Select
-                    </button>
-                    <button
                       onClick={() => { hapticLight(); setSearchOpen(true); }}
                       aria-label="Search conversations"
                       className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-ds-md transition-colors btn-press shrink-0"
@@ -539,6 +542,57 @@ export function ConversationList({
                     >
                       <Search className="w-4 h-4" />
                     </button>
+                    {/* Hamburger — replaces the old text "Select" button, and
+                        sits to the RIGHT of search (was to its left). Opens a
+                        menu: entering multi-select is one entry among several
+                        now, alongside Pinned / Recently Deleted / a status
+                        filter — so the icon has to read as "more options",
+                        not "select", hence the 3-line glyph rather than a
+                        checkbox icon. */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          aria-label="Conversation list options"
+                          className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-ds-md transition-colors btn-press shrink-0"
+                          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                        >
+                          <Menu className="w-4 h-4" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={enterSelectMode}>
+                          <CheckSquare className="w-4 h-4 mr-2" />
+                          Select messages
+                        </DropdownMenuItem>
+                        {/* Stubs — not wired to real data yet. Each just
+                            confirms receipt so the menu doesn't feel dead;
+                            wiring them up (a real pinned-only view, a soft-
+                            delete trash, and an inbox status filter reusing
+                            the Activity "Needs You / Scheduled / Waiting /
+                            Done" bucket concept from activityFilters.ts) is
+                            follow-up work, not part of this pass. */}
+                        <DropdownMenuItem onClick={() => toast("Pinned view coming soon")}>
+                          <Pin className="w-4 h-4 mr-2" />
+                          Pinned
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => toast("Recently Deleted coming soon")}>
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Recently Deleted
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => toast("Needs You filter coming soon")}>
+                          Needs You
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => toast("Scheduled filter coming soon")}>
+                          Scheduled
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => toast("Waiting filter coming soon")}>
+                          Waiting
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => toast("Done filter coming soon")}>
+                          Done
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </>
               )}

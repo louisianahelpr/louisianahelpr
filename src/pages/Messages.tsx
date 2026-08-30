@@ -389,23 +389,6 @@ const Messages = () => {
               <div className="flex-1 min-h-0">
                 <SectionBoundary label="conversations">{listEl}</SectionBoundary>
               </div>
-              {/* Bottom-anchored discovery hint — the thread list can be
-                  short on desktop (a few conversations) leaving a wide
-                  empty band. This footer hint fills that space with a
-                  quiet on-brand editorial line explaining how to start a
-                  new conversation, so the rail never reads as dead space. */}
-              <div
-                aria-hidden
-                className="shrink-0 px-4 py-3 border-t text-ds-11 font-serif italic leading-snug"
-                style={{
-                  borderColor: "hsl(var(--olivewood) / 0.1)",
-                  color: "hsl(var(--olivewood) / 0.65)",
-                  background: "hsl(var(--olivewood) / 0.02)",
-                }}
-              >
-                Threads open when someone applies to your job — or when
-                you message a Helpr from their profile.
-              </div>
             </div>
             {/* Right pane — the open thread, or a resting empty state when
                 nothing is selected yet. */}

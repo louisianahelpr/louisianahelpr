@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { MailCheck, LogIn, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import AuthShell from "@/components/auth/AuthShell";
@@ -101,12 +100,19 @@ const SignupPending = () => {
     setResendCooldown(RESEND_COOLDOWN_S);
   };
 
-  const stepIcon = (Icon: typeof MailCheck) => (
+  // Numbered rather than icon-only: the three cards are a SEQUENCE (verify →
+  // sign-in → start), and three unrelated glyphs (envelope, arrow, sparkles)
+  // didn't read as an order at a glance. The numeral replaces the icon in the
+  // same token square used elsewhere for a step marker (see AwardGateDialog's
+  // RequirementRow), rather than introducing a new badge style.
+  const stepIcon = (step: number) => (
     <div
       className="w-9 h-9 rounded-ds-md flex items-center justify-center flex-shrink-0 mt-0.5"
       style={{ background: "hsl(var(--bark) / 0.1)" }}
     >
-      <Icon className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
+      <span className="text-ds-15 font-bold" style={{ color: "hsl(var(--bark))" }} aria-hidden="true">
+        {step}
+      </span>
     </div>
   );
 
@@ -143,7 +149,7 @@ const SignupPending = () => {
 
         <div className="border-t pt-6 grid gap-4 sm:grid-cols-3 text-left" style={{ borderColor: "hsl(var(--olivewood) / 0.12)" }}>
           <div className="flex items-start gap-3 sm:flex-col sm:gap-2">
-            {stepIcon(MailCheck)}
+            {stepIcon(1)}
             <div>
               <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Verify your email</p>
               <p className="text-ds-13 font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
@@ -153,7 +159,7 @@ const SignupPending = () => {
           </div>
 
           <div className="flex items-start gap-3 sm:flex-col sm:gap-2">
-            {stepIcon(LogIn)}
+            {stepIcon(2)}
             <div>
               <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>We'll sign you in</p>
               <p className="text-ds-13 font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
@@ -163,7 +169,7 @@ const SignupPending = () => {
           </div>
 
           <div className="flex items-start gap-3 sm:flex-col sm:gap-2">
-            {stepIcon(Sparkles)}
+            {stepIcon(3)}
             <div>
               <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Start right away</p>
               <p className="text-ds-13 font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>

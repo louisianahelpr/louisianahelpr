@@ -149,13 +149,13 @@ const OnboardingTour = ({ profileComplete = false, profileCreatedAt }: Onboardin
       return;
     }
 
-    // Don't show the tour for existing users (account older than 2 minutes).
+    // Don't show the tour for existing users (account older than 30 minutes).
     // This intentionally runs before the seen/later checks because an old
     // account that *also* had a Later cookie should still be considered
     // "experienced" — auto-mark complete and stop.
     if (profileCreatedAt) {
       const ageMs = Date.now() - new Date(profileCreatedAt).getTime();
-      if (ageMs > 2 * 60 * 1000) {
+      if (ageMs > 30 * 60 * 1000) {
         saveState({ ...s, seen: true, completed: true });
         setShowResumePill(false);
         return;

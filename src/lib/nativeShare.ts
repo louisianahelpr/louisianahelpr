@@ -27,6 +27,48 @@ export interface ShareContent {
  *
  * Dynamic import keeps the plugin chunk off the web critical-path bundle.
  */
+/**
+ * Copy `text` to the clipboard, returning whether it actually landed.
+ *
+ * Two rungs: the async Clipboard API, then the legacy `execCommand("copy")`
+ * off a detached textarea — still the only clipboard available in some
+ * embedded WebViews (including the Capacitor WKWebView, which can reject
+ * `navigator.clipboard.writeText` outside a live user gesture or when the
+ * clipboard-write permission hasn't been granted) and on insecure origins,
+ * where `navigator.clipboard` is undefined entirely. Returning a boolean
+ * (rather than throwing) is what lets the caller distinguish "copied" from
+ * "could not copy" and show the right thing instead of assuming success.
+ */
+export async function copyToClipboard(text: string): Promise<boolean> {
+  if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // Fall through to the execCommand fallback below — some WebViews
+      // expose `navigator.clipboard` but still reject the call.
+    }
+  }
+  if (typeof document === "undefined" || typeof document.execCommand !== "function") {
+    return false;
+  }
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.setAttribute("readonly", "");
+  // Off-screen but still selectable. `display:none` would make the
+  // selection — and therefore the copy — fail silently.
+  ta.style.position = "fixed";
+  ta.style.top = "-9999px";
+  ta.style.opacity = "0";
+  document.body.appendChild(ta);
+  try {
+    ta.select();
+    return document.execCommand("copy");
+  } finally {
+    document.body.removeChild(ta);
+  }
+}
+
 export async function shareNative(content: ShareContent): Promise<void> {
   const { title, text, url, dialogTitle } = content;
   const clipboardText = content.clipboardText ?? `${text}\n${url}`;
@@ -59,8 +101,7 @@ export async function shareNative(content: ShareContent): Promise<void> {
        2026-08-30: "does nothing"). The tier list at the top of this file always
        described this step as "copy the link + toast a hint"; the toast was just
        never written. */
-    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(clipboardText);
+    if (await copyToClipboard(clipboardText)) {
       toast.success("Link copied", { description: "Paste it anywhere to share." });
       return;
     }
@@ -79,8 +120,7 @@ export async function shareNative(content: ShareContent): Promise<void> {
     // fallbacks below are what turn it back into something the user sees.
     // Fall back to clipboard before surfacing a hard failure.
     try {
-      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(clipboardText);
+      if (await copyToClipboard(clipboardText)) {
         // Same silent-success bug as the tier above: the recovery path copied
         // the link and said nothing, so a share that fell back after a
         // NotAllowedError looked identical to a dead button.

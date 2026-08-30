@@ -11,7 +11,7 @@ import { queryKeys } from "@/lib/queryKeys";
 import { ReferralExtras } from "@/components/profile/ReferralExtras";
 import { getPublicSiteUrl } from "@/lib/authRedirects";
 import { requireBiometric } from "@/lib/biometricGate";
-import { shareNative } from "@/lib/nativeShare";
+import { shareNative, copyToClipboard } from "@/lib/nativeShare";
 import { hapticLight, hapticSuccess } from "@/lib/haptics";
 import { formatPriceExact } from "@/lib/format";
 
@@ -33,12 +33,15 @@ const ReferralSection = ({ userId }: { userId: string }) => {
 
   const copyCode = async () => {
     if (!referralCode) return;
-    try {
-      await navigator.clipboard.writeText(referralCode);
+    // copyToClipboard tries navigator.clipboard first, then falls back to a
+    // detached-textarea execCommand("copy") — needed inside the Capacitor
+    // WKWebView and on insecure origins where navigator.clipboard is either
+    // missing or rejects outside a live user gesture.
+    if (await copyToClipboard(referralCode)) {
       setCopied(true);
       hapticSuccess();
       setTimeout(() => setCopied(false), 2000);
-    } catch {
+    } else {
       toast.error(`Couldn't copy — your code is ${referralCode}`);
     }
   };

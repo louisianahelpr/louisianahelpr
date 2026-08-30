@@ -19,11 +19,15 @@ import {
 /**
  * FilterSheet — the ONE filter presentation used across the app.
  *
- * A bottom sheet (built on the shared Radix Dialog `Sheet` primitive, so
- * it gets the project's standard motion, drag-to-dismiss, focus trap, and
- * esc / backdrop dismiss for free) that stacks filter controls as titled
- * vertical sections. Every surface that needs filters (Browse / Dashboard,
- * Activity, Guest) opens this same sheet so the UX is identical everywhere.
+ * When the caller supplies `anchorRef` (the Browse feed does), this renders
+ * as a Popover docked below the Filters button, at every width — no dimmed
+ * backdrop, results stay visible and update live as you pick. Without an
+ * `anchorRef`, it falls back to the shared modal `Sheet` primitive (fade/
+ * zoom, focus trap, esc/backdrop dismiss — no drag-to-dismiss, removed
+ * app-wide when `side="bottom"` stopped being a floor-anchored sheet).
+ * Either way it stacks filter controls as titled vertical sections. Every
+ * surface that needs filters (Browse / Dashboard, Activity, Guest) opens
+ * this same component so the UX is identical everywhere.
  *
  * It's section-agnostic: each surface passes the `sections` it supports and
  * the sheet renders only those. The job surfaces build theirs with

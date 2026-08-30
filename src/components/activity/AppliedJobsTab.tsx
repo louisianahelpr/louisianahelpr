@@ -362,15 +362,15 @@ export const AppliedJobsTab = ({
           }
         }}
       >
-        {/* `max-w-md mx-auto` like MuteSheet and AttachSourceSheet — without it
-            this sheet spans the full desktop width, so the four reason chips
-            render ~700px wide with a 13px label floating in the middle and the
-            confirm button becomes a 1400px band. `rounded-t-2xl`, not the
-            one-off `rounded-t-[20px]`, is what every other bottom sheet uses.
-            The bespoke drag handle went with it: SheetContent enables
-            drag-to-dismiss on every bottom sheet, so one sheet advertising the
-            gesture and fourteen with the same capability staying silent taught
-            the wrong thing. */}
+        {/* `max-w-md mx-auto` like MuteSheet — without it this sheet spans the
+            full desktop width, so the four reason chips render ~700px wide
+            with a 13px label floating in the middle and the confirm button
+            becomes a 1400px band. Every other titled sheet in the app shares
+            this same `rounded-2xl`, centered-modal treatment now
+            (`side="bottom"` stopped being a floor-anchored sheet — see
+            sheet.tsx's `sheetVariants`), so there's no bespoke drag handle to
+            keep in sync with here: drag-to-dismiss was removed app-wide, not
+            just from this one sheet. */}
         <SheetContent
           side="bottom"
           className="border-t-0 px-5 pt-6 pb-[calc(var(--safe-area-bottom,0px)_+_24px)] max-h-[85dvh] overflow-y-auto"

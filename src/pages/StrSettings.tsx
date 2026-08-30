@@ -12,7 +12,7 @@
 
 import { useState } from "react";
 
-import { CalendarDays, Plus, ChevronDown, ChevronUp } from "lucide-react";
+import { CalendarDays, Plus, ChevronDown, X } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -233,13 +233,20 @@ export default function StrSettings() {
               </div>
             ) : showEmptyState ? (
               /* One card for one idea and one action: what this does, and the
-                 button that does it. `surfaceStyle` keeps the page's premium
-                 card material rather than dropping a white glass tile into it. */
+                 button that does it. No `surfaceStyle` override (2026-08-30
+                 fix): this had been pinned to the page's premium burnt-sienna
+                 card material to read as one tier with SubscriptionPage, but
+                 that made the FIRST thing a host sees on this page (the empty
+                 state — the common case before any calendar is connected) the
+                 one screen in the whole Profile sub-page family that isn't
+                 the standard near-white `.liquid-glass` surface every other
+                 empty state (Messages, My Posts/Jobs, Browse, Home History)
+                 uses. Falls back to EmptyState's default liquid-glass now;
+                 ConnectionCard and the "Add a Calendar" card below still use
+                 `cardStyle`, so the premium treatment stays once a host has
+                 actually connected something. */
               <EmptyState
                 variant="inline"
-                /* 14px = tailwind `rounded-ds-md`, the radius every other card
-                   on this page carries; the shared card is `rounded-2xl`. */
-                surfaceStyle={{ ...cardStyle, borderRadius: 14 }}
                 icon={CalendarDays}
                 eyebrow="No calendars connected yet"
                 title="Never scramble for a cleaner again"
@@ -285,11 +292,21 @@ export default function StrSettings() {
                     connected hands the screen back to the empty state, so the
                     host is never left staring at a lone closed row. */}
                 <div className="rounded-ds-md overflow-hidden" style={cardStyle}>
+                  {/* Collapsed: the whole row opens the form (chevron-down).
+                      Expanded (2026-08-30 fix): swapped the chevron for an
+                      explicit X/Cancel — a chevron that flips to point "up"
+                      reads as "collapse this section," which is accurate but
+                      easy to miss as a way to back out of adding a calendar;
+                      an X is the unambiguous "cancel this" affordance used
+                      everywhere else a form/sheet closes in this app (see
+                      PetForm's header X). Click target and behavior
+                      (toggle addOpen) are unchanged — only the icon/label. */}
                   <button
                     className="w-full flex items-center justify-between px-4 py-3.5"
                     onClick={() => setAddOpen((v) => !v)}
                     aria-expanded={addOpen}
                     aria-controls={addOpen ? "add-calendar-form" : undefined}
+                    aria-label={addOpen ? "Cancel adding a calendar" : undefined}
                   >
                     <div className="flex items-center gap-2">
                       <Plus
@@ -304,7 +321,13 @@ export default function StrSettings() {
                       </span>
                     </div>
                     {addOpen ? (
-                      <ChevronUp className="w-4 h-4" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
+                      <span
+                        className="inline-flex items-center gap-1 text-ds-12 font-medium"
+                        style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                      >
+                        Cancel
+                        <X className="w-4 h-4" />
+                      </span>
                     ) : (
                       <ChevronDown className="w-4 h-4" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
                     )}

@@ -538,10 +538,13 @@ const CompleteProfile = () => {
                 className="h-3.5 w-3.5 mt-[3px] shrink-0 [&_svg]:h-3 [&_svg]:w-3"
               />
               <span id="accept-policies-label" className="leading-relaxed">
+                {/* Wording/order matches SignupStep1's identical consent row
+                    (Terms, Rules & Privacy) so the same box reads the same
+                    way everywhere a user ticks it. */}
                 I agree to the{" "}
-                <a href="/rules" target="_blank" rel="noreferrer" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>platform rules</a>,{" "}
-                <a href="/terms" target="_blank" rel="noreferrer" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>terms</a>, and{" "}
-                <a href="/privacy" target="_blank" rel="noreferrer" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>privacy policy</a>. <span style={{ color: "hsl(var(--burnt-sienna))" }}>*</span>
+                <a href="/terms" target="_blank" rel="noreferrer" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Terms</a>,{" "}
+                <a href="/rules" target="_blank" rel="noreferrer" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Rules</a>{" & "}
+                <a href="/privacy" target="_blank" rel="noreferrer" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Privacy</a>. <span style={{ color: "hsl(var(--burnt-sienna))" }}>*</span>
               </span>
             </label>
 

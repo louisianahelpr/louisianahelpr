@@ -107,7 +107,10 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
             ? [{
                 Icon: Users,
                 label: "Helprs",
-                value: `${job.helpers_needed}`,
+                // A bare number reads fine next to "Abbeville"/"Sat, Aug 29"
+                // (both nouns), but a bare "3" answers no visible question —
+                // the word makes it self-contained.
+                value: `${job.helpers_needed} Helprs`,
                 sub: null,
                 href: null,
                 urgent: false,
@@ -150,20 +153,18 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
         const rowItems = tiles.filter((t) => ROW_LABELS.includes(t.label));
         const tileItems = tiles.filter((t) => !ROW_LABELS.includes(t.label));
 
+        // Four SEPARATE cells, not one bar with dividers (owner, via the
+        // job-dialog mockup: "it should be basically identical to this") —
+        // each fact gets its own bordered box with the icon stacked above
+        // the value, matching the Composite mockup's metacells treatment.
+        // Columns match the item count (3 or 4) so a job with no Helprs
+        // tile doesn't leave a dead empty cell.
         const compactRow = (
           <div
             key="compact-meta"
-            className="flex items-stretch rounded-ds-md overflow-hidden min-h-[44px]"
-            style={{
-              backgroundColor: "var(--glass-bg-soft)",
-              backdropFilter: "blur(18px) saturate(160%)",
-              WebkitBackdropFilter: "blur(18px) saturate(160%)",
-              border: "0.5px solid var(--glass-border)",
-              boxShadow:
-                "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), 0 1px 2px hsl(var(--olivewood) / 0.05)",
-            }}
+            className={`grid gap-1.5 ${rowItems.length === 4 ? "grid-cols-4" : "grid-cols-3"}`}
           >
-            {rowItems.map(({ Icon, label, value, sub, href }, i) => {
+            {rowItems.map(({ Icon, label, value, sub, href }) => {
               const Wrapper: ElementType = href ? "a" : "div";
               const wrapperProps: { href?: string; target?: string; rel?: string } = href
                 ? { href, target: "_blank", rel: "noopener noreferrer" }
@@ -173,27 +174,30 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
                   key={label}
                   {...wrapperProps}
                   aria-label={href ? `${label}: ${value}` : undefined}
-                  className={`flex-1 min-w-0 flex flex-col items-center justify-center px-1.5 py-2 ${
-                    i > 0 ? "border-l" : ""
-                  } ${href ? "glass-press cursor-pointer" : ""}`}
-                  style={i > 0 ? { borderLeftColor: "var(--glass-border)", borderLeftWidth: "0.5px" } : undefined}
+                  className={`min-w-0 flex flex-col items-center justify-center gap-0.5 rounded-ds-md px-1.5 py-2 text-center ${href ? "glass-press cursor-pointer" : ""}`}
+                  style={{
+                    backgroundColor: "var(--glass-bg-soft)",
+                    backdropFilter: "blur(18px) saturate(160%)",
+                    WebkitBackdropFilter: "blur(18px) saturate(160%)",
+                    border: "0.5px solid var(--glass-border)",
+                    boxShadow:
+                      "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), 0 1px 2px hsl(var(--olivewood) / 0.05)",
+                  }}
                 >
-                  <span className="flex items-center gap-1 min-w-0 max-w-full">
-                    <Icon
-                      className="w-3.5 h-3.5 shrink-0"
-                      style={{ color: "hsl(var(--burnt-sienna) / 0.7)" }}
-                      aria-hidden
-                    />
-                    <span
-                      className="font-sans font-semibold text-ds-14 leading-tight tracking-tight truncate"
-                      style={{ color: "hsl(var(--ink-deep))" }}
-                    >
-                      {value}
-                    </span>
+                  <Icon
+                    className="w-3.5 h-3.5 shrink-0"
+                    style={{ color: "hsl(var(--burnt-sienna) / 0.7)" }}
+                    aria-hidden
+                  />
+                  <span
+                    className="font-sans font-semibold text-ds-12 leading-tight tracking-tight truncate max-w-full"
+                    style={{ color: "hsl(var(--ink-deep))" }}
+                  >
+                    {value}
                   </span>
                   {sub && (
                     <span
-                      className="font-serif italic text-ds-11 truncate max-w-full mt-0.5"
+                      className="font-serif italic text-ds-10 truncate max-w-full"
                       style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                     >
                       {sub}

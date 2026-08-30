@@ -1,7 +1,6 @@
 import { Star, ChevronRight, Crown, Sparkles } from "lucide-react";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import { Link } from "react-router-dom";
-import { formatDistanceToNow } from "date-fns";
 import { computeBadges, HelperBadges } from "@/components/HelperBadges";
 import { TrustRow } from "@/components/TrustRow";
 import type { EnrichedJob } from "./types";
@@ -109,53 +108,50 @@ export function JobPosterCard({ job, repeatJobs, cancellationRate, guest = false
             <p className="font-sans font-semibold leading-tight truncate text-ds-16 min-w-0" style={{ color: "hsl(var(--ink-deep))" }}>
               {job.posterName}
             </p>
-            <span className="flex items-center gap-0.5 text-ds-11 shrink-0">
-              {(job.posterReviewCount ?? 0) > 0 ? (
+            {/* "New" (no reviews yet) and the relative post date were removed
+                here (owner: "remove new and 5 days ago") — a rating only
+                renders once there's one to show. */}
+            {(job.posterReviewCount ?? 0) > 0 && (
+              <span className="flex items-center gap-0.5 text-ds-11 shrink-0">
+                <Star className="w-3.5 h-3.5 fill-accent text-accent" />
+                <span className="font-display italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
+                  {job.posterAvgRating?.toFixed(1)}
+                </span>
+                <span className="font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                  ({job.posterReviewCount})
+                </span>
+              </span>
+            )}
+          </div>
+          {((job.posterCompletedJobs ?? 0) > 0 || cancellationRate != null) && (
+            <p className="font-serif italic text-ds-11 leading-tight" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              {(job.posterCompletedJobs ?? 0) > 0 && (
+                <>{job.posterCompletedJobs} {job.posterCompletedJobs === 1 ? "job" : "jobs"}</>
+              )}
+              {cancellationRate != null && (
                 <>
-                  <Star className="w-3.5 h-3.5 fill-accent text-accent" />
-                  <span className="font-display italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
-                    {job.posterAvgRating?.toFixed(1)}
-                  </span>
-                  <span className="font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                    ({job.posterReviewCount})
+                  {(job.posterCompletedJobs ?? 0) > 0 && (
+                    <>{" "}<span style={{ color: "hsl(var(--burnt-sienna) / 0.4)" }}>·</span>{" "}</>
+                  )}
+                  {/* Colored against thresholds: <5% reads green (low),
+                      5–14% neutral, ≥15% warning sienna. Matches the
+                      profile-page cancellation card's color stops. */}
+                  <span
+                    className="tabular-nums"
+                    style={{
+                      color: cancellationRate < 5
+                        ? "hsl(var(--gift-tint))"
+                        : cancellationRate < 15
+                          ? "hsl(var(--olivewood) / 0.8)"
+                          : "hsl(var(--burnt-sienna))",
+                    }}
+                  >
+                    {cancellationRate.toFixed(0)}% cancelled
                   </span>
                 </>
-              ) : (
-                <span className="font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                  New
-                </span>
               )}
-            </span>
-          </div>
-          <p className="font-serif italic text-ds-11 leading-tight" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            {formatDistanceToNow(new Date(job.created_at), { addSuffix: true })}
-            {(job.posterCompletedJobs ?? 0) > 0 && (
-              <>
-                {" "}<span style={{ color: "hsl(var(--burnt-sienna) / 0.4)" }}>·</span>{" "}
-                {job.posterCompletedJobs} {job.posterCompletedJobs === 1 ? "job" : "jobs"}
-              </>
-            )}
-            {cancellationRate != null && (
-              <>
-                {" "}<span style={{ color: "hsl(var(--burnt-sienna) / 0.4)" }}>·</span>{" "}
-                {/* Colored against thresholds: <5% reads green (low),
-                    5–14% neutral, ≥15% warning sienna. Matches the
-                    profile-page cancellation card's color stops. */}
-                <span
-                  className="tabular-nums"
-                  style={{
-                    color: cancellationRate < 5
-                      ? "hsl(var(--gift-tint))"
-                      : cancellationRate < 15
-                        ? "hsl(var(--olivewood) / 0.8)"
-                        : "hsl(var(--burnt-sienna))",
-                  }}
-                >
-                  {cancellationRate.toFixed(0)}% cancelled
-                </span>
-              </>
-            )}
-          </p>
+            </p>
+          )}
         </div>
         {posterBadges.length > 0 && (
           <div className="shrink-0">

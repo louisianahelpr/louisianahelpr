@@ -1,5 +1,4 @@
 import { useId, useState } from "react";
-import { DollarSign } from "lucide-react";
 import { formatPrice, formatPriceExact, formatPriceFloor } from "@/lib/format";
 import { netUrgentFeeDollars } from "@/lib/stripeFees";
 
@@ -32,6 +31,13 @@ export interface JobPriceProps {
    * line. Show for free-tier helpers, not already-subscribed users.
    */
   className?: string;
+  /**
+   * `chip` only — `lg` bumps the type size for contexts with room to spare
+   * (JobDetailDialog's title row, where the chip is the one money element on
+   * the whole screen). Feed cards and the map popup stay at the default
+   * `sm` so nothing there changes size.
+   */
+  size?: "sm" | "lg";
 }
 
 /**
@@ -77,6 +83,7 @@ export function JobPrice({
   variant = "chip",
   showBudget = false,
   className,
+  size = "sm",
 }: JobPriceProps) {
   const [expanded, setExpanded] = useState(false);
   const panelId = useId();
@@ -107,7 +114,7 @@ export function JobPrice({
   if (variant === "chip") {
     const amountNode = (
       <span
-        className="font-display leading-none tabular-nums text-ds-17"
+        className={`font-display leading-none tabular-nums ${size === "lg" ? "text-ds-22" : "text-ds-17"}`}
         style={{
           fontWeight: 800,
           color: "hsl(var(--bark))",
@@ -123,11 +130,22 @@ export function JobPrice({
       </span>
     );
 
-    const chipClass = `inline-flex flex-col items-center justify-center px-2.5 py-1 rounded-ds-md text-center ${className ?? ""}`;
-    const chipSurface = {
-      background: "hsl(var(--bark) / 0.10)",
-      border: "0.5px solid hsl(var(--bark) / 0.28)",
-    };
+    const chipClass = `inline-flex flex-col items-center justify-center rounded-ds-md text-center ${size === "lg" ? "px-3.5 py-2" : "px-2.5 py-1"} ${className ?? ""}`;
+    // `lg` gets a raised shadow + a stronger border so it visually leads the
+    // row it sits in (owner: "add some sort of effect to where this stands
+    // out more, above the rest") — the default `sm` chip stays flat, since
+    // that's the feed card's dense list context where a shadow per card
+    // would be visual noise, not emphasis.
+    const chipSurface = size === "lg"
+      ? {
+          background: "hsl(var(--bark) / 0.10)",
+          border: "0.5px solid hsl(var(--bark) / 0.4)",
+          boxShadow: "var(--elev-bark-raised)",
+        }
+      : {
+          background: "hsl(var(--bark) / 0.10)",
+          border: "0.5px solid hsl(var(--bark) / 0.28)",
+        };
 
     // Guest/poster surfaces show a static budget with no net breakdown to
     // reveal, so the chip is purely presentational. Render a plain <div>,
@@ -194,55 +212,51 @@ export function JobPrice({
 
   // ──────────────────────────────────────────────────────────────────────
   // detail — the large featured payout pill in the job-detail view.
-  // Non-interactive: the amount + always-visible micro-breakdown already show
-  // the full math (budget ÷ helpers − fee + urgent), so a tap-to-expand panel
-  // only repeated the same numbers. Rendered as a plain <div>.
+  // Non-interactive: just the headline take-home figure. The fee-math
+  // breakdown line was REMOVED here (owner, 2026-08-30: "i dont think i
+  // should show the math bc people will see i am collecting from both
+  // sides") — showing "budget ÷ helpers − fee" spells out that the
+  // platform commission comes out of the helper's side on top of whatever
+  // the poster's own fee is, which the owner does not want visible.
+  // Rendered as a plain <div>.
   // ──────────────────────────────────────────────────────────────────────
   return (
+    // Flattened (owner, via the job-dialog mockup: "basically identical to
+    // this") — the heavy gradient/inset-shadow "surface-premium" treatment
+    // read as a different design language than the mockup's plain tinted
+    // panel. This variant renders ONLY here (JobDetailDialog), so simplifying
+    // it doesn't touch the feed card or map popup, which use `chip`.
     <div
+      // Deeper tint + border than the metacells/Details boxes around it
+      // (owner: "it just feels off" — everything had gone the same flat
+      // gray, so nothing but the Apply button pulled the eye). The payout
+      // is the one number that matters most; it should visually lead the
+      // stack, not blend into it.
       className={`w-full rounded-ds-md p-3 relative overflow-hidden ${className ?? ""}`}
       style={{
-        background:
-          "radial-gradient(circle at 20% 0%, hsla(0, 0%, 100%, 0.55) 0%, transparent 60%), " +
-          "var(--surface-premium)",
-        backdropFilter: "blur(20px) saturate(170%)",
-        WebkitBackdropFilter: "blur(20px) saturate(170%)",
-        border: "0.5px solid hsl(var(--bark) / 0.22)",
-        boxShadow:
-          "inset 0 1.5px 0 0 hsla(0, 0%, 100%, 0.95), " +
-          "inset 0 1px 2px 0 rgba(255, 255, 255, 0.6), " +
-          "inset 0 -1px 2px 0 hsl(var(--bark) / 0.12), " +
-          "inset 0 0 0 0.5px hsl(var(--gold-warm) / 0.22), " +
-          "0 1px 2px hsl(var(--olivewood) / 0.06), " +
-          "0 8px 18px -5px hsl(var(--bark) / 0.26)",
+        backgroundColor: "hsl(var(--bark) / 0.11)",
+        border: "0.5px solid hsl(var(--bark) / 0.26)",
       }}
     >
+      {/* Big italic display serif, matching the mockup's `.money-big` — the
+          number IS the label now that "You earn" is gone (owner: "remove
+          you earn"), so it earns the size and weight to read as the
+          headline of the whole card. */}
       <p
-        // --accent-ink, not --burnt-sienna: this label is 9.6px on the raised
-        // --surface-premium tile, where the plain accent measured ~3.3:1 in
-        // dark mode against a 4.5:1 requirement (small text gets no large-text
-        // allowance). --accent-ink is the same colour in light mode.
-        className="text-ds-10 font-serif italic uppercase tracking-[0.18em] flex items-center gap-1"
-        style={{ color: "hsl(var(--accent-ink))" }}
-      >
-        <DollarSign className="w-3 h-3" /> {showBudget ? "Budget" : "You earn"}
-      </p>
-      <p
-        className="font-display font-bold tabular-nums leading-none mt-1 text-ds-24"
-        style={{ color: "hsl(var(--bark))", letterSpacing: "-0.02em" }}
+        className="font-display font-bold italic tabular-nums leading-none text-ds-32"
+        style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.03em" }}
       >
         ${earnings}
       </p>
-      {/* Always-visible micro-breakdown so helpers see the math at a glance.
-          Exact cents, like the take-home it explains — a rounded term in a
-          line whose whole job is to reconcile is the bug this file just fixed. */}
-      {!showBudget && (
+      {/* Guest/poster surfaces still see the plain gross budget label — that
+          number is what the poster typed, not a helper-side calculation, so
+          it doesn't carry the same disclosure concern. */}
+      {showBudget && (
         <p
-          className="font-sans tabular-nums text-ds-10 tracking-[0.02em] mt-1"
-          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+          className="font-serif italic tabular-nums text-ds-12 mt-1"
+          style={{ color: "hsl(var(--muted-foreground))" }}
         >
-          ${formatPriceExact(budget)} budget{helpers > 1 ? ` ÷ ${helpers}` : ""} − {effectiveFee}% fee
-          {netUrgent > 0 ? ` + $${formatPriceExact(netUrgent)} urgent` : ""}
+          Budget
         </p>
       )}
       {/* The "Helpr Pro reduces your fee to 10% · Learn more" line was REMOVED

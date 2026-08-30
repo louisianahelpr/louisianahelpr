@@ -258,7 +258,15 @@ export const JobDetailFooter = ({
                 so the label sits at the button's true optical center instead of
                 being pushed left by the chevron. */}
             <span aria-hidden className="w-4 h-4 shrink-0" />
-            <span className="truncate">{job.instant_book ? "Book Now" : "Apply Now"}</span>
+            {/* "Continue", not "Apply Now" (owner, 2026-08-30) — tapping this
+                no longer applies anything; it reveals the note/attachments
+                form in place (see JobDetailDialog's merged-into-one-screen
+                apply flow), which has its OWN "Apply Now" that actually
+                submits. Two identically-labelled buttons doing different
+                things read as broken. Instant-book jobs skip that form
+                entirely, so "Book Now" here is still the real, final action
+                for them. */}
+            <span className="truncate">{job.instant_book ? "Book Now" : "Continue"}</span>
             <ChevronRight
               className="w-4 h-4 shrink-0 transition-transform duration-300 group-hover:translate-x-1"
               strokeWidth={2.5}

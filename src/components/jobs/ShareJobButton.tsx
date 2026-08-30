@@ -45,6 +45,12 @@ interface ShareJobButtonProps {
    * dialog's own bare X) where a filled tile reads as content.
    */
   bare?: boolean;
+  /** `bare` icon variant only: shrinks below the 44px HIG floor (owner,
+   *  2026-08-30 — a corner icon row this small forced too much clearance
+   *  above the title below it). Needs an inline min-height/min-width
+   *  override since the global `button { min-height: 44px }` rule beats a
+   *  Tailwind size utility otherwise. */
+  compact?: boolean;
   /** Optional aria-label override for the icon-only variant. */
   ariaLabel?: string;
   /**
@@ -99,6 +105,7 @@ export function ShareJobButton({
   ariaLabel,
   style,
   bare = false,
+  compact = false,
 }: ShareJobButtonProps) {
   // Disable the button while a share is in flight so impatient
   // double-taps don't queue duplicate share sheets.
@@ -291,11 +298,14 @@ export function ShareJobButton({
         onClick={handleShare}
         className={cn(
           bare
-            ? "group rounded-md h-11 w-11 shrink-0 btn-press motion-safe:transition-colors hover:text-foreground"
+            ? `group rounded-md ${compact ? "h-8 w-8" : "h-11 w-11"} shrink-0 btn-press motion-safe:transition-colors hover:text-foreground hover:bg-transparent active:bg-transparent`
             : "group glass-press rounded-full h-11 w-11 sm:h-12 sm:w-12 shrink-0 motion-safe:transition-all motion-safe:duration-200 motion-safe:hover:scale-105 motion-safe:active:scale-95",
           className,
         )}
-        style={bare ? { color: "hsl(var(--muted-foreground))" } : {
+        style={bare ? {
+          color: "hsl(var(--muted-foreground))",
+          ...(compact ? { minHeight: "32px", minWidth: "32px" } : {}),
+        } : {
           backgroundColor: "hsla(0, 0%, 100%, 0.32)",
           backdropFilter: "blur(20px) saturate(150%)",
           WebkitBackdropFilter: "blur(20px) saturate(150%)",

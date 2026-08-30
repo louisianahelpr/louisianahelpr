@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { FileText, Paperclip, Trash2, WifiOff, BookmarkCheck, ChevronDown, Plus } from "lucide-react";
+import { FileText, Paperclip, Trash2, WifiOff, BookmarkCheck, ChevronDown, ChevronLeft, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { errorToast } from "@/lib/toast";
 import { hapticMedium, hapticLight } from "@/lib/haptics";
@@ -50,6 +50,24 @@ type Props = ApplyConfirmDialogProps & {
   submitLabelIdle?: string;
   /** Called after a successful local confirm, so a host sheet can step back. */
   className?: string;
+  /**
+   * Skip the "You earn $X" earnings card. Set by JobDetailDialog, which now
+   * renders this inline on the SAME screen as the job's own price pill
+   * (owner, 2026-08-30: "delete [the separate apply step]" — merged into
+   * one screen) — showing the payout twice on one screen read as
+   * redundant. The standalone QuickApply sheet has no price shown
+   * elsewhere, so it keeps the card (this defaults to false).
+   */
+  hideEarnings?: boolean;
+  /**
+   * Collapses the inline form back to the plain footer (owner, 2026-08-30:
+   * "add back button to left" — the merged-into-one-screen apply form still
+   * needs a way to back out of it besides closing the whole sheet). Renders
+   * a small icon button to the left of Apply Now when supplied; omitted
+   * entirely for the standalone QuickApply sheet, which has no "back" state
+   * to return to.
+   */
+  onBack?: () => void;
 };
 
 /** Counter appears with this much room left, not before. */
@@ -65,6 +83,8 @@ export function ApplyBody({
   setApplyFiles,
   applyLoading,
   handleApplyConfirm,
+  hideEarnings = false,
+  onBack,
 }: Props) {
   const { online } = useOnlineStatus();
   const isInstantBook = !!(confirmApplyJob as any)?.instant_book;
@@ -170,7 +190,7 @@ export function ApplyBody({
         </p>
       )}
 
-      {confirmApplyJob && (
+      {confirmApplyJob && !hideEarnings && (
         <ApplyEarningsBreakdown confirmApplyJob={confirmApplyJob} platformFee={platformFee} />
       )}
 
@@ -324,31 +344,52 @@ export function ApplyBody({
         </p>
       )}
 
-      <button
-        type="button"
-        onClick={handleConfirm}
-        disabled={applyLoading}
-        className="w-full min-w-0 rounded-ds-md px-4 disabled:opacity-60"
-        style={{
-          /* Inline, not `min-h-[52px]`. index.css sets a bare
-             `button { min-height: 44px }` for the HIG touch minimum and that
-             base rule wins over the Tailwind arbitrary utility here, so the
-             class silently rendered a 44px button — measured. This is the
-             step's single commit action and reads as one. */
-          minHeight: "52px",
-          background: "hsl(var(--bark))",
-          border: "1px solid hsl(var(--bark))",
-          color: "hsl(var(--parchment))",
-          fontFamily: "Montserrat, system-ui, sans-serif",
-          fontWeight: 600,
-          letterSpacing: "0.01em",
-          boxShadow: "var(--elev-bark-raised)",
-        }}
-      >
-        {applyLoading
-          ? isInstantBook ? "Booking…" : "Applying…"
-          : !online ? "Try Again" : isInstantBook ? "Book Now" : "Apply Now"}
-      </button>
+      <div className="flex gap-1.5">
+        {/* Back — collapses the inline form to the plain footer instead of
+            closing the whole sheet (owner: "add back button to left"). Only
+            JobDetailDialog's merged-into-one-screen flow passes `onBack`;
+            the standalone QuickApply sheet has nothing to collapse back to. */}
+        {onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            aria-label="Back"
+            className="shrink-0 w-11 rounded-none flex items-center justify-center btn-press"
+            style={{ border: "0.5px solid hsl(var(--bark) / 0.28)", color: "hsl(var(--bark))" }}
+          >
+            <ChevronLeft className="w-4 h-4" strokeWidth={2.25} />
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={handleConfirm}
+          disabled={applyLoading}
+          className="btn-liquid-fill flex-1 min-w-0 rounded-ds-md px-4 group relative overflow-hidden disabled:opacity-60"
+          style={{
+            /* Inline, not `min-h-[52px]`. index.css sets a bare
+               `button { min-height: 44px }` for the HIG touch minimum and that
+               base rule wins over the Tailwind arbitrary utility here, so the
+               class silently rendered a 44px button — measured. This is the
+               step's single commit action and reads as one. */
+            minHeight: "52px",
+            background: "hsl(var(--bark))",
+            border: "1px solid hsl(var(--bark))",
+            fontFamily: "Montserrat, system-ui, sans-serif",
+            fontWeight: 600,
+            letterSpacing: "0.01em",
+            boxShadow: "var(--elev-bark-raised)",
+          }}
+        >
+          <span
+            className="relative z-10"
+            style={{ color: "hsl(var(--parchment))", textShadow: "0 1px 2px rgba(0, 0, 0, 0.28)" }}
+          >
+            {applyLoading
+              ? isInstantBook ? "Booking…" : "Applying…"
+              : !online ? "Try Again" : isInstantBook ? "Book Now" : "Apply Now"}
+          </span>
+        </button>
+      </div>
     </div>
   );
 }

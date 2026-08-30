@@ -664,7 +664,7 @@ const Dashboard = () => {
                the second step of this surface; useApplyFlow still owns all the
                state and the mutation, so nothing about submitting changed —
                only where the markup mounts. */
-            applyStep={() =>
+            applyStep={({ onBack }) =>
               confirmApplyJob ? (
                 <Suspense fallback={null}>
                   <ApplyBody
@@ -677,6 +677,8 @@ const Dashboard = () => {
                         applyFiles={applyFiles}
                         setApplyFiles={setApplyFiles}
                         applyLoading={applyLoading}
+                        hideEarnings
+                        onBack={onBack}
                         handleApplyConfirm={() => {
                           // Submitting takes the whole sheet down — the helpr
                           // is done with this job either way, and the success

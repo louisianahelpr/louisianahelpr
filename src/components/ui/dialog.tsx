@@ -34,9 +34,10 @@ const DialogOverlay = React.forwardRef<
       className,
     )}
     style={{
-      // Lightened again 2026-08-29 (owner: "the background blur is too
-      // dark") — 26% still read as heavy on top of the 24px blur.
-      backgroundColor: "hsla(38, 22%, 22%, 0.14)",
+      // Lightened a THIRD time 2026-08-30 (owner: "lighten background
+      // again globally for this") — 14% still read as too dark on top of
+      // the 24px blur. History: 45% (near-black) -> 26% -> 14% -> 8%.
+      backgroundColor: "hsla(38, 22%, 22%, 0.08)",
       WebkitBackdropFilter: "blur(24px) saturate(1.5)",
     }}
     {...props}
@@ -132,12 +133,23 @@ const DialogContent = React.forwardRef<
       {children}
       {/* Bare X — no filled disc, border, or shadow, matching SheetContent's
           close and BackButton's bare chevron. `rounded-md` shapes the focus
-          ring only; nothing is painted at rest. The 44x44 box is the tap
-          target and is independent of what is painted. */}
+          ring only; nothing is painted at rest.
+          32x32, not the HIG-default 44x44 (owner, 2026-08-30: "the 4 icons
+          do not follow the same rules and they need to" — JobDetailDialog's
+          Share/Save/Flag are `compact` 32px, so a 44px X sitting right next
+          to them was the one inconsistent tile in that row). This is the
+          shared close button for every dialog in the app, so the inline
+          min-height/min-width override (needed to beat the global
+          `button { min-height: 44px }` floor) applies everywhere. */}
       <DialogPrimitive.Close
-        className="absolute right-3 top-3 w-11 h-11 p-0 box-border rounded-md btn-press flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
+        // `group` + the icon's own hover transform match the small lift every
+        // other chrome icon (Share/Save/Flag) gets on hover (owner,
+        // 2026-08-30: "make x do the same globally") — applied here since
+        // this X is the one shared by every dialog in the app.
+        className="group absolute right-3 top-3 w-8 h-8 p-0 box-border rounded-md btn-press flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
+        style={{ minHeight: "32px", minWidth: "32px" }}
       >
-        <X className="h-5 w-5" strokeWidth={2} />
+        <X className="h-[18px] w-[18px] transition-transform duration-300 group-hover:-translate-y-0.5" strokeWidth={2} />
         <span className="sr-only">Close</span>
       </DialogPrimitive.Close>
     </DialogPrimitive.Content>

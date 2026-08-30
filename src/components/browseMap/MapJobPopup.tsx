@@ -72,15 +72,15 @@ export function MapJobPopup({ job, onJobAction, ctaLabel, effectiveFee }: MapJob
   const helpersCount = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
 
   return (
-    <div className="space-y-2" data-testid="map-job-popup">
+    <div className="space-y-1.5" data-testid="map-job-popup">
       {/* Row 1 — category chip + urgency, the card's two corner signals moved
           inline. Same `catStyle.badge` palette and same CategoryIcon the card
           tab uses; only the corner geometry differs (a popup has no rail for
           the tab's flat left edge to continue). */}
-      <div className="flex items-center gap-1.5 flex-wrap">
+      <div className="flex items-center gap-1 flex-wrap">
         <span
           data-testid="map-popup-category"
-          className={`inline-flex items-center gap-1 px-2 py-1 rounded-ds-sm border text-ds-10 font-semibold leading-none ${catStyle.badge}`}
+          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-ds-sm border text-ds-10 font-semibold leading-none ${catStyle.badge}`}
         >
           <CategoryIcon
             category={job.category}
@@ -92,7 +92,7 @@ export function MapJobPopup({ job, onJobAction, ctaLabel, effectiveFee }: MapJob
         </span>
         {job.is_urgent && (
           <span
-            className="inline-flex items-center gap-1 px-2 py-1 rounded-ds-sm border text-ds-9 font-bold uppercase leading-none"
+            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-ds-sm border text-ds-9 font-bold uppercase leading-none"
             aria-label={urgentBonus > 0 ? `Urgent — $${formatPrice(urgentBonus)} bonus` : "Urgent"}
             style={{
               color: "hsl(var(--accent))",

@@ -2192,7 +2192,12 @@ button,
    padding, max-height — stays at the call site. */
 .glass-modal {
   border: 1px solid hsla(0, 0%, 100%, 0.3);
-  background-color: hsl(var(--background) / 0.85);
+  /* Bumped from 0.85 (owner, 2026-08-30: "the background feels darker than
+     the [feed] job card" — a warm-tinted scrim bleeding through 15%
+     transparency, blurred over whatever's behind it, read muddier than the
+     feed card's fully-opaque surface). Global — every dialog uses this
+     class — so every dialog gets the same closer-to-solid card now. */
+  background-color: hsl(var(--background) / 0.95);
   backdrop-filter: blur(40px);
   -webkit-backdrop-filter: blur(40px);
   box-shadow: 0 30px 80px -20px hsl(160 10% 12% / 0.35);

@@ -414,7 +414,13 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 }}
               >
                 <Zap className="w-2.5 h-2.5 shrink-0" style={{ color: "hsl(var(--accent))", fill: "hsl(var(--accent))" }} />
-                {bonus > 0 ? `+$${formatPrice(bonus)} Urgent` : "Urgent"}
+                {/* Just "Urgent", not "+$10 Urgent" (owner, 2026-08-30: the
+                    dollar prefix read as "does the helper get this on TOP of
+                    the posted budget?" — ambiguous, since the bonus is
+                    already folded into the net take-home JobPrice shows).
+                    The bonus amount is still in the aria-label for anyone
+                    who needs the detail; it just isn't the visible claim. */}
+                Urgent
               </span>
             );
           }

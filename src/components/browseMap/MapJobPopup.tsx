@@ -23,7 +23,7 @@
 // here WRAPS. Nothing is clipped and the city is never abbreviated to "Brouss…"
 // — the popup has vertical room the feed row does not.
 
-import { Calendar, Clock, MapPin, Zap } from "lucide-react";
+import { Calendar, Clock, MapPin, X, Zap } from "lucide-react";
 
 import { categoryColors, categoryLabels } from "@/components/activity/activityConstants";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
@@ -34,6 +34,15 @@ import { formatPrice } from "@/lib/format";
 import { getCity } from "@/lib/locationUtils";
 import { formatTime12 } from "@/components/TimePickerSelect";
 import type { MapJob } from "./config";
+
+// The callout's host node (`.browse-map-callout` in BrowseMap.tsx) carries
+// `padding: 10px 12px` so MapKit's bubble never touches the card content.
+// The category tab below has to BLEED past that padding to reach the true
+// top-left corner (same as JobCard's rail/tab), so the top-level wrapper
+// cancels it with a matching negative margin and the content re-adds its
+// own padding beneath the tab.
+const CALLOUT_PAD_Y = 10;
+const CALLOUT_PAD_X = 12;
 
 export interface MapJobPopupProps {
   job: MapJob;
@@ -48,9 +57,11 @@ export interface MapJobPopupProps {
    * fee — an over-stated payout is the one error a money figure may not make.
    */
   effectiveFee?: number;
+  /** Dismiss the callout (deselects the pin). Omitted → no close button. */
+  onClose?: () => void;
 }
 
-export function MapJobPopup({ job, onJobAction, ctaLabel, effectiveFee }: MapJobPopupProps) {
+export function MapJobPopup({ job, onJobAction, ctaLabel, effectiveFee, onClose }: MapJobPopupProps) {
   const catStyle = categoryColors[job.category] || categoryColors.other;
   const categoryLabel = categoryLabels[job.category] || job.category;
 
@@ -72,15 +83,23 @@ export function MapJobPopup({ job, onJobAction, ctaLabel, effectiveFee }: MapJob
   const helpersCount = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
 
   return (
-    <div className="space-y-1.5" data-testid="map-job-popup">
-      {/* Row 1 — category chip + urgency, the card's two corner signals moved
-          inline. Same `catStyle.badge` palette and same CategoryIcon the card
-          tab uses; only the corner geometry differs (a popup has no rail for
-          the tab's flat left edge to continue). */}
-      <div className="flex items-center gap-1 flex-wrap">
+    <div
+      className="relative"
+      data-testid="map-job-popup"
+      style={{ margin: `-${CALLOUT_PAD_Y}px -${CALLOUT_PAD_X}px` }}
+    >
+      {/* Category rail — vertical color stripe down the left edge, same
+          treatment as JobCard's feed-row rail (`catStyle.dot`). Bleeds to
+          the callout's true left edge via the wrapper's negative margin. */}
+      <span aria-hidden className={`absolute left-0 top-0 bottom-0 w-1.5 ${catStyle.dot}`} />
+
+      {/* Category tab — anchored at the true top-left corner, flat left edge
+          continuing the rail, exactly like JobCard's tab. Urgency sits beside
+          it in the same bled row instead of wrapping inline with the title. */}
+      <div className="absolute top-0 left-0 z-20 flex items-stretch gap-1">
         <span
           data-testid="map-popup-category"
-          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-ds-sm border text-ds-10 font-semibold leading-none ${catStyle.badge}`}
+          className={`inline-flex items-center gap-1 pl-2 pr-1.5 py-0.5 rounded-l-none rounded-br-lg rounded-tr-none border-b border-r text-ds-10 font-semibold leading-none ${catStyle.badge}`}
         >
           <CategoryIcon
             category={job.category}
@@ -92,7 +111,7 @@ export function MapJobPopup({ job, onJobAction, ctaLabel, effectiveFee }: MapJob
         </span>
         {job.is_urgent && (
           <span
-            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-ds-sm border text-ds-9 font-bold uppercase leading-none"
+            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-br-lg border-b border-r text-ds-9 font-bold uppercase leading-none"
             aria-label={urgentBonus > 0 ? `Urgent — $${formatPrice(urgentBonus)} bonus` : "Urgent"}
             style={{
               color: "hsl(var(--accent))",
@@ -110,74 +129,105 @@ export function MapJobPopup({ job, onJobAction, ctaLabel, effectiveFee }: MapJob
         )}
       </div>
 
-      {/* Row 2 — title + price, the card's top row. `min-w-0` on the title is
-          what lets it give way inside the fixed popup width so the price chip
-          (and its tap-to-reveal fee breakdown) can never be pushed out of the
-          box. Two lines here rather than the card's one: a popup is taller
-          than a feed row and a clipped title is the worst thing to clip. */}
-      <div className="flex items-start justify-between gap-2">
-        <p
-          className="flex-1 min-w-0 font-display italic font-bold text-ds-13 leading-tight line-clamp-2"
-          style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
+      {onClose && (
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="absolute top-1 right-1 z-20 w-6 h-6 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--olivewood)/0.10)] transition-colors"
         >
-          {job.title}
-        </p>
-        <JobPrice
-          budget={Number(job.budget)}
-          // No fee to apply → show the gross budget, never a guessed net.
-          effectiveFee={effectiveFee ?? 0}
-          showBudget={effectiveFee === undefined}
-          urgentFee={urgentBonus}
-          helpersNeeded={helpersCount}
-          variant="chip"
-          className="shrink-0"
-        />
-      </div>
+          <X className="w-3.5 h-3.5" strokeWidth={2.25} />
+        </button>
+      )}
 
-      {/* Row 3 — where + when, the card's meta row. Wraps instead of
-          truncating (see the layout note at the top of this file). */}
-      {(city || scheduleKnown) && (
-        <div
-          data-testid="map-popup-meta"
-          className="flex items-center gap-x-2 gap-y-1 flex-wrap text-ds-11 leading-tight"
-          style={{ color: "hsl(var(--olivewood) / 0.9)" }}
-        >
-          {city && (
-            <span className="inline-flex items-center gap-1">
-              <MapPin className="w-2.5 h-2.5 shrink-0" />
-              <span className="font-sans">{city}</span>
-            </span>
-          )}
-          {showFlexible && (
-            <span className="inline-flex items-center gap-1">
-              <Calendar className="w-2.5 h-2.5 shrink-0" />
-              <span className="font-sans">Flexible</span>
-            </span>
-          )}
-          {job.date_needed && (
-            <span className="inline-flex items-center gap-1">
-              <Calendar className="w-2.5 h-2.5 shrink-0" />
-              <span className="font-sans whitespace-nowrap">{formatJobDate(job.date_needed)}</span>
-            </span>
-          )}
-          {job.start_time && (
-            <span className="inline-flex items-center gap-1">
-              <Clock className="w-2.5 h-2.5 shrink-0" />
-              <span className="font-sans whitespace-nowrap">{formatTime12(job.start_time)}</span>
-            </span>
-          )}
+      {/* Content — pushed down/in to clear the bled tab + rail, then re-adds
+          the callout's own padding (cancelled above) on the other three
+          sides. */}
+      <div
+        className="space-y-1.5"
+        style={{
+          paddingTop: 26,
+          paddingBottom: CALLOUT_PAD_Y - 4,
+          paddingLeft: CALLOUT_PAD_X + 2,
+          paddingRight: CALLOUT_PAD_X - 2,
+        }}
+      >
+        {/* Row 1 — title + price, the card's top row. `min-w-0` on the title
+            is what lets it give way inside the fixed popup width so the price
+            chip (and its tap-to-reveal fee breakdown) can never be pushed out
+            of the box. Two lines here rather than the card's one: a popup is
+            taller than a feed row and a clipped title is the worst thing to
+            clip. `items-center` (not `items-start`) so the price chip sits on
+            the title's vertical center even when the title wraps to 2 lines. */}
+        <div className="flex items-center justify-between gap-2">
+          <p
+            className="flex-1 min-w-0 font-display italic font-bold text-ds-13 leading-tight line-clamp-2"
+            style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
+          >
+            {job.title}
+          </p>
+          <JobPrice
+            budget={Number(job.budget)}
+            // No fee to apply → show the gross budget, never a guessed net.
+            effectiveFee={effectiveFee ?? 0}
+            showBudget={effectiveFee === undefined}
+            urgentFee={urgentBonus}
+            helpersNeeded={helpersCount}
+            variant="chip"
+            className="shrink-0"
+          />
         </div>
-      )}
 
-      {onJobAction && (
-        <Button
-          size="sm"
-          onClick={() => onJobAction(job.id)}
-          className="w-full h-8 text-ds-11"
-        >
-          {ctaLabel}
-        </Button>
-      )}
+        {/* Row 2 — where + when, the card's meta row. Wraps instead of
+            truncating (see the layout note at the top of this file). */}
+        {(city || scheduleKnown) && (
+          <div
+            data-testid="map-popup-meta"
+            className="flex items-center gap-x-2 gap-y-1 flex-wrap text-ds-11 leading-tight"
+            style={{ color: "hsl(var(--olivewood) / 0.9)" }}
+          >
+            {city && (
+              <span className="inline-flex items-center gap-1">
+                <MapPin className="w-2.5 h-2.5 shrink-0" />
+                <span className="font-sans">{city}</span>
+              </span>
+            )}
+            {showFlexible && (
+              <span className="inline-flex items-center gap-1">
+                <Calendar className="w-2.5 h-2.5 shrink-0" />
+                <span className="font-sans">Flexible</span>
+              </span>
+            )}
+            {job.date_needed && (
+              <span className="inline-flex items-center gap-1">
+                <Calendar className="w-2.5 h-2.5 shrink-0" />
+                <span className="font-sans whitespace-nowrap">{formatJobDate(job.date_needed)}</span>
+              </span>
+            )}
+            {job.start_time && (
+              <span className="inline-flex items-center gap-1">
+                <Clock className="w-2.5 h-2.5 shrink-0" />
+                <span className="font-sans whitespace-nowrap">{formatTime12(job.start_time)}</span>
+              </span>
+            )}
+          </div>
+        )}
+
+        {onJobAction && (
+          // Same primitive + effects as the job-detail "Apply Now" CTA
+          // (ApplyBody.tsx): `btn-liquid-fill` for the left-to-right bark
+          // wash on hover, so this pin popup's Apply and the full apply
+          // flow's Apply Now feel like one button, not two. `h-7` (not `h-8`)
+          // so the `text-ds-11` label doesn't look lost in an oversized box.
+          <Button
+            size="sm"
+            onClick={() => onJobAction(job.id)}
+            className="btn-liquid-fill w-full h-7 text-ds-11"
+          >
+            {ctaLabel}
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

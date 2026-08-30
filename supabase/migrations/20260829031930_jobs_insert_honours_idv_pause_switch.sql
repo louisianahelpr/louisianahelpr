@@ -31,6 +31,18 @@
 -- REPLAY-SAFETY: the helper is created before the policy that calls it, in the
 -- same migration; `platform_settings` and `profiles.idv_status` both ship far
 -- earlier; nothing here references an object defined by a later migration.
+--
+-- CORRECTED 2026-08-30: this migration originally re-added a
+-- `business_id IS NULL OR EXISTS (... FROM public.businesses ...)` arm, carried
+-- over from the pre-business-removal version of this same policy. But
+-- 20260828011811 (timestamped BEFORE this migration, already live) dropped
+-- `businesses`/`business_members` entirely and rewrote this exact policy to
+-- `business_id IS NULL` with no EXISTS arm. This migration was authored
+-- against a stale copy of the policy and would have reintroduced a dangling
+-- reference to a dropped table — caught when `db-deploy` failed on
+-- `relation "public.businesses" does not exist` before this file ever reached
+-- prod. Fixed to carry forward the post-removal `business_id IS NULL` arm
+-- instead of reverting it.
 
 -- ── 1. The definer read ────────────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION public.idv_requirement_paused()
@@ -74,18 +86,7 @@ CREATE POLICY "Customers can create jobs"
           AND p.idv_status = 'verified'
       )
     )
-    AND (
-      business_id IS NULL
-      OR EXISTS (
-        SELECT 1
-        FROM public.businesses b
-        JOIN public.business_members bm ON bm.business_id = b.id
-        WHERE b.id = jobs.business_id
-          AND bm.user_id = auth.uid()
-          AND bm.status = 'active'
-          AND b.verification_status = 'verified'
-      )
-    )
+    AND business_id IS NULL
   );
 
 -- ── 3. Flag hygiene ────────────────────────────────────────────────────────

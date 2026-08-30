@@ -39,6 +39,13 @@ interface IDVPromptDialogProps {
   status?: IdvStatus;
   /** Stripe-supplied or admin-entered reason the prior attempt failed. */
   failureReason?: string;
+  /**
+   * "job_post" lets the server skip the pre-paid-fee requirement, because the
+   * $2 rides on the job payment this same flow is about to collect (see
+   * 20260829090211_idv_job_post_skips_fee_gate.sql). Omit for any other
+   * caller — the fee-first gate is the safe default.
+   */
+  context?: "job_post";
 }
 
 export function IDVPromptDialog({
@@ -48,6 +55,7 @@ export function IDVPromptDialog({
   onLaunched,
   status,
   failureReason,
+  context,
 }: IDVPromptDialogProps) {
   const [loading, setLoading] = useState(false);
 
@@ -100,7 +108,9 @@ export function IDVPromptDialog({
   const handleStart = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("stripe-idv-start", { body: { native: isNativePlatform } });
+      const { data, error } = await supabase.functions.invoke("stripe-idv-start", {
+        body: { native: isNativePlatform, context },
+      });
       // A non-2xx makes the SDK return a FunctionsHttpError whose `.message` is
       // the useless "Edge Function returned a non-2xx status code" — which is
       // literally all the user saw for as long as this flow was broken. The

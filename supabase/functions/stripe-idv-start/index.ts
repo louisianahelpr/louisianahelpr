@@ -32,7 +32,12 @@ serve(async (req) => {
 
   try {
     // Read once: native callers get a return URL the app can intercept.
-    const isNative = isNativeRequest(await req.json().catch(() => ({})));
+    const body = await req.json().catch(() => ({}));
+    const isNative = isNativeRequest(body);
+    // "job_post" is the only caller today (IDVPromptDialog is only mounted
+    // from PostJob) — see 20260829090211_idv_job_post_skips_fee_gate.sql for
+    // why that context is allowed to skip the pre-paid-fee requirement.
+    const skipFeeGate = (body as { context?: string })?.context === "job_post";
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       (Deno.env.get("PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY")) ?? ""
@@ -110,6 +115,7 @@ serve(async (req) => {
     // banned, and has attempts left.
     const { data: claimRaw, error: claimErr } = await supabaseAdmin.rpc("claim_idv_attempt", {
       p_user_id: user.id,
+      p_skip_fee_gate: skipFeeGate,
     });
     if (claimErr) {
       // Fail CLOSED. An unreadable claim is not permission to spend.

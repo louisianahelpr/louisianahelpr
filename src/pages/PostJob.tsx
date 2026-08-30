@@ -121,6 +121,7 @@ const PostJob = () => {
         reason="Helpr requires a quick ID + selfie check before you can post a job. This keeps the platform safe for the Helprs you'll be hiring."
         status={form.idvStatus as never}
         failureReason={form.idvFailureReason}
+        context="job_post"
       />
     </div>
   );

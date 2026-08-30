@@ -215,8 +215,10 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
   // flows into, which is what the feed card beside it already is.
   //
   // 40px keeps the card clear of MapKit's own callout chrome and shadow.
-  // Floor at 180 so a freak-narrow pane still renders a usable card.
-  const calloutWidth = paneWidth ? Math.max(180, Math.min(264, paneWidth - 40)) : 264;
+  // Floor raised from 180 to 220 — below that the location/date/time meta
+  // row (nowrap by design, shared with the feed card) had no room to
+  // breathe and its pieces visually crowded/overlapped each other.
+  const calloutWidth = paneWidth ? Math.max(220, Math.min(280, paneWidth - 40)) : 280;
 
   const retry = () => {
     setLoadError(false);
@@ -395,9 +397,9 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
               try { map.selectedAnnotations = []; } catch { /* ignore */ }
             }}
             aria-label="Close"
-            className="absolute -top-1.5 -right-1.5 z-20 w-6 h-6 rounded-full flex items-center justify-center bg-card border border-border/60 text-muted-foreground hover:text-foreground shadow-sm"
+            className="absolute -top-1 -right-1 z-20 w-6 h-6 flex items-center justify-center text-muted-foreground hover:text-foreground"
           >
-            <X className="w-3.5 h-3.5" strokeWidth={2.25} />
+            <X className="w-4 h-4" strokeWidth={2.5} />
           </button>
           <JobCard
             job={mapJobToEnrichedJob(job)}
@@ -530,27 +532,10 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
           the map — switch to the list for {ignoredFilters.length === 1 ? "it" : "those"}.
         </div>
       )}
-      {!isEmpty && (
-      <div className="absolute top-3 right-3 z-[400] flex flex-col items-end gap-1.5">
-        <div
-          aria-hidden
-          data-testid="browse-map-job-count"
-          className="px-3 h-7 rounded-full flex items-center font-sans font-semibold text-ds-13 tracking-wide"
-          style={{
-            background: "hsla(0, 0%, 100%, 0.92)",
-            color: "hsl(var(--bark))",
-            border: "0.5px solid hsl(var(--olivewood) / 0.18)",
-            boxShadow: "0 4px 14px -4px hsl(var(--olivewood) / 0.18)",
-            backdropFilter: "blur(8px)",
-            WebkitBackdropFilter: "blur(8px)",
-          }}
-        >
-          {filtersActive
-            ? `${visibleJobs.length} ${visibleJobs.length === 1 ? "Match" : "Matches"}`
-            : `${visibleJobs.length} ${visibleJobs.length === 1 ? "Job" : "Jobs"}`}
-        </div>
-      </div>
-      )}
+      {/* The floating "N Jobs"/"N Matches" pill that used to live here was
+          removed (owner: redundant with the "N jobs" label already shown in
+          the list-view toolbar header — the two counts said the same thing
+          twice). */}
       {/* Empty board — keep the real Louisiana map on screen (so it reads
           as "no posts yet here", not "the map is broken") and float a
           soft frosted caption over it. The wrapper passes pointer events

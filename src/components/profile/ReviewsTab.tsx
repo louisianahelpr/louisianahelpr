@@ -34,24 +34,6 @@ interface ReviewsTabProps {
   loadingMore?: boolean;
 }
 
-const MiniStars = ({ value, size = "sm" }: { value: number; size?: "sm" | "xs" }) => {
-  const cls = size === "xs" ? "w-2.5 h-2.5" : "w-3 h-3";
-  return (
-    <div role="img" aria-label={`${value.toFixed(1)} out of 5 stars`} className="flex gap-0.5">
-      {[1, 2, 3, 4, 5].map((s) => (
-        <Star
-          key={s}
-          className={cls}
-          style={{
-            color: s <= Math.round(value) ? "hsl(var(--burnt-sienna))" : "hsl(var(--olivewood) / 0.25)",
-            fill: s <= Math.round(value) ? "hsl(var(--burnt-sienna))" : "transparent",
-          }}
-        />
-      ))}
-    </div>
-  );
-};
-
 type SortKey = "newest" | "highest" | "lowest";
 
 const sortOptions: { value: SortKey; label: string; icon: typeof Star }[] = [
@@ -62,9 +44,10 @@ const sortOptions: { value: SortKey; label: string; icon: typeof Star }[] = [
 
 export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, onLoadMore, hasMore, loadingMore }: ReviewsTabProps) {
   const [sortBy, setSortBy] = useState<SortKey>("newest");
-  // No per-category averaging here any more — it existed only for the
-  // breakdown card removed below. Individual review rows read their own
-  // `punctuality` / `quality` / `communication` values directly.
+  // No per-category averaging or per-review breakdown any more (owner,
+  // 2026-08-30: one overall rating only). `punctuality` / `quality` /
+  // `communication` stay on the Review type/query for now (write side still
+  // collects them), just unrendered here.
 
   // Sort lives in the tab (not the parent) so flipping order is instant
   // without a re-fetch. Default newest matches the source query.
@@ -217,13 +200,10 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
               >
                 <p className="text-display-eyebrow mb-2">After every job</p>
                 <p className="font-display italic font-bold leading-tight mb-2 text-ds-16" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
-                  Customers score you on four things.
+                  Customers leave one overall rating.
                 </p>
                 <ul className="space-y-1.5 font-serif italic text-ds-11 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                  <li><span className="font-sans not-italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Overall</span> · the 1–5 star summary</li>
-                  <li><span className="font-sans not-italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Punctuality</span> · did you show up on time?</li>
-                  <li><span className="font-sans not-italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Quality</span> · was the work done well?</li>
-                  <li><span className="font-sans not-italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Communication</span> · were you easy to reach?</li>
+                  <li><span className="font-sans not-italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Overall</span> · a 1–5 star summary of the whole job</li>
                 </ul>
                 <p className="font-serif italic text-ds-11 mt-3 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   Posters can leave written feedback too. Everything shows up here within minutes.
@@ -304,28 +284,12 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
                   {formatTimestamp(review.created_at)}
                 </span>
               </div>
-              {(review.punctuality || review.quality || review.communication) && (
-                <div className="grid grid-cols-3 gap-2 pt-1">
-                  {review.punctuality && (
-                    <div className="flex flex-col items-start gap-0.5">
-                      <span className="font-serif italic uppercase text-ds-10" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>Punctuality</span>
-                      <MiniStars value={review.punctuality} size="xs" />
-                    </div>
-                  )}
-                  {review.quality && (
-                    <div className="flex flex-col items-start gap-0.5">
-                      <span className="font-serif italic uppercase text-ds-10" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>Quality</span>
-                      <MiniStars value={review.quality} size="xs" />
-                    </div>
-                  )}
-                  {review.communication && (
-                    <div className="flex flex-col items-start gap-0.5">
-                      <span className="font-serif italic uppercase text-ds-10" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>Comms</span>
-                      <MiniStars value={review.communication} size="xs" />
-                    </div>
-                  )}
-                </div>
-              )}
+              {/* Per-category (Punctuality/Quality/Comms) breakdown removed
+                  from individual review rows (owner, 2026-08-30: one overall
+                  rating only). The MiniStars helper above is now unused by
+                  this component but left in place — it's not dead code, it's
+                  a small shared star-row renderer other reviewers of this
+                  file may reach for; remove separately if it stays unused. */}
               {review.feedback && (
                 <p className="font-serif italic leading-relaxed text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>
                   &ldquo;{review.feedback}&rdquo;

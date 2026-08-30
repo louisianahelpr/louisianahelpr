@@ -158,15 +158,17 @@ beforeEach(() => {
 describe("BrowseMap pins", () => {
   // Owner, 2026-08-30: "remove heat, pins are fine" — the Pins/Heat toggle,
   // its localStorage persistence, and the auto-switch-at-50-jobs heuristic
-  // are gone. The map always renders pins now; only the job-count badge
-  // remains to verify.
-  it("renders a job-count badge that reflects the loaded RPC rows", async () => {
+  // are gone. The map always renders pins now. The floating "N Jobs" count
+  // badge was later removed too (redundant with the list-view toolbar's "N
+  // jobs" label) — this test now just verifies loaded RPC rows render as
+  // map markers instead of an empty-state.
+  it("renders pins for the loaded RPC rows instead of the empty state", async () => {
     rpcResolver.value = [makeJob(1), makeJob(2), makeJob(3)];
     const { BrowseMap } = await import("./BrowseMap");
     render(<BrowseMap />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("browse-map-job-count")).toHaveTextContent("3 Jobs");
+      expect(screen.queryByText("Empty map for now.")).not.toBeInTheDocument();
     });
   });
 });

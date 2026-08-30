@@ -87,8 +87,8 @@ interface FilterSheetProps {
  *  brand-surface-fit block in the audit standard). */
 function Section({ title, trailing, children }: { title: string; trailing?: ReactNode; children: ReactNode }) {
   return (
-    <div className="pt-3.5 first:pt-0 border-t border-[hsl(var(--bark)/0.10)] first:border-t-0">
-      <div className="flex items-center justify-between gap-3 mb-1.5">
+    <div className="pt-2.5 first:pt-0 border-t border-[hsl(var(--bark)/0.10)] first:border-t-0">
+      <div className="flex items-center justify-between gap-3 mb-1">
         {/* Quiet gray sans eyebrow — owner's explicit pick (2026-08-24) over
             both the olive sans and the sienna-serif variants tried in the
             brand pass. The sheet's brand voice lives in the chips, switches
@@ -114,7 +114,7 @@ function FilterBody({
 }: Pick<FilterSheetProps, "sections" | "activeFilterCount" | "onClearAll" | "footer">) {
   return (
     <>
-      <div className="px-5 pb-4 space-y-3.5">
+      <div className="px-5 pb-3 space-y-2.5">
         {sections.map((s) => (
           <Section key={s.key} title={s.title} trailing={s.trailing}>
             {s.content}
@@ -263,6 +263,14 @@ interface JobFilterSectionsArgs {
    * than shipped as a no-op.
    */
   showNearby?: boolean;
+  /**
+   * "Saved Searches" row, rendered at the end of the "Show only" section —
+   * an action rather than a filter, but it used to sit alone in the sheet
+   * footer, disconnected from every section above it. Folded in here so it
+   * reads as part of the sheet instead of a stray extra control tacked on
+   * at the bottom. Omit on surfaces with no saved-search feature (guest).
+   */
+  savedSearchesButton?: ReactNode;
 }
 
 /**
@@ -432,6 +440,7 @@ export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheet
     savedOnly = false, onToggleSavedOnly, savedCount = 0,
     showAvailability = true,
     showNearby = true,
+    savedSearchesButton,
   } = args;
 
   const sections: FilterSheetSection[] = [
@@ -477,7 +486,7 @@ export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheet
       key: "show-only",
       title: "Show only",
       content: (
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           {onToggleSavedOnly && (
             <ToggleRow
               icon={Bookmark}
@@ -532,6 +541,7 @@ export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheet
               hasAvailability={hasAvailability}
             />
           )}
+          {savedSearchesButton}
         </div>
       ),
     },

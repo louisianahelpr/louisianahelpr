@@ -159,13 +159,13 @@ function CompactFeedCard({
  */
 function MainFeedSection({
   jobs,
-  recommendedCount,
+  recommendedBadgeId,
   common,
   containerRef,
   setHoveredJobId,
 }: {
   jobs: EnrichedJob[];
-  recommendedCount: number;
+  recommendedBadgeId: string | null;
   common: JobCardCommonProps;
   containerRef: PullToRefresh["containerRef"];
   setHoveredJobId?: Dispatch<SetStateAction<string | null>>;
@@ -188,7 +188,7 @@ function MainFeedSection({
             onMouseEnter={() => setHoveredJobId?.(job.id)}
             onMouseLeave={() => setHoveredJobId?.(null)}
           >
-            <JobFeedCard job={job} index={i} recommended={i === 0 && recommendedCount > 0} common={common} />
+            <JobFeedCard job={job} index={i} recommended={job.id === recommendedBadgeId} common={common} />
           </div>
         )}
       />
@@ -404,13 +404,30 @@ export function BrowseTasksFeed({
     return { visibleJobs: visible, recommendedVisible: recommended };
   }, [filters.filteredJobs, filters.hasFilters, filters.sortBy, recommendedJobs, dismissedJobIds, savedOnly, savedJobIds]);
 
-  // ONE list — recommended picks first, then everything else. See the
-  // render-site comment for why this replaced two separately-rendered
-  // sections.
-  const combinedVisible = useMemo(
-    () => [...recommendedVisible, ...visibleJobs],
-    [recommendedVisible, visibleJobs],
-  );
+  // ONE list — recommended picks first, then everything else — EXCEPT
+  // boosted jobs, which pin above everything (including recommended) while
+  // their boost is active. `useDashboardFilters` already floats boosted
+  // jobs to the top of `filteredJobs`, but the recommended band is built
+  // from a separate (non-boost-aware) score in useDashboardData and was
+  // always spliced in front of it, silently burying an active boost below
+  // up to 5 recommended picks. Re-partition after merging so a boosted job
+  // never sits below an unboosted one, recommended or not.
+  const combinedVisible = useMemo(() => {
+    const merged = [...recommendedVisible, ...visibleJobs];
+    const boosted = merged.filter((j) => j.isBoosted);
+    if (boosted.length === 0) return merged;
+    const rest = merged.filter((j) => !j.isBoosted);
+    return [...boosted, ...rest];
+  }, [recommendedVisible, visibleJobs]);
+
+  // The "Recommended" pill goes on the first combined-list card that is
+  // actually a recommended pick — not always index 0, now that a boosted
+  // (but unrecommended) job can sit ahead of the recommended band.
+  const recommendedBadgeId = useMemo(() => {
+    if (recommendedVisible.length === 0) return null;
+    const recommendedIds = new Set(recommendedVisible.map((j) => j.id));
+    return combinedVisible.find((j) => recommendedIds.has(j.id))?.id ?? null;
+  }, [combinedVisible, recommendedVisible]);
 
   // Built once per render and handed to both list call sites (recommended +
   // everything-else) so JobFeedCard/CompactFeedCard don't each need a dozen
@@ -650,14 +667,14 @@ export function BrowseTasksFeed({
                   paddingBottom: "calc(6rem + var(--safe-area-bottom, 0px))",
                 }}
               >
-                {combinedVisible.map((job, i) => (
-                  <CompactFeedCard key={job.id} job={job} recommended={i === 0 && recommendedVisible.length > 0} common={compactCardCommon} />
+                {combinedVisible.map((job) => (
+                  <CompactFeedCard key={job.id} job={job} recommended={job.id === recommendedBadgeId} common={compactCardCommon} />
                 ))}
               </ul>
             ) : (
               <MainFeedSection
                 jobs={combinedVisible}
-                recommendedCount={recommendedVisible.length}
+                recommendedBadgeId={recommendedBadgeId}
                 common={cardCommon}
                 containerRef={containerRef}
                 setHoveredJobId={setHoveredJobId}

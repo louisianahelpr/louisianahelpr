@@ -133,15 +133,16 @@ export function computeBadges(stats: {
     });
   }
 
-  // 🌟 Rising Star: 3+ completed, <10, good rating
-  if (stats.completedJobs >= 3 && stats.completedJobs < 10 && stats.avgRating >= 4.0) {
-    badges.push({
-      key: "rising_star",
-      label: "Rising Star",
-      icon: <Star className="w-3 h-3" />,
-      color: "bg-secondary text-secondary-foreground",
-    });
-  }
+  // "Rising Star" earned badge REMOVED (item 23, 2026-08-30: genuine
+  // duplicate). Career Milestones (src/lib/careerLadder.ts) already has a
+  // "Rising Star" rung — 5 completed jobs, no rating requirement — that
+  // renders in the same masthead. This badge fired on a DIFFERENT
+  // definition (3-9 completed jobs AND 4.0+ rating), so a helper could see
+  // two chips with the identical name and different, unexplained criteria
+  // on one profile. Career Milestones is the canonical ladder (has a
+  // description + next-milestone progress); this ad-hoc stat badge deferred
+  // to it rather than the reverse, since the ladder is the system with an
+  // explainable "why" for its threshold.
 
   // Cap at 4 badges max for clean display
   return badges.slice(0, 4);

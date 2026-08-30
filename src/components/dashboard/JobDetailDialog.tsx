@@ -282,12 +282,18 @@ const JobDetailDialog = ({
         {/* Category — top-LEFT corner tab, flush on the card's own edge,
             plus the rail stripe down the left side (owner, via pop-up
             question, 2026-08-30: "category top left ... add the category
-            stripe back to the left side"). */}
+            stripe back to the left side").
+            data-frame-chrome: these elements deliberately bleed into the
+            dialog's padding gutter (absolute left-0 relative to the fixed
+            DialogContent, not the p-5 content box) to achieve the flush-edge
+            design — the apply-dialog-fit e2e excludes them from its content-
+            overflow check on that basis. */}
         <span
           aria-hidden
+          data-frame-chrome="true"
           className={`absolute left-0 top-0 bottom-0 w-1.5 z-10 rounded-tl-lg rounded-bl-lg ${catStyle.dot}`}
         />
-        <div className="absolute top-0 left-0 z-20 flex items-stretch">
+        <div data-frame-chrome="true" className="absolute top-0 left-0 z-20 flex items-stretch">
           <span
             className={`inline-flex items-center gap-1.5 pl-4 pr-3.5 py-2 rounded-tl-lg text-ds-15 font-semibold leading-none shadow-sm border-b border-r ${!isRecommended && !job.is_urgent && !job.isBoosted ? "rounded-br-lg" : ""} ${catStyle.badge}`}
           >

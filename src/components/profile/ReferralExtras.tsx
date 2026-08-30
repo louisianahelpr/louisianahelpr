@@ -14,15 +14,16 @@ interface ReferralExtrasProps {
   totalEarned: number;
 }
 
-// Tier ladder — three milestones tuned to the platform's referral
-// economics. The first is achievable (1), the second is "you're a real
-// promoter" (5), and the third is the cap (25 — well past the $25
-// in-app credit ceiling, so we frame it as "Helpr Hall of Fame"
-// progress rather than dollar credits).
+// Tier ladder — one rung per referred friend, matching the program's
+// actual cap: $5 per friend, up to 5 friends ($25 max). Five boxes so
+// every rung maps 1:1 onto a real $5 credit instead of skipping ahead
+// to arbitrary milestone numbers.
 const LADDER = [
-  { goal: 1, label: "First friend", reward: "+$5 credit" },
-  { goal: 5, label: "Five-pack", reward: "Top promoter badge" },
-  { goal: 25, label: "Hall of Fame", reward: "Custom shoutout" },
+  { goal: 1, label: "Friend 1", reward: "+$5" },
+  { goal: 2, label: "Friend 2", reward: "+$5" },
+  { goal: 3, label: "Friend 3", reward: "+$5" },
+  { goal: 4, label: "Friend 4", reward: "+$5" },
+  { goal: 5, label: "Friend 5", reward: "+$5 · $25 max" },
 ];
 
 export function ReferralExtras({ referralCount, totalEarned }: ReferralExtrasProps) {
@@ -93,14 +94,14 @@ export function ReferralExtras({ referralCount, totalEarned }: ReferralExtrasPro
 
         {/* Milestone rungs — each tile renders as cleared (green
             tick), current (warm accent), or upcoming (muted). */}
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-5 gap-1.5">
           {LADDER.map((m, i) => {
             const cleared = referralCount >= m.goal;
             const isNext = !cleared && i === activeRungIdx + 1;
             return (
               <div
                 key={m.goal}
-                className="rounded-ds-md p-2.5 text-center"
+                className="rounded-ds-md p-1.5 text-center"
                 style={{
                   background: cleared
                     ? "hsl(var(--bark) / 0.10)"
@@ -121,7 +122,7 @@ export function ReferralExtras({ referralCount, totalEarned }: ReferralExtrasPro
                 }}
               >
                 <Trophy
-                  className="w-3.5 h-3.5 mx-auto mb-0.5"
+                  className="w-3 h-3 mx-auto mb-0.5"
                   style={{
                     color: cleared
                       ? "hsl(var(--bark))"
@@ -131,25 +132,19 @@ export function ReferralExtras({ referralCount, totalEarned }: ReferralExtrasPro
                   }}
                 />
                 <p
-                  className="font-display italic font-bold tabular-nums leading-none text-ds-15"
+                  className="font-display italic font-bold tabular-nums leading-none text-ds-14"
                   style={{ color: "hsl(var(--ink-deep))" }}
                 >
                   {m.goal}
                 </p>
                 <p
-                  className="font-serif italic mt-0.5 leading-snug text-ds-11"
-                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                >
-                  {m.label}
-                </p>
-                <p
-                  className="font-sans font-semibold mt-1 text-ds-10"
+                  className="font-sans font-semibold mt-1 leading-snug text-ds-9"
                   style={{
                     // --accent-ink, not --burnt-sienna: this reward line is
-                    // 10px on a tinted tile, where the raw brand accent
+                    // ~9-10px on a tinted tile, where the raw brand accent
                     // measures 4.48:1 on dark. Identical value in light mode.
                     color: cleared ? "hsl(var(--bark))" : "hsl(var(--accent-ink))",
-                    letterSpacing: "0.02em",
+                    letterSpacing: "0.01em",
                   }}
                 >
                   {m.reward}

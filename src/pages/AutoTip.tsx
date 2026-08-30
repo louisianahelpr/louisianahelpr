@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import PageHeader from "@/components/PageHeader";
+import AppPage from "@/components/AppPage";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -140,16 +140,12 @@ const AutoTip = () => {
   const cappedByMax = uncapped != null && example != null && example < Math.round(uncapped);
 
   return (
-    <div className="min-h-screen bg-premium-page pb-safe-nav">
-      <PageHeader title="Auto-Tip" />
-            {/* CANONICAL DOCUMENT-SCROLL SHELL — identical on every page that wears
-          it: `min-h-screen bg-premium-page pb-safe-nav` > <PageHeader> (default
-          width) > `page-measure mx-auto px-5 lg:px-8 xl:px-12 pt-4 pb-8`.
-          The header's `default` width IS this body class, so the title and the
-          content share one left edge at every breakpoint. Owner: these pages
-          "should share layouts ... there should not be any off from the rest",
-          so do not give this page its own max-width or gutter ladder. */}
-      <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pt-4 pb-8 space-y-5">
+    <AppPage title="Auto-Tip" backTo="/profile">
+      {/* AppPage owns the shell — AppShell + ProfileTabHeader + the single
+          centered content column. This page contributes nothing but its own
+          vertical rhythm; re-adding a `page-measure`/gutter wrapper here would
+          be a second max-width inside AppPage's own. */}
+      <div className="space-y-5">
         <section className="liquid-glass rounded-ds-md p-5 space-y-4">
           <p
             className="font-serif italic text-ds-13 leading-relaxed"
@@ -323,7 +319,7 @@ const AutoTip = () => {
             means we confirm the tip rather than auto-charge it — was folded
             into the opening paragraph rather than lost. */}
       </div>
-    </div>
+    </AppPage>
   );
 };
 

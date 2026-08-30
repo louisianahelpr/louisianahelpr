@@ -50,7 +50,15 @@ export const rightItems = [
 export const authPages = ["/dashboard", "/activity", "/my-posts", "/my-jobs", "/post-job", "/profile", "/messages", "/support", "/schedule", "/availability", "/user", "/earnings", "/jobs", "/browse", "/account-pending", "/saved-helpers",
   // Standalone settings sub-pages keep the bottom tab bar so they share the
   // same chrome as the Profile-tab settings (Notifications, Earnings, etc.).
-  "/pets", "/subscription", "/home-history", "/work-record", "/gift-card", "/benefits", "/wrapped", "/str-settings", "/help", "/data-rights"];
+  "/pets", "/subscription", "/home-history", "/work-record", "/gift-card", "/benefits", "/wrapped", "/str-settings", "/help", "/data-rights",
+  // /legal joins /help here (owner, 2026-08-30: "there should be a public and
+  // signed in version of help and legal"). Both are reachable from the
+  // marketing footer AND from inside the app (Profile → Legal & Policies), and
+  // PublicLayout now picks its chrome by AUTH rather than by platform — so a
+  // signed-in visitor gets the app shell on both. Without /legal in this list
+  // it got the shell but none of the app's own navigation, stranding the user
+  // on a page with no way back into the app except the browser's Back button.
+  "/legal"];
 
 // /admin is a distinct console shell (its own full-height layout, header,
 // back button, and logout) — the consumer Posts/Jobs/Messages/Profile bar

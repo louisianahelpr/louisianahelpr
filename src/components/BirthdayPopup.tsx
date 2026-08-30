@@ -84,7 +84,15 @@ const BirthdayPopup = ({ dateOfBirth, firstName }: BirthdayPopupProps) => {
                 animate={reducedMotion ? { opacity: 1 } : { scale: 1, opacity: 1 }}
                 exit={reducedMotion ? { opacity: 0 } : { scale: 0.8, opacity: 0 }}
                 transition={reducedMotion ? { duration: 0.15 } : { type: "spring", damping: 20, stiffness: 300 }}
-                className="fixed left-1/2 top-1/2 z-50 rounded-2xl liquid-glass shadow-2xl px-7 py-8 max-w-sm w-[calc(100%-2rem)] text-center focus:outline-none"
+                // `w-auto` + `max-w-*`, NOT `w-[calc(100%-2rem)]`. The old width
+                // forced the card to fill its max regardless of content, so a
+                // three-element celebration (icon, one line, one button) sat in
+                // a box sized for a paragraph, with the title stranded against
+                // the left edge and dead space to its right.
+                // Fixed positioning makes `w-auto` shrink-to-fit, so the card
+                // now hugs its longest line and stays centred by the
+                // `translate: -50% -50%` below.
+                className="fixed left-1/2 top-1/2 z-50 rounded-2xl liquid-glass shadow-2xl px-6 py-5 w-auto max-w-[calc(100%-2rem)] sm:max-w-sm text-center focus:outline-none"
                 style={{
                   translate: "-50% -50%",
                   backgroundImage:
@@ -105,8 +113,11 @@ const BirthdayPopup = ({ dateOfBirth, firstName }: BirthdayPopupProps) => {
                   <X className="w-4 h-4" />
                 </button>
 
+                {/* `mt-1` clears the absolutely-positioned close X above-right
+                    of it now that the card hugs its content and the two are no
+                    longer separated by surplus width. */}
                 <div
-                  className="w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-4"
+                  className="w-12 h-12 mx-auto mt-1 rounded-full flex items-center justify-center mb-3"
                   style={{
                     background: "hsl(var(--burnt-sienna) / 0.18)",
                     color: "hsl(var(--burnt-sienna))",
@@ -114,21 +125,33 @@ const BirthdayPopup = ({ dateOfBirth, firstName }: BirthdayPopupProps) => {
                     boxShadow: "inset 0 1px 1px 0 rgba(255,255,255,0.55), 0 8px 22px -6px hsl(var(--burnt-sienna) / 0.30)",
                   }}
                 >
-                  <Cake className="w-7 h-7" strokeWidth={1.75} />
+                  <Cake className="w-5 h-5" strokeWidth={1.75} />
                 </div>
-                {/* Canonical DialogHero for eyebrow → title → subtitle
-                    stack (Cowork 2026-07-08 required the shared component,
-                    not the hand-rolled version). Centered + a slightly
-                    larger title reflect the celebratory layout — those
-                    are per-instance overrides, not a bespoke header. */}
-                <DialogHero
-                  eyebrow="From the Helpr family"
-                  title={`Happy birthday, ${firstName}.`}
-                />
+                {/* Canonical DialogHero, not a hand-rolled header (Cowork
+                    2026-07-08 required the shared component).
+
+                    No `eyebrow` — it used to pass "From the Helpr family",
+                    which has not rendered since the 2026-07-25 "one main
+                    title" decision made DialogHero drop the eyebrow/subtitle
+                    slots. The prop is still accepted so stray usages are a
+                    no-op rather than a build break, so this silently painted
+                    nothing. Removed rather than left implying a line that
+                    isn't there. */}
+                {/* `[&_h2]:text-center` is load-bearing, not decoration.
+                    DialogHero renders its DialogHeader with a hardcoded
+                    `text-left` and deliberately exposes no className escape
+                    hatch, so this card's own `text-center` lost to it: the
+                    icon and the button centred while the title alone sat
+                    left-aligned. Overriding the h2 here keeps the shared
+                    component (and its one type ramp) while letting the one
+                    genuinely centred dialog in the app be centred. */}
+                <div className="[&_h2]:text-center">
+                  <DialogHero title={`Happy birthday, ${firstName}.`} />
+                </div>
                 <button
                   type="button"
                   onClick={dismiss}
-                  className="mt-5 inline-flex items-center gap-1.5 px-5 h-10 rounded-ds-md active:scale-[0.97] transition-transform text-ds-12"
+                  className="mt-4 inline-flex items-center gap-1.5 px-5 h-10 rounded-ds-md active:scale-[0.97] transition-transform text-ds-12"
                   style={{
                     background: "hsl(var(--bark))",
                     color: "hsl(var(--parchment))",

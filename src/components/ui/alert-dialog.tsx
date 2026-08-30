@@ -56,17 +56,32 @@ const AlertDialogContent = React.forwardRef<
     <AlertDialogPrimitive.Content
       ref={ref}
       className={cn(
-        // The four slide-* classes restore this element's -50%/-50% centering
-        // THROUGH the enter/exit keyframes — see the long note in dialog.tsx.
-        // Without them tailwindcss-animate's `transform` keyframe clobbers the
-        // centering and the modal swoops in from off-centre.
-        // Top-anchored and `gap-4 p-5 sm:p-7`, both matched to DialogContent — see
-        // the long note there on why centring made dialogs jump as their content
-        // arrived, and why the vertical slide pair goes with the vertical
-        // transform. An alert dialog and a dialog appearing at two different
-        // sizes with two different internal rhythms is the same defect the
-        // per-call-site overrides were.
-        "glass-modal fixed left-[50%] top-[7vh] z-50 grid w-[calc(100%-2rem)] max-w-lg max-h-[86vh] overflow-y-auto translate-x-[-50%] gap-4 p-5 sm:p-7 duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-4 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-4",
+        // Matched verbatim to DialogContent — change one, change both.
+        //
+        // CENTRED, and SHRINK-TO-FIT (owner, 2026-08-30: "center center and fit
+        // contents"). Was top-anchored at `top-[7vh]` on a fixed
+        // `w-[calc(100%-2rem)] max-w-lg`, so a three-line confirm box sat high
+        // on the screen in a slab sized for a paragraph. Now `left-1/2 top-1/2`
+        // with `w-auto` + a max, so the box hugs its content.
+        //
+        // Centering rides the standalone `translate` property, NOT
+        // `-translate-x-1/2`/`-translate-y-1/2`. tailwindcss-animate's
+        // enter/exit keyframes WRITE `transform`, so any transform-based
+        // centering is clobbered mid-animation and the modal swoops in from
+        // off-centre. That is why the old class list carried four `slide-*`
+        // classes: they existed only to restate the centering inside the
+        // keyframes. `translate` is a separate property the keyframes never
+        // touch, so the slide pairs are gone and the animation is just
+        // zoom + fade. (Same fix already proven in BirthdayPopup.)
+        //
+        // KNOWN TRADE-OFF, recorded so it is not rediscovered as a bug: a
+        // vertically-centred box re-centres when its content grows, so a dialog
+        // whose body arrives late (an image decoding, a lazy chunk, a fee query)
+        // will shift up by half the added height. Top-anchoring was originally
+        // chosen to avoid exactly that. The owner asked for centred; if the
+        // jump becomes a problem, the fix is to reserve the content's height,
+        // not to re-anchor one dialog and split the two shells again.
+        "glass-modal fixed left-1/2 top-1/2 [translate:-50%_-50%] z-50 grid w-auto max-w-[calc(100%-2rem)] sm:max-w-lg max-h-[86vh] overflow-y-auto gap-3 p-4 sm:p-5 duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
         className,
       )}
       // Radix warns once per open when a Content has no `Description` and no
@@ -183,7 +198,11 @@ const AlertDialogHero = ({ title }: {
 }) => (
   <AlertDialogHeader className="space-y-0 text-left">
     <AlertDialogTitle
-      className="font-display italic font-bold leading-tight pt-2"
+      // TIGHTENED (owner, 2026-08-29): was `pt-2`. That existed to clear the
+      // corner X, but the container's own padding already does that — the
+      // title doesn't need its own extra push on top of it. Matched to
+      // DialogHero — change one, change both.
+      className="font-display italic font-bold leading-tight"
       style={{ fontSize: "clamp(1.2rem, 1.6vw + 0.4rem, 1.45rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
     >
       {title}

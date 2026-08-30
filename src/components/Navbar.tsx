@@ -1,6 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowRight } from "lucide-react";
 import { forwardRef } from "react";
 import { prefetchRoute } from "@/lib/routePrefetch";
 import HelprMark from "@/components/HelprMark";
@@ -116,38 +115,27 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
               with the two actions the bar actually exists to drive: Log In /
               Get Started. */}
           {/* Subtle vertical rule between text nav and auth actions —
-              two logical groups rather than one long list. */}
-          <span
-            aria-hidden
-            className="w-px h-5"
-            style={{ background: "hsl(var(--olivewood) / 0.18)" }}
-          />
+              two logical groups rather than one long list. Rendered only when
+              there ARE auth actions beside it: a signed-in visitor now gets
+              nothing in this group (see below), so an unconditional rule left
+              a hairline floating alone at the end of the bar. */}
+          {!user && (
+            <span
+              aria-hidden
+              className="w-px h-5"
+              style={{ background: "hsl(var(--olivewood) / 0.18)" }}
+            />
+          )}
           <div className="flex items-center gap-2">
-            {user ? (
-              // Authenticated visitor on a public/marketing page — send them
-              // back into the app instead of showing logged-out auth CTAs.
-              <Button
-                asChild
-                size="sm"
-                className="rounded-2xl btn-press !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
-                style={{ color: "hsl(var(--parchment))" }}
-              >
-                <Link
-                  to="/dashboard"
-                  className="group"
-                  onMouseEnter={() => prefetchRoute("/dashboard")}
-                  onFocus={() => prefetchRoute("/dashboard")}
-                >
-                  {/* "Dashboard", not "Open App". This nav only ever renders on
-                      the WEB — the marketing chrome — so there is no separate app to
-                      open: the page you are on is it. It also names the
-                      destination, which is what the link actually goes to
-                      (/dashboard). */}
-                  Dashboard
-                  <ArrowRight className="ml-1.5 w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.75} />
-                </Link>
-              </Button>
-            ) : (
+            {/* NOTHING for a signed-in visitor (owner, 2026-08-30: "delete
+                globally"). This used to be a "Dashboard →" CTA. A signed-in
+                person on a public page already has the app's own navigation —
+                the desktop sidebar rail (DesktopSidebarNav, which carries
+                Home / Posts / Jobs / Messages / Profile) on web and the bottom
+                nav on a phone — so this button was a second, redundant way
+                back into an app they are already inside, and the only one of
+                the two that named just one destination. */}
+            {!user && (
               <>
                 <Button
                   asChild
@@ -187,6 +175,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false }, ref) => 
               </>
             )}
           </div>
+
         </div>
 
       </div>

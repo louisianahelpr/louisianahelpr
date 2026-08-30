@@ -11,7 +11,7 @@ import {
   DollarSign,
   Award,
 } from "lucide-react";
-import PageHeader from "@/components/PageHeader";
+import AppPage from "@/components/AppPage";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { unwrap } from "@/lib/supabaseResult";
@@ -231,23 +231,14 @@ const WorkRecord = () => {
   }
 
   return (
-    <div className="min-h-screen bg-premium-page pb-safe-nav">
-      <PageHeader
-        title="Work Record"
-        eyebrow="Employment & Earnings"
-        backTo="/profile"
-        // No `width` — the header takes its `default` geometry, which IS the
-        // body class below, so title and content share one edge at every size.
-      />
-
-            {/* CANONICAL DOCUMENT-SCROLL SHELL — identical on every page that wears
-          it: `min-h-screen bg-premium-page pb-safe-nav` > <PageHeader> (default
-          width) > `page-measure mx-auto px-5 lg:px-8 xl:px-12 pt-4 pb-8`.
-          The header's `default` width IS this body class, so the title and the
-          content share one left edge at every breakpoint. Owner: these pages
-          "should share layouts ... there should not be any off from the rest",
-          so do not give this page its own max-width or gutter ladder. */}
-      <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pt-4 pb-8 space-y-5">
+    // AppPage — the shared signed-in sub-screen shell (AppShell + the Profile
+    // tab header + the centered content column). The old "Employment &
+    // Earnings" eyebrow has no equivalent on this header; the document card
+    // below already prints "Employment & Earnings Record" as its own heading.
+    <AppPage title="Work Record" backTo="/profile">
+      {/* `space-y-5` preserved from the old body wrapper — it spaces the
+          document card from the share/print controls under it. */}
+      <div className="space-y-5">
         {loading && (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => <JobCardSkeleton key={i} />)}
@@ -550,7 +541,7 @@ const WorkRecord = () => {
           </>
         )}
       </div>
-    </div>
+    </AppPage>
   );
 };
 

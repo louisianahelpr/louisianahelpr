@@ -28,7 +28,7 @@ import { hapticMedium, hapticSuccess } from "@/lib/haptics";
 import { STRIPE_PCT, STRIPE_FLAT_CENTS } from "@/lib/stripeFees";
 import { errorToast } from "@/lib/toast";
 import { report } from "@/lib/errorLogger";
-import PageHeader from "@/components/PageHeader";
+import AppPage from "@/components/AppPage";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -300,20 +300,7 @@ export default function PayItForward() {
     !isSelfGift;
 
   return (
-    <div className="min-h-screen bg-premium-page pb-safe-nav">
-      {/* Geometry is the CANONICAL Profile sub-screen ladder, shared verbatim
-          with the Profile tab bodies (Profile.tsx) and PageHeader's `default`
-          width. The header used to declare `width="2xl-5xl-7xl"` against a
-          body that had already moved to the wide ladder, so the title sat in
-          a different column from the content underneath it. `onBack` went to
-          `navigate(-1)`, which is a dead end when the page is opened straight
-          from an emailed claim link; every sibling returns to /profile. */}
-      <PageHeader
-        title="Gift Card"
-        backTo="/profile"
-      />
-
-      <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pt-4 pb-8">
+    <AppPage title="Gift Card" backTo="/profile">
         {/* ── Claiming a gift (from the emailed claim link) ─────────────────── */}
         {/* Spans full width above the split so the status is visible regardless
             of which column the eye lands on first. */}
@@ -680,7 +667,6 @@ export default function PayItForward() {
             </div>
           </section>
         </div>
-      </div>
-    </div>
+    </AppPage>
   );
 }

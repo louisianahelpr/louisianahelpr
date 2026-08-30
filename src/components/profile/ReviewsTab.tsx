@@ -62,14 +62,9 @@ const sortOptions: { value: SortKey; label: string; icon: typeof Star }[] = [
 
 export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, onLoadMore, hasMore, loadingMore }: ReviewsTabProps) {
   const [sortBy, setSortBy] = useState<SortKey>("newest");
-  const catAvg = (key: keyof Review) => {
-    const vals = reviews.map((r) => Number(r[key])).filter((n) => Number.isFinite(n) && n > 0);
-    return vals.length > 0 ? vals.reduce((s, n) => s + n, 0) / vals.length : 0;
-  };
-  const punctualityAvg = catAvg("punctuality");
-  const qualityAvg = catAvg("quality");
-  const communicationAvg = catAvg("communication");
-  const hasCategoryData = punctualityAvg > 0 || qualityAvg > 0 || communicationAvg > 0;
+  // No per-category averaging here any more — it existed only for the
+  // breakdown card removed below. Individual review rows read their own
+  // `punctuality` / `quality` / `communication` values directly.
 
   // Sort lives in the tab (not the parent) so flipping order is instant
   // without a re-fetch. Default newest matches the source query.
@@ -145,25 +140,13 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
         </div>
       )}
 
-      {hasCategoryData && (
-        <div className="rounded-2xl liquid-glass p-5 grid grid-cols-3 gap-3">
-          {[
-            { label: "Punctuality", v: punctualityAvg },
-            { label: "Quality", v: qualityAvg },
-            { label: "Communication", v: communicationAvg },
-          ].map((cat) => (
-            <div key={cat.label} className="text-center">
-              <p className="font-serif italic uppercase mb-1.5 text-ds-10" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
-                {cat.label}
-              </p>
-              <div className="flex justify-center mb-1"><MiniStars value={cat.v} /></div>
-              <p className="font-display italic font-bold tabular-nums text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>
-                {cat.v > 0 ? cat.v.toFixed(1) : "—"}
-              </p>
-            </div>
-          ))}
-        </div>
-      )}
+      {/* Per-category breakdown card removed (owner, 2026-08-30: "remove i
+          think we should just do 1 overall rating"). It split the same four
+          reviews into Punctuality / Quality / Communication averages that sat
+          directly under the overall score — three more numbers saying the same
+          thing, and on a handful of reviews the sub-averages are noise anyway.
+          The overall rating card above is the one number. Individual reviews
+          still show their own category rows further down. */}
 
       {loading ? (
         // Content-shaped skeleton: hero summary card (matches the real

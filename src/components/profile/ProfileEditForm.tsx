@@ -3,7 +3,7 @@ import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload, Loader2, Check, MapPin } from "lucide-react";
+import { Check, MapPin } from "lucide-react";
 import { lookupParishByZip } from "@/lib/parishLookup";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import type { ProfileEditFormProps } from "@/components/profile/profileEditForm/types";
@@ -32,34 +32,20 @@ export function ProfileEditForm({
   avatarBroken,
   setAvatarBroken,
   avatarUploading,
-  idUploading,
+  // Unused since the manual ID-upload card was removed (Stripe Identity owns
+  // verification). Kept in the signature so the shared props type and the ~3
+  // call sites don't churn; underscore marks them intentionally unread.
+  idUploading: _idUploading,
   saving,
   justSaved,
   onSave,
   onAvatarUpload,
-  onIdUpload,
+  onIdUpload: _onIdUpload,
   onBack,
   onPortfolioChange,
 }: ProfileEditFormProps) {
-  const idStatus = profile?.idv_status ?? null;
-  const hasId = !!profile?.id_document_url;
-  const idBadge = idStatus === "verified"
-    ? { label: "Verified", cls: "bg-success/10 text-green-800 dark:text-green-400" }
-    : (idStatus === "pending" || idStatus === "processing" || idStatus === "manual_review" || (hasId && !idStatus))
-    ? { label: "Pending review", cls: "bg-warning/10 text-amber-800 dark:text-amber-400" }
-    : idStatus === "failed"
-    ? { label: "Action needed", cls: "bg-destructive/10 text-destructive" }
-    // The chip and the button must never disagree, and they used to. This
-    // fallback said "Not uploaded" for ANY status the chain above doesn't
-    // name — and `not_started` is a real value the tier code writes, as is
-    // any status a future Stripe IDV revision adds. A profile with a document
-    // already on file therefore rendered the chip "Not uploaded" next to a
-    // button reading "Replace": you cannot replace something never uploaded.
-    // Both now branch on the same `hasId`, so the pair is consistent by
-    // construction whatever `idv_status` happens to hold.
-    : hasId
-    ? { label: "Uploaded", cls: "bg-muted text-muted-foreground" }
-    : { label: "Not uploaded", cls: "bg-muted text-muted-foreground" };
+  // ID-verification status locals removed with the manual-upload card —
+  // Stripe Identity owns that status now (stripe-idv-start / -webhook).
   const bioOk = bio.trim().length >= 20;
   const phoneValid = phone.replace(/\D/g, "").length >= 10;
   const locationValid = location.trim().length > 0;
@@ -276,53 +262,14 @@ export function ProfileEditForm({
           </p>
         </div>
 
-        {/* ID Verification section. The status badge sits on the right, and a
-            NAME sits on the left — the comment here used to argue "the body
-            copy below identifies the section on its own", which was the same
-            reasoning that left the bio unlabelled. It is true that you can work
-            out what the card is from the sentence inside it; it is also true
-            that every other card on this form tells you at a glance. This one
-            is the section a helpr is most anxious about, and it opened with a
-            status chip floating alone against a blank row. */}
-        <div id="id-verification-card" className="rounded-2xl liquid-glass p-5 space-y-4 scroll-mt-24">
-          <div className="flex items-baseline justify-between gap-2">
-            <h2 className="text-ds-11 font-medium leading-none" style={{ color: "hsl(var(--ink-deep))" }}>
-              ID verification
-            </h2>
-            <span className={`text-ds-9 px-1.5 py-0.5 rounded-full font-medium not-italic ${idBadge.cls}`}>{idBadge.label}</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <p className="font-serif italic leading-snug flex-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              Upload a government-issued ID. Encrypted in transit, used only for identity verification and fraud prevention.
-            </p>
-            <label className="shrink-0">
-              <span
-                className={`inline-flex items-center gap-1.5 text-ds-11 font-semibold px-3 h-9 rounded-ds-md cursor-pointer active:scale-[0.98] transition-all ${
-                  hasId
-                    ? "bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20"
-                    : "bg-primary text-primary-foreground hover:bg-primary/90"
-                }`}
-              >
-                {idUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-                {hasId ? "Replace" : "Upload"}
-              </span>
-              {/* The accessible name goes on the INPUT, not the <label> — a
-                  bare <label> has no implicit ARIA role, so `aria-label` on it
-                  is ignored (same trap already documented in PhotoNameSection).
-                  Without this the control announced as just "Replace" / a bare
-                  file input; now it says what is being replaced, and it tracks
-                  `hasId` exactly like the visible word does. */}
-              <input
-                type="file"
-                aria-label={hasId ? "Replace your ID document" : "Upload your ID document"}
-                accept="image/jpeg,image/png,image/webp,application/pdf"
-                className="hidden"
-                onChange={onIdUpload}
-                disabled={idUploading}
-              />
-            </label>
-          </div>
-        </div>
+        {/* ID verification card REMOVED (owner, 2026-08-30: "remove done by
+            stripe"). This was a manual government-ID upload into the `avatars`
+            bucket that set `idv_status: "pending"` for a human to review.
+            Identity verification is Stripe Identity's job — see the
+            `stripe-idv-start` / `stripe-idv-webhook` edge functions, which own
+            the session and write the real status back. Two parallel ID paths
+            meant a helpr could upload a document here that Stripe never saw,
+            and sit "pending" behind a queue that no longer decides anything. */}
 
         {/* Work portfolio — photos of previous work shown on the public
             profile when applicants are deciding who to hire. Up to 6 images,

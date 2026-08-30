@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import PageHeader from "@/components/PageHeader";
+import AppPage from "@/components/AppPage";
 import { Button } from "@/components/ui/button";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -131,26 +131,11 @@ const PetProfiles = () => {
   };
 
   return (
-    <div className="min-h-screen bg-premium-page pb-safe-nav">
-      {/* No `showBrand`: /pets is a Profile sub-page, not a top-level
-          destination. The Helpr wordmark (which links to /dashboard) made it
-          read as standalone and competed with the back-to-Profile chevron.
-          The back button + title now carry the navigation context. */}
-      <PageHeader
-        title="My Pets"
-        backTo="/profile"
-        // No `width` — the header takes its `default` geometry, which IS the
-        // body class below, so title and content share one edge at every size.
-      />
-
-            {/* CANONICAL DOCUMENT-SCROLL SHELL — identical on every page that wears
-          it: `min-h-screen bg-premium-page pb-safe-nav` > <PageHeader> (default
-          width) > `page-measure mx-auto px-5 lg:px-8 xl:px-12 pt-4 pb-8`.
-          The header's `default` width IS this body class, so the title and the
-          content share one left edge at every breakpoint. Owner: these pages
-          "should share layouts ... there should not be any off from the rest",
-          so do not give this page its own max-width or gutter ladder. */}
-      <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pt-4 pb-8">
+    // AppPage — the shared signed-in sub-screen shell (AppShell + the Profile
+    // tab header + the centered content column). No title-row "Add" (owner):
+    // desktop Add is reachable from the list card's own empty-state CTA and
+    // from the pet detail pane, so it doesn't need a second entry point.
+    <AppPage title="My Pets" backTo="/profile">
         {/* ─── Mobile (default): stacked list ─────────────────────────── */}
         <div className="lg:hidden space-y-3">
           {isLoading && (
@@ -222,29 +207,11 @@ const PetProfiles = () => {
         <div className="hidden lg:block space-y-4">
           {/* Left rail — pets list */}
           <aside className="lg:col-span-4 xl:col-span-4 space-y-3">
+            {/* No rail header. "Your pets" restated the page's own "My Pets"
+                h1 directly beneath it, and its "+ Add" is now the title-row
+                action (see PageHeader above) — so the card opens straight into
+                the list it holds. */}
             <div className="rounded-ds-lg liquid-glass overflow-hidden">
-              {/* Rail header + add */}
-              <div
-                className="flex items-center justify-between px-4 py-3 border-b"
-                style={{ borderColor: "hsl(var(--olivewood) / 0.10)" }}
-              >
-                <p
-                  className="font-sans font-semibold text-ds-14"
-                  style={{ color: "hsl(var(--ink-deep))" }}
-                >
-                  Your pets
-                </p>
-                <button
-                  type="button"
-                  onClick={openAddDesktop}
-                  className="inline-flex items-center gap-1 text-ds-12 font-semibold px-2 py-1 rounded-ds-sm transition-colors active:bg-secondary/40"
-                  style={{ color: "hsl(var(--bark))" }}
-                  aria-label="Add a Pet"
-                >
-                  <Plus className="w-3.5 h-3.5" /> Add
-                </button>
-              </div>
-
               {isLoading && (
                 <div className="p-3 space-y-2">
                   {[1, 2, 3].map((n) => (
@@ -329,7 +296,17 @@ const PetProfiles = () => {
                 />
               )}
 
-              {!desktopAdding && !activePet && !isLoading && (
+              {/* Nothing renders here when there are NO pets. This pane's copy
+                  ("Care details appear here once you add a pet.") described a
+                  left/right split that no longer exists — the desktop layout is
+                  `hidden lg:block`, a single stacked column, so the pane sits
+                  UNDER the list rather than beside it. With zero pets that
+                  stacked a third empty block below the list card's own "No pets
+                  yet" empty state, both saying the same thing.
+
+                  With pets, the prompt still earns its place: something IS
+                  selectable above, and this says so. */}
+              {!desktopAdding && !activePet && !isLoading && !!pets?.length && (
                 <div
                   className="rounded-ds-lg liquid-glass flex flex-col items-center justify-center text-center px-8 py-16"
                 >
@@ -337,23 +314,14 @@ const PetProfiles = () => {
                     className="w-10 h-10 mb-3"
                     style={{ color: "hsl(var(--bark) / 0.4)" }}
                   />
-                  {/* With zero pets, the LIST card owns the headline and the
-                      single Add a Pet CTA — this pane repeating both was two
-                      competing "Add your first pet" stacks on one screen (V6).
-                      The empty branch defers: no duplicate title, no second
-                      CTA, one quiet line. */}
-                  {!!pets?.length && (
-                    <p
-                      className="font-display text-ds-20 leading-tight"
-                      style={{ color: "hsl(var(--ink-deep))" }}
-                    >
-                      Pick a pet from the list
-                    </p>
-                  )}
+                  <p
+                    className="font-display text-ds-20 leading-tight"
+                    style={{ color: "hsl(var(--ink-deep))" }}
+                  >
+                    Pick a pet from the list
+                  </p>
                   <p className="text-ds-12 text-muted-foreground mt-1.5 max-w-sm">
-                    {pets?.length
-                      ? "Select a pet on the left to view their care details, or add a new one."
-                      : "Care details appear here once you add a pet."}
+                    Select a pet above to view their care details, or add a new one.
                   </p>
                 </div>
               )}
@@ -364,7 +332,6 @@ const PetProfiles = () => {
             </div>
           </section>
         </div>
-      </div>
 
       {/* Mobile-only full-screen pet form sheet. Desktop uses the inline
           right-pane variant, so we only mount this when NOT in desktop-add
@@ -393,7 +360,7 @@ const PetProfiles = () => {
         }}
         secondaryLabel="Keep"
       />
-    </div>
+    </AppPage>
   );
 };
 

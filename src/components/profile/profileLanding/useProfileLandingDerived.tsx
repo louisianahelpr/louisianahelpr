@@ -150,7 +150,10 @@ export function useProfileLandingDerived({
           key: "gift-card",
           label: "Gift Card",
           icon: <Gift className="w-5 h-5" />,
-          desc: "Donate job credits for neighbors who need help",
+          // Not "job credits" (owner, 2026-08-30) — there is no credit balance
+          // in this product. /gift-card sends a real Helpr gift card by email
+          // that the recipient claims and puts toward any job.
+          desc: "Send a Helpr gift card by email",
           tint: SECTION_TINT.work,
           href: "/gift-card",
         },

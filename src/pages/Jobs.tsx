@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react"
 
 import { Search, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import BackButton from "@/components/BackButton";
+import PageHeader from "@/components/PageHeader";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { Capacitor } from "@capacitor/core";
 import PublicLayout from "@/components/marketing/PublicLayout";
@@ -265,33 +265,31 @@ const Jobs = () => {
           the iOS home-indicator safe area, with a 16px gap so the
           last action isn't kissing the dock. pb-32 was barely 2px
           short on notched phones. */}
+      {/* Header — the shared <PageHeader>; this row was a verbatim copy of it.
+          Nothing sits on the right: the Search + Filters icon cluster that used
+          to mirror the logged-in BrowseTasksToolbar was removed so this board
+          matches the native guest board (/browse), which has never carried them.
+
+          `backTo="/"` — NOT bare history-back. These are top-nav / footer
+          destinations reachable from anywhere, so `navigate(-1)` sent you to
+          whatever you happened to view last: opening Terms, then Jobs, then
+          pressing Back landed on Terms. A top-level page needs one predictable
+          parent, and consistently the same one across all of them.
+
+          `topInsetHandled` because PublicLayout's nav spacer already cleared
+          the safe-area top inset. The entrance animation lives on this wrapper
+          (PageHeader has no prop for it, and does not need one — the wrapper
+          adds no padding or max-width, so the header's own container geometry
+          is untouched). It is hoisted OUT of the padded `px-5 …` column below
+          so the gutter is applied once, by PageHeader. */}
+      <div className="motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4 duration-400">
+        <PageHeader title="Browse Jobs" backTo="/" width="default" topInsetHandled />
+      </div>
+
+      {/* `pt-4` owns the space BELOW the title — PageHeader renders `pt-4 pb-0`
+          with no margins, so the body supplies the matching 16px. */}
       <div className="pb-safe-nav px-5 sm:px-8 lg:px-12">
         <div className="page-measure">
-          {/* Header — canonical BackButton sits to the LEFT of the title block
-              (same row, chevron as lead-in), matching PageHeader everywhere.
-              Nothing sits on the right: the Search + Filters icon cluster that
-              used to mirror the logged-in BrowseTasksToolbar was removed so
-              this board matches the native guest board (/browse), which has
-              never carried them. With only two children left there is no wrap
-              to orchestrate, so the `order-*` classes went with them. */}
-          <div className="flex items-center gap-3 mt-4 mb-3 md:mt-5 md:mb-4 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4 duration-400">
-            <div className="shrink-0">
-{/* to="/" — NOT bare history-back. These are top-nav / footer
-                  destinations reachable from anywhere, so `navigate(-1)` sent
-                  you to whatever you happened to view last: opening Terms, then
-                  Jobs, then pressing Back landed on Terms. A top-level page
-                  needs one predictable parent, and consistently the same one
-                  across all of them. */}
-              <BackButton to="/" />
-            </div>
-
-            <div className="flex flex-col leading-none min-w-0 flex-1">
-              <h1 className="text-page-title leading-tight truncate">
-                Browse Jobs
-              </h1>
-            </div>
-          </div>
-
           {/* One-tap category switcher — only renders when a category is set,
               which now happens ONLY via a URL deep link (/jobs?cat=cleaning
               from marketing/SEO/share links), since this page no longer has a

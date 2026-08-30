@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { FileText, Paperclip, Trash2, WifiOff, BookmarkCheck, ChevronDown, ChevronLeft, Plus } from "lucide-react";
-import { toast } from "sonner";
+import { WifiOff, BookmarkCheck, ChevronLeft } from "lucide-react";
 import { errorToast } from "@/lib/toast";
-import { hapticMedium, hapticLight } from "@/lib/haptics";
+import { hapticMedium } from "@/lib/haptics";
 import { useOnlineStatus } from "@/lib/useOnlineStatus";
 import { safeStorage } from "@/lib/safeStorage";
 import type { ApplyConfirmDialogProps } from "./types";
@@ -14,7 +14,6 @@ import {
   pitchDraftKey,
   LEGACY_PITCH_DRAFT_KEY,
   TEMPLATE_KEY,
-  getApplyTips,
 } from "./applyConfirmDialogHelpers";
 
 /**
@@ -79,8 +78,6 @@ export function ApplyBody({
   platformFee,
   applyMessage,
   setApplyMessage,
-  applyFiles,
-  setApplyFiles,
   applyLoading,
   handleApplyConfirm,
   hideEarnings = false,
@@ -91,22 +88,14 @@ export function ApplyBody({
   const jobId = confirmApplyJob?.id ?? null;
   const draftKey = pitchDraftKey(jobId);
   const [saveAsTemplate, setSaveAsTemplate] = useState(false);
-  const [showMoreOptions, setShowMoreOptions] = useState(false);
-  const optionsExpanded = showMoreOptions || applyFiles.length > 0;
 
   const savedTemplate = safeStorage.getItem(TEMPLATE_KEY);
   const differsFromTemplate = !!applyMessage.trim() && applyMessage !== savedTemplate;
 
-  // The single job-specific hint, as the field's placeholder. getApplyTips can
-  // return two; the second was always the weaker of the pair and a placeholder
-  // holds one sentence.
-  const tips = getApplyTips({
-    is_urgent: confirmApplyJob?.is_urgent,
-    budget: confirmApplyJob?.budget,
-    date_needed: confirmApplyJob?.date_needed,
-    category: confirmApplyJob?.category,
-  });
-  const placeholder = tips[0] ?? "Introduce yourself or share relevant experience…";
+  // No placeholder on the note field (owner, 2026-08-29). It carried a coaching
+  // tip ("Higher-budget jobs go to Helprs who mention relevant experience"),
+  // which is the app telling someone how to win a job inside the box where they
+  // are trying to write. The label already says "Add a note (optional)".
 
   // Restore a saved draft for THIS job when the step (re)opens with an empty
   // field — per-job scoping so switching jobs doesn't bleed text between
@@ -200,7 +189,7 @@ export function ApplyBody({
             masthead for what is an optional note field. */}
         <div className="flex items-baseline justify-between gap-2">
           <label htmlFor="apply-message" className="font-sans font-semibold text-ds-13" style={{ color: "hsl(var(--ink-deep))" }}>
-            Add a note{" "}
+            Note to the poster{" "}
             <span className="font-normal" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
               (optional)
             </span>
@@ -224,7 +213,6 @@ export function ApplyBody({
           value={applyMessage}
           onChange={(e) => setApplyMessage(e.target.value.slice(0, MAX_PITCH_LENGTH))}
           maxLength={MAX_PITCH_LENGTH}
-          placeholder={placeholder}
           rows={3}
           className="rounded-ds-md bg-background/60 border-border/60 focus-visible:bg-background focus-visible:border-primary/40 font-sans text-ds-14 leading-relaxed"
         />
@@ -255,83 +243,14 @@ export function ApplyBody({
           </label>
         )}
 
-        {!optionsExpanded && (
-          <button
-            type="button"
-            onClick={() => { hapticLight(); setShowMoreOptions(true); }}
-            className="inline-flex items-center gap-1.5 min-h-[44px] -my-1 font-sans text-ds-12 active:opacity-70 transition-opacity"
-            style={{ color: "hsl(var(--bark))" }}
-            aria-expanded={false}
-            aria-label="Add attachments — certificates or previous work"
-          >
-            <Plus className="w-3.5 h-3.5 shrink-0" strokeWidth={2.25} aria-hidden />
-            <span>Add attachments</span>
-          </button>
-        )}
       </div>
 
-      {optionsExpanded && (
-        <div className="space-y-1.5">
-          {showMoreOptions && applyFiles.length === 0 && (
-            <button
-              type="button"
-              onClick={() => { hapticLight(); setShowMoreOptions(false); }}
-              className="inline-flex items-center gap-1.5 min-h-[44px] font-sans text-ds-12 active:opacity-70 transition-opacity"
-              style={{ color: "hsl(var(--bark))" }}
-              aria-expanded
-            >
-              <ChevronDown className="w-3.5 h-3.5 rotate-180" strokeWidth={2.25} aria-hidden />
-              <span>Hide attachments</span>
-            </button>
-          )}
-          {/* Section heading, not a label: the file input below is wrapped in
-              its own inner <label>, which is the real picker affordance. */}
-          <p className="font-sans font-semibold text-ds-12" style={{ color: "hsl(var(--ink-deep))" }}>
-            Certs or previous work{" "}
-            <span className="font-normal" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
-              (optional)
-            </span>
-          </p>
-          <div className="space-y-1.5">
-            {applyFiles.map((file, i) => (
-              <div
-                key={i}
-                className="flex items-center gap-2 text-ds-12 rounded-ds-md px-2.5 py-1.5"
-                style={{ background: "hsl(var(--bark) / 0.08)", border: "0.5px solid hsl(var(--bark) / 0.18)" }}
-              >
-                <FileText className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--bark))" }} />
-                <span className="truncate flex-1 font-sans font-medium" style={{ color: "hsl(var(--ink-deep))" }}>{file.name}</span>
-                <span className="font-sans tabular-nums shrink-0" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>{(file.size / 1024).toFixed(0)}KB</span>
-                <button type="button" onClick={() => setApplyFiles(f => f.filter((_, idx) => idx !== i))} aria-label="Remove attached file" style={{ color: "hsl(var(--burnt-sienna))" }} className="active:opacity-70">
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            ))}
-            {applyFiles.length < 5 && (
-              <label
-                className="inline-flex items-center gap-1.5 text-ds-12 font-sans font-semibold cursor-pointer active:opacity-70"
-                style={{ color: "hsl(var(--bark))" }}
-              >
-                <Paperclip className="w-3.5 h-3.5" strokeWidth={2.25} />
-                <span>{applyFiles.length === 0 ? "Add a file" : "Add another"}</span>
-                <input
-                  type="file"
-                  className="hidden"
-                  accept="image/*,.pdf,.doc,.docx"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      if (file.size > 5 * 1024 * 1024) { toast.error("File must be under 5 MB."); return; }
-                      setApplyFiles(f => [...f, file]);
-                    }
-                    e.target.value = "";
-                  }}
-                />
-              </label>
-            )}
-          </div>
-        </div>
-      )}
+      {/* NO per-application file picker (owner, 2026-08-29). Certificates and
+          work photos are uploaded ONCE on the profile (Edit Profile → Recent
+          work) and posters see them on the applicant's profile via
+          HelperWorkPhotos — so re-attaching the same file on every application
+          was pure repeated work. Existing applications keep their stored
+          `attachment_urls`; ApplicantsPanel still renders them. */}
 
       {!online && (
         <p
@@ -354,41 +273,45 @@ export function ApplyBody({
             type="button"
             onClick={onBack}
             aria-label="Back"
-            className="shrink-0 w-11 rounded-none flex items-center justify-center btn-press"
+            className="shrink-0 w-11 h-11 sm:w-12 sm:h-12 rounded-ds-md flex items-center justify-center btn-press"
             style={{ border: "0.5px solid hsl(var(--bark) / 0.28)", color: "hsl(var(--bark))" }}
           >
             <ChevronLeft className="w-4 h-4" strokeWidth={2.25} />
           </button>
         )}
-        <button
+        {/* Same primitive and surface as the "Continue" CTA that leads here
+            (JobDetailFooter) — one button, one set of effects: the gradient
+            wash, the hover brighten/lift/glow and the active press collapse
+            all come from <Button>'s primary variant. */}
+        <Button
+          size="lg"
           type="button"
           onClick={handleConfirm}
           disabled={applyLoading}
-          className="btn-liquid-fill flex-1 min-w-0 rounded-ds-md px-4 group relative overflow-hidden disabled:opacity-60"
+          className="btn-liquid-fill flex-1 min-w-0 rounded-ds-md h-11 sm:h-12 px-4 group relative overflow-hidden disabled:opacity-60"
           style={{
-            /* Inline, not `min-h-[52px]`. index.css sets a bare
-               `button { min-height: 44px }` for the HIG touch minimum and that
-               base rule wins over the Tailwind arbitrary utility here, so the
-               class silently rendered a 44px button — measured. This is the
-               step's single commit action and reads as one. */
-            minHeight: "52px",
-            background: "hsl(var(--bark))",
-            border: "1px solid hsl(var(--bark))",
+            background:
+              "linear-gradient(180deg, hsl(var(--bark)) 0%, hsl(var(--bark) / 0.86) 100%)",
+            border: "0.5px solid hsl(var(--bark))",
             fontFamily: "Montserrat, system-ui, sans-serif",
             fontWeight: 600,
             letterSpacing: "0.01em",
-            boxShadow: "var(--elev-bark-raised)",
+            boxShadow:
+              "inset 0 1px 1px 0 rgba(255, 255, 255, 0.25), " +
+              "inset 0 -1px 1px 0 rgba(0, 0, 0, 0.18), " +
+              "0 1px 2px hsl(var(--olivewood) / 0.12), " +
+              "0 8px 22px -6px hsl(var(--bark) / 0.45)",
           }}
         >
           <span
             className="relative z-10"
-            style={{ color: "hsl(var(--parchment))", textShadow: "0 1px 2px rgba(0, 0, 0, 0.28)" }}
+            style={{ color: "white", textShadow: "0 1px 2px rgba(0, 0, 0, 0.28)" }}
           >
             {applyLoading
               ? isInstantBook ? "Booking…" : "Applying…"
               : !online ? "Try Again" : isInstantBook ? "Book Now" : "Apply Now"}
           </span>
-        </button>
+        </Button>
       </div>
     </div>
   );

@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { CheckCircle2, Loader2, Send } from "lucide-react";
 import { toast } from "sonner";
 
-import BackButton from "@/components/BackButton";
+import PageHeader from "@/components/PageHeader";
 import PublicLayout from "@/components/marketing/PublicLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -121,26 +121,6 @@ function validate(draft: Draft, identified: boolean): Partial<Record<FieldKey, s
 /* -------------------------------------------------------------------------- */
 /* Sections                                                                    */
 /* -------------------------------------------------------------------------- */
-
-/**
- * Compact page header — canonical BackButton to the LEFT of a normal-size page
- * title. Identical row shape to /help; /support is a
- * secondary destination reached from a footer/legal link, not a landing.
- */
-const PageIntro = () => (
-  <section className="px-5 sm:px-8 lg:px-12">
-    <div className="page-measure mx-auto">
-      <div className="flex items-center gap-3 mt-4 mb-3 md:mt-5 md:mb-4">
-        <div className="shrink-0">
-          <BackButton />
-        </div>
-        <div className="flex flex-col leading-none min-w-0 flex-1">
-          <h1 className="text-page-title leading-tight truncate">Contact Support</h1>
-        </div>
-      </div>
-    </div>
-  </section>
-);
 
 /** Shared squircle treatment used by every panel on the public pages. */
 const PANEL_STYLE = {
@@ -291,9 +271,22 @@ const Support = () => {
   return (
     // The compact header below carries the canonical BackButton.
     <PublicLayout>
-      <PageIntro />
+      {/* The shared PageHeader, NOT a hand-rolled copy of it. `width="public"`
+          reproduces this page's former `px-5 sm:px-8 lg:px-12` header gutter
+          over `.page-measure` exactly; PageHeader renders that container
+          itself, so it is deliberately NOT wrapped in a padded <section>
+          (that would apply the gutter twice).
 
-      <section className="container mx-auto px-5 pt-0 pb-8">
+          `topInsetHandled`: PublicLayout already clears the notch — the web
+          branch via its nav spacer, the native branch via AppShell's
+          status-bar cap — so the header must not absorb `--safe-area-top`
+          again. */}
+      <PageHeader title="Contact Support" width="public" topInsetHandled />
+
+      {/* pt-4, not pt-0: PageHeader renders `pb-0` and leaves the space below
+          the title to the page body. The old hand-rolled header row carried
+          its own `mb-4`; this restores that 16px. */}
+      <section className="container mx-auto px-5 pb-8">
         <div className="page-measure mx-auto">
 
           {/* Right column — the form (or its success state). */}

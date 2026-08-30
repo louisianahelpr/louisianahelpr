@@ -97,25 +97,32 @@ const DialogContent = React.forwardRef<
         // matching slide-out-* pair fixes the same inversion on close.
         // ANCHORED TO THE TOP, NOT VERTICALLY CENTRED.
         //
-        // Centring is what made dialogs "open small then get bigger" (owner):
-        // a vertically-centred box re-centres every time its content grows, and
-        // this app's dialogs grow constantly after mount — a photo decodes, a
-        // poster card resolves, a lazy chunk lands, a fee query returns. Each
-        // one shifted the whole dialog UP by half the new height, so the title
-        // the user was already reading slid out from under their eyes.
+        // Matched verbatim to AlertDialogContent — change one, change both.
         //
-        // Pinned at 7vh, growth extends DOWNWARD from a top edge that never
-        // moves. `max-h-[86vh]` keeps the bottom off the viewport edge, and the
-        // box scrolls internally past that. Small dialogs now sit slightly
-        // above true centre — which is where optical centre is anyway, and is
-        // what every mature dialog system does.
+        // CENTRED, and SHRINK-TO-FIT (owner, 2026-08-30: "center center and fit
+        // contents"). Was top-anchored at `top-[7vh]` on a fixed
+        // `w-[calc(100%-2rem)] max-w-lg`, so a short dialog sat high on the
+        // screen in a slab sized for a paragraph. Now `left-1/2 top-1/2` with
+        // `w-auto` + a max, so the box hugs its content.
         //
-        // HORIZONTAL centring is unchanged, so `slide-in-from-left-1/2` is
-        // still load-bearing (see the note above: the enter keyframe REPLACES
-        // transform, so the -50% x has to be restated as an enter var or the
-        // dialog animates in from the left edge). The vertical pair is gone
-        // with the vertical transform, replaced by a plain 1rem rise.
-        "glass-modal fixed left-[50%] top-[7vh] z-50 grid w-[calc(100%-2rem)] max-w-lg max-h-[86vh] overflow-y-auto translate-x-[-50%] gap-4 p-5 sm:p-7 duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-4 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-4",
+        // Centering rides the standalone `translate` property, NOT
+        // `-translate-x-1/2`/`-translate-y-1/2`. tailwindcss-animate's
+        // enter/exit keyframes WRITE `transform`, so transform-based centering
+        // is clobbered mid-animation and the modal swoops in from off-centre.
+        // That is why the old class list carried four `slide-*` classes — they
+        // existed only to restate the centering inside the keyframes.
+        // `translate` is a separate property the keyframes never touch, so the
+        // slide pairs are gone and the animation is just zoom + fade.
+        //
+        // KNOWN TRADE-OFF, recorded so it is not rediscovered as a bug: a
+        // vertically-centred box re-centres when its content grows, so a dialog
+        // whose body arrives late (an image decoding, a lazy chunk, a fee query)
+        // shifts up by half the added height. Top-anchoring was originally
+        // chosen to avoid exactly that ("opens small then gets bigger"). The
+        // owner asked for centred; if the jump becomes a problem the fix is to
+        // reserve the content's height, not to re-anchor one shell and split
+        // the two dialog primitives apart again.
+        "glass-modal fixed left-1/2 top-1/2 [translate:-50%_-50%] z-50 grid w-auto max-w-[calc(100%-2rem)] sm:max-w-lg max-h-[86vh] overflow-y-auto gap-3 p-4 sm:p-5 duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
         className,
       )}
       // Radix warns once per open when a Content has no `Description` and no
@@ -226,7 +233,9 @@ const DialogHero = ({ title }: {
 }) => (
   <DialogHeader className="space-y-0 text-left">
     <DialogTitle
-      className="font-display italic font-bold leading-tight pt-2"
+      // TIGHTENED (owner, 2026-08-29): was `pt-2`, matched to AlertDialogHero
+      // — see the note there. Change one, change both.
+      className="font-display italic font-bold leading-tight"
       style={{ fontSize: "clamp(1.2rem, 1.6vw + 0.4rem, 1.45rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
     >
       {title}

@@ -213,6 +213,19 @@ export const ProfileHeaderCard = ({
                 )}
               </p>
             )}
+            {/* Bio sits with the identity block, directly under location
+                (owner, 2026-08-29). It used to live in a separate column far
+                below the badges and presence chip, so "who this person says
+                they are" was split from their name and place by everything
+                else on the card. */}
+            {profile.bio && (
+              <p
+                className="font-serif italic mt-2 leading-relaxed text-ds-14"
+                style={{ color: "hsl(var(--ink-deep) / 0.88)" }}
+              >
+                {profile.bio}
+              </p>
+            )}
           </div>
             {/* Last-active presence chip (#28). Compact, low-weight —
                 meant to read at-a-glance, not compete with the badges.
@@ -343,14 +356,7 @@ export const ProfileHeaderCard = ({
                 <Phone className="w-3 h-3" />{profile.phone}
               </p>
             )}
-            {profile.bio && (
-              <p
-                className="font-serif italic mt-2 leading-relaxed text-ds-14"
-                style={{ color: "hsl(var(--ink-deep) / 0.88)" }}
-              >
-                {profile.bio}
-              </p>
-            )}
+            {/* Bio moved up beside the name — see the identity block above. */}
             {profile.skills && (
               <div className="flex flex-wrap gap-1.5 mt-3">
                 {profile.skills.split(",").map(s => s.trim()).filter(Boolean).map((s, i) => (

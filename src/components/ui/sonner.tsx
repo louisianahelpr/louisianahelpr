@@ -79,13 +79,21 @@ const Toaster = ({ ...props }: ToasterProps) => {
         classNames: {
           toast:
             "group toast !rounded-2xl !border-0 !shadow-[0_1px_2px_hsl(var(--olivewood)/0.06),0_14px_30px_-8px_hsl(var(--olivewood)/0.20)] !text-[hsl(var(--ink-deep))] !font-serif !italic !text-ds-14 !leading-snug !backdrop-blur-[18px] !backdrop-saturate-[160%] before:absolute before:inset-0 before:rounded-2xl before:border before:border-[hsl(var(--olivewood)/0.12)] before:pointer-events-none",
-          // `!whitespace-nowrap` (owner, 2026-08-30: "one line"). The toast
-          // is `w-auto` up to a max, and a short title like "Turn on
-          // notifications?" was wrapping to two lines anyway because the
-          // action + cancel + close buttons claimed the row first, squeezing
-          // the text column. The title is one line; the box widens to fit it.
-          title: "!font-display !italic !font-bold !not-[font-serif] !text-ds-15 !leading-tight !whitespace-nowrap !text-[hsl(var(--ink-deep))]",
-          description: "!font-serif !italic !text-ds-12 !text-[hsl(var(--olivewood)/0.8)]",
+          // Titles wrap like any other text now. The old `!whitespace-nowrap`
+          // (owner, 2026-08-30: "one line", aimed at short titles like "Turn
+          // on notifications?") also caught every plain `toast.error("...")`
+          // call — sonner puts a bare string in the title slot, not the
+          // description — and those routinely run a full sentence
+          // ("Location access denied — allow it in Settings to share your
+          // location."). `nowrap` forced that sentence onto one line wider
+          // than the toast's own box, so the tail got clipped behind the
+          // close button instead of wrapping. `!min-w-0` lets the title
+          // shrink inside the flex row (text + action/cancel/close buttons)
+          // so it wraps at the actual available width instead of the text's
+          // un-shrunk intrinsic width; short titles still render on one line
+          // because they're short, not because wrapping is disabled.
+          title: "!font-display !italic !font-bold !not-[font-serif] !text-ds-15 !leading-tight !whitespace-normal !break-words !min-w-0 !text-[hsl(var(--ink-deep))]",
+          description: "!font-serif !italic !text-ds-12 !text-[hsl(var(--olivewood)/0.8)] !whitespace-normal !break-words !min-w-0",
           // Action ("View", "Retry", …) — the toast's one real control, so it
           // gets the app's primary-CTA surface in miniature: the same bark
           // gradient, top-edge highlight and lift as <Button variant="primary">

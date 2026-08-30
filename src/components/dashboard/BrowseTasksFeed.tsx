@@ -1,11 +1,9 @@
 import { lazy, Suspense, useCallback, useMemo, useRef, useEffect, useState } from "react";
 import type { Dispatch, Ref, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
-import { AnimatePresence, motion } from "framer-motion";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import { Search, Plus, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useReducedMotion } from "@/lib/accessibility";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
@@ -146,73 +144,28 @@ function CompactFeedCard({
 }
 
 /**
- * RecommendedSection — the "Recommended" band, comfortable density. Its own
- * component (was a block of JSX hand-inlined at the call site) so the two
- * feed sections read as siblings in the file, not one written out and one
- * copy-pasted.
+ * MainFeedSection — the WHOLE comfortable-density feed, ONE list (owner,
+ * 2026-08-30, repeated instruction: "all jobs belong in one component
+ * period"). Recommended picks and everything else used to be two separately
+ * rendered sections (an AnimatePresence band, then a virtualized list) —
+ * now it's one virtualized list over `jobs`, where the caller has already
+ * put recommended picks first. `recommendedCount` only decides which single
+ * card (index 0, when >0) gets the "Recommended" pill — it no longer
+ * selects a different list primitive or a different wrapper.
  *
- * Kept on `AnimatePresence` rather than folded into `MainFeedSection`
- * below: this band is capped at 5 cards and animates a NEW match sliding in
- * (`initial={false}` — only fresh entries animate, first paint stays
- * static). `MainFeedSection`'s list is the one unbounded, virtualized
- * surface on the dashboard (50+ rows), and animating across an
- * absolute-positioned virtualizer fights its layout math — so the two
- * sections use different list primitives on purpose, not by accident, even
- * though they're both "one component" now at the call site.
- */
-function RecommendedSection({
-  jobs,
-  common,
-  reducedMotion,
-  setHoveredJobId,
-}: {
-  jobs: EnrichedJob[];
-  common: JobCardCommonProps;
-  reducedMotion: boolean;
-  setHoveredJobId?: Dispatch<SetStateAction<string | null>>;
-}) {
-  if (jobs.length === 0) return null;
-  return (
-    <div className="px-3 pt-3 pb-1 space-y-2.5 lg:space-y-3">
-      <AnimatePresence initial={false}>
-        {jobs.map((job, i) => (
-          <motion.div
-            key={`rec-${job.id}`}
-            initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -12 }}
-            animate={reducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
-            exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -12 }}
-            transition={reducedMotion ? { duration: 0 } : { duration: 0.2, ease: "easeOut" }}
-            onMouseEnter={() => setHoveredJobId?.(job.id)}
-            onMouseLeave={() => setHoveredJobId?.(null)}
-          >
-            <JobFeedCard job={job} index={i} recommended={i === 0} common={common} />
-          </motion.div>
-        ))}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-/**
- * MainFeedSection — the "Everything else" feed, comfortable density. Its
- * own component alongside `RecommendedSection` above, for the same reason
- * (was hand-inlined JSX at the call site).
- *
- * `px-4`, NOT `px-3` like `RecommendedSection` — matches the toolbar row
- * directly above it (owner: "same spacing" — the feed used to sit 4px
- * further left than the "N jobs" label introducing it). This is a
- * deliberate, different value from its sibling section, not spacing that
- * drifted from copy-paste — componentizing the two sections doesn't mean
- * forcing them to share a padding value they were explicitly fixed to NOT
- * share.
+ * `px-4` matches the toolbar row directly above it (owner: "same spacing" —
+ * the feed used to sit 4px further left than the "N jobs" label introducing
+ * it).
  */
 function MainFeedSection({
   jobs,
+  recommendedCount,
   common,
   containerRef,
   setHoveredJobId,
 }: {
   jobs: EnrichedJob[];
+  recommendedCount: number;
   common: JobCardCommonProps;
   containerRef: PullToRefresh["containerRef"];
   setHoveredJobId?: Dispatch<SetStateAction<string | null>>;
@@ -235,7 +188,7 @@ function MainFeedSection({
             onMouseEnter={() => setHoveredJobId?.(job.id)}
             onMouseLeave={() => setHoveredJobId?.(null)}
           >
-            <JobFeedCard job={job} index={i} common={common} />
+            <JobFeedCard job={job} index={i} recommended={i === 0 && recommendedCount > 0} common={common} />
           </div>
         )}
       />
@@ -365,7 +318,6 @@ export function BrowseTasksFeed({
   const userLat = fallbackLoc?.lat ?? null;
   const userLng = fallbackLoc?.lng ?? null;
   const navigate = useNavigate();
-  const reducedMotion = useReducedMotion();
 
   // Stable per-card expand toggle. Previously an inline arrow was created
   // for every card on every render — that defeated SwipeableJobCard's
@@ -451,6 +403,14 @@ export function BrowseTasksFeed({
       : [];
     return { visibleJobs: visible, recommendedVisible: recommended };
   }, [filters.filteredJobs, filters.hasFilters, filters.sortBy, recommendedJobs, dismissedJobIds, savedOnly, savedJobIds]);
+
+  // ONE list — recommended picks first, then everything else. See the
+  // render-site comment for why this replaced two separately-rendered
+  // sections.
+  const combinedVisible = useMemo(
+    () => [...recommendedVisible, ...visibleJobs],
+    [recommendedVisible, visibleJobs],
+  );
 
   // Built once per render and handed to both list call sites (recommended +
   // everything-else) so JobFeedCard/CompactFeedCard don't each need a dozen
@@ -675,23 +635,13 @@ export function BrowseTasksFeed({
                 ))}
               </div>
             )}
-            {density === "compact" ? (
-              recommendedVisible.length > 0 && (
-                <ul>
-                  {recommendedVisible.map((job, i) => (
-                    <CompactFeedCard key={job.id} job={job} recommended={i === 0} common={compactCardCommon} />
-                  ))}
-                </ul>
-              )
-            ) : (
-              <RecommendedSection
-                jobs={recommendedVisible}
-                common={cardCommon}
-                reducedMotion={reducedMotion}
-                setHoveredJobId={setHoveredJobId}
-              />
-            )}
-            {/* Main "Everything else" feed */}
+            {/* ONE list, recommended picks first then everything else —
+                not two components (owner, 2026-08-30, repeated instruction:
+                "all jobs belong in one component period"). The recommended/
+                everything-else split is still real (it drives sort order
+                and which single card gets the "Recommended" pill), but it's
+                now just how `combinedVisible` is ORDERED, not two separate
+                rendered lists. */}
             {density === "compact" ? (
               /* Compact: plain list of 48px rows — no virtualizer needed
                  at this row height for typical feed sizes. */
@@ -700,13 +650,14 @@ export function BrowseTasksFeed({
                   paddingBottom: "calc(6rem + var(--safe-area-bottom, 0px))",
                 }}
               >
-                {visibleJobs.map((job) => (
-                  <CompactFeedCard key={job.id} job={job} common={compactCardCommon} />
+                {combinedVisible.map((job, i) => (
+                  <CompactFeedCard key={job.id} job={job} recommended={i === 0 && recommendedVisible.length > 0} common={compactCardCommon} />
                 ))}
               </ul>
             ) : (
               <MainFeedSection
-                jobs={visibleJobs}
+                jobs={combinedVisible}
+                recommendedCount={recommendedVisible.length}
                 common={cardCommon}
                 containerRef={containerRef}
                 setHoveredJobId={setHoveredJobId}

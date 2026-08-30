@@ -155,7 +155,7 @@ const OnboardingTour = ({ profileComplete = false, profileCreatedAt }: Onboardin
     // "experienced" — auto-mark complete and stop.
     if (profileCreatedAt) {
       const ageMs = Date.now() - new Date(profileCreatedAt).getTime();
-      if (ageMs > 2 * 60 * 1000) {
+      if (ageMs > 60 * 60 * 1000) {
         saveState({ ...s, seen: true, completed: true });
         setShowResumePill(false);
         return;

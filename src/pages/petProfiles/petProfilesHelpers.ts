@@ -36,7 +36,6 @@ const BLANK_FORM: PetFormValues = {
   behavioral_notes: "",
   emergency_contact: "",
   feeding_schedule: "",
-  is_evacuation_registered: false,
 };
 
 /** Form values a pet sheet opens with — blank for "add", the pet for "edit". */
@@ -57,7 +56,6 @@ export function buildPetForm(initialValues?: PetProfile | null): PetFormValues {
     behavioral_notes: initialValues.behavioral_notes ?? "",
     emergency_contact: initialValues.emergency_contact ?? "",
     feeding_schedule: initialValues.feeding_schedule ?? "",
-    is_evacuation_registered: initialValues.is_evacuation_registered,
   };
 }
 

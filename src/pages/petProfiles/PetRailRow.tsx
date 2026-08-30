@@ -72,15 +72,6 @@ export function PetRailRow({
             {pet.age_years != null ? ` · ${pet.age_years}yr` : ""}
           </p>
         </div>
-        {pet.is_evacuation_registered && (
-          <span
-            className="shrink-0 text-ds-9 font-bold uppercase"
-            style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.08em" }}
-            title="Evacuation registered"
-          >
-            🛟
-          </span>
-        )}
       </button>
 
       {/* Edit + delete. Named per-pet, because "Edit" alone in a list of five

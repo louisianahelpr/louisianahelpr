@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
-  Stethoscope, AlertTriangle, Phone, Siren,
+  Stethoscope, AlertTriangle, Phone,
   UtensilsCrossed, Fingerprint,
 } from "lucide-react";
 import type { PetProfile } from "./types";
@@ -172,27 +172,13 @@ export function PetDetail({
           </DetailBlock>
         )}
 
-        {/* Evacuation status */}
-        {pet.is_evacuation_registered && (
-          <div
-            className="flex items-start gap-2 rounded-ds-sm px-3 py-2"
-            style={{ background: "hsl(var(--burnt-sienna) / 0.08)", border: "1px solid hsl(var(--burnt-sienna) / 0.20)" }}
-          >
-            <Siren className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--burnt-sienna))" }} />
-            <p className="text-ds-12 leading-snug" style={{ color: "hsl(var(--burnt-sienna))" }}>
-              Registered for evacuation transport. Transport helpers can see this pet during declared emergencies.
-            </p>
-          </div>
-        )}
-
         {/* When there's nothing to show, gently prompt the user to fill it out */}
         {!pet.medical_notes &&
           !pet.behavioral_notes &&
           !pet.feeding_schedule &&
           !pet.vet_name && !pet.vet_phone &&
           !pet.emergency_contact &&
-          !pet.microchip_id &&
-          !pet.is_evacuation_registered && (
+          !pet.microchip_id && (
             <p className="text-ds-12 text-muted-foreground italic">
               No care details yet. Tap Edit to add feeding, medical notes,
               and a vet — the more your Helpr knows, the better.

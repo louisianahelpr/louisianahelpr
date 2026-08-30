@@ -163,11 +163,15 @@ export default function StrSettings() {
   // ── Remove connection ─────────────────────────────────────────────────────
   const { mutate: removeConnection } = useMutation({
     mutationFn: async (connectionId: string) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("str_calendar_connections")
         .update({ is_active: false })
-        .eq("id", connectionId);
+        .eq("id", connectionId)
+        .select("id");
       if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error("Couldn't remove that connection — try again?");
+      }
     },
     onSuccess: () => {
       setRemovingId(null);

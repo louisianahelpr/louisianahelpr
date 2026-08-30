@@ -289,7 +289,7 @@ const Legal = () => {
   // `topInsetHandled` because PublicLayout's nav spacer has already cleared the
   // safe-area top inset; without it the title block would double-count it.
   const webHeader = (
-    <PageHeader title="Legal" backTo="/" width="default" topInsetHandled />
+    <PageHeader title="Legal" backTo="/" width="public" topInsetHandled />
   );
 
   // ONE size, always. Below `sm` the three tabs share the full width as an

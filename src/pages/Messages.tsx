@@ -285,8 +285,8 @@ const Messages = () => {
 
   const deleteMessage = async (messageId: string) => {
     hapticHeavy();
-    const { error } = await supabase.from("messages").delete().eq("id", messageId);
-    if (error) {
+    const { data, error } = await supabase.from("messages").delete().eq("id", messageId).select("id");
+    if (error || !data || data.length === 0) {
       hapticError();
       toast.error("Couldn't delete that one — give it another try?");
     } else {

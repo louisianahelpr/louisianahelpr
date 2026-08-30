@@ -1,9 +1,4 @@
-import { haversineMiles } from "@/lib/geo";
-import type { GeoState } from "@/hooks/useUserLocation";
-import type { LastActiveLabel, ProfileJob } from "./types";
-
-// Radius (miles) used by the "did N jobs nearby" social-proof badge (#31).
-export const NEARBY_RADIUS_MI = 25;
+import type { LastActiveLabel } from "./types";
 
 // Active-cohort label (#5). Cohort-based copy ("Active today" / "Active
 // this week") instead of exact "2h ago" — a privacy nudge so a viewer
@@ -20,24 +15,4 @@ export function computeLastActiveLabel(lastActiveAt: Date | null): LastActiveLab
   if (ms < 24 * 60 * 60_000) return { text: "Active today", isLive: false };
   if (ms < 7 * 24 * 60 * 60_000) return { text: "Active this week", isLive: false };
   return null;
-}
-
-// Count of this helper's completed jobs that fell within NEARBY_RADIUS_MI of
-// the viewer's current location. Only counts jobs with usable lat/lng; older
-// posts without coords are silently skipped. Returns null until the viewer's
-// location is ready.
-export function computeJobsNearbyCount(
-  viewerLoc: GeoState,
-  workedJobs: ProfileJob[],
-): number | null {
-  if (viewerLoc.status !== "ready") return null;
-  let n = 0;
-  for (const j of workedJobs) {
-    if (j.status !== "completed") continue;
-    if (typeof j.latitude !== "number" || typeof j.longitude !== "number") continue;
-    if (haversineMiles(viewerLoc.lat, viewerLoc.lng, j.latitude, j.longitude) <= NEARBY_RADIUS_MI) {
-      n += 1;
-    }
-  }
-  return n;
 }

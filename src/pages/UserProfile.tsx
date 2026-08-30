@@ -30,11 +30,7 @@ import { RatingBreakdown } from "./userProfile/RatingBreakdown";
 import { ReviewsSection } from "./userProfile/ReviewsSection";
 import { JobsList } from "./userProfile/JobsList";
 import { useUserProfileData } from "./userProfile/useUserProfileData";
-import {
-  NEARBY_RADIUS_MI,
-  computeLastActiveLabel,
-  computeJobsNearbyCount,
-} from "./userProfile/userProfileHelpers";
+import { computeLastActiveLabel } from "./userProfile/userProfileHelpers";
 
 import ReportDialog from "@/components/ReportDialog";
 import { BlockUserDialog } from "@/components/BlockUserDialog";
@@ -42,7 +38,6 @@ import SaveHelperButton from "@/components/SaveHelperButton";
 import type { Database } from "@/integrations/supabase/types";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useUserLocation } from "@/hooks/useUserLocation";
 import { hasInAppHistory } from "@/lib/inAppHistory";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
@@ -74,11 +69,6 @@ const UserProfile = () => {
   const [showWorkedJobs, setShowWorkedJobs] = useState(false);
   const [showReport, setShowReport] = useState(false);
   const [showBlock, setShowBlock] = useState(false);
-  // Viewer opts in to the "did N jobs nearby" social proof (#31).
-  // Gated so we don't fire the geolocation prompt just to render a badge.
-  // The hook caches across pages, so once requested it's near-instant on
-  // every subsequent profile view in the same session.
-  const [showNearbyProof, setShowNearbyProof] = useState(false);
   // Reviews filter + pagination (#27). Category null = "all", rating null
   // = "all". Visible count starts at PAGE_SIZE and grows in PAGE_SIZE
   // increments via the "Show more" button at the bottom of the list.
@@ -128,12 +118,6 @@ const UserProfile = () => {
   } = useUserProfileData(userId, currentUserId);
 
   const profile = (data?.profile ?? null) as Profile | null;
-
-  // Geo for the "did N jobs nearby" badge (#31). Only enable the hook
-  // when the viewer has explicitly opted in via the inline trigger, so
-  // we never surprise-prompt for location just to render a profile.
-  const viewerLoc = useUserLocation(showNearbyProof);
-  const jobsNearbyCount = computeJobsNearbyCount(viewerLoc, workedJobs);
 
   // Computed up-front so the loading skeleton can render the same
   // PageHeader (eyebrow/title/meta) as the loaded state — both only
@@ -557,12 +541,6 @@ const UserProfile = () => {
               posterReputation={posterReputation}
               hasCleanRecord={hasCleanRecord}
               petCareSignal={petCareSignal}
-              workedJobs={workedJobs}
-              showNearbyProof={showNearbyProof}
-              onShowNearbyProof={() => setShowNearbyProof(true)}
-              viewerLoc={viewerLoc}
-              jobsNearbyCount={jobsNearbyCount}
-              nearbyRadiusMi={NEARBY_RADIUS_MI}
             />
           </div>
 

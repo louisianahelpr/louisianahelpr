@@ -89,8 +89,13 @@ export const container = { padding: '32px 28px', maxWidth: '480px' }
  */
 export const logo = {
   display: 'block' as const,
-  width: '150px',
-  maxWidth: '150px',
+  // Kept in sync with the `width="80"` attribute every template's <Img> also
+  // sets (Outlook ignores CSS width on images, so both must agree). This was
+  // 150px — nearly double the intended size — so any client honouring CSS
+  // over the HTML attribute (Mailinator's renderer, some webmail) rendered
+  // the wordmark oversized.
+  width: '80px',
+  maxWidth: '80px',
   height: 'auto' as const,
   margin: '0 0 24px',
   border: '0',

@@ -3,11 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHero } from "@/components/ui/dialog";
 import { ChevronLeft } from "lucide-react";
 import {
-  Users, Repeat, Rocket, Zap,
+  Users, Repeat, Rocket, Zap, Bookmark, Flag,
 } from "lucide-react";
 import { categoryLabels, categoryColors } from "@/components/activity/activityConstants";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { OptimizedImage } from "@/components/ui/optimized-image";
+import { getCity } from "@/lib/locationUtils";
+import { IconActionButton } from "./IconActionButton";
+import { ShareJobButton } from "@/components/jobs/ShareJobButton";
 import type { EnrichedJob } from "./types";
 import { JobPosterCard } from "./JobPosterCard";
 import { PhotoLightbox } from "./PhotoLightbox";
@@ -238,6 +241,52 @@ const JobDetailDialog = ({
             helpr filters on — and opening the job dropped it entirely. Same
             dot + icon + label treatment as the feed card so the two read as
             the same object. */}
+        {/* Corner actions — Save · Share · Report, parked beside the
+            dialog's own X so the footer can be a single full-width Apply
+            (owner, 2026-08-30: "this with the x"). Absolutely positioned
+            against the DialogContent's padding box, mirroring the X's
+            own `right-3 top-3`, and offset left of it by one 44px slot
+            each. Guests get none of them: all three need an account, and
+            the guest footer already carries its one sign-up CTA. */}
+        {!guest && (
+          <div className="absolute right-[3.25rem] top-3 z-10 flex items-center gap-0.5">
+            {onToggleSave && (
+              <IconActionButton
+                ariaLabel={isSaved ? "Unsave job" : "Save job"}
+                ariaPressed={isSaved}
+                onClick={() => onToggleSave(job.id, !isSaved)}
+                pressed={isSaved}
+                pressedBackground="hsl(var(--primary) / 0.12)"
+                pressedBorder="0.5px solid hsl(var(--primary) / 0.4)"
+                pressedColor="hsl(var(--primary))"
+                bare
+                icon={
+                  <Bookmark
+                    className={`w-4 h-4 transition-transform duration-300 group-hover:-translate-y-0.5 ${isSaved ? "fill-primary bookmark-pop" : ""}`}
+                    key={String(isSaved)}
+                    strokeWidth={2}
+                  />
+                }
+              />
+            )}
+            {viewerUserId !== job.customer_id && (
+              <ShareJobButton
+                variant="icon"
+                bare
+                job={{ id: job.id, title: job.title, budget: job.budget, category: job.category, city: getCity(job.location).replace(/,\s*LA\s*$/i, "") }}
+                ariaLabel="Share this job"
+              />
+            )}
+            <IconActionButton
+              ariaLabel="Report this job"
+              onClick={() => { onReport(job.id); onClose(); }}
+              bare
+              icon={
+                <Flag className="w-4 h-4 transition-transform duration-300 group-hover:-rotate-12 group-active:rotate-0" />
+              }
+            />
+          </div>
+        )}
         <div className="flex items-center gap-1.5 pr-10">
           {/* THE SAME CHIP the feed card and the map popup wear (owner: "should
               be in top left like the job card"). It used to be a bespoke
@@ -370,11 +419,12 @@ const JobDetailDialog = ({
           </div>
         )}
 
-        {/* Status pills — urgent · group size · recurrence — in one
-            aligned flex row so the signals read as a single set instead
-            of stacking unevenly. Urgent only joins this row when there's
-            no photo; with a photo it overlays the image up top instead. */}
-        {((job.is_urgent && photos.length === 0) || job.is_group_job || job.is_recurring) && (
+        {/* Status pills — urgent · boosted · group size · recurrence — in
+            one aligned flex row so the signals read as a single set
+            instead of stacking unevenly. Urgent/Boosted only join this
+            row when there's no photo; with a photo they overlay the
+            image's corners up top instead. */}
+        {((job.is_urgent && photos.length === 0) || (job.isBoosted && photos.length === 0) || job.is_group_job || job.is_recurring) && (
           <div className="flex items-center gap-1.5 flex-wrap">
             {job.is_urgent && photos.length === 0 && (
               <span
@@ -384,6 +434,31 @@ const JobDetailDialog = ({
               >
                 <Zap className="w-3 h-3 fill-accent" strokeWidth={2.25} />
                 Urgent
+              </span>
+            )}
+            {/* Boosted used to sit alone, absolutely positioned over the
+                description box below — visually orphaned from every other
+                status pill (owner: caught live, reads as a layout bug).
+                It's a badge like the others now; joins this row instead. */}
+            {job.isBoosted && photos.length === 0 && (
+              <span
+                aria-label="Boosted"
+                className="boosted-shimmer boosted-pulse inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-ds-10 font-semibold uppercase tracking-wider"
+                style={{
+                  color: "hsl(var(--amber-ink))",
+                  border: "0.5px solid hsl(var(--boost-tint) / 0.6)",
+                  boxShadow:
+                    "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
+                    "inset 0 -1px 1px 0 hsl(var(--boost-tint) / 0.20), " +
+                    "0 1px 2px hsl(var(--boost-tint) / 0.20)",
+                }}
+              >
+                <Rocket
+                  className="w-3 h-3"
+                  strokeWidth={2.25}
+                  style={{ color: "hsl(var(--boost-tint))", fill: "hsl(var(--boost-tint) / 0.35)" }}
+                />
+                Boosted
               </span>
             )}
             {job.is_group_job && (
@@ -442,24 +517,6 @@ const JobDetailDialog = ({
             wider than the track and the line-clamp box would clip the
             overflow. min-w-0 lets it shrink to the track and wrap. */}
         <div className="relative min-w-0">
-          {photos.length === 0 && job.isBoosted && (
-            <span
-              aria-label="Boosted"
-              className="boosted-shimmer boosted-pulse absolute -top-2 -right-2 z-10 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-ds-9 font-bold uppercase tracking-wider"
-              style={{
-                color: "hsl(var(--amber-ink))",
-                border: "0.5px solid hsl(var(--boost-tint) / 0.6)",
-                boxShadow:
-                  "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
-                  "inset 0 -1px 1px 0 hsl(var(--boost-tint) / 0.20), " +
-                  "0 1px 2px hsl(var(--boost-tint) / 0.20), " +
-                  "0 4px 10px -3px hsl(var(--boost-tint) / 0.34)",
-              }}
-            >
-              <Rocket className="w-2.5 h-2.5" strokeWidth={2.25} style={{ color: "hsl(var(--boost-tint))", fill: "hsl(var(--boost-tint) / 0.35)" }} />
-              Boosted
-            </span>
-          )}
           <div
             className="rounded-ds-md px-3.5 py-2.5"
             style={{
@@ -546,9 +603,6 @@ const JobDetailDialog = ({
         <JobDetailFooter
           job={job}
           guest={guest}
-          isSaved={isSaved}
-          onToggleSave={onToggleSave}
-          onClose={onClose}
           onApply={async (id) => {
             const accepted = await onApply(id);
             // Without an apply step (the guest surfaces) this closes as it
@@ -558,7 +612,6 @@ const JobDetailDialog = ({
             if (!applyStep) { onClose(); return; }
             if (accepted !== false) setStep("apply");
           }}
-          onReport={onReport}
           navigate={navigate}
           viewerUserId={viewerUserId}
           viewerAppPosition={viewerAppPosition}

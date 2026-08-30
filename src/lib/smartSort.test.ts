@@ -63,22 +63,20 @@ describe("smartScore", () => {
     expect(budgetGap).toBeLessThan(10);
   });
 
-  it("adds an urgency bonus when urgent_fee > 0", () => {
+  it("gives urgency zero weight in the ranking score", () => {
+    // Owner, 2026-08-29: "urgent does not go first, it's just go by when
+    // they posted it." Urgency used to add a flat +0.5 here on top of a
+    // separate hard override in useDashboardFilters — both are gone.
+    // Same created_at/budget/coords means these two must score IDENTICALLY
+    // regardless of urgent_fee, is_urgent, or an imminent date_needed.
     const base = makeJob({ id: "base", date_needed: "2026-06-20" });
-    const urgent = makeJob({ id: "urg", date_needed: "2026-06-20", urgent_fee: 25 });
-    expect(smartScore(urgent, null, NOW)).toBeGreaterThan(smartScore(base, null, NOW));
-    expect(smartScore(urgent, null, NOW) - smartScore(base, null, NOW)).toBeCloseTo(0.5, 5);
-  });
-
-  it("adds an urgency bonus when date_needed is within 48h", () => {
-    // Hardcoded date one calendar day after NOW (2026-05-20) so the
-    // 48h window test stays correct regardless of the test machine's
-    // timezone. date_needed is a YYYY-MM-DD string parsed at noon local
-    // by smartSort, so "tomorrow" sits at ~24-29h ahead in any US TZ.
-    const farOff = makeJob({ id: "far", date_needed: "2026-12-01" });
-    const soon = makeJob({ id: "soon", date_needed: "2026-05-21" });
-    expect(smartScore(soon, null, NOW)).toBeGreaterThan(smartScore(farOff, null, NOW));
-    expect(smartScore(soon, null, NOW) - smartScore(farOff, null, NOW)).toBeCloseTo(0.5, 5);
+    const urgent = makeJob({
+      id: "urg",
+      date_needed: "2026-05-21", // within the old 48h window
+      urgent_fee: 25,
+      is_urgent: true,
+    });
+    expect(smartScore(urgent, null, NOW)).toBe(smartScore(base, null, NOW));
   });
 
   it("adds the proximity bonus when helper has coords and job is nearby", () => {

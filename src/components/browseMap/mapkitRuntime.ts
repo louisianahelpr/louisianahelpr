@@ -109,34 +109,6 @@ export function colorSchemeFor(mk: MapKitRuntime, dark: boolean): string {
   return schemes?.Light ?? "light";
 }
 
-/**
- * Metres covered by one CSS pixel at the map's current camera.
- *
- * THIS IS THE UNIT BRIDGE FOR THE HEAT LAYER. Leaflet's `CircleMarker`
- * radius is in SCREEN PIXELS — a 24px bubble stays 24px at every zoom — while
- * MapKit's `CircleOverlay` radius is in METRES, so the identical number would
- * draw a 24-metre dot (invisible statewide) and the heat layer would look
- * empty. We therefore keep the design radius in pixels (exactly the numbers
- * the Leaflet layer used) and convert to metres against the live camera,
- * recomputing on every `region-change-end` so the bubbles hold their on-screen
- * size as the user zooms, the way they did under Leaflet.
- *
- * Derivation: the visible region's longitude span in metres, divided by the
- * map element's pixel width. Longitude degrees shrink with latitude, hence the
- * cos(centre latitude) term.
- */
-export const METRES_PER_DEGREE_LAT = 111_320;
-
-export function metresPerPixel(map: MKMap): number {
-  const width = map.element?.clientWidth || 0;
-  const region = map.region;
-  if (!width || !region?.span) return 0;
-  const latRad = (region.center.latitude * Math.PI) / 180;
-  const spanMetres =
-    region.span.longitudeDelta * METRES_PER_DEGREE_LAT * Math.max(Math.cos(latRad), 0.1);
-  return spanMetres / width;
-}
-
 /** A CoordinateRegion covering a [[south, west], [north, east]] box, padded. */
 export function regionFromBounds(
   mk: MapKitRuntime,

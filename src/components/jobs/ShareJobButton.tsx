@@ -39,6 +39,12 @@ interface ShareJobButtonProps {
    * row at 375px). Ignored by the icon-only variant.
    */
   layout?: "row" | "stack";
+  /**
+   * Icon variant only: strip the glass chip — no fill, border, or shadow,
+   * just the glyph in a 44px tap target. For chrome positions (beside a
+   * dialog's own bare X) where a filled tile reads as content.
+   */
+  bare?: boolean;
   /** Optional aria-label override for the icon-only variant. */
   ariaLabel?: string;
   /**
@@ -92,6 +98,7 @@ export function ShareJobButton({
   layout = "row",
   ariaLabel,
   style,
+  bare = false,
 }: ShareJobButtonProps) {
   // Disable the button while a share is in flight so impatient
   // double-taps don't queue duplicate share sheets.
@@ -283,10 +290,12 @@ export function ShareJobButton({
         disabled={sharing}
         onClick={handleShare}
         className={cn(
-          "group glass-press rounded-full h-11 w-11 sm:h-12 sm:w-12 shrink-0 motion-safe:transition-all motion-safe:duration-200 motion-safe:hover:scale-105 motion-safe:active:scale-95",
+          bare
+            ? "group rounded-md h-11 w-11 shrink-0 btn-press motion-safe:transition-colors hover:text-foreground"
+            : "group glass-press rounded-full h-11 w-11 sm:h-12 sm:w-12 shrink-0 motion-safe:transition-all motion-safe:duration-200 motion-safe:hover:scale-105 motion-safe:active:scale-95",
           className,
         )}
-        style={{
+        style={bare ? { color: "hsl(var(--muted-foreground))" } : {
           backgroundColor: "hsla(0, 0%, 100%, 0.32)",
           backdropFilter: "blur(20px) saturate(150%)",
           WebkitBackdropFilter: "blur(20px) saturate(150%)",

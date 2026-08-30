@@ -4,39 +4,9 @@ import { JOB_CATEGORY_LABELS } from "@/lib/jobCategories";
 // Extracted verbatim from BrowseMap.tsx — pure data + pure helpers with
 // no map/effect coupling, so they move cleanly out of the render file.
 
-// Above this many open jobs, default to Heat view so the user sees
-// hotspots at a glance instead of a soup of clustered pins. The user
-// can still flip back to Pins via the top-right toggle.
-export const HEAT_AUTO_THRESHOLD = 50;
-
-// Persisted user choice for the Pins/Heat toggle. Stored in
-// localStorage so a helper who prefers Heat across sessions keeps it
-// without re-toggling on every map open. The presence of any stored
-// value also suppresses the auto-Heat-at-threshold behavior so we
-// never overwrite an explicit user preference.
-const LAYER_STORAGE_KEY = "helpr_browse_map_layer";
-export type MapLayer = "pins" | "heat";
-
-export function readStoredLayer(): MapLayer | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const v = window.localStorage.getItem(LAYER_STORAGE_KEY);
-    return v === "pins" || v === "heat" ? v : null;
-  } catch {
-    // localStorage can throw in privacy mode / sandboxed contexts —
-    // just fall back to "no preference stored".
-    return null;
-  }
-}
-
-export function writeStoredLayer(layer: MapLayer): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(LAYER_STORAGE_KEY, layer);
-  } catch {
-    // Swallow — the toggle still works in memory for this session.
-  }
-}
+// The Pins/Heat toggle, its localStorage persistence, and the
+// auto-switch-to-Heat-above-50-jobs heuristic were removed 2026-08-30
+// (owner: "remove heat, pins are fine"). The map is pins-only now.
 
 export interface MapJob {
   id: string;
@@ -101,7 +71,6 @@ export const LA_BOUNDS: [[number, number], [number, number]] = [
   [28.5, -94.6], // SW (Gulf coast / TX line)
   [33.3, -88.4], // NE (AR/MS line)
 ];
-export const LA_MIN_ZOOM = 6;
 
 // Category → human label, used by the pin popup. Canonical table lives in
 // `src/lib/jobCategories.ts`; re-exported here so existing importers keep

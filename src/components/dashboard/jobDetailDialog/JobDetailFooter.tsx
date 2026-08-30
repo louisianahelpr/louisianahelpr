@@ -1,19 +1,13 @@
 import { Button } from "@/components/ui/button";
-import { Flag, Bookmark, MessageSquare, ChevronRight, ShieldCheck, Check } from "lucide-react";
-import { getCity } from "@/lib/locationUtils";
+import { Bookmark, MessageSquare, ChevronRight, ShieldCheck, Check } from "lucide-react";
 import { IconActionButton } from "../IconActionButton";
-import { ShareJobButton } from "@/components/jobs/ShareJobButton";
 import type { EnrichedJob } from "../types";
 import { signupUrlFor, rememberPendingSave } from "@/lib/jobIntent";
 
 interface JobDetailFooterProps {
   job: EnrichedJob;
   guest: boolean;
-  isSaved?: boolean;
-  onToggleSave?: (jobId: string, saved: boolean) => void;
-  onClose: () => void;
   onApply: (jobId: string) => void | boolean | Promise<void | boolean>;
-  onReport: (jobId: string) => void;
   navigate: (to: string) => void;
   viewerUserId: string | null;
   viewerAppPosition: number | null;
@@ -21,13 +15,14 @@ interface JobDetailFooterProps {
   onAskQuestion: () => void;
 }
 
-/* Footer actions — Flag · Save · Message · Apply.
-   Each secondary icon button gets a hover-scale + glow ring effect
-   so they feel tactile rather than static.
-   Guests get a single sign-up CTA instead — apply/message/save/report
-   all require an account, so we surface one clear next step. */
+/* Footer actions — Message · Apply, and that's it. Flag / Save / Share
+   moved up to JobDetailDialog's corner actions (see the note there) — this
+   row is now just the one decision that matters and, for the few people
+   entitled to it, the option to message the poster first.
+   Guests get a single sign-up CTA instead — apply/message all require an
+   account, so we surface one clear next step. */
 export const JobDetailFooter = ({
-  job, guest, isSaved, onToggleSave, onClose, onApply, onReport, navigate,
+  job, guest, onApply, navigate,
   viewerUserId, viewerAppPosition, viewerTier, onAskQuestion,
 }: JobDetailFooterProps) => {
   if (guest) {
@@ -101,48 +96,14 @@ export const JobDetailFooter = ({
   }
 
   return (
+    /* ONE full-width CTA (owner, 2026-08-30). Flag / Save / Share used to
+       sit on this row at the same visual tier as Apply Now, so the single
+       most important action on the screen competed with three icon buttons
+       for the same strip of thumb space. Those three moved up beside the
+       dialog's X (see JobDetailDialog's corner actions) — they're chrome,
+       not decisions. Message stays here: it IS a decision, and it only
+       renders for the few people entitled to send one. */
     <div className="flex gap-1.5 pt-0.5">
-      <IconActionButton
-        ariaLabel="Report this job"
-        onClick={() => { onReport(job.id); onClose(); }}
-        hoverGlow="inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), 0 4px 12px -2px hsl(var(--burnt-sienna) / 0.20), 0 0 0 3px hsl(var(--burnt-sienna) / 0.08)"
-        hoverColor="hsl(var(--burnt-sienna) / 0.85)"
-        icon={
-          /* Flag waves on hover — subtle counter-clockwise tilt */
-          <Flag className="w-4 h-4 transition-transform duration-300 group-hover:-rotate-12 group-active:rotate-0" />
-        }
-      />
-      {onToggleSave && (
-        <IconActionButton
-          ariaLabel={isSaved ? "Unsave job" : "Save job"}
-          ariaPressed={isSaved}
-          onClick={() => onToggleSave(job.id, !isSaved)}
-          pressed={isSaved}
-          pressedBackground="hsl(var(--primary) / 0.12)"
-          pressedBorder="0.5px solid hsl(var(--primary) / 0.4)"
-          pressedColor="hsl(var(--primary))"
-          hoverGlow="inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), 0 4px 12px -2px hsl(var(--primary) / 0.22), 0 0 0 3px hsl(var(--primary) / 0.10)"
-          hoverColor="hsl(var(--primary))"
-          icon={
-            /* Bookmark lifts on hover, pops on toggle */
-            <Bookmark
-              className={`w-4 h-4 transition-transform duration-300 group-hover:-translate-y-0.5 ${isSaved ? "fill-primary bookmark-pop" : ""}`}
-              key={String(isSaved)}
-              strokeWidth={2}
-            />
-          }
-        />
-      )}
-      {/* Share — helpers forward great jobs to neighbours / friends.
-          Hidden for the poster (they already own it). Matches the
-          icon-row sizing of its neighbours (Flag · Save · Message). */}
-      {viewerUserId !== job.customer_id && (
-        <ShareJobButton
-          variant="icon"
-          job={{ id: job.id, title: job.title, budget: job.budget, category: job.category, city: getCity(job.location).replace(/,\s*LA\s*$/i, "") }}
-          ariaLabel="Share this job"
-        />
-      )}
       {/* Message the poster — gated to people with a real reason to
           reach them: the poster themselves, a helper who's been offered
           or hired onto the job, OR a helper who has already applied

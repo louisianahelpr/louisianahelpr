@@ -26,10 +26,17 @@ export interface IconActionButtonProps {
   /** Accessible label — required (icon-only button). */
   ariaLabel: string;
   onClick: () => void;
-  /** Hover glow box-shadow (the lifted state). */
-  hoverGlow: string;
-  /** Hover icon color. */
-  hoverColor: string;
+  /** Hover glow box-shadow (the lifted state). Ignored when `bare`. */
+  hoverGlow?: string;
+  /** Hover icon color. Ignored when `bare`. */
+  hoverColor?: string;
+  /**
+   * Strip the glass plate — no fill, border, or resting shadow, just the
+   * icon in a 44px tap target. For chrome positions where the button sits
+   * beside the dialog's own X, which is bare for the same reason: a row of
+   * filled tiles up there reads as content rather than window furniture.
+   */
+  bare?: boolean;
   /** Pressed/active state (Save when `isSaved`) — tints the resting styles. */
   pressed?: boolean;
   /** Resting background when pressed (e.g. Save's primary tint). */
@@ -58,23 +65,29 @@ export const IconActionButton = forwardRef<HTMLButtonElement, IconActionButtonPr
       pressedBorder,
       pressedColor,
       ariaPressed,
+      bare = false,
     },
     ref,
   ) {
     // Hover styling is driven by these CSS vars + the arbitrary `hover:`
     // utilities below — no onMouseEnter/onMouseLeave JS.
-    const style = {
-      backgroundColor: pressed ? pressedBackground : "var(--glass-bg-soft)",
-      backdropFilter: "blur(20px) saturate(150%)",
-      WebkitBackdropFilter: "blur(20px) saturate(150%)",
-      border: pressed ? pressedBorder : "0.5px solid var(--glass-border)",
-      color: pressed ? pressedColor : "hsl(var(--olivewood) / 0.8)",
-      boxShadow: RESTING_SHADOW,
-      transition: "all 0.2s ease, box-shadow 0.3s ease",
-      // Custom props consumed by the hover: utilities in className.
-      "--ia-glow": hoverGlow,
-      "--ia-color": hoverColor,
-    } as CSSProperties;
+    const style = bare
+      ? ({
+          color: pressed ? pressedColor : "hsl(var(--muted-foreground))",
+          transition: "color 0.2s ease",
+        } as CSSProperties)
+      : ({
+          backgroundColor: pressed ? pressedBackground : "var(--glass-bg-soft)",
+          backdropFilter: "blur(20px) saturate(150%)",
+          WebkitBackdropFilter: "blur(20px) saturate(150%)",
+          border: pressed ? pressedBorder : "0.5px solid var(--glass-border)",
+          color: pressed ? pressedColor : "hsl(var(--olivewood) / 0.8)",
+          boxShadow: RESTING_SHADOW,
+          transition: "all 0.2s ease, box-shadow 0.3s ease",
+          // Custom props consumed by the hover: utilities in className.
+          "--ia-glow": hoverGlow,
+          "--ia-color": hoverColor,
+        } as CSSProperties);
 
     return (
       <Button
@@ -85,13 +98,15 @@ export const IconActionButton = forwardRef<HTMLButtonElement, IconActionButtonPr
         aria-pressed={ariaPressed}
         onClick={onClick}
         className={
-          "group glass-press rounded-ds-md h-11 w-11 sm:h-12 sm:w-12 shrink-0 " +
-          "transition-all duration-200 hover:scale-105 active:scale-95 " +
-          // CSS-driven hover (desktop only): lift the glow + recolor the icon
-          // via the per-instance custom properties. Pressed buttons keep
-          // their accent resting color, so only the glow lifts on hover.
-          "hover:[box-shadow:var(--ia-glow)] " +
-          (pressed ? "" : "hover:[color:var(--ia-color)]")
+          bare
+            ? "group rounded-md h-11 w-11 shrink-0 btn-press hover:text-foreground transition-colors"
+            : "group glass-press rounded-ds-md h-11 w-11 sm:h-12 sm:w-12 shrink-0 " +
+              "transition-all duration-200 hover:scale-105 active:scale-95 " +
+              // CSS-driven hover (desktop only): lift the glow + recolor the icon
+              // via the per-instance custom properties. Pressed buttons keep
+              // their accent resting color, so only the glow lifts on hover.
+              "hover:[box-shadow:var(--ia-glow)] " +
+              (pressed ? "" : "hover:[color:var(--ia-color)]")
         }
         style={style}
       >

@@ -5,15 +5,20 @@ import { haversineMiles } from "@/lib/geo";
  * Helper-side composite-score sort for the browse-jobs feed.
  *
  * A "Smart" default that floats high-conversion jobs to the top by mixing
- * four signals every helper actually weighs when scanning the feed:
+ * three signals every helper actually weighs when scanning the feed:
  *
  *  - **Recency**     — how fresh the post is (newer = stronger pull)
  *  - **Budget**      — how much it pays (more = stronger pull, log-scaled
  *                      so a $5000 job doesn't bury everything else)
- *  - **Urgency**     — whether it carries an urgent_fee bonus or the
- *                      requested date is within 48h
  *  - **Proximity**   — if we know the helper's coords AND the job's coords,
  *                      jobs nearer than 10/25 miles get a bonus
+ *
+ * Urgency is NOT a ranking signal (owner, 2026-08-29: "urgent does not go
+ * first, it's just go by when they posted it — boosted is the only one
+ * that truly pins at the top"). It used to add a flat score bonus here on
+ * top of the hard priority-chain override in useDashboardFilters — both
+ * are gone. Urgent stays exactly what its badge says: a signal the viewer
+ * reads, not a queue-jump the app applies for them.
  *
  * Pure functions on already-fetched job rows; no async, no I/O. The
  * scoring weights are intentionally hand-tuned constants — easy to read
@@ -53,10 +58,6 @@ export function compareJobsBySortMode(a: EnrichedJob, b: EnrichedJob, sortBy: st
 /** Recency half-life — score halves every ~4 days of age. */
 const RECENCY_HALFLIFE_MS = 4 * 24 * 60 * 60 * 1000;
 
-/** Urgent jobs (urgent_fee > 0 OR date_needed within this window) get +0.5. */
-const URGENT_WINDOW_MS = 48 * 60 * 60 * 1000;
-const URGENT_BONUS = 0.5;
-
 /** Proximity tiers (miles → flat bonus). */
 const NEAR_BONUS = 0.3;
 const NEAR_MILES = 10;
@@ -84,32 +85,6 @@ function recencyScore(createdAt: string | null | undefined, now: number): number
 function budgetScore(budget: number | null | undefined): number {
   if (typeof budget !== "number" || !Number.isFinite(budget) || budget <= 0) return 0;
   return Math.log10(budget + 1);
-}
-
-/**
- * Urgency component — flat +0.5 if EITHER the job carries an urgent_fee
- * bonus OR its date_needed falls inside the next 48h. The is_urgent
- * boolean column is also honored for safety since posters set it.
- */
-function urgencyBonus(
-  job: Pick<EnrichedJob, "urgent_fee" | "is_urgent" | "date_needed">,
-  now: number,
-): number {
-  if (typeof job.urgent_fee === "number" && job.urgent_fee > 0) return URGENT_BONUS;
-  if (job.is_urgent) return URGENT_BONUS;
-  if (job.date_needed) {
-    // date_needed is a calendar date — treat it as noon local to avoid
-    // timezone-edge "midnight is yesterday" weirdness, matching how the
-    // existing match-availability filter parses it.
-    const ts = new Date(job.date_needed + "T12:00:00").getTime();
-    if (Number.isFinite(ts)) {
-      const delta = ts - now;
-      if (delta <= URGENT_WINDOW_MS && delta >= -URGENT_WINDOW_MS) {
-        return URGENT_BONUS;
-      }
-    }
-  }
-  return 0;
 }
 
 /**
@@ -142,17 +117,13 @@ function proximityBonus(
  * rather than in callers.
  */
 export function smartScore(
-  job: Pick<
-    EnrichedJob,
-    "created_at" | "budget" | "urgent_fee" | "is_urgent" | "date_needed" | "latitude" | "longitude"
-  >,
+  job: Pick<EnrichedJob, "created_at" | "budget" | "latitude" | "longitude">,
   helperLocation?: HelperLocation | null,
   now: number = Date.now(),
 ): number {
   return (
     recencyScore(job.created_at, now) +
     budgetScore(job.budget) +
-    urgencyBonus(job, now) +
     proximityBonus(job, helperLocation)
   );
 }

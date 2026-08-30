@@ -25,20 +25,15 @@ import { createRoot, type Root } from "react-dom/client";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { Button } from "@/components/ui/button";
-import { BellRing, MapPin, MapPinOff } from "lucide-react";
-import { HelprSpinner } from "@/components/ui/HelprSpinner";
+import { BellRing, MapPin, MapPinOff, Loader2 } from "lucide-react";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useMapKitJs } from "@/hooks/useMapKitJs";
 import {
-  HEAT_AUTO_THRESHOLD,
   LA_BOUNDS,
-  readStoredLayer,
-  writeStoredLayer,
   type MapJob,
-  type MapLayer,
 } from "./browseMap/config";
 import { MapJobPopup } from "./browseMap/MapJobPopup";
-import { bucketJobs, clusterElement, pinElement, PIN_HEIGHT } from "./browseMap/mapMarkers";
+import { clusterElement, pinElement, PIN_HEIGHT } from "./browseMap/mapMarkers";
 import {
   buildMapJobFilter,
   isAnyFilterActive,
@@ -46,13 +41,9 @@ import {
   type MapJobFilterInput,
 } from "./browseMap/mapFilter";
 import {
-  addHeatOverlays,
   fitToPins,
-  HeatCaption,
   laRegion,
-  resizeHeatOverlays,
   RecenterControl,
-  type HeatBucket,
 } from "./browseMap/MapLayers";
 import {
   colorSchemeFor,
@@ -60,7 +51,6 @@ import {
   regionFromBounds,
   type MKAnnotation,
   type MKMap,
-  type MKOverlay,
 } from "./browseMap/mapkitRuntime";
 
 interface BrowseMapProps {
@@ -140,28 +130,8 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
   const [loadError, setLoadError] = useState(false);
   /** Bumped by the retry button to re-run the fetch effect. */
   const [reloadNonce, setReloadNonce] = useState(0);
-  // Initialize from localStorage so the user's last choice survives
-  // app restarts (and Capacitor cold starts).
-  const [view, setView] = useState<MapLayer>(() => readStoredLayer() ?? "pins");
   const [mapReady, setMapReady] = useState(false);
   const [isDark, setIsDark] = useState(readIsDark);
-  /** The "N jobs here" caption a heat bubble raises on tap. */
-  const [heatCaption, setHeatCaption] = useState<number | null>(null);
-  // Track whether we've already auto-switched to Heat for this session
-  // so the auto-switch fires once on first load only — manual flips
-  // back to Pins after that are respected. If there's a stored
-  // preference, treat auto-switch as already-applied so we never
-  // overwrite an explicit user choice with the density heuristic.
-  const heatAutoApplied = useRef(readStoredLayer() !== null);
-
-  const selectView = (next: MapLayer) => {
-    setView(next);
-    writeStoredLayer(next);
-    // Treat any manual selection as the user's explicit preference —
-    // freeze the auto-switch so a later high-density refresh doesn't
-    // flip them back.
-    heatAutoApplied.current = true;
-  };
 
   useEffect(() => {
     let cancelled = false;
@@ -198,14 +168,6 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
           (j) => j.latitude !== null && j.longitude !== null && !Number.isNaN(Number(j.latitude)),
         );
         setJobs(cleaned);
-        // Auto-switch to Heat when there are enough pins that the
-        // individual markers would just read as cluster soup. Runs
-        // exactly once per mount so a user who manually flips back to
-        // Pins stays there.
-        if (!heatAutoApplied.current && cleaned.length >= HEAT_AUTO_THRESHOLD) {
-          setView("heat");
-          heatAutoApplied.current = true;
-        }
         setLoading(false);
       });
     return () => {
@@ -213,10 +175,9 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
     };
   }, [currentUserId, reloadNonce]);
 
-  // Filtered pin set. Every downstream consumer (count badge, heat buckets,
-  // FitToPins, the markers themselves, the empty state) reads THIS, not the
-  // raw `jobs` — otherwise the map would zoom to and count pins it isn't
-  // drawing.
+  // Filtered pin set. Every downstream consumer (count badge, fitToPins, the
+  // markers themselves, the empty state) reads THIS, not the raw `jobs` —
+  // otherwise the map would zoom to and count pins it isn't drawing.
   const visibleJobs = useMemo(
     () => (filters ? jobs.filter(buildMapJobFilter(filters)) : jobs),
     [jobs, filters],
@@ -270,7 +231,6 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
   // ── MapKit lifecycle ────────────────────────────────────────────────────
   const mapRef = useRef<MKMap | null>(null);
   const annotationsRef = useRef<MKAnnotation[]>([]);
-  const heatOverlaysRef = useRef<MKOverlay[]>([]);
   /** One React root per open callout body, torn down with its annotation. */
   const calloutRootsRef = useRef<Root[]>([]);
   // A CALLBACK REF, held in state, not a plain ref: the map surface is not in
@@ -362,7 +322,6 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
       try { mapRef.current?.destroy?.(); } catch { /* ignore */ }
       mapRef.current = null;
       annotationsRef.current = [];
-      heatOverlaysRef.current = [];
     };
   }, []);
 
@@ -407,7 +366,7 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
     const map = mapRef.current;
     if (!mk || !map) return;
     clearAnnotations();
-    if (view !== "pins" || visibleJobs.length === 0) return;
+    if (visibleJobs.length === 0) return;
 
     const annotations = visibleJobs.map((job) => {
       const body = document.createElement("div");
@@ -444,56 +403,7 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
     });
     annotationsRef.current = annotations;
     try { map.addAnnotations(annotations); } catch { /* ignore */ }
-  }, [visibleJobs, view, mapReady, ctaLabel, effectiveFee, onJobAction, calloutWidth, clearAnnotations]);
-
-  const heatBuckets: HeatBucket[] = useMemo(
-    () => (view === "heat" ? bucketJobs(visibleJobs) : []),
-    [view, visibleJobs],
-  );
-
-  // Heat layer. See ./MapLayers for the pixel→metre radius bridge and why the
-  // radii are recomputed whenever the camera settles.
-  useEffect(() => {
-    const mk = getMapKit();
-    const map = mapRef.current;
-    if (!mk || !map) return;
-    if (heatOverlaysRef.current.length) {
-      try { map.removeOverlays(heatOverlaysRef.current); } catch { /* ignore */ }
-      heatOverlaysRef.current = [];
-    }
-    if (view !== "heat" || heatBuckets.length === 0) return;
-
-    heatOverlaysRef.current = addHeatOverlays(mk, map, heatBuckets, (bucket) => {
-      setHeatCaption(bucket.count);
-      // Tap-to-zoom: pan to the bucket centre and step in, the Leaflet
-      // `flyTo(center, zoom + 2)` equivalent — halving the visible span is
-      // one zoom level, so quartering it is two.
-      const span = map.region.span;
-      map.setRegionAnimated(
-        new mk.CoordinateRegion(
-          new mk.Coordinate(bucket.center[0], bucket.center[1]),
-          new mk.CoordinateSpan(
-            Math.max(span.latitudeDelta / 4, 0.01),
-            Math.max(span.longitudeDelta / 4, 0.01),
-          ),
-        ),
-        true,
-      );
-    });
-
-    const onRegionEnd = () => resizeHeatOverlays(map, heatOverlaysRef.current);
-    map.addEventListener("region-change-end", onRegionEnd);
-    return () => {
-      map.removeEventListener("region-change-end", onRegionEnd);
-    };
-  }, [heatBuckets, view, mapReady]);
-
-  // Auto-dismiss the heat caption so it doesn't hang over the map forever.
-  useEffect(() => {
-    if (heatCaption === null) return;
-    const t = setTimeout(() => setHeatCaption(null), 2600);
-    return () => clearTimeout(t);
-  }, [heatCaption]);
+  }, [visibleJobs, mapReady, ctaLabel, effectiveFee, onJobAction, calloutWidth, clearAnnotations]);
 
   // Frame the pins whenever the visible set changes (FitToPins' old job).
   useEffect(() => {
@@ -516,7 +426,11 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
         className={`flex items-center justify-center h-full w-full bg-card/40${shellClass}`}
         style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 96px + 1rem)" }}
       >
-        <HelprSpinner size={20} />
+        {/* Plain neutral spinner, not the branded H — the wrought-iron
+            emblem's asymmetric shape reads oddly mid-rotation on this
+            surface (owner, 2026-08-30). HelprSpinner stays the default
+            everywhere else. */}
+        <Loader2 className="w-5 h-5 animate-spin" style={{ color: "hsl(var(--bark) / 0.6)" }} />
       </div>
     );
   }
@@ -547,13 +461,6 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
        corners. Top corners stay rounded so the panel still reads as a
        distinct surface above the dock. */
     <div ref={mapBoxRef} className={`relative h-full w-full overflow-hidden${shellClass}`}>
-      {/* Layer-toggle control card — top-right, surfaced prominently
-          so helpers can scan job concentration at a glance and flip
-          between individual Pins and the density Heat layer in one
-          tap. The "N jobs" badge above keeps the dataset size visible
-          in both modes so the toggle reads as a real scanning aid.
-          Hidden when the board is empty — a layer toggle and a "0 jobs"
-          badge are noise when there's nothing to plot. */}
       {/* Honest note when a filter the viewer turned on has no field on the
           map row to test (the RPC returns a narrow, PII-safe shape). Without
           this the map silently shows pins the list has already excluded and
@@ -595,45 +502,8 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
               ? `${visibleJobs.length} of ${totalOpen} mapped`
               : `${visibleJobs.length} ${visibleJobs.length === 1 ? "job" : "jobs"}`}
         </div>
-        <div
-          role="group"
-          aria-label="Map layer"
-          data-testid="browse-map-layer-toggle"
-          className="flex items-center gap-1 p-1 rounded-full bg-[hsl(var(--parchment)/0.9)]"
-          style={{
-            border: "0.5px solid hsl(var(--olivewood) / 0.22)",
-            boxShadow: "0 6px 18px -6px hsl(var(--olivewood) / 0.28)",
-            backdropFilter: "blur(8px)",
-            WebkitBackdropFilter: "blur(8px)",
-          }}
-        >
-          {([
-            { key: "pins" as const, label: "Pins" },
-            { key: "heat" as const, label: "Heat" },
-          ]).map((opt) => {
-            const active = view === opt.key;
-            return (
-              <button
-                key={opt.key}
-                type="button"
-                onClick={() => selectView(opt.key)}
-                aria-pressed={active}
-                aria-label={`${opt.label} layer`}
-                data-testid={`browse-map-layer-${opt.key}`}
-                className={
-                  active
-                    ? "px-3.5 h-8 rounded-full text-ds-12 font-sans font-semibold transition-all bg-[hsl(var(--bark))] text-white shadow-sm"
-                    : "px-3.5 h-8 rounded-full text-ds-12 font-sans font-semibold transition-all bg-[hsl(var(--parchment)/0.9)] text-[hsl(var(--bark))] hover:bg-[hsl(var(--parchment))]"
-                }
-              >
-                {opt.label}
-              </button>
-            );
-          })}
-        </div>
       </div>
       )}
-      {heatCaption !== null && <HeatCaption count={heatCaption} />}
       {/* Empty board — keep the real Louisiana map on screen (so it reads
           as "no posts yet here", not "the map is broken") and float a
           soft frosted caption over it. The wrapper passes pointer events
@@ -742,7 +612,11 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
             WebkitBackdropFilter: "blur(2px)",
           }}
         >
-          <HelprSpinner size={20} />
+          {/* Plain neutral spinner, not the branded H — the wrought-iron
+            emblem's asymmetric shape reads oddly mid-rotation on this
+            surface (owner, 2026-08-30). HelprSpinner stays the default
+            everywhere else. */}
+        <Loader2 className="w-5 h-5 animate-spin" style={{ color: "hsl(var(--bark) / 0.6)" }} />
         </div>
       )}
       <div

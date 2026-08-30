@@ -1,5 +1,5 @@
 import { type ElementType } from "react";
-import { MapPin, Calendar, Clock, Hourglass, Timer } from "lucide-react";
+import { MapPin, Calendar, Clock, Hourglass, Timer, Users } from "lucide-react";
 import { getCity } from "@/lib/locationUtils";
 import { formatJobDate, parseLocalDate } from "@/lib/dateUtils";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
@@ -98,6 +98,21 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
                 urgent: false,
               }]
             : []),
+          // Helpr count joins the compact row when the job needs more than
+          // one (owner: "add the number of helprs if it's more than 1").
+          // It's a fact that changes the math a helper is reading right
+          // above — the payout is the budget SPLIT this many ways — so it
+          // belongs beside where/when, not buried in a status pill.
+          ...(job.is_group_job && (job.helpers_needed ?? 0) > 1
+            ? [{
+                Icon: Users,
+                label: "Helprs",
+                value: `${job.helpers_needed}`,
+                sub: null,
+                href: null,
+                urgent: false,
+              }]
+            : []),
           // Estimated-hours tile is omitted entirely when unset — a bare
           // "Estimated —" read as a bug rather than "no estimate given".
           ...(job.estimated_hours != null
@@ -129,10 +144,11 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
               }]
             : []),
         ];
-        // First three entries (Where, Date, Time) are the compact row; the
-        // optional Estimated / Closes entries stay as tiles below it.
-        const rowItems = tiles.filter((t) => ["Where", "Date", "Time"].includes(t.label));
-        const tileItems = tiles.filter((t) => !["Where", "Date", "Time"].includes(t.label));
+        // Where / Date / Time / Helprs are the compact row; the optional
+        // Estimated / Closes entries stay as tiles below it.
+        const ROW_LABELS = ["Where", "Date", "Time", "Helprs"];
+        const rowItems = tiles.filter((t) => ROW_LABELS.includes(t.label));
+        const tileItems = tiles.filter((t) => !ROW_LABELS.includes(t.label));
 
         const compactRow = (
           <div

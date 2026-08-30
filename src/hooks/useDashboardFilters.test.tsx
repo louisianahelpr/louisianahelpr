@@ -213,17 +213,24 @@ describe("useDashboardFilters — early-access (subscription tier delay)", () =>
 });
 
 describe("useDashboardFilters — sort priority chain", () => {
-  it("urgent jobs float to the top regardless of newest sort", () => {
-    const newer = new Date(Date.now() - 1 * 60 * 1000).toISOString();
-    const older = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  it("urgent no longer jumps the queue — same-age jobs keep their post-time order", () => {
+    // Owner, 2026-08-29: "urgent does not go first, it's just go by when
+    // they posted it — boosted is the only one that truly pins at the
+    // top." Urgent stays a badge; it no longer wins the priority chain,
+    // nor does it add any score bonus in the smart-sort ranking (see
+    // smartSort.ts — urgencyBonus was removed entirely).
+    //
+    // Same `created_at` on both jobs means every ranking signal (recency,
+    // budget, proximity) ties, so a correct sort is a STABLE one: the
+    // non-urgent job, listed first, must stay first. If urgency still
+    // broke the tie, "urgent-second" would jump ahead of it.
+    const same = new Date(Date.now() - 60 * 60 * 1000).toISOString();
     const jobs = [
-      makeJob({ id: "new", is_urgent: false, created_at: older }),
-      makeJob({ id: "urgent-old", is_urgent: true, created_at: older }),
+      makeJob({ id: "first", is_urgent: false, created_at: same }),
+      makeJob({ id: "urgent-second", is_urgent: true, created_at: same }),
     ];
-    const { result } = setup(jobs, { helprTier: "elite" });
-    // Need elite tier so new isn't hidden by 20-min delay
-    void newer;
-    expect(result.current.filteredJobs[0].id).toBe("urgent-old");
+    const { result } = setup(jobs);
+    expect(result.current.filteredJobs.map((j) => j.id)).toEqual(["first", "urgent-second"]);
   });
 
   it("boosted jobs float above non-boosted (within same urgency tier)", () => {

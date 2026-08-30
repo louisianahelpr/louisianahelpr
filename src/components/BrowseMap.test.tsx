@@ -1,9 +1,5 @@
-// BrowseMap — layer-toggle persistence test. The interesting behavior
-// here is the Pins/Heat toggle: tapping it must persist the choice in
-// localStorage under `helpr_browse_map_layer` so a helper who prefers
-// Heat across sessions keeps it, and a stored preference must
-// suppress the auto-Heat-at-50-jobs heuristic so we never overwrite
-// an explicit user choice.
+// BrowseMap — pins-only now (owner, 2026-08-30: "remove heat, pins are
+// fine"). The Pins/Heat toggle and its heuristics are gone.
 //
 // The map now runs on Apple MapKit JS, so instead of mocking react-leaflet we
 // mock `useMapKitJs` (always "ready") and install a minimal `window.mapkit`
@@ -16,7 +12,7 @@
 // coverage, minus the map plumbing it never depended on.
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, fireEvent, act } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 
 import { MapJobPopup } from "./browseMap/MapJobPopup";
 import type { MapJob } from "./browseMap/config";
@@ -157,62 +153,11 @@ beforeEach(() => {
 
 // --- Tests ------------------------------------------------------------
 
-describe("BrowseMap layer toggle", () => {
-  it("defaults to Pins when no stored preference exists", async () => {
-    const { BrowseMap } = await import("./BrowseMap");
-    render(<BrowseMap />);
-
-    const pins = await screen.findByTestId("browse-map-layer-pins");
-    const heat = screen.getByTestId("browse-map-layer-heat");
-    expect(pins).toHaveAttribute("aria-pressed", "true");
-    expect(heat).toHaveAttribute("aria-pressed", "false");
-  });
-
-  it("persists the user's choice to localStorage under helpr_browse_map_layer", async () => {
-    const { BrowseMap } = await import("./BrowseMap");
-    render(<BrowseMap />);
-
-    const heat = await screen.findByTestId("browse-map-layer-heat");
-    fireEvent.click(heat);
-
-    expect(window.localStorage.getItem("helpr_browse_map_layer")).toBe("heat");
-    expect(heat).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByTestId("browse-map-layer-pins")).toHaveAttribute(
-      "aria-pressed",
-      "false",
-    );
-
-    fireEvent.click(screen.getByTestId("browse-map-layer-pins"));
-    expect(window.localStorage.getItem("helpr_browse_map_layer")).toBe("pins");
-  });
-
-  it("initializes from the stored preference on mount", async () => {
-    window.localStorage.setItem("helpr_browse_map_layer", "heat");
-    const { BrowseMap } = await import("./BrowseMap");
-    render(<BrowseMap />);
-
-    const heat = await screen.findByTestId("browse-map-layer-heat");
-    expect(heat).toHaveAttribute("aria-pressed", "true");
-  });
-
-  it("respects a stored Pins preference even when there are 50+ open jobs (auto-Heat is suppressed)", async () => {
-    window.localStorage.setItem("helpr_browse_map_layer", "pins");
-    rpcResolver.value = Array.from({ length: 60 }, (_, i) => makeJob(i));
-    const { BrowseMap } = await import("./BrowseMap");
-    render(<BrowseMap />);
-
-    // Wait for the RPC promise to flush.
-    await waitFor(() => {
-      expect(screen.getByTestId("browse-map-job-count")).toHaveTextContent("60 jobs");
-    });
-    // Even with 60 jobs, the stored Pins preference must win.
-    expect(screen.getByTestId("browse-map-layer-pins")).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
-    expect(window.localStorage.getItem("helpr_browse_map_layer")).toBe("pins");
-  });
-
+describe("BrowseMap pins", () => {
+  // Owner, 2026-08-30: "remove heat, pins are fine" — the Pins/Heat toggle,
+  // its localStorage persistence, and the auto-switch-at-50-jobs heuristic
+  // are gone. The map always renders pins now; only the job-count badge
+  // remains to verify.
   it("renders a job-count badge that reflects the loaded RPC rows", async () => {
     rpcResolver.value = [makeJob(1), makeJob(2), makeJob(3)];
     const { BrowseMap } = await import("./BrowseMap");
@@ -221,25 +166,6 @@ describe("BrowseMap layer toggle", () => {
     await waitFor(() => {
       expect(screen.getByTestId("browse-map-job-count")).toHaveTextContent("3 jobs");
     });
-  });
-
-  it("survives localStorage throwing (private-browsing / sandboxed contexts)", async () => {
-    const originalSetItem = window.localStorage.setItem.bind(window.localStorage);
-    // Force setItem to throw — the toggle should still flip in-session.
-    window.localStorage.setItem = vi.fn(() => {
-      throw new Error("QuotaExceededError");
-    }) as unknown as typeof window.localStorage.setItem;
-
-    const { BrowseMap } = await import("./BrowseMap");
-    render(<BrowseMap />);
-
-    const heat = await screen.findByTestId("browse-map-layer-heat");
-    act(() => {
-      fireEvent.click(heat);
-    });
-    expect(heat).toHaveAttribute("aria-pressed", "true");
-
-    window.localStorage.setItem = originalSetItem;
   });
 });
 

@@ -1,4 +1,4 @@
-// Marker/cluster element builders + heat-density helpers for BrowseMap.
+// Marker/cluster element builders for BrowseMap.
 //
 // Ported from Leaflet `divIcon`s to MapKit JS custom annotations: MapKit's
 // `mapkit.Annotation(coordinate, factory)` takes a FACTORY that returns a real
@@ -7,13 +7,8 @@
 // as the Leaflet div-icons they replace — the pin is still a 28x36 teardrop in
 // the category hue with a burnt-sienna ring when urgent, and the cluster is
 // still a bark circle with a parchment count.
-//
-// NOTE: `bucketJobs` groups already-coarsened pin coordinates into ~0.1°
-// visual heat buckets — it is a display grouping, NOT the privacy coarsening
-// (that happens server-side in the get_open_jobs_for_map RPC). Untouched here.
 
 import { categoryHue } from "@/lib/categoryHues";
-import type { MapJob } from "./config";
 
 function resolveToken(varName: string, fallback: string): string {
   if (typeof window === "undefined") return fallback;
@@ -78,48 +73,4 @@ export function pinElement(category: string, isUrgent: boolean): HTMLElement {
     </svg>
   `;
   return el;
-}
-
-// Density-aware tint for the heatmap layer. Lower count → cooler
-// olivewood; higher count → warm burnt-sienna. Caps at 8+ jobs per
-// cluster bucket so a single hot zip doesn't bleach the rest of the
-// state.
-export function densityFill(count: number): string {
-  if (count >= 8) return "hsla(15, 55%, 45%, 0.65)"; // burnt-sienna heavy
-  if (count >= 5) return "hsla(15, 50%, 50%, 0.55)";
-  if (count >= 3) return "hsla(25, 55%, 55%, 0.50)";
-  if (count >= 2) return "hsla(38, 55%, 60%, 0.45)"; // gold-warm
-  return "hsla(70, 25%, 50%, 0.40)"; // bark-cool
-}
-
-/** The heat bubble's on-screen radius in CSS PIXELS — the exact Leaflet
- *  `CircleMarker` radius formula. Converted to metres against the live camera
- *  at draw time (see `metresPerPixel` in ./mapkitRuntime). */
-export function heatRadiusPx(count: number): number {
-  return Math.min(8 + count * 4, 36);
-}
-
-// Group jobs into ~0.1° lat/lng buckets for a quick density map without
-// pulling in a heat-map library. Each bucket becomes a circle sized by job
-// count. Cheap, dependency-free, and still gives the "where's the work"
-// glance pattern.
-export function bucketJobs(jobs: MapJob[]): Array<{
-  center: [number, number];
-  count: number;
-}> {
-  const buckets = new Map<string, { lat: number; lng: number; count: number }>();
-  for (const j of jobs) {
-    const lat = Math.round(Number(j.latitude) * 10) / 10;
-    const lng = Math.round(Number(j.longitude) * 10) / 10;
-    const key = `${lat}:${lng}`;
-    const existing = buckets.get(key);
-    if (existing) {
-      existing.count += 1;
-      existing.lat = (existing.lat * (existing.count - 1) + lat) / existing.count;
-      existing.lng = (existing.lng * (existing.count - 1) + lng) / existing.count;
-    } else {
-      buckets.set(key, { lat, lng, count: 1 });
-    }
-  }
-  return [...buckets.values()].map((b) => ({ center: [b.lat, b.lng] as [number, number], count: b.count }));
 }

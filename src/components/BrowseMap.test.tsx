@@ -5,12 +5,21 @@
 // suppress the auto-Heat-at-50-jobs heuristic so we never overwrite
 // an explicit user choice.
 //
-// We mock leaflet, react-leaflet, react-leaflet-cluster, the leaflet
-// CSS import, and the Supabase client so the test stays in jsdom and
-// doesn't need a real map runtime.
+// The map now runs on Apple MapKit JS, so instead of mocking react-leaflet we
+// mock `useMapKitJs` (always "ready") and install a minimal `window.mapkit`
+// stub — enough for the component's imperative lifecycle (construct a map, add
+// annotations/overlays, animate the region) to run in jsdom.
+//
+// The pin popup is no longer a React child of the map: MapKit's callout
+// delegate takes DOM, so `MapJobPopup` is rendered into a detached node by its
+// own root and is asserted directly in the popup-parity block below — same
+// coverage, minus the map plumbing it never depended on.
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, fireEvent, act } from "@testing-library/react";
+
+import { MapJobPopup } from "./browseMap/MapJobPopup";
+import type { MapJob } from "./browseMap/config";
 
 // --- Mocks ------------------------------------------------------------
 
@@ -45,36 +54,74 @@ vi.mock("@/lib/errorLogger", () => ({
   report: vi.fn(),
 }));
 
-// Leaflet CSS — vitest can't parse the .css import.
-vi.mock("leaflet/dist/leaflet.css", () => ({}));
+// MapKit always authorizes in these tests — the degraded paths are the
+// hook's own concern (see useMapKitJs.test.ts).
+vi.mock("@/hooks/useMapKitJs", () => ({
+  useMapKitJs: () => "ready",
+  useMapKitTokenSource: () => "server",
+}));
 
-// react-leaflet — render children inline so the toggle still mounts
-// and the buttons are interactive in jsdom.
-vi.mock("react-leaflet", () => {
-  const Pass = ({ children }: { children?: React.ReactNode }) => <>{children}</>;
-  return {
-    MapContainer: Pass,
-    TileLayer: () => null,
-    Marker: Pass,
-    Popup: Pass,
-    CircleMarker: Pass,
-    useMap: () => ({
-      flyTo: vi.fn(),
-      setView: vi.fn(),
-      fitBounds: vi.fn(),
-      getZoom: () => 7,
-    }),
+/** The smallest `window.mapkit` the component's lifecycle can run against. */
+function installMapKitStub() {
+  class Coordinate {
+    constructor(public latitude: number, public longitude: number) {}
+  }
+  class CoordinateSpan {
+    constructor(public latitudeDelta: number, public longitudeDelta: number) {}
+  }
+  class CoordinateRegion {
+    constructor(public center: Coordinate, public span: CoordinateSpan) {}
+  }
+  class MapStub {
+    element: HTMLElement;
+    region = new CoordinateRegion(new Coordinate(31, -92), new CoordinateSpan(4, 5));
+    colorScheme = "light";
+    annotations: unknown[] = [];
+    overlays: unknown[] = [];
+    annotationForCluster?: (c: unknown) => unknown;
+    constructor(el: HTMLElement) {
+      this.element = el;
+    }
+    addAnnotations = vi.fn();
+    removeAnnotations = vi.fn();
+    addOverlays = vi.fn();
+    removeOverlays = vi.fn();
+    setRegionAnimated = vi.fn();
+    addEventListener = vi.fn();
+    removeEventListener = vi.fn();
+    destroy = vi.fn();
+  }
+  class Annotation {
+    constructor(
+      public coordinate: Coordinate,
+      public factory: unknown,
+      public options?: Record<string, unknown>,
+    ) {}
+  }
+  class CircleOverlay {
+    addEventListener = vi.fn();
+    constructor(
+      public coordinate: Coordinate,
+      public radius: number,
+      public options?: Record<string, unknown>,
+    ) {}
+  }
+  (window as unknown as { mapkit: unknown }).mapkit = {
+    Map: MapStub,
+    Coordinate,
+    CoordinateSpan,
+    CoordinateRegion,
+    Annotation,
+    CircleOverlay,
+    Style: class {
+      constructor(public options: Record<string, unknown>) {}
+    },
+    CameraZoomRange: class {
+      constructor(public min: number, public max: number) {}
+    },
+    FeatureVisibility: { Hidden: "hidden" },
   };
-});
-
-vi.mock("react-leaflet-cluster", () => ({
-  default: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
-}));
-
-vi.mock("leaflet", () => ({
-  divIcon: () => ({}),
-  point: (x: number, y: number) => [x, y],
-}));
+}
 
 // --- Helpers ----------------------------------------------------------
 
@@ -105,6 +152,7 @@ beforeEach(() => {
   window.localStorage.clear();
   rpcResolver.value = [makeJob(1), makeJob(2)];
   vi.clearAllMocks();
+  installMapKitStub();
 });
 
 // --- Tests ------------------------------------------------------------
@@ -195,12 +243,53 @@ describe("BrowseMap layer toggle", () => {
   });
 });
 
+// The map surface itself: MapKit is loaded on demand and can fail to
+// authorize. That must read as a stated outage with a way forward, never as a
+// blank grey box.
+describe("BrowseMap MapKit availability", () => {
+  it("mounts a map surface and a recenter control when MapKit is ready", async () => {
+    const { BrowseMap } = await import("./BrowseMap");
+    render(<BrowseMap />);
+
+    expect(await screen.findByTestId("browse-map-surface")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId("browse-map-recenter")).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId("browse-map-unavailable")).not.toBeInTheDocument();
+  });
+
+  it("says so plainly when MapKit cannot authorize", async () => {
+    vi.resetModules();
+    vi.doMock("@/hooks/useMapKitJs", () => ({
+      useMapKitJs: () => "missing-token",
+      useMapKitTokenSource: () => "none",
+    }));
+    const { BrowseMap } = await import("./BrowseMap");
+    render(<BrowseMap />);
+
+    const panel = await screen.findByTestId("browse-map-unavailable");
+    expect(panel).toHaveTextContent("The map isn't available right now.");
+    expect(panel).toHaveTextContent("switch to the list view");
+    vi.doUnmock("@/hooks/useMapKitJs");
+    vi.resetModules();
+  });
+});
+
 // The pin popup and the browse JobCard describe the same job, so they must say
-// the same things. `Popup` is mocked as a pass-through above, which means the
-// popup body renders inline in jsdom and is directly assertable.
+// the same things. Asserted against `MapJobPopup` directly — it is the exact
+// element MapKit's callout delegate hands back for a tapped pin.
 describe("BrowseMap pin popup — parity with the browse job card", () => {
+  const renderPopup = (job: Record<string, unknown>, props: Record<string, unknown> = {}) =>
+    render(
+      <MapJobPopup
+        job={job as unknown as MapJob}
+        ctaLabel="Apply"
+        {...(props as { onJobAction?: (id: string) => void; effectiveFee?: number })}
+      />,
+    );
+
   it("shows the category, city, date and start time the card shows", async () => {
-    rpcResolver.value = [
+    renderPopup(
       makeJob(1, {
         title: "Haul two loads to the dump",
         category: "moving",
@@ -208,9 +297,8 @@ describe("BrowseMap pin popup — parity with the browse job card", () => {
         date_needed: "2099-09-19",
         start_time: "08:30:00",
       }),
-    ];
-    const { BrowseMap } = await import("./BrowseMap");
-    render(<BrowseMap ctaLabel="Apply" onJobAction={vi.fn()} />);
+      { onJobAction: vi.fn() },
+    );
 
     const popup = await screen.findByTestId("map-job-popup");
     expect(popup).toHaveTextContent("Haul two loads to the dump");
@@ -226,9 +314,7 @@ describe("BrowseMap pin popup — parity with the browse job card", () => {
   });
 
   it("prints the helper's NET take-home when a fee is supplied, like the card", async () => {
-    rpcResolver.value = [makeJob(1, { budget: 110 })];
-    const { BrowseMap } = await import("./BrowseMap");
-    render(<BrowseMap effectiveFee={12} />);
+    renderPopup(makeJob(1, { budget: 110 }), { effectiveFee: 12 });
 
     // $110 gross − 12% = $96.80, floored to $96 — exactly what JobPrice renders
     // on the card beside it. The popup used to print the gross $110.
@@ -238,9 +324,7 @@ describe("BrowseMap pin popup — parity with the browse job card", () => {
   });
 
   it("falls back to the gross budget when no fee is supplied", async () => {
-    rpcResolver.value = [makeJob(1, { budget: 110 })];
-    const { BrowseMap } = await import("./BrowseMap");
-    render(<BrowseMap />);
+    renderPopup(makeJob(1, { budget: 110 }));
 
     const popup = await screen.findByTestId("map-job-popup");
     expect(popup).toHaveTextContent("$110");
@@ -248,21 +332,17 @@ describe("BrowseMap pin popup — parity with the browse job card", () => {
 
   it("degrades to parish and hides the schedule when the RPC predates the card-fields migration", async () => {
     // The old nine-column row: the new keys are ABSENT, not null.
-    rpcResolver.value = [
-      {
-        id: "job-legacy",
-        title: "Job legacy",
-        category: "cleaning",
-        budget: 50,
-        is_urgent: false,
-        latitude: 30.0,
-        longitude: -91.0,
-        parish: "Calcasieu",
-        created_at: new Date().toISOString(),
-      },
-    ];
-    const { BrowseMap } = await import("./BrowseMap");
-    render(<BrowseMap />);
+    renderPopup({
+      id: "job-legacy",
+      title: "Job legacy",
+      category: "cleaning",
+      budget: 50,
+      is_urgent: false,
+      latitude: 30.0,
+      longitude: -91.0,
+      parish: "Calcasieu",
+      created_at: new Date().toISOString(),
+    });
 
     const meta = await screen.findByTestId("map-popup-meta");
     expect(meta).toHaveTextContent("Calcasieu");
@@ -272,18 +352,14 @@ describe("BrowseMap pin popup — parity with the browse job card", () => {
   });
 
   it('renders the card\'s "Flexible" fallback only when the row really has no schedule', async () => {
-    rpcResolver.value = [makeJob(1, { date_needed: null, start_time: null })];
-    const { BrowseMap } = await import("./BrowseMap");
-    render(<BrowseMap />);
+    renderPopup(makeJob(1, { date_needed: null, start_time: null }));
 
     const meta = await screen.findByTestId("map-popup-meta");
     expect(meta).toHaveTextContent("Flexible");
   });
 
   it("shows the urgent bonus the card shows", async () => {
-    rpcResolver.value = [makeJob(1, { is_urgent: true, urgent_fee: 12 })];
-    const { BrowseMap } = await import("./BrowseMap");
-    render(<BrowseMap />);
+    renderPopup(makeJob(1, { is_urgent: true, urgent_fee: 12 }));
 
     const popup = await screen.findByTestId("map-job-popup");
     expect(popup).toHaveTextContent("+$12 Urgent");

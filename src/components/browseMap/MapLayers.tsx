@@ -1,88 +1,171 @@
-// Map child components for BrowseMap — each is a child of MapContainer so
-// it can grab useMap(). Moved verbatim from BrowseMap.tsx; every hook call,
-// dependency array, color token, and className is preserved exactly.
+// Map overlays/controls for BrowseMap.
+//
+// Under Leaflet these were react-leaflet CHILD COMPONENTS that reached for
+// `useMap()`. MapKit JS has no React binding — the map is a single imperative
+// object we own — so the two map-driven layers (fit-to-pins, heat) are now
+// plain functions that take the map instance, and only the pieces that are
+// really DOM (the recenter button, the heat caption) stay components. The
+// behaviour, geometry and colour tokens are unchanged.
 
-import { useEffect } from "react";
-import { Popup, useMap, CircleMarker } from "react-leaflet";
 import { Crosshair } from "lucide-react";
-import { densityFill } from "./mapMarkers";
+import { densityFill, heatRadiusPx } from "./mapMarkers";
 import { LA_STATE_BOUNDS, type MapJob } from "./config";
+import {
+  metresPerPixel,
+  regionFromBounds,
+  type MKMap,
+  type MKOverlay,
+  type MapKitRuntime,
+} from "./mapkitRuntime";
 
-// Auto-fit the map to whatever pins exist when they load. If only one
-// pin, zoom in to a useful neighborhood-level view instead of a
-// state-wide one. With NO pins, fall back to framing Louisiana itself —
-// previously this bailed early and left the map on its initial camera,
-// which is how an empty (or heavily filtered) map ended up showing five
-// states with Louisiana off to one side.
-export function FitToPins({ jobs }: { jobs: MapJob[] }) {
-  const map = useMap();
-  useEffect(() => {
-    if (jobs.length === 0) {
-      map.fitBounds(LA_STATE_BOUNDS, { padding: [16, 16] });
-      return;
-    }
-    if (jobs.length === 1) {
-      map.setView([jobs[0].latitude, jobs[0].longitude], 13);
-      return;
-    }
-    const bounds = jobs.map((j): [number, number] => [j.latitude, j.longitude]);
-    map.fitBounds(bounds, { padding: [40, 40], maxZoom: 13 });
-  }, [jobs, map]);
-  return null;
+/** The camera the map opens on and returns to: Louisiana, framed. */
+export function laRegion(mk: MapKitRuntime) {
+  return regionFromBounds(mk, LA_STATE_BOUNDS);
 }
 
-// Heat-bucket layer rendered as a child of MapContainer so it can grab
-// useMap() and flyTo when a bucket is tapped. Lifted out of the main
-// render so the click handler has clean access to the map instance.
-export function HeatLayer({ buckets }: { buckets: Array<{ center: [number, number]; count: number }> }) {
-  const map = useMap();
+/**
+ * Auto-fit the map to whatever pins exist when they load. If only one pin,
+ * zoom in to a useful neighborhood-level view instead of a state-wide one.
+ * With NO pins, fall back to framing Louisiana itself — otherwise an empty
+ * (or heavily filtered) map sits on whatever camera the user left behind.
+ *
+ * Leaflet's `fitBounds` took a pixel padding; MapKit takes a region, so the
+ * padding is expressed as the span pad factor in `regionFromBounds`.
+ */
+export function fitToPins(mk: MapKitRuntime, map: MKMap, jobs: MapJob[], animate = false) {
+  if (jobs.length === 0) {
+    map.setRegionAnimated(laRegion(mk), animate);
+    return;
+  }
+  if (jobs.length === 1) {
+    // ~Leaflet zoom 13: a neighbourhood-level span rather than a state one.
+    const region = new mk.CoordinateRegion(
+      new mk.Coordinate(Number(jobs[0].latitude), Number(jobs[0].longitude)),
+      new mk.CoordinateSpan(0.06, 0.06),
+    );
+    map.setRegionAnimated(region, animate);
+    return;
+  }
+  let south = 90;
+  let north = -90;
+  let west = 180;
+  let east = -180;
+  for (const j of jobs) {
+    const lat = Number(j.latitude);
+    const lng = Number(j.longitude);
+    south = Math.min(south, lat);
+    north = Math.max(north, lat);
+    west = Math.min(west, lng);
+    east = Math.max(east, lng);
+  }
+  // maxZoom 13 under Leaflet — i.e. never zoom TIGHTER than ~0.06°, so a
+  // pair of pins on the same street doesn't slam the camera to rooftop level.
+  const region = regionFromBounds(mk, [[south, west], [north, east]], 1.25);
+  region.span.latitudeDelta = Math.max(region.span.latitudeDelta, 0.06);
+  region.span.longitudeDelta = Math.max(region.span.longitudeDelta, 0.06);
+  map.setRegionAnimated(region, animate);
+}
+
+export interface HeatBucket {
+  center: [number, number];
+  count: number;
+}
+
+/**
+ * Draw the heat buckets as `mapkit.CircleOverlay`s and wire tap-to-zoom.
+ *
+ * UNITS: `heatRadiusPx(count)` is the Leaflet screen-pixel radius; MapKit
+ * wants METRES, so each radius is multiplied by the live metres-per-pixel of
+ * the current camera (see ./mapkitRuntime). `resizeHeatOverlays` re-applies
+ * that on `region-change-end`, which is what keeps a bubble the same size on
+ * screen as the user zooms — a fixed metre radius would balloon when zoomed
+ * in and vanish when zoomed out.
+ *
+ * Returns the overlays it added so the caller can remove exactly those.
+ */
+export function addHeatOverlays(
+  mk: MapKitRuntime,
+  map: MKMap,
+  buckets: HeatBucket[],
+  onSelect: (bucket: HeatBucket) => void,
+): MKOverlay[] {
+  const mpp = metresPerPixel(map) || 100;
+  const overlays = buckets.map((b) => {
+    const overlay = new mk.CircleOverlay(
+      new mk.Coordinate(b.center[0], b.center[1]),
+      heatRadiusPx(b.count) * mpp,
+      {
+        style: new mk.Style({
+          fillColor: densityFill(b.count),
+          fillOpacity: 0.7,
+          lineWidth: 0,
+          strokeOpacity: 0,
+        }),
+        // Stashed so the resize pass can recompute this overlay's pixel
+        // radius without re-deriving which bucket it came from.
+        data: { count: b.count },
+      },
+    );
+    overlay.addEventListener?.("select", () => onSelect(b));
+    return overlay;
+  });
+  map.addOverlays(overlays);
+  return overlays;
+}
+
+/** Re-apply the pixel-derived radii after the camera moved. */
+export function resizeHeatOverlays(map: MKMap, overlays: MKOverlay[]) {
+  const mpp = metresPerPixel(map);
+  if (!mpp) return;
+  for (const o of overlays) {
+    const count = Number((o as { data?: { count?: number } }).data?.count ?? 1);
+    o.radius = heatRadiusPx(count) * mpp;
+  }
+}
+
+/**
+ * The "N jobs here" caption a heat bubble used to open as a Leaflet popup.
+ * MapKit has no overlay callout, so the same words render as a small frosted
+ * chip over the map — shown on tap, alongside the zoom-in that tap performs.
+ */
+export function HeatCaption({ count }: { count: number }) {
   return (
-    <>
-      {buckets.map((b, i) => (
-        <CircleMarker
-          key={`heat-${i}`}
-          center={b.center}
-          radius={Math.min(8 + b.count * 4, 36)}
-          pathOptions={{
-            fillColor: densityFill(b.count),
-            fillOpacity: 0.7,
-            color: "transparent",
-            weight: 0,
-          }}
-          eventHandlers={{
-            // Tap-to-zoom: pan to the bucket center and step in two
-            // zoom levels (capped at maxZoom 16). Faster than opening
-            // the popup and reading "Zoom in to see them individually".
-            click: () => {
-              const targetZoom = Math.min((map.getZoom() ?? 7) + 2, 16);
-              map.flyTo(b.center, targetZoom, { duration: 0.45 });
-            },
-          }}
-        >
-          <Popup>
-            <p className="font-sans font-semibold text-ds-13 leading-tight">
-              {b.count} {b.count === 1 ? "job" : "jobs"} here
-            </p>
-            <p className="text-ds-11 text-muted-foreground">Tap the bubble to zoom in.</p>
-          </Popup>
-        </CircleMarker>
-      ))}
-    </>
+    <div
+      role="status"
+      data-testid="browse-map-heat-caption"
+      className="absolute left-1/2 -translate-x-1/2 z-[400] px-3 py-2 rounded-ds-md text-center pointer-events-none"
+      style={{
+        top: "3.25rem",
+        background: "hsla(0, 0%, 100%, 0.92)",
+        border: "0.5px solid hsl(var(--olivewood) / 0.18)",
+        boxShadow: "0 4px 14px -4px hsl(var(--olivewood) / 0.18)",
+        backdropFilter: "blur(8px)",
+        WebkitBackdropFilter: "blur(8px)",
+      }}
+    >
+      <p className="font-sans font-semibold text-ds-13 leading-tight" style={{ color: "hsl(var(--bark))" }}>
+        {count} {count === 1 ? "job" : "jobs"} here
+      </p>
+      <p className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+        Tap the bubble to zoom in.
+      </p>
+    </div>
   );
 }
 
 // Floating "recenter" control — sits over the map, bottom-right above
 // the dock clearance. Flies back to the same Louisiana frame the map
 // opens on, so users who have panned/zoomed deep get the statewide view
-// back in one tap.
-export function RecenterControl() {
-  const map = useMap();
+// back in one tap. Takes the handler as a prop now that there is no
+// `useMap()` to reach for.
+export function RecenterControl({ onRecenter }: { onRecenter: () => void }) {
   return (
     <button
       type="button"
-      onClick={() => map.flyToBounds(LA_STATE_BOUNDS, { padding: [16, 16], duration: 0.45 })}
+      onClick={onRecenter}
       aria-label="Recenter map"
       title="Recenter map"
+      data-testid="browse-map-recenter"
       className="absolute z-[400] w-11 h-11 rounded-full flex items-center justify-center active:scale-[0.94] transition-all"
       style={{
         // Sit clear of the floating dock + FAB at the bottom of the

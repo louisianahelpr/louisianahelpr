@@ -1,4 +1,4 @@
-// BrowseMap — Leaflet map showing open Louisiana jobs as pins. The
+// BrowseMap — Apple MapKit JS map showing open Louisiana jobs as pins. The
 // "force multiplier" from the audit: open the app, see the marketplace
 // alive on a parish map, tap a pin → see the job → 1-tap apply.
 //
@@ -7,44 +7,61 @@
 // exposed to anonymous viewers. Authenticated users see the full
 // address only after a job is accepted.
 //
-// Bundle weight: leaflet + react-leaflet ≈ 45KB gzipped, both lazy-
-// loaded only on the /browse?view=map surface so the rest of the app
-// pays nothing for the map pipeline.
+// Bundle weight: MapKit JS is loaded from Apple's CDN by `useMapKitJs` —
+// there is no npm map dependency in the bundle at all now (this screen used
+// to pull leaflet + react-leaflet + react-leaflet-cluster, ~45KB gzipped).
+// The SDK is fetched only on surfaces that actually mount a map, and the same
+// loader/token path already serves address autocomplete and the driving-time
+// estimate, so the script is usually warm by the time /browse asks for it.
 //
 // Structure: static config/types/storage live in ./browseMap/config,
-// icon + heat-density helpers in ./browseMap/mapMarkers, and the
-// useMap()-driven child overlays in ./browseMap/MapLayers. This file
-// owns only the data fetch + top-level render/orchestration.
+// marker element + heat-density helpers in ./browseMap/mapMarkers, the
+// MapKit runtime typings + the pixel↔metre bridge in ./browseMap/mapkitRuntime,
+// and the map overlays/controls in ./browseMap/MapLayers. This file owns the
+// data fetch + the imperative map lifecycle.
 
-import { useEffect, useRef, useState, useMemo } from "react";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-import MarkerClusterGroup from "react-leaflet-cluster";
+import { useEffect, useRef, useState, useMemo, useCallback } from "react";
+import { createRoot, type Root } from "react-dom/client";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { Button } from "@/components/ui/button";
-import { BellRing, MapPin } from "lucide-react";
+import { BellRing, MapPin, MapPinOff } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { useMapKitJs } from "@/hooks/useMapKitJs";
 import {
   HEAT_AUTO_THRESHOLD,
   LA_BOUNDS,
-  LA_MIN_ZOOM,
-  LA_STATE_BOUNDS,
   readStoredLayer,
   writeStoredLayer,
   type MapJob,
   type MapLayer,
 } from "./browseMap/config";
 import { MapJobPopup } from "./browseMap/MapJobPopup";
-import { bucketJobs, clusterIcon, pinIcon } from "./browseMap/mapMarkers";
+import { bucketJobs, clusterElement, pinElement, PIN_HEIGHT } from "./browseMap/mapMarkers";
 import {
   buildMapJobFilter,
   isAnyFilterActive,
   unsupportedMapFilters,
   type MapJobFilterInput,
 } from "./browseMap/mapFilter";
-import { FitToPins, HeatLayer, RecenterControl } from "./browseMap/MapLayers";
-import "leaflet/dist/leaflet.css";
+import {
+  addHeatOverlays,
+  fitToPins,
+  HeatCaption,
+  laRegion,
+  resizeHeatOverlays,
+  RecenterControl,
+  type HeatBucket,
+} from "./browseMap/MapLayers";
+import {
+  colorSchemeFor,
+  getMapKit,
+  regionFromBounds,
+  type MKAnnotation,
+  type MKMap,
+  type MKOverlay,
+} from "./browseMap/mapkitRuntime";
 
 interface BrowseMapProps {
   /** Tap on the popup's CTA (e.g. "Sign up to apply" for guests). */
@@ -96,8 +113,16 @@ interface BrowseMapProps {
   effectiveFee?: number;
 }
 
+/** Reads the app's resolved theme off `<html data-theme>` (set by
+ *  `useDarkMode`) so the map's own tiles match the surrounding UI. */
+function readIsDark(): boolean {
+  if (typeof document === "undefined") return false;
+  return document.documentElement.getAttribute("data-theme") === "dark";
+}
+
 export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, emptyStateCta, filters, onClearFilters, effectiveFee, flush = false }: BrowseMapProps) {
   const shellClass = flush ? "" : " rounded-t-2xl border border-b-0 border-border";
+  const mapKitStatus = useMapKitJs();
   const [jobs, setJobs] = useState<MapJob[]>([]);
   // Total open jobs in the feed, including ones the map can't plot because
   // they lack geocoded coordinates. Lets the badge read "N of M" so a user
@@ -118,7 +143,10 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
   // Initialize from localStorage so the user's last choice survives
   // app restarts (and Capacitor cold starts).
   const [view, setView] = useState<MapLayer>(() => readStoredLayer() ?? "pins");
-  const [tilesLoading, setTilesLoading] = useState(true);
+  const [mapReady, setMapReady] = useState(false);
+  const [isDark, setIsDark] = useState(readIsDark);
+  /** The "N jobs here" caption a heat bubble raises on tap. */
+  const [heatCaption, setHeatCaption] = useState<number | null>(null);
   // Track whether we've already auto-switched to Heat for this session
   // so the auto-switch fires once on first load only — manual flips
   // back to Pins after that are respected. If there's a stored
@@ -200,17 +228,14 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
   const ignoredFilters = filters ? unsupportedMapFilters(filters) : [];
 
   /**
-   * The map pane's own width, watched.
+   * The map pane's own width, watched — the cap for a pin callout.
    *
-   * A Leaflet popup is absolutely positioned over the marker and, if it does
-   * not fit, Leaflet PANS THE MAP to make room — so a popup wider than its
-   * pane both clips at the edge and drags the map out from under the pin every
-   * time one opens (owner: "why does it keep moving and cutting off"). The
-   * desktop column is ~270px and the popup was 224–264 plus Leaflet's own
-   * ~44px of content margin, i.e. up to 308: wider than the box, always.
-   *
-   * Capping to the measured width fixes both — nothing to clip, nothing to pan
-   * away from. Watched rather than read once because the column resizes with
+   * MapKit does not pan the map to fit an oversized callout the way Leaflet
+   * did (that was the old width math's whole reason for existing), but a
+   * callout wider than the pane still overflows it. The narrowest surface this
+   * ships to is a 375px phone map pane and the desktop side-by-side column is
+   * ~270px, so the callout is capped to the MEASURED pane rather than a
+   * constant. Watched rather than read once because the column resizes with
    * the window and with the side panel.
    */
   const mapBoxRef = useRef<HTMLDivElement | null>(null);
@@ -226,22 +251,264 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
     return () => ro.disconnect();
   }, []);
   // ONE WIDTH, not a range (owner: "each one has a diff layout, make all
-  // consistent"). Leaflet sizes a popup to its CONTENT between min and max, so
-  // a range meant every pin opened a differently-shaped card — 225px for a
-  // short title, 265px for a long one — and the meta row wrapped onto one line
-  // or two depending on which pin you happened to tap. Setting min === max
-  // makes the popup a fixed object that the content flows into, which is what
-  // the feed card beside it already is.
+  // consistent"). A content-sized callout meant every pin opened a
+  // differently-shaped card — 225px for a short title, 265px for a long one —
+  // and the meta row wrapped onto one line or two depending on which pin you
+  // happened to tap. A fixed width makes the callout an object the content
+  // flows into, which is what the feed card beside it already is.
   //
-  // 44px is Leaflet's fixed content margin; 16 more keeps the shadow off the
-  // edge. Floor at 180 so a freak-narrow pane still renders a usable card.
-  const popupWidth = paneWidth ? Math.max(180, Math.min(264, paneWidth - 60)) : 264;
+  // 40px keeps the card clear of MapKit's own callout chrome and shadow.
+  // Floor at 180 so a freak-narrow pane still renders a usable card.
+  const calloutWidth = paneWidth ? Math.max(180, Math.min(264, paneWidth - 40)) : 264;
 
   const retry = () => {
     setLoadError(false);
     setLoading(true);
     setReloadNonce((n) => n + 1);
   };
+
+  // ── MapKit lifecycle ────────────────────────────────────────────────────
+  const mapRef = useRef<MKMap | null>(null);
+  const annotationsRef = useRef<MKAnnotation[]>([]);
+  const heatOverlaysRef = useRef<MKOverlay[]>([]);
+  /** One React root per open callout body, torn down with its annotation. */
+  const calloutRootsRef = useRef<Root[]>([]);
+  // A CALLBACK REF, held in state, not a plain ref: the map surface is not in
+  // the tree during the loading/error early-returns, so a ref would still be
+  // null the one time the creation effect ran and the map would never be
+  // built. State makes the element's arrival itself the trigger.
+  const [containerEl, setContainerEl] = useState<HTMLDivElement | null>(null);
+
+  const mapKitUnusable = mapKitStatus === "missing-token" || mapKitStatus === "error";
+
+  // Create the map exactly once, as soon as MapKit authorizes.
+  useEffect(() => {
+    if (mapKitStatus !== "ready" || mapRef.current) return;
+    const mk = getMapKit();
+    const el = containerEl;
+    if (!mk || !el) return;
+    try {
+      const map = new mk.Map(el, {
+        region: laRegion(mk),
+        // Louisiana-only marketplace: the Leaflet map used maxBounds +
+        // maxBoundsViscosity:1 + minZoom to stop a drag flinging the state
+        // off-screen or zooming out to the globe. MapKit's equivalents are
+        // `cameraBoundary` (a hard pan limit) and `cameraZoomRange` — the max
+        // camera distance below frames roughly the same extent Leaflet's
+        // minZoom 6 did.
+        cameraBoundary: regionFromBounds(mk, LA_BOUNDS, 1),
+        cameraZoomRange: mk.CameraZoomRange ? new mk.CameraZoomRange(0, 1_500_000) : undefined,
+        colorScheme: colorSchemeFor(mk, readIsDark()),
+        showsCompass: mk.FeatureVisibility?.Hidden ?? "hidden",
+        showsScale: mk.FeatureVisibility?.Hidden ?? "hidden",
+        showsZoomControl: false,
+        showsMapTypeControl: false,
+        showsUserLocationControl: false,
+        isRotationEnabled: false,
+      });
+      // Branded cluster bubble. MapKit clusters any annotations sharing a
+      // `clusteringIdentifier` and asks this callback for the stand-in
+      // annotation — the native replacement for react-leaflet-cluster's
+      // `iconCreateFunction`.
+      map.annotationForCluster = (cluster) => {
+        const members = cluster.memberAnnotations ?? [];
+        const count = members.length;
+        return new mk.Annotation(
+          cluster.coordinate,
+          () => {
+            const node = clusterElement(count);
+            // Tap a cluster → zoom into the jobs it stands for, matching
+            // Leaflet's zoom-to-bounds-on-cluster-click.
+            node.addEventListener("click", () => {
+              const coords = members.map((m) => m.coordinate);
+              if (!coords.length) return;
+              const lats = coords.map((c) => c.latitude);
+              const lngs = coords.map((c) => c.longitude);
+              map.setRegionAnimated(
+                regionFromBounds(
+                  mk,
+                  [
+                    [Math.min(...lats), Math.min(...lngs)],
+                    [Math.max(...lats), Math.max(...lngs)],
+                  ],
+                  1.4,
+                ),
+                true,
+              );
+            });
+            return node;
+          },
+          { calloutEnabled: false },
+        );
+      };
+      mapRef.current = map;
+      setMapReady(true);
+    } catch (e) {
+      report(e instanceof Error ? e : new Error("MapKit map construction failed"), {
+        tags: { source: "BrowseMap.mapkit" },
+      });
+    }
+  }, [mapKitStatus, containerEl]);
+
+  // Tear the map down on unmount. Separate from the creation effect so a
+  // status change can never destroy a live map out from under the user.
+  useEffect(() => {
+    return () => {
+      const roots = calloutRootsRef.current;
+      calloutRootsRef.current = [];
+      // Deferred: React refuses to unmount a root synchronously while it is
+      // already rendering, which is exactly where an effect cleanup runs.
+      setTimeout(() => roots.forEach((r) => r.unmount()), 0);
+      try { mapRef.current?.destroy?.(); } catch { /* ignore */ }
+      mapRef.current = null;
+      annotationsRef.current = [];
+      heatOverlaysRef.current = [];
+    };
+  }, []);
+
+  // Follow the app's light/dark theme. `useDarkMode` writes the resolved
+  // theme to `<html data-theme>`, so an attribute observer catches both an
+  // explicit toggle and a system-preference flip while the map is open.
+  useEffect(() => {
+    if (typeof MutationObserver === "undefined") return;
+    const obs = new MutationObserver(() => setIsDark(readIsDark()));
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    return () => obs.disconnect();
+  }, []);
+  useEffect(() => {
+    const mk = getMapKit();
+    const map = mapRef.current;
+    if (!mk || !map) return;
+    try {
+      map.colorScheme = colorSchemeFor(mk, isDark);
+    } catch { /* older runtimes may not allow reassignment — leave as built */ }
+  }, [isDark, mapReady]);
+
+  /** Remove and unmount every job annotation currently on the map. */
+  const clearAnnotations = useCallback(() => {
+    const map = mapRef.current;
+    if (map && annotationsRef.current.length) {
+      try { map.removeAnnotations(annotationsRef.current); } catch { /* ignore */ }
+    }
+    annotationsRef.current = [];
+    const roots = calloutRootsRef.current;
+    calloutRootsRef.current = [];
+    if (roots.length) setTimeout(() => roots.forEach((r) => r.unmount()), 0);
+  }, []);
+
+  // Pins layer. Each job becomes a custom annotation whose callout body is a
+  // real `<MapJobPopup>` — MapKit's callout delegate hands back DOM, not React
+  // children, so the popup is rendered into a detached node by its own React
+  // root and that node is what `calloutContentForAnnotation` returns. It is
+  // rendered up front (not on tap) so the callout has laid-out content to
+  // measure the moment MapKit asks for it.
+  useEffect(() => {
+    const mk = getMapKit();
+    const map = mapRef.current;
+    if (!mk || !map) return;
+    clearAnnotations();
+    if (view !== "pins" || visibleJobs.length === 0) return;
+
+    const annotations = visibleJobs.map((job) => {
+      const body = document.createElement("div");
+      body.className = "browse-map-callout";
+      body.style.width = `${calloutWidth}px`;
+      // Belt and braces on the narrowest surface: even if the pane is
+      // mis-measured, the callout can never be wider than the phone screen.
+      body.style.maxWidth = "calc(100vw - 32px)";
+      const root = createRoot(body);
+      root.render(
+        <MapJobPopup
+          job={job}
+          onJobAction={onJobAction}
+          ctaLabel={ctaLabel}
+          effectiveFee={effectiveFee}
+        />,
+      );
+      calloutRootsRef.current.push(root);
+      return new mk.Annotation(
+        new mk.Coordinate(Number(job.latitude), Number(job.longitude)),
+        () => pinElement(job.category, job.is_urgent),
+        {
+          // MapKit centres a custom annotation element on its coordinate;
+          // the pin's point is at its bottom edge, so lift it by half the
+          // icon height (Leaflet's `iconAnchor: [14, 36]`).
+          anchorOffset:
+            typeof DOMPoint === "function" ? new DOMPoint(0, -PIN_HEIGHT / 2) : undefined,
+          clusteringIdentifier: "browse-job",
+          calloutEnabled: true,
+          callout: { calloutContentForAnnotation: () => body },
+          data: { jobId: job.id },
+        },
+      );
+    });
+    annotationsRef.current = annotations;
+    try { map.addAnnotations(annotations); } catch { /* ignore */ }
+  }, [visibleJobs, view, mapReady, ctaLabel, effectiveFee, onJobAction, calloutWidth, clearAnnotations]);
+
+  const heatBuckets: HeatBucket[] = useMemo(
+    () => (view === "heat" ? bucketJobs(visibleJobs) : []),
+    [view, visibleJobs],
+  );
+
+  // Heat layer. See ./MapLayers for the pixel→metre radius bridge and why the
+  // radii are recomputed whenever the camera settles.
+  useEffect(() => {
+    const mk = getMapKit();
+    const map = mapRef.current;
+    if (!mk || !map) return;
+    if (heatOverlaysRef.current.length) {
+      try { map.removeOverlays(heatOverlaysRef.current); } catch { /* ignore */ }
+      heatOverlaysRef.current = [];
+    }
+    if (view !== "heat" || heatBuckets.length === 0) return;
+
+    heatOverlaysRef.current = addHeatOverlays(mk, map, heatBuckets, (bucket) => {
+      setHeatCaption(bucket.count);
+      // Tap-to-zoom: pan to the bucket centre and step in, the Leaflet
+      // `flyTo(center, zoom + 2)` equivalent — halving the visible span is
+      // one zoom level, so quartering it is two.
+      const span = map.region.span;
+      map.setRegionAnimated(
+        new mk.CoordinateRegion(
+          new mk.Coordinate(bucket.center[0], bucket.center[1]),
+          new mk.CoordinateSpan(
+            Math.max(span.latitudeDelta / 4, 0.01),
+            Math.max(span.longitudeDelta / 4, 0.01),
+          ),
+        ),
+        true,
+      );
+    });
+
+    const onRegionEnd = () => resizeHeatOverlays(map, heatOverlaysRef.current);
+    map.addEventListener("region-change-end", onRegionEnd);
+    return () => {
+      map.removeEventListener("region-change-end", onRegionEnd);
+    };
+  }, [heatBuckets, view, mapReady]);
+
+  // Auto-dismiss the heat caption so it doesn't hang over the map forever.
+  useEffect(() => {
+    if (heatCaption === null) return;
+    const t = setTimeout(() => setHeatCaption(null), 2600);
+    return () => clearTimeout(t);
+  }, [heatCaption]);
+
+  // Frame the pins whenever the visible set changes (FitToPins' old job).
+  useEffect(() => {
+    const mk = getMapKit();
+    const map = mapRef.current;
+    if (!mk || !map) return;
+    fitToPins(mk, map, visibleJobs);
+  }, [visibleJobs, mapReady]);
+
+  const recenter = useCallback(() => {
+    const mk = getMapKit();
+    const map = mapRef.current;
+    if (!mk || !map) return;
+    map.setRegionAnimated(laRegion(mk), true);
+  }, []);
 
   if (loading) {
     return (
@@ -272,7 +539,6 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
     );
   }
 
-  const heatBuckets = view === "heat" ? bucketJobs(visibleJobs) : [];
   const isEmpty = visibleJobs.length === 0;
 
   return (
@@ -367,6 +633,7 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
         </div>
       </div>
       )}
+      {heatCaption !== null && <HeatCaption count={heatCaption} />}
       {/* Empty board — keep the real Louisiana map on screen (so it reads
           as "no posts yet here", not "the map is broken") and float a
           soft frosted caption over it. The wrapper passes pointer events
@@ -439,89 +706,53 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
           </div>
         </div>
       )}
-      {/* Subtle tile-load overlay — fades out once the OSM tiles
-          report `load` so the first paint is a soft transition rather
-          than a flash of half-rendered tiles. Pointer events bypass so
-          users can still pan even while it fades. */}
-      <div
-        aria-hidden
-        className="absolute inset-0 z-[300] flex items-center justify-center pointer-events-none transition-opacity duration-500"
-        style={{
-          opacity: tilesLoading ? 1 : 0,
-          background: "hsl(var(--surface-band) / 0.55)",
-          backdropFilter: "blur(2px)",
-          WebkitBackdropFilter: "blur(2px)",
-        }}
-      >
-        <HelprSpinner size={20} />
-      </div>
-      <MapContainer
-        bounds={LA_STATE_BOUNDS}
-        boundsOptions={{ padding: [16, 16] }}
-        minZoom={LA_MIN_ZOOM}
-        maxBounds={LA_BOUNDS}
-        maxBoundsViscosity={1.0}
-        style={{ height: "100%", width: "100%" }}
-        scrollWheelZoom={false}
-      >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          eventHandlers={{
-            // `load` fires when all currently-visible tiles are loaded.
-            // `loading` fires when fresh tiles start fetching (e.g.
-            // after the user pans into uncached area). Re-show the
-            // overlay briefly so the user knows something's happening.
-            load: () => setTilesLoading(false),
-            loading: () => setTilesLoading(true),
-          }}
-        />
-        <FitToPins jobs={visibleJobs} />
-        <RecenterControl />
-        {view === "heat" && <HeatLayer buckets={heatBuckets} />}
-        {view === "pins" && (
-        <MarkerClusterGroup
-          chunkedLoading
-          spiderfyOnMaxZoom
-          showCoverageOnHover={false}
-          maxClusterRadius={40}
-          iconCreateFunction={clusterIcon}
+      {/* MapKit can't authorize (no token, script blocked, Apple rejected the
+          key). Say so plainly instead of leaving a blank grey box: the pins
+          are gone but the job list is one tap away, so nobody is stranded.
+          Sits ABOVE the map surface rather than replacing the shell so the
+          count badge and layer toggle keep their positions. */}
+      {mapKitUnusable && (
+        <div
+          role="status"
+          data-testid="browse-map-unavailable"
+          className="absolute inset-0 z-[360] flex flex-col items-center justify-center gap-2 px-6 text-center"
+          style={{ background: "hsl(var(--surface-band) / 0.96)" }}
         >
-        {visibleJobs.map((job) => (
-          <Marker
-            key={job.id}
-            position={[Number(job.latitude), Number(job.longitude)]}
-            icon={pinIcon(job.category, job.is_urgent)}
-          >
-            {/* Width is pinned rather than left to Leaflet's content sizing:
-                the popup now carries a category chip, a title, a price chip
-                and a wrapping meta row, and an auto-sized box would stretch
-                to the widest of those (a long title) on desktop while
-                squeezing the meta row onto four lines on a phone. 224–264px
-                plus Leaflet's own 44px of content margin stays inside the
-                narrowest surface this ships to — the 375px phone map pane,
-                which has 12px of padding a side. */}
-            <Popup
-              minWidth={popupWidth}
-              maxWidth={popupWidth}
-              // Keep the pin visible when Leaflet does still need to nudge the
-              // view, and give the nudge real breathing room rather than the
-              // 5px default that left the card kissing the edge.
-              keepInView
-              autoPanPadding={[16, 16]}
-            >
-              <MapJobPopup
-                job={job}
-                onJobAction={onJobAction}
-                ctaLabel={ctaLabel}
-                effectiveFee={effectiveFee}
-              />
-            </Popup>
-          </Marker>
-        ))}
-        </MarkerClusterGroup>
-        )}
-      </MapContainer>
+          <MapPinOff className="w-6 h-6" style={{ color: "hsl(var(--olivewood) / 0.7)" }} aria-hidden="true" />
+          <p className="font-sans font-semibold text-ds-13" style={{ color: "hsl(var(--bark))" }}>
+            The map isn't available right now.
+          </p>
+          <p className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+            Every open job is still on the list — switch to the list view to browse them.
+          </p>
+        </div>
+      )}
+      {/* Subtle load overlay — fades out once MapKit reports ready so the
+          first paint is a soft transition rather than a flash of half-drawn
+          map. Pointer events bypass so users can still pan even while it
+          fades. */}
+      {!mapKitUnusable && (
+        <div
+          aria-hidden
+          className="absolute inset-0 z-[300] flex items-center justify-center pointer-events-none transition-opacity duration-500"
+          style={{
+            opacity: mapReady ? 0 : 1,
+            background: "hsl(var(--surface-band) / 0.55)",
+            backdropFilter: "blur(2px)",
+            WebkitBackdropFilter: "blur(2px)",
+          }}
+        >
+          <HelprSpinner size={20} />
+        </div>
+      )}
+      <div
+        ref={setContainerEl}
+        data-testid="browse-map-surface"
+        role="application"
+        aria-label="Map of open jobs across Louisiana"
+        style={{ height: "100%", width: "100%" }}
+      />
+      {mapReady && !mapKitUnusable && <RecenterControl onRecenter={recenter} />}
     </div>
   );
 }

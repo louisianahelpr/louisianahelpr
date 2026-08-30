@@ -1131,6 +1131,22 @@ html.web-desktop {
   overscroll-behavior: contain;
 }
 
+/* Apple MapKit JS (the browse map). The pin/cluster annotation elements are
+   our own DOM, so they only need to stop the map's own cursor showing through;
+   the callout body is a React-rendered card that supplies its own spacing, so
+   all MapKit's bubble has to do is not clip it or let it outgrow the pane on a
+   375px phone. */
+.browse-map-pin,
+.browse-map-cluster {
+  cursor: pointer;
+}
+
+.browse-map-callout {
+  padding: 10px 12px;
+  box-sizing: border-box;
+  max-width: calc(100vw - 32px);
+}
+
 /* Zoom buttons: centre the glyph in the button it is actually in.
    Leaflet centres the "+" / "−" with `line-height: 30px` on a 30px-tall
    anchor. The app's 44px minimum tap target grows that anchor to ~44px but

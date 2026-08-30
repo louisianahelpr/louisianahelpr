@@ -26,8 +26,9 @@ import type { useDashboardFilters } from "@/hooks/useDashboardFilters";
 import type { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import type { FeedDensity } from "@/components/dashboard/feedDensity";
 
-// Lazy-load BrowseMap so the ~45KB leaflet bundle only ships when an
-// authenticated user toggles to map view. List view stays cheap.
+// Lazy-load BrowseMap so the map chunk (and the MapKit JS script it pulls
+// from Apple's CDN) only loads when an authenticated user toggles to map
+// view. List view stays cheap.
 //
 // A slow chunk fetch over a weak connection makes the toggle feel frozen
 // with zero observability. Bracket the dynamic import in a User Timing

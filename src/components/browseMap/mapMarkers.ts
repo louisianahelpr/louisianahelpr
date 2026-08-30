@@ -1,10 +1,17 @@
-// Marker/cluster icon builders + heat-density helpers for BrowseMap.
-// Moved verbatim from BrowseMap.tsx. NOTE: `bucketJobs` groups already-
-// coarsened pin coordinates into ~0.1° visual heat buckets — it is a
-// display grouping, NOT the privacy coarsening (that happens server-side
-// in the get_open_jobs_for_map RPC). Untouched here regardless.
+// Marker/cluster element builders + heat-density helpers for BrowseMap.
+//
+// Ported from Leaflet `divIcon`s to MapKit JS custom annotations: MapKit's
+// `mapkit.Annotation(coordinate, factory)` takes a FACTORY that returns a real
+// DOM element rather than an HTML string, so these now build and return
+// elements. The markup, sizes, colours and shadows are byte-for-byte the same
+// as the Leaflet div-icons they replace — the pin is still a 28x36 teardrop in
+// the category hue with a burnt-sienna ring when urgent, and the cluster is
+// still a bark circle with a parchment count.
+//
+// NOTE: `bucketJobs` groups already-coarsened pin coordinates into ~0.1°
+// visual heat buckets — it is a display grouping, NOT the privacy coarsening
+// (that happens server-side in the get_open_jobs_for_map RPC). Untouched here.
 
-import { divIcon, point as leafletPoint } from "leaflet";
 import { categoryHue } from "@/lib/categoryHues";
 import type { MapJob } from "./config";
 
@@ -14,58 +21,63 @@ function resolveToken(varName: string, fallback: string): string {
   return v ? `hsl(${v})` : fallback;
 }
 
-// Fix Leaflet's default-icon-not-found problem when bundlers can't
-// resolve the asset paths. We use a small inline div-icon instead so
-// pins render reliably across web + Capacitor iOS.
-// Branded cluster bubble. react-leaflet-cluster's built-in cluster styling
-// relies on the leaflet.markercluster default CSS (not imported here, to
-// keep the bundle lean), which made a cluster render as a tiny unstyled
-// dot — so a metro of jobs looked like a single faint pin. This div-icon
-// renders the cluster ourselves as a bark circle with a cream count, so
-// "7 jobs near New Orleans" reads instantly and tapping it spiderfies/zooms.
-export function clusterIcon(cluster: { getChildCount: () => number }) {
-  const count = cluster.getChildCount();
+/** Pin geometry, exported because the annotation's anchor offset has to
+ *  agree with it: MapKit centres an element on its coordinate, so the pin
+ *  is shifted up by half its height to put the TIP on the coordinate (the
+ *  Leaflet `iconAnchor: [14, 36]` equivalent). */
+export const PIN_WIDTH = 28;
+export const PIN_HEIGHT = 36;
+
+/**
+ * Branded cluster bubble. MapKit clusters natively (annotations sharing a
+ * `clusteringIdentifier` collapse, and the map's `annotationForCluster`
+ * callback supplies the stand-in annotation) — but its default cluster is an
+ * unstyled marker, exactly the problem react-leaflet-cluster had. So we render
+ * it ourselves: a bark circle with a cream count, so "7 jobs near New Orleans"
+ * reads instantly and tapping it zooms in.
+ */
+export function clusterElement(count: number): HTMLElement {
   const size = count >= 10 ? 44 : count >= 5 ? 40 : 36;
   const bark = resolveToken("--bark", "#5E6544");
   const parchment = resolveToken("--parchment", "#FAF8F5");
-  const html = `
-    <div style="
-      width:${size}px;height:${size}px;border-radius:9999px;
-      display:flex;align-items:center;justify-content:center;
-      background:${bark};color:${parchment};
-      font-family:ui-sans-serif,system-ui,sans-serif;font-weight:800;
-      font-size:${count >= 10 ? 15 : 14}px;
-      border:2px solid ${parchment};
-      box-shadow:0 4px 12px -2px rgba(46,46,40,0.45);
-    ">${count}</div>
-  `;
-  return divIcon({
-    html,
-    className: "browse-map-cluster",
-    iconSize: leafletPoint(size, size),
-    iconAnchor: leafletPoint(size / 2, size / 2),
-  });
+  const el = document.createElement("div");
+  el.className = "browse-map-cluster";
+  el.style.cssText = [
+    `width:${size}px`,
+    `height:${size}px`,
+    "border-radius:9999px",
+    "display:flex",
+    "align-items:center",
+    "justify-content:center",
+    `background:${bark}`,
+    `color:${parchment}`,
+    "font-family:ui-sans-serif,system-ui,sans-serif",
+    "font-weight:800",
+    `font-size:${count >= 10 ? 15 : 14}px`,
+    `border:2px solid ${parchment}`,
+    "box-shadow:0 4px 12px -2px rgba(46,46,40,0.45)",
+    "cursor:pointer",
+  ].join(";");
+  el.textContent = String(count);
+  return el;
 }
 
-export function pinIcon(category: string, isUrgent: boolean) {
+export function pinElement(category: string, isUrgent: boolean): HTMLElement {
   const color = categoryHue(category);
   const sienna = resolveToken("--burnt-sienna", "#A0613B");
   const parchment = resolveToken("--parchment", "#FAF8F5");
   const ring = isUrgent ? `stroke="${sienna}" stroke-width="2.5"` : "";
-  const html = `
-    <svg width="28" height="36" viewBox="0 0 28 36" xmlns="http://www.w3.org/2000/svg">
+  const el = document.createElement("div");
+  el.className = "browse-map-pin";
+  el.style.cssText = `width:${PIN_WIDTH}px;height:${PIN_HEIGHT}px;cursor:pointer;`;
+  el.innerHTML = `
+    <svg width="${PIN_WIDTH}" height="${PIN_HEIGHT}" viewBox="0 0 28 36" xmlns="http://www.w3.org/2000/svg">
       <path d="M14 0C6.27 0 0 6.27 0 14c0 9.5 14 22 14 22s14-12.5 14-22C28 6.27 21.73 0 14 0z"
         fill="${color}" ${ring} />
       <circle cx="14" cy="14" r="5" fill="${parchment}" />
     </svg>
   `;
-  return divIcon({
-    className: "browse-map-pin",
-    html,
-    iconSize: leafletPoint(28, 36),
-    iconAnchor: leafletPoint(14, 36),
-    popupAnchor: leafletPoint(0, -32),
-  });
+  return el;
 }
 
 // Density-aware tint for the heatmap layer. Lower count → cooler
@@ -80,10 +92,17 @@ export function densityFill(count: number): string {
   return "hsla(70, 25%, 50%, 0.40)"; // bark-cool
 }
 
+/** The heat bubble's on-screen radius in CSS PIXELS — the exact Leaflet
+ *  `CircleMarker` radius formula. Converted to metres against the live camera
+ *  at draw time (see `metresPerPixel` in ./mapkitRuntime). */
+export function heatRadiusPx(count: number): number {
+  return Math.min(8 + count * 4, 36);
+}
+
 // Group jobs into ~0.1° lat/lng buckets for a quick density map without
-// pulling in leaflet.heat. Each bucket becomes a CircleMarker sized by
-// job count. Cheap, dependency-free, and still gives the "where's the
-// work" glance pattern.
+// pulling in a heat-map library. Each bucket becomes a circle sized by job
+// count. Cheap, dependency-free, and still gives the "where's the work"
+// glance pattern.
 export function bucketJobs(jobs: MapJob[]): Array<{
   center: [number, number];
   count: number;

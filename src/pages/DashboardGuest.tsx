@@ -13,8 +13,8 @@ import GuestBrowseSkeleton from "@/components/GuestBrowseSkeleton";
 import JobCard from "@/components/dashboard/JobCard";
 import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
 import { useDashboardFilters } from "@/hooks/useDashboardFilters";
-// Lazy-load the map so the ~45KB leaflet bundle only ships when guests
-// actually toggle to map view. List view stays cheap by default.
+// Lazy-load the map so the map chunk (and Apple's MapKit JS script) only
+// loads when guests actually toggle to map view. List view stays cheap.
 const BrowseMap = lazy(() =>
   import("@/components/BrowseMap").then((m) => ({ default: m.BrowseMap })),
 );

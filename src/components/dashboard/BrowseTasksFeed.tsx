@@ -57,6 +57,96 @@ const BrowseMap = lazy(() => {
 
 type PullToRefresh = ReturnType<typeof usePullToRefresh>;
 
+/** Props every SwipeableJobCard needs, regardless of which list renders it. */
+interface JobCardCommonProps {
+  effectiveFee: number;
+  currentUserId?: string;
+  onApply: (jobId: string) => void;
+  onReport: Dispatch<SetStateAction<string | null>>;
+  onSelect: Dispatch<SetStateAction<EnrichedJob | null>>;
+  onDismiss: (jobId: string) => void;
+  confirmDismissJobId: string | null;
+  expandedCardId: string | null;
+  onToggleExpand: (id: string) => void;
+  savedJobIds: Set<string>;
+  onToggleSave: (jobId: string, saved: boolean) => void;
+  userLat: number | null;
+  userLng: number | null;
+  onLongPress?: (jobId: string) => void;
+}
+
+/**
+ * JobFeedCard — the single place that threads the (long) shared prop list
+ * onto SwipeableJobCard. Both the "Recommended" band and the "Everything
+ * else" feed render the same card with the same props; only their list
+ * wrapper differs (animated vs virtualized), so only the wrapper stays
+ * duplicated per call site — the card itself is built here once.
+ */
+function JobFeedCard({
+  job,
+  index,
+  recommended,
+  common,
+}: {
+  job: EnrichedJob;
+  index: number;
+  recommended?: boolean;
+  common: JobCardCommonProps;
+}) {
+  return (
+    <SwipeableJobCard
+      job={job}
+      effectiveFee={common.effectiveFee}
+      currentUserId={common.currentUserId}
+      recommended={recommended}
+      onApply={common.onApply}
+      onReport={common.onReport}
+      onSelect={common.onSelect}
+      onDismiss={common.onDismiss}
+      dismissPending={common.confirmDismissJobId === job.id}
+      index={index}
+      isExpanded={common.expandedCardId === job.id}
+      onToggleExpand={common.onToggleExpand}
+      isSaved={common.savedJobIds.has(job.id)}
+      onToggleSave={common.onToggleSave}
+      userLat={common.userLat}
+      userLng={common.userLng}
+      onLongPress={common.onLongPress}
+    />
+  );
+}
+
+/** Props every CompactJobCard row needs, regardless of which list renders it. */
+interface CompactCardCommonProps {
+  effectiveFee: number;
+  onSelect: Dispatch<SetStateAction<EnrichedJob | null>>;
+  hoveredJobId?: string | null;
+  setHoveredJobId?: Dispatch<SetStateAction<string | null>>;
+}
+
+/** Same de-dup as JobFeedCard, for the "compact" density's CompactJobCard rows. */
+function CompactFeedCard({
+  job,
+  recommended,
+  common,
+}: {
+  job: EnrichedJob;
+  recommended?: boolean;
+  common: CompactCardCommonProps;
+}) {
+  return (
+    <CompactJobCard
+      job={job}
+      effectiveFee={common.effectiveFee}
+      recommended={recommended}
+      onSelect={(j) => common.onSelect(j)}
+      isHighlighted={common.hoveredJobId === job.id}
+      onMouseEnter={() => common.setHoveredJobId?.(job.id)}
+      onMouseLeave={() => common.setHoveredJobId?.(null)}
+    />
+  );
+}
+
 interface BrowseTasksFeedProps {
   /** List vs Map view — selects which body renders. */
   view: "list" | "map";
@@ -269,6 +359,32 @@ export function BrowseTasksFeed({
     return { visibleJobs: visible, recommendedVisible: recommended };
   }, [filters.filteredJobs, filters.hasFilters, filters.sortBy, recommendedJobs, dismissedJobIds, savedOnly, savedJobIds]);
 
+  // Built once per render and handed to both list call sites (recommended +
+  // everything-else) so JobFeedCard/CompactFeedCard don't each need a dozen
+  // individual props threaded through — see JobFeedCard above.
+  const cardCommon: JobCardCommonProps = {
+    effectiveFee,
+    currentUserId: user?.id,
+    onApply: handleApplyRequest,
+    onReport: setReportJobId,
+    onSelect: setDetailJob,
+    onDismiss: handleDismissRequest,
+    confirmDismissJobId,
+    expandedCardId,
+    onToggleExpand: handleToggleExpand,
+    savedJobIds,
+    onToggleSave: handleToggleSave,
+    userLat,
+    userLng,
+    onLongPress: handleLongPressCard,
+  };
+  const compactCardCommon: CompactCardCommonProps = {
+    effectiveFee,
+    onSelect: setDetailJob,
+    hoveredJobId,
+    setHoveredJobId,
+  };
+
   return (
     <>
       {/* Visually hidden aria-live region — announces newly loaded page
@@ -295,7 +411,6 @@ export function BrowseTasksFeed({
                 const job = filters.filteredJobs.find((j) => j.id === jobId);
                 if (job) setDetailJob(job);
               }}
-              ctaLabel="Apply"
               currentUserId={user?.id}
               filters={filters.mapFilter}
               onClearFilters={filters.clearFilters}
@@ -473,16 +588,7 @@ export function BrowseTasksFeed({
                 {density === "compact" ? (
                   <ul>
                     {recommendedVisible.map((job, i) => (
-                      <CompactJobCard
-                        key={job.id}
-                        job={job}
-                        effectiveFee={effectiveFee}
-                        recommended={i === 0}
-                        onSelect={(j) => setDetailJob(j)}
-                        isHighlighted={hoveredJobId === job.id}
-                        onMouseEnter={() => setHoveredJobId?.(job.id)}
-                        onMouseLeave={() => setHoveredJobId?.(null)}
-                      />
+                      <CompactFeedCard key={job.id} job={job} recommended={i === 0} common={compactCardCommon} />
                     ))}
                   </ul>
                 ) : (
@@ -506,7 +612,7 @@ export function BrowseTasksFeed({
                           onMouseEnter={() => setHoveredJobId?.(job.id)}
                           onMouseLeave={() => setHoveredJobId?.(null)}
                         >
-                          <SwipeableJobCard job={job} effectiveFee={effectiveFee} currentUserId={user?.id} recommended={i === 0} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={handleToggleExpand} isSaved={savedJobIds.has(job.id)} onToggleSave={handleToggleSave} userLat={userLat} userLng={userLng} onLongPress={handleLongPressCard} />
+                          <JobFeedCard job={job} index={i} recommended={i === 0} common={cardCommon} />
                         </motion.div>
                       ))}
                     </AnimatePresence>
@@ -524,15 +630,7 @@ export function BrowseTasksFeed({
                 }}
               >
                 {visibleJobs.map((job) => (
-                  <CompactJobCard
-                    key={job.id}
-                    job={job}
-                    effectiveFee={effectiveFee}
-                    onSelect={(j) => setDetailJob(j)}
-                    isHighlighted={hoveredJobId === job.id}
-                    onMouseEnter={() => setHoveredJobId?.(job.id)}
-                    onMouseLeave={() => setHoveredJobId?.(null)}
-                  />
+                  <CompactFeedCard key={job.id} job={job} common={compactCardCommon} />
                 ))}
               </ul>
             ) : (
@@ -577,7 +675,7 @@ export function BrowseTasksFeed({
                       onMouseEnter={() => setHoveredJobId?.(job.id)}
                       onMouseLeave={() => setHoveredJobId?.(null)}
                     >
-                      <SwipeableJobCard job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={handleToggleExpand} isSaved={savedJobIds.has(job.id)} onToggleSave={handleToggleSave} userLat={userLat} userLng={userLng} onLongPress={handleLongPressCard} />
+                      <JobFeedCard job={job} index={i} common={cardCommon} />
                     </div>
                   )}
                 />

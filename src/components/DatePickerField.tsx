@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState } from "react";
-import { Calendar as CalendarIcon } from "lucide-react";
+import { Calendar as CalendarIcon, Check } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -41,6 +41,14 @@ interface DatePickerFieldProps {
    * where the year is the field you actually have to travel in.
    */
   wheel?: boolean;
+  /**
+   * Swap the trailing calendar glyph for a checkmark once a date is chosen —
+   * matches the check-on-valid affordance the surrounding fields already use
+   * (e.g. Signup's first/last name/phone). Opt-in: a scheduling picker
+   * (job date, dispute deadline) shouldn't read as "done" just because a
+   * date is picked, so this defaults to off everywhere else.
+   */
+  showCompleteCheck?: boolean;
 }
 
 /**
@@ -57,6 +65,7 @@ export function DatePickerField({
   id,
   className,
   wheel = false,
+  showCompleteCheck = false,
   "aria-describedby": ariaDescribedby,
   "aria-invalid": ariaInvalid,
 }: DatePickerFieldProps) {
@@ -99,7 +108,11 @@ export function DatePickerField({
           )}
         >
           <span className="truncate">{formatted}</span>
-          <CalendarIcon className="ml-2 h-4 w-4 shrink-0 text-muted-foreground" />
+          {showCompleteCheck && selected ? (
+            <Check className="ml-2 h-4 w-4 shrink-0 text-primary" strokeWidth={2.5} aria-hidden />
+          ) : (
+            <CalendarIcon className="ml-2 h-4 w-4 shrink-0 text-muted-foreground" />
+          )}
         </button>
       </PopoverTrigger>
       <PopoverContent

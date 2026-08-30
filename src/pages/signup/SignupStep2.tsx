@@ -216,6 +216,7 @@ export function SignupStep2(props: SignupStep2Props) {
                 as a blank, oversized box on iOS with no placeholder. */}
             <DatePickerField
               wheel
+              showCompleteCheck
               id="dob"
               value={dateOfBirth}
               onChange={(v) => { setDateOfBirth(v); clearFieldError?.("dateOfBirth"); }}

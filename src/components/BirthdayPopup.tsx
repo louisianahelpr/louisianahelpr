@@ -5,6 +5,7 @@ import { Dialog, DialogPortal, DialogOverlay, DialogHero } from "@/components/ui
 import { X, Cake } from "lucide-react";
 import { safeStorage } from "@/lib/safeStorage";
 import { useReducedMotion } from "@/lib/accessibility";
+import { parseLocalDate } from "@/lib/dateUtils";
 
 interface BirthdayPopupProps {
   dateOfBirth: string | null | undefined;
@@ -19,7 +20,7 @@ const BirthdayPopup = ({ dateOfBirth, firstName }: BirthdayPopupProps) => {
     if (!dateOfBirth) return;
 
     const today = new Date();
-    const dob = new Date(dateOfBirth);
+    const dob = parseLocalDate(dateOfBirth);
     if (today.getMonth() === dob.getMonth() && today.getDate() === dob.getDate()) {
       const dismissed = safeStorage.getItem("birthday_popup_dismissed");
       if (dismissed) {

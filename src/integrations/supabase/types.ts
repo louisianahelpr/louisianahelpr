@@ -260,102 +260,6 @@ export type Database = {
         }
         Relationships: []
       }
-      community_post_likes: {
-        Row: {
-          post_id: string
-          user_id: string
-        }
-        Insert: {
-          post_id: string
-          user_id: string
-        }
-        Update: {
-          post_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "community_post_likes_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "community_posts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      community_posts: {
-        Row: {
-          after_photo_url: string | null
-          author_id: string
-          before_photo_url: string | null
-          body: string | null
-          category: string | null
-          created_at: string
-          id: string
-          is_approved: boolean
-          job_id: string | null
-          like_count: number
-          parish: string | null
-          photos: string[] | null
-          post_type: string
-          title: string | null
-        }
-        Insert: {
-          after_photo_url?: string | null
-          author_id: string
-          before_photo_url?: string | null
-          body?: string | null
-          category?: string | null
-          created_at?: string
-          id?: string
-          is_approved?: boolean
-          job_id?: string | null
-          like_count?: number
-          parish?: string | null
-          photos?: string[] | null
-          post_type: string
-          title?: string | null
-        }
-        Update: {
-          after_photo_url?: string | null
-          author_id?: string
-          before_photo_url?: string | null
-          body?: string | null
-          category?: string | null
-          created_at?: string
-          id?: string
-          is_approved?: boolean
-          job_id?: string | null
-          like_count?: number
-          parish?: string | null
-          photos?: string[] | null
-          post_type?: string
-          title?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "community_posts_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "jobs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "community_posts_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "jobs_helper_safe"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "community_posts_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "open_jobs_browse"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       cron_run_log: {
         Row: {
           body: Json
@@ -4913,10 +4817,19 @@ export type Database = {
         Returns: number
       }
       check_dispute_velocity: { Args: { p_user_id: string }; Returns: boolean }
-      claim_idv_attempt: {
-        Args: { p_max_attempts?: number; p_user_id: string }
-        Returns: Json
-      }
+      claim_idv_attempt:
+        | {
+            Args: { p_max_attempts?: number; p_user_id: string }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_max_attempts?: number
+              p_skip_fee_gate?: boolean
+              p_user_id: string
+            }
+            Returns: Json
+          }
       cleanup_observability_tables: { Args: never; Returns: undefined }
       cleanup_stripe_webhook_events: { Args: never; Returns: undefined }
       clear_available_now: { Args: never; Returns: undefined }

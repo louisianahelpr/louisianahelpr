@@ -38,8 +38,8 @@ const ApplyConfirmDialog = lazy(() => import("@/components/dashboard/ApplyConfir
 const ReportDialog = lazy(() => import("@/components/ReportDialog"));
 const OnboardingTour = lazy(() => import("@/components/OnboardingTour"));
 const BirthdayPopup = lazy(() => import("@/components/BirthdayPopup"));
-// Map column for the web-desktop two-pane (leaflet is heavy — lazy so the
-// phone/native feed never pays for it).
+// Map column for the web-desktop two-pane (the map surface pulls Apple's
+// MapKit JS from the CDN — lazy so the phone/native feed never pays for it).
 const BrowseMap = lazy(() => import("@/components/BrowseMap").then(m => ({ default: m.BrowseMap })));
 import SectionBoundary from "@/components/SectionBoundary";
 import { useDashboardData } from "@/hooks/useDashboardData";
@@ -501,7 +501,7 @@ const Dashboard = () => {
                           >
                             {filters.filteredJobs.length}
                             {filters.filteredJobs.length === 1 ? " job" : " jobs"}
-                            {filters.hasFilters ? " match your filters" : " nearby"}
+                            {filters.hasFilters ? " match your filters" : ""}
                           </span>
                         <div className="flex items-center gap-1 ml-auto">
                           <BrowseTasksActions

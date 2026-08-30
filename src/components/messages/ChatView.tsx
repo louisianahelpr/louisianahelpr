@@ -302,9 +302,28 @@ export function ChatView({
             <div className="rounded-md bg-accent/10 border border-accent/20 px-2.5 py-1.5 mt-2 mb-1 flex items-start gap-1.5">
               <AlertTriangle className="w-3 h-3 text-accent mt-[3px] shrink-0" />
               <p className="text-ds-11 leading-snug text-accent flex-1">
-                Keep chats &amp; payments on Helpr. Sharing contact info or going off-platform = warning, then final warning, then a 7-day restriction while an admin reviews your account.
+                Keep chats &amp; payments on Helpr — going off-platform risks an account restriction.
               </p>
-              <button onClick={dismissBanner} className="-m-2 p-2 text-accent/60 hover:text-accent shrink-0 self-start" aria-label="Dismiss safety reminder">
+              {/* The global `button { min-height/min-width: 44px }` touch-target
+                  rule (index.css) floors every <button>'s own box at 44x44,
+                  regardless of how small its container is — a tight single-line
+                  banner like this one is well under 44px tall, so the button's
+                  box overflowed the banner's bounds top and bottom (visible on
+                  hover/focus, and the real hit region extended past the card).
+                  Same pattern as MessageBubble's delete button: keep the drawn
+                  icon small and `relative`, then grow the HIT target with an
+                  absolutely-positioned `::before` instead of letting the
+                  button's own box inflate past its visual footprint. */}
+              <button
+                onClick={dismissBanner}
+                // Inline style, not a `min-h-0`/`min-w-0` utility class: the
+                // global rule above is `button:not([role="checkbox"])…`
+                // (specificity 0,1,1), which beats any single Tailwind class
+                // (0,1,0). Only an inline style is guaranteed to win.
+                style={{ minHeight: 0, minWidth: 0 }}
+                className="relative shrink-0 self-start w-4 h-4 flex items-center justify-center text-accent/60 hover:text-accent before:absolute before:-inset-3 before:content-['']"
+                aria-label="Dismiss safety reminder"
+              >
                 <X className="w-3 h-3" />
               </button>
             </div>

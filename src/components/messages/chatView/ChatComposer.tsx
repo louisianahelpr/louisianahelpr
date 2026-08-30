@@ -172,7 +172,11 @@ export function ChatComposer({
               onSend={(msg) => { if (!assertWritable()) return; void sendMessage(msg); }}
               audience={activeConvo?.viewerIsPoster ? "poster" : "helper"}
               jobStatus={activeConvo.jobStatus}
-              wrap
+              // NOT `wrap`: the attach ("+") sheet these render in is a fixed
+              // `w-[300px]` popover (AttachSourceSheet), not a roomy surface —
+              // `wrap` there was overflowing into 3+ rows of chips. The
+              // horizontally-scrolling default (fade-masked) fits the narrow
+              // sheet as a single row.
             />
           );
         })()}

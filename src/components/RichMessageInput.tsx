@@ -432,7 +432,12 @@ export const RichMessageInput = ({
             frequent action (Send) keeps the rightmost slot. Mounts only
             on platforms with SpeechRecognition (degrades cleanly on web
             browsers without it and on Capacitor WebViews that don't
-            expose it). Live red dot indicates an active session. */}
+            expose it). Live red dot indicates an active session.
+            NOT a duplicate of "Voice note" in the attach ("+") menu: this
+            button transcribes speech INTO the text draft (nothing is sent
+            until Send is tapped); the attach-menu action records and sends
+            an audio clip as its own attachment. Different input methods,
+            different outputs. */}
         {voice.supported && recorder.state === "idle" && (
           <Button
             type="button"

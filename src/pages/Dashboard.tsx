@@ -618,7 +618,13 @@ const Dashboard = () => {
                     <Suspense fallback={<Skeleton className="h-full w-full rounded-2xl" />}>
                       <BrowseMap
                         flush
-                        onJobAction={handleApplyRequest}
+                        // Same job-detail dialog the feed's cards open on
+                        // tap (openDetailJob), not the quick-apply sheet —
+                        // see the matching note in BrowseTasksFeed.tsx.
+                        onJobAction={(jobId) => {
+                          const job = allJobs.find((j) => j.id === jobId);
+                          if (job) openDetailJob(job);
+                        }}
                         ctaLabel="Apply"
                         currentUserId={user?.id}
                         filters={filters.mapFilter}

@@ -5,7 +5,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Check, MapPin } from "lucide-react";
 import { lookupParishByZip } from "@/lib/parishLookup";
-import { JOB_CATEGORY_LABELS } from "@/lib/jobCategories";
+import { JOB_CATEGORY_LABELS, type JobCategory } from "@/lib/jobCategories";
+import { categoryColors } from "@/components/activity/activityConstants";
+import { CategoryIcon } from "@/components/job/CategoryIcon";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import type { ProfileEditFormProps } from "@/components/profile/profileEditForm/types";
 import { usePortfolio } from "@/components/profile/profileEditForm/usePortfolio";
@@ -21,9 +23,12 @@ export type { ProfileEditFormProps } from "@/components/profile/profileEditForm/
 // free-text field below the chips, not a chip itself). "Moving" and
 // "Events" get a small wording nudge ("Moving Help" / "Event Help") since
 // these describe a *skill offered*, not a job category being posted.
-const SKILL_PRESETS: string[] = Object.entries(JOB_CATEGORY_LABELS)
+const SKILL_PRESETS: { value: JobCategory; label: string }[] = Object.entries(JOB_CATEGORY_LABELS)
   .filter(([value]) => value !== "other")
-  .map(([value, label]) => (value === "moving" ? "Moving Help" : value === "events" ? "Event Help" : label));
+  .map(([value, label]) => ({
+    value: value as JobCategory,
+    label: value === "moving" ? "Moving Help" : value === "events" ? "Event Help" : label,
+  }));
 
 export function ProfileEditForm({
   profile,
@@ -69,7 +74,7 @@ export function ProfileEditForm({
   // case-insensitively matches a preset chip label. Anything left over is
   // custom text a Helpr typed (or a skill saved before this chip picker
   // existed), so it must stay visible and editable, not silently dropped.
-  const presetLabelsLower = new Set(SKILL_PRESETS.map((s) => s.toLowerCase()));
+  const presetLabelsLower = new Set(SKILL_PRESETS.map((s) => s.label.toLowerCase()));
   const selectedPresets = skillList.filter((s) => presetLabelsLower.has(s.toLowerCase()));
   const customSkills = skillList.filter((s) => !presetLabelsLower.has(s.toLowerCase()));
 
@@ -247,25 +252,32 @@ export function ProfileEditForm({
             )}
           </div>
           {/* Preset chips — tap to toggle in/out of the comma-separated
-              `skills` string. Same active/inactive chip language as
-              ReviewsTab's sort menu (bg-primary fill when selected). */}
-          <div className="flex flex-wrap gap-1.5">
-            {SKILL_PRESETS.map((label) => {
+              `skills` string. Same category palette + icon as the job cards
+              and the map popup (`categoryColors` + `CategoryIcon`), so a
+              skill reads as the same category chip everywhere in the app,
+              not a differently-styled one-off here. One scrolling row
+              (not wrap) keeps the card's height fixed regardless of how
+              many presets exist. */}
+          <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
+            {SKILL_PRESETS.map(({ value, label }) => {
               const active = skillList.some((s) => s.toLowerCase() === label.toLowerCase());
+              const catStyle = categoryColors[value] || categoryColors.other;
               return (
                 <button
-                  key={label}
+                  key={value}
                   type="button"
                   onClick={() => toggleSkillPreset(label)}
                   aria-pressed={active}
-                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-ds-11 font-medium transition-colors active:scale-95 ${
-                    active
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-primary/10 text-primary hover:bg-primary/15"
+                  className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-ds-11 font-semibold transition-colors active:scale-95 ${catStyle.badge} ${
+                    active ? "" : "opacity-45"
                   }`}
                 >
-                  {active && <Check className="w-3 h-3" strokeWidth={3} />}
-                  {label}
+                  {active ? (
+                    <Check className="w-3 h-3 shrink-0" strokeWidth={3} />
+                  ) : (
+                    <CategoryIcon category={value} aria-hidden className="w-3 h-3 shrink-0" strokeWidth={2.25} />
+                  )}
+                  <span className="font-serif italic whitespace-nowrap">{label}</span>
                 </button>
               );
             })}

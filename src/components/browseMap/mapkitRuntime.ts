@@ -46,6 +46,10 @@ export interface MKMap {
   cameraDistance: number;
   annotations: MKAnnotation[];
   overlays: MKOverlay[];
+  /** The currently-selected (callout-open) pins. Set to `[]` to dismiss
+   *  whatever callout is open — real MapKit JS API, just not previously
+   *  declared here. */
+  selectedAnnotations?: MKAnnotation[];
   /** Assigned by us so MapKit can build a branded bubble for each cluster. */
   annotationForCluster?: (cluster: MKAnnotation) => MKAnnotation | undefined;
   addAnnotations: (a: MKAnnotation[]) => void;

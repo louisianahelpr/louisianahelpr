@@ -382,6 +382,11 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
           onJobAction={onJobAction}
           ctaLabel={ctaLabel}
           effectiveFee={effectiveFee}
+          // Dismiss the callout without waiting for an outside tap —
+          // MapKit JS deselects a pin by clearing `selectedAnnotations`.
+          onClose={() => {
+            try { map.selectedAnnotations = []; } catch { /* ignore */ }
+          }}
         />,
       );
       calloutRootsRef.current.push(root);

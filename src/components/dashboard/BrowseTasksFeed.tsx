@@ -286,7 +286,15 @@ export function BrowseTasksFeed({
         <div className="flex-1 min-h-0 px-3 pt-2 pb-0">
           <Suspense fallback={<Skeleton className="h-full w-full rounded-t-2xl" />}>
             <BrowseMap
-              onJobAction={handleApplyRequest}
+              // Apply from a pin opens the SAME job-detail dialog as tapping
+              // a feed card (`setDetailJob`) — not the standalone quick-apply
+              // sheet `handleApplyRequest` opens for the feed's swipe/Apply
+              // affordance. One apply surface, reached the same way, whether
+              // you found the job on the map or in the list.
+              onJobAction={(jobId) => {
+                const job = filters.filteredJobs.find((j) => j.id === jobId);
+                if (job) setDetailJob(job);
+              }}
               ctaLabel="Apply"
               currentUserId={user?.id}
               filters={filters.mapFilter}

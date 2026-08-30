@@ -165,19 +165,6 @@ const CompleteProfile = () => {
     return d.toISOString().split("T")[0];
   })();
 
-  // These fields are already satisfied for an email signup (SignupStep2
-  // collects all four; see checklist above) — showing them again here reads
-  // as re-asking for information already given. Google/Apple sign-in never
-  // goes through that step, so this page is still where THEY provide it:
-  // hide a field only once its own checklist item is done, whichever path
-  // got it there. Bio and the terms checkbox are NOT in this list — bio is
-  // never collected at signup, and the terms/rules consent must always be
-  // shown regardless of provider.
-  const nameDone = firstName.trim().length > 0 && lastName.trim().length > 0;
-  const photoDone = Boolean(avatarFile || profile?.avatar_url);
-  const dobDone = Boolean(dateOfBirth) && ageOk;
-  const phoneDone = phone.replace(/\D/g, "").length === 10;
-  const cityDone = location.trim().length > 0;
 
   useEffect(() => {
     if (!user?.id || profile || isLoading) return;
@@ -388,11 +375,10 @@ const CompleteProfile = () => {
             onSubmit={handleSubmit}
             className="rounded-2xl border border-border/60 bg-card shadow-[var(--card-shadow)] p-6 sm:p-7 space-y-5"
           >
-            {/* Circular profile picture uploader — top of form. Google/Apple
-                sign-in never went through SignupStep2, so this is still
-                where THEY provide it; an email signup already has it, hence
-                the hide-if-done guard. */}
-            {!photoDone && (
+            {/* Always shown, pre-filled when already known (an email signup
+                already has this from SignupStep2; Google/Apple never
+                collected it) — so the person can double-check what came
+                over from the provider instead of it disappearing silently. */}
             <div className="flex flex-col items-center gap-2 -mt-1">
               <label
                 htmlFor="avatar"
@@ -423,12 +409,10 @@ const CompleteProfile = () => {
                   : <>Profile photo <span className="text-destructive">*</span> · tap to add</>}
               </p>
             </div>
-            )}
 
-            {/* Same hide-if-done guard: SignupStep2 already collects first/
-                last name for an email signup, so only an OAuth sign-in
-                (which skips that step) sees this row here. */}
-            {!nameDone && (
+            {/* Same as above: pre-filled and editable, never hidden — Google
+                usually returns a name, Apple often doesn't, so this is the
+                one chance to catch a wrong or missing name either way. */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="firstName">First name <span className="text-destructive">*</span></Label>
@@ -463,9 +447,7 @@ const CompleteProfile = () => {
                 </div>
               </div>
             </div>
-            )}
 
-            {!dobDone && (
             <div className="space-y-1.5">
               <Label htmlFor="dob">Date of birth (must be 18+) <span className="text-destructive">*</span></Label>
               {/* Same shared DatePickerField as Signup's DOB field (tap-to-open
@@ -486,9 +468,7 @@ const CompleteProfile = () => {
                 <p className="text-ds-11 text-destructive">You'll need to be 18 or older to join Helpr.</p>
               )}
             </div>
-            )}
 
-            {!phoneDone && (
             <div className="space-y-1.5">
               <Label htmlFor="phone">Phone <span className="text-destructive">*</span></Label>
               <div className="relative">
@@ -507,9 +487,7 @@ const CompleteProfile = () => {
                 )}
               </div>
             </div>
-            )}
 
-            {!cityDone && (
             <div className="space-y-1.5">
               <Label htmlFor="city">City <span className="text-destructive">*</span></Label>
               {/* CityAutocomplete is the same combobox used on the
@@ -529,7 +507,6 @@ const CompleteProfile = () => {
                 )}
               </div>
             </div>
-            )}
 
             <div className="space-y-1.5">
               <Label htmlFor="bio">About you <span className="font-normal" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>(optional)</span></Label>

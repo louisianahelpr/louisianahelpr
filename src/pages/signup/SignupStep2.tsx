@@ -18,6 +18,7 @@ import {
   Check,
 } from "lucide-react";
 import { DatePickerField } from "@/components/DatePickerField";
+import { CityAutocomplete } from "@/components/postjob/CityAutocomplete";
 import { formatPhone } from "./signupHelpers";
 
 /**
@@ -57,6 +58,8 @@ export interface SignupStep2Props {
   setPhone: (v: string) => void;
   dateOfBirth: string;
   setDateOfBirth: (v: string) => void;
+  location: string;
+  setLocation: (v: string) => void;
   bio: string;
   setBio: (v: string) => void;
   inputCls: string;
@@ -90,6 +93,8 @@ export function SignupStep2(props: SignupStep2Props) {
     setPhone,
     dateOfBirth,
     setDateOfBirth,
+    location,
+    setLocation,
     bio,
     setBio,
     inputCls,
@@ -119,6 +124,7 @@ export function SignupStep2(props: SignupStep2Props) {
   const firstNameValid = firstName.trim().length > 0;
   const lastNameValid = lastName.trim().length > 0;
   const phoneValid = phone.replace(/\D/g, "").length >= 10;
+  const locationValid = location.trim().length > 0;
 
   return (
     <div className="space-y-6">
@@ -263,13 +269,29 @@ export function SignupStep2(props: SignupStep2Props) {
             <FieldError id="phone-error" message={fieldErrors.phone} />
           </div>
         </div>
-        {/* No City field. It was free text with nothing behind it — any
-            string was accepted, so it collected values that were not real
-            Louisiana cities and `profiles.location` filled up with garbage.
-            Removed rather than "validated": a trustworthy city needs a picker
-            or geocode lookup, and signup is the wrong place to add that
-            friction. The column is untouched and still settable from Profile.
-            Owner decision 2026-08-22. */}
+        {/* City is REQUIRED (owner decision 2026-08-29, reversing the prior
+            2026-08-22 removal). It was pulled once as free text — any string
+            was accepted, so it collected values that were not real Louisiana
+            cities. CityAutocomplete (the same LA-validated combobox PostJob
+            and CompleteProfile already use) is what makes it trustworthy
+            enough to collect here. Colocating it in signup means an email
+            signup satisfies CompleteProfile's full gate immediately and
+            never sees /complete-profile at all. */}
+        <div className="space-y-2">
+          <Label htmlFor="location" className={labelCls}>City <span aria-hidden style={{ color: "hsl(var(--destructive))" }}>*</span></Label>
+          <div className="relative">
+            <CityAutocomplete
+              id="location"
+              value={location}
+              onChange={(v) => { setLocation(v); clearFieldError?.("location"); }}
+              className={`${inputCls}${locationValid && !fieldErrors.location ? " pr-10" : ""}${fieldErrors.location ? " border-destructive" : ""}`}
+            />
+            {locationValid && !fieldErrors.location && (
+              <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none z-10" strokeWidth={2.5} aria-hidden />
+            )}
+          </div>
+          <FieldError id="location-error" message={fieldErrors.location} />
+        </div>
         <div className="space-y-2">
           <Label htmlFor="bio" className={labelCls}>About you <span className="font-normal" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>(optional)</span></Label>
           <Textarea

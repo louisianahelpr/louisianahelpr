@@ -84,6 +84,7 @@ const Signup = () => {
   const [password, setPassword] = useState("");
   const [phone, setPhone] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
+  const [location, setLocation] = useState("");
   // Referral code is captured only from the `?ref=` deep link now (the manual
   // entry field lived on the removed Step 3). process_referral just records the
   // link at signup; the $5 credit is released by a DB trigger when the referred
@@ -144,6 +145,11 @@ const Signup = () => {
     } else if (ageFromDob(dateOfBirth) < 18) {
       errors.dateOfBirth = "You'll need to be 18 or older to join.";
     }
+    // City is REQUIRED (owner decision 2026-08-29) — collecting it here means
+    // an email signup satisfies the full CompleteProfile gate (name, photo,
+    // DOB, phone, city) and skips /complete-profile entirely; only Google/
+    // Apple sign-ins, which never see this step, still land on it.
+    if (!location.trim()) errors.location = "Add your city";
     // Bio is optional — but if the user starts one, keep the 20-char floor so
     // a half-typed sentence doesn't ship as their whole profile.
     if (bio.trim().length > 0 && bio.trim().length < 20) errors.bio = "Add at least 20 characters, or leave it blank for now";
@@ -237,10 +243,7 @@ const Signup = () => {
         avatarContentType: avatarFile?.type,
         phone,
         bio,
-        // No `location`: the City input is gone from step 2 (it was
-        // unvalidated free text). complete-signup writes the column only
-        // `if (location)`, so omitting it leaves profiles.location null —
-        // no column change, no migration.
+        location,
         dateOfBirth: dateOfBirth || null,
         // Explicit marketing-email consent captured at signup. Defaults to
         // false server-side; passing it here lets a user who ticked the box
@@ -428,6 +431,8 @@ const Signup = () => {
             setPhone={setPhone}
             dateOfBirth={dateOfBirth}
             setDateOfBirth={setDateOfBirth}
+            location={location}
+            setLocation={setLocation}
             bio={bio}
             setBio={setBio}
             inputCls={inputCls}

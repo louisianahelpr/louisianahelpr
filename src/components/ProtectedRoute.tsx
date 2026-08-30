@@ -109,7 +109,6 @@ type GateProfile = {
 const PROFILE_GATE_FIELDS = [
   { key: "full_name", label: "Full name" },
   { key: "avatar_url", label: "Profile picture" },
-  { key: "bio", label: "About you (20+ characters)" },
   { key: "date_of_birth", label: "Date of birth" },
   { key: "phone", label: "Phone number" },
   { key: "location", label: "City" },
@@ -119,6 +118,11 @@ const PROFILE_GATE_FIELDS = [
   // back to /complete-profile — the form reported 7/7 done and navigated to
   // /dashboard, but this gate bounced them right back. The two definitions of
   // "complete" must stay in sync; the form is the source of truth.
+  //
+  // Bio is ALSO not a gate field, same reasoning, same failure mode: it was
+  // required here (20+ chars) after CompleteProfile made it optional and
+  // stopped blocking submission on it — a profile could save with bio empty,
+  // navigate to /dashboard, and get bounced straight back here forever.
 ] as const;
 
 const isFieldComplete = (
@@ -130,7 +134,6 @@ const isFieldComplete = (
   if (typeof v !== "string") return false;
   const trimmed = v.trim();
   if (!trimmed) return false;
-  if (key === "bio") return trimmed.length >= 20;
   return true;
 };
 

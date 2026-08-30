@@ -270,7 +270,7 @@ const NotificationPreferences = () => {
           they're the lead control. Bark-tinted backdrop signals "this
           is the master switch" without shouting. */}
       <div
-        className="flex items-center justify-between px-4 py-3 shrink-0 relative"
+        className="flex items-center justify-between px-4 py-2 shrink-0 relative"
         style={{
           background: "hsl(var(--bark) / 0.06)",
           borderBottom: "0.5px solid hsl(var(--bark) / 0.18)",
@@ -278,21 +278,18 @@ const NotificationPreferences = () => {
       >
         <div className="flex items-center gap-2.5 min-w-0 flex-1">
           <span
-            className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center"
+            className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center"
             style={{ background: "hsl(var(--bark) / 0.12)", color: "hsl(var(--bark))" }}
           >
-            <Bell className="w-4 h-4" />
+            <Bell className="w-3.5 h-3.5" />
           </span>
           <div className="min-w-0">
             <Label
-              className="font-display italic font-bold leading-tight block text-ds-15"
-              style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+              className="font-sans font-semibold block truncate text-ds-14"
+              style={{ color: "hsl(var(--ink-deep))" }}
             >
-              Notifications
+              Master Switch
             </Label>
-            <p className="font-serif italic text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              Master switches for everything below
-            </p>
           </div>
         </div>
         {/* Master switches for BOTH columns — App (push_enabled, backed

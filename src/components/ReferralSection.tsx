@@ -204,12 +204,19 @@ const ReferralSection = ({ userId }: { userId: string }) => {
         </p>
       </div>
 
-      {/* Stat tiles */}
+      {/* Stat tiles.
+          "Earned" and "Available" are two different reductions over the
+          SAME `credits` array (see useReferralData) — not two sources of
+          truth. They read identical until a cash-out actually happens:
+          Earned = lifetime total (redeemed + unredeemed); Available =
+          unredeemed only, i.e. what a cash-out would move to Stripe right
+          now. Labeled explicitly below so two equal numbers don't read as
+          a duplicate-counting bug before the first cash-out. */}
       <div className="grid grid-cols-3 gap-2">
         {[
           { icon: Users, label: "Referrals", value: String(referralCount) },
-          { icon: DollarSign, label: "Earned", value: `$${totalCredits}` },
-          { icon: Gift, label: "Available", value: `$${unredeemedCredits}` },
+          { icon: DollarSign, label: "Total earned", value: `$${totalCredits}` },
+          { icon: Gift, label: "To cash out", value: `$${unredeemedCredits}` },
         ].map(({ icon: Icon, label, value }) => (
           <div key={label} className="rounded-ds-md liquid-glass p-3 text-center">
             <div className="flex items-center justify-center gap-1 mb-1">

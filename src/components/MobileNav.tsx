@@ -1,4 +1,4 @@
-import { useEffect, useState, forwardRef } from "react";
+import { useEffect, useState, useRef, forwardRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useReducedMotion } from "@/lib/accessibility";
 import {
@@ -11,11 +11,15 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useActivityBadgeCounts } from "@/hooks/useActivityBadgeCounts";
 import { prefetchRecentPostedJobs } from "@/hooks/useRecentPostedJobs";
 import { prefetchRoute, prefetchRoutesWhenIdle } from "@/lib/routePrefetch";
-import { hapticLight } from "@/lib/haptics";
+import { hapticLight, hapticMedium } from "@/lib/haptics";
 import { TabButton } from "@/components/mobileNav/TabButton";
 import { UserAvatar } from "@/components/UserAvatar";
 import { GateSheet } from "@/components/mobileNav/GateSheet";
 import { useNavUnreadCount } from "@/components/mobileNav/useNavUnreadCount";
+import { useLongPress } from "@/hooks/useLongPress";
+import { NavQuickMenu, NavQuickMenuItem } from "@/components/mobileNav/NavQuickMenu";
+import { useRecentConversationsPreview } from "@/components/mobileNav/useRecentConversationsPreview";
+import { POSTED_STATUS_FILTERS } from "@/pages/activity/activityFilters";
 import {
   leftItems,
   rightItems,
@@ -112,6 +116,40 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   }, [dockHidden, isPendingApproval, user?.id, queryClient]);
 
   const [gateOpen, setGateOpen] = useState(false);
+
+  // Long-press quick menus — Posts (status-bucket quick filters) and
+  // Messages (last-3-conversations preview). At most one open at a time;
+  // the string identifies which tab's menu is showing so renderItem can
+  // decide whether to render its NavQuickMenu.
+  const [quickMenuTab, setQuickMenuTab] = useState<"my-posts" | "messages" | null>(null);
+  const closeQuickMenu = () => setQuickMenuTab(null);
+  // A completed long-press still ends in a `touchend`, which browsers follow
+  // with a synthetic `click` a beat later — without this guard that trailing
+  // click would ALSO fire the tab's normal `onTap` and navigate away right
+  // as the menu opens. Set the instant a long-press fires, consumed (and
+  // cleared) by the very next click on either tab — see `handleClick` below.
+  const justLongPressedRef = useRef(false);
+  const postsLongPress = useLongPress({
+    onLongPress: () => {
+      if (isGuest) return;
+      justLongPressedRef.current = true;
+      hapticMedium();
+      setQuickMenuTab("my-posts");
+    },
+  });
+  const messagesLongPress = useLongPress({
+    onLongPress: () => {
+      if (isGuest) return;
+      justLongPressedRef.current = true;
+      hapticMedium();
+      setQuickMenuTab("messages");
+    },
+  });
+  // Fetched lazily — only once the Messages quick menu is actually open —
+  // see useRecentConversationsPreview for why this is safe to call
+  // unconditionally every render.
+  const { recent: recentConversations, isLoading: recentConversationsLoading } =
+    useRecentConversationsPreview(user, quickMenuTab === "messages");
   // Scroll-aware shadow lift — when content is actually scrolled under the
   // nav, deepen the drop shadow so the bar reads as floating above the
   // page rather than glued to the bottom edge.
@@ -337,6 +375,12 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     const showBadge = badgeCount > 0;
 
     const handleClick = () => {
+      // Swallow the trailing click a completed long-press's touchend
+      // produces — see the comment on `justLongPressedRef` above.
+      if ((path === "/my-posts" || path === "/messages") && justLongPressedRef.current) {
+        justLongPressedRef.current = false;
+        return;
+      }
       if (guestLocked) {
         triggerGate();
         return;
@@ -368,7 +412,18 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     };
 
     const isActive = active || inStack;
+    // Long-press quick menus only wire up for Posts and Messages, and only
+    // for a real signed-in account — guests never navigate has-status
+    // filters or conversations. handleClick above already double-checks
+    // `isGuest`, so this is belt-and-braces, not the only guard.
+    const longPress =
+      !locked && path === "/my-posts"
+        ? postsLongPress
+        : !locked && path === "/messages"
+          ? messagesLongPress
+          : undefined;
     return (
+      <>
       <TabButton
         key={path}
         onTap={handleClick}
@@ -377,6 +432,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
         ariaCurrent={isActive ? "page" : undefined}
         className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 min-h-[48px] h-full transition-[color,transform] duration-200 active:scale-[0.95] [-webkit-tap-highlight-color:transparent] select-none ${locked ? "opacity-50" : ""}`}
         style={{ color: isActive ? "hsl(var(--bark))" : "hsl(48 9% 47%)" }}
+        longPress={longPress}
       >
         {/* Sliding active pill — single shared layoutId across all items
             so the pill animates between tabs when you switch. Sits BEHIND
@@ -490,6 +546,48 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
           />
         )}
       </TabButton>
+      {path === "/my-posts" && (
+        <NavQuickMenu open={quickMenuTab === "my-posts"} onClose={closeQuickMenu} title="Quick filter">
+          {POSTED_STATUS_FILTERS.map((f) => (
+            <NavQuickMenuItem
+              key={f.key}
+              label={f.label}
+              onSelect={() => {
+                closeQuickMenu();
+                hapticLight();
+                navigate(`/my-posts?filter=${f.key}`);
+              }}
+            />
+          ))}
+        </NavQuickMenu>
+      )}
+      {path === "/messages" && (
+        <NavQuickMenu open={quickMenuTab === "messages"} onClose={closeQuickMenu} title="Recent chats">
+          {recentConversationsLoading && recentConversations.length === 0 ? (
+            <p className="px-3.5 py-2 text-ds-12" style={{ color: "hsl(48 9% 47%)" }}>
+              Loading…
+            </p>
+          ) : recentConversations.length === 0 ? (
+            <p className="px-3.5 py-2 text-ds-12" style={{ color: "hsl(48 9% 47%)" }}>
+              No conversations yet
+            </p>
+          ) : (
+            recentConversations.map((c) => (
+              <NavQuickMenuItem
+                key={`${c.jobId}_${c.otherUserId}`}
+                label={c.otherUserName}
+                sub={c.lastMessage || c.jobTitle}
+                onSelect={() => {
+                  closeQuickMenu();
+                  hapticLight();
+                  navigate(`/messages?jobId=${c.jobId}&userId=${c.otherUserId}`);
+                }}
+              />
+            ))
+          )}
+        </NavQuickMenu>
+      )}
+      </>
     );
   };
 

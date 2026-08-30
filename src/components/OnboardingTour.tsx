@@ -28,37 +28,37 @@ const TOUR_STEPS: TourStep[] = [
     id: "browse",
     title: "Home",
     description: "This is where you browse and apply to jobs nearby.",
-    icon: <Home className="w-6 h-6" />,
+    icon: <Home className="w-8 h-8" strokeWidth={1.75} />,
   },
   {
     id: "my-posts",
     title: "My Posts",
     description: "Track and manage the tasks you've posted.",
-    icon: <Send className="w-6 h-6" />,
+    icon: <Send className="w-8 h-8" strokeWidth={1.75} />,
   },
   {
     id: "my-jobs",
     title: "My Jobs",
     description: "See jobs you're offered, applied to, or working.",
-    icon: <ClipboardList className="w-6 h-6" />,
+    icon: <ClipboardList className="w-8 h-8" strokeWidth={1.75} />,
   },
   {
     id: "messages",
     title: "Messages",
     description: "Chat with posters and helpers to coordinate a job.",
-    icon: <MessageSquare className="w-6 h-6" />,
+    icon: <MessageSquare className="w-8 h-8" strokeWidth={1.75} />,
   },
   {
     id: "profile",
     title: "Complete Your Profile",
     description: "Add your name, photo, and location for others to see.",
-    icon: <User className="w-6 h-6" />,
+    icon: <User className="w-8 h-8" strokeWidth={1.75} />,
   },
   {
     id: "post-job",
     title: "Post a Task",
     description: "Ready to get help? Post your first task now.",
-    icon: <Plus className="w-6 h-6" />,
+    icon: <Plus className="w-8 h-8" strokeWidth={1.75} />,
   },
 ];
 

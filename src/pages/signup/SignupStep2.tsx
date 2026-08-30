@@ -270,7 +270,7 @@ export function SignupStep2(props: SignupStep2Props) {
             friction. The column is untouched and still settable from Profile.
             Owner decision 2026-08-22. */}
         <div className="space-y-2">
-          <Label htmlFor="bio" className={labelCls}>About You <span className="font-normal" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>(optional)</span></Label>
+          <Label htmlFor="bio" className={labelCls}>About you <span className="font-normal" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>(optional)</span></Label>
           <Textarea
             id="bio"
             placeholder="Tell us a bit about yourself — whether you're looking for work or need help around the house…"

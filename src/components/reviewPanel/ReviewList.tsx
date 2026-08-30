@@ -4,7 +4,6 @@ import { Star, Flag } from "lucide-react";
 import ReportDialog from "@/components/ReportDialog";
 import { report } from "@/lib/errorLogger";
 import { PhotoLightbox } from "@/components/dashboard/PhotoLightbox";
-import { MiniStars } from "./MiniStars";
 import { safeImageSrc, type Review, type ReviewListProps } from "./types";
 import { formatShortDate } from "@/lib/format";
 
@@ -58,9 +57,6 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
   };
 
   const overallAvg = avg("rating");
-  const punctualityAvg = avg("punctuality");
-  const qualityAvg = avg("quality");
-  const communicationAvg = avg("communication");
 
   if (loaded && loadFailed) return <p className="text-ds-11 text-destructive">Couldn't load reviews — try again?</p>;
   if (loaded && reviews.length === 0) return <p className="text-ds-11 text-muted-foreground">No reviews yet.</p>;
@@ -82,21 +78,6 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
             {overallAvg.toFixed(1)} ({reviews.length} review{reviews.length !== 1 ? "s" : ""})
           </span>
         </div>
-        {(punctualityAvg > 0 || qualityAvg > 0 || communicationAvg > 0) && (
-          <div className="grid grid-cols-3 gap-2 pt-1 border-t border-border">
-            {[
-              { label: "Punctuality", v: punctualityAvg },
-              { label: "Quality", v: qualityAvg },
-              { label: "Communication", v: communicationAvg },
-            ].map((cat) => (
-              <div key={cat.label} className="text-center">
-                <p className="text-ds-10 uppercase tracking-wide text-muted-foreground mb-1">{cat.label}</p>
-                <div className="flex justify-center mb-0.5"><MiniStars value={cat.v} /></div>
-                <p className="text-ds-11 font-semibold text-foreground">{cat.v > 0 ? cat.v.toFixed(1) : "—"}</p>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
       <div className="space-y-3">
         {reviews.map((r) => (
@@ -118,25 +99,6 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
                 <Flag className="w-3.5 h-3.5" />
               </button>
             </div>
-            {(r.punctuality || r.quality || r.communication) && (
-              <div className="grid grid-cols-3 gap-2 mb-2 text-ds-10">
-                {r.punctuality && (
-                  <div className="flex items-center gap-1 text-muted-foreground">
-                    <span>Punctuality</span><MiniStars value={r.punctuality} />
-                  </div>
-                )}
-                {r.quality && (
-                  <div className="flex items-center gap-1 text-muted-foreground">
-                    <span>Quality</span><MiniStars value={r.quality} />
-                  </div>
-                )}
-                {r.communication && (
-                  <div className="flex items-center gap-1 text-muted-foreground">
-                    <span>Comms</span><MiniStars value={r.communication} />
-                  </div>
-                )}
-              </div>
-            )}
             {r.feedback && <p className="text-ds-13 text-foreground">{r.feedback}</p>}
 
             {/* Photo thumbnails — tapping opens the lightbox */}

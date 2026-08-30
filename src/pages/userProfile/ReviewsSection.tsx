@@ -217,34 +217,6 @@ export const ReviewsSection = ({
                 </div>
                 <span className="text-muted-foreground text-ds-11">{formatShortDate(r.created_at)}</span>
               </div>
-              {(r.punctuality || r.quality || r.communication) && (
-                <div className="grid grid-cols-3 gap-2">
-                  {r.punctuality && (
-                    <div className="flex flex-col items-start gap-0.5">
-                      <span className="text-ds-9 uppercase tracking-wide text-muted-foreground">Punctuality</span>
-                      <div className="flex gap-0.5">
-                        {[1,2,3,4,5].map(s => <Star key={s} className={`w-2.5 h-2.5 ${s <= r.punctuality! ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />)}
-                      </div>
-                    </div>
-                  )}
-                  {r.quality && (
-                    <div className="flex flex-col items-start gap-0.5">
-                      <span className="text-ds-9 uppercase tracking-wide text-muted-foreground">Quality</span>
-                      <div className="flex gap-0.5">
-                        {[1,2,3,4,5].map(s => <Star key={s} className={`w-2.5 h-2.5 ${s <= r.quality! ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />)}
-                      </div>
-                    </div>
-                  )}
-                  {r.communication && (
-                    <div className="flex flex-col items-start gap-0.5">
-                      <span className="text-ds-9 uppercase tracking-wide text-muted-foreground">Comms</span>
-                      <div className="flex gap-0.5">
-                        {[1,2,3,4,5].map(s => <Star key={s} className={`w-2.5 h-2.5 ${s <= r.communication! ? "fill-accent text-accent" : "text-muted-foreground/30"}`} />)}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
               <p className="text-muted-foreground text-ds-11">For: {r.jobTitle}</p>
               {r.feedback && <p className="text-ds-13 text-foreground leading-relaxed">{r.feedback}</p>}
               {/* Existing public response — visible to everyone */}

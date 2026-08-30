@@ -441,9 +441,13 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                       </p>
                     );
                   })()}
-                  {/* Actual perks as a checkmark inline-flex list — wraps
-                      naturally and each feature is visible. */}
-                  <ul className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5">
+                  {/* Actual perks, one per line. Was `flex flex-wrap`, which
+                      ran bullets left-to-right and let unrelated perks share
+                      a visual line, breaking mid-phrase at odd points and
+                      reading as a run-on rather than a list. A vertical
+                      stack costs a bit more height but each perk is a
+                      complete, scannable line (owner, 2026-08-30). */}
+                  <ul className="mt-1 space-y-0.5">
                     {tier.features
                       .filter((f) => !/^Everything in/i.test(f))
                       // The bullets in subscriptionTiers.ts are written for a
@@ -493,6 +497,20 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                   >
                     {getPrice(tier)}
                   </p>
+                  {/* One-time pass duration — split out from the price itself
+                      (was "$5 · 30 days", owner 2026-08-30: just show the
+                      price). Still shown pre-purchase, just as its own
+                      caption rather than crammed onto the number — see
+                      tierConfig.tsx's formatTierPrices() for why this can't
+                      be dropped outright. */}
+                  {billingInterval === "one_time" && tier.oneTimeNote && (
+                    <span
+                      className="font-sans text-ds-9 font-semibold leading-none"
+                      style={{ color: "hsl(var(--olivewood) / 0.7)", letterSpacing: "0.02em" }}
+                    >
+                      {tier.oneTimeNote}
+                    </span>
+                  )}
                   {/* Fee % — the core "lower commission" value prop, shown
                       here so the in-app upgrade path matches the public
                       /subscription page instead of hiding the economic
@@ -521,7 +539,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                       styled span so it inherits the exact box, height and
                       typography of the Subscribe buttons it lines up with. */}
                   {isActive && (
-                    <Button variant="outline" size="sm" disabled aria-current="true">
+                    <Button variant="outline" size="sm" disabled aria-current="true" className="mt-1">
                       <CheckCircle className="w-3.5 h-3.5" aria-hidden /> Current
                     </Button>
                   )}
@@ -535,6 +553,10 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                     <Button
                       variant={isPro ? "primary" : "outline"}
                       size="sm"
+                      // mt-1: separates the CTA from the price/fee/save
+                      // group above it (owner, 2026-08-30: pricing info and
+                      // the button read as one crammed cluster).
+                      className="mt-1"
                       onClick={() =>
                         currentTier && !isExpired
                           ? handleManageSubscription()
@@ -545,11 +567,12 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                       {(loadingCheckout === tier.id || loadingPortal) && (
                         <Loader2 className="animate-spin" />
                       )}
-                      {currentTier && !isExpired
-                        ? "Change"
-                        : billingInterval === "one_time"
-                          ? "Buy"
-                          : "Subscribe"}
+                      {/* Standardized to "Upgrade" everywhere except "Change"
+                          — a currently-subscribed user picking a different
+                          paid tier isn't necessarily moving up, so that case
+                          keeps its own honest label. "Subscribe"/"Buy" were
+                          the inconsistent pair being unified here. */}
+                      {currentTier && !isExpired ? "Change" : "Upgrade"}
                     </Button>
                   )}
                 </div>

@@ -14,7 +14,7 @@ vi.mock("@/integrations/supabase/client", () => ({
   },
 }));
 
-function Harness() {
+function Harness(props: Partial<React.ComponentProps<typeof RecipientPicker>> = {}) {
   return (
     <RecipientPicker
       selected={null}
@@ -26,10 +26,14 @@ function Harness() {
       onEmailChange={vi.fn()}
       emailValid={false}
       isSelfGiftEmail={false}
+      {...props}
     />
   );
 }
 
+// The picker is now a single smart input that auto-detects a name query vs
+// an email address from the text itself (no more mode toggle), so every
+// test drives the one `Recipient — name or email` field.
 describe("RecipientPicker", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -40,7 +44,7 @@ describe("RecipientPicker", () => {
   it("does not search below the minimum query length", async () => {
     const { supabase } = await import("@/integrations/supabase/client");
     render(<Harness />);
-    fireEvent.change(screen.getByLabelText("Search for a recipient by name"), {
+    fireEvent.change(screen.getByLabelText("Recipient — name or email"), {
       target: { value: "a" },
     });
     await new Promise((r) => setTimeout(r, 350));
@@ -52,7 +56,7 @@ describe("RecipientPicker", () => {
     rpcResult.data = [{ user_id: "u1", full_name: "Jamie B.", avatar_url: null }];
     const { supabase } = await import("@/integrations/supabase/client");
     render(<Harness />);
-    fireEvent.change(screen.getByLabelText("Search for a recipient by name"), {
+    fireEvent.change(screen.getByLabelText("Recipient — name or email"), {
       target: { value: "Jamie" },
     });
 
@@ -68,20 +72,8 @@ describe("RecipientPicker", () => {
   it("selecting a result invokes onSelect with only user_id/full_name/avatar_url", async () => {
     rpcResult.data = [{ user_id: "u2", full_name: "Alex T.", avatar_url: null }];
     const onSelect = vi.fn();
-    render(
-      <RecipientPicker
-        selected={null}
-        onSelect={onSelect}
-        onClearSelected={vi.fn()}
-        mode="search"
-        onModeChange={vi.fn()}
-        emailValue=""
-        onEmailChange={vi.fn()}
-        emailValid={false}
-        isSelfGiftEmail={false}
-      />,
-    );
-    fireEvent.change(screen.getByLabelText("Search for a recipient by name"), {
+    render(<Harness onSelect={onSelect} />);
+    fireEvent.change(screen.getByLabelText("Recipient — name or email"), {
       target: { value: "Alex" },
     });
     await waitFor(() => expect(screen.getByText("Alex T.")).toBeInTheDocument(), {
@@ -94,16 +86,9 @@ describe("RecipientPicker", () => {
   it("shows the selected recipient chip and clears it on request", () => {
     const onClear = vi.fn();
     render(
-      <RecipientPicker
+      <Harness
         selected={{ user_id: "u3", full_name: "Casey L.", avatar_url: null }}
-        onSelect={vi.fn()}
         onClearSelected={onClear}
-        mode="search"
-        onModeChange={vi.fn()}
-        emailValue=""
-        onEmailChange={vi.fn()}
-        emailValid={false}
-        isSelfGiftEmail={false}
       />,
     );
     expect(screen.getByText("Casey L.")).toBeInTheDocument();
@@ -111,21 +96,34 @@ describe("RecipientPicker", () => {
     expect(onClear).toHaveBeenCalled();
   });
 
-  it("email mode renders the typed-email fallback with validation copy", () => {
-    render(
-      <RecipientPicker
-        selected={null}
-        onSelect={vi.fn()}
-        onClearSelected={vi.fn()}
-        mode="email"
-        onModeChange={vi.fn()}
-        emailValue="notanemail"
-        onEmailChange={vi.fn()}
-        emailValid={false}
-        isSelfGiftEmail={false}
-      />,
-    );
-    expect(screen.getByLabelText("Recipient's email")).toBeInTheDocument();
+  it("routes text containing an email shape to the email path and validates it", async () => {
+    const { supabase } = await import("@/integrations/supabase/client");
+    const onEmailChange = vi.fn();
+    const onModeChange = vi.fn();
+    render(<Harness onEmailChange={onEmailChange} onModeChange={onModeChange} emailValid={false} />);
+    fireEvent.change(screen.getByLabelText("Recipient — name or email"), {
+      target: { value: "notanemail@" },
+    });
+    expect(onModeChange).toHaveBeenCalledWith("email");
+    expect(onEmailChange).toHaveBeenCalledWith("notanemail@");
+    // Name search never fires once the text looks like an email.
+    await new Promise((r) => setTimeout(r, 350));
+    expect(supabase.rpc).not.toHaveBeenCalled();
+  });
+
+  it("shows validation copy for an invalid but email-shaped address", () => {
+    render(<Harness mode="email" emailValue="notanemail@x" emailValid={false} />);
+    fireEvent.change(screen.getByLabelText("Recipient — name or email"), {
+      target: { value: "notanemail@x" },
+    });
     expect(screen.getByText("Enter a valid email address.")).toBeInTheDocument();
+  });
+
+  it("shows the self-gift warning under an email typed by the sender themself", () => {
+    render(<Harness mode="email" emailValue="me@example.com" emailValid isSelfGiftEmail />);
+    fireEvent.change(screen.getByLabelText("Recipient — name or email"), {
+      target: { value: "me@example.com" },
+    });
+    expect(screen.getByText("You can't send a gift to yourself.")).toBeInTheDocument();
   });
 });

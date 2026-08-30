@@ -488,7 +488,7 @@ export default function SubscriptionPage() {
               // below, so the two can never show different money — this is a
               // second rendering of one number, not a second number.
               const compactPrice = (() => {
-                if (isFree) return { amount: "$0", suffix: null, saveChip: null };
+                if (isFree) return { amount: "$0", suffix: null, note: null, saveChip: null };
                 const info = formatPaidTierPrices(tier as "basic" | "pro" | "elite");
                 const isAnnual = billingCycle === "annual";
                 const isOnce = billingCycle === "one_time";
@@ -497,7 +497,15 @@ export default function SubscriptionPage() {
                 // figure with a duration suffix rather than a rate suffix.
                 return {
                   amount: isAnnual ? `$${info.yearlyTotal}` : `$${info.monthlyPrice}`,
-                  suffix: isAnnual ? "/yr" : isOnce ? `· ${ONE_TIME_PASS_DAYS} days` : "/mo",
+                  // Was `· N days` appended straight onto the amount ("$5 ·
+                  // 30 days") — for a one-time purchase that read as a
+                  // strange unit price. Split into its own `note` field
+                  // (owner, 2026-08-30: just show the price) rendered as a
+                  // small caption instead of jammed onto the number. Still
+                  // shown pre-purchase — the only statement of the pass's
+                  // expiry (consumer-disclosure / App Store 3.1.1).
+                  suffix: isAnnual ? "/yr" : isOnce ? null : "/mo",
+                  note: isOnce ? `${ONE_TIME_PASS_DAYS}-day pass` : null,
                   saveChip: isAnnual ? info.annualSave : null,
                 };
               })();
@@ -649,6 +657,14 @@ export default function SubscriptionPage() {
                             </span>
                           )}
                         </div>
+                        {compactPrice.note && (
+                          <p
+                            className="mt-0.5 font-sans text-ds-10 font-semibold"
+                            style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                          >
+                            {compactPrice.note}
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -717,13 +733,28 @@ export default function SubscriptionPage() {
                                 ? `$${priceInfo.yearlyTotal}`
                                 : `$${priceInfo.monthlyPrice}`}
                             </span>
-                            <span
-                              className="font-sans font-medium text-ds-13"
-                              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                            >
-                              {isAnnual ? "/yr" : isOnce ? `· ${ONE_TIME_PASS_DAYS} days` : "/mo"}
-                            </span>
+                            {!isOnce && (
+                              <span
+                                className="font-sans font-medium text-ds-13"
+                                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                              >
+                                {isAnnual ? "/yr" : "/mo"}
+                              </span>
+                            )}
                           </div>
+                          {/* One-time pass duration, split out from the price
+                              itself — was "$5 · 30 days" (owner, 2026-08-30:
+                              just show the price). Still disclosed
+                              pre-purchase (App Store 3.1.1), just as its own
+                              caption instead of the price's suffix. */}
+                          {isOnce && (
+                            <p
+                              className="mt-1 font-sans text-ds-11 font-semibold"
+                              style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                            >
+                              {ONE_TIME_PASS_DAYS}-day pass
+                            </p>
+                          )}
                           {/* The "or $X/mo billed annually" line that used to sit
                               here is gone — the billing toggle above already
                               states which cycle you're looking at, and the price
@@ -942,9 +973,12 @@ export default function SubscriptionPage() {
                           {upgrading && (
                             <Loader2 className="mr-2 w-4 h-4 animate-spin" />
                           )}
-                          {/* "Buy" on the one-time cycle — ctaLabel is written
-                              for a subscription, and a 30-day pass is not one. */}
-                          {billingCycle === "one_time" ? "Buy" : perks.ctaLabel}
+                          {/* Standardized to "Upgrade" across every billing
+                              cycle (owner, 2026-08-30) — perks.ctaLabel is
+                              already "Upgrade" for every paid tier, so the
+                              one-time cycle's separate "Buy" label was the
+                              only thing making this inconsistent. */}
+                          {perks.ctaLabel}
                           <ArrowRight
                             className="ml-2 w-4 h-4 transition-transform duration-300 group-hover:translate-x-1"
                             strokeWidth={1.5}

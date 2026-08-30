@@ -438,7 +438,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
               className="font-display italic font-bold leading-tight cursor-pointer text-headline-card"
               style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
             >
-              {kind === "license" ? "I am licensed" : "I am insured"}
+              {kind === "license" ? "I Am Licensed" : "I Am Insured"}
             </Label>
             <p className="font-serif italic mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               {!on

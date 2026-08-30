@@ -265,7 +265,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
           {[
             "Share your code with friends",
             "They enter it at sign-up",
-            "They complete their first job — you both earn $5",
+            "Once their first job is fully completed — whether they posted it or worked it — you both earn $5",
             "Cash out directly to your Stripe account",
           ].map((step, i) => (
             <div key={i} className="flex items-start gap-3">

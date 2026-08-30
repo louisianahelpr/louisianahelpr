@@ -11,6 +11,8 @@ interface TierDisplay {
   monthly: string;
   annual: string;
   oneTime: string;
+  /** Separate expiry caption for the one-time pass — see formatTierPrices(). */
+  oneTimeNote: string | null;
   annualSave: string;
   // Platform-fee % for this tier — surfaced on the card so the in-app upgrade
   // path shows the same "lower commission" value prop the public page leads
@@ -49,9 +51,15 @@ function formatTierPrices(tierId: "basic" | "pro" | "elite") {
     // The one-time pass lapses after ONE_TIME_PASS_DAYS — it is not a
     // perpetual licence. That expiry used to be disclosed only by a banner
     // above the cards; the banner is gone (owner, 2026-08-27) so the duration
-    // now rides on the price itself, which is the one line every buyer reads
-    // before paying. Do not shorten this back to "one-time".
-    oneTime: `$${monthlyPrice} · ${ONE_TIME_PASS_DAYS} days`,
+    // rides alongside the price. It USED to be crammed onto the price string
+    // itself ("$5 · 30 days"), which read as a strange unit price rather
+    // than a plain number for a one-time purchase (owner, 2026-08-30: show
+    // just the price). Split into two fields instead of dropping the
+    // disclosure outright — it is still the only pre-purchase statement of
+    // the expiry (consumer-disclosure / App Store 3.1.1), just rendered as
+    // its own caption near the price rather than inline with it.
+    oneTime: `$${monthlyPrice}`,
+    oneTimeNote: `${ONE_TIME_PASS_DAYS}-day pass`,
     annualSave: `Save ${savePct}%`,
   };
 }
@@ -76,6 +84,7 @@ export const tierConfig: TierDisplay[] = [
     monthly: "Free",
     annual: "Free",
     oneTime: "Free",
+    oneTimeNote: null,
     annualSave: "",
     feePercent: TIER_PERKS.free.platformFeePercent,
     features: [...TIER_PERKS.free.featureBullets],

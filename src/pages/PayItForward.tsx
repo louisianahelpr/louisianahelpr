@@ -342,14 +342,19 @@ export default function PayItForward() {
           </div>
         )}
 
-        {/* Desktop splits into a sticky context/action rail on the left and the
-            gift history listings on the right. Mobile stays a single stacked
-            column — the grid degrades to grid-cols-1 below lg. */}
         {/* SINGLE COLUMN on desktop (owner). Was a 12-col split; both halves
-            carry content, so they stack instead of one being dropped. */}
+            carry content, so they stack instead of one being dropped. The
+            `lg:col-span-*`/`lg:sticky` classes that used to make sense on the
+            old 12-col grid were left behind on this now-block-layout wrapper:
+            since this page scrolls inside AppShell's internal container
+            (AppPage), `position: sticky` still activates in plain block flow
+            — it pinned the ENTIRE form (including this preview) at the top
+            of the viewport while the "sent to you" / "sent by you" lists
+            scrolled up underneath it, reading as everything overlapping the
+            card. Removed along with the dead col-span classes. */}
         <div className="space-y-6">
           {/* ── Left rail: context + primary action ─────────────────────────── */}
-          <aside className="lg:col-span-5 xl:col-span-4 space-y-6 lg:sticky lg:top-6 lg:self-start">
+          <aside className="space-y-6">
             {/* What is this? */}
             {/* Card radius + padding are the canonical profile-card values
                 (`rounded-2xl … p-5`). Only the FILL stays gift-tinted — the
@@ -456,8 +461,13 @@ export default function PayItForward() {
               </div>
 
               {/* Live preview — the sender is choosing an artifact, not filling
-                  in a form, so they see exactly what lands in the inbox. */}
-              <div>
+                  in a form, so they see exactly what lands in the inbox.
+                  Capped to 320px: the preview holds a fixed ISO 7810 aspect
+                  ratio, so at the form's full column width (this card is no
+                  longer a narrow 5-col rail — see the single-column note
+                  above) it grew tall enough to need scrolling to see the
+                  amount below it. Capping the width caps the height with it. */}
+              <div className="max-w-[320px] mx-auto">
                 <GiftCardPreview
                   design={design}
                   amount={effectiveAmount || null}
@@ -592,7 +602,7 @@ export default function PayItForward() {
           </aside>
 
           {/* ── Right pane: gift listings ────────────────────────────────────── */}
-          <section className="lg:col-span-7 xl:col-span-8 space-y-6 pb-8">
+          <section className="space-y-6 pb-8">
             {/* Gifts sent to you */}
             <div>
               <p className="text-ds-13 font-sans font-semibold mb-3" style={{ color: "hsl(var(--ink-deep))" }}>

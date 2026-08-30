@@ -48,13 +48,21 @@ interface AppPageProps {
    * or a cold open). Most sub-screens are reached from the Profile landing.
    */
   backTo?: string;
+  /**
+   * Custom back handler, for a page whose "back" is not a route change.
+   * PostJob uses it: its back steps the multi-step form backwards and only
+   * leaves the route from the first step. Prefer `backTo` on a plain route —
+   * see the note on ProfileTabHeader about an onClick short-circuiting
+   * BackButton's history pop.
+   */
+  onBack?: () => void;
   /** Trailing actions on the title row (icon buttons, overflow menus). */
   titleActions?: ReactNode;
   /** Page content. */
   children: ReactNode;
 }
 
-export function AppPage({ title, backTo, titleActions, children }: AppPageProps) {
+export function AppPage({ title, backTo, onBack, titleActions, children }: AppPageProps) {
   return (
     <AppShell
       scrollable={false}
@@ -70,7 +78,7 @@ export function AppPage({ title, backTo, titleActions, children }: AppPageProps)
                 this exact value to cancel the margin it would otherwise add
                 below the title. */}
             <div className="space-y-4">
-              <ProfileTabHeader title={title} backTo={backTo} rightSlot={titleActions} />
+              <ProfileTabHeader title={title} backTo={backTo} onBack={onBack} rightSlot={titleActions} />
               {children}
             </div>
           </div>

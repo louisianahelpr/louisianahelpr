@@ -27,6 +27,7 @@ import { safeStorage, trackKey } from "@/lib/safeStorage";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { isPushSupported, getPushPermission } from "@/lib/pushNotifications";
 import { useRequestPushPermission } from "@/lib/nativePush";
+import { markRationaleConfirmed } from "@/hooks/usePermissionRationale";
 
 /** localStorage key for the most recent "Not now" tap. */
 export const NUDGE_DISMISSED_KEY = "push-nudge-dismissed-at";
@@ -197,9 +198,18 @@ export function usePushPermissionNudge() {
           action: {
             label: "Enable",
             onClick: () => {
-              // Fire-and-forget — the rationale hook + OS prompt both run
-              // inside requestPush. We don't await inside the action
-              // because sonner's onClick types as void.
+              // THIS TOAST IS THE RATIONALE. Without the line below,
+              // requestPush() opened the rationale dialog — "Notifications /
+              // Get notified when a helper applies… / Not Now · Turn On
+              // Notifications" — which is the question this toast just asked,
+              // with the same two choices. Two prompts to grant one
+              // permission, the second one appearing *because* you accepted
+              // the first. Marking the kind confirmed sends the tap straight
+              // to the OS prompt, which is the only thing left to show.
+              markRationaleConfirmed("notifications");
+              // Fire-and-forget — the OS prompt runs inside requestPush. We
+              // don't await inside the action because sonner's onClick types
+              // as void.
               void requestPush();
             },
           },

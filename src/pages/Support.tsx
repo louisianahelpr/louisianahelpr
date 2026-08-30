@@ -283,9 +283,8 @@ const Support = () => {
           again. */}
       <PageHeader title="Contact Support" width="public" topInsetHandled />
 
-      {/* pt-4, not pt-0: PageHeader renders `pb-0` and leaves the space below
-          the title to the page body. The old hand-rolled header row carried
-          its own `mb-4`; this restores that 16px. */}
+      {/* No top padding: PageHeader owns both gaps around the title
+          (`pt-6 pb-6`). Adding any here stacks on its `pb-6`. */}
       <section className="container mx-auto px-5 pb-8">
         <div className="page-measure mx-auto">
 

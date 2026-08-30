@@ -360,15 +360,17 @@ export function LogisticsSection({
         <TimePickerWheel value={startTime} onChange={setStartTime} />
       </div>
 
+      {/* `items-center`, and no `mt-0.5` on the box. The label is one line at
+          every width this card is used at, so top-aligning the checkbox and
+          then nudging it down 2px sat it visibly high against its own text. */}
       <label
         htmlFor="flexible"
-        className="flex items-start gap-3 rounded-2xl border border-border bg-background/40 p-4 cursor-pointer min-h-[44px]"
+        className="flex items-center gap-3 rounded-2xl border border-border bg-background/40 p-4 cursor-pointer min-h-[44px]"
       >
         <Checkbox
           id="flexible"
           checked={isFlexibleSchedule}
           onCheckedChange={(checked) => setIsFlexibleSchedule(!!checked)}
-          className="mt-0.5"
         />
         <span className="text-ds-11 text-muted-foreground leading-snug">
           <span className="font-medium text-foreground">Flexible schedule</span> — Helpr can start earlier or later on the scheduled day

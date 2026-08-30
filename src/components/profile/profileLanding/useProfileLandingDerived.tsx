@@ -255,15 +255,21 @@ export function useProfileLandingDerived({
           tint: SECTION_TINT.account,
           href: "/home-history",
         },
-        // The posted/completed job tabs exist (TAB_TITLES, ProfileTabPanels)
-        // but had NO menu entry — reachable only by hand-typing ?tab=. Two
-        // plain rows make them navigable again.
+        // The standalone "Posted Jobs" / "Completed Jobs" list tabs were
+        // deleted (owner: they duplicated My Posts, which already has richer
+        // status filtering) — these two rows now deep-link straight into My
+        // Posts instead of a Profile tab. "Posted Jobs" showed every status,
+        // so it lands on My Posts' default (unfiltered) view; "Completed
+        // Jobs" specifically meant finished work, which is My Posts' "Done"
+        // bucket (`?filter=done` — see POSTED_STATUS_FILTERS /
+        // postedActivityBucket in activityFilters.ts).
         {
           key: "posted_jobs",
           label: "Posted Jobs",
           icon: <FileText className="w-5 h-5" />,
           desc: "Tasks you've posted",
           tint: SECTION_TINT.account,
+          href: "/my-posts",
         },
         {
           key: "completed_jobs",
@@ -271,6 +277,7 @@ export function useProfileLandingDerived({
           icon: <ClipboardList className="w-5 h-5" />,
           desc: "Work you've finished or had done",
           tint: SECTION_TINT.account,
+          href: "/my-posts?filter=done",
         },
       ],
     },

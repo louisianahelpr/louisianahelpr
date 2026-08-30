@@ -18,7 +18,6 @@ type ProfileTip = { amount: number; job_id: string; created_at: string };
 // Every other tab panel and the rarely-opened dialogs are code-split so the
 // Profile route chunk stays small — each is fetched the first time it shows.
 const SecurityTab = lazy(() => import("@/components/profile/SecurityTab").then(m => ({ default: m.SecurityTab })));
-const JobListTab = lazy(() => import("@/components/profile/JobListTab").then(m => ({ default: m.JobListTab })));
 const ProfileEditForm = lazy(() => import("@/components/profile/ProfileEditForm").then(m => ({ default: m.ProfileEditForm })));
 const SupportInline = lazy(() => import("@/components/profile/SupportInline").then(m => ({ default: m.SupportInline })));
 const SavedHelpersTab = lazy(() => import("@/components/profile/SavedHelpersTab").then(m => ({ default: m.SavedHelpersTab })));
@@ -100,15 +99,12 @@ export interface ProfileTabPanelsProps {
   // Derived data + query handles
   earningsQuery: UseQueryResult<{ jobs: Job[]; tips: ProfileTip[] }>;
   scheduleQuery: UseQueryResult<{ posted: Job[]; assigned: Job[] }>;
-  inlineJobsQuery: UseQueryResult<{ posted: Job[]; completed: Job[] }>;
   reviewsQuery: UseQueryResult<ProfileReview[]>;
   violationsQuery: UseQueryResult<ProfileViolation[]>;
   earningsJobs: Job[];
   tips: ProfileTip[];
   schedulePostedJobs: Job[];
   scheduleAssignedJobs: Job[];
-  inlinePostedJobs: Job[];
-  inlineCompletedJobs: Job[];
   reviews: ProfileReview[];
   violations: ProfileViolation[];
   totalEarnings: number;
@@ -156,15 +152,12 @@ export const ProfileTabPanels = ({
   onIdUpload,
   earningsQuery,
   scheduleQuery,
-  inlineJobsQuery,
   reviewsQuery,
   violationsQuery,
   earningsJobs,
   tips,
   schedulePostedJobs,
   scheduleAssignedJobs,
-  inlinePostedJobs,
-  inlineCompletedJobs,
   reviews,
   violations,
   // Unused since the payment tab merged into the earnings tab — EarningsTab
@@ -272,28 +265,6 @@ export const ProfileTabPanels = ({
         <Suspense fallback={<TabFallback />}>
           <SubscriptionTab profile={profile} user={user} onBack={onBackFromTab} />
         </Suspense>
-      )}
-
-      {tab === "posted_jobs" && (
-        <div className="space-y-4">
-          {inlineJobsQuery.isError && (
-            <ProfileSectionError section="your posted jobs" onRetry={() => { inlineJobsQuery.refetch(); }} />
-          )}
-          <Suspense fallback={<TabFallback />}>
-            <JobListTab variant="posted" jobs={inlinePostedJobs} onBack={onBackFromTab} />
-          </Suspense>
-        </div>
-      )}
-
-      {tab === "completed_jobs" && (
-        <div className="space-y-4">
-          {inlineJobsQuery.isError && (
-            <ProfileSectionError section="your completed jobs" onRetry={() => { inlineJobsQuery.refetch(); }} />
-          )}
-          <Suspense fallback={<TabFallback />}>
-            <JobListTab variant="completed" jobs={inlineCompletedJobs} onBack={onBackFromTab} />
-          </Suspense>
-        </div>
       )}
 
       {tab === "support" && (

@@ -5,12 +5,12 @@ import type { TabButtonProps } from "./types";
  * in one place. Renders the same `<button>` shell the inline version did;
  * layout + visual treatment is unchanged.
  *
- * Long-press quick-actions were removed (owner review, 2026-08-30 — live
- * demo of the anchored-popover migration for "Mark all read" / "Open filter
- * chips" showed both were redundant with entry points that already exist
- * elsewhere: Mark all read lives in NotificationPanel, and Open filter
- * chips just opens the same Filters button's own popover). Tabs are plain
- * taps only now.
+ * A previous "Mark all read" / "Open filter chips" long-press pair was
+ * removed (owner review, 2026-08-30) as redundant with entry points that
+ * already existed elsewhere. Posts/Messages now carry a DIFFERENT long-press
+ * — quick-filter and recent-conversation preview popovers (see MobileNav's
+ * `longPress` prop below) — added back per product request; the optional
+ * `longPress` handlers are a no-op passthrough for every other tab.
  */
 export const TabButton = ({
   onTap,
@@ -20,12 +20,23 @@ export const TabButton = ({
   className,
   style,
   children,
+  longPress,
 }: TabButtonProps) => (
   <button
     onClick={onTap}
     onMouseEnter={onPrefetch}
     onFocus={onPrefetch}
-    onTouchStart={onPrefetch}
+    onTouchStart={(e) => {
+      onPrefetch();
+      longPress?.onTouchStart(e);
+    }}
+    onTouchMove={longPress?.onTouchMove}
+    onTouchEnd={longPress?.onTouchEnd}
+    onTouchCancel={longPress?.onTouchCancel}
+    onMouseDown={longPress?.onMouseDown}
+    onMouseMove={longPress?.onMouseMove}
+    onMouseUp={longPress?.onMouseUp}
+    onMouseLeave={longPress?.onMouseLeave}
     aria-label={ariaLabel}
     aria-current={ariaCurrent}
     className={className}

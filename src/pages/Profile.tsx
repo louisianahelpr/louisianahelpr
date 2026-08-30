@@ -27,7 +27,6 @@ import {
   useProfileReviews,
   useProfileEarnings,
   useProfileSchedule,
-  useProfileInlineJobs,
   useProfileViolations,
 } from "@/hooks/useProfileTabData";
 
@@ -192,7 +191,6 @@ const ProfilePage = () => {
   // Availability is its own tab again and renders no job list, so it no
   // longer needs the schedule fetch — only the calendar tab does.
   const scheduleQuery = useProfileSchedule(userId, tab === "schedule");
-  const inlineJobsQuery = useProfileInlineJobs(userId, tab === "posted_jobs" || tab === "completed_jobs");
   const violationsQuery = useProfileViolations(userId, tab === "warnings");
 
   const completedCount = statsQuery.data?.completedCount ?? 0;
@@ -205,8 +203,6 @@ const ProfilePage = () => {
   const tips = earningsQuery.data?.tips ?? [];
   const schedulePostedJobs = scheduleQuery.data?.posted ?? [];
   const scheduleAssignedJobs = scheduleQuery.data?.assigned ?? [];
-  const inlinePostedJobs = inlineJobsQuery.data?.posted ?? [];
-  const inlineCompletedJobs = inlineJobsQuery.data?.completed ?? [];
   const violations = violationsQuery.data ?? [];
 
   // Profile fields
@@ -700,15 +696,12 @@ const ProfilePage = () => {
             onIdUpload={handleIdUpload}
             earningsQuery={earningsQuery}
             scheduleQuery={scheduleQuery}
-            inlineJobsQuery={inlineJobsQuery}
             reviewsQuery={reviewsQuery}
             violationsQuery={violationsQuery}
             earningsJobs={earningsJobs}
             tips={tips}
             schedulePostedJobs={schedulePostedJobs}
             scheduleAssignedJobs={scheduleAssignedJobs}
-            inlinePostedJobs={inlinePostedJobs}
-            inlineCompletedJobs={inlineCompletedJobs}
             reviews={reviews}
             violations={violations}
             totalEarnings={totalEarnings}

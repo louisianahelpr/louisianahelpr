@@ -11,4 +11,19 @@ export interface TabButtonProps {
   className: string;
   style?: React.CSSProperties;
   children: React.ReactNode;
+  /**
+   * Optional long-press gesture handlers (from `@/hooks/useLongPress`),
+   * spread onto the underlying `<button>`. Only Posts and Messages wire
+   * this up today — every other tab renders exactly as before.
+   */
+  longPress?: {
+    onTouchStart: (e: React.TouchEvent) => void;
+    onTouchMove: (e: React.TouchEvent) => void;
+    onTouchEnd: () => void;
+    onTouchCancel: () => void;
+    onMouseDown: (e: React.MouseEvent) => void;
+    onMouseMove: (e: React.MouseEvent) => void;
+    onMouseUp: () => void;
+    onMouseLeave: () => void;
+  };
 }

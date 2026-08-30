@@ -40,6 +40,7 @@ interface PostedJobsTabProps {
   onTip: (jobId: string, helperName: string) => void;
   onReview: (job: Job) => void;
   onDispute: (job: Job) => void;
+  onReport: (job: Job) => void;
   /** Open the read-only timeline + follow-up evidence uploader for a
    *  job that's already in dispute. */
   onViewDispute: (job: Job) => void;
@@ -76,7 +77,7 @@ export const PostedJobsTab = ({
   helperNames, completedJobMeta,
   latestTracking, groupHelpersByJob, userId,
   onBoost, onEdit, onCancel, onComplete, completingJobId,
-  onRevision, onNoShow, onTip, onReview, onDispute, onViewDispute, onConfirmArrival, confirmingArrivalJobId, onConfirmWorking, confirmingWorkingJobId,
+  onRevision, onNoShow, onTip, onReview, onDispute, onReport, onViewDispute, onConfirmArrival, confirmingArrivalJobId, onConfirmWorking, confirmingWorkingJobId,
   onLoadApplications, selectedJob, setSelectedJob, applications,
   applicationsLoading = false, applicationsError = false,
   onAcceptApplication, onDeclineApplication, onLoadInlineApplicants,
@@ -151,6 +152,7 @@ export const PostedJobsTab = ({
         onTip={onTip}
         onReview={onReview}
         onDispute={onDispute}
+        onReport={onReport}
         onViewDispute={onViewDispute}
         onConfirmArrival={onConfirmArrival}
         confirmingArrivalJobId={confirmingArrivalJobId}

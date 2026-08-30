@@ -658,7 +658,15 @@ export function PostedJobActions({
               <p className="text-ds-11 text-destructive font-medium flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" />
                 {disputeStatus === "escalated" ? "Escalated to Admin" : disputeStatus === "resolved" ? "Dispute Resolved" : "Dispute Under Review"}
               </p>
-              <p className="text-ds-11 text-muted-foreground mt-1">Payment is on hold pending resolution.</p>
+              {/* The "Admin is reviewing…" line used to be its OWN separate
+                  gray box below this one — two stacked boxes saying
+                  overlapping things about the same escalated dispute.
+                  Merged into this box's body copy instead. */}
+              <p className="text-ds-11 text-muted-foreground mt-1">
+                {awaitingAdmin
+                  ? "Admin is reviewing this dispute. You'll be notified of the outcome, and nothing is charged or released until then."
+                  : "Payment is on hold pending resolution."}
+              </p>
               {job.dispute_reason && <p className="text-ds-11 text-muted-foreground mt-1 italic">"{job.dispute_reason}"</p>}
               {job.dispute_helper_response && (
                 <div className="mt-2 p-2 rounded bg-muted/50">
@@ -740,29 +748,19 @@ export function PostedJobActions({
                 }} />
               </JobActionRow>
             )}
-            {/* NOT gated on isDisputer: when the HELPR opened the dispute (they
-                couldn't finish), the poster is the party with no controls and
-                the most questions — they need this line most of all. */}
-            {awaitingAdmin && (
-              <div className="text-ds-11 text-center text-muted-foreground px-2 py-1.5 rounded bg-muted/50">Admin is reviewing this dispute. You'll be notified of the outcome, and nothing is charged or released until then.</div>
-            )}
-            {/* The one legitimately full-width control on this card — it opens
-                the dispute's whole timeline, not a one-word action — so it takes
-                the shared full-width treatment rather than a bare outline. */}
-            <Button
-              size="sm"
-              variant="outline"
-              className={JOB_ACTION_FULL_CLASS}
-              style={jobActionChipStyle("neutral")}
-              onClick={(e) => { e.stopPropagation(); onViewDispute(job); }}
-            >
-              <AlertTriangle className="w-4 h-4" /> View Timeline & Add Evidence
-            </Button>
-            {/* Message keeps the ONE Message tone (`info`); Contact Admin is a
-                neutral escape hatch, not a destructive act, so it takes
-                `neutral` rather than the bare outline it had — which was the
-                only control in the whole card wearing no tone at all. */}
-            <JobActionRow columns={2}>
+            {/* View Timeline / Message / Contact Admin used to be two rows —
+                View Timeline alone as a full-width button, then Message +
+                Contact Admin below it as a 2-up row. Folded into one 3-up
+                chip row (owner: "make one row") so the three dispute
+                actions read as one group instead of a stray extra row. */}
+            <JobActionRow columns={3}>
+              <JobActionChip
+                icon={AlertTriangle}
+                label="View Timeline & Add Evidence"
+                ariaLabel="View dispute timeline and add evidence"
+                tone="neutral"
+                onClick={() => onViewDispute(job)}
+              />
               <JobActionChip
                 icon={MessageSquare}
                 label="Message"

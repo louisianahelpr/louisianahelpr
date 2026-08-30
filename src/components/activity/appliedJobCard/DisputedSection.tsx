@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { jobActionChipStyle, JOB_ACTION_FULL_CLASS } from "@/components/activity/JobActionRow";
+import { JobActionRow, JobActionChip } from "@/components/activity/JobActionRow";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertTriangle, MessageSquare, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -169,19 +169,32 @@ export function DisputedSection({
           above renders the job's ACTUAL dispute_deadline and its caption
           already says what happens when it lapses; a fixed 72h sentence
           contradicted it whenever the live deadline differed. */}
-      <Button
-        size="sm"
-        variant="outline"
-        className="w-full"
-        onClick={() => onViewDispute(job)}
-      >
-        <AlertTriangle className="w-4 h-4 mr-1" /> View Timeline & Add Evidence
-      </Button>
-
-      <div className="grid grid-cols-2 gap-2">
-        <Button size="sm" variant="outline" style={jobActionChipStyle("neutral")} className={JOB_ACTION_FULL_CLASS} onClick={() => navigate(`/messages?jobId=${app.job_id}&userId=${job.customer_id}`)}><MessageSquare className="w-4 h-4" />Message</Button>
-        <Button size="sm" variant="outline" className="w-full" onClick={() => navigate("/support")}><AlertTriangle className="w-4 h-4 mr-1" /> Contact Admin</Button>
-      </div>
+      {/* View Timeline / Message / Contact Admin — one 3-up row (mirrors the
+          same fix on the poster's side, PostedJobActions), instead of a
+          full-width View Timeline button followed by a separate 2-up row. */}
+      <JobActionRow columns={3}>
+        <JobActionChip
+          icon={AlertTriangle}
+          label="View Timeline & Add Evidence"
+          ariaLabel="View dispute timeline and add evidence"
+          tone="neutral"
+          onClick={() => onViewDispute(job)}
+        />
+        <JobActionChip
+          icon={MessageSquare}
+          label="Message"
+          ariaLabel="Message poster"
+          tone="info"
+          onClick={() => navigate(`/messages?jobId=${app.job_id}&userId=${job.customer_id}`)}
+        />
+        <JobActionChip
+          icon={AlertTriangle}
+          label="Contact Admin"
+          ariaLabel="Contact an admin about this dispute"
+          tone="neutral"
+          onClick={() => navigate("/support")}
+        />
+      </JobActionRow>
     </div>
   );
 }

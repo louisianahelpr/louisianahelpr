@@ -153,8 +153,8 @@ const DialogContent = React.forwardRef<
         // other chrome icon (Share/Save/Flag) gets on hover (owner,
         // 2026-08-30: "make x do the same globally") — applied here since
         // this X is the one shared by every dialog in the app.
-        className="group absolute right-3 top-3 w-8 h-8 p-0 box-border rounded-md btn-press flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
-        style={{ minHeight: "32px", minWidth: "32px" }}
+        className="group absolute right-3 top-3 w-8 p-0 box-border rounded-md btn-press flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
+        style={{ minHeight: "44px", minWidth: "32px" }}
       >
         <X className="h-[18px] w-[18px] transition-transform duration-300 group-hover:-translate-y-0.5" strokeWidth={2} />
         <span className="sr-only">Close</span>

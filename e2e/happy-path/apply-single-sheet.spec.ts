@@ -98,12 +98,12 @@ test("applying stays on ONE bottom-anchored sheet", async ({ helperPage: page })
   // DETAIL STEP — the sheet is anchored to the bottom edge.
   const detailRect = await rectOf();
   expect(detailRect.bottom).toBeCloseTo(detailRect.vh, 0);
-  // The apply step's own submit button is not on screen yet.
-  await expect(sheet.getByRole("button", { name: /^back to job$/i })).toHaveCount(0);
+  // The apply step's own back button is not on screen yet.
+  await expect(sheet.getByRole("button", { name: /^back$/i })).toHaveCount(0);
 
-  const applyBtn = sheet.getByRole("button", { name: /^(apply|book)\b/i }).first();
+  const applyBtn = sheet.getByRole("button", { name: /^(apply|book|continue)\b/i }).first();
   await applyBtn.click();
-  await sheet.getByRole("button", { name: /^back to job$/i }).waitFor({ timeout: 10_000 });
+  await sheet.getByRole("button", { name: /^back$/i }).waitFor({ timeout: 10_000 });
   await page.waitForTimeout(600);
 
   // 1. NO SECOND SURFACE. Exactly one dialog is open — the apply UI is a step
@@ -116,15 +116,17 @@ test("applying stays on ONE bottom-anchored sheet", async ({ helperPage: page })
   const applyRect = await rectOf();
   expect(applyRect.bottom).toBeCloseTo(applyRect.vh, 0);
 
-  // 3. The apply step really is showing.
+  // 3. The apply step really is showing. Dashboard passes hideEarnings=true
+  //    (earnings are already visible in the detail step above), so we verify
+  //    presence via the submit button and the note/pitch textarea instead.
   await expect(sheet.getByRole("button", { name: /^(apply now|book now)$/i })).toBeVisible();
-  await expect(sheet.getByText("You earn")).toBeVisible();
+  await expect(sheet.getByRole("textbox")).toBeVisible();
 
   // 4. BACK GOES TO THE JOB, not out of the sheet.
-  await sheet.getByRole("button", { name: /^back to job$/i }).click();
+  await sheet.getByRole("button", { name: /^back$/i }).click();
   await page.waitForTimeout(400);
   await expect(sheet).toBeVisible();
-  await expect(sheet.getByRole("button", { name: /^back to job$/i })).toHaveCount(0);
+  await expect(sheet.getByRole("button", { name: /^back$/i })).toHaveCount(0);
   await expect(sheet.getByText(BASE_JOB.description)).toBeVisible();
 });
 
@@ -161,8 +163,8 @@ test("dismissing from the apply step abandons the apply", async ({ helperPage: p
   await sheet.waitFor({ timeout: 10_000 });
   await page.waitForTimeout(600);
 
-  await sheet.getByRole("button", { name: /^(apply|book)\b/i }).first().click();
-  await sheet.getByRole("button", { name: /^back to job$/i }).waitFor({ timeout: 10_000 });
+  await sheet.getByRole("button", { name: /^(apply|book|continue)\b/i }).first().click();
+  await sheet.getByRole("button", { name: /^back$/i }).waitFor({ timeout: 10_000 });
 
   await sheet.getByRole("button", { name: /^close$/i }).click();
   await page.waitForTimeout(800);

@@ -352,7 +352,7 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
   }, []);
 
   // Pins layer. Each job becomes a custom annotation whose callout body is a
-  // real `<MapJobPopup>` — MapKit's callout delegate hands back DOM, not React
+  // real `<JobCard>` — MapKit's callout delegate hands back DOM, not React
   // children, so the popup is rendered into a detached node by its own React
   // root and that node is what `calloutContentForAnnotation` returns. It is
   // rendered up front (not on tap) so the callout has laid-out content to

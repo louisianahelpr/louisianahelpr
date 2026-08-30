@@ -13,7 +13,7 @@ import {
   type BrowserContext,
 } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { SEED_TABLES } from "./seedData";
+import { SEED_TABLES, SEED_JOBS } from "./seedData";
 
 // Happy-path smoke fixtures. These tests run against `npm run build && npx
 // vite preview` (the Vite preview server, no live backend) and stub every
@@ -499,6 +499,13 @@ function handleRest(
   // RPC calls — return null which most RPCs in the codebase tolerate as
   // "no rows" via `data ?? []` or `?? null` patterns.
   if (table === "rpc") {
+    const rpcName = parts[1] ?? "";
+    // get_jobs_for_my_applications is called by fetchAppliedActivity to build
+    // the job map that populates `app.job` on each AppliedJobCard. Without it
+    // every card gets job:null and renders as the non-expandable minimal card.
+    if (seed && rpcName === "get_jobs_for_my_applications") {
+      return { status: 200, body: SEED_JOBS };
+    }
     return { status: 200, body: null };
   }
 

@@ -73,7 +73,18 @@ type OnboardingState = {
 const getState = (): OnboardingState => {
   try {
     const raw = safeStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      // Defensively default fields that may be absent in older stored formats
+      // (e.g. {seen:true, completed:true} written before completedSteps was added).
+      // Without this, `state.completedSteps.includes(...)` throws and crashes
+      // the dashboard for users with legacy localStorage.
+      return {
+        completed: parsed.completed ?? false,
+        currentStep: parsed.currentStep ?? 0,
+        completedSteps: Array.isArray(parsed.completedSteps) ? parsed.completedSteps : [],
+      };
+    }
   } catch {
     /* fall through to default below */
   }

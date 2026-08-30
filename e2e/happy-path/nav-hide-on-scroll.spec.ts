@@ -34,6 +34,37 @@ const OTHER_POSTER = "33333333-3333-4333-8333-333333333333";
 /** Tall enough to overflow 375x812 several times over on every route. */
 const ROW_COUNT = 30;
 
+/**
+ * Job IDs for the applied-jobs mock. Uses a DIFFERENT prefix from manyJobs
+ * (which uses 10000000-…) so the dashboard feed does not hide them as
+ * "already applied". Overlapping IDs would cause the feed's "you applied for
+ * this job" filter to suppress all 30 feed rows, leaving an empty list and
+ * tripping the scrollable-region guard on every OTHER route in this suite.
+ */
+const APP_JOB_IDS = Array.from(
+  { length: ROW_COUNT },
+  (_, i) => `50000000-0000-4000-8000-0000000${String(i + 100).padStart(5, "0")}`,
+);
+
+/**
+ * /my-jobs (applied tab) shows jobs the helper applied for, in "pending"
+ * state → bucket "waiting". Without these rows the applied tab renders an
+ * empty-state with no scrollable region and the dock-hide assertion fires
+ * vacuously ("no scrollable content" rather than "dock stayed visible").
+ */
+function manyApplications(helperId: string) {
+  const now = Date.now();
+  return Array.from({ length: ROW_COUNT }, (_, i) => ({
+    id: `20000000-0000-4000-8000-0000000${String(i + 100).padStart(5, "0")}`,
+    job_id: APP_JOB_IDS[i],
+    helper_id: helperId,
+    status: "pending",
+    message: `Test application ${i + 1}`,
+    created_at: new Date(now - i * 3_600_000).toISOString(),
+    updated_at: new Date(now - i * 3_600_000).toISOString(),
+  }));
+}
+
 function manyJobs(customerId: string) {
   const now = Date.now();
   return Array.from({ length: ROW_COUNT }, (_, i) => ({
@@ -127,6 +158,36 @@ const listRules: MockRule[] = [
   {
     match: (url, method) => method === "GET" && url.pathname === "/rest/v1/messages",
     handle: () => ({ status: 200, body: manyMessages() }),
+  },
+  // /my-jobs (applied tab) fetches applications by helper_id. Without these
+  // the route shows an empty-state (no scrollable region) and the dock-hide
+  // test fires vacuously.
+  {
+    match: (url, method) => method === "GET" && url.pathname === "/rest/v1/applications",
+    handle: () => ({ status: 200, body: manyApplications(FAKE_CUSTOMER.id) }),
+  },
+  // The applied tab also calls get_jobs_for_my_applications to build the job
+  // map for each card. Return jobs with the APP_JOB_IDs so cards render with
+  // full job data rather than in minimal (job:null) mode.
+  {
+    match: (url, method) => method === "POST" && url.pathname === "/rest/v1/rpc/get_jobs_for_my_applications",
+    handle: () => ({
+      status: 200,
+      body: APP_JOB_IDS.map((id, i) => ({
+        id,
+        title: `Applied job ${i + 1}`,
+        description: "A job the helper applied for.",
+        category: "cleaning",
+        status: "open",
+        budget: 80 + i,
+        location: "New Orleans, LA",
+        date_needed: new Date(Date.now() + 86_400_000).toISOString().slice(0, 10),
+        customer_id: OTHER_POSTER,
+        helper_id: null,
+        is_urgent: false,
+        created_at: new Date(Date.now() - i * 3_600_000).toISOString(),
+      })),
+    }),
   },
 ];
 

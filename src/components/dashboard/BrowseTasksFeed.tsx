@@ -145,6 +145,104 @@ function CompactFeedCard({
   );
 }
 
+/**
+ * RecommendedSection — the "Recommended" band, comfortable density. Its own
+ * component (was a block of JSX hand-inlined at the call site) so the two
+ * feed sections read as siblings in the file, not one written out and one
+ * copy-pasted.
+ *
+ * Kept on `AnimatePresence` rather than folded into `MainFeedSection`
+ * below: this band is capped at 5 cards and animates a NEW match sliding in
+ * (`initial={false}` — only fresh entries animate, first paint stays
+ * static). `MainFeedSection`'s list is the one unbounded, virtualized
+ * surface on the dashboard (50+ rows), and animating across an
+ * absolute-positioned virtualizer fights its layout math — so the two
+ * sections use different list primitives on purpose, not by accident, even
+ * though they're both "one component" now at the call site.
+ */
+function RecommendedSection({
+  jobs,
+  common,
+  reducedMotion,
+  setHoveredJobId,
+}: {
+  jobs: EnrichedJob[];
+  common: JobCardCommonProps;
+  reducedMotion: boolean;
+  setHoveredJobId?: Dispatch<SetStateAction<string | null>>;
+}) {
+  if (jobs.length === 0) return null;
+  return (
+    <div className="px-3 pt-3 pb-1 space-y-2.5 lg:space-y-3">
+      <AnimatePresence initial={false}>
+        {jobs.map((job, i) => (
+          <motion.div
+            key={`rec-${job.id}`}
+            initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -12 }}
+            animate={reducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+            exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -12 }}
+            transition={reducedMotion ? { duration: 0 } : { duration: 0.2, ease: "easeOut" }}
+            onMouseEnter={() => setHoveredJobId?.(job.id)}
+            onMouseLeave={() => setHoveredJobId?.(null)}
+          >
+            <JobFeedCard job={job} index={i} recommended={i === 0} common={common} />
+          </motion.div>
+        ))}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+/**
+ * MainFeedSection — the "Everything else" feed, comfortable density. Its
+ * own component alongside `RecommendedSection` above, for the same reason
+ * (was hand-inlined JSX at the call site).
+ *
+ * `px-4`, NOT `px-3` like `RecommendedSection` — matches the toolbar row
+ * directly above it (owner: "same spacing" — the feed used to sit 4px
+ * further left than the "N jobs" label introducing it). This is a
+ * deliberate, different value from its sibling section, not spacing that
+ * drifted from copy-paste — componentizing the two sections doesn't mean
+ * forcing them to share a padding value they were explicitly fixed to NOT
+ * share.
+ */
+function MainFeedSection({
+  jobs,
+  common,
+  containerRef,
+  setHoveredJobId,
+}: {
+  jobs: EnrichedJob[];
+  common: JobCardCommonProps;
+  containerRef: PullToRefresh["containerRef"];
+  setHoveredJobId?: Dispatch<SetStateAction<string | null>>;
+}) {
+  return (
+    <div
+      className="px-4 pt-3"
+      style={{ paddingBottom: "calc(6rem + var(--safe-area-bottom, 0px))" }}
+    >
+      <VirtualizedJobList
+        items={jobs}
+        scrollElementRef={containerRef}
+        getKey={(job) => job.id}
+        renderItem={(job, i) => (
+          // Gap between cards — `space-y-*` can't apply once the
+          // virtualizer absolutely-positions rows, so the gap is bottom
+          // padding measured as part of the row height.
+          <div
+            className="pb-2 lg:pb-2.5 xl:pb-3"
+            onMouseEnter={() => setHoveredJobId?.(job.id)}
+            onMouseLeave={() => setHoveredJobId?.(null)}
+          >
+            <JobFeedCard job={job} index={i} common={common} />
+          </div>
+        )}
+      />
+    </div>
+  );
+}
+
 interface BrowseTasksFeedProps {
   /** List vs Map view — selects which body renders. */
   view: "list" | "map";
@@ -577,42 +675,21 @@ export function BrowseTasksFeed({
                 ))}
               </div>
             )}
-            {recommendedVisible.length > 0 && (
-              <>
-                {density === "compact" ? (
-                  <ul>
-                    {recommendedVisible.map((job, i) => (
-                      <CompactFeedCard key={job.id} job={job} recommended={i === 0} common={compactCardCommon} />
-                    ))}
-                  </ul>
-                ) : (
-                  <div className="px-3 pt-3 pb-1 space-y-2.5 lg:space-y-3">
-                    {/* AnimatePresence with initial={false} — only NEW
-                        recommended jobs slide in (e.g. when a fresh match
-                        arrives or the user dismisses a sibling). The
-                        first paint stays static so the section doesn't
-                        feel laggy when the dashboard loads. The virtualized
-                        "Everything else" list below is intentionally NOT
-                        wrapped — animating across an absolute-positioned
-                        virtualizer fights its layout math. */}
-                    <AnimatePresence initial={false}>
-                      {recommendedVisible.map((job, i) => (
-                        <motion.div
-                          key={`rec-${job.id}`}
-                          initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -12 }}
-                          animate={reducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
-                          exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -12 }}
-                          transition={reducedMotion ? { duration: 0 } : { duration: 0.2, ease: "easeOut" }}
-                          onMouseEnter={() => setHoveredJobId?.(job.id)}
-                          onMouseLeave={() => setHoveredJobId?.(null)}
-                        >
-                          <JobFeedCard job={job} index={i} recommended={i === 0} common={cardCommon} />
-                        </motion.div>
-                      ))}
-                    </AnimatePresence>
-                  </div>
-                )}
-              </>
+            {density === "compact" ? (
+              recommendedVisible.length > 0 && (
+                <ul>
+                  {recommendedVisible.map((job, i) => (
+                    <CompactFeedCard key={job.id} job={job} recommended={i === 0} common={compactCardCommon} />
+                  ))}
+                </ul>
+              )
+            ) : (
+              <RecommendedSection
+                jobs={recommendedVisible}
+                common={cardCommon}
+                reducedMotion={reducedMotion}
+                setHoveredJobId={setHoveredJobId}
+              />
             )}
             {/* Main "Everything else" feed */}
             {density === "compact" ? (
@@ -628,52 +705,12 @@ export function BrowseTasksFeed({
                 ))}
               </ul>
             ) : (
-              /* Comfortable: virtualized — this is the only unbounded list
-                 on the dashboard (50+ rows after infinite scroll, each
-                 mounting framer-motion drag state), so it scrolls via an
-                 element-scroll virtualizer that renders just the visible
-                 window. The recommended section, section headers, and the
-                 infinite-scroll sentinel stay as normal DOM — recommended
-                 is capped at 5 and the rest are fixed-size. The outer div
-                 keeps the horizontal padding, top padding, and dock
-                 clearance; per-card vertical spacing is baked into each
-                 virtualized row so it survives the absolute positioning
-                 the virtualizer applies. */
-              <div
-                /* px-4, matching the toolbar row directly above it. The feed was px-3
-           and the toolbar px-4, so the cards sat 4px further left than the
-           "N jobs nearby" label introducing them — two edges 4px apart is the
-           kind of misalignment that reads as sloppiness without being
-           nameable (owner: "same spacing"). */
-        className="px-4 pt-3"
-                style={{
-                  paddingBottom: "calc(6rem + var(--safe-area-bottom, 0px))",
-                }}
-              >
-                <VirtualizedJobList
-                  items={visibleJobs}
-                  scrollElementRef={containerRef}
-                  getKey={(job) => job.id}
-                  renderItem={(job, i) => (
-                    // Gap between cards — `space-y-*` can't apply once the
-                    // virtualizer absolutely-positions rows, so the gap is
-                    // bottom padding measured as part of the row height.
-                    <div
-                      className=/* 8 / 10 / 12, not 10 / 16 / 20 (owner: "tighter together").
-                       The gap GREW with viewport width while the card it
-                       separates stayed 85px tall, so the desktop feed spent a
-                       fifth of a card's height on the space between every pair.
-                       A list reads as a list when the rows are closer to each
-                       other than they are tall. */
-                    "pb-2 lg:pb-2.5 xl:pb-3"
-                      onMouseEnter={() => setHoveredJobId?.(job.id)}
-                      onMouseLeave={() => setHoveredJobId?.(null)}
-                    >
-                      <JobFeedCard job={job} index={i} common={cardCommon} />
-                    </div>
-                  )}
-                />
-              </div>
+              <MainFeedSection
+                jobs={visibleJobs}
+                common={cardCommon}
+                containerRef={containerRef}
+                setHoveredJobId={setHoveredJobId}
+              />
             )}
             {/* Infinite scroll sentinel + manual fallback */}
             {hasNextPage && (

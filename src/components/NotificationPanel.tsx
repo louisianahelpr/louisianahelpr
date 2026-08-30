@@ -240,18 +240,34 @@ const NotificationPanel = () => {
         aria-label="Notifications"
         className="w-[400px] max-w-[calc(100vw-2rem)] max-h-[75vh] p-0 gap-0 flex flex-col overflow-hidden rounded-ds-lg bg-premium-page"
       >
-        <div className="px-4 pt-4 pb-3 border-b border-border shrink-0 space-y-3">
-          <p
-            className="font-display italic font-bold leading-tight pt-1"
-            style={{ fontSize: "clamp(1.1rem, 1.4vw + 0.4rem, 1.3rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
-          >
-            Notifications
-          </p>
-          {/* One controls row: filter pills on the left, the
-              Mark-all-read / Enable-push actions on the right. Keeping
-              them on a single justified line (rather than a standalone
-              right-floated button row) keeps the header compact and away
-              from the close button. */}
+        <div className="px-4 pt-4 pb-3 border-b border-border shrink-0 space-y-2.5">
+          <div className="flex items-baseline gap-2">
+            <p
+              className="font-display italic font-bold leading-tight"
+              style={{ fontSize: "clamp(1.1rem, 1.4vw + 0.4rem, 1.3rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
+            >
+              Notifications
+            </p>
+            {/* Unread count reads alongside the title — the pills below
+                already carry it too, but putting it here means the
+                headline itself answers "anything new?" without scanning
+                down to the controls row. */}
+            {unreadCount > 0 && (
+              <span
+                className="font-sans text-ds-11 font-semibold tabular-nums"
+                style={{ color: "hsl(var(--burnt-sienna))" }}
+              >
+                {unreadCount} unread
+              </span>
+            )}
+          </div>
+          {/* One controls row: filter pills on the left (the primary way to
+              change what you're looking at), Mark-all-read / Enable-push
+              actions on the right (secondary, occasional actions). Keeping
+              them on a single justified line — rather than a standalone
+              right-floated button row — keeps the header compact and away
+              from the close button, while the left/right split separates
+              "what am I viewing" from "what can I do about it". */}
           <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5">
             {([
@@ -309,6 +325,11 @@ const NotificationPanel = () => {
                 >
                   <BellRing className="w-3.5 h-3.5 mr-1" /> Enable Push
                 </Button>
+              )}
+              {/* Separator only when both actions are present — otherwise a
+                  lone hairline floats next to a single button for no reason. */}
+              {pushSupported && !pushEnabled && unreadCount > 0 && (
+                <span aria-hidden="true" className="w-px h-4 bg-border mx-0.5" />
               )}
               {unreadCount > 0 && (
                 <Button

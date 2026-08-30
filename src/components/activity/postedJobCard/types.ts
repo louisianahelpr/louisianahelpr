@@ -22,6 +22,10 @@ export interface PostedJobCardProps {
   onTip: (jobId: string, helperName: string) => void;
   onReview: (job: Job) => void;
   onDispute: (job: Job) => void;
+  /** Opens the "Report" dialog (ReportDialog, reportedType="job") for a
+   *  Done-tab job — a distinct escape hatch from Dispute (a payment
+   *  disagreement) for a conduct/safety concern, once the job is over. */
+  onReport: (job: Job) => void;
   /** Open the read-only timeline + follow-up evidence uploader for a
    *  job that's already in dispute. */
   onViewDispute: (job: Job) => void;

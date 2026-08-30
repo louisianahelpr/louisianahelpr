@@ -46,6 +46,7 @@ function PostedJobCardInner({
   onTip,
   onReview,
   onDispute,
+  onReport,
   onViewDispute,
   onConfirmArrival,
   confirmingArrivalJobId,
@@ -494,7 +495,11 @@ function PostedJobCardInner({
               const cMeta = completedJobMeta[job.id];
               const hasTipped = cMeta?.tipped;
               const hasReviewed = cMeta?.reviewed;
-              if (hasTipped && hasReviewed) {
+              // Hidden once the card is EXPANDED — the expanded body already
+              // shows the same fact as the Tipped/Reviewed pill buttons in
+              // the action row below, so this collapsed-state summary line
+              // became a redundant third repetition of "already done".
+              if (hasTipped && hasReviewed && !isExpanded) {
                 return (
                   <div className="px-4 py-1.5 border-t border-[hsl(var(--olivewood)/0.1)] bg-card flex items-center justify-between">
                     {/* No chevron here any more — the meta row's `trailing`
@@ -588,6 +593,7 @@ function PostedJobCardInner({
                 onTip={onTip}
                 onReview={onReview}
                 onDispute={onDispute}
+                onReport={onReport}
                 onViewDispute={onViewDispute}
                 onConfirmArrival={onConfirmArrival}
                 confirmingArrivalJobId={confirmingArrivalJobId}

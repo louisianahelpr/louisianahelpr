@@ -10,7 +10,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { AUTO_COMPLETE_HOURS, hoursToMs } from "../../../../supabase/functions/_shared/escrowTiming";
 import {
    DollarSign, XCircle, CheckCircle2, RotateCcw, Star, MessageSquare,
-  MessageCircle, Pencil, AlertTriangle, Rocket, Wrench,
+  MessageCircle, Pencil, AlertTriangle, Rocket, Wrench, Flag,
 } from "lucide-react";
 import { SosShareButton } from "@/components/SosShareButton";
 import { PhotoProofGroup } from "@/components/PhotoProof";
@@ -43,6 +43,7 @@ interface PostedJobActionsProps {
   onTip: (jobId: string, helperName: string) => void;
   onReview: (job: Job) => void;
   onDispute: (job: Job) => void;
+  onReport: (job: Job) => void;
   onViewDispute: (job: Job) => void;
   onConfirmArrival: (jobId: string) => void;
   confirmingArrivalJobId: string | null;
@@ -72,6 +73,7 @@ export function PostedJobActions({
   onTip,
   onReview,
   onDispute,
+  onReport,
   onViewDispute,
   onConfirmArrival,
   confirmingArrivalJobId,
@@ -542,7 +544,10 @@ export function PostedJobActions({
                   !canRevise &&
                   !job.poster_completed_at &&
                   shouldShowDisputeLink(job, "customer");
-                const columns = (2 + (canReview ? 1 : 0) + (canRevise || canDispute ? 1 : 0)) as 2 | 3 | 4;
+                // +1 for Report, unconditional on Done — a distinct
+                // conduct/safety escape hatch alongside Tip/Review/Hire
+                // Again, separate from the payment-dispute chip above.
+                const columns = (3 + (canReview ? 1 : 0) + (canRevise || canDispute ? 1 : 0)) as 3 | 4 | 5;
                 return (
                   <JobActionRow columns={columns}>
                     {!hasTipped ? (
@@ -622,6 +627,17 @@ export function PostedJobActions({
                         onClick={() => navigate(`/post-job?rebook=${job.id}`)}
                       />
                     )}
+                    {/* Report — a distinct escape hatch from Dispute above:
+                        Dispute is a payment disagreement while the job is
+                        still settling; Report is for a conduct/safety
+                        concern once the job is already over. */}
+                    <JobActionChip
+                      icon={Flag}
+                      label="Report"
+                      ariaLabel="Report a problem with this job or Helpr"
+                      tone="danger"
+                      onClick={() => onReport(job)}
+                    />
                   </JobActionRow>
                 );
               })()}

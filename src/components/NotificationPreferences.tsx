@@ -270,7 +270,7 @@ const NotificationPreferences = () => {
           they're the lead control. Bark-tinted backdrop signals "this
           is the master switch" without shouting. */}
       <div
-        className="flex items-center justify-between px-4 py-2 shrink-0 relative"
+        className="flex items-center justify-between px-4 py-2.5 shrink-0 relative"
         style={{
           background: "hsl(var(--bark) / 0.06)",
           borderBottom: "0.5px solid hsl(var(--bark) / 0.18)",
@@ -285,7 +285,7 @@ const NotificationPreferences = () => {
           </span>
           <div className="min-w-0">
             <Label
-              className="font-sans font-semibold block truncate text-ds-14"
+              className="font-sans font-semibold block truncate text-ds-14 mb-0"
               style={{ color: "hsl(var(--ink-deep))" }}
             >
               Master Switch
@@ -341,7 +341,7 @@ const NotificationPreferences = () => {
           </span>
           <div className="min-w-0">
             <Label
-              className="font-sans font-semibold block truncate text-ds-14"
+              className="font-sans font-semibold block truncate text-ds-14 mb-0"
               style={{ color: "hsl(var(--ink-deep))" }}
             >
               Daily Match Digest
@@ -396,7 +396,7 @@ const NotificationPreferences = () => {
             </span>
             <div className="min-w-0">
               <Label
-                className="font-sans font-semibold block truncate text-ds-14"
+                className="font-sans font-semibold block truncate text-ds-14 mb-0"
                 style={{ color: "hsl(var(--ink-deep))" }}
               >
                 Quiet Hours
@@ -483,7 +483,7 @@ const NotificationPreferences = () => {
               {item.icon}
             </span>
             <Label
-              className="font-sans font-semibold truncate text-ds-14"
+              className="font-sans font-semibold truncate text-ds-14 mb-0"
               style={{ color: "hsl(var(--ink-deep))" }}
             >
               {item.label}
@@ -533,7 +533,7 @@ const NotificationPreferences = () => {
           </span>
           <div className="min-w-0">
             <Label
-              className="font-sans font-semibold block truncate text-ds-14"
+              className="font-sans font-semibold block truncate text-ds-14 mb-0"
               style={{ color: "hsl(var(--ink-deep))" }}
             >
               Send a Test
@@ -549,7 +549,7 @@ const NotificationPreferences = () => {
           type="button"
           onClick={sendTestPush}
           disabled={!loaded || sendingTest || pushTokenCount === 0 || !prefs.push_enabled}
-          className="shrink-0 ml-2 inline-flex items-center gap-1 rounded-ds-sm px-3 py-1.5 text-ds-11 font-sans font-semibold active:scale-[0.96] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          className="shrink-0 ml-2 inline-flex items-center gap-1 rounded-ds-sm px-2 py-1 text-ds-10 font-sans font-semibold active:scale-[0.96] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           style={{
             background: "hsl(var(--bark))",
             color: "hsl(var(--parchment))",
@@ -559,11 +559,11 @@ const NotificationPreferences = () => {
         >
           {sendingTest ? (
             <>
-              <Loader2 className="w-3.5 h-3.5 animate-spin" /> Sending
+              <Loader2 className="w-3 h-3 animate-spin" /> Sending
             </>
           ) : (
             <>
-              <Send className="w-3.5 h-3.5" /> Test
+              <Send className="w-3 h-3" /> Test
             </>
           )}
         </button>

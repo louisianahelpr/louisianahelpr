@@ -408,6 +408,19 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             style={{
               color: "hsl(var(--ink-deep))",
               letterSpacing: "-0.02em",
+              // Reserve the full two-line box (leading-tight = 1.25em/line)
+              // even when the title only wraps to one line. Without this, a
+              // short one-line title makes its card measurably shorter than
+              // its two-line neighbors — real height variance the virtualized
+              // feed (VirtualizedJobList) measures per row via measureElement.
+              // A short-then-tall run of cards produces visible gaps: rows
+              // mount at the estimated/cached height and only correct once
+              // measureElement catches up (deferred during active scroll),
+              // so the mismatch is visible as uneven spacing. This keeps
+              // "equal card height is the stronger rule" (see the meta-row
+              // comment below) intact without truncating any title — the
+              // two-line clamp for long titles is unchanged.
+              minHeight: "2.5em",
             }}
           >
             {job.title}

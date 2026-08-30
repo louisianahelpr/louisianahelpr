@@ -11,9 +11,9 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { toast } from "sonner";
-import { Camera, Check, FileText, Loader2, ShieldCheck, X } from "lucide-react";
+import { Camera, Check, Loader2, ShieldCheck, X } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
-import { DateOfBirthPicker } from "@/components/DateOfBirthPicker";
+import { DatePickerField } from "@/components/DatePickerField";
 import { CityAutocomplete } from "@/components/postjob/CityAutocomplete";
 import { cn } from "@/lib/utils";
 import { isProfileComplete } from "@/components/ProtectedRoute";
@@ -21,12 +21,10 @@ import { splitName } from "@/lib/splitName";
 import { queryKeys } from "@/lib/queryKeys";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
 import AuthShell from "@/components/auth/AuthShell";
-import { ChecklistCard } from "./completeProfile/ChecklistCard";
 import { uploadProfileFiles } from "./completeProfile/uploadProfileFiles";
 import type { ProfileCompletionUpdates } from "./completeProfile/types";
 import {
   ALLOWED_IMAGE_TYPES,
-  ALLOWED_DOC_TYPES,
   MAX_FILE_SIZE,
   withTimeout,
   formatPhone,
@@ -51,14 +49,8 @@ const CompleteProfile = () => {
 
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const [idFile, setIdFile] = useState<File | null>(null);
-  const [idPreview, setIdPreview] = useState<string | null>(null);
 
   const [submitting, setSubmitting] = useState(false);
-  // On small viewports (SE ≤375px) the checklist is collapsed by default to
-  // reduce scroll distance; tapping the header expands it. On larger screens
-  // (sm+) it's always visible. Starts collapsed so the form is reachable quickly.
-  const [checklistExpanded, setChecklistExpanded] = useState(false);
 
   // Guard against re-running hydration when profile updates (e.g. after a
   // refetch) but user_id is stable. Without this ref the dep-array would need
@@ -82,7 +74,6 @@ const CompleteProfile = () => {
     if (profile.location && !location) setLocation(profile.location);
     if (profile.bio && !bio) setBio(profile.bio);
     if (profile.avatar_url && !avatarPreview) setAvatarPreview(profile.avatar_url);
-    if (profile.id_document_url && !idPreview) setIdPreview(profile.id_document_url);
     // Persisted terms acceptance — read straight from the row so refresh / re-entry
     // doesn't reset the user's previous "yes I agree".
     if (profile.accepted_terms_at) setAcceptedPolicies(true);
@@ -111,14 +102,6 @@ const CompleteProfile = () => {
     }
   };
 
-  const handleIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && validateFile(file, ALLOWED_DOC_TYPES, "ID document")) {
-      setIdFile(file);
-      setIdPreview(file.type.startsWith("image/") ? URL.createObjectURL(file) : null);
-    }
-  };
-
   const ageOk = useMemo(() => {
     if (!dateOfBirth) return false;
     const dob = new Date(dateOfBirth);
@@ -138,7 +121,6 @@ const CompleteProfile = () => {
     return [
       { label: "Full name", done: firstName.trim().length > 0 && lastName.trim().length > 0 },
       { label: "Profile picture", done: Boolean(avatarFile || profile?.avatar_url) },
-      { label: "About you (20+ characters)", done: bio.trim().length >= 20 },
       { label: "Date of birth (18+)", done: Boolean(dateOfBirth) && ageOk },
       { label: "Phone number", done: phoneDigits.length === 10 },
       { label: "City", done: location.trim().length > 0 },
@@ -168,6 +150,34 @@ const CompleteProfile = () => {
   const lastNameValid = lastName.trim().length > 0;
   const phoneValid = phone.replace(/\D/g, "").length === 10;
   const cityValid = location.trim().length > 0;
+
+  // Same bounds as Signup's DOB picker: today − 18y upper bound (blocks
+  // under-18 at the UI layer; the age check below is the backstop), today −
+  // 120y floor so the wheel has a sane range.
+  const maxDob = (() => {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() - 18);
+    return d.toISOString().split("T")[0];
+  })();
+  const minDob = (() => {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() - 120);
+    return d.toISOString().split("T")[0];
+  })();
+
+  // These fields are already satisfied for an email signup (SignupStep2
+  // collects all four; see checklist above) — showing them again here reads
+  // as re-asking for information already given. Google/Apple sign-in never
+  // goes through that step, so this page is still where THEY provide it:
+  // hide a field only once its own checklist item is done, whichever path
+  // got it there. Bio and the terms checkbox are NOT in this list — bio is
+  // never collected at signup, and the terms/rules consent must always be
+  // shown regardless of provider.
+  const nameDone = firstName.trim().length > 0 && lastName.trim().length > 0;
+  const photoDone = Boolean(avatarFile || profile?.avatar_url);
+  const dobDone = Boolean(dateOfBirth) && ageOk;
+  const phoneDone = phone.replace(/\D/g, "").length === 10;
+  const cityDone = location.trim().length > 0;
 
   useEffect(() => {
     if (!user?.id || profile || isLoading) return;
@@ -209,8 +219,7 @@ const CompleteProfile = () => {
     if (!ageOk) return fail("You'll need to be 18 or older to join.");
     if (!phone.trim() || phone.replace(/\D/g, "").length < 10) return fail("Add a valid phone number — at least 10 digits.");
     if (!location.trim()) return fail("Tell us your city to continue.");
-    if (!bio.trim() || bio.trim().length < 20) return fail("Tell us a little about yourself — at least 20 characters.");
-    if (!avatarFile && !profile?.avatar_url) return fail("Add a profile photo to go with your bio.");
+    if (!avatarFile && !profile?.avatar_url) return fail("Add a profile photo to continue.");
     // Government-issued ID is no longer required here — it's optional at
     // profile completion and deferred to first-post / IDV (matches the
     // signup gate, which stopped collecting it).
@@ -226,7 +235,10 @@ const CompleteProfile = () => {
       // "Acquiring an exclusive Navigator LockManager lock ... lock stolen" errors.
 
       // Upload files directly to Storage in parallel (much faster than base64-through-edge-function)
-      const { avatarUrl, idDocumentPath } = await uploadProfileFiles(user.id, avatarFile, idFile);
+      // Government ID upload was removed from this page — Stripe Identity
+      // (triggered from the first job post) collects the real ID now, so
+      // idFile is always null here.
+      const { avatarUrl, idDocumentPath } = await uploadProfileFiles(user.id, avatarFile, null);
 
       // Single, lightweight DB update — no large JSON over the wire
       const updates: ProfileCompletionUpdates = {
@@ -370,22 +382,17 @@ const CompleteProfile = () => {
             <p className="mt-3 font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               We need a few details before you can use Helpr. This keeps the community safe.
             </p>
-            <p className="mt-2 text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              All fields marked <span style={{ color: "hsl(var(--burnt-sienna))" }}>*</span> are required.
-            </p>
           </div>
-
-          <ChecklistCard
-            checklist={checklist}
-            expanded={checklistExpanded}
-            onToggle={() => setChecklistExpanded((v) => !v)}
-          />
 
           <form
             onSubmit={handleSubmit}
             className="rounded-2xl border border-border/60 bg-card shadow-[var(--card-shadow)] p-6 sm:p-7 space-y-5"
           >
-            {/* Circular profile picture uploader — top of form */}
+            {/* Circular profile picture uploader — top of form. Google/Apple
+                sign-in never went through SignupStep2, so this is still
+                where THEY provide it; an email signup already has it, hence
+                the hide-if-done guard. */}
+            {!photoDone && (
             <div className="flex flex-col items-center gap-2 -mt-1">
               <label
                 htmlFor="avatar"
@@ -416,7 +423,12 @@ const CompleteProfile = () => {
                   : <>Profile photo <span className="text-destructive">*</span> · tap to add</>}
               </p>
             </div>
+            )}
 
+            {/* Same hide-if-done guard: SignupStep2 already collects first/
+                last name for an email signup, so only an OAuth sign-in
+                (which skips that step) sees this row here. */}
+            {!nameDone && (
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="firstName">First name <span className="text-destructive">*</span></Label>
@@ -451,15 +463,32 @@ const CompleteProfile = () => {
                 </div>
               </div>
             </div>
+            )}
 
+            {!dobDone && (
             <div className="space-y-1.5">
               <Label htmlFor="dob">Date of birth (must be 18+) <span className="text-destructive">*</span></Label>
-              <DateOfBirthPicker id="dob" value={dateOfBirth} onChange={setDateOfBirth} />
+              {/* Same shared DatePickerField as Signup's DOB field (tap-to-open
+                  wheel, checkmark once a valid date is picked) — was a
+                  separate three-Select picker here, reading as a different
+                  control for the same kind of field. */}
+              <DatePickerField
+                wheel
+                showCompleteCheck
+                id="dob"
+                value={dateOfBirth}
+                onChange={setDateOfBirth}
+                min={minDob}
+                max={maxDob}
+                className="rounded-ds-md"
+              />
               {dateOfBirth && !ageOk && (
                 <p className="text-ds-11 text-destructive">You'll need to be 18 or older to join Helpr.</p>
               )}
             </div>
+            )}
 
+            {!phoneDone && (
             <div className="space-y-1.5">
               <Label htmlFor="phone">Phone <span className="text-destructive">*</span></Label>
               <div className="relative">
@@ -478,7 +507,9 @@ const CompleteProfile = () => {
                 )}
               </div>
             </div>
+            )}
 
+            {!cityDone && (
             <div className="space-y-1.5">
               <Label htmlFor="city">City <span className="text-destructive">*</span></Label>
               {/* CityAutocomplete is the same combobox used on the
@@ -498,78 +529,22 @@ const CompleteProfile = () => {
                 )}
               </div>
             </div>
+            )}
 
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="bio">About you <span className="text-destructive">*</span></Label>
-                {/* "20" is a MINIMUM, not a cap — showing "91/20" once the
-                    user is past it reads like an over-limit error. So:
-                    "X/20 min" while short of the minimum, a check once met. */}
-                {bio.trim().length >= 20 ? (
-                  <span
-                    className="text-ds-11 font-medium text-primary inline-flex items-center gap-1"
-                    aria-live="polite"
-                  >
-                    <Check className="w-3 h-3" strokeWidth={3} /> Looks good
-                  </span>
-                ) : (
-                  <span className="text-ds-11 tabular-nums text-muted-foreground" aria-live="polite">
-                    {bio.trim().length}/20 min
-                  </span>
-                )}
-              </div>
+              <Label htmlFor="bio">About you <span className="font-normal" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>(optional)</span></Label>
               <Textarea
                 id="bio"
                 rows={3}
-                placeholder="A short intro neighbors will see on your profile (20+ characters)."
+                placeholder="A short intro neighbors will see on your profile."
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
                 autoCapitalize="sentences"
                 className="rounded-ds-md"
               />
-              {/* "Add later" affordance — bio is required by the
-                  profile gate, but we set expectations that it can be
-                  refined any time from Profile so the user doesn't feel
-                  like this needs to be the bio of a lifetime. */}
               <p className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                Don't sweat it — you can polish this any time from your profile.
+                You can always add this later from your profile.
               </p>
-            </div>
-
-            {/* ID */}
-            <div className="space-y-1.5">
-              {/* htmlFor pairs the visible heading with the file input the
-                  wrapping <label> opens, so screen readers announce
-                  "Government-issued ID, file" instead of an unlabeled input. */}
-              <Label htmlFor="id-doc">
-                Government-issued ID{" "}
-                <span className="font-normal text-muted-foreground">(optional — add now or later)</span>
-              </Label>
-              <label
-                htmlFor="id-doc"
-                className="flex items-center gap-3 rounded-ds-md border border-dashed border-border p-3 cursor-pointer hover:bg-muted/40"
-              >
-                {idPreview && idPreview.startsWith("blob:") ? (
-                  <img loading="lazy" decoding="async" src={idPreview} alt="ID preview" className="w-14 h-14 rounded-md object-cover" />
-                ) : (
-                  <div className="w-14 h-14 rounded-md bg-muted flex items-center justify-center">
-                    <FileText className="w-5 h-5 text-muted-foreground" />
-                  </div>
-                )}
-                <div className="text-ds-13">
-                  <div className="font-medium">
-                    {idFile ? idFile.name : profile?.id_document_url ? "Replace ID" : "Upload your ID"}
-                  </div>
-                  <div className="text-muted-foreground text-ds-11">Image or PDF. Max 5MB.</div>
-                </div>
-                <input
-                  id="id-doc"
-                  type="file"
-                  accept="image/*,application/pdf"
-                  className="hidden"
-                  onChange={handleIdChange}
-                />
-              </label>
             </div>
 
             {/* aria-labelledby, NOT the wrapping <label> alone — same reason
@@ -603,7 +578,7 @@ const CompleteProfile = () => {
               disabled={submitting || !allComplete}
             >
               {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ShieldCheck className="w-4 h-4 mr-2" />}
-              {submitting ? "Saving…" : allComplete ? "Enter App" : "Complete All Items Above"}
+              {submitting ? "Saving…" : allComplete ? "Enter App" : "Complete Required Fields"}
             </Button>
 
             <Button

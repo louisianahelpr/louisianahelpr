@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Camera } from "lucide-react";
 import { toast } from "sonner";
 import { formatName } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
@@ -64,11 +63,6 @@ export function ReuploadIdDialog({ profile, onClose, onSuccess }: ReuploadIdDial
     <Dialog open={!!profile} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent>
         <DialogHero
-          eyebrow={
-            <>
-              <Camera className="w-3.5 h-3.5" /> ID re-upload
-            </>
-          }
           title="Request ID Re-Upload"
         />
         <div className="space-y-3">

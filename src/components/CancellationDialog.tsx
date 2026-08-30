@@ -12,7 +12,7 @@ import { report } from "@/lib/errorLogger";
 import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertTriangle, Ban, ShieldAlert, DollarSign, CheckCircle, Clock, ArrowRight, ShieldCheck } from "lucide-react";
+import { AlertTriangle, Ban, ShieldAlert, DollarSign, CheckCircle, ArrowRight, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
@@ -244,11 +244,6 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, hasHel
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <DialogHero
-          eyebrow={
-            <>
-              <Clock className="w-3 h-3" /> Heads up
-            </>
-          }
           title={`Cancel "${jobTitle}"?`}
         />
         <div className="space-y-4">

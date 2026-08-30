@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { CurrencyInput } from "@/components/ui/currency-input";
-import { Star, Gift, PartyPopper, Heart, Copy, Check } from "lucide-react";
+import { Star, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import { fetchReferralData } from "@/hooks/useReferralData";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
@@ -210,11 +210,6 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
       <Dialog open={step === "review"} onOpenChange={() => { setStep("tip"); }}>
         <DialogContent>
           <DialogHero
-            eyebrow={
-              <>
-                <PartyPopper className="w-3 h-3" /> Job complete
-              </>
-            }
             title={`Rate ${revieweeName}`}
           />
           <div className="space-y-4">
@@ -258,11 +253,6 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
       <Dialog open={step === "tip"} onOpenChange={() => setStep("share")}>
         <DialogContent>
           <DialogHero
-            eyebrow={
-              <>
-                <Gift className="w-3 h-3" /> Optional
-              </>
-            }
             title="Say Thanks with a Tip?"
           />
           <div className="space-y-4">
@@ -312,11 +302,6 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
       <Dialog open={step === "share"} onOpenChange={() => setStep("nps")}>
         <DialogContent>
           <DialogHero
-            eyebrow={
-              <>
-                <Heart className="w-3 h-3" /> Spread the word
-              </>
-            }
             title="Loved It? Share Helpr."
           />
           <div className="space-y-4">

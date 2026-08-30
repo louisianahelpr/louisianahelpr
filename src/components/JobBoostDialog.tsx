@@ -83,11 +83,6 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent>
         <DialogHero
-          eyebrow={
-            <>
-              <Rocket className="w-3 h-3" /> Lift it to the top
-            </>
-          }
           title="Boost Your Job."
         />
         <div className="space-y-3">

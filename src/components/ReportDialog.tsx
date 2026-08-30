@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHero } from "@/components/ui/dialog";
 import {
-  ShieldAlert,
   AlertTriangle,
   EyeOff,
   UserX,
@@ -130,12 +129,6 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
     }
   };
 
-  // Step header — eyebrow morphs by step so the user knows which slice
-  // of the wizard they're in.
-  const eyebrow =
-    step === "reason" ? "Step 1 of 2 · Pick a reason" :
-    step === "details" ? "Step 2 of 2 · Add details" :
-    "Report submitted";
   // Title Case, per PLATFORM_CONVENTIONS §1 (popup titles). This is why the
   // 2026-08-24 casing sweep missed it: the title is COMPUTED from the
   // reportedType union, so the literal "Report User" never appears in source
@@ -156,7 +149,6 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
       <DialogContent>
         <DialogHero
-          eyebrow={<><ShieldAlert className="w-3 h-3" strokeWidth={2} aria-hidden="true" /> {eyebrow}</>}
           title={title}
         />
 

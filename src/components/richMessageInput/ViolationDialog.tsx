@@ -1,4 +1,3 @@
-import { ShieldAlert } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,7 +18,6 @@ export const ViolationDialog = ({
     <AlertDialog open={!!pendingViolation} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHero
-          eyebrow={<><ShieldAlert className="w-3 h-3" /> Safety</>}
           title="This Violates Platform Rules"
         />
         {/* Single CTA on purpose. A "Send Anyway" action here was a trap:

@@ -2,7 +2,6 @@ import { useState, lazy, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
-import { AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
 import { supabase } from "@/integrations/supabase/client";
@@ -126,7 +125,6 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
       <Dialog open={!!props.revisionJobId} onOpenChange={() => props.setRevisionJobId(null)}>
         <DialogContent>
           <DialogHero
-            eyebrow="Not quite right"
             title="Request Revision"
           />
           <div className="space-y-4">
@@ -168,11 +166,6 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
       <Dialog open={!!props.noShowJobId} onOpenChange={() => props.setNoShowJobId(null)}>
         <DialogContent>
           <DialogHero
-            eyebrow={
-              <>
-                <AlertTriangle className="w-3 h-3" /> No-show
-              </>
-            }
             title="Report No-Show"
           />
           <div className="space-y-3">

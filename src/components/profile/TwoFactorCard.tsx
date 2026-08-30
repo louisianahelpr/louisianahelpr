@@ -10,7 +10,7 @@ import {
   DialogHero,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { ShieldCheck, Smartphone, Copy, Check } from "lucide-react";
+import { ShieldCheck, Copy, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -227,7 +227,6 @@ function EnrollDialog({
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHero
-          eyebrow={<><Smartphone className="w-3 h-3" /> Authenticator app</>}
           title="Turn On Two-Step."
         />
 
@@ -361,7 +360,6 @@ function DisableDialog({
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHero
-          eyebrow={<><ShieldCheck className="w-3 h-3" /> Two-step verification</>}
           title="Turn Off Two-Step?"
         />
 

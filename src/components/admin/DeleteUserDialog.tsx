@@ -11,7 +11,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Trash2, AlertTriangle } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { formatName } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
@@ -54,11 +54,6 @@ export function DeleteUserDialog({ profile, onClose, onSuccess }: DeleteUserDial
     <Dialog open={!!profile} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent>
         <DialogHero
-          eyebrow={
-            <>
-              <Trash2 className="w-3.5 h-3.5" /> Delete account
-            </>
-          }
           title="Delete Account"
         />
         <div className="space-y-4">

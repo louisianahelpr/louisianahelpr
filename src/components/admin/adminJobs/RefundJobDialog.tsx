@@ -3,7 +3,6 @@ import { formatPrice } from "@/lib/format";
 import { paymentStatusLabel } from "@/lib/statusLabels";
 import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { DollarSign } from "lucide-react";
 import type { Job } from "./types";
 
 interface RefundJobDialogProps {
@@ -35,11 +34,6 @@ export const RefundJobDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHero
-          eyebrow={
-            <>
-              <DollarSign className="w-3.5 h-3.5" /> Refund
-            </>
-          }
           title="Refund Poster"
         />
         <div className="space-y-3">

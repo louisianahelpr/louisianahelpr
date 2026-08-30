@@ -82,11 +82,6 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHero
-          eyebrow={
-            <>
-              <Zap className="w-3 h-3" /> Skip the wait
-            </>
-          }
           title="Cash Out Instantly."
         />
 

@@ -542,7 +542,7 @@ const AdminSettings = () => {
       {/* Add Admin Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
         <DialogContent>
-          <DialogHero eyebrow="Admin access" title="Add Admin User" />
+          <DialogHero title="Add Admin User" />
           <div className="space-y-4">
             <div className="flex gap-2">
               <Input

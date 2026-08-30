@@ -105,7 +105,6 @@ export function DenyUserDialog({ profile, onClose, onSuccess }: DenyUserDialogPr
     <Dialog open={!!profile} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent>
         <DialogHero
-          eyebrow="Deny application"
           title={`Deny ${formatName(profile?.full_name)}`}
         />
         <div className="space-y-4">

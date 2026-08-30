@@ -518,11 +518,6 @@ const AdminReports = () => {
       <Dialog open={!!messageTarget} onOpenChange={(open) => { if (!open) setMessageTarget(null); }}>
         <DialogContent>
           <DialogHero
-            eyebrow={
-              <>
-                <Send className="w-3.5 h-3.5" /> Message
-              </>
-            }
             title={`Message ${messageTarget?.name}`}
           />
           <div className="space-y-3">
@@ -548,7 +543,6 @@ const AdminReports = () => {
       <AlertDialog open={!!deleteReviewTarget} onOpenChange={(open) => { if (!open) setDeleteReviewTarget(null); }}>
         <AlertDialogContent>
           <AlertDialogHero
-            eyebrow="Remove Review"
             title="Remove this review?"
             subtitle="This permanently deletes the review. The reviewee's star rating recalculates immediately — this can't be undone."
           />

@@ -126,7 +126,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
     <>
     <Dialog open={!!job} onOpenChange={handleClose}>
       <DialogContent>
-        <DialogHero eyebrow="Editing your job" title={title ? `"${title}"` : "Edit Job"} />
+        <DialogHero title={title ? `"${title}"` : "Edit Job"} />
         <div className="space-y-5">
           {locked && (
             <p
@@ -241,7 +241,6 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
     <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
       <AlertDialogContent>
         <AlertDialogHero
-          eyebrow="Editing your job"
           title="Save These Changes?"
         />
         <AlertDialogFooter>
@@ -258,7 +257,6 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
     <AlertDialog open={showDiscard} onOpenChange={setShowDiscard}>
       <AlertDialogContent>
         <AlertDialogHero
-          eyebrow="Editing your job"
           title="Discard Your Changes?"
         />
         <AlertDialogFooter>

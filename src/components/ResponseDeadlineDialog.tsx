@@ -66,7 +66,7 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose }:
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent>
-        <DialogHero eyebrow="Send a direct offer" title="Set a Response Deadline" />
+        <DialogHero title="Set a Response Deadline" />
         <div className="space-y-4">
           {/* Lede in the same serif-italic olivewood every other money/offer
               dialog opens with (TipDialog, InstantPayoutDialog). This dialog

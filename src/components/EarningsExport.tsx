@@ -287,11 +287,6 @@ export const EarningsExport = ({ helperId, helperName, open: controlledOpen, onO
       )}
       <DialogContent>
         <DialogHero
-          eyebrow={
-            <>
-              <Receipt className="w-3 h-3" /> Tax export
-            </>
-          }
           title="Earnings Export"
         />
 

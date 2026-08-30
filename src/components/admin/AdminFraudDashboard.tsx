@@ -223,7 +223,6 @@ const AdminFraudDashboard = () => {
       <AlertDialog open={!!resolveTarget} onOpenChange={(open) => { if (!open) setResolveTarget(null); }}>
         <AlertDialogContent>
           <AlertDialogHero
-            eyebrow="Resolve Fraud Flag"
             title="Mark this flag resolved?"
             subtitle="This clears it from the active queue. Use this once you've confirmed the flagged activity isn't fraud, or have already acted on it."
           />

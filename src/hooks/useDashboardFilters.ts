@@ -8,6 +8,7 @@ import { useUserLocation } from "@/hooks/useUserLocation";
 import { sortJobsSmart, compareJobsBySortMode } from "@/lib/smartSort";
 import { earlyAccessDelayMs, resolveEarlyAccessTier } from "@/lib/earlyAccess";
 import type { MapJobFilterInput } from "@/components/browseMap/mapFilter";
+import { useDashboardJobsCount } from "@/hooks/useDashboardJobsCount";
 
 // Persisted browse-feed sort key. Stored in localStorage so a helper's
 // pick survives reloads; defaults to "smart" the very first time the
@@ -127,8 +128,13 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
   // budget bands ("$50 – $150") write min AND max together, so counting them
   // separately made a single tapped chip report "2 filters active" in the
   // badge, the sheet subtitle, and the "Filtered · N active" eyebrow.
-  const activeFilterCount = [selectedCategory, minBudget || maxBudget, locationFilter, expiresWithin, matchAvailability ? "on" : "", boostedOnly ? "on" : "", urgentOnly ? "on" : ""].filter(Boolean).length;
-  const hasFilters = activeFilterCount > 0 || !!searchQuery;
+  // A typed search query counts as one active filter too — otherwise
+  // `hasFilters` (which DOES factor in search) and `activeFilterCount`
+  // (which didn't) disagreed, and the "Filtered · N active" eyebrow could
+  // read "Filtered · 0 active" while a search query was the only thing
+  // filtering the feed.
+  const activeFilterCount = [selectedCategory, minBudget || maxBudget, locationFilter, expiresWithin, matchAvailability ? "on" : "", boostedOnly ? "on" : "", urgentOnly ? "on" : "", searchQuery ? "on" : ""].filter(Boolean).length;
+  const hasFilters = activeFilterCount > 0;
 
   const clearFilters = () => {
     setSearchQuery("");
@@ -328,6 +334,24 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
     ],
   );
 
+  // True total of jobs matching the current filters — not "how many the
+  // infinite-scroll feed has loaded so far" (which is all `filteredJobs`
+  // can honestly say, since `allJobs` is paginated). See
+  // useDashboardJobsCount.ts for exactly which filters are, and are not,
+  // reproduced server-side, and why.
+  const { data: totalMatchingCount, isLoading: totalMatchingCountLoading } = useDashboardJobsCount({
+    userId,
+    selectedCategory,
+    searchQuery,
+    minBudget,
+    maxBudget,
+    urgentOnly,
+    boostedOnly,
+    expiresWithin,
+    earlyAccessTier,
+    earlyAccessExempt,
+  });
+
   const nearbyJobs = useMemo(() => {
     const userLocation = profile?.location?.toLowerCase() || "";
     return userLocation
@@ -350,6 +374,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
     urgentOnly, setUrgentOnly,
     activeFilterCount, hasFilters, clearFilters,
     filteredJobs, nearbyJobs, mapFilter,
+    totalMatchingCount, totalMatchingCountLoading,
     userLoc, nearbyMiles,
   };
 }

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bookmark, ChevronRight, Clock, MapPin, X } from "lucide-react";
+import { ChevronRight, Clock, MapPin, SearchCheck, X } from "lucide-react";
 import { categoryLabels } from "@/components/dashboard/JobFilters";
 import { FilterSheet, buildJobFilterSections } from "@/components/dashboard/FilterSheet";
 import { ScreenHeaderRow } from "@/components/ui/ScreenHeaderRow";
@@ -311,7 +311,11 @@ export function BrowseTasksToolbar({
               }}
               className="w-full flex items-center gap-2 h-11 px-3 rounded-ds-md squircle border border-border/60 bg-white/70 dark:bg-card/60 backdrop-blur text-left btn-press transition-all duration-200 hover:border-primary/50 hover:bg-white/90 dark:hover:bg-card/90"
             >
-              <Bookmark className="w-3.5 h-3.5 shrink-0 text-primary" strokeWidth={2.25} aria-hidden />
+              {/* SearchCheck, not Bookmark — the "Only Saved Jobs" toggle row
+                  right above this footer already uses Bookmark for a saved
+                  JOB, so this row (a saved SEARCH query) needs its own glyph
+                  or the two read as the same feature. */}
+              <SearchCheck className="w-3.5 h-3.5 shrink-0 text-primary" strokeWidth={2.25} aria-hidden />
               <span className="min-w-0 flex-1 text-ds-12 font-semibold text-foreground">
                 Saved Searches
               </span>

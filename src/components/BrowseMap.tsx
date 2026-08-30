@@ -101,6 +101,15 @@ interface BrowseMapProps {
    * payout.
    */
   effectiveFee?: number;
+  /**
+   * Desktop split-view hover sync: the id of the job whose FEED CARD the
+   * pointer is currently over (BrowseTasksFeed/Dashboard's `hoveredJobId`).
+   * When set, that job's pin scales up on the map so a poster scanning the
+   * list can see at a glance which pin a card corresponds to. `undefined`
+   * on surfaces with no feed alongside the map (the phone list⇄map toggle,
+   * the guest dashboard) — then no pin is ever highlighted this way.
+   */
+  hoveredJobId?: string | null;
 }
 
 /** Reads the app's resolved theme off `<html data-theme>` (set by
@@ -110,15 +119,10 @@ function readIsDark(): boolean {
   return document.documentElement.getAttribute("data-theme") === "dark";
 }
 
-export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, emptyStateCta, filters, onClearFilters, effectiveFee, flush = false }: BrowseMapProps) {
+export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, emptyStateCta, filters, onClearFilters, effectiveFee, flush = false, hoveredJobId }: BrowseMapProps) {
   const shellClass = flush ? "" : " rounded-t-2xl border border-b-0 border-border";
   const mapKitStatus = useMapKitJs();
   const [jobs, setJobs] = useState<MapJob[]>([]);
-  // Total open jobs in the feed, including ones the map can't plot because
-  // they lack geocoded coordinates. Lets the badge read "N of M" so a user
-  // who sees 21 in the feed but 19 pins understands the 2 missing jobs are
-  // un-mappable, not lost.
-  const [totalOpen, setTotalOpen] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   // The pin RPC used to fail SILENTLY: `if (error) { report(...); return; }`
   // left `jobs` at [], so a 500 rendered the "Empty map for now." card — the
@@ -135,17 +139,6 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
 
   useEffect(() => {
     let cancelled = false;
-    // Total open jobs (same surface the feed counts) — the denominator for
-    // the "N of M" badge. Best-effort: a failure just leaves the badge as a
-    // plain pin count rather than bricking the map.
-    supabase
-      .from("open_jobs_browse")
-      .select("id", { count: "exact", head: true })
-      .neq("payment_status", "abandoned")
-      .then(({ count, error }) => {
-        if (cancelled || error) return;
-        setTotalOpen(count ?? null);
-      });
     supabase
       .rpc("get_open_jobs_for_map")
       .then(({ data, error }) => {
@@ -392,7 +385,7 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
       calloutRootsRef.current.push(root);
       return new mk.Annotation(
         new mk.Coordinate(Number(job.latitude), Number(job.longitude)),
-        () => pinElement(job.category, job.is_urgent),
+        () => pinElement(job.category, job.is_urgent, job.id),
         {
           // MapKit centres a custom annotation element on its coordinate;
           // the pin's point is at its bottom edge, so lift it by half the
@@ -417,6 +410,30 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
     if (!mk || !map) return;
     fitToPins(mk, map, visibleJobs);
   }, [visibleJobs, mapReady]);
+
+  // Desktop split-view hover sync: scale the pin whose feed card the pointer
+  // is over. Pin elements are plain DOM nodes tagged with `data-job-id` (see
+  // pinElement) rather than React-owned, so this reaches into the map's own
+  // container to toggle a class — cheaper than rebuilding annotations on
+  // every mouse move, and MapKit only calls the pin factory once anyway.
+  const prevHoveredElRef = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const prev = prevHoveredElRef.current;
+    if (prev) {
+      prev.classList.remove("browse-map-pin-hovered");
+      prevHoveredElRef.current = null;
+    }
+    if (!hoveredJobId) return;
+    const el = map.element.querySelector<HTMLElement>(
+      `.browse-map-pin[data-job-id="${CSS.escape(hoveredJobId)}"]`,
+    );
+    if (el) {
+      el.classList.add("browse-map-pin-hovered");
+      prevHoveredElRef.current = el;
+    }
+  }, [hoveredJobId, mapReady, visibleJobs]);
 
   const recenter = useCallback(() => {
     const mk = getMapKit();
@@ -503,9 +520,7 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
         >
           {filtersActive
             ? `${visibleJobs.length} ${visibleJobs.length === 1 ? "Match" : "Matches"}`
-            : totalOpen !== null && totalOpen > visibleJobs.length
-              ? `${visibleJobs.length} of ${totalOpen} Mapped`
-              : `${visibleJobs.length} ${visibleJobs.length === 1 ? "Job" : "Jobs"}`}
+            : `${visibleJobs.length} ${visibleJobs.length === 1 ? "Job" : "Jobs"}`}
         </div>
       </div>
       )}

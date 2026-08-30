@@ -499,8 +499,18 @@ const Dashboard = () => {
                                (owner: "black and same size as other pages"). */
                             style={{ color: "hsl(var(--ink-deep))" }}
                           >
-                            {filters.filteredJobs.length}
-                            {filters.filteredJobs.length === 1 ? " job" : " jobs"}
+                            {/* True total under the current filters
+                                (useDashboardJobsCount), not
+                                `filteredJobs.length` — the feed is
+                                paginated via infinite scroll, so that only
+                                counts jobs loaded into memory so far and
+                                undercounted against the map's honest total
+                                (owner: "13 jobs" on the list vs "14 Jobs"
+                                on the map). Fall back to the loaded count
+                                while the true-total query is in flight so
+                                the header never shows nothing. */}
+                            {filters.totalMatchingCount ?? filters.filteredJobs.length}
+                            {(filters.totalMatchingCount ?? filters.filteredJobs.length) === 1 ? " job" : " jobs"}
                             {filters.hasFilters ? " match your filters" : ""}
                           </span>
                         <div className="flex items-center gap-1 ml-auto">

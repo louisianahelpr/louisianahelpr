@@ -106,7 +106,12 @@ export function BrowseSearchBar({
               filters.setSearchOpen(false);
             }}
             aria-label="Close search"
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 h-7 w-7 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary/60 btn-press transition"
+            // `!min-h-0 !min-w-0` — index.css's bare `button { min-height:
+            // 44px; min-width: 44px }` HIG tap-target rule otherwise wins
+            // over `h-7 w-7` and renders this 44x44 inside a 36px-tall bar,
+            // spilling past its top/bottom edge (the same trap already
+            // documented on the toast close button).
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 !min-h-0 !min-w-0 h-7 w-7 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary/60 btn-press transition"
           >
             <X className="w-4 h-4" strokeWidth={2.25} />
           </button>

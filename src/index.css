@@ -1141,6 +1141,14 @@ html.web-desktop {
   cursor: pointer;
 }
 
+/* Desktop split-view hover sync (BrowseMap's hoveredJobId effect): scales
+   the pin whose feed card the pointer is over, from the tip (see
+   transform-origin on the pin itself). */
+.browse-map-pin-hovered {
+  transform: scale(1.25);
+  z-index: 30;
+}
+
 .browse-map-callout {
   padding: 10px 12px;
   box-sizing: border-box;

@@ -297,9 +297,15 @@ function ToggleRow({
 }) {
   return (
     <div className="flex items-center justify-between gap-3 w-full">
-      <div className="flex items-center gap-2 min-w-0 flex-1">
+      {/* `items-start` + `mt-0.5` on the icon, not `items-center`: this row
+          can carry a 2-line hint (AvailabilityRow's "Add your weekly hours
+          first — set hours ↗"), and centering the icon against that full
+          block rode it up above the label's own optical center. Aligning to
+          the label's cap-height instead reads right whether the hint is one
+          line or two. */}
+      <div className="flex items-start gap-2 min-w-0 flex-1">
         <Icon
-          className={`w-3.5 h-3.5 shrink-0 ${iconClassName ?? "text-primary"}`}
+          className={`w-3.5 h-3.5 shrink-0 mt-0.5 ${iconClassName ?? "text-primary"}`}
           strokeWidth={2.25}
           aria-hidden
         />

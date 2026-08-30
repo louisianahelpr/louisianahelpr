@@ -8,6 +8,7 @@
  * surface, so the pill row and its popover machinery were removed and only
  * the reusable content blocks below survive.
  */
+import { useRef, useState, useEffect, useCallback } from "react";
 import {
   categoryLabels, categoryColors,
 } from "@/components/activity/activityConstants";
@@ -32,9 +33,21 @@ export { categoryLabels };
  * `whitespace-nowrap` because a two-part label ("Highest pay", "$150 – $300")
  * must break BETWEEN chips, not inside one — the height is fixed, so an
  * internal line break overflows the chip instead of growing it.
+ *
+ * `h-7`/`px-2.5` (not `h-9`/`px-3`) — trimmed 2026-08-30 so a 12-option row
+ * (Category) wraps to fewer lines without hiding anything off-screen; every
+ * section shrank with it rather than introducing a second, smaller chip
+ * size for one row.
+ *
+ * `!min-h-0` is load-bearing, not decoration: index.css sets a bare
+ * `button { min-height: 44px }` for the HIG touch minimum, which otherwise
+ * silently wins over `h-7`/`h-8` (they set height, not the min-height floor
+ * that's actually constraining it) — the same trap already documented on
+ * the toast close button and the search-bar close button. Without this the
+ * chip's real rendered height stayed 44px no matter what `h-*` said.
  */
 const chipBase =
-  "inline-flex items-center gap-1.5 px-3 rounded-ds-md text-ds-11 font-semibold tracking-tight whitespace-nowrap transition-all duration-200 btn-press squircle border h-9";
+  "inline-flex items-center gap-1.5 px-2.5 rounded-ds-md text-ds-11 font-semibold tracking-tight whitespace-nowrap transition-all duration-200 btn-press squircle border !min-h-0 h-7";
 
 /** The one row layout, paired with `chipBase`. Wrapping and content-sized:
  *  no empty grid cells at any option count, no hidden off-screen options, and
@@ -79,56 +92,142 @@ const expiresOptions = [
 
 export const chipStyles = { chipBase, chipActive, chipIdle, chipRow };
 
-// Wrapping chip row, not a 2-column grid: five options in `grid-cols-2` left a
-// lone half-width orphan on the last row. A content-sized wrap has no empty
-// cells by construction at any option count, and matches the chip idiom every
-// other row in the sheet already uses.
+// Scroll position → a 3-segment dot indicator (not one dot per chip — 12
+// categories would be 12 dots, its own kind of clutter). Coarse "left /
+// middle / right" is enough to say "there's more" without pretending to be
+// a precise pager.
+function useScrollDots(count = 3) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [active, setActive] = useState(0);
+  const [scrollable, setScrollable] = useState(false);
+
+  const measure = useCallback(() => {
+    const el = ref.current;
+    if (!el) return;
+    const max = el.scrollWidth - el.clientWidth;
+    setScrollable(max > 4);
+    if (max <= 0) { setActive(0); return; }
+    const ratio = el.scrollLeft / max;
+    setActive(Math.min(count - 1, Math.round(ratio * (count - 1))));
+  }, [count]);
+
+  useEffect(() => {
+    measure();
+    const el = ref.current;
+    if (!el) return;
+    el.addEventListener("scroll", measure, { passive: true });
+    window.addEventListener("resize", measure);
+    return () => {
+      el.removeEventListener("scroll", measure);
+      window.removeEventListener("resize", measure);
+    };
+  }, [measure]);
+
+  return { ref, active, scrollable, remeasure: measure };
+}
+
+/**
+ * Horizontal-scroll chip strip + right-edge fade + 3-dot position indicator
+ * — the ONE scrolling-row treatment, shared by Sort and Category so a
+ * second row long enough to need it doesn't invent its own variant. Wraps
+ * `useScrollDots` (which owns the ref + scroll math) with the fade/dot
+ * chrome around whatever chip buttons the caller renders as `children`.
+ *
+ * This was tried as a plain scroll strip once before (Category, pre-2026-08-30)
+ * and reverted for hiding options with NO affordance that more existed — the
+ * fade + dots here are the fix for that specific complaint, not a redo of
+ * the old strip.
+ */
+function ScrollChipRow({
+  ariaLabel, remeasureKey, children,
+}: { ariaLabel: string; remeasureKey: unknown; children: React.ReactNode }) {
+  const { ref, active, scrollable, remeasure } = useScrollDots();
+  useEffect(() => { remeasure(); }, [remeasureKey, remeasure]);
+
+  return (
+    <div>
+      <div className="relative">
+        <div
+          ref={ref}
+          role="group"
+          aria-label={ariaLabel}
+          className="flex gap-1.5 overflow-x-auto scrollbar-hide pr-6"
+        >
+          {children}
+        </div>
+        {/* Right-edge fade — the affordance the old strip didn't have.
+            `pr-6` on the row above keeps the last chip from sitting fully
+            under it at rest. */}
+        {scrollable && (
+          <div
+            aria-hidden
+            className="pointer-events-none absolute right-0 top-0 bottom-0 w-8"
+            style={{
+              background: "linear-gradient(to right, transparent, hsl(var(--premium-page)) 85%)",
+            }}
+          />
+        )}
+      </div>
+      {scrollable && (
+        <div className="flex items-center justify-center gap-1 pt-1.5" aria-hidden>
+          {[0, 1, 2].map((i) => (
+            <span
+              key={i}
+              className="h-1 rounded-full transition-all duration-150"
+              style={{
+                width: active === i ? 12 : 4,
+                background: active === i ? "hsl(var(--bark))" : "hsl(var(--bark) / 0.25)",
+              }}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export const SortContent = ({
   sortBy, setSortBy, onSelect,
 }: { sortBy: string; setSortBy: (v: string) => void; onSelect?: () => void }) => (
-  <div role="group" aria-label="Sort results" className={chipRow}>
+  <ScrollChipRow ariaLabel="Sort results" remeasureKey={sortBy}>
     {sortOptions.map((opt) => (
       <button
         key={opt.value}
         type="button"
         aria-pressed={sortBy === opt.value}
         onClick={() => { hapticLight(); setSortBy(opt.value); onSelect?.(); }}
-        className={`${chipBase} ${sortBy === opt.value ? chipActive : chipIdle}`}
+        className={`shrink-0 ${chipBase} ${sortBy === opt.value ? chipActive : chipIdle}`}
       >
         {opt.label}
       </button>
     ))}
-  </div>
+  </ScrollChipRow>
 );
 
 export const CategoryContent = ({
   selectedCategory, setSelectedCategory, onSelect,
 }: { selectedCategory: string | null; setSelectedCategory: (v: string | null) => void; onSelect?: () => void }) => (
-  // Wraps like every other row. It used to be a single-line horizontal scroll
-  // (`overflow-x-auto` + `w-max`), which hid roughly half the 12 categories
-  // off the right edge behind a scrollbar the sheet deliberately styles away
-  // (`scrollbar-hide`) — findable only by guessing it could be dragged.
-  <div role="group" aria-label="Filter by category" className={chipRow}>
-      {Object.entries(categoryLabels).map(([key, label]) => {
-        const isActive = selectedCategory === key;
-        const titleColor = (categoryColors[key] || categoryColors.other).title;
-        return (
-          <button
-            key={key}
-            onClick={() => { hapticLight(); setSelectedCategory(isActive ? null : key); onSelect?.(); }}
-            className={`${chipBase} ${isActive ? chipActive : chipIdle}`}
-          >
-            <CategoryIcon
-              category={key}
-              aria-hidden
-              className={`w-3 h-3 ${isActive ? "" : titleColor}`}
-              strokeWidth={2.25}
-            />
-            {label}
-          </button>
-        );
-      })}
-  </div>
+  <ScrollChipRow ariaLabel="Filter by category" remeasureKey={selectedCategory}>
+    {Object.entries(categoryLabels).map(([key, label]) => {
+      const isActive = selectedCategory === key;
+      const titleColor = (categoryColors[key] || categoryColors.other).title;
+      return (
+        <button
+          key={key}
+          onClick={() => { hapticLight(); setSelectedCategory(isActive ? null : key); onSelect?.(); }}
+          className={`shrink-0 ${chipBase} ${isActive ? chipActive : chipIdle}`}
+        >
+          <CategoryIcon
+            category={key}
+            aria-hidden
+            className={`w-3 h-3 ${isActive ? "" : titleColor}`}
+            strokeWidth={2.25}
+          />
+          {label}
+        </button>
+      );
+    })}
+  </ScrollChipRow>
 );
 
 const radiusOptions = [5, 10, 25, 50];

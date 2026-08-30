@@ -2,7 +2,6 @@ import { memo, useRef, useState } from "react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import {
   CheckCircle2, Star, Users,
   RefreshCw, XCircle,
@@ -406,14 +405,31 @@ function AppliedJobCardInner({
                 afterUrls={job.proof_after_urls || []}
                 canUpload={false}
               />
+              {/* Same icon-over-label chip PostedJobCard's completed state
+                  uses for Review/Reviewed — this was a plain full-width
+                  outline Button, the one place the two Done-tab cards
+                  visibly diverged in style. */}
               {job.payment_status === "released" && (
-                helperReviewedJobIds.has(app.job_id) ? (
-                  <Button size="sm" variant="outline" className="w-full" disabled><Star className="w-4 h-4 mr-1" /> Reviewed</Button>
-                ) : (
-                  <Button size="sm" variant="outline" className="w-full" onClick={() => onHelperReview(app.job_id, job.customer_id, app.posterName || "Poster")}>
-                    <Star className="w-4 h-4 mr-1" /> Review Poster
-                  </Button>
-                )
+                <JobActionRow columns={1}>
+                  {helperReviewedJobIds.has(app.job_id) ? (
+                    <JobActionChip
+                      icon={CheckCircle2}
+                      label="Reviewed"
+                      ariaLabel="Already reviewed the poster"
+                      tone="done"
+                      disabled
+                      onClick={() => {}}
+                    />
+                  ) : (
+                    <JobActionChip
+                      icon={Star}
+                      label="Review Poster"
+                      ariaLabel="Leave a review for the poster"
+                      tone="edit"
+                      onClick={() => onHelperReview(app.job_id, job.customer_id, app.posterName || "Poster")}
+                    />
+                  )}
+                </JobActionRow>
               )}
               {/* Issue #113 — discoverable dispute path for helpers within
                   the 7-day window after completion. Self-hides outside the

@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Trash2 } from "lucide-react";
 import type { Job } from "./types";
 
 interface RemoveJobDialogProps {
@@ -29,11 +28,6 @@ export const RemoveJobDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHero
-          eyebrow={
-            <>
-              <Trash2 className="w-3.5 h-3.5" /> Remove job
-            </>
-          }
           title="Remove Job"
         />
         <div className="space-y-3">

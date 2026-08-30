@@ -6,7 +6,7 @@ import { report } from "@/lib/errorLogger";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Send, CheckCircle2, AlertTriangle, Pause } from "lucide-react";
+import { Send, CheckCircle2, Pause } from "lucide-react";
 import { formatName } from "@/lib/utils";
 import { logAdminAction } from "@/lib/adminAudit";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
@@ -384,11 +384,6 @@ const AdminPayoutBatches = () => {
       <Dialog open={!!holdReasonDraft} onOpenChange={(o) => { if (!o) setHoldReasonDraft(null); }}>
         <DialogContent>
           <DialogHero
-            eyebrow={
-              <>
-                <Pause className="w-3.5 h-3.5" /> Hold payout
-              </>
-            }
             title="Hold Payout for Review"
           />
           <div className="space-y-3">
@@ -423,11 +418,6 @@ const AdminPayoutBatches = () => {
       <Dialog open={!!denyDraft} onOpenChange={(o) => { if (!o) setDenyDraft(null); }}>
         <DialogContent>
           <DialogHero
-            eyebrow={
-              <>
-                <AlertTriangle className="w-3.5 h-3.5" /> Deny payout
-              </>
-            }
             title="Deny This Payout"
           />
           <div className="space-y-3">

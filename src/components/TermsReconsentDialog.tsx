@@ -120,7 +120,6 @@ export function TermsReconsentDialog() {
     <AlertDialog open={open}>
       <AlertDialogContent>
         <AlertDialogHero
-          eyebrow="We updated our terms"
           title="Please Take a Moment to Re-Agree"
         />
         <AlertDialogFooter>

@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Pencil } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -83,11 +82,6 @@ export function EditEmailDialog({ profile, onClose, onSuccess }: EditEmailDialog
     <Dialog open={!!profile} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent>
         <DialogHero
-          eyebrow={
-            <>
-              <Pencil className="w-3.5 h-3.5" /> Change email
-            </>
-          }
           title={`Change Email for ${profile?.full_name || "User"}`}
         />
         <div className="space-y-4">

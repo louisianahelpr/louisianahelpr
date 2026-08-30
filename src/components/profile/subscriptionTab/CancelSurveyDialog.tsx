@@ -19,7 +19,6 @@ export const CancelSurveyDialog = ({
     <Dialog open={cancelSurveyOpen} onOpenChange={setCancelSurveyOpen}>
       <DialogContent>
         <DialogHero
-          eyebrow="Before you go"
           title="Thinking of Cancelling?"
         />
         <div className="space-y-2">

@@ -29,13 +29,20 @@ vi.mock("@capacitor/share", () => ({
   },
 }));
 
-vi.mock("sonner", () => ({
-  toast: {
-    success: (...args: unknown[]) => toastSuccessMock(...args),
-    error: (...args: unknown[]) => toastErrorMock(...args),
-    message: (...args: unknown[]) => toastMessageMock(...args),
-  },
-}));
+vi.mock("sonner", () => {
+  // Real sonner's `toast` is callable directly (a default/info toast) AND
+  // carries .success/.error/.message methods. A plain object mock without
+  // the callable part throws when nativeShare's last-ditch tier calls
+  // `toast("Copy this link", ...)` bare — that throw was silently caught by
+  // shareNative's outer try/catch and misread as "clipboard also failed,"
+  // which is why this file used to assert the hard-error toast for what's
+  // actually the graceful fallback tier.
+  const toastFn = (...args: unknown[]) => toastMessageMock(...args);
+  toastFn.success = (...args: unknown[]) => toastSuccessMock(...args);
+  toastFn.error = (...args: unknown[]) => toastErrorMock(...args);
+  toastFn.message = (...args: unknown[]) => toastMessageMock(...args);
+  return { toast: toastFn };
+});
 
 import { ShareJobButton } from "./ShareJobButton";
 
@@ -189,10 +196,38 @@ describe("ShareJobButton", () => {
     expect(toastErrorMock).not.toHaveBeenCalled();
   });
 
-  it("toasts a soft error on unexpected failures", async () => {
+  it("surfaces the raw link when neither share nor clipboard are available", async () => {
+    // No navigator.share, and copyToClipboard resolves false (clipboard
+    // API rejects; jsdom doesn't implement execCommand so the legacy
+    // fallback can't land it either) — this is step 4 in handleShare's
+    // *try* block (not the catch/error-recovery block), which surfaces the
+    // link directly instead of a generic "try again" with nothing to act on.
     isNativePlatformMock.mockReturnValue(false);
     setNavigator({
       share: undefined as unknown as Navigator["share"],
+      clipboard: {
+        writeText: vi.fn().mockRejectedValue(new Error("clipboard blocked")),
+      } as unknown as Clipboard,
+    });
+
+    render(<ShareJobButton job={job} />);
+    fireEvent.click(screen.getByRole("button", { name: "Share this job" }));
+
+    await waitFor(() => {
+      expect(toastErrorMock).toHaveBeenCalledWith(
+        "Couldn't copy automatically — the link is https://www.louisianahelpr.com/jobs/abc-123?ref=share",
+        expect.objectContaining({ duration: 10_000 })
+      );
+    });
+  });
+
+  it("toasts a hard error only when the share call itself throws AND clipboard is unavailable", async () => {
+    // Route through the catch block by making navigator.share exist but
+    // reject with a non-cancel error, so the recovery clipboard attempt
+    // runs and, when that also comes up empty, the hard-error toast fires.
+    isNativePlatformMock.mockReturnValue(false);
+    setNavigator({
+      share: vi.fn().mockRejectedValue(new Error("NotAllowedError")),
       clipboard: {
         writeText: vi.fn().mockRejectedValue(new Error("clipboard blocked")),
       } as unknown as Clipboard,

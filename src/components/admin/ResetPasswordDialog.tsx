@@ -11,7 +11,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { KeyRound } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -58,11 +57,6 @@ export function ResetPasswordDialog({ profile, onClose, onSuccess }: ResetPasswo
     <Dialog open={!!profile} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent>
         <DialogHero
-          eyebrow={
-            <>
-              <KeyRound className="w-3.5 h-3.5" /> Password reset
-            </>
-          }
           title="Send Password Reset Link"
         />
         <div className="space-y-3">

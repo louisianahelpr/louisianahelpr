@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { AlertTriangle, Upload, X } from "lucide-react";
+import { Upload, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { report } from "@/lib/errorLogger";
@@ -205,11 +205,6 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHero
-          eyebrow={
-            <>
-              <AlertTriangle className="w-3 h-3" /> Last resort
-            </>
-          }
           title="File a Dispute."
         />
         <div className="space-y-3.5">

@@ -175,12 +175,6 @@ export function IDVPromptDialog({
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <DialogHero
-          eyebrow={
-            <>
-              <Icon className="w-3 h-3" strokeWidth={2} aria-hidden="true" />
-              Identity check
-            </>
-          }
           title={headline}
         />
 

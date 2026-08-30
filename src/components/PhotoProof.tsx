@@ -153,11 +153,6 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProofProps) 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHero
-            eyebrow={
-              <>
-                <Camera className="w-3 h-3" /> Proof of work
-              </>
-            }
             title={`${type === "before" ? "Before" : "After"} photos`}
           />
           <div className="space-y-3">
@@ -418,11 +413,6 @@ export const PhotoProofGroup = ({
       <Dialog open={viewOpen} onOpenChange={setViewOpen}>
         <DialogContent>
           <DialogHero
-            eyebrow={
-              <>
-                <Image className="w-3 h-3" /> Proof of work
-              </>
-            }
             title="Photo Proof"
           />
           <div className="space-y-4 max-h-[60vh] overflow-y-auto">

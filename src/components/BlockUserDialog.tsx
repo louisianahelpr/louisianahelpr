@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, ShieldAlert } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { blockUser } from "@/lib/userBlocks";
@@ -131,7 +131,6 @@ export function BlockUserDialog({
     <Dialog open={open} onOpenChange={(o) => !o && !submitting && onClose()}>
       <DialogContent>
         <DialogHero
-          eyebrow={<><ShieldAlert className="w-3 h-3" /> Safety</>}
           title={<>Block {blockedUserName}?</>}
         />
         <div className="space-y-3 mt-2">

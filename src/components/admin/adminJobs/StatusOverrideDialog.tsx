@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { History as HistoryIcon } from "lucide-react";
 import { jobStatusLabel } from "@/lib/statusLabels";
 import type { Job } from "./types";
 
@@ -36,11 +35,6 @@ export const StatusOverrideDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHero
-          eyebrow={
-            <>
-              <HistoryIcon className="w-3.5 h-3.5" /> Status override
-            </>
-          }
           title="Manual Status Override"
         />
         <div className="space-y-3">

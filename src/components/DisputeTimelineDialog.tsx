@@ -19,7 +19,7 @@ import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
 import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { AlertTriangle, Upload, X, Clock, CheckCircle2, FileImage } from "lucide-react";
+import { Upload, X, Clock, CheckCircle2, FileImage } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { report } from "@/lib/errorLogger";
@@ -224,11 +224,6 @@ export const DisputeTimelineDialog = ({
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHero
-          eyebrow={
-            <>
-              <AlertTriangle className="w-3 h-3" /> Dispute in progress
-            </>
-          }
           title="Timeline"
         />
 

@@ -230,6 +230,45 @@ export function ProfileEditForm({
           </div>
         </div>
 
+        {/* Bio section — ordered before Skills & Services (owner-confirmed
+            field order: Phone/City/ZIP, About You, Skills & Services,
+            Recent Work). */}
+        <div className="rounded-2xl liquid-glass p-5 space-y-3">
+          {/* A VISIBLE label, like every other field on this form. The bio
+              carried its name in `aria-label` only, so a screen reader heard
+              "About you" while a sighted user got an unlabelled box between a
+              labelled "City / ZIP" row and an unlabelled ID card — the field
+              that decides whether somebody hires you, and the one nobody could
+              see the name of. `<label htmlFor>` supersedes the aria-label, so
+              the two can no longer say different things. */}
+          <div className="flex items-baseline justify-between gap-3">
+            <Label htmlFor="bio" className="text-ds-11 block">About you</Label>
+            {/* "20" is a MINIMUM, not a cap — showing "108/20" once the
+                user is past it reads like an over-limit error. So:
+                "X/20" while short of the minimum, a check once met. */}
+            {bioOk ? (
+              <span className="text-ds-11 font-medium text-success inline-flex items-center gap-1">
+                <Check className="w-3 h-3" strokeWidth={3} /> Looks good
+              </span>
+            ) : (
+              <span className="text-ds-11 font-medium text-muted-foreground tabular-nums">
+                {bio.trim().length}/20 min
+              </span>
+            )}
+          </div>
+          <Textarea
+            id="bio"
+            value={bio}
+            onChange={(e) => setBio(e.target.value)}
+            placeholder="What you do, tools you bring, what makes you reliable…"
+            autoCapitalize="sentences"
+            className="min-h-[112px] resize-none text-ds-13 leading-relaxed"
+          />
+          <p className="font-serif italic leading-snug text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            Customers read this when deciding who to hire. The more specific, the better.
+          </p>
+        </div>
+
         {/* Skills & services — restored 2026-08-27. `profiles.skills` had been
             written on save since April but had no input anywhere in `src/`
             (deleted by an unlabelled bot rewrite), so all 23 live profiles had
@@ -298,43 +337,6 @@ export function ProfileEditForm({
           </div>
           <p className="font-serif italic leading-snug text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Tap what applies, or type your own. These show as tags on your public profile and decide which jobs get matched to you.
-          </p>
-        </div>
-
-        {/* Bio section */}
-        <div className="rounded-2xl liquid-glass p-5 space-y-3">
-          {/* A VISIBLE label, like every other field on this form. The bio
-              carried its name in `aria-label` only, so a screen reader heard
-              "About you" while a sighted user got an unlabelled box between a
-              labelled "City / ZIP" row and an unlabelled ID card — the field
-              that decides whether somebody hires you, and the one nobody could
-              see the name of. `<label htmlFor>` supersedes the aria-label, so
-              the two can no longer say different things. */}
-          <div className="flex items-baseline justify-between gap-3">
-            <Label htmlFor="bio" className="text-ds-11 block">About you</Label>
-            {/* "20" is a MINIMUM, not a cap — showing "108/20" once the
-                user is past it reads like an over-limit error. So:
-                "X/20" while short of the minimum, a check once met. */}
-            {bioOk ? (
-              <span className="text-ds-11 font-medium text-success inline-flex items-center gap-1">
-                <Check className="w-3 h-3" strokeWidth={3} /> Looks good
-              </span>
-            ) : (
-              <span className="text-ds-11 font-medium text-muted-foreground tabular-nums">
-                {bio.trim().length}/20 min
-              </span>
-            )}
-          </div>
-          <Textarea
-            id="bio"
-            value={bio}
-            onChange={(e) => setBio(e.target.value)}
-            placeholder="What you do, tools you bring, what makes you reliable…"
-            autoCapitalize="sentences"
-            className="min-h-[112px] resize-none text-ds-13 leading-relaxed"
-          />
-          <p className="font-serif italic leading-snug text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            Customers read this when deciding who to hire. The more specific, the better.
           </p>
         </div>
 

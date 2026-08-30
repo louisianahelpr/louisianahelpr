@@ -132,10 +132,27 @@ const PetProfiles = () => {
 
   return (
     // AppPage — the shared signed-in sub-screen shell (AppShell + the Profile
-    // tab header + the centered content column). No title-row "Add" (owner):
-    // desktop Add is reachable from the list card's own empty-state CTA and
-    // from the pet detail pane, so it doesn't need a second entry point.
-    <AppPage title="My Pets" backTo="/profile">
+    // tab header + the centered content column). Title-row "Add" restored
+    // (2026-08-30 fix): the empty-state CTA only exists before the first pet
+    // is added — once pets are in the list, desktop had NO way to add
+    // another (the aside deliberately dropped its own header, and neither
+    // the rail rows nor the detail pane carry an add action). `hidden lg:*`
+    // because mobile already has its own "Add a Pet" affordances below the
+    // list and inside the empty state.
+    <AppPage
+      title="My Pets"
+      backTo="/profile"
+      titleActions={
+        <Button
+          variant="primary"
+          size="sm"
+          className="hidden lg:inline-flex"
+          onClick={openAddDesktop}
+        >
+          <Plus className="w-4 h-4 mr-1" /> Add a Pet
+        </Button>
+      }
+    >
         {/* ─── Mobile (default): stacked list ─────────────────────────── */}
         <div className="lg:hidden space-y-3">
           {isLoading && (

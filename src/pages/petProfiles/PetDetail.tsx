@@ -87,24 +87,15 @@ export function PetDetail({
             </p>
           )}
         </div>
-        <div className="hidden sm:flex gap-2 shrink-0">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setEditing(true)}
-          >
-            Edit
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="text-destructive border-destructive/30 hover:bg-destructive/5"
-            disabled={deletePending}
-            onClick={() => onRequestDelete(pet)}
-          >
-            Remove
-          </Button>
-        </div>
+        {/* No Edit/Remove buttons here at ≥sm (2026-08-30 fix): this pane only
+            ever renders alongside the left rail (desktop `lg:block` split
+            column — PetDetail never mounts below `lg`, well above this `sm`
+            breakpoint), and PetRailRow already carries a pencil + trash icon
+            button for the SAME active pet. Duplicating "Edit"/"Remove" text
+            buttons here put two full sets of controls for one pet on screen
+            at once. The `sm:hidden` fallback below is untouched — it's the
+            only edit/delete entry point if this pane is ever reused below
+            `lg` without the rail alongside it. */}
       </div>
 
       {/* Body */}

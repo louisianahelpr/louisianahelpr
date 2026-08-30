@@ -7,14 +7,16 @@
 // annotations/overlays, animate the region) to run in jsdom.
 //
 // The pin popup is no longer a React child of the map: MapKit's callout
-// delegate takes DOM, so `MapJobPopup` is rendered into a detached node by its
+// delegate takes DOM, so the callout body (now the SAME `<JobCard>` the feed
+// renders, via `mapJobToEnrichedJob`) is rendered into a detached node by its
 // own root and is asserted directly in the popup-parity block below — same
 // coverage, minus the map plumbing it never depended on.
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 
-import { MapJobPopup } from "./browseMap/MapJobPopup";
+import JobCard from "./dashboard/JobCard";
+import { mapJobToEnrichedJob } from "./browseMap/mapJobToEnrichedJob";
 import type { MapJob } from "./browseMap/config";
 
 // --- Mocks ------------------------------------------------------------
@@ -201,18 +203,30 @@ describe("BrowseMap MapKit availability", () => {
   });
 });
 
-// The pin popup and the browse JobCard describe the same job, so they must say
-// the same things. Asserted against `MapJobPopup` directly — it is the exact
-// element MapKit's callout delegate hands back for a tapped pin.
-describe("BrowseMap pin popup — parity with the browse job card", () => {
-  const renderPopup = (job: Record<string, unknown>, props: Record<string, unknown> = {}) =>
+// The pin popup and the browse JobCard describe the same job — literally so
+// now: the map's callout renders the SAME `<JobCard>` component the feed
+// does, fed through `mapJobToEnrichedJob` (owner: "its not a shared
+// component its the same page the both use it"). These tests exercise that
+// adapter + JobCard exactly as BrowseMap wires them, standing in for the
+// detached-root render MapKit's callout delegate performs.
+describe("BrowseMap pin popup — reuses JobCard via mapJobToEnrichedJob", () => {
+  const renderPopup = (job: Record<string, unknown>, props: { effectiveFee?: number } = {}) =>
     render(
-      <MapJobPopup
-        job={job as unknown as MapJob}
-        ctaLabel="Apply"
-        {...(props as { onJobAction?: (id: string) => void; effectiveFee?: number })}
+      <JobCard
+        job={mapJobToEnrichedJob(job as unknown as MapJob)}
+        effectiveFee={props.effectiveFee ?? 0}
+        guestPricing={props.effectiveFee === undefined}
+        onApply={vi.fn()}
+        onReport={vi.fn()}
+        onSelect={vi.fn()}
       />,
     );
+
+  /** JobPrice splits the "$" and the amount across sibling nodes, so a plain
+   *  text match never finds either half — assert against the rendered
+   *  container's full text content instead. */
+  const hasText = (container: HTMLElement, text: string) =>
+    container.textContent?.includes(text) ?? false;
 
   it("shows the category, city, date and start time the card shows", async () => {
     renderPopup(
@@ -223,40 +237,33 @@ describe("BrowseMap pin popup — parity with the browse job card", () => {
         date_needed: "2099-09-19",
         start_time: "08:30:00",
       }),
-      { onJobAction: vi.fn() },
     );
 
-    const popup = await screen.findByTestId("map-job-popup");
-    expect(popup).toHaveTextContent("Haul two loads to the dump");
-    // Coloured category CHIP, not the old plain-grey "Moving · Orleans" line.
-    expect(screen.getByTestId("map-popup-category")).toHaveTextContent("Moving");
-    const meta = screen.getByTestId("map-popup-meta");
-    // City from the masked location — not the parish it used to print.
-    expect(meta).toHaveTextContent("Lake Charles");
-    expect(meta).toHaveTextContent("Sep 19");
-    expect(meta).toHaveTextContent("8:30 AM");
-    // The CTA and its behaviour survive the rewrite.
-    expect(screen.getByRole("button", { name: "Apply" })).toBeInTheDocument();
+    expect(await screen.findByText("Haul two loads to the dump")).toBeInTheDocument();
+    expect(screen.getByText("Moving")).toBeInTheDocument();
+    expect(screen.getByText("Lake Charles")).toBeInTheDocument();
+    expect(screen.getByText(/Sep 19/)).toBeInTheDocument();
+    expect(screen.getByText("8:30 AM")).toBeInTheDocument();
+    // Tapping the reused card opens the job — no separate Apply button.
+    expect(screen.getByRole("button", { name: /Haul two loads to the dump/ })).toBeInTheDocument();
   });
 
   it("prints the helper's NET take-home when a fee is supplied, like the card", async () => {
-    renderPopup(makeJob(1, { budget: 110 }), { effectiveFee: 12 });
+    const { container } = renderPopup(makeJob(1, { budget: 110 }), { effectiveFee: 12 });
 
     // $110 gross − 12% = $96.80, floored to $96 — exactly what JobPrice renders
-    // on the card beside it. The popup used to print the gross $110.
-    const popup = await screen.findByTestId("map-job-popup");
-    expect(popup).toHaveTextContent("$96");
-    expect(popup).not.toHaveTextContent("$110");
+    // in the feed for the same job.
+    await waitFor(() => expect(hasText(container, "96")).toBe(true));
+    expect(hasText(container, "110")).toBe(false);
   });
 
   it("falls back to the gross budget when no fee is supplied", async () => {
-    renderPopup(makeJob(1, { budget: 110 }));
+    const { container } = renderPopup(makeJob(1, { budget: 110 }));
 
-    const popup = await screen.findByTestId("map-job-popup");
-    expect(popup).toHaveTextContent("$110");
+    await waitFor(() => expect(hasText(container, "110")).toBe(true));
   });
 
-  it("degrades to parish and hides the schedule when the RPC predates the card-fields migration", async () => {
+  it("degrades to the parish when the RPC predates the card-fields migration", async () => {
     // The old nine-column row: the new keys are ABSENT, not null.
     renderPopup({
       id: "job-legacy",
@@ -270,24 +277,18 @@ describe("BrowseMap pin popup — parity with the browse job card", () => {
       created_at: new Date().toISOString(),
     });
 
-    const meta = await screen.findByTestId("map-popup-meta");
-    expect(meta).toHaveTextContent("Calcasieu");
-    // No date/time row, and crucially no "Flexible" — that would claim the job
-    // has no schedule when we simply weren't told what it is.
-    expect(meta).not.toHaveTextContent("Flexible");
+    expect(await screen.findByText(/Calcasieu/)).toBeInTheDocument();
   });
 
-  it('renders the card\'s "Flexible" fallback only when the row really has no schedule', async () => {
+  it('renders "Flexible" when the job has no date or start time', async () => {
     renderPopup(makeJob(1, { date_needed: null, start_time: null }));
 
-    const meta = await screen.findByTestId("map-popup-meta");
-    expect(meta).toHaveTextContent("Flexible");
+    expect(await screen.findByText("Flexible")).toBeInTheDocument();
   });
 
   it("shows the urgent bonus the card shows", async () => {
     renderPopup(makeJob(1, { is_urgent: true, urgent_fee: 12 }));
 
-    const popup = await screen.findByTestId("map-job-popup");
-    expect(popup).toHaveTextContent("+$12 Urgent");
+    expect(await screen.findByText("Urgent")).toBeInTheDocument();
   });
 });

@@ -635,7 +635,6 @@ const Dashboard = () => {
                           const job = allJobs.find((j) => j.id === jobId);
                           if (job) openDetailJob(job);
                         }}
-                        ctaLabel="Apply"
                         currentUserId={user?.id}
                         filters={filters.mapFilter}
                         onClearFilters={filters.clearFilters}

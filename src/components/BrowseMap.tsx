@@ -25,14 +25,15 @@ import { createRoot, type Root } from "react-dom/client";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { Button } from "@/components/ui/button";
-import { BellRing, MapPin, MapPinOff, Loader2 } from "lucide-react";
+import { BellRing, MapPin, MapPinOff, Loader2, X } from "lucide-react";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useMapKitJs } from "@/hooks/useMapKitJs";
 import {
   LA_BOUNDS,
   type MapJob,
 } from "./browseMap/config";
-import { MapJobPopup } from "./browseMap/MapJobPopup";
+import { mapJobToEnrichedJob } from "./browseMap/mapJobToEnrichedJob";
+import JobCard from "./dashboard/JobCard";
 import { clusterElement, pinElement, PIN_HEIGHT } from "./browseMap/mapMarkers";
 import {
   buildMapJobFilter,
@@ -54,10 +55,12 @@ import {
 } from "./browseMap/mapkitRuntime";
 
 interface BrowseMapProps {
-  /** Tap on the popup's CTA (e.g. "Sign up to apply" for guests). */
+  /**
+   * Tap anywhere on a pin's popup card (same tap-anywhere-opens-the-job
+   * behaviour as the feed's `JobCard`, which the popup now literally
+   * reuses — no separate "Apply" button on the map anymore).
+   */
   onJobAction?: (jobId: string) => void;
-  /** CTA text — varies by surface (guest = "Sign up to apply", auth = "Apply"). */
-  ctaLabel?: string;
   /**
    * Current user id. When set, the popup hides jobs the user posted
    * themselves (you can't apply to your own post — same rule as the
@@ -119,7 +122,7 @@ function readIsDark(): boolean {
   return document.documentElement.getAttribute("data-theme") === "dark";
 }
 
-export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, emptyStateCta, filters, onClearFilters, effectiveFee, flush = false, hoveredJobId }: BrowseMapProps) {
+export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, onClearFilters, effectiveFee, flush = false, hoveredJobId }: BrowseMapProps) {
   const shellClass = flush ? "" : " rounded-t-2xl border border-b-0 border-border";
   const mapKitStatus = useMapKitJs();
   const [jobs, setJobs] = useState<MapJob[]>([]);
@@ -369,18 +372,42 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
       // mis-measured, the callout can never be wider than the phone screen.
       body.style.maxWidth = "calc(100vw - 32px)";
       const root = createRoot(body);
+      // Render the SAME `<JobCard>` the feed uses — not a separately-built
+      // lookalike (owner: "its not a shared component its the same page
+      // the both use it"). `mapJobToEnrichedJob` adapts the map RPC's
+      // privacy-reduced row into JobCard's prop shape; see that file's
+      // header for exactly which fields are inert placeholders and why
+      // that's safe (JobCard never reads them). A tap anywhere on the card
+      // opens the job — same as the feed — via `onJobAction`, which the
+      // caller (Dashboard/BrowseTasksFeed) resolves against the full,
+      // authoritative job list before opening JobDetailDialog, so the
+      // reduced object built here never reaches the dialog. That also
+      // retires the popup's own separate "Apply" button from the recent
+      // unify-with-detail-dialog change — tapping the reused card IS the
+      // apply/view action now, exactly like the list.
       root.render(
-        <MapJobPopup
-          job={job}
-          onJobAction={onJobAction}
-          ctaLabel={ctaLabel}
-          effectiveFee={effectiveFee}
-          // Dismiss the callout without waiting for an outside tap —
-          // MapKit JS deselects a pin by clearing `selectedAnnotations`.
-          onClose={() => {
-            try { map.selectedAnnotations = []; } catch { /* ignore */ }
-          }}
-        />,
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => {
+              // Dismiss the callout without waiting for an outside tap —
+              // MapKit JS deselects a pin by clearing `selectedAnnotations`.
+              try { map.selectedAnnotations = []; } catch { /* ignore */ }
+            }}
+            aria-label="Close"
+            className="absolute -top-1.5 -right-1.5 z-20 w-6 h-6 rounded-full flex items-center justify-center bg-card border border-border/60 text-muted-foreground hover:text-foreground shadow-sm"
+          >
+            <X className="w-3.5 h-3.5" strokeWidth={2.25} />
+          </button>
+          <JobCard
+            job={mapJobToEnrichedJob(job)}
+            effectiveFee={effectiveFee ?? 0}
+            onSelect={() => onJobAction?.(job.id)}
+            onApply={() => onJobAction?.(job.id)}
+            onReport={() => { /* no report surface on the map pin popup */ }}
+            guestPricing={effectiveFee === undefined}
+          />
+        </div>,
       );
       calloutRootsRef.current.push(root);
       return new mk.Annotation(
@@ -401,7 +428,7 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
     });
     annotationsRef.current = annotations;
     try { map.addAnnotations(annotations); } catch { /* ignore */ }
-  }, [visibleJobs, mapReady, ctaLabel, effectiveFee, onJobAction, calloutWidth, clearAnnotations]);
+  }, [visibleJobs, mapReady, effectiveFee, onJobAction, calloutWidth, clearAnnotations]);
 
   // Frame the pins whenever the visible set changes (FitToPins' old job).
   useEffect(() => {

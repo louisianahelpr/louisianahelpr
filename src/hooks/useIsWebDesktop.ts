@@ -26,8 +26,24 @@ import { isNativePlatform } from "@/lib/nativeInit";
    are still laying out for mobile. */
 const WEB_DESKTOP_QUERY = "(min-width: 900px)";
 
+// Lazy initializer — evaluated synchronously on the FIRST render (not in a
+// post-mount effect), so a hard-loaded desktop-web tab already has the right
+// value before AppShell ever paints its `topBarOffset`. The old `useState(false)`
+// + `apply()` inside `useEffect` meant every desktop pageload painted one frame
+// as if it were mobile (0 offset for the fixed DesktopTopNav bar) and then
+// reflowed the instant the effect ran — the flash-of-wrong-width bug. Effects
+// still run after paint in React, so only computing the value up front (where
+// `matchMedia` is synchronously available) removes the gap; the effect below
+// is now purely for keeping it in sync with live resizes.
+function computeIsWebDesktop(): boolean {
+  if (isNativePlatform || typeof window === "undefined" || typeof window.matchMedia !== "function") {
+    return false;
+  }
+  return window.matchMedia(WEB_DESKTOP_QUERY).matches;
+}
+
 export function useIsWebDesktop() {
-  const [isWebDesktop, setIsWebDesktop] = useState(false);
+  const [isWebDesktop, setIsWebDesktop] = useState(computeIsWebDesktop);
 
   useEffect(() => {
     if (isNativePlatform || typeof window.matchMedia !== "function") return;

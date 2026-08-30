@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useLayoutEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { isDesktopRailRoute } from "@/lib/desktopNavRoutes";
@@ -171,7 +171,7 @@ export const useAppShellViewport = () => {
   const { pathname } = useLocation();
   const { user } = useAuthReady();
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const apply = () => {
       const html = document.documentElement;
       if (isDocumentScrollRoute(pathname)) {
@@ -204,7 +204,7 @@ export const useAppShellViewport = () => {
   // Web-desktop detection. Independent of route (the chrome/layout applies on
   // every signed-in fixed-shell page), so it lives in its own effect that runs
   // once and self-updates via the matchMedia change event.
-  useEffect(() => {
+  useLayoutEffect(() => {
     const html = document.documentElement;
 
     // Hard gate: native app is NEVER web-desktop. Bail before touching the

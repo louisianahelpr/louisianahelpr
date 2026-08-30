@@ -207,9 +207,9 @@ for (const { name, width, job } of [
     await card.waitFor({ timeout: 20_000 });
     await card.click();
     const detail = page.locator('[role="dialog"]').last();
-    // The detail dialog's CTA is "Apply · earn $N" / "Book now" / a bid-mode
-    // variant depending on the job — match any of the openers.
-    const applyBtn = detail.getByRole("button", { name: /^(apply|book|bid|submit|place)\b/i }).first();
+    // The detail dialog's CTA is "Apply · earn $N" / "Book now" / "Continue"
+    // (2026-08-30: renamed for non-instant-book jobs) — match any of the openers.
+    const applyBtn = detail.getByRole("button", { name: /^(apply|book|bid|submit|place|continue)\b/i }).first();
     await applyBtn.waitFor({ timeout: 10_000 });
     await applyBtn.click();
     // The sheet STAYS UP and swaps to the apply step in place — it no longer

@@ -101,7 +101,7 @@ test("applying stays on ONE bottom-anchored sheet", async ({ helperPage: page })
   // The apply step's own submit button is not on screen yet.
   await expect(sheet.getByRole("button", { name: /^back to job$/i })).toHaveCount(0);
 
-  const applyBtn = sheet.getByRole("button", { name: /^(apply|book)\b/i }).first();
+  const applyBtn = sheet.getByRole("button", { name: /^(apply|book|continue)\b/i }).first();
   await applyBtn.click();
   await sheet.getByRole("button", { name: /^back to job$/i }).waitFor({ timeout: 10_000 });
   await page.waitForTimeout(600);
@@ -161,7 +161,7 @@ test("dismissing from the apply step abandons the apply", async ({ helperPage: p
   await sheet.waitFor({ timeout: 10_000 });
   await page.waitForTimeout(600);
 
-  await sheet.getByRole("button", { name: /^(apply|book)\b/i }).first().click();
+  await sheet.getByRole("button", { name: /^(apply|book|continue)\b/i }).first().click();
   await sheet.getByRole("button", { name: /^back to job$/i }).waitFor({ timeout: 10_000 });
 
   await sheet.getByRole("button", { name: /^close$/i }).click();

@@ -23,7 +23,9 @@ export interface QuickActionRowProps {
  */
 export interface TabButtonProps {
   onTap: () => void;
-  onLongPress: () => void;
+  /** Receives the tab's own button element — the caller anchors the
+   *  quick-action popover to it (see MobileNav's quickActionAnchorRef). */
+  onLongPress: (el: HTMLButtonElement | null) => void;
   longPressEnabled: boolean;
   onPrefetch: () => void;
   ariaLabel: string;

@@ -1,9 +1,6 @@
+import { type RefObject } from "react";
 import { Camera, Image as ImageIcon, FilePlus2, MapPin, AudioLines } from "lucide-react";
-import {
-  Sheet,
-  SheetContent,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { MESSAGE_ATTACHMENT_MAX_BYTES } from "@/lib/messageAttachments";
 
 interface AttachSourceSheetProps {
@@ -19,6 +16,14 @@ interface AttachSourceSheetProps {
   voiceNoteDisabled?: boolean;
   /** Job quick-replies, shown above the send-something actions. */
   quickReplies?: React.ReactNode;
+  /**
+   * The composer's "+" button that opens this panel — see FilterSheet.tsx
+   * for the `virtualRef` pattern this follows. RichMessageInput owns the
+   * button; this panel is anchored against it via Radix Popper's
+   * `virtualRef` rather than a `<PopoverTrigger>` subtree, same reasoning
+   * as FilterSheet's anchorRef.
+   */
+  anchorRef: RefObject<HTMLElement | null>;
 }
 
 /**
@@ -30,19 +35,32 @@ interface AttachSourceSheetProps {
 export const AttachSourceSheet = ({
   open, onOpenChange, onPickCamera, onPickLibrary, onPickFiles,
   onShareLocation, onRecordVoiceNote, voiceNoteDisabled = false, quickReplies,
+  anchorRef,
 }: AttachSourceSheetProps) => {
   // Wrap each action so picking one closes the sheet — otherwise it stays
   // open behind the OS picker / permission prompt it just triggered.
   const pick = (fn: () => void) => () => { onOpenChange(false); fn(); };
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom">
-        {/* Radix points the dialog's `aria-labelledby` at a Title, so a sheet
-            with none announces as a bare "dialog". This one is deliberately
-            headerless (below), which is a visual decision, not a naming one —
-            the name still has to exist. Same fix Navbar and ui/sidebar use for
-            their nav drawers. */}
-        <SheetTitle className="sr-only">Attach</SheetTitle>
+    <Popover open={open} onOpenChange={onOpenChange}>
+      <PopoverAnchor virtualRef={anchorRef} />
+      <PopoverContent
+        align="start"
+        side="top"
+        sideOffset={8}
+        collisionPadding={16}
+        aria-label="Attach"
+        className="w-[300px] max-w-[calc(100vw-2rem)] max-h-[70vh] overflow-y-auto overscroll-contain p-4 rounded-ds-lg"
+        style={{ background: "var(--surface-premium)" }}
+        // The "+" button is OUTSIDE the popover subtree, so Radix counts a
+        // click on it as an outside-dismiss — which would close the panel
+        // and then let the button's own onClick toggle it straight back
+        // open. Let the button keep sole ownership of the toggle, same
+        // guard FilterSheet uses for the Filters button.
+        onInteractOutside={(e) => {
+          const target = e.target as Node | null;
+          if (target && anchorRef.current?.contains(target)) e.preventDefault();
+        }}
+      >
         {/* iOS "+" menu shape: one uniform vertical list, each row a circular
             icon and a label. No headline — iMessage's sheet doesn't ask a
             question, it just lists what you can attach.
@@ -98,7 +116,7 @@ export const AttachSourceSheet = ({
           Up to {Math.round(MESSAGE_ATTACHMENT_MAX_BYTES / 1024 / 1024)}MB ·
           photos and PDFs only.
         </p>
-      </SheetContent>
-    </Sheet>
+      </PopoverContent>
+    </Popover>
   );
 };

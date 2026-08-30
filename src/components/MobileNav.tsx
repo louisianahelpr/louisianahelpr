@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, forwardRef } from "react";
+import { useEffect, useMemo, useRef, useState, forwardRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useReducedMotion } from "@/lib/accessibility";
 import {
@@ -117,6 +117,12 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   // tab was long-pressed. Keeps the markup compact instead of one sheet per
   // tab. `null` = closed.
   const [quickActionTab, setQuickActionTab] = useState<QuickActionTab>(null);
+  // Which tab's DOM node the quick-action popover anchors to — set at
+  // long-press time from whichever tab was pressed (there's no single
+  // fixed trigger here, unlike Filters or the notification bell). A plain
+  // ref, not state: Radix reads `.current` when it positions the popover,
+  // and re-pointing it never needs to trigger a render.
+  const quickActionAnchorRef = useRef<HTMLElement | null>(null);
   // Scroll-aware shadow lift — when content is actually scrolled under the
   // nav, deepen the drop shadow so the bar reads as floating above the
   // page rather than glued to the bottom edge.
@@ -432,9 +438,10 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
       "/messages",
     ];
     const hasQuickActions = !locked && longPressableTabs.includes(path);
-    const openQuickActions = () => {
+    const openQuickActions = (el: HTMLButtonElement | null) => {
       if (!hasQuickActions) return;
       hapticMedium();
+      quickActionAnchorRef.current = el;
       setQuickActionTab(path as typeof quickActionTab);
     };
 
@@ -753,6 +760,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
         quickActionTab={quickActionTab}
         onClose={() => setQuickActionTab(null)}
         quickActions={quickActions}
+        anchorRef={quickActionAnchorRef}
       />
     </>
   );

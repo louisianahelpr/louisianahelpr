@@ -50,6 +50,10 @@ export const RichMessageInput = ({
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const libraryInputRef = useRef<HTMLInputElement>(null);
   const filesInputRef = useRef<HTMLInputElement>(null);
+  // Anchors the attach popover to the "+" button — see AttachSourceSheet's
+  // anchorRef doc / FilterSheet.tsx for why a ref rather than a
+  // <PopoverTrigger> subtree.
+  const attachButtonRef = useRef<HTMLButtonElement>(null);
   const { request: requestPermission } = usePermissionRationale();
 
   // Throttle the presence broadcast: without this, onTyping fires once per
@@ -398,6 +402,7 @@ export const RichMessageInput = ({
             Nothing was removed: attach and location are both in that sheet
             now, alongside the camera/library/files sources it already held. */}
         <Button
+          ref={attachButtonRef}
           variant="ghost"
           size="icon"
           className="shrink-0 h-11 w-11 rounded-full liquid-glass glass-press"
@@ -504,6 +509,7 @@ export const RichMessageInput = ({
       <AttachSourceSheet
         open={attachSheetOpen}
         onOpenChange={setAttachSheetOpen}
+        anchorRef={attachButtonRef}
         onPickCamera={pickFromCamera}
         onPickLibrary={pickFromLibrary}
         onPickFiles={pickFromFiles}

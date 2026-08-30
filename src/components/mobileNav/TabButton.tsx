@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { useLongPress } from "@/hooks/useLongPress";
 import { hapticMedium } from "@/lib/haptics";
 import type { TabButtonProps } from "./types";
@@ -22,6 +23,12 @@ export const TabButton = ({
   style,
   children,
 }: TabButtonProps) => {
+  // The tab's own DOM node — captured so a long-press can anchor the
+  // quick-action popover to THIS specific button (nav tab position varies:
+  // it's whichever tab was pressed, not one fixed trigger like Filters or
+  // the bell). See QuickActionSheet.tsx / MobileNav's quickActionAnchorRef.
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
   // `useLongPress` returns props to spread on the element. When long-press
   // isn't enabled, we ignore the press handlers and wire onClick directly
   // so the tab keeps behaving as a normal button.
@@ -34,7 +41,7 @@ export const TabButton = ({
     onLongPress: onLongPress
       ? () => {
           hapticMedium();
-          onLongPress();
+          onLongPress(buttonRef.current);
         }
       : onLongPress,
     onTap,
@@ -59,6 +66,7 @@ export const TabButton = ({
 
   return (
     <button
+      ref={buttonRef}
       // useLongPress drives both onTouch* and onMouse*, including `release`
       // which fires the short-tap callback if the threshold wasn't crossed.
       // We DON'T set onClick here — the hook's onTouchEnd / onMouseUp paths

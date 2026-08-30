@@ -10,6 +10,7 @@ import { DashboardSkeleton } from "@/components/SkeletonLoaders";
 import { LoadingHeading } from "@/components/ui/LoadingHeading";
 import { useRealtimePush } from "@/hooks/useRealtimePush";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { isProfileComplete } from "@/components/ProtectedRoute";
 // TITLE_BAR_PADDING ships WITH the bar it is sized for, so Home and the
 // guest feed cannot drift apart on the one measurement that makes the row
 // read as a band of chrome rather than a card.
@@ -746,7 +747,7 @@ const Dashboard = () => {
       </Suspense>
 
       <Suspense fallback={null}>
-        <OnboardingTour profileCreatedAt={profile?.created_at} />
+        <OnboardingTour profileCreatedAt={profile?.created_at} profileComplete={isProfileComplete(profile)} />
       </Suspense>
       <QuickApplyHandler searchParams={searchParams} user={user} allJobs={allJobs} onApply={handleApplyRequest} />
 

@@ -29,14 +29,18 @@
 // What is left over is genuinely optional, and that is what this now counts:
 //
 //   1. Phone number       — profiles.phone
-//   2. ZIP code           — profiles.zip_code
-//   3. Skills & services  — profiles.skills
-//   4. Government ID      — profiles.id_document_url
-//   5. Work photos        — profiles.portfolio_urls (at least one)
+//   2. Skills & services  — profiles.skills
+//   3. Work photos        — profiles.portfolio_urls (at least one)
 //
-// Five items, UNWEIGHTED — 20% each. No weighting scheme, because none could
+// Three items, UNWEIGHTED — 33% each. No weighting scheme, because none could
 // be explained to a user in one sentence, and an unexplainable number is just
 // a different flavour of the lie this replaced.
+//
+// ZIP code and government ID were removed from this list (owner, 2026-08-29):
+// ZIP is collected at Signup now (required, via the City field), so it's
+// never actually incomplete here; government ID is superseded by Stripe
+// Identity, which verifies the user directly and makes a separate upload
+// redundant.
 //
 // ─── THE THREE RULES EACH ITEM OBEYS ─────────────────────────────────────
 //
@@ -101,9 +105,7 @@ export interface ProfileCompletion {
 /** DOM ids of the Edit-Profile controls each item scrolls to. */
 export const PROFILE_COMPLETION_ANCHORS = {
   phone: "phone",
-  zip: "zipCode",
   skills: "skills",
-  idDocument: "id-verification-card",
   workPhotos: "work-portfolio-card",
 } as const;
 
@@ -114,9 +116,7 @@ export const PROFILE_COMPLETION_ANCHORS = {
  */
 export function getProfileCompletion(input: {
   phone?: string | null;
-  zipCode?: string | null;
   skills?: string | null;
-  idDocumentUrl?: string | null;
   portfolioCount?: number;
 }): ProfileCompletion {
   const items: ProfileCompletionItem[] = [
@@ -127,23 +127,11 @@ export function getProfileCompletion(input: {
       anchorId: PROFILE_COMPLETION_ANCHORS.phone,
     },
     {
-      label: "ZIP code",
-      hint: "Places you in the right parish for nearby jobs.",
-      done: !!input.zipCode && String(input.zipCode).trim().length > 0,
-      anchorId: PROFILE_COMPLETION_ANCHORS.zip,
-    },
-    {
       label: "Skills & services",
       hint: "Decides which jobs get matched and sent to you.",
       // Comma-separated string; blank and "  ,  " both mean no skills.
       done: (input.skills ?? "").split(",").some((s) => s.trim().length > 0),
       anchorId: PROFILE_COMPLETION_ANCHORS.skills,
-    },
-    {
-      label: "Government ID",
-      hint: "Unlocks the Verified badge on your public profile.",
-      done: !!input.idDocumentUrl,
-      anchorId: PROFILE_COMPLETION_ANCHORS.idDocument,
     },
     {
       label: "Work photos",

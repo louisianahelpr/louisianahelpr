@@ -3,9 +3,9 @@ import { useNavigate, useLocation } from "react-router-dom";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Dialog, DialogPortal, DialogOverlay } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { X, ArrowRight, ArrowLeft, CheckCircle2, Briefcase, User, MessageCircle, Search, Sparkles, Play } from "lucide-react";
+import { ArrowRight, Briefcase, User, MessageCircle, Search, Play } from "lucide-react";
 import { safeStorage } from "@/lib/safeStorage";
+import { HelprMark } from "@/components/HelprMark";
 
 type TourStep = {
   id: string;
@@ -22,7 +22,7 @@ const TOUR_STEPS: TourStep[] = [
     id: "welcome",
     title: "Welcome to Helpr.",
     description: "A quick walk-through so you know where everything lives. Takes under a minute.",
-    icon: <Sparkles className="w-6 h-6" />,
+    icon: <HelprMark to={null} emblemOnly size="sm" />,
     position: "center",
   },
   {
@@ -110,7 +110,7 @@ interface OnboardingTourProps {
   profileCreatedAt?: string | null;
 }
 
-const OnboardingTour = ({ profileComplete: _profileComplete = false, profileCreatedAt }: OnboardingTourProps) => {
+const OnboardingTour = ({ profileComplete = false, profileCreatedAt }: OnboardingTourProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [state, setState] = useState<OnboardingState>(() => {
@@ -128,9 +128,11 @@ const OnboardingTour = ({ profileComplete: _profileComplete = false, profileCrea
   // works without a full reload.
   const [showResumePill, setShowResumePill] = useState(false);
 
-  const steps = TOUR_STEPS;
+  // Skip the "Complete your profile" step for anyone who already finished
+  // signup with a full profile — nudging them to do something already done
+  // is exactly the redundancy the owner flagged live in the tour.
+  const steps = profileComplete ? TOUR_STEPS.filter((s) => s.id !== "profile") : TOUR_STEPS;
   const currentStep = steps[state.currentStep] || steps[0];
-  const progress = ((state.currentStep + 1) / steps.length) * 100;
 
   useEffect(() => {
     if (location.pathname !== "/dashboard") {
@@ -199,31 +201,6 @@ const OnboardingTour = ({ profileComplete: _profileComplete = false, profileCrea
     });
   }, []);
 
-  const handleNext = () => {
-    const newCompleted = [...new Set([...state.completedSteps, currentStep.id])];
-    if (state.currentStep < steps.length - 1) {
-      updateState({ currentStep: state.currentStep + 1, completedSteps: newCompleted });
-      if (currentStep.action) {
-        navigate(currentStep.action);
-      }
-    } else {
-      // Tour complete — clear all dismissal flags so a manual restart
-      // from settings doesn't get stuck behind a stale Later/Skip key.
-      updateState({ completed: true, completedSteps: newCompleted });
-      safeStorage.removeItem(KEY_LATER_AT);
-      safeStorage.removeItem(KEY_DISMISSED_AT);
-      safeStorage.removeItem(KEY_STEP);
-      setVisible(false);
-      setShowResumePill(false);
-    }
-  };
-
-  const handleBack = () => {
-    if (state.currentStep > 0) {
-      updateState({ currentStep: state.currentStep - 1 });
-    }
-  };
-
   // Skip = permanent dismiss. Writes `dismissed_at`, clears the snooze
   // key so the two flavors don't both fire, marks the legacy blob
   // completed so existing gating still picks it up.
@@ -233,23 +210,6 @@ const OnboardingTour = ({ profileComplete: _profileComplete = false, profileCrea
     safeStorage.removeItem(KEY_LATER_AT);
     setVisible(false);
     setShowResumePill(false);
-  };
-
-  // Later = snooze. Saves the current step + a `later_at` timestamp so
-  // the dashboard pill can offer a resume on next visit. Does NOT mark
-  // the legacy blob completed — a Later user should still be able to
-  // come back and finish.
-  const handleLater = () => {
-    safeStorage.setItem(KEY_LATER_AT, new Date().toISOString());
-    safeStorage.setItem(KEY_STEP, String(state.currentStep));
-    safeStorage.removeItem(KEY_DISMISSED_AT);
-    setVisible(false);
-    setShowResumePill(true);
-  };
-
-  const handleGoToStep = (action?: string) => {
-    if (action) navigate(action);
-    handleNext();
   };
 
   // Relaunch the tour from the saved step. Clears the snooze key so
@@ -262,15 +222,49 @@ const OnboardingTour = ({ profileComplete: _profileComplete = false, profileCrea
     setVisible(true);
   };
 
-  // Radix Dialog onOpenChange — fires on Escape, backdrop click, and
-  // any other dismissal pathway. Escape and outside-click should both
-  // snooze (Later) rather than skip permanently — Escape feels like
-  // "not now," not "never again." Users who want permanent skip have
-  // the explicit Skip button. Programmatic close paths (Skip, final
-  // Get started, manual Resume) call setVisible directly so this
-  // handler only runs for user-initiated dismissals.
+  // Radix Dialog onOpenChange — fires on Escape, backdrop click, and any
+  // other user-initiated dismissal pathway. Treated the same as the
+  // explicit Skip button (there's no separate "Later" any more).
+  // Programmatic close paths (Skip, finishTour, manual Resume) call
+  // setVisible directly so this handler only runs for those dismissals.
   const handleDialogOpenChange = (open: boolean) => {
-    if (!open) handleLater();
+    if (!open) handleSkip();
+  };
+
+  // All five steps marked complete → the dots give way to a single "go
+  // ahead" arrow that actually finishes the tour. Clicking the LAST dot
+  // only marks it green (below); this is the deliberate separate tap that
+  // closes the dialog, per owner direction (dots advance, the arrow exits).
+  const allStepsDone = steps.every((s) => state.completedSteps.includes(s.id));
+
+  // Dots ARE the "next" control now (no separate Next/Get Started button).
+  // Clicking the CURRENT dot marks it done and advances — same navigation
+  // side-effect handleGoToStep always had — except on the last step, where
+  // it only marks that dot green and waits for the "go ahead" arrow rather
+  // than auto-closing the dialog.
+  const handleDotClick = (i: number) => {
+    if (i < state.currentStep) {
+      // Past dot: just jump back to review it. Already marked complete.
+      updateState({ currentStep: i });
+      return;
+    }
+    if (i !== state.currentStep) return; // future dot — not clickable
+    const newCompleted = [...new Set([...state.completedSteps, currentStep.id])];
+    if (state.currentStep < steps.length - 1) {
+      updateState({ currentStep: state.currentStep + 1, completedSteps: newCompleted });
+      if (currentStep.action) navigate(currentStep.action);
+    } else {
+      updateState({ completedSteps: newCompleted });
+    }
+  };
+
+  const finishTour = () => {
+    updateState({ completed: true });
+    safeStorage.removeItem(KEY_LATER_AT);
+    safeStorage.removeItem(KEY_DISMISSED_AT);
+    safeStorage.removeItem(KEY_STEP);
+    setVisible(false);
+    setShowResumePill(false);
   };
 
   // Render path 1: the resume pill (only on /dashboard, only when
@@ -337,35 +331,6 @@ const OnboardingTour = ({ profileComplete: _profileComplete = false, profileCrea
           className="fixed z-50 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-md focus:outline-none"
         >
           <div className="rounded-2xl liquid-glass shadow-2xl overflow-hidden motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 duration-300">
-          {/* Progress bar */}
-          <div className="px-5 pt-4 pb-1">
-            <div className="flex items-center justify-between mb-2">
-              <span
-                className="font-serif italic uppercase text-ds-10"
-                style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-              >
-                Step {state.currentStep + 1} of {steps.length}
-              </span>
-              {/* X = snooze (Later), not permanent skip. The footer
-                  "Skip tour" button is the only permanent dismissal so
-                  a misclick on the corner X doesn't lock the user out
-                  of the tour forever. */}
-              <button
-                onClick={handleLater}
-                className="text-muted-foreground hover:text-foreground transition-colors"
-                aria-label="Close tour for now"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <Progress
-              value={progress}
-              className="h-1.5"
-              aria-label="Onboarding tour progress"
-              aria-valuetext={`Step ${state.currentStep + 1} of ${steps.length}`}
-            />
-          </div>
-
           {/* Content */}
           <div className="p-6 text-center space-y-4">
             <div
@@ -382,18 +347,6 @@ const OnboardingTour = ({ profileComplete: _profileComplete = false, profileCrea
               {currentStep.icon}
             </div>
             <div className="space-y-2">
-              {/* Eyebrow → title → description stack mirrors DialogHero
-                  (this popup uses DialogPrimitive directly, so it can't
-                  consume the shared component — the tokens are matched
-                  by hand). The eyebrow doubles as a step counter so a
-                  user in the middle of the tour always knows where they
-                  are without hunting for the progress bar. */}
-              <span
-                className="font-serif italic uppercase block text-ds-10"
-                style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-              >
-                Step {state.currentStep + 1} of {steps.length}
-              </span>
               {/* `asChild` so Radix's accessibility wiring (aria-labelledby
                   on Content, screen-reader title announcement) lands on
                   our existing visual heading instead of injecting an
@@ -421,9 +374,11 @@ const OnboardingTour = ({ profileComplete: _profileComplete = false, profileCrea
               </DialogPrimitive.Description>
             </div>
 
-            {/* Step indicators — clickable so a user can jump back to a
-                step they want to re-watch. Forward jumps are blocked so
-                the tour still walks through unseen content in order. */}
+            {/* Step indicators ARE the "next" control now — click the
+                current (blue) dot to mark it done and advance; a done dot
+                turns green. Past dots can be tapped to jump back and
+                review. Future dots aren't clickable yet — the tour still
+                walks through content in order. */}
             <div
               className="flex items-center justify-center gap-1.5 pt-1"
               role="tablist"
@@ -431,7 +386,7 @@ const OnboardingTour = ({ profileComplete: _profileComplete = false, profileCrea
             >
               {steps.map((s, i) => {
                 const isCurrent = i === state.currentStep;
-                const isPast = i < state.currentStep;
+                const isDone = state.completedSteps.includes(s.id);
                 const clickable = i <= state.currentStep;
                 return (
                   <button
@@ -441,75 +396,41 @@ const OnboardingTour = ({ profileComplete: _profileComplete = false, profileCrea
                     aria-selected={isCurrent}
                     aria-label={`Step ${i + 1}: ${s.title}`}
                     disabled={!clickable}
-                    onClick={() => {
-                      if (clickable && !isCurrent) updateState({ currentStep: i });
-                    }}
-                    className={`h-1.5 rounded-full transition-all duration-300 ${
-                      isCurrent
-                        ? "w-6 bg-primary"
-                        : isPast
-                        ? "w-1.5 bg-primary/40 cursor-pointer hover:bg-primary/60"
-                        : "w-1.5 bg-border"
+                    onClick={() => handleDotClick(i)}
+                    className={`h-2.5 w-2.5 rounded-full transition-all duration-300 ${
+                      isDone
+                        ? "bg-primary"
+                        : isCurrent
+                        ? "bg-burnt-sienna scale-125 cursor-pointer"
+                        : clickable
+                        ? "bg-border cursor-pointer hover:bg-border/70"
+                        : "bg-border/50"
                     }`}
+                    style={isCurrent && !isDone ? { backgroundColor: "hsl(var(--burnt-sienna))" } : undefined}
                   />
                 );
               })}
             </div>
           </div>
 
-          {/* Actions — every step gets both Skip (permanent) and Later
-              (snooze) so the user can opt out at any point with the
-              flavor they actually want. Back appears once they're past
-              step 0. The forward CTA stays primary-styled bark for
-              visual parity with the rest of the app. */}
-          <div className="px-6 pb-5 space-y-2">
-            <div className="flex items-center gap-2">
-              {state.currentStep > 0 && (
-                <Button variant="ghost" size="sm" onClick={handleBack} className="text-muted-foreground rounded-ds-md">
-                  <ArrowLeft className="w-4 h-4 mr-1" /> Back
-                </Button>
-              )}
-              <div className="flex-1" />
-              {state.currentStep < steps.length - 1 ? (
+          {/* Actions — nothing renders here until every dot is green; the
+              "go ahead" arrow is the one deliberate tap that finishes the
+              tour. Skip stays available on every step as the escape hatch. */}
+          <div className="px-6 pb-5 space-y-3">
+            {allStepsDone && (
+              <div className="flex justify-center motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95">
                 <Button
                   variant="primary"
                   size="sm"
-                  onClick={() => handleGoToStep(currentStep.action)}
-                  className="group rounded-ds-md"
+                  onClick={finishTour}
+                  aria-label="Finish tour"
+                  className="group rounded-full w-11 h-11 p-0"
                 >
-                  {currentStep.action ? "Go There" : "Next"} <ArrowRight className="w-4 h-4 ml-1 transition-transform duration-300 group-hover:translate-x-1" />
+                  <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
                 </Button>
-              ) : (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={handleNext}
-                  className="rounded-ds-md"
-                >
-                  <CheckCircle2 className="w-4 h-4 mr-1" /> Get Started
-                </Button>
-              )}
-            </div>
-            {/* Dismiss row — present on EVERY step (including the
-                last) so the user always has an explicit escape hatch
-                without finishing. On the final step both still work:
-                Skip → never show again, Later → snooze with the resume
-                pill. */}
-            <div className="flex items-center justify-center gap-3">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleLater}
-                className="text-muted-foreground text-ds-11 rounded-ds-md"
-              >
-                Later
-              </Button>
-              <span
-                aria-hidden="true"
-                className="text-muted-foreground/40"
-              >
-                ·
-              </span>
+              </div>
+            )}
+            <div className="flex items-center justify-center">
               <Button
                 variant="ghost"
                 size="sm"

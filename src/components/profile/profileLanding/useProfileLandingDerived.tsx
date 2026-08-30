@@ -106,10 +106,6 @@ export function useProfileLandingDerived({
   // the prod schema supplies it; falls back to "has phone" otherwise.
   const phoneVerified = !!(profile as unknown as { phone_verified_at?: string | null })
     ?.phone_verified_at || !!profile?.phone?.trim();
-  const credentialsIncomplete =
-    profile?.license_status !== "verified" &&
-    profile?.insurance_status !== "verified";
-
   // Settings hub, grouped into four scannable editorial sections per the
   // S18 design card: Account · Work · Money · Legal. Pure information-
   // architecture grouping — every row keeps the exact tab `key` / `href`
@@ -141,9 +137,6 @@ export function useProfileLandingDerived({
           icon: <ShieldCheck className="w-5 h-5" />,
           desc: "Add your license and insurance",
           tint: SECTION_TINT.work,
-          // Quiet nudge when neither credential is verified yet — same
-          // pill treatment as the Security row's "Verify phone".
-          incompleteLabel: credentialsIncomplete ? "Add credentials" : undefined,
         },
         {
           key: "str-settings",

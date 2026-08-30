@@ -94,11 +94,13 @@ export function EntryChoice({ form }: EntryChoiceProps) {
     // (Repost, Templates) grow their own row independently in the grid, so
     // an open section still reads naturally.
     // `items-start` so a card keeps its natural height (owner: "all boxes should
-    // be the same size"). Grid rows stretch their items by default, so an OPEN
-    // Templates section pulled its silent neighbour to the same height — one
-    // card in a pair of four suddenly three times as tall as the rest, holding
-    // nothing. With `items-start` the expanded one grows and the others stay
-    // the size of their content.
+    // be the same size" — confirmed 2026-08-29 to mean collapsed boxes match
+    // each other, not that an open one should stretch its idle neighbor).
+    // Grid rows stretch their items by default, so an OPEN Templates section
+    // pulled its silent neighbour to the same height — one card in a pair of
+    // four suddenly three times as tall as the rest, holding nothing. With
+    // `items-start` the expanded one grows and the others stay the size of
+    // their content.
     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-start animate-ds-page-in">
       {/* 1 — START FRESH (primary action, always first) */}
       <button

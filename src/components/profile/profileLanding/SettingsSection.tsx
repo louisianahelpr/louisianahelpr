@@ -2,15 +2,9 @@ import {
   LogOut, Trash2, AlertTriangle,
   ChevronRight as ChevronRightIcon,
 } from "lucide-react";
-import type { PayoutPrompt } from "@/hooks/useStripeConnectStatus";
-import { PayoutStatusRow } from "./PayoutStatusRow";
 import type { MenuItem } from "./types";
 
 interface SettingsSectionProps {
-  /** What to render in the payout slot — see `useStripeConnectStatus`. */
-  payoutPrompt: PayoutPrompt;
-  /** Re-ask Stripe after a failed payout-status check. */
-  onRetryPayoutStatus: () => void;
   menuGroups: { title: string; items: MenuItem[] }[];
   onSelectTab: (key: string) => void;
   onNavigate: (path: string) => void;
@@ -19,8 +13,6 @@ interface SettingsSectionProps {
 }
 
 export function SettingsSection({
-  payoutPrompt,
-  onRetryPayoutStatus,
   menuGroups,
   onSelectTab,
   onNavigate,
@@ -38,17 +30,6 @@ export function SettingsSection({
       }}
     >
       <div className="px-4 pt-3 pb-4 space-y-4">
-        {/* Payout slot — slim single-row alert whose whole row taps through
-            to Payment Settings, plus the two states it used to be missing:
-            a held-open placeholder while the (slow, Stripe-bound) status
-            call is still out, and an honest "we couldn't check" row. All
-            three share one box so nothing below moves when they swap. */}
-        <PayoutStatusRow
-          prompt={payoutPrompt}
-          onSetUp={() => onSelectTab("payment")}
-          onRetry={onRetryPayoutStatus}
-        />
-
         {/* Unified list-of-rows navigation, grouped by section. */}
         {menuGroups.map((group) => {
           return (

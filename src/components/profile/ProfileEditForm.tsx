@@ -3,8 +3,7 @@ import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload, Loader2, Check, MapPin, ChevronRight } from "lucide-react";
-import { getProfileCompletion } from "@/lib/profileCompletion";
+import { Upload, Loader2, Check, MapPin } from "lucide-react";
 import { lookupParishByZip } from "@/lib/parishLookup";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import type { ProfileEditFormProps } from "@/components/profile/profileEditForm/types";
@@ -121,33 +120,6 @@ export function ProfileEditForm({
     removePortfolioAt,
   } = usePortfolio({ profile, onPortfolioChange });
 
-  // ─── Profile completion meter ──────────────────────────────────────
-  // Four genuinely OPTIONAL fields (phone, ZIP, government ID, work
-  // photos) — see profileCompletion.ts for why the mandatory signup /
-  // CompleteProfile fields are no longer counted. Live form values where
-  // this form owns them (phone, ZIP); the saved row for the two that
-  // persist outside the text-field save bar (ID doc, portfolio).
-  const completion = getProfileCompletion({
-    phone,
-    zipCode,
-    skills,
-    idDocumentUrl: profile?.id_document_url,
-    portfolioCount: portfolioUrls.length,
-  });
-  const completionPct = completion.pct;
-
-  // Every incomplete row is a real tap target: all four controls live on
-  // THIS screen, so the row scrolls to its field and focuses it where the
-  // field is focusable. An unreachable checklist row is worse than none.
-  const goToItem = (anchorId: string) => {
-    const el = document.getElementById(anchorId);
-    if (!el) return;
-    el.scrollIntoView({ behavior: "smooth", block: "center" });
-    if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
-      el.focus({ preventScroll: true });
-    }
-  };
-
   return (
     // Bottom padding clears the sticky save bar (16+44+16 = 76px) plus a
     // safe-area buffer so the last form field doesn't tuck under the bar.
@@ -172,78 +144,6 @@ export function ProfileEditForm({
           avatarUploading={avatarUploading}
           onAvatarUpload={onAvatarUpload}
         />
-
-        {/* Completion meter — the 3 post-signup enhancements (ZIP / ID
-            verified / work photos) via the shared getProfileCompletion
-            helper. Tints based on progress. Sits just under Photo & Name
-            so the headline identity row leads and the progress nudge
-            follows it. */}
-        <div className="rounded-2xl liquid-glass p-5 space-y-2">
-          <div className="flex items-center justify-between">
-            <p className="font-serif italic uppercase text-ds-9" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
-              Profile completion
-            </p>
-            <span
-              className="font-display italic font-bold tabular-nums text-ds-15"
-              style={{
-                color: completionPct === 100 ? "hsl(var(--bark))" : "hsl(var(--ink-deep))",
-                letterSpacing: "-0.01em",
-              }}
-            >
-              {completionPct}%
-            </span>
-          </div>
-          <div className="h-2 w-full rounded-full bg-muted/60 overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all duration-500"
-              style={{
-                width: `${completionPct}%`,
-                background:
-                  completionPct === 100
-                    ? "hsl(var(--bark))"
-                    : completionPct >= 66
-                      ? "hsl(var(--bark) / 0.85)"
-                      : "hsl(var(--burnt-sienna) / 0.75)",
-              }}
-            />
-          </div>
-          {/* The actionable checklist. Only INCOMPLETE rows render — a
-              finished item is already reported by the number above it, and
-              a list of ticks is a list of nothing to do. At 100% the whole
-              list disappears and one line of confirmation takes its place. */}
-          {completion.next ? (
-            <ul className="space-y-1 pt-1">
-              {completion.items.filter((i) => !i.done).map((item) => (
-                <li key={item.anchorId}>
-                  <button
-                    type="button"
-                    onClick={() => goToItem(item.anchorId)}
-                    className="w-full flex items-center gap-2 text-left py-1.5 rounded-ds-md active:scale-[0.99] transition-transform"
-                  >
-                    <span
-                      className="shrink-0 w-3.5 h-3.5 rounded-full border"
-                      style={{ borderColor: "hsl(var(--burnt-sienna) / 0.5)" }}
-                      aria-hidden
-                    />
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-ds-12 font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
-                        {item.label}
-                      </span>
-                      <span className="block font-serif italic text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                        {item.hint}
-                      </span>
-                    </span>
-                    <ChevronRight className="shrink-0 w-3.5 h-3.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }} aria-hidden />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="font-serif italic text-ds-11 pt-1" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              Everything optional is filled in — your profile is as complete as it gets.
-            </p>
-          )}
-        </div>
 
         {/* Contact section */}
         <div className="rounded-2xl liquid-glass p-5 space-y-4">

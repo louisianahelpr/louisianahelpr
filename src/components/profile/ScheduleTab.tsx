@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MapPin, Clock, ChevronLeft, ChevronRight, CalendarDays, Search, Plus, ListFilter } from "lucide-react";
+import { MapPin, Clock, ChevronLeft, ChevronRight, CalendarDays, CalendarPlus, Search, Plus, ListFilter } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import {
   Popover,
@@ -26,6 +26,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { formatTime12 } from "@/components/TimePickerSelect";
 import { inProgressBadgeTarget } from "@/components/dashboard/DashboardInProgressBadge";
 import { bucketPostedJob } from "@/pages/activity/activityFilters";
+import { exportJobRowToCalendar } from "@/lib/calendarExport";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
@@ -98,55 +99,78 @@ const ScheduleCard = ({
   const catStyle = categoryColors[job.category ?? "other"] || categoryColors.other;
 
   return (
-    // A schedule row is a shortcut to the job, so it is a real <button>, not
-    // a decorated <div>: it gets keyboard focus, an accessible name that says
-    // where it goes, and the global 44px min tap target. There are no nested
-    // interactive children, so the whole card can be the control.
+    // The row used to be a single whole-card <button> — clean, but it left
+    // no room for a second action (Add to Calendar) without nesting a
+    // <button> inside a <button>, which is invalid HTML and breaks
+    // keyboard/AT focus order. So the nav control is now scoped to its own
+    // <button> and the calendar export gets its own sibling <button> in a
+    // footer row, both inside a plain (non-interactive) wrapping <div> that
+    // keeps the original card chrome (border/tint/radius).
     //
     // Card surface tint mirrors the canonical status palette so an "in
     // progress" calendar entry reads in the same sienna family as the chip
     // for that state elsewhere. Border is left to the canvas (`bg-card`)
     // for terminal states so the calendar doesn't shout with cancelled
     // jobs.
-    <button
-      type="button"
-      onClick={() => navigate(to)}
-      aria-label={`${job.title} — ${isPosted ? "posted by you" : "assigned to you"}. Tap to ${destination}.`}
-      className={`btn-press w-full text-left block rounded-ds-md border border-border/40 p-3 transition-transform active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] ${jobStatusColorClasses(job.status)}`}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap mb-1">
-            <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-ds-10 font-semibold ${catStyle.badge}`}>
-              <CategoryIcon category={job.category ?? "other"} aria-hidden className="w-2.5 h-2.5 shrink-0" strokeWidth={2.5} />
-            </span>
-            <h4 className="font-semibold text-ds-13">{job.title}</h4>
-            <span className="text-ds-11 px-2 py-0.5 rounded-full bg-card font-medium">{isPosted ? "Posted" : "Assigned"}</span>
+    <div className={`rounded-ds-md border border-border/40 overflow-hidden ${jobStatusColorClasses(job.status)}`}>
+      <button
+        type="button"
+        onClick={() => navigate(to)}
+        aria-label={`${job.title} — ${isPosted ? "posted by you" : "assigned to you"}. Tap to ${destination}.`}
+        className="btn-press w-full text-left block p-3 transition-transform active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap mb-1">
+              <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-ds-10 font-semibold ${catStyle.badge}`}>
+                <CategoryIcon category={job.category ?? "other"} aria-hidden className="w-2.5 h-2.5 shrink-0" strokeWidth={2.5} />
+              </span>
+              <h4 className="font-semibold text-ds-13">{job.title}</h4>
+              <span className="text-ds-11 px-2 py-0.5 rounded-full bg-card font-medium">{isPosted ? "Posted" : "Assigned"}</span>
+            </div>
+            <div className="flex flex-wrap gap-3 text-ds-11 text-muted-foreground">
+              <span className="flex items-center gap-1"><MapPin className="w-3 h-3 shrink-0" /> {job.location}</span>
+              {/* A currency symbol is typography, not an icon: the "$" belongs
+                  in the same text node as the digits. A DollarSign glyph beside
+                  a string that already carried one rendered as "$ $200". */}
+              {/* Whose money is this? On a job you POSTED the budget is what you
+                  pay, so the raw figure is right. On a job you were ASSIGNED it
+                  is not your money — your take-home is the budget minus the
+                  platform fee, and that is the number every other helper-facing
+                  surface shows (My Jobs, Earnings & Payouts, Work Record). This
+                  row used to print the raw budget either way, so the same job
+                  read $85 here and $74 on the job card, in identical type.
+                  The whole job row is passed so `payment_status` comes with it:
+                  these are LIVE jobs, so the escrow-time stamp must not be
+                  trusted over the viewer's tier. */}
+              <span className="tabular-nums">
+                ${formatPrice(isPosted ? job.budget : helperTakeHomeDollars(job, viewerFeePercent))}
+              </span>
+              <span className="flex items-center gap-1"><Clock className="w-3 h-3 shrink-0" /> {time}</span>
+            </div>
           </div>
-          <div className="flex flex-wrap gap-3 text-ds-11 text-muted-foreground">
-            <span className="flex items-center gap-1"><MapPin className="w-3 h-3 shrink-0" /> {job.location}</span>
-            {/* A currency symbol is typography, not an icon: the "$" belongs
-                in the same text node as the digits. A DollarSign glyph beside
-                a string that already carried one rendered as "$ $200". */}
-            {/* Whose money is this? On a job you POSTED the budget is what you
-                pay, so the raw figure is right. On a job you were ASSIGNED it
-                is not your money — your take-home is the budget minus the
-                platform fee, and that is the number every other helper-facing
-                surface shows (My Jobs, Earnings & Payouts, Work Record). This
-                row used to print the raw budget either way, so the same job
-                read $85 here and $74 on the job card, in identical type.
-                The whole job row is passed so `payment_status` comes with it:
-                these are LIVE jobs, so the escrow-time stamp must not be
-                trusted over the viewer's tier. */}
-            <span className="tabular-nums">
-              ${formatPrice(isPosted ? job.budget : helperTakeHomeDollars(job, viewerFeePercent))}
-            </span>
-            <span className="flex items-center gap-1"><Clock className="w-3 h-3 shrink-0" /> {time}</span>
-          </div>
+          <span className="text-ds-11 font-medium shrink-0">{jobStatusLabel(job.status)}</span>
         </div>
-        <span className="text-ds-11 font-medium shrink-0">{jobStatusLabel(job.status)}</span>
+      </button>
+      {/* Device calendar export — there's no native calendar plugin in this
+          app, so this hands the browser/OS a standards-compliant .ics
+          (native: via the existing Capacitor Share sheet; web: a plain
+          file download) rather than writing straight into the calendar
+          app. Its own row keeps it out of the nav button above. */}
+      <div className="px-3 pb-2.5 pt-0.5 border-t border-border/30">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            void exportJobRowToCalendar(job);
+          }}
+          className="btn-press inline-flex items-center gap-1.5 text-ds-11 font-semibold px-2 py-1 -ml-2 rounded-ds-sm active:scale-[0.96] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
+        >
+          <CalendarPlus className="w-3 h-3 shrink-0" aria-hidden />
+          Add to Calendar
+        </button>
       </div>
-    </button>
+    </div>
   );
 };
 

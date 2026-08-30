@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, forwardRef } from "react";
+import { useEffect, useState, forwardRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useReducedMotion } from "@/lib/accessibility";
 import {
@@ -11,11 +11,10 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useActivityBadgeCounts } from "@/hooks/useActivityBadgeCounts";
 import { prefetchRecentPostedJobs } from "@/hooks/useRecentPostedJobs";
 import { prefetchRoute, prefetchRoutesWhenIdle } from "@/lib/routePrefetch";
-import { hapticLight, hapticMedium } from "@/lib/haptics";
+import { hapticLight } from "@/lib/haptics";
 import { TabButton } from "@/components/mobileNav/TabButton";
 import { UserAvatar } from "@/components/UserAvatar";
 import { GateSheet } from "@/components/mobileNav/GateSheet";
-import { QuickActionSheet, type QuickActionTab } from "@/components/mobileNav/QuickActionSheet";
 import { useNavUnreadCount } from "@/components/mobileNav/useNavUnreadCount";
 import {
   leftItems,
@@ -40,7 +39,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   // Messages badge unread count (durable-cache seeded), its live query +
   // realtime channel + archive listener, the native app-icon badge mirror,
   // and the best-effort mark-all-read action — all owned by this hook.
-  const { unreadCount, markAllRead } = useNavUnreadCount(user);
+  const { unreadCount } = useNavUnreadCount(user);
   // Lightweight "actionable activity" counts for the Posts / Jobs tab
   // badges (new applicants on your posts; pending direct offers to you).
   // Count-only queries — deliberately not the heavy useActivityData hook.
@@ -113,16 +112,6 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   }, [dockHidden, isPendingApproval, user?.id, queryClient]);
 
   const [gateOpen, setGateOpen] = useState(false);
-  // Long-press quick-action sheet — one sheet, with content keyed by which
-  // tab was long-pressed. Keeps the markup compact instead of one sheet per
-  // tab. `null` = closed.
-  const [quickActionTab, setQuickActionTab] = useState<QuickActionTab>(null);
-  // Which tab's DOM node the quick-action popover anchors to — set at
-  // long-press time from whichever tab was pressed (there's no single
-  // fixed trigger here, unlike Filters or the notification bell). A plain
-  // ref, not state: Radix reads `.current` when it positions the popover,
-  // and re-pointing it never needs to trigger a render.
-  const quickActionAnchorRef = useRef<HTMLElement | null>(null);
   // Scroll-aware shadow lift — when content is actually scrolled under the
   // nav, deepen the drop shadow so the bar reads as floating above the
   // page rather than glued to the bottom edge.
@@ -256,55 +245,6 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     };
   }, [location.pathname]);
 
-  // Long-press quick-action handlers. Each one closes the sheet and runs
-  // the action; the action itself may navigate, fire a toast, or trigger a
-  // backend mutation. Wrapped in `useMemo` so the inline lambdas (and the
-  // SheetContent's onSelect handlers) don't churn identity on every parent
-  // re-render — keeps the framer-motion sheet animation steady.
-  //
-  // Declared BEFORE the early returns below so `useMemo` is always called
-  // in the same order across renders (rules-of-hooks).
-  const quickActions = useMemo(() => {
-    const close = () => setQuickActionTab(null);
-
-    // Browse — open dashboard with a query param the page already parses
-    // to open its filter sheet (?filters=open). If the page doesn't know
-    // about that param it's a harmless no-op, so this is forward-safe.
-    const browseFilters = () => {
-      close();
-      navigate("/dashboard?filters=open");
-    };
-
-    // Messages — best-effort mark-all-read. Closes the sheet, then defers to
-    // the unread-count hook's mark-all-read (optimistic zero + rollback on
-    // error). Doesn't touch individual thread state.
-    const markAllReadAction = async () => {
-      close();
-      await markAllRead();
-    };
-
-    // Posts / Jobs — jump straight to the dedicated route for each Activity
-    // tab. These must NOT go through `/activity?tab=…`: that route is a
-    // `<Navigate to="/my-posts">` redirect, which drops the query string, and
-    // Activity takes its tab from the `defaultTab` prop (App.tsx) rather than
-    // from search params — so every `?tab=` link silently landed on My Posts.
-    const goPosted = () => {
-      close();
-      navigate("/my-posts");
-    };
-    const goApplied = () => {
-      close();
-      navigate("/my-jobs");
-    };
-
-    return {
-      browseFilters,
-      markAllRead: markAllReadAction,
-      goPosted,
-      goApplied,
-    };
-  }, [navigate, markAllRead]);
-
   // NOTE: `dockHidden` above must stay in sync with these two guards + the
   // `isGuest` one below — it is what collapses `--bottom-nav-h` so pages
   // don't reserve clearance for a dock that never renders.
@@ -427,31 +367,11 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
       }
     };
 
-    // Long-press → quick-action sheet. Only the four feed/inbox tabs have an
-    // action set; locked guest tabs fall through to the standard tap-handles-
-    // it path. We dispatch into a single shared sheet (`quickActionTab` state)
-    // and a `hapticMedium` lets the user know the long-press registered.
-    const longPressableTabs: Array<typeof path> = [
-      "/dashboard",
-      "/my-posts",
-      "/my-jobs",
-      "/messages",
-    ];
-    const hasQuickActions = !locked && longPressableTabs.includes(path);
-    const openQuickActions = (el: HTMLButtonElement | null) => {
-      if (!hasQuickActions) return;
-      hapticMedium();
-      quickActionAnchorRef.current = el;
-      setQuickActionTab(path as typeof quickActionTab);
-    };
-
     const isActive = active || inStack;
     return (
       <TabButton
         key={path}
         onTap={handleClick}
-        onLongPress={openQuickActions}
-        longPressEnabled={hasQuickActions}
         onPrefetch={() => !locked && prefetchRoute(effectivePath)}
         ariaLabel={locked ? `${label} — locked until your account is approved` : label}
         ariaCurrent={isActive ? "page" : undefined}
@@ -755,13 +675,6 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
       </nav>
 
       <GateSheet open={gateOpen} onOpenChange={setGateOpen} />
-
-      <QuickActionSheet
-        quickActionTab={quickActionTab}
-        onClose={() => setQuickActionTab(null)}
-        quickActions={quickActions}
-        anchorRef={quickActionAnchorRef}
-      />
     </>
   );
 });

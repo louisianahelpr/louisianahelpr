@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState, useCallback } from "react";
+import type { MouseEvent as ReactMouseEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { unwrapMutation, isWriteRejected, mutationErrorMessage } from "@/lib/mutationResult";
@@ -793,6 +794,20 @@ export function JobTracking({
   });
   const arrivalCaption = arrivalStateLabel(currentArrivalState);
 
+  // Timestamp behind each COMPLETED step, for the tap/hover tooltip below.
+  // Reuses fields the tracker already has in scope — no new backend field.
+  // Steps with no reliable single timestamp (Offered/Posted, Working — the
+  // "working" span has a start but no dedicated stamp on this row) render
+  // without a tooltip rather than guessing.
+  const stepTimestamps: Partial<Record<string, string | null | undefined>> = {
+    confirmed: helperConfirmedAt,
+    job_confirmed: posterConfirmedAt,
+    on_the_way: jobStamps.onTheWayAt,
+    arrived: jobStamps.arrivedAt ?? jobStamps.arrivalVerifiedAt ?? jobStamps.posterConfirmedArrivalAt,
+    done: jobStamps.helperCompletedAt ?? jobStamps.posterCompletedAt,
+  };
+  const [openStepTooltip, setOpenStepTooltip] = useState<string | null>(null);
+
   const displaySteps = includePostingSteps ? [...PRE_STATUSES, ...STATUSES] : STATUSES;
   const displayIdx = includePostingSteps
     ? helperId
@@ -917,20 +932,41 @@ export function JobTracking({
             {displaySteps.map((s, idx) => {
               const isActive = idx <= displayIdx;
               const isCurrent = idx === displayIdx;
+              const isPassed = idx < displayIdx;
+              // Whole tracker reached the end — every active step reads as
+              // done, current dot included (owner: "if it reaches Done, all
+              // green").
+              const allDone = displayIdx === displaySteps.length - 1;
+              // A dispute is pinned to the Working step specifically —
+              // wherever the row actually is when it happens, "Working" is
+              // where the job went wrong, so it stays red even once the job
+              // has since moved past it.
+              const disputedWorking = jobStatus === "disputed" && s.key === "working";
               // THE CURRENT STEP CARRIES THE TROUBLE. A job in revision or in
               // dispute used to paint the same bark green as one running
               // perfectly, so the tracker — the biggest thing on the card —
               // was the one element that never said anything had gone wrong.
-              // Amber for a revision, red for a dispute (owner). Only the
-              // CURRENT dot changes: the steps behind it really did happen and
-              // recolouring the whole line would read as "none of this counts".
+              // Amber for a resolution pending (not yet escalated), red for a
+              // dispute (owner). Only the CURRENT dot changes here — the
+              // steps behind it really did happen and recolouring the whole
+              // line would read as "none of this counts" — except Working
+              // under an open dispute, and Done once the whole job is green.
               const currentTone =
                 jobStatus === "disputed"
                   ? { fill: "hsl(var(--destructive))", ring: "hsl(var(--destructive) / 0.30)" }
                   : jobStatus === "revision_requested"
                     ? { fill: "hsl(var(--amber-solid))", ring: "hsl(var(--amber-solid) / 0.30)" }
-                    : { fill: "hsl(var(--bark))", ring: "hsl(var(--bark) / 0.30)" };
+                    : allDone
+                      ? { fill: "hsl(var(--success-ink))", ring: "hsl(var(--success-ink) / 0.30)" }
+                      : { fill: "hsl(var(--bark))", ring: "hsl(var(--bark) / 0.30)" };
               const Icon = s.icon;
+              const ts = stepTimestamps[s.key];
+              // Tooltip only on a genuinely COMPLETED step (passed, or the
+              // final Done step once the whole job is green) that has a
+              // timestamp to show — never on the still-in-progress current
+              // step, which has no "when" yet.
+              const showTooltip = !!ts && (isPassed || (isCurrent && allDone));
+              const Wrapper = showTooltip ? "button" : "div";
               return (
                 <div
                   key={s.key}
@@ -940,24 +976,60 @@ export function JobTracking({
                   // moment the row is narrower than 8 × 68px they stop growing,
                   // hold their width and scroll — `shrink-0` is what keeps a
                   // label from being squeezed into a hyphenated column.
-                  className="w-[60px] shrink-0 grow snap-center flex flex-col items-center gap-1"
+                  className="w-[60px] shrink-0 grow snap-center flex flex-col items-center gap-1 relative"
                 >
-                  <div
-                    className="w-7 h-7 rounded-full flex items-center justify-center transition-all"
+                  <Wrapper
+                    {...(showTooltip
+                      ? {
+                          type: "button" as const,
+                          onClick: (e: ReactMouseEvent) => {
+                            e.stopPropagation();
+                            setOpenStepTooltip((k) => (k === s.key ? null : s.key));
+                          },
+                          onMouseEnter: () => setOpenStepTooltip(s.key),
+                          onMouseLeave: () => setOpenStepTooltip((k) => (k === s.key ? null : k)),
+                          "aria-label": `${s.label} — ${new Date(ts as string).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`,
+                        }
+                      : {})}
+                    className="w-7 h-7 rounded-full flex items-center justify-center transition-all !min-h-0 !min-w-0"
                     style={
-                      isCurrent
+                      disputedWorking
+                        ? {
+                            background: "hsl(var(--destructive))",
+                            color: "hsl(var(--parchment))",
+                          }
+                        : isCurrent
                         ? {
                             background: currentTone.fill,
                             color: "hsl(var(--parchment))",
                             boxShadow: `0 0 0 2px ${currentTone.ring}, 0 0 0 4px hsl(var(--parchment))`,
                           }
-                        : isActive
-                          ? { background: "hsl(var(--bark) / 0.18)", color: "hsl(var(--bark))" }
-                          : { background: "hsl(var(--olivewood) / 0.08)", color: "hsl(var(--olivewood) / 0.80)" }
+                        : isPassed || (isActive && allDone)
+                          ? { background: "hsl(var(--success-ink) / 0.20)", color: "hsl(var(--success-ink))" }
+                          : isActive
+                            ? { background: "hsl(var(--bark) / 0.18)", color: "hsl(var(--bark))" }
+                            : { background: "hsl(var(--olivewood) / 0.08)", color: "hsl(var(--olivewood) / 0.80)" }
                     }
                   >
                     <Icon className="w-3.5 h-3.5" />
-                  </div>
+                  </Wrapper>
+                  {/* Tap/hover tooltip on a completed step, showing when it
+                      happened. `showTooltip` gates this to steps that both
+                      have a timestamp and are actually done — see the
+                      Wrapper/showTooltip logic above. */}
+                  {showTooltip && openStepTooltip === s.key && (
+                    <div
+                      role="tooltip"
+                      className="absolute top-8 z-20 px-2 py-1 rounded-ds-md text-ds-9 font-sans font-semibold whitespace-nowrap pointer-events-none"
+                      style={{
+                        background: "hsl(var(--ink-deep))",
+                        color: "hsl(var(--parchment))",
+                        boxShadow: "0 4px 14px -4px hsl(var(--ink-deep) / 0.4)",
+                      }}
+                    >
+                      {new Date(ts as string).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                    </div>
+                  )}
                   <span
                     // ds-9 below 360px so "Confirmed" — the longest unbreakable
                     // label — still fits its column on a 320px phone.
@@ -1004,7 +1076,13 @@ export function JobTracking({
                       all three identically, which is how a poster ended up
                       reading "Working" while their card still asked them to
                       confirm the arrival: two ladders, one drawing. */}
-                  {s.key === "arrived" && arrivalCaption && (
+                  {/* Only while Arrived is still the CURRENT step. Once the
+                      job progresses past it (Working, Done, …) the caption
+                      went stale — a job sitting on "Working" still showed
+                      "Poster confirmed" frozen under Arrived, which no
+                      longer told the reader anything they didn't already
+                      know from the step being lit. */}
+                  {s.key === "arrived" && idx === displayIdx && arrivalCaption && (
                     <span
                       className="w-full text-ds-9 font-sans font-semibold text-center leading-tight"
                       style={{
@@ -1035,22 +1113,13 @@ export function JobTracking({
         );
       })()}
 
-      {/* Progress bar — driven by the same `currentStatusIdx` as the step row
-          above, so the two can never disagree (a job sitting on "Done" used to
-          be able to paint a one-seventh sliver). */}
-      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "hsl(var(--olivewood) / 0.10)" }}>
-        <div
-          className="h-full rounded-full motion-safe:transition-all motion-safe:duration-500"
-          style={{
-            width: `${((displayIdx + 1) / displaySteps.length) * 100}%`,
-            background: "hsl(var(--bark) / 0.85)",
-          }}
-        />
-      </div>
+      {/* Progress bar/fill-line REMOVED (owner, 2026-08-30) — the step icons
+          already convey progress on their own; a second bar duplicating the
+          same "how far along" signal directly beneath them was redundant. */}
 
-      {/* Last update — directly below the progress bar (owner: "move below
-          the green line at the end of the tracker"): the freshness stamp
-          closes the tracker it vouches for. */}
+      {/* Last update — directly below the step row (used to sit below the
+          removed progress bar; the freshness stamp still closes the tracker
+          it vouches for). */}
       {tracking && (
         <p className="text-ds-10 text-muted-foreground text-center">
           {/* The helper's name opens the stamp — this line describes THEIR

@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { postSlackOpsAlert } from '../_shared/slack-alerts.ts'
+import { htmlEscape } from '../_shared/safe-strings.ts'
 import { brand } from '../_shared/email-templates/styles.ts'
 
 const corsHeaders = {
@@ -142,6 +143,9 @@ Deno.serve(async (req) => {
 
     const resendApiKey = Deno.env.get('RESEND_API_KEY')
     const fullName = profile.full_name || 'there'
+    // HTML-context copy only — the plaintext bodies keep the raw value so
+    // readers never see &#39; in their mail client.
+    const fullNameHtml = htmlEscape(fullName)
 
     // ---- Action handlers ----
     if (action === 'grant_admin') {
@@ -202,14 +206,14 @@ Deno.serve(async (req) => {
 
       if (resendApiKey) {
         const html = wrapEmail(
-          'You\'re verified ✅',
-          `<p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">Hey ${fullName},</p>
+          'You\'re verified',
+          `<p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">Hey ${fullNameHtml},</p>
            <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">An admin has personally <strong style="color:${brand.burntSienna}">verified your account</strong>. You now have full access to post or accept jobs on Helpr.</p>`,
           `${SITE_URL}/dashboard`,
           'Go to Dashboard',
         )
         const text = `Hey ${fullName},\n\nAn admin has manually verified your account. You now have full access to Helpr.\n\nGo to your dashboard: ${SITE_URL}/dashboard`
-        await sendEmail(resendApiKey, profile.email, 'You\'re verified on Helpr ✅', html, text).catch((e) => console.error('email failed', e))
+        await sendEmail(resendApiKey, profile.email, 'You\'re verified on Helpr', html, text).catch((e) => console.error('email failed', e))
       }
       return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
@@ -292,7 +296,7 @@ Deno.serve(async (req) => {
       if (resendApiKey) {
         const html = wrapEmail(
           'Quick fix needed on your ID',
-          `<p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">Hey ${fullName},</p>
+          `<p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">Hey ${fullNameHtml},</p>
            <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">Your ID photo was a bit hard to read on our end. Can you snap a clearer one so we can finish setting you up?</p>
            ${note ? `<p style="font-size:14px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px;padding:12px;border-radius:8px;background-color:hsl(45,90%,95%);border:1px solid hsl(45,80%,85%)"><strong>Admin note:</strong> ${note}</p>` : ''}`,
           `${SITE_URL}/profile`,
@@ -330,7 +334,7 @@ Deno.serve(async (req) => {
       if (resendApiKey) {
         const html = wrapEmail(
           'Reset your password',
-          `<p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">Hey ${fullName},</p>
+          `<p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">Hey ${fullNameHtml},</p>
            <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">An admin sent you a password reset link. Click the button below to choose a new password. This link expires in 1 hour.</p>`,
           actionLink,
           'Reset Password',
@@ -355,7 +359,7 @@ Deno.serve(async (req) => {
       const strikeNumber = effectivePriorStrikes + 1
       let actionTaken: 'warning' | 'final_warning' | 'suspension' = 'warning'
       let banStatusUpdate: any = { ban_status: 'warned' }
-      let notifTitle = '⚠️ Formal warning (Strike 1 of 3)'
+      let notifTitle = 'Formal warning (Strike 1 of 3)'
       let notifMsg = note || 'You\'ve received a formal warning for a platform rule violation. Please review the platform rules.'
       let emailSubject = 'Helpr — Formal warning issued'
       let emailHeading = 'Formal warning (Strike 1 of 3)'
@@ -367,17 +371,17 @@ Deno.serve(async (req) => {
       if (strikeNumber === 2) {
         actionTaken = 'final_warning'
         banStatusUpdate = { ban_status: 'final_warning' }
-        notifTitle = '🚨 Final warning (Strike 2 of 3)'
+        notifTitle = 'Final warning (Strike 2 of 3)'
         notifMsg = (note || 'You\'ve received a final warning.') + ' One more violation will result in a 7-day suspension. A warning banner will appear at the top of your app.'
         emailSubject = 'Helpr — FINAL warning'
         emailHeading = 'Final warning (Strike 2 of 3)'
-        escalationHtml = '<p style="font-size:14px;color:hsl(0,70%,45%);line-height:1.6;margin:0 0 20px;padding:12px;border-radius:8px;background-color:hsl(0,80%,97%);border:1px solid hsl(0,70%,90%)"><strong>⚠️ This is your final warning.</strong> One more violation will result in an automatic 7-day suspension. A warning banner is now visible at the top of your app.</p>'
+        escalationHtml = '<p style="font-size:14px;color:hsl(0,70%,45%);line-height:1.6;margin:0 0 20px;padding:12px;border-radius:8px;background-color:hsl(0,80%,97%);border:1px solid hsl(0,70%,90%)"><strong>This is your final warning.</strong> One more violation will result in an automatic 7-day suspension. A warning banner is now visible at the top of your app.</p>'
       } else if (strikeNumber >= 3) {
         actionTaken = 'suspension'
         const suspendUntil = new Date()
         suspendUntil.setDate(suspendUntil.getDate() + 7)
         banStatusUpdate = { ban_status: 'temp_banned', auto_suspended_until: suspendUntil.toISOString() }
-        notifTitle = '🚫 Account suspended for 7 days (Strike 3)'
+        notifTitle = 'Account suspended for 7 days (Strike 3)'
         notifMsg = `Your account is suspended until ${suspendUntil.toLocaleDateString()}. ${note ? 'Reason: ' + note : 'You exceeded the 3-strike limit.'} Active bids have been cancelled.`
         emailSubject = 'Helpr — Account suspended (7 days)'
         emailHeading = 'Account suspended for 7 days'
@@ -436,9 +440,9 @@ Deno.serve(async (req) => {
       if (resendApiKey) {
         const html = wrapEmail(
           emailHeading,
-          `<p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">Hey ${fullName},</p>
+          `<p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">Hey ${fullNameHtml},</p>
            <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">${strikeNumber >= 3 ? 'Your account has been automatically suspended due to a third platform policy violation:' : 'You\'ve received a formal warning regarding a platform policy violation:'}</p>
-           ${note ? `<p style="font-size:14px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px;padding:12px;border-radius:8px;background-color:hsl(45,90%,95%);border:1px solid hsl(45,80%,85%)">${note}</p>` : ''}
+           ${note ? `<p style="font-size:14px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px;padding:12px;border-radius:8px;background-color:hsl(45,90%,95%);border:1px solid hsl(45,80%,85%)">${htmlEscape(note)}</p>` : ''}
            ${escalationHtml}`,
           `${SITE_URL}/rules`,
           'Review Platform Rules',

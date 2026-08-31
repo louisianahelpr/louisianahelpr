@@ -74,6 +74,24 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Only {{name}} is substituted. Any other token the admin types would ship
+    // verbatim to up to 5000 inboxes, so refuse the send and name the offender
+    // rather than mailing "Hey {{first_name}}" to the whole list.
+    const leftoverTokens = [
+      ...new Set(
+        (body.html.replaceAll("{{name}}", "").match(/\{\{\s*[\w.]+\s*\}\}/g) ?? [])
+          .concat(body.subject.match(/\{\{\s*[\w.]+\s*\}\}/g) ?? []),
+      ),
+    ];
+    if (leftoverTokens.length > 0) {
+      return new Response(
+        JSON.stringify({
+          error: `Unsupported placeholder(s): ${leftoverTokens.join(", ")}. Only {{name}} is substituted.`,
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     // Resolve recipient list
     let recipients: { email: string; full_name: string | null }[] = [];
 
@@ -167,6 +185,29 @@ Deno.serve(async (req) => {
     }
 
     // Send via the Resend API. Throttle lightly: batches of 10, 200ms between.
+    // The admin types raw HTML, so the footer and the plaintext part have to be
+    // synthesised here — there is no template to hang them off.
+    const UNSUB_FOOTER =
+      '<p style="font-size:12px;color:#77786f;margin:32px 0 0;padding:16px 0 0;border-top:1px solid #e5e2dd">' +
+      'You received this because you opted in to Louisiana Helpr marketing email. ' +
+      '<a href="https://louisianahelpr.com/profile?tab=notifications" style="color:#77786f;text-decoration:underline">Unsubscribe</a>.' +
+      '</p>';
+    const appendUnsubscribeFooter = (html: string) =>
+      html.includes("/profile?tab=notifications") ? html : html + UNSUB_FOOTER;
+    const htmlToPlainText = (html: string) =>
+      html
+        .replace(/<br\s*\/?>/gi, "\n")
+        .replace(/<\/(p|div|h[1-6]|li|tr)>/gi, "\n")
+        .replace(/<[^>]+>/g, "")
+        .replace(/&nbsp;/g, " ")
+        .replace(/&amp;/g, "&")
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .replace(/&#39;/g, "'")
+        .replace(/&quot;/g, '"')
+        .replace(/\n{3,}/g, "\n\n")
+        .trim();
+
     let sent = 0, failed = 0;
     const errors: string[] = [];
 
@@ -174,6 +215,9 @@ Deno.serve(async (req) => {
       const batch = recipients.slice(i, i + 10);
       await Promise.all(batch.map(async (r) => {
         try {
+          const personalisedHtml = appendUnsubscribeFooter(
+            body.html.replaceAll("{{name}}", r.full_name || "neighbor"),
+          );
           const resp = await fetch(RESEND_API_URL, {
             method: "POST",
             headers: {
@@ -184,7 +228,17 @@ Deno.serve(async (req) => {
               from: "Helpr <hello@louisianahelpr.com>",
               to: [r.email],
               subject: body.subject,
-              html: body.html.replaceAll("{{name}}", r.full_name || "neighbor"),
+              html: personalisedHtml,
+              // Every other sender supplies a plaintext part; this one did not.
+              // HTML-only mail is a direct spam-score penalty and is unreadable
+              // in text-only clients and to some screen readers.
+              text: htmlToPlainText(personalisedHtml),
+              // This is the only unambiguously commercial send in the product
+              // and it carried no opt-out of any kind.
+              headers: {
+                "List-Unsubscribe": "<https://louisianahelpr.com/profile?tab=notifications>, <mailto:unsubscribe@louisianahelpr.com>",
+                "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+              },
             }),
           });
           if (!resp.ok) {

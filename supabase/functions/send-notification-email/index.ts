@@ -236,10 +236,16 @@ Deno.serve(async (req) => {
     }
 
     try {
-      await supabase.rpc('enqueue_email', {
+      // supabase-js `.rpc()` RESOLVES with { data, error } — it does not throw on a
+      // Postgres-side failure. Without this destructure a missing queue / PGRST202 /
+      // RLS denial skipped the catch below, so the direct-send fallback never ran and
+      // recordLog('sent') reported a delivery that never happened. This is the
+      // highest-volume email path in the product.
+      const { error: enqueueError } = await supabase.rpc('enqueue_email', {
         queue_name: 'transactional_emails',
         payload: emailPayload,
       })
+      if (enqueueError) throw new Error(`enqueue_email failed: ${enqueueError.message}`)
       await recordLog('sent')
       console.log(`Notification email enqueued for ${profile.email}: ${title}`)
     } catch (enqueueErr) {

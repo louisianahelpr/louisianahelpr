@@ -58,11 +58,34 @@ serve(async (req) => {
     // left to release or refund them. The job must reach a terminal state
     // (completed/cancelled) and escrow must be settled first.
     // `.or(...).or(...)` ANDs the two clauses: (I'm a party) AND (it's live).
+    //
+    // ⚠️ Every value below MUST be a real member of the `job_status` enum:
+    //   open | accepted | in_progress | completed | cancelled |
+    //   revision_requested | disputed | pending_approval
+    // (see supabase/migrations/20260311000404_*.sql plus the three ADD VALUE
+    // migrations). Postgres rejects the whole query with 22P02 "invalid input
+    // value for enum job_status" if ANY listed value is not a member — and
+    // because the block below fails closed on `activeErr`, one bad value makes
+    // account deletion return 500 for EVERY user, not just users with jobs.
+    // That is exactly what happened: this list previously contained `arrived`
+    // and `awaiting`, neither of which is a job_status. `arrived` is a
+    // `job_tracking.status` value; `awaiting` exists nowhere. Result: 100% of
+    // in-app account deletions failed with 500 — an App Store compliance gate.
+    // Verified against prod 2026-08-31: the query 400s with 22P02 regardless of
+    // user id, and delete-own-account answered 500 for a fresh test account
+    // that had no live jobs at all.
+    //
+    // `disputed` and `payout_pending` are included deliberately: both mean the
+    // counterparty still has money or a claim in flight, which is the stated
+    // reason this guard exists.
     const { data: activeJobs, error: activeErr } = await supabaseAdmin
       .from("jobs")
       .select("id")
       .or(`customer_id.eq.${user.id},helper_id.eq.${user.id}`)
-      .or("status.in.(accepted,arrived,in_progress,awaiting),payment_status.eq.escrow")
+      .or(
+        "status.in.(accepted,in_progress,revision_requested,disputed)," +
+          "payment_status.in.(escrow,payout_pending)",
+      )
       .limit(1);
 
     if (activeErr) {

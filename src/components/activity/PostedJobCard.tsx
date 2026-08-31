@@ -1,7 +1,7 @@
 import { memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, RotateCcw, Users, RefreshCw, Clock, Check, ChevronDown } from "lucide-react";
+import { CheckCircle2, RotateCcw, Users, RefreshCw, Clock, Check } from "lucide-react";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
 import { SeriesStrip } from "@/components/activity/SeriesStrip";
 import { JobCountdown } from "@/components/activity/JobCountdown";
@@ -121,26 +121,6 @@ function PostedJobCardInner({
    */
   const metaRow = (
               <JobCardMetaRow
-                // The card's ONE expand affordance. Every posted card is
-                // collapsed on arrival now (owner, 2026-08-27), so it needs a
-                // visible control saying there is more underneath — there was
-                // none: the only chevron on this card lived in the
-                // "Tipped & Reviewed" strip, which renders on archived cards
-                // and nowhere else.
-                //
-                // A bare rotating glyph, pinned to the end of the meta line, is
-                // what the code around it has described for a while ("move the
-                // details arrow up and remove the words details") without
-                // anything actually passing `trailing`. It costs no row.
-                // Non-interactive: the whole card is the hit target (see
-                // JobCardShell), so a nested button here would be a control
-                // inside a control.
-                trailing={
-                  <ChevronDown
-                    aria-hidden
-                    className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
-                  />
-                }
                 dateNeeded={job.date_needed}
                 startTime={job.start_time}
                 flexibleLabel="Flexible time"

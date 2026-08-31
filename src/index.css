@@ -2829,6 +2829,31 @@ button,
   }
 }
 
+/* Step-current pulse — same gentle heartbeat as urgent-pulse, but its
+   glow color is set per-instance via --step-pulse-ring/--step-pulse-ring-end
+   custom props (the job tracker's "current step" dot changes color by
+   status — bark/green/amber/red — so the animation can't hardcode one hue
+   the way urgent-pulse hardcodes burnt-sienna). */
+@keyframes step-current-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 var(--step-pulse-ring, hsl(var(--bark) / 0.45));
+  }
+  50% {
+    transform: scale(1.06);
+    box-shadow: 0 0 0 5px var(--step-pulse-ring-end, hsl(var(--bark) / 0));
+  }
+}
+.step-current-pulse {
+  animation: step-current-pulse 1.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  transform-origin: center;
+}
+@media (prefers-reduced-motion: reduce) {
+  .step-current-pulse {
+    animation: none;
+  }
+}
+
 /* Urgent pulse — gentle heartbeat on the urgent chip so it reads as
    "live" without strobing or glowing. Scale + opacity only, no shadow
    bloom. Restraint over effects. */

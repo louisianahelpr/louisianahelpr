@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState, useCallback } from "react";
-import type { MouseEvent as ReactMouseEvent } from "react";
+import type { MouseEvent as ReactMouseEvent, CSSProperties } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { unwrapMutation, isWriteRejected, mutationErrorMessage } from "@/lib/mutationResult";
@@ -953,12 +953,12 @@ export function JobTracking({
               // under an open dispute, and Done once the whole job is green.
               const currentTone =
                 jobStatus === "disputed"
-                  ? { fill: "hsl(var(--destructive))", ring: "hsl(var(--destructive) / 0.30)" }
+                  ? { fill: "hsl(var(--destructive))", ring: "hsl(var(--destructive) / 0.30)", ringEnd: "hsl(var(--destructive) / 0)" }
                   : jobStatus === "revision_requested"
-                    ? { fill: "hsl(var(--amber-solid))", ring: "hsl(var(--amber-solid) / 0.30)" }
+                    ? { fill: "hsl(var(--amber-solid))", ring: "hsl(var(--amber-solid) / 0.30)", ringEnd: "hsl(var(--amber-solid) / 0)" }
                     : allDone
-                      ? { fill: "hsl(var(--success-ink))", ring: "hsl(var(--success-ink) / 0.30)" }
-                      : { fill: "hsl(var(--bark))", ring: "hsl(var(--bark) / 0.30)" };
+                      ? { fill: "hsl(var(--success-ink))", ring: "hsl(var(--success-ink) / 0.30)", ringEnd: "hsl(var(--success-ink) / 0)" }
+                      : { fill: "hsl(var(--bark))", ring: "hsl(var(--bark) / 0.30)", ringEnd: "hsl(var(--bark) / 0)" };
               const Icon = s.icon;
               const ts = stepTimestamps[s.key];
               // Tooltip only on a genuinely COMPLETED step (passed, or the
@@ -991,7 +991,7 @@ export function JobTracking({
                           "aria-label": `${s.label} — ${new Date(ts as string).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`,
                         }
                       : {})}
-                    className="w-7 h-7 rounded-full flex items-center justify-center transition-all !min-h-0 !min-w-0"
+                    className={`w-7 h-7 rounded-full flex items-center justify-center transition-all !min-h-0 !min-w-0 ${isCurrent && !disputedWorking ? "step-current-pulse" : ""}`}
                     style={
                       disputedWorking
                         ? {
@@ -999,13 +999,15 @@ export function JobTracking({
                             color: "hsl(var(--parchment))",
                           }
                         : isCurrent
-                        ? {
+                        ? ({
                             background: currentTone.fill,
                             color: "hsl(var(--parchment))",
                             boxShadow: `0 0 0 2px ${currentTone.ring}, 0 0 0 4px hsl(var(--parchment))`,
-                          }
+                            "--step-pulse-ring": currentTone.ring,
+                            "--step-pulse-ring-end": currentTone.ringEnd,
+                          } as CSSProperties)
                         : isPassed || (isActive && allDone)
-                          ? { background: "hsl(var(--success-ink) / 0.20)", color: "hsl(var(--success-ink))" }
+                          ? { background: "hsl(var(--success-ink))", color: "hsl(var(--parchment))" }
                           : isActive
                             ? { background: "hsl(var(--bark) / 0.18)", color: "hsl(var(--bark))" }
                             : { background: "hsl(var(--olivewood) / 0.08)", color: "hsl(var(--olivewood) / 0.80)" }

@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Send, Plus, X, FileText, Loader2, Mic, MicOff, Square } from "lucide-react";
 import { toast } from "sonner";
 import { scanMessage } from "@/lib/messageScanner";
+import { MESSAGE_MAX_LENGTH } from "@/lib/messageLimits";
 import { hapticLight, hapticMedium, hapticError } from "@/lib/haptics";
 import { usePermissionRationale } from "@/hooks/usePermissionRationale";
 import { useVoiceDictation } from "@/hooks/useVoiceDictation";
@@ -292,6 +293,11 @@ export const RichMessageInput = ({
     if (!assertWritable()) return;
 
     if (text.trim()) {
+      if (text.length > MESSAGE_MAX_LENGTH) {
+        hapticError();
+        toast.error(`Messages are limited to ${MESSAGE_MAX_LENGTH.toLocaleString()} characters.`);
+        return;
+      }
       const violations = scanMessage(text);
       if (violations.length > 0) {
         hapticError();
@@ -425,6 +431,7 @@ export const RichMessageInput = ({
           value={text}
           onChange={(e) => { setText(e.target.value); notifyTyping(); }}
           onKeyDown={(e) => e.key === "Enter" && handleSend()}
+          maxLength={MESSAGE_MAX_LENGTH}
           className="flex-1"
           disabled={disabled || uploading || recorder.state === "recording" || recorder.state === "stopped"}
         />

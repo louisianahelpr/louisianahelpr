@@ -3,6 +3,7 @@ import type { Dispatch, Ref, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertTriangle, X } from "lucide-react";
 import { toast } from "sonner";
+import { MESSAGE_MAX_LENGTH } from "@/lib/messageLimits";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { MessageActionSheet } from "./MessageActionSheet";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
@@ -220,6 +221,10 @@ export function ChatView({
   }, [editingMessage]);
   const saveEdit = async () => {
     if (!editingMessage) return;
+    if (editDraft.length > MESSAGE_MAX_LENGTH) {
+      toast.error(`Messages are limited to ${MESSAGE_MAX_LENGTH.toLocaleString()} characters.`);
+      return;
+    }
     setSavingEdit(true);
     await onEditMessage(editingMessage.id, editDraft);
     setSavingEdit(false);
@@ -492,7 +497,7 @@ export function ChatView({
         }
         primaryLabel={savingEdit ? "Saving…" : "Save"}
         primaryTone="bark"
-        primaryDisabled={savingEdit || !editDraft.trim()}
+        primaryDisabled={savingEdit || !editDraft.trim() || editDraft.length > MESSAGE_MAX_LENGTH}
         primaryHaptic="none"
         onPrimary={(e) => { e.preventDefault(); saveEdit(); }}
         secondaryLabel="Cancel"
@@ -502,9 +507,18 @@ export function ChatView({
           onChange={(e) => setEditDraft(e.target.value)}
           rows={3}
           autoFocus
+          maxLength={MESSAGE_MAX_LENGTH}
           className="w-full rounded-ds-md border px-3 py-2 text-ds-13 font-sans resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
           style={{ borderColor: "hsl(var(--olivewood) / 0.2)", background: "hsl(var(--ivory-sand) / 0.5)", color: "hsl(var(--ink-deep))" }}
         />
+        {editDraft.length > MESSAGE_MAX_LENGTH * 0.9 && (
+          <p
+            className="text-ds-10 text-right mt-1"
+            style={{ color: editDraft.length > MESSAGE_MAX_LENGTH ? "hsl(var(--destructive))" : "hsl(var(--olivewood) / 0.6)" }}
+          >
+            {editDraft.length.toLocaleString()} / {MESSAGE_MAX_LENGTH.toLocaleString()}
+          </p>
+        )}
       </BrandConfirmDialog>
     </ChatPaneShell>
   );

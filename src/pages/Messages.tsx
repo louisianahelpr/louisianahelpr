@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { BlockUserDialog } from "@/components/BlockUserDialog";
 import { hapticHeavy, hapticSuccess, hapticError } from "@/lib/haptics";
+import { MESSAGE_MAX_LENGTH } from "@/lib/messageLimits";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { toast } from "sonner";
 import ReportDialog from "@/components/ReportDialog";
@@ -327,6 +328,11 @@ const Messages = () => {
   const editMessage = async (messageId: string, newContent: string) => {
     const trimmed = newContent.trim();
     if (!trimmed) return;
+    if (trimmed.length > MESSAGE_MAX_LENGTH) {
+      hapticError();
+      toast.error(`Messages are limited to ${MESSAGE_MAX_LENGTH.toLocaleString()} characters.`);
+      return;
+    }
     const { data, error } = await supabase
       .from("messages")
       .update({ content: trimmed })

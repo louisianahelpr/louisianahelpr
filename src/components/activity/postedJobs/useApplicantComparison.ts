@@ -13,7 +13,13 @@ type ScoredApp = {
 
 interface UseApplicantComparisonArgs {
   applications: EnrichedApplication[];
-  expandedJobId: string | null;
+  // Was `expandedJobId`, coupled to the card-accordion's expand state — now
+  // multiple cards can be expanded at once (see PostedJobCard), so that
+  // value no longer identifies "the job whose applicants panel is open."
+  // This panel already receives `selectedJob` for that; keying the
+  // sort-reset off its id is the correct dependency regardless of how many
+  // cards are expanded underneath.
+  selectedJobId: string;
   neighborCountMap: Map<string, number>;
   completedCountsMap: Map<string, number>;
   repeatHireMap: Map<string, number>;
@@ -28,7 +34,7 @@ interface UseApplicantComparisonArgs {
  */
 export function useApplicantComparison({
   applications,
-  expandedJobId,
+  selectedJobId,
   neighborCountMap,
   completedCountsMap,
   repeatHireMap,
@@ -155,7 +161,7 @@ export function useApplicantComparison({
   // so behaviour for real (set_price) jobs is unchanged.
   useEffect(() => {
     setApplicantSort("recommended");
-  }, [expandedJobId]);
+  }, [selectedJobId]);
 
   return {
     applicantSort,

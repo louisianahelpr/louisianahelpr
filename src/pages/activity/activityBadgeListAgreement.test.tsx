@@ -220,8 +220,8 @@ describe("Activity (helper) — every counted row actually renders a card", () =
         <AppliedJobCard
           app={app}
           highlight={false}
-          expandedJobId={null}
-          setExpandedJobId={noop}
+          expandedJobIds={new Set()}
+          toggleExpandedJobId={noop}
           helperReviewedJobIds={new Set<string>()}
           initialTracking={null}
           userId={HELPER}

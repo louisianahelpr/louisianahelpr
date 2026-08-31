@@ -40,8 +40,8 @@ import { DisputedSection } from "./appliedJobCard/DisputedSection";
 function AppliedJobCardInner({
   app,
   highlight = false,
-  expandedJobId,
-  setExpandedJobId,
+  expandedJobIds,
+  toggleExpandedJobId,
   helperReviewedJobIds,
   initialTracking,
   userId,
@@ -132,7 +132,7 @@ function AppliedJobCardInner({
     app,
     job,
     helperReviewedJobIds,
-    expandedJobId,
+    expandedJobIds,
     // The viewer's own tier rate, used only when the job has no rate stamped
     // on it yet — see the fee-precedence note in appliedJobCardHelpers.
     viewerFeePercent,
@@ -160,7 +160,7 @@ function AppliedJobCardInner({
         <JobCardShell
           expandable={!isMinimalCard}
           expanded={isExpanded}
-          onToggle={() => setExpandedJobId(isExpanded ? null : app.job_id)}
+          onToggle={() => toggleExpandedJobId(app.job_id)}
           category={job.category}
         >
           <JobCardTitleBar
@@ -326,7 +326,7 @@ function AppliedJobCardInner({
                   ariaLabel="Edit your application"
                   tone="edit"
                   onClick={() => {
-                    setExpandedJobId(app.job_id);
+                    if (!isExpanded) toggleExpandedJobId(app.job_id);
                     setEditingMessageAppId(app.id);
                     setEditMessageText(app.message || "");
                   }}

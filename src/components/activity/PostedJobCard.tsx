@@ -31,8 +31,8 @@ import { JOB_ACTION_FULL_CLASS, jobActionChipStyle } from "./JobActionRow";
 function PostedJobCardInner({
   job,
   applicantCounts,
-  expandedJobId,
-  setExpandedJobId,
+  expandedJobIds,
+  toggleExpandedJobId,
   helperNames,
   completedJobMeta,
   userId,
@@ -74,7 +74,7 @@ function PostedJobCardInner({
   // showed. Both are gone — every card expands, and every card hides its body
   // until it does — so "archived completed" is no longer a special layout.
   // The "Tipped & Reviewed" strip below reads completedJobMeta directly.
-  const isExpanded = expandedJobId === job.id;
+  const isExpanded = expandedJobIds.has(job.id);
 
   // A description that merely restates the title is not a description.
   const hasDescription =
@@ -181,7 +181,7 @@ function PostedJobCardInner({
             // all of them.
             expandable
             expanded={isExpanded}
-            onToggle={() => setExpandedJobId(isExpanded ? null : job.id)}
+            onToggle={() => toggleExpandedJobId(job.id)}
             // scroll-mt keeps a card's title from ghosting up under the
             // translucent (~0.85 opacity) page title card when it scrolls
             // to the top of the list.

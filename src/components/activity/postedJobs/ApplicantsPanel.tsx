@@ -22,7 +22,6 @@ interface ApplicantsPanelProps {
       and bidding is gone. Kept on the interface so PostedJobsTab still
       type-checks until it stops passing it. */
   jobs?: Job[];
-  expandedJobId: string | null;
   selectedJob: Job;
   setSelectedJob: (job: Job | null) => void;
   applications: EnrichedApplication[];
@@ -43,7 +42,6 @@ interface ApplicantsPanelProps {
 }
 
 export function ApplicantsPanel({
-  expandedJobId,
   selectedJob,
   setSelectedJob,
   applications,
@@ -97,7 +95,7 @@ export function ApplicantsPanel({
     saveNote,
   } = useApplicantComparison({
     applications,
-    expandedJobId,
+    selectedJobId: selectedJob.id,
     neighborCountMap,
     completedCountsMap,
     repeatHireMap,

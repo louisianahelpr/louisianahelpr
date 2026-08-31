@@ -22,8 +22,8 @@ interface AppliedJobsTabProps {
    *  scrolls into view and shows a brief pulse ring on mount. Consumed
    *  once — the parent strips the param from the URL after mount. */
   highlightAppId?: string | null;
-  expandedJobId: string | null;
-  setExpandedJobId: (id: string | null) => void;
+  expandedJobIds: Set<string>;
+  toggleExpandedJobId: (id: string) => void;
   helperReviewedJobIds: Set<string>;
   /** Batched per-job tracking rows, pre-fetched by useActivityData and
       threaded down to <JobTracking> so each active card doesn't re-fetch
@@ -51,7 +51,7 @@ interface AppliedJobsTabProps {
 }
 
 export const AppliedJobsTab = ({
-  apps, highlightAppId, expandedJobId, setExpandedJobId,
+  apps, highlightAppId, expandedJobIds, toggleExpandedJobId,
   helperReviewedJobIds, latestTracking, userId, onHelperResponse,
   respondingHelperAppId,
   onComplete, completingJobId,
@@ -230,8 +230,8 @@ export const AppliedJobsTab = ({
     <AppliedJobCard
       app={app}
       highlight={!!highlightAppId && highlightAppId === app.id}
-      expandedJobId={expandedJobId}
-      setExpandedJobId={setExpandedJobId}
+      expandedJobIds={expandedJobIds}
+      toggleExpandedJobId={toggleExpandedJobId}
       helperReviewedJobIds={helperReviewedJobIds}
       // `latestTracking[app.job_id]` may legitimately be `null`
       // ("we looked, no row exists") — the card forwards that into

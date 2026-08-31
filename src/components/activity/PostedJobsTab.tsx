@@ -20,8 +20,8 @@ import { ApplicantsPanel } from "./postedJobs/ApplicantsPanel";
 interface PostedJobsTabProps {
   jobs: Job[];
   applicantCounts: Record<string, number>;
-  expandedJobId: string | null;
-  setExpandedJobId: (id: string | null) => void;
+  expandedJobIds: Set<string>;
+  toggleExpandedJobId: (id: string) => void;
   helperNames: Record<string, string>;
   completedJobMeta: Record<string, { tipped: boolean; reviewed: boolean }>;
   /** Batched per-card tracking + group-helper data, pre-fetched by
@@ -73,7 +73,7 @@ interface PostedJobsTabProps {
 }
 
 export const PostedJobsTab = ({
-  jobs, applicantCounts, expandedJobId, setExpandedJobId,
+  jobs, applicantCounts, expandedJobIds, toggleExpandedJobId,
   helperNames, completedJobMeta,
   latestTracking, groupHelpersByJob, userId,
   onBoost, onEdit, onCancel, onComplete, completingJobId,
@@ -130,8 +130,8 @@ export const PostedJobsTab = ({
       <PostedJobCard
         job={job}
         applicantCounts={applicantCounts}
-        expandedJobId={expandedJobId}
-        setExpandedJobId={setExpandedJobId}
+        expandedJobIds={expandedJobIds}
+        toggleExpandedJobId={toggleExpandedJobId}
         helperNames={helperNames}
         completedJobMeta={completedJobMeta}
         // `latestTracking[job.id]` may legitimately be `null` ("we
@@ -255,7 +255,6 @@ export const PostedJobsTab = ({
       {/* Applicants full-screen comparison view */}
       {selectedJob && (
         <ApplicantsPanel
-          expandedJobId={expandedJobId}
           selectedJob={selectedJob}
           setSelectedJob={setSelectedJob}
           applications={applications}

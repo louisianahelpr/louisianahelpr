@@ -27,8 +27,8 @@ export interface AppliedJobCardProps {
    *  was about (/my-jobs?highlight=<appId> deep-link). Respects
    *  prefers-reduced-motion — animation skipped but scroll still fires. */
   highlight?: boolean;
-  expandedJobId: string | null;
-  setExpandedJobId: (id: string | null) => void;
+  expandedJobIds: Set<string>;
+  toggleExpandedJobId: (id: string) => void;
   helperReviewedJobIds: Set<string>;
   /** Pre-fetched latest tracking row for this job. `null` = pre-fetched
       and no row exists yet; `undefined` = not pre-fetched (the child

@@ -438,7 +438,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
 
         {/* Meta row — category lives in the badge above, so this leads
             with location. */}
-        <div className="mt-2 flex flex-col gap-1 text-ds-11 text-muted-foreground leading-tight">
+        <div className="mt-1.5 flex flex-col gap-0.5 text-ds-11 text-muted-foreground leading-tight">
           {/* Row 1 — where + when. The expiry countdown deliberately does NOT
               live here: this row is flex-nowrap, so every extra chip steals
               width from the city, which has min-w-0 and collapses first. With

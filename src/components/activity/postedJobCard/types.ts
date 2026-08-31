@@ -6,8 +6,8 @@ export interface PostedJobCardProps {
   /** The job + its embedded data — one row of the posted feed. */
   job: Job;
   applicantCounts: Record<string, number>;
-  expandedJobId: string | null;
-  setExpandedJobId: (id: string | null) => void;
+  expandedJobIds: Set<string>;
+  toggleExpandedJobId: (id: string) => void;
   helperNames: Record<string, string>;
   completedJobMeta: Record<string, { tipped: boolean; reviewed: boolean }>;
   userId: string;

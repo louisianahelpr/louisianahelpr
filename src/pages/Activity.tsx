@@ -405,8 +405,8 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               groupByStatus={statusFilter === "all"}
               jobs={filteredPostedJobs}
               applicantCounts={applicantCounts}
-              expandedJobId={actions.expandedJobId}
-              setExpandedJobId={actions.setExpandedJobId}
+              expandedJobIds={actions.expandedJobIds}
+              toggleExpandedJobId={actions.toggleExpandedJobId}
               helperNames={helperNames}
               completedJobMeta={completedJobMeta}
               latestTracking={latestTracking}
@@ -457,8 +457,8 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               groupByStatus={statusFilter === "all"}
               apps={filteredAppliedApps}
               highlightAppId={highlightAppId}
-              expandedJobId={actions.expandedJobId}
-              setExpandedJobId={actions.setExpandedJobId}
+              expandedJobIds={actions.expandedJobIds}
+              toggleExpandedJobId={actions.toggleExpandedJobId}
               helperReviewedJobIds={helperReviewedJobIds}
               latestTracking={latestTracking}
               userId={user!.id}

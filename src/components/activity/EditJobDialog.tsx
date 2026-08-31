@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHero } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
+import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
 import { categories, type Job } from "./activityConstants";
 import { todayLocalISO } from "@/lib/dateUtils";
 
@@ -72,10 +73,20 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
       location: location.trim(), date_needed: dateNeeded, start_time: startTime || null,
       special_requirements: specialReq.trim() || null,
     };
-    const { error } = await supabase.from("jobs").update(updateData).eq("id", job.id);
-    setSaving(false);
-    if (error) { hapticError(); toast.error("We couldn't save your changes — please try again."); }
-    else { hapticSuccess(); onSaved(); onClose(); }
+    try {
+      unwrapMutation(
+        await supabase.from("jobs").update(updateData).eq("id", job.id).select("id"),
+        { action: "save these changes" },
+      );
+      hapticSuccess();
+      onSaved();
+      onClose();
+    } catch (err) {
+      hapticError();
+      toast.error(mutationErrorMessage(err, "We couldn't save your changes — please try again."));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleSaveClick = () => setShowConfirm(true);

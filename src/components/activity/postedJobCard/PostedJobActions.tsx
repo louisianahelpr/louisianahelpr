@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { createNotification } from "@/lib/notifications";
 import { report } from "@/lib/errorLogger";
+import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
 import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { AUTO_COMPLETE_HOURS, hoursToMs } from "../../../../supabase/functions/_shared/escrowTiming";
@@ -751,8 +752,16 @@ export function PostedJobActions({
                   e.stopPropagation();
                   setDisputeActing(true);
                   try {
-                    const { error } = await supabase.from("jobs").update({ dispute_status: "escalated" }).eq("id", job.id);
-                    if (error) { hapticError(); toast.error("We couldn't escalate that — please try again."); return; }
+                    try {
+                      unwrapMutation(
+                        await supabase.from("jobs").update({ dispute_status: "escalated" }).eq("id", job.id).select("id"),
+                        { action: "escalate this dispute" },
+                      );
+                    } catch (err) {
+                      hapticError();
+                      toast.error(mutationErrorMessage(err, "We couldn't escalate that — please try again."));
+                      return;
+                    }
                     const { data: adminRoles, error: adminErr } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
                     if (adminErr) report(adminErr, { tags: { source: "PostedJobCard.escalateNotifyAdmins" } });
                     if (adminRoles) { for (const admin of adminRoles) { await createNotification({ user_id: admin.user_id, title: "🚨 Dispute escalated", message: `"${job.title}" dispute has been escalated and requires admin decision.`, type: "warning", link: "/admin" }); } }

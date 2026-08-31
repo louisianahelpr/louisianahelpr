@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { compressImage } from "@/lib/imageCompression";
 import { report } from "@/lib/errorLogger";
+import { unwrapMutation } from "@/lib/mutationResult";
 
 /**
  * useJobMediaUpload — owns the post-a-job photo + scope-video state and the
@@ -162,9 +163,13 @@ export function useJobMediaUpload() {
     setUploading(true);
     const photoUrls = hasPhotos ? await uploadImages(jobId) : [];
     if (photoUrls.length > 0) {
-      const { error: photoErr } = await supabase.from("jobs").update({ photos: photoUrls }).eq("id", jobId);
-      if (photoErr) {
-        report(photoErr, { tags: { source: "useJobMediaUpload.attachPhotos" } });
+      try {
+        unwrapMutation(
+          await supabase.from("jobs").update({ photos: photoUrls }).eq("id", jobId).select("id"),
+          { action: "attach these photos to the job" },
+        );
+      } catch (photoErr) {
+        report(photoErr as Error, { tags: { source: "useJobMediaUpload.attachPhotos" } });
         toast.error("Your job posted, but the photos didn't attach — you can add them from the job page.");
       }
     }
@@ -178,10 +183,14 @@ export function useJobMediaUpload() {
           .upload(path, scopeVideoFile, { upsert: true });
         if (!vidErr) {
           const { data: urlData } = supabase.storage.from("job-photos").getPublicUrl(path);
-          await supabase
-            .from("jobs")
-            .update({ scope_video_url: urlData.publicUrl })
-            .eq("id", jobId);
+          try {
+            unwrapMutation(
+              await supabase.from("jobs").update({ scope_video_url: urlData.publicUrl }).eq("id", jobId).select("id"),
+              { action: "attach the scope video to the job" },
+            );
+          } catch (attachErr) {
+            report(attachErr as Error, { tags: { source: "PostJob.attachScopeVideo" } });
+          }
         } else {
           report(vidErr, { tags: { source: "PostJob.uploadScopeVideo" } });
         }
@@ -207,11 +216,16 @@ export function useJobMediaUpload() {
     if (upErr) return; // non-fatal — video is a nice-to-have
     const { data } = supabase.storage.from("job-photos").getPublicUrl(path);
     if (!data?.publicUrl) return;
-    // Non-fatal — the column may not exist on prod yet; ignore any error.
-    await supabase
+    // Non-fatal — the column may not exist on prod yet; ignore any error,
+    // but still surface a silent zero-row rejection so it's visible in logs.
+    const { data: rows } = await supabase
       .from("jobs")
       .update({ scope_video_url: data.publicUrl })
-      .eq("id", jobId);
+      .eq("id", jobId)
+      .select("id");
+    if (rows && rows.length === 0) {
+      report(new Error("scope video attach affected 0 rows"), { tags: { source: "PostJob.uploadAndAttachScopeVideo" }, context: { jobId } });
+    }
   };
 
   return {

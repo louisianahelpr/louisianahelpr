@@ -39,7 +39,7 @@ import {
 import { ProfileLanding } from "@/components/profile/ProfileLanding";
 import SectionBoundary from "@/components/SectionBoundary";
 import { ProfileTabPanels } from "./profile/ProfileTabPanels";
-import { TAB_TITLES, type Profile, type Tab } from "./profile/types";
+import { TAB_TITLES, resolveTab, type Profile, type Tab } from "./profile/types";
 import { hasInAppHistory } from "@/lib/inAppHistory";
 const DeleteAccountDialog = lazy(() => import("@/components/profile/DeleteAccountDialog").then(m => ({ default: m.DeleteAccountDialog })));
 
@@ -87,7 +87,7 @@ const ProfilePage = () => {
   const [saving, setSaving] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
   const [avatarBroken, setAvatarBroken] = useState(false);
-  const initialTab = (searchParams.get("tab") as Tab) || "landing";
+  const initialTab = resolveTab(searchParams.get("tab"));
   const [tab, setTab] = useState<Tab>(initialTab);
 
   /**
@@ -137,7 +137,7 @@ const ProfilePage = () => {
   // Sync tab to URL for bookmarkability; React Router owns history so browser
   // back/forward updates searchParams, which the effect below mirrors to state.
   useEffect(() => {
-    const current = (searchParams.get("tab") as Tab | null) || "landing";
+    const current = resolveTab(searchParams.get("tab"));
     if (current === tab) return;
     setSearchParams(
       (prev) => {
@@ -152,7 +152,7 @@ const ProfilePage = () => {
 
   // Mirror URL → state when back/forward (or a deep link) changes the tab param.
   useEffect(() => {
-    const urlTab = (searchParams.get("tab") as Tab | null) || "landing";
+    const urlTab = resolveTab(searchParams.get("tab"));
     setTab((prev) => (prev === urlTab ? prev : urlTab));
   }, [searchParams]);
 

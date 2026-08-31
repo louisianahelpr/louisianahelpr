@@ -40,3 +40,22 @@ export const TAB_TITLES: Record<Exclude<Tab, "landing">, string> = {
   saved_helpers: "Saved Helprs",
   accessibility: "Accessibility",
 };
+
+/**
+ * Runtime guard for the `?tab=` query param.
+ *
+ * `searchParams.get("tab") as Tab` is a lie the compiler cannot catch: any
+ * string satisfies the cast, no panel matches it, and the page renders the nav
+ * chrome with an EMPTY content area — no heading, no error, no fallback.
+ * `/profile?tab=posted_jobs` and `/profile?tab=completed_jobs` (both real tabs
+ * once, both still referenced by e2e/happy-path/auditRoutes.ts) did exactly
+ * that, and so did any typo'd or stale bookmark.
+ *
+ * The valid set is DERIVED from TAB_TITLES so a new tab cannot be added
+ * without also becoming resolvable here.
+ */
+const VALID_TABS = new Set<string>([...Object.keys(TAB_TITLES), "landing"]);
+
+export function resolveTab(raw: string | null | undefined): Tab {
+  return raw && VALID_TABS.has(raw) ? (raw as Tab) : "landing";
+}

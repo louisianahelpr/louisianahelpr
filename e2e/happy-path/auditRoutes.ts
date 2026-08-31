@@ -216,8 +216,12 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   { name: "profile-subscription", url: "/profile?tab=subscription" },
   { name: "profile-support", url: "/profile?tab=support" },
   { name: "profile-notifications", url: "/profile?tab=notifications" },
-  { name: "profile-posted-jobs", url: "/profile?tab=posted_jobs" },
-  { name: "profile-completed-jobs", url: "/profile?tab=completed_jobs" },
+  // posted_jobs / completed_jobs were REMOVED from the Tab union. Sweeping them
+  // graded a heading-less page for months: an unknown ?tab= rendered the nav
+  // chrome with an empty content area. Profile now resolves any unrecognised
+  // tab to `landing` (resolveTab in src/pages/profile/types.ts), so these two
+  // URLs are just the landing tab under two extra names — not worth a cell.
+  { name: "profile-accessibility", url: "/profile?tab=accessibility" },
   { name: "profile-warnings", url: "/profile?tab=warnings" },
   { name: "profile-credentials", url: "/profile?tab=credentials" },
   { name: "profile-saved-helpers", url: "/profile?tab=saved_helpers" },

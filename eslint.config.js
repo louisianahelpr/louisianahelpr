@@ -62,6 +62,34 @@ const DS_TYPE_CLASS_RULE = {
     "Sizes above 40px (the hero ramp) and colour values like text-[hsl(var(--x))] are fine.",
 };
 
+/* ── Opacity is not a state signal ───────────────────────────────────────
+   Dimming a CONTAINER with `opacity-*` to mean "off / disabled / unselected"
+   attenuates its TEXT along with everything else, which silently drops the
+   copy below the 4.5:1 WCAG AA bar. This produced 29 of the 51 contrast
+   failures found in the 2026-08-31 audit, in three independent places:
+
+     ProfileEditForm skill chips      opacity-45  → ~1.85:1  (11 nodes)
+     HelperAvailability "off" cards   opacity-70  → <4.5:1   (12 nodes)
+     NotificationPreferences rows     opacity-60  → <4.5:1   ( 6 nodes)
+
+   Use an explicit muted token for the text, or carry the state with
+   fill-vs-outline, which is what the chips do now.
+
+   Deliberately narrow. Only bare, always-on values 5–75 are banned. These
+   remain legal because they are transient or non-text:
+     active:opacity-70   hover:opacity-100   disabled:opacity-50
+     group-hover:*       focus:*             opacity-80 and above
+   `disabled:` is exempt because WCAG exempts disabled controls.            */
+const OPACITY_STATE_RULE = {
+  selector:
+    "Literal[value=/(?<![-:\\w])opacity-(?:5|10|15|20|25|30|35|40|45|50|55|60|65|70|75)(?![\\d])/]",
+  message:
+    "Don't signal state with a bare opacity-* on a container — it dims the TEXT too and " +
+    "drops it under WCAG AA (this caused 29 contrast failures). Use a muted colour token " +
+    "for the text, or fill-vs-outline for selected state. Prefixed forms " +
+    "(active:/hover:/focus:/disabled:/group-*) and opacity-80+ are still allowed.",
+};
+
 const DS_TYPE_INLINE_RULE = {
   selector:
     "Property[key.name='fontSize'] > Literal[value=/^(?:(?:[1-9]|[1-3][0-9]|40)(?:\\.[0-9]+)?px|[0-2](?:\\.[0-9]+)?rem)$/]",
@@ -91,6 +119,53 @@ const DS_TYPE_INLINE_LEGACY = [
   "src/pages/SubscriptionPage.tsx",
   "src/pages/helperAnalytics/MonthlyGoalCard.tsx",
   "src/pages/helperAnalytics/RatingsReviewsCard.tsx",
+];
+
+/* Files carrying a pre-existing bare `opacity-*`, exempt from
+   OPACITY_STATE_RULE only. A debt ledger, not a permanent allowance — the
+   same pattern as DS_TYPE_INLINE_LEGACY above, and it should only ever get
+   shorter.
+
+   These are grandfathered rather than rewritten because an axe sweep of all
+   69 routes in both themes currently reports ZERO contrast violations, so
+   none of these is failing AA today — the great majority dim an ICON, and
+   WCAG holds non-text graphics to 3:1, not 4.5:1. What the rule is really
+   there to stop is the next person reaching for `opacity-*` to mean "off" on
+   a container that holds TEXT, which is what produced 29 real failures.
+
+   Before deleting a file from this list, re-run axe on the surface it
+   renders on — several of these live inside dialogs, which the route-level
+   sweep does not open.                                                      */
+const OPACITY_STATE_LEGACY = [
+  "src/components/CancellationDialog.tsx",
+  "src/components/CredentialBadge.tsx",
+  "src/components/DateWheelPicker.tsx",
+  "src/components/MessageAttachment.tsx",
+  "src/components/MobileNav.tsx",
+  "src/components/QuickReplies.tsx",
+  "src/components/ReportDialog.tsx",
+  "src/components/TimePickerWheel.tsx",
+  "src/components/TimeRangeField.tsx",
+  "src/components/admin/AdminCommandPalette.tsx",
+  "src/components/admin/AdminReferrals.tsx",
+  "src/components/admin/AdminReports.tsx",
+  "src/components/admin/AdminSubscriptions.tsx",
+  "src/components/admin/UserVerificationHistory.tsx",
+  "src/components/admin/adminJobs/JobListItem.tsx",
+  "src/components/admin/adminPayoutBatches/LedgerList.tsx",
+  "src/components/admin/adminusers/AdminUserRow.tsx",
+  "src/components/dashboard/DashboardInProgressBadge.tsx",
+  "src/components/dashboard/JobCard.tsx",
+  "src/components/dashboard/PhotoLightbox.tsx",
+  "src/components/messages/MessageBubble.tsx",
+  "src/components/profile/HelperScheduleStrip.tsx",
+  "src/components/profile/SkillEndorsements.tsx",
+  "src/components/profile/earningsTab/RecentTransfers.tsx",
+  "src/components/profile/profileLanding/IdentityHeader.tsx",
+  "src/components/ui/calendar.tsx",
+  "src/components/ui/dropdown-menu.tsx",
+  "src/components/ui/select.tsx",
+  "src/pages/userProfile/ReviewsSection.tsx",
 ];
 
 export default tseslint.config(
@@ -189,7 +264,7 @@ export default tseslint.config(
       // way to set brand colours here and must stay legal. Sizes above the
       // scale's 40px ceiling are also allowed — the marketing hero ramp
       // (3.5rem…7.25rem) genuinely has no rung.
-      "no-restricted-syntax": ["error", DS_TYPE_CLASS_RULE, DS_TYPE_INLINE_RULE, ...NATIVE_ORIGIN_RULES],
+      "no-restricted-syntax": ["error", DS_TYPE_CLASS_RULE, DS_TYPE_INLINE_RULE, OPACITY_STATE_RULE, ...NATIVE_ORIGIN_RULES],
 
     },
   },
@@ -197,7 +272,18 @@ export default tseslint.config(
     files: DS_TYPE_INLINE_LEGACY,
     rules: {
       // Class rule still enforced here; only the inline one is grandfathered.
-      "no-restricted-syntax": ["error", DS_TYPE_CLASS_RULE],
+      // The opacity and native-origin rules stay on — being on the type-debt
+      // ledger is not a reason to stop enforcing unrelated guards.
+      "no-restricted-syntax": ["error", DS_TYPE_CLASS_RULE, OPACITY_STATE_RULE, ...NATIVE_ORIGIN_RULES],
+    },
+  },
+  {
+    // Grandfathered for the opacity rule ONLY — every other guard still
+    // applies. Disjoint from DS_TYPE_INLINE_LEGACY (asserted: no overlap), so
+    // the two blocks cannot shadow each other.
+    files: OPACITY_STATE_LEGACY,
+    rules: {
+      "no-restricted-syntax": ["error", DS_TYPE_CLASS_RULE, DS_TYPE_INLINE_RULE, ...NATIVE_ORIGIN_RULES],
     },
   },
 );

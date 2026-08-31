@@ -339,7 +339,7 @@ const NotificationPreferences = () => {
           Sits between the master and the per-category rows so it reads
           as a delivery preference, not a category. */}
       <div
-        className={`flex items-center justify-between px-4 py-2.5 shrink-0 transition-opacity ${prefs.push_enabled ? "" : "opacity-60"} ${saving ? "opacity-80 cursor-wait" : ""}`}
+        className={`flex items-center justify-between px-4 py-2.5 shrink-0 transition-opacity ${prefs.push_enabled ? "" : "opacity-85"} ${saving ? "opacity-80 cursor-wait" : ""}`}
         style={{
           borderBottom: "0.5px solid hsl(var(--olivewood) / 0.08)",
         }}
@@ -395,7 +395,7 @@ const NotificationPreferences = () => {
           between the digest toggle and the per-category rows so it
           reads as a delivery preference, not a category. */}
       <div
-        className={`px-4 py-2.5 shrink-0 transition-opacity ${prefs.push_enabled ? "" : "opacity-60"} ${saving ? "opacity-80 cursor-wait" : ""}`}
+        className={`px-4 py-2.5 shrink-0 transition-opacity ${prefs.push_enabled ? "" : "opacity-85"} ${saving ? "opacity-80 cursor-wait" : ""}`}
         style={{
           borderBottom: "0.5px solid hsl(var(--olivewood) / 0.08)",
         }}
@@ -485,7 +485,7 @@ const NotificationPreferences = () => {
         <div
           key={item.key}
           className={`flex items-center justify-between px-4 py-2.5 shrink-0 transition-opacity ${
-            prefs.push_enabled || prefs[item.emailKey] ? "" : "opacity-60"
+            prefs.push_enabled || prefs[item.emailKey] ? "" : "opacity-85"
           } ${saving ? "opacity-80 cursor-wait" : ""}`}
           style={{
             borderBottom: "0.5px solid hsl(var(--olivewood) / 0.08)",

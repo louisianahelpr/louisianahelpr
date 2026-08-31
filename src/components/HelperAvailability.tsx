@@ -258,7 +258,11 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
               key={day}
               className={cn(
                 "rounded-2xl liquid-glass p-4 transition-all",
-                off && "opacity-70",
+                // Dimming an "off" row with opacity attenuates its TEXT too:
+                // at 70% the day label and hours measured under the 4.5:1 AA
+                // bar (12 axe nodes). 85% still reads as de-emphasised without
+                // pushing the copy below the threshold.
+                off && "opacity-85",
               )}
             >
               <div className="flex items-center justify-between gap-3">
@@ -296,7 +300,11 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
                     className="inline-flex items-center rounded-full px-2.5 py-0.5 text-ds-11 font-sans font-semibold uppercase tracking-wider"
                     style={{
                       background: "hsl(var(--olivewood) / 0.10)",
-                      color: "hsl(var(--olivewood) / 0.8)",
+                      // Full strength, not 0.8: this pill sits inside the
+                      // dimmed "off" card, so its own alpha compounded with the
+                      // container's and landed at 4.15:1 — still under AA even
+                      // after the container was lifted to 85%.
+                      color: "hsl(var(--olivewood))",
                       border: "1px solid hsl(var(--olivewood) / 0.18)",
                     }}
                   >

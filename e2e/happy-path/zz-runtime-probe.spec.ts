@@ -722,24 +722,33 @@ test("3a · AASA is served over HTTPS with the claimed paths", async () => {
   writeArtifact("aasa-www.json", { status: res.status, contentType, body: json });
 });
 
-test("3a-defect · AASA content-type is application/json", async () => {
-  // KNOWN DEFECT — documented, not fixed (this lane may not edit vercel.json).
-  // Apple requires the AASA file to be served as application/json; Vercel
-  // serves the extension-less file as application/octet-stream because
-  // vercel.json declares no Content-Type header for /.well-known/*.
-  // test.fail() keeps this green as documentation and flips to a hard failure
-  // the moment someone fixes it (so the annotation can be removed).
-  test.fail();
+test("AASA is served as application/json", async () => {
+  // Was a documented defect: Vercel served the extension-less file as
+  // application/octet-stream because vercel.json declared no Content-Type for
+  // /.well-known/*, and the global X-Content-Type-Options: nosniff meant the
+  // client could not recover by sniffing — so the universal-link association
+  // failed SILENTLY and taps opened Safari instead of the app.
+  //
+  // Fixed in vercel.json (d3ffb269). This is now a real regression guard: if
+  // someone drops that header rule, universal links break with no other
+  // symptom, so this test is the only thing that would notice.
   test.slow();
   const res = await fetch(AASA_URL, { redirect: "manual" });
   expect(res.headers.get("content-type") ?? "").toContain("application/json");
 });
 
 test("3a-defect · apex louisianahelpr.com serves AASA without a redirect", async () => {
-  // KNOWN DEFECT — App.entitlements declares BOTH `applinks:louisianahelpr.com`
-  // and `applinks:www.louisianahelpr.com`, but the apex 307-redirects the AASA
-  // path to www. Apple's CDN does not follow redirects when fetching an
-  // apple-app-site-association file, so the apex association cannot resolve.
+  // KNOWN DEFECT, still open — App.entitlements declares BOTH
+  // `applinks:louisianahelpr.com` and `applinks:www.louisianahelpr.com`, but
+  // the apex 307-redirects the AASA path to www. Apple's CDN does not follow
+  // redirects when fetching an apple-app-site-association file, so the apex
+  // association cannot resolve and an apex universal link opens Safari.
+  //
+  // NOT fixable from this repo: the apex -> www redirect is a Vercel DOMAIN
+  // setting, not a vercel.json route. The owner must either serve the apex
+  // directly or drop `applinks:louisianahelpr.com` from App.entitlements.
+  // test.fail() keeps this documented and flips to a hard failure the moment
+  // it is fixed, so the annotation gets removed rather than rotting.
   test.fail();
   test.slow();
   const res = await fetch(AASA_APEX_URL, { redirect: "manual" });

@@ -419,7 +419,12 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             short-vs-tall run of cards. `min-w-0` lets it shrink/truncate
             inside the flex row at all. */}
         <div className="flex items-center justify-between gap-3">
-          <h3
+          {/* h2, not h3: these cards sit DIRECTLY under the page <h1>
+              ("Browse Jobs", "My Posts"), with no intervening section
+              heading, so an h3 skipped a level and failed axe's
+              heading-order on 18 pages. The visual size is carried by
+              `text-headline-card`, not by the tag, so nothing moves. */}
+          <h2
             className="text-headline-card flex-1 font-display italic font-bold text-foreground leading-tight truncate min-w-0"
             style={{
               color: "hsl(var(--ink-deep))",
@@ -427,7 +432,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             }}
           >
             {job.title}
-          </h3>
+          </h2>
           <JobPrice
             budget={job.budget}
             effectiveFee={effectiveFee}

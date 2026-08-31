@@ -162,6 +162,27 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   const availableTotal = (stripeData?.available ?? []).reduce((s, b) => s + b.amount, 0);
   const pendingTotal = (stripeData?.pending ?? []).reduce((s, b) => s + b.amount, 0);
 
+  // Money the poster has ALREADY approved but that Stripe has not been told
+  // about yet. auto-release-payment flips the job to `payout_pending` with a
+  // 24h `payout_scheduled_at`, and only then does release-payout create the
+  // actual transfer — so for that whole day the amount sits on the PLATFORM's
+  // balance and appears in neither Stripe bucket the wallet reads. From the
+  // helper's chair a job they were paid for simply vanished: approved, and
+  // then in neither Available nor Pending. Surface it as its own line rather
+  // than leaving them to notice the absence.
+  const releasingJobs = earningsJobs.filter(
+    (j) => (j as { payment_status?: string | null }).payment_status === "payout_pending",
+  );
+  const releasingCents = Math.round(
+    sumHelperTakeHomeDollars(releasingJobs, helperFeeFallbackPct) * 100,
+  );
+  // Soonest scheduled arrival, for the "clears <date>" copy.
+  const releasingAt =
+    releasingJobs
+      .map((j) => (j as { payout_scheduled_at?: string | null }).payout_scheduled_at)
+      .filter((d): d is string => !!d)
+      .sort()[0] ?? null;
+
   // Helper-milestone retention nudges — one-shot toasts at meaningful
   // job/earnings/streak thresholds. Pulls from stats already computed
   // above; the five-star streak is read from the React Query cache
@@ -392,6 +413,8 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           refreshing={refreshing}
           availableTotal={availableTotal}
           pendingTotal={pendingTotal}
+          releasingCents={releasingCents}
+          releasingAt={releasingAt}
           canUseInstantPayout={canUseInstantPayout}
           onRefresh={handleRefresh}
           onCashOut={() => setPayoutDialogOpen(true)}

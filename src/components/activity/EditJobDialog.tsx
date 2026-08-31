@@ -14,6 +14,7 @@ import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
 import { categories, type Job } from "./activityConstants";
 import { todayLocalISO } from "@/lib/dateUtils";
+import { computeJobExpiresAt } from "@/lib/jobExpiry";
 
 interface EditJobDialogProps {
   job: Job | null;
@@ -68,10 +69,23 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
   const save = async () => {
     if (!job) return;
     setSaving(true);
+    const scheduleChanged =
+      dateNeeded !== (job.date_needed || "") || startTime !== (job.start_time || "");
     const updateData: any = {
       title: title.trim(), description: description.trim(), category,
       location: location.trim(), date_needed: dateNeeded, start_time: startTime || null,
       special_requirements: specialReq.trim() || null,
+      // Moving the schedule MUST move the listing expiry with it. It didn't:
+      // a job pushed 08-31 -> 09-03 kept its 08-31 expires_at, which is what
+      // the feed and the map filter on, so the poster's paid listing stayed
+      // invisible with no in-app way to un-expire it short of re-posting and
+      // paying again. Recomputed from the same rule the post wizard uses.
+      //
+      // Only written when the schedule actually moved — a poster fixing a typo
+      // on a job whose date genuinely lapsed must not resurrect the listing.
+      // trg_job_expiry_floor (20260831201631) enforces the same recompute
+      // server-side, so this also holds for any other client.
+      ...(scheduleChanged ? { expires_at: computeJobExpiresAt(dateNeeded, startTime) } : {}),
     };
     try {
       unwrapMutation(

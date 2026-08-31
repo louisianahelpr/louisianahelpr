@@ -2,6 +2,7 @@ import {
   jobLocalMidnightMs,
   cancellationFeePercent as sharedCancellationFeePercent,
 } from "../../supabase/functions/_shared/cancellationFee";
+import { CANCELLATION_LADDER_RUNGS } from "@/lib/reliabilityLadder";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 // unwrapMutation is gone with the client-side UPDATE it guarded; isWriteRejected
@@ -12,7 +13,7 @@ import { report } from "@/lib/errorLogger";
 import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertTriangle, Ban, ShieldAlert, DollarSign, CheckCircle, ArrowRight, ShieldCheck } from "lucide-react";
+import { AlertTriangle, ShieldAlert, DollarSign, CheckCircle, ArrowRight, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
@@ -343,19 +344,9 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, hasHel
             <div className="space-y-2 text-ds-11 text-muted-foreground">
               <div className="flex items-start gap-2">
                 <AlertTriangle className="w-3.5 h-3.5 text-accent mt-0.5 shrink-0" />
-                <p><strong className="text-foreground">1st strike:</strong> Written warning on your account.</p>
-              </div>
-              <div className="flex items-start gap-2">
-                <ShieldAlert className="w-3.5 h-3.5 text-destructive mt-0.5 shrink-0" />
-                <p><strong className="text-foreground">2nd strike:</strong> Final warning.</p>
-              </div>
-              {/* This used to promise an automatic, irreversible permanent ban
-                  on the 3rd strike. It now says what actually happens: a
-                  reversible 7-day restriction while a person reviews the case
-                  (apply_cancellation_violation_consequence, 20260826040000). */}
-              <div className="flex items-start gap-2">
-                <Ban className="w-3.5 h-3.5 text-destructive mt-0.5 shrink-0" />
-                <p><strong className="text-foreground">3rd strike:</strong> Your account is restricted for 7 days while an admin reviews it. They decide what happens next — a permanent ban is never automatic.</p>
+                {CANCELLATION_LADDER_RUNGS.map((rung) => (
+                  <p key={rung}>{rung}</p>
+                ))}
               </div>
             </div>
             {!hasHelper && (

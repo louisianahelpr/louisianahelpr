@@ -92,11 +92,39 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
     // decline in the other, leaving the job `accepted` with helper_id set while
     // that same application read `rejected` — two views of one deal disagreeing.
     // A zero-row result now means "already resolved elsewhere", not a failure.
-    const { error } = await supabase
-      .from("applications")
-      .update({ status: "rejected" })
-      .eq("id", app.id)
-      .eq("status", "pending");
+    // The reason rides ALONG WITH the status flip, not in a second
+    // notification afterwards. notify_on_application() reads
+    // NEW.decline_reason in the same statement and folds it into the ONE
+    // notification it writes — this used to be a separate createNotification
+    // call, which is why declining produced two notifications, one of them
+    // with `link: null` (nothing to tap).
+    const declineNote = note.trim();
+    const declineUpdate = async (withReason: boolean) =>
+      supabase
+        .from("applications")
+        .update(
+          (withReason && declineNote
+            ? { status: "rejected", decline_reason: declineNote }
+            : { status: "rejected" }) as never,
+        )
+        .eq("id", app.id)
+        .eq("status", "pending");
+
+    let { error } = await declineUpdate(true);
+    // applications.decline_reason ships in migration 20260831203052. Between
+    // merge and `supabase db push` the column isn't there yet, so retry
+    // without it and keep the legacy client-side notification for that window
+    // only — otherwise the poster's reason would silently vanish.
+    let columnMissing = false;
+    if (
+      error &&
+      (String(error.code) === "PGRST204" ||
+        String(error.code) === "42703" ||
+        /decline_reason/i.test(String(error.message ?? "")))
+    ) {
+      columnMissing = true;
+      ({ error } = await declineUpdate(false));
+    }
     if (error) {
       hapticError();
       toast.error("Couldn't decline that applicant — please try again.");
@@ -116,7 +144,11 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
       }
       return updated;
     });
-    if (note.trim()) {
+    // Deploy-lag fallback ONLY. On a database that already has
+    // decline_reason, notify_on_application() has just written the single
+    // notification (with the reason and a working link) and this is skipped —
+    // sending here too is exactly the duplicate this change removes.
+    if (columnMissing && declineNote) {
       // Fetch the poster's first name from their profile for the message.
       const posterFirstName = user
         ? await supabase
@@ -129,8 +161,9 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
       await createNotification({
         user_id: app.helper_id,
         title: "Application declined",
-        message: `${posterFirstName} declined your application for "${jobTitle}": ${note.trim()}`,
+        message: `${posterFirstName} declined your application for "${jobTitle}": ${declineNote}`,
         type: "info",
+        link: "/my-jobs?filter=cancelled",
       });
     }
   };

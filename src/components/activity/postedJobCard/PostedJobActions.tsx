@@ -567,8 +567,36 @@ export function PostedJobActions({
                   (showDispute ? 1 : 0),
                 5,
               ) as 2 | 3 | 4 | 5;
+              // The proof photos the helper uploaded, ON the screen where the
+              // poster releases the money. Both other PhotoProofGroup call
+              // sites in this file are gated on `completed` / `disputed`, so
+              // at Approve time — status still in_progress, helper_completed_at
+              // set — neither fired and the proof only appeared AFTER the
+              // release. The helper's own upload copy says "they're the proof
+              // that releases your payment", which was not true of the
+              // approver's view: the poster was asked to release escrow on a
+              // description of the work rather than a picture of it.
+              const hasProof =
+                (job.proof_before_urls?.length ?? 0) > 0 ||
+                (job.proof_after_urls?.length ?? 0) > 0;
               return (
                 <>
+                  {showApprove && hasProof && (
+                    <div className="space-y-1.5">
+                      <p
+                        className="font-serif italic leading-snug text-ds-11 px-1"
+                        style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                      >
+                        Your Helpr's proof photos — check these before you approve.
+                      </p>
+                      <PhotoProofGroup
+                        jobId={job.id}
+                        beforeUrls={job.proof_before_urls || []}
+                        afterUrls={job.proof_after_urls || []}
+                        canUpload={false}
+                      />
+                    </div>
+                  )}
                   <JobActionRow columns={columns}>
                     {showSos && <SosShareButton jobId={job.id} variant="chip" />}
                     {showNoShow && (
@@ -666,6 +694,8 @@ export function PostedJobActions({
                       helperId={job.helper_id}
                       helperName={job.helper_id ? (helperNames[job.helper_id] || "Helpr") : "Helpr"}
                       userId={userId}
+                      proofBeforeUrls={job.proof_before_urls || []}
+                      proofAfterUrls={job.proof_after_urls || []}
                       onClose={() => setCompletionSheetOpen(false)}
                       onConfirm={() => onComplete(job.id)}
                       onRevisionSubmitted={onActionComplete}

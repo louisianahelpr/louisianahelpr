@@ -82,7 +82,14 @@ export function useDashboardJobsCount(filters: DashboardJobsCountFilters) {
         // unconditionally (no flexible/recurring exemption at this layer —
         // that exemption is applied earlier, in useDashboardData, before
         // useDashboardFilters even sees the row).
-        .or(`date_needed.is.null,date_needed.gte.${todayLocalDate}`);
+        .or(`date_needed.is.null,date_needed.gte.${todayLocalDate}`)
+        // …and the EXPIRY cull the list applies too
+        // (useDashboardData: `!j.expires_at || new Date(j.expires_at) > now`).
+        // This filter was missing here, so the header counted expired
+        // listings the feed below it had already dropped — "15 jobs" over 13
+        // cards. A count that disagrees with the thing it counts is worse
+        // than no count.
+        .or(`expires_at.is.null,expires_at.gt.${now.toISOString()}`);
 
       if (!earlyAccessExempt) {
         const cutoff = new Date(Date.now() - earlyAccessDelayMs(earlyAccessTier)).toISOString();

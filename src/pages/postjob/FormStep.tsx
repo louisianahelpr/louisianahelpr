@@ -53,6 +53,8 @@ export function FormStep({ form }: FormStepProps) {
         <DirectOfferBanner
           offerToHelperName={form.offerToHelperName}
           onCancel={form.clearOffer}
+          responseHours={form.offerResponseHours}
+          onResponseHoursChange={form.setOfferResponseHours}
         />
       )}
 

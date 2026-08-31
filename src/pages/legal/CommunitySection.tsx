@@ -16,7 +16,7 @@ import { LAST_UPDATED } from "./legalSections";
 // doubly false since 20260831183302 moved the second report onto the shared
 // reviewable rung. Binding copy in a legal document is the LAST place a
 // restated consequence should live.
-import { RELIABILITY_LADDER_RUNGS, NO_SHOW_LADDER_SENTENCE } from "@/lib/reliabilityLadder";
+import { RELIABILITY_LADDER_RUNGS, NO_SHOW_LADDER_SENTENCE, CANCELLATION_LADDER_RUNGS } from "@/lib/reliabilityLadder";
 // Derive the escrow auto-release schedule instead of restating it in prose.
 // These are the platform's binding promises about when money moves, so they
 // must follow the config the cron enforces (guarded by escrowTiming.parity.test).
@@ -256,9 +256,9 @@ export const CommunityContent = () => (
              and notifies admins to decide. The in-app CancellationDialog
              already said so, so the legal page was the odd one out. */
           <ul className="list-disc pl-4 space-y-0.5">
-            <li><strong className="text-foreground">1st strike:</strong> Written warning recorded; admins notified.</li>
-            <li><strong className="text-foreground">2nd strike:</strong> Final warning.</li>
-            <li><strong className="text-foreground">3rd strike and beyond:</strong> Your account is restricted for 7 days while an admin reviews the case. They decide what happens next — a permanent ban is never automatic.</li>
+            {CANCELLATION_LADDER_RUNGS.map((rung) => (
+              <li key={rung}>{rung}</li>
+            ))}
             <li>Cancelling a job <em>before</em> a Helpr is assigned does <strong>not</strong> count toward strikes (timing-based fees still apply).</li>
           </ul>
         }

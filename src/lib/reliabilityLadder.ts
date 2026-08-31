@@ -36,6 +36,34 @@ export const RELIABILITY_LADDER_SENTENCE =
 /* ─────────────────────────  NO-SHOW LADDER  ───────────────────────── */
 
 /**
+ * The POSTER-cancellation ladder. Three rungs, not four — a different ladder
+ * from RELIABILITY_LADDER_RUNGS above, which is the Helpr-side job-denial one.
+ *
+ * Verified against apply_cancellation_violation_consequence
+ * (20260829030000_consolidate_consequence_ladders.sql:69-83):
+ *   p_rungs   = ['warning', 'final_warning', 'pending_ban_review']
+ *   p_effects = ['notify',  'final_warning', 'permanent']
+ *   p_permanent_requires_review = true   → 'permanent' becomes 'review'
+ *   p_suspension_days           = 7
+ *
+ * WHY IT EXISTS. Three surfaces hand-typed this list — CancellationDialog,
+ * WarningsTab and the Community policy page — and all three were TRUE, which
+ * is exactly why it needed a constant rather than a correction. They were true
+ * last time too, and then the RPC moved and "five strikes is a ban" shipped in
+ * front of users for weeks. Three copies is three chances to miss the next
+ * change.
+ *
+ * Do NOT substitute RELIABILITY_LADDER_RUNGS here. The two ladders genuinely
+ * differ in length and in what each rung does; interchanging them would
+ * replace true copy with false copy, which is worse than undereived copy.
+ */
+export const CANCELLATION_LADDER_RUNGS = [
+  "1st — written warning recorded, admins notified",
+  "2nd — final warning",
+  "3rd and beyond — 7-day restriction, admin reviews for a permanent ban",
+] as const;
+
+/**
  * The no-show ladder, which is a DIFFERENT ladder with its own counter — it
  * counts confirmed no-show reports, not reliability strikes — but as of
  * migration 20260831183302 it ends on the same rung as every other ladder in

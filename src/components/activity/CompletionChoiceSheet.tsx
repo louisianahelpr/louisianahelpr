@@ -31,6 +31,7 @@ import { toast } from "sonner";
 import { hapticSuccess, hapticError, hapticMedium } from "@/lib/haptics";
 import { createNotification } from "@/lib/notifications";
 import { report } from "@/lib/errorLogger";
+import { PhotoProofGroup } from "@/components/PhotoProof";
 
 interface CompletionChoiceSheetProps {
   open: boolean;
@@ -39,6 +40,12 @@ interface CompletionChoiceSheetProps {
   helperId: string | null;
   helperName: string;
   userId: string;
+  /** The helper's uploaded proof photos. Shown read-only on the choice
+   *  screen: this sheet IS the release-the-money decision, and it used to ask
+   *  for it with the evidence nowhere on screen — the card's PhotoProofGroup
+   *  only rendered once status was already `completed`, i.e. after approval. */
+  proofBeforeUrls?: string[];
+  proofAfterUrls?: string[];
   onClose: () => void;
   /** Called when the poster approves (path A) — parent runs the full
    *  complete-job flow (status transition + CompletionPrompts). */
@@ -53,6 +60,8 @@ export function CompletionChoiceSheet({
   helperName,
   helperId,
   userId,
+  proofBeforeUrls = [],
+  proofAfterUrls = [],
   onClose,
   onConfirm,
   onRevisionSubmitted,
@@ -222,6 +231,23 @@ export function CompletionChoiceSheet({
         {mode === "choice" ? (
           <>
             <SheetHero title="How Did It Go?" />
+
+            {(proofBeforeUrls.length > 0 || proofAfterUrls.length > 0) && (
+              <div className="space-y-1.5 mb-3">
+                <p
+                  className="font-serif italic leading-snug text-ds-12"
+                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                >
+                  {helperName}'s proof photos — the work you're about to pay for.
+                </p>
+                <PhotoProofGroup
+                  jobId={jobId}
+                  beforeUrls={proofBeforeUrls}
+                  afterUrls={proofAfterUrls}
+                  canUpload={false}
+                />
+              </div>
+            )}
 
             <div className="space-y-3">
               {/* Path A — release payment */}

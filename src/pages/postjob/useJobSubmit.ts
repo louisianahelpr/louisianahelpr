@@ -13,6 +13,7 @@ import { maybeFireFirstPostConfetti } from "./firstPostConfetti";
 import { recordJobActionForPermissionPrompt } from "@/hooks/useNotificationPermissionPrompt";
 import { buildJobInsertPayload } from "./jobSubmitHelpers";
 import { hasUnfilledPlaceholders } from "@/lib/postingTemplates";
+import { isScheduleInThePast } from "@/lib/jobExpiry";
 import type { Step } from "./postJobFormTypes";
 import { composeSpecialRequirements, scrollToField } from "./postJobFormHelpers";
 import {
@@ -79,6 +80,7 @@ export interface UseJobSubmitParams {
   platformFee: number | null;
   salesTaxRate: number;
   offerToHelperId: string | null;
+  offerResponseHours: number;
   credentialTier: number;
   // Materials + card
   includeMaterials: boolean;
@@ -132,6 +134,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     platformFee,
     salesTaxRate,
     offerToHelperId,
+    offerResponseHours,
     credentialTier,
     includeMaterials,
     materialsNote,
@@ -161,6 +164,18 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     const selectedDate = new Date(dateNeeded + "T00:00:00");
     if (selectedDate < today) { toast.error("Date cannot be in the past."); scrollToField("date"); return; }
     if (!isFlexibleSchedule && !startTime) { toast.error("Start time is required (or mark the schedule as flexible)."); scrollToField("flexible"); return; }
+    // The date check above is midnight-to-midnight, so TODAY at a time that
+    // has already gone by used to sail through — and the listing expiry is
+    // derived from exactly that instant, so the job was created already
+    // expired and invisible to every helper the moment the poster paid.
+    // Refuse it here rather than silently shifting their time, so they fix it
+    // BEFORE checkout. (jobExpiry's floor and trg_job_expiry_floor still catch
+    // any path that gets past this.)
+    if (isScheduleInThePast(dateNeeded, startTime)) {
+      toast.error("That start time has already passed. Pick a later time or a future date.");
+      scrollToField("date");
+      return;
+    }
     // special_requirements is optional — no validation needed
     // The budget is always required and always bounded now. It used to be
     // skipped entirely in "Accept bids" mode, which is how a bid job reached
@@ -325,6 +340,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
         platformFee,
         salesTaxRate,
         offerToHelperId,
+        offerResponseHours,
         credentialTier: opts.withExtras ? credentialTier : 0,
         department: null,
         requiresW9: false,

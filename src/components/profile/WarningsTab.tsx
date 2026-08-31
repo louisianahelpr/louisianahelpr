@@ -23,6 +23,8 @@ interface WarningsTabProps {
 //   1st strike — written warning on your account
 //   2nd strike — final warning
 //   3rd strike — 7-day account restriction while an admin reviews it
+import { CANCELLATION_LADDER_RUNGS } from "@/lib/reliabilityLadder";
+
 const STRIKE_LABELS = ["Written warning", "Final warning", "7-day restriction"] as const;
 
 export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
@@ -151,12 +153,21 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
               );
             };
             if (hasBan) return renderHero(Shield, "destructive", "Account banned", "Permanently banned due to policy violations.", true);
-            if (hasSuspension) return renderHero(AlertTriangle, "orange", "Suspended", "3rd strike: your account is restricted for 7 days while an admin reviews it.", true);
+            // The rung sentences come from CANCELLATION_LADDER_RUNGS, not from
+            // here. Three surfaces used to hand-type this ladder and all three
+            // were TRUE — which is exactly why it needed a constant rather than
+            // a correction. They were true last time too, and then the RPC moved
+            // and "five strikes is a ban" shipped in front of users for weeks.
+            //
+            // `where` is the rung the account is ON; `next` is what the one
+            // after it costs, which is the part that changes behaviour.
+            const rung = (i: number) => CANCELLATION_LADDER_RUNGS[i]?.replace(/^\S+\s+—\s+/, "") ?? "";
+            if (hasSuspension) return renderHero(AlertTriangle, "orange", "Suspended", `3rd strike: ${rung(2)}.`, true);
             if (strikeCount > 0) return renderHero(
               AlertTriangle, "amber", `Strike ${strikeCount} of 3`,
               strikeCount === 1
-                ? "1st strike: a written warning on your account. A 2nd strike is a final warning."
-                : "2nd strike: final warning. A 3rd strike restricts your account for 7 days.",
+                ? `1st strike: ${rung(0)}. A 2nd strike is a ${rung(1)}.`
+                : `2nd strike: ${rung(1)}. A 3rd strike means ${rung(2)}.`,
               true,
             );
             return renderHero(CheckCircle2, "primary", "Good standing", "No warnings or violations on record. Keep it up.", true);

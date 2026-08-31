@@ -89,9 +89,10 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
   // wall ("Please rate all four categories") and the job silently
   // never got reviewed.
   const canSubmit = scores.rating > 0;
-  // True once the user has also filled the detailed categories — used
-  // only to brighten the submit button as positive reinforcement.
-  const allRated = canSubmit && scores.punctuality > 0 && scores.quality > 0 && scores.communication > 0;
+  // (There used to be an `allRated` flag here — "the user also filled the
+  // optional category stars" — whose only consumer was the submit button's
+  // label, which it flipped between two different names for one action. The
+  // label is fixed now, so the flag has no reader.)
 
   const handleSubmit = async () => {
     if (!canSubmit) {
@@ -348,7 +349,16 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
             onClick={handleSubmit}
             disabled={submitting || !canSubmit}
           >
-            {submitting ? "Submitting…" : allRated ? "Submit Review" : "Post Review"}
+            {/* ONE name for one action. This used to read
+                `allRated ? "Submit Review" : "Post Review"`, where `allRated`
+                only meant the OPTIONAL category stars were filled — both
+                branches ran the same handler with the same enablement, so the
+                button renamed itself under the user's cursor as they filled
+                fields that changed nothing about what it does. "Submit
+                Review" is the wording the rest of the flow uses
+                (CompletionPrompts.tsx, and the "Submitting…" state right
+                here); "Post Review" appeared nowhere else in the app. */}
+            {submitting ? "Submitting…" : "Submit Review"}
           </Button>
           {/* A non-destructive escape hatch. "Cancel" reads as "discard",
               which is wrong here — the review isn't lost, it can still be

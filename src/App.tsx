@@ -1,6 +1,9 @@
 import { lazy, Suspense, forwardRef, useEffect, useState, type ReactElement } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
+// Static, not lazy: it renders a <Navigate> and nothing else, so a code-split
+// chunk (and a Suspense frame) would cost more than the component.
+import ActivityLegacyRedirect from "./pages/ActivityLegacyRedirect";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { Analytics } from "@vercel/analytics/react";
 
@@ -169,7 +172,11 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/payment-success" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PaymentSuccess /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/user/:userId" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><UserProfile /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/admin" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><AdminRoute><Admin /></AdminRoute></ProtectedRoute>)}</RouteErrorBoundary>} />
-      <Route path="/activity" element={<Navigate to="/my-posts" replace />} />
+      {/* Legacy route. Routes to the poster OR helper surface based on the
+          query it was linked with, instead of always dumping helpers on My
+          Posts — and preserves the query string, which the old bare
+          <Navigate> silently dropped. See ActivityLegacyRedirect. */}
+      <Route path="/activity" element={<ActivityLegacyRedirect />} />
       {/* → the EARNINGS TAB, not the Profile landing. `/earnings` is the
           deep link people bookmark and the one older notifications point at;
           dropping them on the landing made them find the tab themselves. */}

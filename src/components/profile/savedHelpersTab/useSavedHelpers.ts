@@ -223,7 +223,7 @@ export function useSavedHelpers({ user }: UseSavedHelpersArgs) {
   const activeSortLabel = sortOptions.find((o) => o.value === sortBy)?.label ?? sortOptions[0].label;
 
   const metaText = helpers.length > 0
-    ? `${helpers.length} ${helpers.length === 1 ? "Helpr" : "Helprs"} saved · send a direct offer with a 24-hour first-look window.`
+    ? `${helpers.length} ${helpers.length === 1 ? "Helpr" : "Helprs"} saved · send a direct offer with a first-look window you choose.`
     : "Save Helprs you trust so you can rebook in one tap.";
 
   return {

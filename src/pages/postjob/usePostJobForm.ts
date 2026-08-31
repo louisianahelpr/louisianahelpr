@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useDraftJob } from "@/hooks/useDraftJob";
 import { safeStorage } from "@/lib/safeStorage";
+import { DEFAULT_OFFER_RESPONSE_HOURS } from "@/lib/offerResponseWindow";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import type { Step } from "./postJobFormTypes";
 import { useJobMediaUpload } from "./useJobMediaUpload";
@@ -220,6 +221,11 @@ export function usePostJobForm() {
   // Direct Offer state — set when arriving via /post-job?offerTo=<helperId>
   const [offerToHelperId, setOfferToHelperId] = useState<string | null>(null);
   const [offerToHelperName, setOfferToHelperName] = useState<string>("");
+  // How long the targeted helpr gets first refusal. Poster-chosen in
+  // DirectOfferBanner; 24h is the historic (and still default) window.
+  const [offerResponseHours, setOfferResponseHours] = useState<number>(
+    DEFAULT_OFFER_RESPONSE_HOURS,
+  );
 
   // Mount/reactive side effects (platform fee, open-job preflight, rebook
   // prefill, LA smart defaults, direct-offer targeting, parish lookup,
@@ -359,6 +365,7 @@ export function usePostJobForm() {
     platformFee,
     salesTaxRate,
     offerToHelperId,
+    offerResponseHours,
     credentialTier,
     includeMaterials,
     materialsNote,
@@ -446,6 +453,8 @@ export function usePostJobForm() {
     // direct offer
     offerToHelperId,
     offerToHelperName,
+    offerResponseHours,
+    setOfferResponseHours,
     clearOffer,
     // draft prompt
     hasDraft,

@@ -104,7 +104,7 @@ export function OfferToSavedHelpr({
             className="block font-serif italic mt-0.5 text-ds-11"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
-            They get first refusal for 24 hours before it opens to everyone.
+            They get first refusal for a window you set before it opens to everyone.
           </span>
         </span>
         <ChevronDown

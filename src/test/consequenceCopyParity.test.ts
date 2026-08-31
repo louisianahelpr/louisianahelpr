@@ -3,9 +3,8 @@ import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { execFileSync } from "node:child_process";
 import {
-  RELIABILITY_LADDER_RUNGS,
-  RELIABILITY_LADDER_SENTENCE,
   NO_SHOW_LADDER_SENTENCE,
+  CANCELLATION_LADDER_RUNGS,
 } from "@/lib/reliabilityLadder";
 import { REVIEW_SLA } from "@/lib/reviewSla";
 import { URGENT_FEE_FLOOR_DOLLARS, URGENT_FEE_PRESETS } from "@/lib/moneyLimits";
@@ -246,29 +245,28 @@ describe("the strike ladder is stated ONCE", () => {
         offenders.join("\n  "),
     ).toEqual([]);
   });
-
-  it("the shared rungs still say what the restated copies say (they agree TODAY)", () => {
-    // Pinning the agreement means that when the SQL moves, the SHARED module is
-    // updated (parity test forces it) and THIS test then fails, naming every
-    // hand-typed copy that was left behind. It turns three silent drifts into
-    // three named files.
-    const shared = RELIABILITY_LADDER_RUNGS.join(" | ").toLowerCase();
-    expect(shared, "rung 2 is no longer a final warning").toContain("final warning");
-    expect(shared, "rung 3 is no longer a 7-day suspension").toContain("7-day suspension");
-
-    for (const file of ["src/components/CancellationDialog.tsx", "src/pages/legal/CommunitySection.tsx"]) {
-      const src = stripComments(repoFile(file));
-      expect(
-        src,
-        `${file} hand-types a 3rd-strike consequence; the shared ladder says ` +
-          `"${RELIABILITY_LADDER_RUNGS[3]}". Both must say a person decides — ` +
-          `an automatic permanent ban is a sentence a restricted user quotes back at us.`,
-      ).toMatch(/permanent ban is never automatic|admin reviews/i);
-    }
+  it("the ladder's reassurance survives the move into the constant", () => {
+    // This used to grep CancellationDialog for "a permanent ban is never
+    // automatic". That sentence now lives in CANCELLATION_LADDER_RUNGS, which
+    // is the whole point — so the assertion follows it rather than the file.
+    // What must never regress is that a person decides: "restricted for 7 days"
+    // with no mention of a human reads as a countdown to an automatic ban, and
+    // it is the sentence a restricted user quotes back at us.
     expect(
-      RELIABILITY_LADDER_SENTENCE,
-      "the one-sentence ladder no longer routes the top rung through an admin",
-    ).toMatch(/admin/);
+      CANCELLATION_LADDER_RUNGS.join(" "),
+      "the cancellation ladder stopped saying an admin decides the outcome",
+    ).toMatch(/admin reviews|admin decides|never automatic/i);
+    for (const [name, file] of [
+      ["CancellationDialog", "src/components/CancellationDialog.tsx"],
+      ["WarningsTab", "src/components/profile/WarningsTab.tsx"],
+      ["CommunitySection", "src/pages/legal/CommunitySection.tsx"],
+    ] as const) {
+      expect(
+        repoFile(file),
+        `${name} stopped reading CANCELLATION_LADDER_RUNGS — it is stating the ` +
+          `poster-cancellation ladder from memory again`,
+      ).toMatch(/CANCELLATION_LADDER_RUNGS/);
+    }
   });
 
   it("WarningsTab renders the rung the ladder ACTUALLY writes", () => {

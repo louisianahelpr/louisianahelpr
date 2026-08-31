@@ -150,7 +150,18 @@ const DialogContent = React.forwardRef<
         // meaningful "visible focus" state to preserve, so the browser's
         // default ring must be suppressed for every focus source, including
         // the mouse-click case where FocusScope re-parks focus here.
-        "glass-modal fixed left-1/2 top-1/2 [translate:-50%_-50%] z-50 grid w-auto max-w-[calc(100%-2rem)] sm:max-w-lg max-h-[86vh] overflow-y-auto gap-3 p-4 sm:p-5 duration-300 focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+      // WIDTH: `w-auto` cannot be used with `left-1/2` on a fixed element.
+      // A fixed box positioned at left:50% gets a shrink-to-fit available
+      // width of (viewport − 187.5px) at 375, so `max-w-[calc(100%-2rem)]`
+      // (343px) was unreachable and every dialog in the app rendered at
+      // ~188–250px on a phone — measured 219px here, 58% of the screen with
+      // 78px of dead margin each side, and long option labels bleeding
+      // outside the card ("Inapprop… conte…"). The translate-based centring
+      // from the 2026-08-30 "fit contents" change is what introduced it.
+      //
+      // Give it an explicit viewport-relative width on phones and keep
+      // shrink-to-fit only from `sm` up, where there is room for it.
+        "glass-modal fixed left-1/2 top-1/2 [translate:-50%_-50%] z-50 grid w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] sm:w-auto sm:max-w-lg max-h-[86vh] overflow-y-auto gap-3 p-4 sm:p-5 duration-300 focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
         className,
       )}
       // Radix warns once per open when a Content has no `Description` and no

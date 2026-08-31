@@ -14,7 +14,6 @@ import { queryKeys } from "@/lib/queryKeys";
 import { functionErrorMessage } from "@/lib/supabaseResult";
 import { ONE_TIME_PASS_DAYS } from "@/lib/subscriptionTiers";
 import { tierConfig, TierIcon } from "@/components/profile/subscriptionTab/tierConfig";
-import { PauseOfferDialog } from "@/components/profile/subscriptionTab/PauseOfferDialog";
 import { CancelSurveyDialog } from "@/components/profile/subscriptionTab/CancelSurveyDialog";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { isNativePlatform } from "@/lib/nativeInit";
@@ -60,54 +59,19 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
   // is shown ahead of the survey so the lightest-touch retention move
   // ("just pause") is the first thing a leaving user sees.
   const [cancelSurveyOpen, setCancelSurveyOpen] = useState(false);
-  const [pauseOfferOpen, setPauseOfferOpen] = useState(false);
-  const [acceptingPause, setAcceptingPause] = useState(false);
 
+  // Straight to the Stripe billing portal, for everyone.
+  //
+  // This used to open the PAUSE OFFER first for any active subscriber, so
+  // "Change" — the only affordance for switching tier or updating a card —
+  // told an upgrading customer they were cancelling. Reaching the portal
+  // required Change -> "Cancel Instead" -> declaring a cancellation reason.
+  // The portal is where tier switches, card updates and cancellation all
+  // actually happen, and Stripe handles proration correctly.
   const handleManageSubscription = async () => {
-    // For actively subscribed users, lead with the pause offer; from
-    // there they can accept the pause, route into the cancel survey,
-    // or back out entirely. Free/expired users go straight to portal
-    // (no subscription to manage).
-    if (currentTier && !isExpired) {
-      setPauseOfferOpen(true);
-      return;
-    }
     void openStripePortal();
   };
 
-  // Accept-pause path — awaited Slack alert that records the request. We
-  // do NOT actually mutate the subscription here (Stripe pauses are gated
-  // behind their billing portal and would require a separate backend
-  // endpoint that doesn't exist yet); the alert lets retention follow up
-  // manually. The toast reflects whether the alert actually sent — we
-  // never promise "we'll confirm by email" when nothing on the server
-  // (and no human) has actually been notified.
-  const handleAcceptPause = async () => {
-    setAcceptingPause(true);
-    let alertSent = false;
-    try {
-      const { error } = await supabase.functions.invoke("slack-ops-alert", {
-        body: {
-          kind: "custom",
-          severity: "info",
-          title: "Subscription pause requested",
-          message: "User requested the 1-month-free pause offer instead of cancelling.",
-          fields: { tier: currentTier ?? "unknown" },
-        },
-      });
-      if (error) throw error;
-      alertSent = true;
-    } catch { /* handled below via alertSent */ }
-    setAcceptingPause(false);
-    setPauseOfferOpen(false);
-    if (alertSent) {
-      // The dialog closes on success — without this the accept path ended
-      // in total silence, which reads as "nothing happened".
-      toast.success("Request received — we'll follow up by email.");
-    } else {
-      toast.error("Couldn't send your request — try again or email support.");
-    }
-  };
 
   const openStripePortal = async () => {
     setLoadingPortal(true);
@@ -691,13 +655,6 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
         })}
       </div>
 
-      <PauseOfferDialog
-        pauseOfferOpen={pauseOfferOpen}
-        setPauseOfferOpen={setPauseOfferOpen}
-        setCancelSurveyOpen={setCancelSurveyOpen}
-        handleAcceptPause={handleAcceptPause}
-        acceptingPause={acceptingPause}
-      />
 
       <CancelSurveyDialog
         cancelSurveyOpen={cancelSurveyOpen}

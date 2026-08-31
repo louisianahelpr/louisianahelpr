@@ -10,22 +10,21 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Briefcase, Crown, MoreVertical, Flag, Ban, UserX } from "lucide-react";
+import { Briefcase, Crown, Lock, MoreVertical, Flag, Ban, ShieldCheck, UserX } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { HelperAvailabilityDisplay } from "@/components/HelperAvailabilityDisplay";
-import { computeBadges, HelperBadges } from "@/components/HelperBadges";
+import { computeBadges } from "@/components/HelperBadges";
 import { HelperPortfolio } from "@/components/HelperPortfolio";
 import { HelperWorkPhotos } from "@/components/profile/HelperWorkPhotos";
 import { PublicReviewWall } from "@/components/profile/PublicReviewWall";
 import { SkillEndorsements } from "@/components/profile/SkillEndorsements";
-import { CareerMilestones } from "@/components/profile/CareerMilestones";
 import { ProfileHeaderCard } from "./userProfile/ProfileHeaderCard";
 import BackgroundCheckCard from "@/components/profile/BackgroundCheckCard";
-import { ProfileStatsGrid } from "./userProfile/ProfileStatsGrid";
-import { TrackRecordCard } from "./userProfile/TrackRecordCard";
+import { AtAGlanceCard } from "./userProfile/AtAGlanceCard";
+import { RecognitionRow } from "./userProfile/RecognitionRow";
 import { RatingBreakdown } from "./userProfile/RatingBreakdown";
 import { ReviewsSection } from "./userProfile/ReviewsSection";
 import { JobsList } from "./userProfile/JobsList";
@@ -89,7 +88,6 @@ const UserProfile = () => {
     data,
     isError,
     refetch,
-    hasCleanRecord,
     hasSubmittedCredentials,
     petCareSignal,
     reviewsFromQuery,
@@ -124,10 +122,44 @@ const UserProfile = () => {
   // depend on the route param + current user, not the fetched profile.
   const isOwnProfile = currentUserId === userId;
 
-  // The title says what the PageHeader says. It used to read "User Profile"
-  // — a phrase that appears nowhere on the screen — for both the own-profile
-  // review and someone else's public profile.
-  usePageTitle(`${isOwnProfile ? "Profile Review" : "Profile"} — Helpr`);
+  // Identity, computed BEFORE the loading/error/empty guards so the page title
+  // and the header can both use it and so this stays above every early return
+  // (usePageTitle is a hook).
+  const displayName = formatName(profile?.full_name);
+  const memberSinceLabel = profile?.created_at
+    ? new Date(profile.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" })
+    : null;
+
+  // THE HEADER NAMES THE PERSON (owner, 2026-08-31: "the page title is just
+  // 'Profile'… the title carries no information"). A visitor is looking at
+  // Marie H.'s profile, so the h1 — and the browser tab — say "Marie H.".
+  // Place and tenure sit in the masthead card just below (PageHeader paints
+  // no meta line — see the note under it).
+  //
+  // The own-profile view keeps "Profile Review": there the subject is not a
+  // stranger to identify, it is the preview itself, and the whole screen
+  // exists to answer "what do others see?".
+  // `profile?.full_name`, NOT `displayName` — `formatName` falls back to the
+  // literal string "A neighbor" for a missing name, so keying off it made the
+  // skeleton header read "A neighbor" for the whole load (caught in Chrome at
+  // 320 during the verification pass, where the fetch is slowest).
+  const headerTitle = isOwnProfile
+    ? "Profile Review"
+    : profile?.full_name
+      ? displayName
+      : "Profile";
+  usePageTitle(`${headerTitle} — Helpr`);
+
+  const headerEyebrow = isOwnProfile ? "How others see you" : "Helpr profile";
+  // NOTE: PageHeader paints NEITHER `eyebrow` NOR `meta` — both were retired
+  // app-wide (see the note in PageHeader.tsx); the props are kept only so the
+  // ~140 existing call sites don't churn. So these two are passed for parity
+  // with every sibling page, and the facts a visitor actually needs (place,
+  // tenure) are rendered by ProfileHeaderCard instead. Do not "fix" a missing
+  // subtitle by re-adding it here — it will not paint.
+  const headerMeta = isOwnProfile
+    ? "A preview from a poster's perspective"
+    : "Reviews, badges, and history";
 
   // Whether the loaded header will render trailing actions (Message, Save,
   // overflow). Mirrored as a placeholder in the skeleton / not-found states so
@@ -148,17 +180,25 @@ const UserProfile = () => {
   // So this page is a plain document-scroll surface; it must NOT pull in the
   // marketing PublicLayout, whose Navbar/Footer would double-stack on top of
   // the app shell. Every rendered state routes through this wrapper.
+  //
+  // `flex flex-col` + a `flex-1` body is what makes the page FILL the shell.
+  // Without it the column was `h-fit`: on a sparse profile the content ended
+  // roughly a third of the way down and the rest of the screen was bare page
+  // colour (owner, 2026-08-31: "roughly a third of the screen is empty grey").
+  // The body stretches, and its closing trust footer is pinned to the bottom
+  // with `mt-auto`, so the page has a deliberate bottom edge at every height
+  // instead of trailing off.
   const wrap = (inner: ReactNode) => (
-    <div className="min-h-screen bg-premium-page pb-safe-nav">{inner}</div>
+    <div className="min-h-screen bg-premium-page pb-safe-nav flex flex-col">{inner}</div>
   );
 
   if (loading) {
     return wrap(
       <>
         <PageHeader
-            eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
-          title={isOwnProfile ? "Profile Review" : "Profile"}
-          meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}
+          eyebrow={headerEyebrow}
+          title={headerTitle}
+          meta={headerMeta}
           titleActions={headerActionPlaceholder}
         />
         <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pb-8">
@@ -230,9 +270,9 @@ const UserProfile = () => {
     return wrap(
       <>
         <PageHeader
-            eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
-          title={isOwnProfile ? "Profile Review" : "Profile"}
-          meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}
+          eyebrow={headerEyebrow}
+          title={headerTitle}
+          meta={headerMeta}
           titleActions={headerActionPlaceholder}
         />
         <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pb-8">
@@ -248,9 +288,9 @@ const UserProfile = () => {
     return wrap(
       <>
         <PageHeader
-            eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
-          title={isOwnProfile ? "Profile Review" : "Profile"}
-          meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}
+          eyebrow={headerEyebrow}
+          title={headerTitle}
+          meta={headerMeta}
           titleActions={headerActionPlaceholder}
         />
         <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pb-8">
@@ -279,7 +319,14 @@ const UserProfile = () => {
     );
   }
 
-  const displayName = formatName(profile.full_name);
+  // The PUBLIC id-verification flag. `isIdVerified` (from the hook) reads a
+  // direct `profiles` select, which RLS only permits on your own row, so it is
+  // always false for a visitor; `get_safe_profiles` returns `is_id_verified`
+  // for exactly this purpose. Both are consulted, same as in the masthead.
+  const profileIdVerified =
+    isIdVerified ||
+    (profile as unknown as { is_id_verified?: boolean }).is_id_verified === true;
+
   const initials = (profile.full_name || "?").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
   const badges = computeBadges({ avgRating: stats.avgRating, reviewCount: stats.reviewCount, completedJobs: stats.completedJobs, helprTier: profile.subscription_tier || null });
 
@@ -342,9 +389,9 @@ const UserProfile = () => {
         // and body both use the canonical shell now — `page-measure mx-auto
         // px-5 lg:px-8 xl:px-12 pt-4 pb-8` — which is exactly what the
         // header's `default` width resolves to, so the two share one edge.
-        eyebrow={isOwnProfile ? "How others see you" : "Helpr profile"}
-        title={isOwnProfile ? "Profile Review" : "Profile"}
-        meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}
+        eyebrow={headerEyebrow}
+        title={headerTitle}
+        meta={headerMeta}
         // ONE header, not two. These used to ride in `rightSlot`, which renders
         // its own sticky `.glass-header` bar ABOVE the title block — so this
         // screen opened with an app bar of icons, then a second bar with the
@@ -413,136 +460,128 @@ const UserProfile = () => {
         }
       />
 
-      <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pb-8">
-        {/* Split-column desktop layout: the mobile-first single column
-            (max-w-lg centered) widens to a two-column masthead + reviews
-            layout at lg+. Below lg the grid collapses to one column and
-            the section order stays exactly as it was on mobile — the
-            left-column blocks (identity, milestones) render first, then
-            the right-column blocks (stats, reviews, history, etc.) stack
-            below. Outer container widens per Profile.tsx precedent so
-            desktop uses the full app-shell width instead of an lg-column
-            marooned in dead margin. */}
+      {/* THE BODY FILLS THE SHELL.
+          `flex-1 flex flex-col` on the container + `mt-auto` on the closing
+          footer is the fix for the owner's first complaint ("roughly a third
+          of the screen is empty grey before the bottom nav"): a sparse profile
+          no longer ends a third of the way up a page-coloured void — the
+          column stretches to the shell and the page has a deliberate bottom
+          edge at every viewport height.
+
+          NO per-page desktop-rail inset here, deliberately. The rail is inset
+          in exactly ONE layer, globally: document-scroll pages like this one
+          get it from `html.web-desktop.desktop-rail:not(.app-shell) #root` in
+          index.css. Re-insetting here would push the column by a second rail
+          width (the PostJob bug). `/user` is in DOCUMENT_SCROLL_ROUTES and
+          this page is a plain `min-h-screen` document-scroll surface — shell
+          choice and route list agree. */}
+      <div
+        data-profile-body
+        className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pb-8 w-full flex-1 flex flex-col"
+      >
         {/* ONE COLUMN at every width (owner: "should all be in 1 column", and
             "fix this to all go up and down"). The 12-col split put the identity
             card in a narrow left rail — where "You've worked together 1 time"
             wrapped to two lines and the bio to three — while three stat tiles
             sat alone across a much wider right column with a screen of empty
             page under them. A profile is read top to bottom; splitting it made
-            the left half cramped and the right half hollow. */}
-        <div className="flex flex-col gap-6 items-stretch">
-          {/* ── LEFT COLUMN (masthead) ──
-              Identity, trust chips, bio, career milestones. Sticky at
-              lg+ so it stays visible as the viewer scrolls through the
-              reviews / history on the right. `self-start` keeps sticky
-              working under `items-start` (otherwise the grid would
-              stretch this column to match the taller right column and
-              the sticky element would have nothing to slide against). */}
-          <div className="space-y-5">
-            {/* Profile Card — brand-aligned hero. Avatar with tier ring,
-                italic display name, italic serif meta and bio. */}
-            <ProfileHeaderCard
-              profile={profile}
-              userId={userId!}
-              displayName={displayName}
-              initials={initials}
-              isOwnProfile={isOwnProfile}
-              isIdVerified={isIdVerified}
-              lastActiveLabel={lastActiveLabel}
-              mutualJobsCount={mutualJobsCount}
-              tierProfile={tierProfile}
-              stats={stats}
-              hasSubmittedCredentials={hasSubmittedCredentials}
-            />
+            the left half cramped and the right half hollow.
 
-            {/* Career milestones + Helper badges — moved up to sit directly
-                under the bio (owner request, item 23: profile field-order
-                pass). Was previously below Track Record, several screens
-                down; a trust-signal about who this person IS belongs next
-                to their identity, not buried under interaction-level stats.
-                See the CareerMilestones/HelperBadges block itself, further
-                down, for the "why these two are adjacent" rationale — kept
-                in place there rather than duplicated here. */}
-            <CareerMilestones
-              stats={{
-                completedJobs: stats.completedJobs,
-                avgRating: stats.avgRating,
-                repeatHirePercent: data?.repeatHirePercent ?? 0,
-                credentialTier: data?.credentialTier ?? 0,
-              }}
-              // FALSE, always — not `isOwnProfile` (owner, 2026-08-27). The
-              // progress half of this card is a to-do ("First Job — 0/1 job,
-              // 1 to go"), which is a private goal, not a fact about the
-              // person. A visitor never sees it, so showing it here made the
-              // preview differ from the public view it is meant to reproduce.
-              // Earned milestones still render for everyone, exactly as a
-              // visitor sees them; with none earned the card self-hides, which
-              // is also what a visitor gets.
-              showProgress={false}
-            />
+            Width is used INSIDE the sections instead: the At-a-glance grid
+            goes 2-up → 6-up, the chip rows wrap, and prose carries its own
+            reading cap. That is how a single column fills a 1440 frame without
+            reintroducing a layout the owner has already rejected. */}
+        <div className="flex flex-col gap-5 items-stretch flex-1">
+          {/* ── MASTHEAD ──
+              ONE card: who this person is, what they have earned, and what
+              their record says. It used to be four separate cards stacked in a
+              row (identity, a "CAREER MILESTONES" heading over a single pill,
+              three stat tiles, a "TRACK RECORD" heading over a fourth card) —
+              which is exactly why the screen read as "a stack of unrelated
+              cards rather than one designed screen". */}
+          <ProfileHeaderCard
+            profile={profile}
+            userId={userId!}
+            displayName={displayName}
+            initials={initials}
+            isOwnProfile={isOwnProfile}
+            isIdVerified={isIdVerified}
+            lastActiveLabel={lastActiveLabel}
+            mutualJobsCount={mutualJobsCount}
+            tierProfile={tierProfile}
+            stats={stats}
+            hasSubmittedCredentials={hasSubmittedCredentials}
+            recognition={
+              <RecognitionRow
+                milestoneStats={{
+                  completedJobs: stats.completedJobs,
+                  avgRating: stats.avgRating,
+                  repeatHirePercent: data?.repeatHirePercent ?? 0,
+                  credentialTier: data?.credentialTier ?? 0,
+                }}
+                badges={badges}
+              />
+            }
+            atAGlance={
+              <AtAGlanceCard
+                isOwnProfile={isOwnProfile}
+                displayName={displayName}
+                memberSinceLabel={memberSinceLabel}
+                stats={stats}
+                // postedTotalCount, NOT postedJobs.length — the `postedJobs`
+                // fetch carries a .limit(20), so the stat read "20 Posted" for
+                // anyone with more than 20 jobs. The exact count is already
+                // fetched on this same load (count: exact, head: true).
+                postedJobsCount={postedTotalCount}
+                workedJobsCount={completedWorkedJobs.length}
+                responseMetrics={responseMetrics}
+                onTimeArrivalRate={onTimeArrivalRate}
+                revisionFrequency={revisionFrequency}
+                cancellationRate={cancellationRate}
+                posterReputation={posterReputation}
+                petCareSignal={petCareSignal}
+                repeatHirePercent={data?.repeatHirePercent ?? null}
+                showReviews={showReviews}
+                showPostedJobs={showPostedJobs}
+                showWorkedJobs={showWorkedJobs}
+                onToggleReviews={() => {
+                  setShowReviews(!showReviews);
+                  setShowPostedJobs(false);
+                  setShowWorkedJobs(false);
+                }}
+                onTogglePosted={() => {
+                  setShowPostedJobs(!showPostedJobs);
+                  setShowReviews(false);
+                  setShowWorkedJobs(false);
+                }}
+                onToggleWorked={() => {
+                  setShowWorkedJobs(!showWorkedJobs);
+                  setShowReviews(false);
+                  setShowPostedJobs(false);
+                }}
+              />
+            }
+          />
 
-            {/* Earned performance badges ("Rising Star" and friends). Same
-                kind of object as Career Milestones above (an earned
-                trust-signal about the person), so: same place. */}
-            {badges.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                <HelperBadges badges={badges} />
-              </div>
-            )}
+          {/* "No disputes on record" USED TO RENDER HERE, in green, as the
+              positive half of the Track Record card. It is gone, and its
+              backing query with it.
 
-            {/* STATS + TRACK RECORD (owner, 2026-08-28: "needs better
-                reorganized"; item 24: Track Record now sits right alongside
-                these tiles instead of lower on the page). Rating, jobs
-                posted and jobs completed are the numbers a visitor scans
-                first; Track Record is the same kind of at-a-glance signal
-                (reply time, on-time rate, cancellations), so it renders
-                immediately after, most-to-least important. */}
-            <ProfileStatsGrid
-              stats={stats}
-              // postedTotalCount, NOT postedJobs.length — the `postedJobs`
-              // fetch carries a .limit(20), so the stat read "20 Posted" for
-              // anyone with more than 20 jobs. The exact count is already
-              // fetched on this same load (count: exact, head: true) and was
-              // simply never wired up. The list below still shows 20; the
-              // number above it is now true.
-              postedJobsCount={postedTotalCount}
-              workedJobsCount={completedWorkedJobs.length}
-              showReviews={showReviews}
-              showPostedJobs={showPostedJobs}
-              showWorkedJobs={showWorkedJobs}
-              onToggleReviews={() => {
-                setShowReviews(!showReviews);
-                setShowPostedJobs(false);
-                setShowWorkedJobs(false);
-              }}
-              onTogglePosted={() => {
-                setShowPostedJobs(!showPostedJobs);
-                setShowReviews(false);
-                setShowWorkedJobs(false);
-              }}
-              onToggleWorked={() => {
-                setShowWorkedJobs(!showWorkedJobs);
-                setShowReviews(false);
-                setShowPostedJobs(false);
-              }}
-            />
+              It was not a weak signal — it was an unfounded one. It fired on
+              `count === 0` from a client-side `job_disputes` SELECT, and that
+              table's RLS ("Job parties and admins can view job_disputes",
+              20260612190000_dispute_revision.sql) only returns rows for jobs
+              the VIEWER was a party to. A stranger can never see another
+              member's disputes, so the count was always 0 and the badge
+              rendered an affirmative safety claim on every profile in the app,
+              regardless of the truth. It was also measuring the wrong thing:
+              it counted disputes this person OPENED, not disputes opened
+              against them.
 
-            {/* THE RECORD — reply time, accept rate, on-time, revisions,
-                cancellations, poster rating, pet care, nearby proof. Extracted
-                from inside ProfileHeaderCard, where these nine signals were
-                nine centred one-line rows wedged between the avatar and the
-                bio. See TrackRecordCard for the full rationale. */}
-            <TrackRecordCard
-              isOwnProfile={isOwnProfile}
-              responseMetrics={responseMetrics}
-              onTimeArrivalRate={onTimeArrivalRate}
-              revisionFrequency={revisionFrequency}
-              cancellationRate={cancellationRate}
-              posterReputation={posterReputation}
-              hasCleanRecord={hasCleanRecord}
-              petCareSignal={petCareSignal}
-            />
-          </div>
+              A truthful version needs a SECURITY DEFINER RPC that returns an
+              aggregate the way `helper_repeat_hire_percent` does; until that
+              exists the honest move is to claim nothing. */}
+
 
           {/* ── RIGHT COLUMN (activity + reviews) ──
               Stats, rating breakdown, poster reputation, skill
@@ -696,6 +735,84 @@ const UserProfile = () => {
             {(profile.subscription_tier === "pro" || profile.subscription_tier === "elite") && <HelperPortfolio helperId={userId!} />}
 
 
+          </div>
+
+          {/* ── HOW A BOOKING IS PROTECTED ──
+              `mt-auto` pins this to the bottom of the stretched column, which
+              is what gives a short profile a deliberate bottom edge instead of
+              a third of a screen of bare page colour (owner, 2026-08-31).
+
+              It is NOT spacer. On a young marketplace the profile a visitor
+              lands on most often is one with no reviews and no record, and the
+              question that profile leaves them with is "so how do I know this
+              is safe?". This answers it with the two facts the page can state
+              truthfully — whether this member's ID was actually checked, and
+              what happens to the money — and carries the safety exit, which
+              until now was only reachable behind the ⋮ menu.
+
+              Both claims are sourced. The ID line reads `is_id_verified`, a
+              column `get_safe_profiles` returns to any viewer precisely so a
+              stranger can see it (the older `isIdVerified` prop comes from a
+              direct `profiles` select and is own-row-only under RLS, i.e.
+              always false here). The escrow line states no timing figure on
+              purpose — the release window is config, and restating a config
+              number in prose is how the Legal "90%" bug happened. */}
+          <div
+            className="mt-auto pt-5 flex flex-col gap-2.5"
+            style={{ borderTop: "0.5px solid hsl(var(--olivewood) / 0.14)" }}
+          >
+            <p
+              className="font-sans font-semibold uppercase tracking-wider text-ds-11"
+              style={{ color: "hsl(var(--olivewood) / 0.7)", letterSpacing: "0.12em" }}
+            >
+              Booking on Helpr
+            </p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <p
+                className="font-serif italic text-ds-13 leading-relaxed flex items-start gap-2"
+                style={{ color: "hsl(var(--olivewood) / 0.9)" }}
+              >
+                <ShieldCheck
+                  className="w-4 h-4 shrink-0 mt-0.5"
+                  style={{
+                    color: profileIdVerified
+                      ? "hsl(var(--bark) / 0.75)"
+                      : "hsl(var(--olivewood) / 0.5)",
+                  }}
+                  aria-hidden
+                />
+                <span>
+                  {profileIdVerified
+                    ? `${displayName}'s government ID has been verified by Stripe.`
+                    : `${displayName} hasn't verified a government ID yet.`}
+                </span>
+              </p>
+              <p
+                className="font-serif italic text-ds-13 leading-relaxed flex items-start gap-2"
+                style={{ color: "hsl(var(--olivewood) / 0.9)" }}
+              >
+                <Lock
+                  className="w-4 h-4 shrink-0 mt-0.5"
+                  style={{ color: "hsl(var(--bark) / 0.75)" }}
+                  aria-hidden
+                />
+                <span>
+                  You pay Helpr, not the member — the money is held in escrow
+                  and released once the job is done.
+                </span>
+              </p>
+            </div>
+            {!isOwnProfile && currentUserId && (
+              <button
+                type="button"
+                onClick={() => setShowReport(true)}
+                className="self-start inline-flex items-center gap-1.5 min-h-[44px] px-3 -mx-3 rounded-ds-md font-sans font-semibold text-ds-12 transition-opacity active:opacity-70 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                style={{ color: "hsl(var(--burnt-sienna))" }}
+              >
+                <Flag className="w-3.5 h-3.5" aria-hidden />
+                Report this profile
+              </button>
+            )}
           </div>
         </div>
       </div>

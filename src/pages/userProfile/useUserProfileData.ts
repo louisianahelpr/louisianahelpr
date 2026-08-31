@@ -11,13 +11,15 @@ import type { ProfileReview, ProfileJob } from "./types";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
-// The three trust-signal side queries below are deliberately soft-failing —
+// The trust-signal side queries below are deliberately soft-failing —
 // a missing table/function must hide a badge, not brick the profile. But
 // "not deployed yet" is the ONLY benign case: PGRST202 (function missing),
 // PGRST205 / 42P01 (relation missing). Every other error — RLS regression,
 // timeout, outage — has to stay observable, otherwise a real failure reads
-// as "this user has no disputes / no credentials / no pet history", which is
-// a trust claim we'd be making without knowing it's true.
+// as "this user has no credentials / no pet history", which is a trust claim
+// we'd be making without knowing it's true. (The dispute-count query that
+// used to sit alongside these was removed for exactly that reason — see the
+// note further down: RLS made its answer meaningless, not just fragile.)
 const NOT_DEPLOYED_CODES = new Set(["PGRST202", "PGRST205", "42P01"]);
 function isNotDeployed(err: { code?: string } | null | undefined): boolean {
   return !!err?.code && NOT_DEPLOYED_CODES.has(err.code);
@@ -53,9 +55,8 @@ function enrichReviewRows(
 /**
  * Encapsulates every Supabase fetch + derivation the UserProfile page needs:
  * the primary profile query (with all its trust-signal / stats derivation),
- * the three PGRST202-safe side queries (disputes, submitted credentials, pet
- * care), and the offset-paginated "load more reviews" flow. Extracted verbatim
- * from UserProfile.tsx — no behaviour, error handling, or query shape changed.
+ * the PGRST202-safe side queries (submitted credentials, pet care), and the
+ * offset-paginated "load more reviews" flow.
  */
 export function useUserProfileData(userId: string | undefined, currentUserId: string | null) {
   // React Query: cached for 60s, instant on revisit, refresh in background.
@@ -530,47 +531,26 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
     },
   });
 
-  // "No disputes on record" trust signal — check whether any dispute
-  // has been opened by this user via the new job_disputes table.
-  // Wrapped in a separate query so a PGRST202 (table not yet deployed)
-  // just hides the badge rather than blocking the whole profile load.
-  const { data: disputeCheckData } = useQuery({
-    queryKey: ["user_dispute_count", userId],
-    enabled: !!userId && !!data?.profile,
-    staleTime: 2 * 60_000,
-    queryFn: async () => {
-      try {
-        const { count, error } = await supabase
-          .from("job_disputes")
-          .select("id", { count: "exact", head: true })
-          .eq("opened_by", userId!);
-        // Table not deployed yet — hide the badge silently. Any other error
-        // is a real failure: report it rather than let it pass for a count
-        // we never actually read.
-        if (error) {
-          if (!isNotDeployed(error)) {
-            report(error, {
-              severity: "warning",
-              tags: { area: "user_profile.dispute_count" },
-              context: { viewed_user_id: userId },
-            });
-          }
-          return null;
-        }
-        return { count: count ?? 0 };
-      } catch (e) {
-        report(e, {
-          severity: "warning",
-          tags: { area: "user_profile.dispute_count" },
-          context: { viewed_user_id: userId },
-        });
-        return null;
-      }
-    },
-  });
-  // Derive the clean-record flag: null = query not done or failed
-  // (hide the badge), 0 = no disputes opened by this user (show signal).
-  const hasCleanRecord = disputeCheckData?.count === 0;
+  /* THE DISPUTE-COUNT QUERY IS GONE (2026-08-31).
+
+     It fetched `job_disputes` filtered on `opened_by = <viewed user>` and
+     exposed `hasCleanRecord = count === 0`, which UserProfile rendered as a
+     green "No disputes on record" line.
+
+     Two things were wrong with it, either one fatal:
+
+       1. RLS. `job_disputes`'s SELECT policy ("Job parties and admins can view
+          job_disputes", 20260612190000_dispute_revision.sql) only returns rows
+          for jobs the CALLER was a party to. A visitor can never see a
+          stranger's disputes, so the count came back 0 for everyone and the
+          affirmative safety claim rendered on every profile in the app,
+          truthfully or not.
+       2. Semantics. It counted disputes this person OPENED — not disputes
+          opened AGAINST them, which is what a reader takes the badge to mean.
+
+     A truthful version needs a SECURITY DEFINER aggregate RPC (the shape
+     `helper_repeat_hire_percent` already uses). Until that exists we claim
+     nothing rather than claim it wrongly. */
 
   // Check for submitted credentials awaiting vendor verification — shows
   // an amber "Verification in progress" indicator on the profile.
@@ -748,7 +728,6 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
     data,
     isError,
     refetch,
-    hasCleanRecord,
     hasSubmittedCredentials,
     petCareSignal,
     reviewsFromQuery,

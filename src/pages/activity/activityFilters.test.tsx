@@ -184,6 +184,61 @@ describe("Activity — whose move is it", () => {
     ).toBe("needs_you");
   });
 
+  it("never leaves a past-due job in Scheduled", () => {
+    // THE OWNER'S REPORT (2026-08-31): "These jobs were posted for Aug 27 still
+    // marked under scheduled?" Twelve prod jobs were `in_progress` with
+    // date_needed 1-4 days in the past and all twelve sat under Scheduled —
+    // the one bucket that means "agreed and upcoming".
+    //
+    // Dates are built in the PLATFORM's zone, the same way jobDate.test.ts
+    // does it, so the assertion does not flip with the runner's timezone.
+    const fmt = (offsetDays: number) =>
+      new Intl.DateTimeFormat("en-CA", {
+        timeZone: "America/Chicago",
+        year: "numeric", month: "2-digit", day: "2-digit",
+      }).format(new Date(Date.now() + offsetDays * 86_400_000));
+
+    // Underway, day gone, nobody finished it — the poster's move.
+    expect(postedActivityBucket({ status: "in_progress", date_needed: fmt(-4) })).toBe("needs_you");
+    // Booked and confirmed but the day passed without it ever starting.
+    expect(
+      postedActivityBucket({ status: "accepted", helper_confirmed_at: "2026-08-01T00:00:00Z", date_needed: fmt(-1) }),
+    ).toBe("needs_you");
+    // Still open, day gone, nobody applied — also the poster's move, where it
+    // used to read as "waiting" for applicants who can no longer come.
+    expect(postedActivityBucket({ status: "open", date_needed: fmt(-2) }, 0)).toBe("needs_you");
+
+    // DAY granularity, not minute: today is never overdue, however late it is.
+    expect(postedActivityBucket({ status: "in_progress", date_needed: fmt(0) })).toBe("scheduled");
+    expect(postedActivityBucket({ status: "in_progress", date_needed: fmt(1) })).toBe("scheduled");
+
+    // Terminal states are unaffected — there is nothing left to chase.
+    expect(postedActivityBucket({ status: "completed", date_needed: fmt(-9) })).toBe("done");
+    expect(postedActivityBucket({ status: "cancelled", date_needed: fmt(-9) })).toBe("cancelled");
+
+    // And the helper side agrees, so one job never reads Scheduled to one
+    // party and overdue to the other...
+    expect(
+      appliedActivityBucket({
+        status: "accepted",
+        job: { status: "in_progress", date_needed: fmt(-3) },
+      } as never),
+    ).toBe("needs_you");
+    // ...except where the helpr has already submitted: that is the poster's
+    // move, and asking the helpr for a second thing they cannot give is wrong.
+    expect(
+      appliedActivityBucket({
+        status: "accepted",
+        job: {
+          status: "in_progress",
+          date_needed: fmt(-3),
+          helper_completed_at: "2026-08-01T00:00:00Z",
+          poster_completed_at: null,
+        },
+      } as never),
+    ).toBe("waiting");
+  });
+
   it("puts a booking the helpr hasn't confirmed in Waiting", () => {
     expect(postedActivityBucket({ status: "accepted", helper_confirmed_at: null })).toBe("waiting");
     expect(postedActivityBucket({ status: "accepted", helper_confirmed_at: "2026-08-01T00:00:00Z" })).toBe("scheduled");

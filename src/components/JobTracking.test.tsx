@@ -7,7 +7,7 @@
  * better the whole time — these cases are the proof it is now read.
  */
 import { describe, it, expect } from "vitest";
-import { deriveCurrentStatusIdx, STATUS_IDX } from "./JobTracking";
+import { deriveCurrentStatusIdx, trackingProofCaption, STATUS_IDX } from "./JobTracking";
 
 const AT = "2026-08-18T12:00:00.000Z";
 
@@ -52,14 +52,38 @@ describe("deriveCurrentStatusIdx", () => {
     ).toBe(STATUS_IDX.arrived);
   });
 
-  it("treats arrived + in_progress as Working — there is no separate start stamp", () => {
+  it("treats an ESTABLISHED arrival + in_progress as Working — there is no separate start stamp", () => {
+    expect(
+      deriveCurrentStatusIdx({
+        jobStatus: "in_progress",
+        helperOnTheWayAt: AT,
+        helperArrivedAt: AT,
+        helperArrivalVerifiedAt: AT,
+      }),
+    ).toBe(STATUS_IDX.working);
+    expect(
+      deriveCurrentStatusIdx({
+        jobStatus: "in_progress",
+        helperOnTheWayAt: AT,
+        helperArrivedAt: AT,
+        posterConfirmedArrivalAt: AT,
+      }),
+    ).toBe(STATUS_IDX.working);
+  });
+
+  it("stops a CLAIMED-only arrival at Arrived — the rail must not lead the evidence", () => {
+    // The reported bug. `mark_helper_arrival` flips the job to in_progress in
+    // the same statement that decides whether the arrival was verified, so
+    // `helperArrivedAt && in_progress` was satisfied by the claim itself and
+    // the inference read its own side effect back as corroboration — painting
+    // Working for a helper 1792 miles from the job.
     expect(
       deriveCurrentStatusIdx({
         jobStatus: "in_progress",
         helperOnTheWayAt: AT,
         helperArrivedAt: AT,
       }),
-    ).toBe(STATUS_IDX.working);
+    ).toBe(STATUS_IDX.arrived);
   });
 
   it("shows Done for a job awaiting payment release (the reported bug)", () => {
@@ -156,5 +180,77 @@ describe("a revision undoes Done", () => {
         helperCompletedAt: "2026-08-01T00:00:00Z",
       }),
     ).toBe(STATUS_IDX.done);
+  });
+});
+
+/**
+ * The caption under the step rail, which the owner screenshotted reading
+ * "GPS confirmed · 1792 mi from job" directly beneath a toast saying we could
+ * NOT confirm the arrival. Both are now derived from one `arrivalState()`, so
+ * these cases are the proof they cannot disagree again.
+ */
+describe("trackingProofCaption", () => {
+  it("never says confirmed for a bare CLAIM, however good the fix is", () => {
+    const far = trackingProofCaption("claimed", 1792, true);
+    expect(far.text).toBe("Arrival not confirmed · 1792 mi from job");
+    // The exact strings the old caption used, none of which may survive here.
+    expect(far.text).not.toMatch(/GPS confirmed|Poster confirmed/);
+    expect(far.tone).toBe("warn");
+
+    // Even standing on the job site, a claim nothing corroborates is a claim.
+    expect(trackingProofCaption("claimed", 0.02, true)).toEqual({
+      text: "Arrival not confirmed · at the job",
+      tone: "warn",
+    });
+  });
+
+  it("spends the word 'confirmed' only on the poster's vouch", () => {
+    expect(trackingProofCaption("confirmed", 1792, true)).toEqual({
+      text: "Poster confirmed arrival · last ping 1792 mi from job",
+      tone: "ok",
+    });
+  });
+
+  it("calls a server-verified arrival verified, and reports the ping separately", () => {
+    // Verified is a statement about the moment of arrival — stepping away
+    // mid-job is normal, so the distance is reported, not held against them.
+    expect(trackingProofCaption("verified", 0.05, true)).toEqual({
+      text: "Arrival GPS-verified · last ping at the job",
+      tone: "ok",
+    });
+    expect(trackingProofCaption("verified", 12, true).text).toBe(
+      "Arrival GPS-verified · last ping 12 mi from job",
+    );
+  });
+
+  it("states a position with no arrival claim as a position, not as proof", () => {
+    expect(trackingProofCaption("none", 12, true)).toEqual({
+      text: "Location shared · 12 mi from job",
+      tone: "muted",
+    });
+  });
+
+  it("states the ABSENCE of a fix rather than leaving it blank", () => {
+    expect(trackingProofCaption("claimed", null, false)).toEqual({
+      text: "Arrival not confirmed · no location shared",
+      tone: "warn",
+    });
+    expect(trackingProofCaption("confirmed", null, false).tone).toBe("ok");
+    expect(trackingProofCaption("none", null, false)).toEqual({
+      text: "Location not shared",
+      tone: "muted",
+    });
+  });
+
+  it("drops the distance clause when there is nothing to measure against", () => {
+    // The job never geocoded — a fix with no reference point proves nothing
+    // about proximity, so no distance is invented.
+    expect(trackingProofCaption("verified", null, true).text).toBe("Arrival GPS-verified");
+    expect(trackingProofCaption("claimed", null, true).text).toBe("Arrival not confirmed");
+  });
+
+  it("renders sub-10-mile distances to one decimal, above that to whole miles", () => {
+    expect(trackingProofCaption("none", 1.25, true).text).toBe("Location shared · 1.3 mi from job");
+    expect(trackingProofCaption("none", 1792.4, true).text).toBe("Location shared · 1792 mi from job");
   });
 });

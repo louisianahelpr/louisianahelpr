@@ -3,6 +3,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Paperclip, Trash2, Pencil, Check, X } from "lucide-react";
 import { AttachmentLink } from "@/components/AttachmentLink";
 import { JobCardPhotoStrip } from "../JobCardPhotoStrip";
+import { SectionEyebrow } from "./SectionEyebrow";
 import type { AppliedApp, Job } from "../activityConstants";
 
 interface PendingApplicationSectionProps {
@@ -40,26 +41,44 @@ export function PendingApplicationSection({
           jobs only. Bidding was removed (zero production usage), so a
           pending application is just a message + attachments now. */}
 
-      {/* Your application message — editable */}
+      {/* Your application message — editable.
+
+          EYEBROW RESTORED (owner, 2026-08-30: "eye brows were removed so update
+          so they know what things are"). This block sat immediately under the
+          poster's job description with nothing distinguishing them — two
+          passages of prose, one written by the poster and one by the reader
+          themselves, on a card whose whole point is "here's their job, here's
+          what you told them". The "your" is what carries ownership, matching
+          "Your attachments" below.
+
+          It is also the textarea's REAL <label htmlFor>, not an aria-label: the
+          editor had no visible label at all, and a heading that already names
+          the field is the label. Title case in the source, capitals from CSS —
+          an all-caps string gets spelled out by some screen readers. */}
       <div className="rounded-ds-sm bg-primary/5 border border-primary/15 p-2" onClick={(e) => e.stopPropagation()}>
-        {editingMessageAppId !== app.id && (
-          <div className="flex justify-end mb-1">
+        <div className="flex items-center justify-between gap-2 mb-1">
+          {/* A <label htmlFor> only while the control it names exists; a plain
+              heading otherwise, so no label is left pointing at nothing. */}
+          <SectionEyebrow htmlFor={editingMessageAppId === app.id ? `app-message-${app.id}` : undefined}>
+            Your message
+          </SectionEyebrow>
+          {editingMessageAppId !== app.id && (
             <button
               type="button"
               aria-label="Edit your message"
-              className="text-primary hover:text-primary/80 btn-press p-0.5 -m-0.5"
+              className="text-primary hover:text-primary/80 btn-press p-0.5 -m-0.5 shrink-0"
               onClick={() => { setEditingMessageAppId(app.id); setEditMessageText(app.message || ""); }}
             >
               <Pencil className="w-3 h-3" />
             </button>
-          </div>
-        )}
+          )}
+        </div>
         {editingMessageAppId === app.id ? (
           <div className="space-y-1.5">
             <Textarea
+              id={`app-message-${app.id}`}
               value={editMessageText}
               onChange={(e) => setEditMessageText(e.target.value)}
-              aria-label="Edit your application message"
               placeholder="Introduce yourself or share relevant experience…"
               rows={3}
               className="text-ds-11"
@@ -78,14 +97,11 @@ export function PendingApplicationSection({
         )}
       </div>
 
-      {/* Your attachments */}
-      <div className="space-y-1.5">
-        <p
-          className="font-serif italic uppercase text-ds-10"
-          style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-        >
-          Your attachments
-        </p>
+      {/* Your attachments — the eyebrow that survived the removal pass, and the
+          treatment SectionEyebrow was lifted from. Now a real <h4> naming the
+          section rather than a styled <p>. */}
+      <section aria-labelledby={`app-attachments-${app.id}`} className="space-y-1.5">
+        <SectionEyebrow id={`app-attachments-${app.id}`}>Your attachments</SectionEyebrow>
         {/* Each row used to render a FileText icon and the filename, then embed
             an <AttachmentLink variant="chip"> that renders its OWN FileText and
             the SAME filename inside its own tinted chip — a chip inside a chip
@@ -139,7 +155,7 @@ export function PendingApplicationSection({
         {(app.attachment_urls || []).length === 0 && !uploadingAttachment && (
           <p className="text-muted-foreground text-ds-11">No attachments yet</p>
         )}
-      </div>
+      </section>
     </div>
   );
 }

@@ -21,6 +21,7 @@ import type { AppliedJobCardProps, ApplicationViewFields } from "./appliedJobCar
 import { useHighlightPulse } from "./appliedJobCard/useHighlightPulse";
 import { deriveAppliedJobCardState } from "./appliedJobCard/appliedJobCardHelpers";
 import { CancellationFeePill } from "./appliedJobCard/CancellationFeePill";
+import { SectionEyebrow } from "./appliedJobCard/SectionEyebrow";
 import { PendingApplicationSection } from "./appliedJobCard/PendingApplicationSection";
 import { OfferedActions } from "./appliedJobCard/OfferedActions";
 import { ConfirmedSection } from "./appliedJobCard/ConfirmedSection";
@@ -138,6 +139,16 @@ function AppliedJobCardInner({
     viewerFeePercent,
   );
 
+  /** Does the description say anything the TITLE hasn't already said? A job
+   *  whose description is its own title back again is one line of duplication. */
+  const showDescription =
+    !isMinimalCard &&
+    isExpanded &&
+    job.description.trim().toLowerCase() !== (job.title || "").trim().toLowerCase();
+  /** Whether the block between the meta row and the action row has ANY content.
+   *  Every child of it is conditional — see the note at the block itself. */
+  const hasCardBody = !isMinimalCard && isExpanded && (!!app.posterName || showDescription);
+
   /**
    * Location · date · time — built once, placed twice. Desktop puts it on the
    * TITLE row; phone keeps it below. Mirrors PostedJobCard exactly, which is
@@ -226,6 +237,20 @@ function AppliedJobCardInner({
               stacked to ~48px of dead band with a hairline through the middle,
               directly above the Accept/Decline pair. Same trim the posted card
               makes. */}
+          {/* THE BAND ONLY EXISTS IF IT HAS CONTENT (owner, 2026-08-30: "remove
+              gap under the location and above the buttons").
+
+              Every child of this block is conditional — the "Posted by" row and
+              the description need `isExpanded`, the not-selected line needs
+              `isMinimalCard` — so on a COLLAPSED pending card (the Waiting tab,
+              the state the owner was looking at) it rendered an empty div with
+              `pt-2.5 pb-1.5` of padding, directly above the action block's own
+              `py-2.5` and its hairline top border. ~26px of white with a rule
+              through it and nothing in it: it reads as a section that failed to
+              render, not as spacing. The padding was always sized for content;
+              when there is none the band collapses rather than reserving space
+              for it. */}
+          {(hasCardBody || isMinimalCard) && (
           <div className={`px-4 pt-2.5 space-y-2 ${hasActionSection && !isMinimalCard ? "pb-1.5" : "pb-3"}`}>
             {/* No chevron glyph on this card (owner: remove it) — the whole
                 card is the expand/collapse tap target (JobCardShell), so no
@@ -263,8 +288,28 @@ function AppliedJobCardInner({
                 </a>
               </div>
             )}
-            {!isMinimalCard && isExpanded && job.description.trim().toLowerCase() !== (job.title || "").trim().toLowerCase() && (
-              <p className="text-ds-11 text-muted-foreground leading-relaxed">{job.description}</p>
+            {/* EYEBROW RESTORED (owner, 2026-08-30: "eye brows were removed so
+                update so they know what things are"). The expanded card stacks
+                the poster's description and — right under it — the helper's own
+                application message in an editor, two passages of prose with
+                nothing saying which is whose. "Your attachments" told you what
+                it was; these did not.
+
+                Same treatment as that one, exactly: `font-serif italic
+                uppercase text-ds-10`, burnt-sienna, 0.18em tracking. Title case
+                in the SOURCE with the capitals applied by CSS — an all-caps
+                string is spelled out letter by letter by some screen readers.
+                And a real <h4>, not a decorative <p>, associated with the
+                paragraph it labels via aria-labelledby, so the structure a
+                sighted reader gets is the structure a screen-reader user gets.
+
+                "Job description" vs "Your message" — the "your" is what carries
+                ownership, the same signal "Your attachments" already used. */}
+            {showDescription && (
+              <section aria-labelledby={`job-desc-${app.job_id}`} className="space-y-1">
+                <SectionEyebrow id={`job-desc-${app.job_id}`}>Job description</SectionEyebrow>
+                <p className="text-ds-11 text-muted-foreground leading-relaxed">{job.description}</p>
+              </section>
             )}
 
             {isMinimalCard && (
@@ -277,6 +322,7 @@ function AppliedJobCardInner({
               </div>
             )}
           </div>
+          )}
 
           {/* Pending expandable section */}
           {!isMinimalCard && isPending && isExpanded && (

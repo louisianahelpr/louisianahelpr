@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
-import { jobActionChipStyle, JOB_ACTION_FULL_CLASS } from "@/components/activity/JobActionRow";
+import { JobActionRow, JobActionChip } from "@/components/activity/JobActionRow";
+import { RELIABILITY_LADDER_SENTENCE } from "@/lib/reliabilityLadder";
 import { MessageSquare, CalendarX2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -9,8 +9,8 @@ import { hapticError } from "@/lib/haptics";
 import { JobCountdown } from "@/components/activity/JobCountdown";
 import { DirectionsButton } from "./DirectionsButton";
 import { JobPetCareSheet } from "@/components/activity/JobPetCareSheet";
-import { JobConfirmation } from "@/components/JobConfirmation";
-import { JobTracking, type TrackingData } from "@/components/JobTracking";
+import { HelperTrackerPanel } from "./HelperTrackerPanel";
+import type { TrackingData } from "@/components/JobTracking";
 import type { AppliedApp, Job } from "../activityConstants";
 
 interface ConfirmedSectionProps {
@@ -72,14 +72,17 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
 
   return (
     <div className="px-4 py-3 border-t border-[hsl(var(--olivewood)/0.1)] bg-card space-y-2.5" onClick={(e) => e.stopPropagation()}>
-      {/* Confirmation leads, because it happens FIRST (owner: "confirmation
-          needs to go before job starts because that comes first"). The card
-          used to open with "Job starts in 2d 15h" and bury "Confirmation opens
-          in 1d 1h" below the tracker — so the countdown the helpr had to act
-          on SOONER was the one further down the card, under the step they
-          could not reach yet. Chronological order top to bottom: confirm the
-          day before, then the job starts, then the tracker runs on the day. */}
-      <JobConfirmation jobId={app.job_id} isOwner={false} isHelper={true} posterConfirmedAt={job.poster_confirmed_at} helperConfirmedAt={job.helper_confirmed_at} helperDayofConfirmedAt={job.helper_dayof_confirmed_at} dateNeeded={job.date_needed} jobStatus={job.status} helperOnTheWayAt={job.helper_on_the_way_at} onCantMakeIt={() => setCancelOpen(true)} />
+      {/* ONE box: the step rail AND the day-of confirmation that completes its
+          "Confirmed" step. See HelperTrackerPanel — the confirmation used to be
+          a second glass card BELOW the tracker with its own green primary, so
+          the card offered two full-width green buttons at once and the wrong
+          one ("On the Way") was reachable first.
+
+          It still leads the section, which is the ordering the owner set
+          ("confirmation needs to go before job starts because that comes
+          first") — the confirmation is now simply inside the tracker rather
+          than stacked above or below it. */}
+      <HelperTrackerPanel app={app} job={job} userId={userId} initialTracking={initialTracking} onCantMakeIt={() => setCancelOpen(true)} />
       {/* Job countdown */}
       <JobCountdown dateNeeded={job.date_needed} startTime={job.start_time} label="Job starts in" />
       {/* The pets, and everything the owner already wrote down about them.
@@ -91,23 +94,44 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
           "once they accept a job it will be on their calendar in the app".
           Handing the helpr an .ics to download and import is asking the user
           to do the app's job, on a job the app already knows the date of. */}
-      {/* Tracking — only active on the day of the job */}
-      <JobTracking jobId={app.job_id} helperId={userId} isHelper={true} isOwner={false} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={job.helper_confirmed_at} helperDayofConfirmedAt={job.helper_dayof_confirmed_at} posterConfirmedAt={job.poster_confirmed_at} initialTracking={initialTracking} jobLatitude={job.latitude} jobLongitude={job.longitude} helperOnTheWayAt={job.helper_on_the_way_at} helperArrivedAt={job.helper_arrived_at} helperArrivalVerifiedAt={job.helper_arrival_verified_at} posterConfirmedArrivalAt={job.poster_confirmed_arrival_at} helperCompletedAt={job.helper_completed_at} posterCompletedAt={job.poster_completed_at} />
-      {/* Directions sits with Message, above the exit link: this is the
-          BOOKED state — the job is confirmed and the next physical thing the
-          helpr does is drive to it. Until now the only route to the maps app
-          was the truncated city name in the meta row. */}
-      <DirectionsButton location={job.location} />
-      <Button size="sm" variant="outline" style={jobActionChipStyle("neutral")} className={JOB_ACTION_FULL_CLASS} onClick={() => navigate(job.customer_id ? `/messages?jobId=${app.job_id}&userId=${job.customer_id}` : "/messages")}><MessageSquare className="w-4 h-4" />Message</Button>
-      {/* Quiet, but present: the alternative to a sanctioned exit is a
-          ghost, and a ghost is worse for everyone including the ghoster. */}
-      <button
-        type="button"
-        onClick={() => setCancelOpen(true)}
-        className="w-full text-center text-ds-11 font-serif italic underline underline-offset-2 text-muted-foreground hover:text-foreground transition-colors min-h-[44px]"
-      >
-        Can't make it? See what happens
-      </button>
+      {/* THREE PEERS, ONE ROW (owner, 2026-08-30: "directions messages and
+          can't make it all need to be buttons in a row side by side").
+
+          These were three different treatments stacked vertically — two
+          full-width outline buttons and a bare centred text link — for three
+          things a booked helpr does from this card. The shared JobActionRow /
+          JobActionChip pair is the app's existing 3-up, so this row is the same
+          component the posted card's chip rows render through rather than a
+          parallel primitive.
+
+          "Can't make it" is the exit, not a link: it opens the same
+          reliability-ladder confirm the underlined link used to. `danger` is
+          the tone every sanctioned-exit control in these rows already wears
+          (Withdraw, Cancel, Dispute) and it is the only alarm colour on this
+          card — the tracker's yellow means "current step" and lives in the
+          panel above, so the two never collide. The full sentence survives in
+          the accessible name; the visible label has ~92px at 320px.
+
+          `columns` is passed deliberately: DirectionsButton self-hides on a job
+          with no address, and two chips stranded in a three-column grid is what
+          JobActionRow's explicit `columns` prop exists to prevent. */}
+      <JobActionRow columns={job.location?.trim() ? 3 : 2}>
+        <DirectionsButton location={job.location} variant="chip" />
+        <JobActionChip
+          icon={MessageSquare}
+          label="Message"
+          ariaLabel="Message the poster about this job"
+          tone="neutral"
+          onClick={() => navigate(job.customer_id ? `/messages?jobId=${app.job_id}&userId=${job.customer_id}` : "/messages")}
+        />
+        <JobActionChip
+          icon={CalendarX2}
+          label="Can't Make It"
+          ariaLabel="Can't make it? See what happens if you cancel this booking"
+          tone="danger"
+          onClick={() => setCancelOpen(true)}
+        />
+      </JobActionRow>
       <BrandConfirmDialog
         open={cancelOpen}
         onOpenChange={setCancelOpen}
@@ -115,7 +139,17 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
         description={`"${job.title}" reopens for other Helprs right away, and the poster is told now — while there's still time to rebook.`}
         callout={{
           icon: CalendarX2,
-          text: "Cancelling a job you committed to counts as a reliability strike: two strikes is a final warning, a third suspends your account for 7 days, a fourth is permanent.",
+          // The shared statement, not a hand-typed one. This callout was the
+          // last ladder description in the app still writing its own, and it
+          // had drifted: it threatened "a fourth is permanent" when
+          // helper_cancel_booking → apply_job_denial_consequence's fourth rung
+          // is `pending_ban_review` — a reversible 7-day restriction an admin
+          // then decides on (20260829030000: p_permanent_requires_review =>
+          // true turns the 'permanent' effect into 'review'). Threatening an
+          // automatic permanent ban on the SANCTIONED exit is what pushes a
+          // helper to ghost instead, which is the behaviour this exit exists to
+          // replace.
+          text: `Cancelling a job you committed to counts as a reliability strike — ${RELIABILITY_LADDER_SENTENCE}.`,
         }}
         primaryLabel={cancelling ? "Cancelling…" : "Cancel My Booking"}
         primaryTone="sienna"

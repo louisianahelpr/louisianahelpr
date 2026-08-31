@@ -9,6 +9,38 @@ import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { unwrapMutation, mutationErrorMessage, isWriteRejected } from "@/lib/mutationResult";
 import { report } from "@/lib/errorLogger";
 
+/**
+ * THE HELPER'S DAY-OF ANSWER, in one place.
+ *
+ * `helper_confirmed_at` is stamped at ACCEPT time — possibly days early — so it
+ * cannot answer "are you still on today?". `helper_dayof_confirmed_at`
+ * (migration 20260824213000) is the day-before tap. An accept that itself
+ * happened inside the 24h window IS a day-of answer, so it counts.
+ *
+ * Exported because the merged tracker panel on the helper's card
+ * (appliedJobCard/HelperTrackerPanel) gates "I'm On My Way" on exactly this
+ * value, and a second hand-rolled copy of the rule is how the card and the card
+ * it sits inside end up disagreeing about whether the helper has confirmed.
+ *
+ * Returns the effective STAMP (so callers can print it), or null.
+ */
+export function helperDayOfConfirmation({
+  helperConfirmedAt,
+  helperDayofConfirmedAt,
+  dateNeeded,
+}: {
+  helperConfirmedAt: string | null;
+  helperDayofConfirmedAt?: string | null;
+  dateNeeded: string;
+}): string | null {
+  if (helperDayofConfirmedAt) return helperDayofConfirmedAt;
+  if (!helperConfirmedAt) return null;
+  const jobDate = parseLocalDate(dateNeeded);
+  return jobDate.getTime() - new Date(helperConfirmedAt).getTime() <= 24 * 3_600_000
+    ? helperConfirmedAt
+    : null;
+}
+
 export function JobConfirmation({
   jobId,
   isOwner,
@@ -21,6 +53,7 @@ export function JobConfirmation({
   helperOnTheWayAt,
   onConfirm,
   onCantMakeIt,
+  variant = "card",
 }: {
   jobId: string;
   isOwner: boolean;
@@ -43,6 +76,21 @@ export function JobConfirmation({
    * the job is already day-of and past the point of backing out).
    */
   onCantMakeIt?: () => void;
+  /**
+   * `"card"` (default) is the standalone glass card with its own heading,
+   * date line and the two You/Other status chips — unchanged, and still what
+   * the poster's card renders.
+   *
+   * `"inline"` is for a caller that has MERGED this step into its own tracker
+   * panel (the helper's My Jobs card). Owner, 2026-08-30: "bottom box needs to
+   * be merged in the live tracker" and "remove you posted confirmed etc." — so
+   * inline drops the chrome, the heading, the "Tap to let the other party know
+   * it's a go" line, the repeated date and BOTH status chips, and renders only
+   * the control. The tracker rail it now sits inside already says which step
+   * the job is on; the chips restated that in a second vocabulary, which is the
+   * duplication the merge exists to remove.
+   */
+  variant?: "card" | "inline";
 }) {
   const [confirming, setConfirming] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -65,8 +113,20 @@ export function JobConfirmation({
   if (helperOnTheWayAt) return null;
 
   const isLiveJob = jobStatus === "accepted" || jobStatus === "in_progress";
-  // Show for accepted/in_progress jobs within 24 hours of job date
-  const showConfirmation = isLiveJob && hoursUntilJob <= 24 && hoursUntilJob > -12;
+  /* THE WINDOW CLOSES WHEN THE JOB DAY DOES — for the helper.
+     `hoursUntilJob` is measured from MIDNIGHT of the job date, so the old -12
+     floor closed this card at NOON on the day of the job. For an evening
+     booking that is hours before the helper sets off, and it left a hole in the
+     gate the tracker now depends on: HelperTrackerPanel holds "I'm On My Way"
+     until the day-of confirmation lands, and it can only do that while there is
+     a control here to land it with. Past -12 the card vanished, the gate had to
+     stand down rather than dead-end the helper, and an unconfirmed helper on an
+     8 PM job could set off at 1 PM exactly as before.
+     -24 is "any time on the job day", which is the window this card always
+     described in words. The POSTER keeps the original -12: their confirmation
+     gates nothing, and their card is unchanged. */
+  const showConfirmation =
+    isLiveJob && hoursUntilJob <= 24 && hoursUntilJob > (isOwner ? -12 : -24);
 
   /* NOT-YET-OPEN IS A STATE, NOT AN ABSENCE.
      This component used to `return null` for every accepted job more than 24
@@ -191,11 +251,10 @@ export function JobConfirmation({
   };
 
   // A helper accept that itself happened inside the 24h window IS a
-  // day-before answer — don't ask the same question twice.
-  const acceptWasDayOf =
-    !!helperConfirmedAt &&
-    jobDate.getTime() - new Date(helperConfirmedAt).getTime() <= 24 * 3_600_000;
-  const helperDayOf = helperDayofConfirmedAt || (acceptWasDayOf ? helperConfirmedAt : null);
+  // day-before answer — don't ask the same question twice. One shared rule
+  // (see helperDayOfConfirmation above), so this card and the tracker panel
+  // that gates "I'm On My Way" on it cannot disagree.
+  const helperDayOf = helperDayOfConfirmation({ helperConfirmedAt, helperDayofConfirmedAt, dateNeeded });
   const myConfirmed = localConfirmedAt || (isOwner ? posterConfirmedAt : helperDayOf);
   const otherConfirmed = isOwner ? helperDayOf : posterConfirmedAt;
   const otherLabel = isOwner ? "Helpr" : "Poster";
@@ -205,6 +264,105 @@ export function JobConfirmation({
     : hoursUntilJob < 24
     ? "less than 24 hours"
     : `${Math.round(hoursUntilJob)} hours`;
+
+  /* The commit popup, hoisted out of the card's return so BOTH variants
+     render the identical flow — the "Scheduled for" date, the no-show warning,
+     and the hand-off to the caller's real cancel path. The inline variant drops
+     the card's chrome, never its consequences. */
+  const confirmDialog = (
+    <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+      <DialogContent>
+        <DialogHero title="Commit to This Job?" />
+        <div className="space-y-3">
+          <div
+            className="rounded-ds-md p-3"
+            style={{
+              background: "hsl(var(--ivory-sand) / 0.4)",
+              border: "0.5px solid hsl(var(--olivewood) / 0.10)",
+            }}
+          >
+            <p className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground mb-0.5">
+              Scheduled for
+            </p>
+            <p
+              className="font-display italic font-bold leading-tight text-ds-16"
+              style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
+            >
+              {jobDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+            </p>
+          </div>
+          <div
+            className="rounded-ds-md p-3"
+            style={{
+              background: "hsl(var(--burnt-sienna) / 0.08)",
+              border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
+            }}
+          >
+            <p
+              className="font-serif italic leading-snug flex items-start gap-2 text-ds-12"
+              style={{ color: "hsl(var(--burnt-sienna))" }}
+            >
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+              <span>No-shows or last-minute cancellations after confirming may result in a warning or account restrictions.</span>
+            </p>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => setShowConfirmDialog(false)} className="rounded-ds-md">Cancel</Button>
+          <Button
+            variant="primary"
+            onClick={handleConfirm}
+            disabled={confirming}
+            className="rounded-ds-md"
+          >
+            {confirming ? "Confirming…" : "Yes, I Confirm"}
+          </Button>
+        </DialogFooter>
+        {/* Distinct from Cancel: Cancel just dismisses this popup, nothing
+            changes. This hands off to the caller's real cancel/decline flow
+            — a reliability strike for a Helpr backing out, a reopened job
+            for a poster — so it can't read as a second, lighter Cancel. */}
+        {onCantMakeIt && (
+          <button
+            type="button"
+            onClick={() => { setShowConfirmDialog(false); onCantMakeIt(); }}
+            className="w-full text-center text-ds-11 font-serif italic underline underline-offset-2 text-muted-foreground hover:text-foreground transition-colors min-h-[44px]"
+          >
+            Can't make it? See what happens
+          </button>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+
+  /** The one control, shared by both variants so they can't drift. */
+  const confirmCta = !myConfirmed && (isOwner || isHelper) && (
+    <Button
+      variant="primary"
+      size="sm"
+      onClick={() => setShowConfirmDialog(true)}
+      // h-11, not the old h-8: at 32px this was the smallest interactive
+      // control on either job card and ~12px under the WCAG 2.5.5 / project
+      // 44px floor that every sibling button already meets.
+      className="w-full rounded-ds-md h-11 min-h-[44px] text-ds-12"
+    >
+      <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+      I'm Still On
+    </Button>
+  );
+
+  /* MERGED INTO THE TRACKER — no box, no heading, no date, no chips.
+     Everything this variant drops is said by the step rail directly above it:
+     "Confirmed" is the step, its colour is whether it's done, and this button
+     is how it gets done. */
+  if (variant === "inline") {
+    return (
+      <>
+        {confirmCta}
+        {confirmDialog}
+      </>
+    );
+  }
 
   return (
     <>
@@ -270,85 +428,10 @@ export function JobConfirmation({
           </p>
         )}
 
-        {!myConfirmed && (isOwner || isHelper) && (
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => setShowConfirmDialog(true)}
-            className="w-full rounded-ds-md h-8 text-ds-12"
-          >
-            <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-            I'm Still On
-          </Button>
-        )}
+        {confirmCta}
       </div>
 
-      {/* Confirmation popup */}
-      <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-        <DialogContent>
-          <DialogHero
-            title="Commit to This Job?"
-          />
-          <div className="space-y-3">
-            <div
-              className="rounded-ds-md p-3"
-              style={{
-                background: "hsl(var(--ivory-sand) / 0.4)",
-                border: "0.5px solid hsl(var(--olivewood) / 0.10)",
-              }}
-            >
-              <p className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground mb-0.5">
-                Scheduled for
-              </p>
-              <p
-                className="font-display italic font-bold leading-tight text-ds-16"
-                style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
-              >
-                {jobDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
-              </p>
-            </div>
-            <div
-              className="rounded-ds-md p-3"
-              style={{
-                background: "hsl(var(--burnt-sienna) / 0.08)",
-                border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
-              }}
-            >
-              <p
-                className="font-serif italic leading-snug flex items-start gap-2 text-ds-12"
-                style={{ color: "hsl(var(--burnt-sienna))" }}
-              >
-                <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                <span>No-shows or last-minute cancellations after confirming may result in a warning or account restrictions.</span>
-              </p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setShowConfirmDialog(false)} className="rounded-ds-md">Cancel</Button>
-            <Button
-              variant="primary"
-              onClick={handleConfirm}
-              disabled={confirming}
-              className="rounded-ds-md"
-            >
-              {confirming ? "Confirming…" : "Yes, I Confirm"}
-            </Button>
-          </DialogFooter>
-          {/* Distinct from Cancel: Cancel just dismisses this popup, nothing
-              changes. This hands off to the caller's real cancel/decline flow
-              — a reliability strike for a Helpr backing out, a reopened job
-              for a poster — so it can't read as a second, lighter Cancel. */}
-          {onCantMakeIt && (
-            <button
-              type="button"
-              onClick={() => { setShowConfirmDialog(false); onCantMakeIt(); }}
-              className="w-full text-center text-ds-11 font-serif italic underline underline-offset-2 text-muted-foreground hover:text-foreground transition-colors min-h-[44px]"
-            >
-              Can't make it? See what happens
-            </button>
-          )}
-        </DialogContent>
-      </Dialog>
+      {confirmDialog}
     </>
   );
 }

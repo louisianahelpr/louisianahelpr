@@ -163,6 +163,29 @@ const JobDetailDialog = ({
     </>
   );
 
+  /* How much of the sheet's top-right corner the icon cluster occupies, so the
+     badge row below can reserve it instead of running underneath it (owner,
+     2026-08-31: "Covering buttons"). DERIVED FROM THE SAME CONDITIONS as
+     `cornerActions` above, deliberately — a reserve keyed on anything else
+     goes stale the moment an icon is added or hidden, which is how the row
+     came to depend on the badges happening to be short.
+     Geometry is DialogContent's (dialog.tsx): the close X is `right-3` (12px)
+     + 32px wide = 44px; when a `topRightSlot` is present its container starts
+     at `right-[46px]` and is n×32px + (n−1)×2px of `gap-0.5`. Values below are
+     that width + ~4px of breathing room. Tailwind needs the class as a
+     literal, so these are spelled out rather than computed into a template. */
+  const cornerIconCount = guest
+    ? 0
+    : (viewerUserId !== job.customer_id ? 1 : 0) + (onToggleSave ? 1 : 0) + 1;
+  const iconLaneReserve =
+    cornerIconCount >= 3
+      ? "pr-[9.375rem]" // 150px — Share + Save + Report + X
+      : cornerIconCount === 2
+        ? "pr-[7.25rem]" // 116px — two of the three + X
+        : cornerIconCount === 1
+          ? "pr-[5.125rem]" // 82px — one + X
+          : "pr-[3rem]"; // 48px — the shared close X on its own (guest)
+
   return (
     <Dialog open={!!job} onOpenChange={() => onClose()}>
       <DialogContent
@@ -188,10 +211,39 @@ const JobDetailDialog = ({
         // the content ~92dvh instead of 88% of a shrunken box, and puts the
         // "Sign up to apply" CTA in the thumb arc rather than mid-screen.
         //
+        // …WHICH `max-h` ALONE NEVER DELIVERED (owner, 2026-08-31: "phone
+        // should open not at the bottom"). `max-h-[92dvh]` is a CEILING, and a
+        // short job never came near it: measured at 375x812, a title + one-line
+        // description + three meta chips + poster row + CTA opened the sheet at
+        // 397.7px — 49.0% of the viewport, i.e. a small box pinned to the
+        // bottom edge under a half-screen of blurred dead band. (320: 54.9%.
+        // A boosted/urgent/recommended job: 51.9%.) The fix is a FIXED height,
+        // `h-[92dvh]`, so every job opens at the same generous size and the
+        // sheet's proportions stop being a function of how much the poster
+        // typed. Only a fixed height also makes "the CTA sits in the thumb
+        // arc" true for the SHORT case, which is the case that was wrong.
+        //
+        // A fixed height on a `display:grid` box needs explicit tracks or the
+        // default `align-content: normal` stretches every auto row to fill it,
+        // which just re-distributes the dead space instead of removing it. So
+        // the phone sheet declares three rows —
+        //   grid-rows-[auto_minmax(0,1fr)_auto]
+        //     row 1  the badge strip (flush corner tabs, see below)
+        //     row 2  the scrollable body — `minmax(0,…)` + `min-h-0` on the
+        //            div so it can actually SHRINK below its content and
+        //            scroll internally rather than pushing row 3 off-screen
+        //     row 3  the footer CTA, pinned in the thumb arc
+        // — and the JSX below renders EXACTLY three in-flow children to fill
+        // them (the left rail stripe is `absolute`, PhotoLightbox portals, so
+        // neither takes a track). The outer box keeps the base
+        // `overflow-y-auto` but can no longer scroll: rows 1+3 are ~170px of a
+        // 747px sheet, so row 2 always absorbs the slack.
+        //
         // The overrides come in three parts because the base DialogContent is
         // centred by transform, not by inset:
         //   1. geometry — top-auto/bottom-0 + zeroed translate, full width,
-        //      square bottom corners (28px top only, from .glass-modal).
+        //      FIXED 92dvh height + the three-row track, square bottom corners
+        //      (28px top only, from .glass-modal).
         //   2. animation — the base sets --tw-enter-translate-x:-50% via
         //      `slide-in-from-left-1/2` to compensate for its own centering
         //      transform. With the transform gone that would fly the sheet in
@@ -206,7 +258,8 @@ const JobDetailDialog = ({
           "grid-cols-1",
           // 1. phone geometry
           "left-0 top-auto bottom-0 translate-x-0 translate-y-0 [translate:0_0]",
-          "w-full max-w-none max-h-[92dvh] rounded-b-none rounded-t-[28px]",
+          "w-full max-w-none h-[92dvh] max-h-[92dvh] rounded-b-none rounded-t-[28px]",
+          "grid-rows-[auto_minmax(0,1fr)_auto]",
           // 2. phone animation
           "data-[state=open]:slide-in-from-left-0 data-[state=open]:slide-in-from-bottom-full data-[state=open]:zoom-in-100",
           "data-[state=closed]:slide-out-to-left-0 data-[state=closed]:slide-out-to-bottom-full data-[state=closed]:zoom-out-100",
@@ -242,6 +295,10 @@ const JobDetailDialog = ({
           // an intended +32px/7vh). Overriding the SAME `translate` property
           // the base uses is the only way to actually zero it.
           "sm:left-[50%] sm:top-[7vh] sm:bottom-auto sm:[translate:-50%_0]",
+          // `sm:h-auto sm:grid-rows-none` undo the two phone-only lines above:
+          // above sm this is a floating card that shrinks to its content and
+          // lays its children out on implicit auto rows, exactly as before.
+          "sm:h-auto sm:grid-rows-none",
           "sm:w-[calc(100%-2rem)] sm:max-w-lg sm:max-h-[86vh] sm:rounded-t-[28px] sm:rounded-b-[28px]",
           "sm:data-[state=open]:slide-in-from-left-1/2 sm:data-[state=open]:slide-in-from-top-4 sm:data-[state=open]:zoom-in-95",
           "sm:data-[state=closed]:slide-out-to-left-1/2 sm:data-[state=closed]:slide-out-to-top-4 sm:data-[state=closed]:zoom-out-95",
@@ -298,16 +355,66 @@ const JobDetailDialog = ({
             question, 2026-08-30: "category top left ... add the category
             stripe back to the left side").
             data-frame-chrome: these elements deliberately bleed into the
-            dialog's padding gutter (absolute left-0 relative to the fixed
-            DialogContent, not the p-5 content box) to achieve the flush-edge
-            design — the apply-dialog-fit e2e excludes them from its content-
-            overflow check on that basis. */}
+            dialog's padding gutter (the rail is absolute left-0 relative to
+            the fixed DialogContent; the badge row is in flow with negative
+            margins — neither sits inside the p-4/p-5 content box) to achieve
+            the flush-edge design — the apply-dialog-fit e2e excludes them
+            from its content-overflow check on that basis. */}
         <span
           aria-hidden
           data-frame-chrome="true"
           className={`absolute left-0 top-0 bottom-0 w-1.5 z-10 rounded-tl-lg rounded-bl-lg ${catStyle.dot}`}
         />
-        <div data-frame-chrome="true" className="absolute top-0 left-0 z-20 flex items-stretch">
+        {/* THE BADGE ROW IS IN FLOW, NOT ABSOLUTE, AND RESERVES THE ICON LANE.
+            (owner, 2026-08-31, screenshot annotated "Covering buttons".)
+            It used to be `absolute top-0 left-0 … flex items-stretch` — a
+            shrink-to-fit strip with no width limit, sharing the sheet's top
+            band with the OTHER absolutely-positioned cluster up there (the
+            Share/Save/Report row at right-[46px] and the close X at right-3,
+            both y=8..40). Two absolute siblings in one band collide as soon as
+            the left one gets long, and the strip is z-20 against their z-10, so
+            the pills painted OVER the buttons: measured before the fix, on a
+            painting job that was recommended + urgent + boosted, the strip ran
+            451px wide inside a 320/375px sheet and `elementFromPoint` at the
+            centre of Share, Save and Report returned a BADGE, not the button —
+            at 320, at 375 AND at 768 (where the sheet is 512px and the strip
+            still overshoots the lane). Even a plain 2-badge job broke Share and
+            Save at 320. It was never "three pills are one too many"; it was
+            chrome positioned by hope.
+            The fix has three parts and needs all of them:
+              · RESERVE — `iconLaneReserve` below is the icon cluster's real
+                measured width, derived from the same conditions that decide
+                which icons `cornerActions` renders, so the badges cannot enter
+                the lane no matter how many of either render.
+              · POINTER-EVENTS-NONE — the reserve keeps the PILLS out of the
+                lane, but this row is a stretched grid item, so its (empty,
+                transparent) box still spans the full sheet width at z-20 and
+                would sit on top of the buttons for hit-testing:
+                `elementFromPoint` at each icon centre returned this DIV even
+                where no pill was anywhere near it. The row holds nothing
+                interactive, so it opts out of hit-testing entirely and taps
+                land on the buttons underneath.
+              · IN FLOW — `flex-wrap` + negative margins that cancel the
+                dialog's own padding. Wrapping is only safe once the row takes
+                a track: as an absolute box a second line would have landed on
+                top of the title. In flow it pushes the title down instead, so
+                0/1/2/3/4 badges are all just "the row is taller", and the
+                title's clearance stops being the hand-tuned `mt-5` magic
+                number it used to be (see the title row below).
+            DELIBERATE TRADE-OFF: at 320px, four badges (~460px of pills) into
+            a 168px lane-free width is genuinely 3–4 short lines. That is the
+            chosen resolution — every badge stays readable and nothing hides —
+            rather than truncating, clipping, or dropping the lower-priority
+            pills, which would silently lose information the owner explicitly
+            asked to carry over from the feed card. It only bites on the rare
+            recommended+urgent+boosted job on the narrowest phone; 1–2 badges,
+            the normal case, still render as one flush corner tab exactly as
+            before. This is a change at EVERY width, not a phone-only one,
+            because the collision was measured at 768 too. */}
+        <div
+          data-frame-chrome="true"
+          className={`relative z-20 pointer-events-none flex flex-wrap items-stretch -mt-4 -mx-4 sm:-mt-5 sm:-mx-5 ${iconLaneReserve}`}
+        >
           <span
             className={`inline-flex items-center gap-1.5 pl-3.5 pr-3 py-1.5 rounded-tl-lg text-ds-13 font-semibold leading-none shadow-sm border-b border-r ${!isRecommended && !job.is_urgent && !job.isBoosted ? "rounded-br-lg" : ""} ${catStyle.badge}`}
           >
@@ -371,6 +478,31 @@ const JobDetailDialog = ({
             </span>
           )}
         </div>
+        {/* ROW 2 — THE SCROLLING BODY.
+            Everything the helpr reads lives in here so the footer CTA below
+            can hold the bottom edge of a fixed-height sheet instead of
+            floating wherever the content happened to end (see the geometry
+            note on DialogContent). `min-h-0` is the load-bearing half: a grid
+            item defaults to `min-height:auto`, which refuses to shrink below
+            its content, so without it a long job would push the CTA row off
+            the bottom of the sheet rather than scrolling inside this box.
+            `overflow-x-hidden` pairs with the `min-w-0` for the same reason
+            grid-cols-1 exists on the dialog — a long unbroken word must wrap,
+            not widen the column.
+            `content-start` is the other half of giving a grid a fixed height:
+            a grid's default `align-content` behaves as STRETCH, so on a short
+            job every row inflated to share out the 600px of new body space —
+            the title floated in the middle of an over-tall first row, the stat
+            tiles drifted apart, and the poster card became a mostly-empty slab
+            (seen on the first pass at 375). Packing the rows to the top keeps
+            each one its natural size and collects the slack in ONE place,
+            immediately above the pinned CTA, which is what a roomy sheet is
+            supposed to look like.
+            `sm:contents` DISSOLVES this wrapper above sm, so every child slots
+            straight back into the dialog's own implicit-row grid in the same
+            source order and the tablet/desktop card renders exactly as it did
+            before this file grew a phone body. */}
+        <div className="grid grid-cols-1 content-start gap-3 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden overscroll-contain sm:contents">
         {/* Title+description share the row with price, price as a small
             pill vertically centered against BOTH lines — same layout as
             JobCard's title row (owner: "fix the layout so it's more
@@ -378,15 +510,17 @@ const JobDetailDialog = ({
             in a pill box", then "center [it] better between title and
             description"). `chip` is the exact component JobCard uses so the
             number is styled identically on both surfaces.
-            `mt-1`: measured live (owner kept saying "still too much space"
-            and was right — `mt-7` was tuned for the OLD 44px icon row and
-            never brought down after the icons became `compact` (32px), so
-            it was stacking a stale margin on top of DialogHero's own `pt-2`).
-            Icon row bottom sits ~45px from the dialog's true top; normal
-            flow (after the dialog's own p-7 padding) already starts around
-            28px, and DialogHero's `pt-2` adds another 8px — `mt-1` is what's
-            actually left to clear the icons, no more. */}
-        <div className="mt-5 flex items-center gap-3">
+            `mt-1`, not the `mt-5` this carried until 2026-08-31: that margin
+            existed to clear the badge row while the badge row was `absolute`
+            and therefore invisible to layout — a hand-measured number that had
+            already been wrong twice (it was `mt-7`, tuned for the pre-`compact`
+            44px icon row, before that). The badge row takes its own grid track
+            now, so the dialog's own `gap-3` does the clearing and this is just
+            the last few px needed to clear the corner icon cluster
+            (absolute, y=8..40). Measured after: title top lands at 43px on
+            phone and 43px at sm — the sm case was 40px before, so the desktop
+            card is unmoved for all practical purposes. */}
+        <div className="mt-1 flex items-center gap-3">
           <div className="flex-1 min-w-0">
             <DialogHero title={job.title} />
             {/* Description — always visible right under the title (owner:
@@ -440,9 +574,8 @@ const JobDetailDialog = ({
             (1152px). The owner capped the dialog to the 3xl reading column,
             and the split inside 768px crushed the footer CTA to "Ap…" and
             left the description column ending in dead space (owner
-            screenshot, 2026-08-24). The wrappers stay (`contents`) so the
+            screenshot, 2026-08-24). The wrapper stays (`contents`) so the
             source order and stat-tile grouping are untouched. */}
-        <div className="contents">
         <div className="contents min-w-0">
         {/* Photo cover. Urgent/Boosted used to stamp this photo's corners —
             they now live on the money box instead (see below), the one
@@ -559,15 +692,6 @@ const JobDetailDialog = ({
 
         <JobStatTiles job={job} distMilesForDriving={distMilesForDriving} drivingLabel={drivingLabel} />
         </div>
-        {/* Right column — the "act on this job" pane. Sticky at xl+ so
-            the apply/message CTAs stay pinned as the helpr scrolls a long
-            description on the left. `xl:top-0` sticks to the dialog's
-            internal scroll container (the DialogContent itself); the
-            container has p-7 top padding, so top-0 aligns cleanly under
-            the header. Below xl this div collapses via `contents` and
-            each child slots back into the outer single-column grid,
-            preserving the original vertical order. */}
-        <div className="contents min-w-0">
         {/* Posted-by — always visible now, no toggle (owner: "remove
             details and put posted by info here"). Poster card is
             AUTHED-ONLY (owner decision 2026-08-22: "guest page should not
@@ -584,10 +708,24 @@ const JobDetailDialog = ({
             attachments form in place, in the same scroll, same title. The
             plain footer (Message / Apply / Applied / your-post / credential
             gate) hides once that form is up — there is nothing left for it
-            to do until the helpr submits or the sheet closes. */}
-        {step === "apply" && applyStep ? (
-          applyStep({ onBack: () => setStep("detail") })
-        ) : (
+            to do until the helpr submits or the sheet closes.
+            The apply FORM renders inside the scrolling body (here), not in
+            the pinned footer track below: it is a note field plus an
+            attachment picker and is routinely taller than the sheet, so a
+            fixed-height auto row would either crush the body to nothing or
+            overflow it. As the body's last child it scrolls exactly the way
+            it did when the whole dialog was one scroll container. */}
+        {step === "apply" && applyStep ? applyStep({ onBack: () => setStep("detail") }) : null}
+        </div>
+
+        {/* ROW 3 — THE PINNED FOOTER. Its own grid track, so on a phone the
+            primary CTA sits on the sheet's bottom edge (inside the
+            home-indicator inset) for EVERY job, short or long, instead of
+            landing wherever the content stopped. `sm:contents` dissolves the
+            wrapper above sm so the footer is a plain row of the floating
+            card's grid again, unchanged. */}
+        <div className="min-w-0 sm:contents">
+        {step === "apply" && applyStep ? null : (
           <JobDetailFooter
             job={job}
             guest={guest}
@@ -607,7 +745,6 @@ const JobDetailDialog = ({
             onAskQuestion={handleAskQuestion}
           />
         )}
-        </div>
         </div>
 
         <PhotoLightbox photos={photos} lightboxIndex={lightboxIndex} setLightboxIndex={setLightboxIndex} openInGridNonce={gridOpenNonce} />

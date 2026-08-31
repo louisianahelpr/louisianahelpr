@@ -9,6 +9,7 @@ import { createNotification } from "@/lib/notifications";
 import { formatDistanceToNow } from "date-fns";
 import { PhotoProofGroup } from "@/components/PhotoProof";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
+import { SectionEyebrow } from "./SectionEyebrow";
 import type { AppliedApp, Job } from "../activityConstants";
 
 interface DisputedSectionProps {
@@ -41,6 +42,23 @@ export function DisputedSection({
 }: DisputedSectionProps) {
   const disputeStatus = job.dispute_status || "open";
   const hasResponded = !!job.dispute_helper_response;
+  // The helper keeps their voice after escalation.
+  //
+  // This used to be `disputeStatus === "open"`, so the response control simply
+  // vanished the moment the poster escalated (PostedJobActions writes
+  // dispute_status='escalated' in one tap) — and `helper_abort_job`
+  // (20260825191500) opens its dispute ESCALATED from the start, so a helper
+  // who took the sanctioned exit never saw the control at all. Nothing said
+  // why; the button was just gone.
+  //
+  // The server does not forbid it: the "Helpers can update their assigned
+  // jobs" policy (20260312010219) is USING/WITH CHECK auth.uid() = helper_id
+  // with no status clause, and `dispute_helper_response` is on
+  // enforce_helper_jobs_column_whitelist's ALLOW-list (20260828020000) in every
+  // dispute state. So the control stays; only the STATUS write is withheld
+  // (see the submit handler).
+  const canRespond = ["open", "escalated", "under_review"].includes(disputeStatus);
+  const awaitingAdmin = disputeStatus === "escalated" || disputeStatus === "under_review";
   return (
     <div
       className="px-4 py-3 space-y-2.5"
@@ -115,19 +133,39 @@ export function DisputedSection({
 
       {/* Helper's response */}
       {hasResponded && (
-        <div className="p-2 rounded-ds-sm bg-primary/5 border border-primary/20">
-          <p className="text-ds-10 text-muted-foreground font-medium">Your response:</p>
+        <section aria-labelledby={`dispute-response-${app.job_id}`} className="p-2 rounded-ds-sm bg-primary/5 border border-primary/20">
+          {/* Was a bare grey "Your response:" — the ONE block on this card
+              carrying the helper's own words, labelled in a style no other
+              section header on these cards uses. Same eyebrow as everywhere
+              else now (owner, 2026-08-30). */}
+          <SectionEyebrow id={`dispute-response-${app.job_id}`}>Your response</SectionEyebrow>
           <p className="text-ds-11 text-foreground mt-0.5">"{job.dispute_helper_response}"</p>
-        </div>
+        </section>
       )}
 
       {/* Respond form */}
-      {!hasResponded && disputeStatus === "open" && (
+      {!hasResponded && canRespond && (
         <div className="space-y-2">
+          {/* Say who reads it once it is out of the poster's hands, so the
+              control does not read as a dead end. */}
+          {awaitingAdmin && (
+            <p
+              className="font-serif italic text-ds-11"
+              style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+            >
+              An admin is deciding this one. You can still add your side — it goes
+              into the record they read before they decide.
+            </p>
+          )}
           {respondingJobId === app.job_id ? (
             <div className="space-y-2">
+              {/* A REAL <label htmlFor>, not an aria-label alone: this editor
+                  had no visible label at all, so a sighted user saw an
+                  unexplained box while only a screen reader was told what it
+                  was. The eyebrow is the label. */}
+              <SectionEyebrow htmlFor={`dispute-reply-${app.job_id}`}>Your side of it</SectionEyebrow>
               <Textarea
-                aria-label="Your response to the dispute"
+                id={`dispute-reply-${app.job_id}`}
                 placeholder="Explain your side — what work was done, any issues, etc."
                 value={disputeResponse}
                 onChange={(e) => setDisputeResponse(e.target.value)}
@@ -143,9 +181,23 @@ export function DisputedSection({
                   // NONE, so an RLS-filtered write (dispute resolved out from
                   // under this card) read as success and showed a response
                   // the poster never received.
-                  const { data: saved, error } = await supabase.from("jobs").update({ dispute_helper_response: disputeResponse.trim(), dispute_status: "helper_responded" }).eq("id", app.job_id).select("id");
+                  // The STATUS only moves out of 'open'. Stamping
+                  // 'helper_responded' on an escalated dispute would silently
+                  // DE-escalate it, and `auto-resolve-disputes` treats that as
+                  // a money decision: it skips escalated disputes
+                  // (index.ts:56) and auto-releases the FULL escrow to the
+                  // helper on any other status past the 72h deadline
+                  // (index.ts:113). `helper_abort_job` sets 'escalated'
+                  // precisely to stop that (20260825191500), so writing the
+                  // response must not undo it — the helper gets heard, the
+                  // escrow stays frozen for the admin.
+                  const patch: { dispute_helper_response: string; dispute_status?: string } =
+                    disputeStatus === "open"
+                      ? { dispute_helper_response: disputeResponse.trim(), dispute_status: "helper_responded" }
+                      : { dispute_helper_response: disputeResponse.trim() };
+                  const { data: saved, error } = await supabase.from("jobs").update(patch).eq("id", app.job_id).select("id");
                   if (error || !saved || saved.length === 0) { hapticError(); toast.error("We couldn't submit your response — please try again."); setSubmittingResponse(false); return; }
-                  if (job.customer_id) await createNotification({ user_id: job.customer_id, title: "Helpr responded to dispute", message: `The Helpr has responded to the dispute on "${job.title}". Please review and mark resolved or escalate.`, type: "info", link: "/my-posts?filter=disputed" });
+                  if (job.customer_id) await createNotification({ user_id: job.customer_id, title: "Helpr responded to dispute", message: awaitingAdmin ? `The Helpr added their side of the dispute on "${job.title}". An admin is reviewing it.` : `The Helpr has responded to the dispute on "${job.title}". Please review and mark resolved or escalate.`, type: "info", link: "/my-posts?filter=disputed" });
                   hapticSuccess();
                   setSubmittingResponse(false);
                   setRespondingJobId(null);
@@ -159,7 +211,9 @@ export function DisputedSection({
             </div>
           ) : (
             <Button size="sm" variant="outline" className="w-full" onClick={() => setRespondingJobId(app.job_id)}>
-              <MessageSquare className="w-4 h-4 mr-1" /> Respond to Dispute
+              {/* "Respond to Dispute" implies the poster is still the one
+                  listening. Once it is escalated they are not. */}
+              <MessageSquare className="w-4 h-4 mr-1" /> {awaitingAdmin ? "Add Your Side" : "Respond to Dispute"}
             </Button>
           )}
         </div>
@@ -175,7 +229,12 @@ export function DisputedSection({
       <JobActionRow columns={3}>
         <JobActionChip
           icon={AlertTriangle}
-          label="View Timeline & Add Evidence"
+          // "View Timeline & Add Evidence" wanted 169px in a 110px chip at
+          // 375px and still overflowed by 45px at 1440. The chip wraps now,
+          // but a four-word label in a three-up row is three lines of 11px
+          // type — the label carries the same meaning at a third the width,
+          // and the full phrasing survives in the spoken name below.
+          label="Timeline & Evidence"
           ariaLabel="View dispute timeline and add evidence"
           tone="neutral"
           onClick={() => onViewDispute(job)}

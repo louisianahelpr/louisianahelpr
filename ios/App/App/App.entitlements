@@ -24,11 +24,11 @@
     <!--
       Associated Domains: Universal Links + Shared Web Credentials.
 
-      `applinks:` — lets https://louisianahelpr.com/* deep-link into the
-      app instead of opening Safari.
+      `applinks:` — lets https://www.louisianahelpr.com/* deep-link into
+      the app instead of opening Safari.
 
       `webcredentials:` — lets iOS's Password AutoFill (iCloud Keychain)
-      share saved credentials between Safari (on louisianahelpr.com) and
+      share saved credentials between Safari (on www.louisianahelpr.com) and
       the in-app login/signup forms. Without this entry, iOS treats the
       app and the website as unrelated identities and refuses to offer
       "Save Password" or to auto-suggest the saved web credential in
@@ -41,14 +41,30 @@
       `webcredentials` association below AND the matching block in
       public/.well-known/apple-app-site-association.
 
-      Both apex and www are listed so AutoFill works regardless of
-      which host the saved password is filed under in Keychain.
+      WWW ONLY — the apex is deliberately NOT claimed.
+
+      `louisianahelpr.com` 307-redirects every path (including
+      /.well-known/apple-app-site-association) to `www`. Apple's CDN does
+      NOT follow redirects when it fetches an AASA file, so an apex claim
+      can never resolve — it is not a working association, it is a claim
+      that silently fails. Verified 2026-08-31:
+
+        curl -sI https://louisianahelpr.com/.well-known/apple-app-site-association
+        -> HTTP/2 307, location: https://www.louisianahelpr.com/...
+
+      Nothing is lost by dropping it: every link the app generates is
+      already www (ShareJobButton, IdentityHeader, SosShareButton,
+      CompletionPrompts, authRedirects), and so are the og:url/twitter:url
+      tags. A hand-typed apex URL opens Safari rather than the app, which
+      is what already happened.
+
+      To claim the apex properly, the apex must SERVE the AASA file rather
+      than redirect — that is a Vercel domain setting, not a vercel.json
+      route. If that changes, re-add both apex entries here.
     -->
     <key>com.apple.developer.associated-domains</key>
     <array>
-        <string>applinks:louisianahelpr.com</string>
         <string>applinks:www.louisianahelpr.com</string>
-        <string>webcredentials:louisianahelpr.com</string>
         <string>webcredentials:www.louisianahelpr.com</string>
     </array>
 

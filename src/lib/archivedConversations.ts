@@ -64,6 +64,18 @@ function conversationKey(jobId: string, otherUserId: string): string {
   return `${jobId}_${otherUserId}`;
 }
 
+/**
+ * Inverse of `conversationKey`, for the local→server merge-up in
+ * `loadArchives`. Safe to split on the first `_`: both halves are
+ * Postgres uuids (hex digits and hyphens only — never an underscore), so
+ * a job/user id pair can't itself contain the separator.
+ */
+function parseConversationKey(key: string): { jobId: string; otherUserId: string } | null {
+  const i = key.indexOf("_");
+  if (i === -1) return null;
+  return { jobId: key.slice(0, i), otherUserId: key.slice(i + 1) };
+}
+
 /** Per-user map of conversationKey -> ISO timestamp the thread was archived. */
 type ArchiveMap = Record<string, string>;
 
@@ -146,6 +158,41 @@ export async function loadArchives(userId: string): Promise<ArchiveMap> {
   for (const r of (data ?? []) as { job_id: string; other_user_id: string; archived_at: string }[]) {
     server[conversationKey(r.job_id, r.other_user_id)] = r.archived_at;
   }
+
+  // Merge-up: a thread archived while this table didn't exist yet (or
+  // before the account's local mirror had ever synced) only lives in
+  // `local` — trusting `server` wholesale here would silently DROP it,
+  // and the thread would resurface in the inbox with no warning the
+  // next time this loads. Push local-only entries up before overwriting
+  // the mirror, best-effort (a failed push just means it retries next
+  // load — the entry stays in the merged result either way so this
+  // session never loses it).
+  const localOnlyKeys = Object.keys(local).filter((k) => !(k in server));
+  if (localOnlyKeys.length > 0) {
+    const rows = localOnlyKeys
+      .map((k) => {
+        const parsed = parseConversationKey(k);
+        if (!parsed) return null;
+        return {
+          user_id: userId,
+          job_id: parsed.jobId,
+          other_user_id: parsed.otherUserId,
+          archived_at: local[k],
+        };
+      })
+      .filter((r): r is NonNullable<typeof r> => r !== null);
+    if (rows.length > 0) {
+      const { error: mergeError } = await (supabase.from("thread_archives" as any) as any).upsert(
+        rows,
+        { onConflict: "user_id,job_id,other_user_id" },
+      );
+      if (mergeError && !isMissingTable(mergeError)) {
+        report(mergeError, { severity: "warning", tags: { source: "archivedConversations.mergeLocalArchives" } });
+      }
+    }
+    for (const k of localOnlyKeys) server[k] = local[k];
+  }
+
   cache.set(userId, server);
   writeLocal(userId, server);
   return server;

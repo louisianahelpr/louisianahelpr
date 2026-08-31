@@ -318,7 +318,7 @@ const AdminHealth = () => {
                   onClick={() => setFillDays(d)}
                   aria-pressed={fillDays === d}
                   className={cn(
-                    "px-2.5 py-1 text-ds-11 font-medium rounded-[4px] transition-colors",
+                    "px-2.5 py-1 text-ds-11 font-medium rounded-sm transition-colors",
                     fillDays === d
                       ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground hover:text-foreground",

@@ -33,7 +33,8 @@ $ npx vitest run      → Test Files 200 passed (200) · Tests 1925 passed (1925
 $ npm run typecheck   → exit 0
 $ npm run check:edge  → edge-syntax: parsed 114 files, 0 with syntax errors
 ```
-Playwright E2E is red — **and was red before I started**, see Gaps.
+Playwright E2E is red, and the `Test` workflow's knip step is red — **both were
+red before I started**; see Gaps, where I show the before/after evidence.
 
 **The single most important thing I found:** `ai-job-builder` had no
 authentication at all. It accepts the publishable key that ships inside the
@@ -424,6 +425,21 @@ scope.
 
 Distinct from defects — these are things that are *missing* or *untrue*, where
 the risk is that they hide the next defect.
+
+0. **The `Test` workflow was failing on TWO independent steps, and the first
+   was masking the second.** TypeScript failed first (fixed, `93647361`), which
+   meant the `Dead code (knip)` step never ran. With typecheck green the
+   pipeline now reaches knip — which also fails, and **has been failing all
+   along**. Verified by checking out `09e08996` (the commit before any of my
+   work) into a scratch worktree and running knip there:
+```
+09e08996 (pre-audit):  exit 1 · Unused files (16) · Unused exports (148)
+d15c9a5f (now):        exit 1 · Unused files (16) · Unused exports (147)
+```
+   So I did not cause it and marginally improved it. But it means `main`
+   cannot go green on `Test` until ~16 orphaned files and ~147 unused exports
+   are dealt with, or knip is configured to tolerate them. Fixing the type
+   error uncovered this rather than introducing it.
 
 1. **Playwright E2E has been red for many commits.** 21 spec files failing.
    I verified I did not cause it by diffing the failing spec-file sets from the

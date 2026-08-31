@@ -316,18 +316,48 @@ serve(async (req) => {
         }
       );
 
-      const { error: completeErr } = await supabaseAdmin
+      // The money is out. This write is the only thing that moves the row off
+      // 'pending' — and 'pending' is the exact predicate of the partial unique
+      // index `instant_payouts_one_pending_per_helper` (20260823010000:127-129).
+      // So a zero-row match here does not merely leave a stale row: it leaves a
+      // row that permanently blocks EVERY future instant payout for this helper,
+      // with no sweeper, no timeout and no admin tool to clear it. The helper
+      // just finds the feature dead, forever, with no way to say why.
+      //
+      // Guarded like the release-path writes: an explicit precondition on the
+      // state this write may walk forward from, `.select("id")`, and a zero-row
+      // branch that reports instead of proceeding silently. Modelled on
+      // execute-dispute-split:879-885.
+      const { data: completedRows, error: completeErr } = await supabaseAdmin
         .from("instant_payouts")
         .update({
           status: "completed",
           stripe_payout_id: payout.id,
         })
-        .eq("id", record.id);
-      if (completeErr) {
+        .eq("id", record.id)
+        .eq("status", "pending")
+        .select("id");
+      if (completeErr || !completedRows || completedRows.length === 0) {
+        const zeroRow = !completeErr;
         console.error(
-          `[instant-payout] DB update to completed failed for record ${record.id} (payout ${payout.id}):`,
-          completeErr.message,
+          `CRITICAL: [instant-payout] payout ${payout.id} SENT but the instant_payouts row ${record.id} was not marked completed ` +
+            `(${zeroRow ? "zero rows matched — status is no longer 'pending'" : completeErr?.message}). ` +
+            `While it stays 'pending', helper ${user.id} cannot start another instant payout.`,
         );
+        await postSlackOpsAlert({
+          kind: "payout_failed",
+          severity: "critical",
+          title: "Instant payout sent but the record was not completed",
+          message:
+            "A real Stripe instant payout succeeded but its instant_payouts row could not be marked completed. While that row stays 'pending' the partial unique index blocks every further instant payout for this helper — the feature is dead for them until it is cleared. The reaper (reap_stranded_instant_payouts) will release the lock within the hour, but the row's true outcome must be reconciled by hand.",
+          fields: {
+            "Instant payout ID": String(record.id),
+            "Helper ID": user.id,
+            "Stripe payout": payout.id,
+            "Net (cents)": String(netCents),
+            Reason: zeroRow ? "zero rows matched" : (completeErr?.message ?? "").slice(0, 200),
+          },
+        });
       }
 
       // Notify the helper
@@ -362,10 +392,38 @@ serve(async (req) => {
           ? ` | IMPORTANT: fee of ${feeCents}¢ was already transferred to platform — reverse transfer to helper's Connect account before closing`
           : ` | fee transfer also failed (fee not collected)`;
       }
-      await supabaseAdmin
+      // Same hazard as the completion write above, and this one did not even
+      // destructure `error` — a rejected or zero-row update was invisible. A
+      // failed payout whose row stays 'pending' locks the helper out of the
+      // feature permanently, which turns a transient Stripe error into a
+      // silent, unbounded loss of access.
+      const { data: failedRows, error: failWriteErr } = await supabaseAdmin
         .from("instant_payouts")
         .update({ status: "failed", error_message: fullError })
-        .eq("id", record.id);
+        .eq("id", record.id)
+        .eq("status", "pending")
+        .select("id");
+      if (failWriteErr || !failedRows || failedRows.length === 0) {
+        const zeroRow = !failWriteErr;
+        console.error(
+          `CRITICAL: [instant-payout] payout FAILED for record ${record.id} and the row could not be marked failed ` +
+            `(${zeroRow ? "zero rows matched — status is no longer 'pending'" : failWriteErr?.message}). ` +
+            `Helper ${user.id} is locked out of instant payouts while it stays 'pending'.`,
+        );
+        await postSlackOpsAlert({
+          kind: "payout_failed",
+          severity: "critical",
+          title: "Instant payout failed AND its record could not be marked failed",
+          message:
+            "An instant payout failed and the instant_payouts row could not be moved off 'pending'. The partial unique index means this helper cannot start another instant payout until the row is cleared. The reaper (reap_stranded_instant_payouts) releases it within the hour; the underlying Stripe failure still needs a look.",
+          fields: {
+            "Instant payout ID": String(record.id),
+            "Helper ID": user.id,
+            "Payout error": fullError.slice(0, 200),
+            Reason: zeroRow ? "zero rows matched" : (failWriteErr?.message ?? "").slice(0, 200),
+          },
+        });
+      }
       throw payoutErr;
     }
   } catch (err) {

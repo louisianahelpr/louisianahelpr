@@ -3,6 +3,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 import { postSlackOpsAlert } from '../_shared/slack-alerts.ts'
 import { getAppUrl } from '../_shared/appUrl.ts'
 import { queueEmail, SUPPORT_EMAIL } from '../_shared/resend.ts'
+import { banConfirmedMessage, banDismissedMessage, banReviewCopy } from './banReviewCopy.ts'
 import { AdminActionEmail, type AdminActionCallout } from '../_shared/email-templates/admin-action.tsx'
 import { renderEmail } from '../_shared/email-templates/render.ts'
 
@@ -537,8 +538,16 @@ Deno.serve(async (req) => {
       })
     }
 
-    // ---- Message-scanner ban review ----
-    // Both branches are the ONLY way a message-scanner case turns into (or
+    // ---- Ban review (ALL consequence ladders) ----
+    // The action names still say "message" for wire compatibility with
+    // AdminBanReview.tsx, but this queue has not been message-only since
+    // 20260829030000: off_platform, cancel_with_helper, job_denial and (since
+    // 20260831183302) no_show all land here. Every sentence a user reads out of
+    // this block therefore comes from ./banReviewCopy.ts keyed on the case's own
+    // violation_type — never a hard-coded one, which is how a helper banned for
+    // no-shows was told it was about messages.
+    //
+    // Both branches are the ONLY way such a case turns into (or
     // stops being) a ban. The caller was verified as an admin above, and every
     // decision writes an admin_audit_log row, so a permanent ban always names
     // the human who chose it — the old client path named the offender.
@@ -546,11 +555,33 @@ Deno.serve(async (req) => {
       const violationId: string | null = body.violationId ?? null
       const confirming = action === 'confirm_message_ban'
 
+      // What kind of case is this? Read it BEFORE anything is written, because
+      // both the stored ban reason and the sentence the user is shown are
+      // derived from it — and because the close step below sets action_taken,
+      // after which the pending rows can no longer be found.
+      //
+      // Scoped exactly the way the close is scoped: one row when the client
+      // named a violation (it always does), otherwise every open case for the
+      // user, which is the same set the close will dispose of. If that set
+      // spans more than one kind, banReviewCopy() falls back to neutral wording
+      // rather than picking one of them.
+      const typeQuery = admin.from('user_violations').select('violation_type')
+      const { data: caseRows, error: caseErr } = violationId
+        ? await typeQuery.eq('id', violationId)
+        : await typeQuery.eq('user_id', targetUserId).eq('action_taken', 'pending_ban_review')
+      if (caseErr) {
+        // Not fatal — a decision must not fail because its label could not be
+        // read. The fallback copy is vague but true.
+        console.error('[admin-user-actions] could not read violation type for review copy:', caseErr.message)
+      }
+      const caseTypes: string[] = (caseRows ?? []).map((r: { violation_type: string }) => r.violation_type)
+      const copy = banReviewCopy(caseTypes)
+
       if (confirming) {
         const { error: banErr } = await admin.from('user_bans').insert({
           user_id: targetUserId,
           ban_type: 'permanent',
-          reason: note || 'Repeated off-platform contact attempts in messages (admin-confirmed)',
+          reason: note || copy.banReason,
           banned_by: userData.user.id,
         })
         if (banErr) throw new Error(`Failed to record ban: ${banErr.message}`)
@@ -587,7 +618,7 @@ Deno.serve(async (req) => {
         action: confirming ? 'confirm_message_ban' : 'dismiss_message_ban_review',
         target_id: targetUserId,
         target_type: 'user',
-        details: { note, violation_id: violationId },
+        details: { note, violation_id: violationId, violation_types: caseTypes },
       })
       if (auditErr) console.error('[admin-user-actions] audit log write FAILED — privileged action has no trail:', auditErr.message)
 
@@ -596,14 +627,20 @@ Deno.serve(async (req) => {
           ? {
               user_id: targetUserId,
               title: 'Account permanently banned',
-              message: 'An admin reviewed your blocked messages and permanently banned your account. Email admin@louisianahelpr.com if you believe this is a mistake.',
+              // One sentence, built from the case's own violation type — see
+              // ./banReviewCopy.ts. This used to be hard-coded to "blocked
+              // messages" for every ladder feeding this queue.
+              message: banConfirmedMessage(copy, SUPPORT_EMAIL),
               type: 'warning',
               link: '/account-banned',
             }
           : {
               user_id: targetUserId,
               title: 'Restriction lifted',
-              message: 'An admin reviewed your account and lifted the restriction. Keep chats and payments on Helpr and you\'re all set.',
+              // Same source of truth as the ban sentence. This used to end with
+              // "Keep chats and payments on Helpr" for every ladder — messaging
+              // advice handed to someone whose case was about no-shows.
+              message: banDismissedMessage(copy),
               type: 'success',
               link: '/dashboard',
             },

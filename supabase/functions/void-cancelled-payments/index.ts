@@ -47,6 +47,66 @@ serve(async (req) => {
       apiVersion: "2025-08-27.basil",
     });
 
+    /**
+     * Flip a cancelled job out of escrow, once, after its money has settled.
+     *
+     * Every one of the four call sites used to be a bare
+     * `.update({...}).eq("id", job.id)` with no `.select("id")` and no state
+     * precondition. That is the house's most-cited bug class, and here it had
+     * teeth beyond the usual: a zero-row match returns
+     * `{ data: [], error: null }`, so the job stayed `cancelled/escrow`, the
+     * counters (`refunded++`, `voided++`) incremented anyway, and the run
+     * reported success. The HOURLY cron then re-selected the very same job on
+     * its next pass — and the next, forever. Past Stripe's ~24h idempotency
+     * window the permanent unsalted keys stop deduping, so the loop issues a
+     * SECOND real refund to the poster and a SECOND real fee transfer to the
+     * helper. The zero-row silence was the engine of a repeating double payout,
+     * not merely a stale row.
+     *
+     * The precondition is `payment_status='escrow'` — the same predicate the
+     * selection query uses — so a job a webhook has since flipped to
+     * 'chargeback', or an operator has refunded by hand, is never overwritten.
+     * Returns true only when a row actually moved, so the callers' counters can
+     * finally mean what they say.
+     *
+     * Modelled on execute-dispute-split:879-885, the reference implementation
+     * for "the money already moved, so this write is not allowed to be quiet".
+     */
+    const settleCancelledJob = async (
+      job: { id: string; title: string },
+      patch: Record<string, unknown>,
+      stage: string,
+    ): Promise<boolean> => {
+      const { data, error: flipErr } = await supabaseAdmin
+        .from("jobs")
+        .update(patch)
+        .eq("id", job.id)
+        .eq("payment_status", "escrow")
+        .select("id");
+      if (!flipErr && data && data.length > 0) return true;
+
+      const zeroRow = !flipErr;
+      console.error(
+        `CRITICAL: [void-cancelled-payments] job ${job.id} settled in Stripe (${stage}) but the status flip ${zeroRow ? "matched ZERO rows — payment_status is no longer 'escrow'" : `failed: ${flipErr?.message}`}. The job will be re-selected next hour; past Stripe's 24h idempotency window that means a SECOND real refund.`,
+      );
+      defects.record(
+        `DB/Stripe divergence after ${stage} ${job.id}: ${zeroRow ? "zero rows matched" : flipErr?.message ?? "update failed"}`,
+      );
+      await postSlackOpsAlert({
+        kind: "custom",
+        severity: "critical",
+        title: "Cancelled job settled in Stripe but not in the database",
+        message:
+          `Money moved for job ${job.id} ("${job.title}") during ${stage}, but jobs.payment_status did not leave 'escrow'. The hourly cron will keep re-selecting this job, and past Stripe's ~24h idempotency window that produces a second real refund and a second fee transfer. Settle this row by hand before then.`,
+        fields: {
+          job_id: job.id,
+          stage,
+          reason: zeroRow ? "zero rows matched (payment_status changed under the run)" : (flipErr?.message ?? "update failed").slice(0, 200),
+        },
+      });
+      return false;
+    };
+
     // Transfer the cancellation fee (minus platform commission) to the helper.
     // Shared by BOTH settlement branches (captured-then-refunded AND
     // uncaptured-hold-partial-capture) so a helper is paid identically however
@@ -112,11 +172,52 @@ serve(async (req) => {
       }
 
       if (!helperProfile?.stripe_account_id || !(helperPayout > 0)) return;
+
+      // ── Ledger guard: has this job's cancellation fee ALREADY been paid? ──
+      // The idempotency key below is permanent and unsalted, which reads like a
+      // guarantee and is not one: Stripe only replays a key for ~24h. Past that
+      // window — and this loop re-selects a job forever whenever the status flip
+      // at the end of the branch matches zero rows — the same key mints a SECOND
+      // real transfer of the helper's fee.
+      //
+      // So ask Stripe what actually exists rather than trusting the key. The
+      // transfer_group added below makes this lookup possible; it is the same
+      // `job_${id}` grouping release-payout and process-scheduled-payouts
+      // already use, so Dashboard reconciliation gains from it too.
+      //
+      // CAVEAT, deliberately accepted: fee transfers sent BEFORE this change
+      // carry no transfer_group and cannot be found this way. The exposure is
+      // narrow (only a job whose status flip failed AND whose fee went out more
+      // than 24h ago), it shrinks to nothing as those jobs are reconciled, and
+      // the alternative — scanning every transfer to the destination account —
+      // costs a paginated Stripe scan on every cancellation forever.
+      const feeGroup = `job_${job.id}`;
+      try {
+        const priorFeeTransfers = await stripe.transfers.list({ transfer_group: feeGroup, limit: 100 });
+        const alreadyPaidFee = priorFeeTransfers.data.find(
+          (t) => t.metadata?.type === "cancellation_fee" && !t.reversed,
+        );
+        if (alreadyPaidFee) {
+          console.log(
+            `[void-cancelled-payments] cancellation fee for job ${job.id} already transferred (${alreadyPaidFee.id}); not sending a second one.`,
+          );
+          return;
+        }
+      } catch (listErr) {
+        // Fail CLOSED. Without knowing whether the fee already went out, sending
+        // it is a coin flip on a second real transfer. Skipping costs a delay;
+        // the job stays in escrow and the next hourly run retries.
+        console.error(`[void-cancelled-payments] could not list prior fee transfers for job ${job.id}:`, listErr);
+        defects.record(`fee-transfer dedupe list ${job.id}: ${(listErr as Error).message}`);
+        return;
+      }
+
       try {
         const transferParams: any = {
           amount: Math.round(helperPayout * 100),
           currency: "usd",
           destination: helperProfile.stripe_account_id,
+          transfer_group: feeGroup,
           metadata: { job_id: job.id, helper_id: job.helper_id, type: "cancellation_fee", platform_cut: platformCut },
         };
         // Link to the source charge so the transfer draws from these funds.
@@ -185,12 +286,23 @@ serve(async (req) => {
       try {
         const session = await stripe.checkout.sessions.retrieve(job.stripe_session_id!);
         if (session.payment_status === "unpaid") {
-          const { error: abUpdateErr } = await supabaseAdmin.from("jobs").update({ payment_status: "abandoned" }).eq("id", job.id);
+          // Precondition on 'unpaid': if the poster completed checkout between
+          // the read above and this write, the job is now funded and marking it
+          // abandoned would kill a live, PAID job. Zero rows is therefore a
+          // legitimate outcome here, not a defect — it means the guard worked.
+          const { data: abRows, error: abUpdateErr } = await supabaseAdmin
+            .from("jobs")
+            .update({ payment_status: "abandoned" })
+            .eq("id", job.id)
+            .eq("payment_status", "unpaid")
+            .select("id");
           if (abUpdateErr) {
             console.error(`[void-cancelled-payments] failed to mark job ${job.id} abandoned (unpaid):`, abUpdateErr.message);
             defects.record(`mark abandoned (unpaid) ${job.id}: ${abUpdateErr.message}`);
-          } else {
+          } else if ((abRows ?? []).length > 0) {
             abandonedCount++;
+          } else {
+            console.log(`[void-cancelled-payments] job ${job.id} was no longer 'unpaid' — not abandoning it.`);
           }
         }
       } catch (e) {
@@ -201,12 +313,19 @@ serve(async (req) => {
         // for the next run, mirroring the void loop below.
         const missing = (e as any)?.statusCode === 404 || (e as any)?.code === "resource_missing";
         if (missing) {
-          const { error: abMissingErr } = await supabaseAdmin.from("jobs").update({ payment_status: "abandoned" }).eq("id", job.id);
+          const { data: abMissingRows, error: abMissingErr } = await supabaseAdmin
+            .from("jobs")
+            .update({ payment_status: "abandoned" })
+            .eq("id", job.id)
+            .eq("payment_status", "unpaid")
+            .select("id");
           if (abMissingErr) {
             console.error(`[void-cancelled-payments] failed to mark job ${job.id} abandoned (session 404):`, abMissingErr.message);
             defects.record(`mark abandoned (session 404) ${job.id}: ${abMissingErr.message}`);
-          } else {
+          } else if ((abMissingRows ?? []).length > 0) {
             abandonedCount++;
+          } else {
+            console.log(`[void-cancelled-payments] job ${job.id} was no longer 'unpaid' — not abandoning it.`);
           }
         } else {
           console.error(`[void-cancelled-payments] abandoned-check Stripe error for job ${job.id}:`, (e as Error).message);
@@ -245,15 +364,11 @@ serve(async (req) => {
       }
 
       if (!paymentIntentId) {
-        // No payment was ever made — just update status
-        const { error: noPayErr } = await supabaseAdmin.from("jobs").update({ payment_status: "cancelled" }).eq("id", job.id);
-        if (noPayErr) {
-          console.error(`[void-cancelled-payments] failed to cancel job ${job.id} (no payment):`, noPayErr.message);
-            defects.record(`cancel (no payment) ${job.id}: ${noPayErr.message}`);
-          results.push({ job_id: job.id, title: job.title, status: "no_payment_found", updated: false, error: noPayErr.message });
-        } else {
-          results.push({ job_id: job.id, title: job.title, status: "no_payment_found", updated: true });
-        }
+        // No payment was ever made — just update status. Guarded like the rest:
+        // a zero-row match here means the job left 'escrow' under us, and
+        // silently reporting it settled is what keeps it in the hourly loop.
+        const updated = await settleCancelledJob(job, { payment_status: "cancelled" }, "no payment found");
+        results.push({ job_id: job.id, title: job.title, status: "no_payment_found", updated });
         continue;
       }
 
@@ -279,27 +394,19 @@ serve(async (req) => {
             // source_transaction link.
             const captured = await stripe.paymentIntents.retrieve(paymentIntentId);
             await payHelperCancellationFee(job, cancellationFee, captured);
-            const { error: feeCapErr } = await supabaseAdmin.from("jobs").update({
+            const settledFee = await settleCancelledJob(job, {
               payment_status: "refunded",
               cancellation_fee_status: "charged",
-            }).eq("id", job.id);
-            if (feeCapErr) {
-              console.error(`[void-cancelled-payments] DB update failed for job ${job.id} after fee capture (money already moved):`, feeCapErr.message);
-            defects.record(`DB/Stripe divergence after fee capture ${job.id}: ${feeCapErr.message}`);
-            }
-            refunded++;
-            results.push({ job_id: job.id, title: job.title, status: "fee_captured", cancellation_fee: cancellationFee });
+            }, "fee capture");
+            if (settledFee) refunded++;
+            results.push({ job_id: job.id, title: job.title, status: settledFee ? "fee_captured" : "fee_captured_not_settled", cancellation_fee: cancellationFee });
           } else {
             // No fee owed — cancel the uncaptured hold in full; funds release to
             // the poster.
             await stripe.paymentIntents.cancel(paymentIntentId);
-            const { error: voidErr } = await supabaseAdmin.from("jobs").update({ payment_status: "cancelled" }).eq("id", job.id);
-            if (voidErr) {
-              console.error(`[void-cancelled-payments] DB update failed for job ${job.id} after PI cancel (money already voided):`, voidErr.message);
-            defects.record(`DB/Stripe divergence after PI cancel ${job.id}: ${voidErr.message}`);
-            }
-            voided++;
-            results.push({ job_id: job.id, title: job.title, status: "voided", amount: pi.amount / 100 });
+            const settledVoid = await settleCancelledJob(job, { payment_status: "cancelled" }, "PI cancel");
+            if (settledVoid) voided++;
+            results.push({ job_id: job.id, title: job.title, status: settledVoid ? "voided" : "voided_not_settled", amount: pi.amount / 100 });
           }
         } else if (pi.status === "succeeded") {
           // Already captured — refund the poster everything EXCEPT the fee owed.
@@ -329,9 +436,40 @@ serve(async (req) => {
           const serviceFeeCents = Math.round(Number(job.customer_fee_amount ?? 0) * 100);
           const nonRefundableCents = Math.max(serviceFeeCents, actualOrEstimatedFeeCents(pi, capturedCents));
           const refundAmount = capturedCents - Math.round(cancellationFee * 100) - nonRefundableCents;
-          if (refundAmount > 0) {
-            // Idempotency key prevents a double-refund if the cron overlaps or
-            // retries before the payment_status flip at the end of this block.
+          // ── Ledger guard against a SECOND real refund ────────────────────
+          // The idempotency key below is permanent and unsalted. That protects
+          // an overlapping run within Stripe's ~24h replay window and nothing
+          // beyond it — and this loop selects on (status='cancelled',
+          // payment_status='escrow'), so a job whose status flip matched zero
+          // rows is re-selected every hour, forever. On the first run past 24h
+          // the same key mints a brand-new refund and the poster is paid back
+          // twice out of the platform's own money.
+          //
+          // `payment_refunds` is the ledger this path already writes, so ask it
+          // first. Scoped to this source: an admin's separate partial refund on
+          // the same job is a different fact and must not block the cancellation
+          // settlement.
+          const { data: priorRefunds, error: priorRefundErr } = await supabaseAdmin
+            .from("payment_refunds")
+            .select("stripe_refund_id")
+            .eq("job_id", job.id)
+            .eq("source", "void_cancelled_payments")
+            .limit(1);
+          if (priorRefundErr) {
+            // Fail CLOSED: refunding without knowing whether we already did is
+            // how the poster gets paid twice. Leave the job in escrow; the next
+            // hourly run retries.
+            console.error(`[void-cancelled-payments] prior-refund check failed for job ${job.id}:`, priorRefundErr);
+            defects.record(`prior-refund check ${job.id}: ${priorRefundErr.message}`);
+            results.push({ job_id: job.id, title: job.title, status: "refund_dedupe_read_failed", error: priorRefundErr.message });
+            continue;
+          }
+          const alreadyRefunded = (priorRefunds ?? []).length > 0;
+
+          if (refundAmount > 0 && !alreadyRefunded) {
+            // Idempotency key still set: it is the cheap in-window guard against
+            // two overlapping runs. The ledger check above is the one that holds
+            // past 24 hours.
             const refund = await stripe.refunds.create(
               { payment_intent: paymentIntentId, amount: refundAmount },
               { idempotencyKey: `cancel-refund-${job.id}` },
@@ -371,6 +509,13 @@ serve(async (req) => {
                 },
               });
             }
+          } else if (alreadyRefunded) {
+            // A refund for this cancellation is already on the ledger. Fall
+            // through to the status flip so the job finally leaves escrow —
+            // that flip failing is exactly how we ended up back here.
+            console.log(
+              `[void-cancelled-payments] job ${job.id} already has a cancellation refund on the ledger; settling status only.`,
+            );
           } else {
             // The cancellation fee + non-refundable service fee consumed the
             // whole capture, so the poster gets $0 back while the job still
@@ -406,29 +551,27 @@ serve(async (req) => {
           // Transfer the agreed fee to the helper (minus platform commission).
           await payHelperCancellationFee(job, cancellationFee, pi);
 
-          const { error: refundStatusErr } = await supabaseAdmin.from("jobs").update({
+          const settledRefund = await settleCancelledJob(job, {
             payment_status: "refunded",
             cancellation_fee_status: cancellationFee > 0 ? "charged" : null,
-          }).eq("id", job.id);
-          if (refundStatusErr) {
-            console.error(`[void-cancelled-payments] DB update failed for job ${job.id} after refund (money already moved):`, refundStatusErr.message);
-            defects.record(`DB/Stripe divergence after refund ${job.id}: ${refundStatusErr.message}`);
-          }
-          refunded++;
-          results.push({ job_id: job.id, title: job.title, status: refundAmount > 0 ? "refunded" : "zero_refund", amount: Math.max(0, refundAmount) / 100, cancellation_fee_transferred: cancellationFee > 0 });
+          }, "refund");
+          if (settledRefund) refunded++;
+          results.push({
+            job_id: job.id,
+            title: job.title,
+            status: settledRefund ? (refundAmount > 0 ? "refunded" : "zero_refund") : "refunded_not_settled",
+            amount: Math.max(0, refundAmount) / 100,
+            cancellation_fee_transferred: cancellationFee > 0,
+          });
         } else {
           results.push({ job_id: job.id, title: job.title, status: `pi_status_${pi.status}`, skipped: true });
         }
       } catch (e: any) {
         // Handle "already refunded" gracefully
         if (e.message?.includes("already been refunded")) {
-          const { error: alreadyRefErr } = await supabaseAdmin.from("jobs").update({ payment_status: "refunded" }).eq("id", job.id);
-          if (alreadyRefErr) {
-            console.error(`[void-cancelled-payments] DB update failed for job ${job.id} (already_refunded):`, alreadyRefErr.message);
-            defects.record(`DB update (already_refunded) ${job.id}: ${alreadyRefErr.message}`);
-          }
-          refunded++;
-          results.push({ job_id: job.id, title: job.title, status: "already_refunded" });
+          const settledAlready = await settleCancelledJob(job, { payment_status: "refunded" }, "already-refunded");
+          if (settledAlready) refunded++;
+          results.push({ job_id: job.id, title: job.title, status: settledAlready ? "already_refunded" : "already_refunded_not_settled" });
         } else {
           results.push({ job_id: job.id, title: job.title, status: "error", error: e.message });
         }

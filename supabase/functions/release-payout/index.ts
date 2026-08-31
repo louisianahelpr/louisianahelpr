@@ -31,6 +31,18 @@ import { getHelperFeePercent, helperCommissionDollars, DEFAULT_TIER_FEE_PERCENT 
 import { netUrgentFeeDollars } from "../_shared/stripeFees.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
+import { claimPayout, classifyLedger, failClaim, settleClaim, type LedgerRow } from "../_shared/payoutClaim.ts";
+
+/**
+ * Job payment states this function may legitimately walk forward to 'released'.
+ *
+ * 'payout_pending' is the normal one. 'released' stays in the set so a resumed
+ * run (the transfer already settled, the flip already happened, and the whole
+ * function is being retried) is a clean no-op rather than a false alarm. Every
+ * other state — 'chargeback', 'refunded', 'escrow' — means something else owns
+ * this job's money now, and the flip must NOT happen.
+ */
+const RELEASABLE_PAYMENT_STATES = ["payout_pending", "released"] as const;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -245,17 +257,20 @@ serve(async (req) => {
   // was clawed back — re-paying is an operator decision, made by setting
   // the ledger row to 'reversal_cleared' after manual reconciliation.
   // Only 'failed' (money never left) is safely re-payable automatically.
-  const { data: ledgerRows, error: existingErr } = await supabaseAdmin
+  const { data: ledgerRowsRaw, error: existingErr } = await supabaseAdmin
     .from("payout_transfers")
-    .select("id, stripe_transfer_id, status")
+    .select("id, stripe_transfer_id, status, created_at")
     .eq("job_id", job.id);
   if (existingErr) {
     console.error(`[release-payout] duplicate-transfer check failed for job ${job.id}:`, existingErr);
     return jsonResponse({ error: "duplicate-transfer check failed — retry" }, 500);
   }
-  const existing = (ledgerRows ?? []).find((r) =>
-    ["pending", "paid", "reversed"].includes(r.status)
-  );
+  // A row with a REAL transfer id in a live state is a hard block, exactly as
+  // before. A 'pending' row with a NULL transfer id is something new: a CLAIM
+  // (see _shared/payoutClaim.ts), which is either in flight or orphaned — it is
+  // handled by claimPayout below, not treated as an existing transfer.
+  const ledgerRows = (ledgerRowsRaw ?? []) as LedgerRow[];
+  const { settled: existing } = classifyLedger(ledgerRows);
   if (existing) {
     return jsonResponse(
       {
@@ -265,11 +280,6 @@ serve(async (req) => {
       409,
     );
   }
-  // Prior FAILED attempts salt the Stripe idempotency key below: Stripe
-  // replays the ORIGINAL response (including a failure) for a reused key
-  // within its ~24h window, so a retry after transferFailed reset the job
-  // must use a fresh key to be a real new transfer attempt.
-  const failedTransferCount = (ledgerRows ?? []).filter((r) => r.status === "failed").length;
 
   const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") ?? "", {
     apiVersion: "2025-08-27.basil",
@@ -493,6 +503,30 @@ serve(async (req) => {
     // Lost the race — flag flipped between read and claim. Don't deduct.
   }
 
+  /**
+   * Un-claim the one-time onboarding fee if THIS invocation claimed it.
+   *
+   * The atomic claim above flips the flag to true BEFORE the transfer, on the
+   * assumption the transfer will carry the deducted payout. Every path that
+   * exits after the claim without money moving must undo it — otherwise the
+   * retry re-reads the flag as already-paid, skips the deduction, and the $2 is
+   * silently lost forever. The atomic claim guarantees we are the sole owner,
+   * so this rollback is safe.
+   */
+  const rollBackOnboardingFeeClaim = async () => {
+    if (onboardingFeeDeductedCents <= 0) return;
+    const { error: unclaimErr } = await supabaseAdmin
+      .from("profiles")
+      .update({ onboarding_fee_paid: false, onboarding_fee_charged_at: null })
+      .eq("user_id", job.helper_id);
+    if (unclaimErr) {
+      console.error(
+        `CRITICAL: [release-payout] payout did not proceed AND onboarding-fee un-claim failed for ${job.helper_id} — onboarding_fee_paid is incorrectly true but the fee was NOT collected; manual reconciliation needed:`,
+        unclaimErr,
+      );
+    }
+  };
+
   if (payoutCents <= 0) {
     // Reachable only with NO active fee claim: a successful claim above already
     // returned early for payout <= fee (line ~289), then subtracted, leaving
@@ -527,11 +561,51 @@ serve(async (req) => {
         type: "warning", link: "/admin",
       });
     }
+    // This refusal sits AFTER the onboarding-fee claim, so it is one of the
+    // exits that would otherwise leave `onboarding_fee_paid = true` with no
+    // money moved — the retry would then read the flag as already-paid and
+    // never collect the $2. Undo it, exactly as the transfer catch does.
+    await rollBackOnboardingFeeClaim();
     return jsonResponse(
       { error: "payout exceeds captured escrow — refused", payout_cents: payoutCents, captured_cents: escrowAmountReceivedCents },
       409,
     );
   }
+
+  // ── Claim the payout BEFORE calling Stripe ────────────────────────────────
+  // The read above cannot close the race with process-scheduled-payouts: the
+  // two use different idempotency keys on the same job, so Stripe would create
+  // two transfers, and an unlocked SELECT can only lose that race, never win
+  // it. The INSERT below is arbitrated by a partial unique index on
+  // (job_id, helper_id) over the live statuses — exactly one concurrent run
+  // gets the row, everyone else gets 23505 and stops here rather than at the
+  // Stripe call. It is also the row that records a FAILED attempt, which
+  // nothing in this function ever wrote before (see _shared/payoutClaim.ts).
+  const claim = await claimPayout(supabaseAdmin, {
+    jobId: job.id,
+    helperId: job.helper_id,
+    amountCents: payoutCents,
+    platformFeeCents: platformFeeCents,
+    stripeAccountId: helper.stripe_account_id,
+    initiatedBy,
+    initiatedByUserId,
+    metadata: { source: "release-payout" },
+  });
+  if (claim.kind === "error") {
+    // Fail closed BEFORE the transfer. Roll back the onboarding-fee claim we
+    // may already hold, for the same reason the transfer catch below does.
+    console.error(`[release-payout] could not claim payout for job ${job.id}: ${claim.message}`);
+    await rollBackOnboardingFeeClaim();
+    return jsonResponse({ error: `payout claim failed — retry: ${claim.message}` }, 500);
+  }
+  if (claim.kind === "blocked") {
+    await rollBackOnboardingFeeClaim();
+    return jsonResponse(
+      { error: claim.reason, existing_transfer_id: claim.transferId },
+      409,
+    );
+  }
+  const failedTransferCount = claim.failedCount;
 
   let transfer: Stripe.Transfer;
   try {
@@ -577,64 +651,68 @@ serve(async (req) => {
       stripe_status: err.statusCode,
       stack: err.stack?.split("\n").slice(0, 5).join("\n"),
     });
-    // Un-claim the onboarding fee if THIS invocation claimed it. The atomic
-    // claim above flipped the flag to true BEFORE the transfer, on the
-    // assumption the transfer would carry the deducted payout. The transfer
-    // failed, so no money moved and the fee was never actually collected —
-    // leaving the flag true would make the retry (which re-reads the flag as
-    // already-paid) skip the deduction forever, silently losing the fee. The
-    // atomic claim guarantees we're the sole owner, so this rollback is safe.
-    if (onboardingFeeDeductedCents > 0) {
-      const { error: unclaimErr } = await supabaseAdmin
-        .from("profiles")
-        .update({ onboarding_fee_paid: false, onboarding_fee_charged_at: null })
-        .eq("user_id", job.helper_id);
-      if (unclaimErr) {
-        console.error(
-          `CRITICAL: [release-payout] transfer failed AND onboarding-fee un-claim failed for ${job.helper_id} — onboarding_fee_paid is incorrectly true but the fee was NOT collected; manual reconciliation needed:`,
-          unclaimErr,
-        );
-      }
+    // Record the FAILED attempt. Nothing in this function ever did, and the
+    // gap was load-bearing: the idempotency key above is salted with the count
+    // of prior failed rows precisely so a retry is a genuinely new attempt, and
+    // with no row ever written that count stayed 0, the key stayed unsalted,
+    // and Stripe replayed this same cached failure for its whole ~24h window.
+    // The retry was a silent no-op for a day. The claim row already exists, so
+    // this is one UPDATE — the guard and the failure record are the same row
+    // and cannot drift apart.
+    const failed = await failClaim(supabaseAdmin, claim.claimId, err.message, {
+      source: "release-payout",
+      stripe_code: err.code ?? null,
+      stripe_type: err.type ?? null,
+    });
+    if (!failed.ok) {
+      // The claim is stuck 'pending' with no transfer id. It is recoverable —
+      // the next run resumes it against the SAME idempotency key — but a claim
+      // nobody can settle is exactly the state that strands a payout, so say so.
+      console.error(
+        `CRITICAL: [release-payout] transfer failed for job ${job.id} AND the claim row could not be marked failed (${failed.message}); the payout will resume against the same idempotency key on the next run.`,
+      );
     }
+    // Un-claim the onboarding fee if THIS invocation claimed it — the transfer
+    // failed, so no money moved and the fee was never actually collected.
+    await rollBackOnboardingFeeClaim();
     return jsonResponse({ error: `stripe.transfers.create failed: ${err.message}` }, 502);
   }
 
-  // Persist the ledger row + flip the job's payment_status. If the
-  // ledger insert fails, the transfer already happened — log loudly so
-  // someone can reconcile by hand.
-  //
-  // Insert as "paid" immediately: Stripe marketplace transfers settle
-  // synchronously on creation. The transfer.created webhook handler also
-  // tries to flip this row from "pending" → "paid", but it can fire before
-  // this insert executes (webhook delivery is async and often within
-  // milliseconds of the API call returning). If the webhook finds no row,
-  // the UPDATE is a no-op and no future event ever re-fires to fix it,
-  // leaving the row stuck at "pending" forever. Inserting as "paid" upfront
-  // eliminates that race entirely; the webhook UPDATE becomes a harmless
-  // no-op on a row already in its terminal state.
-  const { error: ledgerErr } = await supabaseAdmin
-    .from("payout_transfers")
-    .insert({
-      job_id: job.id,
-      helper_id: job.helper_id,
-      stripe_transfer_id: transfer.id,
-      stripe_account_id: helper.stripe_account_id,
-      amount_cents: payoutCents,
-      platform_fee_cents: platformFeeCents,
-      status: "paid",
-      paid_at: new Date().toISOString(),
-      initiated_by: initiatedBy,
-      initiated_by_user_id: initiatedByUserId,
-      metadata: { transfer_group: transfer.transfer_group ?? null },
-    });
-
-  if (ledgerErr) {
+  // Settle the claim taken before the transfer. It is stamped "paid" rather
+  // than "pending": Stripe marketplace transfers settle synchronously on
+  // creation, and the `transfer.created` webhook handler — which flips
+  // pending → paid — can fire before this UPDATE runs. If that webhook found
+  // no row it was a no-op and nothing ever re-fired to fix it, leaving the row
+  // stuck at "pending" forever. Settling to "paid" here makes the webhook a
+  // harmless no-op on a row already in its terminal state.
+  const settled = await settleClaim(supabaseAdmin, claim.claimId, {
+    stripeTransferId: transfer.id,
+    amountCents: payoutCents,
+    platformFeeCents,
+    stripeAccountId: helper.stripe_account_id,
+    metadata: { source: "release-payout", transfer_group: transfer.transfer_group ?? null },
+  });
+  if (!settled.ok) {
     console.error(
-      `CRITICAL: transfer ${transfer.id} sent for job ${job.id} but ledger write failed:`,
-      ledgerErr,
+      `CRITICAL: transfer ${transfer.id} sent for job ${job.id} but the ledger claim could not be settled: ${settled.message}`,
     );
+    await postSlackOpsAlert({
+      kind: "payout_failed",
+      severity: "critical",
+      title: "Payout sent but the ledger row was not settled",
+      message:
+        "A Stripe transfer succeeded but its payout_transfers claim row could not be stamped paid with the transfer id. The money is out; the ledger does not say so. Reconcile before anything re-reads this job.",
+      fields: {
+        "Job ID": job.id,
+        "Transfer ID": transfer.id,
+        "Claim row": claim.claimId,
+        "DB error": settled.message.slice(0, 200),
+      },
+      link: "https://www.louisianahelpr.com/admin?tab=payouts",
+    });
     return jsonResponse(
       {
+        fn: "release-payout",
         error: "transfer sent but ledger write failed — manual reconciliation needed",
         stripe_transfer_id: transfer.id,
       },
@@ -642,11 +720,22 @@ serve(async (req) => {
     );
   }
 
-  // Same fail-loud contract as the ledger write above: the transfer is out,
-  // so a silent failure here strands the job in payout_pending forever (the
-  // cron re-selects it every run and 409s on the ledger check — no double
-  // pay, but no resolution either) while the notification below claims paid.
-  const { error: releasedErr } = await supabaseAdmin
+  // The money is already out, so this write is the LAST thing standing between
+  // a paid helper and a job that still looks payable.
+  //
+  // It used to be a bare `.eq("id", job.id)` with no `.select("id")` and no
+  // state precondition. A zero-row match returns `{ data: [], error: null }` —
+  // so the function answered `success: true` with a transfer id while the job
+  // sat in payout_pending forever and Stripe had already paid. That is the
+  // house's single most-cited bug class, on the primary escrow release.
+  //
+  // Now it mirrors execute-dispute-split:879-885 exactly: an explicit
+  // precondition on the states this write may legitimately walk forward from,
+  // `.select("id")`, and a zero-row branch that is treated as the critical
+  // event it is. The precondition also means a job an operator has since
+  // refunded, or that a chargeback webhook has flipped, is never overwritten
+  // with 'released'.
+  const { data: releasedJob, error: releasedErr } = await supabaseAdmin
     .from("jobs")
     .update({
       payment_status: "released",
@@ -656,16 +745,36 @@ serve(async (req) => {
       platform_fee_amount: platformFeeDollars,
       helper_fee_percent: helperFeePercent,
     })
-    .eq("id", job.id);
-  if (releasedErr) {
+    .eq("id", job.id)
+    .in("payment_status", [...RELEASABLE_PAYMENT_STATES])
+    .select("id");
+  if (releasedErr || !releasedJob || releasedJob.length === 0) {
+    const zeroRow = !releasedErr;
     console.error(
-      `CRITICAL: transfer ${transfer.id} sent for job ${job.id} but jobs.update to released failed:`,
+      `CRITICAL: transfer ${transfer.id} sent for job ${job.id} but jobs.update to released ${zeroRow ? "matched ZERO rows (payment_status changed under us)" : "failed"}:`,
       releasedErr,
     );
+    await postSlackOpsAlert({
+      kind: "payout_failed",
+      severity: "critical",
+      title: "Payout sent but the job did not flip to released",
+      message: zeroRow
+        ? "A Stripe transfer succeeded but jobs.payment_status was no longer in a releasable state, so the flip matched zero rows. The helper has been paid while the job still reads payout_pending (or was concurrently refunded / charged back). Reconcile immediately."
+        : "A Stripe transfer succeeded but jobs.payment_status could not be flipped to released. The helper has been paid while the job still reads payout_pending. Reconcile immediately.",
+      fields: {
+        "Job ID": job.id,
+        "Transfer ID": transfer.id,
+        "Amount": `$${(payoutCents / 100).toFixed(2)}`,
+        "DB error": releasedErr?.message?.slice(0, 200) ?? "zero rows matched",
+      },
+      link: "https://www.louisianahelpr.com/admin?tab=payouts",
+    });
     return jsonResponse(
       {
+        fn: "release-payout",
         error: "transfer sent but job status update failed — manual reconciliation needed",
         stripe_transfer_id: transfer.id,
+        zero_row_match: zeroRow,
       },
       500,
     );
@@ -692,8 +801,21 @@ serve(async (req) => {
   });
 });
 
+/**
+ * Every response names this function.
+ *
+ * `sweep_silent_cron_failures` (20260829020000) only ingests a response whose
+ * body matches `content ~ '"fn"\s*:\s*"'`, and `sweep_cron_http_failures` falls
+ * back to timestamp proximity — which guessed wrong three times in four —
+ * without it. release-payout is invoked over HTTP by auto-release-payment's
+ * Phase 2, so its answers land in `net._http_response` like any cron's and were
+ * being discarded by the watcher for want of one key.
+ */
 function jsonResponse(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
+  const named = body !== null && typeof body === "object" && !Array.isArray(body)
+    ? { fn: "release-payout", ...(body as Record<string, unknown>) }
+    : body;
+  return new Response(JSON.stringify(named), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });

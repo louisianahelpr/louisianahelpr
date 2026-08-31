@@ -7,6 +7,12 @@
  *   - POST { connection_id } → syncs a single connection (manual "sync now")
  *   - Cron (Authorization: Bearer <CRON_SECRET>) → syncs all active
  *
+ * SCHEDULED by migration 20260831193040 — every six hours at minute :44.
+ * Until that migration it existed in no cron.schedule call and no workflow, so
+ * this header described a cron that had never run: STR calendars only synced
+ * when a host opened Settings and tapped "Sync now". Anything that changes the
+ * schedule must change it there, not here.
+ *
  * Idempotent: str_processed_events has a UNIQUE(connection_id, event_uid)
  * constraint — re-running never duplicates jobs.
  */
@@ -14,10 +20,15 @@
 import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders, jsonResponse, errorResponse } from '../_shared/cors.ts';
+import { cronError, cronResult, defectTracker } from '../_shared/cron-result.ts';
 
+// SECRET_KEY first, matching every other cron-invoked function here
+// (auto-expire-jobs, cleanup-notifications, …). Reading only the legacy
+// SUPABASE_SERVICE_ROLE_KEY is the exact shape of the mismatch that 401'd five
+// cron-invoked functions in May — see migration 20260505220500.
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+  (Deno.env.get('SECRET_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!,
 );
 
 // ---------------------------------------------------------------------------
@@ -117,10 +128,16 @@ serve(async (req) => {
     if (callerUserId) query = query.eq('user_id', callerUserId);
   }
 
+  // Defect counter for the cron watcher. Counts work that was SUPPOSED to
+  // happen and didn't because something is broken — a feed we couldn't fetch, a
+  // job insert the DB rejected, a processed-event row that failed to record. It
+  // does NOT count business outcomes; see _shared/cron-result.ts.
+  const defects = defectTracker();
+
   const { data: connections, error: connError } = await query;
   if (connError || !connections) {
     console.error('Failed to fetch STR connections:', connError);
-    return errorResponse('failed to fetch connections', 500, corsHeaders);
+    return cronError('str-ical-sync', `failed to fetch connections: ${connError?.message ?? 'no rows'}`, corsHeaders);
   }
 
   const now        = new Date();
@@ -187,6 +204,7 @@ serve(async (req) => {
 
           if (jobError) {
             console.error('Failed to create STR cleaning job:', jobError);
+            defects.record(`${conn.id}: cleaning job insert failed: ${jobError.message}`);
             continue;
           }
 
@@ -199,6 +217,10 @@ serve(async (req) => {
           });
           if (peError) {
             console.error('Failed to record processed event:', peError);
+            // Real defect, not cosmetic: str_processed_events IS the dedup
+            // guard, so a job created without its row gets created again on the
+            // next run — a duplicate cleaning job the host pays for.
+            defects.record(`${conn.id}: processed-event insert failed for ${event.uid}: ${peError.message}`);
           }
 
           jobsCreated++;
@@ -216,6 +238,7 @@ serve(async (req) => {
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
       console.error(`Sync error for connection ${conn.id}:`, errMsg);
+      defects.record(`${conn.id}: ${errMsg}`);
       await supabase
         .from('str_calendar_connections')
         .update({ last_sync_error: errMsg })
@@ -224,5 +247,26 @@ serve(async (req) => {
     }
   }
 
-  return jsonResponse({ synced: results.length, results }, 200, corsHeaders);
+  // NB: `body` is already taken by the request payload above.
+  const summary = { synced: results.length, results };
+
+  // The cron path answers with the shared convention: `fn` so
+  // sweep_silent_cron_failures / sweep_cron_http_failures can attribute the
+  // response to THIS function rather than guessing by timestamp, and non-2xx
+  // when the run dropped work. Before this the function always answered 200
+  // with no `fn`, so a run that failed every connection was invisible to both
+  // watchers.
+  if (isInternal) return cronResult('str-ical-sync', summary, defects.defects, corsHeaders);
+
+  // The manual "Sync now" path stays 200 and keeps the exact body shape
+  // StrSettings.tsx reads. It checks `res.ok` FIRST and would replace the
+  // specific per-connection error with a generic "(500) — try again?", so
+  // borrowing the cron status code here would make the one caller who can act
+  // on the reason stop seeing it. Browser fetches never reach
+  // net._http_response, so no watcher is missing anything.
+  return jsonResponse(
+    { ok: defects.count === 0, fn: 'str-ical-sync', ...summary, defects: defects.count },
+    200,
+    corsHeaders,
+  );
 });

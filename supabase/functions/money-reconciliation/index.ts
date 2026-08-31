@@ -44,6 +44,7 @@ import { computeCancellationFee, hoursUntilJob } from "../_shared/cancellationFe
 import { helperCommissionDollars, feePercentForTier } from "../_shared/helperFees.ts";
 import { AUTO_COMPLETE_HOURS } from "../_shared/escrowTiming.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
+import { cronError, cronResult } from "../_shared/cron-result.ts";
 
 /** Offending ids reported per check. A bad day must not emit a 10MB payload. */
 const MAX_IDS_PER_CHECK = 10;
@@ -70,6 +71,19 @@ const EPSILON = 0.005;
  */
 const SETTLE_WINDOW_HOURS = 2;
 const SETTLE_WINDOW_MS = SETTLE_WINDOW_HOURS * 60 * 60 * 1000;
+
+/**
+ * How long a job may legitimately sit in `payout_pending` past its scheduled
+ * payout time before it counts as stranded.
+ *
+ * auto-release-payment sets `payout_scheduled_at = now + 24h` and then fires
+ * the payout from its own Phase 2, which runs every 30 minutes. So a job that
+ * has been due for hours has not been "waiting"; something failed and said
+ * nothing. Six hours is generous against a Stripe outage or a batch of retries
+ * while still catching a stranded payout on the same day it strands.
+ */
+const PAYOUT_WINDOW_HOURS = 6;
+const PAYOUT_WINDOW_MS = PAYOUT_WINDOW_HOURS * 60 * 60 * 1000;
 
 type Severity = "critical" | "warning" | "info";
 
@@ -224,6 +238,11 @@ serve(async (req) => {
         "critical",
         "A job is in a live dispute (status='disputed', or dispute_status open/escalated/stripe_chargeback/reversal_hold) but has_active_dispute = false — the review gate and every other reader of the flag see an undisputed job.",
       ),
+      payoutStranded: new Check(
+        "payout_pending_stranded",
+        "critical",
+        `payment_status='payout_pending' more than ${PAYOUT_WINDOW_HOURS}h past payout_scheduled_at — the helper was told they would be paid and nothing has moved. This is the END STATE of an unguarded release write (a zero-row flip after the transfer went out) and of a payout that failed with nothing recorded, and until now NOTHING detected it: this reconciler only looked at 'escrow'.`,
+      ),
       timeCredits: new Check(
         "time_credit_balance_drift",
         "warning",
@@ -243,7 +262,7 @@ serve(async (req) => {
         "id, is_seed, status, payment_status, budget, date_needed, cancelled_at, helper_id, " +
           "cancellation_fee, cancellation_fee_status, late_cancellation, platform_fee_amount, " +
           "helper_fee_percent, is_group_job, helpers_needed, has_active_dispute, dispute_status, " +
-          "poster_completed_at, helper_completed_at, updated_at",
+          "poster_completed_at, helper_completed_at, payout_scheduled_at, updated_at",
       )
       .limit(SCAN_LIMIT);
     if (!includeSeed) jobQuery = jobQuery.eq("is_seed", false);
@@ -346,6 +365,33 @@ serve(async (req) => {
       });
     }
 
+    // ── Payouts that were promised and never moved ───────────────────────────
+    // This whole reconciler used to skip anything not in 'escrow' (`if
+    // (job.payment_status !== "escrow") continue`), which left the single most
+    // expensive terminal state unwatched. A job reaches `payout_pending` only
+    // after auto-release-payment has told the helper "you will be paid in 24
+    // hours", so a job stuck there is a promise the platform made and did not
+    // keep — and it is exactly where an unguarded release write leaves a job
+    // whose transfer already went out, and where a payout that failed with
+    // nothing recorded leaves one whose transfer never did. Neither had an
+    // alarm.
+    for (const job of jobRows) {
+      if (job.payment_status !== "payout_pending") continue;
+      // Keyed on the SCHEDULED time, not on when the row was last touched: the
+      // schedule is the promise, and `updated_at` moves for unrelated reasons.
+      // A row with no schedule at all is still graded (falling back to
+      // updated_at) rather than exempted — an unknown timestamp must not become
+      // a silent pass, which is the same rule the escrow check above follows.
+      const dueAt = ts(job.payout_scheduled_at) ?? ts(job.updated_at) ?? 0;
+      if (nowMs - dueAt <= PAYOUT_WINDOW_MS) continue;
+      checks.payoutStranded.add({
+        job_id: job.id,
+        budget: money(job.budget),
+        payout_scheduled_at: job.payout_scheduled_at ?? null,
+        hours_overdue: Math.round(((nowMs - dueAt) / 3_600_000) * 100) / 100,
+      });
+    }
+
     // ── Released / paying-out jobs ───────────────────────────────────────────
     const payoutJobs = jobRows.filter(
       (j) => j.payment_status === "released" || j.payment_status === "payout_pending",
@@ -411,15 +457,34 @@ serve(async (req) => {
     // ── Payout ledger ────────────────────────────────────────────────────────
     const { data: transfers, error: trErr } = await admin
       .from("payout_transfers")
-      .select("job_id, amount_cents, platform_fee_cents, status")
+      .select("job_id, amount_cents, platform_fee_cents, status, stripe_transfer_id")
       .limit(SCAN_LIMIT);
     if (trErr) throw new Error(`payout_transfers read failed: ${trErr.message}`);
     if ((transfers?.length ?? 0) >= SCAN_LIMIT) caps.push(`payout_transfers scan hit the ${SCAN_LIMIT}-row cap`);
 
-    // Reversed transfers legitimately leave a job with money clawed back, so
-    // they don't count as "this job was paid".
+    // Only rows where money actually moved count as "this job was paid".
+    //
+    // This used to be `status !== 'reversed'`, an allow-everything-else test
+    // that was correct only because 'failed' rows never existed — nothing in
+    // the payout set ever wrote one. They do now (the claim protocol in
+    // _shared/payoutClaim.ts records every failed attempt), and so do 'pending'
+    // CLAIM rows written moments before a transfer that may never happen. Under
+    // the old test both would have counted as payment, and
+    // `released_without_payout_transfer` — a critical check — would have gone
+    // quiet on exactly the jobs it exists to catch.
+    // Money is out, and stayed out, iff the row is 'paid' — or 'pending' with a
+    // REAL Stripe transfer id, which is the brief window between
+    // transfers.create returning and the row being stamped paid.
+    //
+    // 'reversed' and 'reversal_cleared' both mean money was clawed back, so
+    // neither counts. A 'pending' row with a NULL id is a CLAIM taken moments
+    // before a transfer that may never happen, and 'failed'/'canceled' are
+    // attempts that moved nothing.
+    const isSettledTransfer = (t: { status: unknown; stripe_transfer_id?: unknown }) =>
+      String(t.status) === "paid" ||
+      (String(t.status) === "pending" && t.stripe_transfer_id != null);
     const paidJobIds = new Set(
-      (transfers ?? []).filter((t) => t.status !== "reversed").map((t) => t.job_id as string),
+      (transfers ?? []).filter(isSettledTransfer).map((t) => t.job_id as string),
     );
     for (const job of jobRows) {
       if (job.payment_status === "released" && !paidJobIds.has(job.id as string)) {
@@ -432,6 +497,11 @@ serve(async (req) => {
       // A transfer whose job is outside this scan's scope (e.g. a seed job on a
       // non-seed run) is not a finding — it simply wasn't audited here.
       if (!job) continue;
+      // Only settled rows carry a real commission to compare. A 'failed' attempt
+      // records 0 and a 'pending' claim records an estimate; grading either
+      // against jobs.platform_fee_amount would manufacture a critical finding
+      // out of a row that never moved money.
+      if (!isSettledTransfer(t)) continue;
       const expectedCents = Math.round(money(job.platform_fee_amount) * 100);
       const storedCents = Math.round(Number(t.platform_fee_cents ?? 0));
       if (expectedCents !== storedCents) {
@@ -521,7 +591,11 @@ serve(async (req) => {
       .filter((f): f is Finding => f !== null);
 
     const summary = {
-      ok: findings.length === 0,
+      // NOT named `ok`: cronResult owns that key and gives it a narrower
+      // meaning (no DEFECTS, i.e. nothing critical and no degraded check).
+      // `clean` is this reconciler's own, broader claim: no findings at all,
+      // warnings included.
+      clean: findings.length === 0,
       scope: includeSeed ? "all jobs (seed included)" : "real jobs only (is_seed = false)",
       scanned: {
         jobs: jobRows.length,
@@ -578,9 +652,36 @@ serve(async (req) => {
       console.log(`[money-reconciliation] clean — ${jobRows.length} jobs, ${summary.checks_run.length} checks`);
     }
 
-    return new Response(JSON.stringify(summary), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    // ── Answer the watchers, not just Slack ──────────────────────────────────
+    // Two defects were hiding in the old `new Response(...)`:
+    //
+    // 1. NO `fn` KEY. `sweep_silent_cron_failures` only ingests responses whose
+    //    body matches `content ~ '"fn"\s*:\s*"'`, so this function had ZERO
+    //    rows in `cron_run_log` despite running daily since 2026-08-28 —
+    //    invisible to the watcher built alongside it. `sweep_cron_http_failures`
+    //    would likewise have had to guess its name from timestamp proximity.
+    //
+    // 2. ALWAYS 200. A run that found `critical` discrepancies answered exactly
+    //    like a clean one. Slack carried the news and nothing else did, so a
+    //    Slack outage or a muted channel erased the finding entirely.
+    //
+    // `cronResult` fixes both. Defects are the CRITICAL findings plus any
+    // degraded note (a check that could not run) — a critical discrepancy is
+    // positive evidence that money rows disagree with reality, which is exactly
+    // what the convention says should page. Warnings deliberately do NOT count:
+    // they are already in Slack and in this body, and a watcher that pages on
+    // them is a watcher people mute — the failure mode this file exists to fix.
+    const criticalFindings = findings.filter((f) => f.severity === "critical");
+    const defectReasons = [
+      ...criticalFindings.map((f) => `${f.check}: ${f.count}${f.truncated ? "+" : ""}`),
+      ...notes.map((n) => `degraded — ${n}`),
+    ];
+    return cronResult(
+      "money-reconciliation",
+      summary,
+      { count: defectReasons.length, reasons: defectReasons },
+      corsHeaders,
+    );
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("[money-reconciliation] run failed:", message);
@@ -593,9 +694,6 @@ serve(async (req) => {
       message: "The nightly money reconciliation errored. No money invariants were checked on this run.",
       fields: { error: message },
     });
-    return new Response(JSON.stringify({ ok: false, error: message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return cronError("money-reconciliation", message, corsHeaders);
   }
 });

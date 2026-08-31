@@ -134,13 +134,12 @@ export function NpsPrompt({ userId, onClose }: NpsPromptProps) {
         if (!next) dismiss("overlay");
       }}
     >
-      <SheetContent
-        side="bottom"
-        // Brand parchment ground with a subtle olive border. Brand tokens
-        // are CSS variables, not Tailwind theme entries — use the hsl(var(...))
-        // form (bg-parchment would silently no-op).
-        className="bg-[hsl(var(--parchment))] border-[hsl(var(--bark)/0.18)]"
-      >
+      {/* No bespoke ground or border. `.glass-modal` is THE popup surface —
+          0.95 alpha over a 40px blur with a white hairline — and this sheet
+          was painting an opaque parchment card with an olive border over it,
+          so it read as a different material from every dialog and every other
+          sheet. */}
+      <SheetContent side="bottom">
         <SheetHero title="How Are We Doing?" />
 
         <div className="mt-5 space-y-4">

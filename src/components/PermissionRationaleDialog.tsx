@@ -1,11 +1,10 @@
 /**
  * Mounted once at the app root (App.tsx). Listens to usePermissionRationale
- * state and renders an editorial-styled dialog before any native permission
- * prompt fires. The brand pattern (sienna eyebrow + Bodoni italic title +
- * Garamond italic body) matches PageHeader / hero cards.
+ * state and renders the SHARED confirm shell before any native permission
+ * prompt fires — same AlertDialogContent surface, same AlertDialogHero title
+ * row, same AlertDialogFooter, as every other confirm in the app.
  */
 import { useEffect, useState } from "react";
-import { Bell, Camera, Image as ImageIcon, MapPin, Users, ShieldCheck, type LucideIcon } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,16 +16,7 @@ import {
 import {
   usePermissionRationaleState,
   __resolveRationale,
-  type PermissionKind,
 } from "@/hooks/usePermissionRationale";
-
-const ICON_FOR_KIND: Record<PermissionKind, LucideIcon> = {
-  notifications: Bell,
-  camera: Camera,
-  photos: ImageIcon,
-  location: MapPin,
-  contacts: Users,
-};
 
 export function PermissionRationaleDialog() {
   const { state, subscribe, copy } = usePermissionRationaleState();
@@ -34,25 +24,29 @@ export function PermissionRationaleDialog() {
 
   useEffect(() => subscribe(() => force((n) => n + 1)), [subscribe]);
 
-  if (!state.open || !copy || !state.kind) return null;
-
-  const Icon = ICON_FOR_KIND[state.kind] ?? ShieldCheck;
+  if (!state.open || !copy) return null;
 
   return (
-    <AlertDialog open={state.open}>
+    // ESCAPE / ✕ NOW ACTUALLY CLOSE IT. `open` is controlled and there was no
+    // `onOpenChange`, so every dismissal path Radix offers was inert: Escape
+    // did nothing, and the corner ✕ that AlertDialogContent renders for every
+    // confirm in the app fired its Cancel and left the dialog on screen. A
+    // dead ✕ is worse than none. Dismissing resolves the rationale as a
+    // decline, exactly like "Not Now".
+    <AlertDialog open={state.open} onOpenChange={(next) => { if (!next) __resolveRationale(false); }}>
       <AlertDialogContent>
-        <div
-          className="w-14 h-14 rounded-2xl flex items-center justify-center"
-          style={{
-            backgroundColor: "hsl(var(--primary) / 0.10)",
-            border: "1px solid hsl(var(--primary) / 0.18)",
-            boxShadow:
-              "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
-              "0 6px 18px -6px hsl(var(--primary) / 0.30)",
-          }}
-        >
-          <Icon className="w-6 h-6" strokeWidth={1.75} aria-hidden="true" />
-        </div>
+        {/* NO ICON ROW. This was a bespoke 56px tile rendered ABOVE the Hero,
+            which pushed the title off the top row and left the ✕ aligned to an
+            icon instead of to a heading — so this was the one popup in the app
+            whose header had a different shape (owner, 2026-08-31: "need to
+            share the same sheet and design").
+            The canonical popup header is the Hero's single title line, with
+            the ✕ beside it, and DialogHero/AlertDialogHero deliberately expose
+            no slots. Permission rationales are not a separate species: they
+            are ordinary confirms that happen to precede an OS prompt, and the
+            body copy below already says which permission and why. If icons in
+            popup headers are ever wanted, they belong in the shared Hero as
+            one documented slot used by ALL popups — not rebuilt here. */}
         <AlertDialogHero
           title={copy.title}
         />
@@ -69,23 +63,27 @@ export function PermissionRationaleDialog() {
             Without the explanation it is a bare demand, and Apple's own
             guidance is to say why first. Rendered here rather than by
             restoring subtitles globally, so the wider rule stands. */}
+        {/* Same body treatment BrandConfirmDialog gives every other confirm's
+            description — `font-serif italic text-ds-12 leading-relaxed` at
+            olivewood/0.8. This was ds-14 at full-strength olivewood with a
+            `-mt-1` nudge, i.e. a third size and a different rhythm from the
+            confirm that opens next to it. */}
         <p
-          className="text-ds-14 font-serif italic leading-relaxed -mt-1"
-          style={{ color: "hsl(var(--olivewood))" }}
+          className="font-serif italic text-ds-12 leading-relaxed"
+          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
           {copy.body}
         </p>
-        <AlertDialogFooter className="flex-col-reverse sm:flex-row gap-2">
-          <AlertDialogCancel
-            onClick={() => __resolveRationale(false)}
-            className="rounded-ds-md h-11 mt-0"
-          >
+        {/* Plain AlertDialogFooter. The className restated the footer's own
+            `flex-col-reverse sm:flex-row gap-2`, and the `h-11` pinned both
+            buttons to 44px while every other popup's footer buttons are the
+            shared 56px — so this dialog's controls were visibly shorter than
+            the ones in the confirm that might open right after it. */}
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={() => __resolveRationale(false)}>
             Not Now
           </AlertDialogCancel>
-          <AlertDialogAction
-            onClick={() => __resolveRationale(true)}
-            className="rounded-ds-md h-11"
-          >
+          <AlertDialogAction onClick={() => __resolveRationale(true)}>
             {copy.cta}
           </AlertDialogAction>
         </AlertDialogFooter>

@@ -543,12 +543,12 @@ const AdminReports = () => {
       <AlertDialog open={!!deleteReviewTarget} onOpenChange={(open) => { if (!open) setDeleteReviewTarget(null); }}>
         <AlertDialogContent>
           <AlertDialogHero
-            title="Remove this review?"
+            title="Remove This Review?"
             subtitle="This permanently deletes the review. The reviewee's star rating recalculates immediately — this can't be undone."
           />
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deletingReview}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={deleteReportedReview} disabled={deletingReview} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction onClick={deleteReportedReview} disabled={deletingReview} variant="destructive">
               {deletingReview ? "Removing…" : "Remove Review"}
             </AlertDialogAction>
           </AlertDialogFooter>

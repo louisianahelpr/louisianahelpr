@@ -4,6 +4,7 @@ import { Capacitor } from "@capacitor/core";
 import { Share } from "@capacitor/share";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { cn } from "@/lib/utils";
 import { hapticLight } from "@/lib/haptics";
 import { copyToClipboard } from "@/lib/nativeShare";
@@ -30,8 +31,16 @@ interface ShareJobButtonProps {
    * suitable for the customer-side action row beside Edit / Cancel.
    * Use `"icon"` for icon-only mounts like the helper-side dialog
    * footer where the row is a sequence of equal-square icon buttons.
+   *
+   * `"primary"` is the GLOSSY bark pill — for the one mount where sharing is
+   * the screen's single primary action (the Applicants empty state), not one
+   * option in a row of peers. It renders through `BarkPillButton`, the same
+   * component every other empty-state CTA in the app uses, so there is exactly
+   * one implementation of that treatment. The `default` mount stays a flat
+   * tint on purpose: in an action row beside Edit / Cancel a glossy Share
+   * would claim a primacy it does not have.
    */
-  variant?: "default" | "icon";
+  variant?: "default" | "icon" | "primary";
   /**
    * Layout of the default (pill) variant. `"row"` keeps the icon and
    * "Share" label side-by-side (the standard full-width mount). `"stack"`
@@ -291,6 +300,27 @@ export function ShareJobButton({
         {liveRegion}
       </Button>
       </span>
+    );
+  }
+
+  if (variant === "primary") {
+    return (
+      <BarkPillButton
+        type="button"
+        aria-label={copied ? "Link copied to clipboard" : (ariaLabel ?? "Share this job")}
+        disabled={sharing}
+        onClick={handleShare}
+        className={cn("w-full max-w-xs", className)}
+        style={style}
+      >
+        {copied ? (
+          <Check className="w-4 h-4 mr-1.5" strokeWidth={2.5} />
+        ) : (
+          <Share2 className="w-4 h-4 mr-1.5" />
+        )}
+        {copied ? "Copied" : restLabel}
+        {liveRegion}
+      </BarkPillButton>
     );
   }
 

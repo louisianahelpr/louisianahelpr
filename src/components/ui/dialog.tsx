@@ -161,7 +161,27 @@ const DialogContent = React.forwardRef<
       //
       // Give it an explicit viewport-relative width on phones and keep
       // shrink-to-fit only from `sm` up, where there is room for it.
-        "glass-modal fixed left-1/2 top-1/2 [translate:-50%_-50%] z-50 grid w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] sm:w-auto sm:max-w-lg max-h-[86vh] overflow-y-auto gap-3 p-4 sm:p-5 duration-300 focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+              // ONE MEASURE, NOT SHRINK-TO-FIT (2026-08-31).
+      //
+      // `sm:w-auto` made the card hug its content, which sounds tidy and is
+      // the direct cause of the complaint it was meant to help with. Measured
+      // in Chromium across the harness: at 1440 the same app rendered dialogs
+      // at 285px, 297px, 384px, 435px, 494px and 512px — six different card
+      // widths — because each one sized to whatever copy it happened to hold.
+      // Two confirms opened one after another are visibly different objects,
+      // and a multi-step dialog RESIZES between its own steps (the report
+      // dialog measured 512 -> 327.5 -> 512 walking its three steps).
+      //
+      // `sm:w-full` + `sm:max-w-lg` pins every popup to the same 512px card
+      // from `sm` up, and the phone rule is unchanged
+      // (`w-[calc(100vw-2rem)]`, a 16px inset each side).
+      //
+      // This reverses the narrow reading of "center center and fit contents"
+      // (owner, 2026-08-30) in favour of the instruction repeated five times
+      // since ("all these need to share the same shell"). Content still
+      // controls HEIGHT, which is what makes a short confirm feel short; only
+      // the measure is shared. Change one primitive, change both.
+        "glass-modal fixed left-1/2 top-1/2 [translate:-50%_-50%] z-50 grid w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] sm:w-full sm:max-w-lg max-h-[86vh] overflow-y-auto gap-3 p-4 sm:p-5 duration-300 focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
         className,
       )}
       // Radix warns once per open when a Content has no `Description` and no

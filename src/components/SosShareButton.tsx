@@ -97,13 +97,22 @@ export function SosShareButton({
       )}
 
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="bottom" className="pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+        {/* No bespoke padding or ground. `side="bottom"` is a centred modal at
+          every width now, not a floor-anchored sheet, so the safe-area bottom
+          inset each sheet had written differently is dead weight — and
+          `.glass-modal` is THE popup surface. Shared `p-4 sm:p-5`, same ramp
+          DialogContent uses. */}
+      <SheetContent side="bottom">
           <SheetHero title="Share Your Location" />
           <div className="mt-4 space-y-2">
+            {/* Shared destructive variant, not a hand-written burnt-sienna
+                fill. Broadcasting your live location is a safety action the
+                sender cannot recall, so it takes the one destructive
+                treatment; it was a sixth inline colour. */}
             <Button
+              variant="destructive"
               className="w-full"
               onClick={share}
-              style={{ background: "hsl(var(--burnt-sienna))", color: "hsl(var(--parchment))" }}
             >
               <Share2 className="w-4 h-4 mr-2" />
               Share Location Link

@@ -344,13 +344,23 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
     setReportingNoShow(true);
     try {
       const job = postedJobs.find((j) => j.id === jobId);
-      if (!job?.helper_id) return;
+      if (!job?.helper_id) {
+        // A BARE RETURN HERE LOOKED LIKE SUCCESS. The `finally` below closes
+        // the confirm dialog either way, so "Confirm No-Show" dismissed the
+        // sheet and did nothing at all — no write, no toast, no clue. The
+        // usual cause is a stale list (the helper was unassigned, or this card
+        // is from a previous fetch), which a refresh fixes, so say that.
+        hapticError();
+        toast.error("We couldn't find the Helpr on this job — pull to refresh and try again.");
+        return;
+      }
       const helperId = job.helper_id;
 
-      // Atomic via the report_helper_no_show RPC (migration 20260518140000):
-      // it locks the job row FOR UPDATE, re-checks the caller is the poster,
-      // records the violation, escalates the 2-strike ban, and reopens the job
-      // in ONE transaction — so the ban can never be left half-applied. There is
+      // Atomic via the report_helper_no_show RPC (migration 20260518140000,
+      // latest 20260831183302): it locks the job row FOR UPDATE, re-checks the
+      // caller is the poster, records the violation, runs the shared
+      // consequence ladder, and reopens the job in ONE transaction — so the
+      // consequence can never be left half-applied. There is
       // deliberately no client-side multi-step fallback: a browser cannot roll
       // back writes already committed, so the only correct path is the
       // server-side transaction. On ANY RPC error we fail closed (no partial
@@ -374,9 +384,29 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
       // narrow to the shape the RPC emits before reading fields.
       const actionTaken = ((rpcData ?? {}) as { action?: string }).action ?? "warning";
 
-      // Notifications (best-effort) — shared by both paths.
-      const banned = actionTaken === "permanent_ban";
-      await createNotification({ user_id: helperId, title: banned ? "⛔ Account banned for no-show" : "⚠️ No-show warning", message: banned ? "Your account has been permanently banned for repeated no-shows." : `You received a no-show warning for "${job.title}".`, type: "warning", link: "/profile" });
+      // Which rung did the RPC actually reach? Migration 20260831183302 moved
+      // the top rung: a second no-show (from a DIFFERENT poster) is now a
+      // REVERSIBLE 7-day restriction plus admin review — the same terminal rung
+      // every other ladder uses — not an automatic permanent ban.
+      //
+      // "permanent_ban" is still handled, and deliberately: between this bundle
+      // shipping and db-deploy.yml applying that migration, the old RPC can
+      // still return it. Describing a real, irreversible ban as "under review"
+      // would be the worse lie, so each string says exactly what happened.
+      const restricted = actionTaken === "pending_ban_review";
+      const legacyBanned = actionTaken === "permanent_ban";
+      // Notifications (best-effort) — shared by every path.
+      await createNotification({
+        user_id: helperId,
+        title: legacyBanned ? "⛔ Account banned for no-show" : restricted ? "⛔ Account restricted for 7 days" : "⚠️ No-show warning",
+        message: legacyBanned
+          ? "Your account has been permanently banned for repeated no-shows."
+          : restricted
+            ? "A second no-show was reported against you. Your account is restricted for 7 days while an admin reviews it. If you think this is wrong, email admin@louisianahelpr.com."
+            : `You received a no-show warning for "${job.title}".`,
+        type: "warning",
+        link: "/profile",
+      });
       // Admin fan-out — a silent drop here means no admin gets the
       // no-show alert. Warn-report but continue (the poster's toast still
       // fires and the DB state is already correct).
@@ -385,8 +415,22 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
         report(adminRolesErr, { severity: "warning", tags: { source: "useLifecycleHandlers.noShowAdminFanout" } });
       }
       for (const admin of adminRoles ?? []) {
-        await createNotification({ user_id: admin.user_id, title: "🚫 No-show reported", message: `Helpr no-show for "${job.title}". ${banned ? "Auto-banned." : "Warning issued."}`, type: "warning", link: "/admin" });
+        await createNotification({ user_id: admin.user_id, title: "🚫 No-show reported", message: `Helpr no-show for "${job.title}". ${legacyBanned ? "Auto-banned." : restricted ? "Restricted 7 days — ban review pending." : "Warning issued."}`, type: "warning", link: "/admin" });
       }
+      // Success feedback, in the same shape confirmArrival/confirmWorking use.
+      // This handler pulls the consequence ladder — a final warning, or a
+      // 7-day restriction pending admin review on the second report — and said
+      // nothing when it landed, so the loudest action on the card was also the
+      // only silent one. The message names which rung the RPC actually reached
+      // rather than a generic "done".
+      hapticSuccess();
+      toast.success(
+        legacyBanned
+          ? "No-show reported — this Helpr has been banned for repeated no-shows."
+          : restricted
+            ? "No-show reported — the Helpr is restricted for 7 days while an admin reviews it, and your job is open again."
+            : "No-show reported — the Helpr has been warned and your job is open again.",
+      );
       refresh();
     } catch (err) { hapticError(); toast.error(err instanceof Error ? err.message : "We couldn't report the no-show just now — please try again."); }
     finally { setReportingNoShow(false); setNoShowJobId(null); }
@@ -397,7 +441,24 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
     // Use shared fetchProfile so the read goes through the same code
     // path React Query callers use. Direct supabase.from inline reads
     // fragment caching across the app — see src/hooks/useProfile.ts.
-    const helperProfile = await fetchProfile(job.helper_id);
+    //
+    // It THROWS on a Supabase error (useProfile.ts: `if (error) throw error`),
+    // and this was the one call site not wrapped: the rejection escaped an
+    // async click handler with nobody to catch it, so tapping Review did
+    // nothing, said nothing, and logged nothing anyone would see. Every other
+    // handler in this file reports and toasts; so does this one now.
+    let helperProfile: Awaited<ReturnType<typeof fetchProfile>>;
+    try {
+      helperProfile = await fetchProfile(job.helper_id);
+    } catch (err) {
+      report(err, {
+        tags: { area: "activity", op: "openReviewForPosted.fetchProfile" },
+        context: { jobId: job.id, helperId: job.helper_id },
+      });
+      hapticError();
+      toast.error("We couldn't open the review just now — please try again.");
+      return;
+    }
     setReviewTarget({ id: job.helper_id, name: formatName(helperProfile?.full_name, "Helpr") });
     setReviewJob(job);
   };

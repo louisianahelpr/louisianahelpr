@@ -15,6 +15,7 @@ import { AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { formatName } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
+import { requireBiometric } from "@/lib/biometricGate";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -34,6 +35,12 @@ export function DeleteUserDialog({ profile, onClose, onSuccess }: DeleteUserDial
 
   const submit = async () => {
     if (!profile) return;
+    // Face ID / Touch ID gate: this permanently destroys an account and all
+    // its data — the single most irreversible action in the admin console.
+    // No-op on web and on devices without enrolled biometrics (see
+    // requireBiometric), so an admin can never be locked out of the console.
+    const ok = await requireBiometric("Confirm permanently deleting this account");
+    if (!ok) return;
     setDeleting(true);
     try {
       const { data, error } = await supabase.functions.invoke("admin-delete-user", {

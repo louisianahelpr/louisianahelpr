@@ -7,10 +7,24 @@ permissions:
 # - Missing RLS on new tables (= public data leak)
 # - Bad CHECK constraints with non-immutable functions (= restore failures)
 # - Dangerous DROP statements without IF EXISTS
+# - Writes into Supabase-reserved schemas (auth/storage/realtime/...)
+# - New public functions with no explicit GRANT/REVOKE
+# - AFTER triggers that assign to NEW (silently discarded)
 #
 # Runs:
+# - On every push to main that touches supabase/migrations/
 # - On every PR that touches supabase/migrations/
-# - Manually via workflow_dispatch
+# - Manually via workflow_dispatch (lints the whole tree)
+#
+# WHAT THIS NOW CATCHES THAT IT DID NOT BEFORE
+# --------------------------------------------
+# Itself skipping. From the day the `push:` trigger was added (2026-08-20)
+# until 2026-08-31 the lint body never executed once: the diff base was
+# `origin/main...HEAD`, which on a push to main is main-against-main and is
+# always empty, so every run reported "No migration changes" and SUCCESS
+# regardless of what the push contained. See the DIFF BASE comment in the
+# "Find changed migrations" step. The rule of this file now: an unknown diff
+# range lints EVERYTHING; it never resolves to linting nothing.
 
 on:
   # Re-enabled on PRs 2026-05-09 after the migration-pipeline post-mortem
@@ -42,13 +56,20 @@ jobs:
   lint-migrations:
     name: Lint new migration SQL
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    # 15, not 5: the "unknown diff base" fallback lints all ~520 migrations in
+    # the tree. A too-tight timeout there would turn the safe fallback into a
+    # red run for the wrong reason.
+    timeout-minutes: 15
 
     steps:
       - name: Checkout
         uses: actions/checkout@v7
         with:
-          fetch-depth: 0 # need history to diff against main
+          # Full history, not a shallow clone: the diff base is
+          # github.event.before, which can be many commits back on a push that
+          # carried a batch. A shallow clone makes `git cat-file -e` on that
+          # SHA fail and drops us into the lint-everything fallback.
+          fetch-depth: 0
 
       - name: Set up Node
         uses: actions/setup-node@v7
@@ -57,15 +78,96 @@ jobs:
 
       - name: Find changed migrations
         id: changed
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
-          # Get list of new/modified .sql files in this PR
-          FILES=$(git diff --name-only --diff-filter=AM origin/main...HEAD -- 'supabase/migrations/*.sql' || true)
+          set -eo pipefail
+
+          # DIFF BASE — this is the whole ballgame. Same failure this file's
+          # sibling functions-deploy.yml shipped: a detector that resolves
+          # "I cannot tell what changed" to "nothing changed", and therefore
+          # reports success having inspected zero files.
+          #
+          # This step used to be, unconditionally:
+          #     git diff ... origin/main...HEAD -- 'supabase/migrations/*.sql'
+          # On a `push` to main, HEAD *is* origin/main, so the triple-dot
+          # merge-base of main and main is main — the diff is main against
+          # itself and FILES is ALWAYS empty. Every push therefore printed
+          # "No migration changes — skipping lint" and went green with all six
+          # rules (RLS, CHECK immutability, DROP, reserved schemas, GRANT
+          # guard, AFTER-trigger timing) skipped. Since this file gained its
+          # `push:` trigger on 2026-08-20 the lint body had never once
+          # executed: commit 004a0fba added an 88-line migration and run
+          # 33418974279 still logged "skipping lint" and reported SUCCESS.
+          # The same green-over-nothing shape as the functions-deploy
+          # tip-commit-only diff and the vercel.json schema break.
+          #
+          # Per event:
+          #   push          github.event.before..HEAD — the FULL pushed range.
+          #                 A push carries many commits; the tip is often the
+          #                 one that touches no migration.
+          #   pull_request  the PR's own base SHA (exact, no merge-base guess).
+          #   dispatch      no base exists at all -> lint everything.
+          #
+          # Two cases make before-SHA unusable: an all-zeros SHA (branch
+          # created, or the ref was force-pushed/reset) and a SHA no longer
+          # reachable after a force-push. Both mean "we cannot know what
+          # changed", and the only safe answer to that is LINT EVERYTHING —
+          # never "nothing". If that fallback run comes back red, the repo has
+          # pre-existing violations in its history: triage them, do not mute
+          # the fallback back to a no-op.
+          DIFF_BASE=""
+          LINT_ALL=0
+          if [ "$EVENT_NAME" = "pull_request" ] && [ -n "$PR_BASE_SHA" ] \
+             && git cat-file -e "${PR_BASE_SHA}^{commit}" 2>/dev/null; then
+            DIFF_BASE="$PR_BASE_SHA"
+            echo "PR base: ${DIFF_BASE}..HEAD"
+          elif [ "$EVENT_NAME" = "push" ] && [ -n "$BEFORE_SHA" ] \
+             && [ "$BEFORE_SHA" != "0000000000000000000000000000000000000000" ] \
+             && git cat-file -e "${BEFORE_SHA}^{commit}" 2>/dev/null; then
+            DIFF_BASE="$BEFORE_SHA"
+            echo "Diffing the full pushed range: ${DIFF_BASE}..HEAD"
+          else
+            echo "::warning::No usable diff base (workflow_dispatch, new branch, force-push, or unreachable commit) — linting ALL migrations rather than risk linting none."
+            LINT_ALL=1
+          fi
+
+          # KNOWN: the lint-all path is currently RED, and that is not a bug in
+          # the fallback. Measured across all 521 migrations on 2026-08-31:
+          #   Rule 1 (RLS on new tables)      0 findings
+          #   Rule 2 (non-immutable CHECK)    0 findings
+          #   Rule 4 (reserved-schema DDL)    0 findings (after being narrowed)
+          #   check-migration-grants.mjs      findings in superseded history
+          #   check-trigger-timing.mjs        2 findings, BOTH already fixed by
+          #                                   later migrations (20260325045032
+          #                                   superseded by 20260819060000 §5;
+          #                                   20260831003117 by 20260831015232)
+          # Those two scripts judge each file in isolation and cannot see that
+          # a later migration corrected it, so a whole-history pass re-reports
+          # settled history. On the normal push/PR path only the changed files
+          # are linted, so this never fires. If you land here after a
+          # force-push, read the findings against the timestamps before
+          # treating them as new — and do NOT "fix" this by making the
+          # fallback lint nothing, which is the bug this file was built to
+          # close.
+
+          if [ "$LINT_ALL" = "1" ]; then
+            FILES=$(ls supabase/migrations/*.sql 2>/dev/null || true)
+          else
+            FILES=$(git diff --name-only --diff-filter=AM "$DIFF_BASE" HEAD -- 'supabase/migrations/*.sql' || true)
+          fi
+
           if [ -z "$FILES" ]; then
-            echo "No migration changes — skipping lint"
+            # Reachable ONLY on a real, computed, non-empty diff range that
+            # genuinely contains no migration change (e.g. a push that touched
+            # just this workflow file). Not the old always-empty case.
+            echo "Diff range ${DIFF_BASE}..HEAD contains no migration changes — nothing to lint."
             echo "files=" >> $GITHUB_OUTPUT
             exit 0
           fi
-          echo "Changed migrations:"
+          echo "Migrations to lint:"
           echo "$FILES"
           # Multiline output
           {
@@ -110,10 +212,39 @@ jobs:
               # Warning only, not a fail
             fi
 
-            # Rule 4: No modifications to reserved schemas
-            if grep -iE "(alter|drop|create).*\b(auth|storage|realtime|vault|supabase_functions)\." "$FILE" > /dev/null; then
-              echo "  ❌ Modifying a Supabase-reserved schema (auth/storage/realtime/vault/supabase_functions)"
-              echo "     This can cause platform outages — use the public schema"
+            # Rule 4: No STRUCTURAL changes to Supabase-reserved schemas.
+            #
+            # NARROWED 2026-08-31, when the diff-base bug above was fixed and
+            # this rule executed for the first time. The old pattern was
+            #     (alter|drop|create).*\b(auth|storage|realtime|...)\.
+            # which matches ANY statement mentioning a reserved schema —
+            # including `DROP POLICY IF EXISTS "..." ON storage.objects` and
+            # `CREATE POLICY ... ON storage.objects`, which is the one and only
+            # supported way to put RLS on a Storage bucket, and which this repo
+            # does constantly.
+            #
+            # Measured against the whole tree the day it was narrowed: the old
+            # pattern flagged 26 of 521 migrations, and EVERY matching line was
+            # POLICY or TRIGGER management — zero true positives, ~1 in 20
+            # migrations red. Shipping the diff-base fix without this would
+            # have made the very next storage-policy migration red main, and
+            # the predictable response is to disable the lint again, which is
+            # how this file spent three months not running in the first place.
+            #
+            # What is actually dangerous, and what this now matches, is DDL
+            # that changes the STRUCTURE or ownership of platform-owned
+            # objects: CREATE/ALTER/DROP of a TABLE, SCHEMA, FUNCTION,
+            # PROCEDURE, TYPE, EXTENSION, VIEW, SEQUENCE or PUBLICATION inside
+            # a reserved schema. Those can and do cause platform outages and
+            # break restores. POLICY / TRIGGER / GRANT / REVOKE / COMMENT /
+            # INDEX statements against reserved-schema objects are allowed:
+            # they are the documented Supabase pattern. The narrowed pattern
+            # matches 0 of 521 existing migrations.
+            if grep -iE "^[[:space:]]*(create|alter|drop)[[:space:]]+(table|schema|function|procedure|type|extension|view|sequence|publication)[[:space:]][^;]*\b(auth|storage|realtime|vault|supabase_functions)\." "$FILE" > /dev/null; then
+              echo "  ❌ Structural DDL against a Supabase-reserved schema (auth/storage/realtime/vault/supabase_functions)"
+              echo "     Creating/altering/dropping tables, functions, types or extensions in a"
+              echo "     platform-owned schema can cause outages and break restores — use public."
+              echo "     (POLICY/TRIGGER/GRANT/REVOKE on reserved objects is fine and not flagged.)"
               FAIL=1
             fi
 

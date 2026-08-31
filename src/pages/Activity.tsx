@@ -393,7 +393,18 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               onSelectStatusFilter={setStatusFilter}
             />
           ) : (
-            <div style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 96px)" }}>
+            /* `min-h-full flex flex-col` so a SHORT list can fill the panel.
+               PageScaffold's panel is a fixed-height liquid-glass card, so a
+               one-card view left ~426px of blank card stock above the nav at
+               375 — measured, and the owner's "roughly half the screen empty".
+               Giving this wrapper the panel's full height lets the tab's
+               end-of-list block take the slack with `mt-auto`/`flex-1` instead
+               of the void taking it. Nothing moves on a full list: `min-h-`,
+               not `h-`, so the wrapper still grows past the fold as before. */
+            <div
+              className="min-h-full flex flex-col"
+              style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 96px)" }}
+            >
           {tab === "posted" && (
             <Suspense fallback={
               <div className="px-0 space-y-2.5">
@@ -441,6 +452,15 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               loadingApplicants={actions.loadingApplicants}
               applicantErrors={actions.applicantErrors}
               onActionComplete={refresh}
+              // Context for the END-OF-LIST block, which fills the panel's
+              // leftover height on a short list (owner: three cards and then
+              // "roughly half the screen empty"). Same four values
+              // ActivityEmptyState already takes, so the two surfaces say the
+              // same sentence about where the rest of your posts are.
+              statusFilter={statusFilter}
+              statusCounts={activeCounts}
+              statusLabels={activeStatusFilters}
+              onSelectStatusFilter={setStatusFilter}
             />
             </SectionBoundary>
             </Suspense>

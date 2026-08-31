@@ -16,6 +16,7 @@ import { logAdminAction } from "@/lib/adminAudit";
 import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
 import { Switch } from "@/components/ui/switch";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { requireBiometric } from "@/lib/biometricGate";
 
 // The fee-ladder rungs an admin is shown, DERIVED from the tier config rather
 // than restated. `TIER_PERKS` is the same table `tierFeePercent()` resolves a
@@ -277,6 +278,13 @@ const AdminSettings = () => {
   };
 
   const addAdmin = async (profile: Profile) => {
+    // Face ID / Touch ID gate: granting admin is the privilege-escalation
+    // primitive that makes every other gate on this page moot — an attacker
+    // on a merely-unlocked admin phone would grant themselves a durable role
+    // that survives the phone being recovered. No-op on web and on devices
+    // without enrolled biometrics (see requireBiometric).
+    const ok = await requireBiometric("Confirm granting admin access");
+    if (!ok) return;
     setAdding(profile.user_id);
     // The user_roles trigger only admits service_role writes, so the old
     // direct insert here failed on EVERY tap ("Admin roles can only be
@@ -306,6 +314,15 @@ const AdminSettings = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (user?.id === admin.user_id) {
       toast.error("You can't remove yourself as admin.");
+      return;
+    }
+
+    // Face ID / Touch ID gate: stripping admin is the lock-everyone-out half
+    // of the same privilege primitive as addAdmin. Runs after the
+    // self-removal guard so a blocked action never raises an OS prompt.
+    const ok = await requireBiometric("Confirm removing this admin");
+    if (!ok) {
+      setConfirmRemove(null);
       return;
     }
 

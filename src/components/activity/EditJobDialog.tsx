@@ -208,24 +208,17 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
           </section>
         </div>
         <DialogFooter>
-          <Button
-            variant="ghost"
-            onClick={() => handleClose(false)}
-            className="rounded-ds-md bg-transparent border-transparent shadow-none text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
-          >
+          {/* The `ghost` variant already IS transparent/borderless/unshadowed
+              with a muted label and a secondary hover — the class list here
+              was re-declaring it by hand, one hover token off from every other
+              dialog's Cancel. */}
+          <Button variant="ghost" onClick={() => handleClose(false)}>
             Cancel
           </Button>
           <Button
+            variant="primary"
             onClick={handleSaveClick}
             disabled={saving || hasHelper}
-            className="rounded-ds-md"
-            style={{
-              background: "hsl(var(--bark))",
-              backgroundImage: "none",
-              border: "1px solid hsl(var(--bark))",
-              color: "hsl(var(--parchment))",
-              boxShadow: "var(--elev-bark-raised)",
-            }}
           >
             {saving ? "Saving…" : "Save Changes"}
           </Button>

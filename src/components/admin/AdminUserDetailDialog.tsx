@@ -85,7 +85,15 @@ export function AdminUserDetailDialog({
 
   return (
     <Dialog open={!!viewProfile} onOpenChange={() => setViewProfile(null)}>
-      <DialogContent className="w-[calc(100vw-1rem)] max-w-2xl h-[90vh] overflow-hidden p-3 sm:p-5 flex flex-col gap-0">
+      {/* Only the STRUCTURAL parts of this override remain — the fixed height
+          and the internal column that let a long admin record scroll inside
+          the card. The three cosmetic ones are gone:
+          `w-[calc(100vw-1rem)]` narrowed the phone inset to 8px a side while
+          every other dialog sits at 16px, `max-w-2xl` made it the only dialog
+          wider than the shared `max-w-lg` outside the two documented
+          structural exceptions, and `p-3` shaved the phone padding from the
+          shared 16px to 12px. */}
+      <DialogContent className="h-[90vh] overflow-hidden flex flex-col gap-0">
         {/* LAYOUT goes on a wrapper, never on the Hero. The Hero owns the
             header's type and alignment and takes no className at all — that
             escape hatch is what let three dialogs centre a title the other

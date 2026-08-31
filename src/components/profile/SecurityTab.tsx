@@ -13,7 +13,13 @@ import {
 import { Mail, Lock, Monitor, Smartphone, Tablet, LogOut, Fingerprint } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { isNativePlatform } from "@/lib/nativeInit";
-import { isAppLockEnabled, setAppLockEnabled } from "@/lib/appLock";
+import {
+  APP_LOCK_GRACE_OPTIONS,
+  getAppLockGraceMs,
+  isAppLockEnabled,
+  setAppLockEnabled,
+  setAppLockGraceMs,
+} from "@/lib/appLock";
 import { requireBiometric } from "@/lib/biometricGate";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { supabase } from "@/integrations/supabase/client";
@@ -224,6 +230,21 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
   const [appLockOn, setAppLockOn] = useState(() => isAppLockEnabled());
 
   /**
+   * How long the app may sit in the background before it re-locks.
+   *
+   * Exposed rather than hard-coded because the right answer is genuinely
+   * personal, and because the owner's complaint ("Does not need to lock every
+   * time I swipe out") is a complaint about an invisible constant. iOS asks the
+   * same question for the passcode after Face ID; these are the same tiers.
+   */
+  const [graceMs, setGraceMs] = useState(() => getAppLockGraceMs());
+
+  const handleGraceChange = (ms: number) => {
+    setAppLockGraceMs(ms);
+    setGraceMs(ms);
+  };
+
+  /**
    * Turning the lock ON must PROVE the biometric works before persisting it.
    * Writing the flag first and discovering at next launch that Face ID is
    * unavailable/not enrolled would leave the user staring at a lock screen they
@@ -267,7 +288,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
           <DialogHero
-            title="Change Email Address."
+            title="Change Email Address"
           />
 
           <div className="space-y-1.5">
@@ -302,30 +323,23 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
           </div>
 
           <DialogFooter>
+            {/* Plain ghost. The bark tint + `font-semibold` made this Cancel
+                a different colour and weight from the muted-foreground bold
+                Cancel in every other dialog footer. */}
             <Button
               variant="ghost"
               onClick={() => setEmailDialogOpen(false)}
-              className="rounded-ds-md font-sans font-semibold"
-              style={{ color: "hsl(var(--bark))" }}
             >
               Cancel
             </Button>
+            {/* Shared glossy primary. The inline block set
+                `backgroundImage: "none"`, flattening the CTA gradient, and
+                hand-rolled a disabled state that the `disabled:opacity-50` on
+                the shared Button already provides. */}
             <Button
+              variant="primary"
               onClick={handleEmailChange}
               disabled={submitting || !newEmail.trim()}
-              className="rounded-ds-md"
-              style={{
-                background: newEmail.trim() ? "hsl(var(--bark))" : undefined,
-                backgroundImage: "none",
-                border: newEmail.trim() ? "1px solid hsl(var(--bark))" : undefined,
-                color: newEmail.trim() ? "hsl(var(--parchment))" : undefined,
-                fontFamily: "Montserrat, system-ui, sans-serif",
-                fontWeight: 600,
-                letterSpacing: "0.01em",
-                boxShadow: newEmail.trim()
-                  ? "0 1px 2px hsl(var(--bark) / 0.2), 0 8px 20px -6px hsl(var(--bark) / 0.28)"
-                  : undefined,
-              }}
             >
               {submitting ? "Sending…" : "Confirm Change"}
             </Button>
@@ -462,6 +476,72 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
               aria-label="Require Face ID to open Helpr"
             />
           </div>
+
+          {/* Grace window. Only shown when the lock is on — an "ask me after…"
+              control under a switch that is off is a setting for nothing.
+
+              Segmented buttons rather than a <select>: three options is small
+              enough to show whole, and the current choice being visible without
+              a tap is the point of a security setting. */}
+          {appLockOn && (
+            <div
+              role="radiogroup"
+              aria-label="Lock again after"
+              className="pl-11 space-y-1.5"
+            >
+              <p
+                className="text-ds-11 font-serif italic"
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+              >
+                Lock again after
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {APP_LOCK_GRACE_OPTIONS.map((option) => {
+                  const selected = graceMs === option.ms;
+                  return (
+                    <button
+                      key={option.ms}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      onClick={() => handleGraceChange(option.ms)}
+                      // min-h-11 = 44px — Apple's minimum tap target.
+                      className={
+                        "squircle min-h-11 rounded-ds-md px-3.5 text-ds-12 font-sans font-semibold " +
+                        "transition-[transform,box-shadow,filter] duration-[150ms] ease-ds-spring " +
+                        "active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 " +
+                        "focus-visible:ring-ring focus-visible:ring-offset-2 " +
+                        // Selected controls are GLOSSY (btn-grad-primary), never
+                        // a flat fill — project rule.
+                        (selected
+                          ? "btn-grad-primary !text-[hsl(var(--parchment))]"
+                          : "")
+                      }
+                      style={
+                        selected
+                          ? undefined
+                          : {
+                              background: "hsl(var(--ivory-sand) / 0.55)",
+                              border: "0.5px solid hsl(var(--olivewood) / 0.18)",
+                              color: "hsl(var(--ink-deep))",
+                            }
+                      }
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <p
+                className="text-ds-11 font-serif italic"
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+              >
+                {graceMs === 0
+                  ? "Every switch back to Helpr asks again."
+                  : "Quick trips to another app won't ask again. Closing and reopening Helpr always does."}
+              </p>
+            </div>
+          )}
         </div>
       )}
 

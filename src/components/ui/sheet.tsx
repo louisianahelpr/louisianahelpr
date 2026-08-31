@@ -164,12 +164,17 @@ const SheetCloseButton = ({ top, right }: { top: string; right: string }) => (
 // A caller passing `px-*` still merges this away (tailwind-merge, same slot) —
 // that is why `SheetHero` does NOT rely on it and owns its own inner lane.
 const SheetHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn("flex flex-col space-y-2 text-center sm:text-left pr-12", className)} {...props} />
+  // `space-y-1.5` matches DialogHeader/AlertDialogHeader. `pr-12` (not their
+  // `pr-10`) because the sheet close button is a larger floating disc.
+  <div className={cn("flex flex-col space-y-1.5 text-center sm:text-left pr-12", className)} {...props} />
 );
 SheetHeader.displayName = "SheetHeader";
 
 const SheetFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn("flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2", className)} {...props} />
+  // `gap-2` was missing — DialogFooter and AlertDialogFooter both have it, so
+  // a sheet's stacked buttons touched on a phone while a dialog's sat 8px
+  // apart. Otherwise identical to both; change one, change all three.
+  <div className={cn("flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:space-x-2", className)} {...props} />
 );
 SheetFooter.displayName = "SheetFooter";
 
@@ -212,9 +217,6 @@ SheetDescription.displayName = SheetPrimitive.Description.displayName;
  */
 const SheetHero = ({
   title,
-  className,
-  titleClassName,
-  titleStyle,
 }: {
   // `eyebrow` and `subtitle` remain ACCEPTED but are not rendered — the
   // 2026-07-25 "one main title" decision: a popup header shows its title and
@@ -229,11 +231,13 @@ const SheetHero = ({
   eyebrow?: React.ReactNode;
   title: React.ReactNode;
   subtitle?: React.ReactNode;
-  className?: string;
-  titleClassName?: string;
-  titleStyle?: React.CSSProperties;
-  eyebrowClassName?: string;
-  eyebrowStyle?: React.CSSProperties;
+  // NO className / titleClassName / titleStyle / eyebrow* escape hatches.
+  // DialogHero and AlertDialogHero had these deleted (and `dialogShell.test.ts`
+  // bans them coming back) precisely because they are how one popup ends up
+  // looking unlike the rest — SheetHero simply never got the same treatment,
+  // and three sheets were already using `className` to nudge their header
+  // padding by a different amount each (`pl-1 pb-2`, `mb-4`, `pt-0`). A popup
+  // header is ONE layout; if it changes, it changes here.
 }) => (
   // The close-button lane lives on an INNER element, not on the merged outer
   // className. It used to be `cn("… pr-12", className)`, which put the reserve
@@ -242,11 +246,15 @@ const SheetHero = ({
   // adopters were passing exactly that, and on the dashboard's long-press sheet
   // (whose title is arbitrary user text) the title painted under the X. The
   // reserve is not a suggestion; a caller must not be able to merge it away.
-  <SheetHeader className={cn("space-y-0 text-left pr-0", className)}>
+  <SheetHeader className="space-y-0 text-left pr-0">
     <div className="pr-12">
       <SheetTitle
-        className={cn("font-display italic font-bold leading-tight pt-2", titleClassName)}
-        style={{ fontSize: "clamp(1.2rem, 1.6vw + 0.4rem, 1.45rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em", ...titleStyle }}
+        // NO `pt-2`. DialogHero and AlertDialogHero both had that exact class
+        // removed on 2026-08-29 ("the container's own padding already clears
+        // the X") and SheetHero kept it, so every sheet title in the app sat
+        // 8px lower in its card than every dialog title.
+        className="font-display italic font-bold leading-tight"
+        style={{ fontSize: "clamp(1.2rem, 1.6vw + 0.4rem, 1.45rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
       >
         {title}
       </SheetTitle>

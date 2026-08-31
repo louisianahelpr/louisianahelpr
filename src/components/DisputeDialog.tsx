@@ -205,7 +205,7 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHero
-          title="File a Dispute."
+          title="File a Dispute"
         />
         <div className="space-y-3.5">
           <div className="space-y-1.5">
@@ -294,17 +294,14 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={onClose} className="rounded-ds-md">Cancel</Button>
+          {/* Destructive: a filed dispute cannot be withdrawn from this
+              screen and it freezes the counterparty's escrow, so it belongs to
+              the same family as "Confirm No-Show". Shared `destructive`
+              variant, not a hand-copied burnt-sienna style block. */}
           <Button
+            variant="destructive"
             onClick={handleSubmit}
             disabled={submitting || !reason}
-            className="rounded-ds-md"
-            style={{
-              background: reason ? "hsl(var(--burnt-sienna))" : undefined,
-              backgroundImage: "none",
-              border: reason ? "1px solid hsl(var(--burnt-sienna))" : undefined,
-              color: reason ? "hsl(var(--parchment))" : undefined,
-              boxShadow: reason ? "0 1px 2px hsl(var(--burnt-sienna) / 0.2), 0 8px 20px -6px hsl(var(--burnt-sienna) / 0.32)" : undefined,
-            }}
           >
             {submitting ? "Submitting…" : "Submit Dispute"}
           </Button>

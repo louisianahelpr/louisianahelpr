@@ -6,6 +6,12 @@ import { toast } from "sonner";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
 import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
+// The consequence this dialog promises is stated ONCE, next to the ladder the
+// RPC actually runs (report_helper_no_show → apply_consequence_ladder). This
+// bullet used to hard-code "a permanent ban (2nd offense)", which was true of
+// the old bespoke ladder and became false the moment migration 20260831183302
+// moved the top rung to a reversible 7-day restriction pending admin review.
+import { NO_SHOW_LADDER_SENTENCE } from "@/lib/reliabilityLadder";
 import type { Job, EnrichedApplication } from "./activityConstants";
 
 // Dialogs are conditionally rendered — none are visible on first paint. Each
@@ -171,7 +177,7 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
           <div className="space-y-3">
             <p className="text-ds-11 text-muted-foreground">Are you sure the Helpr didn't show up? This will:</p>
             <ul className="text-ds-11 text-muted-foreground space-y-1 list-disc pl-5">
-              <li>Issue a <span className="font-medium text-foreground">warning</span> to the Helpr (1st offense) or a <span className="font-medium text-destructive">permanent ban</span> (2nd offense)</li>
+              <li>Go on the Helpr's record — {NO_SHOW_LADDER_SENTENCE}</li>
               <li>Reopen your job so you can pick another applicant</li>
               <li>Notify the admin team</li>
             </ul>

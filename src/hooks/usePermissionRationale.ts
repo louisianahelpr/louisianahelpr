@@ -27,20 +27,20 @@ interface RationaleCopy {
 const COPY: Record<PermissionKind, RationaleCopy> = {
   camera: {
     icon: "📷",
-    title: "Camera access",
-    body: "Helpr uses your camera to take before/after photos of jobs and verify your ID. Photos stay private and are only shared with the matched poster or helper.",
+    title: "Camera Access",
+    body: "Helpr uses your camera to take before/after photos of jobs and verify your ID. Photos stay private and are only shared with the matched poster or Helpr.",
     cta: "Allow Camera",
   },
   photos: {
     icon: "🖼️",
-    title: "Photo library",
+    title: "Photo Library",
     body: "Pick existing photos from your library to show job details, completed work, or your portfolio. Helpr never reads photos you don't pick.",
     cta: "Choose from Library",
   },
   location: {
     icon: "📍",
     title: "Location",
-    body: "We use your location to show jobs near you and confirm helper arrival. Location is only checked while you're using the app.",
+    body: "We use your location to show jobs near you and confirm Helpr arrival. Location is only checked while you're using the app.",
     cta: "Share Location",
   },
   contacts: {
@@ -52,7 +52,7 @@ const COPY: Record<PermissionKind, RationaleCopy> = {
   notifications: {
     icon: "🔔",
     title: "Notifications",
-    body: "Get notified when a helper applies, sends a message, or marks your job complete. You can change what you receive anytime in Settings.",
+    body: "Get notified when a Helpr applies, sends a message, or marks your job complete. You can change what you receive anytime in Settings.",
     cta: "Turn On Notifications",
   },
 };

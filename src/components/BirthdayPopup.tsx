@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Dialog, DialogPortal, DialogOverlay, DialogHero } from "@/components/ui/dialog";
 import { X, Cake } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { safeStorage } from "@/lib/safeStorage";
 import { useReducedMotion } from "@/lib/accessibility";
 import { parseLocalDate } from "@/lib/dateUtils";
@@ -146,27 +147,21 @@ const BirthdayPopup = ({ dateOfBirth, firstName }: BirthdayPopupProps) => {
                     component (and its one type ramp) while letting the one
                     genuinely centred dialog in the app be centred. */}
                 <div className="[&_h2]:text-center">
-                  <DialogHero title={`Happy birthday, ${firstName}.`} />
+                  {/* Title Case, no trailing period — the app's popup titles
+                      are 95/117 Title Case and 109/117 end in "?" or nothing
+                      (docs/PLATFORM_CONVENTIONS.md:15). This was the only
+                      Sentence-case-plus-period title outside the four that
+                      have since been fixed. */}
+                  <DialogHero title={`Happy Birthday, ${firstName}`} />
                 </div>
-                <button
-                  type="button"
-                  onClick={dismiss}
-                  className="mt-4 inline-flex items-center gap-1.5 px-5 h-10 rounded-ds-md active:scale-[0.97] transition-transform text-ds-12"
-                  style={{
-                    background: "hsl(var(--bark))",
-                    color: "hsl(var(--parchment))",
-                    border: "1px solid hsl(var(--bark-border))",
-                    fontFamily: "Montserrat, system-ui, sans-serif",
-                    fontWeight: 600,
-                    letterSpacing: "0.01em",
-                    boxShadow:
-                      "inset 0 1px 0 0 rgba(255,255,255,0.12), " +
-                      "0 1px 2px hsl(var(--bark) / 0.18), " +
-                      "0 8px 18px -6px hsl(var(--bark) / 0.45)",
-                  }}
-                >
+                {/* The shared glossy primary. This was a hand-rolled 40px
+                    (`h-10`, under the 44px tap-target floor) button painting a
+                    FLAT `--bark` fill with a copy of the elevation recipe —
+                    the same flat-primary rule break as the other six, in the
+                    one dialog nobody opens twice. */}
+                <Button variant="primary" onClick={dismiss} className="mt-4">
                   Thank You
-                </button>
+                </Button>
               </motion.div>
             </DialogPrimitive.Content>
           </DialogPortal>

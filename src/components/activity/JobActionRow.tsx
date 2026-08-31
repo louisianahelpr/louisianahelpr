@@ -38,9 +38,30 @@ const COLS: Record<number, string> = {
  * neighbours exactly — it takes this string through its `className` prop.
  *
  * `min-h-[44px]` is the tap target. `h-auto` alone left these at ~41px.
+ *
+ * THE LABEL MUST WRAP, and the override has to live on the label element.
+ * `buttonVariants` sets `whitespace-nowrap` on the button itself, so a label
+ * longer than its column did not wrap — it rendered outside the tinted box.
+ * Measured at 375px: "View Timeline & Add Evidence" wanted 169px in a 110px
+ * chip, clipping "Vi" off the left edge of the card and colliding with the
+ * Message chip beside it; the shorter chips in the five-up completed row
+ * spilled 6-22px each, and ~30px more at 320px.
+ *
+ * `whitespace-normal` in THIS string would not fix it: Tailwind emits
+ * `whitespace-nowrap` after `whitespace-normal` in its own stylesheet, so on
+ * the same element nowrap wins regardless of class order. The label inherits
+ * nowrap from the button instead, and a rule that targets the label directly
+ * beats inheritance — hence the `[&_span]:` descendant variants. They also
+ * reach the two chips that render their own <span> through this class
+ * (ShareJobButton, SosShareButton) without those files having to know.
+ *
+ * `min-w-0` is the other half: a grid item's default `min-width: auto` refuses
+ * to shrink below its content, which is what let a too-wide chip push past its
+ * column instead of wrapping inside it.
  */
 export const JOB_ACTION_CHIP_CLASS =
-  "w-full h-auto min-h-[44px] flex-col gap-0.5 px-1 py-1.5 glass-press border-0";
+  "w-full h-auto min-h-[44px] min-w-0 flex-col gap-0.5 px-1 py-1.5 glass-press border-0 " +
+  "[&_span]:whitespace-normal [&_span]:break-words [&_span]:leading-tight [&_span]:text-center";
 
 /**
  * The FULL-WIDTH sibling of the chip, for the one-decision-per-row controls
@@ -281,14 +302,37 @@ export function JobActionRow({
   );
 }
 
+/**
+ * The chip's accessible name, which must CONTAIN its visible label (WCAG 2.5.3
+ * Label in Name).
+ *
+ * `aria-label` REPLACES the visible text rather than adding to it, so passing
+ * the descriptive string alone left a voice-control user unable to say the word
+ * they can see: "Hire Again" spoke as "Hire this Helpr again", "Contact Admin"
+ * as "Contact an admin about this dispute". Deleting the descriptive text is
+ * not the fix either — a screen-reader user out of the row's visual context
+ * needs it. So compose: visible label first (what a voice user says), context
+ * after (what a screen-reader user needs).
+ *
+ * The prefix is skipped when the caller's string already opens with the visible
+ * label, so a call site that writes its own "Hire Again — …" does not come out
+ * as "Hire Again — Hire Again — …".
+ */
+function composeAccessibleName(label: string, ariaLabel?: string): string | undefined {
+  if (!ariaLabel) return undefined; // no aria-label: the visible text IS the name
+  const starts = ariaLabel.trim().toLowerCase().startsWith(label.trim().toLowerCase());
+  return starts ? ariaLabel : `${label} — ${ariaLabel}`;
+}
+
 export function JobActionChip({
   icon: Icon,
   label,
   tone,
   onClick,
   disabled,
-  /** Spoken name when the visible label is abbreviated for width
-   *  ("Message" in a 320px three-up row, "Message Helpr" to a screen reader). */
+  /** Extra context for a screen reader ("Message" in a 320px three-up row,
+   *  "Message Helpr" spoken). It is APPENDED to the visible label, never
+   *  substituted for it — see composeAccessibleName. */
   ariaLabel,
 }: {
   icon: LucideIcon;
@@ -305,11 +349,14 @@ export function JobActionChip({
       className={JOB_ACTION_CHIP_CLASS}
       style={jobActionChipStyle(tone)}
       disabled={disabled}
-      aria-label={ariaLabel}
+      aria-label={composeAccessibleName(label, ariaLabel)}
       onClick={onClick}
     >
       <Icon className="w-4 h-4" />
-      <span className="text-ds-11 leading-none font-medium">{label}</span>
+      {/* leading-tight, not leading-none: these labels wrap now (see
+          JOB_ACTION_CHIP_CLASS), and leading-none stacked two lines on top of
+          each other. */}
+      <span className="text-ds-11 leading-tight font-medium">{label}</span>
     </Button>
   );
 }

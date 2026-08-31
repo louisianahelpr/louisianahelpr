@@ -19,6 +19,27 @@ const appCommit = (() => {
 })();
 const appBuiltAt = new Date().toISOString();
 
+// FULL commit SHA, for the build stamp the prod-freshness gate reads back.
+//
+// `appCommit` above is deliberately SHORT (7 chars) because it is for human
+// display. The freshness gate needs the full 40-char SHA so it can ask git
+// whether the commit prod is serving is an ancestor of / equal to the commit
+// CI just pushed — a 7-char prefix is a lookup, not an identity, and would
+// make that check ambiguous.
+//
+// On Vercel, VERCEL_GIT_COMMIT_SHA is authoritative and is preferred over
+// `git rev-parse`, because Vercel's build clone is not guaranteed to be a
+// usable git checkout.
+const appCommitFull = (() => {
+  const fromVercel = process.env.VERCEL_GIT_COMMIT_SHA;
+  if (fromVercel && /^[0-9a-f]{40}$/i.test(fromVercel)) return fromVercel;
+  try {
+    return execSync("git rev-parse HEAD", { encoding: "utf-8" }).trim();
+  } catch {
+    return "dev";
+  }
+})();
+
 const reactEntry = require.resolve("react");
 const reactDomEntry = require.resolve("react-dom");
 const reactDomClientEntry = require.resolve("react-dom/client");
@@ -44,6 +65,36 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
+    // Stamp the built index.html with the commit it was built from.
+    //
+    // WHY: `__APP_COMMIT__` has existed in `define` above for months, but no
+    // source file ever referenced it — and Vite's `define` is a token
+    // substitution, so an identifier nobody uses is substituted nowhere and
+    // reaches the bundle nowhere. The build identity was, in practice, not
+    // emitted at all. Nothing could read it back, and nothing did.
+    //
+    // That is what made all three of this repo's "green CI over a stale prod"
+    // incidents invisible: there was no way for any check to ask the live site
+    // which commit it is actually serving. .github/workflows/prod-freshness.yml
+    // now reads this tag after every push to main and fails if prod is behind.
+    //
+    // Emitted into index.html rather than into the JS bundle so it can be read
+    // with a single HTTP GET, with no JS execution and no headless browser.
+    // index.html is served `max-age=0, must-revalidate` (vercel.json), so the
+    // value read is always the deployed one, never a CDN copy.
+    {
+      name: "html-build-stamp",
+      apply: "build",
+      enforce: "post",
+      transformIndexHtml(html: string) {
+        return html.replace(
+          /<\/head>/i,
+          `  <meta name="build-commit" content="${appCommitFull}">\n` +
+            `    <meta name="build-time" content="${appBuiltAt}">\n` +
+            `  </head>`,
+        );
+      },
+    } satisfies Plugin,
     isAnalyze && visualizer({
       filename: "dist/stats.html",
       open: false,

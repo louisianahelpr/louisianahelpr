@@ -79,8 +79,12 @@ export const StatusOverrideDialog = ({
             rows={3}
           />
         </div>
-        <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={onCancel}>
+        {/* `ghost` — a secondary sitting beside a primary is bare text in every
+            other dialog footer in the app; `outline` is reserved for a footer
+            whose only control is the dismiss. `gap-2` restated DialogFooter's
+            own gap. */}
+        <DialogFooter>
+          <Button variant="ghost" onClick={onCancel}>
             Cancel
           </Button>
           <Button

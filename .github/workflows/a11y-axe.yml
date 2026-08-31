@@ -87,10 +87,42 @@ on:
         default: all
         type: string
 
-concurrency:
-  group: a11y-axe-${{ github.ref }}
-  cancel-in-progress: true
-
+# CONCURRENCY IS DELIBERATELY PER-JOB AND PER-VARIANT. Changed 2026-08-31.
+#
+# WHAT THIS CATCHES: this gate cancelling itself into silence.
+#
+# There used to be a single workflow-level group, `a11y-axe-${{ github.ref }}`
+# with `cancel-in-progress: true`. Every push to main resolves to the SAME ref,
+# so each push KILLED the run the previous push started. The `phone-dark` leg
+# needs 16-20 minutes; pushes to main land here roughly every 5. The long leg
+# therefore almost never survived to report: 12 of the last 24 runs ended
+# `cancelled`.
+#
+# A cancelled run is the worst possible outcome, worse than a failing one. Its
+# conclusion is BLANK, not "failure" — it is not red, it satisfies nothing, it
+# blocks nothing, it notifies nobody, and the Actions list shows a grey dash
+# that reads as "fine". The last time phone-dark actually completed it found
+# SIX real WCAG 2AA colour-contrast failures on admin routes (measured
+# 3.52-4.07:1 against the 4.5:1 minimum). Those are still unfixed, and the
+# gate that found them has been invisible ever since.
+#
+# Two changes, both necessary:
+#
+#  1. The group includes `matrix.variant`, so the 16-20 min phone-dark leg has
+#     its own lane. Previously all four legs shared one workflow-level group,
+#     which made the slowest leg the pole for the whole run: cancelling
+#     phone-dark's run also threw away the three fast legs' results.
+#
+#  2. `cancel-in-progress` is true ONLY for pull_request. On a PR, a newer
+#     push supersedes the older one and cancelling is correct — the PR cannot
+#     merge on the stale result anyway. On a push to main there is no "newer
+#     attempt at the same thing" to defer to: every commit on main is its own
+#     shipped state, and killing its audit means that commit is never audited
+#     by anything, ever. Push runs now QUEUE instead. They may back up behind
+#     a fast push cadence; that is the correct trade — a delayed real result
+#     beats an instant blank one. If the backlog becomes the binding cost
+#     problem, the lever is to move this workflow to `pull_request` only, NOT
+#     to restore cancel-on-push.
 jobs:
   # Cheap gate job: decides whether the expensive matrix legs do any work.
   # Deliberately an IN-JOB filter rather than a top-level `paths:` trigger —
@@ -130,6 +162,12 @@ jobs:
     needs: changes
     runs-on: ubuntu-latest
     timeout-minutes: 40
+
+    # See the block above `jobs:` for why this is per-job, per-variant, and
+    # why push runs queue rather than cancel.
+    concurrency:
+      group: a11y-axe-${{ matrix.variant }}-${{ github.event_name }}-${{ github.ref }}
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
     strategy:
       fail-fast: false

@@ -25,10 +25,14 @@ export const GateSheet = ({ open, onOpenChange }: GateSheetProps) => {
           on the iOS home-indicator inset leaves a dead band below the thin
           "Keep browsing" link. Trim the bottom padding to a single 1rem over
           the safe-area inset so the sheet's edge sits just under that link. */}
-      <SheetContent
-        side="bottom"
-        className="pb-[calc(1rem_+_env(safe-area-inset-bottom,0px))]"
-      >
+      {/* No bespoke padding. `side="bottom"` stopped being a floor-anchored
+            sheet — it is a centred modal at every width now — so the
+            safe-area bottom inset it used to need is dead weight, and each
+            sheet had written a different one (`pb-safe-nav`,
+            `pb-[calc(var(--safe-area-bottom)+1rem)]`, `pb-[max(1.25rem,…)]`,
+            `pt-6 px-5`, `pt-3 px-4`). The shared `p-4 sm:p-5` on
+            SheetContent is the same padding ramp DialogContent uses. */}
+          <SheetContent side="bottom">
         <SheetHero title="Create Your Free Account" />
         <div className="flex flex-col gap-3 mt-6">
           <Button

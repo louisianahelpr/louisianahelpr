@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { createNotification } from "@/lib/notifications";
 import { logAdminAction } from "@/lib/adminAudit";
 import type { Database } from "@/integrations/supabase/types";
+import { requireBiometric } from "@/lib/biometricGate";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type BanType = "warning" | "temporary" | "permanent";
@@ -110,6 +111,15 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
       toast.error("Add a freeform note for 'Other' reason.");
       return;
     }
+    // Face ID / Touch ID gate: a permanent ban ends someone's ability to earn
+    // on this platform and there is no self-serve undo. An admin's merely
+    // unlocked phone shouldn't be enough. Runs AFTER validation so a rejected
+    // form never raises an OS prompt for nothing. No-op on web and on devices
+    // without enrolled biometrics (see requireBiometric).
+    const ok = await requireBiometric(
+      banType === "permanent" ? "Confirm this permanent ban" : "Confirm this account action",
+    );
+    if (!ok) return;
     setBanning(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -366,7 +376,13 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
             </div>
           )}
         </div>
-        <DialogFooter className="gap-2 sm:gap-2 pt-2 border-t border-border/40 -mx-5 sm:-mx-6 px-5 sm:px-6">
+        {/* Plain DialogFooter. This carried a full-bleed rule that no other
+              popup in the app has, and the bleed arithmetic was wrong: the
+              negative margins were written for a `p-5 sm:p-6` container, but
+              DialogContent is `p-4 sm:p-5`, so the divider overshot the card
+              edge by 4px at every breakpoint and drew across the rounded
+              corner radius. */}
+          <DialogFooter>
           <Button variant="ghost" onClick={handleClose} className="w-full sm:w-auto">
             Cancel
           </Button>

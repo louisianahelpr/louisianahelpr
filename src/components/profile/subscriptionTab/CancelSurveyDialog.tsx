@@ -86,8 +86,9 @@ export const CancelSurveyDialog = ({
             and we'll see what we can do — including discounted retention rates.
           </p>
         </div>
+        {/* Lone footer control -> `outline` (see SavedSearches for the rule). */}
         <DialogFooter>
-          <Button variant="ghost" onClick={() => setCancelSurveyOpen(false)} className="rounded-ds-md">
+          <Button variant="outline" onClick={() => setCancelSurveyOpen(false)}>
             Never Mind
           </Button>
         </DialogFooter>

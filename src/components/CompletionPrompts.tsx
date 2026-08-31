@@ -273,7 +273,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
                   onClick={() => sendTip(customTip ?? 0)}
                   disabled={saving || customTip === undefined || customTip <= 0}
                 >
-                  {saving ? "..." : "Send"}
+                  {saving ? "Sending…" : "Send"}
                 </Button>
               </div>
             </div>
@@ -290,8 +290,9 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
               ))}
             </div>
           </div>
+          {/* Lone footer control -> `outline`, not a bare ghost label. */}
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setStep("share")}>No Thanks</Button>
+            <Button variant="outline" onClick={() => setStep("share")}>No Thanks</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -302,7 +303,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
       <Dialog open={step === "share"} onOpenChange={() => setStep("nps")}>
         <DialogContent>
           <DialogHero
-            title="Loved It? Share Helpr."
+            title="Loved It? Share Helpr"
           />
           <div className="space-y-4">
             <p className="text-ds-11 text-muted-foreground">
@@ -353,8 +354,9 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
               </div>
             )}
           </div>
+          {/* Lone footer control -> `outline`, not a bare ghost label. */}
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setStep("nps")}>Maybe Later</Button>
+            <Button variant="outline" onClick={() => setStep("nps")}>Maybe Later</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

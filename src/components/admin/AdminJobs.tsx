@@ -16,6 +16,7 @@ import { RemoveJobDialog } from "./adminJobs/RemoveJobDialog";
 import { RefundJobDialog } from "./adminJobs/RefundJobDialog";
 import { StatusOverrideDialog } from "./adminJobs/StatusOverrideDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { requireBiometric } from "@/lib/biometricGate";
 
 const AdminJobs = () => {
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -191,6 +192,13 @@ const AdminJobs = () => {
       return;
     }
     const isPartial = partialCents !== null && partialCents < totalCents;
+
+    // Face ID / Touch ID gate: an admin refund moves real money back out of
+    // Stripe and cancels the job. No undo. Runs after the amount validation
+    // so a rejected form never raises an OS prompt. No-op on web and on
+    // devices without enrolled biometrics (see requireBiometric).
+    const ok = await requireBiometric("Confirm this refund");
+    if (!ok) return;
 
     setRefunding(true);
     try {

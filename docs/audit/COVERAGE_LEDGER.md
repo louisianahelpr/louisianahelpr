@@ -16,6 +16,46 @@ incomplete audit, no matter how confident its prose.
 
 ---
 
+## The unit changed on 2026-08-31: this ledger counts STATES now, not places
+
+Everything below section 1 counts **places** — routes, redirects, tabs, admin
+views, edge functions, overlay roots. 232 of them. That count was honestly
+derived and it is still tracked, because a place nobody has opened is still a
+gap.
+
+It is not, however, the unit the defects live in.
+
+On 2026-08-31 the owner found roughly twenty real defects in forty-five minutes
+of tapping a real build, after several audits had reported the app clean. **Not
+one of them was in a place this ledger was missing.** Every one was in a
+*state*:
+
+- a status with no branch of its own — `pending_approval` renders no card body
+- a card expanded rather than collapsed — expansion gates ~90% of both job cards
+- a job four days past due — `jobIsOverdue` re-buckets it and adds a band
+- an arrival that was *claimed* but not *verified* — three captions off two
+  nullable columns
+- step 2 of a dialog — `ReportDialog` has three screens; every sweep saw one
+
+The route sweep photographs each place once, in whatever state production data
+happened to be in. It cannot see any of that, and the 155 `WALKED` rows below
+do not claim it can. `/my-posts` being WALKED means the route rendered; it says
+nothing about the eight statuses, the expansion axis, or the arrival lattice
+that route can render.
+
+**Section 8 adds the state axis: 195 state cells, derived from source.** The
+two counts are complementary and are deliberately kept apart — a place walked
+in one state is not a walked state, and merging them would let a 100% route
+score hide a 3% state score, which is exactly how the app came to be reported
+clean while broken.
+
+| Axis | Unit | Total | Source of truth |
+| --- | --- | ---: | --- |
+| Places (sections 1–7) | route / tab / view / function / overlay root | 232 | `src/App.tsx`, `TAB_TITLES`, `type View`, `ls supabase/functions`, the overlay grep |
+| **States (section 8)** | status × role × data-presence × expansion × step | **195** | `e2e/happy-path/state-matrix/stateMatrix.ts`, derived from the `job_status` enum, `application_status`, `deriveAppliedJobCardState` and the nullable columns each card branches on |
+
+---
+
 ## Summary — as of 2026-08-31 (full-surface audit)
 
 | Status | Count | Share |
@@ -401,6 +441,89 @@ class is the whole reason this bar exists.
 | Admin (command palette, ban, refund, remove, status override, user detail) | 18 | NEVER WALKED |
 | Native OS prompts (camera, geo, push, Face ID, share, social auth, in-app browser) | 9 classes | NEVER WALKED — needs the iOS sim |
 
+## 8. States (195)
+
+Source of truth: `e2e/happy-path/state-matrix/stateMatrix.ts`, derived from the
+`job_status` enum in the generated `types.ts`, the `application_status` enum,
+`deriveAppliedJobCardState` in `appliedJobCardHelpers.ts`, and the nullable
+columns each card branches on. Explained in `docs/audit/STATE_MATRIX.md`;
+regenerate the manifest with
+
+```
+EMIT_STATE_MATRIX=1 npx playwright test --project=happy-path state-sweep -g "emit manifest"
+```
+
+**195 state cells, 334 frames.** A cell is `WALKED` when the sweep DROVE it —
+forced the exact row shape, loaded the surface, expanded the card or opened the
+overlay, confirmed the surface actually entered that state, and left a
+screenshot plus an observation record behind. A frame the sweep captured but
+could not drive is `UNVERIFIED` with the reason, never a pass.
+
+| Surface | Cells | Frames |
+| --- | ---: | ---: |
+| Poster job card (`/my-posts`) | 76 | — |
+| Helper job card (`/my-jobs`) | 48 | — |
+| Tracker rail | 22 | — |
+| Activity shell (tab × bucket × density) | 26 | — |
+| Job detail dialog | 9 | — |
+| Multi-step / state-bearing dialogs | 14 | — |
+| **Total** | **195** | **334** |
+
+| `job_status` | Cells |
+| --- | ---: |
+| `open` | 34 |
+| `in_progress` | 36 |
+| `accepted` | 25 |
+| `completed` | 18 |
+| `disputed` | 18 |
+| `revision_requested` | 10 |
+| `cancelled` | 9 |
+| `pending_approval` | 2 |
+
+### Status of this axis — 2026-08-31
+
+**Every cell starts UNVERIFIED and is promoted only by a driven frame.** The
+manifest and the harness landed on 2026-08-31; the first full run is recorded
+in `$STATE_SWEEP_OUT/index.json`, which carries the per-cell verdict and the
+reason for every cell it could not drive. Read that file, not this table, for
+the current number — this ledger does not carry a count that a run can
+invalidate without anyone noticing.
+
+Six cells are declared gaps that no browser run can promote, each with its
+reason in the manifest:
+
+| Cell | Why it can never be `WALKED` here |
+| --- | --- |
+| `gap-in-flight-button-guards` | R6 — six mutation-in-flight button states reachable only by winning a race against a mocked 201 |
+| `gap-app-lock-after-jetsam` | Chromium has no WKWebView content-process jetsam. Physical device only. |
+| `gap-keyboard-covers-sheet` | Chromium has no software keyboard and does not resize the visual viewport the way WKWebView does |
+| `gap-safe-area-insets` | Chromium reports every `env(safe-area-inset-*)` as 0 |
+| `gap-native-os-prompts` | Camera / geo / push / Face ID / share / social auth render outside the web view |
+| `gap-realtime-transitions` | `fixtures.ts` installs an inert WebSocket by design; both endpoints of each transition are enumerated, the animation between them is not |
+
+### Findings this axis produced on its first run
+
+- **`pending_approval` had never been rendered in any screenshot this repo has
+  produced.** It is absent from `e2e/happy-path/seedData.ts` (which seeds seven
+  of the eight statuses), and it is the one status with no card-body branch of
+  its own. Found by enumerating the enum rather than the seed file.
+- **The tracker rail paints two different greens at once, and they are not even
+  the same hue family.** Measured in `applied-active-arrival-verified-expanded`
+  at 390 light: passed step dots are `rgb(38,115,66)` — h142 s50 l30,
+  `--success-ink`, a true green — and the current step dot is `rgb(95,101,67)`
+  — h71 s20 l33, `--bark`, an olive. Four dots in one row, three of one green
+  and one of another. Both clear WCAG AA, neither overflows, both are over
+  44px: no existing gate can see it.
+- **Two controls for the same money action, one enabled and one disabled, in
+  one card.** Same frame: `JobTracking`'s Done-step CTA renders as an enabled
+  primary **"Request My Payout"** while `ActiveJobSection`'s completion button
+  sits ~200px below it, disabled, reading **"Upload before & after photos
+  first"**. The tracker CTA enforces the identical gate — but on click, via a
+  round trip and a toast (`JobTracking.tsx:707-737`). The comment on that gate
+  says the two "must not disagree again"; they no longer disagree about the
+  *rule*, but they still disagree about what the reader is allowed to do
+  before pressing.
+
 ## Related mechanisms
 
 - `.claude/skills/lh-audit/SKILL.md` — the audit standard. It requires every
@@ -409,3 +532,56 @@ class is the whole reason this bar exists.
   claiming to have covered it.
 - `npm run check:audit-evidence -- <report.md>` — scans a written audit report
   for claims that carry no artifact and prints the ratio.
+- `e2e/happy-path/state-matrix/` — the state enumerator, the state sweep and
+  the observation extractor behind section 8. `docs/audit/STATE_MATRIX.md`
+  explains the axes and the nine collapsing rules.
+- `scripts/state-review.mjs` + `docs/audit/STATE_REVIEW_PROMPT.md` — the review
+  pass. It never returns a green tick on its own: with no reviewer configured
+  it reports N frames AWAITING REVIEW.
+- `scripts/ios-state-probe.sh` + `docs/audit/IOS_COVERAGE.md` — the WKWebView
+  harness and an honest statement of what still needs hardware.
+
+---
+
+## What none of this tooling can see
+
+Every mechanism in this file has a ceiling. Naming the ceilings is the point of
+the file, so they are collected here rather than left implied.
+
+**1. The engine the app actually ships on.** Sections 1–8 are Chromium. The
+production app is a WKWebView. Chromium has no content-process jetsam, no
+software keyboard, and reports every `env(safe-area-inset-*)` as zero — so the
+app-lock bug, the keyboard-covers-the-sheet bug and every safe-area bug are
+invisible to it *by construction*, not by omission. `IOS_COVERAGE.md` records
+what the simulator covers (deep-link navigation, appearance, Dynamic Type,
+cold launch, real portrait insets) and what needs a physical device (jetsam,
+push delivery, biometrics, camera, real GPS for the arrival geofence).
+
+**2. The backend, on any Playwright row.** The state sweep's rows are
+`page.route()` responses. A driven cell proves the React tree renders that
+shape. It does not prove the RPC returns it, that RLS lets it through, that the
+edge function is deployed, or that the money moved — and those are the classes
+that reached production. Section 5's curl sweep and the `DB query` method are
+the only evidence in this file that touches a real backend.
+
+**3. Motion.** Every artifact here is a still frame. A transition that flashes
+the wrong colour, a layout that jumps on mount, a skeleton that never resolves,
+a toast that covers the control it is about — none of them survives into a PNG.
+
+**4. Two surfaces at once.** Each state cell renders one job. A list where an
+`accepted` chip sits directly above a `completed` chip — the pair whose colours
+differ only by tint alpha, `--bark/0.12` against `--bark/0.18` — is covered only
+by the `rich` density cells of the activity shell, and nowhere else.
+
+**5. Anything a predicate can be written for is the easy half.** The gates in
+this repo assert overflow, axe, tap size and heading count. Every one of the
+~20 defects the owner found on 2026-08-31 passes all four. That is not a bug in
+the gates; it is what predicates are. The state sweep exists to put a person or
+a model in front of the pixels, and a run of it that nobody reviewed is worth
+exactly as much as the route sweep nobody reviewed.
+
+**6. States nobody enumerated.** Section 8's manifest is derived from source,
+but it was derived by a person reading that source. A branch nobody found is a
+cell nobody wrote. The nine collapsing rules in `STATE_MATRIX.md` exist so that
+what was deliberately left out is written down and falsifiable — but they say
+nothing about what was missed by accident.

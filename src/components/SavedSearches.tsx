@@ -434,12 +434,16 @@ export function SavedSearches({
           )}
         </div>
 
-        <DialogFooter className="pt-1">
-          <Button
-            variant="ghost"
-            onClick={() => setOpen(false)}
-            className="h-10 rounded-ds-md"
-          >
+        {/* No `pt-1`, no `h-10`. The 40px height was the only sub-44px
+            control in any dialog footer in the app (HIG minimum), and it made
+            this Close visibly shorter than the Cancel one dialog over. */}
+        {/* `outline`, not `ghost`, because it is the ONLY control in this
+            footer — a bare ghost label alone in a row reads as text floating
+            at the bottom of the card rather than a button (owner objected to
+            exactly that in the report dialog). Paired secondaries stay ghost;
+            a lone one is a real button. */}
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>
             Close
           </Button>
         </DialogFooter>

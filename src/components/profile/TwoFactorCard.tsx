@@ -228,7 +228,7 @@ function EnrollDialog({
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHero
-          title="Turn On Two-Step."
+          title="Turn On Two-Step?"
         />
 
         {isLoading ? (
@@ -299,7 +299,7 @@ function EnrollDialog({
         )}
 
         <DialogFooter>
-          <Button variant="ghost" onClick={onClose} className="rounded-ds-md" style={{ color: "hsl(var(--bark))" }}>
+          <Button variant="ghost" onClick={onClose}>
             Cancel
           </Button>
           <Button
@@ -385,19 +385,19 @@ function DisableDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="ghost" onClick={onClose} className="rounded-ds-md" style={{ color: "hsl(var(--bark))" }}>
+          <Button variant="ghost" onClick={onClose}>
             Keep It On
           </Button>
+          {/* Turning 2FA off is a security downgrade, so it keeps a
+              destructive treatment — but the SHARED one. It was a flat inline
+              burnt-sienna fill: a third colour for "destructive", alongside
+              the `--destructive` red used by Confirm No-Show / Delete User /
+              Deny Payout and the sienna BrandConfirmDialog used everywhere
+              else. */}
           <Button
+            variant="destructive"
             onClick={handleDisable}
             disabled={working || code.length !== 6}
-            className="rounded-ds-md"
-            style={{
-              background: "hsl(var(--burnt-sienna))",
-              backgroundImage: "none",
-              border: "1px solid hsl(var(--burnt-sienna))",
-              color: "hsl(var(--parchment))",
-            }}
           >
             {working ? "Turning Off…" : "Turn Off"}
           </Button>

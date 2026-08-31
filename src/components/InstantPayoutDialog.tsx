@@ -82,7 +82,7 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHero
-          title="Cash Out Instantly."
+          title="Cash Out Instantly"
         />
 
         {/* Relocated OUT of DialogHero's `subtitle` (2026-07-25 "one main

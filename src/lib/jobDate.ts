@@ -55,3 +55,18 @@ export function isPastDue(dateNeeded: string | null | undefined): boolean {
   const ms = jobDateMs(dateNeeded);
   return ms !== null && ms < todayMs();
 }
+
+/**
+ * How many whole days ago was this job's day? 0 for today or any future date.
+ *
+ * Both operands come from `jobLocalMidnightMs`, so the subtraction is between
+ * two platform-zone midnights and the DST-shifted day is rounded rather than
+ * floored — a 23- or 25-hour day must still count as one day, not zero or one
+ * plus a remainder.
+ */
+export function daysPastDue(dateNeeded: string | null | undefined): number {
+  const ms = jobDateMs(dateNeeded);
+  if (ms === null) return 0;
+  const diff = todayMs() - ms;
+  return diff <= 0 ? 0 : Math.round(diff / 86_400_000);
+}

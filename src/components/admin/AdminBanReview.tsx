@@ -33,8 +33,9 @@ import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
  * REVERSIBLE 7-day restriction. As of 20260829010000 all three ladders behave
  * that way and feed this one queue — off-platform contact
  * (`off_platform`), cancelling on a committed Helpr (`cancel_with_helper`) and
- * reliability strikes (`job_denial`), which was the last one still
- * auto-banning. The queue filters on `action_taken` alone and derives its
+ * reliability strikes (`job_denial`). 20260831183302 added the fourth and last
+ * one, reported no-shows (`no_show`), which until then still wrote an automatic
+ * permanent ban on the second report. The queue filters on `action_taken` alone and derives its
  * evidence from each case's own `violation_type`, so a new ladder feeding it
  * needs nothing here except a label below. This view is where a person reads
  * the actual evidence and decides: confirm the permanent ban, or dismiss it
@@ -55,6 +56,10 @@ const caseNoun = (violationType: string, count: number): string => {
     off_platform: ["blocked message", "blocked messages"],
     cancel_with_helper: ["cancellation", "cancellations"],
     job_denial: ["reliability strike", "reliability strikes"],
+    // Added with 20260831183302, which moved the no-show ladder off its own
+    // auto-permanent-ban and onto this queue. Without the entry an admin would
+    // read "2 violations" for a case whose evidence is two no-show reports.
+    no_show: ["no-show report", "no-show reports"],
   };
   const pair = nouns[violationType] ?? ["violation", "violations"];
   return count === 1 ? pair[0] : pair[1];
@@ -310,7 +315,7 @@ const BanReviewInner = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              variant="destructive"
               onClick={() => {
                 if (confirmTarget) decide(confirmTarget, true);
               }}

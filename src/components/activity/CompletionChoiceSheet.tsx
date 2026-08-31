@@ -22,6 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Sheet,
   SheetContent,
+  SheetFooter,
   SheetHero,
 } from "@/components/ui/sheet";
 import { supabase } from "@/integrations/supabase/client";
@@ -212,10 +213,15 @@ export function CompletionChoiceSheet({
 
   return (
     <Sheet open={open} onOpenChange={handleClose}>
-      <SheetContent side="bottom" className="pb-safe-nav">
+      {/* No bespoke padding or ground. `side="bottom"` is a centred modal at
+          every width now, not a floor-anchored sheet, so the safe-area bottom
+          inset each sheet had written differently is dead weight — and
+          `.glass-modal` is THE popup surface. Shared `p-4 sm:p-5`, same ramp
+          DialogContent uses. */}
+      <SheetContent side="bottom">
         {mode === "choice" ? (
           <>
-            <SheetHero className="mb-4" title="How Did It Go?" />
+            <SheetHero title="How Did It Go?" />
 
             <div className="space-y-3">
               {/* Path A — release payment */}
@@ -310,7 +316,7 @@ export function CompletionChoiceSheet({
                 <ChevronLeft className="w-5 h-5" />
               </button>
               <div className="flex-1 min-w-0">
-                <SheetHero title="What Needs to Be Fixed?" className="pt-0" />
+                <SheetHero title="What Needs to Be Fixed?" />
               </div>
             </div>
             <p
@@ -408,25 +414,22 @@ export function CompletionChoiceSheet({
                   ✕ stays (it closes the sheet, which is a different intent),
                   and the duplicate goes — which also leaves the footer as a
                   single unambiguous primary action. */}
-              <div className="flex pt-1">
+              {/* The SHARED footer and the SHARED glossy primary. This was a
+                  hand-rolled `flex` row holding a flat `--amber-solid` fill
+                  that explicitly set `backgroundImage: "none"` — a seventh
+                  primary colour in the app, and a flat one, against the
+                  standing "primary controls are glossy, never flat" rule.
+                  Asking for a revision is reversible, so it is the ordinary
+                  primary. */}
+              <SheetFooter className="pt-1">
                 <Button
-                  className="flex-1 rounded-ds-md"
+                  variant="primary"
                   onClick={handleRevisionSubmit}
                   disabled={submitting || !description.trim()}
-                  style={
-                    description.trim()
-                      ? {
-                          background: "hsl(var(--amber-solid))",
-                          backgroundImage: "none",
-                          border: "1px solid hsl(var(--amber-solid))",
-                          color: "white",
-                        }
-                      : undefined
-                  }
                 >
                   {submitting ? "Sending…" : "Send Revision Request"}
                 </Button>
-              </div>
+              </SheetFooter>
             </div>
           </>
         )}

@@ -127,7 +127,13 @@ export function FormalWarningDialog({ profile, onClose, onSuccess }: FormalWarni
             </div>
           </label>
         </div>
-        <DialogFooter className="gap-2 sm:gap-2 pt-2 border-t border-border/40 -mx-5 sm:-mx-6 px-5 sm:px-6">
+        {/* Plain DialogFooter. This carried a full-bleed rule that no other
+              popup in the app has, and the bleed arithmetic was wrong: the
+              negative margins were written for a `p-5 sm:p-6` container, but
+              DialogContent is `p-4 sm:p-5`, so the divider overshot the card
+              edge by 4px at every breakpoint and drew across the rounded
+              corner radius. */}
+          <DialogFooter>
           <Button variant="ghost" onClick={handleClose} disabled={busy} className="w-full sm:w-auto">
             Cancel
           </Button>

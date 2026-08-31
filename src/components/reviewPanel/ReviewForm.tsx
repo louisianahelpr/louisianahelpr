@@ -238,11 +238,17 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
                   key={opt}
                   type="button"
                   onClick={() => toggleQuickOption(opt)}
-                  className="shrink-0 whitespace-nowrap text-ds-12 font-sans font-semibold px-3 py-1.5 rounded-full transition-all active:scale-[0.97]"
+                  // SELECTED = GLOSSY. `btn-grad-primary` is the shared
+                  // primary surface; this chip painted a FLAT `--bark` fill,
+                  // which is the same rule break the withdraw and decline
+                  // reason pickers had ("primary and selected controls must be
+                  // glossy, never flat").
+                  className={`shrink-0 whitespace-nowrap text-ds-12 font-sans font-semibold px-3 py-1.5 rounded-full transition-all active:scale-[0.97] ${
+                    selected ? "btn-grad-primary" : ""
+                  }`}
                   style={
                     selected
                       ? {
-                          background: "hsl(var(--bark))",
                           color: "hsl(var(--parchment))",
                           border: "0.5px solid hsl(var(--bark))",
                           boxShadow: "var(--elev-bark-flat)",
@@ -331,18 +337,16 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
             />
           </div>
         </div>
-        <DialogFooter className="!flex-col !items-stretch">
+        {/* Plain DialogFooter. The `!flex-col !items-stretch` override forced
+            this one dialog to stack its buttons full-width at EVERY width,
+            primary on top — while every other popup stacks on phones and goes
+            to a right-aligned inline row from `sm` up. The shared footer
+            already produces the phone layout this was reaching for. */}
+        <DialogFooter>
           <Button
+            variant="primary"
             onClick={handleSubmit}
             disabled={submitting || !canSubmit}
-            className="rounded-ds-md w-full"
-            style={{
-              background: canSubmit ? "hsl(var(--bark))" : undefined,
-              backgroundImage: "none",
-              border: canSubmit ? "1px solid hsl(var(--bark))" : undefined,
-              color: canSubmit ? "hsl(var(--parchment))" : undefined,
-              boxShadow: canSubmit ? "0 1px 2px hsl(var(--bark) / 0.18), 0 8px 20px -6px hsl(var(--bark) / 0.34)" : undefined,
-            }}
           >
             {submitting ? "Submitting…" : allRated ? "Submit Review" : "Post Review"}
           </Button>
@@ -354,7 +358,6 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
             variant="ghost"
             onClick={onClose}
             disabled={submitting}
-            className="rounded-ds-md w-full"
           >
             Maybe Later
           </Button>

@@ -7,12 +7,31 @@ permissions:
 #
 # WHAT THIS RUNS AND WHY ONLY THIS
 # --------------------------------
-# There are three sweeps over the shared route catalog in
+# There are four sweeps over the shared route catalog in
 # e2e/happy-path/auditRoutes.ts:
 #
 #   empty-state-sweep  — every collection returns [];  ASSERTS  (this gate)
-#   visual-audit-sweep — seeded/populated screens;     ASSERTS  (manual)
-#   error-state-sweep  — queries 500 / hang;           ASSERTS  (manual)
+#   visual-audit-sweep — seeded/populated screens;     ASSERTS  (weekly, Sun)
+#   error-state-sweep  — queries 500 / hang;           ASSERTS  (weekly, Wed)
+#   overlay-sweep      — dialogs/sheets/popovers;      ASSERTS  (weekly, Fri)
+#
+# OVERLAY SWEEP — why it is wired here, and why not dispatch-only
+# ---------------------------------------------------------------
+# `overlay-sweep.spec.ts` was referenced by NO workflow and NO npm script, and
+# self-skips without RUN_OVERLAY_SWEEP. It had therefore never run in CI once.
+# It is the only coverage anywhere of Radix overlays across the ~48
+# authenticated routes — including the admin BAN, DELETE-USER, ESCROW-RELEASE
+# and DISPUTE-RESOLUTION dialogs — asserting accessible name, viewport fit,
+# focus trap, scroll lock, tap-target size, axe, and Escape-to-close. The
+# route sweeps only ever see screens in their RESTING state, so every one of
+# those checks was unmade: "0 contrast failures, 0 overflow, correct headings"
+# was only ever a statement about flat pages.
+#
+# It gets a `schedule:` cron and not just a workflow_dispatch arm on purpose.
+# A dispatch-only gate depends on somebody remembering to click it, which is
+# indistinguishable from the gate not existing — it is how this spec stayed
+# unrun since it was written, and how the seeded and error sweeps sat unrun
+# until 2026-08-29. Weekly is cheap and it is automatic.
 #
 # Only the empty-state sweep runs on every push/PR, at ONE variant
 # (phone-light), and that is a deliberate cost decision, not an oversight:
@@ -71,6 +90,10 @@ on:
     # A separate cron so `github.event.schedule` disambiguates which one
     # fired; picked Wednesday to spread runner load off Sunday.
     - cron: "0 5 * * 3" # Wednesday 05:00 UTC — resolves to 'error' below
+    # Weekly overlay sweep (dialogs, sheets, popovers, dropdowns, alert
+    # dialogs across the ~48 authenticated routes). Added 2026-08-31 — see
+    # the OVERLAY SWEEP note below for why this is not dispatch-only.
+    - cron: "0 5 * * 5" # Friday 05:00 UTC — resolves to 'overlay' below
   workflow_dispatch:
     inputs:
       sweeps:
@@ -82,6 +105,7 @@ on:
           - empty
           - seeded
           - error
+          - overlay
           - empty+seeded
           - all
       variants:
@@ -91,8 +115,31 @@ on:
         type: string
 
 concurrency:
-  group: ui-sweep-${{ github.ref }}
-  cancel-in-progress: true
+  # THE SCHEDULED LEGS GET THEIR OWN GROUP. Changed 2026-08-31.
+  #
+  # WHAT THIS CATCHES: the weekly sweeps being cancelled before they report.
+  #
+  # This used to be one group, `ui-sweep-${{ github.ref }}`, with
+  # cancel-in-progress: true. `github.ref` is `refs/heads/main` for BOTH a push
+  # to main and a cron — so the weekly seeded sweep (~20 min, serial, 186
+  # screens) and the weekly error-state sweep shared a cancellation group with
+  # every push to main, at a push cadence of roughly 5 minutes. The expensive
+  # weekly runs — the only automatic coverage of the populated-data and
+  # error-state surfaces, the exact gap the `schedule:` trigger was added on
+  # 2026-08-29 to close — could be killed by the next commit and would report
+  # a BLANK conclusion: not red, blocking nothing, notifying nobody. Sibling
+  # a11y-axe.yml lost 12 of 24 runs to precisely this.
+  #
+  # Keying on `github.event_name` gives schedule, push, pull_request and
+  # workflow_dispatch separate lanes, so a push can no longer cancel a cron.
+  #
+  # cancel-in-progress stays TRUE for push and pull_request: the empty-state
+  # sweep is a whole-surface pass, so the newest run subsumes every older one
+  # and superseding loses no coverage. It is FALSE for schedule and
+  # workflow_dispatch, where there is no "newer attempt at the same thing" —
+  # cancelling those just throws the run away.
+  group: ui-sweep-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'push' || github.event_name == 'pull_request' }}
 
 jobs:
   sweep:
@@ -152,16 +199,17 @@ jobs:
           # 05:30 UTC -> seeded, Wednesday 05:00 UTC -> error. dispatch and
           # push/pull_request keep their existing defaults ('empty' unless a
           # dispatch input says otherwise).
-          SWEEPS: ${{ github.event.inputs.sweeps || (github.event.schedule == '30 5 * * 0' && 'seeded') || (github.event.schedule == '0 5 * * 3' && 'error') || 'empty' }}
+          SWEEPS: ${{ github.event.inputs.sweeps || (github.event.schedule == '30 5 * * 0' && 'seeded') || (github.event.schedule == '0 5 * * 3' && 'error') || (github.event.schedule == '0 5 * * 5' && 'overlay') || 'empty' }}
           VARIANTS: ${{ github.event.inputs.variants || 'phone-light' }}
         run: |
           set -euo pipefail
           case "$SWEEPS" in
-            empty)         specs="empty-state-sweep";  empty=1; seeded=""; errors="" ;;
-            seeded)        specs="visual-audit-sweep";  empty=""; seeded=1; errors="" ;;
-            error)         specs="error-state-sweep";   empty=""; seeded=""; errors=1 ;;
-            empty+seeded)  specs="empty-state-sweep visual-audit-sweep"; empty=1; seeded=1; errors="" ;;
-            all)           specs="empty-state-sweep visual-audit-sweep error-state-sweep"; empty=1; seeded=1; errors=1 ;;
+            empty)         specs="empty-state-sweep";  empty=1; seeded=""; errors=""; overlay="" ;;
+            seeded)        specs="visual-audit-sweep";  empty=""; seeded=1; errors=""; overlay="" ;;
+            error)         specs="error-state-sweep";   empty=""; seeded=""; errors=1; overlay="" ;;
+            overlay)       specs="overlay-sweep";       empty=""; seeded=""; errors=""; overlay=1 ;;
+            empty+seeded)  specs="empty-state-sweep visual-audit-sweep"; empty=1; seeded=1; errors=""; overlay="" ;;
+            all)           specs="empty-state-sweep visual-audit-sweep error-state-sweep overlay-sweep"; empty=1; seeded=1; errors=1; overlay=1 ;;
             *)             echo "unknown sweeps value" >&2; exit 1 ;;
           esac
           {
@@ -169,6 +217,7 @@ jobs:
             echo "run_empty=$empty"
             echo "run_seeded=$seeded"
             echo "run_error=$errors"
+            echo "run_overlay=$overlay"
           } >> "$GITHUB_OUTPUT"
           # Variant tags are validated by the specs themselves (an unknown tag
           # throws "matched no variant tag"), so pass the raw value through as
@@ -203,6 +252,9 @@ jobs:
           RUN_EMPTY_SWEEP: ${{ steps.scope.outputs.run_empty }}
           RUN_VISUAL_SWEEP: ${{ steps.scope.outputs.run_seeded }}
           RUN_ERROR_SWEEP: ${{ steps.scope.outputs.run_error }}
+          # e2e/happy-path/overlay-sweep.spec.ts self-skips its whole describe
+          # without this, exactly like the other three sweeps.
+          RUN_OVERLAY_SWEEP: ${{ steps.scope.outputs.run_overlay }}
           EMPTY_SWEEP_VARIANTS: ${{ steps.scope.outputs.variants }}
           SWEEP_VARIANTS: ${{ steps.scope.outputs.variants }}
           ERROR_SWEEP_VARIANTS: ${{ steps.scope.outputs.variants }}

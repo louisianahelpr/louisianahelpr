@@ -80,29 +80,25 @@ export function DeleteAccountDialog({
           className="my-2 h-11 text-center font-mono tracking-wide rounded-ds-md"
           disabled={deletingAccount}
         />
-        <AlertDialogFooter className="flex-col-reverse sm:flex-col-reverse gap-2 sm:space-x-0">
+        {/* Plain AlertDialogFooter. `sm:flex-col-reverse sm:space-x-0` pinned
+            step 2 of this dialog to a full-width stack on desktop while step 1
+            — the BrandConfirmDialog directly before it — went to an inline
+            right-aligned row, so the buttons jumped layout mid-flow. */}
+        <AlertDialogFooter>
           <AlertDialogCancel
             disabled={deletingAccount}
             onClick={(e) => { e.preventDefault(); setDeleteStep(1); setDeleteConfirmText(""); }}
-            className="mt-0 rounded-ds-md border-border/60"
           >
             Back
           </AlertDialogCancel>
+          {/* The shared destructive treatment, not a hand-copied sienna style
+              block. This is the same button step 1 renders through
+              BrandConfirmDialog's `primaryTone="sienna"`, so the two steps of
+              one flow must not be painted by two different code paths. */}
           <AlertDialogAction
+            variant="destructive"
             disabled={deleteConfirmText !== CONFIRM_PHRASE || deletingAccount}
             onClick={() => { void hapticError(); onDelete(); }}
-            className="rounded-ds-md"
-            style={{
-              background: "hsl(var(--burnt-sienna))",
-              color: "hsl(var(--parchment))",
-              border: "1px solid hsl(19 75% 28%)",
-              fontFamily: "Montserrat, system-ui, sans-serif",
-              fontWeight: 600,
-              boxShadow:
-                "inset 0 1px 0 0 rgba(255, 255, 255, 0.12), " +
-                "0 1px 2px hsl(19 75% 18% / 0.18), " +
-                "0 6px 14px -4px hsl(var(--burnt-sienna) / 0.4)",
-            }}
           >
             {deletingAccount ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
             Delete Forever

@@ -260,21 +260,16 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProofProps) 
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setOpen(false)} className="rounded-ds-md">Cancel</Button>
+            {/* Shared glossy primary. Was a hand-written inline style that
+                set `backgroundImage: "none"` — i.e. it deliberately DELETED
+                the `.btn-grad-primary` gradient and painted a flat bark fill,
+                against the standing "primary controls are glossy, never flat"
+                rule. It also re-implemented the disabled state by dropping the
+                style object, which lost the shared 50%-opacity treatment. */}
             <Button
+              variant="primary"
               onClick={upload}
               disabled={uploading || files.length === 0}
-              className="rounded-ds-md"
-              style={
-                !uploading && files.length > 0
-                  ? {
-                      background: "hsl(var(--bark))",
-                      backgroundImage: "none",
-                      border: "1px solid hsl(var(--bark))",
-                      color: "hsl(var(--parchment))",
-                      boxShadow: "var(--elev-bark-raised)",
-                    }
-                  : undefined
-              }
             >
               {uploading ? "Uploading…" : "Upload"}
             </Button>

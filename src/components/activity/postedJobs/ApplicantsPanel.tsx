@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { formatName } from "@/lib/utils";
 import { OptimizedImage } from "@/components/ui/optimized-image";
@@ -39,6 +39,15 @@ interface ApplicantsPanelProps {
       resolves, or when the job has never been viewed — the readout is
       simply omitted in both cases rather than rendering a zero. */
   jobAnalytics?: JobAnalytics;
+  /** Opens JobBoostDialog / EditJobDialog for the selected job. Both are
+      already state on the Activity page (useActivityActions' `setBoostJobId`
+      and `setEditJob`); they are threaded down here so the "nobody has
+      applied" empty state can offer the two levers that actually change the
+      outcome, instead of naming them in prose and leaving the poster to go
+      find the controls on the card behind this overlay. Optional: the empty
+      state omits a lever it cannot open rather than rendering a dead one. */
+  onBoost?: (jobId: string) => void;
+  onEdit?: (job: Job) => void;
 }
 
 export function ApplicantsPanel({
@@ -56,6 +65,8 @@ export function ApplicantsPanel({
   onTimeMap,
   distanceMap,
   jobAnalytics,
+  onBoost,
+  onEdit,
 }: ApplicantsPanelProps) {
   // The counter-offer state (bid input, optimistic negotiation status, the
   // counter_application_bid RPC call) lived here until bidding was removed —
@@ -103,6 +114,30 @@ export function ApplicantsPanel({
     distanceMap,
   });
 
+  /**
+   * Escape closes the panel, the same as the back chevron.
+   *
+   * A full-screen overlay dismissible only by hitting one specific control is
+   * a keyboard dead end, and every other dismissible surface in the app (every
+   * Dialog, every Sheet) takes Escape — so this one reads as broken without it.
+   *
+   * A window listener rather than `onKeyDown` on the container: this panel is
+   * a push, not a modal, so it never takes focus on open and a container
+   * handler would simply never fire. The guard is the price of that — an open
+   * Radix overlay (the Boost and Edit dialogs the empty state opens, the
+   * decline sheet) owns Escape while it is up, and closing the panel out from
+   * under it would dismiss two things with one key.
+   */
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || e.defaultPrevented) return;
+      if (document.querySelector('[data-state="open"][role="dialog"], [data-state="open"][role="alertdialog"]')) return;
+      setSelectedJob(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [setSelectedJob]);
+
   // PORTALLED TO <body> ON PURPOSE — do not "simplify" this back to a plain
   // return. The panel is a full-screen overlay, but a `position: fixed`
   // element (both this wrapper AND AppShell's own `.app-shell-frame`) is
@@ -124,7 +159,21 @@ export function ApplicantsPanel({
           wrapper only supplies the slide-in transition + stacking; AppShell
           itself already fills the viewport (`fixed inset-x-0 bottom-0`,
           100dvh) so it doesn't need `inset-0`/background of its own. */}
-      <div className="fixed inset-0 z-50 motion-safe:animate-in motion-safe:slide-in-from-right motion-safe:duration-200">
+      <div
+        className="fixed inset-0 z-50 motion-safe:animate-in motion-safe:slide-in-from-right motion-safe:duration-200"
+        /* The screen's accessible NAME, and the one place the job it belongs to
+           is programmatically tied to the heading. The visible subtitle under
+           the h1 is a plain sibling <p> — sighted readers get the association
+           from proximity, and a screen reader gets nothing until it happens to
+           read the next line. Naming the region "Applicants for <job>" states
+           it once, up front, without changing what is drawn.
+
+           `region`, deliberately not `dialog`: this is a full-screen push, not
+           a modal — it has no backdrop, nothing behind it is inert, and
+           claiming `dialog` would promise a focus trap that does not exist. */
+        role="region"
+        aria-label={`Applicants for ${selectedJob.title}`}
+      >
         <AppPage
           title="Applicants"
           onBack={() => setSelectedJob(null)}
@@ -180,7 +229,12 @@ export function ApplicantsPanel({
               <ApplicantsErrorState onRetry={() => onLoadApplications(selectedJob)} />
             ) : applications.length === 0 ? (
               /* Empty state — warmer copy when no one has applied yet */
-              <ApplicantsEmptyState selectedJob={selectedJob} />
+              <ApplicantsEmptyState
+                selectedJob={selectedJob}
+                jobAnalytics={jobAnalytics}
+                onBoost={onBoost}
+                onEdit={onEdit}
+              />
             ) : (
               <div className="space-y-1.5">
                 {/* Sort control — horizontal pill row */}

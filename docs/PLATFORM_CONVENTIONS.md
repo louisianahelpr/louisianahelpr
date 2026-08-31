@@ -181,3 +181,79 @@ Rule: if the thing you changed is drawn by the browser rather than by the app,
 say "shipped, unverified — needs a real browser" rather than "verified". A
 stylesheet assertion (the rule is present and matches) is worth stating, but it
 is evidence the rule *loaded*, not that the pixel changed.
+
+## 6. Popups — the ONE shell (added 2026-08-31)
+
+The owner has asked for this five times in one week, in these words: "the
+dialogs all look different they need to be 1 shared component" · "make sure all
+these pop up dialogs are consistent" · "all these need to share same shell" ·
+"all pop up dialogs need the same design and shell" · "need to share the same
+sheet and design". Every rule below exists because a real popup broke it. If a
+new popup disagrees with this section, the popup is wrong.
+
+**Primitives.** Three, and only three: `Dialog` (`ui/dialog.tsx`),
+`AlertDialog` (`ui/alert-dialog.tsx`, and `BrandConfirmDialog` on top of it) and
+`Sheet` (`ui/sheet.tsx`). All three paint `.glass-modal`, use the same
+`hsla(38,22%,22%,0.08)` backdrop, the same `p-4 sm:p-5` padding ramp, and the
+same 28px radius. Never build a popup on a raw `DialogPrimitive.Content`.
+
+**Measure.** `w-[calc(100vw-2rem)]` on phones (16px inset each side) and
+`sm:w-full sm:max-w-lg` — a fixed 512px card — from `sm` up. NOT `sm:w-auto`:
+shrink-to-fit made the same app render dialogs at 285/297/384/435/494/512px and
+made multi-step dialogs resize between their own steps. Content controls
+HEIGHT; the measure is shared. No call site overrides the width. A genuinely
+different measure (a media viewer, the deliberately-wide job detail) is listed
+in `STRUCTURAL_EXCEPTIONS` in `ui/dialogShell.test.ts` with its reason.
+
+**Header.** `DialogHero` / `AlertDialogHero` / `SheetHero` — one title line,
+left-aligned, with the bare ✕ on the same row at `right-3 top-3`. No eyebrow,
+no subtitle, no icon row, no per-call-site `className`. **A popup does not get
+an icon in its header**: if icons are ever wanted they become one documented
+slot in the shared Hero, used by every popup or by none.
+
+**Body.** Description copy is `font-serif italic text-ds-12 leading-relaxed` at
+`hsl(var(--olivewood) / 0.8)` — what `BrandConfirmDialog` renders. Consequences
+that are a list are a `<ul>`; a single reversible fact is a sentence; the sienna
+`callout` is reserved for the one thing the user must not miss.
+
+**"Pick one reason" is a single column of full-width rows** — never a grid of
+chips. Variable-length prose labels in a grid cannot be tidy: they wrap to
+different heights, their icons land at different y, and an odd count orphans the
+last tile. Rows give every label the same left edge, room to wrap, and no
+orphan at any count. Selected row = `btn-grad-primary` with parchment text.
+(Grids are still fine for fixed short tokens — a day count, a dollar amount.)
+
+**Footer.** The shared `DialogFooter` / `AlertDialogFooter` / `SheetFooter` —
+all three are the same row and no call site overrides the arrangement. Stacked
+full-width with the primary on TOP on a phone; right-aligned inline from `sm`.
+Buttons are the shared `<Button>` at its default 56px height.
+
+- Primary action → `variant="primary"` (glossy `btn-grad-primary`).
+- Secondary sitting beside a primary → `variant="ghost"` (bare text).
+- A footer whose ONLY control is the dismiss → `variant="outline"`, a real
+  button. A bare ghost label alone in a row reads as text floating at the
+  bottom of the card, which the owner objected to by name.
+
+**Primary colour maps to consequence, and there are exactly TWO.**
+`variant="primary"` (olive, glossy) for everything that proceeds;
+`variant="destructive"` (`--destructive` red) when the action removes, bans,
+restricts, penalises or takes away protection AND the person doing it cannot
+undo it from that screen. Nothing else. Before this pass the app had seven
+fills for "the button that commits the action" — glossy bark, flat bark, red,
+burnt sienna, olivewood, amber, and a 16% sienna tint — with no rule mapping
+colour to consequence.
+
+**Glossy, never flat.** A primary or a selected control is
+`.btn-grad-primary`. An inline `style` that sets `backgroundImage: "none"` is
+deleting the shared gradient by hand; it is always a defect.
+
+**Dismissal.** Every popup closes three ways: the ✕, Escape, and (dialogs and
+sheets) the scrim. A controlled `open` with no `onOpenChange` makes the ✕ and
+Escape silently inert — if a popup is a deliberate hard gate, pass
+`closeDisabled` so the ✕ renders dimmed rather than dead.
+
+**Proof.** `src/components/ui/dialogShell.test.ts` pins the shared measure, the
+absence of per-call-site escape hatches on all three Heroes, the one footer
+row, and backdrop parity between the two overlay primitives. Rendered proof is
+measured, not eyeballed: card width, inset, per-button height, label clipping,
+document overflow, focus-in/focus-return and Escape, at 320/375/768/1440.

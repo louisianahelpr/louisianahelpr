@@ -147,10 +147,10 @@ export function IDVPromptDialog({
   };
 
   const headline = isAdminReview
-    ? "We're checking this by hand"
+    ? "We're Checking This by Hand"
     : isPending
-      ? "Verification in progress"
-      : "Verify your identity";
+      ? "Verification in Progress"
+      : "Verify Your Identity";
 
   const Icon = isAdminReview ? Hourglass : isPending ? Hourglass : ShieldCheck;
 
@@ -301,7 +301,7 @@ export function IDVPromptDialog({
         )}
 
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={loading} className="rounded-ds-md h-11">
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={loading}>
             {isPending || isAdminReview ? "OK" : "Not Now"}
           </Button>
           {!isPending && !isAdminReview && feeDue && (
@@ -309,10 +309,9 @@ export function IDVPromptDialog({
               variant="primary"
               onClick={handlePayFee}
               disabled={loading}
-              className="rounded-ds-md h-11"
             >
               {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-              Pay setup fee
+              Pay Setup Fee
             </Button>
           )}
           {!isPending && !isAdminReview && !feeDue && (
@@ -320,7 +319,6 @@ export function IDVPromptDialog({
               variant="primary"
               onClick={handleStart}
               disabled={loading}
-              className="rounded-ds-md h-11"
             >
               {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Icon className="w-4 h-4 mr-2" />}
               Start Verification

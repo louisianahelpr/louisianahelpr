@@ -83,7 +83,7 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent>
         <DialogHero
-          title="Boost Your Job."
+          title="Boost Your Job"
         />
         <div className="space-y-3">
           {/* Price card — parchment-gold pill recipe (matches Tip + Payout).

@@ -142,8 +142,11 @@ export function ProUpgradeSheet({
           </ul>
         </div>
 
-        <DialogFooter className="!flex-col-reverse sm:!flex-row">
-          <Button variant="ghost" onClick={onClose} className="rounded-ds-md">
+        {/* Plain DialogFooter — the className restated its own
+            `flex-col-reverse sm:flex-row`, and `flex-1` made this the only
+            dialog whose primary grew to fill the footer row. */}
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>
             Maybe Later
           </Button>
           <Button
@@ -152,7 +155,6 @@ export function ProUpgradeSheet({
               onClose();
               navigate("/profile?tab=subscription");
             }}
-            className="rounded-ds-md flex-1 sm:flex-initial"
           >
             <TierIcon className="w-4 h-4 mr-1.5" />
             See {tierLabel} Plans

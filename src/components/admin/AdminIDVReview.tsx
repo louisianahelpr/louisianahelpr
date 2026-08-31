@@ -404,8 +404,8 @@ const AdminIDVReview = () => {
               confirming?.decision === "manual_verify"
                 ? `Approve ${confirming.row.full_name || confirming.row.email || "this Helpr"}?`
                 : confirming?.decision === "request_id_reupload"
-                  ? "Give them another attempt?"
-                  : "Reject this verification?"
+                  ? "Give Them Another Attempt?"
+                  : "Reject This Verification?"
             }
             subtitle={
               confirming?.decision === "manual_verify"
@@ -446,7 +446,7 @@ const AdminIDVReview = () => {
               {confirming?.decision === "manual_verify"
                 ? "Approve"
                 : confirming?.decision === "request_id_reupload"
-                  ? "Send request"
+                  ? "Send Request"
                   : "Reject"}
             </AlertDialogAction>
           </AlertDialogFooter>

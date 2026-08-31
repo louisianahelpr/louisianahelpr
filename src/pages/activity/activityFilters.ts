@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { daysPastDue, isPastDue } from "@/lib/jobDate";
 import type { Job, AppliedApp } from "@/components/activity/activityConstants";
 
 /**
@@ -38,9 +39,12 @@ const ALL_FILTER_COLOR = "bg-[hsl(var(--olivewood)/0.08)] text-[hsl(var(--olivew
  * needed a label to say which. Sorting by whose move it is answers that in the
  * tab, which is what let the band come off.
  *
- * NEEDS YOU  — a decision is sitting with the reader RIGHT NOW.
+ * NEEDS YOU  — a decision is sitting with the reader RIGHT NOW. This is also
+ *              where a PAST-DUE job lands, whatever its status — see
+ *              {@link jobIsOverdue}.
  * WAITING    — the ball is in someone else's court; nothing to do but wait.
- * SCHEDULED  — agreed and upcoming, or underway.
+ * SCHEDULED  — agreed and UPCOMING, or underway today. Never a day that has
+ *              already been and gone.
  * DONE       — finished successfully. Terminal.
  * CANCELLED  — cancelled, or (applied side) not selected. Terminal, but kept
  *              separate from DONE (product direction, 2026-08-30 — a
@@ -106,6 +110,53 @@ export const APPLIED_STATUS_FILTERS: StatusFilter[] = BUCKET_FILTERS;
  * (treat as outstanding), which is the safe side: it asks for a look rather
  * than hiding work.
  */
+/**
+ * Is this job's day gone with the job still unresolved?
+ *
+ * "Scheduled" is a promise about the FUTURE. A job dated 27 August, still
+ * `in_progress` on the 31st, is not scheduled — it is the single thing on the
+ * screen most needing someone to act, and filing it under Scheduled is the app
+ * telling the reader it is fine. Twelve prod jobs were sitting exactly there
+ * (owner, 2026-08-31: "These jobs were posted for Aug 27 still marked under
+ * scheduled?").
+ *
+ * Deliberately NOT its own sixth bucket. The five are "whose move is it", and
+ * an overdue job's answer is the same as every other Needs You row: yours.
+ * A sixth chip would also split a poster's attention across two tabs on the one
+ * day they can least afford it, and would not fit the chip row at 320px.
+ *
+ * DAY granularity, not minute: a job dated today is never overdue, however late
+ * in the day it is read. `jobs.date_needed` is a bare `date` and the day is the
+ * only promise the poster made; flipping a card to "Needs you" at 9:05am
+ * because a 9:00 start had not been stamped yet would cry wolf on every job.
+ * `isPastDue` resolves both midnights in the PLATFORM's zone (America/Chicago),
+ * which is what stops a reader in another timezone seeing a different verdict —
+ * see the note in `@/lib/jobDate`.
+ *
+ * Terminal states are checked BEFORE this in both bucketers: a job that
+ * completed or was cancelled has nothing left to chase, whatever its date.
+ */
+export function jobIsOverdue(j: { status?: string | null; date_needed?: string | null }): boolean {
+  if (j.status === "completed" || j.status === "cancelled") return false;
+  return isPastDue(j.date_needed);
+}
+
+/**
+ * The one wording for "this job's day has passed", so every surface that says
+ * it says it identically.
+ *
+ * Returns null when the job is not overdue, so a caller can render it or not
+ * from a single call. Phrased as a fact about the DATE, not an accusation
+ * ("Was due yesterday", never "You're late") — the reader is as likely to be
+ * the party who was let down as the one who dropped it.
+ */
+export function overdueLabel(j: { status?: string | null; date_needed?: string | null }): string | null {
+  if (!jobIsOverdue(j)) return null;
+  const days = daysPastDue(j.date_needed);
+  if (days <= 1) return "Was due yesterday";
+  return `Was due ${days} days ago`;
+}
+
 function submissionAwaitingPoster(j: {
   helper_completed_at?: string | null;
   poster_completed_at?: string | null;
@@ -128,6 +179,7 @@ export function postedActivityBucket(
     poster_completed_at?: string | null;
     revision_requested_at?: string | null;
     direct_offer_status?: string | null;
+    date_needed?: string | null;
   },
   /** Applications still AWAITING a decision — not every application ever filed. */
   pendingApplicantCount = 0,
@@ -138,6 +190,11 @@ export function postedActivityBucket(
   // dispute — all three are a decision sitting with me.
   if (j.status === "revision_requested" || j.status === "disputed") return "needs_you";
   if (submissionAwaitingPoster(j)) return "needs_you";
+  // The day came and went and the job never resolved. Whatever the status
+  // underneath — nobody applied, nobody confirmed, nobody finished — the next
+  // move is the poster's: chase the helpr, close it out, or re-post it. See
+  // jobIsOverdue for why this is not a bucket of its own.
+  if (jobIsOverdue(j)) return "needs_you";
   if (j.status === "in_progress") return "scheduled";
   if (j.status === "accepted") {
     // Booked and confirmed is scheduled; booked and unconfirmed is me waiting
@@ -164,11 +221,21 @@ export function appliedActivityBucket(app: AppliedApp): ActivityBucket {
   if (jobStatus === "disputed") return "needs_you";
   if (jobStatus === "in_progress") {
     // Work submitted, sitting on the poster's approval — waiting on the
-    // other party by definition, not "scheduled".
+    // other party by definition, not "scheduled". Stays WAITING even when the
+    // day has passed: the helpr has done everything asked of them, and moving
+    // it to "Needs you" would ask them for a second thing they cannot give.
     if (app.job?.helper_completed_at && !app.job?.poster_completed_at) return "waiting";
+    // Underway, day gone, nothing submitted — the helpr's move. Mirrors the
+    // poster side so the same job never reads "Scheduled" to one party and
+    // overdue to the other.
+    if (jobIsOverdue({ status: jobStatus, date_needed: app.job?.date_needed })) return "needs_you";
     return "scheduled";
   }
-  if (app.status === "accepted") return "scheduled";
+  if (app.status === "accepted") {
+    // A booking whose day has passed and which never even started.
+    if (jobIsOverdue({ status: jobStatus, date_needed: app.job?.date_needed })) return "needs_you";
+    return "scheduled";
+  }
   // Applied, awaiting their decision.
   return "waiting";
 }
@@ -275,7 +342,17 @@ export function useActivityFilters({
         return j.title.toLowerCase().includes(searchLower) || j.description.toLowerCase().includes(searchLower) || j.location.toLowerCase().includes(searchLower);
       }
       return true;
-    }), [postedJobs, statusFilter, searchLower, pendingApplicantCounts]);
+    })
+      // Overdue floats to the top — the one visual treatment an overdue job
+      // gets from this layer.
+      //
+      // A STABLE partition, not a re-sort (same shape as the applied-side lift
+      // below): within each group the incoming order is untouched, so this only
+      // ever pulls the jobs whose day has already gone past the ones still to
+      // come. Needs You can hold both a fresh application and a job that is
+      // four days late, and the late one is not something to scroll for.
+      .sort((a, b) => Number(jobIsOverdue(b)) - Number(jobIsOverdue(a))),
+    [postedJobs, statusFilter, searchLower, pendingApplicantCounts]);
 
   const filteredAppliedApps = useMemo(() => {
     const query = searchLower;
@@ -319,7 +396,13 @@ export function useActivityFilters({
       // A STABLE partition, not a re-sort: within each group the existing
       // order is preserved untouched, so this only ever lifts the time-critical
       // cards past the ones that aren't.
-      .sort((a, b) => Number(needsHelperResponse(b)) - Number(needsHelperResponse(a)));
+      //
+      // Overdue is the tie-break, never the lead: an offer expires if it is
+      // missed, a late job does not get any later for being read second.
+      .sort((a, b) =>
+        Number(needsHelperResponse(b)) - Number(needsHelperResponse(a)) ||
+        Number(jobIsOverdue({ status: b.job?.status, date_needed: b.job?.date_needed })) -
+          Number(jobIsOverdue({ status: a.job?.status, date_needed: a.job?.date_needed })));
     // Dep list intentionally matches the pre-refactor Activity.tsx exactly
     // (userId omitted) to preserve identical memo behavior — userId comes
     // from a stable session and the page only renders past `loading`.

@@ -76,3 +76,24 @@ export const LA_BOUNDS: [[number, number], [number, number]] = [
 // `src/lib/jobCategories.ts`; re-exported here so existing importers keep
 // working and a pin popup can never disagree with the filter chip above it.
 export const categoryLabels = JOB_CATEGORY_LABELS;
+
+/**
+ * The ONE dock-clearance constant for everything the map floats over its own
+ * bottom edge — the recenter control and the pin-preview sheet.
+ *
+ * The map pane deliberately bleeds UNDER the app's floating bottom dock + Post
+ * FAB (see BrowseTasksFeed's `pb-0`), so anything the map anchors to
+ * `bottom: 0` lands beneath them. This is the height that has to be given back.
+ *
+ * DERIVED, not guessed: it is byte-for-byte Tailwind's `safe-nav` spacing token
+ * (`tailwind.config.ts`), the value every `pb-safe-nav` page in the app already
+ * clears the dock with. `RecenterControl` used to hard-code
+ * `... + 96px + 0.75rem` privately, which was wrong twice over — it was a
+ * one-off nobody else shared, and the literal 96px kept reserving a dock's
+ * worth of space on the surfaces that have no dock (signed-out `/browse`,
+ * where `MobileNav` sets `--bottom-nav-h: 0px` via `html.no-bottom-nav`).
+ * Reading the variable means the map's floating controls sit exactly on the
+ * same floor as every other screen's content, dock or no dock.
+ */
+export const MAP_DOCK_CLEARANCE =
+  "calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px) + 1rem)";

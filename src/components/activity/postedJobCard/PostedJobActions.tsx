@@ -11,8 +11,9 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { AUTO_COMPLETE_HOURS, hoursToMs } from "../../../../supabase/functions/_shared/escrowTiming";
 import {
    DollarSign, XCircle, CheckCircle2, RotateCcw, Star, MessageSquare,
-  MessageCircle, Pencil, AlertTriangle, Rocket, Wrench, Flag,
+  MessageCircle, Pencil, AlertTriangle, Rocket, Wrench, Flag, Clock,
 } from "lucide-react";
+import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { SosShareButton } from "@/components/SosShareButton";
 import { PhotoProofGroup } from "@/components/PhotoProof";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
@@ -39,6 +40,20 @@ interface PostedJobActionsProps {
   onCancel: (job: Job) => void;
   onComplete: (jobId: string) => void;
   completingJobId: string | null;
+  /**
+   * NO LONGER READ HERE — kept only so PostedJobCard keeps compiling while it
+   * still passes it.
+   *
+   * It opened the revision dialog from the `completed` action row, and the
+   * server can never accept that: `create-payment`'s `request_revision` branch
+   * requires `job.status === 'in_progress'`, and the transition matrix in
+   * 20260828020000_cancellation_requires_rpc.sql has no `completed ->
+   * revision_requested` edge. The poster typed their note FIRST
+   * (ActivityDialogs gates submit on non-empty text), so every tap threw their
+   * writing away behind an error. The revision path that DOES work is
+   * CompletionChoiceSheet's — offered on the in_progress card, where the
+   * server accepts it. Drop this prop from PostedJobCard and Activity.tsx.
+   */
   onRevision: (jobId: string) => void;
   onNoShow: (jobId: string) => void;
   onTip: (jobId: string, helperName: string) => void;
@@ -54,11 +69,49 @@ interface PostedJobActionsProps {
 }
 
 /**
- * PostedJobActions — the state-specific action area (open / accepted /
- * in-progress / revision / completed / disputed) at the bottom of a
+ * PostedJobActions — the state-specific action area (pending approval / open /
+ * accepted / in-progress / revision / completed / disputed) at the bottom of a
  * PostedJobCard. Extracted verbatim from PostedJobCard; owns the completion
- * sheet + dispute-action in-flight state that only this section reads.
+ * sheet, the resolve-dispute confirm, and the dispute-action in-flight state
+ * that only this section reads.
+ *
+ * EVERY job_status must land in a branch or in the `cancelled` early-return.
+ * A status that falls through them all still renders this component's ruled,
+ * padded shell around an empty div — a band of card stock with no controls in
+ * it. That is what `pending_approval` did until it got a branch of its own.
+ *
+ * That sentence used to be the whole safeguard, and it failed twice — a comment
+ * cannot fail a build. STATUS_RENDERS_ACTIONS below turns it into a type error.
  */
+
+/**
+ * Which statuses this component actually renders controls for.
+ *
+ * `satisfies Record<Job["status"], boolean>` is the entire point: `Job["status"]`
+ * IS the `job_status` DB enum (activityConstants.ts:5 → generated types), so
+ * adding a value to that enum and regenerating types makes THIS OBJECT a
+ * compile error until somebody classifies the new status. The failure mode this
+ * replaces is silent and visual — a status with no branch fell through the JSX
+ * chain below and left the component's bordered `px-4 py-3` shell wrapped
+ * around an empty `space-y-2`, i.e. a ruled band of blank card stock where the
+ * poster's controls should be. It shipped that way for `pending_approval`, and
+ * again after. A comment saying "every status must land in a branch" cannot
+ * enforce itself; this can.
+ *
+ * `false` is a real answer, not an omission — it means "this status
+ * deliberately has no actions here", and the reason belongs beside it.
+ */
+const STATUS_RENDERS_ACTIONS = {
+  open: true,
+  accepted: true,
+  in_progress: true,
+  revision_requested: true,
+  completed: true,
+  disputed: true,
+  pending_approval: true,
+  /** Its one move, "Re-post This Job", is rendered by the card, not here. */
+  cancelled: false,
+} as const satisfies Record<Job["status"], boolean>;
 export function PostedJobActions({
   job,
   userId,
@@ -69,7 +122,7 @@ export function PostedJobActions({
   onCancel,
   onComplete,
   completingJobId,
-  onRevision,
+  // onRevision — deliberately not destructured; see the interface note.
   onNoShow,
   onTip,
   onReview,
@@ -89,16 +142,73 @@ export function PostedJobActions({
   const instantReleaseOn = !!(_ownProfile as { auto_release_on_complete?: boolean } | null)?.auto_release_on_complete;
   const navigate = useNavigate();
   const [completionSheetOpen, setCompletionSheetOpen] = useState(false);
-  // Guards the Mark Resolved / Escalate to Admin buttons while their
+  // Guards the Resolve & Pay / Escalate to Admin buttons while their
   // supabase UPDATE is in-flight — prevents double-tap submission.
   const [disputeActing, setDisputeActing] = useState(false);
+  // Resolving a dispute RELEASES THE FULL ESCROW. It was a single tap on a
+  // chip whose label ("Mark Resolved") and spoken name ("Mark this dispute
+  // resolved") both said "close a ticket" and neither said "move money" —
+  // while Approve, the exact same money action one state earlier, opens
+  // CompletionChoiceSheet first. Same consequence, same class of confirm.
+  const [resolveConfirmOpen, setResolveConfirmOpen] = useState(false);
 
+  // Lifted out of the chip's onClick so the confirm dialog below can call the
+  // same code path — the chip now only opens the dialog. Body is otherwise
+  // unchanged apart from the success toast it never had.
+  const resolveDisputeAndRelease = async () => {
+    setDisputeActing(true);
+    try {
+      // Two steps, both server-side: close the dispute record
+      // (rpc_withdraw_dispute hands the job back to 'in_progress'), then
+      // settle through the SAME release path an ordinary completion uses.
+      // The old version wrote status='completed' straight from the client and
+      // promised the helper payment that no release path would ever pick up —
+      // escrow stayed held forever.
+      const { error } = await supabase.rpc("rpc_withdraw_dispute" as never, { _job_id: job.id } as never);
+      if (error) { hapticError(); toast.error("We couldn't mark that resolved — please try again."); return; }
+      const { data: releaseData, error: releaseError } = await supabase.functions.invoke("create-payment", { body: { action: "release", jobId: job.id } });
+      if (releaseError || releaseData?.error) {
+        report(releaseError ?? new Error(String(releaseData?.error)), { tags: { source: "PostedJobCard.resolveDisputeRelease" }, context: { job_id: job.id } });
+        hapticError();
+        toast.error("Dispute closed, but the payment didn't release. Contact support so we can finish it.");
+        onActionComplete();
+        return;
+      }
+      if (job.helper_id) await createNotification({ user_id: job.helper_id, title: "Dispute resolved ✓", message: `The poster confirmed the issue on "${job.title}" is resolved. Payment will be released.`, type: "payment", link: "/my-jobs?filter=completed" });
+      hapticSuccess();
+      // The one action in this card that moves money and said NOTHING when it
+      // landed — every sibling handler (confirm arrival, confirm working)
+      // toasts. Silence after releasing escrow reads as "did that work?".
+      toast.success("Dispute resolved — payment released to your Helpr.");
+      onActionComplete();
+    } finally {
+      setDisputeActing(false);
+    }
+  };
+
+  // THE EXHAUSTIVENESS GATE — see STATUS_RENDERS_ACTIONS above.
+  //
   // A cancelled job has no actions here — its one move ("Re-post This Job")
   // is rendered by the card itself. Without this the component still returned
   // its bordered, padded shell around an empty div, so every cancelled card
   // carried a ~44px band of ruled card stock below the button with nothing in
   // it (owner: "remove this spacing").
-  if (job.status === "cancelled") return null;
+  //
+  // The `?? false` is the other half: a status the generated types have never
+  // heard of (types.ts is a SNAPSHOT of the DB enum, so it can lag a migration
+  // by a deploy) is missing from the map at RUNTIME, and falls out here as
+  // "renders nothing" rather than as the empty band. Reported, not swallowed —
+  // an unknown status means the card is silently offering a poster no controls
+  // at all, which we want to see in Sentry rather than in a screenshot.
+  if (!(STATUS_RENDERS_ACTIONS[job.status] ?? false)) {
+    if (!(job.status in STATUS_RENDERS_ACTIONS)) {
+      report(new Error(`PostedJobActions: unhandled job status "${job.status}"`), {
+        tags: { area: "activity" },
+        extra: { jobId: job.id, status: job.status },
+      });
+    }
+    return null;
+  }
 
   return (
     // STOP THE CLICK HERE (owner: "the job card shouldn't expand every time a
@@ -124,6 +234,76 @@ export function PostedJobActions({
       onClick={(e) => e.stopPropagation()}
     >
       <div className="space-y-2">
+        {/* PENDING APPROVAL — the branch that did not exist.
+
+            `pending_approval` fell through every condition below, so the
+            component still rendered its bordered `px-4 py-3` shell around an
+            empty `space-y-2`: a ruled band of card stock with nothing in it,
+            the exact defect the `cancelled` early-return above was added to
+            kill (audit, 2026-08-30: live jobs were sitting in it).
+
+            What the state actually IS: a job posted under a BUSINESS whose
+            budget cleared `businesses.require_approval_above`, so
+            `jobSubmitHelpers` inserted it as `pending_approval` instead of
+            `open` and `trg_notify_business_approvers` pinged the team's
+            approvers (20260609170000_business_team_roles.sql). There is no
+            helper, no escrow and no submitted work here — it is a draft
+            waiting on a colleague, which is why `postedActivityBucket` files
+            it under WAITING, not "Needs you".
+
+            What the server will accept from the POSTER, checked rather than
+            assumed:
+              • Edit — a plain field UPDATE. `enforce_job_status_transition`
+                short-circuits when the status is unchanged, and the
+                "Customers can update their own jobs" policy is the only gate.
+                Offered.
+              • Cancel — NOT offered. `rpc_cancel_job` refuses anything outside
+                open/accepted/in_progress/revision_requested with
+                `not_cancellable`, and `trg_cancellation_requires_rpc` blocks
+                the raw UPDATE, so the one `pending_approval -> cancelled` edge
+                in the matrix is reachable only from inside
+                `reject_pending_job` — the approver's path, not the poster's.
+                A Cancel chip here would fail every time.
+              • Share / Boost — the post is invisible to Helprs until it
+                clears, so both promote a link that leads nowhere.
+              • Message / Approve / Dispute — there is no helper and no money
+                in escrow to argue about.
+            So: say what is happening, and offer the one control that works. */}
+        {job.status === "pending_approval" && (
+          <div className="space-y-2">
+            <div
+              className="rounded-ds-md px-3 py-2 flex items-start gap-2"
+              style={{
+                background: "hsl(var(--amber-tint) / 0.10)",
+                border: "0.5px solid hsl(var(--amber-tint) / 0.32)",
+              }}
+            >
+              <Clock className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: "hsl(var(--amber-ink))" }} strokeWidth={2.25} />
+              <p
+                className="font-serif italic leading-snug text-ds-12"
+                style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+              >
+                <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
+                  Waiting on your team's approver.
+                </span>{" "}
+                This post is over your team's approval limit, so Helprs can't see
+                it yet. You can still edit it while it waits.
+              </p>
+            </div>
+            {/* Full-width, not a lone stacked chip: one control that owns the
+                whole row reads better horizontally — the same call
+                JOB_ACTION_FULL_CLASS documents for Confirm They Arrived. */}
+            <Button
+              size="sm"
+              variant="outline"
+              className={JOB_ACTION_FULL_CLASS}
+              style={jobActionChipStyle("edit")}
+              onClick={() => onEdit(job)}
+            >
+              <Pencil className="w-4 h-4" /> Edit Post
+            </Button>
+          </div>
+        )}
         {job.status === "open" && (() => {
           // Boost cooldown — show when the job is currently
           // boosted so the poster knows the boost is running
@@ -395,7 +575,14 @@ export function PostedJobActions({
                       <JobActionChip
                         icon={XCircle}
                         label="No-Show"
-                        ariaLabel="Report the Helpr as a no-show"
+                        // ARIA STARTS WITH THE VISIBLE LABEL (WCAG 2.5.3).
+                        // JobActionRow sets aria-label, which REPLACES the
+                        // name rather than adding to it, so "Report the Helpr
+                        // as a no-show" made the visible word "No-Show" a name
+                        // voice control could not say. Label first, context
+                        // after — the same shape every chip in this file now
+                        // uses.
+                        ariaLabel="No-Show — report that the Helpr never turned up"
                         tone="danger"
                         onClick={() => onNoShow(job.id)}
                       />
@@ -404,7 +591,7 @@ export function PostedJobActions({
                       <JobActionChip
                         icon={AlertTriangle}
                         label="Dispute"
-                        ariaLabel="Something wrong? Open a dispute about this job"
+                        ariaLabel="Dispute — something wrong? open a dispute about this job"
                         tone="danger"
                         onClick={() => onDispute(job)}
                       />
@@ -439,7 +626,11 @@ export function PostedJobActions({
                       <JobActionChip
                         icon={CheckCircle2}
                         label={job.poster_completed_at ? "Approved" : "Approve"}
-                        ariaLabel="Approve the work and release payment"
+                        // Tracks the visible label through both states, so the
+                        // spoken name still opens with the word on the chip.
+                        ariaLabel={job.poster_completed_at
+                          ? "Approved — you already released payment for this job"
+                          : "Approve — accept the work and release payment to your Helpr"}
                         tone="approve"
                         disabled={completingJobId === job.id || !!job.poster_completed_at}
                         onClick={() => {
@@ -515,13 +706,22 @@ export function PostedJobActions({
                   Owner: one consistent icon row per card, not a different
                   arrangement per state.
 
-                  The fourth slot is the single "something wrong" affordance.
-                  It is Revision while the revision path is still open, and
-                  Dispute once a revision has been asked for (or once the job
-                  settled without one) — which is exactly what the deleted
-                  footnote was explaining in prose. Its Dispute branch is gated
-                  by DisputeLink's own exported predicate, so the 7-day window
-                  and the never-double-file rule are unchanged. */}
+                  The fourth slot is the single "something wrong" affordance:
+                  Dispute, gated by DisputeLink's own exported predicate, so
+                  the 7-day window and the never-double-file rule are
+                  unchanged.
+
+                  It used to be Revision first, Dispute second. The Revision
+                  half is GONE — not re-routed, deleted — because the server
+                  could never accept it. It was gated on
+                  `!poster_completed_at && !revision_requested_at`, which on a
+                  `completed` job selects exactly the population that got here
+                  by AUTO-RELEASE; `create-payment`'s request_revision branch
+                  requires `job.status === 'in_progress'` and the transition
+                  matrix has no `completed -> revision_requested` edge, so the
+                  chip failed 100% of the time. Worse, ActivityDialogs makes
+                  the poster type the revision note BEFORE it will submit, so
+                  every tap threw their writing away behind an error toast. */}
               {(() => {
                 // Approving completion leaves the job at 'payout_pending' until
                 // the transfer settles (hours later), so gating the Review chip
@@ -531,9 +731,6 @@ export function PostedJobActions({
                 // policy, which accepts both settlement states.
                 const canReview =
                   job.payment_status === "released" || job.payment_status === "payout_pending";
-                // Revision first, dispute second — same escalation order the
-                // footnote used to spell out.
-                const canRevise = !job.poster_completed_at && !job.revision_requested_at;
                 // NOT after the poster approved (owner: "if the job is already
                 // marked complete this should not be an option"). Approving IS
                 // the release — the money has left escrow and the poster said
@@ -541,16 +738,35 @@ export function PostedJobActions({
                 // over a decision they already made. A job that auto-released
                 // without them ever approving keeps the 7-day window: they
                 // never got their say.
+                //
+                // That auto-released job is also the one the deleted Revision
+                // chip used to sit on, so dropping the `!canRevise` term isn't
+                // a widening for its own sake — it hands that poster the ONE
+                // escalation the server actually honours (`completed ->
+                // disputed` is in the matrix) in place of one it never would.
                 const canDispute =
-                  !canRevise &&
                   !job.poster_completed_at &&
                   shouldShowDisputeLink(job, "customer");
                 // +1 for Report, unconditional on Done — a distinct
                 // conduct/safety escape hatch alongside Tip/Review/Hire
                 // Again, separate from the payment-dispute chip above.
-                const columns = (3 + (canReview ? 1 : 0) + (canRevise || canDispute ? 1 : 0)) as 3 | 4 | 5;
+                const columns = (3 + (canReview ? 1 : 0) + (canDispute ? 1 : 0)) as 3 | 4 | 5;
                 return (
                   <JobActionRow columns={columns}>
+                    {/* TIP IS NOT GATED ON THE HELPER BEING PAYABLE, and this
+                        component cannot gate it. `create-payment` refuses a
+                        tip outright when the helper has no
+                        `profiles.stripe_account_id` ("This helper hasn't set
+                        up their payout account yet"), so a poster picks an
+                        amount, opens Checkout and is only then refused.
+                        Nothing in scope here carries that fact: `job` is a
+                        raw jobs row and `helperNames` is names only. Gating it
+                        needs the helper's Connect status plumbed down —
+                        cheapest honest shape is a
+                        `helperPayoutReady: Record<string, boolean>` built
+                        beside `helperNames` from
+                        `profiles.stripe_account_id IS NOT NULL` (the exact
+                        field the edge function checks). Not guessed at here.*/}
                     {!hasTipped ? (
                       <JobActionChip
                         icon={DollarSign}
@@ -563,7 +779,7 @@ export function PostedJobActions({
                       <JobActionChip
                         icon={CheckCircle2}
                         label="Tipped"
-                        ariaLabel={`Already tipped ${helperName}`}
+                        ariaLabel={`Tipped — you already tipped ${helperName}`}
                         tone="done"
                         disabled
                         onClick={() => {}}
@@ -574,7 +790,7 @@ export function PostedJobActions({
                         <JobActionChip
                           icon={Star}
                           label="Review"
-                          ariaLabel={`Leave a review for ${helperName}`}
+                          ariaLabel={`Review — leave a review for ${helperName}`}
                           tone="edit"
                           onClick={() => onReview(job)}
                         />
@@ -582,27 +798,18 @@ export function PostedJobActions({
                         <JobActionChip
                           icon={CheckCircle2}
                           label="Reviewed"
-                          ariaLabel={`Already reviewed ${helperName}`}
+                          ariaLabel={`Reviewed — you already reviewed ${helperName}`}
                           tone="done"
                           disabled
                           onClick={() => {}}
                         />
                       )
                     )}
-                    {canRevise && (
-                      <JobActionChip
-                        icon={AlertTriangle}
-                        label="Revision"
-                        ariaLabel="Something wrong? Request a revision"
-                        tone="danger"
-                        onClick={() => onRevision(job.id)}
-                      />
-                    )}
                     {canDispute && (
                       <JobActionChip
                         icon={AlertTriangle}
                         label="Dispute"
-                        ariaLabel="Something wrong? Open a dispute about this job"
+                        ariaLabel="Dispute — something wrong? open a dispute about this job"
                         tone="danger"
                         onClick={() => onDispute(job)}
                       />
@@ -615,7 +822,7 @@ export function PostedJobActions({
                       <JobActionChip
                         icon={RotateCcw}
                         label="Hire Again"
-                        ariaLabel={`Hire ${helperName} again`}
+                        ariaLabel={`Hire Again — hire ${helperName} for a new job`}
                         tone="primary"
                         onClick={() => navigate(`/post-job?rebook=${job.id}&offerTo=${job.helper_id}`)}
                       />
@@ -623,7 +830,7 @@ export function PostedJobActions({
                       <JobActionChip
                         icon={RotateCcw}
                         label="Re-Post"
-                        ariaLabel="Re-post this job"
+                        ariaLabel="Re-Post — post this job again"
                         tone="primary"
                         onClick={() => navigate(`/post-job?rebook=${job.id}`)}
                       />
@@ -631,11 +838,30 @@ export function PostedJobActions({
                     {/* Report — a distinct escape hatch from Dispute above:
                         Dispute is a payment disagreement while the job is
                         still settling; Report is for a conduct/safety
-                        concern once the job is already over. */}
+                        concern once the job is already over.
+
+                        Its aria used to end "…with this job or Helpr" — a
+                        promise the control does not keep. Activity.tsx opens
+                        ReportDialog with reportedType="job", so the PERSON
+                        cannot be reported from here at all; the spoken name
+                        now describes only what the tap actually does. */}
                     <JobActionChip
                       icon={Flag}
-                      label="Report"
-                      ariaLabel="Report a problem with this job or Helpr"
+                      /* "Report Job", not "Report" (owner, on the Done tab:
+                         "if the job is done why would they report it? change
+                         that to report job or something"). A bare "Report"
+                         beside Tip / Reviewed / Hire Again names no object, so
+                         on a finished job it reads as an offer to report
+                         something that is already over — the listing? the
+                         Helpr? a payment? Naming the object is the fix, and it
+                         is also the honest one: this chip really can only
+                         report the JOB.
+
+                         Two words, not "Report a problem": this is a 5-up chip
+                         row at 320px, and the shorter label is the one that
+                         stays on one line beside "Hire Again". */
+                      label="Report Job"
+                      ariaLabel="Report Job — report a problem with this job"
                       tone="danger"
                       onClick={() => onReport(job)}
                     />
@@ -711,7 +937,7 @@ export function PostedJobActions({
                 </p>
               </div>
             )}
-            {/* Disputer actions: Mark Resolved or Escalate */}
+            {/* Disputer actions: Resolve & Pay or Escalate */}
             {isDisputer && disputeStatus === "open" && (
               /* Same JobActionRow every other state uses — this was a
                  hand-rolled `grid-cols-2 gap-2` of a SOLID success button
@@ -719,39 +945,48 @@ export function PostedJobActions({
                  card that least needs shouting. Tones carry the semantics
                  instead: `approve` for the resolution, `danger` for the
                  escalation. */
+              <>
               <JobActionRow columns={2}>
-                <JobActionChip icon={CheckCircle2} label="Mark Resolved" ariaLabel="Mark this dispute resolved" tone="approve" disabled={disputeActing} onClick={async (e) => {
+                {/* "Mark Resolved" was a lie of omission: one tap released the
+                    ENTIRE escrow to the helper, and neither the label nor the
+                    spoken name mentioned money. It is named for its
+                    consequence now and confirms before it moves anything —
+                    the same bar Approve already met via
+                    CompletionChoiceSheet. */}
+                <JobActionChip
+                  icon={CheckCircle2}
+                  label="Resolve & Pay"
+                  ariaLabel="Resolve & Pay — close this dispute and release the payment to your Helpr"
+                  tone="approve"
+                  disabled={disputeActing}
+                  onClick={(e) => { e.stopPropagation(); setResolveConfirmOpen(true); }}
+                />
+                <JobActionChip icon={AlertTriangle} label="Escalate" ariaLabel="Escalate — send this dispute to a Helpr admin to decide" tone="danger" disabled={disputeActing} onClick={async (e) => {
                   e.stopPropagation();
                   setDisputeActing(true);
                   try {
-                    // Two steps, both server-side: close the dispute record
-                    // (rpc_withdraw_dispute hands the job back to
-                    // 'in_progress'), then settle through the SAME release
-                    // path an ordinary completion uses. The old version wrote
-                    // status='completed' straight from the client and promised
-                    // the helper payment that no release path would ever pick
-                    // up — escrow stayed held forever.
-                    const { error } = await supabase.rpc("rpc_withdraw_dispute" as never, { _job_id: job.id } as never);
-                    if (error) { hapticError(); toast.error("We couldn't mark that resolved — please try again."); return; }
-                    const { data: releaseData, error: releaseError } = await supabase.functions.invoke("create-payment", { body: { action: "release", jobId: job.id } });
-                    if (releaseError || releaseData?.error) {
-                      report(releaseError ?? new Error(String(releaseData?.error)), { tags: { source: "PostedJobCard.resolveDisputeRelease" }, context: { job_id: job.id } });
-                      hapticError();
-                      toast.error("Dispute closed, but the payment didn't release. Contact support so we can finish it.");
-                      onActionComplete();
-                      return;
-                    }
-                    if (job.helper_id) await createNotification({ user_id: job.helper_id, title: "Dispute resolved ✓", message: `The poster confirmed the issue on "${job.title}" is resolved. Payment will be released.`, type: "payment", link: "/my-jobs?filter=completed" });
-                    hapticSuccess();
-                    onActionComplete();
-                  } finally {
-                    setDisputeActing(false);
-                  }
-                }} />
-                <JobActionChip icon={AlertTriangle} label="Escalate" ariaLabel="Escalate this dispute to an admin" tone="danger" disabled={disputeActing} onClick={async (e) => {
-                  e.stopPropagation();
-                  setDisputeActing(true);
-                  try {
+                    // BELONGS IN AN RPC, AND CANNOT BE FIXED FROM HERE.
+                    //
+                    // 20260825190000_dispute_single_source.sql declares
+                    // public.disputes the record of truth and the jobs.dispute_*
+                    // columns a denormalised mirror; every other transition has a
+                    // server-side writer (rpc_open_dispute, rpc_decide_dispute,
+                    // rpc_withdraw_dispute) that writes BOTH in one statement.
+                    // Escalation has none, so this writes only the mirror and the
+                    // disputes row stays 'open'.
+                    //
+                    // Mirroring it client-side is not merely unclean, it is
+                    // impossible: disputes.status carries
+                    // CHECK (status IN ('open','decided','withdrawn')) — no
+                    // 'escalated' value — and the "disputes opener update" policy
+                    // pins WITH CHECK (status = 'open'), so the write would be
+                    // refused twice over. There is no escalated_at column either.
+                    // FOLLOW-UP: an rpc_escalate_dispute that widens the CHECK and
+                    // writes both sides. Not this lane (no new migrations here).
+                    //
+                    // What keeps this honest meanwhile: the admin queue reads
+                    // disputes WHERE status='open', so an escalated dispute is
+                    // still in it, and the fan-out below tells the admins directly.
                     try {
                       unwrapMutation(
                         await supabase.from("jobs").update({ dispute_status: "escalated" }).eq("id", job.id).select("id"),
@@ -766,12 +1001,35 @@ export function PostedJobActions({
                     if (adminErr) report(adminErr, { tags: { source: "PostedJobCard.escalateNotifyAdmins" } });
                     if (adminRoles) { for (const admin of adminRoles) { await createNotification({ user_id: admin.user_id, title: "🚨 Dispute escalated", message: `"${job.title}" dispute has been escalated and requires admin decision.`, type: "warning", link: "/admin" }); } }
                     hapticSuccess();
+                    // Escalating froze the payout and handed the decision to a
+                    // human, and the card said nothing about it.
+                    toast.success("Escalated — an admin will review this and decide.");
                     onActionComplete();
                   } finally {
                     setDisputeActing(false);
                   }
                 }} />
               </JobActionRow>
+              {/* The shared confirm — NOT a new modal. BrandConfirmDialog is
+                  the shell behind every confirm in the app (Log Out, Decline
+                  This Job, Delete Account) and rides the same AlertDialog /
+                  AlertDialogHero / .glass-modal stack dialogShell.test.ts
+                  enforces. `sienna` because this is irreversible and
+                  one-directional: the money leaves escrow and the dispute the
+                  poster raised is over. */}
+              <BrandConfirmDialog
+                open={resolveConfirmOpen}
+                onOpenChange={setResolveConfirmOpen}
+                title="Release the payment?"
+                description={`Resolving this dispute closes it and releases the full amount held in escrow to ${job.helper_id ? (helperNames[job.helper_id] || "your Helpr") : "your Helpr"}. You can't reopen this dispute afterwards.`}
+                callout={{ icon: DollarSign, text: "This moves real money. Only resolve if the issue is actually fixed." }}
+                primaryLabel="Resolve & Release Payment"
+                primaryTone="sienna"
+                primaryDisabled={disputeActing}
+                onPrimary={() => { void resolveDisputeAndRelease(); }}
+                secondaryLabel="Keep Dispute Open"
+              />
+              </>
             )}
             {/* View Timeline / Message / Contact Admin used to be two rows —
                 View Timeline alone as a full-width button, then Message +
@@ -781,8 +1039,20 @@ export function PostedJobActions({
             <JobActionRow columns={3}>
               <JobActionChip
                 icon={AlertTriangle}
-                label="View Timeline & Add Evidence"
-                ariaLabel="View dispute timeline and add evidence"
+                /* "Timeline & Evidence", not "View Timeline & Add Evidence".
+                   Five words in a chip sized for one clipped at BOTH ends —
+                   the owner read it as "v Timeline & Add Evid…". The helper
+                   side of this same control was already shortened to this
+                   exact string, so the two ends of one dispute now name it
+                   identically instead of the poster getting a longer label for
+                   the same panel.
+
+                   WCAG 2.5.3 (label in name): the accessible name still OPENS
+                   with the visible text, so a voice-control user saying "click
+                   Timeline and Evidence" still matches; the extra clause after
+                   the dash is description, not a rename. */
+                label="Timeline & Evidence"
+                ariaLabel="Timeline & Evidence — this dispute's full history, and a place to attach proof"
                 tone="neutral"
                 onClick={() => onViewDispute(job)}
               />
@@ -796,7 +1066,7 @@ export function PostedJobActions({
               <JobActionChip
                 icon={AlertTriangle}
                 label="Contact Admin"
-                ariaLabel="Contact an admin about this dispute"
+                ariaLabel="Contact Admin — get help from a Helpr admin about this dispute"
                 tone="neutral"
                 onClick={() => navigate("/support")}
               />

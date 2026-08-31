@@ -23,6 +23,7 @@ import { loadHolds, saveHolds } from "./adminPayoutBatches/adminPayoutBatchesHel
 import { BatchRow } from "./adminPayoutBatches/BatchRow";
 import { LedgerList } from "./adminPayoutBatches/LedgerList";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
+import { requireBiometric } from "@/lib/biometricGate";
 
 const AdminPayoutBatches = () => {
   const qc = useQueryClient();
@@ -146,6 +147,12 @@ const AdminPayoutBatches = () => {
       toast.error(`${batch.helper_name} has no Stripe payout account configured.`);
       return;
     }
+    // Face ID / Touch ID gate: this pushes a real Stripe payout out of the
+    // platform balance. Irreversible once the transfer lands. Runs after the
+    // no-Stripe-account guard so a blocked payout never raises an OS prompt.
+    // No-op on web and on devices without enrolled biometrics.
+    const ok = await requireBiometric(`Confirm the payout to ${batch.helper_name}`);
+    if (!ok) return;
     setPaying(batch.helper_id);
     try {
       const { error } = await supabase.functions.invoke("stripe-payouts", {
@@ -190,8 +197,14 @@ const AdminPayoutBatches = () => {
   const clearSelection = () => setSelected(new Set());
 
   const triggerBulkPayout = async () => {
-    setBulkPaying(true);
     setConfirmBulk(false);
+    // Face ID / Touch ID gate: ONE prompt for the whole selection, before the
+    // loop — never per-helper, which would be unusable on a 40-batch run and
+    // would train admins to blow through prompts. Irreversible money movement.
+    // No-op on web and on devices without enrolled biometrics.
+    const ok = await requireBiometric("Confirm this bulk payout run");
+    if (!ok) return;
+    setBulkPaying(true);
     for (const batch of selectedBatches) {
       try {
         const { error } = await supabase.functions.invoke("stripe-payouts", {
@@ -399,8 +412,8 @@ const AdminPayoutBatches = () => {
               rows={3}
             />
           </div>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setHoldReasonDraft(null)}>Cancel</Button>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setHoldReasonDraft(null)}>Cancel</Button>
             <Button
               onClick={() => {
                 if (!holdReasonDraft) return;
@@ -432,8 +445,8 @@ const AdminPayoutBatches = () => {
               rows={3}
             />
           </div>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setDenyDraft(null)}>Cancel</Button>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setDenyDraft(null)}>Cancel</Button>
             <Button
               variant="destructive"
               onClick={() => {

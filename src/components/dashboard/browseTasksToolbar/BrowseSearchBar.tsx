@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Search, X } from "lucide-react";
 
+import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 import {
   SEARCH_HISTORY_MIN_LENGTH,
   clearRecentSearches,
@@ -27,13 +28,49 @@ import type { useDashboardFilters } from "@/hooks/useDashboardFilters";
  */
 export function BrowseSearchBar({
   filters,
+  embedded = false,
 }: {
   filters: ReturnType<typeof useDashboardFilters>;
+  /**
+   * Rendered as a SECTION of the filter panel rather than as the title card's
+   * own expanding search bar.
+   *
+   * The difference is what the trailing ✕ means. In the title card the field
+   * only exists while `searchOpen` is true, so its ✕ is the way OUT of search
+   * and is always present. In the panel the field is permanent — `searchOpen`
+   * does not gate it — so "close search" is not a thing that can happen, and
+   * the always-on ✕ was a control that visibly did nothing (owner: "the x in
+   * search also doesn't close it"). Worse, it was the only ✕ on screen, so it
+   * is what people reached for to dismiss the whole panel. Embedded, it
+   * appears only when there is text to clear, and the panel carries its own
+   * close button in its header.
+   */
+  embedded?: boolean;
 }) {
   // Snapshot history when the field opens and refresh after each push, so the
   // list doesn't mutate under the user mid-typing.
   const [focused, setFocused] = useState(false);
   const [recent, setRecent] = useState<string[]>(() => getRecentSearches());
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // When the user DOES tap the field, the iOS keyboard takes the bottom of the
+  // screen — and in the panel this field sits at the top of a scroll container
+  // whose lower half the keyboard then covers. Lift the focused field into
+  // view once the keyboard has settled. Same `useKeyboardInset` pattern
+  // Messages / PostJob / ProfileEditForm use; `block: "nearest"` because this
+  // field is near the TOP of its scroller and "center" would drag it down
+  // under the keyboard it is trying to escape.
+  const keyboardInset = useKeyboardInset();
+  useEffect(() => {
+    if (keyboardInset <= 0) return;
+    const el = inputRef.current;
+    if (!el || document.activeElement !== el) return;
+    // Defer a frame so layout has settled to the smaller viewport first.
+    const raf = requestAnimationFrame(() => {
+      el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [keyboardInset]);
 
   // Persist settled queries, not keystrokes.
   const lastPushedRef = useRef<string>("");
@@ -82,6 +119,7 @@ export function BrowseSearchBar({
               Tapping the field still focuses it; the keyboard now appears
               when it is asked for. */}
           <input
+            ref={inputRef}
             type="search"
             aria-label="Search jobs"
             placeholder="Search jobs…"
@@ -97,22 +135,36 @@ export function BrowseSearchBar({
             }}
             // Delayed so a mousedown on a suggestion row still lands.
             onBlur={() => window.setTimeout(() => setFocused(false), 150)}
-            className="w-full pl-9 pr-10 h-9 text-ds-13 rounded-ds-md glass-field focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"
+            // `pr-10` reserves the lane the trailing ✕ sits in — so it is only
+            // reserved when the ✕ is actually rendered (see below), otherwise
+            // an empty embedded field carries 40px of dead right margin.
+            className={`w-full pl-9 ${embedded && filters.searchQuery.length === 0 ? "pr-3" : "pr-10"} h-9 text-ds-13 rounded-ds-md glass-field focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground`}
           />
           {/* The X lives INSIDE the field, on its right — the same shape the
               Activity search uses (owner: "instead of Cancel put X in the
-              right of the search bar"). Always present, not only once you have
-              typed: it is the way OUT of search, so hiding it until there is a
-              query left an empty search bar with no visible dismiss and a
-              word-button sitting outside the field to do the job. Clears the
-              query and closes in one press. */}
+              right of the search bar").
+
+              In the TITLE-CARD form it is always present, because it is the
+              way OUT of search: hiding it until there is a query would leave
+              an open search bar with no visible dismiss. In the PANEL form
+              (`embedded`) there is nothing to dismiss — the field is a
+              permanent section — so it renders only when there is text to
+              clear, instead of standing there as a control that does nothing
+              when pressed. See the `embedded` prop doc. */}
+          {(!embedded || filters.searchQuery.length > 0) && (
           <button
             type="button"
             onClick={() => {
               filters.setSearchQuery("");
-              filters.setSearchOpen(false);
+              if (embedded) {
+                // Stay in the field: the user asked to clear the query, not to
+                // leave the search box.
+                inputRef.current?.focus();
+              } else {
+                filters.setSearchOpen(false);
+              }
             }}
-            aria-label="Close search"
+            aria-label={embedded ? "Clear search" : "Close search"}
             // `!min-h-0 !min-w-0` — index.css's bare `button { min-height:
             // 44px; min-width: 44px }` HIG tap-target rule otherwise wins
             // over `h-7 w-7` and renders this 44x44 inside a 36px-tall bar,
@@ -122,6 +174,7 @@ export function BrowseSearchBar({
           >
             <X className="w-4 h-4" strokeWidth={2.25} />
           </button>
+          )}
         </div>
       </div>
 

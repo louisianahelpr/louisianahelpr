@@ -344,21 +344,19 @@ export const DisputeTimelineDialog = ({
         )}
 
         <DialogFooter>
-          <Button variant="ghost" onClick={onClose} className="rounded-ds-md">
+          {/* `outline`: the Upload button beside it is conditional, so most of
+              the time this is the footer's only control. */}
+          <Button variant="outline" onClick={onClose}>
             Close
           </Button>
+          {/* Uploading follow-up evidence adds to the record — it removes
+              nothing and penalises nobody — so this is the ordinary glossy
+              primary, not the destructive treatment it was wearing. */}
           {canAddEvidence && evidenceFiles.length > 0 && (
             <Button
+              variant="primary"
               onClick={handleSubmit}
               disabled={submitting}
-              className="rounded-ds-md"
-              style={{
-                background: "hsl(var(--burnt-sienna))",
-                backgroundImage: "none",
-                border: "1px solid hsl(var(--burnt-sienna))",
-                color: "hsl(var(--parchment))",
-                boxShadow: "var(--elev-sienna-raised)",
-              }}
             >
               {submitting ? "Uploading…" : `Upload ${evidenceFiles.length} File${evidenceFiles.length === 1 ? "" : "s"}`}
             </Button>

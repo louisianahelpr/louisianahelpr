@@ -79,6 +79,44 @@ describe("Popups share one shell", () => {
     expect(alert).toContain("max-w-lg");
   });
 
+  it("SheetHero exposes no per-call-site style escape hatches either", () => {
+    // This test only ever guarded dialog.tsx and alert-dialog.tsx, so sheet.tsx
+    // kept every hatch the other two had deleted — and three sheets were using
+    // `className` to nudge their header padding by a different amount each.
+    // A sheet is a popup; the same rule binds it.
+    const strip = (t: string) =>
+      t.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+    const sheet = strip(readFileSync(resolve(__dirname, "sheet.tsx"), "utf8"));
+    for (const prop of ["titleClassName", "titleStyle", "eyebrowClassName", "eyebrowStyle"]) {
+      expect(sheet, `sheet.tsx must not accept ${prop}`).not.toContain(prop);
+    }
+  });
+
+  it("the three popup footers are one layout", () => {
+    // DialogFooter, AlertDialogFooter and SheetFooter are the same row. They
+    // had drifted: SheetFooter was missing `gap-2`, so a sheet's stacked
+    // buttons touched on a phone while a dialog's sat 8px apart.
+    const FOOTER = "flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:space-x-2";
+    for (const file of ["dialog.tsx", "alert-dialog.tsx", "sheet.tsx"]) {
+      const src = readFileSync(resolve(__dirname, file), "utf8");
+      expect(src, `${file}'s footer must be the shared row`).toContain(FOOTER);
+    }
+  });
+
+  it("the two modal overlays use the SAME backdrop tint", () => {
+    // Both files say "change one, change both" and both had drifted anyway:
+    // DialogOverlay was lightened three times (45% -> 26% -> 14% -> 8%) and
+    // AlertDialogOverlay kept 26%, so every confirm in the app — which is
+    // every BrandConfirmDialog — dimmed the page 3x harder than any dialog.
+    const tint = (file: string) => {
+      const src = readFileSync(resolve(__dirname, file), "utf8");
+      const m = /backgroundColor:\s*"(hsla\([^"]*\))"/.exec(src);
+      return m?.[1];
+    };
+    expect(tint("dialog.tsx")).toBeDefined();
+    expect(tint("alert-dialog.tsx")).toBe(tint("dialog.tsx"));
+  });
+
   it("DialogHero exposes no per-call-site style escape hatches", () => {
     // These are what let one instance look different from the rest. They were
     // deleted once; this stops them coming back.

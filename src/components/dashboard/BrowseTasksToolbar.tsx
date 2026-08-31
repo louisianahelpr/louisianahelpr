@@ -160,7 +160,11 @@ export function BrowseTasksToolbar({
             ? [{
                 key: "search",
                 title: "Search",
-                content: <BrowseSearchBar filters={filters} />,
+                // `embedded` — inside the panel the field is a permanent
+                // section, so its trailing ✕ is a CLEAR (shown only when
+                // there is text), not a "close search" that has nothing to
+                // close. The panel's own close button lives in its header.
+                content: <BrowseSearchBar filters={filters} embedded />,
               }]
             : []),
           // View keeps its own row (owner, 2026-08-24: tried riding the

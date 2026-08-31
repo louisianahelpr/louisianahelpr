@@ -104,15 +104,13 @@ export function AwardGateDialog({
             variant="ghost"
             onClick={() => onOpenChange(false)}
             disabled={loading}
-            className="rounded-ds-md h-11"
           >
-            Not now
+            Not Now
           </Button>
           <Button
             variant="primary"
             onClick={handleFix}
             disabled={loading}
-            className="rounded-ds-md h-11"
           >
             {loading ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />

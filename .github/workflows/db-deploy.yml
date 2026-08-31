@@ -26,9 +26,9 @@ permissions:
 # - SUPABASE_PROJECT_REF   Project ref ID. For Helpr prod this is
 #                          fncmgoasalhdgfwzhsqa.
 #
-# If any are missing the workflow will SKIP (not fail) so a fresh repo
-# clone doesn't error on first run. Add the secrets, then push any
-# migration to trigger the first real deploy.
+# If any are missing the workflow FAILS LOUDLY (it used to skip, which is
+# indistinguishable from passing — see the "Require deploy secrets" step).
+# Add the secrets, then push any migration to trigger the first real deploy.
 
 on:
   push:
@@ -69,19 +69,47 @@ jobs:
       - name: Guard against duplicate migration timestamps
         run: ./scripts/check-migration-timestamps.sh
 
-      - name: Check secrets present
+      # REQUIRED SECRETS ARE A HARD GATE. Changed 2026-08-31.
+      #
+      # WHAT THIS CATCHES: this workflow silently ceasing to deploy.
+      #
+      # This step used to emit ::warning:: and set skip=true, and every step
+      # below was guarded by `if: skip != 'true'`. To the checks API, the
+      # commit status and the merge box, a skipped job and a passed job are
+      # the same colour — so the moment SUPABASE_ACCESS_TOKEN is rotated,
+      # expires, or is renamed, migrations stop reaching prod FOREVER while
+      # main stays fully green. Nothing anywhere would say so; the drift
+      # detector was itself green-on-drift until the same day this changed.
+      # That is the identical shape as the three prod incidents this repo has
+      # already shipped: a detector whose result never reaches the exit code.
+      #
+      # The "so a fresh repo clone doesn't error on first run" rationale in
+      # the header does not survive contact with the cost: a first run of a
+      # fresh clone failing loudly with the list of secrets to add is a
+      # BETTER outcome than a live repo deploying nothing in silence.
+      #
+      # Secrets are read through `env:` rather than interpolated into the
+      # script body so no secret value can be parsed as shell.
+      - name: Require deploy secrets
         id: precheck
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
         run: |
+          set -euo pipefail
           MISSING=""
-          [ -z "${{ secrets.SUPABASE_ACCESS_TOKEN }}" ] && MISSING="$MISSING SUPABASE_ACCESS_TOKEN"
-          [ -z "${{ secrets.SUPABASE_DB_PASSWORD }}" ] && MISSING="$MISSING SUPABASE_DB_PASSWORD"
-          [ -z "${{ secrets.SUPABASE_PROJECT_REF }}" ] && MISSING="$MISSING SUPABASE_PROJECT_REF"
+          [ -z "${SUPABASE_ACCESS_TOKEN:-}" ] && MISSING="$MISSING SUPABASE_ACCESS_TOKEN"
+          [ -z "${SUPABASE_DB_PASSWORD:-}" ]  && MISSING="$MISSING SUPABASE_DB_PASSWORD"
+          [ -z "${SUPABASE_PROJECT_REF:-}" ]  && MISSING="$MISSING SUPABASE_PROJECT_REF"
           if [ -n "$MISSING" ]; then
-            echo "::warning::Missing secrets:$MISSING — skipping deploy. Add them in Settings → Secrets → Actions."
-            echo "skip=true" >> $GITHUB_OUTPUT
-          else
-            echo "skip=false" >> $GITHUB_OUTPUT
+            echo "::error::Missing required secret(s):$MISSING"
+            echo "::error::db-deploy CANNOT push migrations to prod without these. It is failing rather than skipping, because a skipped deploy reports as a passed deploy and would leave prod's schema silently stale behind main."
+            echo "::error::Add them in Settings → Secrets and variables → Actions, then re-run this workflow."
+            exit 1
           fi
+          echo "skip=false" >> $GITHUB_OUTPUT
+          echo "✓ All required deploy secrets are present."
 
       - name: Install Supabase CLI
         if: steps.precheck.outputs.skip != 'true'

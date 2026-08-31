@@ -1,4 +1,12 @@
-import { type ReactNode, type RefObject } from "react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+  type RefObject,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowUpRight, Bookmark, Clock, Rocket, X, Zap, type LucideIcon } from "lucide-react";
 import {
@@ -6,8 +14,16 @@ import {
   SheetContent,
   SheetHero,
 } from "@/components/ui/sheet";
-import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverAnchor,
+  PopoverArrow,
+  PopoverContent,
+  PopoverPortal,
+  PopoverScrim,
+} from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
+import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 import { hapticLight } from "@/lib/haptics";
 import {
   SortContent,
@@ -103,6 +119,72 @@ function Section({ title, trailing, children }: { title: string; trailing?: Reac
   );
 }
 
+/**
+ * The anchored panel's scroll area, with a bottom fade while there is more
+ * below.
+ *
+ * Without it the panel's own edge shears whatever row happens to land there —
+ * the owner's screenshot had "Saved Searches" cut through the middle of the
+ * word, which reads as a broken layout rather than as "scroll for more" (and
+ * a job card plus the dock visible below it made it worse). The card's
+ * max-height already keeps it clear of the bottom nav; this is the cue that
+ * the cut is a scroll, not a crop.
+ *
+ * Live on both edges of the condition: the fade disappears at the end of the
+ * list, so it never claims content that isn't there. Same rule as the chip
+ * rows' horizontal fades in JobFilters.
+ */
+function PanelScroller({ children }: { children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [more, setMore] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const measure = () => {
+      setMore(el.scrollTop + el.clientHeight < el.scrollHeight - 2);
+    };
+    measure();
+    el.addEventListener("scroll", measure, { passive: true });
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    // Sections mount/unmount as filters change (the Distance hint line, the
+    // Clear-all footer), so watch the content too, not just the box.
+    const mo = new MutationObserver(measure);
+    mo.observe(el, { childList: true, subtree: true });
+    return () => {
+      el.removeEventListener("scroll", measure);
+      ro.disconnect();
+      mo.disconnect();
+    };
+  }, []);
+
+  return (
+    <>
+      {/* The scroller IS the flex child — no `h-full` wrapper around it. A
+          percentage height resolved against a `flex-1` parent came out as the
+          content height here, which silently turned the scroll area into an
+          overflowing block that the card's `overflow-hidden` then CROPPED:
+          nothing below the fold was reachable at all. `min-h-0` is what lets
+          a flex child shrink below its content and actually scroll. */}
+      <div ref={ref} className="min-h-0 flex-1 overflow-y-auto overscroll-contain pt-3">
+        {children}
+      </div>
+      {/* Positioned against the card (which is `relative`), not against the
+          scroller — a fade inside the scroller would scroll away with it. */}
+      {more && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-8"
+          style={{
+            background: "linear-gradient(to bottom, transparent, hsl(var(--background)) 92%)",
+          }}
+        />
+      )}
+    </>
+  );
+}
+
 /** The panel's contents — the titled sections and the Clear-all footer.
  *  Shared verbatim by the sheet and the desktop popover so the two
  *  presentations cannot drift into two different filter sets. */
@@ -159,41 +241,165 @@ export function FilterSheet({
   anchorRef,
   footer,
 }: FilterSheetProps) {
-  // A popover hanging off the Filters button, not a modal — at ANY width,
-  // not just desktop (owner, 2026-08-30: reviewed a centered-modal / inset-
-  // sheet / anchored-panel comparison and picked anchored for Filters
-  // specifically). A modal sheet is ON TOP of the very job cards it filters;
-  // this is non-modal by default, so the board stays lit and the results
-  // visibly change behind you as you pick — the phone width already fits via
-  // `max-w-[calc(100vw-2rem)]` below, so this needed no width gate at all,
-  // only `useIsWebDesktop` used to gate it off unnecessarily.
+  const titleId = useId();
+  const panelRef = useRef<HTMLDivElement>(null);
+  // The panel is positioned against `window.innerHeight`, which on iOS does
+  // NOT shrink when the software keyboard comes up — so a panel sized to the
+  // full screen keeps its height and the keyboard simply covers its lower
+  // half. Cap it against the keyboard too. `BrowseSearchBar` separately
+  // scrolls the focused field into view; this is what gives it somewhere to
+  // scroll to. 0 whenever no keyboard is up (and always on web).
+  const keyboardInset = useKeyboardInset();
+
+  // A panel hanging off the Filters button, not a centered modal — at ANY
+  // width, not just desktop (owner, 2026-08-30: reviewed a centered-modal /
+  // inset-sheet / anchored-panel comparison and picked anchored for Filters
+  // specifically). Anchored, but a LAYER: it carries the app's shared scrim
+  // and the shared `.glass-modal` surface.
+  //
+  // It used to be non-modal and unscrimmed, on the reasoning that the board
+  // should stay lit and visibly re-filter behind you as you pick. The owner
+  // rejected that on device (2026-08-31: "how can we improve notifications or
+  // anchored filters so they stand out better") — with the feed at full
+  // contrast directly below and beside it, on a surface a shade off the page's
+  // own, the panel read as one more band of the page rather than something
+  // that had opened over it. `modal` also buys the three things the bare
+  // popover lacked: a focus trap, `aria-hidden` on the page behind, and a
+  // scroll lock, so the feed can't scroll under an open filter panel.
+  //
+  // NotificationPanel gets the identical treatment (same `PopoverScrim`, same
+  // `.glass-modal`, same notch) — the two anchored panels in the header must
+  // not be two different objects.
   if (anchorRef) {
     return (
-      <Popover open={open} onOpenChange={onOpenChange}>
+      <Popover open={open} onOpenChange={onOpenChange} modal>
         <PopoverAnchor virtualRef={anchorRef} />
+        {/* Scrim FIRST, in its own portal, so it stacks under the panel the
+            same way SheetOverlay stacks under SheetContent. */}
+        <PopoverPortal>
+          <PopoverScrim />
+        </PopoverPortal>
         <PopoverContent
+          ref={panelRef}
           align="end"
-          sideOffset={8}
+          sideOffset={10}
           // The trigger sits at the far right of the window; without this the
-          // panel would hang off the edge.
+          // panel would hang off the edge. It also feeds Radix's
+          // `--radix-popover-content-available-height`, which the inner card
+          // caps itself with below.
           collisionPadding={16}
-          aria-label="Refine your search"
-          className="w-[400px] max-w-[calc(100vw-2rem)] max-h-[70vh] overflow-y-auto overscroll-contain p-0 pt-4 rounded-ds-lg bg-premium-page"
-          // The Filters button is OUTSIDE the popover, so Radix counts a click
+          aria-labelledby={titleId}
+          // NO AUTOFOCUS ON THE SEARCH FIELD.
+          //
+          // Nothing in this tree ever asked for it: there is no `autoFocus`
+          // prop and no `.focus()` call. It was Radix's FocusScope default —
+          // on mount it focuses the first tabbable descendant, and on phone
+          // the first section is Search, so the first tabbable descendant is
+          // the "Search jobs…" input. On iOS that threw the software keyboard
+          // up the instant the sliders icon was tapped, covering the bottom
+          // half of the panel (owner: "opens in search bar which opens the
+          // keyboard. not correct") — so DISTANCE, WHEN and everything below
+          // were buried behind a keyboard nobody asked for, on a panel people
+          // open to tap a chip, not to type.
+          //
+          // Park focus on the panel container instead — the same fix
+          // `DialogContent` already carries app-wide. No field is focused so
+          // no keyboard rises, but focus is INSIDE the panel: a screen reader
+          // announces the dialog and its "Refine Your Search" heading, Tab
+          // starts at the close button and walks the sections in order, and
+          // Escape still closes. Dropping focus on <body> would have done
+          // none of that. Radix's FocusScope gives Content `tabIndex={-1}`,
+          // so the container accepts focus.
+          onOpenAutoFocus={(event) => {
+            event.preventDefault();
+            panelRef.current?.focus({ preventScroll: true });
+          }}
+          // The Filters button is OUTSIDE the popover, so Radix counts a press
           // on it as an outside-dismiss — which would close the panel and then
           // let the button's own handler toggle it straight back. Let the
-          // button keep sole ownership of the toggle.
+          // button keep sole ownership of the toggle. (Largely belt-and-braces
+          // now that `modal` disables outside pointer events, but the press
+          // still reaches the document, so the guard still earns its place.)
           onInteractOutside={(e) => {
             const target = e.target as Node | null;
             if (target && anchorRef.current?.contains(target)) e.preventDefault();
           }}
+          // (Tapping outside closes the panel WITHOUT also opening the job
+          // card under your finger — that is the scrim's `pointer-events-auto`
+          // doing the work, see `PopoverScrim`. Radix defers this dismiss to
+          // the click, so nothing here can swallow it after the fact; the
+          // scrim has to be what receives the click in the first place.)
+          // The Content box itself is now just the positioner: no padding, no
+          // border, no background, no clipping — the visible card is the inner
+          // div, and the notch (`PopoverArrow`) hangs OUTSIDE that card, so
+          // Content must not clip its own children.
+          className="w-[400px] max-w-[calc(100vw-2rem)] p-0 border-0 bg-transparent shadow-none"
         >
-          <FilterBody
-            sections={sections}
-            activeFilterCount={activeFilterCount}
-            onClearAll={onClearAll}
-            footer={footer}
+          {/* The notch that points back at the sliders icon — says "this
+              opened from THAT button", and that the panel is anchored rather
+              than floating free. Solid fill, not the card's translucency: an
+              SVG cannot inherit a backdrop-filter. */}
+          <PopoverArrow
+            width={16}
+            height={8}
+            className="fill-[hsl(var(--background))] drop-shadow-none"
           />
+          <div
+            className="glass-modal relative flex flex-col overflow-hidden rounded-ds-lg"
+            style={{
+              // The panel must never run under the bottom nav — the owner's
+              // screenshot had the Saved Searches row sheared mid-word by the
+              // panel edge with a job card and the dock still visible below
+              // it. Radix's available-height already stops it at the viewport;
+              // subtract the dock and the home-indicator inset on top of that,
+              // with a floor so a very short viewport still gets a usable
+              // panel rather than a sliver.
+              //
+              // `max(dock, keyboard)` rather than dock + keyboard: the two
+              // occupy the SAME strip of screen — when the keyboard is up it
+              // sits over the dock — so adding them would shrink the panel by
+              // roughly twice what is actually covered.
+              maxHeight: `max(220px, calc(var(--radix-popover-content-available-height, 70vh) - max(var(--bottom-nav-h, 96px), ${keyboardInset}px) - var(--safe-area-bottom, 0px)))`,
+              // The scrolling chip rows fade against the panel's OWN surface,
+              // not the page's — see `--filter-surface` in JobFilters.tsx.
+              "--filter-surface": "var(--background)",
+            } as CSSProperties}
+          >
+            {/* Panel header — a title and an unmistakable way out. There was
+                neither before: the only ✕ on screen belonged to the search
+                INPUT, so that is what people reached for to close the panel
+                (owner: "the x in search also doesn't close it"). */}
+            <div className="shrink-0 flex items-center justify-between gap-3 px-5 pt-4 pb-3 border-b border-[hsl(var(--bark)/0.12)]">
+              <h2 id={titleId} className="font-serif italic text-ds-17 font-bold text-foreground">
+                Refine Your Search
+              </h2>
+              <button
+                type="button"
+                onClick={() => { hapticLight(); onOpenChange(false); }}
+                aria-label="Close filters"
+                // Bare olivewood glyph in a 40x40 box, exactly like
+                // SheetCloseButton — the panel paints its own surface, so the
+                // frosted disc that primitive dropped is not wanted here
+                // either. The global 44px button floor supplies the tap target.
+                className="-mr-2 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-ds-md btn-press transition-colors hover:bg-[hsl(var(--bark)/0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
+                style={{ color: "hsl(var(--olivewood))" }}
+              >
+                <X className="h-5 w-5" strokeWidth={2} />
+              </button>
+            </div>
+
+            {/* The sections scroll INSIDE the card, under a pinned header, so
+                the last row is always reachable and never sheared by the
+                panel edge. */}
+            <PanelScroller>
+              <FilterBody
+                sections={sections}
+                activeFilterCount={activeFilterCount}
+                onClearAll={onClearAll}
+                footer={footer}
+              />
+            </PanelScroller>
+          </div>
         </PopoverContent>
       </Popover>
     );

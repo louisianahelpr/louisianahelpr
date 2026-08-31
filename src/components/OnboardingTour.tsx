@@ -4,7 +4,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Dialog, DialogPortal, DialogOverlay } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Home, ClipboardList, MessageSquare, User, Send, Plus } from "lucide-react";
-import { safeStorage } from "@/lib/safeStorage";
+import { safeStorage, ensureHydrated } from "@/lib/safeStorage";
 import { HelprMark } from "@/components/HelprMark";
 
 type TourStep = {
@@ -131,9 +131,26 @@ const OnboardingTour = ({ profileComplete = false }: OnboardingTourProps) => {
   // completed.
   useEffect(() => {
     if (location.pathname !== "/dashboard") return;
-    if (getState().completed) return;
-    const timer = setTimeout(() => setVisible(true), 1500);
-    return () => clearTimeout(timer);
+    // `getState()` reads localStorage synchronously, but on native the
+    // durable Preferences mirror hasn't necessarily copied back into
+    // localStorage yet at this point — main.tsx renders the app before
+    // `hydrateStorage()` resolves, to avoid blocking first paint. Reading
+    // pre-hydrate can see a stale "not completed" even though the account
+    // finished the tour, re-showing it after eviction/relaunch. Wait for
+    // hydration so this decision uses the durable value.
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    ensureHydrated().then(() => {
+      if (cancelled) return;
+      const hydrated = getState();
+      setState(hydrated);
+      if (hydrated.completed) return;
+      timer = setTimeout(() => setVisible(true), 1500);
+    });
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [location.pathname]);
 
   const updateState = useCallback((updates: Partial<OnboardingState>) => {

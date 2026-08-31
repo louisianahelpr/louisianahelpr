@@ -164,7 +164,9 @@ describe("fetchPostedActivityDetail — My Posts decoration", () => {
   });
 
   it("populates completedJobMeta with tipped+reviewed flags for completed jobs", async () => {
-    setResponse("tips|select,in:job_id=j1&j2,eq:tipper_id=u1", { data: [{ job_id: "j1" }], error: null });
+    // The tips query now filters on payment_status = 'paid', so the mock key
+    // carries that predicate too.
+    setResponse("tips|select,in:job_id=j1&j2,eq:tipper_id=u1,eq:payment_status=paid", { data: [{ job_id: "j1" }], error: null });
     setResponse("reviews|select,in:job_id=j1&j2,eq:reviewer_id=u1", { data: [{ job_id: "j1" }], error: null });
     const inputs = postedDetailInputs([
       job({ id: "j1", status: "completed", helper_id: "helper-1" }),
@@ -173,6 +175,21 @@ describe("fetchPostedActivityDetail — My Posts decoration", () => {
     const result = await fetchPostedActivityDetail("u1", inputs);
     expect(result.completedJobMeta["j1"]).toEqual({ tipped: true, reviewed: true });
     expect(result.completedJobMeta["j2"]).toEqual({ tipped: false, reviewed: false });
+  });
+
+  it("does NOT mark a job tipped when the only tips row is unpaid", async () => {
+    // create-payment writes a `pending` tips row BEFORE the tipper reaches
+    // Stripe. Abandoning that checkout used to leave the row behind forever,
+    // and the unfiltered query counted it — permanently locking the Tip button
+    // to a disabled "Tipped" state, so the poster could never tip and the
+    // helper never got one. The paid filter is what stops that, and this test
+    // fails if anyone removes it: the mock returns nothing for the paid query,
+    // exactly as prod would when the only row is pending.
+    setResponse("tips|select,in:job_id=j1,eq:tipper_id=u1,eq:payment_status=paid", { data: [], error: null });
+    setResponse("reviews|select,in:job_id=j1,eq:reviewer_id=u1", { data: [], error: null });
+    const inputs = postedDetailInputs([job({ id: "j1", status: "completed", helper_id: "helper-1" })]);
+    const result = await fetchPostedActivityDetail("u1", inputs);
+    expect(result.completedJobMeta["j1"]).toEqual({ tipped: false, reviewed: false });
   });
 
   // Regression coverage for the N+1 fixes from #135: one <JobTracking> per

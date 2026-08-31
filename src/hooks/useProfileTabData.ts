@@ -143,7 +143,11 @@ export function useProfileEarnings(userId: string | undefined, enabled: boolean)
       const id = userId!;
       const [jobsRes, tipsRes] = await Promise.all([
         supabase.from("jobs").select("*").eq("helper_id", id).neq("status", "cancelled").order("created_at", { ascending: false }),
-        supabase.from("tips").select("amount, job_id, created_at").eq("helper_id", id),
+        // Only PAID tips count toward displayed earnings. Unfiltered, a
+        // `pending` row — written by create-payment before the tipper even
+        // reaches Stripe, and left behind for good if they abandon checkout —
+        // inflated the helper's earnings by money that never arrived.
+        supabase.from("tips").select("amount, job_id, created_at").eq("helper_id", id).eq("payment_status", "paid"),
       ]);
       const jobs = unwrap(jobsRes) ?? [];
       const allTips = unwrap(tipsRes) ?? [];

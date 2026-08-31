@@ -108,12 +108,21 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
     // the review submission if they fail — photos are a bonus.
     let uploadedPhotoUrls: string[] | null = null;
     if (photoFiles.length > 0) {
+      // The proof-photos INSERT policy requires the FIRST path segment to be
+      // the uploader's uid. This built `reviews/<uid>/…`, putting the literal
+      // "reviews" in segment 1, so RLS rejected EVERY file with a 400 — and
+      // the per-file `continue` below swallowed it, so every review since
+      // launch was submitted with photo_urls: null while the user watched
+      // their photos "attach". DisputeDialog.tsx:76-82 documents this exact
+      // bug being fixed there; this call site never got the same treatment.
       const urls: string[] = [];
+      let uploadFailed = false;
       for (const file of photoFiles) {
         const ext = file.name.split(".").pop() || "jpg";
-        const path = `reviews/${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const path = `${user.id}/reviews/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
         const { error: upErr } = await supabase.storage.from("proof-photos").upload(path, file);
         if (upErr) {
+          uploadFailed = true;
           report(upErr, { tags: { source: "ReviewForm.uploadPhoto" } });
           continue;
         }
@@ -121,6 +130,16 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
         if (urlData?.publicUrl) urls.push(urlData.publicUrl);
       }
       if (urls.length > 0) uploadedPhotoUrls = urls;
+      // Surface a partial failure rather than silently dropping the photos.
+      // The review itself still posts — photos are a bonus, not a blocker —
+      // but the user is told, instead of believing they attached something.
+      if (uploadFailed) {
+        toast.error(
+          urls.length > 0
+            ? "Some photos couldn't be attached — your review was still posted."
+            : "Your photos couldn't be attached — your review was still posted.",
+        );
+      }
     }
 
     const { error } = await supabase.from("reviews").insert({

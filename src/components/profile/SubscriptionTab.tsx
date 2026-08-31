@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import type { CSSProperties } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Crown, CheckCircle, Loader2, RefreshCw, Sparkles } from "lucide-react";
@@ -162,7 +163,13 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
       />
 
       {/* Billing cycle pills — Annual carries the save badge inline so the
-          cheapest option is the most visually inviting one. */}
+          cheapest option is the most visually inviting one. Refresh is a
+          4th segment in the SAME pill, not a second box beside it — two
+          separate liquid-glass containers side by side read as two
+          different controls (owner, 2026-08-30: "should all be in 1 toggle
+          not separates"). It was on the active tier's card first, then
+          beside its "Your Plan" badge, before landing here — both of those
+          crowded a card whose only job is to state "this is your plan." */}
       <div className="flex items-center gap-1 rounded-2xl liquid-glass p-1.5">
         {([
           { key: "one_time" as const, label: "Once" },
@@ -174,11 +181,29 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
             <button
               key={opt.key}
               onClick={() => setBillingInterval(opt.key)}
+              // Matches the Legal page's tab-pill treatment (owner,
+              // 2026-08-30) — the active segment gets the same
+              // `btn-grad-primary` gloss + inset highlight + layered shadow
+              // as Legal's Terms/Rules/Privacy pill, not a flat `bg-primary`
+              // fill.
               className={`flex-1 px-3 h-11 rounded-ds-md text-ds-13 font-semibold transition-all inline-flex items-center justify-center gap-1.5 ${
                 active
-                  ? "bg-primary text-primary-foreground shadow-sm"
+                  ? "btn-grad-primary"
                   : "text-muted-foreground hover:text-foreground"
               }`}
+              style={
+                active
+                  ? {
+                      color: "hsl(var(--parchment))",
+                      border: "1px solid hsl(var(--bark-border))",
+                      boxShadow:
+                        "inset 0 1px 0 hsl(var(--parchment) / 0.22), " +
+                        "0 1px 1px hsl(var(--ink-deep) / 0.10), " +
+                        "0 2px 6px hsl(var(--ink-deep) / 0.12), " +
+                        "0 4px 12px -2px hsl(var(--ink-deep) / 0.08)",
+                    }
+                  : undefined
+              }
             >
               {opt.label}
               {opt.save && (
@@ -213,10 +238,20 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
             </button>
           );
         })}
+        <button
+          type="button"
+          onClick={refreshSubscription}
+          disabled={refreshing}
+          aria-label="Refresh membership status"
+          className="shrink-0 w-11 h-11 rounded-ds-md flex items-center justify-center transition-colors hover:bg-secondary disabled:opacity-60"
+          style={{ color: "hsl(var(--bark))" }}
+        >
+          <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} aria-hidden />
+        </button>
       </div>
 
-      {/* Manage row used to live here — now consolidated into the
-          "Your plan" hero above when actively subscribed. */}
+      {/* Manage row used to live here — now consolidated into the active
+          tier's own card footer below. */}
 
       {/* The one-time pass explainer banner that lived here was removed at the
           owner's direction (2026-08-27). "Once" still needs a duration or it
@@ -257,7 +292,11 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
           and distributes the three cards down it (justify-between) so
           there's no dead zone above the bottom nav, while gap-3 keeps a
           sane minimum spacing on shorter screens. */}
-      <div className="flex-1 flex flex-col justify-between gap-3 min-h-0">
+      {/* gap-8, not gap-3: the "Most Popular"/"Your Plan" pills sit ABOVE
+          each card's top edge (`-top-2`), so a tight gap left them almost
+          touching the price/fee text of the card above (owner, 2026-08-30,
+          twice: "too close" / "needs a lot more spacing"). */}
+      <div className="flex-1 flex flex-col justify-between gap-8 min-h-0">
         {tierConfig.map((tier) => {
           // Free is the plan you are on when you are on no plan at all, so it
           // cannot be matched by name against `subscription_tier` — that column
@@ -321,31 +360,33 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
               )}
               {/* "Current plan" takes priority over "Most popular" if a tier
                   is somehow both — knowing you're already on it is the more
-                  useful fact at that point. Refresh sits right beside the
-                  badge, both pinned top-LEFT — it was top-right at first
-                  (mirroring the badge's opposite corner), but that put its
-                  44px tap target directly over the price column, which also
-                  lives on the right (owner: "your plan" badge is one thing,
-                  it can't collide with the number underneath it). */}
+                  useful fact at that point. Same pill shape/position as
+                  "Most popular" (owner: "your plan needs to fit the top
+                  better like most popular") — just this tier's accent color
+                  instead of primary, plus a gentle heartbeat pulse
+                  (`step-current-pulse`, the same generic pulse the job
+                  tracker's current step uses) so it reads as live status,
+                  not static chrome — owner: "flash like urgent." Refresh
+                  moved off the card entirely, next to the billing toggle
+                  above, so this pill stays exactly as simple as its sibling. */}
               {isActive && !isFree && (
-                <div className="absolute -top-2 left-3 flex items-center gap-1.5">
-                  <span
-                    className="text-ds-9 uppercase px-2 py-0.5 rounded-full font-bold shadow-sm whitespace-nowrap"
-                    style={{ background: accent, color: "hsl(var(--parchment))", letterSpacing: "0.18em" }}
-                  >
-                    Your plan
-                  </span>
-                  <button
-                    type="button"
-                    onClick={refreshSubscription}
-                    disabled={refreshing}
-                    aria-label="Refresh membership status"
-                    className="w-7 h-7 rounded-full flex items-center justify-center bg-background shadow-sm border border-border transition-colors hover:bg-secondary disabled:opacity-60"
-                    style={{ color: "hsl(var(--bark))" }}
-                  >
-                    <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} aria-hidden />
-                  </button>
-                </div>
+                <span
+                  className="absolute -top-2 left-3 text-ds-9 uppercase px-2 py-0.5 rounded-full font-bold shadow-sm whitespace-nowrap step-current-pulse"
+                  style={{
+                    background: accent,
+                    color: "hsl(var(--parchment))",
+                    letterSpacing: "0.18em",
+                    // `accent` is `hsl(var(--token))` — two closing parens, so
+                    // a naive .replace(")", …) would land inside var()'s own
+                    // paren instead of hsl()'s trailing one. Slicing off just
+                    // the LAST char and re-closing is what actually produces
+                    // `hsl(var(--token) / 0.45)`.
+                    "--step-pulse-ring": `${accent.slice(0, -1)} / 0.45)`,
+                    "--step-pulse-ring-end": `${accent.slice(0, -1)} / 0)`,
+                  } as CSSProperties}
+                >
+                  Your plan
+                </span>
               )}
 
               <div className="flex items-start gap-3">
@@ -500,16 +541,13 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                       <CheckCircle className="w-3.5 h-3.5" aria-hidden /> Current
                     </Button>
                   )}
-                  {/* The current PAID plan's own row carries its management
-                      action directly — merged in from what used to be a
-                      separate "your plan" hero card above the list (owner,
-                      2026-08-30: "merge with the plan where it is below").
-                      Refresh lives up in the card's top-right corner instead
-                      of stacked here — a second button in this narrow column
-                      overflowed onto the feature list at phone width, and
-                      pairing it with the "Your plan" badge up top reads as
-                      "here's your plan, here's how to re-check it," in one
-                      glance instead of buried at the bottom. */}
+                  {/* Back up in the price/CTA column, where every other
+                      card's action lives — the bottom-footer version
+                      (below) put it in its own strip past the feature list,
+                      which read as detached from the card's tinted surface
+                      (the background gradient is anchored to the shorter
+                      untinted-footer height) instead of part of it (owner,
+                      2026-08-30: "move back up into box"). */}
                   {isActive && !isFree && (
                     <div className="mt-1 flex flex-col items-end gap-1">
                       {expiresAt && (

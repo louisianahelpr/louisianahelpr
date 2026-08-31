@@ -260,10 +260,18 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, hasHel
                   <p className="text-ds-11 font-semibold text-foreground">Before a Helpr is selected</p>
                   {!hasHelper && <span className="text-ds-10 font-bold bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full">YOU ARE HERE</span>}
                 </div>
-                <p className="text-ds-11 text-muted-foreground mt-0.5">Cancel anytime with no fee. You&apos;ll receive a full refund.</p>
+                {/* Says "budget refunded", not "full refund". The platform
+                    service fee is deliberately withheld — Stripe keeps its cut
+                    on a refund, so returning it would put the platform
+                    out-of-pocket on every cancellation
+                    (void-cancelled-payments/index.ts:320-331). A live run
+                    charged $67.20 and refunded $60.00, exactly as designed —
+                    while this text promised a "full refund", which is the part
+                    that was wrong. */}
+                <p className="text-ds-11 text-muted-foreground mt-0.5">Cancel anytime with no cancellation fee. Your job budget is refunded in full; the service fee isn&apos;t refundable once payment has been processed.</p>
                 <div className="flex items-center gap-1.5 mt-1.5">
                   <CheckCircle className="w-3 h-3 text-primary shrink-0" />
-                  <span className="text-ds-11 text-primary font-medium">$0 fee · Full refund · No consequences</span>
+                  <span className="text-ds-11 text-primary font-medium">$0 cancellation fee · Budget refunded · No consequences</span>
                 </div>
               </div>
             </div>

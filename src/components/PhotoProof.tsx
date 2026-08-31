@@ -86,10 +86,14 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProofProps) 
     // had. Returning here keeps the chosen files in the dialog so the user can
     // simply retry rather than re-picking them.
     if (failedUploads === files.length) {
+      // Don't blame the network. The long-standing cause here was an RLS
+      // policy mismatch (fixed 2026-08-31) — a permanent server-side failure
+      // that no amount of retrying or better signal would ever clear, while
+      // this told the user to check their connection.
       toast.error(
         files.length === 1
-          ? "That photo didn't upload. Check your connection and try again."
-          : "None of those photos uploaded. Check your connection and try again.",
+          ? "That photo didn't upload. Try again — if it keeps failing, contact support."
+          : "None of those photos uploaded. Try again — if it keeps failing, contact support.",
       );
       setUploading(false);
       return;

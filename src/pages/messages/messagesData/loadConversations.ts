@@ -137,6 +137,17 @@ export async function fetchConversations(
     // they don't inflate unread counts or appear as the "last message"
     // preview in the inbox.
     if (m.is_system) return false;
+    // Messages the server hid (scan_message_content sets flagged_hidden when
+    // it detects off-platform contact info) must not surface HERE either. The
+    // three thread-level queries in useMessagesData.ts all filter this; the
+    // inbox query did not, so a message the server had already hidden still
+    // rendered in full — phone number and all — as the conversation's preview
+    // line. That made the off-platform-contact defence bypassable by anyone
+    // POSTing straight to the API: flagged on the server, delivered anyway.
+    // Matches the thread queries' `sender_id.eq.<me>,flagged_hidden.eq.false`
+    // semantics exactly: the SENDER still sees what they wrote (so a blocked
+    // message doesn't just vanish on them), the RECIPIENT does not.
+    if (m.flagged_hidden && m.sender_id !== uid) return false;
     const other = m.sender_id === uid ? m.receiver_id : m.sender_id;
     return !blockedSet.has(other);
   });

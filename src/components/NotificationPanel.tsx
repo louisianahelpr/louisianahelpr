@@ -219,8 +219,11 @@ const NotificationPanel = () => {
     // has one. Only in-app (root-relative) links are navigable; anything
     // absent or malformed just marks read and keeps the panel open.
     if (n.link && n.link.startsWith("/")) {
-      setOpen(false);
+      // Navigate first, close a frame later — closing synchronously in the
+      // same tick as the route change reads as one jarring instant unmount
+      // stacked on top of the page transition.
       navigate(n.link);
+      requestAnimationFrame(() => setOpen(false));
     }
   };
 

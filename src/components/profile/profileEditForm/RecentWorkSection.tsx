@@ -75,16 +75,20 @@ export function RecentWorkSection({
             type="button"
             onClick={() => portfolioInputRef.current?.click()}
             disabled={portfolioUploading}
-            className="aspect-square rounded-2xl border-2 border-dashed border-border/60 hover:border-primary/40 flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-primary active:scale-[0.98] transition-all"
+            className="aspect-square rounded-2xl flex items-center justify-center p-3"
           >
-            {portfolioUploading ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <>
-                <ImagePlus className="w-5 h-5" />
-                <span className="text-ds-10 font-sans font-medium">Add photo</span>
-              </>
-            )}
+            {/* Inset dashed affordance, not a full-bleed tile — reads as "add"
+                rather than a same-size peer of the actual photo thumbnails. */}
+            <div className="w-full h-full rounded-xl border-2 border-dashed border-border/60 hover:border-primary/40 flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-primary active:scale-[0.98] transition-all">
+              {portfolioUploading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  <ImagePlus className="w-4 h-4" />
+                  <span className="text-ds-10 font-sans font-medium">Add photo</span>
+                </>
+              )}
+            </div>
           </button>
         )}
       </div>

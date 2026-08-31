@@ -296,6 +296,9 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
                 {emailError}
               </p>
             )}
+            <p className="text-ds-11 font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              We'll send a confirmation link to verify changes.
+            </p>
           </div>
 
           <DialogFooter>
@@ -383,9 +386,6 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
             Change
           </Button>
         </div>
-        <p className="text-ds-11 font-serif italic pl-10" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-          We'll send a confirmation link to verify changes.
-        </p>
       </div>
 
       <div className="rounded-2xl liquid-glass p-3.5 space-y-1">

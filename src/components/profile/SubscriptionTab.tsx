@@ -541,7 +541,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                       styled span so it inherits the exact box, height and
                       typography of the Subscribe buttons it lines up with. */}
                   {isActive && isFree && (
-                    <Button variant="outline" size="sm" disabled aria-current="true" className="mt-1">
+                    <Button variant="outline" size="sm" disabled aria-current="true">
                       <CheckCircle className="w-3.5 h-3.5" aria-hidden /> Current
                     </Button>
                   )}
@@ -551,31 +551,36 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                       which read as detached from the card's tinted surface
                       (the background gradient is anchored to the shorter
                       untinted-footer height) instead of part of it (owner,
-                      2026-08-30: "move back up into box"). */}
+                      2026-08-30: "move back up into box"). Button and Renews
+                      are direct children of the outer column now, not a
+                      nested div with its own `mt-1` ON TOP of the column's
+                      own `gap-1` — that stacked to a double gap before the
+                      button while every other pair in the column (price→fee,
+                      fee→save) got a single gap-1, so the rhythm wasn't
+                      actually even (owner, 2026-08-30: "every one of the
+                      columns there should have equal spacing"). */}
                   {isActive && !isFree && (
-                    <div className="mt-1 flex flex-col items-end gap-1">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleManageSubscription}
-                        disabled={loadingPortal}
-                        aria-current="true"
-                      >
-                        {loadingPortal ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Crown className="w-3.5 h-3.5" aria-hidden />}
-                        Manage
-                      </Button>
-                      {expiresAt && (
-                        <p
-                          className="font-serif italic leading-none text-ds-12 whitespace-nowrap"
-                          style={{ color: "hsl(var(--olivewood) / 0.75)" }}
-                        >
-                          Renews{" "}
-                          <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
-                            {expiresAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                          </span>
-                        </p>
-                      )}
-                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleManageSubscription}
+                      disabled={loadingPortal}
+                      aria-current="true"
+                    >
+                      {loadingPortal ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Crown className="w-3.5 h-3.5" aria-hidden />}
+                      Manage
+                    </Button>
+                  )}
+                  {isActive && !isFree && expiresAt && (
+                    <p
+                      className="font-serif italic leading-none text-ds-12 whitespace-nowrap"
+                      style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+                    >
+                      Renews{" "}
+                      <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
+                        {expiresAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                      </span>
+                    </p>
                   )}
                   {/* Free carries no BUY CTA in either direction: there is
                       nothing to buy when you are already on it, and when you
@@ -587,10 +592,11 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                     <Button
                       variant={isPro ? "primary" : "outline"}
                       size="sm"
-                      // mt-1: separates the CTA from the price/fee/save
-                      // group above it (owner, 2026-08-30: pricing info and
-                      // the button read as one crammed cluster).
-                      className="mt-1"
+                      // No margin override — the column's own `gap-1` already
+                      // spaces this from the price/fee/save group above it,
+                      // same as every other pair in the column (owner,
+                      // 2026-08-30: "every one of the columns there should
+                      // have equal spacing").
                       onClick={() =>
                         currentTier && !isExpired
                           ? handleManageSubscription()

@@ -1,11 +1,11 @@
-import { type ElementType } from "react";
+import { useState, type ElementType } from "react";
 import { MapPin, Calendar, Clock, Timer, Users } from "lucide-react";
 import { getCity } from "@/lib/locationUtils";
 import { formatJobDate, parseLocalDate } from "@/lib/dateUtils";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
 import { formatTime12 } from "@/components/TimePickerSelect";
 import type { EnrichedJob } from "../types";
-import { mapsSearchUrl } from "@/lib/mapsLink";
+import { JobLocationPreview } from "./JobLocationPreview";
 import { calendarEventUrl } from "@/lib/calendarLink";
 
 interface JobStatTilesProps {
@@ -16,8 +16,11 @@ interface JobStatTilesProps {
 
 /* Stat strip — sits ABOVE the payout pill so the helpr scans the
    facts (where, when, how long, deadline) before they see the
-   payout. Where + Date are clickable: Where opens Google Maps,
-   Date opens Google Calendar.
+   payout. Where + Date are both tappable: Where expands an inline
+   MapKit pin IN this sheet (owner, 2026-08-31: "it should show where
+   it is on the map in the webpage... not leave the webpage and go
+   elsewhere" — it used to open an external maps site), Date opens the
+   platform's own calendar.
 
    WHERE / DATE / TIME render as ONE compact row, not three tiles
    (owner decision 2026-08-22). As tiles those three short values —
@@ -33,6 +36,7 @@ interface JobStatTilesProps {
    space. The row stays >=44pt tall so Where/Date remain HIG-legal tap
    targets. */
 export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStatTilesProps) => {
+  const [showMap, setShowMap] = useState(false);
   // auto-rows-fr + the last-child span keeps the final tile from sitting as a
   // lone full-width slab. With an ODD tile count (5 here: Where, Date, Time,
   // Estimated, Closes) a plain 2-col grid strands the last one; spanning it
@@ -50,8 +54,8 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
           // Platform-aware (owner, 2026-08-30: "what if they're on the app?
           // then app should open the calendar on their phone") — native opens
           // the device's own calendar app via an .ics payload instead of
-          // always building a Google Calendar web link. Same pattern as
-          // mapsSearchUrl below for the Where tile.
+          // always building a Google Calendar web link. The Where tile below
+          // no longer links out at all — it expands an inline MapKit pin.
           calendarUrl = calendarEventUrl(
             job.title,
             dateNeeded.toISOString(),
@@ -60,11 +64,6 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
             job.location,
           );
         }
-        // Same helper as the activity cards, so the two surfaces open the same
-        // app with the same query — and so the platform choice lives in one
-        // place. This one already used the address; it just did not know about
-        // Apple Maps or Android's geo: intent.
-        const mapsUrl = mapsSearchUrl(job.location);
         // Distance estimate when both helpr coords + parish centroid
         // available. distMilesForDriving + drivingLabel are computed
         // above (because useDrivingTime is a hook); we just compose
@@ -84,13 +83,24 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
           : null;
         const closesUrgent = hoursLeft != null && hoursLeft >= 0 && hoursLeft < 24;
         const tiles = [
-          { Icon: MapPin, label: "Where", value: getCity(job.location).replace(/,\s*LA\s*$/i, ""), sub: distLabel, href: mapsUrl, urgent: false },
+          {
+            Icon: MapPin,
+            label: "Where",
+            value: getCity(job.location).replace(/,\s*LA\s*$/i, ""),
+            sub: distLabel,
+            href: null,
+            onClick: () => setShowMap((v) => !v),
+            expanded: showMap,
+            urgent: false,
+          },
           {
             Icon: Calendar,
             label: "Date",
             value: dateValid ? formatJobDate(job.date_needed) : "—",
             sub: null,
             href: calendarUrl,
+            onClick: undefined,
+            expanded: undefined,
             urgent: false,
           },
           // Time is its own tile (not a sub-line under Date) so the date
@@ -105,6 +115,8 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
                 value: formatTime12(job.start_time),
                 sub: null,
                 href: null,
+                onClick: undefined,
+                expanded: undefined,
                 urgent: false,
               }]
             : []),
@@ -123,6 +135,8 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
                 value: `${job.helpers_needed} Helprs`,
                 sub: null,
                 href: null,
+                onClick: undefined,
+                expanded: undefined,
                 urgent: false,
               }]
             : []),
@@ -143,6 +157,8 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
                 value: formatDistanceToNow(new Date(job.expires_at), { addSuffix: false }),
                 sub: null,
                 href: null,
+                onClick: undefined,
+                expanded: undefined,
                 urgent: closesUrgent,
               }]
             : []),
@@ -164,17 +180,19 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
             key="compact-meta"
             className={`grid gap-1.5 ${rowItems.length === 4 ? "grid-cols-4" : "grid-cols-3"}`}
           >
-            {rowItems.map(({ Icon, label, value, sub, href }) => {
-              const Wrapper: ElementType = href ? "a" : "div";
-              const wrapperProps: { href?: string; target?: string; rel?: string } = href
+            {rowItems.map(({ Icon, label, value, sub, href, onClick, expanded }) => {
+              const Wrapper: ElementType = href ? "a" : onClick ? "button" : "div";
+              const wrapperProps: { href?: string; target?: string; rel?: string; type?: string; onClick?: () => void; "aria-expanded"?: boolean } = href
                 ? { href, target: "_blank", rel: "noopener noreferrer" }
+                : onClick
+                ? { type: "button", onClick, "aria-expanded": expanded }
                 : {};
               return (
                 <Wrapper
                   key={label}
                   {...wrapperProps}
-                  aria-label={href ? `${label}: ${value}` : undefined}
-                  className={`min-w-0 flex flex-col items-center justify-center gap-0.5 rounded-ds-md px-1.5 py-2 text-center ${href ? "glass-press cursor-pointer" : ""}`}
+                  aria-label={href || onClick ? `${label}: ${value}` : undefined}
+                  className={`min-w-0 flex flex-col items-center justify-center gap-0.5 rounded-ds-md px-1.5 py-2 text-center ${href || onClick ? "glass-press cursor-pointer" : ""}`}
                   style={{
                     backgroundColor: "var(--glass-bg-soft)",
                     backdropFilter: "blur(18px) saturate(160%)",
@@ -281,6 +299,9 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
         return (
           <>
             {compactRow}
+            {/* Replaces the old external-maps link — tapping "Where" reveals
+                the pin IN this sheet instead of leaving the page. */}
+            {showMap && <JobLocationPreview address={job.location} />}
             {tileGrid}
           </>
         );

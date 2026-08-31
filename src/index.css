@@ -955,6 +955,20 @@ html.web-desktop {
   html.web-desktop .mobile-nav-frame {
     display: none !important;
   }
+  /* `.empty-state-dock` (EmptyState.tsx, `dock` variant) squares its bottom
+     corners inline so the card bleeds under the floating mobile dock with no
+     hard edge. That dock doesn't exist here — it's hidden above — so the
+     card's bottom edge on desktop ends inside the panel with nothing to
+     bleed under. Round it back to match the top and restore the hairline
+     border `.liquid-glass` normally carries on every edge (EmptyState zeroes
+     it only for the mobile bleed). `!important` needed: EmptyState sets the
+     zeroed radii as an inline style, which only a stylesheet `!important`
+     rule can beat. */
+  html.web-desktop .empty-state-dock {
+    border-bottom-left-radius: 1.5rem !important;
+    border-bottom-right-radius: 1.5rem !important;
+    border-bottom: 1px solid hsl(var(--border)) !important;
+  }
   /* Widen the inner content column on desktop. PageScaffold's centered column
      is capped at max-w-3xl (768px) on mobile; on desktop it FILLS the frame.
 

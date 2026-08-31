@@ -79,7 +79,7 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
           on SOONER was the one further down the card, under the step they
           could not reach yet. Chronological order top to bottom: confirm the
           day before, then the job starts, then the tracker runs on the day. */}
-      <JobConfirmation jobId={app.job_id} isOwner={false} isHelper={true} posterConfirmedAt={job.poster_confirmed_at} helperConfirmedAt={job.helper_confirmed_at} helperDayofConfirmedAt={job.helper_dayof_confirmed_at} dateNeeded={job.date_needed} jobStatus={job.status} helperOnTheWayAt={job.helper_on_the_way_at} />
+      <JobConfirmation jobId={app.job_id} isOwner={false} isHelper={true} posterConfirmedAt={job.poster_confirmed_at} helperConfirmedAt={job.helper_confirmed_at} helperDayofConfirmedAt={job.helper_dayof_confirmed_at} dateNeeded={job.date_needed} jobStatus={job.status} helperOnTheWayAt={job.helper_on_the_way_at} onCantMakeIt={() => setCancelOpen(true)} />
       {/* Job countdown */}
       <JobCountdown dateNeeded={job.date_needed} startTime={job.start_time} label="Job starts in" />
       {/* The pets, and everything the owner already wrote down about them.

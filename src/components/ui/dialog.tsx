@@ -144,7 +144,13 @@ const DialogContent = React.forwardRef<
         // owner asked for centred; if the jump becomes a problem the fix is to
         // reserve the content's height, not to re-anchor one shell and split
         // the two dialog primitives apart again.
-        "glass-modal fixed left-1/2 top-1/2 [translate:-50%_-50%] z-50 grid w-auto max-w-[calc(100%-2rem)] sm:max-w-lg max-h-[86vh] overflow-y-auto gap-3 p-4 sm:p-5 duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+        // focus:outline-none (not focus-visible:) — this element is a Radix
+        // FocusScope focus-parking target (tabIndex={-1} from onOpenAutoFocus
+        // above), not a real keyboard-navigable widget. It never has a
+        // meaningful "visible focus" state to preserve, so the browser's
+        // default ring must be suppressed for every focus source, including
+        // the mouse-click case where FocusScope re-parks focus here.
+        "glass-modal fixed left-1/2 top-1/2 [translate:-50%_-50%] z-50 grid w-auto max-w-[calc(100%-2rem)] sm:max-w-lg max-h-[86vh] overflow-y-auto gap-3 p-4 sm:p-5 duration-300 focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
         className,
       )}
       // Radix warns once per open when a Content has no `Description` and no

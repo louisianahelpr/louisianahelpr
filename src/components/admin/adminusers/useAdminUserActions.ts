@@ -76,10 +76,17 @@ export const makeAdminUserActions = ({
       });
       if (error) throw error;
 
-      await supabase.from("profiles").update({
-        approval_email_count: (profile.approval_email_count || 0) + 1,
-        last_approval_email_at: new Date().toISOString(),
-      }).eq("id", profile.id);
+      try {
+        unwrapMutation(
+          await supabase.from("profiles").update({
+            approval_email_count: (profile.approval_email_count || 0) + 1,
+            last_approval_email_at: new Date().toISOString(),
+          }).eq("id", profile.id).select("id"),
+          { action: "record the approval-email resend" },
+        );
+      } catch (countErr) {
+        report(countErr, { tags: { source: "AdminUsers.resendApprovalEmail.count" } });
+      }
 
       loadProfiles();
     } catch (err: any) {
@@ -99,10 +106,17 @@ export const makeAdminUserActions = ({
       if (error) throw error;
 
       // Update count
-      await supabase.from("profiles").update({
-        denial_email_count: (profile.denial_email_count || 0) + 1,
-        last_denial_email_at: new Date().toISOString(),
-      }).eq("id", profile.id);
+      try {
+        unwrapMutation(
+          await supabase.from("profiles").update({
+            denial_email_count: (profile.denial_email_count || 0) + 1,
+            last_denial_email_at: new Date().toISOString(),
+          }).eq("id", profile.id).select("id"),
+          { action: "record the denial-email resend" },
+        );
+      } catch (countErr) {
+        report(countErr, { tags: { source: "AdminUsers.resendDenialEmail.count" } });
+      }
 
       loadProfiles();
     } catch (err: any) {

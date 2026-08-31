@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
+import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
 import { report } from "@/lib/errorLogger";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -96,13 +97,18 @@ const AdminBroadcasts = () => {
     if (!pending) return;
     // Clear the pending stamp so the sweeper skips it; expire the banner
     // so it disappears from users' surfaces immediately.
-    const { error } = await supabase
-      .from("broadcast_messages")
-      .update({ pending_push_fan_out_at: null, expires_at: new Date().toISOString() })
-      .eq("id", pending.id);
-    if (error) {
-      report(error, { tags: { source: "AdminBroadcasts.cancelPending" } });
-      toast.error(`Couldn't cancel: ${error.message}`);
+    try {
+      unwrapMutation(
+        await supabase
+          .from("broadcast_messages")
+          .update({ pending_push_fan_out_at: null, expires_at: new Date().toISOString() })
+          .eq("id", pending.id)
+          .select("id"),
+        { action: "cancel this broadcast" },
+      );
+    } catch (err) {
+      report(err as Error, { tags: { source: "AdminBroadcasts.cancelPending" } });
+      toast.error(`Couldn't cancel: ${mutationErrorMessage(err)}`);
       return;
     }
     qc.invalidateQueries({ queryKey: BROADCASTS_KEY });

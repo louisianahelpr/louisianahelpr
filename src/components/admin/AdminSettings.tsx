@@ -13,6 +13,7 @@ import { TIER_PERKS, type SubscriptionTier } from "@/lib/subscriptionTiers";
 import { AdminViewShell, AdminCard } from "./AdminViewShell";
 import type { Database } from "@/integrations/supabase/types";
 import { logAdminAction } from "@/lib/adminAudit";
+import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
 import { Switch } from "@/components/ui/switch";
 import { EmptyState } from "@/components/ui/EmptyState";
 
@@ -131,18 +132,24 @@ const AdminSettings = () => {
       return;
     }
     setSavingMinBuild(true);
-    const { error } = await (supabase.from as any)("platform_settings")
-      .update({ min_supported_build: n })
-      .eq("id", settingsId);
-    setSavingMinBuild(false);
-    if (error) {
-      if (error.code === "42703") {
+    try {
+      unwrapMutation(
+        await (supabase.from as any)("platform_settings")
+          .update({ min_supported_build: n })
+          .eq("id", settingsId)
+          .select("id"),
+        { action: "update the minimum supported build" },
+      );
+    } catch (err: any) {
+      setSavingMinBuild(false);
+      if (err?.code === "42703") {
         toast.error("This setting isn't live yet — the latest database update is still deploying. Try again in a few minutes.");
       } else {
-        toast.error(error.message);
+        toast.error(mutationErrorMessage(err, err?.message));
       }
       return;
     }
+    setSavingMinBuild(false);
     await logAdminAction("update_settings", "platform_settings", settingsId, {
       min_supported_build: n,
     });
@@ -154,20 +161,26 @@ const AdminSettings = () => {
     const nextFlags = { ...featureFlags, [id]: value };
     // Optimistic — flip immediately so the UI feels responsive.
     setFeatureFlags(nextFlags);
-    const { error } = await (supabase.from as any)("platform_settings")
-      .update({ feature_flags: nextFlags })
-      .eq("id", settingsId);
-    setSavingFlag(null);
-    if (error) {
+    try {
+      unwrapMutation(
+        await (supabase.from as any)("platform_settings")
+          .update({ feature_flags: nextFlags })
+          .eq("id", settingsId)
+          .select("id"),
+        { action: "update this feature flag" },
+      );
+    } catch (err: any) {
+      setSavingFlag(null);
       // Roll back optimistic change on failure.
       setFeatureFlags(featureFlags);
-      if (error.code === "42703") {
+      if (err?.code === "42703") {
         toast.error("This setting isn't live yet — the latest database update is still deploying. Try again in a few minutes.");
       } else {
-        toast.error(error.message);
+        toast.error(mutationErrorMessage(err, err?.message));
       }
       return;
     }
+    setSavingFlag(null);
     await logAdminAction("update_settings", "platform_settings", settingsId, {
       feature_flag: id,
       value,
@@ -182,15 +195,22 @@ const AdminSettings = () => {
       return;
     }
     setSavingWebhook(true);
-    const { error } = await supabase
-      .from("platform_settings")
-      .update({ social_webhook_url: url || null })
-      .eq("id", settingsId);
-    setSavingWebhook(false);
-    if (error) toast.error(error.message);
-    else {
-      await logAdminAction("update_settings", "platform_settings", settingsId, { social_webhook_url: url ? "set" : "cleared" });
+    try {
+      unwrapMutation(
+        await supabase
+          .from("platform_settings")
+          .update({ social_webhook_url: url || null })
+          .eq("id", settingsId)
+          .select("id"),
+        { action: "update the social webhook URL" },
+      );
+    } catch (err: any) {
+      setSavingWebhook(false);
+      toast.error(mutationErrorMessage(err, err?.message));
+      return;
     }
+    setSavingWebhook(false);
+    await logAdminAction("update_settings", "platform_settings", settingsId, { social_webhook_url: url ? "set" : "cleared" });
   };
 
   const loadAdmins = async () => {

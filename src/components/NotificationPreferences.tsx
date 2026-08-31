@@ -163,30 +163,39 @@ const NotificationPreferences = () => {
     void patchPrefs(patch, "email_master");
   };
 
-  // Test push — proves the whole pipeline (preference → push token →
-  // APNs/FCM → device). Insert a notification row for ourselves; a DB
-  // trigger fans the row out to send-push-notification (see migration
-  // 20260506120000). create-notification is the user-callable wrapper
+  // Test notification — proves the pipeline end-to-end. Insert a
+  // notification row for ourselves; a DB trigger fans it out to
+  // send-push-notification (see migration 20260506120000) AND
+  // create-notification itself chains send-notification-email with the
+  // service-role key. create-notification is the user-callable wrapper
   // that lets a signed-in user target *themselves* (it 403s on any
   // other user_id unless the caller is admin), so we don't need a
   // service-role bearer here.
+  //
+  // Previously this whole button was disabled with zero registered push
+  // devices, which left web/desktop users (and anyone who hasn't opened
+  // the native app yet) with no way to test ANY channel — even though
+  // the same call also lands an in-app bell notification and an email.
+  // Push is just one of three channels this call exercises, so only the
+  // absence of a signed-in user (or a call in flight) should block it.
   const sendTestPush = async () => {
     if (!userId || sendingTest) return;
-    if (pushTokenCount === 0) {
-      toast.error("No devices registered. Open the app on your phone and grant push permission first.");
-      return;
-    }
     setSendingTest(true);
     try {
       const { error } = await supabase.functions.invoke("create-notification", {
         body: {
           user_id: userId,
           title: "Test from Helpr",
-          message: "If you got this, push is working. " + new Date().toLocaleTimeString(),
+          message: "If you got this, notifications are working. " + new Date().toLocaleTimeString(),
           type: "info",
         },
       });
       if (error) throw error;
+      toast.success(
+        pushTokenCount === 0
+          ? "Test sent — check your email and the bell icon."
+          : "Test sent — check your device, email, and the bell icon.",
+      );
     } catch (err: unknown) {
       hapticError();
       const msg = err instanceof Error ? err.message : "Test failed.";
@@ -518,10 +527,10 @@ const NotificationPreferences = () => {
         </div>
       ))}
 
-      {/* Test-push button — proves the whole pipeline (preference → token
-          → APNs/FCM → device) end-to-end. Disabled with explanatory copy
-          when no devices are registered (i.e. the user hasn't opened the
-          mobile app and granted push permission yet). Placed at the
+      {/* Test button — proves push + email + in-app end-to-end (see
+          sendTestPush above). Zero registered push devices no longer
+          disables the whole thing — email and the in-app bell still
+          fire, so the copy just narrows what to expect. Placed at the
           BOTTOM of the list — it's a diagnostic action, not a
           preference, so it shouldn't compete with the settings above it
           for the user's first glance. */}
@@ -550,22 +559,22 @@ const NotificationPreferences = () => {
             </Label>
             <p className="font-serif italic mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               {pushTokenCount === 0
-                ? "No devices registered yet — open the app on your phone first."
-                : `Push to ${pushTokenCount} registered device${pushTokenCount === 1 ? "" : "s"}.`}
+                ? "No devices registered — we'll test by email and in-app instead."
+                : `Push to ${pushTokenCount} registered device${pushTokenCount === 1 ? "" : "s"}, plus email and in-app.`}
             </p>
           </div>
         </div>
         <button
           type="button"
           onClick={sendTestPush}
-          disabled={!loaded || sendingTest || pushTokenCount === 0 || !prefs.push_enabled}
+          disabled={!loaded || sendingTest}
           className="shrink-0 ml-2 inline-flex items-center gap-1 rounded-ds-sm px-2 py-1 text-ds-10 font-sans font-semibold active:scale-[0.96] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           style={{
             background: "hsl(var(--bark))",
             color: "hsl(var(--parchment))",
             border: "1px solid hsl(var(--bark))",
           }}
-          aria-label="Send test push notification"
+          aria-label="Send test notification"
         >
           {sendingTest ? (
             <>

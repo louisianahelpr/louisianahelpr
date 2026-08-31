@@ -182,7 +182,9 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
           >
             {rowItems.map(({ Icon, label, value, sub, href, onClick, expanded }) => {
               const Wrapper: ElementType = href ? "a" : onClick ? "button" : "div";
-              const wrapperProps: { href?: string; target?: string; rel?: string; type?: string; onClick?: () => void; "aria-expanded"?: boolean } = href
+              // `type` is the button literal union, not a bare string — a
+              // widened `string` here fails to satisfy <button>'s prop type.
+              const wrapperProps: { href?: string; target?: string; rel?: string; type?: "button" | "reset" | "submit"; onClick?: () => void; "aria-expanded"?: boolean } = href
                 ? { href, target: "_blank", rel: "noopener noreferrer" }
                 : onClick
                 ? { type: "button", onClick, "aria-expanded": expanded }

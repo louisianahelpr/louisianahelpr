@@ -1,7 +1,9 @@
-import { Star, ChevronDown } from "lucide-react";
+import { useState } from "react";
+import { Star, ChevronDown, MoreHorizontal } from "lucide-react";
 import { getCategoryIcon } from "@/lib/categoryIcons";
 import { formatShortDate, formatCategory } from "@/lib/format";
 import type { ProfileReview } from "./types";
+import ReportDialog from "@/components/ReportDialog";
 
 type RatingFilter = "all" | "5" | "4" | "low";
 
@@ -53,6 +55,8 @@ export const ReviewsSection = ({
   loadMoreReviews,
   loadingMoreReviews,
 }: Props) => {
+  // Which review the report dialog is open for (null = closed).
+  const [reportingReviewId, setReportingReviewId] = useState<string | null>(null);
   const PAGE_SIZE = 5;
   // Distinct categories that appear in this helper's reviews,
   // computed once per render. Sorted alphabetically with a
@@ -215,7 +219,23 @@ export const ReviewsSection = ({
                   </div>
                   <span className="text-ds-11 font-medium text-foreground">{r.reviewerName}</span>
                 </div>
-                <span className="text-muted-foreground text-ds-11">{formatShortDate(r.created_at)}</span>
+                <div className="flex items-center gap-1 shrink-0">
+                  <span className="text-muted-foreground text-ds-11">{formatShortDate(r.created_at)}</span>
+                  {/* Report a review — user-generated content must be
+                      reportable (App Store guideline 1.2). The only
+                      `reportedType="review"` caller in the codebase lived in
+                      ReviewList.tsx, which is never mounted anywhere, so the
+                      admin review-takedown queue could never receive anything.
+                      Placed per-review so the report names which one. */}
+                  <button
+                    type="button"
+                    aria-label="Report this review"
+                    onClick={() => setReportingReviewId(r.id)}
+                    className="h-11 w-11 -mr-2 inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <MoreHorizontal className="w-4 h-4" aria-hidden />
+                  </button>
+                </div>
               </div>
               <p className="text-muted-foreground text-ds-11">For: {r.jobTitle}</p>
               {r.feedback && <p className="text-ds-13 text-foreground leading-relaxed">{r.feedback}</p>}
@@ -330,6 +350,15 @@ export const ReviewsSection = ({
           </p>
         </div>
       )}
+
+      {/* One dialog for the whole list, keyed by which review is being
+          reported — mounting one per card would put N dialogs in the tree. */}
+      <ReportDialog
+        open={reportingReviewId !== null}
+        onClose={() => setReportingReviewId(null)}
+        reportedType="review"
+        reportedId={reportingReviewId ?? ""}
+      />
     </div>
   );
 };

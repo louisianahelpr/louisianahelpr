@@ -363,11 +363,25 @@ describe("release-payout edge function", () => {
       expect(transferArgs.amount).toBe(8800);
       expect(transferArgs.destination).toBe("acct_helper");
 
+      // The ledger row is INSERTed as `pending` BEFORE Stripe is called, then
+      // settled to `paid` by a follow-up update. That inversion is the claim
+      // protocol (20260831190418): the row is what arbitrates between two
+      // concurrent payout paths — a partial unique index on
+      // (job_id, helper_id) means the loser gets 23505 and never reaches
+      // transfers.create. Writing it afterwards, as this test used to assert,
+      // is exactly the ordering that allowed a double transfer.
       const ledger = scenario.writes.find(
         (w) => w.table === "payout_transfers" && w.op === "insert",
       );
-      expect((ledger?.payload as Record<string, unknown>).status).toBe("paid");
+      expect((ledger?.payload as Record<string, unknown>).status).toBe("pending");
       expect((ledger?.payload as Record<string, unknown>).amount_cents).toBe(8800);
+
+      // …and it must be settled once the transfer returns, or the claim
+      // strands and blocks every future payout on this job.
+      const settle = scenario.writes.find(
+        (w) => w.table === "payout_transfers" && w.op === "update",
+      );
+      expect((settle?.payload as Record<string, unknown>).status).toBe("paid");
 
       const jobWrite = scenario.writes.find(
         (w) => w.table === "jobs" && w.op === "update",
@@ -597,9 +611,20 @@ describe("release-payout edge function", () => {
       expect(stripeMock.paymentIntents.retrieve).not.toHaveBeenCalled();
     });
 
-    it("returns 500 when the transfer succeeded but the ledger write failed", async () => {
+    it("a failed ledger write means NO transfer was attempted", async () => {
+      // This test used to assert the opposite shape — "the transfer succeeded
+      // but the ledger write failed", 500 with a transfer id to reconcile by
+      // hand. That scenario is no longer reachable, and its unreachability is
+      // the whole point of the claim protocol (20260831190418).
+      //
+      // The ledger row is now INSERTed as `pending` BEFORE Stripe is called,
+      // because that row is what arbitrates between two concurrent payout
+      // paths: a partial unique index on (job_id, helper_id) means the second
+      // claimant gets 23505 and stands down without reaching transfers.create.
+      // A consequence worth having is this one — money can no longer move
+      // while the record of it fails to. The old ordering left an operator
+      // reconciling a real transfer by hand from an error message.
       seedPayableJob(scenario);
-      // Transfer goes through, but the payout_transfers INSERT errors.
       scenario.writeErrors.payout_transfers = {
         message: "ledger insert failed",
       };
@@ -611,10 +636,10 @@ describe("release-payout edge function", () => {
         }),
       );
       expect(res.status).toBe(500);
-      const out = await json(res);
-      expect(out.error).toMatch(/ledger write failed/i);
-      // The transfer id is surfaced so an operator can reconcile by hand.
-      expect(out.stripe_transfer_id).toBeTruthy();
+      expect((await json(res)).error).toMatch(/claim/i);
+      // The load-bearing assertion: Stripe was never touched, so there is no
+      // real transfer stranded behind a failed write.
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
     });
   });
 });

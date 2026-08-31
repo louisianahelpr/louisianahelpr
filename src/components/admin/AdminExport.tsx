@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { helperPlatformFeeDollars, isSettledForDisplay } from "@/lib/helperEarnings";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { Button } from "@/components/ui/button";
@@ -100,7 +101,9 @@ const AdminExport = () => {
 
   const exportEarnings = async () => {
     setExporting("earnings");
-    const { data, error } = await supabase.from("jobs").select("id, title, budget, platform_fee_amount, platform_fee_percent, helper_id, customer_id, status, updated_at, payment_status, urgent_fee").eq("status", "completed");
+    // helper_fee_percent, is_group_job and helpers_needed are selected because
+    // the stamped fee alone is not the truth — see the header note below.
+    const { data, error } = await supabase.from("jobs").select("id, title, budget, platform_fee_amount, platform_fee_percent, helper_fee_percent, is_group_job, helpers_needed, helper_id, customer_id, status, updated_at, payment_status, urgent_fee").eq("status", "completed");
     if (error) {
       report(error, { tags: { source: "AdminExport.exportEarnings" } });
       toast.error("Export failed: " + error.message);
@@ -108,8 +111,40 @@ const AdminExport = () => {
       return;
     }
     if (!data?.length) { toast.error("No data to export."); setExporting(null); return; }
-    const header = "Job ID,Title,Budget,Platform Fee,Fee %,Urgent Fee,Helper ID,Customer ID,Payment Status,Completed At";
-    const rows = data.map(j => [j.id, j.title, j.budget, j.platform_fee_amount, j.platform_fee_percent, j.urgent_fee, j.helper_id, j.customer_id, j.payment_status, j.updated_at].map(esc).join(","));
+    // WHY THIS CSV CARRIES TWO FEE COLUMNS.
+    //
+    // `jobs.platform_fee_amount` / `helper_fee_percent` are stamped at ESCROW —
+    // before a helper exists — from the global platform_settings rate. An Elite
+    // helper actually pays 8%, but a job funded before they were assigned is
+    // recorded as 10%. Money moves correctly and the app already shows the
+    // right figure (helperEarnings.isSettledForDisplay works around it), but
+    // this export read the raw column and therefore OVERSTATED retained
+    // commission — on the file labelled tax/earnings.
+    //
+    // Both are exported deliberately. "Platform Fee (stamped)" is the ledger
+    // value an auditor reconciles against; "Platform Fee (resolved)" is what
+    // was actually retained. "Fee Settled" says which one to trust: on a
+    // settled row the stamp IS the record of what the payout deducted, and the
+    // two agree.
+    const FEE_FALLBACK_PERCENT = 10;
+    const header =
+      "Job ID,Title,Budget,Platform Fee (stamped),Platform Fee (resolved),Fee %,Helper Fee %,Fee Settled,Urgent Fee,Helper ID,Customer ID,Payment Status,Completed At";
+    const rows = data.map((j) => {
+      const settled = isSettledForDisplay(j as Parameters<typeof isSettledForDisplay>[0]);
+      const resolved = helperPlatformFeeDollars(
+        j as Parameters<typeof helperPlatformFeeDollars>[0],
+        FEE_FALLBACK_PERCENT,
+      );
+      return [
+        j.id, j.title, j.budget,
+        j.platform_fee_amount,
+        resolved.toFixed(2),
+        j.platform_fee_percent,
+        j.helper_fee_percent,
+        settled ? "yes" : "no",
+        j.urgent_fee, j.helper_id, j.customer_id, j.payment_status, j.updated_at,
+      ].map(esc).join(",");
+    });
     downloadCSV(`earnings-${new Date().toISOString().slice(0, 10)}.csv`, header, rows);
     setExporting(null);
   };

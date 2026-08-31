@@ -321,8 +321,15 @@ export default defineConfig(({ mode }) => ({
         name: "Helpr — Louisiana Help Marketplace",
         short_name: "Helpr",
         description: "Connect with trusted Louisiana neighbors for cleaning, errands, moving, yard work, and more.",
-        theme_color: "#1FA678",
-        background_color: "#FFFFFF",
+        // MUST match public/manifest.webmanifest and the five other places
+        // index.html:14-24 enumerates. VitePWA emits manifest.webmanifest as a
+        // build asset, so in the production build THIS object wins over the
+        // static file — and it was still the old teal while every other surface
+        // had moved to the parchment ground. index.html's own comment records
+        // "the manifest was teal" as a fixed bug; the fix landed in public/ and
+        // never reached the generator that overwrites it.
+        theme_color: "#F1F2F4",
+        background_color: "#F1F2F4",
         display: "standalone",
         orientation: "portrait",
         scope: "/",

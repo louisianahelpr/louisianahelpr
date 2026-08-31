@@ -188,15 +188,54 @@ const AdminPayoutBatches = () => {
     if (!ok) return;
     setPaying(batch.helper_id);
     try {
-      const { data, error } = await supabase.functions.invoke("stripe-payouts", {
-        body: { helper_id: batch.helper_id },
-      });
-      if (error) throw error;
-      assertTransferHappened(data);
-      await logAdminAction("trigger_payout", "user", batch.helper_id, {
-        job_count: batch.job_count,
-        total_payout: batch.total_payout,
-      });
+      // `release-payout` is what actually transfers, and it takes a JOB id.
+      // get_payout_batches() aggregates by helper and returns no job ids,
+      // which is why the old call went to `stripe-payouts` — a function that
+      // never reads helper_id and only reports the CALLER's own balance. It
+      // answered 200 with no `error`, so this handler logged a payout that
+      // never happened. get_payout_batch_job_ids (20260831213026) shares that
+      // RPC's predicate exactly, so what we pay is what the batch counted.
+      const { data: jobRows, error: jobsErr } = await supabase
+        .rpc("get_payout_batch_job_ids", { p_helper_id: batch.helper_id });
+      if (jobsErr) throw jobsErr;
+      const jobIds = (jobRows ?? []).map((r: { job_id: string }) => r.job_id);
+      if (jobIds.length === 0) {
+        // Zero rows is also what a non-admin sees, by design in the RPC.
+        throw new Error(
+          "Nothing left to pay in this batch — it may have settled already. Refresh to re-check.",
+        );
+      }
+
+      // One job at a time, and a partial success is reported as one. The claim
+      // protocol in release-payout means a job already paid answers cleanly
+      // rather than double-paying, so a retry after a partial failure is safe.
+      const failures: string[] = [];
+      for (const jobId of jobIds) {
+        const { data, error } = await supabase.functions.invoke("release-payout", {
+          body: { job_id: jobId },
+        });
+        if (error) { failures.push(jobId); continue; }
+        try { assertTransferHappened(data); } catch { failures.push(jobId); }
+      }
+
+      const paid = jobIds.length - failures.length;
+      // Log what ACTUALLY moved, not what was attempted. The whole reason this
+      // path is being rewritten is that the audit log recorded a payout that
+      // never happened.
+      if (paid > 0) {
+        await logAdminAction("trigger_payout", "user", batch.helper_id, {
+          jobs_attempted: jobIds.length,
+          jobs_paid: paid,
+          jobs_failed: failures.length,
+          total_payout: batch.total_payout,
+        });
+      }
+      if (failures.length > 0) {
+        throw new Error(
+          `Paid ${paid} of ${jobIds.length}. ${failures.length} could not be released — ` +
+            `they stay in the batch, and retrying is safe.`,
+        );
+      }
       qc.invalidateQueries({ queryKey });
     } catch (err: unknown) {
       report(err, { tags: { source: "AdminPayoutBatches.triggerPayout" } });

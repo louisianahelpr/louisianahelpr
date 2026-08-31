@@ -101,6 +101,28 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/helperFees.ts";`,
   );
 
+  // Cron result envelope: `_shared/cron-result.ts` is a pure shape helper (no
+  // Deno, no network) that decides a cron's HTTP status from its defect count.
+  // Point at the REAL module — whether a failed run answers non-2xx is exactly
+  // the thing the silent-cron watcher depends on, and several crons were
+  // answering 200 on failure until recently.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/cron-result\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/cron-result.ts";`,
+  );
+
+  // Payout claim protocol: `_shared/payoutClaim.ts` has ZERO imports — it takes
+  // the Supabase client as a parameter — so the generated file points at the
+  // REAL module rather than a mock. This is deliberate: the claim protocol is
+  // what stands between two concurrent payout paths and a double transfer
+  // (INSERT the ledger row BEFORE Stripe, unique index arbitrates, the loser
+  // gets 23505 and never reaches transfers.create). Mocking it would mean the
+  // one guard against paying a helper twice is the one thing not under test.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/payoutClaim\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/payoutClaim.ts";`,
+  );
+
   // Stripe product -> membership tier: `_shared/productTiers.ts` is a plain
   // constant map (no Deno/remote imports), so the generated file points at the
   // REAL module. Matched for BOTH forms, because stripe-webhook/constants.ts

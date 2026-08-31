@@ -187,7 +187,17 @@ export const useAppShellViewport = () => {
       // the shell 248px for a rail that never renders, leaving a dead gutter.
       // app-shell pages inset via .app-shell-frame; document-scroll pages via
       // the #root rule — both keyed off this class, so both stay in lockstep.
-      html.classList.toggle("desktop-rail", isDesktopRailRoute(pathname) && !!user);
+      // Also gated on the desktop viewport, not just the route and the user.
+      // The CSS that acts on this class already requires `web-desktop`, so a
+      // phone was never actually inset — but <html> carried `desktop-rail
+      // side-panel-open` on a 402px iPhone, which is a flag that says something
+      // untrue about the layout. The next person to write a rule keyed on it
+      // (reasonably assuming it means what it says) gets a rail on a phone.
+      const isWebDesktop = html.classList.contains("web-desktop");
+      html.classList.toggle(
+        "desktop-rail",
+        isWebDesktop && isDesktopRailRoute(pathname) && !!user,
+      );
     };
     apply();
     // Published so NotFound's `setNotFoundPathname` can re-apply the moment it

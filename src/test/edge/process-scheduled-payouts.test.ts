@@ -185,7 +185,12 @@ describe("process-scheduled-payouts edge function", () => {
       const res = await fn.fetch(
         fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: {} }),
       );
-      expect(res.status).toBe(200);
+      // Non-2xx, not 200. A cron that answers 200 on a failed run is invisible
+      // to sweep_cron_http_failures — which is how auto-release-payment failed
+      // a payout 83 times with nobody able to see it from the outside. The
+      // defect tracker now decides the status code, so a run that could not
+      // move money says so at the HTTP layer.
+      expect(res.status).not.toBe(200);
       const body = await json(res);
       expect((body.results as Array<Record<string, unknown>>)[0].status).toBe("transfer_failed");
 

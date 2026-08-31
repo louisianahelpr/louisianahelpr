@@ -383,7 +383,13 @@ describe("create-payment edge function", () => {
             customer_id: POSTER.id,
             helper_id: HELPER.id,
             status: "in_progress",
-            helper_confirmed_at: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+            // The window is anchored to poster_confirmed_working_at ?? helper_arrived_at,
+            // matching enforce_helper_completion_gates and both clients. It used to be
+            // anchored to helper_confirmed_at ?? updated_at — and because `jobs` carries
+            // update_updated_at_column, that window restarted on every write to the row
+            // and could never elapse. Seeding helper_confirmed_at here would now prove
+            // nothing: it is no longer the anchor.
+            helper_arrived_at: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
           },
         ],
       };

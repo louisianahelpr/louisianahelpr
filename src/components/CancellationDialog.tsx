@@ -408,10 +408,26 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, hasHel
             </div>
           )}
 
-          {/* Worker protection notice — shown when the poster cancels within
-              24h of the scheduled time and a helper is assigned. Lets the poster
-              know the helper is covered, and the helper will see their credit. */}
-          {hasHelper && hoursUntilJob < 24 && hoursUntilJob >= 0 && (
+          {/* What the Helpr actually gets — the two things nothing else in this
+              dialog says, both traceable to code that runs.
+
+              It used to promise "a $10 Helpr credit within 24 hours". No such
+              credit exists: `worker_protection_credits` was a never-built
+              ledger, dropped on 2026-08-30
+              (20260830072801_drop_unused_scaffold_tables), and
+              `poster_cancel_job` (20260830010000) issues nothing of the kind.
+              What it DOES do, in the same transaction as the cancellation, is
+              INSERT the Helpr's notification ("Job cancelled — you'll be
+              compensated"); the hourly `void-cancelled-payments` cron (:10,
+              20260829010000) then transfers their share of the fee via
+              payHelperCancellationFee. So this states those two, and nothing
+              else.
+
+              Gated on the FEE, not on `hoursUntilJob < 24 && >= 0` as before:
+              the ladder charges 50% at negative hours too (a job cancelled
+              after its start time), and the old window excluded exactly that
+              case — the one where the Helpr has already given up their day. */}
+          {hasHelper && cancellationFee > 0 && (
             <div
               className="rounded-ds-md p-3"
               style={{
@@ -425,14 +441,14 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, hasHel
                   className="font-sans font-semibold text-ds-13"
                   style={{ color: "hsl(var(--success-ink))" }}
                 >
-                  Your Helpr is protected
+                  Your Helpr is told, and paid
                 </p>
               </div>
               <p
                 className="font-serif italic text-ds-12"
                 style={{ color: "hsl(var(--success-ink))" }}
               >
-                Since this is a last-minute cancellation, {helperName || "your Helpr"} will receive a $10 Helpr credit within 24 hours — separate from any cancellation fee above.
+                {helperName || "Your Helpr"} is notified the moment you confirm, and their share of the ${formatPrice(cancellationFee)} cancellation fee is transferred to them automatically within the hour.
               </p>
             </div>
           )}

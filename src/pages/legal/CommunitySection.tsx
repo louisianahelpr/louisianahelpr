@@ -11,7 +11,12 @@ import { LAST_UPDATED } from "./legalSections";
 // permanent ban at the 3rd strike — the SQL has four rungs and, since
 // 20260829010000, never bans automatically at all. Binding copy in a legal
 // document is the LAST place a restated consequence should live.
-import { RELIABILITY_LADDER_RUNGS } from "@/lib/reliabilityLadder";
+// Same rule for the no-show ladder, which this page stated as "instant
+// permanent ban" — never true (the first report has always been a warning) and
+// doubly false since 20260831183302 moved the second report onto the shared
+// reviewable rung. Binding copy in a legal document is the LAST place a
+// restated consequence should live.
+import { RELIABILITY_LADDER_RUNGS, NO_SHOW_LADDER_SENTENCE } from "@/lib/reliabilityLadder";
 // Derive the escrow auto-release schedule instead of restating it in prose.
 // These are the platform's binding promises about when money moves, so they
 // must follow the config the cron enforces (guarded by escrowTiming.parity.test).
@@ -41,7 +46,7 @@ export const CommunityContent = () => (
   <div className="space-y-3">
     <TldrCard
       items={[
-        `Cancel free 24+ hours ahead. Inside 24h, fees apply (${LATE_CANCEL_PERCENT}% / ${VERY_LATE_CANCEL_PERCENT}%). No-show = permanent ban.`,
+        `Cancel free 24+ hours ahead. Inside 24h, fees apply (${LATE_CANCEL_PERCENT}% / ${VERY_LATE_CANCEL_PERCENT}%). A no-show is a final warning, then a 7-day restriction an admin reviews.`,
         `Payment auto-releases ${COPY_AUTO_RELEASE_HOURS} hours after completion if either side doesn't act.`,
         "If something's wrong, request a revision first → file a dispute → admin decides. Each step has a 72-hour window.",
         "Three strikes = ban. Fraud, harassment, off-platform payments, and identity fraud skip the strikes.",
@@ -129,9 +134,9 @@ export const CommunityContent = () => (
       />
       <PolicyRowItem
         icon={Ban}
-        title="No-show — instant permanent ban"
+        title="No-show — final warning, then admin review"
         body={
-          <p>If a Helpr accepts a job and fails to show without prior cancellation, their account is <strong className="text-destructive">permanently banned</strong>. The poster receives a full refund. <strong className="text-foreground">Even a late cancellation is better than a no-show.</strong></p>
+          <p>If a Helpr accepts a job and fails to show without prior cancellation, {NO_SHOW_LADDER_SENTENCE}. The poster receives a full refund. <strong className="text-foreground">Even a late cancellation is better than a no-show.</strong></p>
         }
         warning
       />

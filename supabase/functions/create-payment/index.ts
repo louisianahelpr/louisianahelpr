@@ -398,10 +398,88 @@ serve(async (req) => {
         );
       }
 
-      // Minimum job time enforcement: 30 minutes after helper confirmed/accepted
-      const jobStartTime = job.helper_confirmed_at || job.updated_at;
-      if (jobStartTime) {
-        const elapsed = Date.now() - new Date(jobStartTime).getTime();
+      // ─── Completion gates (server-side mirror of the DB trigger) ───
+      //
+      // `enforce_helper_completion_gates` (20260828011057_verified_arrival_gate.sql)
+      // returns early on `auth.uid() IS NULL`, and every write in this function
+      // goes out on the SERVICE-ROLE client — so on THIS path the trigger never
+      // fires and its three gates (arrival established, proof photos, 30-minute
+      // floor) would be enforced nowhere but the client. The tracker's own Done
+      // step writes with the user's JWT and DOES hit the trigger, so without
+      // this block one action has two doors, only one of which is locked — and
+      // the unlocked one is the one that schedules the payout.
+      //
+      // The conditions below are transcribed from that trigger body rather than
+      // re-derived, so the two doors cannot drift. Same scoping as the trigger:
+      // helper-only, and only on the NULL → NOT NULL transition of
+      // helper_completed_at (a poster acting on their own job is not gated, and
+      // neither is a re-confirmation of an already-stamped completion).
+      // `select("*")` above already returns every column read here.
+      const isNewHelperCompletion = isHelper && !isPoster && !job.helper_completed_at;
+      if (isNewHelperCompletion) {
+        // 1. ARRIVAL MUST BE ESTABLISHED — the server verified the helper within
+        //    500ft when they marked arrived, or the poster vouched for them. A
+        //    bare `helper_arrived_at` is a CLAIM and does not unlock completion
+        //    on its own, except for jobs already underway when the gate shipped
+        //    (same grandfather cutoff as the trigger, so a mid-job helper is not
+        //    stranded by a deploy). Mirrors src/lib/arrivalGate.ts on the client.
+        const ARRIVAL_GRANDFATHER_CUTOFF_MS = Date.parse("2026-08-28T00:00:00Z");
+        const arrivedAtMs = job.helper_arrived_at ? Date.parse(job.helper_arrived_at) : NaN;
+        const arrivalEstablished =
+          !!job.helper_arrival_verified_at ||
+          !!job.poster_confirmed_arrival_at ||
+          (Number.isFinite(arrivedAtMs) && arrivedAtMs < ARRIVAL_GRANDFATHER_CUTOFF_MS);
+        if (!arrivalEstablished) {
+          // Never a dead end — name the next thing they can actually do, the
+          // same two options arrivalGateMessage() offers.
+          throw new Error(
+            job.helper_arrived_at
+              ? "You marked yourself arrived, but we couldn't confirm your location. Ask the poster to tap \"Confirm They Arrived\" on their job — that unlocks wrap-up."
+              : "Mark yourself arrived at the job site first. If your location won't work, ask the poster to confirm you arrived — that works too.",
+          );
+        }
+
+        // 2. PROOF PHOTOS — before AND after, on every job regardless of size.
+        //    They are the evidence that releases an escrowed payment. Same rule
+        //    as src/lib/photoProofPolicy.ts and the trigger's array_length check.
+        const hasBeforeProof = Array.isArray(job.proof_before_urls) && job.proof_before_urls.length > 0;
+        const hasAfterProof = Array.isArray(job.proof_after_urls) && job.proof_after_urls.length > 0;
+        if (!hasBeforeProof || !hasAfterProof) {
+          throw new Error("Before & after photos are required — they're the proof that releases your payment.");
+        }
+      }
+
+      // 3. MINIMUM JOB TIME — 30 minutes measured from when work actually
+      //    started. The anchor was `helper_confirmed_at || updated_at`, which
+      //    measured neither the trigger's rule nor the client's: `jobs` carries
+      //    an `update_updated_at_column` trigger (20260311000404), so with
+      //    `helper_confirmed_at` NULL the fallback was rewritten by EVERY write
+      //    to the row — the arrival stamp, each proof-photo save, the poster's
+      //    working confirmation. The window restarted continuously and could
+      //    never elapse: the helper saw a fully-enabled "I'm Done — Request
+      //    Payout" button, tapped it, and got a "N minutes remaining" error
+      //    where N never shrank on retry. The poster's Approve inherited the
+      //    same stuck clock. This is now the one expression all three surfaces
+      //    use: COALESCE(poster_confirmed_working_at, helper_arrived_at).
+      //
+      //    NULL ANCHOR ⇒ ALLOW, deliberately. Both stamps NULL means there is
+      //    no recorded start to measure from, and the trigger's own shape
+      //    (`COALESCE(...) IS NOT NULL AND now() - ... < 30 min`) plus both
+      //    client gates (`workStart ? ... : false`) already resolve that to
+      //    "no floor". Blocking instead would be unclearable: nothing later
+      //    back-fills those stamps, so a poster-vouched arrival with no
+      //    `helper_arrived_at` would be frozen out of its own payout forever.
+      //    The helper's door is not left open by this — the arrival and photo
+      //    gates above still stand between them and the completion write.
+      //    Applies to BOTH parties: the floor is a property of the job, not of
+      //    who taps first.
+      const workStartMs = job.poster_confirmed_working_at
+        ? Date.parse(job.poster_confirmed_working_at)
+        : job.helper_arrived_at
+          ? Date.parse(job.helper_arrived_at)
+          : NaN;
+      if (Number.isFinite(workStartMs)) {
+        const elapsed = Date.now() - workStartMs;
         const MIN_JOB_TIME_MS = 30 * 60 * 1000; // 30 minutes
         if (elapsed < MIN_JOB_TIME_MS) {
           const minutesLeft = Math.ceil((MIN_JOB_TIME_MS - elapsed) / 60000);

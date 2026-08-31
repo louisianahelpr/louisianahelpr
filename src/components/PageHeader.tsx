@@ -226,14 +226,17 @@ const PageHeader = ({ title, meta, onBack, backTo, rightSlot, titleActions, hide
       )}
 
       {/* EQUAL AIR ABOVE AND BELOW THE TITLE — one rule, every page.
-          THIS COMPONENT OWNS BOTH GAPS: `pt-6 pb-6`, 24px each side
-          (owner, 2026-08-30: "all of these should be 24"). This is the ONE
-          value; changing it moves every page in the app at once, which is the
-          point. Do not add padding on either side of it anywhere else.
+          THIS COMPONENT OWNS BOTH GAPS: 16px each side on phone, 24px each
+          side from `sm` up (owner, 2026-08-30: "24 spacing is too much on a
+          phone so the phone and webpage should not be the same" — supersedes
+          the earlier "all of these should be 24" pass, which had made it a
+          single fixed value). This is the ONE place the value lives; changing
+          it moves every page in the app at once, which is the point. Do not
+          add padding on either side of it anywhere else.
 
           The page body below must contribute NO top padding of its own. That
           is the whole contract — a body on `pt-4` under this header stacks a
-          second 16px onto the bottom gap and the title is instantly lopsided
+          second gap onto the bottom and the title is instantly lopsided
           again.
 
           Two dead ends are recorded here so they are not re-attempted:
@@ -253,8 +256,14 @@ const PageHeader = ({ title, meta, onBack, backTo, rightSlot, titleActions, hide
           a deliberate exception — never as top padding on the body wrapper,
           which is indistinguishable from the title's own gap. */}
       {frame(
-        "pt-6 pb-6",
-        absorbSafeArea ? { paddingTop: "calc(var(--safe-area-top, 0px) + 1.5rem)" } : undefined,
+        absorbSafeArea
+          // Can't mix a Tailwind breakpoint class with an inline safe-area
+          // calc() on the same property, so the safe-area addition is baked
+          // into the arbitrary-value class itself at each breakpoint instead
+          // of an inline `style` override.
+          ? "pt-[calc(var(--safe-area-top,0px)+1rem)] sm:pt-[calc(var(--safe-area-top,0px)+1.5rem)] pb-4 sm:pb-6"
+          : "pt-4 pb-4 sm:pt-6 sm:pb-6",
+        undefined,
         <>
           {/* Back button sits to the LEFT of the title block (not stacked above
               it) so the chevron reads as a lead-in to the heading and the title

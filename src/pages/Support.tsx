@@ -3,8 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { CheckCircle2, Loader2, Send } from "lucide-react";
 import { toast } from "sonner";
 
-import PageHeader from "@/components/PageHeader";
-import PublicLayout from "@/components/marketing/PublicLayout";
+import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -269,23 +268,17 @@ const Support = () => {
   };
 
   return (
-    // The compact header below carries the canonical BackButton.
-    <PublicLayout>
-      {/* The shared PageHeader, NOT a hand-rolled copy of it. `width="public"`
-          reproduces this page's former `px-5 sm:px-8 lg:px-12` header gutter
-          over `.page-measure` exactly; PageHeader renders that container
-          itself, so it is deliberately NOT wrapped in a padded <section>
-          (that would apply the gutter twice).
-
-          `topInsetHandled`: PublicLayout already clears the notch — the web
-          branch via its nav spacer, the native branch via AppShell's
-          status-bar cap — so the header must not absorb `--safe-area-top`
-          again. */}
-      <PageHeader title="Contact Support" width="public" topInsetHandled />
-
-      {/* No top padding: PageHeader owns both gaps around the title
-          (`pt-6 pb-6`). Adding any here stacks on its `pb-6`. */}
-      <section className="container mx-auto px-5 pb-8">
+    // Shared shell (PublicHeaderPage) — same component Legal, Jobs and Help
+    // Center render through (owner, 2026-08-30: "legal help center and jobs
+    // should all be one component and share the same shell"). This page's
+    // body used to be `container mx-auto px-5` — Tailwind's fixed-width
+    // `.container` class, NOT the `px-5 sm:px-8 lg:px-12` ladder the header
+    // (and every sibling page) uses — so the form panel sat narrower than
+    // the header above it and stopped growing past `sm`, instead of filling
+    // the same column. The shell fixes both the gutter and the double-gap
+    // bug at once.
+    <PublicHeaderPage title="Contact Support" bottomPaddingClassName="pb-8">
+      <section>
         <div className="page-measure mx-auto">
 
           {/* Right column — the form (or its success state). */}
@@ -543,7 +536,7 @@ const Support = () => {
           </div>
         </div>
       </section>
-    </PublicLayout>
+    </PublicHeaderPage>
   );
 };
 

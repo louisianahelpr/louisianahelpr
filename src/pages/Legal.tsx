@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
-import { ChevronLeft, Search, X } from "lucide-react";
-import PublicLayout from "@/components/marketing/PublicLayout";
+import { Search, X } from "lucide-react";
+import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
+import PageHeader from "@/components/PageHeader";
 import AppShell from "@/components/AppShell";
 import { isNativePlatform } from "@/lib/nativeInit";
-import PageHeader from "@/components/PageHeader";
 import { PolicySearchContext, PolicyTabContext } from "@/components/policy/CollapsedPolicy";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePageMeta } from "@/hooks/usePageMeta";
@@ -286,11 +286,12 @@ const Legal = () => {
   // flicker between three names for the same destination. The per-policy names
   // still drive the DOCUMENT title and canonical via usePageMeta.
   //
-  // `topInsetHandled` because PublicLayout's nav spacer has already cleared the
-  // safe-area top inset; without it the title block would double-count it.
-  const webHeader = (
-    <PageHeader title="Legal" backTo="/" width="public" topInsetHandled />
-  );
+  // Static "Legal" — the h1 does NOT swap with the tab, rendered by
+  // PublicHeaderPage below. This is one page with three tabs, and the tab
+  // band directly below already says which policy you're reading, so
+  // retitling the page on every toggle made the header flicker between
+  // three names for the same destination. The per-policy names still drive
+  // the DOCUMENT title and canonical via usePageMeta.
 
   // ONE size, always. Below `sm` the three tabs share the full width as an
   // even 3-column grid stacked above the search input; from `sm` up they
@@ -303,7 +304,7 @@ const Legal = () => {
   const tabBar = (
     <TabsList
       data-print-hide
-      className="grid grid-cols-3 sm:flex items-center gap-1 sm:gap-2 rounded-2xl p-1 h-auto bg-transparent border-0 w-full"
+      className="flex items-center gap-1 sm:gap-2 rounded-2xl p-1 h-auto bg-transparent border-0 w-full"
     >
       {VALID_TABS.map((t) => {
         const isActive = t === tab;
@@ -312,7 +313,7 @@ const Legal = () => {
           <TabsTrigger
             key={t}
             value={t}
-            className="relative h-9 inline-flex sm:flex-1 items-center justify-center gap-1.5 rounded-ds-md text-ds-13 font-sans font-semibold leading-none transition-colors duration-200"
+            className="relative h-9 inline-flex flex-1 min-w-0 items-center justify-center gap-1 sm:gap-1.5 rounded-ds-md text-ds-11 sm:text-ds-13 font-sans font-semibold leading-none transition-colors duration-200 px-1"
             style={{ color: isActive ? "hsl(var(--parchment))" : "hsl(var(--olivewood))" }}
           >
             {/* A single lifted pill that slides between tabs via framer's
@@ -413,7 +414,7 @@ const Legal = () => {
             className="absolute right-2 top-1/2 -translate-y-1/2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-full btn-press hover:bg-primary/5"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
-            <ChevronLeft className="w-4 h-4" />
+            <X className="w-4 h-4" />
           </button>
         </>
       ) : (
@@ -462,7 +463,7 @@ const Legal = () => {
           // x=587..854 with ~500px of dead band on either side. Now the row is
           // a flex line and the tab group takes the remaining width, so the
           // three policies are distributed instead of packed.
-          : "flex flex-col gap-2 p-1 sm:flex-row sm:items-center sm:gap-4"
+          : "flex items-center gap-2 p-1 sm:gap-4"
       }
     >
       {searchBar}
@@ -470,7 +471,7 @@ const Legal = () => {
         className={
           searchOpen
             ? "w-full sm:w-auto sm:shrink-0 order-1 sm:order-2"
-            : "w-full order-1 sm:order-2 sm:flex-1"
+            : "flex-1 min-w-0 order-1 sm:order-2"
         }
       >
         {tabBar}
@@ -618,16 +619,16 @@ const Legal = () => {
   // This page renders the canonical in-content <BackButton /> next to its H1,
   // which is its only back affordance.
   return (
-    <PublicLayout>
+    // Shared shell (PublicHeaderPage) — same component Jobs, Help Center and
+    // Support render through now, so the header-to-body contract (24px
+    // above/below the title, one gutter ladder, no double padding) lives in
+    // one place (owner, 2026-08-30: "legal help center and jobs should all
+    // be one component and share the same shell"). `Tabs` just needs to be
+    // an ancestor of the tab controls/content below — it doesn't need to
+    // wrap the header, so it moves inside the shell's children instead of
+    // outside it.
+    <PublicHeaderPage title="Legal" backTo="/" bottomPaddingClassName="pb-8">
       <Tabs value={tab} onValueChange={setTab} className="w-full">
-        {/* Compact [BackButton] [title] row — same shape and vertical offset as
-            /subscription, /help, and /jobs. */}
-        {webHeader}
-
-        {/* `pt-4` owns the space BELOW the title: PageHeader deliberately
-            renders `pt-4 pb-0` with no margins, so the body supplies the
-            matching 16px underneath (16 above / 16 below, app-wide rule). */}
-        <div className="px-5 sm:px-8 lg:px-12 pt-4 pb-8">
           <div className="page-measure mx-auto space-y-3">
             {/* Opaque, not just blurred. `backdrop-blur-md` alone left the
                 band see-through: scrolled policy text read straight through
@@ -665,9 +666,8 @@ const Legal = () => {
                 project treats as a layout failure. */}
             {body}
           </div>
-        </div>
       </Tabs>
-    </PublicLayout>
+    </PublicHeaderPage>
   );
 };
 

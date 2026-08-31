@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
-import PageHeader from "@/components/PageHeader";
-import PublicLayout from "@/components/marketing/PublicLayout";
+import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import FaqRow from "@/components/marketing/FaqRow";
 // The card that closes every legal policy tab. Shared, not copied, so the
 // Help Center and the policy pages cannot drift into two support cards.
@@ -160,47 +159,25 @@ const HelpCenter = () => {
   });
 
   return (
-    <PublicLayout>
-      {/* ─────────────────────── 1. Compact page header ───────────────────── */}
-      {/* The shared PageHeader, NOT a hand-rolled copy of it. `width="public"`
-          carries this page's own `px-5 sm:px-8 lg:px-12` gutter over
-          `.page-measure`, so the title lines up with the topic / FAQ columns
-          below at every breakpoint — and it renders that container itself, so
-          it must NOT be nested inside another padded section (that would
-          double the gutter).
-
-          `topInsetHandled`: PublicLayout already clears the notch — the web
-          branch via its nav spacer (`max(safe-area-top, 1.5rem) + 3rem`), the
-          native branch via AppShell's status-bar cap. Without this flag the
-          header would absorb `--safe-area-top` a second time.
-
-          No lede under the title (desktop-only marketing framing that restated
-          the title) and no search (removed — see the note at the top of the
-          component). The "Contact support" escape hatch closes the page. */}
-      <PageHeader title="Help Center" width="public" topInsetHandled />
-
-      {/* ───────────────────────── 2. FAQ + contact support, ONE block ─────────
-          Owner, 2026-08-30: "this should be 1 component not 3" (was PageHeader
-          title / FAQ masthead+accordion / a separately-padded contact-support
-          section — three visually disconnected chunks with different top/bottom
-          paddings and, on md+, a SECOND title: "Quick answers." next to
-          PageHeader's own "Help Center", the exact "one main title" violation
-          already banned everywhere else in the app since 2026-07-25).
-
-          Both fixes land together:
-            1. The masthead heading is gone — "FAQ" eyebrow, the two-tone
-               "Quick answers." Bodoni headline, and the 12-col label/content
-               split it justified. `aria-labelledby` still needs a real element
-               to name the section, so `faq-heading` is now a plain `sr-only`
-               h2 (never painted, at any width) rather than a second visible
-               title.
-            2. The accordion and PolicyFooter render inside ONE section with
-               ONE top/bottom padding, instead of two <section>s each owning a
-               piece of the page's vertical rhythm. */}
+    // Shared shell (PublicHeaderPage) — same component Legal, Jobs and
+    // Support render through, so the header-to-body contract (24px above/
+    // below the title, one gutter ladder, no double padding) lives in one
+    // place (owner, 2026-08-30: "legal help center and jobs should all be
+    // one component and share the same shell").
+    //
+    // No lede under the title (desktop-only marketing framing that restated
+    // the title) and no search (removed — see the note at the top of the
+    // component). The "Contact support" escape hatch closes the page.
+    //
+    // FAQ + contact support are still ONE block, not three (owner,
+    // 2026-08-30: "this should be 1 component not 3" — the masthead heading
+    // ("Quick answers.") is gone for the same reason: a second title next to
+    // PageHeader's own "Help Center" repeated the page's own name).
+    <PublicHeaderPage title="Help Center" width="public" bottomPaddingClassName="pb-12 md:pb-16 lg:pb-24">
       <section
         id="faq"
         aria-labelledby="faq-heading"
-        className="px-5 sm:px-8 lg:px-12 pt-4 pb-12 md:pb-16 lg:pb-24 scroll-mt-24"
+        className="scroll-mt-24"
       >
         <h2 id="faq-heading" className="sr-only">Frequently asked questions</h2>
         <div className="mx-auto page-measure space-y-6">
@@ -231,7 +208,7 @@ const HelpCenter = () => {
           <PolicyFooter />
         </div>
       </section>
-    </PublicLayout>
+    </PublicHeaderPage>
   );
 };
 

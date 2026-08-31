@@ -50,7 +50,7 @@ export const rightItems = [
 export const authPages = ["/dashboard", "/activity", "/my-posts", "/my-jobs", "/post-job", "/profile", "/messages", "/support", "/schedule", "/availability", "/user", "/earnings", "/jobs", "/browse", "/account-pending", "/saved-helpers",
   // Standalone settings sub-pages keep the bottom tab bar so they share the
   // same chrome as the Profile-tab settings (Notifications, Earnings, etc.).
-  "/pets", "/subscription", "/home-history", "/work-record", "/gift-card", "/benefits", "/wrapped", "/str-settings", "/help", "/data-rights",
+  "/pets", "/home-history", "/work-record", "/gift-card", "/benefits", "/wrapped", "/str-settings", "/help", "/data-rights",
   // /legal joins /help here (owner, 2026-08-30: "there should be a public and
   // signed in version of help and legal"). Both are reachable from the
   // marketing footer AND from inside the app (Profile → Legal & Policies), and

@@ -57,7 +57,6 @@ const DOCUMENT_SCROLL_ROUTES = [
   // AppShell's scroll surface (iOS double-rubber-band).
   "/user",         // /user/:userId — UserProfile (PageHeader + min-h-screen)
   "/admin",        // Admin dashboard (min-h-screen document-scroll + sidebar)
-  "/subscription", // Subscription tiers — long-form min-h-screen document-scroll
   // /str-settings, /gift-card, /benefits, /auto-tip and /wrapped moved OFF
   // this list (owner, 2026-08-30: "app shell globally"). They are
   // strictly-authed app screens reached from the Profile landing, so unlike

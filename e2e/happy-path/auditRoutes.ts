@@ -283,7 +283,6 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   { name: "settings", url: "/settings" },
   { name: "settings-profile", url: "/settings/profile" },
   { name: "str-settings", url: "/str-settings" },
-  { name: "subscription", url: "/subscription" },
   { name: "work-record", url: "/work-record" },
   { name: "wrapped", url: "/wrapped" },
   { name: "post-login", url: "/dashboard/post-login" },

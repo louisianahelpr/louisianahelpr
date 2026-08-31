@@ -88,6 +88,24 @@ export function transformedImageUrl(
   // passes through untouched.
   if (!publicUrl.includes(PUBLIC_OBJECT_SEGMENT)) return publicUrl;
 
+  // Supabase's image-transform endpoint is a PAID add-on and is not enabled on
+  // this project. Every /render/image/public/ request returns
+  //   403 {"error":"FeatureNotEnabled","message":"feature not enabled for this tenant"}
+  // and Vercel's optimizer in front of it then answers 502
+  // OPTIMIZED_EXTERNAL_IMAGE_REQUEST_UNAUTHORIZED — so EVERY transformed image
+  // in the app was a broken placeholder in production. Verified against
+  // www.louisianahelpr.com on 2026-08-31: the transform URL 403s, the plain
+  // /object/public/ URL returns 200.
+  //
+  // No prior audit caught it because no seeded job had a photo.
+  //
+  // Until the add-on is enabled, return the original object URL. The cost is
+  // that full-size originals are served (a 4 MB avatar into a 44px box), which
+  // is a bandwidth problem — a visible broken image is a correctness one.
+  // Flip this back by setting VITE_SUPABASE_IMAGE_TRANSFORM=1 once the add-on
+  // is on; the sizing logic below is left intact for that day.
+  if (import.meta.env.VITE_SUPABASE_IMAGE_TRANSFORM !== "1") return publicUrl;
+
   let url: URL;
   try {
     url = new URL(publicUrl);

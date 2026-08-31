@@ -426,7 +426,16 @@ function AppliedJobCardInner({
                   uses for Review/Reviewed — this was a plain full-width
                   outline Button, the one place the two Done-tab cards
                   visibly diverged in style. */}
-              {job.payment_status === "released" && (
+              {/* `payout_pending` counts too. Migration
+                  20260825053000_reviews_allow_payout_pending.sql widened the
+                  reviews INSERT policy to accept BOTH settlement states for
+                  exactly this reason — payment_status only becomes 'released'
+                  when the payout actually settles, ~24h later. The poster's
+                  gate (PostedJobActions.tsx:533) was updated; the helper's was
+                  not, so the helper was locked out for a full day while the
+                  poster's review sat hidden behind feedback_visible_at waiting
+                  for a counter-review that could not be written. */}
+              {(job.payment_status === "released" || job.payment_status === "payout_pending") && (
                 <JobActionRow columns={1}>
                   {helperReviewedJobIds.has(app.job_id) ? (
                     <JobActionChip

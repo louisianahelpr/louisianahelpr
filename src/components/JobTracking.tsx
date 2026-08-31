@@ -401,6 +401,69 @@ export function JobTracking({
     // sync-effect above, not here — so it intentionally stays out of deps.
   }, [jobId, helperId, loadTracking]);
 
+  // LIVE position updates while the helper is EN ROUTE.
+  //
+  // The tracker was not live. getLocation() is a one-shot read fired only when
+  // the helper taps a status button, so the poster's map showed a pin and an
+  // "Updated 10:09" stamp that never moved. Verified on 2026-08-31 by moving
+  // the helper 1.5 km and waiting 45s: job_tracking.updated_at stayed frozen
+  // while the poster's card still read "GPS confirmed · at the job".
+  //
+  // Scope is deliberately narrow:
+  //  * HELPER only — the poster must never broadcast their position.
+  //  * `on_the_way` only. Once arrived the position stops mattering, and
+  //    tracking someone for the whole duration of a job is surveillance, not a
+  //    feature.
+  //  * 45s cadence, which is frequent enough for "how far away are they" and
+  //    cheap enough not to eat the battery on a long drive.
+  //  * Silent: a failed refresh leaves the last known point rather than
+  //    throwing a toast at someone who is driving.
+  useEffect(() => {
+    if (!isHelper) return;
+    if (tracking?.status !== "on_the_way") return;
+    if (!tracking?.id || tracking.id === "temp") return;
+    if (!isNativePlatform && !navigator.geolocation) return;
+
+    let cancelled = false;
+
+    const pushPosition = async () => {
+      let loc: { lat: number; lng: number } | null;
+      try {
+        if (isNativePlatform) {
+          const { Geolocation } = await import("@capacitor/geolocation");
+          const pos = await Geolocation.getCurrentPosition({ timeout: 10000 });
+          loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        } else {
+          loc = await new Promise((resolve) => {
+            navigator.geolocation.getCurrentPosition(
+              (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+              () => resolve(null),
+              { timeout: 10000, maximumAge: 30000 },
+            );
+          });
+        }
+      } catch {
+        return; // keep the last known point
+      }
+      if (cancelled || !loc) return;
+      // No unwrapMutation here on purpose: this is a best-effort background
+      // refresh, and a zero-row result just means the job moved on. The
+      // status writes below remain guarded, which is where correctness matters.
+      await supabase
+        .from("job_tracking")
+        .update({ latitude: loc.lat, longitude: loc.lng, updated_at: new Date().toISOString() })
+        .eq("id", tracking.id);
+    };
+
+    // Do NOT fire immediately — the status write that set `on_the_way` has
+    // just stored a fresh position.
+    const interval = setInterval(pushPosition, 45_000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [isHelper, tracking?.status, tracking?.id, isNativePlatform]);
+
   const getLocation = async (): Promise<{ lat: number; lng: number } | null> => {
     if (!isNativePlatform && !navigator.geolocation) return null;
     let location: { lat: number; lng: number } | null = null;

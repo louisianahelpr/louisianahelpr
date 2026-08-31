@@ -15,6 +15,13 @@ const PUBLIC =
 
 describe("transformedImageUrl", () => {
   beforeEach(() => {
+    // The transform endpoint is a paid Supabase add-on that is NOT enabled on
+    // this project — every /render/image/public/ request 403s FeatureNotEnabled
+    // in production, so transformedImageUrl now passes the original URL through
+    // unless VITE_SUPABASE_IMAGE_TRANSFORM === "1". These tests cover the
+    // transform LOGIC, so they opt in explicitly; the default pass-through has
+    // its own describe block below.
+    vi.stubEnv("VITE_SUPABASE_IMAGE_TRANSFORM", "1");
     // Pin DPR to 1 so dimension assertions are deterministic.
     Object.defineProperty(globalThis, "devicePixelRatio", {
       value: 1,
@@ -23,6 +30,7 @@ describe("transformedImageUrl", () => {
   });
 
   afterEach(() => {
+    vi.unstubAllEnvs();
     Object.defineProperty(globalThis, "devicePixelRatio", {
       value: 1,
       configurable: true,
@@ -121,7 +129,8 @@ describe("buildImageUrl", () => {
     );
   });
 
-  it("wraps a Supabase URL through both Supabase render + Vercel transform on web", () => {
+  it("wraps a Supabase URL through both Supabase render + Vercel transform when the add-on is enabled", () => {
+    vi.stubEnv("VITE_SUPABASE_IMAGE_TRANSFORM", "1");
     const out = buildImageUrl(PUBLIC, { width: 88, height: 88 });
     expect(out.startsWith("/_vercel/image?")).toBe(true);
     const params = new URLSearchParams(out.split("?")[1]);
@@ -131,6 +140,18 @@ describe("buildImageUrl", () => {
     expect(inner).toContain("width=88");
     expect(params.get("w")).toBe("96"); // snapped from 88 → next allowed width
     expect(params.get("q")).toBe("75");
+    vi.unstubAllEnvs();
+  });
+
+  it("still uses Vercel's optimizer, with the PLAIN object URL, when the add-on is off", () => {
+    // The production default. Vercel can still resize; what it must not do is
+    // point at Supabase's /render/image/ endpoint, which 403s FeatureNotEnabled
+    // and makes Vercel answer 502 — a broken image on every job photo.
+    const out = buildImageUrl(PUBLIC, { width: 88, height: 88 });
+    expect(out.startsWith("/_vercel/image?")).toBe(true);
+    const inner = decodeURIComponent(new URLSearchParams(out.split("?")[1]).get("url") ?? "");
+    expect(inner).toBe(PUBLIC);
+    expect(inner).not.toContain("/render/image/");
   });
 
   it("wraps an external https URL through Vercel transform on web", () => {
@@ -169,5 +190,26 @@ describe("buildImageUrl", () => {
   it("returns empty string for null or undefined input", () => {
     expect(buildImageUrl(null, { width: 88 })).toBe("");
     expect(buildImageUrl(undefined, { width: 88 })).toBe("");
+  });
+});
+
+
+describe("transformedImageUrl — transform add-on disabled (the production default)", () => {
+  // Supabase image transforms are a paid add-on this project does not have.
+  // Verified against prod 2026-08-31:
+  //   /storage/v1/render/image/public/... -> 403 FeatureNotEnabled
+  //   /storage/v1/object/public/...       -> 200
+  // Vercel's optimizer in front then returned 502, so every transformed image
+  // rendered as a broken placeholder. Passing the original URL through is the
+  // correct behaviour until the add-on is enabled.
+  it("returns the original object URL untouched", () => {
+    expect(transformedImageUrl(PUBLIC, { width: 96 })).toBe(PUBLIC);
+  });
+
+  it("adds no transform query params", () => {
+    const out = transformedImageUrl(PUBLIC, { width: 96, quality: 60 });
+    expect(out).not.toContain("/render/image/");
+    expect(out).not.toContain("width=");
+    expect(out).not.toContain("quality=");
   });
 });

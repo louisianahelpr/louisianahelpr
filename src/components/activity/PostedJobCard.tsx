@@ -486,16 +486,29 @@ function PostedJobCardInner({
                         slot carries the card's one expand glyph now, so this
                         strip would have been a second one on the same card,
                         two rows apart. */}
-                    <span className="text-ds-11 text-muted-foreground flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Tipped &amp; Reviewed</span>
+                    <span className="text-ds-11 flex items-center gap-1" style={{ color: "hsl(var(--success-ink))" }}><CheckCircle2 className="w-3 h-3" /> Tipped &amp; Reviewed</span>
                   </div>
                 );
               }
-              // Nothing when the job is still awaiting a tip and/or a review.
-              // This used to print a bare "Tip & review" / "Leave a tip" /
-              // "Leave a review" strip directly above the action row that
-              // already carries a Tip chip and a Review chip — a label with no
-              // control, naming the buttons underneath it. The chips ARE the
-              // prompt. Only the fully-archived summary above survives.
+              // Partial: one of tip/review is done, the other isn't. Surfaced
+              // so the poster notices the loose end instead of assuming the
+              // job is fully archived (the "both done" strip above is the
+              // only other state this row ever showed).
+              if ((hasTipped || hasReviewed) && !isExpanded) {
+                return (
+                  <div className="px-4 py-1.5 border-t border-[hsl(var(--olivewood)/0.1)] bg-card flex items-center justify-between">
+                    <span className="text-ds-11 flex items-center gap-1" style={{ color: "hsl(var(--amber-ink))" }}>
+                      <CheckCircle2 className="w-3 h-3" /> {hasTipped ? "Tipped" : "Reviewed"} — {hasTipped ? "review" : "tip"} still open
+                    </span>
+                  </div>
+                );
+              }
+              // Nothing when the job is still awaiting both a tip and a
+              // review. This used to print a bare "Tip & review" / "Leave a
+              // tip" / "Leave a review" strip directly above the action row
+              // that already carries a Tip chip and a Review chip — a label
+              // with no control, naming the buttons underneath it. The chips
+              // ARE the prompt.
               return null;
             })()}
 

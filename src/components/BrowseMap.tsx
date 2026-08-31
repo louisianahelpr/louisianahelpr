@@ -669,7 +669,10 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
         <div
           className="absolute top-3 left-3 z-[400] max-w-[60%] px-2.5 py-1.5 rounded-ds-md font-sans text-ds-11 leading-snug"
           style={{
-            background: "hsla(0, 0%, 100%, 0.92)",
+            // Tokened, not a literal white — see the same fix on
+            // `RecenterControl`: `--olivewood` inverts in dark mode, so a
+            // hard-coded white ground put near-white text on near-white.
+            background: "hsl(var(--card) / 0.94)",
             color: "hsl(var(--olivewood))",
             border: "0.5px solid hsl(var(--olivewood) / 0.18)",
             boxShadow: "0 4px 14px -4px hsl(var(--olivewood) / 0.18)",
@@ -698,7 +701,7 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
               backgroundColor: "hsl(var(--surface-band) / 0.92)",
               border: "0.5px solid hsl(var(--olivewood) / 0.18)",
               boxShadow:
-                "inset 0 1px 1px 0 rgba(255, 255, 255, 0.6), " +
+                "inset 0 1px 1px 0 hsl(var(--card) / 0.7), " +
                 "0 10px 30px -10px hsl(var(--olivewood) / 0.32)",
               backdropFilter: "blur(8px)",
               WebkitBackdropFilter: "blur(8px)",
@@ -707,10 +710,10 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
             <div
               className="w-14 h-14 rounded-full flex items-center justify-center"
               style={{
-                backgroundColor: "hsla(0, 0%, 100%, 0.55)",
+                backgroundColor: "hsl(var(--card) / 0.6)",
                 border: "1px solid hsl(var(--olivewood) / 0.10)",
                 boxShadow:
-                  "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
+                  "inset 0 1px 1px 0 hsl(var(--card) / 0.7), " +
                   "0 1px 2px hsl(var(--olivewood) / 0.05), " +
                   "0 6px 14px -4px hsl(var(--olivewood) / 0.10)",
               }}
@@ -863,7 +866,12 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
               control is the sheet's, not the card's. */}
           {selectedJob && (
             <aside
-              aria-label="Job preview"
+              // Named with the JOB, not just "Job preview": a keyboard/screen
+              // reader user lands on the close button inside this landmark, and
+              // the complementary landmark's name is what tells them WHICH pin
+              // they just opened. "Job preview" alone would announce the
+              // container and nothing about the content.
+              aria-label={`Job preview: ${selectedJob.title}`}
               data-testid="browse-map-preview"
               className="pointer-events-auto w-full max-w-[26rem] mx-auto motion-safe:animate-fade-in overflow-hidden"
               style={{
@@ -871,7 +879,7 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
                 backgroundColor: "hsl(var(--card))",
                 border: "1px solid hsl(var(--border))",
                 boxShadow:
-                  "inset 0 1px 0 0 hsla(0, 0%, 100%, 0.9), " +
+                  "inset 0 1px 0 0 hsl(var(--card) / 0.9), " +
                   "0 1px 3px hsl(var(--olivewood) / 0.1), " +
                   "0 14px 28px -8px hsl(var(--olivewood) / 0.16), " +
                   "0 32px 64px -16px hsl(var(--olivewood) / 0.2)",
@@ -895,7 +903,12 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
                 <button
                   type="button"
                   ref={previewCloseRef}
-                  onClick={() => closePreview(false)}
+                  // Return focus to the pin only when the preview was reached
+                  // from the keyboard — a mouse user must not have the map
+                  // scrolled to a focused pin under them, and a keyboard user
+                  // must not be dumped on <body> with the map's whole tab
+                  // sequence to walk again.
+                  onClick={() => closePreview(openedByKeyboardRef.current)}
                   aria-label="Close job preview"
                   title="Close job preview"
                   data-testid="browse-map-preview-close"

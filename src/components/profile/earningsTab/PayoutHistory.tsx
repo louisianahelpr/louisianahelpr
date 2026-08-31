@@ -6,6 +6,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { payoutStatusLabel } from "@/lib/statusLabels";
+import { STANDARD_PAYOUT_WINDOW } from "@/lib/payoutTiming";
 import { formatCents, formatDate, payoutStatusColors } from "./earningsTabHelpers";
 import type { StripePayoutData } from "./types";
 
@@ -57,7 +58,7 @@ export function PayoutHistory({
             className="font-serif italic text-ds-12"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
-            Payouts land within 2 business days of a completed job.
+            Payouts land {STANDARD_PAYOUT_WINDOW} of a completed job.
           </p>
         </div>
       ) : (

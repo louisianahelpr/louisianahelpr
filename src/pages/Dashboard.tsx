@@ -635,6 +635,14 @@ const Dashboard = () => {
                         currentUserId={user?.id}
                         filters={filters.mapFilter}
                         onClearFilters={filters.clearFilters}
+                        // MUST match the feed column beside it. Without this
+                        // prop BrowseMap falls back to guest pricing and the
+                        // pin preview prints the GROSS budget, so on this exact
+                        // screen "Pressure wash a house exterior" read $368 in
+                        // the list and $400 on the map, side by side, for the
+                        // same job (caught 2026-08-31 at 1440). Same value the
+                        // list's JobCards use — one number per job, everywhere.
+                        effectiveFee={effectiveFee}
                       />
                     </Suspense>
                   </div>

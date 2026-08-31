@@ -10,6 +10,7 @@ import { requireBiometric } from "@/lib/biometricGate";
 import { functionErrorMessage } from "@/lib/supabaseResult";
 import { INSTANT_PAYOUT_FEE_PERCENT } from "@/lib/instantPayoutFee";
 import { formatPriceExact } from "@/lib/format";
+import { STANDARD_PAYOUT_WINDOW } from "@/lib/payoutTiming";
 
 interface Props {
   open: boolean;
@@ -152,7 +153,7 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
               <Clock className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
               <p className="font-serif italic leading-snug text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 Arrives in ~30 minutes. Prefer to wait? Standard payouts are{" "}
-                <strong className="not-italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>free</strong> and take 1–2 business days.
+                <strong className="not-italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>free</strong> and land {STANDARD_PAYOUT_WINDOW}.
               </p>
             </div>
           </div>

@@ -381,20 +381,24 @@ describe("review-turnaround promises come from reviewSla", () => {
     // (InstantPayoutDialog) vs "Payouts land within 2 business days of a
     // completed job" (PayoutHistory). Same fact, two sentences, no constant.
     // Neither is derived from anything, so nothing keeps them together.
+    // FIXED: both now interpolate STANDARD_PAYOUT_WINDOW from
+    // src/lib/payoutTiming.ts, so the assertion changed shape with them — it
+    // asserts DERIVATION rather than scanning for matching literals, because a
+    // literal scan cannot tell "both say 2" from "both stopped saying it".
     const a = repoFile("src/components/InstantPayoutDialog.tsx");
     const b = repoFile("src/components/profile/earningsTab/PayoutHistory.tsx");
-    const days = (t: string) => [...t.matchAll(/(\d)(?:\s*[–-]\s*(\d))?\s*business days/g)]
-      .flatMap((m) => [m[1], m[2]].filter(Boolean));
-    expect(
-      days(a).concat(days(b)).length,
-      "the payout-window sentences vanished from one of the two files — update this test",
-    ).toBeGreaterThan(0);
-    expect(
-      new Set(days(a).concat(days(b)).map(Number).map((n) => n)).size === 1,
-      `InstantPayoutDialog says "${days(a).join("–")} business days" and PayoutHistory says ` +
-        `"${days(b).join("–")} business days" for the same standard payout. Neither is derived ` +
-        `from a constant. Add one (src/lib/ has the pattern) and interpolate it in both.`,
-    ).toBe(true);
+    for (const [name, src] of [["InstantPayoutDialog", a], ["PayoutHistory", b]] as const) {
+      expect(
+        src,
+        `${name} states the standard payout window without importing it. Both screens ` +
+          `describe one fact and used to give two different answers ("1–2 business days" ` +
+          `vs "within 2 business days"); STANDARD_PAYOUT_WINDOW exists so they cannot ` +
+          `drift again. Interpolate it rather than retyping the number.`,
+      ).toMatch(/STANDARD_PAYOUT_WINDOW/);
+    }
+    // And no hand-typed "N business days" may creep back into either file.
+    const literal = /\d\s*(?:[–-]\s*\d\s*)?business days/;
+    expect(literal.test(a) || literal.test(b), "a hand-typed business-day count is back").toBe(false);
   });
 
   it("REVIEW_SLA is still the shared statement it claims to be", () => {

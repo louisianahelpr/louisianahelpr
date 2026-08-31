@@ -124,13 +124,21 @@ export function RecenterControl({ onRecenter }: { onRecenter: () => void }) {
       data-testid="browse-map-recenter"
       className="pointer-events-auto w-11 h-11 rounded-full flex items-center justify-center active:scale-[0.94] transition-all"
       style={{
-        background: "hsla(0, 0%, 100%, 0.85)",
+        // TOKENS, not a literal white (fixed 2026-08-31). This was
+        // `hsla(0,0%,100%,0.85)` with `color: hsl(var(--olivewood))`. In light
+        // mode that reads as a frosted white puck with a dark glyph — but
+        // `--olivewood` INVERTS in dark mode (36 15% 80%, a near-white warm),
+        // so on the dark map the control became a near-white glyph on a
+        // near-white puck: measured ~1.4:1, far under the 3:1 WCAG 1.4.11 floor
+        // for a UI component. `--card` flips with the theme the way
+        // `--olivewood` does, so the pair stays legible in both.
+        background: "hsl(var(--card) / 0.88)",
         border: "1px solid hsl(var(--olivewood) / 0.22)",
         color: "hsl(var(--olivewood))",
         backdropFilter: "blur(8px)",
         WebkitBackdropFilter: "blur(8px)",
         boxShadow:
-          "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
+          "inset 0 1px 1px 0 hsl(var(--card) / 0.6), " +
           "0 4px 14px -4px hsl(var(--olivewood) / 0.22)",
       }}
     >

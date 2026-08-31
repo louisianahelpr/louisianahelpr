@@ -7,6 +7,7 @@ import type { CategoryPriceStats } from "@/hooks/useCategoryPriceStats";
 import { SectionCard } from "@/components/postjob/SectionCard";
 import { categoryPricing, getSmartPrice } from "@/lib/pricingGuide";
 import { formatPrice } from "@/lib/format";
+import { URGENT_FEE_FLOOR_DOLLARS } from "@/lib/moneyLimits";
 
 /**
  * PRICING_MODE_REMOVED — 2026-08-19.
@@ -145,11 +146,19 @@ export function BudgetSection({
     lowballFloor != null &&
     budgetNum < lowballFloor;
 
-  // Urgent bonus has a hard $5 floor. Surface it inline (same pattern as
-  // the lowball warning) the moment a user types a sub-$5 amount, so the
-  // rule isn't a silent submit-time rejection.
+  // Urgent bonus has a hard floor. Surface it inline (same pattern as the
+  // lowball warning) the moment a user types a sub-floor amount, so the rule
+  // isn't a silent submit-time rejection.
+  //
+  // The number comes from moneyLimits, not from here. That module's own header
+  // says every screen naming one of these figures MUST import it — "that is how
+  // the '$5 min' vs '$10 min' drift happened". useJobSubmit obeyed it; this
+  // file, the FORM the poster actually reads, hand-typed the floor. If the form
+  // and the validator ever disagree, the user is shown a minimum the submit
+  // path then rejects.
   const urgentFeeNum = parseFloat(urgentFee) || 0;
-  const showUrgentMinWarning = isUrgent && urgentFee.trim() !== "" && urgentFeeNum < 5;
+  const showUrgentMinWarning =
+    isUrgent && urgentFee.trim() !== "" && urgentFeeNum < URGENT_FEE_FLOOR_DOLLARS;
 
   return (
     <SectionCard

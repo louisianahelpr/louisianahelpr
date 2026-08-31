@@ -35,8 +35,24 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
   // "Strike 1 of 3 — a written warning" while the list directly beneath
   // showed their TEMP BAN. The two older spellings are kept so a legacy row
   // still resolves, but `temp_ban` is the one that matters.
+  // `pending_ban_review` is the rung ALL FOUR ladders now write at the top —
+  // cancellation, job-denial, off-platform messaging, and (since
+  // 20260831183302) no-show. apply_consequence_ladder converts effect
+  // 'permanent' into 'review' when p_permanent_requires_review is set, and
+  // every wrapper sets it: the account is restricted for 7 days while an admin
+  // decides, never banned automatically.
+  //
+  // This list did not know that value, so a user sitting on a live 7-day
+  // restriction with a ban decision pending read "Strike 2 of 3 — a final
+  // warning" on the one screen that explains what is happening to their
+  // account. Same defect as a job status falling through every branch, on a
+  // trust surface where being wrong is worse.
   const hasSuspension = violations.some(
-    (v) => v.action_taken === "temp_ban" || v.action_taken === "suspension" || v.action_taken === "temporary_ban",
+    (v) =>
+      v.action_taken === "temp_ban" ||
+      v.action_taken === "pending_ban_review" ||
+      v.action_taken === "suspension" ||
+      v.action_taken === "temporary_ban",
   );
   // Where the account sits on the 3-strike ladder: 1st/2nd strike map
   // directly to the "warning"/"final_warning" action_taken rows above; the

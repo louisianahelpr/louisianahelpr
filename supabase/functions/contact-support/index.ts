@@ -26,18 +26,22 @@
 //   • No auth required (config.toml sets verify_jwt = false).
 //   • Rate limited per IP via _shared/rate-limit.ts — an open, unauthenticated
 //     endpoint that sends mail is a spam relay without it.
-//   • Every user-supplied string is length-checked and HTML-escaped
-//     (_shared/safe-strings.ts) before it lands in the email template.
+//   • Every user-supplied string is length-checked and control-character
+//     stripped (clean/cleanLine below) before it lands in the email template,
+//     and the template escapes it: the body is a react-email component, so
+//     each value is a JSX child that React escapes by construction. The old
+//     hand-applied htmlEscape() calls are gone with the HTML string they
+//     protected — see _shared/email-templates/support-request.tsx.
 //   • The response NEVER varies on whether the submitted email belongs to an
 //     existing account — the function does not look the address up at all, so
 //     it cannot become an account-enumeration oracle.
 //   • Honest failures: if the mail never leaves, the caller gets a non-2xx.
 //     We never report "sent" for a message that went nowhere.
 
+import * as React from 'npm:react@18.3.1'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsHeadersFull as corsHeaders } from '../_shared/cors.ts'
 import { checkRateLimit, rateLimitResponse } from '../_shared/rate-limit.ts'
-import { htmlEscape } from '../_shared/safe-strings.ts'
 import { postSlackOpsAlert } from '../_shared/slack-alerts.ts'
 // Sending, the From header, and the destination inbox all come from the one
 // Resend module now — this function used to carry its own copy of each.
@@ -52,13 +56,10 @@ import { postSlackOpsAlert } from '../_shared/slack-alerts.ts'
 // only — it makes the support inbox sortable at a glance and never reaches a
 // customer. It is defined in exactly one place now (_shared/resend.ts).
 import { FROM_CONTACT, SUPPORT_EMAIL, sendWithResend } from '../_shared/resend.ts'
-import {
-  emailH2,
-  emailP,
-  emailShell,
-  transactionalFooter,
-} from '../_shared/emailLayout.ts'
-import { brand } from '../_shared/email-templates/styles.ts'
+// The email itself is a react-email component now (see the note on
+// renderSupportEmail below), so nothing in this file builds HTML by hand.
+import { SupportRequestEmail } from '../_shared/email-templates/support-request.tsx'
+import { renderEmail } from '../_shared/email-templates/render.ts'
 
 // Mirrors SUPPORT_TOPICS in src/lib/supportTopics.ts — edge functions run on
 // Deno and cannot import from src/. Change both together.
@@ -118,71 +119,24 @@ function cleanLine(input: unknown, max: number): string {
     .slice(0, max)
 }
 
-function renderEmail(t: {
+/**
+ * Render the support-inbox email.
+ *
+ * Both parts come from ONE react-email component: `renderEmail` produces the
+ * HTML and asks react-email for the plaintext twin, so the two can never
+ * drift. The hand-written plaintext block that used to live here had to be
+ * kept in step with the HTML by eye, and every interpolated value needed its
+ * own htmlEscape() call — React escapes them now.
+ */
+async function renderSupportEmail(t: {
   topicLabel: string
   name: string
   email: string
   subject: string
   message: string
   accountLine: string
-}): { html: string; text: string } {
-  // Every interpolated value is escaped — this body is assembled from
-  // untrusted, unauthenticated input.
-  const name = htmlEscape(t.name)
-  const email = htmlEscape(t.email)
-  const subject = htmlEscape(t.subject || 'No subject')
-  const topicLabel = htmlEscape(t.topicLabel)
-  const accountLine = htmlEscape(t.accountLine)
-  // Preserve the writer's line breaks without letting markup through.
-  const messageHtml = htmlEscape(t.message).replace(/\n/g, '<br />')
-
-  // The details table stays a `<table role="presentation">` — it is a real
-  // label/value grid and the one shape every mail client agrees on. What
-  // changed is the wrapper: this body used to be
-  // `<div style="max-width:560px;margin:0 auto">`, and Outlook's Word engine
-  // does not implement `margin:0 auto` on a block element, so the support
-  // inbox rendered it left-aligned and stretched to the full reading pane.
-  // emailShell() is the shared centred-table layout. It also owns the logo —
-  // the hand-rolled <img> here had width="80" fighting style="width:150px",
-  // so the wordmark rendered at two different sizes depending on the client.
-  // The e-text / e-footer classes are what emailShell's dark-mode block keys
-  // off; without them a forced-inversion client leaves dark text on a dark
-  // card.
-  const detailsTable = `<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin:0 0 20px;font-size:14px;color:${brand.bodyOlive};">
-      <tr><td class="e-footer" style="padding:4px 0;width:88px;color:${brand.footerOlive};">From</td><td class="e-text" style="padding:4px 0;color:${brand.olivewood};"><strong>${name}</strong></td></tr>
-      <tr><td class="e-footer" style="padding:4px 0;color:${brand.footerOlive};">Email</td><td class="e-text" style="padding:4px 0;color:${brand.olivewood};">${email}</td></tr>
-      <tr><td class="e-footer" style="padding:4px 0;color:${brand.footerOlive};">Topic</td><td class="e-text" style="padding:4px 0;color:${brand.olivewood};">${topicLabel}</td></tr>
-      <tr><td class="e-footer" style="padding:4px 0;color:${brand.footerOlive};">Account</td><td class="e-text" style="padding:4px 0;color:${brand.olivewood};">${accountLine}</td></tr>
-    </table>`
-
-  const messageBlock = `<div class="e-text e-rule" style="border-top:1px solid ${brand.hairline};padding-top:20px;font-size:15px;line-height:1.6;color:${brand.olivewood};white-space:normal;">${messageHtml}</div>`
-
-  const html = emailShell({
-    // Without a preheader the inbox list preview is the first words of the
-    // body — here, "Submitted from the public contact form." for every ticket.
-    preheader: `New ${topicLabel} from ${name}`,
-    title: `[${topicLabel}] ${subject}`,
-    body: `${emailH2(`[${topicLabel}] ${subject}`)}
-${emailP('Submitted from the public contact form.')}
-${detailsTable}
-${messageBlock}
-${transactionalFooter(`Reply directly to <strong>${email}</strong> to answer this person.`)}`,
-  })
-
-  const text = `[${t.topicLabel}] ${t.subject || 'No subject'}
-Submitted from the public contact form.
-
-From:    ${t.name}
-Email:   ${t.email}
-Topic:   ${t.topicLabel}
-Account: ${t.accountLine}
-
-${t.message}
-
-—
-Reply directly to ${t.email} to answer this person.`
-
-  return { html, text }
+}): Promise<{ html: string; text: string }> {
+  return await renderEmail(React.createElement(SupportRequestEmail, t))
 }
 
 Deno.serve(async (req) => {
@@ -319,7 +273,7 @@ Deno.serve(async (req) => {
     }
 
     const accountLine = userId ? `Signed in (user ${userId})` : 'Not signed in (guest)'
-    const { html, text } = renderEmail({
+    const { html, text } = await renderSupportEmail({
       topicLabel,
       name,
       email,

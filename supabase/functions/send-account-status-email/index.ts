@@ -1,9 +1,10 @@
+import * as React from 'npm:react@18.3.1'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsHeadersFull as corsHeaders } from '../_shared/cors.ts'
-import { brand } from '../_shared/email-templates/styles.ts'
-import { htmlEscape, timingSafeEqual } from '../_shared/safe-strings.ts'
+import { timingSafeEqual } from '../_shared/safe-strings.ts'
 import { FROM_DEFAULT, sendWithResend } from '../_shared/resend.ts'
-import { emailButton, emailH1, emailNote, emailP, emailShell } from '../_shared/emailLayout.ts'
+import { AccountStatusEmail } from '../_shared/email-templates/account-status.tsx'
+import { renderEmail } from '../_shared/email-templates/render.ts'
 import { getAppUrl } from '../_shared/appUrl.ts'
 
 function getGreetingName(fullName?: string | null): string {
@@ -59,90 +60,52 @@ async function trackedLink(userId: string, emailType: string, destination: strin
   return `${base}/functions/v1/email-tracking?uid=${userId}&type=${emailType}&event=click&sig=${sig}&redirect=${encodeURIComponent(destination)}`
 }
 
-/** Open-rate beacon. Kept out of the card body so it can never take layout space. */
-function trackingPixel(pixelUrl: string): string {
-  return `<img src="${pixelUrl}" width="1" height="1" style="display:none" alt="" />`
-}
+/**
+ * Which tracking `type` (and therefore which HMAC signature) each decision
+ * uses. These strings are what `email-tracking` records, so they are part of
+ * the analytics contract — do not rename them.
+ */
+const EMAIL_TYPE = {
+  approved: 'account_approved',
+  verified: 'identity_verified',
+  denied: 'account_denied',
+} as const
 
-async function renderApprovedEmail(fullName: string, userId: string): Promise<{ html: string; text: string }> {
+/**
+ * Render an account-decision email.
+ *
+ * Both parts come from ONE react-email component: `renderEmail` produces the
+ * HTML and asks react-email for the plaintext twin, so the two can never drift
+ * — the hand-maintained plaintext bodies this replaced had already diverged
+ * from their HTML counterparts. Every interpolated value is escaped by React,
+ * including the admin-supplied denial `reason`, which used to be interpolated
+ * raw into an HTML string (a single stray tag rendered as markup inside a
+ * Helpr-branded notice) and then needed a hand-applied htmlEscape() call.
+ *
+ * The open-rate beacon goes to the template's `trailing` slot, outside the
+ * card, so it can never take layout space.
+ */
+async function renderAccountStatusEmail(
+  status: keyof typeof EMAIL_TYPE,
+  fullName: string,
+  userId: string,
+  reason?: string,
+): Promise<{ html: string; text: string }> {
   const siteUrl = getAppUrl()
-  const ctaUrl = await trackedLink(userId, 'account_approved', `${siteUrl}/login`)
-  const pixelUrl = await trackingPixelUrl(userId, 'account_approved')
-  const greetingName = getGreetingName(fullName)
+  const emailType = EMAIL_TYPE[status]
+  const destination = status === 'verified' ? `${siteUrl}/dashboard` : `${siteUrl}/login`
+  const ctaUrl = await trackedLink(userId, emailType, destination)
+  const pixelUrl = await trackingPixelUrl(userId, emailType)
 
-  const html = emailShell({
-    preheader: 'Your Helpr account is approved — you can log in now.',
-    title: "You're approved.",
-    body: [
-      emailH1("You're approved."),
-      emailP(`Hey ${greetingName},`),
-      emailP(`Great news — your account has been reviewed and <strong class="e-accent" style="color:${brand.burntSienna}">approved</strong>! You now have full access to the Helpr platform.`),
-      emailButton(ctaUrl, 'Log In Now', 200),
-      emailNote("Welcome to the Helpr community! If you have any questions, don't hesitate to reach out to our support team."),
-    ].join('\n'),
-    trailing: trackingPixel(pixelUrl),
-  })
-
-  const text = `You're approved.\n\nHey ${greetingName},\n\nGreat news — your account has been reviewed and approved! You now have full access to the Helpr platform.\n\nLog in at: ${siteUrl}/login\n\nWelcome to the Helpr community!`
-
-  return { html, text }
-}
-
-async function renderVerifiedEmail(fullName: string, userId: string): Promise<{ html: string; text: string }> {
-  const siteUrl = getAppUrl()
-  const ctaUrl = await trackedLink(userId, 'identity_verified', `${siteUrl}/dashboard`)
-  const pixelUrl = await trackingPixelUrl(userId, 'identity_verified')
-  const greetingName = getGreetingName(fullName)
-
-  const html = emailShell({
-    preheader: 'Your identity check passed. Your Helpr account is ready.',
-    title: 'Verification successful',
-    body: [
-      emailH1('Verification successful'),
-      emailP(`Hey ${greetingName},`),
-      emailP(`Your identity has been <strong class="e-accent" style="color:${brand.burntSienna}">verified</strong> and your Helpr account is fully approved. You're cleared to post jobs and start helping your neighbors across Louisiana.`),
-      emailButton(ctaUrl, 'Go to Dashboard', 200),
-      emailNote("Welcome in. You're set to post jobs and help neighbors across Louisiana."),
-    ].join('\n'),
-    trailing: trackingPixel(pixelUrl),
-  })
-
-  const text = `Verification successful\n\nHey ${greetingName},\n\nYour identity has been verified and your Helpr account is fully approved. You're cleared to post jobs and start helping your neighbors across Louisiana.\n\nGo to your dashboard: ${siteUrl}/dashboard\n\nWelcome to the Helpr community!`
-
-  return { html, text }
-}
-
-async function renderDeniedEmail(fullName: string, userId: string, reason?: string): Promise<{ html: string; text: string }> {
-  const siteUrl = getAppUrl()
-  const ctaUrl = await trackedLink(userId, 'account_denied', `${siteUrl}/login`)
-  const pixelUrl = await trackingPixelUrl(userId, 'account_denied')
-  const greetingName = getGreetingName(fullName)
-  // `reason` is admin-supplied free text that lands in a stranger's mail
-  // client. It used to be interpolated raw, so a single stray tag (or a
-  // deliberate one) rendered as markup inside a Helpr-branded notice.
-  const reasonText = reason
-    ? emailP(`<strong>Reason:</strong> ${htmlEscape(reason)}`)
-    : ''
-  const reasonPlain = reason ? `\nReason: ${reason}` : ''
-
-  const html = emailShell({
-    preheader: 'An update on your Helpr account application.',
-    title: 'An update on your account',
-    body: [
-      emailH1('An update on your account'),
-      emailP(`Hey ${greetingName},`),
-      emailP("We've reviewed your account application and unfortunately we're <strong>unable to approve it</strong> at this time."),
-      reasonText,
-      emailP('You can update your profile and resubmit for review:'),
-      emailButton(ctaUrl, 'Update My Profile', 220),
-      emailNote('If you believe this was a mistake, please contact our support team.'),
-    ].filter(Boolean).join('\n'),
-    trailing: trackingPixel(pixelUrl),
-  })
-
-  const text = `An update on your account\n\nHey ${greetingName},\n\nWe've reviewed your account application and unfortunately we're unable to approve it at this time.${reasonPlain}\n\nYou can update your profile and resubmit for review at: ${siteUrl}/login\n\nIf you believe this was a mistake, please contact our support team.`
-
-  return { html, text }
+  return await renderEmail(
+    React.createElement(AccountStatusEmail, {
+      status,
+      greetingName: getGreetingName(fullName),
+      ctaUrl,
+      pixelUrl,
+      reason,
+    }),
+  )
 }
 
 Deno.serve(async (req) => {
@@ -228,17 +191,18 @@ Deno.serve(async (req) => {
       })
     }
 
-    let html: string, text: string, subject: string
-    if (status === 'verified') {
-      ({ html, text } = await renderVerifiedEmail(profile.full_name || '', userId))
-      subject = 'Your identity is verified — welcome to Louisiana Helpr'
-    } else if (status === 'approved') {
-      ({ html, text } = await renderApprovedEmail(profile.full_name || '', userId))
-      subject = 'Your account is approved'
-    } else {
-      ({ html, text } = await renderDeniedEmail(profile.full_name || '', userId, reason))
-      subject = 'An update on your account'
+    const SUBJECTS: Record<string, string> = {
+      verified: 'Your identity is verified — welcome to Louisiana Helpr',
+      approved: 'Your account is approved',
+      denied: 'An update on your account',
     }
+    const subject = SUBJECTS[status as string]
+    const { html, text } = await renderAccountStatusEmail(
+      status as 'approved' | 'verified' | 'denied',
+      profile.full_name || '',
+      userId,
+      status === 'denied' ? reason : undefined,
+    )
 
     const messageId = crypto.randomUUID()
 

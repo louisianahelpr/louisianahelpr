@@ -24,6 +24,13 @@ project_id = "fncmgoasalhdgfwzhsqa"
 
   [functions.auth-email-hook]
     verify_jwt = false
+  # Resend delivers bounce/complaint events over plain HTTPS with no Supabase
+  # JWT. Without this the gateway rejects every delivery before the handler
+  # runs, and suppressed_emails stays empty — which is the exact state that
+  # made both suppression guards no-ops. Authenticity is enforced INSIDE the
+  # function via resend.webhooks.verify() + RESEND_WEBHOOK_SECRET.
+  [functions.resend-webhook]
+    verify_jwt = false
   [functions.create-payment]
     verify_jwt = false
   [functions.process-email-queue]

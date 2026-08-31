@@ -1,38 +1,58 @@
-// The ONE way Helpr talks to Resend.
+// The ONE way Helpr talks to Resend — a thin wrapper over the OFFICIAL SDK.
 //
-// Before this module there were nine hand-rolled copies of the same fetch
-// (send-notification-email, process-email-queue, send-account-status-email,
-// send-marketing-blast, admin-user-actions, contact-support, pifGiftEmail,
-// notify-email-change, admin-update-email). They had drifted: only three
-// passed a `text` part at all (HTML-only mail is a direct spam-score penalty
-// and unreadable in text-only clients), and exactly one of them handled a 429
-// / Retry-After, so the other eight hammered the provider straight through a
-// rate-limit penalty. Four different From display names and two different
-// envelope addresses were in play at the same time.
+// Before this module there were nine hand-rolled copies of the same
+// `fetch('https://api.resend.com/emails')` (send-notification-email,
+// process-email-queue, send-account-status-email, send-marketing-blast,
+// admin-user-actions, contact-support, pifGiftEmail, notify-email-change,
+// admin-update-email). They had drifted: only three passed a `text` part at
+// all (HTML-only mail is a direct spam-score penalty and unreadable in
+// text-only clients), and exactly one handled a 429 / Retry-After, so the
+// other eight hammered the provider straight through a rate-limit penalty.
+// Four different From display names and two envelope addresses were in play
+// at the same time.
+//
+// WHY THE SDK RATHER THAN `fetch`
+// `npm:resend` is the vendor's own client and is the pattern Supabase
+// documents for Edge Functions, so the request shape, the error taxonomy and
+// the retry semantics are maintained by Resend instead of by us. v6 returns
+// `{ data, error, headers }` — the response headers are what make a correct
+// 429 backoff possible (`Retry-After`), which is the one thing the old
+// hand-rolled copies mostly got wrong.
 //
 // Everything that sends mail imports from here. Add a capability HERE, never
 // in a caller.
 
+import { Resend } from 'npm:resend@6.25.0'
+import { getAppUrl } from './appUrl.ts'
+
 /**
  * ─────────────────────────────────────────────────────────────────────────
- * ACTION REQUIRED BY THE BUSINESS OWNER — CAN-SPAM §7704(a)(5)
+ * CAN-SPAM §7704(a)(5) — PHYSICAL POSTAL ADDRESS
  *
- * Commercial email (the marketing blast and the lifecycle/drip sequences)
- * must carry a valid PHYSICAL POSTAL ADDRESS for the sender. Helpr's address
- * is not in this repo and must NOT be invented, so it is read from a
- * Supabase function secret:
+ * Commercial email must carry a valid physical postal address for the sender.
+ * Helpr's address is not in this repo and must NOT be invented, so it is read
+ * from a Supabase function secret:
  *
- *     supabase secrets set HELPR_POSTAL_ADDRESS="123 Example St, Suite 4, New Orleans, LA 70112"
+ *     supabase secrets set HELPR_POSTAL_ADDRESS="123 Example St, New Orleans, LA 70112"
  *
- * Until that secret is set the constant is an empty string and the footer
- * renders WITHOUT a postal address — which means the marketing blast and the
- * engagement drips are shipping non-compliant. Set it before the next
- * commercial send.
+ * The owner has chosen not to publish one yet, so the exposure was removed
+ * rather than papered over:
+ *
+ *   • The three welcome-drip steps and the "New jobs are open in your area."
+ *     win-back — the only purely promotional automated sends — were DELETED
+ *     from engagement-automations.
+ *   • send-marketing-blast (admin-authored free-text campaigns, and now the
+ *     only commercial send left) REFUSES with a 400 unless this secret is set.
+ *     The guard runs before the request body is even parsed, so the preview
+ *     `test_email` path cannot slip past it either.
+ *   • What remains is transactional and account-status mail, which the
+ *     statute's address requirement does not reach.
+ *
+ * When the address is set, MarketingFooter() renders it automatically and the
+ * blast unlocks. Nothing else needs to change.
  * ─────────────────────────────────────────────────────────────────────────
  */
 export const POSTAL_ADDRESS = Deno.env.get("HELPR_POSTAL_ADDRESS") ?? "";
-
-export const RESEND_API_URL = "https://api.resend.com/emails";
 
 /** The Resend-verified sending domain. */
 export const SENDER_DOMAIN = "louisianahelpr.com";
@@ -99,7 +119,17 @@ export function sanitizeHeaderValue(input: unknown, max = 200): string {
     .slice(0, max);
 }
 
-/** Best-effort HTML → plaintext, for callers that only ever had an HTML body. */
+/**
+ * LEGACY FALLBACK ONLY — do not reach for this in new code.
+ *
+ * Every template now renders its plaintext part from the SAME react-email
+ * component as its HTML (`email-templates/render.ts`), which is both more
+ * accurate and impossible to let drift. This regex exists for exactly one
+ * case: a message already sitting on the pgmq queue from before that rule,
+ * whose payload carries `html` but no `text`. Such a message can never
+ * succeed otherwise (the sender requires a text part), so it would burn its
+ * five retries and land in the DLQ instead of being delivered.
+ */
 export function htmlToPlainText(html: string): string {
   return html
     .replace(/<!--[\s\S]*?-->/g, "")
@@ -117,68 +147,91 @@ export function htmlToPlainText(html: string): string {
     .trim();
 }
 
+/** Cache one client per API key — building it per send is pure overhead. */
+const clients = new Map<string, Resend>()
+function client(apiKey: string): Resend {
+  let c = clients.get(apiKey)
+  if (!c) {
+    c = new Resend(apiKey)
+    clients.set(apiKey, c)
+  }
+  return c
+}
+
 /**
  * Send one email through Resend.
  *
  * Returns the Resend message id (use it as the `email_send_log.message_id`
  * correlation key when you are not going through the queue).
  *
- * Throws a `ResendSendError` with `.status` attached on any non-2xx, and with
- * `.retryAfterSeconds` additionally set on 429 so a worker can observe the
- * provider's cooldown instead of hammering through it.
+ * Throws a `ResendSendError` with `.status` attached on any failure, and with
+ * `.retryAfterSeconds` additionally set on 429 — read from the provider's
+ * `Retry-After` response header, which the SDK exposes on the result — so a
+ * worker can observe the cooldown instead of hammering through it.
  */
 export async function sendWithResend(
   apiKey: string,
   params: SendEmailParams,
 ): Promise<string> {
   if (!apiKey) {
-    const err: ResendSendError = new Error("Resend API key missing");
-    err.status = 0;
-    throw err;
+    const err: ResendSendError = new Error('Resend API key missing')
+    err.status = 0
+    throw err
   }
   if (!params.text || !params.text.trim()) {
     // Deliberately a hard failure, not a silent HTML-only send: the drift this
     // module exists to end started exactly here.
     const err: ResendSendError = new Error(
-      "sendWithResend: `text` is required — pass a plaintext part (htmlToPlainText() if you have nothing else)",
-    );
-    err.status = 0;
-    throw err;
+      'sendWithResend: `text` is required — render the template with renderEmail() so the plaintext part comes from the same component',
+    )
+    err.status = 0
+    throw err
   }
 
-  const res = await fetch(RESEND_API_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from: params.from,
-      to: [params.to],
-      subject: params.subject,
-      html: params.html,
-      text: params.text,
-      ...(params.replyTo ? { reply_to: params.replyTo } : {}),
-      ...(params.headers ? { headers: params.headers } : {}),
-    }),
-  });
+  // The SDK RESOLVES `{ data, error, headers }` — like supabase-js, it does not
+  // throw on a provider-side failure. Dropping `error` here would report every
+  // rejected send as delivered.
+  const { data, error, headers } = await client(apiKey).emails.send({
+    from: params.from,
+    to: [params.to],
+    subject: params.subject,
+    html: params.html,
+    text: params.text,
+    ...(params.replyTo ? { replyTo: params.replyTo } : {}),
+    ...(params.headers ? { headers: params.headers } : {}),
+  })
 
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
+  if (error) {
+    const status = error.statusCode ?? 0
     // Message shape kept as `Resend API error [<status>]: <body>` because
     // process-email-queue's rate-limit sniffing also matches on the text.
-    const err: ResendSendError = new Error(`Resend API error [${res.status}]: ${body}`);
-    err.status = res.status;
-    if (res.status === 429) {
-      const retryAfter = res.headers.get("Retry-After");
-      const parsed = retryAfter ? parseInt(retryAfter, 10) : NaN;
-      err.retryAfterSeconds = Number.isFinite(parsed) && parsed > 0 ? parsed : 60;
+    const err: ResendSendError = new Error(
+      `Resend API error [${status}]: ${error.name ?? 'error'} ${error.message ?? ''}`.trim(),
+    )
+    err.status = status
+    if (status === 429) {
+      const retryAfter = headers?.['retry-after'] ?? headers?.['Retry-After']
+      const parsed = retryAfter ? parseInt(String(retryAfter), 10) : NaN
+      err.retryAfterSeconds = Number.isFinite(parsed) && parsed > 0 ? parsed : 60
     }
-    throw err;
+    throw err
   }
 
-  const json = await res.json().catch(() => ({} as Record<string, unknown>));
-  return typeof (json as { id?: unknown }).id === "string" ? (json as { id: string }).id : "";
+  return data?.id ?? ''
+}
+
+/**
+ * List-Unsubscribe headers for commercial / lifecycle mail.
+ *
+ * Gmail and Apple Mail render their own one-click unsubscribe control above
+ * the message body when these are present, which is both a deliverability win
+ * and the thing a recipient actually reaches for.
+ */
+export function unsubscribeHeaders(): Record<string, string> {
+  return {
+    'List-Unsubscribe': `<${getAppUrl()}/profile?tab=notifications>, <mailto:${UNSUBSCRIBE_MAILBOX}>`,
+    'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+  }
 }
 
 export interface QueuedEmail {

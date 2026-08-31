@@ -1,21 +1,24 @@
 // Marketing email blast tool — admin-only.
 // Sends a one-off campaign to a segmented user list via the Resend API.
 // Segments: all | helpers | posters | by_parish.
+import * as React from "npm:react@18.3.1";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-// Sending, the From header, the plaintext converter and the postal-address
-// secret all come from the one Resend module now — this function used to carry
-// its own copy of each, including the only use of hello@ in the product.
+// Sending, the From header, the List-Unsubscribe headers and the
+// postal-address secret all come from the one Resend module now — this
+// function used to carry its own copy of each, including the only use of
+// hello@ in the product.
 import {
   FROM_DEFAULT,
-  htmlToPlainText,
   POSTAL_ADDRESS,
   sendWithResend,
-} from "../_shared/resend.ts";
-import {
-  marketingFooter,
-  marketingFooterText,
   unsubscribeHeaders,
-} from "../_shared/emailLayout.ts";
+} from "../_shared/resend.ts";
+// The campaign is wrapped in the shared react-email shell, which is where the
+// branded card, the preheader, dark mode and <MarketingFooter> (unsubscribe +
+// POSTAL_ADDRESS) now come from. Both the HTML and the plaintext part are
+// rendered from that one component — see the note above `renderCampaign`.
+import { MarketingBlastEmail } from "../_shared/email-templates/marketing-blast.tsx";
+import { renderEmail } from "../_shared/email-templates/render.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -106,7 +109,8 @@ Deno.serve(async (req) => {
     // is covered too.
     //
     // To lift it: `supabase secrets set HELPR_POSTAL_ADDRESS="…"`. The address
-    // then renders in the campaign footer automatically via marketingFooter().
+    // then renders in the campaign footer automatically via the shared
+    // <MarketingFooter> inside MarketingBlastEmail.
     // ─────────────────────────────────────────────────────────────────────
     if (!POSTAL_ADDRESS.trim()) {
       console.error(
@@ -239,35 +243,44 @@ Deno.serve(async (req) => {
     }
 
     // Send via the Resend API. Throttle lightly: batches of 10, 200ms between.
-    // The admin types raw HTML, so the footer and the plaintext part have to be
-    // synthesised here — there is no template to hang them off.
     //
-    // marketingFooter() replaces the hand-rolled UNSUB_FOOTER constant: it
-    // emits the unsubscribe link, the mailto unsubscribe, and — now that the
-    // guard above proves it is set — the POSTAL_ADDRESS the law requires. Its
-    // links route through getAppUrl() instead of the hardcoded apex domain.
+    // The admin types raw HTML, so there is no component to build the campaign
+    // body from — but everything AROUND it is now the shared react-email shell
+    // (MarketingBlastEmail → BaseLayout). That shell owns:
+    //   • the centred <Container> card, the preheader, the color-scheme metas
+    //     and the dark-mode stylesheet, none of which the bare campaign HTML
+    //     had;
+    //   • <MarketingFooter>, which emits the unsubscribe link, the mailto
+    //     unsubscribe, and — now that the guard above proves it is set — the
+    //     POSTAL_ADDRESS the law requires, with links routed through
+    //     getAppUrl() instead of the hardcoded apex domain.
     //
-    // Still don't double-append: an admin who already pasted their own
-    // unsubscribe link into the campaign HTML keeps theirs.
+    // The old code appended marketingFooter() to the HTML by hand and skipped
+    // that append when the campaign already contained "/profile?tab=notifications"
+    // (an admin who pasted their own unsubscribe link kept theirs). Both the
+    // append and that check are gone: the footer is part of the shell, so it is
+    // always present exactly once, and an admin's own unsubscribe link in the
+    // body is now merely a harmless duplicate rather than a reason to suppress
+    // the compliant footer.
     //
-    // The plaintext part is built from the campaign HTML BEFORE the footer is
-    // appended, then marketingFooterText() is added. htmlToPlainText() strips
-    // tags, which would have thrown away the unsubscribe href and left the
-    // word "Unsubscribe" pointing nowhere in every text-only client.
-    const personalise = (rawHtml: string, fullName: string | null) => {
-      const personalised = rawHtml.replaceAll("{{name}}", fullName || "neighbor");
-      const alreadyHasUnsubscribe = personalised.includes("/profile?tab=notifications");
-      return {
-        html: alreadyHasUnsubscribe ? personalised : personalised + marketingFooter(),
-        // Every other sender supplies a plaintext part; this one did not.
-        // HTML-only mail is a direct spam-score penalty and is unreadable
-        // in text-only clients and to some screen readers. sendWithResend now
-        // refuses a send without one.
-        text: alreadyHasUnsubscribe
-          ? htmlToPlainText(personalised)
-          : htmlToPlainText(personalised) + marketingFooterText(),
-      };
-    };
+    // Every other sender supplies a plaintext part; this one used to synthesise
+    // it with htmlToPlainText(), a regex that strips tags — which threw away the
+    // unsubscribe href and left the word "Unsubscribe" pointing nowhere in every
+    // text-only client. Both parts now come from the SAME component via
+    // renderEmail(), so they cannot drift and the links survive. HTML-only mail
+    // is a direct spam-score penalty anyway, and sendWithResend refuses a send
+    // without a text part.
+    //
+    // The preheader is the campaign subject: the inbox preview used to be
+    // whatever words happened to start the admin's HTML.
+    const preheader = body.subject.trim();
+    const renderCampaign = (rawHtml: string, fullName: string | null) =>
+      renderEmail(
+        React.createElement(MarketingBlastEmail, {
+          preheader,
+          bodyHtml: rawHtml.replaceAll("{{name}}", fullName || "neighbor"),
+        }),
+      );
 
     let sent = 0, failed = 0;
     const errors: string[] = [];
@@ -300,12 +313,23 @@ Deno.serve(async (req) => {
     for (let i = 0; i < recipients.length; i += 10) {
       const batch = recipients.slice(i, i + 10);
       await Promise.all(batch.map(async (r) => {
-        const { html: personalisedHtml, text: personalisedText } = personalise(body.html, r.full_name);
         // Correlation key. Resend's own id is preferred when the send lands
         // (it's what a bounce/complaint webhook reports back); a locally
         // generated uuid covers failures and any response without an id.
         let messageId = crypto.randomUUID();
         try {
+          // Rendering is per-recipient ({{name}} is substituted before the
+          // shell is rendered) and ASYNCHRONOUS, so it is awaited before the
+          // send — an unawaited render would hand sendWithResend a pair of
+          // Promises and every recipient would get "[object Promise]".
+          //
+          // It sits inside the try so a render failure is recorded against
+          // that recipient like any other failed send, instead of rejecting
+          // the whole Promise.all and killing a campaign mid-flight.
+          const { html: personalisedHtml, text: personalisedText } = await renderCampaign(
+            body.html,
+            r.full_name,
+          );
           // sendWithResend THROWS on any non-2xx — there is no non-ok
           // Response to inspect any more, so both the HTTP-failure and the
           // network-failure paths land in the same catch below.

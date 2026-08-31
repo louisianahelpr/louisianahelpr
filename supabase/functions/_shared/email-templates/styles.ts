@@ -71,6 +71,17 @@ export const brand = {
  * clients cannot load.
  */
 
+/**
+ * Wordmark image URL.
+ *
+ * Served by the `brand-asset` edge function rather than by the marketing site:
+ * www.louisianahelpr.com sits behind Vercel's security checkpoint, and Gmail's
+ * and Apple Mail's image proxies both receive a 429 challenge page instead of
+ * the PNG. Confirmed from two separate networks.
+ */
+export const LOGO_URL =
+  'https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/brand-asset'
+
 /** Body face. Montserrat is the app's sans; degrades to the usual grotesques. */
 export const bodyFontStack =
   "'Montserrat', 'Helvetica Neue', Helvetica, Arial, sans-serif"
@@ -87,8 +98,9 @@ export const main = {
  * `<div style="margin:0 auto">`), which is what makes it survive Outlook's
  * Word rendering engine — Word does not implement `margin:0 auto` on a block
  * element, so every hand-rolled div-based Helpr template left-aligned and
- * stretched there. Width raised 480 → 600 to match the raw-HTML templates in
- * `_shared/emailLayout.ts`, so the whole product renders at one width.
+ * stretched there. Width raised 480 → 600 so the whole product — the six auth
+ * emails and the nine templates ported off hand-built HTML strings — renders
+ * at one width.
  */
 export const container = {
   padding: '32px 28px',
@@ -108,9 +120,9 @@ export const container = {
  * text dark — i.e. invisible. Declaring `color-scheme` and shipping an
  * explicit dark palette takes that decision back.
  *
- * Class names are shared with `_shared/emailLayout.ts` (`e-bg`, `e-card`,
- * `e-h1`, `e-text`, `e-footer`, `e-cta`, `e-accent`) so raw-HTML and
- * react-email templates invert identically. Keep the two palettes in step.
+ * The class names (`e-bg`, `e-card`, `e-h1`, `e-text`, `e-note`, `e-rule`,
+ * `e-footer`, `e-cta`, `e-accent`) are applied by the shared components in
+ * `components.tsx`; every template must carry them or it will not invert.
  */
 export const EMAIL_CSS = `
   :root { color-scheme: light dark; supported-color-schemes: light dark; }
@@ -129,7 +141,7 @@ export const EMAIL_CSS = `
     .e-accent, .e-text a { color:#E08B57 !important; }
     .e-footer, .e-footer a { color:#A7AD9C !important; }
     .e-cta { background-color:#94A06D !important; color:#14150F !important; }
-    .e-rule { border-color:#3B3D2F !important; }
+    .e-rule, .e-footer { border-color:#3B3D2F !important; }
   }
 `
 

@@ -1,10 +1,10 @@
+import * as React from 'npm:react@18.3.1'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { postSlackOpsAlert } from '../_shared/slack-alerts.ts'
-import { htmlEscape } from '../_shared/safe-strings.ts'
-import { brand } from '../_shared/email-templates/styles.ts'
 import { getAppUrl } from '../_shared/appUrl.ts'
 import { queueEmail, SUPPORT_EMAIL } from '../_shared/resend.ts'
-import { emailShell, emailH1, emailP, emailNote, emailButton, supportLink } from '../_shared/emailLayout.ts'
+import { AdminActionEmail, type AdminActionCallout } from '../_shared/email-templates/admin-action.tsx'
+import { renderEmail } from '../_shared/email-templates/render.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -37,28 +37,14 @@ type ActionType =
 // flag. The Resend API key now lives only with the queue worker
 // (process-email-queue), so this function no longer reads RESEND_API_KEY at all.
 
-/**
- * Shared card layout for every email this function sends.
- *
- * Was `<div style="max-width:480px;margin:0 auto">`, which Outlook's Word
- * rendering engine cannot centre (it does not implement `margin:0 auto` on a
- * block element) — so every admin email left-aligned and stretched to the
- * reading-pane width. `emailShell` is the 600px table layout, with the
- * viewport meta and the dark-mode palette this template was missing, and the
- * logo rendered once at a single size (the old markup had `width="80"`
- * fighting `style="width:150px"`).
- */
-function wrapEmail(preheader: string, title: string, bodyHtml: string, ctaUrl?: string, ctaLabel?: string) {
-  const cta = ctaUrl ? emailButton(ctaUrl, ctaLabel || 'Open Helpr') : ''
-  return emailShell({
-    preheader,
-    title,
-    body: `${emailH1(title)}
-${bodyHtml}
-${cta}
-${emailNote(`Questions? Just reply to this email — it reaches our support team at ${supportLink()}.`)}`,
-  })
-}
+// The card layout for all four emails below lives in
+// `_shared/email-templates/admin-action.tsx`. It used to be a local
+// `wrapEmail()` HTML-string builder here, built on
+// `<div style="max-width:480px;margin:0 auto">` — which Outlook's Word engine
+// cannot centre — and every call site hand-assembled its own body markup and a
+// separate hand-written plaintext twin. Both parts now come from the one
+// react-email component via `renderEmail`, so they cannot drift, and React
+// escapes every interpolated value instead of a hand-applied htmlEscape().
 
 /** Partial-success fields for a response whose action committed but whose email may not have queued. */
 function emailStatusFields(result: { ok: boolean }) {
@@ -144,10 +130,9 @@ Deno.serve(async (req) => {
     // Canonical base URL. Was a local `SITE_URL` built from a hardcoded
     // ROOT_DOMAIN, which disagreed with the rest of the product.
     const appUrl = getAppUrl()
+    // Passed straight into JSX, which escapes it — and only once, so readers
+    // never see &#39; in their mail client the way a double-escaped value would.
     const fullName = profile.full_name || 'there'
-    // HTML-context copy only — the plaintext bodies keep the raw value so
-    // readers never see &#39; in their mail client.
-    const fullNameHtml = htmlEscape(fullName)
 
     // ---- Action handlers ----
     if (action === 'grant_admin') {
@@ -206,15 +191,22 @@ Deno.serve(async (req) => {
         link: '/dashboard',
       })
 
-      const html = wrapEmail(
-        'An admin verified your identity — you now have full access to Helpr.',
-        'You\'re verified',
-        `${emailP(`Hey ${fullNameHtml},`)}
-         ${emailP(`An admin has personally <strong class="e-accent" style="color:${brand.burntSienna}">verified your account</strong>. You now have full access to post or accept jobs on Helpr.`)}`,
-        `${appUrl}/dashboard`,
-        'Go to Dashboard',
+      const { html, text } = await renderEmail(
+        React.createElement(AdminActionEmail, {
+          preheader: 'An admin verified your identity — you now have full access to Helpr.',
+          title: 'You\'re verified',
+          greetingName: fullName,
+          paragraphs: [
+            [
+              'An admin has personally ',
+              { accent: 'verified your account' },
+              '. You now have full access to post or accept jobs on Helpr.',
+            ],
+          ],
+          ctaUrl: `${appUrl}/dashboard`,
+          ctaLabel: 'Go to Dashboard',
+        }),
       )
-      const text = `Hey ${fullName},\n\nAn admin has manually verified your account. You now have full access to Helpr.\n\nGo to your dashboard: ${appUrl}/dashboard\n\nQuestions? Just reply to this email — it reaches our support team at ${SUPPORT_EMAIL}.`
       const emailResult = await queueEmail(admin, {
         to: profile.email,
         subject: 'You\'re verified on Helpr',
@@ -305,19 +297,24 @@ Deno.serve(async (req) => {
         link: '/profile',
       })
 
-      const html = wrapEmail(
-        'Your ID photo was hard to read — please upload a clearer one.',
-        'Quick fix needed on your ID',
-        // `note` is admin-authored free text landing in an HTML document, so it
-        // is escaped here exactly as the formal_warning template does. It used
-        // to be interpolated raw.
-        `${emailP(`Hey ${fullNameHtml},`)}
-         ${emailP('Your ID photo was a bit hard to read on our end. Can you snap a clearer one so we can finish setting you up?')}
-         ${note ? `<p style="font-size:14px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px;padding:12px;border-radius:8px;background-color:hsl(45,90%,95%);border:1px solid hsl(45,80%,85%)"><strong>Admin note:</strong> ${htmlEscape(note)}</p>` : ''}`,
-        `${appUrl}/profile`,
-        'Re-upload ID',
+      const { html, text } = await renderEmail(
+        React.createElement(AdminActionEmail, {
+          preheader: 'Your ID photo was hard to read — please upload a clearer one.',
+          title: 'Quick fix needed on your ID',
+          greetingName: fullName,
+          paragraphs: [
+            'Your ID photo was a bit hard to read on our end. Can you snap a clearer one so we can finish setting you up?',
+          ],
+          // `note` is admin-authored free text landing in an HTML document. It
+          // used to be interpolated raw, then hand-escaped; as a JSX child
+          // React escapes it, exactly as in the formal_warning branch.
+          callouts: note
+            ? [{ tone: 'note' as const, body: [{ b: 'Admin note:' }, ' ', note] }]
+            : [],
+          ctaUrl: `${appUrl}/profile`,
+          ctaLabel: 'Re-upload ID',
+        }),
       )
-      const text = `Hey ${fullName},\n\nYour ID photo was a bit hard to read. Please re-upload a clearer one.\n${note ? `\nAdmin note: ${note}\n` : ''}\nUpdate it here: ${appUrl}/profile\n\nQuestions? Just reply to this email — it reaches our support team at ${SUPPORT_EMAIL}.`
       const emailResult = await queueEmail(admin, {
         to: profile.email,
         subject: 'Helpr — please re-upload your ID',
@@ -356,15 +353,18 @@ Deno.serve(async (req) => {
       })
       if (auditErr) console.error('[admin-user-actions] audit log write FAILED — privileged action has no trail:', auditErr.message)
 
-      const html = wrapEmail(
-        'An admin sent you a password reset link — it expires in 1 hour.',
-        'Reset your password',
-        `${emailP(`Hey ${fullNameHtml},`)}
-         ${emailP('An admin sent you a password reset link. Click the button below to choose a new password. This link expires in 1 hour.')}`,
-        actionLink,
-        'Reset Password',
+      const { html, text } = await renderEmail(
+        React.createElement(AdminActionEmail, {
+          preheader: 'An admin sent you a password reset link — it expires in 1 hour.',
+          title: 'Reset your password',
+          greetingName: fullName,
+          paragraphs: [
+            'An admin sent you a password reset link. Click the button below to choose a new password. This link expires in 1 hour.',
+          ],
+          ctaUrl: actionLink,
+          ctaLabel: 'Reset Password',
+        }),
       )
-      const text = `Hey ${fullName},\n\nReset your Helpr password using this link (expires in 1 hour):\n${actionLink}\n\nQuestions? Just reply to this email — it reaches our support team at ${SUPPORT_EMAIL}.`
       const emailResult = await queueEmail(admin, {
         to: profile.email,
         subject: 'Reset your Helpr password',
@@ -399,10 +399,18 @@ Deno.serve(async (req) => {
       let emailSubject = 'Helpr — Formal warning issued'
       let emailHeading = 'Formal warning (Strike 1 of 3)'
       let emailPreheader = 'A formal warning has been issued on your Helpr account (strike 1 of 3).'
-      // Backticks, not quotes: this string interpolates a brand token. As a
-      // single-quoted literal the ${...} would have shipped verbatim into the
-      // email body.
-      let escalationHtml = `<p class="e-text" style="font-size:14px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">This is your <strong>1st strike</strong>. A 2nd strike will trigger a final warning banner across the app; a 3rd will result in a 7-day account suspension.</p>`
+      // The escalation line is DATA now, not an HTML string. It used to be a
+      // template literal interpolating a brand token, and HAD to be written
+      // with backticks — as a single-quoted literal the ${...} shipped
+      // verbatim into the email body. There is no string left to get wrong.
+      let escalation: AdminActionCallout = {
+        tone: 'plain',
+        body: [
+          'This is your ',
+          { b: '1st strike' },
+          '. A 2nd strike will trigger a final warning banner across the app; a 3rd will result in a 7-day account suspension.',
+        ],
+      }
 
       if (strikeNumber === 2) {
         actionTaken = 'final_warning'
@@ -412,7 +420,13 @@ Deno.serve(async (req) => {
         emailSubject = 'Helpr — FINAL warning'
         emailHeading = 'Final warning (Strike 2 of 3)'
         emailPreheader = 'This is a final warning on your Helpr account — one more violation means a 7-day suspension.'
-        escalationHtml = '<p style="font-size:14px;color:hsl(0,70%,45%);line-height:1.6;margin:0 0 20px;padding:12px;border-radius:8px;background-color:hsl(0,80%,97%);border:1px solid hsl(0,70%,90%)"><strong>This is your final warning.</strong> One more violation will result in an automatic 7-day suspension. A warning banner is now visible at the top of your app.</p>'
+        escalation = {
+          tone: 'alert',
+          body: [
+            { b: 'This is your final warning.' },
+            ' One more violation will result in an automatic 7-day suspension. A warning banner is now visible at the top of your app.',
+          ],
+        }
       } else if (strikeNumber >= 3) {
         actionTaken = 'suspension'
         const suspendUntil = new Date()
@@ -423,7 +437,15 @@ Deno.serve(async (req) => {
         emailSubject = 'Helpr — Account suspended (7 days)'
         emailHeading = 'Account suspended for 7 days'
         emailPreheader = `Your Helpr account is suspended for 7 days after a third violation. Access returns on ${suspendUntil.toLocaleDateString()}.`
-        escalationHtml = `<p style="font-size:14px;color:hsl(0,70%,45%);line-height:1.6;margin:0 0 20px;padding:12px;border-radius:8px;background-color:hsl(0,80%,97%);border:1px solid hsl(0,70%,90%)"><strong>Your account has reached 3 strikes and is now suspended.</strong> Access will be restored on <strong>${suspendUntil.toLocaleDateString()}</strong>. All active bids have been cancelled.</p>`
+        escalation = {
+          tone: 'alert',
+          body: [
+            { b: 'Your account has reached 3 strikes and is now suspended.' },
+            ' Access will be restored on ',
+            { b: suspendUntil.toLocaleDateString() },
+            '. All active bids have been cancelled.',
+          ],
+        }
 
         // Cancel all pending applications (active bids)
         await admin.from('applications').update({ status: 'rejected' } as any)
@@ -475,17 +497,26 @@ Deno.serve(async (req) => {
         link: '/rules',
       })
 
-      const html = wrapEmail(
-        emailPreheader,
-        emailHeading,
-        `${emailP(`Hey ${fullNameHtml},`)}
-         ${emailP(strikeNumber >= 3 ? 'Your account has been automatically suspended due to a third platform policy violation:' : 'You\'ve received a formal warning regarding a platform policy violation:')}
-         ${note ? `<p style="font-size:14px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px;padding:12px;border-radius:8px;background-color:hsl(45,90%,95%);border:1px solid hsl(45,80%,85%)">${htmlEscape(note)}</p>` : ''}
-         ${escalationHtml}`,
-        `${appUrl}/rules`,
-        'Review Platform Rules',
+      const { html, text } = await renderEmail(
+        React.createElement(AdminActionEmail, {
+          preheader: emailPreheader,
+          title: emailHeading,
+          greetingName: fullName,
+          paragraphs: [
+            strikeNumber >= 3
+              ? 'Your account has been automatically suspended due to a third platform policy violation:'
+              : 'You\'ve received a formal warning regarding a platform policy violation:',
+          ],
+          // `note` is admin-authored free text; React escapes it as a JSX child,
+          // which is what the hand-applied htmlEscape() used to do here.
+          callouts: [
+            ...(note ? [{ tone: 'note' as const, body: note }] : []),
+            escalation,
+          ],
+          ctaUrl: `${appUrl}/rules`,
+          ctaLabel: 'Review Platform Rules',
+        }),
       )
-      const text = `Hey ${fullName},\n\nStrike ${strikeNumber} of 3.\n${note ? `\nDetails: ${note}\n` : ''}\nReview rules: ${appUrl}/rules\n\nQuestions? Just reply to this email — it reaches our support team at ${SUPPORT_EMAIL}.`
       const emailResult = await queueEmail(admin, {
         to: profile.email,
         subject: emailSubject,

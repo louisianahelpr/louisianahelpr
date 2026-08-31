@@ -1,10 +1,11 @@
+import * as React from "npm:react@18.3.1";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
-import { htmlEscape } from "../_shared/safe-strings.ts";
-import { FROM_DEFAULT, SUPPORT_EMAIL, sendWithResend } from "../_shared/resend.ts";
-import { emailH1, emailP, emailShell, supportLink, transactionalFooter } from "../_shared/emailLayout.ts";
+import { FROM_DEFAULT, sendWithResend } from "../_shared/resend.ts";
+import { SelfEmailChangeNoticeEmail } from "../_shared/email-templates/email-changed.tsx";
+import { renderEmail } from "../_shared/email-templates/render.ts";
 
 /**
  * notify-email-change — sends an "email address changed" notification to
@@ -85,18 +86,15 @@ serve(async (req) => {
       });
     }
 
-    const html = emailShell({
-      preheader: "Your Helpr login email is being changed — confirm it was you.",
-      title: "Your email address was changed",
-      body: [
-        emailH1("Your email address was changed"),
-        emailP(`Someone signed in to your Helpr account and started changing your login email from <strong>${htmlEscape(oldEmail)}</strong> to <strong>${htmlEscape(newEmail)}</strong>. To finalize the change, the new address will need to confirm the request.`),
-        emailP("<strong>Was this you?</strong> No action needed — the confirmation link was sent to your new address."),
-        emailP(`<strong>Was this NOT you?</strong> Reset your password immediately and contact us at ${supportLink()}.`),
-        transactionalFooter(`Questions? Contact us at ${SUPPORT_EMAIL}.`),
-      ].join("\n"),
-    });
-    const text = `Your Helpr account email is being changed from ${oldEmail} to ${newEmail}. If this was NOT you, reset your password and contact ${SUPPORT_EMAIL} immediately.`;
+    // Both parts come from ONE react-email component: `renderEmail` returns the
+    // HTML and react-email's own plaintext twin, so the two can never drift —
+    // the hand-written text body this replaced had already lost the "was this
+    // you / was this NOT you" guidance the HTML carried. React escapes both
+    // addresses; the shape check above is the layer that actually keeps prose
+    // out of a Helpr-branded security notice.
+    const { html, text } = await renderEmail(
+      React.createElement(SelfEmailChangeNoticeEmail, { oldEmail, newEmail }),
+    );
 
     try {
       await sendWithResend(resendApiKey, {

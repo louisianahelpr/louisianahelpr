@@ -1,8 +1,9 @@
+import * as React from 'npm:react@18.3.1'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsHeadersFull as corsHeaders } from '../_shared/cors.ts'
-import { htmlEscape } from '../_shared/safe-strings.ts'
 import { queueEmail, SUPPORT_EMAIL } from '../_shared/resend.ts'
-import { emailShell, emailH1, emailP, transactionalFooter, supportLink } from '../_shared/emailLayout.ts'
+import { AdminEmailChangedEmail } from '../_shared/email-templates/email-changed.tsx'
+import { renderEmail } from '../_shared/email-templates/render.ts'
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -278,15 +279,13 @@ Deno.serve(async (req) => {
     let noticeEmailSent = false
     if (oldEmail && oldEmail !== normalizedEmail) {
       noticeEmailNeeded = true
-      const html = emailShell({
-        preheader: 'An administrator changed the login email on your Helpr account.',
-        title: 'Your email address was changed',
-        body: `${emailH1('Your email address was changed')}
-${emailP(`An administrator updated the email address on your Helpr account from <strong>${htmlEscape(oldEmail)}</strong> to <strong>${htmlEscape(normalizedEmail)}</strong>.`)}
-${emailP(`Use <strong>${htmlEscape(normalizedEmail)}</strong> to log in going forward. If you did not authorise this change, contact us immediately at ${supportLink()}.`)}
-${transactionalFooter(`Questions? Just reply to this email — it reaches our support team at ${supportLink()}.`)}`,
-      })
-      const text = `Your Helpr account email was changed from ${oldEmail} to ${normalizedEmail} by an administrator. Use ${normalizedEmail} to log in going forward. If you did not authorise this change, contact ${SUPPORT_EMAIL} immediately.`
+      // Both parts come from ONE react-email component: `renderEmail` returns
+      // the HTML and react-email's own plaintext twin, so the two can never
+      // drift, and both addresses are escaped by React instead of by a
+      // hand-applied htmlEscape() call.
+      const { html, text } = await renderEmail(
+        React.createElement(AdminEmailChangedEmail, { oldEmail, newEmail: normalizedEmail }),
+      )
       const noticeResult = await queueEmail(supabaseAdmin, {
         to: oldEmail,
         subject: 'Your Helpr email address was changed',

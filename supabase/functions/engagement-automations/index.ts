@@ -1,18 +1,10 @@
+import * as React from 'npm:react@18.3.1'
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import { htmlEscape } from '../_shared/safe-strings.ts'
-import { brand } from '../_shared/email-templates/styles.ts'
 import { cronResult } from '../_shared/cron-result.ts'
 import { getAppUrl } from '../_shared/appUrl.ts'
-import { FROM_DEFAULT } from '../_shared/resend.ts'
-import {
-  emailButton,
-  emailH2,
-  emailP,
-  emailShell,
-  marketingFooter,
-  marketingFooterText,
-  unsubscribeHeaders,
-} from '../_shared/emailLayout.ts'
+import { FROM_DEFAULT, unsubscribeHeaders } from '../_shared/resend.ts'
+import { AdminDigestEmail, ApprovalReminderEmail } from '../_shared/email-templates/lifecycle.tsx'
+import { renderEmail } from '../_shared/email-templates/render.ts'
 
 // Declared because line 163 already used it. That reference was the only one
 // in the file and resolved to nothing, so the CAN-SPAM fail-closed branch —
@@ -37,9 +29,13 @@ const corsHeaders = {
 
 // ─── Email Templates ──────────────────────────────────────────────
 //
+// The templates themselves live in `_shared/email-templates/lifecycle.tsx` as
+// react-email components; this file only supplies the data. The local
+// `wrapEmail` / `btn` / `p` / `h1` string builders are gone with them.
+//
 // SCOPE NOTE (2026-08-31): the three welcome-drip steps ("You're in…",
 // "A quick tour…", "Four things great Helprs do.") and the "New jobs are open
-// in your area." win-back were DELETED rather than migrated. Their primary
+// in your area." win-back were DELETED rather than ported. Their primary
 // purpose is promotional, which makes CAN-SPAM's physical-postal-address
 // requirement (§7704(a)(5)) bite, and the business has chosen not to publish
 // an address. What remains in this cron is account-status mail (the
@@ -51,60 +47,24 @@ const corsHeaders = {
 // preserve them), but dropping columns is a migration and this change owns no
 // migrations. They simply stop advancing.
 
-/**
- * Wrap body HTML in the shared table layout.
- *
- * Was `<div style="max-width:480px;margin:0 auto">`: Outlook renders HTML with
- * the Word engine, which does not implement `margin:0 auto` on a block, so
- * every one of these emails left-aligned and stretched to the full reading
- * pane there. `emailShell` is the 600px table version, and it also carries the
- * preheader, the dark-mode block, and the 80px wordmark (the old markup had
- * `width="80"` fighting `style="width:150px"`).
- */
-function wrapEmail(preheader: string, content: string): string {
-  return emailShell({
-    preheader,
-    body: `${content}\n${marketingFooter()}`,
-  })
-}
-
-/** CTA. Width is the Outlook-only VML box, so size it to the label. */
-const btn = (text: string, href: string): string =>
-  emailButton(href, text, Math.max(180, text.length * 10 + 60))
-
-const p = emailP
-const h1 = emailH2
-
-// Admin digest email
-function adminDigestEmail(stats: {
+async function adminDigestEmail(stats: {
   newUsers: number
   newJobs: number
   completedJobs: number
   pendingApprovals: number
   openReports: number
   revenue: number
-}) {
+}): Promise<{ subject: string; html: string; text: string }> {
   const subject = `Louisiana Helpr Weekly Digest — Week of ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
-  const stat = (label: string, value: string | number) =>
-    `<tr><td class="e-text e-rule" style="padding:8px 0;font-size:15px;color:${brand.bodyOlive};border-bottom:1px solid ${brand.hairline}">${label}</td><td class="e-h1 e-rule" style="padding:8px 0;font-size:15px;font-weight:bold;color:${brand.inkDeep};text-align:right;border-bottom:1px solid ${brand.hairline}">${value}</td></tr>`
-
-  const html = wrapEmail(
-    `Helpr this week: ${stats.newUsers} signups, ${stats.newJobs} jobs posted, ${stats.completedJobs} completed.`,
-    `
-    ${h1("Weekly Digest")}
-    ${p(`Here's your platform summary for the past 7 days (week of ${new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}):`)}
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse;margin:0 0 20px">
-      ${stat("New signups", stats.newUsers)}
-      ${stat("Jobs posted", stats.newJobs)}
-      ${stat("Jobs completed", stats.completedJobs)}
-      ${stat("Pending approvals", stats.pendingApprovals)}
-      ${stat("Open reports", stats.openReports)}
-      ${stat("Revenue (fees)", `$${stats.revenue.toFixed(2)}`)}
-    </table>
-    ${btn("Open Admin Dashboard", `${getAppUrl()}/admin`)}
-  `,
+  // Both parts come from the one component — react-email renders the plaintext
+  // twin, so the two can no longer drift.
+  const { html, text } = await renderEmail(
+    React.createElement(AdminDigestEmail, {
+      stats,
+      adminUrl: `${getAppUrl()}/admin`,
+      weekOf: new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }),
+    }),
   )
-  const text = `Louisiana Helpr Weekly Digest: ${stats.newUsers} new users, ${stats.newJobs} new jobs, ${stats.completedJobs} completed, ${stats.pendingApprovals} pending approvals, ${stats.openReports} reports, $${stats.revenue.toFixed(2)} revenue. View: ${getAppUrl()}/admin${marketingFooterText()}`
   return { subject, html, text }
 }
 
@@ -194,17 +154,12 @@ Deno.serve(async (_req) => {
 
       const subject = "Your Louisiana Helpr account is approved — ready when you are."
 
-      const htmlContent = wrapEmail(
-        "Your Helpr account is approved and waiting — sign in whenever you're ready.",
-        `
-        ${h1("Your account is approved!")}
-        ${p(`Hey ${htmlEscape(user.full_name || "there")}, just a reminder — your Louisiana Helpr account has been approved and is ready to go!`)}
-        ${p("Browse jobs, post your own, or connect with people in your area. It only takes a minute to get started.")}
-        ${btn("Browse Jobs", `${getAppUrl()}/dashboard`)}
-        ${p("Open the app whenever you're ready to post or browse.")}
-      `,
+      const { html: htmlContent, text: textContent } = await renderEmail(
+        React.createElement(ApprovalReminderEmail, {
+          greetingName: user.full_name || "",
+          dashboardUrl: `${getAppUrl()}/dashboard`,
+        }),
       )
-      const textContent = `Hey ${user.full_name || "there"}, your Louisiana Helpr account is approved! Browse jobs and get started: ${getAppUrl()}/dashboard${marketingFooterText()}`
 
       const messageId = crypto.randomUUID()
       await supabase.from('email_send_log').insert({
@@ -282,7 +237,7 @@ Deno.serve(async (_req) => {
 
       if (!adminProfile?.email) continue
 
-      const { subject, html, text } = adminDigestEmail(stats)
+      const { subject, html, text } = await adminDigestEmail(stats)
       const messageId = crypto.randomUUID()
 
       await supabase.from('email_send_log').insert({

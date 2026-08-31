@@ -1,14 +1,11 @@
+import * as React from 'npm:react@18.3.1'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsHeadersFull as corsHeaders } from '../_shared/cors.ts'
-import { htmlEscape, sanitizeSameOriginLink, timingSafeEqual } from '../_shared/safe-strings.ts'
+import { sanitizeSameOriginLink, timingSafeEqual } from '../_shared/safe-strings.ts'
 import { FROM_DEFAULT, sendWithResend } from '../_shared/resend.ts'
-import { emailButton, emailH2, emailP, emailShell } from '../_shared/emailLayout.ts'
+import { NotificationEmail } from '../_shared/email-templates/notification.tsx'
+import { renderEmail } from '../_shared/email-templates/render.ts'
 import { getAppUrl } from '../_shared/appUrl.ts'
-
-// Sign-off used in the body copy. NOT a sender identity — the From header is
-// FROM_DEFAULT ("Helpr <noreply@louisianahelpr.com>") for every email in the
-// product, defined once in _shared/resend.ts.
-const SIGNOFF = 'The Helpr Team'
 
 // Map notification "type" values to (a) the email pref column and (b) the
 // log category used for admin observability.
@@ -31,50 +28,38 @@ const TYPE_MAP: Record<string, { prefCol: string; category: string }> = {
   promotion:         { prefCol: 'email_promotions',       category: 'promotions' },
 }
 
-function renderNotificationEmail(title: string, message: string, link: string | null, userName: string): { html: string; text: string } {
-  // HTML-escape every interpolated value. The plaintext title/message/userName
-  // come from upstream callers (notification triggers, edge functions) but a
-  // compromised RPC, a future caller-bug, or a stored-XSS via DB row could
-  // smuggle markup; escaping at the render boundary makes that a non-issue.
-  // The URL is built from getAppUrl() + a server-relative link path that the
-  // caller has already sanitized (sanitizeSameOriginLink) — escaped here as
-  // defense-in-depth.
+/**
+ * Render the notification email.
+ *
+ * Both parts come from ONE react-email component: `renderEmail` produces the
+ * HTML and asks react-email for the plaintext twin, so the two can never
+ * drift, and every interpolated value is escaped by React rather than by a
+ * hand-applied htmlEscape() call.
+ *
+ * `link` is a server-relative path the caller has already run through
+ * sanitizeSameOriginLink.
+ */
+async function renderNotificationEmail(
+  title: string,
+  message: string,
+  link: string | null,
+  userName: string,
+): Promise<{ html: string; text: string }> {
   const siteUrl = getAppUrl()
-  const safeTitle = htmlEscape(title)
-  const safeMessage = htmlEscape(message)
-  const safeUser = htmlEscape(userName || 'there')
   const actionUrl = link ? `${siteUrl}${link}` : siteUrl
-  const safeActionUrl = htmlEscape(actionUrl)
-  // The one link a recipient actually wants when this email is unwelcome. The
-  // HTML footer used to say "Manage your preferences in your profile settings"
-  // with NO link at all, while the plaintext part right below it carried one —
-  // so the readable version of the email was the harder one to act on.
+  // The one link a recipient actually wants when this email is unwelcome.
   const prefsUrl = `${siteUrl}/profile?tab=notifications`
-  const safePrefsUrl = htmlEscape(prefsUrl)
-  const safeHost = htmlEscape(siteUrl.replace(/^https?:\/\//, ''))
 
-  const html = emailShell({
-    // Without a preheader every Helpr notification previewed in the inbox as
-    // "Hey there," — the first words of the body.
-    preheader: `${safeTitle} — open Helpr for the details.`,
-    title: safeTitle,
-    body: [
-      emailH2(safeTitle),
-      emailP(`Hey ${safeUser},`),
-      emailP(safeMessage),
-      emailButton(safeActionUrl, 'View Details', 190),
-      emailP(`<span style="font-size:14px">— ${SIGNOFF}</span>`),
-      `<p class="e-footer" style="font-size:12px;color:#6E7C83;line-height:1.6;margin:24px 0 0;padding:16px 0 0;border-top:1px solid #CBCFD8">
-        You're receiving this because you enabled email notifications on ${safeHost}.
-        <a class="e-footer-link" href="${safePrefsUrl}" style="color:#6E7C83;text-decoration:underline">Manage your notification preferences</a>.
-      </p>`,
-    ].join('\n'),
-  })
-
-  // Text body uses raw (unescaped) values — text/plain doesn't interpret HTML
-  // and the only mutator is the caller, who validated lengths already.
-  const text = `${title}\n\nHey ${userName || 'there'},\n\n${message}\n\nView details: ${actionUrl}\n\n— ${SIGNOFF}\nManage notifications: ${prefsUrl}`
-  return { html, text }
+  return await renderEmail(
+    React.createElement(NotificationEmail, {
+      title,
+      message,
+      actionUrl,
+      userName,
+      prefsUrl,
+      host: siteUrl.replace(/^https?:\/\//, ''),
+    }),
+  )
 }
 
 Deno.serve(async (req) => {
@@ -189,7 +174,7 @@ Deno.serve(async (req) => {
       })
     }
 
-    const { html, text } = renderNotificationEmail(title, message, safeLink, profile.full_name || '')
+    const { html, text } = await renderNotificationEmail(title, message, safeLink, profile.full_name || '')
     const messageId = crypto.randomUUID()
 
     const emailPayload = {

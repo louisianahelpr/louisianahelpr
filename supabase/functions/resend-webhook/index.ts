@@ -25,8 +25,9 @@
 //      Resend shows a signing secret once, of the form `whsec_<base64>`.
 //      Store it as a Supabase function secret:
 //         supabase secrets set RESEND_WEBHOOK_SECRET=whsec_xxxxxxxx
-//      Resend signs with the standard-webhooks (Svix) scheme, so the same
-//      `standardwebhooks` package auth-email-hook already uses verifies it.
+//      Signature verification is the SDK's own `resend.webhooks.verify()`,
+//      so the signing scheme and the event payload types are the vendor's
+//      problem rather than ours.
 //
 //      If RESEND_WEBHOOK_SECRET is NOT set this function refuses every
 //      request with 503. It deliberately does not run unsigned: the endpoint
@@ -52,7 +53,7 @@
 // 200 once the signature checks out.
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import { Webhook } from 'npm:standardwebhooks'
+import { Resend } from 'npm:resend@6.25.0'
 import { corsHeadersFull as corsHeaders } from '../_shared/cors.ts'
 
 /** Events we act on. Anything else is acknowledged and ignored. */
@@ -64,29 +65,6 @@ function json(body: unknown, status = 200): Response {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   })
-}
-
-/**
- * Resend/Svix send `svix-id` / `svix-timestamp` / `svix-signature`; the
- * standard-webhooks spec renamed them to `webhook-*`. Accept either so a
- * header rename on Resend's side cannot silently break suppression.
- */
-function signatureHeaders(req: Request): Record<string, string> {
-  const pick = (name: string) =>
-    req.headers.get(`svix-${name}`) ?? req.headers.get(`webhook-${name}`) ?? ''
-  return {
-    'webhook-id': pick('id'),
-    'webhook-timestamp': pick('timestamp'),
-    'webhook-signature': pick('signature'),
-  }
-}
-
-/** Strip the display prefixes Resend/Supabase put in front of the base64 secret. */
-function normalizeSecret(raw: string): string {
-  if (raw.startsWith('v1,whsec_')) return raw.slice('v1,whsec_'.length)
-  if (raw.startsWith('whsec_')) return raw.slice('whsec_'.length)
-  if (raw.startsWith('v1,')) return raw.slice('v1,'.length)
-  return raw
 }
 
 /** Every recipient address on the event, lowercased and de-duplicated. */
@@ -119,10 +97,16 @@ Deno.serve(async (req) => {
 
   const rawBody = await req.text()
 
+  // The SDK verifies the standard-webhooks signature and hands back a typed
+  // event. `verify` THROWS on a bad signature, a replayed timestamp, or a
+  // malformed body — all of which are a 401, never a 200.
   let payload: { type?: string; data?: Record<string, unknown>; created_at?: string }
   try {
-    const wh = new Webhook(normalizeSecret(secret))
-    payload = wh.verify(rawBody, signatureHeaders(req)) as typeof payload
+    payload = new Resend(Deno.env.get('RESEND_API_KEY') ?? 'unused').webhooks.verify({
+      payload: rawBody,
+      headers: req.headers,
+      webhookSecret: secret,
+    }) as typeof payload
   } catch (err) {
     console.error('[resend-webhook] signature verification failed:', err instanceof Error ? err.message : String(err))
     return json({ error: 'Invalid signature' }, 401)

@@ -19,9 +19,18 @@ const SheetOverlay = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SheetPrimitive.Overlay
     className={cn(
-      "fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      // Identical to DialogOverlay. Sheets used `bg-black/80`, a near-opaque
+      // black slab, while every Dialog and AlertDialog used the parchment tint
+      // + 24px blur that the owner lightened three times (45% -> 26% -> 14% ->
+      // 8%). Two scrims meant a Sheet and a Dialog opened over the same page
+      // looked like two different apps.
+      "fixed inset-0 z-50 backdrop-blur-[24px] backdrop-saturate-150 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className,
     )}
+    style={{
+      backgroundColor: "hsla(38, 22%, 22%, 0.08)",
+      WebkitBackdropFilter: "blur(24px) saturate(1.5)",
+    }}
     {...props}
     ref={ref}
   />
@@ -29,11 +38,17 @@ const SheetOverlay = React.forwardRef<
 SheetOverlay.displayName = SheetPrimitive.Overlay.displayName;
 
 const sheetVariants = cva(
-  "fixed z-50 gap-4 bg-background p-6 shadow-lg transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
+  // `glass-modal` is THE shared popup surface (index.css) — 0.95 background,
+  // 40px blur, 28px radius, one shadow. Its own comment says "every dialog
+  // uses this class so every dialog gets the same card"; sheets were the
+  // exception, painting an opaque `bg-background` with `p-6` and their own
+  // `rounded-2xl`. Same padding ramp as DialogContent/AlertDialogContent
+  // (p-4 sm:p-5) so a sheet and a dialog are indistinguishable as surfaces.
+  "glass-modal fixed z-50 gap-4 p-4 sm:p-5 transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
   {
     variants: {
       side: {
-        top: "inset-x-0 top-0 border-b data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top",
+        top: "inset-x-0 top-0 rounded-none border-b data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top",
         bottom:
           // CENTERED MODAL, at every width — not a bottom-anchored phone
           // sheet any more (owner, 2026-08-30, after reviewing centered
@@ -49,10 +64,10 @@ const sheetVariants = cva(
           // transform), rounds all four corners, and drops the bottom-edge
           // padding a floor-anchored sheet needed for iOS home-indicator
           // clearance — a centered card has no bottom edge to protect.
-          "inset-x-0 inset-y-0 top-0 h-fit my-auto max-w-md mx-auto rounded-2xl border pb-6 data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
-        left: "inset-y-0 left-0 h-full w-3/4 border-r data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-sm",
+          "inset-x-0 inset-y-0 top-0 h-fit my-auto max-w-[calc(100%-2rem)] sm:max-w-lg mx-auto data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+        left: "inset-y-0 left-0 h-full w-3/4 rounded-none border-r data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-sm",
         right:
-          "inset-y-0 right-0 h-full w-3/4  border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm",
+          "inset-y-0 right-0 h-full w-3/4 rounded-none border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm",
       },
     },
     defaultVariants: {
@@ -125,7 +140,7 @@ SheetContent.displayName = SheetPrimitive.Content.displayName;
  */
 const SheetCloseButton = ({ top, right }: { top: string; right: string }) => (
   <SheetPrimitive.Close
-    className="absolute inline-flex h-10 w-10 items-center justify-center rounded-md ring-offset-background transition-colors hover:opacity-70 active:scale-[0.94] focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
+    className="absolute inline-flex h-10 w-10 items-center justify-center rounded-md ring-offset-background transition-colors hover:text-foreground active:scale-[0.94] focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
     style={{
       top,
       right,

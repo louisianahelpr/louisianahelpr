@@ -10,11 +10,6 @@ interface JobPosterCardProps {
   job: EnrichedJob;
   /** Completed jobs between the current helper and this poster. */
   repeatJobs: number;
-  /** Combined cancellation rate (%) of the poster across posted and
-   *  worked jobs. Null while loading or when the ≥5-job sample-size
-   *  floor isn't met. When present, surfaced inline near the name so
-   *  the helpr can read it without leaving the job dialog. */
-  cancellationRate?: number | null;
   /** Logged-out viewer. Sends the tile to /signup instead of a profile that
    *  guests can't open anyway. */
   guest?: boolean;
@@ -27,7 +22,7 @@ interface JobPosterCardProps {
  *
  * Extracted verbatim from JobDetailDialog.tsx.
  */
-export function JobPosterCard({ job, repeatJobs, cancellationRate, guest = false }: JobPosterCardProps) {
+export function JobPosterCard({ job, repeatJobs, guest = false }: JobPosterCardProps) {
   // Nothing to show. The guest /jobs feed comes from `get_ranked_open_jobs`,
   // whose RETURNS TABLE has no `customer_id` — so this tile rendered with a
   // blank name, a "U" fallback avatar, and a link to a literal `/user/` with no
@@ -123,33 +118,9 @@ export function JobPosterCard({ job, repeatJobs, cancellationRate, guest = false
               </span>
             )}
           </div>
-          {((job.posterCompletedJobs ?? 0) > 0 || cancellationRate != null) && (
+          {(job.posterCompletedJobs ?? 0) > 0 && (
             <p className="font-serif italic text-ds-11 leading-tight" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              {(job.posterCompletedJobs ?? 0) > 0 && (
-                <>{job.posterCompletedJobs} {job.posterCompletedJobs === 1 ? "job" : "jobs"}</>
-              )}
-              {cancellationRate != null && (
-                <>
-                  {(job.posterCompletedJobs ?? 0) > 0 && (
-                    <>{" "}<span style={{ color: "hsl(var(--burnt-sienna) / 0.4)" }}>·</span>{" "}</>
-                  )}
-                  {/* Colored against thresholds: <5% reads green (low),
-                      5–14% neutral, ≥15% warning sienna. Matches the
-                      profile-page cancellation card's color stops. */}
-                  <span
-                    className="tabular-nums"
-                    style={{
-                      color: cancellationRate < 5
-                        ? "hsl(var(--gift-tint))"
-                        : cancellationRate < 15
-                          ? "hsl(var(--olivewood) / 0.8)"
-                          : "hsl(var(--burnt-sienna))",
-                    }}
-                  >
-                    {cancellationRate.toFixed(0)}% cancelled
-                  </span>
-                </>
-              )}
+              {job.posterCompletedJobs} {job.posterCompletedJobs === 1 ? "job" : "jobs"}
             </p>
           )}
         </div>

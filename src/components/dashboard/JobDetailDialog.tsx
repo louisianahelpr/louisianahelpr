@@ -77,7 +77,6 @@ const JobDetailDialog = ({
     viewerAppPosition,
     viewerUserId,
     repeatJobs,
-    posterCancelRate,
     viewerTier,
     distMilesForDriving,
     drivingLabel,
@@ -572,7 +571,7 @@ const JobDetailDialog = ({
             AUTHED-ONLY (owner decision 2026-08-22: "guest page should not
             have who posted the job") — a guest never sees it at all. */}
         {!guest && (
-          <JobPosterCard job={job} repeatJobs={repeatJobs} cancellationRate={posterCancelRate} guest={guest} />
+          <JobPosterCard job={job} repeatJobs={repeatJobs} guest={guest} />
         )}
 
         {/* Apply lives on THIS screen now — no second popup (owner: "they

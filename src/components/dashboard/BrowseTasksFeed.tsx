@@ -12,6 +12,7 @@ import SwipeableJobCard from "@/components/dashboard/SwipeableJobCard";
 import { VirtualizedJobList } from "@/components/dashboard/VirtualizedJobList";
 import { CompactJobCard } from "@/components/dashboard/CompactJobCard";
 import {
+  JobCardSkeleton,
   RecommendedJobCardSkeleton,
 } from "@/components/ui/skeletons/JobCardSkeleton";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -630,25 +631,39 @@ export function BrowseTasksFeed({
       </div>
         );
       })() : (() => {
-        // Show the recommended slot as skeletons while the feed's first page
-        // is still resolving and we don't yet have any picks — reserving the
-        // header + a couple of card-height placeholders keeps the section
-        // from collapsing and then popping in (CLS) once matches arrive.
-        const showRecommendedSkeleton =
-          recommendedLoading && !filters.hasFilters && recommendedVisible.length === 0;
+        // While the feed's first page is still resolving and we don't yet
+        // know whether any of the ALREADY-rendered jobs are about to become
+        // recommended picks, don't paint the real list at all. It used to:
+        // render `visibleJobs` (recommended candidates included, in their
+        // ordinary position) immediately, then — once `recommendedJobs`
+        // resolved a beat later — yank 1-2 of those same jobs out of the
+        // middle of the list and re-insert them at the top via
+        // `combinedVisible`. Every other row was already sitting still, so
+        // the two that got promoted visibly jumped from wherever they'd
+        // been up to the top (owner, 2026-08-30: "the effect like all the
+        // jobs are there then these top 2 scroll in"). Holding the WHOLE
+        // list behind one skeleton until recommendations are known removes
+        // the reorder entirely — the list paints once, already in its
+        // final order.
+        const showFullSkeleton =
+          recommendedLoading && !filters.hasFilters && !savedOnly && recommendedVisible.length === 0;
         return (
           <>
-            {showRecommendedSkeleton && density === "comfortable" && (
+            {showFullSkeleton && density === "comfortable" && (
               <div
                 className="px-3 pt-3 pb-1 space-y-2.5 lg:space-y-3"
                 aria-hidden
               >
                 {/* Recommended-section variant — matches the real recommended
                     card geometry (sienna rail, longer title row, taller price
-                    tile). A generic feed skeleton here mis-sizes the slot and
-                    the swap bumps the list down when matches arrive. */}
+                    tile) — up front, then plain rows for the rest of the
+                    first page, so the WHOLE visible feed has a placeholder
+                    rather than just the top slot. */}
                 {[0, 1].map((i) => (
                   <RecommendedJobCardSkeleton key={`rec-skel-${i}`} />
+                ))}
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <JobCardSkeleton key={`row-skel-${i}`} />
                 ))}
               </div>
             )}
@@ -658,8 +673,10 @@ export function BrowseTasksFeed({
                 everything-else split is still real (it drives sort order
                 and which single card gets the "Recommended" pill), but it's
                 now just how `combinedVisible` is ORDERED, not two separate
-                rendered lists. */}
-            {density === "compact" ? (
+                rendered lists. Suppressed entirely during `showFullSkeleton`
+                (above) so the real rows only ever paint once, already in
+                their settled order. */}
+            {showFullSkeleton ? null : density === "compact" ? (
               /* Compact: plain list of 48px rows — no virtualizer needed
                  at this row height for typical feed sizes. */
               <ul

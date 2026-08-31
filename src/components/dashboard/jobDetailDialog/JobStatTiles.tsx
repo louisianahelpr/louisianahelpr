@@ -1,5 +1,5 @@
 import { type ElementType } from "react";
-import { MapPin, Calendar, Clock, Hourglass, Timer, Users } from "lucide-react";
+import { MapPin, Calendar, Clock, Timer, Users } from "lucide-react";
 import { getCity } from "@/lib/locationUtils";
 import { formatJobDate, parseLocalDate } from "@/lib/dateUtils";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
@@ -116,24 +116,14 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
                 urgent: false,
               }]
             : []),
-          // Estimated-hours tile is omitted entirely when unset — a bare
-          // "Estimated —" read as a bug rather than "no estimate given".
-          ...(job.estimated_hours != null
-            ? [{
-                // Hourglass, not Clock. Clock sits directly beside this on the
-                // "Time" tile, so two identical glyphs were labelling two
-                // different things — a clock time (5:00 PM) and a duration
-                // (4 hrs). Three distinct time concepts now read distinctly:
-                // Clock = when it starts, Hourglass = how long it takes,
-                // Timer = how long until the listing closes.
-                Icon: Hourglass,
-                label: "Estimated",
-                value: `${job.estimated_hours} ${Number(job.estimated_hours) === 1 ? "hr" : "hrs"}`,
-                sub: null,
-                href: null,
-                urgent: false,
-              }]
-            : []),
+          // Estimated-hours tile removed (owner, 2026-08-30: "delete
+          // globally, no longer used or an option anywhere") — the post
+          // form has no input for it; the only writers left are the AI job
+          // builder's inference and template "typical duration" presets, so
+          // showing it as a stated fact on the job overstated a number the
+          // poster never actually chose. The column itself is untouched
+          // (still read elsewhere — checkout summary, admin, calendar
+          // export); only this dialog's tile is gone.
           // Closes tile is omitted entirely when the job has no expiry —
           // an empty "—" deadline read as a bug rather than "no deadline".
           ...(job.expires_at

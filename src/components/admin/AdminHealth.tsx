@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Activity, RefreshCw, Mail, ShieldAlert, Database, Bug, MapPin, Zap, Bell, Send, Loader2, TrendingUp, ChevronUp, ChevronDown } from "lucide-react";
 import { report } from "@/lib/errorLogger";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { FILL_DAYS_OPTIONS } from "./adminHealth/types";
 import { formatDelay } from "./adminHealth/adminHealthHelpers";
@@ -32,7 +32,7 @@ const AdminHealth = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        toast({ title: "Not signed in", variant: "destructive" });
+        toast.error("Not signed in");
         return;
       }
       const { data, error } = await supabase.functions.invoke("send-push-notification", {
@@ -49,17 +49,17 @@ const AdminHealth = () => {
         skipped?: string; total?: number;
       };
       if (result.skipped) {
-        toast({ title: "Push backend not configured", description: result.skipped });
+        toast("Push backend not configured", { description: result.skipped });
       } else if (result.no_tokens) {
-        toast({ title: "No registered devices", description: "Open the app on your phone and grant push permission first." });
+        toast("No registered devices", { description: "Open the app on your phone and grant push permission first." });
       } else if ((result.sent ?? 0) > 0) {
-        toast({ title: `Pushed to ${result.sent}/${result.total} device${result.total === 1 ? "" : "s"}`, description: "Check your phone." });
+        toast.success(`Pushed to ${result.sent}/${result.total} device${result.total === 1 ? "" : "s"}`, { description: "Check your phone." });
       } else {
-        toast({ title: "All sends failed", description: `0 of ${result.total} succeeded`, variant: "destructive" });
+        toast.error("All sends failed", { description: `0 of ${result.total} succeeded` });
       }
     } catch (err) {
       report(err, { tags: { source: "AdminHealth.sendTestPush" } });
-      toast({ title: "Test push failed", description: err instanceof Error ? err.message : String(err), variant: "destructive" });
+      toast.error("Test push failed", { description: err instanceof Error ? err.message : String(err) });
     } finally {
       setSendingTestPush(false);
     }
@@ -205,7 +205,7 @@ const AdminHealth = () => {
                   severity: "info",
                   tags: { source: "admin_smoke_test", kind: "manual" },
                 });
-                toast({ title: "Test event sent", description: "Check Sentry in ~30 seconds." });
+                toast.success("Test event sent", { description: "Check Sentry in ~30 seconds." });
               }}
             >
               Send Test Event
@@ -217,7 +217,7 @@ const AdminHealth = () => {
                 setTimeout(() => {
                   throw new Error(`Sentry uncaught test — ${new Date().toISOString()}`);
                 }, 0);
-                toast({ title: "Throwing uncaught error", description: "Check Sentry in ~30 seconds." });
+                toast("Throwing uncaught error", { description: "Check Sentry in ~30 seconds." });
               }}
             >
               Throw Uncaught

@@ -13,7 +13,7 @@ import {
 import { helperTakeHomeDollars, sumHelperTakeHomeDollars } from "@/lib/helperEarnings";
 import { stripeProcessingCostCents } from "@/lib/stripeFees";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { EarningsExport } from "@/components/EarningsExport";
 import InstantPayoutDialog from "@/components/InstantPayoutDialog";
 import ProUpgradeSheet from "@/components/ProUpgradeSheet";
@@ -122,10 +122,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
     const { rows, csv } = buildPayoutsCsv(stripeData?.payouts ?? [], year);
 
     if (!rows.length) {
-      toast({
-        title: "No payouts to export",
-        description: `No payouts found for ${year}.`,
-      });
+      toast("No payouts to export", { description: `No payouts found for ${year}.` });
       return;
     }
 
@@ -139,8 +136,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
 
-    toast({
-      title: "Export ready",
+    toast.success("Export ready", {
       description: `${rows.length} payout${rows.length === 1 ? "" : "s"} exported for ${year}.`,
     });
   };

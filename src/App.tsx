@@ -36,14 +36,11 @@ import { AppLockGate } from "@/components/AppLockGate";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useDarkMode } from "@/hooks/useDarkMode";
 
-// Toaster, Sonner and TooltipProvider pull in sonner + @radix-ui/react-toast +
+// Sonner and TooltipProvider pull in sonner +
 // @radix-ui/react-tooltip + @floating-ui (~14 KB gzipped of
 // otherwise-unused JS on the landing page where no toast fires and no tooltip
 // is visible). Lazy-loading them keeps the libs out of the critical entry
 // bundle — they hydrate after first paint when the wrappers actually mount.
-const Toaster = lazy(() =>
-  import("@/components/ui/toaster").then((m) => ({ default: m.Toaster }))
-);
 const Sonner = lazy(() =>
   import("@/components/ui/sonner").then((m) => ({ default: m.Toaster }))
 );
@@ -507,10 +504,13 @@ const DeferredToasters = () => {
           app, so the policy layer — not the mount — is where suppression
           belongs.
 
-          Both hosts are needed: <Sonner /> serves the ~430 `sonner` call sites,
-          <Toaster /> the three that still use the Radix `@/hooks/use-toast`
-          (AdminHealth, EarningsTab, useHelperMilestones). */}
-      <Toaster />
+          One host, not two: the three remaining Radix `@/hooks/use-toast`
+          callers (AdminHealth, EarningsTab, useHelperMilestones) were migrated
+          to `sonner`, so <Toaster /> and the whole @/hooks/use-toast +
+          ui/toast + ui/toaster stack are gone. Two toast systems meant two
+          places to configure duration, stacking and dismissal, and a toast
+          could render in either one depending on which import a file
+          happened to pick. */}
       <Sonner />
       <SuccessMomentHost />
     </Suspense>

@@ -419,7 +419,7 @@ export function FilterSheet({
             the active-filter count still shows as a badge on the Filters button
             that opens this sheet, and an active filter still surfaces the
             "Clear all" footer below. */}
-        <SheetHero className="px-5 pt-1 pb-2.5" title="Refine Your Search" />
+        <SheetHero title="Refine Your Search" />
 
         <FilterBody
           sections={sections}

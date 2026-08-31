@@ -195,10 +195,18 @@ const AdminPayoutBatches = () => {
       // answered 200 with no `error`, so this handler logged a payout that
       // never happened. get_payout_batch_job_ids (20260831213026) shares that
       // RPC's predicate exactly, so what we pay is what the batch counted.
-      const { data: jobRows, error: jobsErr } = await supabase
-        .rpc("get_payout_batch_job_ids", { p_helper_id: batch.helper_id });
+      // Cast through `never`: src/integrations/supabase/types.ts is a SNAPSHOT
+      // regenerated from the database, and get_payout_batch_job_ids landed in
+      // 20260831213026 after the last regeneration. The RPC is live in prod
+      // (verified), the types simply have not caught up — the same deploy-lag
+      // window CLAUDE.md documents for brand-new RPCs. Drop the cast once
+      // types.ts is regenerated.
+      const { data: jobRows, error: jobsErr } = await supabase.rpc(
+        "get_payout_batch_job_ids" as never,
+        { p_helper_id: batch.helper_id } as never,
+      );
       if (jobsErr) throw jobsErr;
-      const jobIds = (jobRows ?? []).map((r: { job_id: string }) => r.job_id);
+      const jobIds = ((jobRows ?? []) as Array<{ job_id: string }>).map((r) => r.job_id);
       if (jobIds.length === 0) {
         // Zero rows is also what a non-admin sees, by design in the RPC.
         throw new Error(

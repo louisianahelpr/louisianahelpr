@@ -93,7 +93,11 @@ describe("statusBadge", () => {
       "cancelled",
       "disputed",
     ];
-    for (const status of required) {
+    // `required` is a plain string[]; statusBadge is now keyed by the DB enum,
+    // so index through the enum type. The map being exhaustive is a COMPILE
+    // error now — this loop stays as a readable statement of intent and as a
+    // guard for anything the type cannot see.
+    for (const status of required as Array<keyof typeof statusBadge>) {
       expect(statusBadge[status], `${status} missing from statusBadge`).toBeDefined();
     }
   });

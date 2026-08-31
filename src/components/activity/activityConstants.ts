@@ -77,8 +77,8 @@ export const categoryColors: Record<string, { badge: string; title: string; dot:
  * New code: import `jobStatusColorClasses(status)` instead.
  */
 import { jobStatusColorClasses } from "@/lib/statusColors";
-import type { Database } from "@/integrations/supabase/types";
 
+// `Database` is already imported at the top of this file.
 type JobStatus = Database["public"]["Enums"]["job_status"];
 
 /**

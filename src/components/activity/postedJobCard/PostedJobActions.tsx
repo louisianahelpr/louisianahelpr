@@ -203,8 +203,7 @@ export function PostedJobActions({
   if (!(STATUS_RENDERS_ACTIONS[job.status] ?? false)) {
     if (!(job.status in STATUS_RENDERS_ACTIONS)) {
       report(new Error(`PostedJobActions: unhandled job status "${job.status}"`), {
-        tags: { area: "activity" },
-        extra: { jobId: job.id, status: job.status },
+        tags: { area: "activity", jobId: job.id, status: String(job.status) },
       });
     }
     return null;

@@ -167,7 +167,6 @@ const JobDetailDialog = ({
     <Dialog open={!!job} onOpenChange={() => onClose()}>
       <DialogContent
         topRightSlot={cornerActions}
-        compactClose
         // grid-cols-1: the base DialogContent is `display:grid` with implicit
         // `auto` columns, which size to max-content and can grow wider than
         // the dialog; paired with the content's `overflow-y-auto` (which makes

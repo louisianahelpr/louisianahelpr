@@ -38,7 +38,6 @@
       ]
     },
     {
-      "comment": "Apple requires the AASA file to be served as application/json. Vercel infers no Content-Type for an extension-less file, so it fell back to application/octet-stream — and the global X-Content-Type-Options: nosniff above means the client cannot recover by sniffing. Without this header the universal-link association silently fails: taps open Safari instead of the app, with no error anywhere. Verified served at https://www.louisianahelpr.com/.well-known/apple-app-site-association (HTTP 200, content byte-identical to public/).",
       "source": "/.well-known/apple-app-site-association",
       "headers": [
         { "key": "Content-Type", "value": "application/json" },

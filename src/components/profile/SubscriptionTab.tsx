@@ -148,9 +148,6 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
     return null;
   };
 
-  // Currently-subscribed users get a hero "Your plan" card on top — the
-  // tier cards below reframe as "change to" rather than the main pitch.
-  const activeTierConfig = currentTier && !isExpired ? tierConfig.find((t) => t.id === currentTier.toLowerCase()) : null;
   return (
     /* `space-y-4` — the shell every other Profile tab uses. This one wrapped
        itself in `flex flex-col min-h-full gap-4 pb-4`, so Membership's title
@@ -163,89 +160,6 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
         title="Membership"
         onBack={onBack}
       />
-
-      {/* Current plan hero — only renders when the user is actively
-          subscribed. Bigger, warmer surface that confirms what they're
-          paying for; tier cards below become "change to" options. */}
-      {activeTierConfig && (
-        <div
-          className="rounded-2xl p-5 relative overflow-hidden"
-          style={{
-            background:
-              "radial-gradient(70% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.10) 0%, transparent 55%), " +
-              "radial-gradient(60% 80% at 0% 100%, hsl(var(--gold-warm) / 0.12) 0%, transparent 60%), " +
-              "var(--surface-premium)",
-            border: "0.5px solid hsl(var(--bark) / 0.22)",
-            boxShadow:
-              "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
-              "inset 0 0 0 0.5px hsl(var(--gold-warm) / 0.22), " +
-              "0 1px 2px hsl(var(--olivewood) / 0.06), " +
-              "0 14px 30px -8px hsl(var(--olivewood) / 0.14)",
-          }}
-        >
-          <div className="flex items-start gap-3">
-            <span
-              className="shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center"
-              style={{
-                background:
-                  activeTierConfig.id === "elite"
-                    ? "hsl(var(--gold-warm) / 0.18)"
-                    : activeTierConfig.id === "pro"
-                      ? "hsl(var(--burnt-sienna) / 0.14)"
-                      : "hsl(var(--bark) / 0.12)",
-                color:
-                  activeTierConfig.id === "elite"
-                    ? "hsl(var(--gold-warm))"
-                    : activeTierConfig.id === "pro"
-                      ? "hsl(var(--burnt-sienna))"
-                      : "hsl(var(--bark))",
-              }}
-            >
-              <TierIcon name={activeTierConfig.iconName} className="w-5 h-5" />
-            </span>
-            <div className="flex-1 min-w-0">
-              <h2
-                className="font-display italic font-bold leading-tight mt-0.5 text-headline-hero"
-                style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
-              >
-                {activeTierConfig.name}.
-              </h2>
-              {expiresAt && (
-                <p
-                  className="font-serif italic mt-1 text-ds-13"
-                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                >
-                  Renews{" "}
-                  <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
-                    {expiresAt.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
-                  </span>
-                </p>
-              )}
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-2 mt-4">
-            <Button
-              onClick={handleManageSubscription}
-              disabled={loadingPortal}
-              variant="outline"
-              className="rounded-ds-md"
-            >
-              {loadingPortal ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Crown className="w-4 h-4 mr-2" />}
-              Manage
-            </Button>
-            <Button
-              onClick={refreshSubscription}
-              disabled={refreshing}
-              variant="ghost"
-              className="rounded-ds-md"
-              style={{ color: "hsl(var(--bark))" }}
-            >
-              <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
-              Refresh
-            </Button>
-          </div>
-        </div>
-      )}
 
       {/* Billing cycle pills — Annual carries the save badge inline so the
           cheapest option is the most visually inviting one. */}
@@ -538,10 +452,57 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                       Rendered as a real disabled <Button> rather than a
                       styled span so it inherits the exact box, height and
                       typography of the Subscribe buttons it lines up with. */}
-                  {isActive && (
+                  {isActive && isFree && (
                     <Button variant="outline" size="sm" disabled aria-current="true" className="mt-1">
                       <CheckCircle className="w-3.5 h-3.5" aria-hidden /> Current
                     </Button>
+                  )}
+                  {/* The current PAID plan's own row carries its management
+                      actions directly — merged in from what used to be a
+                      separate "your plan" hero card above the list (owner,
+                      2026-08-30: "merge with the plan where it is below").
+                      One representation of "this is your plan," not two. */}
+                  {isActive && !isFree && (
+                    <div className="mt-1 flex flex-col items-end gap-1">
+                      {expiresAt && (
+                        <p
+                          className="font-serif italic leading-none text-ds-10 whitespace-nowrap"
+                          style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+                        >
+                          Renews{" "}
+                          <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
+                            {expiresAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                          </span>
+                        </p>
+                      )}
+                      {/* Stacked, not side-by-side: Manage + a labeled
+                          Refresh together ran wider than this shrink-0
+                          column on a 375px card, overflowing left onto the
+                          feature list instead of wrapping (flex children
+                          don't wrap). Vertical stacking keeps both within
+                          the column's own width, same as the price/fee/save
+                          lines above them. */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleManageSubscription}
+                        disabled={loadingPortal}
+                        aria-current="true"
+                      >
+                        {loadingPortal ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Crown className="w-3.5 h-3.5" aria-hidden />}
+                        Manage
+                      </Button>
+                      <button
+                        type="button"
+                        onClick={refreshSubscription}
+                        disabled={refreshing}
+                        aria-label="Refresh membership status"
+                        className="w-11 h-11 rounded-ds-md flex items-center justify-center transition-colors hover:bg-secondary disabled:opacity-60"
+                        style={{ color: "hsl(var(--bark))" }}
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} aria-hidden />
+                      </button>
+                    </div>
                   )}
                   {/* Free carries no BUY CTA in either direction: there is
                       nothing to buy when you are already on it, and when you

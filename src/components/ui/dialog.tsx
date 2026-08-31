@@ -189,7 +189,12 @@ const DialogContent = React.forwardRef<
           // other chrome icon (Share/Save/Flag) gets on hover (owner,
           // 2026-08-30: "make x do the same globally") — applied here since
           // this X is the one shared by every dialog in the app.
-          className="group w-8 p-0 box-border rounded-md btn-press flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
+          // `focus-visible:`, not `focus:` (owner, 2026-08-31: "there
+          // shouldn't be a box around it when it's clicked") — plain
+          // `focus:` fires the ring on every mouse click, not just keyboard
+          // navigation. Matches the shared `Button` component's own
+          // convention (button.tsx uses `focus-visible:` throughout).
+          className="group w-8 p-0 box-border rounded-md btn-press flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none"
           style={compactClose ? { minHeight: "32px", minWidth: "32px" } : { minHeight: "44px", minWidth: "32px" }}
         >
           <X className="h-[18px] w-[18px] transition-transform duration-300 group-hover:-translate-y-0.5" strokeWidth={2} />

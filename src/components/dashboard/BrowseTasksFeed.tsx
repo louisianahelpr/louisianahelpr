@@ -178,6 +178,12 @@ function MainFeedSection({
         items={jobs}
         scrollElementRef={containerRef}
         getKey={(job) => job.id}
+        // Card renders ~83px tall (single-line title + one meta row) plus
+        // the pb-2/2.5/3 row gap — 92 tracks that instead of the generic
+        // 132 default, which was reserving ~60% more slot height than any
+        // row actually needs and reads as excess whitespace before
+        // measureElement corrects it.
+        estimateSize={92}
         renderItem={(job, i) => (
           // Gap between cards — `space-y-*` can't apply once the
           // virtualizer absolutely-positions rows, so the gap is bottom

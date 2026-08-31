@@ -66,18 +66,12 @@ export const ReadReceipt = ({
       <button
         type="button"
         onClick={() => setRevealed((v) => !v)}
-        // role="img" was here to keep aria-label from being discarded on a
-        // roleless <span>; a real <button> carries its own accessible name
-        // natively, so that workaround is gone along with the span.
-        //
-        // Inline `minHeight/minWidth: 0` overrides the global touch-target
-        // rule (index.css `button { min-height/min-width: 44px }`, higher
-        // specificity than any Tailwind class) which would otherwise inflate
-        // this into a 44px box inside the compact meta row — the same
-        // overflow pattern fixed on the banner dismiss button. The `::before`
-        // restores a real 44px hit target without the box itself growing.
-        style={{ minHeight: 0, minWidth: 0 }}
-        className="relative inline-flex items-center gap-1 ml-1 before:absolute before:-inset-2.5 before:content-['']"
+        // Negative vertical margins absorb the 44px HIG minimum imposed by the
+        // global `button { min-height: 44px }` rule (index.css) so the compact
+        // message-meta row stays visually tight while the element's own bounding
+        // box meets the tap-target floor. -my-[14px]: 44 − 28 = 16px contribution
+        // to the line height, matching the unresized visual content.
+        className="relative inline-flex items-center gap-1 ml-1 -my-[14px]"
         aria-label="Delivered"
         aria-pressed={revealed}
         title="Delivered"
@@ -110,10 +104,8 @@ export const ReadReceipt = ({
     <button
       type="button"
       onClick={() => setRevealed((v) => !v)}
-      // See the unread branch above for why this needs an inline
-      // min-height/min-width override plus a `::before` hit target.
-      style={{ minHeight: 0, minWidth: 0 }}
-      className="relative inline-flex items-center gap-1 ml-1 before:absolute before:-inset-2.5 before:content-['']"
+      // See the unread branch above for the -my-[14px] approach.
+      className="relative inline-flex items-center gap-1 ml-1 -my-[14px]"
       aria-label={
         recipientName
           ? `Read by ${recipientName}${readAtLabel ? ` at ${readAtLabel}` : ""}`

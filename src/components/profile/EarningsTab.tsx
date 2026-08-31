@@ -328,7 +328,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
             ${formatPriceExact(totalEarnings)}
           </p>
           <p className="font-serif italic mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            total earned · {completedJobs.length} job{completedJobs.length === 1 ? "" : "s"}
+            total earned
           </p>
         </div>
       )}

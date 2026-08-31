@@ -345,29 +345,18 @@ export function ChatView({
 
           {/* Community rules banner — compact */}
           {!bannerDismissed && (
-            <div className="rounded-md bg-accent/10 border border-accent/20 px-2.5 py-1.5 mt-2 mb-1 flex items-start gap-1.5">
+            <div className="rounded-md bg-accent/10 border border-accent/20 px-2.5 py-1.5 mt-2 mb-1 relative flex items-start gap-1.5 pr-11">
               <AlertTriangle className="w-3 h-3 text-accent mt-[3px] shrink-0" />
-              <p className="text-ds-11 leading-snug text-accent flex-1">
+              <p className="text-ds-11 leading-snug text-accent">
                 Keep chats &amp; payments on Helpr — going off-platform risks an account restriction.
               </p>
-              {/* The global `button { min-height/min-width: 44px }` touch-target
-                  rule (index.css) floors every <button>'s own box at 44x44,
-                  regardless of how small its container is — a tight single-line
-                  banner like this one is well under 44px tall, so the button's
-                  box overflowed the banner's bounds top and bottom (visible on
-                  hover/focus, and the real hit region extended past the card).
-                  Same pattern as MessageBubble's delete button: keep the drawn
-                  icon small and `relative`, then grow the HIT target with an
-                  absolutely-positioned `::before` instead of letting the
-                  button's own box inflate past its visual footprint. */}
+              {/* Absolutely positioned so the 44px hit target doesn't force the
+                  compact banner to expand to 44px in height. The button is
+                  vertically centred inside the banner; overflow: visible (the
+                  default) means any slight bleed above/below is fine. */}
               <button
                 onClick={dismissBanner}
-                // Inline style, not a `min-h-0`/`min-w-0` utility class: the
-                // global rule above is `button:not([role="checkbox"])…`
-                // (specificity 0,1,1), which beats any single Tailwind class
-                // (0,1,0). Only an inline style is guaranteed to win.
-                style={{ minHeight: 0, minWidth: 0 }}
-                className="relative shrink-0 self-start w-4 h-4 flex items-center justify-center text-accent/60 hover:text-accent before:absolute before:-inset-3 before:content-['']"
+                className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center justify-center min-h-[44px] min-w-[44px] text-accent/60 hover:text-accent"
                 aria-label="Dismiss safety reminder"
               >
                 <X className="w-3 h-3" />

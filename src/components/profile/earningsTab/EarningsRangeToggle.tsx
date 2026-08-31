@@ -33,7 +33,7 @@ export function EarningsRangeToggle({
 }) {
   return (
     <div
-      role="tablist"
+      role="radiogroup"
       aria-label="Earnings date range"
       className="flex items-center gap-0.5 p-0.5 rounded-full overflow-x-auto"
       style={{
@@ -46,9 +46,9 @@ export function EarningsRangeToggle({
         return (
           <button
             key={key}
-            role="tab"
+            role="radio"
             type="button"
-            aria-selected={active}
+            aria-checked={active}
             onClick={() => { hapticLight(); onChange(key); }}
             className="flex-1 min-w-fit px-3 h-7 rounded-full text-ds-11 font-sans font-semibold whitespace-nowrap transition-all"
             style={

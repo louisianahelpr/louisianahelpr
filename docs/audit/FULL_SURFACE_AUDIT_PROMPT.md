@@ -21,21 +21,26 @@ longer exists) and complements `/audit` (static grading) and `/improve`.
    headless Chromium genuinely cannot verify.
 5. `docs/audit/COVERAGE_LEDGER.md` — the manifest you are here to fill.
 
-### Contradictions already resolved — do not re-litigate
+### Contradictions — FIXED AT SOURCE 2026-08-31, do not re-litigate
 
-The repo's audit docs disagree with each other in five places. These are the
-rulings for this audit:
+These five used to disagree between documents. **Every one has now been
+corrected in the source document itself**, so the rulings below are what those
+documents already say — kept here only so a reader of an older copy knows which
+way it went.
 
-| Conflict | Ruling |
+| Conflict | Ruling (now stated in the source doc) |
 |---|---|
-| SKILL.md §1 "a large UNVERIFIED section is a GOOD outcome" vs §5 "UNVERIFIED is NOT an acceptable final state" | **§5 wins.** This audit ends with a 100%-filled manifest. UNVERIFIED is a blocker to close, not a result to file. |
-| SKILL.md:521 "primary controls are glossy (`btn-grad-primary` / `variant="bark"`)" vs AGENTS.md "no gloss/glow" | **Glossy wins** for green/bark primary buttons and selected controls. AGENTS.md's "no gloss" applies to decorative surfaces, not primary CTAs. A flat primary button is a defect. |
-| `.claude/commands/audit.md` "branch + PR, never commit to `main`" vs CLAUDE.md "commit directly to `main`" | **CLAUDE.md wins.** Commit direct to `main`. |
-| `.claude/commands/audit.md` "apply migrations via MCP `apply_migration`" vs CLAUDE.md "**NEVER**" | **CLAUDE.md wins.** Never `apply_migration`. `execute_sql` for read-only checks is fine. Schema changes go through `npm run migration:new -- <slug>` and auto-deploy on merge. |
-| `docs/TWO_ACCOUNT_E2E_TEST_PROMPT.md` "You cannot type passwords, that restriction is absolute" / `scripts/e2e/README.md` "Claude is not permitted to handle the keys" vs SKILL.md §5 "self-provision gated cells" | **Self-provision wins.** You have standing authorization for testing, including prod Supabase writes against clearly-marked test accounts. Mint your own sessions (§3 below). "I couldn't sign in" is not an acceptable reason for an unfilled cell. |
+| SKILL.md §1 "a large UNVERIFIED section is a GOOD outcome" vs §5 "UNVERIFIED is NOT an acceptable final state" | **One rule, in both sections:** exhaust everything you can self-provision FIRST — nothing self-provisionable may be filed UNVERIFIED — and then report whatever genuinely remains (physical device, real external secret, live third-party event) honestly, as a required section. Stopping early and calling the leftovers unreachable is the violation; admitting a real gap is not. |
+| SKILL.md §3 "primary controls are glossy (`btn-grad-primary` / `variant="bark"`)" vs AGENTS.md "no gloss/glow" | **Gloss is scoped:** required on green/bark **primary** buttons and **selected** controls; forbidden on decorative surfaces (cards, panels, backgrounds, empty-state art, non-selected chips). A flat primary button and a glowing decorative card are both defects. Both docs now say this. |
+| `.claude/commands/audit.md` "branch + PR, never commit to `main`" vs CLAUDE.md "commit directly to `main`" | **CLAUDE.md wins.** Commit direct to `main`. (`audit.md` and `improve.md` both corrected.) |
+| `.claude/commands/audit.md` "apply migrations via MCP `apply_migration`" vs CLAUDE.md "**NEVER**" | **CLAUDE.md wins.** Never `apply_migration`. `execute_sql` for read-only checks and test-account rows is fine. Schema changes go through `npm run migration:new -- <slug>` and auto-deploy on merge via `db-deploy.yml`. (`audit.md` corrected; SKILL.md's self-provision block now says `execute_sql` too.) |
+| `docs/TWO_ACCOUNT_E2E_TEST_PROMPT.md` "You cannot type passwords, that restriction is absolute" vs SKILL.md §5 "self-provision gated cells" | **Both are satisfied, and the conflict was false:** no password is ever typed *because* sessions are minted through Supabase admin `generate_link`. Use `scripts/test-signin-link.mjs` or the four-step recipe in §3. "I couldn't sign in" is not an acceptable reason for an unfilled cell. |
 
-Also stale, do not trust: `docs/audit/WALK_EVERY_SCREEN_PROMPT.md:39-40` calls
-`node scripts/test-signin-link.mjs` — **that file does not exist.** Use §3.
+Also fixed: `docs/audit/WALK_EVERY_SCREEN_PROMPT.md` calls
+`node scripts/test-signin-link.mjs poster|helper` — **that script now exists**
+(it did not, which stalled every session that followed that prompt). It prints
+a magic link, or `--session --json` for the localStorage blob, and refuses any
+address outside the seeded test set.
 
 ### Commit trailer
 
@@ -457,11 +462,36 @@ normalizations — they 404 in a web browser. Confirm that is intended.
 
 ### Known 404s and sitemap drift — verify and fix
 
-- **`public/sitemap.xml` lists `/subscription`, which is not a registered
-  route** — it renders NotFound. The real screen is `/profile?tab=subscription`.
-  `src/lib/sitemap.test.ts` does not assert that every `<loc>` resolves, which
-  is how it slipped through. **Fix both the sitemap and the test.**
-- `TODO.md` F-SEO-01 says ~20 public pages are missing from the sitemap.
+**The sitemap is now GENERATED — stop hand-editing it.**
+
+```bash
+node scripts/generate-sitemap.mjs            # rewrite public/sitemap.xml
+node scripts/generate-sitemap.mjs --check    # exit 1 on drift (CI)
+node scripts/generate-sitemap.mjs --stdout   # print, write nothing
+```
+
+It derives the URL list from the `<Route>` table in `src/App.tsx` — every
+public, non-redirect, non-parameterised route that is not behind
+`ProtectedRoute`/`AdminRoute`, minus a documented NOINDEX list (auth entry
+points, account-state screens, one-time-token pages). Add a public route to
+`App.tsx` and it is picked up automatically. There is no npm alias; run the
+command directly. `.github/workflows/sitemap-drift.yml` runs `--check` on any
+PR that touches `src/App.tsx` or the sitemap.
+
+- ~~`public/sitemap.xml` lists `/subscription`~~ — **already fixed**: the file
+  no longer lists it (verified 2026-08-31; the real screen is
+  `/profile?tab=subscription`). `src/lib/sitemap.test.ts` now also asserts
+  every `<loc>` is a path `App.tsx` still registers, so that direction of drift
+  is gated. The generator closes the *other* direction — a new public route
+  nobody added.
+- `TODO.md` F-SEO-01 said ~20 public pages were missing from the sitemap.
+  **That premise is stale**: the marketing pages it counted (`/how-it-works`,
+  `/community`, `/parishes`, `/impact`, …) were deleted in `2352466e`. The
+  generator enumerates the real number — the app has **6** indexable public
+  routes (`/`, `/browse`, `/jobs`, `/help`, `/support`, `/legal`), all six
+  already listed. `/login` and `/signup` are public but deliberately NOINDEXed
+  as auth entry points (one-line change in the script if that judgement
+  changes).
 - Retired paths that now genuinely 404 (deleted in `2352466e`):
   `/how-it-works`, `/become-a-partner`, `/enterprise`, `/community`,
   `/parishes`, `/parish/:slug`, `/impact`, `/local-guide`, `/browse-jobs`,

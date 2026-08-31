@@ -1,5 +1,63 @@
 # TODO
 
+## Where We Left Off — 2026-08-31 (docs + CI gap closure)
+
+Docs/CI lane only — no `src/`, `e2e/` or `supabase/` changes. Nothing below is
+ticked that was not actually executed.
+
+**Done and verified**
+- [x] **Sitemap is generated, not hand-kept** — `scripts/generate-sitemap.mjs`
+      derives the URL list from the `<Route>` table in `src/App.tsx`
+      (`--check` / `--stdout` / write). Verified: `--check` passes against the
+      committed file; classification unit-tested against a synthetic route
+      table (redirect / ProtectedRoute / AdminRoute / `:param` / `*` / comment
+      lines all correctly excluded). Gated by
+      `.github/workflows/sitemap-drift.yml`. Closes F-SEO-01 below.
+- [x] **`scripts/test-signin-link.mjs` now exists** — `poster|helper`, prints a
+      magic link (or `--session --json` for the localStorage blob), and refuses
+      any address outside the seeded test set. Two audit prompts had been
+      telling sessions to run this file for months; it did not exist, so every
+      one of them stalled at sign-in. Verified end to end: minted a real JWT
+      for the seeded helper (`sub` matches `6bdc1f67…`, `role: authenticated`),
+      and the refusal path exits 2 on a non-seeded address.
+- [x] **`scripts/audit-capture.mjs` — onboarding-tour trap closed + snapshot/
+      restore added.** Every context now seeds
+      `localStorage["helpr_onboarding"] = {completed:true,…}` before first
+      paint (the tour is a Radix dialog that blurred the dashboard captures and
+      intercepted clicks, intermittently — its 1.5s delay sat exactly on the
+      script's 1500ms settle). `snapshotAccountState()` /
+      `restoreAccountState()` + `--restore` protect the seeded account's
+      mutable state from any sweep that clicks. Verified against prod on the
+      test account: 1 `notification_preferences` row + 7 `helper_availability`
+      rows snapshotted and restored, 0 failures.
+- [x] **Five doc contradictions reconciled at source** — UNVERIFIED rule
+      (SKILL.md §1 vs §5), gloss scope (SKILL.md §3 vs AGENTS.md), branch-vs-
+      main and MCP `apply_migration` (`.claude/commands/audit.md` vs
+      CLAUDE.md — CLAUDE.md wins on both), password-typing vs self-provisioned
+      sessions (`docs/TWO_ACCOUNT_E2E_TEST_PROMPT.md`), and the commit trailer
+      (now `Claude Opus 4.7 (1M context)` everywhere).
+- [x] **`docs/qa/ACCESSIBILITY_AUDIT.md` restructured** into an automated half
+      (owned by CI) and an honest device-only half with a real sign-off block.
+      No box was ticked. It states precisely what axe does and does NOT cover.
+
+**Added but NOT yet proven green — needs one run before trusting**
+- [ ] **`.github/workflows/a11y-axe.yml`** — runs the seeded `visual-audit-sweep`
+      axe gate on PRs + pushes to main across all four variants (including
+      **phone-dark**, where the last audit's 35-screen defect lived). It has
+      never been executed: this lane may not run Playwright. **Watch its first
+      run.** If dark-mode violations are still open it will be red — fix the
+      screens, do not narrow the tag set. Make it a required check only after
+      it goes green once. Budget ~50-60 billed minutes per UI-touching push
+      (paths-filtered, so backend/docs commits cost ~nothing).
+- [ ] **Enable `wcag22aa` + `best-practice` tags** in
+      `e2e/happy-path/visual-audit-sweep.spec.ts` (`.withTags([…])`). Measured:
+      the current tag set runs 69 of axe 4.13's 105 rules, and **tap-target
+      size (`target-size`), heading order, and landmark rules are NOT among
+      them** — those three are still manual in the a11y checklist. One-line
+      change, owned by the e2e lane.
+
+---
+
 ## Pre-Release Audit punch list — 2026-06-18
 
 Full report: `docs/PRE_LAUNCH_AUDIT.md` (verdict + findings + scorecards). Section
@@ -16,7 +74,7 @@ coarsened/absent everywhere). Ship once the 3 must-fix Highs are closed.
 - [x] **F-MONEY-02** — add `idempotencyKey: escrow-${jobId}` at `create-payment/index.ts:209`.
 - [x] **F-SCR-01** — delete orphans `src/pages/LocalPricingGuide.tsx` + `src/pages/VerifyHelper.tsx` (both already removed).
 - [ ] **F-SEC-08** — enable HaveIBeenPwned leaked-password protection in Supabase Auth.
-- [ ] **F-SEO-01** — regenerate `public/sitemap.xml` from the public-route table (~20 public pages missing).
+- [x] **F-SEO-01** — `public/sitemap.xml` is now DERIVED from the route table by `scripts/generate-sitemap.mjs` (`--check` in `.github/workflows/sitemap-drift.yml`). **The "~20 missing public pages" premise was stale** — those marketing routes (`/how-it-works`, `/community`, `/parishes`, `/impact`, …) were deleted in `2352466e`. The app has 6 indexable public routes and the sitemap already lists exactly those 6, so no regeneration was needed; verified `node scripts/generate-sitemap.mjs --check` → "up to date (6 public URLs)" on 2026-08-31. `/login` + `/signup` are public but deliberately NOINDEXed as auth entry points (one-line change in the script if that judgement changes).
 
 **Larger / deferred:**
 - [ ] **F-MONEY-03** — route `admin_release_dispute` through `release-payout` or rethrow on transfer failure (`create-payment/index.ts:537-540,801`).

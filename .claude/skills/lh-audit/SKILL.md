@@ -314,8 +314,11 @@ credentials. For every audit, create a fresh test account via the `/signup`
 flow (this doubles as auditing signup end-to-end), sign in, and drive the
 logged-in surfaces. When a screen is gated (approval/IDV pending, or
 admin-only), elevate that one self-created test row via the Supabase MCP
-(`apply_migration`/`execute_sql` — set `approval_status='approved'`,
-`is_admin=true`, etc.) so the gated screens render. **Admin screens are ALWAYS
+**`execute_sql`** (set `approval_status='approved'`, `is_admin=true`, etc.) so
+the gated screens render. Use `execute_sql` — never `apply_migration`, which
+CLAUDE.md bans outright: it records the wrong `schema_migrations.version` and
+poisons the ledger. Elevating a test row is data, not schema; it does not
+belong in a migration at all. **Admin screens are ALWAYS
 in scope** — audit all admin views every pass, never defer them. Use a clearly
 marked test email; this is standing authorization, so don't stop to ask.
 

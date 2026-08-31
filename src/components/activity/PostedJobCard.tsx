@@ -120,6 +120,20 @@ function PostedJobCardInner({
    * Same node either way, so the two placements cannot drift apart.
    */
   const metaRow = (
+            <>
+              {/* Issue #67 — the collapsed card said nothing about who the job
+                  went to; the helper's name only showed inside the "Offered to"
+                  strip or the tracker, both gated behind expand. Same
+                  avatar-badge treatment as that strip, shrunk to fit the title
+                  bar; hidden once expanded so the two don't repeat each other. */}
+              {!isExpanded && job.helper_id && (
+                <div className="flex items-center gap-1 mb-1">
+                  <div className="w-4 h-4 rounded-full bg-primary/15 text-primary flex items-center justify-center text-ds-9 font-bold shrink-0">
+                    {(helperNames[job.helper_id] || "H")[0].toUpperCase()}
+                  </div>
+                  <span className="text-ds-11 text-muted-foreground truncate">{helperName}</span>
+                </div>
+              )}
               <JobCardMetaRow
                 dateNeeded={job.date_needed}
                 startTime={job.start_time}
@@ -167,6 +181,7 @@ function PostedJobCardInner({
                    <span className="flex items-center gap-1"><Users className="w-3 h-3 shrink-0 text-primary" /> {job.helpers_needed ? `${job.helpers_needed} Helpr${job.helpers_needed === 1 ? "" : "s"}` : "Group job"}</span>
                  )}
                </JobCardMetaRow>
+            </>
   );
 
   return (

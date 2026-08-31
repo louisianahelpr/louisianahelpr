@@ -144,14 +144,31 @@ function AppliedJobCardInner({
    * the point: these two cards sit in the same two tabs of the same screen.
    */
   const metaRow = (
-            <JobCardMetaRow
-              dateNeeded={job.date_needed}
-              startTime={job.start_time}
-              location={job.location}
-              latitude={job.latitude}
-              longitude={job.longitude}
-              expiresAt={isPending && !job.helper_id ? job.expires_at : null}
-            />
+    <>
+      {/* Issue #67 — who posted it used to be readable only after expanding
+          (the full "Posted by" row below, or a state-section tracker). A
+          collapsed card is what most of the list looks like, so the name was
+          invisible for most of the scroll. Same avatar-badge treatment as the
+          expanded row below, shrunk to fit the title bar; hidden once expanded
+          so the two don't say the same thing twice — the fuller row (with the
+          profile link) takes over from there. */}
+      {!isExpanded && app.posterName && (
+        <div className="flex items-center gap-1 mb-1">
+          <div className="w-4 h-4 rounded-full bg-primary/15 text-primary flex items-center justify-center text-ds-9 font-bold shrink-0">
+            {app.posterName[0].toUpperCase()}
+          </div>
+          <span className="text-ds-11 text-muted-foreground truncate">{app.posterName}</span>
+        </div>
+      )}
+      <JobCardMetaRow
+        dateNeeded={job.date_needed}
+        startTime={job.start_time}
+        location={job.location}
+        latitude={job.latitude}
+        longitude={job.longitude}
+        expiresAt={isPending && !job.helper_id ? job.expires_at : null}
+      />
+    </>
   );
 
   return (

@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import {
   RELIABILITY_LADDER_RUNGS,
   RELIABILITY_LADDER_SENTENCE,
+  CANCELLATION_LADDER_RUNGS,
 } from "./reliabilityLadder";
 
 /**
@@ -404,10 +405,26 @@ describe("cancellation ladder — apply_cancellation_violation_consequence (SQL)
       /Permanent ban\. Final, no appeal|One more = permanent ban/.test(section),
       "the legal page promises an automatic permanent ban the cancellation ladder never applies",
     ).toBe(false);
+    // The sentence itself now lives in CANCELLATION_LADDER_RUNGS, which is the
+    // point — three surfaces used to hand-type this ladder and all three were
+    // TRUE, which is exactly why it needed a constant rather than a correction.
+    // So the guard follows the constant instead of grepping the page for a
+    // literal it no longer contains.
     expect(
       section,
-      `the legal page must state the ${days}-day reviewable restriction the ladder actually applies`,
-    ).toMatch(new RegExp(`restricted for ${days} days`));
+      "the cancellation list stopped reading CANCELLATION_LADDER_RUNGS — it is " +
+        "stating the ladder from memory again, in a legal document",
+    ).toContain("CANCELLATION_LADDER_RUNGS.map");
+    expect(
+      CANCELLATION_LADDER_RUNGS.join(" "),
+      `the shared cancellation rungs must state the ${days}-day reviewable ` +
+        `restriction the ladder actually applies, and that a person decides`,
+    ).toMatch(new RegExp(`${days}-day restriction|restricted for ${days} days`, "i"));
+    expect(
+      CANCELLATION_LADDER_RUNGS.join(" "),
+      "the cancellation rungs stopped saying an admin decides — 'restricted for " +
+        "7 days' with no human named reads as a countdown to an automatic ban",
+    ).toMatch(/admin reviews|admin decides|never automatic/i);
     // And the job-denial list must READ the shared module rather than restate it.
     expect(
       legal,

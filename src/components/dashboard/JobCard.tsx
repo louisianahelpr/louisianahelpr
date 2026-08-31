@@ -324,7 +324,13 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               className="inline-flex items-center gap-1 px-2 py-1 rounded-b-lg border-b border-r text-ds-10 font-semibold leading-none shadow-sm pointer-events-none"
               style={{
                 background: "hsl(var(--burnt-sienna) / 0.12)",
-                color: "hsl(var(--burnt-sienna))",
+                // --sienna-ink, not --burnt-sienna: this is 10px label text on
+                // the sienna family's own 12% tint, which is the exact case
+                // --sienna-ink was minted for. Raw --burnt-sienna measured
+                // 3.89:1 here in dark mode (#d46735 on #332927), under the 4.5
+                // AA bar. Light mode is unchanged — the two tokens are
+                // byte-identical there.
+                color: "hsl(var(--sienna-ink))",
                 borderColor: "hsl(var(--burnt-sienna) / 0.20)",
               }}
             >

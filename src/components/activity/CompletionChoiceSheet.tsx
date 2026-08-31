@@ -90,11 +90,25 @@ export function CompletionChoiceSheet({
     try {
       // Upload photos
       const photoUrls: string[] = [];
+      let uploadFailed = false;
       for (const file of photos.slice(0, 3)) {
         const ext = file.name.split(".").pop();
-        const path = `revisions/${jobId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        // `<jobId>/revisions/…`, NOT `revisions/<jobId>/…`. The proof-photos
+        // policies key on storage.foldername(name)[1], so the FIRST segment
+        // must be either the caller's uid or a job they are party to. With
+        // "revisions" in that slot it matched neither, so every revision photo
+        // was rejected by RLS — and the bare `continue` below swallowed it, so
+        // a revision request was filed with zero evidence and the helper had
+        // nothing to work from.
+        //
+        // Fourth instance of this exact bug: DisputeDialog documented fixing
+        // it, ReviewForm and PhotoProof were fixed on 2026-08-31, and this one
+        // survived because nothing in the repo checks upload paths against the
+        // policy that governs them.
+        const path = `${jobId}/revisions/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
         const { error: upErr } = await supabase.storage.from("proof-photos").upload(path, file);
         if (upErr) {
+          uploadFailed = true;
           report(upErr, { tags: { source: "CompletionChoiceSheet.uploadPhoto" } });
           continue;
         }
@@ -106,6 +120,18 @@ export function CompletionChoiceSheet({
           continue;
         }
         if (urlData?.signedUrl) photoUrls.push(urlData.signedUrl);
+      }
+
+      // Tell the user if their evidence didn't attach. The revision request
+      // still goes through — it is better than losing their written
+      // description — but silently filing it with no photos left the helper
+      // with nothing to act on and the poster believing they had sent proof.
+      if (uploadFailed) {
+        toast.error(
+          photoUrls.length > 0
+            ? "Some photos couldn't be attached — your revision request was still sent."
+            : "Your photos couldn't be attached — your revision request was still sent.",
+        );
       }
 
       // Try the formal job_revisions table first (PGRST202 fallback below)

@@ -54,8 +54,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
         with:
-          # Need history to diff against the previous commit on main.
-          fetch-depth: 2
+          # Full history: a push can carry MANY commits, and the diff has to
+          # span the whole pushed range, not just the tip. fetch-depth: 2 only
+          # reaches HEAD~1 — see the DIFF_BASE comment below for what that cost.
+          fetch-depth: 0
 
       - name: Check secrets present
         id: precheck
@@ -78,6 +80,41 @@ jobs:
 
           MANUAL_INPUT="${{ github.event.inputs.function_name }}"
 
+          # DIFF BASE — this is the whole ballgame.
+          #
+          # This step used to diff HEAD~1..HEAD, i.e. only the TIP commit of
+          # the push. A push carrying five commits was inspected as if it
+          # carried one. On 2026-08-31 a push of five commits (572f2a73,
+          # eb5d1222, 190d9c32, 8aed07ef, 1a7ac776) landed the entire
+          # react-email rewrite — all 17 templates, the official Resend SDK,
+          # and the H-mark header — in 190d9c32. The tip commit was the E2E
+          # port fix, which touches no edge function, so run 33401206418
+          # printed "No function code changes detected", reported SUCCESS, and
+          # deployed NOTHING. Prod kept sending the old hand-built emails for
+          # hours while every check on main was green. Same failure shape as
+          # the vercel.json schema break: a green pipeline over a stale prod.
+          #
+          # github.event.before is the commit main pointed at before this
+          # push, so before..HEAD covers every commit actually pushed.
+          #
+          # Two cases where it is unusable: an all-zeros SHA (branch created,
+          # or the ref was force-pushed/reset) and a SHA no longer reachable
+          # after a force-push. Both mean "we cannot know what changed", and
+          # the only safe answer to that is deploy-all — never "nothing".
+          BEFORE_SHA="${{ github.event.before }}"
+          DIFF_BASE=""
+          if [ -n "$BEFORE_SHA" ] && [ "$BEFORE_SHA" != "0000000000000000000000000000000000000000" ] \
+             && git cat-file -e "${BEFORE_SHA}^{commit}" 2>/dev/null; then
+            DIFF_BASE="$BEFORE_SHA"
+            echo "Diffing the full pushed range: ${BEFORE_SHA}..HEAD"
+          elif [ -n "$MANUAL_INPUT" ]; then
+            # workflow_dispatch has no before-SHA and does not need one.
+            DIFF_BASE="HEAD~1"
+          else
+            echo "::warning::No usable before-SHA (new branch, force-push, or unreachable commit) — deploying ALL functions rather than risk deploying none."
+            FORCE_DEPLOY_ALL=1
+          fi
+
           if [ -n "$MANUAL_INPUT" ]; then
             # workflow_dispatch path with a specific function requested
             if [ ! -d "supabase/functions/$MANUAL_INPUT" ]; then
@@ -88,7 +125,7 @@ jobs:
             echo "Manual deploy: $FUNCTIONS"
           else
             # Auto-detect: which function dirs had file changes in this push?
-            CHANGED=$(git diff --name-only HEAD~1 HEAD -- 'supabase/functions/*' 2>/dev/null || true)
+            CHANGED=$(git diff --name-only "$DIFF_BASE" HEAD -- 'supabase/functions/*' 2>/dev/null || true)
             # Extract the function name (the dir immediately under supabase/functions/)
             # Skip _shared — it's a library, not a deployable function.
             FUNCTIONS=$(echo "$CHANGED" \
@@ -119,8 +156,13 @@ jobs:
           # deploying nothing (prod's function config silently goes stale).
           if [ -n "$MANUAL_INPUT" ]; then
             echo "Skipping _shared/config.toml/workflow check — manual single-function deploy."
+          elif [ "${FORCE_DEPLOY_ALL:-0}" = "1" ]; then
+            # No usable diff base — we genuinely do not know what changed, so
+            # the only answer that cannot silently leave prod stale is all.
+            echo "::warning::Unknown diff range — deploying ALL functions."
+            FUNCTIONS=$(ls supabase/functions/ | grep -v '^_shared$' | tr '\n' ' ' || true)
           else
-            CONFIG_OR_WORKFLOW_CHANGED=$(git diff --name-only HEAD~1 HEAD -- 'supabase/config.toml' '.github/workflows/functions-deploy.yml' 2>/dev/null || true)
+            CONFIG_OR_WORKFLOW_CHANGED=$(git diff --name-only "$DIFF_BASE" HEAD -- 'supabase/config.toml' '.github/workflows/functions-deploy.yml' 2>/dev/null || true)
             if echo "$CHANGED" | grep -qE '^supabase/functions/_shared/'; then
               echo "::warning::_shared changed — promoting to deploy-all to avoid leaving stale callers."
               FUNCTIONS=$(ls supabase/functions/ | grep -v '^_shared$' | tr '\n' ' ' || true)

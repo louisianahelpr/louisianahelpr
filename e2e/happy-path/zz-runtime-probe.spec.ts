@@ -551,7 +551,7 @@ test("2b · lazy-chunk fetch failure never white-screens; records what the user 
   await expect(page.getByRole("button", { name: /Try Again|Reload/i })).toBeVisible();
 });
 
-test("2b-defect · a chunk 404 shows the chunk-aware 'Update ready.' copy", async ({
+test("a chunk 404 shows the chunk-aware 'Update ready.' copy", async ({
   page,
   context,
 }) => {
@@ -566,13 +566,16 @@ test("2b-defect · a chunk 404 shows the chunk-aware 'Update ready.' copy", asyn
   //   • the user gets "This page hit a problem." for a routine stale deploy
   //   • "Try Again" re-renders the same dead module reference and re-throws
   //   • report() fires, so every stale deploy becomes Sentry route-error noise
-  test.fail();
+  // Was test.fail() while src/main.tsx swallowed the chunk error via an
+  // unconditional preventDefault(). Fixed in cea0055f, so this is now a
+  // real regression guard: a stale deploy must show the chunk-aware copy,
+  // not the generic "This page hit a problem" card.
   test.slow();
   const { body } = await driveChunk404(page, context, { armReloadGuard: true });
   expect(body).toContain("Update ready.");
 });
 
-test("2b-offline-defect · an offline lazy-route navigation shows chunk/offline copy", async ({
+test("an offline lazy-route navigation shows chunk/offline copy", async ({
   page,
   context,
 }) => {
@@ -580,7 +583,10 @@ test("2b-offline-defect · an offline lazy-route navigation shows chunk/offline 
   // false when offline so "the caller falls through to its normal error UI" —
   // but main.tsx already swallowed the error, so the caller never sees a chunk
   // error and shows the generic route-crash card instead.
-  test.fail();
+  // Was test.fail() while src/main.tsx swallowed the chunk error via an
+  // unconditional preventDefault(). Fixed in cea0055f, so this is now a
+  // real regression guard: a stale deploy must show the chunk-aware copy,
+  // not the generic "This page hit a problem" card.
   test.slow();
   await context.addInitScript(installPreloadErrorProbe);
   // Load the SPA first, THEN go offline, THEN client-side-navigate to a route

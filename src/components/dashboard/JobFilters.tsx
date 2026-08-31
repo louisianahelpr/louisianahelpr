@@ -204,7 +204,7 @@ function ScrollChipRow({
           ref={ref}
           role="group"
           aria-label={ariaLabel}
-          className="flex gap-1.5 overflow-x-auto scrollbar-hide pr-6 snap-x snap-proximity cursor-grab active:cursor-grabbing select-none"
+          className="flex gap-1.5 overflow-x-auto scrollbar-hide pr-6 cursor-grab active:cursor-grabbing select-none"
           style={{ touchAction: "pan-x" }}
         >
           {children}
@@ -250,7 +250,7 @@ export const SortContent = ({
         type="button"
         aria-pressed={sortBy === opt.value}
         onClick={() => { hapticLight(); setSortBy(opt.value); onSelect?.(); }}
-        className={`shrink-0 snap-start ${chipBase} ${sortBy === opt.value ? chipActive : chipIdle}`}
+        className={`shrink-0 ${chipBase} ${sortBy === opt.value ? chipActive : chipIdle}`}
       >
         {opt.label}
       </button>
@@ -269,7 +269,7 @@ export const CategoryContent = ({
         <button
           key={key}
           onClick={() => { hapticLight(); setSelectedCategory(isActive ? null : key); onSelect?.(); }}
-          className={`shrink-0 snap-start ${chipBase} ${isActive ? chipActive : chipIdle}`}
+          className={`shrink-0 ${chipBase} ${isActive ? chipActive : chipIdle}`}
         >
           <CategoryIcon
             category={key}

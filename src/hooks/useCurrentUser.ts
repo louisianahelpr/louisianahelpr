@@ -72,6 +72,60 @@ const fetchCurrentUser = async (userId: string): Promise<{ profile: Profile | nu
   return { profile, isAdmin };
 };
 
+/**
+ * Refcounted, per-user subscription to the caller's OWN profiles row.
+ *
+ * Every consumer registers a listener; only the FIRST opens a realtime
+ * channel and only the LAST closes it. Keyed by user id so a session switch
+ * gets its own channel and the old one is torn down when its last listener
+ * leaves.
+ */
+const ownProfileChannels = new Map<
+  string,
+  { channel: ReturnType<typeof supabase.channel>; listeners: Set<() => void> }
+>();
+
+function subscribeToOwnProfile(userId: string, onChange: () => void): () => void {
+  let entry = ownProfileChannels.get(userId);
+
+  if (!entry) {
+    const listeners = new Set<() => void>();
+    // channelNonce() keeps this in lockstep with the rest of the codebase —
+    // a divergent inline impl would drift if the helper later picks up extra
+    // guarantees (monotonic suffix, instance counter) we'd want everywhere.
+    const channel = supabase
+      .channel(`profile-self-${userId}-${channelNonce()}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "profiles",
+          filter: `user_id=eq.${userId}`,
+        },
+        () => {
+          // Copy before iterating: a listener may unsubscribe on invalidation.
+          for (const fn of [...listeners]) fn();
+        },
+      )
+      .subscribe();
+    entry = { channel, listeners };
+    ownProfileChannels.set(userId, entry);
+  }
+
+  entry.listeners.add(onChange);
+
+  return () => {
+    const current = ownProfileChannels.get(userId);
+    if (!current) return;
+    current.listeners.delete(onChange);
+    if (current.listeners.size === 0) {
+      ownProfileChannels.delete(userId);
+      supabase.removeChannel(current.channel);
+    }
+  };
+}
+
 export const useCurrentUser = (): CurrentUser => {
   const { user, isReady } = useAuthReady();
   const queryClient = useQueryClient();
@@ -92,30 +146,21 @@ export const useCurrentUser = (): CurrentUser => {
   // Realtime: when the current user's profile row is updated (e.g. admin
   // flips approval_status from "pending" → "approved"), invalidate the cache
   // so the UI reflects the new status without a manual reload.
+  //
+  // ONE channel per user, refcounted — not one per hook consumer. 39 files
+  // call useCurrentUser(), and this effect used to live in the hook body, so
+  // every mounted instance opened its own websocket channel against the SAME
+  // profiles row with the SAME filter. A runtime capture on 2026-08-31 found
+  // 13 channels open on /dashboard, 7 of them identical `profile-self-*`
+  // subscriptions (9 on /profile). channelNonce() made them all distinct, so
+  // the "unique channel name" house rule technically held while the app quietly
+  // burned 7-9x its share of Supabase's per-project concurrent-subscription
+  // budget on every page load.
   useEffect(() => {
     if (!user?.id) return;
-    // Use the canonical channelNonce() helper so this hook stays in lockstep
-    // with the rest of the codebase — a divergent inline impl would silently
-    // drift if the helper later picks up extra guarantees (e.g. monotonic
-    // suffix, instance counter) that we'd want everywhere.
-    const channel = supabase
-      .channel(`profile-self-${user.id}-${channelNonce()}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "profiles",
-          filter: `user_id=eq.${user.id}`,
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: queryKeys.currentUser.byId(user.id) });
-        },
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return subscribeToOwnProfile(user.id, () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.currentUser.byId(user.id) });
+    });
   }, [user?.id, queryClient]);
 
   const refresh = async () => {

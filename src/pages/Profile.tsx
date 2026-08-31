@@ -136,6 +136,16 @@ const ProfilePage = () => {
 
   // Sync tab to URL for bookmarkability; React Router owns history so browser
   // back/forward updates searchParams, which the effect below mirrors to state.
+  //
+  // Opening a tab PUSHES a history entry. It used to replace, so entering a
+  // tab added nothing to history and Back skipped the Profile landing
+  // entirely: /dashboard -> Profile -> Account Security -> Back landed on
+  // /dashboard, with history.length never incrementing. On iOS the swipe-back
+  // gesture did the same, which is the one users reach for constantly.
+  //
+  // Returning to the landing still REPLACES, so Back doesn't walk you through
+  // every tab you happened to visit — one Back from a tab lands on the
+  // landing, a second leaves Profile.
   useEffect(() => {
     const current = resolveTab(searchParams.get("tab"));
     if (current === tab) return;
@@ -146,7 +156,7 @@ const ProfilePage = () => {
         else next.set("tab", tab);
         return next;
       },
-      { replace: true },
+      { replace: tab === "landing" },
     );
   }, [tab]);
 

@@ -28,7 +28,16 @@ const STRIKE_LABELS = ["Written warning", "Final warning", "7-day restriction"] 
 export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
   const strikeCount = violations.filter((v) => v.action_taken === "warning" || v.action_taken === "final_warning").length;
   const hasBan = violations.some((v) => v.action_taken === "permanent_ban");
-  const hasSuspension = violations.some((v) => v.action_taken === "suspension" || v.action_taken === "temporary_ban");
+  // `temp_ban` is the value that is ACTUALLY written — BanDialog.tsx:175 —
+  // and it is what the admin console reads (adminusers/OverviewTab.tsx:106).
+  // This checked only "suspension" and "temporary_ban", neither of which any
+  // code path in the repo ever writes, so a user WITH a live temp ban saw
+  // "Strike 1 of 3 — a written warning" while the list directly beneath
+  // showed their TEMP BAN. The two older spellings are kept so a legacy row
+  // still resolves, but `temp_ban` is the one that matters.
+  const hasSuspension = violations.some(
+    (v) => v.action_taken === "temp_ban" || v.action_taken === "suspension" || v.action_taken === "temporary_ban",
+  );
   // Where the account sits on the 3-strike ladder: 1st/2nd strike map
   // directly to the "warning"/"final_warning" action_taken rows above; the
   // 3rd strike is the suspension/temporary_ban consequence (a 7-day

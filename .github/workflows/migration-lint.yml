@@ -140,3 +140,13 @@ jobs:
           # REPLACE of an already-granted function doesn't trip it. Trigger
           # and event-trigger functions are exempt.
           echo "${{ steps.changed.outputs.files }}" | xargs node scripts/check-migration-grants.mjs
+
+      - name: Check no AFTER trigger mutates NEW
+        if: steps.changed.outputs.files != ''
+        run: |
+          # An AFTER trigger silently discards every `NEW.x := …` in its
+          # function. This shipped twice on the message moderation scan
+          # (20260819060000 §5 fixed the INSERT trigger; 20260831003117
+          # reintroduced it on the edit trigger, fixed in 20260831015232) —
+          # valid SQL, green tests, and a moderation flag that did nothing.
+          echo "${{ steps.changed.outputs.files }}" | xargs node scripts/check-trigger-timing.mjs

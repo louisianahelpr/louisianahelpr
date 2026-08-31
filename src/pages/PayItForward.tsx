@@ -590,7 +590,7 @@ export default function PayItForward() {
                 disabled={!canDonate || donateMutation.isPending}
                 className="w-full rounded-ds-sm font-display italic font-semibold"
                 style={{
-                  background: canDonate ? "hsl(var(--success-ink))" : "hsl(var(--bark) / 0.15)",
+                  background: canDonate ? "hsl(var(--bark))" : "hsl(var(--bark) / 0.15)",
                   color: canDonate ? "hsl(var(--parchment))" : "hsl(var(--bark) / 0.5)",
                   border: "none",
                 }}

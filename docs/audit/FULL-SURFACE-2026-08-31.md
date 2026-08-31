@@ -251,6 +251,17 @@ dark  axe: 0 | overflow: 0 | h1!=1: 0 | fill<65: 0 | errors: 0
   `SecurityTab` change-email dialog. Records in
   `~/lh-audit-2026-08-30/dialogs/report.json`.
 
+### Observed once, not reproducible — recorded, not claimed
+
+The regenerated light sweep caught a single
+`500 /rest/v1/rpc/get_jobs_for_my_applications` on `/home-history` at 1440,
+one cell out of 558. I could not reproduce it: 10 sequential and 10 parallel
+authenticated calls to that RPC all returned 200 with real rows. Recording it
+because a transient 5xx on a data path is worth knowing about, but it is an
+observation, not a finding — I am not claiming a defect I could not reproduce.
+The same sweep also logged one 25s navigation timeout on `/work-record` under
+six parallel workers, which I read as harness load rather than the app.
+
 ### A correction to my own method, found late
 
 My first screenshot pass captured the **onboarding tour**, not the screens

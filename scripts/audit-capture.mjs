@@ -6,7 +6,42 @@
  * two viewports, plus a machine-readable flags report, so later review
  * (human or model) only needs to look at flagged screens.
  *
- * Usage: node scripts/audit-capture.mjs
+ * Usage:
+ *   node scripts/audit-capture.mjs                 # capture (read-only)
+ *   node scripts/audit-capture.mjs --restore       # restore the last snapshot
+ *                                                  # and exit, capturing nothing
+ *
+ * ============================================================================
+ * ⚠️  READ THIS BEFORE ADDING ANY CLICK TO A SWEEP  ⚠️
+ * ============================================================================
+ * THIS script is READ-ONLY: it navigates, measures and screenshots. It never
+ * clicks a control, and it must stay that way.
+ *
+ * A sweep that DOES click controls MUTATES THE SEEDED TEST ACCOUNT, and the
+ * damage is invisible until a later audit reads the account as broken. This
+ * has already happened: a control sweep flipped
+ *   - `notification_preferences.push_enabled` -> false, and
+ *   - all 7 `helper_availability.is_available` rows -> false
+ * on the seeded helper (`eli.test.helper@louisianahelpr.com`) and left them
+ * that way. Every subsequent audit then saw a helper with no availability and
+ * push disabled, which reads exactly like a product defect.
+ *
+ * So: **any sweep that clicks, toggles, submits or drags MUST snapshot the
+ * account's mutable state first and restore it afterwards** — including when
+ * it crashes. `snapshotAccountState()` / `restoreAccountState()` below do
+ * this; call them, don't reinvent them:
+ *
+ *   const snap = await snapshotAccountState(env);   // writes snapshot.json
+ *   try { ...your clicking sweep... }
+ *   finally { await restoreAccountState(env, snap); }
+ *
+ * The snapshot is also written to disk (`<OUT_DIR>/account-snapshot.json` and
+ * `~/lh-audit-shots/latest-account-snapshot.json`) so a run that is killed
+ * mid-sweep can still be undone afterwards with `--restore`.
+ *
+ * Extend TRACKED_TABLES below whenever a sweep starts touching a new table.
+ * A control you can toggle in the UI that is NOT in that list is a hole.
+ * ============================================================================
  */
 import { chromium } from '@playwright/test';
 import fs from 'node:fs';
@@ -131,9 +166,38 @@ async function mintSession(supabaseUrl, serviceKey) {
   };
 }
 
+/**
+ * Runs before first paint in every context (authed AND guest).
+ *
+ * Two jobs:
+ *  1. install the minted session, when there is one;
+ *  2. ALWAYS suppress the onboarding tour.
+ *
+ * (2) is not optional. `OnboardingTour` (src/components/OnboardingTour.tsx,
+ * mounted by src/pages/Dashboard.tsx) opens on /dashboard 1.5s after load in
+ * every fresh browser context — and every context here is fresh. It is a Radix
+ * dialog that blurs the page behind it and intercepts clicks, so without this
+ * the /dashboard captures are screenshots of the TOUR over a blurred
+ * dashboard, the layout metrics measure the tour, and the flags report grades
+ * the tour. Worse, EXTRA_WAIT_MS is 1500 — exactly the tour's delay — so it
+ * appeared in some runs and not others, which reads as flakiness in the app.
+ *
+ * The tour is gated purely on localStorage: key `helpr_onboarding`, shape
+ * `{completed, currentStep, completedSteps}`, and `completed: true` retires it
+ * permanently. Auditing the tour ITSELF means deliberately not seeding this
+ * key in a dedicated context — never by leaving the whole sweep exposed to it.
+ */
 function installSession({ key, val }) {
   try {
-    window.localStorage.setItem(key, val);
+    if (key && val) window.localStorage.setItem(key, val);
+  } catch {
+    /* ignore */
+  }
+  try {
+    window.localStorage.setItem(
+      'helpr_onboarding',
+      JSON.stringify({ completed: true, currentStep: 0, completedSteps: [] }),
+    );
   } catch {
     /* ignore */
   }
@@ -143,9 +207,10 @@ async function captureCell({ browser, cellName, url, viewport, outDirBase, sessi
   const context = await browser.newContext({
     viewport: { width: viewport.width, height: viewport.height },
   });
-  if (sessionArgs) {
-    await context.addInitScript(installSession, sessionArgs);
-  }
+  // Always installed — with a session when we have one, and in every case to
+  // suppress the onboarding tour. Guest contexts need the tour suppression
+  // too: a guest cell that lands on /dashboard mid-redirect can still catch it.
+  await context.addInitScript(installSession, sessionArgs ?? { key: null, val: null });
   const page = await context.newPage();
 
   const consoleErrors = new Set();
@@ -297,6 +362,121 @@ async function captureCell({ browser, cellName, url, viewport, outDirBase, sessi
   return result;
 }
 
+// ---------- snapshot / restore of the seeded account's mutable state ----------
+//
+// See the ⚠️ block at the top of this file. Any sweep that CLICKS must bracket
+// itself with these two calls; this capture script is read-only and calls
+// snapshotAccountState() only so a restore point always exists for whatever
+// runs next.
+//
+// Add a row here whenever a sweep starts touching a new table. `filter` is the
+// PostgREST predicate that selects exactly the test account's rows — never
+// widen it; a restore that PATCHes more than the test account is worse than
+// the mutation it was undoing.
+const TRACKED_TABLES = [
+  {
+    table: 'notification_preferences',
+    filter: `user_id=eq.${TEST_USER_ID}`,
+    // A control sweep flipped push_enabled to false here and left it.
+    columns: null, // null = whole row
+  },
+  {
+    table: 'helper_availability',
+    filter: `helper_id=eq.${TEST_USER_ID}`,
+    // A control sweep flipped all 7 is_available rows to false and left them.
+    columns: null,
+  },
+];
+
+const LATEST_SNAPSHOT_PATH = path.join(process.env.HOME, 'lh-audit-shots', 'latest-account-snapshot.json');
+
+async function restGet(env, table, filter) {
+  const res = await fetch(`${env.supabaseUrl}/rest/v1/${table}?${filter}&select=*`, {
+    headers: { apikey: env.serviceKey, Authorization: `Bearer ${env.serviceKey}` },
+  });
+  if (!res.ok) throw new Error(`GET ${table} failed: ${res.status} ${await res.text()}`);
+  return res.json();
+}
+
+async function restPatchById(env, table, id, row) {
+  // PATCH by primary key only. Restoring row-by-row (rather than one bulk
+  // PATCH over the filter) is deliberate: a bulk PATCH would flatten rows that
+  // legitimately differ from each other — e.g. the 7 helper_availability rows,
+  // which have different day_of_week/start_time values.
+  const body = { ...row };
+  delete body.id;
+  delete body.created_at;
+  const res = await fetch(`${env.supabaseUrl}/rest/v1/${table}?id=eq.${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: {
+      apikey: env.serviceKey,
+      Authorization: `Bearer ${env.serviceKey}`,
+      'Content-Type': 'application/json',
+      Prefer: 'return=representation',
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`PATCH ${table} ${id} failed: ${res.status} ${await res.text()}`);
+  const rows = await res.json();
+  // A null error does NOT mean the write happened: PATCH matching zero rows
+  // returns 200 with []. This is the repeat-offender bug class in this repo —
+  // check the representation, not the status.
+  if (!Array.isArray(rows) || rows.length === 0) {
+    throw new Error(`PATCH ${table} ${id} matched ZERO rows — restore did not happen`);
+  }
+  return rows[0];
+}
+
+/**
+ * Read the test account's mutable state and write it to disk. Returns the
+ * snapshot object (also usable in-process).
+ */
+async function snapshotAccountState(env, outDir) {
+  const snapshot = { takenAt: new Date().toISOString(), userId: TEST_USER_ID, tables: {} };
+  for (const spec of TRACKED_TABLES) {
+    snapshot.tables[spec.table] = await restGet(env, spec.table, spec.filter);
+  }
+  const counts = Object.entries(snapshot.tables)
+    .map(([t, rows]) => `${t}:${rows.length}`)
+    .join(' ');
+  const json = JSON.stringify(snapshot, null, 2);
+  if (outDir) {
+    fs.mkdirSync(outDir, { recursive: true });
+    fs.writeFileSync(path.join(outDir, 'account-snapshot.json'), json);
+  }
+  fs.mkdirSync(path.dirname(LATEST_SNAPSHOT_PATH), { recursive: true });
+  fs.writeFileSync(LATEST_SNAPSHOT_PATH, json);
+  console.log(`Account snapshot taken (${counts}) -> ${LATEST_SNAPSHOT_PATH}`);
+  return snapshot;
+}
+
+/**
+ * Put every snapshotted row back exactly as it was. Safe to run when nothing
+ * changed (it just re-writes identical values), so `finally { restore }` is
+ * always the right shape — including on a crash.
+ */
+async function restoreAccountState(env, snapshot) {
+  if (!snapshot) throw new Error('restoreAccountState called with no snapshot');
+  let restored = 0;
+  const failures = [];
+  for (const [table, rows] of Object.entries(snapshot.tables)) {
+    for (const row of rows) {
+      try {
+        await restPatchById(env, table, row.id, row);
+        restored++;
+      } catch (e) {
+        failures.push(String(e).slice(0, 300));
+      }
+    }
+  }
+  console.log(`Account state restored: ${restored} row(s).`);
+  if (failures.length) {
+    console.error(`RESTORE FAILURES (${failures.length}) — the test account may still be dirty:`);
+    for (const f of failures) console.error(`  ${f}`);
+  }
+  return { restored, failures };
+}
+
 async function runPool(items, worker, poolSize) {
   const results = [];
   let idx = 0;
@@ -311,12 +491,43 @@ async function runPool(items, worker, poolSize) {
 }
 
 async function main() {
-  fs.mkdirSync(OUT_DIR, { recursive: true });
-  console.log(`Output dir: ${OUT_DIR}`);
-
   const env = readEnv();
   const supabaseUrl = env.VITE_SUPABASE_URL;
   const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY;
+  const restEnv = { supabaseUrl, serviceKey };
+
+  // `--restore` undoes a previous (clicking) sweep from the snapshot on disk
+  // and exits without capturing anything. This is the escape hatch for a run
+  // that was killed before its own `finally { restore }` could fire.
+  if (process.argv.includes('--restore')) {
+    if (!supabaseUrl || !serviceKey) {
+      console.error('Cannot restore: .env is missing VITE_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY.');
+      process.exit(1);
+    }
+    if (!fs.existsSync(LATEST_SNAPSHOT_PATH)) {
+      console.error(`Cannot restore: no snapshot at ${LATEST_SNAPSHOT_PATH}.`);
+      process.exit(1);
+    }
+    const snap = JSON.parse(fs.readFileSync(LATEST_SNAPSHOT_PATH, 'utf8'));
+    console.log(`Restoring account state from snapshot taken ${snap.takenAt}...`);
+    const { failures } = await restoreAccountState(restEnv, snap);
+    process.exit(failures.length ? 1 : 0);
+  }
+
+  fs.mkdirSync(OUT_DIR, { recursive: true });
+  console.log(`Output dir: ${OUT_DIR}`);
+
+  // Take a restore point even though THIS script never clicks: it makes the
+  // seeded account's known-good state recoverable for whatever runs next, and
+  // it is nearly free (two GETs). See the ⚠️ block at the top of the file.
+  if (supabaseUrl && serviceKey) {
+    try {
+      await snapshotAccountState(restEnv, OUT_DIR);
+    } catch (e) {
+      console.error(`Snapshot failed (continuing — this script is read-only): ${String(e).slice(0, 300)}`);
+    }
+  }
+
   const projectRefMatch = supabaseUrl && supabaseUrl.match(/https:\/\/([a-z0-9]+)\.supabase\.co/);
   const projectRef = projectRefMatch ? projectRefMatch[1] : 'fncmgoasalhdgfwzhsqa';
   const storageKey = `sb-${projectRef}-auth-token`;
@@ -450,7 +661,18 @@ async function main() {
   console.log(`Screenshots: ${OUT_DIR}`);
 }
 
-main().catch((e) => {
-  console.error('FATAL:', e);
-  process.exit(1);
-});
+// Exported so a clicking sweep can bracket itself without copy-pasting the
+// snapshot/restore logic (see the ⚠️ block at the top):
+//   import { snapshotAccountState, restoreAccountState, readEnv } from './audit-capture.mjs';
+// Importing this file must therefore NOT start a capture — hence the guard.
+export { snapshotAccountState, restoreAccountState, readEnv, TRACKED_TABLES, LATEST_SNAPSHOT_PATH };
+
+const invokedDirectly =
+  process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+
+if (invokedDirectly) {
+  main().catch((e) => {
+    console.error('FATAL:', e);
+    process.exit(1);
+  });
+}

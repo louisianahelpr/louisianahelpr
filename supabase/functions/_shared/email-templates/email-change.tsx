@@ -4,12 +4,9 @@ import * as React from 'npm:react@18.3.1'
 
 import {
   Body,
-  Button,
   Container,
-  Head,
   Heading,
   Html,
-  Img,
   Link,
   Preview,
   Text,
@@ -18,13 +15,12 @@ import {
 import {
   main,
   container,
-  logo,
   h1,
   text,
   linkStyle,
-  button,
   footer,
 } from './styles.ts'
+import { BrandButton, EmailHead, Wordmark } from './components.tsx'
 
 interface EmailChangeEmailProps {
   siteName: string
@@ -40,27 +36,25 @@ export const EmailChangeEmail = ({
   confirmationUrl,
 }: EmailChangeEmailProps) => (
   <Html lang="en" dir="ltr">
-    <Head />
+    <EmailHead />
     <Preview>Confirm Your Email Change on Helpr</Preview>
-    <Body style={main}>
-      <Container style={container}>
-        <Img src="https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/brand-asset" alt="Helpr" width="80" style={logo} />
-        <Heading style={h1}>Confirm Your Email Change</Heading>
-        <Text style={text}>
+    <Body className="e-bg" style={main}>
+      <Container className="e-card" style={container}>
+        <Wordmark />
+        <Heading className="e-h1" style={h1}>Confirm Your Email Change</Heading>
+        <Text className="e-text" style={text}>
           You requested to change your email from{' '}
-          <Link href={`mailto:${email}`} style={linkStyle}>
+          <Link href={`mailto:${email}`} className="e-accent" style={linkStyle}>
             {email}
           </Link>{' '}
           to{' '}
-          <Link href={`mailto:${newEmail}`} style={linkStyle}>
+          <Link href={`mailto:${newEmail}`} className="e-accent" style={linkStyle}>
             {newEmail}
           </Link>
           .
         </Text>
-        <Button style={button} href={confirmationUrl}>
-          Confirm Email Change
-        </Button>
-        <Text style={footer}>
+        <BrandButton href={confirmationUrl} label="Confirm Email Change" />
+        <Text className="e-footer" style={footer}>
           If you didn't request this change, please secure your account immediately.
         </Text>
       </Container>

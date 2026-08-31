@@ -4,12 +4,9 @@ import * as React from 'npm:react@18.3.1'
 
 import {
   Body,
-  Button,
   Container,
-  Head,
   Heading,
   Html,
-  Img,
   Link,
   Preview,
   Text,
@@ -18,14 +15,13 @@ import {
 import {
   main,
   container,
-  logo,
   h1,
   text,
   subtext,
   linkStyle,
-  button,
   footer,
 } from './styles.ts'
+import { BrandButton, EmailHead, Wordmark } from './components.tsx'
 
 interface SignupEmailProps {
   siteName: string
@@ -41,33 +37,31 @@ export const SignupEmail = ({
   confirmationUrl,
 }: SignupEmailProps) => (
   <Html lang="en" dir="ltr">
-    <Head />
+    <EmailHead />
     <Preview>Verify your email to get started on Helpr</Preview>
-    <Body style={main}>
-      <Container style={container}>
-        <Img src="https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/brand-asset" alt="Helpr" width="80" style={logo} />
-        <Heading style={h1}>Confirm Your Email to Get Started.</Heading>
-        <Text style={text}>
+    <Body className="e-bg" style={main}>
+      <Container className="e-card" style={container}>
+        <Wordmark />
+        <Heading className="e-h1" style={h1}>Confirm Your Email to Get Started.</Heading>
+        <Text className="e-text" style={text}>
           Tap the button below to verify your email so we can finish setting up your{' '}
-          <Link href={siteUrl} style={linkStyle}>
+          <Link href={siteUrl} className="e-accent" style={linkStyle}>
             <strong>Helpr</strong>
           </Link>{' '}
           account.
         </Text>
-        <Text style={text}>
+        <Text className="e-text" style={text}>
           Please verify your email (
-          <Link href={`mailto:${recipient}`} style={linkStyle}>
+          <Link href={`mailto:${recipient}`} className="e-accent" style={linkStyle}>
             {recipient}
           </Link>
           ) to continue setting up your account:
         </Text>
-        <Button style={button} href={confirmationUrl}>
-          Verify My Email
-        </Button>
-        <Text style={subtext}>
+        <BrandButton href={confirmationUrl} label="Verify My Email" />
+        <Text className="e-text e-rule" style={subtext}>
           Once verified, our team will review your profile and ID. This usually takes 24–48 hours. We'll email you when you're approved!
         </Text>
-        <Text style={footer}>
+        <Text className="e-footer" style={footer}>
           If you didn't create an account on Helpr, you can safely ignore this email.
         </Text>
       </Container>

@@ -1,0 +1,226 @@
+name: A11y (axe) — seeded sweep, all variants
+
+permissions:
+  contents: read
+
+# THE ACCESSIBILITY GATE.
+#
+# WHAT THIS RUNS
+# --------------
+# `e2e/happy-path/visual-audit-sweep.spec.ts` — the SEEDED (populated-data)
+# screen sweep. It runs @axe-core/playwright over every screen with the
+# wcag2a / wcag2aa / wcag21a / wcag21aa tag set, and its final
+# `zz gate: every screen rendered and axe is clean` test fails the run on:
+#   - ANY axe violation in that tag set, on any screen, and
+#   - any screen that failed to render at all (an unrendered screen's axe
+#     result is meaningless and would otherwise read as clean).
+#
+# WHY THIS EXISTS SEPARATELY FROM ui-sweep.yml
+# --------------------------------------------
+# Before this file, the seeded sweep's axe gate ran ONLY:
+#   - behind an explicit `RUN_VISUAL_SWEEP=1` (the spec self-skips otherwise),
+#   - on a weekly cron in ui-sweep.yml, and
+#   - at ONE variant, `phone-light`.
+# `ui-sweep.yml`'s push/PR job runs the EMPTY-state sweep, which is a
+# different surface: it proves the screens are accessible with no data, not
+# with real data. Both matter; only one was gated per commit.
+#
+# WHY ALL FOUR VARIANTS AND NOT JUST phone-light
+# -----------------------------------------------
+# The single worst accessibility defect found in the last full audit — 35
+# affected screens — existed ONLY in dark mode. A phone-light-only gate is
+# structurally incapable of seeing it. `SWEEP_VARIANTS` therefore covers the
+# spec's whole matrix here:
+#   phone-light (375x812 light) · phone-dark (375x812 DARK) ·
+#   small-light (320x640) · desktop-light (1440x900)
+# Theme is driven by the `data-theme` attribute inside the spec, not by
+# `prefers-color-scheme` — this app reads the attribute, so emulating the OS
+# colour scheme would test nothing.
+#
+# WHY A MATRIX INSTEAD OF ONE JOB WITH SWEEP_VARIANTS=all
+# --------------------------------------------------------
+# The seeded sweep's describe is `mode: "serial"` (its aggregate gate test has
+# to see every screen's result, which only works inside one worker), so it
+# cannot be parallelised WITHIN a job: ~186 screens x ~8s is ~9 min per
+# variant measured locally, i.e. ~36 min for all four in one job — over this
+# job's timeout and a single point of failure. One variant per matrix leg
+# keeps each leg at roughly the cost of the already-accepted weekly run, makes
+# the wall clock ~1 leg instead of 4, and — importantly for triage — names the
+# failing variant in the check name. Coverage is identical to
+# SWEEP_VARIANTS=all; only the scheduling differs. `fail-fast: false` so one
+# red variant does not hide the other three.
+#
+# COST — the honest number
+# ------------------------
+# ubuntu-latest, 1x billing multiplier. Budget ~12-15 min per leg on a CI
+# runner (slower than the laptop the 9 min was measured on), plus ~1 min
+# install, ~30s Chromium, ~1 min production build. Four legs is therefore
+# ~50-60 BILLED minutes per UI-touching push. That is real money for this
+# repo, which is exactly why the paths filter below exists: backend-only,
+# migration-only and docs-only commits report green in seconds and cost
+# essentially nothing. If the bill still bites, the correct lever is to drop
+# this to `pull_request` only (leaving push-to-main to ui-sweep's weekly
+# seeded run) — NOT to narrow the variant set back to phone-light, which is
+# what let the dark-mode defect live.
+#
+# BEFORE MAKING THIS A REQUIRED CHECK
+# -----------------------------------
+# Let it run green once on main first. It is a NEW gate over a surface that
+# has never been gated per-commit, and known dark-mode violations may still be
+# open — marking it required while it is red would block every PR. Once green:
+# Settings -> Branches -> main -> require "A11y axe (<variant>)" for all four.
+#
+# If this is red, FIX THE SCREENS. Do not narrow the tag set, filter by
+# impact, drop a variant, or add continue-on-error to get it green — a muted
+# gate is the exact state this file was added to get out of.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      variants:
+        description: "Variant tags to run: all | phone-light | phone-dark | small-light | desktop-light"
+        required: false
+        default: all
+        type: string
+
+concurrency:
+  group: a11y-axe-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Cheap gate job: decides whether the expensive matrix legs do any work.
+  # Deliberately an IN-JOB filter rather than a top-level `paths:` trigger —
+  # GitHub counts a required check that never ran as unsatisfied, so a
+  # `paths:` filter would leave backend-only PRs stuck on "Expected" forever.
+  # Same pattern as ui-sweep.yml and e2e-happy-path.yml.
+  changes:
+    name: Detect UI-relevant changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      ui: ${{ steps.filter.outputs.ui }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Detect UI-relevant changes
+        id: filter
+        if: github.event_name != 'workflow_dispatch'
+        uses: dorny/paths-filter@v4
+        with:
+          filters: |
+            ui:
+              - "src/**"
+              - "public/**"
+              - "index.html"
+              - "vite.config.ts"
+              - "tailwind.config.ts"
+              - "package.json"
+              - "package-lock.json"
+              - "playwright.config.ts"
+              - "e2e/happy-path/**"
+              - ".github/workflows/a11y-axe.yml"
+
+  axe:
+    name: A11y axe (${{ matrix.variant }})
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # The full ALL_VARIANTS matrix from visual-audit-sweep.spec.ts. Keep
+        # in sync with that list — an unknown tag makes the spec throw
+        # "SWEEP_VARIANTS=<tag> matched no variant tag", which fails loudly
+        # rather than silently skipping, by design.
+        variant: [phone-light, phone-dark, small-light, desktop-light]
+
+    env:
+      # Same publishable Vite vars the other workflows bake in. The sweep mocks
+      # every Supabase HTTP call via page.route(), so no real traffic is sent;
+      # a value must still exist or supabase-js throws "supabaseUrl is required"
+      # at import time and the React app never mounts.
+      VITE_SUPABASE_PROJECT_ID: fncmgoasalhdgfwzhsqa
+      VITE_SUPABASE_URL: https://fncmgoasalhdgfwzhsqa.supabase.co
+      VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_test_key_for_e2e_only
+
+    steps:
+      - name: Skip note
+        if: needs.changes.outputs.ui != 'true' && github.event_name != 'workflow_dispatch'
+        run: echo "No UI-relevant changes — a11y sweep not needed for this commit."
+
+      - name: Checkout
+        if: needs.changes.outputs.ui == 'true' || github.event_name == 'workflow_dispatch'
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        if: needs.changes.outputs.ui == 'true' || github.event_name == 'workflow_dispatch'
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        if: needs.changes.outputs.ui == 'true' || github.event_name == 'workflow_dispatch'
+        # See test.yml — `install` not `ci`, so a drifting lockfile heals
+        # instead of failing the run.
+        run: npm install --no-audit --no-fund --legacy-peer-deps
+
+      - name: Install Playwright Chromium browser
+        if: needs.changes.outputs.ui == 'true' || github.event_name == 'workflow_dispatch'
+        run: npx playwright install --with-deps chromium
+
+      # A dispatch may narrow to one variant; the matrix leg whose tag is not
+      # requested becomes a no-op. Resolved here (never interpolated into a
+      # shell command line) so no dispatch input can reach the shell.
+      - name: Resolve variant for this leg
+        id: scope
+        if: needs.changes.outputs.ui == 'true' || github.event_name == 'workflow_dispatch'
+        env:
+          WANT: ${{ github.event.inputs.variants || 'all' }}
+          LEG: ${{ matrix.variant }}
+        run: |
+          set -euo pipefail
+          if [ "$WANT" = "all" ] || [ "$WANT" = "$LEG" ]; then
+            echo "run=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=" >> "$GITHUB_OUTPUT"
+            echo "Dispatch asked for '$WANT'; this leg is '$LEG' — skipping."
+          fi
+
+      - name: Run seeded axe sweep
+        if: steps.scope.outputs.run == '1'
+        env:
+          # PLAYWRIGHT_WEB_SERVER=1 turns on the `npm run build && vite preview`
+          # auto-start in playwright.config.ts. reuseExistingServer is false
+          # under CI, so this always measures a fresh dist/.
+          PLAYWRIGHT_WEB_SERVER: "1"
+          # The spec self-skips its whole describe unless this is set — that
+          # opt-in is why its axe gate never ran per-commit before this file.
+          RUN_VISUAL_SWEEP: "1"
+          # One variant per leg; the four legs together are SWEEP_VARIANTS=all.
+          SWEEP_VARIANTS: ${{ matrix.variant }}
+        # No --workers override: the seeded describe is `mode: "serial"` and
+        # ignores it. Do not "fix" that by parallelising — the aggregate gate
+        # test has to observe every screen's result in one worker.
+        run: npx playwright test --project=happy-path visual-audit-sweep
+
+      - name: Upload axe evidence on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          # /tmp/ui-review/a11y-report.json is the per-screen violation report
+          # with axe's own measured contrast numbers, paired with a screenshot
+          # of each screen — that pairing is what makes a red run triageable
+          # without re-running it locally.
+          name: a11y-axe-evidence-${{ matrix.variant }}
+          path: |
+            /tmp/ui-review/
+            playwright-report/
+          if-no-files-found: ignore
+          retention-days: 14

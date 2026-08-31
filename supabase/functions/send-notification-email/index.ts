@@ -1,13 +1,14 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsHeadersFull as corsHeaders } from '../_shared/cors.ts'
 import { htmlEscape, sanitizeSameOriginLink, timingSafeEqual } from '../_shared/safe-strings.ts'
-import { brand } from '../_shared/email-templates/styles.ts'
+import { FROM_DEFAULT, sendWithResend } from '../_shared/resend.ts'
+import { emailButton, emailH2, emailP, emailShell } from '../_shared/emailLayout.ts'
+import { getAppUrl } from '../_shared/appUrl.ts'
 
-const SITE_NAME = "Helpr"
-const SENDER_DOMAIN = "louisianahelpr.com"
-const ROOT_DOMAIN = "louisianahelpr.com"
-const SITE_URL = `https://${ROOT_DOMAIN}`
-const FROM_NAME = "The Helpr Team"
+// Sign-off used in the body copy. NOT a sender identity — the From header is
+// FROM_DEFAULT ("Helpr <noreply@louisianahelpr.com>") for every email in the
+// product, defined once in _shared/resend.ts.
+const SIGNOFF = 'The Helpr Team'
 
 // Map notification "type" values to (a) the email pref column and (b) the
 // log category used for admin observability.
@@ -30,68 +31,49 @@ const TYPE_MAP: Record<string, { prefCol: string; category: string }> = {
   promotion:         { prefCol: 'email_promotions',       category: 'promotions' },
 }
 
-// Send directly through the Resend API.
-async function sendWithResend(apiKey: string, params: { to: string; from: string; subject: string; html: string; text: string }) {
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${apiKey}`,
-  }
-
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      from: params.from,
-      to: [params.to],
-      subject: params.subject,
-      html: params.html,
-      text: params.text,
-    }),
-  })
-
-  if (!res.ok) {
-    const body = await res.text()
-    throw new Error(`Resend API error [${res.status}]: ${body}`)
-  }
-
-  return await res.json()
-}
-
 function renderNotificationEmail(title: string, message: string, link: string | null, userName: string): { html: string; text: string } {
   // HTML-escape every interpolated value. The plaintext title/message/userName
   // come from upstream callers (notification triggers, edge functions) but a
   // compromised RPC, a future caller-bug, or a stored-XSS via DB row could
   // smuggle markup; escaping at the render boundary makes that a non-issue.
-  // The URL is built from SITE_URL + a server-relative link path that the
+  // The URL is built from getAppUrl() + a server-relative link path that the
   // caller has already sanitized (sanitizeSameOriginLink) — escaped here as
   // defense-in-depth.
+  const siteUrl = getAppUrl()
   const safeTitle = htmlEscape(title)
   const safeMessage = htmlEscape(message)
   const safeUser = htmlEscape(userName || 'there')
-  const actionUrl = link ? `${SITE_URL}${link}` : SITE_URL
+  const actionUrl = link ? `${siteUrl}${link}` : siteUrl
   const safeActionUrl = htmlEscape(actionUrl)
-  const safeFromName = htmlEscape(FROM_NAME)
-  const safeRootDomain = htmlEscape(ROOT_DOMAIN)
+  // The one link a recipient actually wants when this email is unwelcome. The
+  // HTML footer used to say "Manage your preferences in your profile settings"
+  // with NO link at all, while the plaintext part right below it carried one —
+  // so the readable version of the email was the harder one to act on.
+  const prefsUrl = `${siteUrl}/profile?tab=notifications`
+  const safePrefsUrl = htmlEscape(prefsUrl)
+  const safeHost = htmlEscape(siteUrl.replace(/^https?:\/\//, ''))
 
-  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="background-color:${brand.parchment};font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif;margin:0;padding:24px">
-<div style="max-width:480px;margin:0 auto;background:${brand.surface};border-radius:14px;padding:32px 28px;border:1px solid ${brand.hairline}">
-  <img src="https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/brand-asset" alt="Helpr" width="80" style="display:block;width:150px;max-width:150px;height:auto;border:0;outline:none;text-decoration:none;margin:0 0 24px;" />
-  <h1 style="font-size:20px;font-weight:bold;color:${brand.inkDeep};margin:0 0 12px">${safeTitle}</h1>
-  <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 8px">Hey ${safeUser},</p>
-  <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">${safeMessage}</p>
-  <a href="${safeActionUrl}" style="display:inline-block;background-color:${brand.bark};color:${brand.surface};font-size:15px;border-radius:12px;padding:14px 28px;text-decoration:none;font-weight:600">
-    View Details
-  </a>
-  <p style="font-size:14px;color:${brand.olivewood};margin:28px 0 4px">— ${safeFromName}</p>
-  <p style="font-size:12px;color:${brand.footerOlive};margin:24px 0 0;padding:16px 0 0;border-top:1px solid ${brand.hairline}">
-    You're receiving this because you enabled email notifications on ${safeRootDomain}. Manage your preferences in your profile settings.
-  </p>
-</div></body></html>`
+  const html = emailShell({
+    // Without a preheader every Helpr notification previewed in the inbox as
+    // "Hey there," — the first words of the body.
+    preheader: `${safeTitle} — open Helpr for the details.`,
+    title: safeTitle,
+    body: [
+      emailH2(safeTitle),
+      emailP(`Hey ${safeUser},`),
+      emailP(safeMessage),
+      emailButton(safeActionUrl, 'View Details', 190),
+      emailP(`<span style="font-size:14px">— ${SIGNOFF}</span>`),
+      `<p class="e-footer" style="font-size:12px;color:#6E7C83;line-height:1.6;margin:24px 0 0;padding:16px 0 0;border-top:1px solid #CBCFD8">
+        You're receiving this because you enabled email notifications on ${safeHost}.
+        <a class="e-footer-link" href="${safePrefsUrl}" style="color:#6E7C83;text-decoration:underline">Manage your notification preferences</a>.
+      </p>`,
+    ].join('\n'),
+  })
 
   // Text body uses raw (unescaped) values — text/plain doesn't interpret HTML
   // and the only mutator is the caller, who validated lengths already.
-  const text = `${title}\n\nHey ${userName || 'there'},\n\n${message}\n\nView details: ${actionUrl}\n\n— ${FROM_NAME}\nManage notifications: ${SITE_URL}/profile`
+  const text = `${title}\n\nHey ${userName || 'there'},\n\n${message}\n\nView details: ${actionUrl}\n\n— ${SIGNOFF}\nManage notifications: ${prefsUrl}`
   return { html, text }
 }
 
@@ -212,7 +194,7 @@ Deno.serve(async (req) => {
 
     const emailPayload = {
       to: profile.email,
-      from: `${FROM_NAME} <noreply@${SENDER_DOMAIN}>`,
+      from: FROM_DEFAULT,
       subject: title,
       html,
       text,
@@ -255,7 +237,7 @@ Deno.serve(async (req) => {
       try {
         await sendWithResend(resendApiKey, {
           to: profile.email,
-          from: `${FROM_NAME} <noreply@${SENDER_DOMAIN}>`,
+          from: FROM_DEFAULT,
           subject: title,
           html,
           text,

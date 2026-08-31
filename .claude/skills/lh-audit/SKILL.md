@@ -177,13 +177,30 @@ never-executed Sentry upload, and a 503ing `mapkit-token` sat in production.
 An audit with no third section is asserting it operated 100% of its scope; if
 that is not literally true, the report is wrong.
 
-**A large UNVERIFIED section is a GOOD outcome. A small one, or an absent one,
-with thin evidence elsewhere, is a bad report.** This is not a scoring trick —
-it is the actual preference. Ten verified screens and thirty honestly
-unreachable ones is a useful, actionable report. Forty screens called clean
-with no artifacts is worse than useless, because it will be trusted. Nothing in
-this standard penalises admitting you could not reach something; the only
-penalised thing is claiming you did.
+**Bucket 3 is mandatory and honest — and it is a LAST resort, never a first
+one.** There is exactly ONE rule about UNVERIFIED, stated here and restated
+identically in §5: **exhaust everything you can self-provision, then report
+whatever genuinely remains, honestly.** Both halves bind; they do not conflict.
+
+- **Nothing belongs in bucket 3 that you could have reached.** No session, no
+  test account, an unapproved or pending profile, an admin-only view, missing
+  seed data, a screen behind a role or a paywall, a job in a lifecycle state
+  you don't have — *none* of these is a reason to file UNVERIFIED. Every one is
+  self-provisionable (see "Self-provision auth" below and the BLANKET TESTING
+  APPROVAL block), and the authorization to do it is already granted, once, for
+  every audit. Filing a self-provisionable cell as UNVERIFIED is a defect in the
+  audit, exactly as much as marking an unopened screen "clean" is. Running out
+  of easy work is not the end of the audit — reach for the harder cells.
+- **After that exhaustion, a large bucket 3 is a GOOD outcome, and suppressing
+  it is the worse failure.** This is not a scoring trick — it is the actual
+  preference. Ten verified screens and thirty *genuinely* unreachable ones
+  (physical device, real external secret, live third-party event) is a useful,
+  actionable report. Forty screens called clean with no artifacts is worse than
+  useless, because it will be trusted.
+
+So the two penalised things are: **claiming you verified something you didn't**,
+and **stopping early and calling the leftovers unreachable**. Admitting a real
+gap is penalised by nothing in this standard.
 
 Two rules that make the buckets hold:
 - **Anything in bucket 1 or 2 needs an artifact** — an HTTP status, a SQL
@@ -301,6 +318,36 @@ admin-only), elevate that one self-created test row via the Supabase MCP
 `is_admin=true`, etc.) so the gated screens render. **Admin screens are ALWAYS
 in scope** — audit all admin views every pass, never defer them. Use a clearly
 marked test email; this is standing authorization, so don't stop to ask.
+
+**MANDATORY SETUP STEP — dismiss the onboarding tour, or you audit the tour
+instead of the app.** `OnboardingTour` (`src/components/OnboardingTour.tsx`,
+mounted by `src/pages/Dashboard.tsx`) opens on `/dashboard` — the screen every
+signed-in pass starts on — **1.5s after load, in every fresh browser context**:
+a new Playwright context, an incognito window, a simulator with cleared
+storage, a second origin used for a second persona. (That 1.5s also makes it
+*intermittent*: a harness that settles for ~1500ms straddles the boundary, so
+the same screen is clean on one run and blurred on the next.) While it is up it
+is a Radix dialog that **blurs the page behind it and intercepts clicks**, so a
+harness that does not dismiss it screenshots a blurred dashboard,
+measures the tour's layout, hands axe the tour's DOM, and reports every one of
+those as a finding about the screen underneath. It is gated purely on
+`localStorage`, so seed the completed state **before first paint** — after the
+session, in the same init script:
+
+```js
+localStorage.setItem(
+  "helpr_onboarding",
+  JSON.stringify({ completed: true, currentStep: 0, completedSteps: [] }),
+);
+```
+
+Key: `helpr_onboarding`. Shape: `{completed, currentStep, completedSteps}` —
+`completed: true` is what suppresses it (the tour shows once per account, ever).
+`scripts/audit-capture.mjs` and `scripts/test-signin-link.mjs` already do this;
+any new harness must too. If a screenshot looks softly blurred or a click does
+nothing, check this FIRST — it is not a defect in the screen.
+The tour itself is still in scope: audit it deliberately, once, in a context
+where you have *not* seeded the key.
 
 **BLANKET TESTING APPROVAL (explicit, standing — do not re-ask).** The user has
 granted: "I always approve you to do anything for testing." This EXPLICITLY
@@ -521,6 +568,19 @@ the Parity Principle (§2).
 - Primary/selected controls are glossy (`btn-grad-primary`/`variant="bark"`),
   never flat. Gradients, shadows, glass/blur, hover/active/focus transitions,
   and `observe-fade-up` reveals all present and smooth.
+- **Gloss is SCOPED — it marks what you press, it never decorates.** This rule
+  and `AGENTS.md`'s "no gloss/glow" are the same rule seen from two sides, and
+  they must be read together:
+  - **Glossy (required):** green/bark **primary** buttons and **selected**
+    controls — `btn-grad-primary`, `<Button variant="bark">`, the active state
+    of segmented/toggle/filter controls. Flat here is a defect.
+  - **Matte (required):** every decorative surface — cards, panels, page and
+    section backgrounds, empty-state art, badges/chips that aren't a selected
+    state, dividers, glyph tiles. Gloss/glow here is a defect. Editorial
+    restraint is the brand: one restrained effect at a time, warm charcoal not
+    black.
+  A flat primary button and a glowing decorative card are *both* violations;
+  neither rule licenses the other.
 
 **Global interaction consistency**
 - The SAME interaction language everywhere — hover/focus/active/pressed effects
@@ -1593,21 +1653,28 @@ on the way to their first success.
   and if it doesn't apply, say *why* it doesn't apply (don't just omit it).
 - No value is guessed — every number, fee, price, label, and behavior claim is
   verified against its source of truth (config/RPC/rendered output).
-- **No partial audits, no UNVERIFIED end state — completeness is mandatory.**
-  An audit is not "done" until every page × dimension × surface has actually
-  been verified. "UNVERIFIED" / "not testable right now" is NOT an acceptable
-  final state — it is a blocker to close, not a pass. If verifying something
-  requires launching the iOS Simulator (`npx cap run ios`), driving every
-  breakpoint, submitting a form, or running a Stripe test card, then DO that as
-  part of the audit — don't defer it and don't hand back a half-checked
-  manifest. The iOS/WKWebView surface is verified by actually running the app in
-  the simulator, never assumed from the Chrome pass. If a cell requires a
+- **No partial audits — exhaust everything self-provisionable BEFORE anything
+  is called UNVERIFIED.** This is the same single rule stated in §1 ("Bucket 3
+  is mandatory and honest — and it is a LAST resort"); the two sections agree
+  and neither overrides the other. An audit is not "done" until every page ×
+  dimension × surface has either actually been verified, or has been driven to
+  a genuine hard stop that is named. "UNVERIFIED" / "not testable right now" is
+  NOT an acceptable answer for anything you could have provisioned yourself —
+  that is a blocker to close, not a pass. If verifying something requires
+  launching the iOS Simulator (`npx cap run ios`), driving every breakpoint,
+  submitting a form, or running a Stripe test card, then DO that as part of the
+  audit — don't defer it and don't hand back a half-checked manifest. The
+  iOS/WKWebView surface is verified by actually running the app in the
+  simulator, never assumed from the Chrome pass. If a cell requires a
   credential, an authed session, admin access, or seeded data, that is NOT a
   blocker — self-provision it (create the test account via `/signup`, elevate
   the role via the Supabase MCP, seed the row) and keep going. Only a cell that
   is genuinely impossible without something you cannot create yourself (a
-  physical device, a real external secret) may be surfaced via the pop-up — and
-  even then, finish every other cell first.
+  physical device, a real external secret, a live third-party event) is
+  legitimately UNVERIFIED — and then it IS the required, honest answer: record
+  it in the manifest with its reason and in the report's third bucket, and
+  surface it via the pop-up only if the user can unblock it. Even then, finish
+  every other cell first.
 - **Run the audit to completion autonomously — NEVER stop mid-audit to ask
   whether to continue.** Once an audit is underway, drive it all the way to a
   filled coverage manifest without checking in. Do NOT pause to ask "should I

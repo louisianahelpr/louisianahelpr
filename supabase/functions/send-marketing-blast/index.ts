@@ -2,6 +2,20 @@
 // Sends a one-off campaign to a segmented user list via the Resend API.
 // Segments: all | helpers | posters | by_parish.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+// Sending, the From header, the plaintext converter and the postal-address
+// secret all come from the one Resend module now — this function used to carry
+// its own copy of each, including the only use of hello@ in the product.
+import {
+  FROM_DEFAULT,
+  htmlToPlainText,
+  POSTAL_ADDRESS,
+  sendWithResend,
+} from "../_shared/resend.ts";
+import {
+  marketingFooter,
+  marketingFooterText,
+  unsubscribeHeaders,
+} from "../_shared/emailLayout.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,14 +23,21 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const RESEND_API_URL = "https://api.resend.com/emails";
-
 interface BlastBody {
   subject: string;
   html: string;
   segment: "all" | "helpers" | "posters" | "by_parish";
   parish?: string;
   test_email?: string; // if present, only send to this address (preview)
+}
+
+/** `email_send_log` rows buffered during a campaign, flushed in chunks. */
+interface SendLogRow {
+  message_id: string;
+  template_name: string;
+  recipient_email: string;
+  status: "sent" | "failed";
+  error_message?: string;
 }
 
 Deno.serve(async (req) => {
@@ -65,6 +86,39 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Forbidden" }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // LEGAL HARD STOP — DO NOT REMOVE OR WEAKEN.
+    //
+    // This is the only unambiguously commercial send in the product, and
+    // CAN-SPAM §7704(a)(5) requires every commercial message to carry the
+    // sender's valid PHYSICAL POSTAL ADDRESS. Helpr's address is deliberately
+    // not in this repo and must never be invented — it comes from the
+    // HELPR_POSTAL_ADDRESS function secret (see _shared/resend.ts), and the
+    // owner has not set it yet.
+    //
+    // So until that secret exists this function refuses to send anything. The
+    // guard sits here — immediately after the admin check and BEFORE the body
+    // is even parsed — so there is no path around it: the recipient query, the
+    // test_email preview branch and the send loop are all downstream. A
+    // `test_email` send is the same commercial content to a real inbox, so it
+    // is covered too.
+    //
+    // To lift it: `supabase secrets set HELPR_POSTAL_ADDRESS="…"`. The address
+    // then renders in the campaign footer automatically via marketingFooter().
+    // ─────────────────────────────────────────────────────────────────────
+    if (!POSTAL_ADDRESS.trim()) {
+      console.error(
+        "[send-marketing-blast] refused: HELPR_POSTAL_ADDRESS is not set — commercial email requires a physical postal address",
+      );
+      return new Response(
+        JSON.stringify({
+          error:
+            "Commercial email requires a physical postal address (CAN-SPAM §7704(a)(5)). Set the HELPR_POSTAL_ADDRESS function secret before sending a campaign. No email was sent.",
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     const body = (await req.json()) as BlastBody;
@@ -187,74 +241,109 @@ Deno.serve(async (req) => {
     // Send via the Resend API. Throttle lightly: batches of 10, 200ms between.
     // The admin types raw HTML, so the footer and the plaintext part have to be
     // synthesised here — there is no template to hang them off.
-    const UNSUB_FOOTER =
-      '<p style="font-size:12px;color:#77786f;margin:32px 0 0;padding:16px 0 0;border-top:1px solid #e5e2dd">' +
-      'You received this because you opted in to Louisiana Helpr marketing email. ' +
-      '<a href="https://louisianahelpr.com/profile?tab=notifications" style="color:#77786f;text-decoration:underline">Unsubscribe</a>.' +
-      '</p>';
-    const appendUnsubscribeFooter = (html: string) =>
-      html.includes("/profile?tab=notifications") ? html : html + UNSUB_FOOTER;
-    const htmlToPlainText = (html: string) =>
-      html
-        .replace(/<br\s*\/?>/gi, "\n")
-        .replace(/<\/(p|div|h[1-6]|li|tr)>/gi, "\n")
-        .replace(/<[^>]+>/g, "")
-        .replace(/&nbsp;/g, " ")
-        .replace(/&amp;/g, "&")
-        .replace(/&lt;/g, "<")
-        .replace(/&gt;/g, ">")
-        .replace(/&#39;/g, "'")
-        .replace(/&quot;/g, '"')
-        .replace(/\n{3,}/g, "\n\n")
-        .trim();
+    //
+    // marketingFooter() replaces the hand-rolled UNSUB_FOOTER constant: it
+    // emits the unsubscribe link, the mailto unsubscribe, and — now that the
+    // guard above proves it is set — the POSTAL_ADDRESS the law requires. Its
+    // links route through getAppUrl() instead of the hardcoded apex domain.
+    //
+    // Still don't double-append: an admin who already pasted their own
+    // unsubscribe link into the campaign HTML keeps theirs.
+    //
+    // The plaintext part is built from the campaign HTML BEFORE the footer is
+    // appended, then marketingFooterText() is added. htmlToPlainText() strips
+    // tags, which would have thrown away the unsubscribe href and left the
+    // word "Unsubscribe" pointing nowhere in every text-only client.
+    const personalise = (rawHtml: string, fullName: string | null) => {
+      const personalised = rawHtml.replaceAll("{{name}}", fullName || "neighbor");
+      const alreadyHasUnsubscribe = personalised.includes("/profile?tab=notifications");
+      return {
+        html: alreadyHasUnsubscribe ? personalised : personalised + marketingFooter(),
+        // Every other sender supplies a plaintext part; this one did not.
+        // HTML-only mail is a direct spam-score penalty and is unreadable
+        // in text-only clients and to some screen readers. sendWithResend now
+        // refuses a send without one.
+        text: alreadyHasUnsubscribe
+          ? htmlToPlainText(personalised)
+          : htmlToPlainText(personalised) + marketingFooterText(),
+      };
+    };
 
     let sent = 0, failed = 0;
     const errors: string[] = [];
 
+    // ── Audit trail ──────────────────────────────────────────────────────
+    // This function used to write NO email_send_log rows at all: up to 5000
+    // sends left behind a single aggregate admin_audit_log row and only the
+    // first 5 failure strings, so "did this person get the campaign?" was
+    // unanswerable. Every recipient now gets a row.
+    //
+    // Buffered and inserted in chunks — one round-trip per recipient inside
+    // the send loop would multiply a 5000-recipient campaign's runtime.
+    // Failure to write the audit rows is logged loudly but never aborts a
+    // campaign that is already partly delivered.
+    const LOG_CHUNK = 100;
+    const pendingLogs: SendLogRow[] = [];
+    const flushLogs = async (force = false) => {
+      while (pendingLogs.length >= LOG_CHUNK || (force && pendingLogs.length > 0)) {
+        const chunk = pendingLogs.splice(0, LOG_CHUNK);
+        const { error: logError } = await supabase.from("email_send_log").insert(chunk);
+        if (logError) {
+          console.error(
+            `[send-marketing-blast] email_send_log insert failed for ${chunk.length} row(s):`,
+            logError.message,
+          );
+        }
+      }
+    };
+
     for (let i = 0; i < recipients.length; i += 10) {
       const batch = recipients.slice(i, i + 10);
       await Promise.all(batch.map(async (r) => {
+        const { html: personalisedHtml, text: personalisedText } = personalise(body.html, r.full_name);
+        // Correlation key. Resend's own id is preferred when the send lands
+        // (it's what a bounce/complaint webhook reports back); a locally
+        // generated uuid covers failures and any response without an id.
+        let messageId = crypto.randomUUID();
         try {
-          const personalisedHtml = appendUnsubscribeFooter(
-            body.html.replaceAll("{{name}}", r.full_name || "neighbor"),
-          );
-          const resp = await fetch(RESEND_API_URL, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${RESEND_API_KEY}`,
-            },
-            body: JSON.stringify({
-              from: "Helpr <hello@louisianahelpr.com>",
-              to: [r.email],
-              subject: body.subject,
-              html: personalisedHtml,
-              // Every other sender supplies a plaintext part; this one did not.
-              // HTML-only mail is a direct spam-score penalty and is unreadable
-              // in text-only clients and to some screen readers.
-              text: htmlToPlainText(personalisedHtml),
-              // This is the only unambiguously commercial send in the product
-              // and it carried no opt-out of any kind.
-              headers: {
-                "List-Unsubscribe": "<https://louisianahelpr.com/profile?tab=notifications>, <mailto:unsubscribe@louisianahelpr.com>",
-                "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-              },
-            }),
+          // sendWithResend THROWS on any non-2xx — there is no non-ok
+          // Response to inspect any more, so both the HTTP-failure and the
+          // network-failure paths land in the same catch below.
+          const resendId = await sendWithResend(RESEND_API_KEY, {
+            to: r.email,
+            from: FROM_DEFAULT,
+            subject: body.subject,
+            html: personalisedHtml,
+            text: personalisedText,
+            // This is the only unambiguously commercial send in the product
+            // and it carried no opt-out of any kind.
+            headers: unsubscribeHeaders(),
           });
-          if (!resp.ok) {
-            failed++;
-            const text = await resp.text();
-            if (errors.length < 5) errors.push(`${r.email}: ${resp.status} ${text.slice(0, 120)}`);
-          } else {
-            sent++;
-          }
+          if (resendId) messageId = resendId;
+          sent++;
+          pendingLogs.push({
+            message_id: messageId,
+            template_name: "marketing_blast",
+            recipient_email: r.email,
+            status: "sent",
+          });
         } catch (e: any) {
           failed++;
-          if (errors.length < 5) errors.push(`${r.email}: ${e.message}`);
+          const message = e instanceof Error ? e.message : String(e);
+          if (errors.length < 5) errors.push(`${r.email}: ${message.slice(0, 160)}`);
+          pendingLogs.push({
+            message_id: messageId,
+            template_name: "marketing_blast",
+            recipient_email: r.email,
+            status: "failed",
+            error_message: message.slice(0, 1000),
+          });
         }
       }));
+      await flushLogs();
       if (i + 10 < recipients.length) await new Promise(r => setTimeout(r, 200));
     }
+    await flushLogs(true);
 
     // Audit
     await supabase.from("admin_audit_log").insert({

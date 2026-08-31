@@ -175,6 +175,48 @@ implemented in `scripts/audit-capture.mjs:80-119`; copy it:
 
 Project ref: `fncmgoasalhdgfwzhsqa`.
 
+Or just shell out — `scripts/test-signin-link.mjs` wraps exactly this and
+refuses any address outside the seeded test set:
+
+```bash
+node scripts/test-signin-link.mjs poster              # magic-link URL
+node scripts/test-signin-link.mjs helper --session --json   # localStorage blob
+```
+
+### MANDATORY — dismiss the onboarding tour in the SAME init script
+
+`OnboardingTour` (`src/components/OnboardingTour.tsx`, mounted by
+`src/pages/Dashboard.tsx`) opens on `/dashboard` — where every signed-in pass
+starts — 1.5s after load, in **every fresh browser context**: new Playwright
+context, incognito window, cleared simulator, and *each of the three origins*
+in the two-origin trick below. It is a Radix dialog that **blurs the page
+behind it and intercepts clicks**. A harness that does not dismiss it
+screenshots a blurred dashboard, measures the tour's layout, feeds axe the
+tour's DOM, and files all of that as findings about the screen underneath. The
+1.5s delay also makes it intermittent — a ~1500ms settle straddles the
+boundary, so the same screen comes out clean on one run and blurred on the
+next.
+
+It is gated purely on `localStorage`, so seed the completed state **before
+first paint**, right next to the session:
+
+```js
+await context.addInitScript(() => {
+  try {
+    localStorage.setItem(
+      "helpr_onboarding",
+      JSON.stringify({ completed: true, currentStep: 0, completedSteps: [] }),
+    );
+  } catch {}
+});
+```
+
+Key `helpr_onboarding`, shape `{completed, currentStep, completedSteps}`;
+`completed: true` is what suppresses it. If a screenshot looks softly blurred
+or a click lands on nothing, check this before filing anything. The tour is
+still in scope — audit it once, deliberately, in a context where the key is
+*not* seeded.
+
 ### The personas — every flow is walked as each
 
 | Persona | How to become it |

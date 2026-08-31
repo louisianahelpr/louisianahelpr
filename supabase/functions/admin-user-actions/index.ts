@@ -2,16 +2,14 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 import { postSlackOpsAlert } from '../_shared/slack-alerts.ts'
 import { htmlEscape } from '../_shared/safe-strings.ts'
 import { brand } from '../_shared/email-templates/styles.ts'
+import { getAppUrl } from '../_shared/appUrl.ts'
+import { queueEmail, SUPPORT_EMAIL } from '../_shared/resend.ts'
+import { emailShell, emailH1, emailP, emailNote, emailButton, supportLink } from '../_shared/emailLayout.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
-
-const SITE_NAME = 'Helpr'
-const SENDER_DOMAIN = 'louisianahelpr.com'
-const ROOT_DOMAIN = 'louisianahelpr.com'
-const SITE_URL = `https://${ROOT_DOMAIN}`
 
 type ActionType =
   | 'manual_verify'
@@ -30,41 +28,43 @@ type ActionType =
   | 'confirm_message_ban'
   | 'dismiss_message_ban_review'
 
-async function sendEmail(apiKey: string, to: string, subject: string, html: string, text: string) {
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      from: `${SITE_NAME} <noreply@${SENDER_DOMAIN}>`,
-      to: [to],
-      subject,
-      html,
-      text,
-    }),
+// Every admin email used to go out through a local hand-rolled Resend fetch,
+// fired as `sendEmail(...).catch(console.error)`. That swallowed EVERY failure:
+// the admin was shown a success, the user got nothing, and no `email_send_log`
+// row existed to prove it either way. There is no local sender any more —
+// `queueEmail` writes the pending log row AND enqueues, never throws, and
+// returns `{ ok }` so each response below can carry an honest partial-success
+// flag. The Resend API key now lives only with the queue worker
+// (process-email-queue), so this function no longer reads RESEND_API_KEY at all.
+
+/**
+ * Shared card layout for every email this function sends.
+ *
+ * Was `<div style="max-width:480px;margin:0 auto">`, which Outlook's Word
+ * rendering engine cannot centre (it does not implement `margin:0 auto` on a
+ * block element) — so every admin email left-aligned and stretched to the
+ * reading-pane width. `emailShell` is the 600px table layout, with the
+ * viewport meta and the dark-mode palette this template was missing, and the
+ * logo rendered once at a single size (the old markup had `width="80"`
+ * fighting `style="width:150px"`).
+ */
+function wrapEmail(preheader: string, title: string, bodyHtml: string, ctaUrl?: string, ctaLabel?: string) {
+  const cta = ctaUrl ? emailButton(ctaUrl, ctaLabel || 'Open Helpr') : ''
+  return emailShell({
+    preheader,
+    title,
+    body: `${emailH1(title)}
+${bodyHtml}
+${cta}
+${emailNote(`Questions? Just reply to this email — it reaches our support team at ${supportLink()}.`)}`,
   })
-  if (!res.ok) {
-    const body = await res.text()
-    throw new Error(`Resend error [${res.status}]: ${body}`)
-  }
-  return res.json()
 }
 
-function wrapEmail(title: string, bodyHtml: string, ctaUrl?: string, ctaLabel?: string) {
-  const cta = ctaUrl
-    ? `<a href="${ctaUrl}" style="display:inline-block;background-color:${brand.bark};color:${brand.surface};font-size:15px;border-radius:12px;padding:14px 28px;text-decoration:none;font-weight:600">${ctaLabel || 'Open Helpr'}</a>`
-    : ''
-  return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"></head>
-<body style="background-color:${brand.parchment};font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif;margin:0;padding:24px">
-<div style="max-width:480px;margin:0 auto;background:${brand.surface};border-radius:14px;padding:32px 28px;border:1px solid ${brand.hairline}">
-  <img src="https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/brand-asset" alt="Helpr" width="80" style="display:block;width:150px;max-width:150px;height:auto;border:0;outline:none;text-decoration:none;margin:0 0 24px;" />
-  <h1 style="font-size:24px;font-weight:bold;color:${brand.inkDeep};margin:0 0 16px">${title}</h1>
-  ${bodyHtml}
-  ${cta}
-  <p style="font-size:13px;color:${brand.bodyOlive};line-height:1.5;margin:24px 0 0;padding:16px 0 0;border-top:1px solid ${brand.hairline}">
-    Questions? Reply to this email or contact our support team at any time.
-  </p>
-</div>
-</body></html>`
+/** Partial-success fields for a response whose action committed but whose email may not have queued. */
+function emailStatusFields(result: { ok: boolean }) {
+  return result.ok
+    ? { email_sent: true }
+    : { email_sent: false, email_error: 'Notification email could not be queued.' }
 }
 
 Deno.serve(async (req) => {
@@ -141,7 +141,9 @@ Deno.serve(async (req) => {
       })
     }
 
-    const resendApiKey = Deno.env.get('RESEND_API_KEY')
+    // Canonical base URL. Was a local `SITE_URL` built from a hardcoded
+    // ROOT_DOMAIN, which disagreed with the rest of the product.
+    const appUrl = getAppUrl()
     const fullName = profile.full_name || 'there'
     // HTML-context copy only — the plaintext bodies keep the raw value so
     // readers never see &#39; in their mail client.
@@ -204,18 +206,28 @@ Deno.serve(async (req) => {
         link: '/dashboard',
       })
 
-      if (resendApiKey) {
-        const html = wrapEmail(
-          'You\'re verified',
-          `<p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">Hey ${fullNameHtml},</p>
-           <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">An admin has personally <strong style="color:${brand.burntSienna}">verified your account</strong>. You now have full access to post or accept jobs on Helpr.</p>`,
-          `${SITE_URL}/dashboard`,
-          'Go to Dashboard',
-        )
-        const text = `Hey ${fullName},\n\nAn admin has manually verified your account. You now have full access to Helpr.\n\nGo to your dashboard: ${SITE_URL}/dashboard`
-        await sendEmail(resendApiKey, profile.email, 'You\'re verified on Helpr', html, text).catch((e) => console.error('email failed', e))
-      }
-      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      const html = wrapEmail(
+        'An admin verified your identity — you now have full access to Helpr.',
+        'You\'re verified',
+        `${emailP(`Hey ${fullNameHtml},`)}
+         ${emailP(`An admin has personally <strong class="e-accent" style="color:${brand.burntSienna}">verified your account</strong>. You now have full access to post or accept jobs on Helpr.`)}`,
+        `${appUrl}/dashboard`,
+        'Go to Dashboard',
+      )
+      const text = `Hey ${fullName},\n\nAn admin has manually verified your account. You now have full access to Helpr.\n\nGo to your dashboard: ${appUrl}/dashboard\n\nQuestions? Just reply to this email — it reaches our support team at ${SUPPORT_EMAIL}.`
+      const emailResult = await queueEmail(admin, {
+        to: profile.email,
+        subject: 'You\'re verified on Helpr',
+        html,
+        text,
+        templateName: 'admin_manual_verify',
+        replyTo: SUPPORT_EMAIL,
+      })
+      if (!emailResult.ok) console.error('[admin-user-actions] manual_verify email not queued:', emailResult.error)
+
+      return new Response(JSON.stringify({ success: true, ...emailStatusFields(emailResult) }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     if (action === 'idv_reject') {
@@ -293,19 +305,32 @@ Deno.serve(async (req) => {
         link: '/profile',
       })
 
-      if (resendApiKey) {
-        const html = wrapEmail(
-          'Quick fix needed on your ID',
-          `<p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">Hey ${fullNameHtml},</p>
-           <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">Your ID photo was a bit hard to read on our end. Can you snap a clearer one so we can finish setting you up?</p>
-           ${note ? `<p style="font-size:14px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px;padding:12px;border-radius:8px;background-color:hsl(45,90%,95%);border:1px solid hsl(45,80%,85%)"><strong>Admin note:</strong> ${note}</p>` : ''}`,
-          `${SITE_URL}/profile`,
-          'Re-upload ID',
-        )
-        const text = `Hey ${fullName},\n\nYour ID photo was a bit hard to read. Please re-upload a clearer one.\n${note ? `\nAdmin note: ${note}\n` : ''}\nUpdate it here: ${SITE_URL}/profile`
-        await sendEmail(resendApiKey, profile.email, 'Helpr — please re-upload your ID', html, text).catch((e) => console.error('email failed', e))
-      }
-      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      const html = wrapEmail(
+        'Your ID photo was hard to read — please upload a clearer one.',
+        'Quick fix needed on your ID',
+        // `note` is admin-authored free text landing in an HTML document, so it
+        // is escaped here exactly as the formal_warning template does. It used
+        // to be interpolated raw.
+        `${emailP(`Hey ${fullNameHtml},`)}
+         ${emailP('Your ID photo was a bit hard to read on our end. Can you snap a clearer one so we can finish setting you up?')}
+         ${note ? `<p style="font-size:14px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px;padding:12px;border-radius:8px;background-color:hsl(45,90%,95%);border:1px solid hsl(45,80%,85%)"><strong>Admin note:</strong> ${htmlEscape(note)}</p>` : ''}`,
+        `${appUrl}/profile`,
+        'Re-upload ID',
+      )
+      const text = `Hey ${fullName},\n\nYour ID photo was a bit hard to read. Please re-upload a clearer one.\n${note ? `\nAdmin note: ${note}\n` : ''}\nUpdate it here: ${appUrl}/profile\n\nQuestions? Just reply to this email — it reaches our support team at ${SUPPORT_EMAIL}.`
+      const emailResult = await queueEmail(admin, {
+        to: profile.email,
+        subject: 'Helpr — please re-upload your ID',
+        html,
+        text,
+        templateName: 'admin_id_reupload',
+        replyTo: SUPPORT_EMAIL,
+      })
+      if (!emailResult.ok) console.error('[admin-user-actions] request_id_reupload email not queued:', emailResult.error)
+
+      return new Response(JSON.stringify({ success: true, ...emailStatusFields(emailResult) }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     if (action === 'reset_password') {
@@ -313,14 +338,14 @@ Deno.serve(async (req) => {
       const { data: linkData, error: linkErr } = await (admin.auth.admin as any).generateLink({
         type: 'recovery',
         email: profile.email,
-        options: { redirectTo: `${SITE_URL}/reset-password` },
+        options: { redirectTo: `${appUrl}/reset-password` },
       })
       if (linkErr) {
         return new Response(JSON.stringify({ error: linkErr.message }), {
           status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
       }
-      const actionLink = linkData?.properties?.action_link || `${SITE_URL}/forgot-password`
+      const actionLink = linkData?.properties?.action_link || `${appUrl}/forgot-password`
 
       const { error: auditErr } = await admin.from('admin_audit_log').insert({
         admin_id: userData.user.id,
@@ -331,18 +356,28 @@ Deno.serve(async (req) => {
       })
       if (auditErr) console.error('[admin-user-actions] audit log write FAILED — privileged action has no trail:', auditErr.message)
 
-      if (resendApiKey) {
-        const html = wrapEmail(
-          'Reset your password',
-          `<p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">Hey ${fullNameHtml},</p>
-           <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">An admin sent you a password reset link. Click the button below to choose a new password. This link expires in 1 hour.</p>`,
-          actionLink,
-          'Reset Password',
-        )
-        const text = `Hey ${fullName},\n\nReset your Helpr password using this link (expires in 1 hour):\n${actionLink}`
-        await sendEmail(resendApiKey, profile.email, 'Reset your Helpr password', html, text).catch((e) => console.error('email failed', e))
-      }
-      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      const html = wrapEmail(
+        'An admin sent you a password reset link — it expires in 1 hour.',
+        'Reset your password',
+        `${emailP(`Hey ${fullNameHtml},`)}
+         ${emailP('An admin sent you a password reset link. Click the button below to choose a new password. This link expires in 1 hour.')}`,
+        actionLink,
+        'Reset Password',
+      )
+      const text = `Hey ${fullName},\n\nReset your Helpr password using this link (expires in 1 hour):\n${actionLink}\n\nQuestions? Just reply to this email — it reaches our support team at ${SUPPORT_EMAIL}.`
+      const emailResult = await queueEmail(admin, {
+        to: profile.email,
+        subject: 'Reset your Helpr password',
+        html,
+        text,
+        templateName: 'admin_password_reset',
+        replyTo: SUPPORT_EMAIL,
+      })
+      if (!emailResult.ok) console.error('[admin-user-actions] reset_password email not queued:', emailResult.error)
+
+      return new Response(JSON.stringify({ success: true, ...emailStatusFields(emailResult) }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     if (action === 'formal_warning') {
@@ -363,10 +398,11 @@ Deno.serve(async (req) => {
       let notifMsg = note || 'You\'ve received a formal warning for a platform rule violation. Please review the platform rules.'
       let emailSubject = 'Helpr — Formal warning issued'
       let emailHeading = 'Formal warning (Strike 1 of 3)'
+      let emailPreheader = 'A formal warning has been issued on your Helpr account (strike 1 of 3).'
       // Backticks, not quotes: this string interpolates a brand token. As a
       // single-quoted literal the ${...} would have shipped verbatim into the
       // email body.
-      let escalationHtml = `<p style="font-size:14px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">This is your <strong>1st strike</strong>. A 2nd strike will trigger a final warning banner across the app; a 3rd will result in a 7-day account suspension.</p>`
+      let escalationHtml = `<p class="e-text" style="font-size:14px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">This is your <strong>1st strike</strong>. A 2nd strike will trigger a final warning banner across the app; a 3rd will result in a 7-day account suspension.</p>`
 
       if (strikeNumber === 2) {
         actionTaken = 'final_warning'
@@ -375,6 +411,7 @@ Deno.serve(async (req) => {
         notifMsg = (note || 'You\'ve received a final warning.') + ' One more violation will result in a 7-day suspension. A warning banner will appear at the top of your app.'
         emailSubject = 'Helpr — FINAL warning'
         emailHeading = 'Final warning (Strike 2 of 3)'
+        emailPreheader = 'This is a final warning on your Helpr account — one more violation means a 7-day suspension.'
         escalationHtml = '<p style="font-size:14px;color:hsl(0,70%,45%);line-height:1.6;margin:0 0 20px;padding:12px;border-radius:8px;background-color:hsl(0,80%,97%);border:1px solid hsl(0,70%,90%)"><strong>This is your final warning.</strong> One more violation will result in an automatic 7-day suspension. A warning banner is now visible at the top of your app.</p>'
       } else if (strikeNumber >= 3) {
         actionTaken = 'suspension'
@@ -385,6 +422,7 @@ Deno.serve(async (req) => {
         notifMsg = `Your account is suspended until ${suspendUntil.toLocaleDateString()}. ${note ? 'Reason: ' + note : 'You exceeded the 3-strike limit.'} Active bids have been cancelled.`
         emailSubject = 'Helpr — Account suspended (7 days)'
         emailHeading = 'Account suspended for 7 days'
+        emailPreheader = `Your Helpr account is suspended for 7 days after a third violation. Access returns on ${suspendUntil.toLocaleDateString()}.`
         escalationHtml = `<p style="font-size:14px;color:hsl(0,70%,45%);line-height:1.6;margin:0 0 20px;padding:12px;border-radius:8px;background-color:hsl(0,80%,97%);border:1px solid hsl(0,70%,90%)"><strong>Your account has reached 3 strikes and is now suspended.</strong> Access will be restored on <strong>${suspendUntil.toLocaleDateString()}</strong>. All active bids have been cancelled.</p>`
 
         // Cancel all pending applications (active bids)
@@ -402,7 +440,7 @@ Deno.serve(async (req) => {
             'Suspended until': suspendUntil.toISOString().slice(0, 10),
             Reason: note?.slice(0, 200) || '—',
           },
-          link: `https://www.louisianahelpr.com/admin?tab=users&user=${targetUserId}`,
+          link: `${appUrl}/admin?tab=users&user=${targetUserId}`,
         })
       }
 
@@ -437,20 +475,33 @@ Deno.serve(async (req) => {
         link: '/rules',
       })
 
-      if (resendApiKey) {
-        const html = wrapEmail(
-          emailHeading,
-          `<p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">Hey ${fullNameHtml},</p>
-           <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">${strikeNumber >= 3 ? 'Your account has been automatically suspended due to a third platform policy violation:' : 'You\'ve received a formal warning regarding a platform policy violation:'}</p>
-           ${note ? `<p style="font-size:14px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px;padding:12px;border-radius:8px;background-color:hsl(45,90%,95%);border:1px solid hsl(45,80%,85%)">${htmlEscape(note)}</p>` : ''}
-           ${escalationHtml}`,
-          `${SITE_URL}/rules`,
-          'Review Platform Rules',
-        )
-        const text = `Hey ${fullName},\n\nStrike ${strikeNumber} of 3.\n${note ? `\nDetails: ${note}\n` : ''}\nReview rules: ${SITE_URL}/rules`
-        await sendEmail(resendApiKey, profile.email, emailSubject, html, text).catch((e) => console.error('email failed', e))
-      }
-      return new Response(JSON.stringify({ success: true, strike_number: strikeNumber, action_taken: actionTaken }), {
+      const html = wrapEmail(
+        emailPreheader,
+        emailHeading,
+        `${emailP(`Hey ${fullNameHtml},`)}
+         ${emailP(strikeNumber >= 3 ? 'Your account has been automatically suspended due to a third platform policy violation:' : 'You\'ve received a formal warning regarding a platform policy violation:')}
+         ${note ? `<p style="font-size:14px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px;padding:12px;border-radius:8px;background-color:hsl(45,90%,95%);border:1px solid hsl(45,80%,85%)">${htmlEscape(note)}</p>` : ''}
+         ${escalationHtml}`,
+        `${appUrl}/rules`,
+        'Review Platform Rules',
+      )
+      const text = `Hey ${fullName},\n\nStrike ${strikeNumber} of 3.\n${note ? `\nDetails: ${note}\n` : ''}\nReview rules: ${appUrl}/rules\n\nQuestions? Just reply to this email — it reaches our support team at ${SUPPORT_EMAIL}.`
+      const emailResult = await queueEmail(admin, {
+        to: profile.email,
+        subject: emailSubject,
+        html,
+        text,
+        templateName: 'admin_formal_warning',
+        replyTo: SUPPORT_EMAIL,
+      })
+      if (!emailResult.ok) console.error('[admin-user-actions] formal_warning email not queued:', emailResult.error)
+
+      return new Response(JSON.stringify({
+        success: true,
+        strike_number: strikeNumber,
+        action_taken: actionTaken,
+        ...emailStatusFields(emailResult),
+      }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }

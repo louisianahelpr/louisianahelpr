@@ -1,0 +1,67 @@
+name: Sitemap drift
+
+permissions:
+  contents: read
+
+# `public/sitemap.xml` was hand-maintained, and nothing regenerated it from the
+# route table — so it drifted in both directions. It advertised `/subscription`
+# after that route was deleted (crawlers got the 404 page; the real screen is
+# `/profile?tab=subscription`), and TODO.md F-SEO-01 tracked public pages that
+# were never added.
+#
+# `src/lib/sitemap.test.ts` (in the Vitest gate) already asserts the invariants
+# from the sitemap's side: absolute https URLs, no duplicates, no redirect-only
+# paths, and every listed path still registered in App.tsx. It cannot catch the
+# other direction — a NEW public route that nobody added. This job does: it
+# derives the list from `src/App.tsx` and fails when the file on disk does not
+# advertise exactly the app's public routes.
+#
+# --check compares the URL set and their changefreq/priority, NOT raw bytes, so
+# a hand-written comment or whitespace never produces a false failure.
+#
+# Fix for a red run:  node scripts/generate-sitemap.mjs   (then commit the file)
+#
+# Costs seconds: no npm install, no build — the script uses only Node builtins.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/App.tsx"
+      - "public/sitemap.xml"
+      - "scripts/generate-sitemap.mjs"
+      - ".github/workflows/sitemap-drift.yml"
+  push:
+    branches: [main]
+    paths:
+      - "src/App.tsx"
+      - "public/sitemap.xml"
+      - "scripts/generate-sitemap.mjs"
+      - ".github/workflows/sitemap-drift.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: sitemap-drift-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: sitemap.xml matches the route table
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+
+      # A top-level `paths:` filter is fine here (unlike ui-sweep.yml /
+      # a11y-axe.yml): this is a cheap advisory check, not a required status
+      # check, so a run that never happens cannot leave a PR stuck on
+      # "Expected". If it is ever promoted to required, convert it to the
+      # in-job dorny/paths-filter pattern those workflows use.
+      - name: Check for sitemap drift
+        run: node scripts/generate-sitemap.mjs --check

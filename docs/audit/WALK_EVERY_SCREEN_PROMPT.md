@@ -40,9 +40,34 @@ node scripts/test-signin-link.mjs poster   # Account A (Audit Weblane)
 node scripts/test-signin-link.mjs helper   # Account B (Audit Helper)
 ```
 
-Prints a magic-link URL. Open it in the simulator or a browser; the session
-persists. **Never type a password** — this script exists so you don't have to,
-and it refuses any address that is not a seeded test account.
+Prints a magic-link URL (single use). Open it in the simulator or a browser;
+the session persists. **Never type a password** — this script exists so you
+don't have to, and it refuses any address that is not a seeded test account.
+
+For a headless harness, `--session` mints a fresh link, follows it, and prints
+the `localStorage` key/value to inject before first paint instead:
+
+```bash
+node scripts/test-signin-link.mjs helper --session --json
+```
+
+Needs `.env` at the repo root (`VITE_SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`)
+— it is gitignored, so copy it into your worktree. If you need to inline the
+same flow rather than shell out (the pattern `scripts/audit-capture.mjs:93-132`
+uses): `POST {VITE_SUPABASE_URL}/auth/v1/admin/generate_link` with
+`{type:"magiclink", email}` and the service key as both `apikey` and
+`Authorization: Bearer`; follow the returned `action_link` with
+`redirect:"manual"`; parse `access_token`/`refresh_token` out of the `Location`
+hash fragment; write `{access_token, refresh_token, token_type:"bearer",
+expires_in:3600, expires_at, user:{id}}` to
+`localStorage["sb-fncmgoasalhdgfwzhsqa-auth-token"]` (project ref
+`fncmgoasalhdgfwzhsqa`).
+
+**Then kill the onboarding tour, in the same step.** `OnboardingTour` opens on
+every fresh browser context, blurs the page behind it and intercepts clicks —
+a harness that doesn't dismiss it audits the tour, not the app. Seed
+`localStorage["helpr_onboarding"] = {"completed":true,"currentStep":0,"completedSteps":[]}`
+alongside the session, before first paint.
 
 ## Setup
 
@@ -126,7 +151,7 @@ is genuinely unreachable, say so plainly rather than working around it.
 
 Gate every commit with `npm run typecheck` and `npx vitest run` **repo-wide**
 (scoped runs have broken main twice — hard rule). Commit direct to main, trailer
-`Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>`, push, and confirm CI
+`Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>`, push, and confirm CI
 actually goes green — the local gate does not cover Playwright, and a prior
 change broke 6 E2E tests while typecheck/lint/vitest were all green.
 

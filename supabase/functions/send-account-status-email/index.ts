@@ -1,11 +1,10 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsHeadersFull as corsHeaders } from '../_shared/cors.ts'
 import { brand } from '../_shared/email-templates/styles.ts'
-
-const SITE_NAME = "Helpr"
-const SENDER_DOMAIN = "louisianahelpr.com"
-const FROM_DOMAIN = "louisianahelpr.com"
-const ROOT_DOMAIN = "louisianahelpr.com"
+import { htmlEscape, timingSafeEqual } from '../_shared/safe-strings.ts'
+import { FROM_DEFAULT, sendWithResend } from '../_shared/resend.ts'
+import { emailButton, emailH1, emailNote, emailP, emailShell } from '../_shared/emailLayout.ts'
+import { getAppUrl } from '../_shared/appUrl.ts'
 
 function getGreetingName(fullName?: string | null): string {
   const normalized = (fullName || '').trim()
@@ -29,30 +28,6 @@ function getGreetingName(fullName?: string | null): string {
   }
 
   return firstName
-}
-
-async function sendWithResend(apiKey: string, params: { to: string; from: string; subject: string; html: string; text: string }) {
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: params.from,
-      to: [params.to],
-      subject: params.subject,
-      html: params.html,
-      text: params.text,
-    }),
-  })
-
-  if (!res.ok) {
-    const body = await res.text()
-    throw new Error(`Resend API error [${res.status}]: ${body}`)
-  }
-
-  return await res.json()
 }
 
 async function computeSig(uid: string, type: string, event: string): Promise<string> {
@@ -84,32 +59,29 @@ async function trackedLink(userId: string, emailType: string, destination: strin
   return `${base}/functions/v1/email-tracking?uid=${userId}&type=${emailType}&event=click&sig=${sig}&redirect=${encodeURIComponent(destination)}`
 }
 
+/** Open-rate beacon. Kept out of the card body so it can never take layout space. */
+function trackingPixel(pixelUrl: string): string {
+  return `<img src="${pixelUrl}" width="1" height="1" style="display:none" alt="" />`
+}
+
 async function renderApprovedEmail(fullName: string, userId: string): Promise<{ html: string; text: string }> {
-  const siteUrl = `https://${ROOT_DOMAIN}`
+  const siteUrl = getAppUrl()
   const ctaUrl = await trackedLink(userId, 'account_approved', `${siteUrl}/login`)
   const pixelUrl = await trackingPixelUrl(userId, 'account_approved')
   const greetingName = getGreetingName(fullName)
 
-  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"></head>
-<body style="background-color:${brand.parchment};font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif;margin:0;padding:24px">
-<div style="max-width:480px;margin:0 auto;background:${brand.surface};border-radius:14px;padding:32px 28px;border:1px solid ${brand.hairline}">
-  <img src="https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/brand-asset" alt="Helpr" width="80" style="display:block;width:150px;max-width:150px;height:auto;border:0;outline:none;text-decoration:none;margin:0 0 24px;" />
-  <h1 style="font-size:24px;font-weight:bold;color:${brand.inkDeep};margin:0 0 16px">You're approved.</h1>
-  <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">
-    Hey ${greetingName},
-  </p>
-  <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">
-    Great news — your account has been reviewed and <strong style="color:${brand.burntSienna}">approved</strong>! You now have full access to the Helpr platform.
-  </p>
-  <a href="${ctaUrl}" style="display:inline-block;background-color:${brand.bark};color:${brand.surface};font-size:15px;border-radius:12px;padding:14px 28px;text-decoration:none;font-weight:600">
-    Log In Now
-  </a>
-  <p style="font-size:13px;color:${brand.bodyOlive};line-height:1.5;margin:24px 0 0;padding:16px 0 0;border-top:1px solid ${brand.hairline}">
-    Welcome to the Helpr community! If you have any questions, don't hesitate to reach out to our support team.
-  </p>
-  <img src="${pixelUrl}" width="1" height="1" style="display:none" alt="" />
-</div>
-</body></html>`
+  const html = emailShell({
+    preheader: 'Your Helpr account is approved — you can log in now.',
+    title: "You're approved.",
+    body: [
+      emailH1("You're approved."),
+      emailP(`Hey ${greetingName},`),
+      emailP(`Great news — your account has been reviewed and <strong class="e-accent" style="color:${brand.burntSienna}">approved</strong>! You now have full access to the Helpr platform.`),
+      emailButton(ctaUrl, 'Log In Now', 200),
+      emailNote("Welcome to the Helpr community! If you have any questions, don't hesitate to reach out to our support team."),
+    ].join('\n'),
+    trailing: trackingPixel(pixelUrl),
+  })
 
   const text = `You're approved.\n\nHey ${greetingName},\n\nGreat news — your account has been reviewed and approved! You now have full access to the Helpr platform.\n\nLog in at: ${siteUrl}/login\n\nWelcome to the Helpr community!`
 
@@ -117,31 +89,23 @@ async function renderApprovedEmail(fullName: string, userId: string): Promise<{ 
 }
 
 async function renderVerifiedEmail(fullName: string, userId: string): Promise<{ html: string; text: string }> {
-  const siteUrl = `https://${ROOT_DOMAIN}`
+  const siteUrl = getAppUrl()
   const ctaUrl = await trackedLink(userId, 'identity_verified', `${siteUrl}/dashboard`)
   const pixelUrl = await trackingPixelUrl(userId, 'identity_verified')
   const greetingName = getGreetingName(fullName)
 
-  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"></head>
-<body style="background-color:${brand.parchment};font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif;margin:0;padding:24px">
-<div style="max-width:480px;margin:0 auto;background:${brand.surface};border-radius:14px;padding:32px 28px;border:1px solid ${brand.hairline}">
-  <img src="https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/brand-asset" alt="Helpr" width="80" style="display:block;width:150px;max-width:150px;height:auto;border:0;outline:none;text-decoration:none;margin:0 0 24px;" />
-  <h1 style="font-size:24px;font-weight:bold;color:${brand.inkDeep};margin:0 0 16px">Verification successful</h1>
-  <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">
-    Hey ${greetingName},
-  </p>
-  <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">
-    Your identity has been <strong style="color:${brand.burntSienna}">verified</strong> and your Helpr account is fully approved. You're cleared to post jobs and start helping your neighbors across Louisiana.
-  </p>
-  <a href="${ctaUrl}" style="display:inline-block;background-color:${brand.bark};color:${brand.surface};font-size:15px;border-radius:12px;padding:14px 28px;text-decoration:none;font-weight:600">
-    Go to Dashboard
-  </a>
-  <p style="font-size:13px;color:${brand.bodyOlive};line-height:1.5;margin:24px 0 0;padding:16px 0 0;border-top:1px solid ${brand.hairline}">
-    Welcome in. You're set to post jobs and help neighbors across Louisiana.
-  </p>
-  <img src="${pixelUrl}" width="1" height="1" style="display:none" alt="" />
-</div>
-</body></html>`
+  const html = emailShell({
+    preheader: 'Your identity check passed. Your Helpr account is ready.',
+    title: 'Verification successful',
+    body: [
+      emailH1('Verification successful'),
+      emailP(`Hey ${greetingName},`),
+      emailP(`Your identity has been <strong class="e-accent" style="color:${brand.burntSienna}">verified</strong> and your Helpr account is fully approved. You're cleared to post jobs and start helping your neighbors across Louisiana.`),
+      emailButton(ctaUrl, 'Go to Dashboard', 200),
+      emailNote("Welcome in. You're set to post jobs and help neighbors across Louisiana."),
+    ].join('\n'),
+    trailing: trackingPixel(pixelUrl),
+  })
 
   const text = `Verification successful\n\nHey ${greetingName},\n\nYour identity has been verified and your Helpr account is fully approved. You're cleared to post jobs and start helping your neighbors across Louisiana.\n\nGo to your dashboard: ${siteUrl}/dashboard\n\nWelcome to the Helpr community!`
 
@@ -149,39 +113,32 @@ async function renderVerifiedEmail(fullName: string, userId: string): Promise<{ 
 }
 
 async function renderDeniedEmail(fullName: string, userId: string, reason?: string): Promise<{ html: string; text: string }> {
-  const siteUrl = `https://${ROOT_DOMAIN}`
+  const siteUrl = getAppUrl()
   const ctaUrl = await trackedLink(userId, 'account_denied', `${siteUrl}/login`)
   const pixelUrl = await trackingPixelUrl(userId, 'account_denied')
   const greetingName = getGreetingName(fullName)
+  // `reason` is admin-supplied free text that lands in a stranger's mail
+  // client. It used to be interpolated raw, so a single stray tag (or a
+  // deliberate one) rendered as markup inside a Helpr-branded notice.
   const reasonText = reason
-    ? `<p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px"><strong>Reason:</strong> ${reason}</p>`
+    ? emailP(`<strong>Reason:</strong> ${htmlEscape(reason)}`)
     : ''
   const reasonPlain = reason ? `\nReason: ${reason}` : ''
 
-  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"></head>
-<body style="background-color:${brand.parchment};font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif;margin:0;padding:24px">
-<div style="max-width:480px;margin:0 auto;background:${brand.surface};border-radius:14px;padding:32px 28px;border:1px solid ${brand.hairline}">
-  <img src="https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/brand-asset" alt="Helpr" width="80" style="display:block;width:150px;max-width:150px;height:auto;border:0;outline:none;text-decoration:none;margin:0 0 24px;" />
-  <h1 style="font-size:24px;font-weight:bold;color:${brand.inkDeep};margin:0 0 16px">An update on your account</h1>
-  <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">
-    Hey ${greetingName},
-  </p>
-  <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">
-    We've reviewed your account application and unfortunately we're <strong>unable to approve it</strong> at this time.
-  </p>
-  ${reasonText}
-  <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">
-    You can update your profile and resubmit for review:
-  </p>
-  <a href="${ctaUrl}" style="display:inline-block;background-color:${brand.bark};color:${brand.surface};font-size:15px;border-radius:12px;padding:14px 28px;text-decoration:none;font-weight:600">
-    Update My Profile
-  </a>
-  <p style="font-size:13px;color:${brand.bodyOlive};line-height:1.5;margin:24px 0 0;padding:16px 0 0;border-top:1px solid ${brand.hairline}">
-    If you believe this was a mistake, please contact our support team.
-  </p>
-  <img src="${pixelUrl}" width="1" height="1" style="display:none" alt="" />
-</div>
-</body></html>`
+  const html = emailShell({
+    preheader: 'An update on your Helpr account application.',
+    title: 'An update on your account',
+    body: [
+      emailH1('An update on your account'),
+      emailP(`Hey ${greetingName},`),
+      emailP("We've reviewed your account application and unfortunately we're <strong>unable to approve it</strong> at this time."),
+      reasonText,
+      emailP('You can update your profile and resubmit for review:'),
+      emailButton(ctaUrl, 'Update My Profile', 220),
+      emailNote('If you believe this was a mistake, please contact our support team.'),
+    ].filter(Boolean).join('\n'),
+    trailing: trackingPixel(pixelUrl),
+  })
 
   const text = `An update on your account\n\nHey ${greetingName},\n\nWe've reviewed your account application and unfortunately we're unable to approve it at this time.${reasonPlain}\n\nYou can update your profile and resubmit for review at: ${siteUrl}/login\n\nIf you believe this was a mistake, please contact our support team.`
 
@@ -217,9 +174,13 @@ Deno.serve(async (req) => {
       serviceRoleKey
     )
 
-    // Allow service-role (server-to-server, e.g. stripe-idv-webhook) OR an admin JWT
+    // Allow service-role (server-to-server, e.g. stripe-idv-webhook) OR an admin JWT.
+    // The comparison is constant-time: a plain `===` on a secret leaks its
+    // matching prefix length through response timing, and this particular
+    // secret is the service-role key. An unset key must never compare equal
+    // to an empty bearer, hence the explicit truthiness guard.
     const token = authHeader.replace('Bearer ', '')
-    const isServiceRole = token === serviceRoleKey
+    const isServiceRole = !!serviceRoleKey && timingSafeEqual(token, serviceRoleKey)
 
     if (!isServiceRole) {
       const supabaseUser = createClient(
@@ -299,7 +260,7 @@ Deno.serve(async (req) => {
     try {
       await sendWithResend(resendApiKey, {
         to: profile.email,
-        from: `${SITE_NAME} <noreply@${SENDER_DOMAIN}>`,
+        from: FROM_DEFAULT,
         subject,
         html,
         text,

@@ -50,15 +50,26 @@ serve(async (req) => {
   const defects = defectTracker();
 
   // send-notification-email handles user pref filtering (email_reviews).
-  // Fire-and-forget — failures shouldn't block the next nag.
+  //
+  // The response is CHECKED. It used to be `await fetch(...)` with nothing
+  // read off it: a 401 (wrong bearer), a 500, or a 503 suppression-check
+  // failure all fell through the try/catch — `fetch` only rejects on a
+  // transport error, never on an HTTP error status — and the run then counted
+  // the nag as sent. Review nags are the marketplace flywheel, so a silently
+  // broken send loop reported healthy numbers forever.
+  //
+  // Returns "sent" | "skipped" | "failed":
+  //   skipped — the recipient has review emails switched off, or no address.
+  //             A legitimate outcome, not a defect.
+  //   failed  — anything else. Recorded as a defect so the cron sweep sees it.
   const sendEmail = async (
     user_id: string,
     title: string,
     message: string,
     link: string,
-  ) => {
+  ): Promise<"sent" | "skipped" | "failed"> => {
     try {
-      await fetch(`${supabaseUrl}/functions/v1/send-notification-email`, {
+      const res = await fetch(`${supabaseUrl}/functions/v1/send-notification-email`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -66,9 +77,26 @@ serve(async (req) => {
         },
         body: JSON.stringify({ user_id, title, message, type: "review", link }),
       });
+
+      if (!res.ok) {
+        const detail = (await res.text().catch(() => "")).slice(0, 200);
+        console.error(
+          `[review-nag-cron] send-notification-email returned ${res.status}`,
+          { user_id, detail },
+        );
+        defects.record(`send-email ${user_id}: HTTP ${res.status} ${detail}`);
+        return "failed";
+      }
+
+      // A 200 can still mean "nothing was sent" — the function answers
+      // { skipped: true, reason: 'email_disabled' | 'no_email' | 'suppressed' }.
+      const body = await res.json().catch(() => ({} as Record<string, unknown>));
+      if (body && (body as { skipped?: unknown }).skipped === true) return "skipped";
+      return "sent";
     } catch (e) {
       console.error("[review-nag-cron] send-email failed:", (e as Error).message);
       defects.record(`send-email ${user_id}: ${(e as Error).message}`);
+      return "failed";
     }
   };
 
@@ -85,8 +113,14 @@ serve(async (req) => {
 
     if (error) throw error;
 
+    // nags_sent counts nags that actually LEFT — an in-app notification plus a
+    // send-notification-email call that did not fail. Emails the recipient has
+    // switched off are counted separately rather than inflating the headline
+    // number or being reported as breakage.
     let nags_sent = 0;
-    const results: Array<{ job_id: string; recipient: string; window: string }> = [];
+    let emails_skipped = 0;
+    let email_failures = 0;
+    const results: Array<{ job_id: string; recipient: string; window: string; email: string }> = [];
 
     for (const job of jobs ?? []) {
       const completionTime = new Date(
@@ -148,16 +182,18 @@ serve(async (req) => {
           continue;
         }
 
-        await sendEmail(party.user_id, title, message, link);
+        const emailOutcome = await sendEmail(party.user_id, title, message, link);
+        if (emailOutcome === "skipped") emails_skipped++;
+        if (emailOutcome === "failed") email_failures++;
+        if (emailOutcome !== "failed") nags_sent++;
 
-        nags_sent++;
-        results.push({ job_id: job.id, recipient: party.user_id, window: windowLabel });
+        results.push({ job_id: job.id, recipient: party.user_id, window: windowLabel, email: emailOutcome });
       }
     }
 
     return cronResult(
       "review-nag-cron",
-      { success: true, jobs_checked: jobs?.length ?? 0, nags_sent, results },
+      { success: true, jobs_checked: jobs?.length ?? 0, nags_sent, emails_skipped, email_failures, results },
       defects.defects,
       corsHeaders,
     );

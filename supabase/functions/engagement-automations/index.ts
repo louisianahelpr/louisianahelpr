@@ -2,6 +2,17 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 import { htmlEscape } from '../_shared/safe-strings.ts'
 import { brand } from '../_shared/email-templates/styles.ts'
 import { cronResult } from '../_shared/cron-result.ts'
+import { getAppUrl } from '../_shared/appUrl.ts'
+import { FROM_DEFAULT } from '../_shared/resend.ts'
+import {
+  emailButton,
+  emailH2,
+  emailP,
+  emailShell,
+  marketingFooter,
+  marketingFooterText,
+  unsubscribeHeaders,
+} from '../_shared/emailLayout.ts'
 
 // Declared because line 163 already used it. That reference was the only one
 // in the file and resolved to nothing, so the CAN-SPAM fail-closed branch —
@@ -16,110 +27,53 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 }
 
-const SITE_NAME = "Louisiana Helpr"
-const SENDER_DOMAIN = "louisianahelpr.com"
-const FROM_DOMAIN = "louisianahelpr.com"
-const ROOT_DOMAIN = "louisianahelpr.com"
-const SITE_URL = `https://${ROOT_DOMAIN}`
-
-// CAN-SPAM: every automated lifecycle email must carry a working opt-out.
-// The visible footer link covers the statutory "clear and conspicuous"
-// requirement; these headers let Gmail and Apple Mail render their own
-// one-click control above the message body.
-const UNSUBSCRIBE_HEADERS = {
-  'List-Unsubscribe': `<${SITE_URL}/profile?tab=notifications>, <mailto:unsubscribe@${ROOT_DOMAIN}>`,
-  'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-}
+// Sender identity and every link come from ONE place now: FROM_DEFAULT in
+// _shared/resend.ts and getAppUrl() in _shared/appUrl.ts. This file used to
+// declare SITE_NAME = "Louisiana Helpr" — a THIRD display name, alongside
+// "Helpr" and "The Helpr Team" elsewhere — plus its own SENDER_DOMAIN /
+// FROM_DOMAIN and an apex SITE_URL that disagreed with auth-email-hook's www
+// host, so the same product mailed people from four identities across two
+// domains.
 
 // ─── Email Templates ──────────────────────────────────────────────
+//
+// SCOPE NOTE (2026-08-31): the three welcome-drip steps ("You're in…",
+// "A quick tour…", "Four things great Helprs do.") and the "New jobs are open
+// in your area." win-back were DELETED rather than migrated. Their primary
+// purpose is promotional, which makes CAN-SPAM's physical-postal-address
+// requirement (§7704(a)(5)) bite, and the business has chosen not to publish
+// an address. What remains in this cron is account-status mail (the
+// approved-but-never-logged-in reminder) and the internal Monday admin digest
+// — neither of which is commercial.
+//
+// The `profiles.drip_step` / `last_drip_at` columns are LEFT ALONE. Nothing
+// else in the repo reads them (only the column-lock triggers, which merely
+// preserve them), but dropping columns is a migration and this change owns no
+// migrations. They simply stop advancing.
 
-function wrapEmail(content: string): string {
-  return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="background-color:${brand.parchment};font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif;margin:0;padding:24px">
-<div style="max-width:480px;margin:0 auto;background:${brand.surface};border-radius:14px;padding:32px 28px;border:1px solid ${brand.hairline}">
-  <img src="https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/brand-asset" alt="Helpr" width="80" style="display:block;width:150px;max-width:150px;height:auto;border:0;outline:none;text-decoration:none;margin:0 0 24px;" />
-  ${content}
-  <p style="font-size:12px;color:${brand.footerOlive};margin:32px 0 0;padding:16px 0 0;border-top:1px solid ${brand.hairline}">
-    You're receiving this because you signed up at ${ROOT_DOMAIN}.<br />
-    <a href="${SITE_URL}/profile?tab=notifications" style="color:${brand.footerOlive};text-decoration:underline">Unsubscribe from these emails</a>
-  </p>
-</div></body></html>`
+/**
+ * Wrap body HTML in the shared table layout.
+ *
+ * Was `<div style="max-width:480px;margin:0 auto">`: Outlook renders HTML with
+ * the Word engine, which does not implement `margin:0 auto` on a block, so
+ * every one of these emails left-aligned and stretched to the full reading
+ * pane there. `emailShell` is the 600px table version, and it also carries the
+ * preheader, the dark-mode block, and the 80px wordmark (the old markup had
+ * `width="80"` fighting `style="width:150px"`).
+ */
+function wrapEmail(preheader: string, content: string): string {
+  return emailShell({
+    preheader,
+    body: `${content}\n${marketingFooter()}`,
+  })
 }
 
-function btn(text: string, href: string): string {
-  return `<a href="${href}" style="display:inline-block;background-color:${brand.bark};color:${brand.surface};font-size:15px;border-radius:12px;padding:14px 28px;text-decoration:none;font-weight:600">${text}</a>`
-}
+/** CTA. Width is the Outlook-only VML box, so size it to the label. */
+const btn = (text: string, href: string): string =>
+  emailButton(href, text, Math.max(180, text.length * 10 + 60))
 
-const p = (t: string) => `<p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 16px">${t}</p>`
-const h1 = (t: string) => `<h1 style="font-size:22px;font-weight:bold;color:${brand.inkDeep};margin:0 0 16px">${t}</h1>`
-
-// Welcome drip step 1: Welcome to Helpr (Day 1)
-function dripStep1(name: string) {
-  const subject = "You're in. Here's where to start on Louisiana Helpr."
-  const html = wrapEmail(`
-    ${h1("Welcome to Louisiana Helpr!")}
-    ${p(`Hey ${htmlEscape(name || "there")} — your account is set up. Three things you can do today:`)}
-    <ul style="font-size:15px;color:${brand.bodyOlive};line-height:1.8;padding-left:20px;margin:0 0 16px">
-      <li><strong>Post a job</strong> — describe what you need and set your budget</li>
-      <li><strong>Browse jobs</strong> — find opportunities near you</li>
-      <li><strong>Connect</strong> — message Helprs or posters directly</li>
-    </ul>
-    ${btn("Go to Dashboard", `${SITE_URL}/dashboard`)}
-    ${p("Reach out anytime at admin@louisianahelpr.com.")}
-  `)
-  const text = `Hey ${name || "there"} — your account is set up. Post jobs, find local work, and connect with your community: ${SITE_URL}/dashboard`
-  return { subject, html, text }
-}
-
-// Welcome drip step 2: Explore the platform (Day 3)
-function dripStep2(name: string) {
-  const subject = "A quick tour of how Louisiana Helpr works."
-  const html = wrapEmail(`
-    ${h1("Explore what Louisiana Helpr has to offer")}
-    ${p(`Hey ${htmlEscape(name || "there")}, now that you're set up, here's what you can do:`)}
-    <ul style="font-size:15px;color:${brand.bodyOlive};line-height:1.8;padding-left:20px;margin:0 0 16px">
-      <li><strong>Post a job</strong> — describe what you need, set a budget, and get help fast</li>
-      <li><strong>Browse jobs</strong> — find work near you and start earning</li>
-      <li><strong>Chat directly</strong> — message before committing</li>
-    </ul>
-    ${btn("Go to Dashboard", `${SITE_URL}/dashboard`)}
-  `)
-  const text = `Hey ${name || "there"}, explore what Louisiana Helpr has to offer! Post jobs, find local work, and chat with others. Visit: ${SITE_URL}/dashboard`
-  return { subject, html, text }
-}
-
-// Welcome drip step 3: Tips for success (Day 7)
-function dripStep3(name: string) {
-  const subject = "Four things great Helprs do."
-  const html = wrapEmail(`
-    ${h1("Tips from the community")}
-    ${p(`Hey ${htmlEscape(name || "there")} — four things the Helprs who get rebooked do well:`)}
-    <ol style="font-size:15px;color:${brand.bodyOlive};line-height:1.8;padding-left:20px;margin:0 0 16px">
-      <li><strong>Be specific</strong> — detailed descriptions attract better matches</li>
-      <li><strong>Respond quickly</strong> — fast replies lead to faster help</li>
-      <li><strong>Leave reviews</strong> — help the community grow by sharing feedback</li>
-      <li><strong>Stay safe</strong> — always communicate through the platform</li>
-    </ol>
-    ${btn("Start Now", `${SITE_URL}/dashboard`)}
-    ${p("Questions? admin@louisianahelpr.com.")}
-  `)
-  const text = `Hey ${name || "there"}, pro tips: Be specific, respond quickly, leave reviews, stay safe. Start now: ${SITE_URL}/dashboard`
-  return { subject, html, text }
-}
-
-// Re-engagement email
-function reEngagementEmail(name: string) {
-  const subject = "New jobs are open in your area."
-  const html = wrapEmail(`
-    ${h1("New jobs are open in your area.")}
-    ${p(`Hey ${htmlEscape(name || "there")}, it's been a minute — here's what's open near you.`)}
-    ${p("There are new jobs posted in your area — whether you're looking for help or looking to earn, now's a great time to check in.")}
-    ${btn("See What's New", `${SITE_URL}/dashboard`)}
-    ${p("Pull up the feed when you're ready.")}
-  `)
-  const text = `Hey ${name || "there"}, it's been a while! New jobs are waiting on Louisiana Helpr. Check them out: ${SITE_URL}/dashboard`
-  return { subject, html, text }
-}
+const p = emailP
+const h1 = emailH2
 
 // Admin digest email
 function adminDigestEmail(stats: {
@@ -132,12 +86,14 @@ function adminDigestEmail(stats: {
 }) {
   const subject = `Louisiana Helpr Weekly Digest — Week of ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
   const stat = (label: string, value: string | number) =>
-    `<tr><td style="padding:8px 0;font-size:15px;color:${brand.bodyOlive};border-bottom:1px solid ${brand.hairline}">${label}</td><td style="padding:8px 0;font-size:15px;font-weight:bold;color:${brand.inkDeep};text-align:right;border-bottom:1px solid ${brand.hairline}">${value}</td></tr>`
+    `<tr><td class="e-text e-rule" style="padding:8px 0;font-size:15px;color:${brand.bodyOlive};border-bottom:1px solid ${brand.hairline}">${label}</td><td class="e-h1 e-rule" style="padding:8px 0;font-size:15px;font-weight:bold;color:${brand.inkDeep};text-align:right;border-bottom:1px solid ${brand.hairline}">${value}</td></tr>`
 
-  const html = wrapEmail(`
+  const html = wrapEmail(
+    `Helpr this week: ${stats.newUsers} signups, ${stats.newJobs} jobs posted, ${stats.completedJobs} completed.`,
+    `
     ${h1("Weekly Digest")}
     ${p(`Here's your platform summary for the past 7 days (week of ${new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}):`)}
-    <table style="width:100%;border-collapse:collapse;margin:0 0 20px">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse;margin:0 0 20px">
       ${stat("New signups", stats.newUsers)}
       ${stat("Jobs posted", stats.newJobs)}
       ${stat("Jobs completed", stats.completedJobs)}
@@ -145,9 +101,10 @@ function adminDigestEmail(stats: {
       ${stat("Open reports", stats.openReports)}
       ${stat("Revenue (fees)", `$${stats.revenue.toFixed(2)}`)}
     </table>
-    ${btn("Open Admin Dashboard", `${SITE_URL}/admin`)}
-  `)
-  const text = `Louisiana Helpr Weekly Digest: ${stats.newUsers} new users, ${stats.newJobs} new jobs, ${stats.completedJobs} completed, ${stats.pendingApprovals} pending approvals, ${stats.openReports} reports, $${stats.revenue.toFixed(2)} revenue. View: ${SITE_URL}/admin`
+    ${btn("Open Admin Dashboard", `${getAppUrl()}/admin`)}
+  `,
+  )
+  const text = `Louisiana Helpr Weekly Digest: ${stats.newUsers} new users, ${stats.newJobs} new jobs, ${stats.completedJobs} completed, ${stats.pendingApprovals} pending approvals, ${stats.openReports} reports, $${stats.revenue.toFixed(2)} revenue. View: ${getAppUrl()}/admin${marketingFooterText()}`
   return { subject, html, text }
 }
 
@@ -166,7 +123,9 @@ Deno.serve(async (_req) => {
   const supabaseKey = (Deno.env.get('SECRET_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!
   const supabase = createClient(supabaseUrl, supabaseKey)
 
-  const results = { drip: 0, approvalResend: 0, reEngagement: 0, adminDigest: 0, errors: [] as string[] }
+  // `drip` and `reEngagement` counters are gone with the promotional sends
+  // they counted (see the SCOPE NOTE above the templates).
+  const results = { approvalResend: 0, adminDigest: 0, errors: [] as string[] }
 
   try {
     // ─── Load suppressed emails to avoid CAN-SPAM violations ─────
@@ -190,84 +149,7 @@ Deno.serve(async (_req) => {
     }
     const suppressedSet = new Set((suppressedList || []).map(s => s.email.toLowerCase()))
 
-    // ─── 1. Welcome Drip Sequence ─────────────────────────────────
     const now = new Date()
-
-    // Get users who haven't completed the drip (step < 3)
-    const { data: dripUsers } = await supabase
-      .from('profiles')
-      .select('user_id, full_name, email, drip_step, last_drip_at, created_at')
-      .lt('drip_step', 3)
-      .not('email', 'is', null)
-      // Automated lifecycle mail previously went to EVERY profile with an
-      // address — including unverified addresses and accounts an admin had
-      // denied. send-marketing-blast already gated on these two columns; the
-      // cron loops did not.
-      .eq('email_verified', true)
-      .eq('approval_status', 'approved')
-
-    for (const user of dripUsers || []) {
-      // Skip suppressed emails
-      if (suppressedSet.has((user.email || '').toLowerCase())) continue
-
-      const signupDate = new Date(user.created_at)
-      const daysSinceSignup = (now.getTime() - signupDate.getTime()) / (1000 * 60 * 60 * 24)
-
-      // Determine which step to send based on days since signup
-      let targetStep = -1
-      if (user.drip_step === 0 && daysSinceSignup >= 1) targetStep = 1
-      else if (user.drip_step === 1 && daysSinceSignup >= 3) targetStep = 2
-      else if (user.drip_step === 2 && daysSinceSignup >= 7) targetStep = 3
-
-      if (targetStep === -1) continue
-
-      // Don't send more than once per day
-      if (user.last_drip_at) {
-        const hoursSinceLastDrip = (now.getTime() - new Date(user.last_drip_at).getTime()) / (1000 * 60 * 60)
-        if (hoursSinceLastDrip < 20) continue
-      }
-
-      const templateFn = targetStep === 1 ? dripStep1 : targetStep === 2 ? dripStep2 : dripStep3
-      const { subject, html, text } = templateFn(user.full_name || '')
-      const messageId = crypto.randomUUID()
-
-      await supabase.from('email_send_log').insert({
-        message_id: messageId,
-        template_name: `welcome_drip_step_${targetStep}`,
-        recipient_email: user.email,
-        status: 'pending',
-      })
-
-      const { error: enqueueErr } = await supabase.rpc('enqueue_email', {
-        queue_name: 'transactional_emails',
-        payload: {
-          run_id: crypto.randomUUID(),
-          message_id: messageId,
-          to: user.email,
-          from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
-          sender_domain: SENDER_DOMAIN,
-          subject,
-          html,
-          text,
-          purpose: 'transactional',
-          headers: UNSUBSCRIBE_HEADERS,
-          label: `welcome_drip_step_${targetStep}`,
-          queued_at: now.toISOString(),
-        },
-      })
-
-      if (enqueueErr) {
-        results.errors.push(`Drip failed for ${user.email}: ${enqueueErr.message}`)
-        continue
-      }
-
-      await supabase.from('profiles').update({
-        drip_step: targetStep,
-        last_drip_at: now.toISOString(),
-      }).eq('user_id', user.user_id)
-
-      results.drip++
-    }
 
     // ─── 1b. Auto-resend Approval Emails ─────────────────────────
     // Approved users who haven't logged in, resend every 3 days up to 3 emails total
@@ -312,14 +194,17 @@ Deno.serve(async (_req) => {
 
       const subject = "Your Louisiana Helpr account is approved — ready when you are."
 
-      const htmlContent = wrapEmail(`
+      const htmlContent = wrapEmail(
+        "Your Helpr account is approved and waiting — sign in whenever you're ready.",
+        `
         ${h1("Your account is approved!")}
         ${p(`Hey ${htmlEscape(user.full_name || "there")}, just a reminder — your Louisiana Helpr account has been approved and is ready to go!`)}
         ${p("Browse jobs, post your own, or connect with people in your area. It only takes a minute to get started.")}
-        ${btn("Browse Jobs", `${SITE_URL}/dashboard`)}
+        ${btn("Browse Jobs", `${getAppUrl()}/dashboard`)}
         ${p("Open the app whenever you're ready to post or browse.")}
-      `)
-      const textContent = `Hey ${user.full_name || "there"}, your Louisiana Helpr account is approved! Browse jobs and get started: ${SITE_URL}/dashboard`
+      `,
+      )
+      const textContent = `Hey ${user.full_name || "there"}, your Louisiana Helpr account is approved! Browse jobs and get started: ${getAppUrl()}/dashboard${marketingFooterText()}`
 
       const messageId = crypto.randomUUID()
       await supabase.from('email_send_log').insert({
@@ -335,13 +220,12 @@ Deno.serve(async (_req) => {
           run_id: crypto.randomUUID(),
           message_id: messageId,
           to: user.email,
-          from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
-          sender_domain: SENDER_DOMAIN,
+          from: FROM_DEFAULT,
           subject,
           html: htmlContent,
           text: textContent,
           purpose: 'transactional',
-          headers: UNSUBSCRIBE_HEADERS,
+          headers: unsubscribeHeaders(),
           label: 'approval_reminder',
           queued_at: now.toISOString(),
         },
@@ -358,76 +242,6 @@ Deno.serve(async (_req) => {
       }).eq('user_id', user.user_id)
 
       results.approvalResend++
-    }
-
-    // ─── 2. Re-engagement Nudges ──────────────────────────────────
-    // Users inactive for 14+ days (no job posted, no message, no login update)
-    // fourteenDaysAgo is declared earlier (approval email section) — reuse it here.
-    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString()
-
-    // Get users whose profile was last updated more than 14 days ago
-    // and who completed the drip (step >= 3) so we don't overlap
-    const { data: inactiveUsers } = await supabase
-      .from('profiles')
-      .select('user_id, full_name, email, last_drip_at')
-      .lt('updated_at', fourteenDaysAgo)
-      .gt('updated_at', thirtyDaysAgo) // Don't nudge very old inactive accounts
-      .gte('drip_step', 3)
-      .not('email', 'is', null)
-      // "New jobs are open in your area." is promotional, not transactional,
-      // so it additionally requires the signup marketing opt-in.
-      .eq('email_verified', true)
-      .eq('marketing_consent', true)
-
-    for (const user of inactiveUsers || []) {
-      // Skip suppressed emails
-      if (suppressedSet.has((user.email || '').toLowerCase())) continue
-
-      // Only send re-engagement once every 14 days
-      if (user.last_drip_at) {
-        const daysSinceLastEmail = (now.getTime() - new Date(user.last_drip_at).getTime()) / (1000 * 60 * 60 * 24)
-        if (daysSinceLastEmail < 14) continue
-      }
-
-      const { subject, html, text } = reEngagementEmail(user.full_name || '')
-      const messageId = crypto.randomUUID()
-
-      await supabase.from('email_send_log').insert({
-        message_id: messageId,
-        template_name: 're_engagement',
-        recipient_email: user.email,
-        status: 'pending',
-      })
-
-      const { error: enqueueErr } = await supabase.rpc('enqueue_email', {
-        queue_name: 'transactional_emails',
-        payload: {
-          run_id: crypto.randomUUID(),
-          message_id: messageId,
-          to: user.email,
-          from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
-          sender_domain: SENDER_DOMAIN,
-          subject,
-          html,
-          text,
-          purpose: 'transactional',
-          headers: UNSUBSCRIBE_HEADERS,
-          label: 're_engagement',
-          queued_at: now.toISOString(),
-        },
-      })
-
-      if (enqueueErr) {
-        results.errors.push(`Re-engagement failed for ${user.email}: ${enqueueErr.message}`)
-        continue
-      }
-
-      // Update last_drip_at to track when we last emailed them
-      await supabase.from('profiles').update({
-        last_drip_at: now.toISOString(),
-      }).eq('user_id', user.user_id)
-
-      results.reEngagement++
     }
 
     // ─── 3. Admin Weekly Digest (Monday mornings only) ───────────
@@ -487,13 +301,12 @@ Deno.serve(async (_req) => {
           run_id: crypto.randomUUID(),
           message_id: messageId,
           to: adminProfile.email,
-          from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
-          sender_domain: SENDER_DOMAIN,
+          from: FROM_DEFAULT,
           subject,
           html,
           text,
           purpose: 'transactional',
-          headers: UNSUBSCRIBE_HEADERS,
+          headers: unsubscribeHeaders(),
           label: 'admin_weekly_digest',
           queued_at: now.toISOString(),
         },
@@ -501,8 +314,11 @@ Deno.serve(async (_req) => {
 
       if (digestEnqueueError) {
         results.errors.push(`admin digest enqueue: ${digestEnqueueError.message}`)
+        // `error_message`, not `error` — email_send_log has no `error` column,
+        // so this UPDATE was rejected by PostgREST and the row stayed on
+        // 'pending' with the failure recorded nowhere.
         await supabase.from('email_send_log')
-          .update({ status: 'failed', error: digestEnqueueError.message })
+          .update({ status: 'failed', error_message: digestEnqueueError.message.slice(0, 1000) })
           .eq('message_id', messageId)
       } else {
         results.adminDigest++

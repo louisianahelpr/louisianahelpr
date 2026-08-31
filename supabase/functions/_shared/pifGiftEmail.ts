@@ -11,9 +11,17 @@
 
 import { htmlEscape } from "./safe-strings.ts";
 import { getAppUrl } from "./appUrl.ts";
-
-const SITE_NAME = "Helpr";
-const FROM_DOMAIN = "louisianahelpr.com";
+// Sending and the From header come from the one Resend module — this file used
+// to carry its own copy of the fetch and its own SITE_NAME/FROM_DOMAIN pair.
+import { FROM_DEFAULT, sanitizeHeaderValue, sendWithResend } from "./resend.ts";
+import {
+  emailButton,
+  emailH1,
+  emailP,
+  emailShell,
+  transactionalFooter,
+} from "./emailLayout.ts";
+import { brand } from "./email-templates/styles.ts";
 
 export interface PifGiftEmailOpts {
   recipientEmail: string;
@@ -23,60 +31,46 @@ export interface PifGiftEmailOpts {
   claimToken: string;
 }
 
-async function sendWithResend(
-  apiKey: string,
-  params: { to: string; from: string; subject: string; html: string; text: string },
-): Promise<void> {
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from: params.from,
-      to: [params.to],
-      subject: params.subject,
-      html: params.html,
-      text: params.text,
-    }),
-  });
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Resend ${res.status}: ${body}`);
-  }
-}
-
 export function renderPifGiftEmail(opts: PifGiftEmailOpts): { html: string; text: string; subject: string } {
   const amount = `$${(opts.amountCents / 100).toFixed(0)}`;
-  const donor = htmlEscape(opts.donorName || "Someone");
+  // The donor name is attacker-influenced free text that lands in the Resend
+  // `subject` HEADER. It used to go in raw: a newline in it is the classic
+  // header-injection shape. Sanitize ONCE here and use the sanitized value for
+  // both the subject and the plaintext body; the HTML body escapes it on top
+  // of that.
+  const donorSafe = sanitizeHeaderValue(opts.donorName, 80) || "Someone";
+  const donor = htmlEscape(donorSafe);
   // Claim link carries only an opaque token — no email in the query string, so
   // the link isn't a PII-leaking, guessable-by-address URL.
   const claimUrl = `${getAppUrl()}/pay-it-forward?claim=${encodeURIComponent(opts.claimToken)}`;
   const note = opts.message?.trim();
+  // Italic quoted note, unchanged visually — plus `e-text` so emailShell's
+  // dark-mode block recolours it instead of leaving dark type on a dark card.
   const noteHtml = note
-    ? `<p style="font-size:15px;line-height:1.6;margin:0 0 24px;padding:14px 16px;background:rgba(94,101,68,0.08);border-radius:10px;color:#2E2F22;font-style:italic;">“${htmlEscape(note)}”</p>`
+    ? `<p class="e-text" style="font-size:15px;line-height:1.6;margin:0 0 24px;padding:14px 16px;background:rgba(94,101,68,0.08);border-radius:10px;color:${brand.olivewood};font-style:italic;">“${htmlEscape(note)}”</p>`
     : "";
   const noteText = note ? `\n\n"${note}"\n` : "";
 
-  const html = `<!DOCTYPE html>
-<html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/></head>
-<body style="background:#F0F2F4;font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif;margin:0;padding:24px;color:#2E2F22;">
-  <div style="max-width:480px;margin:0 auto;background:#fff;border-radius:14px;padding:32px 28px;border:1px solid #CBCFD8;">
-    <img src="https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/brand-asset" alt="Helpr" width="80" style="display:block;width:150px;max-width:150px;height:auto;border:0;outline:none;text-decoration:none;margin:0 0 24px;" />
-    <h1 style="font-size:22px;font-weight:700;margin:0 0 16px;line-height:1.3;">${donor} sent you a ${amount} Helpr credit</h1>
-    <p style="font-size:15px;line-height:1.6;margin:0 0 16px;color:#55656D;">
-      Someone wants to help you get something done. Your <strong style="color:#2E2F22;">${amount} credit</strong> can go toward any job on Helpr — cleaning, yard work, handyman help, groceries, and more.
-    </p>
-    ${noteHtml}
-    <a href="${claimUrl}" style="display:inline-block;background:#5E6544;color:#fff;text-decoration:none;padding:14px 28px;border-radius:12px;font-weight:600;font-size:15px;">Claim your ${amount} credit</a>
-    <p style="font-size:12px;line-height:1.6;margin:32px 0 0;color:#6E7C83;">
-      New to Helpr? The link will help you create an account and add the credit automatically. If you didn't expect this, you can ignore it.
-    </p>
-  </div>
-</body></html>`;
+  // Was `<div style="max-width:480px;margin:0 auto">` — Outlook's Word engine
+  // ignores `margin:0 auto` on a block element, so this email left-aligned and
+  // stretched to the reading-pane width there. emailShell() is the shared
+  // centred-table layout, and it owns the logo: the hand-rolled <img> had
+  // width="80" fighting style="width:150px", so the wordmark rendered at two
+  // different sizes depending on the client.
+  const html = emailShell({
+    // Without a preheader the inbox preview is the first words of the body.
+    preheader: `${donor} sent you a ${amount} credit to spend on Helpr.`,
+    title: `${donor} sent you a ${amount} Helpr credit`,
+    body: `${emailH1(`${donor} sent you a ${amount} Helpr credit`)}
+${emailP(`Someone wants to help you get something done. Your <strong style="color:${brand.olivewood}">${amount} credit</strong> can go toward any job on Helpr — cleaning, yard work, handyman help, groceries, and more.`)}
+${noteHtml}
+${emailButton(claimUrl, `Claim your ${amount} credit`, 250)}
+${transactionalFooter(
+      "New to Helpr? The link will help you create an account and add the credit automatically. If you didn't expect this, you can ignore it.",
+    )}`,
+  });
 
-  const text = `${opts.donorName || "Someone"} sent you a ${amount} Helpr credit.
+  const text = `${donorSafe} sent you a ${amount} Helpr credit.
 
 Your ${amount} credit can go toward any job on Helpr — cleaning, yard work, handyman help, groceries, and more.${noteText}
 
@@ -84,7 +78,7 @@ Claim your credit: ${claimUrl}
 
 New to Helpr? The link will help you create an account and add the credit automatically. If you didn't expect this, you can safely ignore it.`;
 
-  return { html, text, subject: `${opts.donorName || "Someone"} sent you a ${amount} Helpr credit` };
+  return { html, text, subject: `${donorSafe} sent you a ${amount} Helpr credit` };
 }
 
 /**
@@ -102,13 +96,15 @@ export async function sendPifGiftEmail(opts: PifGiftEmailOpts): Promise<boolean>
   try {
     await sendWithResend(apiKey, {
       to: opts.recipientEmail,
-      from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
+      from: FROM_DEFAULT,
       subject,
       html,
       text,
     });
     return true;
   } catch (err) {
+    // sendWithResend throws on any non-2xx (and on a missing text part). The
+    // catch is the contract: a Stripe webhook is upstream of this call.
     console.error("[pifGiftEmail] failed to send gift email", err);
     return false;
   }

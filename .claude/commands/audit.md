@@ -76,6 +76,23 @@ table; Phase 0 screen inventory; severity-grouped consolidated findings (each wi
 fix); scorecards (money-path + per-screen, 1–5); a prioritized punch list (must-fix-before-build /
 quick wins / deferred); and an explicit **coverage-honesty** note on what was not fully traced.
 
-Per repo rules: branch + PR, never commit to `main`; if a finding's fix needs a migration, apply it
-to prod surgically via MCP `apply_migration` (never blind `db push`), keep it replay-safe, and never
-let prod lag the repo. End commits with the required `Co-Authored-By` trailer.
+## Repo rules that apply to this command (CLAUDE.md is the source of truth)
+
+These two used to say the opposite of `CLAUDE.md`. `CLAUDE.md` wins — corrected here:
+
+- **Commit directly to `main`.** No branch/PR ceremony. Run `npm run typecheck` locally (plus
+  `npx vitest run` when touching tested code); lint/build/full-suite run in CI (`husky
+  pre-commit` + `.github/workflows/test.yml`). Still run the review agents (`code-reviewer`,
+  `silent-failure-hunter`, `security-auditor`) against the working diff before committing
+  money/auth/data-model changes — there is no PR gate to catch it otherwise.
+- **NEVER apply a migration to prod via MCP `apply_migration`.** It records the current time as
+  `schema_migrations.version` instead of the file's prefix, which poisons the ledger and breaks
+  automated deploys (it cost a full ledger repair once already). If a finding's fix needs a
+  migration: create it with `npm run migration:new -- <slug>` (never hand-type a timestamp),
+  keep it replay-safe (guard DDL against objects a later migration may define), and commit it —
+  `.github/workflows/db-deploy.yml` runs `supabase db push --linked --include-all` on merge to
+  `main`, and can be fired manually with `gh workflow run db-deploy.yml`. MCP `execute_sql` is
+  fine for read-only introspection and for test-account rows. Never let prod lag the repo:
+  `supabase migration list --linked` must show every version on both sides.
+
+End commits with the required `Co-Authored-By` trailer from `CLAUDE.md`.

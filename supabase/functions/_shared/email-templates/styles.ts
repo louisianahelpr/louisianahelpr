@@ -76,11 +76,62 @@ export const bodyFontStack =
   "'Montserrat', 'Helvetica Neue', Helvetica, Arial, sans-serif"
 
 export const main = {
-  backgroundColor: brand.surface,
+  backgroundColor: brand.parchment,
   fontFamily: bodyFontStack,
+  margin: '0',
+  padding: '24px 12px',
 }
 
-export const container = { padding: '32px 28px', maxWidth: '480px' }
+/**
+ * The card. react-email's <Container> renders as a centred `<table>` (not a
+ * `<div style="margin:0 auto">`), which is what makes it survive Outlook's
+ * Word rendering engine — Word does not implement `margin:0 auto` on a block
+ * element, so every hand-rolled div-based Helpr template left-aligned and
+ * stretched there. Width raised 480 → 600 to match the raw-HTML templates in
+ * `_shared/emailLayout.ts`, so the whole product renders at one width.
+ */
+export const container = {
+  padding: '32px 28px',
+  width: '600px',
+  maxWidth: '600px',
+  backgroundColor: brand.surface,
+  border: `1px solid ${brand.hairline}`,
+  borderRadius: '14px',
+}
+
+/**
+ * Dark-mode + client-reset CSS injected into every auth template's <Head>.
+ *
+ * None of the eleven Helpr templates handled dark mode at all. A client
+ * applying forced inversion (Outlook.com, Gmail on Android, Apple Mail on a
+ * dark system) was free to darken the card while leaving the already-dark body
+ * text dark — i.e. invisible. Declaring `color-scheme` and shipping an
+ * explicit dark palette takes that decision back.
+ *
+ * Class names are shared with `_shared/emailLayout.ts` (`e-bg`, `e-card`,
+ * `e-h1`, `e-text`, `e-footer`, `e-cta`, `e-accent`) so raw-HTML and
+ * react-email templates invert identically. Keep the two palettes in step.
+ */
+export const EMAIL_CSS = `
+  :root { color-scheme: light dark; supported-color-schemes: light dark; }
+  body, table, td, a { -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; }
+  table, td { mso-table-lspace:0pt; mso-table-rspace:0pt; }
+  img { -ms-interpolation-mode:bicubic; border:0; height:auto; line-height:100%; outline:none; text-decoration:none; }
+  @media only screen and (max-width:640px) {
+    .e-card { width:100% !important; max-width:100% !important; padding:24px 20px !important; }
+  }
+  @media (prefers-color-scheme: dark) {
+    .e-bg { background-color:#14150F !important; }
+    .e-card { background-color:#1F2018 !important; border-color:#3B3D2F !important; }
+    .e-h1 { color:#F2F2E9 !important; }
+    .e-text { color:#D3D6CA !important; }
+    .e-text strong { color:#F2F2E9 !important; }
+    .e-accent, .e-text a { color:#E08B57 !important; }
+    .e-footer, .e-footer a { color:#A7AD9C !important; }
+    .e-cta { background-color:#94A06D !important; color:#14150F !important; }
+    .e-rule { border-color:#3B3D2F !important; }
+  }
+`
 
 /**
  * Wordmark IMAGE styling. The wordmark is an <Img>, not text — see the note

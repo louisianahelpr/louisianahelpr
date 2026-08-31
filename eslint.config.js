@@ -111,14 +111,11 @@ const DS_TYPE_INLINE_LEGACY = [
   "src/components/business/SpendDashboardTab.tsx",
   "src/components/profile/EarningsBreakdownCharts.tsx",
   "src/components/profile/EarningsTab.tsx",
-  "src/components/profile/ProfileStatsTrend.tsx",
   "src/components/profile/ReviewsTab.tsx",
   "src/components/profile/subscriptionTab/CancelSurveyDialog.tsx",
   "src/components/wallet/PayoutCelebration.tsx",
   "src/lib/accessibility.test.tsx",
   "src/pages/SubscriptionPage.tsx",
-  "src/pages/helperAnalytics/MonthlyGoalCard.tsx",
-  "src/pages/helperAnalytics/RatingsReviewsCard.tsx",
 ];
 
 /* Files carrying a pre-existing bare `opacity-*`, exempt from

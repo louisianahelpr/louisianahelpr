@@ -5,6 +5,17 @@
 // Never pass req.headers.get("origin") to Stripe redirect URLs — the Origin
 // header is attacker-controlled, enabling open-redirect phishing attacks where
 // a legitimate Stripe checkout URL bounces the user to an arbitrary domain.
+//
+// THIS IS ALSO THE ONE SOURCE OF TRUTH FOR EMAIL LINKS.
+// Helpr's emails used to be split down the middle: send-notification-email,
+// send-account-status-email, admin-user-actions and engagement-automations all
+// built links on the APEX `https://louisianahelpr.com`, while auth-email-hook
+// and this module used `https://www.louisianahelpr.com`. Two hosts in the same
+// inbox is a phishing-detection signal, it splits analytics and cookies, and
+// it means one of the two paths eats a redirect on every click. Every link in
+// every email now goes through getAppUrl(); do not reintroduce a hardcoded
+// domain in a template. If the canonical host ever changes, it changes HERE
+// (or via the APP_URL secret) and nowhere else.
 export function getAppUrl(): string {
   return Deno.env.get("APP_URL") ?? "https://www.louisianahelpr.com";
 }

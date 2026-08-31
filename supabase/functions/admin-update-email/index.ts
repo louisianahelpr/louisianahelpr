@@ -1,7 +1,8 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsHeadersFull as corsHeaders } from '../_shared/cors.ts'
 import { htmlEscape } from '../_shared/safe-strings.ts'
-import { brand } from '../_shared/email-templates/styles.ts'
+import { queueEmail, SUPPORT_EMAIL } from '../_shared/resend.ts'
+import { emailShell, emailH1, emailP, transactionalFooter, supportLink } from '../_shared/emailLayout.ts'
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -264,39 +265,51 @@ Deno.serve(async (req) => {
 
     // Notify the OLD address by email so the account owner knows their login
     // identity changed — they may no longer receive messages at the new address.
+    //
+    // This used to be a bare `fetch(...).then(...).catch(console.error)`: a
+    // fire-and-forget send with no `email_send_log` row, so a failed security
+    // notification left no trace and the admin was shown an unqualified
+    // success either way. `queueEmail` writes the pending log row and enqueues
+    // (the queue worker holds RESEND_API_KEY, so this function no longer needs
+    // it), never throws, and returns `{ ok }` — reported below as
+    // `notice_email_sent`. Deliberately non-fatal: the email change itself has
+    // already committed and must not be reported as failed.
+    let noticeEmailNeeded = false
+    let noticeEmailSent = false
     if (oldEmail && oldEmail !== normalizedEmail) {
-      const resendApiKey = Deno.env.get('RESEND_API_KEY')
-      if (resendApiKey) {
-        const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"></head>
-<body style="background-color:${brand.parchment};font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif;margin:0;padding:24px">
-<div style="max-width:480px;margin:0 auto;background:${brand.surface};border-radius:14px;padding:32px 28px;border:1px solid ${brand.hairline}">
-  <img src="https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/brand-asset" alt="Helpr" width="80" style="display:block;width:150px;max-width:150px;height:auto;border:0;outline:none;text-decoration:none;margin:0 0 24px;" />
-  <h1 style="font-size:24px;font-weight:bold;color:${brand.inkDeep};margin:0 0 16px">Your email address was changed</h1>
-  <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">An administrator updated the email address on your Helpr account from <strong>${htmlEscape(oldEmail)}</strong> to <strong>${htmlEscape(normalizedEmail)}</strong>.</p>
-  <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">Use <strong>${htmlEscape(normalizedEmail)}</strong> to log in going forward. If you did not authorise this change, contact us immediately at <a href="mailto:admin@louisianahelpr.com" style="color:${brand.burntSienna}">admin@louisianahelpr.com</a>.</p>
-  <p style="font-size:13px;color:${brand.bodyOlive};line-height:1.5;margin:24px 0 0;padding:16px 0 0;border-top:1px solid ${brand.hairline}">Questions? Contact us at admin@louisianahelpr.com.</p>
-</div>
-</body></html>`
-        const text = `Your Helpr account email was changed from ${oldEmail} to ${normalizedEmail} by an administrator. Use ${normalizedEmail} to log in going forward. If you did not authorise this change, contact admin@louisianahelpr.com immediately.`
-        await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${resendApiKey}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            from: 'Helpr <noreply@louisianahelpr.com>',
-            to: [oldEmail],
-            subject: 'Your Helpr email address was changed',
-            html,
-            text,
-          }),
-        }).then(async (r) => {
-          if (!r.ok) console.error('[admin-update-email] old-address notification failed:', await r.text())
-        }).catch((e: Error) => console.error('[admin-update-email] old-address notification error:', e.message))
+      noticeEmailNeeded = true
+      const html = emailShell({
+        preheader: 'An administrator changed the login email on your Helpr account.',
+        title: 'Your email address was changed',
+        body: `${emailH1('Your email address was changed')}
+${emailP(`An administrator updated the email address on your Helpr account from <strong>${htmlEscape(oldEmail)}</strong> to <strong>${htmlEscape(normalizedEmail)}</strong>.`)}
+${emailP(`Use <strong>${htmlEscape(normalizedEmail)}</strong> to log in going forward. If you did not authorise this change, contact us immediately at ${supportLink()}.`)}
+${transactionalFooter(`Questions? Just reply to this email — it reaches our support team at ${supportLink()}.`)}`,
+      })
+      const text = `Your Helpr account email was changed from ${oldEmail} to ${normalizedEmail} by an administrator. Use ${normalizedEmail} to log in going forward. If you did not authorise this change, contact ${SUPPORT_EMAIL} immediately.`
+      const noticeResult = await queueEmail(supabaseAdmin, {
+        to: oldEmail,
+        subject: 'Your Helpr email address was changed',
+        html,
+        text,
+        templateName: 'admin_email_changed_notice',
+        replyTo: SUPPORT_EMAIL,
+      })
+      noticeEmailSent = noticeResult.ok
+      if (!noticeResult.ok) {
+        console.error('[admin-update-email] old-address notification not queued:', noticeResult.error)
       }
     }
 
     console.log(`Admin ${adminId} updated email for user ${userId}: ${oldEmail ?? 'unknown'} → ${normalizedEmail}`)
 
-    return new Response(JSON.stringify({ success: true }), {
+    return new Response(JSON.stringify({
+      success: true,
+      notice_email_sent: noticeEmailSent,
+      ...(noticeEmailNeeded && !noticeEmailSent
+        ? { notice_email_error: 'Security notification to the previous address could not be queued.' }
+        : {}),
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (err) {

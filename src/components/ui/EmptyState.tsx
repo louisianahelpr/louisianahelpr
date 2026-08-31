@@ -80,6 +80,16 @@ export function EmptyState({
 
   const variantStyle: CSSProperties = isDock
     ? {
+        // Top radii forced to 0 here too, not just via the `rounded-none`
+        // className below — `.liquid-glass`'s own `border-radius: 1.5rem`
+        // (a plain CSS rule, not a Tailwind utility) sits later in the
+        // stylesheet and won the cascade over the className at equal
+        // specificity, so the card kept rendering rounded top corners
+        // despite the className saying otherwise. Inline styles are the
+        // one thing guaranteed to beat it, same reasoning already applied
+        // to the bottom radii two lines down.
+        borderTopLeftRadius: 0,
+        borderTopRightRadius: 0,
         borderBottomLeftRadius: 0,
         borderBottomRightRadius: 0,
         borderBottom: "none",
@@ -122,9 +132,18 @@ export function EmptyState({
       // It reproduced only on CI's runner, whose font metrics differ from a
       // Mac's, which is why a local repro kept coming back clean while
       // `device-pass-measure /dashboard @ 320-light` failed every run.
+      // Dock variant: NO top rounding either (was `rounded-t-2xl`). It sat
+      // directly below the tab-bar row, which already supplies its own
+      // rounded top edge above — this card's independent top curve read as
+      // a second, separately-floating box rather than the flush
+      // continuation of the same panel (owner, 2026-08-31: "every empty
+      // box has the curved edge at the top and it doesn't belong" —
+      // resolved as "flush with the tab bar, no gap"). Bottom stays flat
+      // via `borderBottomLeftRadius/borderBottomRightRadius: 0` below so it
+      // still bleeds under the dock with no hard edge there.
       className={
         isDock
-          ? "flex-1 min-w-0 max-w-full liquid-glass flex flex-col items-center text-center justify-center gap-5 px-5 sm:px-8 py-10 rounded-t-2xl"
+          ? "flex-1 min-w-0 max-w-full liquid-glass flex flex-col items-center text-center justify-center gap-5 px-5 sm:px-8 py-10 rounded-none"
           : "flex-1 min-w-0 max-w-full liquid-glass flex flex-col items-center text-center justify-center gap-5 px-5 sm:px-8 py-14 rounded-2xl"
       }
       style={cardStyle}

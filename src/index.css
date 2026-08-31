@@ -1056,12 +1056,21 @@ html.web-desktop {
      cards don't stretch unreadably wide on 2xl monitors. Cards themselves
      stay their natural width; the grid fills the space rather than
      centering a narrow column. */
+  /* No max-width. The 1400px cap here was a SECOND measure stacked inside
+     a frame that already caps itself once — `.app-shell-frame .container`
+     just above already sets `max-width: none` specifically because
+     Tailwind's `.container` (2xl: 1400px) was doing the exact same
+     "extra cap inside an already-inset frame" thing and got removed for
+     it (see that comment). This grid's own 1400px cap was the same bug
+     recreated one layer down: cards stopped at 1400px inside a container
+     that could be 1656px+, leaving a real, un-fillable dead gutter no
+     amount of centering fixes (owner, 2026-08-31, repeatedly: "FILL THE
+     SPACE"). Cards now genuinely use the full frame width. */
   html.web-desktop .ds-activity-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     gap: 0.75rem;
     align-items: start;
-    max-width: 1400px;
   }
   /* ONE column at every width (owner). The 2-up at 1024 and 3-up at 1440 were
      added to stop a narrow column stranding a wide monitor — but these are not

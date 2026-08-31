@@ -22,8 +22,7 @@ interface EditJobDialogProps {
 
 // Section heading — a Bodoni-italic chapter label with a trailing hairline
 // rule, mirroring the Post-a-Task SectionCard header but light enough for a
-// dialog. Deliberately distinct from the burnt-sienna field eyebrows so the
-// group → field hierarchy reads at a glance.
+// dialog.
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex items-center gap-2.5">
@@ -45,7 +44,6 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
   const [location, setLocation] = useState("");
   const [dateNeeded, setDateNeeded] = useState("");
   const [startTime, setStartTime] = useState("");
-  const [estimatedHours, setEstimatedHours] = useState("");
   const [, setBudget] = useState("");
   const [specialReq, setSpecialReq] = useState("");
   const [saving, setSaving] = useState(false);
@@ -61,7 +59,6 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
       setLocation(job.location || "");
       setDateNeeded(job.date_needed || "");
       setStartTime(job.start_time || "");
-      setEstimatedHours(job.estimated_hours?.toString() || "");
       setBudget(job.budget?.toString() || "");
       setSpecialReq(job.special_requirements || "");
     }
@@ -73,7 +70,6 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
     const updateData: any = {
       title: title.trim(), description: description.trim(), category,
       location: location.trim(), date_needed: dateNeeded, start_time: startTime || null,
-      estimated_hours: estimatedHours ? parseFloat(estimatedHours) : null,
       special_requirements: specialReq.trim() || null,
     };
     const { error } = await supabase.from("jobs").update(updateData).eq("id", job.id);
@@ -96,7 +92,6 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
     location !== (job.location || "") ||
     dateNeeded !== (job.date_needed || "") ||
     startTime !== (job.start_time || "") ||
-    estimatedHours !== (job.estimated_hours?.toString() || "") ||
     specialReq !== (job.special_requirements || "")
   );
 
@@ -118,9 +113,6 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
 
   const hasHelper = !!job.helper_id;
   const locked = hasHelper;
-
-  const eyebrowCls = "font-serif italic uppercase block";
-  const eyebrowStyle = { fontSize: "0.62rem", color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" } as const;
 
   return (
     <>
@@ -145,15 +137,15 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
           <section className="space-y-4">
             <SectionHeading>The job</SectionHeading>
             <div className="space-y-1.5">
-              <Label className={eyebrowCls} style={eyebrowStyle}>Title</Label>
+              <Label className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">Title</Label>
               <Input aria-label="Job title" value={title} onChange={(e) => setTitle(e.target.value)} disabled={hasHelper} autoCapitalize="sentences" enterKeyHint="next" />
             </div>
             <div className="space-y-1.5">
-              <Label className={eyebrowCls} style={eyebrowStyle}>Description</Label>
+              <Label className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">Description</Label>
               <Textarea aria-label="Description" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} disabled={hasHelper} autoCapitalize="sentences" />
             </div>
             <div className="space-y-1.5">
-              <Label className={eyebrowCls} style={eyebrowStyle}>Category</Label>
+              <Label className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">Category</Label>
               <Select value={category} onValueChange={setCategory} disabled={hasHelper}>
                 <SelectTrigger aria-label="Category"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -167,12 +159,12 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
           <section className="space-y-4">
             <SectionHeading>When &amp; where</SectionHeading>
             <div className="space-y-1.5">
-              <Label className={eyebrowCls} style={eyebrowStyle}>Location</Label>
+              <Label className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">Location</Label>
               <Input aria-label="Location" value={location} onChange={(e) => setLocation(e.target.value)} disabled={hasHelper} autoCapitalize="words" enterKeyHint="next" />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor="edit-date-needed" className={eyebrowCls} style={eyebrowStyle}>Date needed</Label>
+                <Label htmlFor="edit-date-needed" className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">Date needed</Label>
                 {hasHelper ? (
                   // When a helpr is locked in, the field is read-only. Show a
                   // disabled Input mirroring the locked state of the other
@@ -189,16 +181,8 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
                 )}
               </div>
               <div className="space-y-1.5">
-                <Label className={eyebrowCls} style={eyebrowStyle}>Start time</Label>
+                <Label className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">Start time</Label>
                 <TimePickerSelect value={startTime} onChange={setStartTime} disabled={hasHelper} />
-              </div>
-            </div>
-            {/* Est. hours is a short numeric — half-width so it doesn't read
-                as a heavyweight full-bleed field alone on its row. */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="edit-est-hours" className={eyebrowCls} style={eyebrowStyle}>Est. hours</Label>
-                <Input id="edit-est-hours" type="number" inputMode="decimal" step="0.5" value={estimatedHours} onChange={(e) => setEstimatedHours(e.target.value)} disabled={hasHelper} aria-label="Estimated hours" />
               </div>
             </div>
           </section>
@@ -207,7 +191,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
           <section className="space-y-4">
             <SectionHeading>Anything else</SectionHeading>
             <div className="space-y-1.5">
-              <Label className={eyebrowCls} style={eyebrowStyle}>Special requirements</Label>
+              <Label className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">Special requirements</Label>
               <Textarea aria-label="Special requirements" value={specialReq} onChange={(e) => setSpecialReq(e.target.value)} rows={2} disabled={hasHelper} autoCapitalize="sentences" />
             </div>
           </section>

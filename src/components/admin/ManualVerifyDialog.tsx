@@ -11,7 +11,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { formatName } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
@@ -59,11 +58,6 @@ export function ManualVerifyDialog({ profile, onClose, onSuccess }: ManualVerify
     <Dialog open={!!profile} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent>
         <DialogHero
-          eyebrow={
-            <>
-              <ShieldCheck className="w-3.5 h-3.5" /> Manual verification
-            </>
-          }
           title={`Manually Verify ${formatName(profile?.full_name)}`}
         />
         <div className="space-y-3">

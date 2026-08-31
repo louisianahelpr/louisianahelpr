@@ -38,6 +38,18 @@ export function pinnedKey(jobId: string, otherUserId: string): string {
   return `${jobId}_${otherUserId}`;
 }
 
+/**
+ * Inverse of `pinnedKey`, for the local→server merge-up in `loadPins`. Safe
+ * to split on the first `_`: both halves are Postgres uuids (hex digits and
+ * hyphens only — never an underscore), so a job/user id pair can't itself
+ * contain the separator.
+ */
+function parsePinnedKey(key: string): { jobId: string; otherUserId: string } | null {
+  const i = key.indexOf("_");
+  if (i === -1) return null;
+  return { jobId: key.slice(0, i), otherUserId: key.slice(i + 1) };
+}
+
 function storageKey(userId: string): string {
   return `${STORAGE_KEY_PREFIX}${userId}`;
 }
@@ -115,6 +127,34 @@ export async function loadPins(userId: string): Promise<Set<string>> {
   }
 
   const server = new Set((data ?? []).map((r) => pinnedKey(r.job_id, r.other_user_id)));
+
+  // Merge-up: a thread pinned while `thread_pins` didn't exist yet (or
+  // before this account's local mirror had ever synced) only lives in
+  // `local` — trusting `server` wholesale here would silently DROP it, and
+  // the pin would vanish from the inbox with no warning the next time this
+  // loads. Push local-only pins up before overwriting the mirror, best-
+  // effort (a failed push just means it retries next load — the pin stays
+  // in the merged result either way so this session never loses it).
+  const localOnlyKeys = [...local].filter((k) => !server.has(k));
+  if (localOnlyKeys.length > 0) {
+    const rows = localOnlyKeys
+      .map((k) => {
+        const parsed = parsePinnedKey(k);
+        if (!parsed) return null;
+        return { user_id: userId, job_id: parsed.jobId, other_user_id: parsed.otherUserId };
+      })
+      .filter((r): r is NonNullable<typeof r> => r !== null);
+    if (rows.length > 0) {
+      const { error: mergeError } = await supabase
+        .from("thread_pins")
+        .upsert(rows, { onConflict: "user_id,job_id,other_user_id" });
+      if (mergeError && !isMissingTable(mergeError)) {
+        report(mergeError, { severity: "warning", tags: { source: "pinnedConversations.mergeLocalPins" } });
+      }
+    }
+    for (const k of localOnlyKeys) server.add(k);
+  }
+
   cache.set(userId, server);
   writeLocal(userId, server);
   return server;

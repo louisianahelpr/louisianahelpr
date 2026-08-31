@@ -150,7 +150,10 @@ export function useProfileLandingDerived({
           key: "gift-card",
           label: "Gift Card",
           icon: <Gift className="w-5 h-5" />,
-          desc: "Donate job credits for neighbors who need help",
+          // Not "job credits" (owner, 2026-08-30) — there is no credit balance
+          // in this product. /gift-card sends a real Helpr gift card by email
+          // that the recipient claims and puts toward any job.
+          desc: "Send a Helpr gift card by email",
           tint: SECTION_TINT.work,
           href: "/gift-card",
         },
@@ -252,15 +255,21 @@ export function useProfileLandingDerived({
           tint: SECTION_TINT.account,
           href: "/home-history",
         },
-        // The posted/completed job tabs exist (TAB_TITLES, ProfileTabPanels)
-        // but had NO menu entry — reachable only by hand-typing ?tab=. Two
-        // plain rows make them navigable again.
+        // The standalone "Posted Jobs" / "Completed Jobs" list tabs were
+        // deleted (owner: they duplicated My Posts, which already has richer
+        // status filtering) — these two rows now deep-link straight into My
+        // Posts instead of a Profile tab. "Posted Jobs" showed every status,
+        // so it lands on My Posts' default (unfiltered) view; "Completed
+        // Jobs" specifically meant finished work, which is My Posts' "Done"
+        // bucket (`?filter=done` — see POSTED_STATUS_FILTERS /
+        // postedActivityBucket in activityFilters.ts).
         {
           key: "posted_jobs",
           label: "Posted Jobs",
           icon: <FileText className="w-5 h-5" />,
           desc: "Tasks you've posted",
           tint: SECTION_TINT.account,
+          href: "/my-posts",
         },
         {
           key: "completed_jobs",
@@ -268,6 +277,7 @@ export function useProfileLandingDerived({
           icon: <ClipboardList className="w-5 h-5" />,
           desc: "Work you've finished or had done",
           tint: SECTION_TINT.account,
+          href: "/my-posts?filter=done",
         },
       ],
     },
@@ -279,7 +289,7 @@ export function useProfileLandingDerived({
         // would have pointed at a redirect back to its neighbour — two menu
         // entries, one destination. The export it led to is called out in the
         // description below so the scent survives the merge.
-        { key: "legal", label: "Legal & Policies", icon: <Gavel className="w-5 h-5" />, desc: "Terms, privacy, guidelines & data export", tint: SECTION_TINT.legal },
+        { key: "legal", label: "Legal", icon: <Gavel className="w-5 h-5" />, desc: "Terms, privacy, guidelines & data export", tint: SECTION_TINT.legal },
         { key: "warnings", label: "Warnings & Strikes", icon: <AlertTriangle className="w-5 h-5" />, desc: "View violations, strikes & history", tint: SECTION_TINT.danger },
         { key: "support", label: "Help & Support", icon: <HelpCircle className="w-5 h-5" />, desc: "Get help & contact us", tint: SECTION_TINT.legal },
         ...(isAdmin

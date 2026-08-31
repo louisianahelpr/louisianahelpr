@@ -12,7 +12,7 @@ export function deriveAppliedJobCardState(
   app: AppliedApp,
   job: Job & { revision_note?: string | null },
   helperReviewedJobIds: Set<string>,
-  expandedJobId: string | null,
+  expandedJobIds: Set<string>,
   /**
    * The VIEWING helper's own current fee rate, from their subscription tier.
    * Used only when the job has no rate stamped on it yet.
@@ -52,7 +52,7 @@ export function deriveAppliedJobCardState(
   const isPending = app.status === "pending" && !isDirectOffer;
   const isRejected = app.status === "rejected";
   const isFullyDone = isCompleted && helperReviewedJobIds.has(app.job_id);
-  const isExpanded = expandedJobId === app.job_id;
+  const isExpanded = expandedJobIds.has(app.job_id);
 
   // Payout calc — one shared definition (`helperEarnings.ts`) so this card, the
   // Earnings tab and /work-record can't drift. A group job's budget and urgent

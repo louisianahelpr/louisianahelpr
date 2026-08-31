@@ -6,7 +6,7 @@ import { channelNonce } from "@/lib/realtimeChannel";
 import { useReducedMotion } from "@/lib/accessibility";
 import { Button } from "@/components/ui/button";
 import { CheckCheck, BellRing } from "lucide-react";
-import { Sheet, SheetContent, SheetHeader, SheetHero, SheetTrigger } from "@/components/ui/sheet";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { isPushSupported, registerServiceWorker, showLocalNotification, getPushPermission } from "@/lib/pushNotifications";
 import { useRequestPushPermission } from "@/lib/nativePush";
 import { Capacitor } from "@capacitor/core";
@@ -219,31 +219,58 @@ const NotificationPanel = () => {
     // has one. Only in-app (root-relative) links are navigable; anything
     // absent or malformed just marks read and keeps the panel open.
     if (n.link && n.link.startsWith("/")) {
-      setOpen(false);
+      // Navigate first, close a frame later — closing synchronously in the
+      // same tick as the route change reads as one jarring instant unmount
+      // stacked on top of the page transition.
       navigate(n.link);
+      requestAnimationFrame(() => setOpen(false));
     }
   };
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
         <NotificationTrigger unreadCount={unreadCount} />
-      </SheetTrigger>
-      <SheetContent
-        className="w-full sm:max-w-md p-0 gap-0 flex flex-col h-[100dvh]"
-        style={{ paddingTop: "var(--safe-area-top, 0px)" }}
+      </PopoverTrigger>
+      {/* Anchored panel off the bell, at every width — not a full-height
+          modal sheet any more (owner, 2026-08-30: the 3-surface follow-up to
+          the FilterSheet anchored-popover treatment — see FilterSheet.tsx).
+          No backdrop dimming; dismiss is tap-outside or Escape. */}
+      <PopoverContent
+        align="end"
+        sideOffset={8}
+        collisionPadding={16}
+        aria-label="Notifications"
+        className="w-[400px] max-w-[calc(100vw-2rem)] max-h-[75vh] p-0 gap-0 flex flex-col overflow-hidden rounded-ds-lg bg-premium-page"
       >
-        <SheetHeader className="px-4 pt-4 pb-3 border-b border-border shrink-0 text-left sm:text-left space-y-3">
-          {/* Canonical sheet header (SheetHero bakes in the pr-12 lane for the
-              safe-area-aware close button). Was a hand-copied eyebrow→title
-              stack — one of four sheets whose inline title sizes had drifted
-              apart. SheetHero is the single source of truth. */}
-          <SheetHero title="Notifications" />
-          {/* One controls row: filter pills on the left, the
-              Mark-all-read / Enable-push actions on the right. Keeping
-              them on a single justified line (rather than a standalone
-              right-floated button row) keeps the header compact and away
-              from the close button. */}
+        <div className="px-4 pt-4 pb-3 border-b border-border shrink-0 space-y-2.5">
+          <div className="flex items-baseline gap-2">
+            <p
+              className="font-display italic font-bold leading-tight"
+              style={{ fontSize: "clamp(1.1rem, 1.4vw + 0.4rem, 1.3rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
+            >
+              Notifications
+            </p>
+            {/* Unread count reads alongside the title — the pills below
+                already carry it too, but putting it here means the
+                headline itself answers "anything new?" without scanning
+                down to the controls row. */}
+            {unreadCount > 0 && (
+              <span
+                className="font-sans text-ds-11 font-semibold tabular-nums"
+                style={{ color: "hsl(var(--burnt-sienna))" }}
+              >
+                {unreadCount} unread
+              </span>
+            )}
+          </div>
+          {/* One controls row: filter pills on the left (the primary way to
+              change what you're looking at), Mark-all-read / Enable-push
+              actions on the right (secondary, occasional actions). Keeping
+              them on a single justified line — rather than a standalone
+              right-floated button row — keeps the header compact and away
+              from the close button, while the left/right split separates
+              "what am I viewing" from "what can I do about it". */}
           <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5">
             {([
@@ -302,6 +329,11 @@ const NotificationPanel = () => {
                   <BellRing className="w-3.5 h-3.5 mr-1" /> Enable Push
                 </Button>
               )}
+              {/* Separator only when both actions are present — otherwise a
+                  lone hairline floats next to a single button for no reason. */}
+              {pushSupported && !pushEnabled && unreadCount > 0 && (
+                <span aria-hidden="true" className="w-px h-4 bg-border mx-0.5" />
+              )}
               {unreadCount > 0 && (
                 <Button
                   variant="ghost"
@@ -314,7 +346,7 @@ const NotificationPanel = () => {
               )}
             </div>
           </div>
-        </SheetHeader>
+        </div>
         <PullToRefreshWrapper
           ref={containerRef}
           pullDistance={pullDistance}
@@ -551,8 +583,8 @@ const NotificationPanel = () => {
             </div>
           )}
         </PullToRefreshWrapper>
-      </SheetContent>
-    </Sheet>
+      </PopoverContent>
+    </Popover>
   );
 };
 

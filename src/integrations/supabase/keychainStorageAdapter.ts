@@ -56,24 +56,51 @@ export const hydratePromise: Promise<void> = (async () => {
   void hydrate.catch(() => { /* ignore */ });
 })();
 
-// Synchronous Storage adapter for Supabase Auth.
+// Storage adapter for Supabase Auth. getItem stays synchronous (the hot
+// path, already populated by hydratePromise before the client is built).
+// setItem/removeItem are async and AWAIT the native mirror write — see
+// below for why that isn't optional.
+//
+// THE RACE THIS CLOSES. setItem used to fire the `Preferences.set()` mirror
+// write and return immediately ("fire and forget"), because the interface
+// looked synchronous. But Supabase's `SupportedStorage` type is
+// `PromisifyMethods<...>` and `GoTrueClient._saveSession` does
+// `await this.storage.setItem(...)` — a Promise return IS honored and
+// awaited by the caller, so returning `void` was leaving a real await point
+// on the table.
+//
+// Every refresh-token rotation calls this once with the new token,
+// synchronously overwriting `cache` + `localStorage`, then kicks off a
+// native bridge call that used to resolve on its own time, unobserved by
+// the caller. If iOS suspends/evicts the WKWebView in the window between
+// "rotation happened" and "native write landed" (e.g. the process gets
+// reclaimed while an SFSafariViewController / Stripe Checkout sheet is on
+// top — exactly the WebKit eviction this file's header comment already
+// documents), the NSUserDefaults mirror is left holding the OLD, now
+// rotated-out refresh token. On the next cold boot `hydratePromise`
+// restores that STALE token into localStorage, and Supabase Auth correctly
+// rejects it as refresh-token reuse — a real, unrecoverable session loss
+// that looks to the user like "the app randomly signed me out" (reported
+// after a Stripe gift-card return round-trip, 2026-08-30). Awaiting the
+// native write here means `_saveSession` doesn't consider the rotation
+// complete until the durable copy is actually on disk, closing that window.
 export const keychainStorageAdapter = {
   getItem(key: string): string | null {
     if (cache.has(key)) return cache.get(key) ?? null;
     try { return localStorage.getItem(key); } catch { return null; }
   },
-  setItem(key: string, value: string): void {
+  async setItem(key: string, value: string): Promise<void> {
     cache.set(key, value);
     try { localStorage.setItem(key, value); } catch { /* ignore */ }
     if (Capacitor.isNativePlatform() && isAuthTokenKey(key)) {
-      void Preferences.set({ key, value }).catch(() => { /* fire and forget */ });
+      try { await Preferences.set({ key, value }); } catch { /* best-effort */ }
     }
   },
-  removeItem(key: string): void {
+  async removeItem(key: string): Promise<void> {
     cache.delete(key);
     try { localStorage.removeItem(key); } catch { /* ignore */ }
     if (Capacitor.isNativePlatform() && isAuthTokenKey(key)) {
-      void Preferences.remove({ key }).catch(() => { /* fire and forget */ });
+      try { await Preferences.remove({ key }); } catch { /* best-effort */ }
     }
   },
 };

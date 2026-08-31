@@ -505,7 +505,6 @@ const DashboardGuest = () => {
                 >
                   <BrowseMap
                     onJobAction={requireSignup}
-                    ctaLabel="Sign Up to Apply"
                     filters={filters.mapFilter}
                     onClearFilters={filters.clearFilters}
                     // Guests have no tier, so they see the free-plan rate —

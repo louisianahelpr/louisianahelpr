@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -111,12 +112,30 @@ const ForgotPassword = () => {
   // warn against. AuthShell now guards that branch with `!title` too, so the
   // row is the single owner of the control no matter what a caller passes.
   //
-  // maxWidth="sm" stays: page-measure exists for Login's TWO-column layout;
-  // on this single-column form it stretched the email field ~1900px
-  // edge-to-edge at 1440.
+  // maxWidth="2xl" — same shell rung as Login/Signup (owner, 2026-08-30:
+  // "should share same shell as log in and create account" / "reset should
+  // fill width"). Was "sm" to avoid stretching the single email field on a
+  // wide desktop; the owner confirmed matching the siblings' full width is
+  // the actual intent here, superseding that earlier fix.
+  //
+  // Back chevron stays on the FORM step (owner: "yes the back button belongs
+  // here" — it correctly returns to /login). The step AFTER this one (email
+  // sent) drops the title row entirely and puts its own X, inside the card's
+  // top-right corner rather than the page's (owner: "delete title here and
+  // put the x in the box").
   return (
-    <AuthShell hideHeader backTo="/login" centerColumn maxWidth="sm" title="Reset Password" noWebChrome>
-      <div className="liquid-glass p-5 sm:p-6 lg:p-10 space-y-6">
+    <AuthShell hideHeader hideBack={sent} backTo={sent ? undefined : "/login"} centerColumn maxWidth="2xl" title={sent ? undefined : "Reset Password"} noWebChrome>
+      <div className="relative liquid-glass p-5 sm:p-6 lg:p-10 space-y-6">
+        {sent && (
+          <Link
+            to="/"
+            aria-label="Close"
+            className="absolute top-3 right-3 z-10 w-9 h-9 rounded-full flex items-center justify-center transition-colors active:scale-[0.94] hover:bg-[hsl(var(--olivewood)/0.08)]"
+            style={{ color: "hsl(var(--olivewood))" }}
+          >
+            <X className="w-4 h-4" strokeWidth={2.25} />
+          </Link>
+        )}
         {sent ? (
           <div className="text-center space-y-4">
             <div
@@ -145,11 +164,11 @@ const ForgotPassword = () => {
             <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Don't see it? Check your spam folder or wait a minute — emails can take a moment to arrive.
             </p>
-            <div className="space-y-2">
+            <div className="flex items-center gap-2">
               <Button
                 variant="primary"
                 type="button"
-                className="w-full rounded-ds-md"
+                className="flex-1 rounded-ds-md"
                 onClick={handleResend}
                 disabled={loading || resendCooldown > 0}
                 style={{ opacity: resendCooldown > 0 ? 0.6 : 1 }}
@@ -162,7 +181,7 @@ const ForgotPassword = () => {
               </Button>
               <Button
                 variant="outline"
-                className="w-full rounded-ds-md"
+                className="flex-1 rounded-ds-md"
                 onClick={() => setSent(false)}
               >
                 Use a Different Email

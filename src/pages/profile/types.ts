@@ -2,7 +2,7 @@ import type { Database } from "@/integrations/supabase/types";
 
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
-export type Tab = "landing" | "profile" | "earnings" | "schedule" | "availability" | "payment" | "security" | "legal" | "reviews" | "referral" | "subscription" | "support" | "notifications" | "posted_jobs" | "completed_jobs" | "warnings" | "credentials" | "saved_helpers" | "accessibility";
+export type Tab = "landing" | "profile" | "earnings" | "schedule" | "availability" | "payment" | "security" | "legal" | "reviews" | "referral" | "subscription" | "support" | "notifications" | "warnings" | "credentials" | "saved_helpers" | "accessibility";
 
 /**
  * Human name for each Profile tab, used to build a distinct `document.title`
@@ -29,16 +29,33 @@ export const TAB_TITLES: Record<Exclude<Tab, "landing">, string> = {
   // therefore carries that screen's title rather than one of its own.
   payment: "Earnings & Payouts",
   security: "Account Security",
-  legal: "Legal & Policies",
+  legal: "Legal",
   reviews: "My Reviews",
   referral: "Referrals",
   subscription: "Membership",
   support: "Help & Support",
   notifications: "Notifications",
-  posted_jobs: "Posted Jobs",
-  completed_jobs: "Completed Jobs",
   warnings: "Warnings & Strikes",
   credentials: "Licensed & Insured",
   saved_helpers: "Saved Helprs",
   accessibility: "Accessibility",
 };
+
+/**
+ * Runtime guard for the `?tab=` query param.
+ *
+ * `searchParams.get("tab") as Tab` is a lie the compiler cannot catch: any
+ * string satisfies the cast, no panel matches it, and the page renders the nav
+ * chrome with an EMPTY content area — no heading, no error, no fallback.
+ * `/profile?tab=posted_jobs` and `/profile?tab=completed_jobs` (both real tabs
+ * once, both still referenced by e2e/happy-path/auditRoutes.ts) did exactly
+ * that, and so did any typo'd or stale bookmark.
+ *
+ * The valid set is DERIVED from TAB_TITLES so a new tab cannot be added
+ * without also becoming resolvable here.
+ */
+const VALID_TABS = new Set<string>([...Object.keys(TAB_TITLES), "landing"]);
+
+export function resolveTab(raw: string | null | undefined): Tab {
+  return raw && VALID_TABS.has(raw) ? (raw as Tab) : "landing";
+}

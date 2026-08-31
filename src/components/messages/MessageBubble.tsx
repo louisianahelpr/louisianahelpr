@@ -280,6 +280,11 @@ export function MessageBubble({
           }}
         >
           {new Date(m.created_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true })}
+          {/* No `overflow:hidden` ancestor here, so this is free to spill
+              past the narrow reveal column rather than getting clipped —
+              matches the meta row's " · Edited" below rather than inventing
+              a second, cryptic indicator just for this narrower spot. */}
+          {m.edited_at && " · Edited"}
         </span>
       )}
       {/* Meta row — timestamp / read-receipt plus the report (inbound) or
@@ -315,11 +320,13 @@ export function MessageBubble({
             {!grouped && (
               <span>
                 {new Date(m.created_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true })}
+                {m.edited_at && " · Edited"}
               </span>
             )}
             {showReadReceipt && (
               <ReadReceipt
                 read={m.read}
+                readAt={m.read_at}
                 sentByMe={mine}
                 recipientName={activeConvo?.otherUserName}
                 recipientAvatarUrl={activeConvo?.otherUserAvatarUrl}

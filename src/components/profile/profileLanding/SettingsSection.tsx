@@ -122,6 +122,7 @@ export function SettingsSection({
           <button
             type="button"
             onClick={onRequestLogout}
+            aria-label="Log Out"
             className="glass-press w-full rounded-ds-lg bg-card py-3.5 inline-flex items-center justify-center gap-2 active:scale-[0.99] transition-all"
             style={{
               color: "hsl(var(--foreground))",
@@ -130,7 +131,7 @@ export function SettingsSection({
               fontWeight: 600,
             }}
           >
-            <LogOut className="w-4 h-4" /> Sign Out
+            <LogOut className="w-4 h-4" /> Log Out
           </button>
           <button
             type="button"

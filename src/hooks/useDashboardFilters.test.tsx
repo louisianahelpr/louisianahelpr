@@ -8,6 +8,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import type { Database } from "@/integrations/supabase/types";
 import { useDashboardFilters } from "./useDashboardFilters";
@@ -29,6 +30,14 @@ type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 // Bypass the geolocation rationale dialog by stubbing the hook output.
 vi.mock("@/hooks/useUserLocation", () => ({
   useUserLocation: () => ({ status: "idle" }),
+}));
+
+// useDashboardJobsCount fires a real Supabase network query — irrelevant to
+// what this file tests (the client-side filter/sort pipeline over `allJobs`)
+// and covered by its own unit tests. Stub it out so these tests don't
+// depend on network access or a live Supabase client.
+vi.mock("@/hooks/useDashboardJobsCount", () => ({
+  useDashboardJobsCount: () => ({ data: undefined, isLoading: false }),
 }));
 
 // Helper: build a baseline EnrichedJob — old enough to clear the
@@ -60,6 +69,10 @@ function makeJob(overrides: Partial<EnrichedJob> = {}): EnrichedJob {
 const baseProfile = { parish: "Orleans" } as unknown as Profile;
 
 function setup(allJobs: EnrichedJob[], opts: Partial<{ userId: string; profile: Profile | null; helprTier: string | null }> = {}) {
+  // Fresh client per test — retry: false so a would-be network failure
+  // (there shouldn't be any real queries left; useDashboardJobsCount is
+  // mocked above) doesn't retry-loop and slow the suite down.
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return renderHook(() =>
     useDashboardFilters({
       allJobs,
@@ -69,8 +82,17 @@ function setup(allJobs: EnrichedJob[], opts: Partial<{ userId: string; profile: 
       helperAvailability: [],
     }),
     // The hook now mirrors its filters into the URL (so a history entry
-    // carries the view it represents), which needs a router in scope.
-    { wrapper: ({ children }) => <MemoryRouter>{children}</MemoryRouter> },
+    // carries the view it represents), which needs a router in scope. It
+    // also runs useDashboardJobsCount (mocked above), which needs a
+    // QueryClientProvider in scope even though the mock never calls
+    // useQueryClient itself — React Query's hooks still expect one to exist.
+    {
+      wrapper: ({ children }) => (
+        <QueryClientProvider client={queryClient}>
+          <MemoryRouter>{children}</MemoryRouter>
+        </QueryClientProvider>
+      ),
+    },
   );
 }
 
@@ -385,7 +407,7 @@ describe("useDashboardFilters — smart-default sort + persistence", () => {
 });
 
 describe("useDashboardFilters — activeFilterCount + clearFilters", () => {
-  it("activeFilterCount counts active filters but excludes searchQuery", () => {
+  it("activeFilterCount counts searchQuery as one active filter", () => {
     const { result } = setup([]);
     expect(result.current.activeFilterCount).toBe(0);
 
@@ -394,15 +416,17 @@ describe("useDashboardFilters — activeFilterCount + clearFilters", () => {
       result.current.setSelectedCategory("cleaning");
       result.current.setBoostedOnly(true);
     });
-    // searchQuery does NOT count toward activeFilterCount; the other two do
-    expect(result.current.activeFilterCount).toBe(2);
+    // A typed search query counts too — otherwise the "Filtered · N active"
+    // eyebrow could read "Filtered · 0 active" while search-only filtering
+    // was in effect (owner-reported bug, 2026-08-30).
+    expect(result.current.activeFilterCount).toBe(3);
     expect(result.current.hasFilters).toBe(true);
   });
 
   it("hasFilters is true when only searchQuery is set", () => {
     const { result } = setup([]);
     act(() => result.current.setSearchQuery("foo"));
-    expect(result.current.activeFilterCount).toBe(0);
+    expect(result.current.activeFilterCount).toBe(1);
     expect(result.current.hasFilters).toBe(true);
   });
 

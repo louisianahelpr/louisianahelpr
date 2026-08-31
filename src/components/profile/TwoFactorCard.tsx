@@ -10,7 +10,7 @@ import {
   DialogHero,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { ShieldCheck, Smartphone, Copy, Check } from "lucide-react";
+import { ShieldCheck, Copy, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -49,15 +49,16 @@ export function TwoFactorCard() {
   const [disableOpen, setDisableOpen] = useState(false);
 
   return (
-    <div className="rounded-2xl liquid-glass p-5 space-y-3">
-      {/* Same shape as the Email / Password / Face ID cards: the action sits
-          on the title row and the prose runs full width underneath, instead of
-          the button owning a second 44px row. The "Off" pill is gone — a pill
-          reading "Off" beside a button reading "Turn on" is the same fact
-          twice. The "On" pill stays: that one is a state worth advertising,
-          and "Turn off" is the action, not the state. */}
-      <div className="flex items-center gap-2.5">
-        <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+    <div className="rounded-2xl liquid-glass p-3.5 space-y-1">
+      {/* Same shape as the Email / Password / Face ID cards, compacted to
+          match (item 29, 2026-08-30): the action sits on the title row and
+          the prose runs full width underneath, instead of the button owning
+          a second 44px row. The "Off" pill is gone — a pill reading "Off"
+          beside a button reading "Turn on" is the same fact twice. The "On"
+          pill stays: that one is a state worth advertising, and "Turn off"
+          is the action, not the state. */}
+      <div className="flex items-center gap-2">
+        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
           <ShieldCheck className="w-4 h-4 text-primary" />
         </div>
         <div className="min-w-0 flex-1">
@@ -126,7 +127,7 @@ export function TwoFactorCard() {
         </div>
       ) : (
         <p
-          className="text-ds-11 font-serif italic"
+          className="text-ds-11 font-serif italic pl-10"
           style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
           {verified
@@ -227,7 +228,6 @@ function EnrollDialog({
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHero
-          eyebrow={<><Smartphone className="w-3 h-3" /> Authenticator app</>}
           title="Turn On Two-Step."
         />
 
@@ -361,7 +361,6 @@ function DisableDialog({
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHero
-          eyebrow={<><ShieldCheck className="w-3 h-3" /> Two-step verification</>}
           title="Turn Off Two-Step?"
         />
 

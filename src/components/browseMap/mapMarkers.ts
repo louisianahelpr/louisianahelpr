@@ -57,20 +57,29 @@ export function clusterElement(count: number): HTMLElement {
   return el;
 }
 
-export function pinElement(category: string, isUrgent: boolean): HTMLElement {
+export function pinElement(category: string, isUrgent: boolean, jobId?: string): HTMLElement {
   const color = categoryHue(category);
   const sienna = resolveToken("--burnt-sienna", "#A0613B");
   const parchment = resolveToken("--parchment", "#FAF8F5");
   const ring = isUrgent ? `stroke="${sienna}" stroke-width="2.5"` : "";
   const el = document.createElement("div");
   el.className = "browse-map-pin";
+  // Tags the pin with its job id so the desktop split-view can find and
+  // scale THIS element when the matching feed card is hovered
+  // (BrowseMap's hoveredJobId effect below) without re-rendering the
+  // annotation — MapKit only calls this factory once per annotation.
+  if (jobId) el.dataset.jobId = jobId;
   // Container keeps the LOGICAL 28x36 size the caller anchors against
   // (PIN_WIDTH/PIN_HEIGHT drive BrowseMap's anchorOffset math), but the
   // SVG itself renders 4px larger on every side with `overflow: visible`
   // so the urgent ring's 2.5px stroke has room to paint — the path's own
   // outline touches the viewBox edge exactly, so a stroke centered on it
   // was getting clipped by the SVG's own bounding box before this.
-  el.style.cssText = `width:${PIN_WIDTH}px;height:${PIN_HEIGHT}px;cursor:pointer;overflow:visible;`;
+  // `transition:transform` + `transform-origin:bottom center` so the
+  // hover-scale (applied via a `.browse-map-pin-hovered` class, not an
+  // inline style, so it never fights the container's own logical size)
+  // grows the pin from its tip, matching where it's anchored on the map.
+  el.style.cssText = `width:${PIN_WIDTH}px;height:${PIN_HEIGHT}px;cursor:pointer;overflow:visible;transition:transform 150ms ease-out;transform-origin:bottom center;`;
   el.innerHTML = `
     <svg width="${PIN_WIDTH + 4}" height="${PIN_HEIGHT + 4}" viewBox="-2 -2 32 40"
       style="overflow:visible;margin:-2px;" xmlns="http://www.w3.org/2000/svg">

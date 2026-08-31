@@ -66,26 +66,6 @@ interface Draft {
  */
 type CredState = "off" | "empty" | "attached" | "review" | "verified" | "rejected";
 
-const STATE_LABEL: Record<CredState, string> = {
-  off: "Optional",
-  empty: "Not added yet",
-  attached: "Ready to send",
-  review: "In review",
-  verified: "Verified",
-  rejected: "Needs a new copy",
-};
-
-const STATE_COLOR: Record<CredState, string> = {
-  // Full-strength tokens, no alpha: at 10px an alpha-dimmed sienna measured
-  // 4.12:1, under WCAG AA. Full strength is the same hue at ~6.5:1.
-  off: "hsl(var(--burnt-sienna))",
-  empty: "hsl(var(--burnt-sienna))",
-  attached: "hsl(var(--burnt-sienna))",
-  review: "hsl(var(--olivewood))",
-  verified: "hsl(var(--bark))",
-  rejected: "hsl(var(--destructive))",
-};
-
 // Sentence-position nouns ("Your license is attached."). Insurance is
 // "COI" — the card's own body copy introduces the acronym, and the long
 // form truncated the view link at 375 ("View the insurance certificat…").
@@ -452,21 +432,13 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
       <div className="rounded-2xl liquid-glass p-5 space-y-4">
         <div className="flex items-center justify-between gap-3">
           <div className="flex-1 min-w-0">
-            {/* The card's ONE status line. Overall trust status lives on the
-                summary card above; this says only what has happened to THIS
-                document. */}
-            <p
-              className="font-serif italic uppercase text-ds-10"
-              style={{ color: STATE_COLOR[state], letterSpacing: "0.18em" }}
-            >
-              {STATE_LABEL[state]}
-            </p>
+            {/* Status eyebrow removed (owner, 2026-08-29: "delete globally"). */}
             <Label
               htmlFor={toggleId}
               className="font-display italic font-bold leading-tight cursor-pointer text-headline-card"
               style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
             >
-              {kind === "license" ? "I am licensed" : "I am insured"}
+              {kind === "license" ? "I Am Licensed" : "I Am Insured"}
             </Label>
             <p className="font-serif italic mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               {!on
@@ -656,12 +628,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
             <RefreshCcw className="w-4 h-4" />
           </span>
           <div className="flex-1 min-w-0">
-            <p
-              className="font-serif italic uppercase text-ds-10"
-              style={{ color: "hsl(var(--destructive))", letterSpacing: "0.18em" }}
-            >
-              Needs a new copy
-            </p>
+            {/* Status eyebrow removed (owner, 2026-08-29: "delete globally"). */}
             <h3
               className="font-display italic font-bold leading-tight text-ds-16"
               style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
@@ -694,24 +661,12 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
             <ShieldCheck className="w-5 h-5" />
           </div>
           <div className="flex-1 min-w-0">
-            <p
-              className="font-serif italic uppercase text-ds-10"
-              style={{
-                // Full opacity, not /0.78. At 10px the 22% alpha lifted
-                // burnt-sienna to #b26b49 = 4.12:1, under WCAG AA's 4.5.
-                // Full strength is the same hue and measures ~6.5:1.
-                color: anyVerified ? "hsl(var(--bark))" : "hsl(var(--burnt-sienna))",
-                letterSpacing: "0.18em",
-              }}
-            >
-              {licVerified && insVerified
-                ? "Licensed & Insured"
-                : licVerified
-                  ? "Licensed"
-                  : insVerified
-                    ? "Insured"
-                    : "Not yet verified"}
-            </p>
+            {/* Status eyebrow deleted (owner, 2026-08-29/30: "delete globally",
+                confirmed twice). This was the summary card's ONLY
+                overall-status indicator ("Licensed & Insured" / "Not yet
+                verified" etc) — the card no longer states verification status
+                at a glance, only the icon tint above (bark vs burnt-sienna)
+                hints at it. */}
             <h2 className="font-display italic font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
               Professional Credentials
             </h2>

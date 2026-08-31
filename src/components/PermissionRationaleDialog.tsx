@@ -28,14 +28,6 @@ const ICON_FOR_KIND: Record<PermissionKind, LucideIcon> = {
   contacts: Users,
 };
 
-const EYEBROW_FOR_KIND: Record<PermissionKind, string> = {
-  notifications: "Stay in the loop",
-  camera: "Quick capture",
-  photos: "From your library",
-  location: "Nearby jobs",
-  contacts: "Invite friends",
-};
-
 export function PermissionRationaleDialog() {
   const { state, subscribe, copy } = usePermissionRationaleState();
   const [, force] = useState(0);
@@ -45,7 +37,6 @@ export function PermissionRationaleDialog() {
   if (!state.open || !copy || !state.kind) return null;
 
   const Icon = ICON_FOR_KIND[state.kind] ?? ShieldCheck;
-  const eyebrow = EYEBROW_FOR_KIND[state.kind] ?? "Heads up";
 
   return (
     <AlertDialog open={state.open}>
@@ -63,7 +54,6 @@ export function PermissionRationaleDialog() {
           <Icon className="w-6 h-6" strokeWidth={1.75} aria-hidden="true" />
         </div>
         <AlertDialogHero
-          eyebrow={eyebrow}
           title={copy.title}
         />
         {/* The rationale BODY is the entire point of this dialog and had been

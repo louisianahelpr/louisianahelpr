@@ -38,6 +38,7 @@ import {
   FAKE_HELPER,
   installSupabaseMocks,
   seedAuthedSession,
+  mockRpc,
   type MockRule,
 } from "./fixtures";
 import { settleAnimations } from "./auditRoutes";
@@ -603,7 +604,11 @@ test.describe("device pass — measured", () => {
     await installSupabaseMocks(page, {
       user: FAKE_HELPER,
       seed: true,
-      rules: [jobsRule(TWO_OPEN_JOBS), applicationsRule(TWO_PENDING_APPS)],
+      rules: [
+        jobsRule(TWO_OPEN_JOBS),
+        applicationsRule(TWO_PENDING_APPS),
+        mockRpc("get_jobs_for_my_applications", TWO_OPEN_JOBS),
+      ],
     });
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto("/my-jobs?filter=all");

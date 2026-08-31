@@ -40,7 +40,23 @@ export function useActivityActions({
   const triggerPushNudge = usePushPermissionNudge();
 
   // UI state
-  const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
+  // Was `useState<string | null>` — a single expanded id structurally can't
+  // represent more than one open card at a time, so opening card B always
+  // closed card A even though nothing asked for that (owner, 2026-08-31:
+  // "should be able to click globally on post and job and have more than
+  // one open at once. it should only close if i click it back to close it
+  // not if i click another one"). A Set lets every card's expand state be
+  // independent; `toggleExpandedJobId` flips membership for one id without
+  // touching any other id already in the set.
+  const [expandedJobIds, setExpandedJobIds] = useState<Set<string>>(new Set());
+  const toggleExpandedJobId = (id: string) => {
+    setExpandedJobIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
   const [completingJobId, setCompletingJobId] = useState<string | null>(null);
   const [reportingNoShow, setReportingNoShow] = useState(false);
 
@@ -155,7 +171,7 @@ export function useActivityActions({
 
   return {
     // UI state
-    expandedJobId, setExpandedJobId,
+    expandedJobIds, toggleExpandedJobId,
     completingJobId,
     reportingNoShow,
     // Dialog state

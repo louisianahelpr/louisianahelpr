@@ -7,7 +7,6 @@ import {
   SheetHero,
 } from "@/components/ui/sheet";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
-import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { Switch } from "@/components/ui/switch";
 import { hapticLight } from "@/lib/haptics";
 import {
@@ -20,11 +19,15 @@ import {
 /**
  * FilterSheet — the ONE filter presentation used across the app.
  *
- * A bottom sheet (built on the shared Radix Dialog `Sheet` primitive, so
- * it gets the project's standard motion, drag-to-dismiss, focus trap, and
- * esc / backdrop dismiss for free) that stacks filter controls as titled
- * vertical sections. Every surface that needs filters (Browse / Dashboard,
- * Activity, Guest) opens this same sheet so the UX is identical everywhere.
+ * When the caller supplies `anchorRef` (the Browse feed does), this renders
+ * as a Popover docked below the Filters button, at every width — no dimmed
+ * backdrop, results stay visible and update live as you pick. Without an
+ * `anchorRef`, it falls back to the shared modal `Sheet` primitive (fade/
+ * zoom, focus trap, esc/backdrop dismiss — no drag-to-dismiss, removed
+ * app-wide when `side="bottom"` stopped being a floor-anchored sheet).
+ * Either way it stacks filter controls as titled vertical sections. Every
+ * surface that needs filters (Browse / Dashboard, Activity, Guest) opens
+ * this same component so the UX is identical everywhere.
  *
  * It's section-agnostic: each surface passes the `sections` it supports and
  * the sheet renders only those. The job surfaces build theirs with
@@ -60,20 +63,16 @@ interface FilterSheetProps {
    *  only when at least one filter is active. */
   onClearAll?: () => void;
   /**
-   * The button that opens this panel. Supply it and the WEB DESKTOP renders a
-   * popover anchored to that button instead of the bottom sheet; omit it and
-   * every surface keeps the sheet exactly as before.
+   * The button that opens this panel. Supply it and this renders a popover
+   * anchored to that button, at every width, instead of a modal sheet; omit
+   * it and this falls back to the plain modal sheet, for a caller with no
+   * single fixed trigger to anchor against.
    *
    * Why a ref rather than a <PopoverTrigger>: on the Browse feed the button
    * (BrowseTasksActions, mounted in Dashboard's title card) and this panel
    * (BrowseTasksToolbar) live in different components, so they cannot be
    * wrapped in one Popover subtree. `virtualRef` is Radix Popper's supported
    * way to anchor against an element the popover does not own.
-   *
-   * The native app and phone-width web are untouched — `useIsWebDesktop` is
-   * false for both by construction (it is `!isNativePlatform && >=1024px`), so
-   * a phone and the iOS shell still get the drag-to-dismiss sheet, which is
-   * the right idiom there.
    */
   anchorRef?: RefObject<HTMLElement | null>;
   /** Action rows rendered after the last section, beside Clear All —
@@ -88,8 +87,8 @@ interface FilterSheetProps {
  *  brand-surface-fit block in the audit standard). */
 function Section({ title, trailing, children }: { title: string; trailing?: ReactNode; children: ReactNode }) {
   return (
-    <div className="pt-3.5 first:pt-0 border-t border-[hsl(var(--bark)/0.10)] first:border-t-0">
-      <div className="flex items-center justify-between gap-3 mb-1.5">
+    <div className="pt-2.5 first:pt-0 border-t border-[hsl(var(--bark)/0.10)] first:border-t-0">
+      <div className="flex items-center justify-between gap-3 mb-1">
         {/* Quiet gray sans eyebrow — owner's explicit pick (2026-08-24) over
             both the olive sans and the sienna-serif variants tried in the
             brand pass. The sheet's brand voice lives in the chips, switches
@@ -115,7 +114,7 @@ function FilterBody({
 }: Pick<FilterSheetProps, "sections" | "activeFilterCount" | "onClearAll" | "footer">) {
   return (
     <>
-      <div className="px-5 pb-4 space-y-3.5">
+      <div className="px-5 pb-3 space-y-2.5">
         {sections.map((s) => (
           <Section key={s.key} title={s.title} trailing={s.trailing}>
             {s.content}
@@ -160,15 +159,15 @@ export function FilterSheet({
   anchorRef,
   footer,
 }: FilterSheetProps) {
-  const isWebDesktop = useIsWebDesktop();
-
-  // Desktop web: a popover hanging off the Filters button, not a modal in the
-  // middle of the window. The bottom sheet is a phone idiom — at 1440 it
-  // resolved to a 448x596 dialog sitting under a full-window scrim, ON TOP of
-  // the very job cards it filters, with a vestigial drag handle for a gesture a
-  // mouse cannot make. A popover is non-modal by default, so the board stays
-  // lit and the results visibly change behind you as you pick.
-  if (isWebDesktop && anchorRef) {
+  // A popover hanging off the Filters button, not a modal — at ANY width,
+  // not just desktop (owner, 2026-08-30: reviewed a centered-modal / inset-
+  // sheet / anchored-panel comparison and picked anchored for Filters
+  // specifically). A modal sheet is ON TOP of the very job cards it filters;
+  // this is non-modal by default, so the board stays lit and the results
+  // visibly change behind you as you pick — the phone width already fits via
+  // `max-w-[calc(100vw-2rem)]` below, so this needed no width gate at all,
+  // only `useIsWebDesktop` used to gate it off unnecessarily.
+  if (anchorRef) {
     return (
       <Popover open={open} onOpenChange={onOpenChange}>
         <PopoverAnchor virtualRef={anchorRef} />
@@ -208,10 +207,6 @@ export function FilterSheet({
         // inside the sheet rather than pushing the dock off-screen.
         className="max-h-[85dvh] overflow-y-auto overscroll-contain p-0 gap-0 bg-premium-page"
       >
-        {/* Grab handle — the familiar "this sheet drags down" affordance. */}
-        <div className="flex justify-center pt-2.5 pb-0.5" aria-hidden>
-          <span className="h-1 w-9 rounded-full bg-[hsl(var(--olivewood)/0.25)]" />
-        </div>
         {/* Title ONLY — no eyebrow, no subtitle. This header used to stack
             "FILTERS" / "Refine your search" / "Narrow your results", which is
             the same sentence three times in three type sizes. Nothing is lost:
@@ -268,6 +263,14 @@ interface JobFilterSectionsArgs {
    * than shipped as a no-op.
    */
   showNearby?: boolean;
+  /**
+   * "Saved Searches" row, rendered at the end of the "Show only" section —
+   * an action rather than a filter, but it used to sit alone in the sheet
+   * footer, disconnected from every section above it. Folded in here so it
+   * reads as part of the sheet instead of a stray extra control tacked on
+   * at the bottom. Omit on surfaces with no saved-search feature (guest).
+   */
+  savedSearchesButton?: ReactNode;
 }
 
 /**
@@ -297,9 +300,15 @@ function ToggleRow({
 }) {
   return (
     <div className="flex items-center justify-between gap-3 w-full">
-      <div className="flex items-center gap-2 min-w-0 flex-1">
+      {/* `items-start` + `mt-0.5` on the icon, not `items-center`: this row
+          can carry a 2-line hint (AvailabilityRow's "Add your weekly hours
+          first — set hours ↗"), and centering the icon against that full
+          block rode it up above the label's own optical center. Aligning to
+          the label's cap-height instead reads right whether the hint is one
+          line or two. */}
+      <div className="flex items-start gap-2 min-w-0 flex-1">
         <Icon
-          className={`w-3.5 h-3.5 shrink-0 ${iconClassName ?? "text-primary"}`}
+          className={`w-3.5 h-3.5 shrink-0 mt-0.5 ${iconClassName ?? "text-primary"}`}
           strokeWidth={2.25}
           aria-hidden
         />
@@ -431,6 +440,7 @@ export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheet
     savedOnly = false, onToggleSavedOnly, savedCount = 0,
     showAvailability = true,
     showNearby = true,
+    savedSearchesButton,
   } = args;
 
   const sections: FilterSheetSection[] = [
@@ -476,7 +486,7 @@ export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheet
       key: "show-only",
       title: "Show only",
       content: (
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           {onToggleSavedOnly && (
             <ToggleRow
               icon={Bookmark}
@@ -531,6 +541,7 @@ export function buildJobFilterSections(args: JobFilterSectionsArgs): FilterSheet
               hasAvailability={hasAvailability}
             />
           )}
+          {savedSearchesButton}
         </div>
       ),
     },

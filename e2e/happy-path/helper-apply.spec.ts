@@ -171,7 +171,10 @@ test.describe("helper browse-and-apply happy path", () => {
     // "Apply · earn $N" (the earn-amount lives inside the same <span>
     // for visual styling, so it bleeds into the computed name) — match
     // the "Apply" prefix rather than an exact-string anchor.
-    const applyBtn = page.getByRole("button", { name: /^apply\b/i }).first();
+    // 2026-08-30: the button label changed from "Apply" to "Continue" for
+    // non-instant-book jobs (the final submit is on the next in-sheet step).
+    // Match all entry-point labels so the test stays valid across both shapes.
+    const applyBtn = page.getByRole("button", { name: /^(apply|continue|book)\b/i }).first();
     await expect(applyBtn).toBeVisible({ timeout: 10_000 });
   });
 });

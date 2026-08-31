@@ -40,7 +40,7 @@ const app = (over: Partial<AppliedApp> = {}) =>
   }) as unknown as AppliedApp;
 
 const derive = (a: AppliedApp, j: Job) =>
-  deriveAppliedJobCardState(a, j as Job & { revision_note?: string | null }, new Set(), null);
+  deriveAppliedJobCardState(a, j as Job & { revision_note?: string | null }, new Set(), new Set());
 
 describe("deriveAppliedJobCardState — direct offers", () => {
   it("routes a pending direct offer to the OFFERED section, not PENDING", () => {

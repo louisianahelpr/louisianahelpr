@@ -2,10 +2,9 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react"
 
 import { Search, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import BackButton from "@/components/BackButton";
+import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { Capacitor } from "@capacitor/core";
-import PublicLayout from "@/components/marketing/PublicLayout";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 // Card-matching skeleton — mirrors the actual JobCard avatar/title/price
@@ -254,44 +253,23 @@ const Jobs = () => {
   }
 
   return (
-    // No `noNavSpacer`: /jobs used to opt out of PublicLayout's shared nav
-    // spacer and hand-roll `pt-20` instead, which put its H1 8px lower than
-    // /subscription and /help. All of them now clear the fixed
-    // Navbar through the SAME spacer, so their titles land at one offset.
-    // This page renders the canonical in-content <BackButton /> next to its
-    // H1, which is its only back affordance.
-    <PublicLayout>
-      {/* The bottom padding clears the floating MobileNav (96px) plus
-          the iOS home-indicator safe area, with a 16px gap so the
-          last action isn't kissing the dock. pb-32 was barely 2px
-          short on notched phones. */}
-      <div className="pb-safe-nav px-5 sm:px-8 lg:px-12">
+    // Shared shell (PublicHeaderPage) — same component Legal, Help Center
+    // and Support all render through now, so the header-to-body contract
+    // (24px above/below the title, one gutter ladder, no double padding)
+    // lives in one place instead of drifting per page (owner, 2026-08-30).
+    // `backTo="/"` — NOT bare history-back. These are top-nav / footer
+    // destinations reachable from anywhere, so `navigate(-1)` sent you to
+    // whatever you happened to view last: opening Terms, then Jobs, then
+    // pressing Back landed on Terms. A top-level page needs one predictable
+    // parent, and consistently the same one across all of them.
+    <PublicHeaderPage
+      title="Browse Jobs"
+      backTo="/"
+      width="default"
+      bottomPaddingClassName="pb-safe-nav"
+      headerWrapperClassName="motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4 duration-400"
+    >
         <div className="page-measure">
-          {/* Header — canonical BackButton sits to the LEFT of the title block
-              (same row, chevron as lead-in), matching PageHeader everywhere.
-              Nothing sits on the right: the Search + Filters icon cluster that
-              used to mirror the logged-in BrowseTasksToolbar was removed so
-              this board matches the native guest board (/browse), which has
-              never carried them. With only two children left there is no wrap
-              to orchestrate, so the `order-*` classes went with them. */}
-          <div className="flex items-center gap-3 mt-4 mb-3 md:mt-5 md:mb-4 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4 duration-400">
-            <div className="shrink-0">
-{/* to="/" — NOT bare history-back. These are top-nav / footer
-                  destinations reachable from anywhere, so `navigate(-1)` sent
-                  you to whatever you happened to view last: opening Terms, then
-                  Jobs, then pressing Back landed on Terms. A top-level page
-                  needs one predictable parent, and consistently the same one
-                  across all of them. */}
-              <BackButton to="/" />
-            </div>
-
-            <div className="flex flex-col leading-none min-w-0 flex-1">
-              <h1 className="text-page-title leading-tight truncate">
-                Browse Jobs
-              </h1>
-            </div>
-          </div>
-
           {/* One-tap category switcher — only renders when a category is set,
               which now happens ONLY via a URL deep link (/jobs?cat=cleaning
               from marketing/SEO/share links), since this page no longer has a
@@ -446,10 +424,11 @@ const Jobs = () => {
               top nav on every guest page, so repeating it at the bottom of the
               board was a second copy of the same action. */}
         </div>
-      </div>
 
       {/* Read-only guest preview. `guest` skips every authed look-up and
-          replaces apply/message/save/report with a single sign-up CTA. */}
+          replaces apply/message/save/report with a single sign-up CTA.
+          Portaled (Radix Dialog), so sitting inside the padded body column
+          here has no effect on where it actually renders. */}
       {detailJob && (
         <Suspense fallback={null}>
           <JobDetailDialog
@@ -462,7 +441,7 @@ const Jobs = () => {
           />
         </Suspense>
       )}
-    </PublicLayout>
+    </PublicHeaderPage>
   );
 };
 

@@ -11,7 +11,7 @@ import { queryKeys } from "@/lib/queryKeys";
 import { ReferralExtras } from "@/components/profile/ReferralExtras";
 import { getPublicSiteUrl } from "@/lib/authRedirects";
 import { requireBiometric } from "@/lib/biometricGate";
-import { shareNative } from "@/lib/nativeShare";
+import { shareNative, copyToClipboard } from "@/lib/nativeShare";
 import { hapticLight, hapticSuccess } from "@/lib/haptics";
 import { formatPriceExact } from "@/lib/format";
 
@@ -33,12 +33,15 @@ const ReferralSection = ({ userId }: { userId: string }) => {
 
   const copyCode = async () => {
     if (!referralCode) return;
-    try {
-      await navigator.clipboard.writeText(referralCode);
+    // copyToClipboard tries navigator.clipboard first, then falls back to a
+    // detached-textarea execCommand("copy") — needed inside the Capacitor
+    // WKWebView and on insecure origins where navigator.clipboard is either
+    // missing or rejects outside a live user gesture.
+    if (await copyToClipboard(referralCode)) {
       setCopied(true);
       hapticSuccess();
       setTimeout(() => setCopied(false), 2000);
-    } catch {
+    } else {
       toast.error(`Couldn't copy — your code is ${referralCode}`);
     }
   };
@@ -201,12 +204,19 @@ const ReferralSection = ({ userId }: { userId: string }) => {
         </p>
       </div>
 
-      {/* Stat tiles */}
+      {/* Stat tiles.
+          "Earned" and "Available" are two different reductions over the
+          SAME `credits` array (see useReferralData) — not two sources of
+          truth. They read identical until a cash-out actually happens:
+          Earned = lifetime total (redeemed + unredeemed); Available =
+          unredeemed only, i.e. what a cash-out would move to Stripe right
+          now. Labeled explicitly below so two equal numbers don't read as
+          a duplicate-counting bug before the first cash-out. */}
       <div className="grid grid-cols-3 gap-2">
         {[
           { icon: Users, label: "Referrals", value: String(referralCount) },
-          { icon: DollarSign, label: "Earned", value: `$${totalCredits}` },
-          { icon: Gift, label: "Available", value: `$${unredeemedCredits}` },
+          { icon: DollarSign, label: "Total earned", value: `$${totalCredits}` },
+          { icon: Gift, label: "To cash out", value: `$${unredeemedCredits}` },
         ].map(({ icon: Icon, label, value }) => (
           <div key={label} className="rounded-ds-md liquid-glass p-3 text-center">
             <div className="flex items-center justify-center gap-1 mb-1">
@@ -255,7 +265,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
           {[
             "Share your code with friends",
             "They enter it at sign-up",
-            "They complete their first job — you both earn $5",
+            "Once their first job is fully completed — whether they posted it or worked it — you both earn $5",
             "Cash out directly to your Stripe account",
           ].map((step, i) => (
             <div key={i} className="flex items-start gap-3">

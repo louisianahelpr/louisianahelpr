@@ -100,7 +100,6 @@ const JobDetail = lazy(() => import("./pages/JobDetail"));
 const DashboardGuest = lazy(() => import("./pages/DashboardGuest"));
 
 const HelprWrapped = lazy(() => import("./pages/HelprWrapped"));
-const SubscriptionPage = lazy(() => import("./pages/SubscriptionPage"));
 const StrSettings = lazy(() => import("./pages/StrSettings"));
 const AutoTip = lazy(() => import("./pages/AutoTip"));
 const PayItForward = lazy(() => import("./pages/PayItForward"));
@@ -209,7 +208,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           with the page instead of staying fixed to the viewport).
           Landing (/) also skips PageTransition for the same reason;
           this preserves the same fixed-nav behaviour on /legal,
-          /help, /subscription. */}
+          /help. */}
       {/* NOT wrapped in <MarketingRedirect>, and must not be.
           These are the only place the policy TEXT exists. The in-app Legal tab
           (/profile?tab=legal) is NOT a second copy of it — read LegalTab.tsx:
@@ -272,7 +271,6 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       {/* Public so the footer "Plans" link and marketing CTAs resolve for
           logged-out visitors. The page renders read-only for guests (current
           plan shows Free); tapping Upgrade routes them to sign in first. */}
-      <Route path="/subscription" element={<RouteErrorBoundary>{routeEl(<PageTransition><SubscriptionPage /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/str-settings" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><StrSettings /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* Gift Card — send a gift card to a Helpr (renamed from Pay It Forward) */}
       <Route path="/auto-tip" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><AutoTip /></ProtectedRoute>)}</RouteErrorBoundary>} />

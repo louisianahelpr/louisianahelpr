@@ -267,7 +267,6 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
           <DialogHero
-            eyebrow={<><Mail className="w-3 h-3" /> Account</>}
             title="Change Email Address."
           />
 
@@ -297,6 +296,9 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
                 {emailError}
               </p>
             )}
+            <p className="text-ds-11 font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              We'll send a confirmation link to verify changes.
+            </p>
           </div>
 
           <DialogFooter>
@@ -355,9 +357,15 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
           the account you're signed into and the inbox the confirmation link
           lands in, so it stays, promoted into the title block where it costs
           no extra row. */}
-      <div className="rounded-2xl liquid-glass p-5 space-y-3">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+      {/* Email / Password / Two-step compacted (item 29, 2026-08-30) — same
+          card shape, tighter to content: p-5→p-3.5, the icon circle and row
+          gap both a size down, and the helper sentence drops its own
+          top-level spacing slot in favor of a fixed mt-1 under the title
+          row instead of the outer `space-y-3` giving it a full row's worth
+          of air on every card. */}
+      <div className="rounded-2xl liquid-glass p-3.5 space-y-1">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
             <Mail className="w-4 h-4 text-primary" />
           </div>
           <div className="min-w-0 flex-1">
@@ -378,14 +386,11 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
             Change
           </Button>
         </div>
-        <p className="text-ds-11 font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-          We'll send a confirmation link to verify changes.
-        </p>
       </div>
 
-      <div className="rounded-2xl liquid-glass p-5 space-y-3">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+      <div className="rounded-2xl liquid-glass p-3.5 space-y-1">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
             <Lock className="w-4 h-4 text-primary" />
           </div>
           <div className="min-w-0 flex-1">
@@ -418,7 +423,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
             {resettingPassword ? "Sending…" : "Reset"}
           </Button>
         </div>
-        <p className="text-ds-11 font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+        <p className="text-ds-11 font-serif italic pl-10" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
           Reset via secure email link.
         </p>
       </div>

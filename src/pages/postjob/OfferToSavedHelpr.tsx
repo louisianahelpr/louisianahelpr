@@ -79,7 +79,7 @@ export function OfferToSavedHelpr({
   };
 
   return (
-    <div className="rounded-2xl liquid-glass p-4">
+    <div className="rounded-2xl liquid-glass p-4 flex flex-col justify-center" style={{ minHeight: "104px" }}>
       <button
         type="button"
         onClick={toggle}

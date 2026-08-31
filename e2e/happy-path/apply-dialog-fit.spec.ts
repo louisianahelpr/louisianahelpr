@@ -89,14 +89,20 @@ const MEASURE = `(() => {
       for (let p = child.parentElement; p && p !== dlg; p = p.parentElement) {
         const ox = getComputedStyle(p).overflowX;
         if (ox === "auto" || ox === "scroll" || ox === "hidden") { clipped = true; break; }
+        if (p.getAttribute("data-frame-chrome") === "true") { clipped = true; break; }
       }
       // Dialog CHROME is exempt: the corner close button is a 44px HIG tap
       // target anchored to the dialog FRAME (right-3, top-3), so its hit box
       // deliberately spans the p-5 padding gutter — that is frame chrome, not
       // content escaping the content box. Content elements are never
       // absolutely positioned buttons, so the exemption stays narrow.
+      // data-frame-chrome on an element also exempts it (and its children via
+      // the ancestor walk above) — used for the category stripe/badge that
+      // intentionally bleeds into the padding gutter to sit flush on the
+      // dialog's left edge.
       const isFrameChrome =
-        child.tagName === "BUTTON" && getComputedStyle(child).position === "absolute";
+        (child.tagName === "BUTTON" && getComputedStyle(child).position === "absolute") ||
+        child.getAttribute("data-frame-chrome") === "true";
       // 4px of slack for sub-pixel rounding on bled/negative-margin rows.
       if (!clipped && !isFrameChrome && cr.width > 0 && (cr.right - contentRight > 4 || contentLeft - cr.left > 4)) {
         offenders.push({
@@ -207,9 +213,9 @@ for (const { name, width, job } of [
     await card.waitFor({ timeout: 20_000 });
     await card.click();
     const detail = page.locator('[role="dialog"]').last();
-    // The detail dialog's CTA is "Apply · earn $N" / "Book now" / a bid-mode
-    // variant depending on the job — match any of the openers.
-    const applyBtn = detail.getByRole("button", { name: /^(apply|book|bid|submit|place)\b/i }).first();
+    // The detail dialog's CTA is "Apply · earn $N" / "Book now" / "Continue"
+    // (2026-08-30: renamed for non-instant-book jobs) — match any of the openers.
+    const applyBtn = detail.getByRole("button", { name: /^(apply|book|bid|submit|place|continue)\b/i }).first();
     await applyBtn.waitFor({ timeout: 10_000 });
     await applyBtn.click();
     // The sheet STAYS UP and swaps to the apply step in place — it no longer

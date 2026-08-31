@@ -84,7 +84,11 @@ interface PageHeaderProps {
     | "lg-2xl-5xl-6xl-tight"
     | "lg-5xl-6xl-7xl-tight"
     | "2xl-5xl-7xl"
-    | "container-lg-5xl-6xl";
+    | "container-lg-5xl-6xl"
+    | "public"
+    // No container at all — for a header rendered INSIDE a body that has
+    // already applied the app's max-width + gutter. See WIDTH_CLASS below.
+    | "none";
   /**
    * Set when a sibling header (e.g. DashboardHeader) already sits ABOVE this
    * PageHeader and has already cleared the notch/status-bar safe-area inset.
@@ -141,6 +145,26 @@ const WIDTH_CLASS: Record<NonNullable<PageHeaderProps["width"]>, WidthSpec> = {
 
   // Wide-reading body that grows to 7xl on large desktops. Body: PayItForward.
   "2xl-5xl-7xl": { outer: "max-w-2xl lg:max-w-5xl xl:max-w-7xl px-5 lg:px-8" },
+
+  // The PUBLIC / marketing gutter ladder — `px-5 sm:px-8 lg:px-12`, the same
+  // scale the marketing <Navbar> and <Footer> use, over the unbounded
+  // `.page-measure` column. It is NOT the `default` ladder: `default` steps at
+  // lg/xl (`px-5 lg:px-8 xl:px-12`), so a public page using it would sit 12px
+  // in from its own sections between sm and lg and 16px in above xl.
+  // Bodies: HelpCenter, Support (and the other `px-5 sm:px-8 lg:px-12`
+  // PublicLayout sections).
+  public: { outer: "page-measure px-5 sm:px-8 lg:px-12" },
+
+  // NO container. The one legitimate case for this is a header rendered by a
+  // panel that is ALREADY inside the page's max-width + gutter box, where any
+  // container here would be a second one. Profile's tabs are exactly that:
+  // Profile.tsx wraps every tab in `container mx-auto px-5 lg:px-8 xl:px-12`
+  // > `page-measure mx-auto`, i.e. the `default` geometry, applied one layer
+  // up. Re-applying it here would inset the title by a second full gutter and
+  // leave a dead side band — the hard layout failure documented above. The
+  // header spans its parent and inherits that column verbatim.
+  // Body: every Profile tab (via ProfileTabHeader).
+  none: { outer: "" },
 
   // Nested geometry: gutter outside the ladder. Body: UserProfile
   // (`container mx-auto px-5` > `max-w-lg lg:max-w-5xl xl:max-w-6xl mx-auto`).
@@ -201,9 +225,45 @@ const PageHeader = ({ title, meta, onBack, backTo, rightSlot, titleActions, hide
         </header>
       )}
 
+      {/* EQUAL AIR ABOVE AND BELOW THE TITLE — one rule, every page.
+          THIS COMPONENT OWNS BOTH GAPS: 16px each side on phone, 24px each
+          side from `sm` up (owner, 2026-08-30: "24 spacing is too much on a
+          phone so the phone and webpage should not be the same" — supersedes
+          the earlier "all of these should be 24" pass, which had made it a
+          single fixed value). This is the ONE place the value lives; changing
+          it moves every page in the app at once, which is the point. Do not
+          add padding on either side of it anywhere else.
+
+          The page body below must contribute NO top padding of its own. That
+          is the whole contract — a body on `pt-4` under this header stacks a
+          second gap onto the bottom and the title is instantly lopsided
+          again.
+
+          Two dead ends are recorded here so they are not re-attempted:
+
+          1. It was originally `pt-3 pb-2` with an `mt-1` on the h1 and an
+             `mb-1` on its column — FOUR contributors to a two-sided gap.
+             Measured 20 above / 32 below on UserProfile.
+          2. Then it was `pt-4 pb-0`, on the theory that the page body's own
+             `pt-4` should own the bottom gap. That is what most bodies had, so
+             it looked right on UserProfile — but it is not universal, and the
+             pages without it collapsed to 24 above / 8 below (measured on
+             /help, /legal, /benefits and /pets). A gap whose size depends on
+             what the page underneath happens to declare cannot be global.
+
+          So: the header owns both sides, bodies own neither. If a page needs
+          more air under its title, it belongs to that page's first section as
+          a deliberate exception — never as top padding on the body wrapper,
+          which is indistinguishable from the title's own gap. */}
       {frame(
-        "pt-3 pb-2",
-        absorbSafeArea ? { paddingTop: "calc(var(--safe-area-top, 0px) + 0.75rem)" } : undefined,
+        absorbSafeArea
+          // Can't mix a Tailwind breakpoint class with an inline safe-area
+          // calc() on the same property, so the safe-area addition is baked
+          // into the arbitrary-value class itself at each breakpoint instead
+          // of an inline `style` override.
+          ? "pt-[calc(var(--safe-area-top,0px)+1rem)] sm:pt-[calc(var(--safe-area-top,0px)+1.5rem)] pb-4 sm:pb-6"
+          : "pt-4 pb-4 sm:pt-6 sm:pb-6",
+        undefined,
         <>
           {/* Back button sits to the LEFT of the title block (not stacked above
               it) so the chevron reads as a lead-in to the heading and the title
@@ -215,7 +275,9 @@ const PageHeader = ({ title, meta, onBack, backTo, rightSlot, titleActions, hide
                 <BackButton onClick={onBack} to={backTo} />
               </div>
             )}
-            <div className="flex flex-col leading-none min-w-0 mb-1">
+            {/* No `mb-1` — see the equal-air note above; the space below the
+                title belongs to the page body's `pt-4`, not to this column. */}
+            <div className="flex flex-col leading-none min-w-0">
               {/* Eyebrow render intentionally removed (2026-07-25 decision):
                   the small burnt-sienna uppercase kicker above the title read as
                   redundant noise app-wide (FRESH TODAY / POSTED JOBS / ACTIVITY
@@ -235,7 +297,7 @@ const PageHeader = ({ title, meta, onBack, backTo, rightSlot, titleActions, hide
                   Prop kept for the same reason as `eyebrow`: ~15 call sites
                   pass it, and neither churning them nor breaking their types
                   buys anything. One line restores it. */}
-              <h1 className="text-page-title leading-tight mt-1 truncate">
+              <h1 className="text-page-title leading-tight truncate">
                 {title}
               </h1>
             </div>

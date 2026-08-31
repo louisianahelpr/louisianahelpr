@@ -1,7 +1,7 @@
 import { memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, RotateCcw, Users, RefreshCw, Clock, Check, ChevronDown } from "lucide-react";
+import { CheckCircle2, RotateCcw, Users, RefreshCw, Clock, Check } from "lucide-react";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
 import { SeriesStrip } from "@/components/activity/SeriesStrip";
 import { JobCountdown } from "@/components/activity/JobCountdown";
@@ -31,8 +31,8 @@ import { JOB_ACTION_FULL_CLASS, jobActionChipStyle } from "./JobActionRow";
 function PostedJobCardInner({
   job,
   applicantCounts,
-  expandedJobId,
-  setExpandedJobId,
+  expandedJobIds,
+  toggleExpandedJobId,
   helperNames,
   completedJobMeta,
   userId,
@@ -46,6 +46,7 @@ function PostedJobCardInner({
   onTip,
   onReview,
   onDispute,
+  onReport,
   onViewDispute,
   onConfirmArrival,
   confirmingArrivalJobId,
@@ -73,7 +74,7 @@ function PostedJobCardInner({
   // showed. Both are gone — every card expands, and every card hides its body
   // until it does — so "archived completed" is no longer a special layout.
   // The "Tipped & Reviewed" strip below reads completedJobMeta directly.
-  const isExpanded = expandedJobId === job.id;
+  const isExpanded = expandedJobIds.has(job.id);
 
   // A description that merely restates the title is not a description.
   const hasDescription =
@@ -119,27 +120,21 @@ function PostedJobCardInner({
    * Same node either way, so the two placements cannot drift apart.
    */
   const metaRow = (
+            <>
+              {/* Issue #67 — the collapsed card said nothing about who the job
+                  went to; the helper's name only showed inside the "Offered to"
+                  strip or the tracker, both gated behind expand. Same
+                  avatar-badge treatment as that strip, shrunk to fit the title
+                  bar; hidden once expanded so the two don't repeat each other. */}
+              {!isExpanded && job.helper_id && (
+                <div className="flex items-center gap-1 mb-1">
+                  <div className="w-4 h-4 rounded-full bg-primary/15 text-primary flex items-center justify-center text-ds-9 font-bold shrink-0">
+                    {(helperNames[job.helper_id] || "H")[0].toUpperCase()}
+                  </div>
+                  <span className="text-ds-11 text-muted-foreground truncate">{helperName}</span>
+                </div>
+              )}
               <JobCardMetaRow
-                // The card's ONE expand affordance. Every posted card is
-                // collapsed on arrival now (owner, 2026-08-27), so it needs a
-                // visible control saying there is more underneath — there was
-                // none: the only chevron on this card lived in the
-                // "Tipped & Reviewed" strip, which renders on archived cards
-                // and nowhere else.
-                //
-                // A bare rotating glyph, pinned to the end of the meta line, is
-                // what the code around it has described for a while ("move the
-                // details arrow up and remove the words details") without
-                // anything actually passing `trailing`. It costs no row.
-                // Non-interactive: the whole card is the hit target (see
-                // JobCardShell), so a nested button here would be a control
-                // inside a control.
-                trailing={
-                  <ChevronDown
-                    aria-hidden
-                    className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
-                  />
-                }
                 dateNeeded={job.date_needed}
                 startTime={job.start_time}
                 flexibleLabel="Flexible time"
@@ -186,6 +181,7 @@ function PostedJobCardInner({
                    <span className="flex items-center gap-1"><Users className="w-3 h-3 shrink-0 text-primary" /> {job.helpers_needed ? `${job.helpers_needed} Helpr${job.helpers_needed === 1 ? "" : "s"}` : "Group job"}</span>
                  )}
                </JobCardMetaRow>
+            </>
   );
 
   return (
@@ -200,7 +196,7 @@ function PostedJobCardInner({
             // all of them.
             expandable
             expanded={isExpanded}
-            onToggle={() => setExpandedJobId(isExpanded ? null : job.id)}
+            onToggle={() => toggleExpandedJobId(job.id)}
             // scroll-mt keeps a card's title from ghosting up under the
             // translucent (~0.85 opacity) page title card when it scrolls
             // to the top of the list.
@@ -494,23 +490,40 @@ function PostedJobCardInner({
               const cMeta = completedJobMeta[job.id];
               const hasTipped = cMeta?.tipped;
               const hasReviewed = cMeta?.reviewed;
-              if (hasTipped && hasReviewed) {
+              // Hidden once the card is EXPANDED — the expanded body already
+              // shows the same fact as the Tipped/Reviewed pill buttons in
+              // the action row below, so this collapsed-state summary line
+              // became a redundant third repetition of "already done".
+              if (hasTipped && hasReviewed && !isExpanded) {
                 return (
                   <div className="px-4 py-1.5 border-t border-[hsl(var(--olivewood)/0.1)] bg-card flex items-center justify-between">
                     {/* No chevron here any more — the meta row's `trailing`
                         slot carries the card's one expand glyph now, so this
                         strip would have been a second one on the same card,
                         two rows apart. */}
-                    <span className="text-ds-11 text-muted-foreground flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Tipped &amp; Reviewed</span>
+                    <span className="text-ds-11 flex items-center gap-1" style={{ color: "hsl(var(--success-ink))" }}><CheckCircle2 className="w-3 h-3" /> Tipped &amp; Reviewed</span>
                   </div>
                 );
               }
-              // Nothing when the job is still awaiting a tip and/or a review.
-              // This used to print a bare "Tip & review" / "Leave a tip" /
-              // "Leave a review" strip directly above the action row that
-              // already carries a Tip chip and a Review chip — a label with no
-              // control, naming the buttons underneath it. The chips ARE the
-              // prompt. Only the fully-archived summary above survives.
+              // Partial: one of tip/review is done, the other isn't. Surfaced
+              // so the poster notices the loose end instead of assuming the
+              // job is fully archived (the "both done" strip above is the
+              // only other state this row ever showed).
+              if ((hasTipped || hasReviewed) && !isExpanded) {
+                return (
+                  <div className="px-4 py-1.5 border-t border-[hsl(var(--olivewood)/0.1)] bg-card flex items-center justify-between">
+                    <span className="text-ds-11 flex items-center gap-1" style={{ color: "hsl(var(--amber-ink))" }}>
+                      <CheckCircle2 className="w-3 h-3" /> {hasTipped ? "Tipped" : "Reviewed"} — {hasTipped ? "review" : "tip"} still open
+                    </span>
+                  </div>
+                );
+              }
+              // Nothing when the job is still awaiting both a tip and a
+              // review. This used to print a bare "Tip & review" / "Leave a
+              // tip" / "Leave a review" strip directly above the action row
+              // that already carries a Tip chip and a Review chip — a label
+              // with no control, naming the buttons underneath it. The chips
+              // ARE the prompt.
               return null;
             })()}
 
@@ -548,7 +561,7 @@ function PostedJobCardInner({
                   shut. Same pattern as the tracker wrapper above. */}
               {(job.status === "in_progress" || job.status === "accepted") && (
                 <div className="px-4 pb-3 space-y-3" onClick={(e) => e.stopPropagation()}>
-                  <JobConfirmation jobId={job.id} isOwner={true} isHelper={false} posterConfirmedAt={job.poster_confirmed_at} helperConfirmedAt={job.helper_confirmed_at} helperDayofConfirmedAt={job.helper_dayof_confirmed_at} dateNeeded={job.date_needed} jobStatus={job.status} helperOnTheWayAt={job.helper_on_the_way_at} />
+                  <JobConfirmation jobId={job.id} isOwner={true} isHelper={false} posterConfirmedAt={job.poster_confirmed_at} helperConfirmedAt={job.helper_confirmed_at} helperDayofConfirmedAt={job.helper_dayof_confirmed_at} dateNeeded={job.date_needed} jobStatus={job.status} helperOnTheWayAt={job.helper_on_the_way_at} onCantMakeIt={() => onCancel(job)} />
                   {job.is_group_job && <GroupJobHelpers jobId={job.id} helpersNeeded={job.helpers_needed || 2} isOwner={true} initialHelpers={initialGroupHelpers} />}
 
                 </div>
@@ -588,6 +601,7 @@ function PostedJobCardInner({
                 onTip={onTip}
                 onReview={onReview}
                 onDispute={onDispute}
+                onReport={onReport}
                 onViewDispute={onViewDispute}
                 onConfirmArrival={onConfirmArrival}
                 confirmingArrivalJobId={confirmingArrivalJobId}

@@ -1,11 +1,12 @@
-import { type ElementType } from "react";
-import { MapPin, Calendar, Clock, Hourglass, Timer, Users } from "lucide-react";
+import { useState, type ElementType } from "react";
+import { MapPin, Calendar, Clock, Timer, Users } from "lucide-react";
 import { getCity } from "@/lib/locationUtils";
 import { formatJobDate, parseLocalDate } from "@/lib/dateUtils";
 import { formatDistanceToNow, differenceInHours } from "date-fns";
 import { formatTime12 } from "@/components/TimePickerSelect";
 import type { EnrichedJob } from "../types";
-import { mapsSearchUrl } from "@/lib/mapsLink";
+import { JobLocationPreview } from "./JobLocationPreview";
+import { calendarEventUrl } from "@/lib/calendarLink";
 
 interface JobStatTilesProps {
   job: EnrichedJob;
@@ -15,8 +16,11 @@ interface JobStatTilesProps {
 
 /* Stat strip — sits ABOVE the payout pill so the helpr scans the
    facts (where, when, how long, deadline) before they see the
-   payout. Where + Date are clickable: Where opens Google Maps,
-   Date opens Google Calendar.
+   payout. Where + Date are both tappable: Where expands an inline
+   MapKit pin IN this sheet (owner, 2026-08-31: "it should show where
+   it is on the map in the webpage... not leave the webpage and go
+   elsewhere" — it used to open an external maps site), Date opens the
+   platform's own calendar.
 
    WHERE / DATE / TIME render as ONE compact row, not three tiles
    (owner decision 2026-08-22). As tiles those three short values —
@@ -32,6 +36,7 @@ interface JobStatTilesProps {
    space. The row stays >=44pt tall so Where/Date remain HIG-legal tap
    targets. */
 export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStatTilesProps) => {
+  const [showMap, setShowMap] = useState(false);
   // auto-rows-fr + the last-child span keeps the final tile from sitting as a
   // lone full-width slab. With an ODD tile count (5 here: Where, Date, Time,
   // Estimated, Closes) a plain 2-col grid strands the last one; spanning it
@@ -45,16 +50,20 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
         const dateValid = !isNaN(dateNeeded.getTime());
         let calendarUrl: string | null = null;
         if (dateValid) {
-          const dateStartIso = dateNeeded.toISOString().slice(0, 10).replace(/-/g, "");
           const dateEnd = new Date(dateNeeded.getTime() + (job.estimated_hours ? Number(job.estimated_hours) * 3600 * 1000 : 24 * 3600 * 1000));
-          const dateEndIso = dateEnd.toISOString().slice(0, 10).replace(/-/g, "");
-          calendarUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(job.title)}&dates=${dateStartIso}/${dateEndIso}&details=${encodeURIComponent(job.description.slice(0, 200))}&location=${encodeURIComponent(job.location)}`;
+          // Platform-aware (owner, 2026-08-30: "what if they're on the app?
+          // then app should open the calendar on their phone") — native opens
+          // the device's own calendar app via an .ics payload instead of
+          // always building a Google Calendar web link. The Where tile below
+          // no longer links out at all — it expands an inline MapKit pin.
+          calendarUrl = calendarEventUrl(
+            job.title,
+            dateNeeded.toISOString(),
+            dateEnd.toISOString(),
+            job.description.slice(0, 200),
+            job.location,
+          );
         }
-        // Same helper as the activity cards, so the two surfaces open the same
-        // app with the same query — and so the platform choice lives in one
-        // place. This one already used the address; it just did not know about
-        // Apple Maps or Android's geo: intent.
-        const mapsUrl = mapsSearchUrl(job.location);
         // Distance estimate when both helpr coords + parish centroid
         // available. distMilesForDriving + drivingLabel are computed
         // above (because useDrivingTime is a hook); we just compose
@@ -74,13 +83,24 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
           : null;
         const closesUrgent = hoursLeft != null && hoursLeft >= 0 && hoursLeft < 24;
         const tiles = [
-          { Icon: MapPin, label: "Where", value: getCity(job.location).replace(/,\s*LA\s*$/i, ""), sub: distLabel, href: mapsUrl, urgent: false },
+          {
+            Icon: MapPin,
+            label: "Where",
+            value: getCity(job.location).replace(/,\s*LA\s*$/i, ""),
+            sub: distLabel,
+            href: null,
+            onClick: () => setShowMap((v) => !v),
+            expanded: showMap,
+            urgent: false,
+          },
           {
             Icon: Calendar,
             label: "Date",
             value: dateValid ? formatJobDate(job.date_needed) : "—",
             sub: null,
             href: calendarUrl,
+            onClick: undefined,
+            expanded: undefined,
             urgent: false,
           },
           // Time is its own tile (not a sub-line under Date) so the date
@@ -95,6 +115,8 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
                 value: formatTime12(job.start_time),
                 sub: null,
                 href: null,
+                onClick: undefined,
+                expanded: undefined,
                 urgent: false,
               }]
             : []),
@@ -107,30 +129,25 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
             ? [{
                 Icon: Users,
                 label: "Helprs",
-                value: `${job.helpers_needed}`,
+                // A bare number reads fine next to "Abbeville"/"Sat, Aug 29"
+                // (both nouns), but a bare "3" answers no visible question —
+                // the word makes it self-contained.
+                value: `${job.helpers_needed} Helprs`,
                 sub: null,
                 href: null,
+                onClick: undefined,
+                expanded: undefined,
                 urgent: false,
               }]
             : []),
-          // Estimated-hours tile is omitted entirely when unset — a bare
-          // "Estimated —" read as a bug rather than "no estimate given".
-          ...(job.estimated_hours != null
-            ? [{
-                // Hourglass, not Clock. Clock sits directly beside this on the
-                // "Time" tile, so two identical glyphs were labelling two
-                // different things — a clock time (5:00 PM) and a duration
-                // (4 hrs). Three distinct time concepts now read distinctly:
-                // Clock = when it starts, Hourglass = how long it takes,
-                // Timer = how long until the listing closes.
-                Icon: Hourglass,
-                label: "Estimated",
-                value: `${job.estimated_hours} ${Number(job.estimated_hours) === 1 ? "hr" : "hrs"}`,
-                sub: null,
-                href: null,
-                urgent: false,
-              }]
-            : []),
+          // Estimated-hours tile removed (owner, 2026-08-30: "delete
+          // globally, no longer used or an option anywhere") — the post
+          // form has no input for it; the only writers left are the AI job
+          // builder's inference and template "typical duration" presets, so
+          // showing it as a stated fact on the job overstated a number the
+          // poster never actually chose. The column itself is untouched
+          // (still read elsewhere — checkout summary, admin, calendar
+          // export); only this dialog's tile is gone.
           // Closes tile is omitted entirely when the job has no expiry —
           // an empty "—" deadline read as a bug rather than "no deadline".
           ...(job.expires_at
@@ -140,6 +157,8 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
                 value: formatDistanceToNow(new Date(job.expires_at), { addSuffix: false }),
                 sub: null,
                 href: null,
+                onClick: undefined,
+                expanded: undefined,
                 urgent: closesUrgent,
               }]
             : []),
@@ -150,50 +169,55 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
         const rowItems = tiles.filter((t) => ROW_LABELS.includes(t.label));
         const tileItems = tiles.filter((t) => !ROW_LABELS.includes(t.label));
 
+        // Four SEPARATE cells, not one bar with dividers (owner, via the
+        // job-dialog mockup: "it should be basically identical to this") —
+        // each fact gets its own bordered box with the icon stacked above
+        // the value, matching the Composite mockup's metacells treatment.
+        // Columns match the item count (3 or 4) so a job with no Helprs
+        // tile doesn't leave a dead empty cell.
         const compactRow = (
           <div
             key="compact-meta"
-            className="flex items-stretch rounded-ds-md overflow-hidden min-h-[44px]"
-            style={{
-              backgroundColor: "var(--glass-bg-soft)",
-              backdropFilter: "blur(18px) saturate(160%)",
-              WebkitBackdropFilter: "blur(18px) saturate(160%)",
-              border: "0.5px solid var(--glass-border)",
-              boxShadow:
-                "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), 0 1px 2px hsl(var(--olivewood) / 0.05)",
-            }}
+            className={`grid gap-1.5 ${rowItems.length === 4 ? "grid-cols-4" : "grid-cols-3"}`}
           >
-            {rowItems.map(({ Icon, label, value, sub, href }, i) => {
-              const Wrapper: ElementType = href ? "a" : "div";
-              const wrapperProps: { href?: string; target?: string; rel?: string } = href
+            {rowItems.map(({ Icon, label, value, sub, href, onClick, expanded }) => {
+              const Wrapper: ElementType = href ? "a" : onClick ? "button" : "div";
+              // `type` is the button literal union, not a bare string — a
+              // widened `string` here fails to satisfy <button>'s prop type.
+              const wrapperProps: { href?: string; target?: string; rel?: string; type?: "button" | "reset" | "submit"; onClick?: () => void; "aria-expanded"?: boolean } = href
                 ? { href, target: "_blank", rel: "noopener noreferrer" }
+                : onClick
+                ? { type: "button", onClick, "aria-expanded": expanded }
                 : {};
               return (
                 <Wrapper
                   key={label}
                   {...wrapperProps}
-                  aria-label={href ? `${label}: ${value}` : undefined}
-                  className={`flex-1 min-w-0 flex flex-col items-center justify-center px-1.5 py-2 ${
-                    i > 0 ? "border-l" : ""
-                  } ${href ? "glass-press cursor-pointer" : ""}`}
-                  style={i > 0 ? { borderLeftColor: "var(--glass-border)", borderLeftWidth: "0.5px" } : undefined}
+                  aria-label={href || onClick ? `${label}: ${value}` : undefined}
+                  className={`min-w-0 flex flex-col items-center justify-center gap-0.5 rounded-ds-md px-1.5 py-2 text-center ${href || onClick ? "glass-press cursor-pointer" : ""}`}
+                  style={{
+                    backgroundColor: "var(--glass-bg-soft)",
+                    backdropFilter: "blur(18px) saturate(160%)",
+                    WebkitBackdropFilter: "blur(18px) saturate(160%)",
+                    border: "0.5px solid var(--glass-border)",
+                    boxShadow:
+                      "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), 0 1px 2px hsl(var(--olivewood) / 0.05)",
+                  }}
                 >
-                  <span className="flex items-center gap-1 min-w-0 max-w-full">
-                    <Icon
-                      className="w-3.5 h-3.5 shrink-0"
-                      style={{ color: "hsl(var(--burnt-sienna) / 0.7)" }}
-                      aria-hidden
-                    />
-                    <span
-                      className="font-sans font-semibold text-ds-14 leading-tight tracking-tight truncate"
-                      style={{ color: "hsl(var(--ink-deep))" }}
-                    >
-                      {value}
-                    </span>
+                  <Icon
+                    className="w-3.5 h-3.5 shrink-0"
+                    style={{ color: "hsl(var(--burnt-sienna) / 0.7)" }}
+                    aria-hidden
+                  />
+                  <span
+                    className="font-sans font-semibold text-ds-12 leading-tight tracking-tight truncate max-w-full"
+                    style={{ color: "hsl(var(--ink-deep))" }}
+                  >
+                    {value}
                   </span>
                   {sub && (
                     <span
-                      className="font-serif italic text-ds-11 truncate max-w-full mt-0.5"
+                      className="font-serif italic text-ds-10 truncate max-w-full"
                       style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                     >
                       {sub}
@@ -277,6 +301,9 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
         return (
           <>
             {compactRow}
+            {/* Replaces the old external-maps link — tapping "Where" reveals
+                the pin IN this sheet instead of leaving the page. */}
+            {showMap && <JobLocationPreview address={job.location} />}
             {tileGrid}
           </>
         );

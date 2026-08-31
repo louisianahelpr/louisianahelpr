@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ShieldAlert, AlertTriangle, Clock, Ban } from "lucide-react";
+import { AlertTriangle, Clock, Ban } from "lucide-react";
 import { toast } from "sonner";
 import { createNotification } from "@/lib/notifications";
 import { logAdminAction } from "@/lib/adminAudit";
@@ -264,11 +264,6 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
     <Dialog open={!!profile} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent>
         <DialogHero
-          eyebrow={
-            <>
-              <ShieldAlert className="w-3.5 h-3.5" /> Take action
-            </>
-          }
           title={`Take Action: ${profile?.full_name || "User"}`}
         />
         <div className="space-y-5">

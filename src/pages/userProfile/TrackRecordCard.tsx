@@ -1,7 +1,5 @@
-import { Clock, CheckCircle, Timer, RotateCcw, MapPin, Star, XCircle, ClipboardList, ShieldCheck } from "lucide-react";
-import type { GeoState } from "@/hooks/useUserLocation";
+import { Clock, CheckCircle, Timer, RotateCcw, Star, XCircle, ClipboardList, ShieldCheck } from "lucide-react";
 import type {
-  ProfileJob,
   ResponseMetrics,
   CancellationRate,
   PosterReputation,
@@ -17,12 +15,6 @@ type Props = {
   posterReputation: PosterReputation | null;
   hasCleanRecord: boolean;
   petCareSignal: PetCareSignal | null | undefined;
-  workedJobs: ProfileJob[];
-  showNearbyProof: boolean;
-  onShowNearbyProof: () => void;
-  viewerLoc: GeoState;
-  jobsNearbyCount: number | null;
-  nearbyRadiusMi: number;
 };
 
 /**
@@ -83,12 +75,6 @@ export const TrackRecordCard = ({
   posterReputation,
   hasCleanRecord,
   petCareSignal,
-  workedJobs,
-  showNearbyProof,
-  onShowNearbyProof,
-  viewerLoc,
-  jobsNearbyCount,
-  nearbyRadiusMi,
 }: Props) => {
   const cells: React.ReactNode[] = [];
 
@@ -209,29 +195,13 @@ export const TrackRecordCard = ({
     );
   }
 
-  /* Nearby proof — the count once geolocation resolves. The opt-in BUTTON is
-     not a metric and never belonged in this grid (or, before it, wedged
-     between the reply time and the cancel rate in the identity card); it
-     renders as a footer action below. */
-  const hasNearbyEligibleJobs = workedJobs.some(
-    (j) => j.status === "completed" && typeof j.latitude === "number" && typeof j.longitude === "number",
-  );
-  if (hasNearbyEligibleJobs && showNearbyProof && viewerLoc.status === "ready" && jobsNearbyCount !== null) {
-    cells.push(
-      <Metric
-        key="nearby"
-        icon={MapPin}
-        value={String(jobsNearbyCount)}
-        label={`${jobsNearbyCount === 1 ? "Job" : "Jobs"} within ${nearbyRadiusMi}mi of you`}
-      />,
-    );
-  }
+  // "Show jobs near you" opt-in button + nearby-proof metric REMOVED (item
+  // 24, 2026-08-30: "delete the show jobs near you button ... globally").
+  // It was a geolocation opt-in that compared the viewer's location against
+  // a helper's completed-job pins — low-signal on its own page and needed
+  // its own explanation to make sense next to reply time / cancel rate.
 
-  const showNearbyButton = hasNearbyEligibleJobs && !showNearbyProof;
-  const nearbyPending =
-    hasNearbyEligibleJobs && showNearbyProof && (viewerLoc.status === "loading" || viewerLoc.status === "error");
-
-  if (cells.length === 0 && !hasCleanRecord && !showNearbyButton && !nearbyPending) return null;
+  if (cells.length === 0 && !hasCleanRecord) return null;
 
   return (
     <section aria-labelledby="track-record-heading">
@@ -259,38 +229,6 @@ export const TrackRecordCard = ({
               <ShieldCheck className="w-3.5 h-3.5" />
               No disputes on record
             </span>
-          </div>
-        )}
-
-        {(showNearbyButton || nearbyPending) && (
-          <div className={cells.length > 0 || hasCleanRecord ? "mt-3 pt-3" : undefined} style={
-            cells.length > 0 || hasCleanRecord
-              ? { borderTop: "0.5px solid hsl(var(--olivewood) / 0.15)" }
-              : undefined
-          }>
-            {showNearbyButton && (
-              <button
-                onClick={onShowNearbyProof}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-ds-12 font-sans font-medium transition-colors"
-                style={{
-                  color: "hsl(var(--bark))",
-                  background: "hsl(var(--bark) / 0.06)",
-                  border: "0.5px solid hsl(var(--bark) / 0.18)",
-                }}
-              >
-                <MapPin className="w-3.5 h-3.5" />
-                Show jobs near you
-              </button>
-            )}
-            {nearbyPending && (
-              <span
-                className="inline-flex items-center gap-1.5 font-sans text-ds-12"
-                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-              >
-                <MapPin className="w-3.5 h-3.5" />
-                {viewerLoc.status === "loading" ? "Checking nearby…" : "Location unavailable"}
-              </span>
-            )}
           </div>
         )}
       </div>

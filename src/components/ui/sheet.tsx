@@ -1,11 +1,8 @@
 import * as SheetPrimitive from "@radix-ui/react-dialog";
 import { cva, type VariantProps } from "class-variance-authority";
-import { motion, useMotionValue, useDragControls, type PanInfo } from "framer-motion";
 import { X } from "lucide-react";
 import * as React from "react";
 
-import { prefersReducedMotion } from "@/lib/accessibility";
-import { hapticLight } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
 
 const Sheet = SheetPrimitive.Root;
@@ -38,27 +35,21 @@ const sheetVariants = cva(
       side: {
         top: "inset-x-0 top-0 border-b data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top",
         bottom:
-          // Pad the bottom past the iOS home indicator so a sheet's last
-          // control isn't tucked under it. (calc spacing must use `_` —
-          // Tailwind converts it to the whitespace CSS calc() requires.)
-          //
-          // `max-w-md mx-auto rounded-t-2xl` is the SHARED bottom-sheet shell
-          // and lives here, not at the call sites. Twelve sheets used to
-          // hand-carry these two tokens and five had lost one or both: two
-          // rendered square-cornered next to ten rounded ones, and eight
-          // stretched the full desktop width (a two-button action list
-          // becoming a 1400px band with a 13px label adrift in the middle).
-          // A caller that genuinely needs a different width/radius still wins
-          // via tailwind-merge — but it now has to say so on purpose.
-          // md+ : STOP being a bottom sheet. A sheet glued to the bottom edge
-          // is a phone idiom — on a desktop window it read as a 448px panel
-          // stuck to the floor under a full-screen dim, with the content it
-          // filters scrolled away above it. From md up it centres instead and
-          // rounds all four corners, i.e. it becomes the dialog it already
-          // behaves like. Vertical centring is done with `inset-y-0 + h-fit +
-          // my-auto` rather than a translate, because Radix animates the
-          // slide-in with a transform and a second transform would fight it.
-          "inset-x-0 bottom-0 max-w-md mx-auto border-t rounded-t-2xl pb-[calc(1.5rem_+_var(--safe-area-bottom,0px))] data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom md:top-0 md:h-fit md:my-auto md:rounded-2xl md:border md:pb-6",
+          // CENTERED MODAL, at every width — not a bottom-anchored phone
+          // sheet any more (owner, 2026-08-30, after reviewing centered
+          // modal / inset slide-up / anchored-panel options side by side:
+          // "lets do middle" for this group — Filters alone got the
+          // anchored-panel treatment instead, see FilterSheet.tsx). This
+          // used to be a true bottom sheet under `md`, centering only from
+          // `md` up because a sheet glued to the bottom edge read as a
+          // 448px panel stuck to the floor on a desktop window. That same
+          // reasoning now applies at every width: `inset-y-0 + h-fit +
+          // my-auto` centers vertically (not a translate, so Radix's own
+          // fade/zoom transform on enter/exit doesn't fight a second
+          // transform), rounds all four corners, and drops the bottom-edge
+          // padding a floor-anchored sheet needed for iOS home-indicator
+          // clearance — a centered card has no bottom edge to protect.
+          "inset-x-0 inset-y-0 top-0 h-fit my-auto max-w-md mx-auto rounded-2xl border pb-6 data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
         left: "inset-y-0 left-0 h-full w-3/4 border-r data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-sm",
         right:
           "inset-y-0 right-0 h-full w-3/4  border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm",
@@ -74,20 +65,14 @@ interface SheetContentProps
   extends React.ComponentPropsWithoutRef<typeof SheetPrimitive.Content>,
     VariantProps<typeof sheetVariants> {}
 
-// Drag-to-dismiss tuning for bottom sheets — mirrors the iOS sheet "flick
-// down to dismiss" gesture: commit on either enough distance or a fast
-// enough downward flick, otherwise spring back to rest.
-const SHEET_DISMISS_DISTANCE_PX = 120;
-const SHEET_DISMISS_VELOCITY = 600;
-
 const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Content>, SheetContentProps>(
   ({ side = "right", className, children, ...props }, ref) => {
     // For side="right" / "left" / "top" the sheet reaches the top of
     // the viewport so the close button needs to clear the iOS safe-area
     // inset (notch / Dynamic Island) — otherwise it ends up under the
-    // status bar and effectively un-tappable. Bottom sheets start
-    // mid-screen so safe-area-top is irrelevant; keep the close
-    // anchored at a flat top-4 for those. Right side also bumps by
+    // status bar and effectively un-tappable. `side="bottom"` is a
+    // centered modal now (see sheetVariants), never touching the top
+    // edge, so a flat top-4 is correct there too. Right side also bumps by
     // safe-area-right so landscape notches don't clip it either.
     const closeTop =
       side === "bottom"
@@ -95,41 +80,9 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
         : "calc(var(--safe-area-top, 0px) + 1rem)";
     const closeRight = "calc(var(--safe-area-right, 0px) + 1rem)";
 
-    // A hidden Radix Close lets us commit the dismiss using Radix's own
-    // close path (focus restore, onOpenChange) without threading the
-    // controlling setter down into this primitive.
-    const closeRef = React.useRef<HTMLButtonElement>(null);
-    const y = useMotionValue(0);
-    // Drag-to-dismiss must NOT own the whole sheet: framer's drag listener
-    // sets `touch-action: none` on its element, which on iOS swallowed every
-    // upward swipe before the inner `overflow-y-auto` could scroll — a tall
-    // sheet (Filters) was simply unscrollable in the app while desktop kept
-    // working via wheel events. The drag now starts only from the grab-handle
-    // strip at the sheet's top; everywhere else the finger scrolls content.
-    const dragControls = useDragControls();
-
-    const enableDragDismiss = side === "bottom" && !prefersReducedMotion();
-
-    const handleDragEnd = (_e: unknown, info: PanInfo) => {
-      const committed =
-        info.offset.y > SHEET_DISMISS_DISTANCE_PX ||
-        info.velocity.y > SHEET_DISMISS_VELOCITY;
-      if (committed) {
-        hapticLight();
-        closeRef.current?.click();
-        return;
-      }
-      // Released before threshold — snap back to rest.
-      y.set(0);
-    };
-
     return (
       <SheetPortal>
         <SheetOverlay />
-        {/* Keep Radix's open/close slide animations on Content; the drag
-            transform lives on an inner motion.div so the two don't fight
-            over `transform` (Radix animates enter/exit, framer animates the
-            live drag). */}
         {/* aria-describedby={undefined}: Radix warns once per open when a
             Content has no `Description` and no explicit `aria-describedby`.
             Every hero subtitle was removed app-wide (2026-07-25 "one main
@@ -143,35 +96,7 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
           aria-describedby={undefined}
           {...props}
         >
-          {enableDragDismiss ? (
-            <motion.div
-              className="relative"
-              // Only the downward direction pulls the sheet; an upward drag
-              // is clamped to 0 so the sheet can't be flung off-screen up.
-              drag="y"
-              dragControls={dragControls}
-              dragListener={false}
-              dragConstraints={{ top: 0, bottom: 0 }}
-              dragElastic={{ top: 0, bottom: 0.9 }}
-              dragMomentum={false}
-              onDragEnd={handleDragEnd}
-              style={{ y }}
-            >
-              {/* The drag-dismiss capture strip — covers the grab-handle zone
-                  every bottom sheet paints at its top. Stops short of the
-                  right edge so it never sits over the close button. */}
-              <div
-                aria-hidden
-                className="absolute inset-x-0 top-0 h-8 z-10"
-                style={{ touchAction: "none", right: "3.5rem" }}
-                onPointerDown={(e) => dragControls.start(e)}
-              />
-              {children}
-              <SheetPrimitive.Close ref={closeRef} className="sr-only" aria-hidden tabIndex={-1} />
-            </motion.div>
-          ) : (
-            children
-          )}
+          {children}
           <SheetCloseButton top={closeTop} right={closeRight} />
         </SheetPrimitive.Content>
       </SheetPortal>

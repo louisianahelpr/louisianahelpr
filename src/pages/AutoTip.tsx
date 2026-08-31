@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import PageHeader from "@/components/PageHeader";
+import AppPage from "@/components/AppPage";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -140,16 +140,12 @@ const AutoTip = () => {
   const cappedByMax = uncapped != null && example != null && example < Math.round(uncapped);
 
   return (
-    <div className="min-h-screen bg-premium-page pb-safe-nav">
-      <PageHeader title="Auto-Tip" />
-            {/* CANONICAL DOCUMENT-SCROLL SHELL — identical on every page that wears
-          it: `min-h-screen bg-premium-page pb-safe-nav` > <PageHeader> (default
-          width) > `page-measure mx-auto px-5 lg:px-8 xl:px-12 pt-4 pb-8`.
-          The header's `default` width IS this body class, so the title and the
-          content share one left edge at every breakpoint. Owner: these pages
-          "should share layouts ... there should not be any off from the rest",
-          so do not give this page its own max-width or gutter ladder. */}
-      <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pt-4 pb-8 space-y-5">
+    <AppPage title="Auto-Tip" backTo="/profile">
+      {/* AppPage owns the shell — AppShell + ProfileTabHeader + the single
+          centered content column. This page contributes nothing but its own
+          vertical rhythm; re-adding a `page-measure`/gutter wrapper here would
+          be a second max-width inside AppPage's own. */}
+      <div className="space-y-5">
         <section className="liquid-glass rounded-ds-md p-5 space-y-4">
           <p
             className="font-serif italic text-ds-13 leading-relaxed"
@@ -279,20 +275,32 @@ const AutoTip = () => {
               </p>
             </div>
           )}
+        </section>
 
-          {/* Instant release — the sibling money-trust preference (owner,
-              2026-08-24). Lives here because both answer the same question:
-              "how much friction do you want after a job wraps?" Safe to offer
-              because completion is DB-gated (photos + 30-min floor,
-              20260824235000); release fires on the next auto-release pass,
-              which runs every 30 minutes. */}
+        {/* Instant release gets its own section, not a subsection of
+            Auto-Tip (issue #172). The two used to share one <section> with
+            no heading of its own — a release-timing preference is a
+            different question from a tip amount, so burying it inside the
+            tip card read as a stray toggle rather than its own setting.
+            Same card chrome + heading treatment as the tip section above;
+            Save still persists both in one write (they're one profile row),
+            so the button stays below both rather than duplicating inside
+            each. Kept here because both answer "how much friction do you
+            want after a job wraps?" (owner, 2026-08-24). Safe to offer
+            because completion is DB-gated (photos + 30-min floor,
+            20260824235000); release fires on the next auto-release pass,
+            which runs every 30 minutes. */}
+        <section className="liquid-glass rounded-ds-md p-5 space-y-3">
+          <h2 className="font-display font-bold text-ds-14" style={{ color: "hsl(var(--ink-deep))" }}>
+            Instant Release
+          </h2>
           <div
             className="rounded-ds-md p-3 flex items-center justify-between gap-3"
             style={{ background: "hsl(var(--bark) / 0.06)", border: "0.5px solid hsl(var(--bark) / 0.18)" }}
           >
             <div className="min-w-0">
               <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
-                Instant Release
+                Release on completion
               </p>
               <p className="font-serif italic text-ds-11 leading-snug" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 Release payment as soon as the Helpr marks the job done with
@@ -306,16 +314,16 @@ const AutoTip = () => {
               className="shrink-0"
             />
           </div>
-
-          <Button
-            variant="primary"
-            onClick={() => void save()}
-            disabled={saving || !valueValid || !capValid}
-            className="w-full rounded-ds-md"
-          >
-            {saving ? "Saving…" : "Save"}
-          </Button>
         </section>
+
+        <Button
+          variant="primary"
+          onClick={() => void save()}
+          disabled={saving || !valueValid || !capValid}
+          className="w-full rounded-ds-md"
+        >
+          {saving ? "Saving…" : "Save"}
+        </Button>
         {/* A trailing explainer card used to sit here. Removed on owner
             instruction: it was a second explanation of the same feature at the
             far end of a short screen, after the Save button had already ended
@@ -323,7 +331,7 @@ const AutoTip = () => {
             means we confirm the tip rather than auto-charge it — was folded
             into the opening paragraph rather than lost. */}
       </div>
-    </div>
+    </AppPage>
   );
 };
 

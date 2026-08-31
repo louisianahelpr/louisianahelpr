@@ -3,8 +3,11 @@ import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload, Loader2, Check, MapPin } from "lucide-react";
+import { Check, MapPin } from "lucide-react";
 import { lookupParishByZip } from "@/lib/parishLookup";
+import { JOB_CATEGORY_LABELS, type JobCategory } from "@/lib/jobCategories";
+import { categoryColors } from "@/components/activity/activityConstants";
+import { CategoryIcon } from "@/components/job/CategoryIcon";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import type { ProfileEditFormProps } from "@/components/profile/profileEditForm/types";
 import { usePortfolio } from "@/components/profile/profileEditForm/usePortfolio";
@@ -13,6 +16,19 @@ import { RecentWorkSection } from "@/components/profile/profileEditForm/RecentWo
 import { SaveBar } from "@/components/profile/profileEditForm/SaveBar";
 
 export type { ProfileEditFormProps } from "@/components/profile/profileEditForm/types";
+
+// Preset skill chips — reuses the canonical job-category labels
+// (src/lib/jobCategories.ts) so a Helpr's offered skills line up with the
+// categories jobs actually get posted under, minus "Other" (that's the
+// free-text field below the chips, not a chip itself). "Moving" and
+// "Events" get a small wording nudge ("Moving Help" / "Event Help") since
+// these describe a *skill offered*, not a job category being posted.
+const SKILL_PRESETS: { value: JobCategory; label: string }[] = Object.entries(JOB_CATEGORY_LABELS)
+  .filter(([value]) => value !== "other")
+  .map(([value, label]) => ({
+    value: value as JobCategory,
+    label: value === "moving" ? "Moving Help" : value === "events" ? "Event Help" : label,
+  }));
 
 export function ProfileEditForm({
   profile,
@@ -32,34 +48,20 @@ export function ProfileEditForm({
   avatarBroken,
   setAvatarBroken,
   avatarUploading,
-  idUploading,
+  // Unused since the manual ID-upload card was removed (Stripe Identity owns
+  // verification). Kept in the signature so the shared props type and the ~3
+  // call sites don't churn; underscore marks them intentionally unread.
+  idUploading: _idUploading,
   saving,
   justSaved,
   onSave,
   onAvatarUpload,
-  onIdUpload,
+  onIdUpload: _onIdUpload,
   onBack,
   onPortfolioChange,
 }: ProfileEditFormProps) {
-  const idStatus = profile?.idv_status ?? null;
-  const hasId = !!profile?.id_document_url;
-  const idBadge = idStatus === "verified"
-    ? { label: "Verified", cls: "bg-success/10 text-green-800 dark:text-green-400" }
-    : (idStatus === "pending" || idStatus === "processing" || idStatus === "manual_review" || (hasId && !idStatus))
-    ? { label: "Pending review", cls: "bg-warning/10 text-amber-800 dark:text-amber-400" }
-    : idStatus === "failed"
-    ? { label: "Action needed", cls: "bg-destructive/10 text-destructive" }
-    // The chip and the button must never disagree, and they used to. This
-    // fallback said "Not uploaded" for ANY status the chain above doesn't
-    // name — and `not_started` is a real value the tier code writes, as is
-    // any status a future Stripe IDV revision adds. A profile with a document
-    // already on file therefore rendered the chip "Not uploaded" next to a
-    // button reading "Replace": you cannot replace something never uploaded.
-    // Both now branch on the same `hasId`, so the pair is consistent by
-    // construction whatever `idv_status` happens to hold.
-    : hasId
-    ? { label: "Uploaded", cls: "bg-muted text-muted-foreground" }
-    : { label: "Not uploaded", cls: "bg-muted text-muted-foreground" };
+  // ID-verification status locals removed with the manual-upload card —
+  // Stripe Identity owns that status now (stripe-idv-start / -webhook).
   const bioOk = bio.trim().length >= 20;
   const phoneValid = phone.replace(/\D/g, "").length >= 10;
   const locationValid = location.trim().length > 0;
@@ -67,6 +69,22 @@ export function ProfileEditForm({
   // format every consumer already parses. Split here only to count and to
   // preview the pills the public profile will render.
   const skillList = skills.split(",").map((s) => s.trim()).filter(Boolean);
+
+  // Presets vs. custom ("Other") — split skillList by whether each entry
+  // case-insensitively matches a preset chip label. Anything left over is
+  // custom text a Helpr typed (or a skill saved before this chip picker
+  // existed), so it must stay visible and editable, not silently dropped.
+  const presetLabelsLower = new Set(SKILL_PRESETS.map((s) => s.label.toLowerCase()));
+  const selectedPresets = skillList.filter((s) => presetLabelsLower.has(s.toLowerCase()));
+  const customSkills = skillList.filter((s) => !presetLabelsLower.has(s.toLowerCase()));
+
+  function toggleSkillPreset(label: string) {
+    const isSelected = skillList.some((s) => s.toLowerCase() === label.toLowerCase());
+    const next = isSelected
+      ? skillList.filter((s) => s.toLowerCase() !== label.toLowerCase())
+      : [...skillList, label];
+    setSkills(next.join(", "));
+  }
 
   // Dirty check — the Save bar drives only the text fields (avatar /
   // ID / portfolio persist on their own). Disabled when nothing in
@@ -84,6 +102,26 @@ export function ProfileEditForm({
   const [resolvedParish, setResolvedParish] = useState<string | null>(
     (profile?.parish ?? null),
   );
+
+  // "Other" skills free-text — kept as its own local buffer (not derived
+  // fresh from `skills` on every render) so typing a comma doesn't
+  // instantly re-join/trim the field out from under the cursor. Resynced
+  // only when the underlying saved profile's skills change (initial load /
+  // navigating back to this tab), same trigger as resolvedParish above.
+  const [customText, setCustomText] = useState(customSkills.join(", "));
+  useEffect(() => {
+    const saved = (profile?.skills ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+    const savedCustom = saved.filter((s) => !presetLabelsLower.has(s.toLowerCase()));
+    setCustomText(savedCustom.join(", "));
+    // presetLabelsLower is a stable module-derived Set each render; only
+    // profile?.skills should re-trigger this resync.
+  }, [profile?.skills]);
+
+  function handleCustomTextChange(value: string) {
+    setCustomText(value);
+    const customList = value.split(",").map((s) => s.trim()).filter(Boolean);
+    setSkills([...selectedPresets, ...customList].join(", "));
+  }
   useEffect(() => {
     const cleaned = zipCode.replace(/\D/g, "");
     if (cleaned.length !== 5) {
@@ -192,54 +230,9 @@ export function ProfileEditForm({
           </div>
         </div>
 
-        {/* Skills & services — restored 2026-08-27. `profiles.skills` had been
-            written on save since April but had no input anywhere in `src/`
-            (deleted by an unlabelled bot rewrite), so all 23 live profiles had
-            it blank and the public-profile skill pills never rendered.
-
-            STORAGE FORMAT: one comma-separated string, unchanged. Every
-            consumer parses it that way — instant-job-match, useDashboardData's
-            recommendation scoring, SavedHelperCard, useSavedHelpers' search
-            filter and ProfileHeaderCard's pills — so a chip picker or an array
-            column would have meant touching all five. A plain text field with
-            a live pill preview gives the chip affordance without changing what
-            is persisted. */}
-        <div className="rounded-2xl liquid-glass p-5 space-y-3">
-          <div className="flex items-baseline justify-between gap-3">
-            <Label htmlFor="skills" className="text-ds-11 block">Skills &amp; services</Label>
-            {skillList.length > 0 && (
-              <span className="text-ds-11 font-medium text-success inline-flex items-center gap-1">
-                <Check className="w-3 h-3" strokeWidth={3} /> {skillList.length} listed
-              </span>
-            )}
-          </div>
-          <Input
-            id="skills"
-            value={skills}
-            onChange={(e) => setSkills(e.target.value)}
-            placeholder="Cleaning, yard work, moving…"
-            autoCapitalize="words"
-            enterKeyHint="next"
-            className="h-10"
-          />
-          {skillList.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {skillList.map((s, i) => (
-                <span
-                  key={`${s}-${i}`}
-                  className="px-2 py-0.5 rounded-full text-ds-11 font-medium bg-primary/10 text-primary"
-                >
-                  {s}
-                </span>
-              ))}
-            </div>
-          )}
-          <p className="font-serif italic leading-snug text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            Separate each with a comma. These show as tags on your public profile and decide which jobs get matched to you.
-          </p>
-        </div>
-
-        {/* Bio section */}
+        {/* Bio section — ordered before Skills & Services (owner-confirmed
+            field order: Phone/City/ZIP, About You, Skills & Services,
+            Recent Work). */}
         <div className="rounded-2xl liquid-glass p-5 space-y-3">
           {/* A VISIBLE label, like every other field on this form. The bio
               carried its name in `aria-label` only, so a screen reader heard
@@ -276,53 +269,90 @@ export function ProfileEditForm({
           </p>
         </div>
 
-        {/* ID Verification section. The status badge sits on the right, and a
-            NAME sits on the left — the comment here used to argue "the body
-            copy below identifies the section on its own", which was the same
-            reasoning that left the bio unlabelled. It is true that you can work
-            out what the card is from the sentence inside it; it is also true
-            that every other card on this form tells you at a glance. This one
-            is the section a helpr is most anxious about, and it opened with a
-            status chip floating alone against a blank row. */}
-        <div id="id-verification-card" className="rounded-2xl liquid-glass p-5 space-y-4 scroll-mt-24">
-          <div className="flex items-baseline justify-between gap-2">
-            <h2 className="text-ds-11 font-medium leading-none" style={{ color: "hsl(var(--ink-deep))" }}>
-              ID verification
-            </h2>
-            <span className={`text-ds-9 px-1.5 py-0.5 rounded-full font-medium not-italic ${idBadge.cls}`}>{idBadge.label}</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <p className="font-serif italic leading-snug flex-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              Upload a government-issued ID. Encrypted in transit, used only for identity verification and fraud prevention.
-            </p>
-            <label className="shrink-0">
-              <span
-                className={`inline-flex items-center gap-1.5 text-ds-11 font-semibold px-3 h-9 rounded-ds-md cursor-pointer active:scale-[0.98] transition-all ${
-                  hasId
-                    ? "bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20"
-                    : "bg-primary text-primary-foreground hover:bg-primary/90"
-                }`}
-              >
-                {idUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-                {hasId ? "Replace" : "Upload"}
+        {/* Skills & services — restored 2026-08-27. `profiles.skills` had been
+            written on save since April but had no input anywhere in `src/`
+            (deleted by an unlabelled bot rewrite), so all 23 live profiles had
+            it blank and the public-profile skill pills never rendered.
+
+            STORAGE FORMAT: one comma-separated string, unchanged. Every
+            consumer parses it that way — instant-job-match, useDashboardData's
+            recommendation scoring, SavedHelperCard, useSavedHelpers' search
+            filter and ProfileHeaderCard's pills — so a chip picker or an array
+            column would have meant touching all five. A plain text field with
+            a live pill preview gives the chip affordance without changing what
+            is persisted. */}
+        <div className="rounded-2xl liquid-glass p-5 space-y-3">
+          <div className="flex items-baseline justify-between gap-3">
+            <Label htmlFor="skills" className="text-ds-11 block">Skills &amp; services</Label>
+            {skillList.length > 0 && (
+              <span className="text-ds-11 font-medium text-success inline-flex items-center gap-1">
+                <Check className="w-3 h-3" strokeWidth={3} /> {skillList.length} listed
               </span>
-              {/* The accessible name goes on the INPUT, not the <label> — a
-                  bare <label> has no implicit ARIA role, so `aria-label` on it
-                  is ignored (same trap already documented in PhotoNameSection).
-                  Without this the control announced as just "Replace" / a bare
-                  file input; now it says what is being replaced, and it tracks
-                  `hasId` exactly like the visible word does. */}
-              <input
-                type="file"
-                aria-label={hasId ? "Replace your ID document" : "Upload your ID document"}
-                accept="image/jpeg,image/png,image/webp,application/pdf"
-                className="hidden"
-                onChange={onIdUpload}
-                disabled={idUploading}
-              />
-            </label>
+            )}
           </div>
+          {/* Preset chips — tap to toggle in/out of the comma-separated
+              `skills` string. Same category palette + icon as the job cards
+              and the map popup (`categoryColors` + `CategoryIcon`), so a
+              skill reads as the same category chip everywhere in the app,
+              not a differently-styled one-off here. One scrolling row
+              (not wrap) keeps the card's height fixed regardless of how
+              many presets exist. */}
+          <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
+            {SKILL_PRESETS.map(({ value, label }) => {
+              const active = skillList.some((s) => s.toLowerCase() === label.toLowerCase());
+              const catStyle = categoryColors[value] || categoryColors.other;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => toggleSkillPreset(label)}
+                  aria-pressed={active}
+                  /* Unselected chips are an OUTLINE of the same category colour, not a
+                     45%-opacity copy of the filled one. `opacity-45` multiplied through the
+                     AA-tuned badge tokens and dropped every unselected label to ~1.85:1 — a
+                     WCAG AA failure on all 11 presets. Filled-vs-outline carries the
+                     selected state without touching the text colour. */
+                  className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-ds-11 font-semibold transition-colors active:scale-95 ${
+                    active ? catStyle.badge : `bg-transparent border-border ${catStyle.title}`
+                  }`}
+                >
+                  {active ? (
+                    <Check className="w-3 h-3 shrink-0" strokeWidth={3} />
+                  ) : (
+                    <CategoryIcon category={value} aria-hidden className="w-3 h-3 shrink-0" strokeWidth={2.25} />
+                  )}
+                  <span className="font-serif italic whitespace-nowrap">{label}</span>
+                </button>
+              );
+            })}
+          </div>
+          <div>
+            <Label htmlFor="skillsOther" className="text-ds-11 mb-1.5 block text-muted-foreground">
+              Other (not listed above)
+            </Label>
+            <Input
+              id="skillsOther"
+              value={customText}
+              onChange={(e) => handleCustomTextChange(e.target.value)}
+              placeholder="Anything else you offer…"
+              autoCapitalize="words"
+              enterKeyHint="done"
+              className="h-10"
+            />
+          </div>
+          <p className="font-serif italic leading-snug text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            Tap what applies, or type your own. These show as tags on your public profile and decide which jobs get matched to you.
+          </p>
         </div>
+
+        {/* ID verification card REMOVED (owner, 2026-08-30: "remove done by
+            stripe"). This was a manual government-ID upload into the `avatars`
+            bucket that set `idv_status: "pending"` for a human to review.
+            Identity verification is Stripe Identity's job — see the
+            `stripe-idv-start` / `stripe-idv-webhook` edge functions, which own
+            the session and write the real status back. Two parallel ID paths
+            meant a helpr could upload a document here that Stripe never saw,
+            and sit "pending" behind a queue that no longer decides anything. */}
 
         {/* Work portfolio — photos of previous work shown on the public
             profile when applicants are deciding who to hire. Up to 6 images,

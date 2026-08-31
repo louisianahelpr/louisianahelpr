@@ -3,8 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { CheckCircle2, Loader2, Send } from "lucide-react";
 import { toast } from "sonner";
 
-import BackButton from "@/components/BackButton";
-import PublicLayout from "@/components/marketing/PublicLayout";
+import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -121,26 +120,6 @@ function validate(draft: Draft, identified: boolean): Partial<Record<FieldKey, s
 /* -------------------------------------------------------------------------- */
 /* Sections                                                                    */
 /* -------------------------------------------------------------------------- */
-
-/**
- * Compact page header — canonical BackButton to the LEFT of a normal-size page
- * title. Identical row shape to /help; /support is a
- * secondary destination reached from a footer/legal link, not a landing.
- */
-const PageIntro = () => (
-  <section className="px-5 sm:px-8 lg:px-12">
-    <div className="page-measure mx-auto">
-      <div className="flex items-center gap-3 mt-4 mb-3 md:mt-5 md:mb-4">
-        <div className="shrink-0">
-          <BackButton />
-        </div>
-        <div className="flex flex-col leading-none min-w-0 flex-1">
-          <h1 className="text-page-title leading-tight truncate">Contact Support</h1>
-        </div>
-      </div>
-    </div>
-  </section>
-);
 
 /** Shared squircle treatment used by every panel on the public pages. */
 const PANEL_STYLE = {
@@ -289,11 +268,17 @@ const Support = () => {
   };
 
   return (
-    // The compact header below carries the canonical BackButton.
-    <PublicLayout>
-      <PageIntro />
-
-      <section className="container mx-auto px-5 pt-0 pb-8">
+    // Shared shell (PublicHeaderPage) — same component Legal, Jobs and Help
+    // Center render through (owner, 2026-08-30: "legal help center and jobs
+    // should all be one component and share the same shell"). This page's
+    // body used to be `container mx-auto px-5` — Tailwind's fixed-width
+    // `.container` class, NOT the `px-5 sm:px-8 lg:px-12` ladder the header
+    // (and every sibling page) uses — so the form panel sat narrower than
+    // the header above it and stopped growing past `sm`, instead of filling
+    // the same column. The shell fixes both the gutter and the double-gap
+    // bug at once.
+    <PublicHeaderPage title="Contact Support" bottomPaddingClassName="pb-8">
+      <section>
         <div className="page-measure mx-auto">
 
           {/* Right column — the form (or its success state). */}
@@ -551,7 +536,7 @@ const Support = () => {
           </div>
         </div>
       </section>
-    </PublicLayout>
+    </PublicHeaderPage>
   );
 };
 

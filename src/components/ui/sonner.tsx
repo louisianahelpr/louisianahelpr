@@ -79,18 +79,71 @@ const Toaster = ({ ...props }: ToasterProps) => {
         classNames: {
           toast:
             "group toast !rounded-2xl !border-0 !shadow-[0_1px_2px_hsl(var(--olivewood)/0.06),0_14px_30px_-8px_hsl(var(--olivewood)/0.20)] !text-[hsl(var(--ink-deep))] !font-serif !italic !text-ds-14 !leading-snug !backdrop-blur-[18px] !backdrop-saturate-[160%] before:absolute before:inset-0 before:rounded-2xl before:border before:border-[hsl(var(--olivewood)/0.12)] before:pointer-events-none",
-          title: "!font-display !italic !font-bold !not-[font-serif] !text-ds-15 !leading-tight !text-[hsl(var(--ink-deep))]",
-          description: "!font-serif !italic !text-ds-12 !text-[hsl(var(--olivewood)/0.8)]",
+          // Titles wrap like any other text now. The old `!whitespace-nowrap`
+          // (owner, 2026-08-30: "one line", aimed at short titles like "Turn
+          // on notifications?") also caught every plain `toast.error("...")`
+          // call — sonner puts a bare string in the title slot, not the
+          // description — and those routinely run a full sentence
+          // ("Location access denied — allow it in Settings to share your
+          // location."). `nowrap` forced that sentence onto one line wider
+          // than the toast's own box, so the tail got clipped behind the
+          // close button instead of wrapping. `!min-w-0` lets the title
+          // shrink inside the flex row (text + action/cancel/close buttons)
+          // so it wraps at the actual available width instead of the text's
+          // un-shrunk intrinsic width; short titles still render on one line
+          // because they're short, not because wrapping is disabled.
+          title: "!font-display !italic !font-bold !not-[font-serif] !text-ds-15 !leading-tight !whitespace-normal !break-words !min-w-0 !text-[hsl(var(--ink-deep))]",
+          description: "!font-serif !italic !text-ds-12 !text-[hsl(var(--olivewood)/0.8)] !whitespace-normal !break-words !min-w-0",
+          // Action ("View", "Retry", …) — the toast's one real control, so it
+          // gets the app's primary-CTA surface in miniature: the same bark
+          // gradient, top-edge highlight and lift as <Button variant="primary">
+          // rather than a flat pill, plus a press collapse. Sized to the
+          // message (h-8, text-ds-12) so it reads as a control inside a toast,
+          // not a button that happens to be in one.
           actionButton:
-            "!bg-[hsl(var(--bark))] !text-[hsl(var(--parchment))] !font-sans !font-semibold !rounded-full !px-3 !h-8",
+            "!bg-[image:linear-gradient(180deg,hsl(var(--bark))_0%,hsl(var(--bark)/0.88)_100%)] " +
+            "!text-[hsl(var(--parchment))] !font-sans !font-semibold !not-italic !text-ds-12 !tracking-[0.01em] " +
+            "!rounded-full !px-3.5 !h-8 !min-h-0 !shrink-0 !border !border-[hsl(var(--bark))] " +
+            "!shadow-[inset_0_1px_0_hsl(var(--parchment)/0.22),0_1px_2px_hsl(var(--olivewood)/0.18),0_6px_14px_-6px_hsl(var(--bark)/0.5)] " +
+            "hover:!brightness-110 active:!scale-[0.97] !transition-[transform,filter,box-shadow] !duration-150",
           // Sonner's default puts this half-outside the top-LEFT corner
           // (translate(-35%,-35%)) — floating off the card rather than
-          // reading as part of the message. Repinned inside the toast's own
-          // top-right corner instead, sized to a real 24px target with brand
-          // ink, and only fully opaque on hover/focus so it reads as chrome
-          // rather than competing with the message.
+          // reading as part of the message.
+          //
+          // IN THE FLOW, not on top of it. Sonner positions this absolutely,
+          // so pinning it to the top-right corner parked it ON the toast's
+          // action button — "Saved to your Helprs [View]" had the × sitting
+          // over the View control, so the dismiss and the action shared the
+          // same pixels. `!relative !order-last` drops it back into the
+          // toast's flex row as the last item, to the RIGHT of the message
+          // and the action, where it covers nothing. (`relative`, not
+          // `static`, so the ::after hit area below still anchors to this
+          // button rather than to the whole toast.)
+          //
+          // SIZE IS LOAD-BEARING, not decoration. index.css sets a bare
+          // `button { min-height: 44px }` for the HIG touch minimum, and with
+          // no size of its own this button inherited it and rendered a 44×44
+          // slab (measured) inside a ~60px-tall toast — a close affordance
+          // nearly as tall as the message it sat on, overlapping the text.
+          // `!min-h-0` releases that floor and `!w-7 !h-7` pins a 28px glyph
+          // box that fits the card.
+          //
+          // The 44px TAP TARGET is preserved, not sacrificed: `after:-inset-2`
+          // lays a transparent 44×44 hit area over the 28px paint. Hit area is
+          // the accessibility contract; the box is just paint.
+          //
+          // BARE GLYPH — no chip, no border. The × wore a bordered parchment
+          // circle, which gave dismissal a button surface of its own sitting
+          // beside the real action; two pills in one toast read as two choices
+          // of equal weight. Dismiss is chrome, so it's now just the mark, and
+          // only reaches full ink on hover/focus.
           closeButton:
-            "!left-auto !right-2 !top-2 ![transform:none] !bg-[hsl(var(--parchment))] !border !border-[hsl(var(--olivewood)/0.18)] !text-[hsl(var(--olivewood))] hover:!bg-[hsl(var(--parchment))] hover:!text-[hsl(var(--ink-deep))] hover:!border-[hsl(var(--olivewood)/0.35)] focus-visible:!ring-2 focus-visible:!ring-[hsl(var(--bark)/0.45)]",
+            "!relative !order-last !left-auto !right-auto !top-auto !ml-1 !shrink-0 ![transform:none] " +
+            "!w-7 !h-7 !min-h-0 !min-w-0 !p-0 !rounded-full " +
+            "!flex !items-center !justify-center after:absolute after:content-[''] after:-inset-2 " +
+            "!bg-transparent !border-0 !shadow-none !text-[hsl(var(--olivewood)/0.65)] " +
+            "hover:!bg-[hsl(var(--olivewood)/0.10)] hover:!text-[hsl(var(--ink-deep))] " +
+            "!transition-colors !duration-150 focus-visible:!ring-2 focus-visible:!ring-[hsl(var(--bark)/0.45)]",
           cancelButton:
             "!bg-transparent !text-[hsl(var(--olivewood)/0.8)] !font-sans !font-semibold !rounded-full !px-3 !h-8",
           success: "!bg-[hsl(var(--parchment)/0.96)] [&_[data-icon]]:!text-[hsl(var(--bark))]",

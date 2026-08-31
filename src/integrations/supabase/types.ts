@@ -260,102 +260,6 @@ export type Database = {
         }
         Relationships: []
       }
-      community_post_likes: {
-        Row: {
-          post_id: string
-          user_id: string
-        }
-        Insert: {
-          post_id: string
-          user_id: string
-        }
-        Update: {
-          post_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "community_post_likes_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "community_posts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      community_posts: {
-        Row: {
-          after_photo_url: string | null
-          author_id: string
-          before_photo_url: string | null
-          body: string | null
-          category: string | null
-          created_at: string
-          id: string
-          is_approved: boolean
-          job_id: string | null
-          like_count: number
-          parish: string | null
-          photos: string[] | null
-          post_type: string
-          title: string | null
-        }
-        Insert: {
-          after_photo_url?: string | null
-          author_id: string
-          before_photo_url?: string | null
-          body?: string | null
-          category?: string | null
-          created_at?: string
-          id?: string
-          is_approved?: boolean
-          job_id?: string | null
-          like_count?: number
-          parish?: string | null
-          photos?: string[] | null
-          post_type: string
-          title?: string | null
-        }
-        Update: {
-          after_photo_url?: string | null
-          author_id?: string
-          before_photo_url?: string | null
-          body?: string | null
-          category?: string | null
-          created_at?: string
-          id?: string
-          is_approved?: boolean
-          job_id?: string | null
-          like_count?: number
-          parish?: string | null
-          photos?: string[] | null
-          post_type?: string
-          title?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "community_posts_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "jobs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "community_posts_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "jobs_helper_safe"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "community_posts_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "open_jobs_browse"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       cron_run_log: {
         Row: {
           body: Json
@@ -591,30 +495,6 @@ export type Database = {
         }
         Relationships: []
       }
-      email_unsubscribe_tokens: {
-        Row: {
-          created_at: string
-          email: string
-          id: string
-          token: string
-          used_at: string | null
-        }
-        Insert: {
-          created_at?: string
-          email: string
-          id?: string
-          token: string
-          used_at?: string | null
-        }
-        Update: {
-          created_at?: string
-          email?: string
-          id?: string
-          token?: string
-          used_at?: string | null
-        }
-        Relationships: []
-      }
       error_logs: {
         Row: {
           context: Json
@@ -653,50 +533,6 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
-      }
-      evacuation_pets: {
-        Row: {
-          created_at: string
-          destination_address: string | null
-          helper_id: string | null
-          id: string
-          notes: string | null
-          owner_id: string
-          pet_id: string
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          destination_address?: string | null
-          helper_id?: string | null
-          id?: string
-          notes?: string | null
-          owner_id: string
-          pet_id: string
-          status?: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          destination_address?: string | null
-          helper_id?: string | null
-          id?: string
-          notes?: string | null
-          owner_id?: string
-          pet_id?: string
-          status?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "evacuation_pets_pet_id_fkey"
-            columns: ["pet_id"]
-            isOneToOne: false
-            referencedRelation: "pet_profiles"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       favorite_helpers: {
         Row: {
@@ -859,65 +695,6 @@ export type Database = {
         }
         Relationships: []
       }
-      helper_circle_members: {
-        Row: {
-          added_at: string | null
-          category: string | null
-          circle_id: string
-          helper_id: string
-          id: string
-          nickname: string | null
-        }
-        Insert: {
-          added_at?: string | null
-          category?: string | null
-          circle_id: string
-          helper_id: string
-          id?: string
-          nickname?: string | null
-        }
-        Update: {
-          added_at?: string | null
-          category?: string | null
-          circle_id?: string
-          helper_id?: string
-          id?: string
-          nickname?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "helper_circle_members_circle_id_fkey"
-            columns: ["circle_id"]
-            isOneToOne: false
-            referencedRelation: "helper_circles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      helper_circles: {
-        Row: {
-          created_at: string | null
-          description: string | null
-          id: string
-          name: string
-          owner_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          name: string
-          owner_id: string
-        }
-        Update: {
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          name?: string
-          owner_id?: string
-        }
-        Relationships: []
-      }
       helper_credentials: {
         Row: {
           created_at: string
@@ -969,33 +746,6 @@ export type Database = {
           user_id?: string
           vendor_check_id?: string | null
           verified_at?: string | null
-        }
-        Relationships: []
-      }
-      helper_late_cancellations: {
-        Row: {
-          cancelled_at: string
-          helper_id: string
-          id: string
-          job_id: string
-          minutes_before_start: number | null
-          reason: string | null
-        }
-        Insert: {
-          cancelled_at?: string
-          helper_id: string
-          id?: string
-          job_id: string
-          minutes_before_start?: number | null
-          reason?: string | null
-        }
-        Update: {
-          cancelled_at?: string
-          helper_id?: string
-          id?: string
-          job_id?: string
-          minutes_before_start?: number | null
-          reason?: string | null
         }
         Relationships: []
       }
@@ -1252,52 +1002,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
-      }
-      job_boosts: {
-        Row: {
-          boosted_at: string
-          boosted_by: string
-          helpers_notified: number | null
-          id: string
-          job_id: string
-        }
-        Insert: {
-          boosted_at?: string
-          boosted_by: string
-          helpers_notified?: number | null
-          id?: string
-          job_id: string
-        }
-        Update: {
-          boosted_at?: string
-          boosted_by?: string
-          helpers_notified?: number | null
-          id?: string
-          job_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "job_boosts_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "jobs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "job_boosts_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "jobs_helper_safe"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "job_boosts_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "open_jobs_browse"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       job_checkins: {
         Row: {
@@ -2164,6 +1868,7 @@ export type Database = {
           attachment_url: string | null
           content: string
           created_at: string
+          edited_at: string | null
           flag_reason: string | null
           flagged_hidden: boolean
           id: string
@@ -2181,6 +1886,7 @@ export type Database = {
           attachment_url?: string | null
           content: string
           created_at?: string
+          edited_at?: string | null
           flag_reason?: string | null
           flagged_hidden?: boolean
           id?: string
@@ -2198,6 +1904,7 @@ export type Database = {
           attachment_url?: string | null
           content?: string
           created_at?: string
+          edited_at?: string | null
           flag_reason?: string | null
           flagged_hidden?: boolean
           id?: string
@@ -3426,51 +3133,6 @@ export type Database = {
         }
         Relationships: []
       }
-      retainer_agreements: {
-        Row: {
-          budget_per_session: number
-          category: string
-          created_at: string | null
-          customer_id: string
-          description: string | null
-          discount_percent: number | null
-          frequency: string
-          helper_id: string
-          id: string
-          next_job_date: string | null
-          status: string
-          updated_at: string | null
-        }
-        Insert: {
-          budget_per_session: number
-          category: string
-          created_at?: string | null
-          customer_id: string
-          description?: string | null
-          discount_percent?: number | null
-          frequency: string
-          helper_id: string
-          id?: string
-          next_job_date?: string | null
-          status?: string
-          updated_at?: string | null
-        }
-        Update: {
-          budget_per_session?: number
-          category?: string
-          created_at?: string | null
-          customer_id?: string
-          description?: string | null
-          discount_percent?: number | null
-          frequency?: string
-          helper_id?: string
-          id?: string
-          next_job_date?: string | null
-          status?: string
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
       reviews: {
         Row: {
           communication: number | null
@@ -3685,48 +3347,6 @@ export type Database = {
           },
         ]
       }
-      social_post_drafts: {
-        Row: {
-          content: string
-          created_at: string
-          id: string
-          image_url: string | null
-          media_type: string
-          published_at: string | null
-          reviewed_by: string | null
-          status: string
-          style: string | null
-          video_url: string | null
-          voiceover_url: string | null
-        }
-        Insert: {
-          content: string
-          created_at?: string
-          id?: string
-          image_url?: string | null
-          media_type?: string
-          published_at?: string | null
-          reviewed_by?: string | null
-          status?: string
-          style?: string | null
-          video_url?: string | null
-          voiceover_url?: string | null
-        }
-        Update: {
-          content?: string
-          created_at?: string
-          id?: string
-          image_url?: string | null
-          media_type?: string
-          published_at?: string | null
-          reviewed_by?: string | null
-          status?: string
-          style?: string | null
-          video_url?: string | null
-          voiceover_url?: string | null
-        }
-        Relationships: []
-      }
       str_calendar_connections: {
         Row: {
           auto_create_cleaning: boolean
@@ -3849,27 +3469,6 @@ export type Database = {
           event_id?: string
           event_type?: string
           processed_at?: string
-        }
-        Relationships: []
-      }
-      subscription_waitlist: {
-        Row: {
-          created_at: string
-          desired_tier: string
-          id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          desired_tier: string
-          id?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          desired_tier?: string
-          id?: string
-          user_id?: string
         }
         Relationships: []
       }
@@ -4416,67 +4015,6 @@ export type Database = {
           },
         ]
       }
-      worker_protection_credits: {
-        Row: {
-          amount: number
-          created_at: string
-          credit_type: string
-          expires_at: string | null
-          helper_id: string
-          id: string
-          issued_at: string | null
-          job_id: string | null
-          reason: string | null
-          status: string
-        }
-        Insert: {
-          amount: number
-          created_at?: string
-          credit_type: string
-          expires_at?: string | null
-          helper_id: string
-          id?: string
-          issued_at?: string | null
-          job_id?: string | null
-          reason?: string | null
-          status?: string
-        }
-        Update: {
-          amount?: number
-          created_at?: string
-          credit_type?: string
-          expires_at?: string | null
-          helper_id?: string
-          id?: string
-          issued_at?: string | null
-          job_id?: string | null
-          reason?: string | null
-          status?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "worker_protection_credits_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "jobs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "worker_protection_credits_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "jobs_helper_safe"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "worker_protection_credits_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "open_jobs_browse"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     }
     Views: {
       jobs_helper_safe: {
@@ -4913,10 +4451,19 @@ export type Database = {
         Returns: number
       }
       check_dispute_velocity: { Args: { p_user_id: string }; Returns: boolean }
-      claim_idv_attempt: {
-        Args: { p_max_attempts?: number; p_user_id: string }
-        Returns: Json
-      }
+      claim_idv_attempt:
+        | {
+            Args: { p_max_attempts?: number; p_user_id: string }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_max_attempts?: number
+              p_skip_fee_gate?: boolean
+              p_user_id: string
+            }
+            Returns: Json
+          }
       cleanup_observability_tables: { Args: never; Returns: undefined }
       cleanup_stripe_webhook_events: { Args: never; Returns: undefined }
       clear_available_now: { Args: never; Returns: undefined }
@@ -5730,6 +5277,10 @@ export type Database = {
         Returns: undefined
       }
       rpc_withdraw_dispute: { Args: { _job_id: string }; Returns: undefined }
+      search_profiles_by_name: {
+        Args: { query: string }
+        Returns: { avatar_url: string; full_name: string; user_id: string }[]
+      }
       set_available_now: { Args: { p_hours?: number }; Returns: string }
       set_thread_snooze: {
         Args: { _job_id: string; _other_user_id: string; _until: string }

@@ -39,7 +39,7 @@ export const JobDetailDialog = ({
   return (
     <Dialog open={!!detailJob && !deleteOpen} onOpenChange={onClose}>
       <DialogContent>
-        <DialogHero eyebrow="Job details" title={detailJob?.title} />
+        <DialogHero title={detailJob?.title} />
         {detailJob && (
           <div className="space-y-4">
             {/* Flags banner */}

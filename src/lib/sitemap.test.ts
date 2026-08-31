@@ -51,4 +51,19 @@ describe("sitemap.xml", () => {
     const leaked = sitemapPaths.filter((p) => redirectPaths.includes(p));
     expect(leaked).toEqual([]);
   });
+
+  // The redirect guard above only catches paths that became a <Navigate>. It
+  // does NOT catch a path that was deleted outright, which is how
+  // /subscription sat in the sitemap while rendering the 404 page (verified in
+  // a real browser: document.title "Page Not Found — Helpr", h1 "404"). The
+  // real screen is /profile?tab=subscription. Assert every listed path is an
+  // actually-registered route.
+  it("only lists paths that App.tsx still registers as routes", () => {
+    const registeredPaths = [...appTsx.matchAll(/path="([^"]+)"/g)].map((m) => m[1]);
+    const missing = sitemapPaths.filter(
+      // "/" is registered as path="/"; every other entry must match exactly.
+      (p) => !registeredPaths.includes(p),
+    );
+    expect(missing).toEqual([]);
+  });
 });

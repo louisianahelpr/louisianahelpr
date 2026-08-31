@@ -34,9 +34,10 @@ const DialogOverlay = React.forwardRef<
       className,
     )}
     style={{
-      // Lightened again 2026-08-29 (owner: "the background blur is too
-      // dark") — 26% still read as heavy on top of the 24px blur.
-      backgroundColor: "hsla(38, 22%, 22%, 0.14)",
+      // Lightened a THIRD time 2026-08-30 (owner: "lighten background
+      // again globally for this") — 14% still read as too dark on top of
+      // the 24px blur. History: 45% (near-black) -> 26% -> 14% -> 8%.
+      backgroundColor: "hsla(38, 22%, 22%, 0.08)",
       WebkitBackdropFilter: "blur(24px) saturate(1.5)",
     }}
     {...props}
@@ -46,8 +47,30 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, onOpenAutoFocus, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
+    /**
+     * Extra icon buttons (Share/Save/Report, etc.) rendered in the SAME
+     * flex row as the close X, immediately to its left — not a second,
+     * independently-positioned element the caller has to hand-offset to
+     * line up beside it (owner, 2026-08-30: "it does not belong to the
+     * component ... not pieced together" — JobDetailDialog used to render
+     * its own icon row at a magic-number `right-[2.875rem]` so it wouldn't
+     * collide with this button's own `right-3`, two siblings faking one
+     * toolbar). Pass the icon buttons here instead; this component owns
+     * the single row they all share.
+     */
+    topRightSlot?: React.ReactNode;
+    /**
+     * Shrinks the close X's tap target from the default 44px down to 32px,
+     * matching `topRightSlot`'s own compact icons (owner, 2026-08-30:
+     * "should be same size and spacing" — the X's 44px floor made it
+     * visibly larger than the 32px Share/Save/Report buttons beside it in
+     * the same row). Only affects THIS dialog instance — every other
+     * dialog's X keeps the full 44px accessible target.
+     */
+    compactClose?: boolean;
+  }
+>(({ className, children, onOpenAutoFocus, topRightSlot, compactClose = false, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
     <DialogPrimitive.Content
@@ -96,25 +119,38 @@ const DialogContent = React.forwardRef<
         // matching slide-out-* pair fixes the same inversion on close.
         // ANCHORED TO THE TOP, NOT VERTICALLY CENTRED.
         //
-        // Centring is what made dialogs "open small then get bigger" (owner):
-        // a vertically-centred box re-centres every time its content grows, and
-        // this app's dialogs grow constantly after mount — a photo decodes, a
-        // poster card resolves, a lazy chunk lands, a fee query returns. Each
-        // one shifted the whole dialog UP by half the new height, so the title
-        // the user was already reading slid out from under their eyes.
+        // Matched verbatim to AlertDialogContent — change one, change both.
         //
-        // Pinned at 7vh, growth extends DOWNWARD from a top edge that never
-        // moves. `max-h-[86vh]` keeps the bottom off the viewport edge, and the
-        // box scrolls internally past that. Small dialogs now sit slightly
-        // above true centre — which is where optical centre is anyway, and is
-        // what every mature dialog system does.
+        // CENTRED, and SHRINK-TO-FIT (owner, 2026-08-30: "center center and fit
+        // contents"). Was top-anchored at `top-[7vh]` on a fixed
+        // `w-[calc(100%-2rem)] max-w-lg`, so a short dialog sat high on the
+        // screen in a slab sized for a paragraph. Now `left-1/2 top-1/2` with
+        // `w-auto` + a max, so the box hugs its content.
         //
-        // HORIZONTAL centring is unchanged, so `slide-in-from-left-1/2` is
-        // still load-bearing (see the note above: the enter keyframe REPLACES
-        // transform, so the -50% x has to be restated as an enter var or the
-        // dialog animates in from the left edge). The vertical pair is gone
-        // with the vertical transform, replaced by a plain 1rem rise.
-        "glass-modal fixed left-[50%] top-[7vh] z-50 grid w-[calc(100%-2rem)] max-w-lg max-h-[86vh] overflow-y-auto translate-x-[-50%] gap-4 p-5 sm:p-7 duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-4 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-4",
+        // Centering rides the standalone `translate` property, NOT
+        // `-translate-x-1/2`/`-translate-y-1/2`. tailwindcss-animate's
+        // enter/exit keyframes WRITE `transform`, so transform-based centering
+        // is clobbered mid-animation and the modal swoops in from off-centre.
+        // That is why the old class list carried four `slide-*` classes — they
+        // existed only to restate the centering inside the keyframes.
+        // `translate` is a separate property the keyframes never touch, so the
+        // slide pairs are gone and the animation is just zoom + fade.
+        //
+        // KNOWN TRADE-OFF, recorded so it is not rediscovered as a bug: a
+        // vertically-centred box re-centres when its content grows, so a dialog
+        // whose body arrives late (an image decoding, a lazy chunk, a fee query)
+        // shifts up by half the added height. Top-anchoring was originally
+        // chosen to avoid exactly that ("opens small then gets bigger"). The
+        // owner asked for centred; if the jump becomes a problem the fix is to
+        // reserve the content's height, not to re-anchor one shell and split
+        // the two dialog primitives apart again.
+        // focus:outline-none (not focus-visible:) — this element is a Radix
+        // FocusScope focus-parking target (tabIndex={-1} from onOpenAutoFocus
+        // above), not a real keyboard-navigable widget. It never has a
+        // meaningful "visible focus" state to preserve, so the browser's
+        // default ring must be suppressed for every focus source, including
+        // the mouse-click case where FocusScope re-parks focus here.
+        "glass-modal fixed left-1/2 top-1/2 [translate:-50%_-50%] z-50 grid w-auto max-w-[calc(100%-2rem)] sm:max-w-lg max-h-[86vh] overflow-y-auto gap-3 p-4 sm:p-5 duration-300 focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
         className,
       )}
       // Radix warns once per open when a Content has no `Description` and no
@@ -130,14 +166,49 @@ const DialogContent = React.forwardRef<
       {...props}
     >
       {children}
+      {/* `topRightSlot` (Share/Save/Report, when a caller passes them) sits to
+          the left of the close X in its own absolute container. The offset
+          right-[46px] = right-3(12px) + w-8(32px) + gap-0.5(2px) keeps the
+          same visual gap as the previous single-row flex layout, while keeping
+          the close X independently absolute (required — see next comment). */}
+      {topRightSlot && (
+        <div className="absolute right-[46px] top-2 z-10 flex items-center gap-0.5">
+          {topRightSlot}
+        </div>
+      )}
       {/* Bare X — no filled disc, border, or shadow, matching SheetContent's
           close and BackButton's bare chevron. `rounded-md` shapes the focus
-          ring only; nothing is painted at rest. The 44x44 box is the tap
-          target and is independent of what is painted. */}
+          ring only; nothing is painted at rest.
+          44x44 by default (the HIG tap-target floor) — `compactClose`
+          shrinks it to 32x32 to match a `topRightSlot`'s own compact icons
+          (owner, 2026-08-30: "the 4 icons do not follow the same rules and
+          they need to" / "should be same size and spacing" — JobDetailDialog's
+          Share/Save/Flag are `compact` 32px, so the X was the one
+          inconsistent tile in that row). This is the shared close button
+          for every dialog in the app, so the inline min-height/min-width
+          override (needed to beat the global `button { min-height: 44px }`
+          floor) applies everywhere; `compactClose` only opts a specific
+          dialog instance INTO the smaller target, it never shrinks the
+          floor for dialogs that don't pass it.
+          MUST BE `position: absolute` (not a flex child): the apply-dialog-fit
+          e2e spec detects frame-chrome buttons via
+          `getComputedStyle(btn).position === "absolute"` and exempts them from
+          the content-box edge assertion — the X intentionally spans the padding
+          gutter at right-3, so it needs that exemption. */}
       <DialogPrimitive.Close
-        className="absolute right-3 top-3 w-11 h-11 p-0 box-border rounded-md btn-press flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
+        // `group` + the icon's own hover transform match the small lift every
+        // other chrome icon (Share/Save/Flag) gets on hover (owner,
+        // 2026-08-30: "make x do the same globally") — applied here since
+        // this X is the one shared by every dialog in the app.
+        // `focus-visible:`, not `focus:` (owner, 2026-08-31: "there
+        // shouldn't be a box around it when it's clicked") — plain
+        // `focus:` fires the ring on every mouse click, not just keyboard
+        // navigation. Matches the shared `Button` component's own
+        // convention (button.tsx uses `focus-visible:` throughout).
+        className={`absolute right-3 z-10 ${topRightSlot ? "top-2" : "top-3"} group w-8 p-0 box-border rounded-md btn-press flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none`}
+        style={compactClose ? { minHeight: "32px", minWidth: "32px" } : { minHeight: "44px", minWidth: "32px" }}
       >
-        <X className="h-5 w-5" strokeWidth={2} />
+        <X className="h-[18px] w-[18px] transition-transform duration-300 group-hover:-translate-y-0.5" strokeWidth={2} />
         <span className="sr-only">Close</span>
       </DialogPrimitive.Close>
     </DialogPrimitive.Content>
@@ -214,7 +285,9 @@ const DialogHero = ({ title }: {
 }) => (
   <DialogHeader className="space-y-0 text-left">
     <DialogTitle
-      className="font-display italic font-bold leading-tight pt-2"
+      // TIGHTENED (owner, 2026-08-29): was `pt-2`, matched to AlertDialogHero
+      // — see the note there. Change one, change both.
+      className="font-display italic font-bold leading-tight"
       style={{ fontSize: "clamp(1.2rem, 1.6vw + 0.4rem, 1.45rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
     >
       {title}

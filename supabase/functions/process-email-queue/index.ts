@@ -41,6 +41,12 @@ async function sendWithResend(apiKey: string, payload: any): Promise<void> {
       subject: payload.subject,
       html: payload.html,
       text: payload.text,
+      // Forwarded verbatim from the enqueuing function. Marketing/lifecycle
+      // sends set List-Unsubscribe so Gmail/Apple Mail render a native
+      // one-click unsubscribe control; transactional sends omit it. The
+      // worker had no way to pass these through before, so the header was
+      // unset on every queued email regardless of what the caller wanted.
+      ...(payload.headers ? { headers: payload.headers } : {}),
     }),
   })
 

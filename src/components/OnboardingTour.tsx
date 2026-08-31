@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef, useLayoutEffect } from "react";
 import { useLocation } from "react-router-dom";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Dialog, DialogPortal, DialogOverlay } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Home, ClipboardList, MessageSquare, User, Send, Plus, X } from "lucide-react";
+import { ArrowRight, Home, ClipboardList, MessageSquare, User, Send, Plus } from "lucide-react";
 import { safeStorage } from "@/lib/safeStorage";
 import { HelprMark } from "@/components/HelprMark";
 
@@ -73,7 +73,18 @@ type OnboardingState = {
 const getState = (): OnboardingState => {
   try {
     const raw = safeStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      // Defensively default fields that may be absent in older stored formats
+      // (e.g. {seen:true, completed:true} written before completedSteps was added).
+      // Without this, `state.completedSteps.includes(...)` throws and crashes
+      // the dashboard for users with legacy localStorage.
+      return {
+        completed: parsed.completed ?? false,
+        currentStep: parsed.currentStep ?? 0,
+        completedSteps: Array.isArray(parsed.completedSteps) ? parsed.completedSteps : [],
+      };
+    }
   } catch {
     /* fall through to default below */
   }
@@ -99,9 +110,25 @@ const OnboardingTour = ({ profileComplete = false }: OnboardingTourProps) => {
   const steps = profileComplete ? TOUR_STEPS.filter((s) => s.id !== "profile") : TOUR_STEPS;
   const currentStep = steps[state.currentStep] || steps[0];
 
-  // Once done — finished, skipped, or closed with the corner X — that's it,
-  // permanently. No snooze, no "resume later" pill: the tour shows exactly
-  // once per account, ever, and only while it hasn't been completed.
+  // Skip is centered under the DOTS specifically, not the card as a whole
+  // (owner: "center skip better under info and dots" / "CENTER UNDER
+  // DOTS!!!!!!!!!!!!!!!") — the dots row is left-aligned under the title
+  // and doesn't span the card's full width, so a plain `justify-center` on
+  // Skip centers it in the wrong box. Measuring the dots row's own rendered
+  // width and matching it on Skip's wrapper (both `mx-auto`) centers Skip
+  // under exactly that row, whatever width the step count happens to give it.
+  const dotsRowRef = useRef<HTMLDivElement>(null);
+  const [dotsWidth, setDotsWidth] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    const el = dotsRowRef.current;
+    if (!el) return;
+    setDotsWidth(el.getBoundingClientRect().width);
+  }, [steps.length]);
+
+  // Once done — finished, skipped, or dismissed via Escape/outside-click —
+  // that's it, permanently. No snooze, no "resume later" pill: the tour
+  // shows exactly once per account, ever, and only while it hasn't been
+  // completed.
   useEffect(() => {
     if (location.pathname !== "/dashboard") return;
     if (getState().completed) return;
@@ -117,8 +144,8 @@ const OnboardingTour = ({ profileComplete = false }: OnboardingTourProps) => {
     });
   }, []);
 
-  // Skip, the corner X, and Escape/outside-click all mean the same thing:
-  // done for good. See handleDialogOpenChange below.
+  // Skip and Escape/outside-click all mean the same thing: done for good.
+  // See handleDialogOpenChange below.
   const handleSkip = () => {
     updateState({ completed: true });
     setVisible(false);
@@ -180,18 +207,13 @@ const OnboardingTour = ({ profileComplete = false }: OnboardingTourProps) => {
           className="fixed z-50 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-sm focus:outline-none"
         >
           <div className="relative rounded-2xl liquid-glass shadow-2xl overflow-hidden motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 duration-300">
-          {/* Corner dismiss — same permanent-skip action as the "Skip" link
-              below, just the conventional top-right spot too. */}
-          <button
-            type="button"
-            onClick={handleSkip}
-            aria-label="Skip tour"
-            className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors z-10"
-          >
-            <X className="w-4 h-4" />
-          </button>
-          {/* Content */}
-          <div className="p-5 pb-1 text-center space-y-2.5">
+          {/* No corner X (owner, 2026-08-30: "just get rid of the x") — the
+              "Skip" link below is the one and only dismiss affordance now. */}
+          {/* Content — ONE block, Skip included (owner, 2026-08-30: "merge
+              skip into the content block" — it used to be a second sibling
+              div with its own top padding, reading as a seam between the
+              copy and the escape hatch). */}
+          <div className="p-5 pb-3 text-center space-y-2">
             <div className="flex items-center gap-4 text-left">
               {/* Icon sits bare — no tinted box — to the left of the copy. */}
               {/* Fixed slot width so the copy starts at the same x on every
@@ -237,43 +259,56 @@ const OnboardingTour = ({ profileComplete = false }: OnboardingTourProps) => {
                 turns green. Past dots can be tapped to jump back and
                 review. Future dots aren't clickable yet — the tour still
                 walks through content in order. */}
-            <div className="flex items-center justify-start gap-1.5">
-              <div
-                className="flex items-center justify-start gap-1.5"
-                role="tablist"
-                aria-label="Tour steps"
+            <div
+              ref={dotsRowRef}
+              className="flex items-center justify-between w-full"
+              role="tablist"
+              aria-label="Tour steps"
+            >
+              {steps.map((s, i) => {
+                const isCurrent = i === state.currentStep;
+                const isDone = state.completedSteps.includes(s.id);
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={isCurrent}
+                    aria-label={`Step ${i + 1}: ${s.title}`}
+                    onClick={() => handleDotClick(i)}
+                    className="p-0.5 flex items-center justify-center cursor-pointer"
+                  >
+                    <span
+                      aria-hidden
+                      className={`block h-5 w-5 rounded-full transition-all duration-300 ${
+                        isDone
+                          ? "bg-primary"
+                          : isCurrent
+                          ? "bg-burnt-sienna scale-125"
+                          : "bg-border hover:bg-border/70"
+                      }`}
+                      style={isCurrent && !isDone ? { backgroundColor: "hsl(var(--burnt-sienna))" } : undefined}
+                    />
+                  </button>
+                );
+              })}
+            </div>
+            {/* Skip + the "go ahead" arrow share ONE row, centered under the
+                DOTS row's own width, now that the dots span the full card
+                (owner: "skip on left end and arrow on right end", after
+                "center under circles" / "[put the arrow] to the right of
+                skip"). `dotsWidth` (measured off the dots row) bounds this
+                wrapper so `mx-auto` lines its ends up with the dots' ends. */}
+            <div className="mx-auto flex items-center justify-between" style={dotsWidth ? { width: dotsWidth } : undefined}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleSkip}
+                className="text-muted-foreground text-ds-11 font-normal rounded-ds-md"
               >
-                {steps.map((s, i) => {
-                  const isCurrent = i === state.currentStep;
-                  const isDone = state.completedSteps.includes(s.id);
-                  return (
-                    <button
-                      key={s.id}
-                      type="button"
-                      role="tab"
-                      aria-selected={isCurrent}
-                      aria-label={`Step ${i + 1}: ${s.title}`}
-                      onClick={() => handleDotClick(i)}
-                      className="p-1 flex items-center justify-center cursor-pointer"
-                    >
-                      <span
-                        aria-hidden
-                        className={`block h-6 w-6 rounded-full transition-all duration-300 ${
-                          isDone
-                            ? "bg-primary"
-                            : isCurrent
-                            ? "bg-burnt-sienna scale-125"
-                            : "bg-border hover:bg-border/70"
-                        }`}
-                        style={isCurrent && !isDone ? { backgroundColor: "hsl(var(--burnt-sienna))" } : undefined}
-                      />
-                    </button>
-                  );
-                })}
-              </div>
-              {/* "Go ahead" arrow — appears right next to the dots once
-                  every step has been viewed. Bare, no filled button chrome,
-                  just the icon so it reads as "next" rather than a CTA pill. */}
+                Skip
+              </Button>
+              {/* Appears once every step has been viewed. */}
               {allStepsDone && (
                 <button
                   type="button"
@@ -286,18 +321,6 @@ const OnboardingTour = ({ profileComplete = false }: OnboardingTourProps) => {
                 </button>
               )}
             </div>
-          </div>
-
-          {/* Skip stays available on every step as the escape hatch. */}
-          <div className="px-6 pb-2 pt-0.5 flex items-center justify-center">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleSkip}
-              className="text-muted-foreground text-ds-11 font-normal rounded-ds-md"
-            >
-              Skip
-            </Button>
           </div>
           </div>
         </DialogPrimitive.Content>

@@ -110,7 +110,7 @@ describe("ApplyConfirmDialog", () => {
   it("calls setApplyMessage as the pitch is typed", () => {
     const props = makeProps();
     render(<ApplyConfirmDialog {...props} />);
-    fireEvent.change(screen.getByLabelText(/add a note/i), {
+    fireEvent.change(screen.getByLabelText(/note to the poster/i), {
       target: { value: "I have done this before." },
     });
     expect(props.setApplyMessage).toHaveBeenCalledWith("I have done this before.");
@@ -128,16 +128,19 @@ describe("ApplyConfirmDialog", () => {
     expect(screen.getByRole("button", { name: "Applying…" })).toBeDisabled();
   });
 
-  it("rises from the BOTTOM, like the job sheet it follows", () => {
-    // The whole point of the rebuild (owner, 2026-08-28: "I don't like how one
-    // opens at the bottom then the next is in the middle"). The job sheet
-    // rises from the bottom edge; this used to be a centred AlertDialog that
-    // faded in mid-viewport after that sheet had dropped away. Assert the
-    // surface is anchored to the bottom, not centred.
+  it("is centered, matching every other sheet app-wide", () => {
+    // Superseded 2026-08-30: sheets moved from bottom-anchored to centered
+    // (owner reviewed centered-modal / inset-sheet / anchored-panel options
+    // and picked centered for this group — see sheet.tsx's sheetVariants).
+    // This dialog uses the SAME shared `side="bottom"` variant every other
+    // sheet does, so it must track whatever that variant currently renders —
+    // asserting a literal class string here would just re-break the next
+    // time the shared variant changes, so assert the outcome (vertically
+    // centered, not pinned to the bottom edge) instead.
     render(<ApplyConfirmDialog {...makeProps()} />);
     const sheet = screen.getByRole("dialog");
-    expect(sheet.className).toContain("bottom-0");
-    expect(sheet.className).not.toContain("translate-y-[-50%]");
+    expect(sheet.className).not.toContain("bottom-0");
+    expect(sheet.className).toContain("my-auto");
   });
 
   it("dismisses from the TOP-RIGHT, like every other sheet", () => {
@@ -158,12 +161,16 @@ describe("ApplyConfirmDialog", () => {
     expect(screen.queryByText(/characters feels personal/)).not.toBeInTheDocument();
     expect(screen.queryByText(/reads personal/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Your pitch/i)).not.toBeInTheDocument();
-    // The one job-specific nudge survives — as the placeholder, where the
-    // helpr is already looking when they decide what to type.
-    expect(screen.getByLabelText(/add a note/i)).toHaveAttribute(
-      "placeholder",
-      expect.stringMatching(/earliest available start time/) as unknown as string,
-    );
+    // The last coaching surface — the placeholder tip — is gone too (owner,
+    // 2026-08-29). The field opens empty; the label carries the only prompt.
+    expect(screen.getByLabelText(/note to the poster/i)).not.toHaveAttribute("placeholder");
+  });
+
+  it("tells the helpr the poster reads the note, in the label itself", () => {
+    // One title, not a title plus a subtitle repeating it. "Add a note" alone
+    // read like a private memo, so people left it blank or wrote carelessly.
+    render(<ApplyConfirmDialog {...makeProps()} />);
+    expect(screen.getByLabelText(/note to the poster/i)).toBeInTheDocument();
   });
 
   it("hides the character counter until the cap is in sight", () => {
@@ -193,9 +200,14 @@ describe("ApplyConfirmDialog", () => {
     expect(box).toHaveAttribute("data-state", "checked");
   });
 
-  it("lists attached files", () => {
+  it("has no per-application file picker", () => {
+    // Certs and work photos are uploaded ONCE on the profile (Edit Profile →
+    // Recent work) and posters see them there via HelperWorkPhotos, so
+    // re-attaching the same file on every application was repeated work.
     const file = new File(["resume contents"], "resume.pdf", { type: "application/pdf" });
-    render(<ApplyConfirmDialog {...makeProps({ applyFiles: [file] })} />);
-    expect(screen.getByText("resume.pdf")).toBeInTheDocument();
+    const { container } = render(<ApplyConfirmDialog {...makeProps({ applyFiles: [file] })} />);
+    expect(screen.queryByText("resume.pdf")).not.toBeInTheDocument();
+    expect(screen.queryByText(/add attachments/i)).not.toBeInTheDocument();
+    expect(container.querySelector('input[type="file"]')).toBeNull();
   });
 });

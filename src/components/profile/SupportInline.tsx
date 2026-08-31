@@ -9,6 +9,7 @@ import {
   MessageSquarePlus,
   Lightbulb,
   AlertTriangle,
+  HelpCircle,
   Send,
   CheckCircle2,
   ImagePlus,
@@ -34,6 +35,7 @@ const CATEGORY_ICONS: Record<SupportCategory, React.ReactNode> = {
   message: <MessageSquarePlus className="w-4 h-4" />,
   suggestion: <Lightbulb className="w-4 h-4" />,
   report: <AlertTriangle className="w-4 h-4" />,
+  other: <HelpCircle className="w-4 h-4" />,
 };
 
 const supportCategories = SUPPORT_TOPICS.map((topic) => ({

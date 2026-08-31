@@ -21,11 +21,9 @@ interface PostedJobApplicantsProps {
  * the applicants button is clicked" — removed; the button's existing
  * onLoadApplications -> ApplicantsPanel flow is the one surface now.
  *
- * The inline "Message all N applicants" broadcast composer lived only in
- * the removed block (`useBroadcastMessage`, still at
- * ./useBroadcastMessage.ts) and has no home in ApplicantsPanel today — that
- * capability is gone until/unless it's rebuilt there. Flagged, not silently
- * dropped: worth a decision if broadcasting to applicants should exist.
+ * The inline "Message all N applicants" broadcast composer was removed
+ * (owner: no product need for bulk-messaging applicants) along with its
+ * BroadcastComposer/useBroadcastMessage implementation.
  */
 export function PostedJobApplicants({
   job,

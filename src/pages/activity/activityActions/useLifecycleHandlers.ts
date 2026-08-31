@@ -223,37 +223,6 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
             }
           })();
         }
-
-        // Milestone community posts — fire-and-forget when the helper
-        // crosses a job-count threshold (10, 25, 50, 100, 200, 500).
-        // Only generated when the helper is the one calling completeJob
-        // (isHelper check). Swallows PGRST202 gracefully so this never
-        // breaks the flow when the community_posts table isn't on prod yet.
-        if (isHelper && user) {
-          (async () => {
-            try {
-              const { count } = await supabase
-                .from("jobs")
-                .select("id", { count: "exact", head: true })
-                .eq("helper_id", user.id)
-                .eq("status", "completed");
-              const completedCount = (count ?? 0);
-              const milestones = [10, 25, 50, 100, 200, 500];
-              if (milestones.includes(completedCount)) {
-                const helperParish: string | null = null; // parish fetched separately if needed
-                await supabase.from("community_posts").insert({
-                  author_id: user.id,
-                  post_type: "milestone",
-                  body: `just completed their ${completedCount}${completedCount === 1 ? "st" : completedCount === 2 ? "nd" : completedCount === 3 ? "rd" : "th"} job on Helpr!`,
-                  parish: helperParish,
-                  is_approved: true,
-                });
-              }
-            } catch {
-              // Non-fatal — milestone post is a nice-to-have
-            }
-          })();
-        }
       } else {
         hapticMedium();
         await refresh();

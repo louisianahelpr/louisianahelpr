@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { MapPin, Calendar, Home } from "lucide-react";
-import PageHeader from "@/components/PageHeader";
+import AppPage from "@/components/AppPage";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { unwrap } from "@/lib/supabaseResult";
@@ -101,30 +101,16 @@ const HomeHistory = () => {
   const loading = isLoading && !data;
 
   return (
-    // Document-scroll page: the record grows without bound (every completed
-    // job, for the life of the house), which is exactly what CLAUDE.md
-    // reserves document-scroll for. `/home-history` therefore STAYS in
-    // DOCUMENT_SCROLL_ROUTES.
-    //
-    // Header + page structure match the other Profile sub-pages (/pets is the
-    // reference): a plain back-chevron + serif title sitting directly on the
-    // page background via <PageHeader>, with the entries as their own cards on
-    // that background. The title card + panel treatment this page used to
-    // carry put a card around the header and a second card around the list —
-    // a card-in-a-card the owner flagged as off-pattern.
-    //
-    // Geometry is the CANONICAL Profile sub-screen ladder, shared verbatim
-    // with the Profile tab bodies (Profile.tsx) and PageHeader's `default`
-    // width: max-w-5xl → lg:6xl → xl:7xl → 2xl:90rem on px-5 → lg:px-8 →
-    // xl:px-12. This page used to stop at a fixed max-w-5xl on a px-4 gutter,
-    // which read as a narrower, differently-inset screen than every sibling.
-    <div className="min-h-screen bg-premium-page pb-safe-nav">
-      <PageHeader
-        title="Home History"
-        backTo="/profile"
-      />
-
-      <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pt-4 pb-8 space-y-5">
+    // AppPage — the shared signed-in sub-screen shell (AppShell + the Profile
+    // tab header + the centered content column), the same component the
+    // Profile tabs use. The record grows without bound (every completed job,
+    // for the life of the house), so it scrolls in AppShell's internal
+    // container; `/home-history` must therefore NOT be in
+    // DOCUMENT_SCROLL_ROUTES, or a second scroll lock stacks on top of it.
+    <AppPage title="Home History" backTo="/profile">
+      {/* `space-y-5` preserved from the old body wrapper — it separates the
+          per-year timeline sections. */}
+      <div className="space-y-5">
         {loading && (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => <JobCardSkeleton key={i} />)}
@@ -215,20 +201,22 @@ const HomeHistory = () => {
                       )}
 
                       {/* Job card. DELIBERATE deviation from the
-                          `rounded-2xl liquid-glass p-5` card convention: this
-                          is the shared parchment "record" surface used by
-                          /work-record and /benefits (see the note on
-                          BenefitsPage's cardStyle). liquid-glass's opaque
-                          white fill would make these timeline entries read as
-                          app cards floating over the page rather than as
-                          entries on a single sheet. */}
+                          `rounded-2xl liquid-glass p-5` card convention — a
+                          plain white liquid-glass fill would make these
+                          timeline entries read as app cards floating over the
+                          page rather than as entries on a single record
+                          sheet. Uses `.doc-card`, the SAME document-surface
+                          material /work-record and /benefits use (the
+                          document surface ladder in index.css) — this used
+                          to hand-roll a `parchment/0.70` fill that measured
+                          2-6/255 from the page canvas (a card that did not
+                          read as a sheet, just a slightly different patch of
+                          page), the exact contrast bug already fixed on its
+                          two siblings. `.doc-card` sets material only
+                          (fill/border/shadow); the geometry classes below are
+                          unchanged. */}
                       <div
-                        className="rounded-ds-lg p-4 space-y-2.5"
-                        style={{
-                          background: "hsl(var(--parchment) / 0.70)",
-                          border: "1px solid hsl(var(--olivewood) / 0.10)",
-                          boxShadow: "0 1px 3px hsl(var(--olivewood) / 0.06), 0 4px 10px -4px hsl(var(--olivewood) / 0.08)",
-                        }}
+                        className="doc-card rounded-ds-lg p-4 space-y-2.5"
                       >
                         {/* Top row: category badge + title */}
                         <div className="flex items-start gap-2.5">
@@ -301,7 +289,7 @@ const HomeHistory = () => {
           </section>
         ))}
       </div>
-    </div>
+    </AppPage>
   );
 };
 

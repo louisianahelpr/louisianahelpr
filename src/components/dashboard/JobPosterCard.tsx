@@ -1,7 +1,6 @@
 import { Star, ChevronRight, Crown, Sparkles } from "lucide-react";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import { Link } from "react-router-dom";
-import { formatDistanceToNow } from "date-fns";
 import { computeBadges, HelperBadges } from "@/components/HelperBadges";
 import { TrustRow } from "@/components/TrustRow";
 import type { EnrichedJob } from "./types";
@@ -11,11 +10,6 @@ interface JobPosterCardProps {
   job: EnrichedJob;
   /** Completed jobs between the current helper and this poster. */
   repeatJobs: number;
-  /** Combined cancellation rate (%) of the poster across posted and
-   *  worked jobs. Null while loading or when the ≥5-job sample-size
-   *  floor isn't met. When present, surfaced inline near the name so
-   *  the helpr can read it without leaving the job dialog. */
-  cancellationRate?: number | null;
   /** Logged-out viewer. Sends the tile to /signup instead of a profile that
    *  guests can't open anyway. */
   guest?: boolean;
@@ -28,7 +22,7 @@ interface JobPosterCardProps {
  *
  * Extracted verbatim from JobDetailDialog.tsx.
  */
-export function JobPosterCard({ job, repeatJobs, cancellationRate, guest = false }: JobPosterCardProps) {
+export function JobPosterCard({ job, repeatJobs, guest = false }: JobPosterCardProps) {
   // Nothing to show. The guest /jobs feed comes from `get_ranked_open_jobs`,
   // whose RETURNS TABLE has no `customer_id` — so this tile rendered with a
   // blank name, a "U" fallback avatar, and a link to a literal `/user/` with no
@@ -109,53 +103,26 @@ export function JobPosterCard({ job, repeatJobs, cancellationRate, guest = false
             <p className="font-sans font-semibold leading-tight truncate text-ds-16 min-w-0" style={{ color: "hsl(var(--ink-deep))" }}>
               {job.posterName}
             </p>
-            <span className="flex items-center gap-0.5 text-ds-11 shrink-0">
-              {(job.posterReviewCount ?? 0) > 0 ? (
-                <>
-                  <Star className="w-3.5 h-3.5 fill-accent text-accent" />
-                  <span className="font-display italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
-                    {job.posterAvgRating?.toFixed(1)}
-                  </span>
-                  <span className="font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                    ({job.posterReviewCount})
-                  </span>
-                </>
-              ) : (
+            {/* "New" (no reviews yet) and the relative post date were removed
+                here (owner: "remove new and 5 days ago") — a rating only
+                renders once there's one to show. */}
+            {(job.posterReviewCount ?? 0) > 0 && (
+              <span className="flex items-center gap-0.5 text-ds-11 shrink-0">
+                <Star className="w-3.5 h-3.5 fill-accent text-accent" />
+                <span className="font-display italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
+                  {job.posterAvgRating?.toFixed(1)}
+                </span>
                 <span className="font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                  New
+                  ({job.posterReviewCount})
                 </span>
-              )}
-            </span>
+              </span>
+            )}
           </div>
-          <p className="font-serif italic text-ds-11 leading-tight" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            {formatDistanceToNow(new Date(job.created_at), { addSuffix: true })}
-            {(job.posterCompletedJobs ?? 0) > 0 && (
-              <>
-                {" "}<span style={{ color: "hsl(var(--burnt-sienna) / 0.4)" }}>·</span>{" "}
-                {job.posterCompletedJobs} {job.posterCompletedJobs === 1 ? "job" : "jobs"}
-              </>
-            )}
-            {cancellationRate != null && (
-              <>
-                {" "}<span style={{ color: "hsl(var(--burnt-sienna) / 0.4)" }}>·</span>{" "}
-                {/* Colored against thresholds: <5% reads green (low),
-                    5–14% neutral, ≥15% warning sienna. Matches the
-                    profile-page cancellation card's color stops. */}
-                <span
-                  className="tabular-nums"
-                  style={{
-                    color: cancellationRate < 5
-                      ? "hsl(var(--gift-tint))"
-                      : cancellationRate < 15
-                        ? "hsl(var(--olivewood) / 0.8)"
-                        : "hsl(var(--burnt-sienna))",
-                  }}
-                >
-                  {cancellationRate.toFixed(0)}% cancelled
-                </span>
-              </>
-            )}
-          </p>
+          {(job.posterCompletedJobs ?? 0) > 0 && (
+            <p className="font-serif italic text-ds-11 leading-tight" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              {job.posterCompletedJobs} {job.posterCompletedJobs === 1 ? "job" : "jobs"}
+            </p>
+          )}
         </div>
         {posterBadges.length > 0 && (
           <div className="shrink-0">

@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
+import type { CSSProperties } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Crown, CheckCircle, Loader2, RefreshCw, Sparkles } from "lucide-react";
+import { Crown, CheckCircle, Loader2, RefreshCw, Sparkles, Clock } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
@@ -27,6 +29,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
   // quoted a different price depending on which surface you arrived at.
   const [billingInterval, setBillingInterval] = useState<"monthly" | "annual" | "one_time">("monthly");
   const [refreshing, setRefreshing] = useState(false);
+  const reduceMotion = useReducedMotion();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const currentTier = profile?.subscription_tier || null;
@@ -143,14 +146,6 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
     return tier.monthly;
   };
 
-  const getSaveBadge = (tier: typeof tierConfig[0]) => {
-    if (billingInterval === "annual") return tier.annualSave;
-    return null;
-  };
-
-  // Currently-subscribed users get a hero "Your plan" card on top — the
-  // tier cards below reframe as "change to" rather than the main pitch.
-  const activeTierConfig = currentTier && !isExpired ? tierConfig.find((t) => t.id === currentTier.toLowerCase()) : null;
   return (
     /* `space-y-4` — the shell every other Profile tab uses. This one wrapped
        itself in `flex flex-col min-h-full gap-4 pb-4`, so Membership's title
@@ -164,145 +159,74 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
         onBack={onBack}
       />
 
-      {/* Current plan hero — only renders when the user is actively
-          subscribed. Bigger, warmer surface that confirms what they're
-          paying for; tier cards below become "change to" options. */}
-      {activeTierConfig && (
-        <div
-          className="rounded-2xl p-5 relative overflow-hidden"
-          style={{
-            background:
-              "radial-gradient(70% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.10) 0%, transparent 55%), " +
-              "radial-gradient(60% 80% at 0% 100%, hsl(var(--gold-warm) / 0.12) 0%, transparent 60%), " +
-              "var(--surface-premium)",
-            border: "0.5px solid hsl(var(--bark) / 0.22)",
-            boxShadow:
-              "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
-              "inset 0 0 0 0.5px hsl(var(--gold-warm) / 0.22), " +
-              "0 1px 2px hsl(var(--olivewood) / 0.06), " +
-              "0 14px 30px -8px hsl(var(--olivewood) / 0.14)",
-          }}
-        >
-          <div className="flex items-start gap-3">
-            <span
-              className="shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center"
-              style={{
-                background:
-                  activeTierConfig.id === "elite"
-                    ? "hsl(var(--gold-warm) / 0.18)"
-                    : activeTierConfig.id === "pro"
-                      ? "hsl(var(--burnt-sienna) / 0.14)"
-                      : "hsl(var(--bark) / 0.12)",
-                color:
-                  activeTierConfig.id === "elite"
-                    ? "hsl(var(--gold-warm))"
-                    : activeTierConfig.id === "pro"
-                      ? "hsl(var(--burnt-sienna))"
-                      : "hsl(var(--bark))",
-              }}
-            >
-              <TierIcon name={activeTierConfig.iconName} className="w-5 h-5" />
-            </span>
-            <div className="flex-1 min-w-0">
-              <h2
-                className="font-display italic font-bold leading-tight mt-0.5 text-headline-hero"
-                style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
-              >
-                {activeTierConfig.name}.
-              </h2>
-              {expiresAt && (
-                <p
-                  className="font-serif italic mt-1 text-ds-13"
-                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                >
-                  Renews{" "}
-                  <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
-                    {expiresAt.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
-                  </span>
-                </p>
-              )}
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-2 mt-4">
-            <Button
-              onClick={handleManageSubscription}
-              disabled={loadingPortal}
-              variant="outline"
-              className="rounded-ds-md"
-            >
-              {loadingPortal ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Crown className="w-4 h-4 mr-2" />}
-              Manage
-            </Button>
-            <Button
-              onClick={refreshSubscription}
-              disabled={refreshing}
-              variant="ghost"
-              className="rounded-ds-md"
-              style={{ color: "hsl(var(--bark))" }}
-            >
-              <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
-              Refresh
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Billing cycle pills — Annual carries the save badge inline so the
-          cheapest option is the most visually inviting one. */}
-      <div className="flex items-center gap-1 rounded-2xl liquid-glass p-1.5">
+      {/* Billing cycle pills — same structure as the Legal page's Terms/
+          Rules/Privacy tab bar (owner, 2026-08-30: "should have the same
+          toggle as the public legal page"): a TRANSPARENT container (no
+          liquid-glass fill of its own) whose active segment carries a
+          single lifted pill that SLIDES between segments via framer's
+          shared-layout `layoutId`, rather than each button just swapping
+          its own background class on click. Refresh is a 4th segment in
+          the same row, not a second box beside it (owner: "should all be
+          in 1 toggle not separates"). */}
+      {/* Legal's own tab bar is transparent with no card of its own — but
+          on THIS page, floating with no boundary read as unfinished (owner,
+          2026-08-30, after confirming Legal really has none: "add a card
+          container" anyway). liquid-glass wrap restored, sliding-pill
+          mechanics unchanged inside it. */}
+      <div className="rounded-2xl liquid-glass p-1.5">
+      {/* Once/Monthly/Annual share the row equally; Refresh gets a fixed
+          44px column instead of a 4th equal share — an even 4-up grid gave
+          the icon-only button the same width as a text label, leaving it
+          looking like an oversized empty box (owner, 2026-08-30: "doesn't
+          need such a large box, make it smaller and others bigger"). */}
+      <div className="grid grid-cols-[1fr_1fr_1fr_44px] items-center gap-1 rounded-2xl p-1 bg-transparent">
         {([
           { key: "one_time" as const, label: "Once" },
           { key: "monthly" as const, label: "Monthly" },
-          { key: "annual" as const, label: "Annual", save: "−17%" },
+          { key: "annual" as const, label: "Annual" },
         ]).map((opt) => {
           const active = billingInterval === opt.key;
           return (
             <button
               key={opt.key}
               onClick={() => setBillingInterval(opt.key)}
-              className={`flex-1 px-3 h-11 rounded-ds-md text-ds-13 font-semibold transition-all inline-flex items-center justify-center gap-1.5 ${
-                active
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
+              className="relative h-11 rounded-ds-md text-ds-13 font-semibold transition-colors duration-200 inline-flex items-center justify-center gap-1.5"
+              style={{ color: active ? "hsl(var(--parchment))" : "hsl(var(--olivewood))" }}
             >
-              {opt.label}
-              {opt.save && (
-                <span
-                  // `bg-burnt-sienna-soft` is a non-existent Tailwind class
-                  // (brand tokens aren't extended in tailwind.config.ts —
-                  // see the CLAUDE.md footgun note) so it compiled to no
-                  // background. The inactive `style` block below already
-                  // supplies the real background via `hsl(var(--burnt-sienna)
-                  // / 0.14)`, so dropping the dead class is purely cleanup
-                  // — no visual change.
-                  className={`text-ds-9 font-bold tracking-wider px-1 py-0.5 rounded ${
-                    active ? "bg-primary-foreground/20 text-primary-foreground" : ""
-                  }`}
-                  style={
-                    !active
-                      ? {
-                          background: "hsl(var(--burnt-sienna) / 0.14)",
-                          // --accent-ink, not --burnt-sienna: this savings
-                          // badge is 9px, so it needs the full 4.5:1 and the
-                          // raw accent measured 4.33:1 on the 0.14 fill in
-                          // dark mode. --accent-ink is identical in light.
-                          color: "hsl(var(--accent-ink))",
-                          letterSpacing: "0.06em",
-                        }
-                      : { letterSpacing: "0.06em" }
-                  }
-                >
-                  {opt.save}
-                </span>
+              {active && (
+                <motion.span
+                  layoutId="membershipBillingPill"
+                  transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 34 }}
+                  className="absolute inset-0 rounded-ds-md btn-grad-primary"
+                  style={{
+                    border: "1px solid hsl(var(--bark-border))",
+                    boxShadow:
+                      "inset 0 1px 0 hsl(var(--parchment) / 0.22), " +
+                      "0 1px 1px hsl(var(--ink-deep) / 0.10), " +
+                      "0 2px 6px hsl(var(--ink-deep) / 0.12), " +
+                      "0 4px 12px -2px hsl(var(--ink-deep) / 0.08)",
+                  }}
+                />
               )}
+              <span className="relative">{opt.label}</span>
             </button>
           );
         })}
+        <button
+          type="button"
+          onClick={refreshSubscription}
+          disabled={refreshing}
+          aria-label="Refresh membership status"
+          className="shrink-0 h-11 rounded-ds-md flex items-center justify-center transition-colors hover:bg-secondary disabled:opacity-60"
+          style={{ color: "hsl(var(--bark))" }}
+        >
+          <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} aria-hidden />
+        </button>
+      </div>
       </div>
 
-      {/* Manage row used to live here — now consolidated into the
-          "Your plan" hero above when actively subscribed. */}
+      {/* Manage row used to live here — now consolidated into the active
+          tier's own card footer below. */}
 
       {/* The one-time pass explainer banner that lived here was removed at the
           owner's direction (2026-08-27). "Once" still needs a duration or it
@@ -316,7 +240,13 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
           the expiry (consumer-disclosure / App Store 3.1.1). */}
 
       {/* Lock-in rate pill — only shown when annual is the chosen cycle.
-          Concrete commitment hook: "lock in current pricing for a year". */}
+          Concrete commitment hook: "lock in current pricing for a year".
+          The 17% savings figure used to live in two OTHER places too — a
+          badge on the Annual toggle segment, and a "Save 17%" chip on
+          every card's price column — both removed (owner, 2026-08-30:
+          "remove the 17% in the box for annual and from the toggle button
+          and move to the message"), so this sentence is now the single
+          place that states it. */}
       {billingInterval === "annual" && (
         <div
           className="rounded-ds-md px-3 py-2 flex items-center gap-2"
@@ -331,9 +261,61 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
             style={{ color: "hsl(var(--olivewood) / 0.85)" }}
           >
             <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
-              Lock in {new Date().getFullYear()} pricing.
+              Lock in {new Date().getFullYear()} pricing, save 17%.
             </span>{" "}
             Annual rates are guaranteed for the full year, no matter what we change later.
+          </p>
+        </div>
+      )}
+
+      {/* Once (one-time pass) explainer — same box treatment as the Annual
+          lock-in pill above (owner, 2026-08-30: "make a box under the
+          toggle about the 30 day pass kind of similar to how the annual
+          box is"), restating the expiry disclosure that already lives on
+          each card's price line ("$5 · 30-day pass") as a clearer
+          up-front sentence rather than a comment claiming it. */}
+      {billingInterval === "one_time" && (
+        <div
+          className="rounded-ds-md px-3 py-2 flex items-center gap-2"
+          style={{
+            background: "hsl(var(--burnt-sienna) / 0.08)",
+            border: "0.5px solid hsl(var(--burnt-sienna) / 0.28)",
+          }}
+        >
+          <Clock className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--burnt-sienna))" }} strokeWidth={2.25} />
+          <p
+            className="font-serif italic leading-snug text-ds-12"
+            style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+          >
+            <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
+              One-time, {ONE_TIME_PASS_DAYS} days.
+            </span>{" "}
+            A one-time pass unlocks the tier's perks for {ONE_TIME_PASS_DAYS} days, then lapses — no auto-renewal.
+          </p>
+        </div>
+      )}
+
+      {/* Monthly explainer — same box treatment as Once/Annual above it
+          (owner, 2026-08-30: "add a box like once and annual for monthly
+          under toggle"), so all three cycles get one consistent sentence
+          instead of two having a box and one not. */}
+      {billingInterval === "monthly" && (
+        <div
+          className="rounded-ds-md px-3 py-2 flex items-center gap-2"
+          style={{
+            background: "hsl(var(--bark) / 0.08)",
+            border: "0.5px solid hsl(var(--bark) / 0.24)",
+          }}
+        >
+          <RefreshCw className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--bark))" }} strokeWidth={2.25} />
+          <p
+            className="font-serif italic leading-snug text-ds-12"
+            style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+          >
+            <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
+              Billed monthly.
+            </span>{" "}
+            Cancel or change your tier anytime — no long-term commitment.
           </p>
         </div>
       )}
@@ -354,7 +336,15 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
           const isActive = isFree
             ? onFreePlan
             : currentTier?.toLowerCase() === tier.id && !isExpired;
-          const saveBadge = getSaveBadge(tier);
+          // The "you're on this" badge/tint/ring/Manage-button treatment is
+          // further gated to the Monthly tab for paid tiers — see the note
+          // by the Renews line below for why (no stored billing_cycle
+          // anywhere in the schema). Free has no cycle to be wrong about,
+          // so its Current state shows on every tab. Without this gate the
+          // SAME tier read as "your plan" under three different prices at
+          // once as the user flipped tabs (owner, 2026-08-30: "its still
+          // showing youre plan on elite for once monthly and annual").
+          const showActiveTreatment = isActive && (isFree || billingInterval === "monthly");
           const isPro = tier.id === "pro";
           // --gold-ink, not --gold-warm: this value is used as TEXT below, and
           // the brand gold measures 2.89:1 there. The accent colour itself is
@@ -380,9 +370,24 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                 isPro
                   ? "liquid-glass border-2 border-primary/40 shadow-[0_8px_24px_-8px_hsl(var(--primary)/0.25)]"
                   : "liquid-glass"
-              } ${isActive ? "ring-2 ring-primary" : ""}`}
+              } ${showActiveTreatment ? "ring-2 ring-primary" : ""}`}
+              // The active card also gets a warm tint (was plain white like
+              // every other row, same as the removed hero card's surface),
+              // so "this is the plan you're on" reads at a glance, not just
+              // from the outline (owner, 2026-08-30: "make this more
+              // obvious it's their current plan").
+              style={
+                showActiveTreatment && !isFree
+                  ? {
+                      background:
+                        "radial-gradient(70% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.08) 0%, transparent 55%), " +
+                        "radial-gradient(60% 80% at 0% 100%, hsl(var(--gold-warm) / 0.10) 0%, transparent 60%), " +
+                        "var(--surface-premium)",
+                    }
+                  : undefined
+              }
             >
-              {isPro && (
+              {isPro && !showActiveTreatment && (
                 <span
                   className="absolute -top-2 left-3 text-ds-9 uppercase px-2 py-0.5 rounded-full bg-primary text-primary-foreground font-bold shadow-sm whitespace-nowrap"
                   style={{ letterSpacing: "0.18em" }}
@@ -390,11 +395,46 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                   Most popular
                 </span>
               )}
+              {/* "Current plan" takes priority over "Most popular" if a tier
+                  is somehow both — knowing you're already on it is the more
+                  useful fact at that point. Same pill shape/position as
+                  "Most popular" (owner: "your plan needs to fit the top
+                  better like most popular") — just this tier's accent color
+                  instead of primary, plus a gentle heartbeat pulse
+                  (`step-current-pulse`, the same generic pulse the job
+                  tracker's current step uses) so it reads as live status,
+                  not static chrome — owner: "flash like urgent." Refresh
+                  moved off the card entirely, next to the billing toggle
+                  above, so this pill stays exactly as simple as its sibling. */}
+              {showActiveTreatment && !isFree && (
+                <span
+                  className="absolute -top-2 left-3 text-ds-9 uppercase px-2 py-0.5 rounded-full font-bold shadow-sm whitespace-nowrap step-current-pulse"
+                  style={{
+                    background: accent,
+                    color: "hsl(var(--parchment))",
+                    letterSpacing: "0.18em",
+                    // `accent` is `hsl(var(--token))` — two closing parens, so
+                    // a naive .replace(")", …) would land inside var()'s own
+                    // paren instead of hsl()'s trailing one. Slicing off just
+                    // the LAST char and re-closing is what actually produces
+                    // `hsl(var(--token) / 0.45)`.
+                    "--step-pulse-ring": `${accent.slice(0, -1)} / 0.45)`,
+                    "--step-pulse-ring-end": `${accent.slice(0, -1)} / 0)`,
+                  } as CSSProperties}
+                >
+                  Your plan
+                </span>
+              )}
 
-              <div className="flex items-start gap-3">
+              {/* items-stretch, not items-start: the price/CTA column needs
+                  the row's FULL height so its items can spread evenly across
+                  it (see justify-between below) — icon and feature-list opt
+                  back OUT with `self-start` since they should stay pinned to
+                  the top regardless. */}
+              <div className="flex items-stretch gap-3">
                 {/* Icon — smaller (w-8) to free vertical space */}
                 <span
-                  className="shrink-0 w-8 h-8 rounded-ds-md flex items-center justify-center"
+                  className="shrink-0 self-start w-8 h-8 rounded-ds-md flex items-center justify-center"
                   style={{ background: accentSoft, color: accent }}
                 >
                   <TierIcon name={tier.iconName} className="w-4 h-4" />
@@ -405,7 +445,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                     Elite's 5 features fit in 2 short lines on a 320pt
                     viewport — the user explicitly asked to see all
                     features without scrolling. */}
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 flex-1 self-start">
                   <div className="flex items-baseline gap-2 flex-wrap">
                     <h3
                       className="font-display italic font-bold leading-none text-ds-16"
@@ -441,9 +481,29 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                       </p>
                     );
                   })()}
-                  {/* Actual perks as a checkmark inline-flex list — wraps
-                      naturally and each feature is visible. */}
-                  <ul className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5">
+                  {/* Actual perks, one per line. Was `flex flex-wrap`, which
+                      ran bullets left-to-right and let unrelated perks share
+                      a visual line, breaking mid-phrase at odd points and
+                      reading as a run-on rather than a list. A vertical
+                      stack costs a bit more height but each perk is a
+                      complete, scannable line (owner, 2026-08-30). */}
+                  <ul className="mt-1 space-y-0.5">
+                    {/* Fee % moved here from the price column — first item
+                        in the list, same bullet style as every other perk
+                        (owner, 2026-08-30: "move the fee to the left with
+                        the other features make it the first thing in the
+                        list"). */}
+                    <li
+                      className="flex items-start gap-1 font-sans text-ds-11"
+                      style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+                    >
+                      <CheckCircle
+                        className="w-2.5 h-2.5 shrink-0 mt-[3px]"
+                        style={{ color: accent }}
+                        strokeWidth={2.5}
+                      />
+                      <span>{tier.feePercent}% platform fee</span>
+                    </li>
                     {tier.features
                       .filter((f) => !/^Everything in/i.test(f))
                       // The bullets in subscriptionTiers.ts are written for a
@@ -486,31 +546,41 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                 </div>
 
                 {/* Price + CTA on the right edge */}
-                <div className="shrink-0 flex flex-col items-end gap-1">
+                {/* min-w so the buttons below have real width to fill —
+                    `shrink-0` alone sizes this column to its content, which
+                    left the price/fee/button cluster small and stranded in
+                    a lot of empty card space (owner, 2026-08-30: "make the
+                    info on the right fill the space better"). Price/fee/
+                    save stay right-aligned text; only the buttons stretch. */}
+                {/* justify-between: every item in this column (price, fee,
+                    the CTA button, Renews when present) spaces out evenly
+                    across the row's FULL stretched height — owner,
+                    2026-08-30, final word after several rounds: "SPACE
+                    EQUALLY VERTICALLY TO FILL THE VERTICAL HEIGHT OF THE
+                    BOX." An earlier version capped this (fixed gap + one
+                    button pushed to the bottom) because Pro's height (5
+                    features) made its gap look large relative to shorter
+                    cards — that capping is deliberately NOT what's wanted;
+                    every card fills its own box on its own terms. py-1
+                    keeps top/bottom padding off the stretched row's bare
+                    edges so the first/last item isn't flush to it. */}
+                <div className="shrink-0 min-w-[132px] py-1 flex flex-col items-end justify-between">
                   <p
                     className="font-display italic font-bold tabular-nums leading-none text-ds-16"
                     style={{ color: accent, letterSpacing: "-0.02em" }}
                   >
                     {getPrice(tier)}
                   </p>
-                  {/* Fee % — the core "lower commission" value prop, shown
-                      here so the in-app upgrade path matches the public
-                      /subscription page instead of hiding the economic
-                      benefit behind perk bullets alone. */}
-                  <span
-                    className="font-sans font-semibold tabular-nums leading-none text-ds-10"
-                    style={{ color: accent, letterSpacing: "0.02em" }}
-                  >
-                    {tier.feePercent}% fee
-                  </span>
-                  {saveBadge && (
-                    <span
-                      className="text-ds-9 px-1 py-px rounded-full font-bold"
-                      style={{ background: accentSoft, color: accent, letterSpacing: "0.06em" }}
-                    >
-                      {saveBadge}
-                    </span>
-                  )}
+                  {/* Per-card "30-day pass" note removed (owner, 2026-08-30:
+                      "remove these since its mentioned above now") — the
+                      Once-cycle info box added just above the tier list
+                      states the same disclosure once for the whole screen
+                      ("A one-time pass unlocks the tier's perks for N days,
+                      then lapses — no auto-renewal"), so repeating it on
+                      every card was now redundant. That box is still the
+                      pre-purchase disclosure this exists for (App Store
+                      3.1.1) — it didn't go away, it just isn't duplicated
+                      four times over. */}
                   {/* The tier you are on states so HERE, in the same column
                       and the same shape as every other card's CTA — including
                       Free, which is why this sits above the !isFree guard
@@ -520,9 +590,63 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                       Rendered as a real disabled <Button> rather than a
                       styled span so it inherits the exact box, height and
                       typography of the Subscribe buttons it lines up with. */}
-                  {isActive && (
+                  {isActive && isFree && (
                     <Button variant="outline" size="sm" disabled aria-current="true">
                       <CheckCircle className="w-3.5 h-3.5" aria-hidden /> Current
+                    </Button>
+                  )}
+                  {/* Back up in the price/CTA column, where every other
+                      card's action lives — the bottom-footer version
+                      (below) put it in its own strip past the feature list,
+                      which read as detached from the card's tinted surface
+                      (the background gradient is anchored to the shorter
+                      untinted-footer height) instead of part of it (owner,
+                      2026-08-30: "move back up into box"). Button and Renews
+                      are direct children of the outer column now, not a
+                      nested div with its own `mt-1` ON TOP of the column's
+                      own `gap-1` — that stacked to a double gap before the
+                      button while every other pair in the column (price→fee,
+                      fee→save) got a single gap-1, so the rhythm wasn't
+                      actually even (owner, 2026-08-30: "every one of the
+                      columns there should have equal spacing"). */}
+                  {/* showActiveTreatment, not isActive: there is no stored
+                      `billing_cycle` on the profile row anywhere in the
+                      schema, so this screen genuinely cannot know whether
+                      the account's real subscription is monthly, annual, or
+                      a one-time pass — it only has the tier and an expiry
+                      date. Showing "Your Plan" + Manage + Renews under
+                      THREE different prices ($20, $20/mo, $200/yr) as the
+                      user flipped tabs read as three simultaneous active
+                      plans (owner, 2026-08-30, twice: "they cant have all 3
+                      plans" / "its still showing youre plan on elite for
+                      once monthly and annual"). Monthly is the one cycle
+                      this treatment is now scoped to for paid tiers — see
+                      `showActiveTreatment`'s definition above. On the
+                      Once/Annual tabs the truly-active tier falls through to
+                      the ordinary Change button below instead. */}
+                  {/* Renews above Manage — owner, 2026-08-30: "swap the
+                      button and renews". */}
+                  {showActiveTreatment && !isFree && expiresAt && (
+                    <p
+                      className="font-serif italic leading-none text-ds-12 whitespace-nowrap"
+                      style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+                    >
+                      Renews{" "}
+                      <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
+                        {expiresAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                      </span>
+                    </p>
+                  )}
+                  {showActiveTreatment && !isFree && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleManageSubscription}
+                      disabled={loadingPortal}
+                      aria-current="true"
+                    >
+                      {loadingPortal ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Crown className="w-3.5 h-3.5" aria-hidden />}
+                      Manage
                     </Button>
                   )}
                   {/* Free carries no BUY CTA in either direction: there is
@@ -531,10 +655,17 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                       comparison means, not a "downgrade" button — cancelling
                       lives in the manage-membership flow, which is where it
                       belongs. */}
-                  {!isActive && !isFree && (
+                  {!showActiveTreatment && !isFree && (
                     <Button
                       variant={isPro ? "primary" : "outline"}
                       size="sm"
+                      // No mt-auto here — a uniform gap-1.5 from the column
+                      // now applies to every pair including this one, so
+                      // the button sits directly under price/fee like on
+                      // every other card (owner, 2026-08-30: "not equally
+                      // spaced vertically"). Trade-off: on Pro (the tallest
+                      // card, 5 features) the button no longer reaches the
+                      // bottom — accepted in favor of one consistent rhythm.
                       onClick={() =>
                         currentTier && !isExpired
                           ? handleManageSubscription()
@@ -545,11 +676,12 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                       {(loadingCheckout === tier.id || loadingPortal) && (
                         <Loader2 className="animate-spin" />
                       )}
-                      {currentTier && !isExpired
-                        ? "Change"
-                        : billingInterval === "one_time"
-                          ? "Buy"
-                          : "Subscribe"}
+                      {/* Standardized to "Upgrade" everywhere except "Change"
+                          — a currently-subscribed user picking a different
+                          paid tier isn't necessarily moving up, so that case
+                          keeps its own honest label. "Subscribe"/"Buy" were
+                          the inconsistent pair being unified here. */}
+                      {currentTier && !isExpired ? "Change" : "Upgrade"}
                     </Button>
                   )}
                 </div>

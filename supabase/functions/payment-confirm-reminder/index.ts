@@ -103,7 +103,7 @@ Deno.serve(async (req) => {
         //    in-app + device push from a single INSERT.
         const { error: notifErr } = await supabase.from("notifications").insert({
           user_id: job.customer_id,
-          title: "Your helpr marked the job done",
+          title: "Your Helpr marked the job done",
           message: `"${job.title}" — please confirm completion or request a revision. Payment auto-releases in ~24h.`,
           type: "job_updates",
           // No job_id here: public.notifications is (id, user_id, title,

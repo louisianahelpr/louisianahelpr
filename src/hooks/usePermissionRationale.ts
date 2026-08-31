@@ -86,6 +86,22 @@ function readConfirmedSet(): Set<PermissionKind> {
   }
 }
 
+/**
+ * Mark a permission kind as already explained, so the next `request()` skips
+ * the rationale dialog and goes straight to the OS prompt.
+ *
+ * Exported for surfaces that ARE the rationale. The push nudge toast
+ * ("Turn on notifications?" · Enable) is the case this exists for: tapping
+ * Enable there used to open the rationale dialog, which asked the same
+ * question a second time with the same two buttons (owner, 2026-08-30: "not
+ * needed. i also clicked to turn on in the toast"). The user has already been
+ * told why and already said yes; the only thing left to show them is the OS
+ * prompt.
+ */
+export function markRationaleConfirmed(kind: PermissionKind) {
+  markConfirmed(kind);
+}
+
 function markConfirmed(kind: PermissionKind) {
   try {
     const set = readConfirmedSet();

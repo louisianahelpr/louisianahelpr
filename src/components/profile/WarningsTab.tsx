@@ -18,10 +18,24 @@ interface WarningsTabProps {
   onBack: () => void;
 }
 
+// 3-strike system rungs, matching the exact wording of the "Strike System"
+// block in CancellationDialog.tsx (the canonical copy for this ladder):
+//   1st strike — written warning on your account
+//   2nd strike — final warning
+//   3rd strike — 7-day account restriction while an admin reviews it
+const STRIKE_LABELS = ["Written warning", "Final warning", "7-day restriction"] as const;
+
 export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
   const strikeCount = violations.filter((v) => v.action_taken === "warning" || v.action_taken === "final_warning").length;
   const hasBan = violations.some((v) => v.action_taken === "permanent_ban");
   const hasSuspension = violations.some((v) => v.action_taken === "suspension" || v.action_taken === "temporary_ban");
+  // Where the account sits on the 3-strike ladder: 1st/2nd strike map
+  // directly to the "warning"/"final_warning" action_taken rows above; the
+  // 3rd strike is the suspension/temporary_ban consequence (a 7-day
+  // restriction), and a permanent ban means the ladder is maxed out. Derived
+  // client-side from the same `violations` rows the history list below
+  // already renders — no new query or backend field.
+  const strikesOf3 = hasBan || hasSuspension ? 3 : Math.min(strikeCount, 3);
 
   return (
     <div className="space-y-4">
@@ -67,12 +81,16 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
               tone: "destructive" | "orange" | "amber" | "primary",
               title: string,
               body: string,
+              showProgress: boolean,
             ) => {
               const palette = {
-                destructive: { ring: "border-destructive/40", icon: "text-destructive", title: "hsl(var(--destructive))" },
-                orange: { ring: "border-warning/30", icon: "text-warning", title: "hsl(25 90% 45%)" },
-                amber: { ring: "border-warning/30", icon: "text-warning", title: "hsl(38 92% 45%)" },
-                primary: { ring: "border-primary/30", icon: "text-primary", title: "hsl(var(--primary))" },
+                destructive: { ring: "border-destructive/40", icon: "text-destructive", title: "hsl(var(--destructive))", fill: "bg-destructive" },
+                /* Titles are darkened from L45% to L34/32%: at 45% the amber
+                   "Strike N of 3" headline measured 2.63:1 on the card, under the 3:1
+                   AA bar for large bold text. The hue is unchanged. */
+                orange: { ring: "border-warning/30", icon: "text-warning", title: "hsl(25 90% 34%)", fill: "bg-warning" },
+                amber: { ring: "border-warning/30", icon: "text-warning", title: "hsl(38 92% 32%)", fill: "bg-warning" },
+                primary: { ring: "border-primary/30", icon: "text-primary", title: "hsl(var(--primary))", fill: "bg-primary" },
               }[tone];
               const Icon = icon;
               return (
@@ -86,16 +104,37 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
                   <p className="font-serif italic max-w-sm mx-auto text-ds-14" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                     {body}
                   </p>
+                  {showProgress && (
+                    <div className="pt-1 space-y-1.5" role="img" aria-label={`${strikesOf3} of 3 strikes on the 3-strike system`}>
+                      <div className="flex items-center justify-center gap-1.5">
+                        {STRIKE_LABELS.map((label, i) => (
+                          <span
+                            key={label}
+                            className={`h-1.5 w-10 rounded-full transition-colors ${
+                              i < strikesOf3 ? palette.fill : "bg-[hsl(var(--olivewood)/0.15)]"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      {/* 0.65 measured 4.46:1 — a 0.04 miss on the 4.5 AA bar at 11px. */}
+                      <p className="text-ds-11 font-semibold uppercase tracking-wide" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                        {strikesOf3} of 3 strikes
+                      </p>
+                    </div>
+                  )}
                 </div>
               );
             };
-            if (hasBan) return renderHero(Shield, "destructive", "Account banned", "Permanently banned due to policy violations.");
-            if (hasSuspension) return renderHero(AlertTriangle, "orange", "Suspended", "Your account is under temporary suspension.");
+            if (hasBan) return renderHero(Shield, "destructive", "Account banned", "Permanently banned due to policy violations.", true);
+            if (hasSuspension) return renderHero(AlertTriangle, "orange", "Suspended", "3rd strike: your account is restricted for 7 days while an admin reviews it.", true);
             if (strikeCount > 0) return renderHero(
-              AlertTriangle, "amber", `Strike ${strikeCount}/2`,
-              strikeCount === 1 ? "One warning on file. A second strike may lead to suspension." : "Final warning. Another violation will result in a permanent ban."
+              AlertTriangle, "amber", `Strike ${strikeCount} of 3`,
+              strikeCount === 1
+                ? "1st strike: a written warning on your account. A 2nd strike is a final warning."
+                : "2nd strike: final warning. A 3rd strike restricts your account for 7 days.",
+              true,
             );
-            return renderHero(CheckCircle2, "primary", "Good standing", "No warnings or violations on record. Keep it up.");
+            return renderHero(CheckCircle2, "primary", "Good standing", "No warnings or violations on record. Keep it up.", true);
           })()}
 
           {/* Violation history — only when there's actual history. With
@@ -110,9 +149,11 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-ds-10 font-bold uppercase tracking-wider shrink-0 ${
+                        /* `text-warning` (L53%) on a 10% tint measured 2.94:1 at 10px bold.
+                           The darker same-hue value clears AA; --warning stays as-is because
+                           it is correct for fills and icons, which have no text bar. */
                         v.action_taken === "permanent_ban" ? "bg-destructive/10 text-destructive"
-                        : v.action_taken === "suspension" || v.action_taken === "temporary_ban" ? "bg-warning/10 text-warning"
-                        : "bg-warning/10 text-warning"
+                        : "bg-warning/10 text-[hsl(33_35%_32%)] dark:text-[hsl(33_50%_78%)]"
                       }`}>
                         {v.action_taken.replace(/_/g, " ")}
                       </span>

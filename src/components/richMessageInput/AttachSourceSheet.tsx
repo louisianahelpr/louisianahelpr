@@ -1,9 +1,6 @@
+import { type RefObject } from "react";
 import { Camera, Image as ImageIcon, FilePlus2, MapPin, AudioLines } from "lucide-react";
-import {
-  Sheet,
-  SheetContent,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { MESSAGE_ATTACHMENT_MAX_BYTES } from "@/lib/messageAttachments";
 
 interface AttachSourceSheetProps {
@@ -19,6 +16,14 @@ interface AttachSourceSheetProps {
   voiceNoteDisabled?: boolean;
   /** Job quick-replies, shown above the send-something actions. */
   quickReplies?: React.ReactNode;
+  /**
+   * The composer's "+" button that opens this panel — see FilterSheet.tsx
+   * for the `virtualRef` pattern this follows. RichMessageInput owns the
+   * button; this panel is anchored against it via Radix Popper's
+   * `virtualRef` rather than a `<PopoverTrigger>` subtree, same reasoning
+   * as FilterSheet's anchorRef.
+   */
+  anchorRef: RefObject<HTMLElement | null>;
 }
 
 /**
@@ -30,19 +35,32 @@ interface AttachSourceSheetProps {
 export const AttachSourceSheet = ({
   open, onOpenChange, onPickCamera, onPickLibrary, onPickFiles,
   onShareLocation, onRecordVoiceNote, voiceNoteDisabled = false, quickReplies,
+  anchorRef,
 }: AttachSourceSheetProps) => {
   // Wrap each action so picking one closes the sheet — otherwise it stays
   // open behind the OS picker / permission prompt it just triggered.
   const pick = (fn: () => void) => () => { onOpenChange(false); fn(); };
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom">
-        {/* Radix points the dialog's `aria-labelledby` at a Title, so a sheet
-            with none announces as a bare "dialog". This one is deliberately
-            headerless (below), which is a visual decision, not a naming one —
-            the name still has to exist. Same fix Navbar and ui/sidebar use for
-            their nav drawers. */}
-        <SheetTitle className="sr-only">Attach</SheetTitle>
+    <Popover open={open} onOpenChange={onOpenChange}>
+      <PopoverAnchor virtualRef={anchorRef} />
+      <PopoverContent
+        align="start"
+        side="top"
+        sideOffset={8}
+        collisionPadding={16}
+        aria-label="Attach"
+        className="w-[300px] max-w-[calc(100vw-2rem)] max-h-[70vh] overflow-y-auto overscroll-contain p-4 rounded-ds-lg"
+        style={{ background: "var(--surface-premium)" }}
+        // The "+" button is OUTSIDE the popover subtree, so Radix counts a
+        // click on it as an outside-dismiss — which would close the panel
+        // and then let the button's own onClick toggle it straight back
+        // open. Let the button keep sole ownership of the toggle, same
+        // guard FilterSheet uses for the Filters button.
+        onInteractOutside={(e) => {
+          const target = e.target as Node | null;
+          if (target && anchorRef.current?.contains(target)) e.preventDefault();
+        }}
+      >
         {/* iOS "+" menu shape: one uniform vertical list, each row a circular
             icon and a label. No headline — iMessage's sheet doesn't ask a
             question, it just lists what you can attach.
@@ -75,6 +93,14 @@ export const AttachSourceSheet = ({
                 type="button"
                 onClick={pick(row.onPick)}
                 disabled={"disabled" in row ? row.disabled : false}
+                // Voice note records and sends an audio CLIP as its own
+                // attachment — distinct from the composer's mic "Dictate"
+                // button, which transcribes speech INTO the text draft and
+                // sends nothing until you tap Send (see the fuller note on
+                // that button in RichMessageInput.tsx). One-line hint here
+                // since this menu is the more likely place to wonder "wait,
+                // isn't there already a mic icon?"
+                title={row.key === "voice" ? "Records and sends an audio clip (the mic icon in the composer instead types out what you say)" : undefined}
                 className="w-full min-h-[56px] flex items-center gap-3 px-4 text-left transition-colors hover:bg-secondary/40 active:bg-secondary/60 disabled:opacity-40 disabled:pointer-events-none"
                 style={i > 0 ? { borderTop: "0.5px solid hsl(var(--olivewood) / 0.12)" } : undefined}
               >
@@ -98,7 +124,7 @@ export const AttachSourceSheet = ({
           Up to {Math.round(MESSAGE_ATTACHMENT_MAX_BYTES / 1024 / 1024)}MB ·
           photos and PDFs only.
         </p>
-      </SheetContent>
-    </Sheet>
+      </PopoverContent>
+    </Popover>
   );
 };

@@ -24,7 +24,6 @@ export const PauseOfferDialog = ({
     <Dialog open={pauseOfferOpen} onOpenChange={setPauseOfferOpen}>
       <DialogContent>
         <DialogHero
-          eyebrow={<><PauseCircle className="w-3 h-3" /> Take a breather</>}
           title="Pause 1 Month Free Instead?"
         />
         <div
@@ -41,30 +40,30 @@ export const PauseOfferDialog = ({
             Your verification status, Saved Helprs, payout history, and reviews — all untouched. We’ll follow up by email to confirm your pause.
           </p>
         </div>
-        <DialogFooter className="sm:!justify-between">
+        <DialogFooter className="flex-col sm:flex-row sm:!justify-between gap-2">
           <Button
             variant="ghost"
             onClick={() => {
               setPauseOfferOpen(false);
               setCancelSurveyOpen(true);
             }}
-            className="rounded-ds-md"
+            className="rounded-ds-md w-full sm:w-auto"
             style={{ color: "hsl(var(--burnt-sienna))" }}
           >
             Cancel Instead
           </Button>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <Button
               variant="outline"
               onClick={() => setPauseOfferOpen(false)}
-              className="rounded-ds-md"
+              className="rounded-ds-md w-full sm:w-auto"
             >
               Never Mind
             </Button>
             <Button
               onClick={handleAcceptPause}
               disabled={acceptingPause}
-              className="rounded-ds-md"
+              className="rounded-ds-md w-full sm:w-auto"
               style={{
                 background: "hsl(var(--bark))",
                 color: "hsl(var(--parchment))",

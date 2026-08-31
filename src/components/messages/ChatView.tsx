@@ -2,8 +2,11 @@ import { useEffect, useState } from "react";
 import type { Dispatch, Ref, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertTriangle, X } from "lucide-react";
+import { toast } from "sonner";
+import { MESSAGE_MAX_LENGTH } from "@/lib/messageLimits";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { MessageActionSheet } from "./MessageActionSheet";
+import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { MuteSheet } from "./MuteSheet";
 import { ChatHeader } from "./ChatHeader";
 import { PhotoLightbox } from "@/components/dashboard/PhotoLightbox";
@@ -72,6 +75,10 @@ interface ChatViewProps {
   setReportTarget: Dispatch<SetStateAction<{ type: "message" | "user"; id: string } | null>>;
   setBlockTarget: Dispatch<SetStateAction<{ id: string; name: string } | null>>;
   setDeleteMessageConfirm: Dispatch<SetStateAction<string | null>>;
+  /** Persist an edit to a sent message's content. Mirrors the sender-only,
+   *  15-minute-window RLS policy — see
+   *  supabase/migrations/20260831003117_add_message_editing.sql. */
+  onEditMessage: (messageId: string, newContent: string) => Promise<void>;
   /** Toggle the muted state of the open thread. Mute is per-user and
    *  silences push only — the conversation stays visible and the unread
    *  badge still increments (matches iMessage's "Hide Alerts"). */
@@ -139,6 +146,7 @@ export function ChatView({
   setReportTarget,
   setBlockTarget,
   setDeleteMessageConfirm,
+  onEditMessage,
   onToggleMute,
   onSnoozeMute,
   onUnmute,
@@ -184,6 +192,44 @@ export function ChatView({
   // Message whose long-press action sheet is open (null = closed). One
   // shared sheet for the whole thread, mirroring JobQuickActionSheet.
   const [actionMessage, setActionMessage] = useState<Message | null>(null);
+  // Message being edited via the sheet's "Edit" action, plus the draft text
+  // for the edit dialog below. Separate from `draft` (the composer's own
+  // in-progress text) so opening an edit never clobbers an unsent reply.
+  const [editingMessage, setEditingMessage] = useState<Message | null>(null);
+  const [editDraft, setEditDraft] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+  // Ticking countdown for the edit dialog, mirroring the server's 15-minute
+  // RLS window (see EDIT_WINDOW_MS in MessageActionSheet.tsx and the policy
+  // in supabase/migrations/20260831003117_add_message_editing.sql). Without
+  // this, a save that straddles the deadline just silently fails server-side
+  // with no warning the window was closing.
+  const [editSecondsLeft, setEditSecondsLeft] = useState<number | null>(null);
+  useEffect(() => {
+    if (!editingMessage) { setEditSecondsLeft(null); return; }
+    const deadline = new Date(editingMessage.created_at).getTime() + 15 * 60 * 1000;
+    const tick = () => {
+      const remaining = Math.round((deadline - Date.now()) / 1000);
+      setEditSecondsLeft(Math.max(remaining, 0));
+      if (remaining <= 0) {
+        setEditingMessage(null);
+        toast.error("The 15-minute edit window closed — that change wasn't saved.");
+      }
+    };
+    tick();
+    const id = window.setInterval(tick, 1000);
+    return () => window.clearInterval(id);
+  }, [editingMessage]);
+  const saveEdit = async () => {
+    if (!editingMessage) return;
+    if (editDraft.length > MESSAGE_MAX_LENGTH) {
+      toast.error(`Messages are limited to ${MESSAGE_MAX_LENGTH.toLocaleString()} characters.`);
+      return;
+    }
+    setSavingEdit(true);
+    await onEditMessage(editingMessage.id, editDraft);
+    setSavingEdit(false);
+    setEditingMessage(null);
+  };
   // Tapbacks for the open thread. Scoped by job so the realtime subscription
   // can be filtered server-side (see useMessageReactions).
   const { reactions, react } = useMessageReactions(activeConvo?.jobId ?? null, userId);
@@ -268,15 +314,16 @@ export function ChatView({
       }
     >
         <div
-          className={
-            // Embedded (desktop split) the pane can be very wide, so cap the
-            // conversation to a natural reading column and center it — bubbles
-            // spanning the full pane read as sparse. Standalone already gets a
-            // centered max-width column from ChatPaneShell, so no cap here.
-            embedded
-              ? "flex flex-col flex-1 min-h-0 w-full max-w-[780px] mx-auto transition-[padding] duration-150"
-              : "flex flex-col flex-1 min-h-0 transition-[padding] duration-150"
-          }
+          // The pane (embedded desktop split) or the page container
+          // (standalone — ChatPaneShell's own wrapper grows up to
+          // `2xl:max-w-7xl`, 1280px, sized for generic wide-page content, not
+          // a conversation) can both be much wider than a comfortable reading
+          // column, so this cap applies in BOTH cases: bubbles and the
+          // composer spanning near-full width read as sparse/oversized
+          // ("the bottom bar does not fit correctly" — the composer visibly
+          // outgrowing a normal chat's proportions on a wide standalone
+          // screen was this exact bug).
+          className="flex flex-col flex-1 min-h-0 w-full max-w-[780px] mx-auto transition-[padding] duration-150"
           // Only pad for the keyboard here. The sticky composer already adds
           // its own safe-area-inset-bottom — padding it on the wrapper too
           // double-counts the inset and leaves a dead gap below the composer.
@@ -298,12 +345,20 @@ export function ChatView({
 
           {/* Community rules banner — compact */}
           {!bannerDismissed && (
-            <div className="rounded-md bg-accent/10 border border-accent/20 px-2.5 py-1.5 mt-2 mb-1 flex items-start gap-1.5">
+            <div className="rounded-md bg-accent/10 border border-accent/20 px-2.5 py-1.5 mt-2 mb-1 relative flex items-start gap-1.5 pr-11">
               <AlertTriangle className="w-3 h-3 text-accent mt-[3px] shrink-0" />
-              <p className="text-ds-11 leading-snug text-accent flex-1">
-                Keep chats &amp; payments on Helpr. Sharing contact info or going off-platform = warning, then final warning, then a 7-day restriction while an admin reviews your account.
+              <p className="text-ds-11 leading-snug text-accent">
+                Keep chats &amp; payments on Helpr — going off-platform risks an account restriction.
               </p>
-              <button onClick={dismissBanner} className="-m-2 p-2 text-accent/60 hover:text-accent shrink-0 self-start" aria-label="Dismiss safety reminder">
+              {/* Absolutely positioned so the 44px hit target doesn't force the
+                  compact banner to expand to 44px in height. The button is
+                  vertically centred inside the banner; overflow: visible (the
+                  default) means any slight bleed above/below is fine. */}
+              <button
+                onClick={dismissBanner}
+                className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center justify-center min-h-[44px] min-w-[44px] text-accent/60 hover:text-accent"
+                aria-label="Dismiss safety reminder"
+              >
                 <X className="w-3 h-3" />
               </button>
             </div>
@@ -408,10 +463,52 @@ export function ChatView({
         onReport={(id) => setReportTarget({ type: "message", id })}
         onBlock={() => setBlockTarget({ id: activeConvo.otherUserId, name: activeConvo.otherUserName })}
         onDelete={setDeleteMessageConfirm}
+        onEdit={(m) => { setEditDraft(m.content); setEditingMessage(m); }}
         onReact={react}
         myReaction={actionMessage ? (reactions.get(actionMessage.id)?.mine ?? null) : null}
         onReply={setReplyTo}
       />
+
+      {/* Edit dialog — opened from the action sheet's "Edit" row. A plain
+          textarea rather than reusing ChatComposer: editing replaces a
+          sent message in place, it doesn't attach/reply/send a new one,
+          so the composer's send-pipeline machinery doesn't apply here. */}
+      <BrandConfirmDialog
+        open={!!editingMessage}
+        onOpenChange={(open) => { if (!open) setEditingMessage(null); }}
+        title="Edit Message"
+        description={
+          editSecondsLeft !== null
+            ? `Changes are visible to the other person, and the message is marked as edited. Editable for ${
+                editSecondsLeft >= 60 ? `${Math.ceil(editSecondsLeft / 60)}m` : `${editSecondsLeft}s`
+              } more.`
+            : "Changes are visible to the other person, and the message is marked as edited."
+        }
+        primaryLabel={savingEdit ? "Saving…" : "Save"}
+        primaryTone="bark"
+        primaryDisabled={savingEdit || !editDraft.trim() || editDraft.length > MESSAGE_MAX_LENGTH}
+        primaryHaptic="none"
+        onPrimary={(e) => { e.preventDefault(); saveEdit(); }}
+        secondaryLabel="Cancel"
+      >
+        <textarea
+          value={editDraft}
+          onChange={(e) => setEditDraft(e.target.value)}
+          rows={3}
+          autoFocus
+          maxLength={MESSAGE_MAX_LENGTH}
+          className="w-full rounded-ds-md border px-3 py-2 text-ds-13 font-sans resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
+          style={{ borderColor: "hsl(var(--olivewood) / 0.2)", background: "hsl(var(--ivory-sand) / 0.5)", color: "hsl(var(--ink-deep))" }}
+        />
+        {editDraft.length > MESSAGE_MAX_LENGTH * 0.9 && (
+          <p
+            className="text-ds-10 text-right mt-1"
+            style={{ color: editDraft.length > MESSAGE_MAX_LENGTH ? "hsl(var(--destructive))" : "hsl(var(--olivewood) / 0.6)" }}
+          >
+            {editDraft.length.toLocaleString()} / {MESSAGE_MAX_LENGTH.toLocaleString()}
+          </p>
+        )}
+      </BrandConfirmDialog>
     </ChatPaneShell>
   );
 }

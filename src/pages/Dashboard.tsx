@@ -32,7 +32,6 @@ import { DashboardBannedScreen, DashboardDeniedScreen } from "@/components/dashb
 // and only the dialogs the user actually opens get fetched, keeping the
 // Dashboard route chunk small.
 const JobDetailDialog = lazy(() => import("@/components/dashboard/JobDetailDialog"));
-const JobQuickActionSheet = lazy(() => import("@/components/dashboard/JobQuickActionSheet").then(m => ({ default: m.JobQuickActionSheet })));
 const ApplyBody = lazy(() => import("@/components/dashboard/applyConfirmDialog/ApplyBody").then(m => ({ default: m.ApplyBody })));
 const ApplyConfirmDialog = lazy(() => import("@/components/dashboard/ApplyConfirmDialog").then(m => ({ default: m.ApplyConfirmDialog })));
 const ReportDialog = lazy(() => import("@/components/ReportDialog"));
@@ -55,7 +54,6 @@ import { useDashboardSideQueries } from "./dashboard/useDashboardSideQueries";
 import { useSaveJob } from "./dashboard/useSaveJob";
 import { useApplyFlow } from "./dashboard/useApplyFlow";
 import { useDetailJob } from "./dashboard/useDetailJob";
-import { DismissJobDialog } from "./dashboard/DismissJobDialog";
 
 
 const Dashboard = () => {
@@ -145,10 +143,6 @@ const Dashboard = () => {
   const { detailJob, openDetailJob, closeDetailJob } = useDetailJob({
     containerRef, searchParams, setSearchParams, allJobs,
   });
-  // Quick-action sheet — opened by a long-press on a JobCard. Lets the
-  // helpr save / hide / share / report without committing to opening
-  // the full detail dialog. Null = sheet closed.
-  const [quickActionJobId, setQuickActionJobId] = useState<string | null>(null);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
   // List vs Map view. The map shows the same open jobs as the list,
   // pinned to neighborhood-rounded coords (privacy via the
@@ -215,8 +209,6 @@ const Dashboard = () => {
   // corresponding map pin. null = no card hovered.
   const [hoveredJobId, setHoveredJobId] = useState<string | null>(null);
 
-  const [confirmDismissJobId, setConfirmDismissJobId] = useState<string | null>(null);
-
   // Pay It Forward — count of available credits in the user's parish.
   // Shown as a teaser banner above the community teaser when > 0.
   // PGRST202-safe: table may not be on prod yet between merge + db push.
@@ -243,24 +235,31 @@ const Dashboard = () => {
     handleApplyRequest, handleApplyConfirm,
   } = useApplyFlow({ user, allJobs });
 
+  // Immediate optimistic dismiss + toast/Undo (owner: the "Not Interested?"
+  // confirm dialog was a whole modal for a reversible, purely-local action —
+  // same mismatch as the attachment-remove undo in AppliedJobsTab). The job
+  // drops off the feed right away; Undo puts the id back in storage + state.
   const handleDismissRequest = useCallback((jobId: string) => {
-    setConfirmDismissJobId(jobId);
-  }, []);
-
-  const handleLongPressCard = useCallback((jobId: string) => {
-    setQuickActionJobId(jobId);
-  }, []);
-
-  const handleDismissConfirm = useCallback(() => {
-    if (!confirmDismissJobId) return;
     setDismissedJobIds(prev => {
       const next = new Set(prev);
-      next.add(confirmDismissJobId);
+      next.add(jobId);
       safeStorage.setItem("helpr_dismissed_jobs", JSON.stringify([...next]));
       return next;
     });
-    setConfirmDismissJobId(null);
-  }, [confirmDismissJobId, setDismissedJobIds]);
+    toast.success("Job removed from your feed", {
+      action: {
+        label: "Undo",
+        onClick: () => {
+          setDismissedJobIds(prev => {
+            const next = new Set(prev);
+            next.delete(jobId);
+            safeStorage.setItem("helpr_dismissed_jobs", JSON.stringify([...next]));
+            return next;
+          });
+        },
+      },
+    });
+  }, [setDismissedJobIds]);
 
   // The in-progress pill is no longer rendered in the brand row (owner:
   // "remove"). That row is logo, filter, notification. The job it pointed at is
@@ -486,21 +485,31 @@ const Dashboard = () => {
                               same shape as the "N unread" and bucket counts
                               every sibling screen puts in that slot. */}
                           <span
-                            /* Same TYPE as the status tabs Posts and Jobs put in
-                               this slot (owner: "needs to be same size as Post
-                               and Jobs") — font-display italic at ds-13, not
-                               font-serif at ds-11. Home sat two steps smaller
-                               and in a different family than its two siblings,
-                               for the same kind of label in the same position. */
-                            className="font-display italic text-ds-13 leading-none min-w-0 truncate"
+                            /* Bumped from ds-13 to ds-16 to match the desktop
+                               sidebar nav's own link size (owner, 2026-08-31:
+                               "17 jobs should be the same size fonta as the
+                               info on the right panel"). Still font-display
+                               italic, same family as the status-tab count this
+                               previously matched. */
+                            className="font-display italic text-ds-16 leading-none min-w-0 truncate"
                             /* --ink-deep, matching the SELECTED status tab on
                                Posts and Jobs — those went black in the same
                                pass and this is the same label in the same slot
                                (owner: "black and same size as other pages"). */
                             style={{ color: "hsl(var(--ink-deep))" }}
                           >
-                            {filters.filteredJobs.length}
-                            {filters.filteredJobs.length === 1 ? " job" : " jobs"}
+                            {/* True total under the current filters
+                                (useDashboardJobsCount), not
+                                `filteredJobs.length` — the feed is
+                                paginated via infinite scroll, so that only
+                                counts jobs loaded into memory so far and
+                                undercounted against the map's honest total
+                                (owner: "13 jobs" on the list vs "14 Jobs"
+                                on the map). Fall back to the loaded count
+                                while the true-total query is in flight so
+                                the header never shows nothing. */}
+                            {filters.totalMatchingCount ?? filters.filteredJobs.length}
+                            {(filters.totalMatchingCount ?? filters.filteredJobs.length) === 1 ? " job" : " jobs"}
                             {filters.hasFilters ? " match your filters" : ""}
                           </span>
                         <div className="flex items-center gap-1 ml-auto">
@@ -586,8 +595,6 @@ const Dashboard = () => {
                     handleApplyRequest={handleApplyRequest}
                     handleDismissRequest={handleDismissRequest}
                     handleToggleSave={handleToggleSave}
-                    handleLongPressCard={handleLongPressCard}
-                    confirmDismissJobId={confirmDismissJobId}
                     expandedCardId={expandedCardId}
                     setExpandedCardId={setExpandedCardId}
                     savedJobIds={savedJobIds}
@@ -618,8 +625,13 @@ const Dashboard = () => {
                     <Suspense fallback={<Skeleton className="h-full w-full rounded-2xl" />}>
                       <BrowseMap
                         flush
-                        onJobAction={handleApplyRequest}
-                        ctaLabel="Apply"
+                        // Same job-detail dialog the feed's cards open on
+                        // tap (openDetailJob), not the quick-apply sheet —
+                        // see the matching note in BrowseTasksFeed.tsx.
+                        onJobAction={(jobId) => {
+                          const job = allJobs.find((j) => j.id === jobId);
+                          if (job) openDetailJob(job);
+                        }}
                         currentUserId={user?.id}
                         filters={filters.mapFilter}
                         onClearFilters={filters.clearFilters}
@@ -664,7 +676,7 @@ const Dashboard = () => {
                the second step of this surface; useApplyFlow still owns all the
                state and the mutation, so nothing about submitting changed —
                only where the markup mounts. */
-            applyStep={() =>
+            applyStep={({ onBack }) =>
               confirmApplyJob ? (
                 <Suspense fallback={null}>
                   <ApplyBody
@@ -677,6 +689,8 @@ const Dashboard = () => {
                         applyFiles={applyFiles}
                         setApplyFiles={setApplyFiles}
                         applyLoading={applyLoading}
+                        hideEarnings
+                        onBack={onBack}
                         handleApplyConfirm={() => {
                           // Submitting takes the whole sheet down — the helpr
                           // is done with this job either way, and the success
@@ -697,25 +711,6 @@ const Dashboard = () => {
           <ReportDialog open={!!reportJobId} onClose={() => setReportJobId(null)} reportedType="job" reportedId={reportJobId} />
         </Suspense>
       )}
-
-      {/* Long-press quick-action sheet. Lazy-loaded so the small extra
-          bundle only ships once a helpr actually long-presses a card. */}
-      {quickActionJobId && (() => {
-        const qaJob = allJobs.find((j) => j.id === quickActionJobId);
-        if (!qaJob) return null;
-        return (
-          <Suspense fallback={null}>
-            <JobQuickActionSheet
-              job={{ id: qaJob.id, title: qaJob.title, budget: qaJob.budget, category: qaJob.category }}
-              isSaved={savedJobIds.has(qaJob.id)}
-              onClose={() => setQuickActionJobId(null)}
-              onToggleSave={handleToggleSave}
-              onHide={handleDismissRequest}
-              onReport={setReportJobId}
-            />
-          </Suspense>
-        );
-      })()}
 
       {/* Birthday greeting — a popup, not chrome. It used to be mounted as a
           sibling of the (now removed) app bar inside PageScaffold's `header`
@@ -752,11 +747,6 @@ const Dashboard = () => {
         </Suspense>
       )}
 
-      <DismissJobDialog
-        confirmDismissJobId={confirmDismissJobId}
-        onOpenChange={(open) => { if (!open) setConfirmDismissJobId(null); }}
-        onConfirm={handleDismissConfirm}
-      />
       {/* No payout-setup dialog here. It was mounted behind a
           `payoutSetupDialogOpen` flag whose setter was never called from
           anywhere, so it could not open — a lazy chunk and a piece of state

@@ -20,8 +20,16 @@ export function ApplicantSortControls({
 }: ApplicantSortControlsProps) {
   return (
     <div className="flex items-center gap-1.5 mb-4 flex-wrap" role="group" aria-label="Sort applicants by">
+      {/* Judgment call: the "soonest" sort already ordered by application
+          timestamp ascending (see useApplicantComparison's comment —
+          "first to apply"), but its label read "Soonest available", which
+          sounds like the HELPER's stated availability, not when they
+          applied. Rather than add a second, functionally-duplicate
+          "Applied first" pill next to a mislabeled one that does the exact
+          same sort, this renames the existing pill to say what it actually
+          does. */}
       {(["recommended", "rated", "soonest"] as const).map((opt) => {
-        const label = opt === "recommended" ? "Recommended" : opt === "rated" ? "Highest rated" : "Soonest available";
+        const label = opt === "recommended" ? "Recommended" : opt === "rated" ? "Highest rated" : "Applied first";
         const active = applicantSort === opt;
         return (
           <button

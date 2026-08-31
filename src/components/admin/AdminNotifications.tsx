@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Bell, Mail, Smartphone, AlertTriangle, Users, Briefcase, DollarSign, Star, ShieldAlert, Megaphone } from "lucide-react";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
+import { unwrapMutation } from "@/lib/mutationResult";
 
 type NotifPrefs = {
   id: string;
@@ -136,12 +137,16 @@ const AdminNotifications = () => {
     // Cast: Supabase generated types reject computed-key updates because
     // the index signature widens to `[x: string]: never`. The `key` is
     // constrained to `keyof NotifPrefs` so runtime is safe.
-    const { error } = await supabase
-      .from("notification_preferences")
-      .update({ [key]: value } as never)
-      .eq("id", prefs.id);
-
-    if (error) {
+    try {
+      unwrapMutation(
+        await supabase
+          .from("notification_preferences")
+          .update({ [key]: value } as never)
+          .eq("id", prefs.id)
+          .select("id"),
+        { action: "update that preference" },
+      );
+    } catch {
       setPrefs(prev);
       toast.error("Couldn't update that preference — try again.");
     }
@@ -155,12 +160,16 @@ const AdminNotifications = () => {
     const prev = { ...prefs };
     setPrefs({ ...prefs, ...updates });
 
-    const { error } = await supabase
-      .from("notification_preferences")
-      .update(updates)
-      .eq("id", prefs.id);
-
-    if (error) {
+    try {
+      unwrapMutation(
+        await supabase
+          .from("notification_preferences")
+          .update(updates)
+          .eq("id", prefs.id)
+          .select("id"),
+        { action: "update push preferences" },
+      );
+    } catch {
       setPrefs(prev);
       toast.error("Couldn't update preferences — try again.");
     }
@@ -174,12 +183,16 @@ const AdminNotifications = () => {
     const prev = { ...prefs };
     setPrefs({ ...prefs, ...updates });
 
-    const { error } = await supabase
-      .from("notification_preferences")
-      .update(updates)
-      .eq("id", prefs.id);
-
-    if (error) {
+    try {
+      unwrapMutation(
+        await supabase
+          .from("notification_preferences")
+          .update(updates)
+          .eq("id", prefs.id)
+          .select("id"),
+        { action: "update email preferences" },
+      );
+    } catch {
       setPrefs(prev);
       toast.error("Couldn't update preferences — try again.");
     }

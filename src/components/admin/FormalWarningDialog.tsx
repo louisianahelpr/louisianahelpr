@@ -24,7 +24,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MessageSquareWarning } from "lucide-react";
 import { toast } from "sonner";
 import { formatName } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
@@ -81,11 +80,6 @@ export function FormalWarningDialog({ profile, onClose, onSuccess }: FormalWarni
     <Dialog open={!!profile} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent>
         <DialogHero
-          eyebrow={
-            <>
-              <MessageSquareWarning className="w-3.5 h-3.5" /> Manual strike
-            </>
-          }
           title="Issue Manual Strike"
         />
         <div className="space-y-5">

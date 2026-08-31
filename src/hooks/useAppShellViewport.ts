@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useLayoutEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { isDesktopRailRoute } from "@/lib/desktopNavRoutes";
@@ -18,15 +18,6 @@ const DOCUMENT_SCROLL_ROUTES = [
 
   "/jobs", // public marketing /jobs (uses Navbar + long page)
   "/support",
-
-  // Accessibility settings. Its own file comment already declares it a
-  // document-scroll page ("plain min-h-screen wrapper, no AppShell"), but it
-  // was never added here — so the `html.app-shell { overflow: hidden }` lock
-  // described below applied to it and clipped everything past the fold. On
-  // the accessibility screen, of all of them.
-  // Same omission, found by the same sweep: a min-h-screen settings page with
-  // no AppShell and no entry here.
-  "/auto-tip",
 
   // Auth + onboarding flow — any AuthShell-based page that may exceed
   // the viewport height on small devices (iPhone SE) or in landscape
@@ -65,18 +56,20 @@ const DOCUMENT_SCROLL_ROUTES = [
   // container, and double-locking would let html overscroll bleed into
   // AppShell's scroll surface (iOS double-rubber-band).
   "/user",         // /user/:userId — UserProfile (PageHeader + min-h-screen)
-  "/post-job",     // PostJob (PageHeader + min-h-screen)
   "/admin",        // Admin dashboard (min-h-screen document-scroll + sidebar)
-  "/gift-card",       // Gift Card — long-form document-scroll
-  "/subscription", // Subscription tiers — long-form min-h-screen document-scroll
-  "/str-settings", // Rental host automation — long-form min-h-screen document-scroll
-  "/pets",        // My Pets — split-column desktop, document-scroll wrapper
-  "/home-history", // HomeHistory (PageHeader + min-h-screen document-scroll)
-  "/work-record",  // WorkRecord (PageHeader + min-h-screen document-scroll)
-
-  // Community discovery pages — long-form, document-scroll SEO content
-  "/wrapped",    // Helpr Wrapped year-in-review
-  "/benefits",    // Benefits marketplace — partner perks (document-scroll)
+  // /str-settings, /gift-card, /benefits, /auto-tip and /wrapped moved OFF
+  // this list (owner, 2026-08-30: "app shell globally"). They are
+  // strictly-authed app screens reached from the Profile landing, so unlike
+  // their public siblings (/help, /legal, /jobs) they have no SEO or
+  // marketing-footer reason to scroll the document. They now render through
+  // <AppPage> (AppShell + ProfileTabHeader), and an AppShell page MUST NOT be
+  // on this list: `html.app-shell { overflow: hidden }`
+  // would stack a second lock on top of AppShell's own scroll container,
+  // which is the iOS double-rubber-band this list's comment warns about.
+  // /pets, /work-record and /home-history moved OFF this list for the same
+  // reason: they now render through the shared <AppPage> shell (AppShell +
+  // the Profile tab header), so their scrolling happens in AppShell's own
+  // container and they must not be html-locked as well.
 
   // Public vertical landing pages (PageHeader + min-h-screen document-scroll)
 
@@ -177,7 +170,7 @@ export const useAppShellViewport = () => {
   const { pathname } = useLocation();
   const { user } = useAuthReady();
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const apply = () => {
       const html = document.documentElement;
       if (isDocumentScrollRoute(pathname)) {
@@ -210,7 +203,7 @@ export const useAppShellViewport = () => {
   // Web-desktop detection. Independent of route (the chrome/layout applies on
   // every signed-in fixed-shell page), so it lives in its own effect that runs
   // once and self-updates via the matchMedia change event.
-  useEffect(() => {
+  useLayoutEffect(() => {
     const html = document.documentElement;
 
     // Hard gate: native app is NEVER web-desktop. Bail before touching the

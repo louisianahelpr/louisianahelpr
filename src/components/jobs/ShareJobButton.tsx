@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { hapticLight } from "@/lib/haptics";
+import { copyToClipboard } from "@/lib/nativeShare";
 
 interface ShareJobButtonProps {
   /** The job being shared — only the title/budget/category/id/city are referenced. */
@@ -45,6 +46,12 @@ interface ShareJobButtonProps {
    * dialog's own bare X) where a filled tile reads as content.
    */
   bare?: boolean;
+  /** `bare` icon variant only: shrinks below the 44px HIG floor (owner,
+   *  2026-08-30 — a corner icon row this small forced too much clearance
+   *  above the title below it). Needs an inline min-height/min-width
+   *  override since the global `button { min-height: 44px }` rule beats a
+   *  Tailwind size utility otherwise. */
+  compact?: boolean;
   /** Optional aria-label override for the icon-only variant. */
   ariaLabel?: string;
   /**
@@ -99,6 +106,7 @@ export function ShareJobButton({
   ariaLabel,
   style,
   bare = false,
+  compact = false,
 }: ShareJobButtonProps) {
   // Disable the button while a share is in flight so impatient
   // double-taps don't queue duplicate share sheets.
@@ -138,40 +146,6 @@ export function ShareJobButton({
     setCopied(true);
     if (copiedTimer.current) clearTimeout(copiedTimer.current);
     copiedTimer.current = setTimeout(() => setCopied(false), 2000);
-  };
-
-  /**
-   * Copy `text`, returning whether it actually landed.
-   *
-   * Two rungs: the async Clipboard API, then the legacy `execCommand("copy")`
-   * off a detached textarea — still the only clipboard available in some
-   * embedded WebViews and on insecure origins, where `navigator.clipboard` is
-   * undefined. Returning a boolean (rather than throwing) is what lets the
-   * caller tell "copied" from "could not copy" and show the right thing.
-   */
-  const copyToClipboard = async (text: string): Promise<boolean> => {
-    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(text);
-      return true;
-    }
-    if (typeof document === "undefined" || typeof document.execCommand !== "function") {
-      return false;
-    }
-    const ta = document.createElement("textarea");
-    ta.value = text;
-    ta.setAttribute("readonly", "");
-    // Off-screen but still selectable. `display:none` would make the
-    // selection — and therefore the copy — fail silently.
-    ta.style.position = "fixed";
-    ta.style.top = "-9999px";
-    ta.style.opacity = "0";
-    document.body.appendChild(ta);
-    try {
-      ta.select();
-      return document.execCommand("copy");
-    } finally {
-      document.body.removeChild(ta);
-    }
   };
 
   const handleShare = async () => {
@@ -291,11 +265,14 @@ export function ShareJobButton({
         onClick={handleShare}
         className={cn(
           bare
-            ? "group rounded-md h-11 w-11 shrink-0 btn-press motion-safe:transition-colors hover:text-foreground"
+            ? `group rounded-md ${compact ? "h-8 w-8" : "h-11 w-11"} shrink-0 btn-press motion-safe:transition-colors hover:text-foreground hover:bg-transparent active:bg-transparent`
             : "group glass-press rounded-full h-11 w-11 sm:h-12 sm:w-12 shrink-0 motion-safe:transition-all motion-safe:duration-200 motion-safe:hover:scale-105 motion-safe:active:scale-95",
           className,
         )}
-        style={bare ? { color: "hsl(var(--muted-foreground))" } : {
+        style={bare ? {
+          color: "hsl(var(--muted-foreground))",
+          ...(compact ? { minHeight: "32px", minWidth: "32px" } : {}),
+        } : {
           backgroundColor: "hsla(0, 0%, 100%, 0.32)",
           backdropFilter: "blur(20px) saturate(150%)",
           WebkitBackdropFilter: "blur(20px) saturate(150%)",

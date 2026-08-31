@@ -194,6 +194,7 @@ export function ActivityHeader({
                  field is, and greyed placeholder text inside a field that only
                  exists because you just tapped search is repeating it. */
               placeholder=""
+              spellCheck={false}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-10 h-9 text-ds-13 rounded-ds-md glass-field focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"

@@ -2,7 +2,6 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Activity, AlertTriangle, BarChart3, Briefcase, CheckCircle, Clock, CreditCard, Crown, DollarSign, Loader2, PieChart, Sparkles, Star, TrendingUp, Users, XCircle } from "lucide-react";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
@@ -249,11 +248,16 @@ const AdminAnalytics = () => {
   if (drillDown) {
     return (
       <div className="space-y-4">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={() => setDrillDown(null)} className="text-ds-11 text-muted-foreground">
-            ← Back to Analytics
-          </Button>
-          <h2 className="text-ds-20 font-display font-bold text-foreground">
+        <div className="flex items-center gap-1.5 text-ds-13">
+          <button
+            type="button"
+            onClick={() => setDrillDown(null)}
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Analytics
+          </button>
+          <span className="text-muted-foreground">/</span>
+          <span className="font-display font-bold text-foreground">
             {drillDown === "users" ? "All Users" :
              drillDown === "subscriptions" ? "Subscriber Breakdown" :
              drillDown === "jobs" ? "All Jobs" :
@@ -261,7 +265,7 @@ const AdminAnalytics = () => {
              drillDown === "fees" ? "Platform Fee Breakdown" :
              drillDown === "payouts" ? "Payout Tracking" :
              drillDown === "categories" ? "Category Breakdown" : ""}
-          </h2>
+          </span>
         </div>
 
         {drillLoading ? (

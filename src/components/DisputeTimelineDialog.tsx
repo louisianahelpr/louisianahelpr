@@ -19,7 +19,7 @@ import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
 import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { AlertTriangle, Upload, X, Clock, CheckCircle2, FileImage } from "lucide-react";
+import { Upload, X, Clock, CheckCircle2, FileImage } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { report } from "@/lib/errorLogger";
@@ -214,21 +214,12 @@ export const DisputeTimelineDialog = ({
   const isOpener = openerId === userId;
   const canAddEvidence = (dispute?.status ?? "open") === "open";
 
-  const eyebrowStyle: React.CSSProperties = {
-    fontSize: "0.62rem",
-    color: "hsl(var(--burnt-sienna))",
-    letterSpacing: "0.18em",
-  };
+  const eyebrowCls = "text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground";
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHero
-          eyebrow={
-            <>
-              <AlertTriangle className="w-3 h-3" /> Dispute in progress
-            </>
-          }
           title="Timeline"
         />
 
@@ -238,7 +229,7 @@ export const DisputeTimelineDialog = ({
           <div className="space-y-3">
             {/* Created */}
             <div className="rounded-ds-md p-3" style={{ background: "hsl(var(--burnt-sienna) / 0.06)", border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)" }}>
-              <p className="font-serif italic uppercase inline-flex items-center gap-1.5" style={eyebrowStyle}>
+              <p className={`${eyebrowCls} inline-flex items-center gap-1.5`}>
                 <Clock className="w-3 h-3" /> Filed
                 {createdAt && (
                   <span className="font-sans normal-case tracking-normal" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
@@ -258,7 +249,7 @@ export const DisputeTimelineDialog = ({
 
             {/* Evidence */}
             <div>
-              <p className="font-serif italic uppercase inline-flex items-center gap-1.5" style={eyebrowStyle}>
+              <p className={`${eyebrowCls} inline-flex items-center gap-1.5`}>
                 <FileImage className="w-3 h-3" /> Evidence on file
                 <span className="font-sans normal-case tracking-normal" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   · {evidenceUrls.length}
@@ -288,7 +279,7 @@ export const DisputeTimelineDialog = ({
             {/* Decision (only when decided) */}
             {decidedAt && (
               <div className="rounded-ds-md p-3" style={{ background: "hsl(var(--primary) / 0.08)", border: "0.5px solid hsl(var(--primary) / 0.25)" }}>
-                <p className="font-serif italic uppercase inline-flex items-center gap-1.5" style={{ ...eyebrowStyle, color: "hsl(var(--primary))" }}>
+                <p className={`${eyebrowCls} inline-flex items-center gap-1.5`} style={{ color: "hsl(var(--primary))" }}>
                   <CheckCircle2 className="w-3 h-3" /> Decided
                   <span className="font-sans normal-case tracking-normal" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                     · {formatDistanceToNow(new Date(decidedAt), { addSuffix: true })}
@@ -312,7 +303,7 @@ export const DisputeTimelineDialog = ({
             {/* Follow-up evidence uploader */}
             {canAddEvidence && (
               <div className="space-y-1.5 pt-1">
-                <Label className="font-serif italic uppercase" style={eyebrowStyle}>
+                <Label className={eyebrowCls}>
                   Add follow-up evidence
                 </Label>
                 <div className="flex flex-wrap gap-1.5">

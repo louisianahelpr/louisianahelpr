@@ -1,14 +1,15 @@
 import { useState, useEffect, useRef, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
-import { ChevronLeft, Search, X } from "lucide-react";
-import PublicLayout from "@/components/marketing/PublicLayout";
+import { Search, X } from "lucide-react";
+import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
+import PageHeader from "@/components/PageHeader";
 import AppShell from "@/components/AppShell";
 import { isNativePlatform } from "@/lib/nativeInit";
-import BackButton from "@/components/BackButton";
 import { PolicySearchContext, PolicyTabContext } from "@/components/policy/CollapsedPolicy";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { useAuthReady } from "@/hooks/useAuthReady";
 import { TermsContent } from "./legal/TermsSection";
 import { CommunityContent } from "./legal/CommunitySection";
 import { PrivacyContent } from "./legal/PrivacySection";
@@ -58,6 +59,19 @@ const Legal = () => {
   const [params, setParams] = useSearchParams();
   const tabParam = (params.get("tab") || "terms") as TabKey;
   const tab: TabKey = VALID_TABS.includes(tabParam) ? tabParam : "terms";
+
+  // Where "back" lands when there is NO in-app history (a deep link, or a cold
+  // open from the footer). NEVER the marketing landing for a signed-in visitor
+  // (owner, 2026-08-30: "there should not be any redirection back to public
+  // pages once they are signed in") — this page is reachable from inside the
+  // app via Profile → Legal & Policies, and dropping someone from there onto
+  // the public site is the exact bounce that rule forbids. Logged out, "/" is
+  // still the right parent.
+  //
+  // Only the FALLBACK: BackButton prefers real in-app history over `to`, so a
+  // normal in-app navigation still returns to wherever you actually came from.
+  const { user } = useAuthReady();
+  const homeTo = user ? "/dashboard" : "/";
 
   // Cross-section policy search. The query feeds PolicySearchContext, which
   // every PolicySection / PolicyRowItem self-filters against. `hasResults`
@@ -198,34 +212,31 @@ const Legal = () => {
     setParams(nextParams, { replace: true });
   };
 
-  // NATIVE header: back button + compact per-tab title.
+  // NATIVE header — the SHARED <PageHeader>, not a copy of it.
   //
-  // The markup below is the title block <PageHeader> renders, verbatim
-  // (`flex items-center gap-3` > BackButton + `flex flex-col leading-none
-  // min-w-0` > `h1.text-page-title.leading-tight.text-balance`), so these
-  // three screens get the app's standard page title by REUSING the same
-  // utility rather than re-deriving a font/size/weight. PageHeader itself is
-  // not mounted here because it brings its own `mx-auto max-w-*` frame and
-  // safe-area top padding, both of which this AppShell layout already
-  // supplies (the container below + `statusBarCap`) — mounting it would
-  // double-count them.
+  // This used to hand-roll PageHeader's title block "verbatim" (a flex row,
+  // BackButton, and an `h1.text-page-title`) on the theory that mounting
+  // PageHeader would double-count its container and safe-area padding. Both
+  // of those are opt-out props, so the copy bought nothing and cost the usual
+  // price of a copy: when PageHeader's spacing changed (16 → 24px, owner
+  // 2026-08-30 "all of these should be 24"), this screen silently kept the old
+  // rhythm, and the `mb-1` below the title was a leftover from a version of
+  // PageHeader that no longer exists.
+  //
+  //  - `width="none"`: the `px-5` > `page-measure mx-auto` wrapper below
+  //    already applies this screen's container, so PageHeader must not add a
+  //    second one.
+  //  - `topInsetHandled`: `statusBarCap` (passed to AppShell as its header)
+  //    already carries `var(--safe-area-top)`.
+  //
+  // Static "Legal" — the title does NOT swap with the tab, matching the web
+  // header. One page with three tabs retitling itself on every toggle flickers
+  // between three names for the same destination, while the tab band directly
+  // underneath already says which policy you are reading. The per-policy names
+  // still drive the DOCUMENT title and canonical via usePageMeta, which is what
+  // SEO and the browser tab read.
   const nativeHeaderRow = (
-    <div className="flex items-center gap-3">
-      <div data-print-hide className="shrink-0"><BackButton to="/" /></div>
-      <div className="flex flex-col leading-none min-w-0 mb-1">
-        {/* Static "Legal" — the h1 does NOT swap with the tab, matching the web
-            header below. This fix was applied to the WEB header and missed
-            here, so the native app kept the exact behaviour that header's
-            comment describes: one page with three tabs retitling itself on
-            every toggle, flickering between three names for the same
-            destination while the tab band directly underneath already says
-            which policy you are reading.
-
-            The per-policy names still drive the DOCUMENT title and canonical
-            via usePageMeta, which is what SEO and the browser tab read. */}
-        <h1 className="text-page-title leading-tight truncate">Legal</h1>
-      </div>
-    </div>
+    <PageHeader title="Legal" backTo={homeTo} width="none" topInsetHandled />
   );
 
   // WEB header: the same compact row every other public page opens with —
@@ -259,36 +270,28 @@ const Legal = () => {
   // `container` pads 20px where the others pad 48px (lg:px-12). The header and
   // the body were changed together, so the internal alignment that mattered is
   // preserved and the cross-page mismatch is gone. Change them as a pair.
-  const webHeader = (
-    <section className="px-5 sm:px-8 lg:px-12">
-      <div className="page-measure mx-auto">
-        {/* Tighter than the 24/32px this row used to carry top and bottom
-            (owner). "Legal" is a one-word title over a tab bar that names the
-            actual document — it does not need a hero's worth of air, and the
-            gap pushed the policy itself further below the fold on every load. */}
-        <div className="flex items-center gap-3 mt-4 mb-3 md:mt-5 md:mb-4">
-          <div data-print-hide className="shrink-0">
-{/* to="/" — NOT bare history-back. These are top-nav / footer
-                destinations reachable from anywhere, so `navigate(-1)` sent
-                you to whatever you happened to view last: opening Terms, then
-                Jobs, then pressing Back landed on Terms. A top-level page
-                needs one predictable parent, and consistently the same one
-                across all of them. */}
-              <BackButton to="/" />
-          </div>
-          <div className="flex flex-col leading-none min-w-0 flex-1">
-            {/* Static "Legal" — the h1 does NOT swap with the tab. This is one
-                page with three tabs, and the tab band directly below already
-                says which policy you're reading, so retitling the page on every
-                toggle made the header flicker between three names for the same
-                destination. The per-policy names still drive the DOCUMENT title
-                and canonical via usePageMeta, which is what SEO reads. */}
-            <h1 className="text-page-title leading-tight truncate">Legal</h1>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
+  // Rendered by the shared <PageHeader> — this row was a verbatim copy of it.
+  //
+  // `backTo="/"` — NOT bare history-back. These are top-nav / footer
+  // destinations reachable from anywhere, so `navigate(-1)` sent you to
+  // whatever you happened to view last: opening Terms, then Jobs, then
+  // pressing Back landed on Terms. A top-level page needs one predictable
+  // parent, and consistently the same one across all of them. PageHeader's
+  // `backTo` is the right expression of that (an `onBack` handler would turn
+  // "back" into a forward PUSH — see the prop's own doc comment).
+  //
+  // Static "Legal" — the h1 does NOT swap with the tab. This is one page with
+  // three tabs, and the tab band directly below already says which policy
+  // you're reading, so retitling the page on every toggle made the header
+  // flicker between three names for the same destination. The per-policy names
+  // still drive the DOCUMENT title and canonical via usePageMeta.
+  //
+  // Static "Legal" — the h1 does NOT swap with the tab, rendered by
+  // PublicHeaderPage below. This is one page with three tabs, and the tab
+  // band directly below already says which policy you're reading, so
+  // retitling the page on every toggle made the header flicker between
+  // three names for the same destination. The per-policy names still drive
+  // the DOCUMENT title and canonical via usePageMeta.
 
   // ONE size, always. Below `sm` the three tabs share the full width as an
   // even 3-column grid stacked above the search input; from `sm` up they
@@ -301,7 +304,7 @@ const Legal = () => {
   const tabBar = (
     <TabsList
       data-print-hide
-      className="grid grid-cols-3 sm:flex items-center gap-1 sm:gap-2 rounded-2xl p-1 h-auto bg-transparent border-0 w-full"
+      className="flex items-center gap-1 sm:gap-2 rounded-2xl p-1 h-auto bg-transparent border-0 w-full"
     >
       {VALID_TABS.map((t) => {
         const isActive = t === tab;
@@ -310,7 +313,7 @@ const Legal = () => {
           <TabsTrigger
             key={t}
             value={t}
-            className="relative h-9 inline-flex sm:flex-1 items-center justify-center gap-1.5 rounded-ds-md text-ds-13 font-sans font-semibold leading-none transition-colors duration-200"
+            className="relative h-9 inline-flex flex-1 min-w-0 items-center justify-center gap-1 sm:gap-1.5 rounded-ds-md text-ds-11 sm:text-ds-13 font-sans font-semibold leading-none transition-colors duration-200 px-1"
             style={{ color: isActive ? "hsl(var(--parchment))" : "hsl(var(--olivewood))" }}
           >
             {/* A single lifted pill that slides between tabs via framer's
@@ -359,7 +362,10 @@ const Legal = () => {
       className={
         searchOpen
           ? "relative w-full sm:flex-1 sm:min-w-[220px] order-2 sm:order-1"
-          : "relative self-start shrink-0 order-2 sm:order-1"
+          /* `self-center`, not `self-start`. The row is `sm:items-center`, but
+             `self-start` overrode it and pinned the magnifier to the top of the
+             row, so it sat visibly high against the tab pills beside it. */
+          : "relative self-center shrink-0 order-2 sm:order-1"
       }
       data-print-hide
     >
@@ -408,7 +414,7 @@ const Legal = () => {
             className="absolute right-2 top-1/2 -translate-y-1/2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-full btn-press hover:bg-primary/5"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
-            <ChevronLeft className="w-4 h-4" />
+            <X className="w-4 h-4" />
           </button>
         </>
       ) : (
@@ -417,11 +423,13 @@ const Legal = () => {
           onClick={() => setSearchOpen(true)}
           aria-label="Search all policies"
           aria-expanded={searchOpen}
-          className="h-10 w-10 rounded-ds-md inline-flex items-center justify-center btn-press hover:bg-primary/5"
-          style={{
-            border: "1px solid hsl(var(--bark) / 0.18)",
-            color: "hsl(var(--olivewood) / 0.8)",
-          }}
+          /* No box. The bordered chip put a second outlined control on a row
+             whose only real control is the tab group, so the magnifier read as
+             a peer of "Terms / Rules / Privacy" rather than the affordance that
+             opens a field. It's a bare glyph now, with the hover wash carrying
+             the hit feedback. */
+          className="h-10 w-10 rounded-full inline-flex items-center justify-center btn-press hover:bg-primary/5"
+          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
           <Search className="w-4 h-4" />
         </button>
@@ -455,7 +463,7 @@ const Legal = () => {
           // x=587..854 with ~500px of dead band on either side. Now the row is
           // a flex line and the tab group takes the remaining width, so the
           // three policies are distributed instead of packed.
-          : "flex flex-col gap-2 p-1 sm:flex-row sm:items-center sm:gap-4"
+          : "flex items-center gap-2 p-1 sm:gap-4"
       }
     >
       {searchBar}
@@ -463,7 +471,7 @@ const Legal = () => {
         className={
           searchOpen
             ? "w-full sm:w-auto sm:shrink-0 order-1 sm:order-2"
-            : "w-full order-1 sm:order-2 sm:flex-1"
+            : "flex-1 min-w-0 order-1 sm:order-2"
         }
       >
         {tabBar}
@@ -611,13 +619,16 @@ const Legal = () => {
   // This page renders the canonical in-content <BackButton /> next to its H1,
   // which is its only back affordance.
   return (
-    <PublicLayout>
+    // Shared shell (PublicHeaderPage) — same component Jobs, Help Center and
+    // Support render through now, so the header-to-body contract (24px
+    // above/below the title, one gutter ladder, no double padding) lives in
+    // one place (owner, 2026-08-30: "legal help center and jobs should all
+    // be one component and share the same shell"). `Tabs` just needs to be
+    // an ancestor of the tab controls/content below — it doesn't need to
+    // wrap the header, so it moves inside the shell's children instead of
+    // outside it.
+    <PublicHeaderPage title="Legal" backTo="/" bottomPaddingClassName="pb-8">
       <Tabs value={tab} onValueChange={setTab} className="w-full">
-        {/* Compact [BackButton] [title] row — same shape and vertical offset as
-            /subscription, /help, and /jobs. */}
-        {webHeader}
-
-        <div className="px-5 sm:px-8 lg:px-12 pb-8">
           <div className="page-measure mx-auto space-y-3">
             {/* Opaque, not just blurred. `backdrop-blur-md` alone left the
                 band see-through: scrolled policy text read straight through
@@ -655,9 +666,8 @@ const Legal = () => {
                 project treats as a layout failure. */}
             {body}
           </div>
-        </div>
       </Tabs>
-    </PublicLayout>
+    </PublicHeaderPage>
   );
 };
 

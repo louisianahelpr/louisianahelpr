@@ -101,12 +101,13 @@ export function EntryChoice({ form }: EntryChoiceProps) {
     // four suddenly three times as tall as the rest, holding nothing. With
     // `items-start` the expanded one grows and the others stay the size of
     // their content.
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-start animate-ds-page-in">
+    <div className="flex flex-col gap-3 animate-ds-page-in">
       {/* 1 — START FRESH (primary action, always first) */}
       <button
         type="button"
         onClick={form.startFresh}
         className="w-full rounded-2xl liquid-glass p-4 text-left flex items-center gap-4 active:scale-[0.99] transition-transform"
+          style={{ minHeight: "104px" }}
       >
         <span
           className="inline-flex items-center justify-center w-11 h-11 rounded-full shrink-0"
@@ -135,6 +136,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
           type="button"
           onClick={form.loadDraftAndContinue}
           className="w-full rounded-2xl liquid-glass p-4 text-left flex items-center gap-4 active:scale-[0.99] transition-transform"
+          style={{ minHeight: "104px" }}
         >
           <span
             className="inline-flex items-center justify-center w-11 h-11 rounded-full shrink-0"
@@ -182,12 +184,12 @@ export function EntryChoice({ form }: EntryChoiceProps) {
       )}
 
       {hasRecent && (
-        <div className="rounded-2xl liquid-glass p-4">
+        <div className="rounded-2xl liquid-glass p-4 min-h-[104px] flex flex-col justify-center">
           <button
             type="button"
             onClick={() => toggleSection("repost")}
             aria-expanded={repostOpen}
-            className="w-full flex items-center gap-4 text-left active:scale-[0.99] transition-transform"
+            className="w-full flex items-center gap-4 text-left min-h-[72px] active:scale-[0.99] transition-transform"
           >
             <span
               className="inline-flex items-center justify-center w-11 h-11 rounded-full shrink-0"
@@ -273,12 +275,12 @@ export function EntryChoice({ form }: EntryChoiceProps) {
       )}
 
       {/* 4 — USE A TEMPLATE (collapsed by default) */}
-      <div className="rounded-2xl liquid-glass p-4">
+      <div className="rounded-2xl liquid-glass p-4 min-h-[104px] flex flex-col justify-center">
         <button
           type="button"
           onClick={() => toggleSection("templates")}
           aria-expanded={templatesOpen}
-          className="w-full flex items-center gap-4 text-left active:scale-[0.99] transition-transform"
+          className="w-full flex items-center gap-4 text-left min-h-[72px] active:scale-[0.99] transition-transform"
         >
           <span
             className="inline-flex items-center justify-center w-11 h-11 rounded-full shrink-0"

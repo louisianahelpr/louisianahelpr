@@ -31,6 +31,9 @@ const AwardGateDialog = lazy(() =>
   import("@/components/AwardGateDialog").then((m) => ({ default: m.AwardGateDialog })),
 );
 const W9CollectionDialog = lazy(() => import("@/components/W9CollectionDialog"));
+// Same "Report" surface Browse uses (Dashboard.tsx) — a Done-tab job on
+// My Posts gets the identical dialog, reportedType="job".
+const ReportDialog = lazy(() => import("@/components/ReportDialog"));
 import { useActivityActions } from "@/pages/activity/useActivityActions";
 import {
   POSTED_STATUS_FILTERS,
@@ -94,6 +97,9 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   const [highlightAppId] = useState<string | null>(() =>
     defaultTab === "applied" ? (searchParams.get("highlight") ?? null) : null,
   );
+
+  // "Report" on a Done-tab My Posts card — same dialog Browse uses.
+  const [reportJobId, setReportJobId] = useState<string | null>(null);
 
   // Remove ?highlight= from the URL after the first paint. We do this
   // in a microtask so the param is still present when the tab mounts
@@ -399,8 +405,8 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               groupByStatus={statusFilter === "all"}
               jobs={filteredPostedJobs}
               applicantCounts={applicantCounts}
-              expandedJobId={actions.expandedJobId}
-              setExpandedJobId={actions.setExpandedJobId}
+              expandedJobIds={actions.expandedJobIds}
+              toggleExpandedJobId={actions.toggleExpandedJobId}
               helperNames={helperNames}
               completedJobMeta={completedJobMeta}
               latestTracking={latestTracking}
@@ -416,6 +422,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               onTip={(jobId, name) => { actions.setEnhancedTipJobId(jobId); actions.setEnhancedTipHelperName(name); }}
               onReview={actions.openReviewForPosted}
               onDispute={actions.setDisputeJob}
+              onReport={(job) => setReportJobId(job.id)}
               onViewDispute={actions.setViewDisputeJob}
               onConfirmArrival={actions.confirmArrival}
               confirmingArrivalJobId={actions.confirmingArrivalJobId}
@@ -450,8 +457,8 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               groupByStatus={statusFilter === "all"}
               apps={filteredAppliedApps}
               highlightAppId={highlightAppId}
-              expandedJobId={actions.expandedJobId}
-              setExpandedJobId={actions.setExpandedJobId}
+              expandedJobIds={actions.expandedJobIds}
+              toggleExpandedJobId={actions.toggleExpandedJobId}
               helperReviewedJobIds={helperReviewedJobIds}
               latestTracking={latestTracking}
               userId={user!.id}
@@ -532,6 +539,16 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
             jobId={actions.w9Context.jobId}
             helperId={user.id}
             businessId={actions.w9Context.businessId}
+          />
+        </Suspense>
+      )}
+      {reportJobId && (
+        <Suspense fallback={null}>
+          <ReportDialog
+            open={!!reportJobId}
+            onClose={() => setReportJobId(null)}
+            reportedType="job"
+            reportedId={reportJobId}
           />
         </Suspense>
       )}

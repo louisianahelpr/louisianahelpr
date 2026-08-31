@@ -1,11 +1,9 @@
 import { lazy, Suspense, useCallback, useMemo, useRef, useEffect, useState } from "react";
 import type { Dispatch, Ref, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
-import { AnimatePresence, motion } from "framer-motion";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import { Search, Plus, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useReducedMotion } from "@/lib/accessibility";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
@@ -14,6 +12,7 @@ import SwipeableJobCard from "@/components/dashboard/SwipeableJobCard";
 import { VirtualizedJobList } from "@/components/dashboard/VirtualizedJobList";
 import { CompactJobCard } from "@/components/dashboard/CompactJobCard";
 import {
+  JobCardSkeleton,
   RecommendedJobCardSkeleton,
 } from "@/components/ui/skeletons/JobCardSkeleton";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -57,6 +56,151 @@ const BrowseMap = lazy(() => {
 
 type PullToRefresh = ReturnType<typeof usePullToRefresh>;
 
+/** Props every SwipeableJobCard needs, regardless of which list renders it. */
+interface JobCardCommonProps {
+  effectiveFee: number;
+  currentUserId?: string;
+  onApply: (jobId: string) => void;
+  onReport: Dispatch<SetStateAction<string | null>>;
+  onSelect: Dispatch<SetStateAction<EnrichedJob | null>>;
+  onDismiss: (jobId: string) => void;
+  expandedCardId: string | null;
+  onToggleExpand: (id: string) => void;
+  savedJobIds: Set<string>;
+  onToggleSave: (jobId: string, saved: boolean) => void;
+  userLat: number | null;
+  userLng: number | null;
+}
+
+/**
+ * JobFeedCard — the single place that threads the (long) shared prop list
+ * onto SwipeableJobCard. Both the "Recommended" band and the "Everything
+ * else" feed render the same card with the same props; only their list
+ * wrapper differs (animated vs virtualized), so only the wrapper stays
+ * duplicated per call site — the card itself is built here once.
+ */
+function JobFeedCard({
+  job,
+  index,
+  recommended,
+  common,
+}: {
+  job: EnrichedJob;
+  index: number;
+  recommended?: boolean;
+  common: JobCardCommonProps;
+}) {
+  return (
+    <SwipeableJobCard
+      job={job}
+      effectiveFee={common.effectiveFee}
+      currentUserId={common.currentUserId}
+      recommended={recommended}
+      onApply={common.onApply}
+      onReport={common.onReport}
+      onSelect={common.onSelect}
+      onDismiss={common.onDismiss}
+      index={index}
+      isExpanded={common.expandedCardId === job.id}
+      onToggleExpand={common.onToggleExpand}
+      isSaved={common.savedJobIds.has(job.id)}
+      onToggleSave={common.onToggleSave}
+      userLat={common.userLat}
+      userLng={common.userLng}
+    />
+  );
+}
+
+/** Props every CompactJobCard row needs, regardless of which list renders it. */
+interface CompactCardCommonProps {
+  effectiveFee: number;
+  onSelect: Dispatch<SetStateAction<EnrichedJob | null>>;
+  hoveredJobId?: string | null;
+  setHoveredJobId?: Dispatch<SetStateAction<string | null>>;
+}
+
+/** Same de-dup as JobFeedCard, for the "compact" density's CompactJobCard rows. */
+function CompactFeedCard({
+  job,
+  recommended,
+  common,
+}: {
+  job: EnrichedJob;
+  recommended?: boolean;
+  common: CompactCardCommonProps;
+}) {
+  return (
+    <CompactJobCard
+      job={job}
+      effectiveFee={common.effectiveFee}
+      recommended={recommended}
+      onSelect={(j) => common.onSelect(j)}
+      isHighlighted={common.hoveredJobId === job.id}
+      onMouseEnter={() => common.setHoveredJobId?.(job.id)}
+      onMouseLeave={() => common.setHoveredJobId?.(null)}
+    />
+  );
+}
+
+/**
+ * MainFeedSection — the WHOLE comfortable-density feed, ONE list (owner,
+ * 2026-08-30, repeated instruction: "all jobs belong in one component
+ * period"). Recommended picks and everything else used to be two separately
+ * rendered sections (an AnimatePresence band, then a virtualized list) —
+ * now it's one virtualized list over `jobs`, where the caller has already
+ * put recommended picks first. `recommendedCount` only decides which single
+ * card (index 0, when >0) gets the "Recommended" pill — it no longer
+ * selects a different list primitive or a different wrapper.
+ *
+ * `px-4` matches the toolbar row directly above it (owner: "same spacing" —
+ * the feed used to sit 4px further left than the "N jobs" label introducing
+ * it).
+ */
+function MainFeedSection({
+  jobs,
+  recommendedBadgeId,
+  common,
+  containerRef,
+  setHoveredJobId,
+}: {
+  jobs: EnrichedJob[];
+  recommendedBadgeId: string | null;
+  common: JobCardCommonProps;
+  containerRef: PullToRefresh["containerRef"];
+  setHoveredJobId?: Dispatch<SetStateAction<string | null>>;
+}) {
+  return (
+    <div
+      className="px-4 pt-3"
+      style={{ paddingBottom: "calc(6rem + var(--safe-area-bottom, 0px))" }}
+    >
+      <VirtualizedJobList
+        items={jobs}
+        scrollElementRef={containerRef}
+        getKey={(job) => job.id}
+        // Card renders ~83px tall (single-line title + one meta row) plus
+        // the pb-2/2.5/3 row gap — 92 tracks that instead of the generic
+        // 132 default, which was reserving ~60% more slot height than any
+        // row actually needs and reads as excess whitespace before
+        // measureElement corrects it.
+        estimateSize={92}
+        renderItem={(job, i) => (
+          // Gap between cards — `space-y-*` can't apply once the
+          // virtualizer absolutely-positions rows, so the gap is bottom
+          // padding measured as part of the row height.
+          <div
+            className="pb-2 lg:pb-2.5 xl:pb-3"
+            onMouseEnter={() => setHoveredJobId?.(job.id)}
+            onMouseLeave={() => setHoveredJobId?.(null)}
+          >
+            <JobFeedCard job={job} index={i} recommended={job.id === recommendedBadgeId} common={common} />
+          </div>
+        )}
+      />
+    </div>
+  );
+}
+
 interface BrowseTasksFeedProps {
   /** List vs Map view — selects which body renders. */
   view: "list" | "map";
@@ -84,9 +228,6 @@ interface BrowseTasksFeedProps {
   handleApplyRequest: (jobId: string) => void;
   handleDismissRequest: (jobId: string) => void;
   handleToggleSave: (jobId: string, saved: boolean) => void;
-  /** Long-press on a JobCard — opens the quick-action sheet. */
-  handleLongPressCard?: (jobId: string) => void;
-  confirmDismissJobId: string | null;
   expandedCardId: string | null;
   setExpandedCardId: Dispatch<SetStateAction<string | null>>;
   savedJobIds: Set<string>;
@@ -132,8 +273,6 @@ export function BrowseTasksFeed({
   handleApplyRequest,
   handleDismissRequest,
   handleToggleSave,
-  handleLongPressCard,
-  confirmDismissJobId,
   expandedCardId,
   setExpandedCardId,
   savedJobIds,
@@ -182,7 +321,6 @@ export function BrowseTasksFeed({
   const userLat = fallbackLoc?.lat ?? null;
   const userLng = fallbackLoc?.lng ?? null;
   const navigate = useNavigate();
-  const reducedMotion = useReducedMotion();
 
   // Stable per-card expand toggle. Previously an inline arrow was created
   // for every card on every render — that defeated SwipeableJobCard's
@@ -269,6 +407,55 @@ export function BrowseTasksFeed({
     return { visibleJobs: visible, recommendedVisible: recommended };
   }, [filters.filteredJobs, filters.hasFilters, filters.sortBy, recommendedJobs, dismissedJobIds, savedOnly, savedJobIds]);
 
+  // ONE list — recommended picks first, then everything else — EXCEPT
+  // boosted jobs, which pin above everything (including recommended) while
+  // their boost is active. `useDashboardFilters` already floats boosted
+  // jobs to the top of `filteredJobs`, but the recommended band is built
+  // from a separate (non-boost-aware) score in useDashboardData and was
+  // always spliced in front of it, silently burying an active boost below
+  // up to 5 recommended picks. Re-partition after merging so a boosted job
+  // never sits below an unboosted one, recommended or not.
+  const combinedVisible = useMemo(() => {
+    const merged = [...recommendedVisible, ...visibleJobs];
+    const boosted = merged.filter((j) => j.isBoosted);
+    if (boosted.length === 0) return merged;
+    const rest = merged.filter((j) => !j.isBoosted);
+    return [...boosted, ...rest];
+  }, [recommendedVisible, visibleJobs]);
+
+  // The "Recommended" pill goes on the first combined-list card that is
+  // actually a recommended pick — not always index 0, now that a boosted
+  // (but unrecommended) job can sit ahead of the recommended band.
+  const recommendedBadgeId = useMemo(() => {
+    if (recommendedVisible.length === 0) return null;
+    const recommendedIds = new Set(recommendedVisible.map((j) => j.id));
+    return combinedVisible.find((j) => recommendedIds.has(j.id))?.id ?? null;
+  }, [combinedVisible, recommendedVisible]);
+
+  // Built once per render and handed to both list call sites (recommended +
+  // everything-else) so JobFeedCard/CompactFeedCard don't each need a dozen
+  // individual props threaded through — see JobFeedCard above.
+  const cardCommon: JobCardCommonProps = {
+    effectiveFee,
+    currentUserId: user?.id,
+    onApply: handleApplyRequest,
+    onReport: setReportJobId,
+    onSelect: setDetailJob,
+    onDismiss: handleDismissRequest,
+    expandedCardId,
+    onToggleExpand: handleToggleExpand,
+    savedJobIds,
+    onToggleSave: handleToggleSave,
+    userLat,
+    userLng,
+  };
+  const compactCardCommon: CompactCardCommonProps = {
+    effectiveFee,
+    onSelect: setDetailJob,
+    hoveredJobId,
+    setHoveredJobId,
+  };
+
   return (
     <>
       {/* Visually hidden aria-live region — announces newly loaded page
@@ -286,11 +473,19 @@ export function BrowseTasksFeed({
         <div className="flex-1 min-h-0 px-3 pt-2 pb-0">
           <Suspense fallback={<Skeleton className="h-full w-full rounded-t-2xl" />}>
             <BrowseMap
-              onJobAction={handleApplyRequest}
-              ctaLabel="Apply"
+              // Apply from a pin opens the SAME job-detail dialog as tapping
+              // a feed card (`setDetailJob`) — not the standalone quick-apply
+              // sheet `handleApplyRequest` opens for the feed's swipe/Apply
+              // affordance. One apply surface, reached the same way, whether
+              // you found the job on the map or in the list.
+              onJobAction={(jobId) => {
+                const job = filters.filteredJobs.find((j) => j.id === jobId);
+                if (job) setDetailJob(job);
+              }}
               currentUserId={user?.id}
               filters={filters.mapFilter}
               onClearFilters={filters.clearFilters}
+              hoveredJobId={hoveredJobId}
               // Same fee the cards below use — so a pin popup and the card for
               // the same job print the same take-home, not gross vs net.
               effectiveFee={effectiveFee}
@@ -437,76 +632,52 @@ export function BrowseTasksFeed({
       </div>
         );
       })() : (() => {
-        // Show the recommended slot as skeletons while the feed's first page
-        // is still resolving and we don't yet have any picks — reserving the
-        // header + a couple of card-height placeholders keeps the section
-        // from collapsing and then popping in (CLS) once matches arrive.
-        const showRecommendedSkeleton =
-          recommendedLoading && !filters.hasFilters && recommendedVisible.length === 0;
+        // While the feed's first page is still resolving and we don't yet
+        // know whether any of the ALREADY-rendered jobs are about to become
+        // recommended picks, don't paint the real list at all. It used to:
+        // render `visibleJobs` (recommended candidates included, in their
+        // ordinary position) immediately, then — once `recommendedJobs`
+        // resolved a beat later — yank 1-2 of those same jobs out of the
+        // middle of the list and re-insert them at the top via
+        // `combinedVisible`. Every other row was already sitting still, so
+        // the two that got promoted visibly jumped from wherever they'd
+        // been up to the top (owner, 2026-08-30: "the effect like all the
+        // jobs are there then these top 2 scroll in"). Holding the WHOLE
+        // list behind one skeleton until recommendations are known removes
+        // the reorder entirely — the list paints once, already in its
+        // final order.
+        const showFullSkeleton =
+          recommendedLoading && !filters.hasFilters && !savedOnly && recommendedVisible.length === 0;
         return (
           <>
-            {showRecommendedSkeleton && density === "comfortable" && (
+            {showFullSkeleton && density === "comfortable" && (
               <div
                 className="px-3 pt-3 pb-1 space-y-2.5 lg:space-y-3"
                 aria-hidden
               >
                 {/* Recommended-section variant — matches the real recommended
                     card geometry (sienna rail, longer title row, taller price
-                    tile). A generic feed skeleton here mis-sizes the slot and
-                    the swap bumps the list down when matches arrive. */}
+                    tile) — up front, then plain rows for the rest of the
+                    first page, so the WHOLE visible feed has a placeholder
+                    rather than just the top slot. */}
                 {[0, 1].map((i) => (
                   <RecommendedJobCardSkeleton key={`rec-skel-${i}`} />
                 ))}
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <JobCardSkeleton key={`row-skel-${i}`} />
+                ))}
               </div>
             )}
-            {recommendedVisible.length > 0 && (
-              <>
-                {density === "compact" ? (
-                  <ul>
-                    {recommendedVisible.map((job, i) => (
-                      <CompactJobCard
-                        key={job.id}
-                        job={job}
-                        effectiveFee={effectiveFee}
-                        recommended={i === 0}
-                        onSelect={(j) => setDetailJob(j)}
-                        isHighlighted={hoveredJobId === job.id}
-                        onMouseEnter={() => setHoveredJobId?.(job.id)}
-                        onMouseLeave={() => setHoveredJobId?.(null)}
-                      />
-                    ))}
-                  </ul>
-                ) : (
-                  <div className="px-3 pt-3 pb-1 space-y-2.5 lg:space-y-3">
-                    {/* AnimatePresence with initial={false} — only NEW
-                        recommended jobs slide in (e.g. when a fresh match
-                        arrives or the user dismisses a sibling). The
-                        first paint stays static so the section doesn't
-                        feel laggy when the dashboard loads. The virtualized
-                        "Everything else" list below is intentionally NOT
-                        wrapped — animating across an absolute-positioned
-                        virtualizer fights its layout math. */}
-                    <AnimatePresence initial={false}>
-                      {recommendedVisible.map((job, i) => (
-                        <motion.div
-                          key={`rec-${job.id}`}
-                          initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -12 }}
-                          animate={reducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
-                          exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -12 }}
-                          transition={reducedMotion ? { duration: 0 } : { duration: 0.2, ease: "easeOut" }}
-                          onMouseEnter={() => setHoveredJobId?.(job.id)}
-                          onMouseLeave={() => setHoveredJobId?.(null)}
-                        >
-                          <SwipeableJobCard job={job} effectiveFee={effectiveFee} currentUserId={user?.id} recommended={i === 0} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={handleToggleExpand} isSaved={savedJobIds.has(job.id)} onToggleSave={handleToggleSave} userLat={userLat} userLng={userLng} onLongPress={handleLongPressCard} />
-                        </motion.div>
-                      ))}
-                    </AnimatePresence>
-                  </div>
-                )}
-              </>
-            )}
-            {/* Main "Everything else" feed */}
-            {density === "compact" ? (
+            {/* ONE list, recommended picks first then everything else —
+                not two components (owner, 2026-08-30, repeated instruction:
+                "all jobs belong in one component period"). The recommended/
+                everything-else split is still real (it drives sort order
+                and which single card gets the "Recommended" pill), but it's
+                now just how `combinedVisible` is ORDERED, not two separate
+                rendered lists. Suppressed entirely during `showFullSkeleton`
+                (above) so the real rows only ever paint once, already in
+                their settled order. */}
+            {showFullSkeleton ? null : density === "compact" ? (
               /* Compact: plain list of 48px rows — no virtualizer needed
                  at this row height for typical feed sizes. */
               <ul
@@ -514,65 +685,18 @@ export function BrowseTasksFeed({
                   paddingBottom: "calc(6rem + var(--safe-area-bottom, 0px))",
                 }}
               >
-                {visibleJobs.map((job) => (
-                  <CompactJobCard
-                    key={job.id}
-                    job={job}
-                    effectiveFee={effectiveFee}
-                    onSelect={(j) => setDetailJob(j)}
-                    isHighlighted={hoveredJobId === job.id}
-                    onMouseEnter={() => setHoveredJobId?.(job.id)}
-                    onMouseLeave={() => setHoveredJobId?.(null)}
-                  />
+                {combinedVisible.map((job) => (
+                  <CompactFeedCard key={job.id} job={job} recommended={job.id === recommendedBadgeId} common={compactCardCommon} />
                 ))}
               </ul>
             ) : (
-              /* Comfortable: virtualized — this is the only unbounded list
-                 on the dashboard (50+ rows after infinite scroll, each
-                 mounting framer-motion drag state), so it scrolls via an
-                 element-scroll virtualizer that renders just the visible
-                 window. The recommended section, section headers, and the
-                 infinite-scroll sentinel stay as normal DOM — recommended
-                 is capped at 5 and the rest are fixed-size. The outer div
-                 keeps the horizontal padding, top padding, and dock
-                 clearance; per-card vertical spacing is baked into each
-                 virtualized row so it survives the absolute positioning
-                 the virtualizer applies. */
-              <div
-                /* px-4, matching the toolbar row directly above it. The feed was px-3
-           and the toolbar px-4, so the cards sat 4px further left than the
-           "N jobs nearby" label introducing them — two edges 4px apart is the
-           kind of misalignment that reads as sloppiness without being
-           nameable (owner: "same spacing"). */
-        className="px-4 pt-3"
-                style={{
-                  paddingBottom: "calc(6rem + var(--safe-area-bottom, 0px))",
-                }}
-              >
-                <VirtualizedJobList
-                  items={visibleJobs}
-                  scrollElementRef={containerRef}
-                  getKey={(job) => job.id}
-                  renderItem={(job, i) => (
-                    // Gap between cards — `space-y-*` can't apply once the
-                    // virtualizer absolutely-positions rows, so the gap is
-                    // bottom padding measured as part of the row height.
-                    <div
-                      className=/* 8 / 10 / 12, not 10 / 16 / 20 (owner: "tighter together").
-                       The gap GREW with viewport width while the card it
-                       separates stayed 85px tall, so the desktop feed spent a
-                       fifth of a card's height on the space between every pair.
-                       A list reads as a list when the rows are closer to each
-                       other than they are tall. */
-                    "pb-2 lg:pb-2.5 xl:pb-3"
-                      onMouseEnter={() => setHoveredJobId?.(job.id)}
-                      onMouseLeave={() => setHoveredJobId?.(null)}
-                    >
-                      <SwipeableJobCard job={job} effectiveFee={effectiveFee} currentUserId={user?.id} onApply={handleApplyRequest} onReport={setReportJobId} onSelect={setDetailJob} onDismiss={handleDismissRequest} dismissPending={confirmDismissJobId === job.id} index={i} isExpanded={expandedCardId === job.id} onToggleExpand={handleToggleExpand} isSaved={savedJobIds.has(job.id)} onToggleSave={handleToggleSave} userLat={userLat} userLng={userLng} onLongPress={handleLongPressCard} />
-                    </div>
-                  )}
-                />
-              </div>
+              <MainFeedSection
+                jobs={combinedVisible}
+                recommendedBadgeId={recommendedBadgeId}
+                common={cardCommon}
+                containerRef={containerRef}
+                setHoveredJobId={setHoveredJobId}
+              />
             )}
             {/* Infinite scroll sentinel + manual fallback */}
             {hasNextPage && (

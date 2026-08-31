@@ -25,14 +25,15 @@ import { createRoot, type Root } from "react-dom/client";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { Button } from "@/components/ui/button";
-import { BellRing, MapPin, MapPinOff, Loader2 } from "lucide-react";
+import { BellRing, MapPin, MapPinOff, Loader2, X } from "lucide-react";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useMapKitJs } from "@/hooks/useMapKitJs";
 import {
   LA_BOUNDS,
   type MapJob,
 } from "./browseMap/config";
-import { MapJobPopup } from "./browseMap/MapJobPopup";
+import { mapJobToEnrichedJob } from "./browseMap/mapJobToEnrichedJob";
+import JobCard from "./dashboard/JobCard";
 import { clusterElement, pinElement, PIN_HEIGHT } from "./browseMap/mapMarkers";
 import {
   buildMapJobFilter,
@@ -54,10 +55,12 @@ import {
 } from "./browseMap/mapkitRuntime";
 
 interface BrowseMapProps {
-  /** Tap on the popup's CTA (e.g. "Sign up to apply" for guests). */
+  /**
+   * Tap anywhere on a pin's popup card (same tap-anywhere-opens-the-job
+   * behaviour as the feed's `JobCard`, which the popup now literally
+   * reuses — no separate "Apply" button on the map anymore).
+   */
   onJobAction?: (jobId: string) => void;
-  /** CTA text — varies by surface (guest = "Sign up to apply", auth = "Apply"). */
-  ctaLabel?: string;
   /**
    * Current user id. When set, the popup hides jobs the user posted
    * themselves (you can't apply to your own post — same rule as the
@@ -101,6 +104,15 @@ interface BrowseMapProps {
    * payout.
    */
   effectiveFee?: number;
+  /**
+   * Desktop split-view hover sync: the id of the job whose FEED CARD the
+   * pointer is currently over (BrowseTasksFeed/Dashboard's `hoveredJobId`).
+   * When set, that job's pin scales up on the map so a poster scanning the
+   * list can see at a glance which pin a card corresponds to. `undefined`
+   * on surfaces with no feed alongside the map (the phone list⇄map toggle,
+   * the guest dashboard) — then no pin is ever highlighted this way.
+   */
+  hoveredJobId?: string | null;
 }
 
 /** Reads the app's resolved theme off `<html data-theme>` (set by
@@ -110,15 +122,10 @@ function readIsDark(): boolean {
   return document.documentElement.getAttribute("data-theme") === "dark";
 }
 
-export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, emptyStateCta, filters, onClearFilters, effectiveFee, flush = false }: BrowseMapProps) {
+export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, onClearFilters, effectiveFee, flush = false, hoveredJobId }: BrowseMapProps) {
   const shellClass = flush ? "" : " rounded-t-2xl border border-b-0 border-border";
   const mapKitStatus = useMapKitJs();
   const [jobs, setJobs] = useState<MapJob[]>([]);
-  // Total open jobs in the feed, including ones the map can't plot because
-  // they lack geocoded coordinates. Lets the badge read "N of M" so a user
-  // who sees 21 in the feed but 19 pins understands the 2 missing jobs are
-  // un-mappable, not lost.
-  const [totalOpen, setTotalOpen] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   // The pin RPC used to fail SILENTLY: `if (error) { report(...); return; }`
   // left `jobs` at [], so a 500 rendered the "Empty map for now." card — the
@@ -135,17 +142,6 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
 
   useEffect(() => {
     let cancelled = false;
-    // Total open jobs (same surface the feed counts) — the denominator for
-    // the "N of M" badge. Best-effort: a failure just leaves the badge as a
-    // plain pin count rather than bricking the map.
-    supabase
-      .from("open_jobs_browse")
-      .select("id", { count: "exact", head: true })
-      .neq("payment_status", "abandoned")
-      .then(({ count, error }) => {
-        if (cancelled || error) return;
-        setTotalOpen(count ?? null);
-      });
     supabase
       .rpc("get_open_jobs_for_map")
       .then(({ data, error }) => {
@@ -219,8 +215,10 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
   // flows into, which is what the feed card beside it already is.
   //
   // 40px keeps the card clear of MapKit's own callout chrome and shadow.
-  // Floor at 180 so a freak-narrow pane still renders a usable card.
-  const calloutWidth = paneWidth ? Math.max(180, Math.min(264, paneWidth - 40)) : 264;
+  // Floor raised from 180 to 220 — below that the location/date/time meta
+  // row (nowrap by design, shared with the feed card) had no room to
+  // breathe and its pieces visually crowded/overlapped each other.
+  const calloutWidth = paneWidth ? Math.max(220, Math.min(320, paneWidth - 40)) : 320;
 
   const retry = () => {
     setLoadError(false);
@@ -356,7 +354,7 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
   }, []);
 
   // Pins layer. Each job becomes a custom annotation whose callout body is a
-  // real `<MapJobPopup>` — MapKit's callout delegate hands back DOM, not React
+  // real `<JobCard>` — MapKit's callout delegate hands back DOM, not React
   // children, so the popup is rendered into a detached node by its own React
   // root and that node is what `calloutContentForAnnotation` returns. It is
   // rendered up front (not on tap) so the callout has laid-out content to
@@ -376,18 +374,48 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
       // mis-measured, the callout can never be wider than the phone screen.
       body.style.maxWidth = "calc(100vw - 32px)";
       const root = createRoot(body);
+      // Render the SAME `<JobCard>` the feed uses — not a separately-built
+      // lookalike (owner: "its not a shared component its the same page
+      // the both use it"). `mapJobToEnrichedJob` adapts the map RPC's
+      // privacy-reduced row into JobCard's prop shape; see that file's
+      // header for exactly which fields are inert placeholders and why
+      // that's safe (JobCard never reads them). A tap anywhere on the card
+      // opens the job — same as the feed — via `onJobAction`, which the
+      // caller (Dashboard/BrowseTasksFeed) resolves against the full,
+      // authoritative job list before opening JobDetailDialog, so the
+      // reduced object built here never reaches the dialog. That also
+      // retires the popup's own separate "Apply" button from the recent
+      // unify-with-detail-dialog change — tapping the reused card IS the
+      // apply/view action now, exactly like the list.
       root.render(
-        <MapJobPopup
-          job={job}
-          onJobAction={onJobAction}
-          ctaLabel={ctaLabel}
-          effectiveFee={effectiveFee}
-        />,
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => {
+              // Dismiss the callout without waiting for an outside tap —
+              // MapKit JS deselects a pin by clearing `selectedAnnotations`.
+              try { map.selectedAnnotations = []; } catch { /* ignore */ }
+            }}
+            aria-label="Close"
+            className="absolute top-1 right-1 z-20 w-6 h-6 flex items-center justify-center text-muted-foreground hover:text-foreground"
+          >
+            <X className="w-4 h-4" strokeWidth={2.5} />
+          </button>
+          <JobCard
+            job={mapJobToEnrichedJob(job)}
+            effectiveFee={effectiveFee ?? 0}
+            onSelect={() => onJobAction?.(job.id)}
+            onApply={() => onJobAction?.(job.id)}
+            onReport={() => { /* no report surface on the map pin popup */ }}
+            guestPricing={effectiveFee === undefined}
+            bare
+          />
+        </div>,
       );
       calloutRootsRef.current.push(root);
       return new mk.Annotation(
         new mk.Coordinate(Number(job.latitude), Number(job.longitude)),
-        () => pinElement(job.category, job.is_urgent),
+        () => pinElement(job.category, job.is_urgent, job.id),
         {
           // MapKit centres a custom annotation element on its coordinate;
           // the pin's point is at its bottom edge, so lift it by half the
@@ -403,7 +431,7 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
     });
     annotationsRef.current = annotations;
     try { map.addAnnotations(annotations); } catch { /* ignore */ }
-  }, [visibleJobs, mapReady, ctaLabel, effectiveFee, onJobAction, calloutWidth, clearAnnotations]);
+  }, [visibleJobs, mapReady, effectiveFee, onJobAction, calloutWidth, clearAnnotations]);
 
   // Frame the pins whenever the visible set changes (FitToPins' old job).
   useEffect(() => {
@@ -412,6 +440,30 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
     if (!mk || !map) return;
     fitToPins(mk, map, visibleJobs);
   }, [visibleJobs, mapReady]);
+
+  // Desktop split-view hover sync: scale the pin whose feed card the pointer
+  // is over. Pin elements are plain DOM nodes tagged with `data-job-id` (see
+  // pinElement) rather than React-owned, so this reaches into the map's own
+  // container to toggle a class — cheaper than rebuilding annotations on
+  // every mouse move, and MapKit only calls the pin factory once anyway.
+  const prevHoveredElRef = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const prev = prevHoveredElRef.current;
+    if (prev) {
+      prev.classList.remove("browse-map-pin-hovered");
+      prevHoveredElRef.current = null;
+    }
+    if (!hoveredJobId) return;
+    const el = map.element.querySelector<HTMLElement>(
+      `.browse-map-pin[data-job-id="${CSS.escape(hoveredJobId)}"]`,
+    );
+    if (el) {
+      el.classList.add("browse-map-pin-hovered");
+      prevHoveredElRef.current = el;
+    }
+  }, [hoveredJobId, mapReady, visibleJobs]);
 
   const recenter = useCallback(() => {
     const mk = getMapKit();
@@ -481,29 +533,10 @@ export function BrowseMap({ onJobAction, ctaLabel = "View", currentUserId, empty
           the map — switch to the list for {ignoredFilters.length === 1 ? "it" : "those"}.
         </div>
       )}
-      {!isEmpty && (
-      <div className="absolute top-3 right-3 z-[400] flex flex-col items-end gap-1.5">
-        <div
-          aria-hidden
-          data-testid="browse-map-job-count"
-          className="px-3 h-7 rounded-full flex items-center font-sans font-semibold text-ds-13 tracking-wide"
-          style={{
-            background: "hsla(0, 0%, 100%, 0.92)",
-            color: "hsl(var(--bark))",
-            border: "0.5px solid hsl(var(--olivewood) / 0.18)",
-            boxShadow: "0 4px 14px -4px hsl(var(--olivewood) / 0.18)",
-            backdropFilter: "blur(8px)",
-            WebkitBackdropFilter: "blur(8px)",
-          }}
-        >
-          {filtersActive
-            ? `${visibleJobs.length} ${visibleJobs.length === 1 ? "Match" : "Matches"}`
-            : totalOpen !== null && totalOpen > visibleJobs.length
-              ? `${visibleJobs.length} of ${totalOpen} Mapped`
-              : `${visibleJobs.length} ${visibleJobs.length === 1 ? "Job" : "Jobs"}`}
-        </div>
-      </div>
-      )}
+      {/* The floating "N Jobs"/"N Matches" pill that used to live here was
+          removed (owner: redundant with the "N jobs" label already shown in
+          the list-view toolbar header — the two counts said the same thing
+          twice). */}
       {/* Empty board — keep the real Louisiana map on screen (so it reads
           as "no posts yet here", not "the map is broken") and float a
           soft frosted caption over it. The wrapper passes pointer events

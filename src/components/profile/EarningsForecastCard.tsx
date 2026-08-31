@@ -228,12 +228,13 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
           <Sparkles className="w-4 h-4" style={{ color: "hsl(var(--burnt-sienna))" }} />
         </div>
         <div className="min-w-0">
+          {/* No small-caps eyebrow — matches the convention used elsewhere on
+              this tab (see EarningsTab.tsx: "Owner removed the small-caps
+              eyebrow"). "By Sunday" below already states what this card is;
+              this line is a quiet caption, not a label. */}
           <p
-            className="font-serif italic uppercase flex items-center gap-1.5 text-ds-10"
-            style={{
-              color: "hsl(var(--burnt-sienna))",
-              letterSpacing: "0.18em",
-            }}
+            className="font-serif italic flex items-center gap-1.5 text-ds-11"
+            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             This week's projection
             <Popover>

@@ -18,6 +18,7 @@ import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { HelperAvailabilityDisplay } from "@/components/HelperAvailabilityDisplay";
 import { computeBadges, HelperBadges } from "@/components/HelperBadges";
 import { HelperPortfolio } from "@/components/HelperPortfolio";
+import { HelperWorkPhotos } from "@/components/profile/HelperWorkPhotos";
 import { PublicReviewWall } from "@/components/profile/PublicReviewWall";
 import { SkillEndorsements } from "@/components/profile/SkillEndorsements";
 import { CareerMilestones } from "@/components/profile/CareerMilestones";
@@ -29,11 +30,7 @@ import { RatingBreakdown } from "./userProfile/RatingBreakdown";
 import { ReviewsSection } from "./userProfile/ReviewsSection";
 import { JobsList } from "./userProfile/JobsList";
 import { useUserProfileData } from "./userProfile/useUserProfileData";
-import {
-  NEARBY_RADIUS_MI,
-  computeLastActiveLabel,
-  computeJobsNearbyCount,
-} from "./userProfile/userProfileHelpers";
+import { computeLastActiveLabel } from "./userProfile/userProfileHelpers";
 
 import ReportDialog from "@/components/ReportDialog";
 import { BlockUserDialog } from "@/components/BlockUserDialog";
@@ -41,7 +38,6 @@ import SaveHelperButton from "@/components/SaveHelperButton";
 import type { Database } from "@/integrations/supabase/types";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useUserLocation } from "@/hooks/useUserLocation";
 import { hasInAppHistory } from "@/lib/inAppHistory";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
@@ -73,11 +69,6 @@ const UserProfile = () => {
   const [showWorkedJobs, setShowWorkedJobs] = useState(false);
   const [showReport, setShowReport] = useState(false);
   const [showBlock, setShowBlock] = useState(false);
-  // Viewer opts in to the "did N jobs nearby" social proof (#31).
-  // Gated so we don't fire the geolocation prompt just to render a badge.
-  // The hook caches across pages, so once requested it's near-instant on
-  // every subsequent profile view in the same session.
-  const [showNearbyProof, setShowNearbyProof] = useState(false);
   // Reviews filter + pagination (#27). Category null = "all", rating null
   // = "all". Visible count starts at PAGE_SIZE and grows in PAGE_SIZE
   // increments via the "Show more" button at the bottom of the list.
@@ -128,12 +119,6 @@ const UserProfile = () => {
 
   const profile = (data?.profile ?? null) as Profile | null;
 
-  // Geo for the "did N jobs nearby" badge (#31). Only enable the hook
-  // when the viewer has explicitly opted in via the inline trigger, so
-  // we never surprise-prompt for location just to render a profile.
-  const viewerLoc = useUserLocation(showNearbyProof);
-  const jobsNearbyCount = computeJobsNearbyCount(viewerLoc, workedJobs);
-
   // Computed up-front so the loading skeleton can render the same
   // PageHeader (eyebrow/title/meta) as the loaded state — both only
   // depend on the route param + current user, not the fetched profile.
@@ -176,7 +161,7 @@ const UserProfile = () => {
           meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}
           titleActions={headerActionPlaceholder}
         />
-        <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pt-4 pb-8">
+        <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pb-8">
           {/* The SAME wrapper the loaded body uses below — full page measure,
               one column, gap-6. It used to carry `max-w-2xl mx-auto`, a cap no
               other state on this page has: 86545cb12 moved all four states onto
@@ -250,7 +235,7 @@ const UserProfile = () => {
           meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}
           titleActions={headerActionPlaceholder}
         />
-        <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pt-4 pb-8">
+        <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pb-8">
           <div className="flex">
             <ErrorState variant="inline" onRetry={() => refetch()} />
           </div>
@@ -268,7 +253,7 @@ const UserProfile = () => {
           meta={isOwnProfile ? "A preview from a poster's perspective" : "Reviews, badges, and history"}
           titleActions={headerActionPlaceholder}
         />
-        <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pt-4 pb-8">
+        <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pb-8">
           <div className="flex">
             <EmptyState
               variant="inline"
@@ -428,7 +413,7 @@ const UserProfile = () => {
         }
       />
 
-      <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pt-4 pb-8">
+      <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pb-8">
         {/* Split-column desktop layout: the mobile-first single column
             (max-w-lg centered) widens to a two-column masthead + reviews
             layout at lg+. Below lg the grid collapses to one column and
@@ -470,13 +455,48 @@ const UserProfile = () => {
               hasSubmittedCredentials={hasSubmittedCredentials}
             />
 
-            {/* STATS ABOVE MILESTONES (owner, 2026-08-28: "needs better
-                reorganized"). Rating, jobs posted and jobs completed are the
-                numbers a visitor scans first and the ones every other section
-                elaborates on; they used to render BELOW Career Milestones, so
-                the page led with a single "First Job" badge and buried the
-                4.5-star average under it. Facts first, then the badges awarded
-                for them. */}
+            {/* Career milestones + Helper badges — moved up to sit directly
+                under the bio (owner request, item 23: profile field-order
+                pass). Was previously below Track Record, several screens
+                down; a trust-signal about who this person IS belongs next
+                to their identity, not buried under interaction-level stats.
+                See the CareerMilestones/HelperBadges block itself, further
+                down, for the "why these two are adjacent" rationale — kept
+                in place there rather than duplicated here. */}
+            <CareerMilestones
+              stats={{
+                completedJobs: stats.completedJobs,
+                avgRating: stats.avgRating,
+                repeatHirePercent: data?.repeatHirePercent ?? 0,
+                credentialTier: data?.credentialTier ?? 0,
+              }}
+              // FALSE, always — not `isOwnProfile` (owner, 2026-08-27). The
+              // progress half of this card is a to-do ("First Job — 0/1 job,
+              // 1 to go"), which is a private goal, not a fact about the
+              // person. A visitor never sees it, so showing it here made the
+              // preview differ from the public view it is meant to reproduce.
+              // Earned milestones still render for everyone, exactly as a
+              // visitor sees them; with none earned the card self-hides, which
+              // is also what a visitor gets.
+              showProgress={false}
+            />
+
+            {/* Earned performance badges ("Rising Star" and friends). Same
+                kind of object as Career Milestones above (an earned
+                trust-signal about the person), so: same place. */}
+            {badges.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                <HelperBadges badges={badges} />
+              </div>
+            )}
+
+            {/* STATS + TRACK RECORD (owner, 2026-08-28: "needs better
+                reorganized"; item 24: Track Record now sits right alongside
+                these tiles instead of lower on the page). Rating, jobs
+                posted and jobs completed are the numbers a visitor scans
+                first; Track Record is the same kind of at-a-glance signal
+                (reply time, on-time rate, cancellations), so it renders
+                immediately after, most-to-least important. */}
             <ProfileStatsGrid
               stats={stats}
               // postedTotalCount, NOT postedJobs.length — the `postedJobs`
@@ -521,58 +541,7 @@ const UserProfile = () => {
               posterReputation={posterReputation}
               hasCleanRecord={hasCleanRecord}
               petCareSignal={petCareSignal}
-              workedJobs={workedJobs}
-              showNearbyProof={showNearbyProof}
-              onShowNearbyProof={() => setShowNearbyProof(true)}
-              viewerLoc={viewerLoc}
-              jobsNearbyCount={jobsNearbyCount}
-              nearbyRadiusMi={NEARBY_RADIUS_MI}
             />
-
-            {/* Career milestones — earned badges based on job count, rating,
-                and credential tier. Shows next-milestone progress on own profile.
-                Sits with identity in the masthead because it's a persistent
-                trust-signal about the person, not about a specific interaction.
-
-                credentialTier (0-3; 2 = verified trade license) now comes from
-                the get_user_credential_tier RPC via useUserProfileData, and is
-                0 when that RPC errors or isn't deployed. It used to be computed
-                inline as
-                  `data?.credentialTier ?? profile?.license_status === "verified" ? 2 : 0`
-                — `??` binds tighter than `?:`, so that parsed as
-                `(undefined ?? false) ? 2 : 0` and was permanently 0. It also
-                read a `license_status` column that neither get_safe_profiles
-                nor the fallback select ever returns, so no precedence fix alone
-                could have made it non-zero. */}
-            <CareerMilestones
-              stats={{
-                completedJobs: stats.completedJobs,
-                avgRating: stats.avgRating,
-                repeatHirePercent: data?.repeatHirePercent ?? 0,
-                credentialTier: data?.credentialTier ?? 0,
-              }}
-              // FALSE, always — not `isOwnProfile` (owner, 2026-08-27). The
-              // progress half of this card is a to-do ("First Job — 0/1 job,
-              // 1 to go"), which is a private goal, not a fact about the
-              // person. A visitor never sees it, so showing it here made the
-              // preview differ from the public view it is meant to reproduce.
-              // Earned milestones still render for everyone, exactly as a
-              // visitor sees them; with none earned the card self-hides, which
-              // is also what a visitor gets.
-              showProgress={false}
-            />
-
-            {/* Earned performance badges ("Rising Star" and friends). These
-                rendered at the very bottom of the identity card, centred under
-                the bio — a lone award chip floating below a paragraph of prose,
-                with the milestones section that awards exactly this kind of
-                thing sitting a few hundred pixels lower. Same kind of object,
-                so: same place. */}
-            {badges.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                <HelperBadges badges={badges} />
-              </div>
-            )}
           </div>
 
           {/* ── RIGHT COLUMN (activity + reviews) ──
@@ -718,6 +687,10 @@ const UserProfile = () => {
 
             {/* Availability */}
             <HelperAvailabilityDisplay helperId={userId!} />
+
+            {/* Recent work — photos the helper uploaded on their own profile.
+                Ungated on purpose; see HelperWorkPhotos for why. */}
+            <HelperWorkPhotos urls={profile.portfolio_urls ?? []} />
 
             {/* Portfolio — Pro+ only */}
             {(profile.subscription_tier === "pro" || profile.subscription_tier === "elite") && <HelperPortfolio helperId={userId!} />}

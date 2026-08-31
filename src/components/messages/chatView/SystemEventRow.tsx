@@ -97,11 +97,16 @@ export function SystemEventRow({
   at?: string;
 }) {
   return (
-    <div className="flex justify-center py-1">
+    <div className="flex justify-center py-0.5">
+      {/* Compact pill — was full-size bubble padding/text, which made a
+          one-line status note ("Helpr marked on the way.") read as heavy as
+          a real message bubble. Tightened padding + type scale, timestamp
+          folded inline instead of stacked on its own row, so the pill stays
+          legible but visibly lighter-weight than a chat message. */}
       <div
         role="note"
         aria-label={`System update: ${label}`}
-        className="max-w-[80%] px-3 py-1.5 rounded-full text-center"
+        className="max-w-[80%] px-2.5 py-1 rounded-full text-center"
         style={{
           background: "hsl(var(--ivory-sand) / 0.55)",
           border: "0.5px solid hsl(var(--olivewood) / 0.18)",
@@ -109,32 +114,33 @@ export function SystemEventRow({
         }}
       >
         <p
-          className="font-serif italic text-ds-12 leading-snug inline-flex items-center gap-1.5"
+          className="font-serif italic text-ds-10 leading-snug inline-flex items-center gap-1"
           style={{ color: "hsl(var(--olivewood) / 0.85)" }}
         >
           <Icon
             aria-hidden="true"
-            className="w-3.5 h-3.5 shrink-0"
+            className="w-3 h-3 shrink-0"
             strokeWidth={1.75}
             style={{ color: "hsl(var(--bark))" }}
           />
           {label}
+          {at && (
+            <span
+              className="font-sans uppercase tracking-wider text-ds-9"
+              style={{
+                letterSpacing: "0.1em",
+                color: "hsl(var(--olivewood) / 0.7)",
+              }}
+            >
+              ·{" "}
+              {new Date(at).toLocaleTimeString([], {
+                hour: "numeric",
+                minute: "2-digit",
+                hour12: true,
+              })}
+            </span>
+          )}
         </p>
-        {at && (
-          <p
-            className="font-sans uppercase tracking-wider mt-0.5 text-ds-9"
-            style={{
-              letterSpacing: "0.12em",
-              color: "hsl(var(--olivewood) / 0.8)",
-            }}
-          >
-            {new Date(at).toLocaleTimeString([], {
-              hour: "numeric",
-              minute: "2-digit",
-              hour12: true,
-            })}
-          </p>
-        )}
       </div>
     </div>
   );

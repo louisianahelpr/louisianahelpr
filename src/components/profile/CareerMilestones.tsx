@@ -15,6 +15,11 @@ import {
   type CareerMilestone,
   type MilestoneStats,
 } from "@/lib/careerLadder";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 // Map icon name strings to Lucide components.
 // Using a record so TypeScript validates the shape and the render is O(1).
@@ -40,20 +45,50 @@ function MilestoneIcon({ name, color }: { name: string; color: string }) {
   return <Icon className="w-3.5 h-3.5 shrink-0" style={{ color }} />;
 }
 
+// A bare `title` attribute never shows on mobile — there is no hover state
+// to trigger the native tooltip, so a tap-only visitor got a badge with no
+// way to learn what it means. Popover (tap to open, tap outside to close)
+// is the same disclosure pattern ReviewsTab's "How Reviews Work" already
+// uses, so a badge explains itself the same way on touch and desktop.
 function MilestonePill({ milestone }: { milestone: CareerMilestone }) {
   return (
-    <span
-      title={milestone.description}
-      className="inline-flex items-center gap-1.5 rounded-ds-pill px-2.5 py-1 text-ds-12 font-sans font-semibold"
-      style={{
-        background: `${milestone.color.replace(")", " / 0.12)").replace("hsl(", "hsl(")}`,
-        border: `0.5px solid ${milestone.color.replace(")", " / 0.28)").replace("hsl(", "hsl(")}`,
-        color: milestone.color,
-      }}
-    >
-      <MilestoneIcon name={milestone.icon} color={milestone.color} />
-      {milestone.label}
-    </span>
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          aria-label={`${milestone.label} — tap for details`}
+          className="inline-flex items-center gap-1.5 rounded-ds-pill px-2.5 py-1 text-ds-12 font-sans font-semibold active:opacity-70 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          style={{
+            background: `${milestone.color.replace(")", " / 0.12)").replace("hsl(", "hsl(")}`,
+            border: `0.5px solid ${milestone.color.replace(")", " / 0.28)").replace("hsl(", "hsl(")}`,
+            color: milestone.color,
+          }}
+        >
+          <MilestoneIcon name={milestone.icon} color={milestone.color} />
+          {milestone.label}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        sideOffset={6}
+        className="w-64 rounded-2xl shadow-lg"
+        style={{
+          background: "hsl(var(--parchment))",
+          color: "hsl(var(--bark))",
+          border: "0.5px solid hsl(var(--bark) / 0.28)",
+        }}
+      >
+        <div className="flex items-center gap-2 mb-1.5">
+          <MilestoneIcon name={milestone.icon} color={milestone.color} />
+          <p className="font-sans font-semibold text-ds-13" style={{ color: "hsl(var(--ink-deep))" }}>
+            {milestone.label}
+          </p>
+        </div>
+        <p className="text-ds-11 leading-snug" style={{ color: "hsl(var(--bark))" }}>
+          {milestone.description}
+        </p>
+      </PopoverContent>
+    </Popover>
   );
 }
 

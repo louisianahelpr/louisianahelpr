@@ -5,12 +5,13 @@ import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { createNotification } from "@/lib/notifications";
 import { report } from "@/lib/errorLogger";
+import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
 import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { AUTO_COMPLETE_HOURS, hoursToMs } from "../../../../supabase/functions/_shared/escrowTiming";
 import {
    DollarSign, XCircle, CheckCircle2, RotateCcw, Star, MessageSquare,
-  MessageCircle, Pencil, AlertTriangle, Rocket, Wrench,
+  MessageCircle, Pencil, AlertTriangle, Rocket, Wrench, Flag,
 } from "lucide-react";
 import { SosShareButton } from "@/components/SosShareButton";
 import { PhotoProofGroup } from "@/components/PhotoProof";
@@ -43,6 +44,7 @@ interface PostedJobActionsProps {
   onTip: (jobId: string, helperName: string) => void;
   onReview: (job: Job) => void;
   onDispute: (job: Job) => void;
+  onReport: (job: Job) => void;
   onViewDispute: (job: Job) => void;
   onConfirmArrival: (jobId: string) => void;
   confirmingArrivalJobId: string | null;
@@ -72,6 +74,7 @@ export function PostedJobActions({
   onTip,
   onReview,
   onDispute,
+  onReport,
   onViewDispute,
   onConfirmArrival,
   confirmingArrivalJobId,
@@ -542,7 +545,10 @@ export function PostedJobActions({
                   !canRevise &&
                   !job.poster_completed_at &&
                   shouldShowDisputeLink(job, "customer");
-                const columns = (2 + (canReview ? 1 : 0) + (canRevise || canDispute ? 1 : 0)) as 2 | 3 | 4;
+                // +1 for Report, unconditional on Done — a distinct
+                // conduct/safety escape hatch alongside Tip/Review/Hire
+                // Again, separate from the payment-dispute chip above.
+                const columns = (3 + (canReview ? 1 : 0) + (canRevise || canDispute ? 1 : 0)) as 3 | 4 | 5;
                 return (
                   <JobActionRow columns={columns}>
                     {!hasTipped ? (
@@ -622,6 +628,17 @@ export function PostedJobActions({
                         onClick={() => navigate(`/post-job?rebook=${job.id}`)}
                       />
                     )}
+                    {/* Report — a distinct escape hatch from Dispute above:
+                        Dispute is a payment disagreement while the job is
+                        still settling; Report is for a conduct/safety
+                        concern once the job is already over. */}
+                    <JobActionChip
+                      icon={Flag}
+                      label="Report"
+                      ariaLabel="Report a problem with this job or Helpr"
+                      tone="danger"
+                      onClick={() => onReport(job)}
+                    />
                   </JobActionRow>
                 );
               })()}
@@ -658,7 +675,15 @@ export function PostedJobActions({
               <p className="text-ds-11 text-destructive font-medium flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" />
                 {disputeStatus === "escalated" ? "Escalated to Admin" : disputeStatus === "resolved" ? "Dispute Resolved" : "Dispute Under Review"}
               </p>
-              <p className="text-ds-11 text-muted-foreground mt-1">Payment is on hold pending resolution.</p>
+              {/* The "Admin is reviewing…" line used to be its OWN separate
+                  gray box below this one — two stacked boxes saying
+                  overlapping things about the same escalated dispute.
+                  Merged into this box's body copy instead. */}
+              <p className="text-ds-11 text-muted-foreground mt-1">
+                {awaitingAdmin
+                  ? "Admin is reviewing this dispute. You'll be notified of the outcome, and nothing is charged or released until then."
+                  : "Payment is on hold pending resolution."}
+              </p>
               {job.dispute_reason && <p className="text-ds-11 text-muted-foreground mt-1 italic">"{job.dispute_reason}"</p>}
               {job.dispute_helper_response && (
                 <div className="mt-2 p-2 rounded bg-muted/50">
@@ -727,8 +752,16 @@ export function PostedJobActions({
                   e.stopPropagation();
                   setDisputeActing(true);
                   try {
-                    const { error } = await supabase.from("jobs").update({ dispute_status: "escalated" }).eq("id", job.id);
-                    if (error) { hapticError(); toast.error("We couldn't escalate that — please try again."); return; }
+                    try {
+                      unwrapMutation(
+                        await supabase.from("jobs").update({ dispute_status: "escalated" }).eq("id", job.id).select("id"),
+                        { action: "escalate this dispute" },
+                      );
+                    } catch (err) {
+                      hapticError();
+                      toast.error(mutationErrorMessage(err, "We couldn't escalate that — please try again."));
+                      return;
+                    }
                     const { data: adminRoles, error: adminErr } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
                     if (adminErr) report(adminErr, { tags: { source: "PostedJobCard.escalateNotifyAdmins" } });
                     if (adminRoles) { for (const admin of adminRoles) { await createNotification({ user_id: admin.user_id, title: "🚨 Dispute escalated", message: `"${job.title}" dispute has been escalated and requires admin decision.`, type: "warning", link: "/admin" }); } }
@@ -740,29 +773,19 @@ export function PostedJobActions({
                 }} />
               </JobActionRow>
             )}
-            {/* NOT gated on isDisputer: when the HELPR opened the dispute (they
-                couldn't finish), the poster is the party with no controls and
-                the most questions — they need this line most of all. */}
-            {awaitingAdmin && (
-              <div className="text-ds-11 text-center text-muted-foreground px-2 py-1.5 rounded bg-muted/50">Admin is reviewing this dispute. You'll be notified of the outcome, and nothing is charged or released until then.</div>
-            )}
-            {/* The one legitimately full-width control on this card — it opens
-                the dispute's whole timeline, not a one-word action — so it takes
-                the shared full-width treatment rather than a bare outline. */}
-            <Button
-              size="sm"
-              variant="outline"
-              className={JOB_ACTION_FULL_CLASS}
-              style={jobActionChipStyle("neutral")}
-              onClick={(e) => { e.stopPropagation(); onViewDispute(job); }}
-            >
-              <AlertTriangle className="w-4 h-4" /> View Timeline & Add Evidence
-            </Button>
-            {/* Message keeps the ONE Message tone (`info`); Contact Admin is a
-                neutral escape hatch, not a destructive act, so it takes
-                `neutral` rather than the bare outline it had — which was the
-                only control in the whole card wearing no tone at all. */}
-            <JobActionRow columns={2}>
+            {/* View Timeline / Message / Contact Admin used to be two rows —
+                View Timeline alone as a full-width button, then Message +
+                Contact Admin below it as a 2-up row. Folded into one 3-up
+                chip row (owner: "make one row") so the three dispute
+                actions read as one group instead of a stray extra row. */}
+            <JobActionRow columns={3}>
+              <JobActionChip
+                icon={AlertTriangle}
+                label="View Timeline & Add Evidence"
+                ariaLabel="View dispute timeline and add evidence"
+                tone="neutral"
+                onClick={() => onViewDispute(job)}
+              />
               <JobActionChip
                 icon={MessageSquare}
                 label="Message"

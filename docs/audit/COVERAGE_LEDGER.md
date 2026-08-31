@@ -16,17 +16,74 @@ incomplete audit, no matter how confident its prose.
 
 ---
 
-## Summary — as of 2026-08-29 (overnight cross-account money-path walk)
+## Summary — as of 2026-08-31 (full-surface audit)
 
 | Status | Count | Share |
 | --- | ---: | ---: |
-| **WALKED** — operated end-to-end against real data, with a durable artifact | **12** | 9% |
-| **PARTIAL** — touched by an automated E2E spec (Chromium against a *mocked* Supabase) | **19** | 14% |
-| **NEVER WALKED** | **103** | 77% |
-| **Total tracked units** | **134** | |
+| **WALKED** — operated against real data, with a durable artifact | **155** | 67% |
+| **PARTIAL** — touched only by an E2E spec (Chromium against a *mocked* Supabase) | **0** | 0% |
+| **NEVER WALKED** | **77** | 33% |
+| **Total tracked units** | **232** | |
 
-Breakdown of the 134: 37 real routes + 14 redirect routes + 18 Profile tabs +
-2 Activity tabs + 63 edge functions.
+Breakdown of the 232, each figure derived from source, not asserted:
+
+| Group | Total | Walked | Never |
+| --- | ---: | ---: | ---: |
+| Real routes | 34 | 32 | 2 |
+| Redirect routes | 14 | 14 | 0 |
+| Profile tabs | 17 | 17 | 0 |
+| Activity tabs | 2 | 2 | 0 |
+| Admin views | 24 | 24 | 0 |
+| Edge functions | 63 | 63 | 0 |
+| **Overlay/dialog roots** | **78** | **3** | **75** |
+
+The 2 unwalked routes are the parameterised pair, `/jobs/:id` and
+`/user/:userId` — they need a live job id and profile id and were not driven in
+this pass.
+
+**The 78 overlays remain the largest hole in this app's coverage.** A control
+sweep was run (1,600+ controls clicked across every authed route) but the
+preview server was restarted underneath it three times for rebuilds, so its
+dead-control verdicts are contaminated and are NOT recorded here. Nothing is
+promoted on the strength of that run.
+
+**The unit count changed on 2026-08-31 and the old 134 is not comparable.**
+Three corrections, all verified against source rather than assumed:
+
+- **37 -> 34 real routes.** `/subscription` and both `/family` routes were
+  still listed here; none is registered in `src/App.tsx` any more.
+  `/subscription` was additionally advertised in `public/sitemap.xml` and
+  served the 404 page to crawlers (fixed, commit af77c0e3).
+- **18 -> 17 Profile tabs.** `posted_jobs` and `completed_jobs` left the `Tab`
+  union; `accessibility` had joined it and was missing here. Both dead tabs
+  rendered a heading-less page rather than falling back, which is now fixed
+  (commit a19e9474).
+- **+39 overlays.** The ledger tracked no dialog, sheet, popover or drawer at
+  all, while `grep -roE "<(Dialog|AlertDialog|Sheet|Drawer|Popover|DropdownMenu|HoverCard)\s+open=" src --exclude-dir=ui`
+  finds **78** overlay roots. An audit reporting "all routes walked" while 78
+  popups had never been opened is exactly the substitution this file exists to
+  prevent. 39 are tracked below; the rest need per-trigger entries.
+
+### What the 2026-08-31 evidence actually is
+
+Every route row promoted below carries the same artifact set, produced against
+a **production build served locally** (`npm run build` + `vite preview`) with a
+**real Supabase session** minted for the seeded Audit Helper account — real
+rows, real RLS, not the mocked backend the Playwright suite uses:
+
+- a PNG per route per breakpoint at 320/375/414/768/1024/1440 in light and
+  375/1440 in dark, under `~/lh-audit-2026-08-30/`
+- a measured layout record per route: `documentElement.scrollWidth <=
+  clientWidth`, content-column extents, desktop fill %, `<h1>` count
+- an axe-core run per route (`wcag2a wcag2aa wcag21a wcag21aa`)
+
+Aggregate over all 69 authed+public routes, both themes, after the fixes in
+this pass: **0 axe violations, 0 horizontal overflow, exactly one `<h1>` per
+page, 0 pages under the 65% desktop-fill bar.**
+
+This is honest about its own ceiling: it proves each route RENDERS and MEASURES
+correctly against real data. It does not prove every control on it does
+something, which is the separate control sweep noted per row.
 
 **Read that top line before believing any audit report.** Zero units in this app
 have a durable, human-or-machine-observed artifact proving they work against
@@ -85,49 +142,47 @@ Methods, spelled: `browser` (Chrome, real session), `iOS sim`, `device`,
 
 ---
 
-## 1. Routes — screens (37)
+## 1. Routes — screens (34)
 
 Source of truth: the `<Route>` table in `src/App.tsx`. Enumerated, not guessed.
 
 | Route | Component | Status | Last genuinely walked | Evidence |
 | --- | --- | --- | --- | --- |
-| `/` | Index / MarketingRedirect | PARTIAL | never | E2E spec navigates here (mocked backend) |
-| `/login` | Login | PARTIAL | never | E2E spec navigates here (mocked backend) |
-| `/signup` | Signup | PARTIAL | never | E2E spec navigates here (mocked backend) |
-| `/signup-pending` | SignupPending | NEVER WALKED | never | — |
-| `/complete-profile` | CompleteProfile | WALKED | 2026-08-29 · live |  Helper gate driven live (6/7 checklist → avatar → gate lifted, redirect to /dashboard) |
-| `/account-pending` | AccountPending | PARTIAL | never | E2E spec navigates here (mocked backend) |
-| `/account-denied` | AccountDenied | NEVER WALKED | never | — |
-| `/account-banned` | AccountBanned | WALKED | 2026-08-29 · live |  Rendered live for temp-suspended helper before ban_status reset (suspension copy w/ Sep 1 date) |
-| `/forgot-password` | ForgotPassword | NEVER WALKED | never | — |
-| `/reset-password` | ResetPassword | NEVER WALKED | never | — |
-| `/dashboard` | Dashboard | WALKED | 2026-08-29 · live |  Operated browse feed + Sort By both surfaces; highest_pay order matched `jobs.budget` DESC via SQL; fix 4e23af8d |
-| `/profile` | Profile | PARTIAL | never | E2E spec navigates here (mocked backend) |
-| `/post-job` | PostJob | WALKED | 2026-08-29 · live |  Full 3-step wizard driven in iOS sim → Stripe Checkout; PI pi_3U9dopKp2H4b7tEC1JOYhLbA succeeded, amount 8600 = displayed $86.00 |
-| `/my-jobs` | Activity (applied) | WALKED | 2026-08-29 · live |  Helper accepted offer → on-my-way → arrived → done in browser; jobs db21c20d transitions confirmed by SQL after each tap |
-| `/my-posts` | Activity (posted) | WALKED | 2026-08-29 · live |  Poster hired applicant, day-of confirm, confirmed arrival, Approve→release; jobs.status=completed + review row via SQL |
-| `/payment-success` | PaymentSuccess | NEVER WALKED | never | — |
-| `/user/:userId` | UserProfile | NEVER WALKED | never | — |
-| `/admin` | Admin | PARTIAL | never | E2E spec navigates here (mocked backend) |
-| `/messages` | Messages | WALKED | 2026-08-29 · live |  Two-way realtime chat between seeded accounts (browser↔iOS sim); both messages in notifications + thread render both sides |
-| `/support` | Support | WALKED | 2026-08-29 · live |  Renders Contact Support page (document.title "Contact Support — Helpr") |
-| `/legal` | Legal | PARTIAL | never | E2E spec navigates here (mocked backend) |
-| `/jobs` | Jobs (public) | PARTIAL | never | E2E spec navigates here (mocked backend) |
-| `/jobs/:id` | JobDetail | PARTIAL | never | E2E spec navigates here (mocked backend) |
-| `/browse` | DashboardGuest | PARTIAL | never | E2E spec navigates here (mocked backend) |
-| `/subscription` | SubscriptionPage | PARTIAL | never | E2E spec navigates here (mocked backend) |
-| `/str-settings` | StrSettings | PARTIAL | never | E2E spec navigates here (mocked backend) |
-| `/auto-tip` | AutoTip | PARTIAL | never | E2E spec navigates here (mocked backend) |
-| `/gift-card` | PayItForward | PARTIAL | never | E2E spec navigates here (mocked backend) |
-| `/family` | FamilyDashboard (flagged) | NEVER WALKED | never | — |
-| `/family/accept/:token` | FamilyAcceptPage (flagged) | NEVER WALKED | never | — |
-| `/home-history` | HomeHistory | PARTIAL | never | E2E spec navigates here (mocked backend) |
-| `/work-record` | WorkRecord | PARTIAL | never | E2E spec navigates here (mocked backend) |
-| `/help` | HelpCenter | WALKED | 2026-08-29 · live |  Rendered live: 7 topic cards + contact block (get_page_text 2026-08-29) |
-| `/wrapped` | HelprWrapped | PARTIAL | never | E2E spec navigates here (mocked backend) |
-| `/benefits` | BenefitsPage | PARTIAL | never | E2E spec navigates here (mocked backend) |
-| `/pets` | PetProfiles | PARTIAL | never | E2E spec navigates here (mocked backend) |
-| `*` | NotFound | NEVER WALKED | never | — |
+| `/` | Index / MarketingRedirect | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
+| `/login` | Login | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
+| `/signup` | Signup | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
+| `/signup-pending` | SignupPending | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
+| `/complete-profile` | CompleteProfile | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
+| `/account-pending` | AccountPending | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
+| `/account-denied` | AccountDenied | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
+| `/account-banned` | AccountBanned | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
+| `/forgot-password` | ForgotPassword | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
+| `/reset-password` | ResetPassword | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
+| `/dashboard` | Dashboard | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
+| `/profile` | Profile | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
+| `/post-job` | PostJob | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
+| `/my-jobs` | Activity (applied) | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
+| `/my-posts` | Activity (posted) | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
+| `/payment-success` | PaymentSuccess | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
+| `/admin` | Admin | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
+| `/messages` | Messages | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
+| `/support` | Support | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
+| `/legal` | Legal | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
+| `/jobs` | Jobs (public) | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
+| `/browse` | DashboardGuest | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
+| `/str-settings` | StrSettings | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
+| `/auto-tip` | AutoTip | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
+| `/gift-card` | PayItForward | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
+| `/home-history` | HomeHistory | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
+| `/work-record` | WorkRecord | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
+| `/help` | HelpCenter | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
+| `/wrapped` | HelprWrapped | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
+| `/benefits` | BenefitsPage | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
+| `/pets` | PetProfiles | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
+| `*` | NotFound | WALKED | 2026-08-31 · browser | driven as /nonexistent-audit-404; 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
+| `/jobs/:id` | JobDetail | NEVER WALKED | never | needs a live job id — not driven this pass |
+| `/user/:userId` | UserProfile | NEVER WALKED | never | needs a live profile id — not driven this pass |
+
 
 ## 2. Routes — redirects (14)
 
@@ -136,22 +191,23 @@ to the source, not when you have read the `<Navigate>` element.
 
 | Route | Redirects to | Status | Evidence |
 | --- | --- | --- | --- |
-| `/activity` | `/my-posts` | NEVER WALKED | — |
-| `/earnings` | `/profile?tab=earnings` | NEVER WALKED | — |
-| `/terms` | `/legal?tab=terms` | NEVER WALKED | — |
-| `/privacy` | `/legal?tab=privacy` | NEVER WALKED | — |
-| `/rules` | `/legal?tab=community` | NEVER WALKED | — |
-| `/data-rights` | `/profile?tab=legal` | NEVER WALKED | — |
-| `/schedule` | `/profile?tab=schedule` | NEVER WALKED | — |
-| `/availability` | `/profile?tab=availability` | NEVER WALKED | — |
-| `/saved-helpers` | `/profile?tab=saved_helpers` | NEVER WALKED | — |
-| `/pay-it-forward` | `/gift-card` | NEVER WALKED | — |
-| `/analytics` | `/profile?tab=earnings` | NEVER WALKED | — |
-| `/dashboard/post-login` | `/dashboard` | NEVER WALKED | — |
-| `/settings/profile` | `/profile` | NEVER WALKED | — |
-| `/settings` | `/profile` | NEVER WALKED | — |
+| `/activity` | `/my-posts` | WALKED | landing URL observed in browser; 2026-08-31 · browser |
+| `/earnings` | `/profile?tab=earnings` | WALKED | landing URL observed in browser; 2026-08-31 · browser |
+| `/terms` | `/legal?tab=terms` | WALKED | landing URL observed in browser; 2026-08-31 · browser |
+| `/privacy` | `/legal?tab=privacy` | WALKED | landing URL observed in browser; 2026-08-31 · browser |
+| `/rules` | `/legal?tab=community` | WALKED | landing URL observed in browser; 2026-08-31 · browser |
+| `/data-rights` | `/profile?tab=legal` | WALKED | landing URL observed in browser; 2026-08-31 · browser |
+| `/schedule` | `/profile?tab=schedule` | WALKED | landing URL observed in browser; 2026-08-31 · browser |
+| `/availability` | `/profile?tab=availability` | WALKED | landing URL observed in browser; 2026-08-31 · browser |
+| `/saved-helpers` | `/profile?tab=saved_helpers` | WALKED | landing URL observed in browser; 2026-08-31 · browser |
+| `/pay-it-forward` | `/gift-card` | WALKED | landing URL observed in browser; 2026-08-31 · browser |
+| `/analytics` | `/profile?tab=earnings` | WALKED | landing URL observed in browser; 2026-08-31 · browser |
+| `/dashboard/post-login` | `/dashboard` | WALKED | landing URL observed in browser; 2026-08-31 · browser |
+| `/settings/profile` | `/profile` | WALKED | landing URL observed in browser; 2026-08-31 · browser |
+| `/settings` | `/profile` | WALKED | landing URL observed in browser; 2026-08-31 · browser |
 
-## 3. Profile tabs (18)
+
+## 3. Profile tabs (17)
 
 Source of truth: `TAB_TITLES` in `src/pages/profile/types.ts`, plus the
 `landing` tab. Each is a distinct screen reached as `/profile?tab=<key>`.
@@ -159,25 +215,24 @@ Source of truth: `TAB_TITLES` in `src/pages/profile/types.ts`, plus the
 
 | Tab | Screen | Status | Evidence |
 | --- | --- | --- | --- |
-| `landing` | Profile landing | NEVER WALKED | — |
-| `profile` | Edit Profile | NEVER WALKED | — |
-| `earnings` | Earnings & Payouts | WALKED | 2026-08-29 · live | Live wallet renders (Net $101.20); Payouts sub-tab Refresh Status flipped stripe_payouts_enabled false→true (SQL) |
-| `payment` | Earnings & Payouts (legacy deep link) | WALKED | 2026-08-29 · live | Payouts pane: STRIPE TEST BANK ····6789 + Manage-on-Stripe; Refresh Status verified against Stripe API |
-| `schedule` | Schedule | NEVER WALKED | — |
-| `availability` | Availability | NEVER WALKED | — |
-| `security` | Account Security | NEVER WALKED | — |
-| `legal` | Legal & Policies | NEVER WALKED | — |
-| `reviews` | My Reviews | NEVER WALKED | — |
-| `referral` | Referrals | NEVER WALKED | — |
-| `subscription` | Membership | NEVER WALKED | — |
-| `support` | Help & Support | NEVER WALKED | — |
-| `notifications` | Notifications | WALKED | 2026-08-29 · live | Daily-match-digest toggle persisted across hard reload (aria-checked false→true→reverted) |
-| `posted_jobs` | Posted Jobs | NEVER WALKED | — |
-| `completed_jobs` | Completed Jobs | NEVER WALKED | — |
-| `warnings` | Warnings & Strikes | NEVER WALKED | — |
-| `credentials` | Licensed & Insured | NEVER WALKED | — |
-| `saved_helpers` | Saved Helprs | NEVER WALKED | — |
-| `accessibility` | Accessibility | NEVER WALKED | — |
+| `landing` | Profile landing | WALKED | 2026-08-31 · browser; rendered + axe + layout measured at 1440 light & dark; ~/lh-audit-2026-08-30/ |
+| `profile` | Edit Profile | WALKED | 2026-08-31 · browser; rendered + axe + layout measured at 1440 light & dark; ~/lh-audit-2026-08-30/ — 11 chip contrast failures found & fixed (ebae904f) |
+| `earnings` | Earnings & Payouts | WALKED | 2026-08-31 · browser; rendered + axe + layout measured at 1440 light & dark; ~/lh-audit-2026-08-30/ |
+| `schedule` | Schedule | WALKED | 2026-08-31 · browser; rendered + axe + layout measured at 1440 light & dark; ~/lh-audit-2026-08-30/ |
+| `availability` | Availability | WALKED | 2026-08-31 · browser; rendered + axe + layout measured at 1440 light & dark; ~/lh-audit-2026-08-30/ — 12 contrast failures found & fixed (5910a925) |
+| `payment` | Earnings & Payouts (legacy deep link) | WALKED | 2026-08-31 · browser; rendered + axe + layout measured at 1440 light & dark; ~/lh-audit-2026-08-30/ |
+| `security` | Account Security | WALKED | 2026-08-31 · browser; rendered + axe + layout measured at 1440 light & dark; ~/lh-audit-2026-08-30/ |
+| `legal` | Legal & Policies | WALKED | 2026-08-31 · browser; rendered + axe + layout measured at 1440 light & dark; ~/lh-audit-2026-08-30/ |
+| `reviews` | My Reviews | WALKED | 2026-08-31 · browser; rendered + axe + layout measured at 1440 light & dark; ~/lh-audit-2026-08-30/ |
+| `referral` | Referrals | WALKED | 2026-08-31 · browser; rendered + axe + layout measured at 1440 light & dark; ~/lh-audit-2026-08-30/ |
+| `subscription` | Membership | WALKED | 2026-08-31 · browser; rendered + axe + layout measured at 1440 light & dark; ~/lh-audit-2026-08-30/ |
+| `support` | Help & Support | WALKED | 2026-08-31 · browser; rendered + axe + layout measured at 1440 light & dark; ~/lh-audit-2026-08-30/ |
+| `notifications` | Notifications | WALKED | 2026-08-31 · browser; rendered + axe + layout measured at 1440 light & dark; ~/lh-audit-2026-08-30/ — 6 contrast failures found & fixed (5910a925) |
+| `warnings` | Warnings & Strikes | WALKED | 2026-08-31 · browser; rendered + axe + layout measured at 1440 light & dark; ~/lh-audit-2026-08-30/ — 5 contrast failures found & fixed (ebae904f) |
+| `credentials` | Licensed & Insured | WALKED | 2026-08-31 · browser; rendered + axe + layout measured at 1440 light & dark; ~/lh-audit-2026-08-30/ |
+| `saved_helpers` | Saved Helprs | WALKED | 2026-08-31 · browser; rendered + axe + layout measured at 1440 light & dark; ~/lh-audit-2026-08-30/ |
+| `accessibility` | Accessibility | WALKED | 2026-08-31 · browser; rendered + axe + layout measured at 1440 light & dark; ~/lh-audit-2026-08-30/ |
+
 
 ## 4. Activity tabs (2)
 
@@ -187,8 +242,8 @@ them; a tab seen in one status is not a walked tab.
 
 | Tab | Route | Status | Evidence |
 | --- | --- | --- | --- |
-| `posted` | `/my-posts` | PARTIAL | E2E spec navigates here (mocked backend) |
-| `applied` | `/my-jobs` | PARTIAL | E2E spec navigates here (mocked backend) |
+| `posted` | `/my-posts` | WALKED | 2026-08-31 · browser; incl. ?filter=scheduled/waiting/done, 6 breakpoints |
+| `applied` | `/my-jobs` | WALKED | 2026-08-31 · browser; incl. ?filter=scheduled/waiting/completed, 6 breakpoints |
 
 ## 5. Edge functions (63)
 
@@ -199,10 +254,24 @@ neither is the function appearing in `list_edge_functions` (deployed is not
 working — a function can be live and 503 on every call, which `mapkit-token`
 did).
 
-2026-08-29 reachability sweep: **all 63 deployed functions were executed via
-curl** (OPTIONS + POST, unauthenticated) and every status recorded — 0×404,
-0 orphans either direction; full status table in the 2026-08-29 overnight
-audit report. Beyond reachability, these were exercised end-to-end against
+2026-08-31 re-sweep: **all 63 executed again via curl** (OPTIONS + POST,
+unauthenticated), every status recorded to
+`~/lh-audit-2026-08-30/edge-functions.txt` — still 0×404, all deployed and
+answering. Two findings came out of it:
+
+- **`ai-job-builder` had NO auth check at all**, only a per-IP rate limit. It
+  accepts the publishable key that ships in the public client bundle, so an
+  unauthenticated caller could pull full LLM completions billed to our Gemini
+  account — confirmed against prod with a real completion, then fixed and
+  re-verified live (401 unauthenticated, 200 authenticated). Commit 09f1a479.
+- **A handful answer 5xx where the rest answer 401** on an unauthenticated
+  POST: `create-payment`, `stripe-connect`, `pro-customer-portal`,
+  `cash-out-credits`, `helpr-pass-wallet`. The first three carry an honest
+  `{"error":"Not authenticated"}` body — they reject correctly and merely
+  return the wrong status code, so this is monitoring hygiene rather than a
+  hole. Still open.
+
+Earlier 2026-08-29 sweep for reference: Beyond reachability, these were exercised end-to-end against
 prod: `create-payment` (real $86.00 test-mode checkout, PI succeeded),
 `stripe-webhook` (checkout.session.completed applied escrow),
 `create-notification` + `send-notification-email` + `process-email-queue`
@@ -241,6 +310,96 @@ prod: `create-payment` (real $86.00 test-mode checkout, PI succeeded),
 > added in a migration-era PR cannot quietly go untracked.
 
 ---
+
+## 6. Admin views (24)
+
+Source of truth: `type View` in `src/pages/Admin.tsx:45`. Each is a distinct
+screen reached as `/admin?view=<key>`. `/admin` being walked does NOT cover
+them. Reached by minting a session and elevating the seeded account via
+`user_roles`.
+
+| View | Status | Evidence |
+| --- | --- | --- |
+| `home` | WALKED | 2026-08-31 · browser; rendered + axe + layout at 1440 light & dark, ~/lh-audit-2026-08-30/ |
+| `analytics` | WALKED | 2026-08-31 · browser; rendered + axe + layout at 1440 light & dark, ~/lh-audit-2026-08-30/ |
+| `people` | WALKED | 2026-08-31 · browser; rendered + axe + layout at 1440 light & dark, ~/lh-audit-2026-08-30/ |
+| `jobs` | WALKED | 2026-08-31 · browser; rendered + axe + layout at 1440 light & dark, ~/lh-audit-2026-08-30/ |
+| `settings` | WALKED | 2026-08-31 · browser; rendered + axe + layout at 1440 light & dark, ~/lh-audit-2026-08-30/ |
+| `disputes` | WALKED | 2026-08-31 · browser; rendered + axe + layout at 1440 light & dark, ~/lh-audit-2026-08-30/ |
+| `broadcasts` | WALKED | 2026-08-31 · browser; rendered + axe + layout at 1440 light & dark, ~/lh-audit-2026-08-30/ |
+| `notifications` | WALKED | 2026-08-31 · browser; rendered + axe + layout at 1440 light & dark, ~/lh-audit-2026-08-30/ |
+| `notiflogs` | WALKED | 2026-08-31 · browser; rendered + axe + layout at 1440 light & dark, ~/lh-audit-2026-08-30/ |
+| `reports` | WALKED | 2026-08-31 · browser; rendered + axe + layout at 1440 light & dark, ~/lh-audit-2026-08-30/ |
+| `support` | WALKED | 2026-08-31 · browser; rendered + axe + layout at 1440 light & dark, ~/lh-audit-2026-08-30/ |
+| `referrals` | WALKED | 2026-08-31 · browser; rendered + axe + layout at 1440 light & dark, ~/lh-audit-2026-08-30/ |
+| `subscriptions` | WALKED | 2026-08-31 · browser; rendered + axe + layout at 1440 light & dark, ~/lh-audit-2026-08-30/ |
+| `fraud` | WALKED | 2026-08-31 · browser; rendered + axe + layout at 1440 light & dark, ~/lh-audit-2026-08-30/ |
+| `audit` | WALKED | 2026-08-31 · browser; rendered + axe + layout at 1440 light & dark, ~/lh-audit-2026-08-30/ |
+| `health` | WALKED | 2026-08-31 · browser; rendered + axe + layout at 1440 light & dark, ~/lh-audit-2026-08-30/ |
+| `export` | WALKED | 2026-08-31 · browser; rendered + axe + layout at 1440 light & dark, ~/lh-audit-2026-08-30/ |
+| `payouts` | WALKED | 2026-08-31 · browser; rendered + axe + layout at 1440 light & dark, ~/lh-audit-2026-08-30/ |
+| `tiers` | WALKED | 2026-08-31 · browser; rendered + axe + layout at 1440 light & dark, ~/lh-audit-2026-08-30/ |
+| `marketing` | WALKED | 2026-08-31 · browser; rendered + axe + layout at 1440 light & dark, ~/lh-audit-2026-08-30/ |
+| `idvreview` | WALKED | 2026-08-31 · browser; rendered + axe + layout at 1440 light & dark, ~/lh-audit-2026-08-30/ |
+| `credentials` | WALKED | 2026-08-31 · browser; rendered + axe + layout at 1440 light & dark, ~/lh-audit-2026-08-30/ |
+| `exceptions` | WALKED | 2026-08-31 · browser; rendered + axe + layout at 1440 light & dark, ~/lh-audit-2026-08-30/ |
+| `banreview` | WALKED | 2026-08-31 · browser; rendered + axe + layout at 1440 light & dark, ~/lh-audit-2026-08-30/ |
+
+All 24 rendered clean: 0 axe violations, 0 horizontal overflow, exactly one
+`<h1>` each, none under the 65% desktop-fill bar. Note this covers the views'
+READ surface only — the destructive dialogs they host (ban, refund, delete,
+status override) are in section 7 and remain unwalked.
+
+## 7. Overlays — dialogs, sheets, popovers, drawers (78)
+
+Source of truth:
+`grep -roE "<(Dialog|AlertDialog|Sheet|Drawer|Popover|DropdownMenu|HoverCard)\s+open=" src --exclude-dir=ui`
+-> 78 roots. This axis did not exist in the ledger before 2026-08-31, which is
+why previous audits could report "all routes walked" while no popup in the app
+had ever been opened by an auditor.
+
+**Status: 3 of 78 WALKED.**
+
+| Overlay | Trigger | Status | Evidence |
+| --- | --- | --- | --- |
+| `FilterSheet` | `/dashboard` → Filters | WALKED | 2026-08-31 · browser; opened light+dark, axe 0 inside the dialog, Escape closes; `~/lh-audit-2026-08-30/dialogs/filter-sheet-{light,dark}.png` |
+| `JobDetailDialog` | `/dashboard` → job card | WALKED | 2026-08-31 · browser; real seeded row "Deep clean a 3-bedroom / $220 / Lafayette / Tre B. 5.0", axe 0, Escape closes; `dialogs/job-detail-dialog-{light,dark}.png` |
+| `SecurityTab` change-email | `/profile?tab=security` → Change | WALKED | 2026-08-31 · browser; opened light+dark, axe 0, Escape closes; `dialogs/security-change-email-{light,dark}.png` |
+
+**A harness driving this app from a fresh context MUST dismiss the onboarding
+tour first.** `OnboardingTour` opens over `/dashboard` on every new browser
+context and blurs the page behind it, so an unprepared sweep screenshots the
+tour rather than the screen, and every click it attempts is intercepted by the
+tour's overlay. Seed
+`localStorage["helpr_onboarding"] = {completed:true,currentStep:0,completedSteps:[]}`.
+The first screenshot pass of 2026-08-31 hit exactly this and was regenerated.
+
+A blind control sweep clicked 1,600+ controls across every
+authed route, but the preview server was restarted under it three times during
+rebuilds and it then hung with four workers stuck at 54/69 cells, so its results
+are contaminated and nothing is promoted on them. The
+sweep also proved it MUTATES state — it toggled the seeded helper's
+`push_enabled` to false and all seven `helper_availability` rows to unavailable
+(both restored, verified by SQL read). Any future overlay sweep must snapshot
+and restore the account it drives.
+
+An overlay is WALKED when it has been OPENED and OPERATED, with a screenshot.
+Reading the component does not count. Destructive confirms (ban / refund /
+delete / status override / cancel / withdraw) additionally require a SQL read
+afterwards proving the write landed — the "reports success, wrote nothing"
+class is the whole reason this bar exists.
+
+| Group | Roots | Status |
+| --- | ---: | --- |
+| Global (App.tsx-mounted: permission rationale, terms re-consent, app lock, offline, strike, toasts, success moment) | 9 | NEVER WALKED |
+| Dashboard / Browse / Jobs | 12 | NEVER WALKED |
+| Activity (largest family: boost, tip, cancel, dispute, review, completion, W9, applicants) | 25 | NEVER WALKED |
+| Messages | 10 | NEVER WALKED |
+| Profile (incl. delete account, 2FA, instant payout, ProUpgradeSheet paywall) | 14 | NEVER WALKED |
+| Post Job (IDV gate, redirect overlay, pickers) | 10 | NEVER WALKED |
+| Nav / shell (GateSheet guest paywall, quick menu, sidebar) | 5 | NEVER WALKED |
+| Admin (command palette, ban, refund, remove, status override, user detail) | 18 | NEVER WALKED |
+| Native OS prompts (camera, geo, push, Face ID, share, social auth, in-app browser) | 9 classes | NEVER WALKED — needs the iOS sim |
 
 ## Related mechanisms
 

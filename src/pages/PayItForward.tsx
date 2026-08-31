@@ -28,7 +28,7 @@ import { hapticMedium, hapticSuccess } from "@/lib/haptics";
 import { STRIPE_PCT, STRIPE_FLAT_CENTS } from "@/lib/stripeFees";
 import { errorToast } from "@/lib/toast";
 import { report } from "@/lib/errorLogger";
-import PageHeader from "@/components/PageHeader";
+import AppPage from "@/components/AppPage";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -38,6 +38,8 @@ import { GIFT_OCCASIONS, DEFAULT_OCCASION, DEFAULT_DESIGN } from "./payItForward
 import { GiftCardPreview } from "./payItForward/GiftCardPreview";
 import { CreditCard } from "./payItForward/CreditCard";
 import { EmptyState } from "./payItForward/EmptyState";
+import { RecipientPicker } from "./payItForward/RecipientPicker";
+import type { RecipientMatch } from "./payItForward/RecipientPicker";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { isNativePlatform } from "@/lib/nativeInit";
 
@@ -69,6 +71,12 @@ export default function PayItForward() {
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [customAmount, setCustomAmount] = useState("");
   const [recipientEmail, setRecipientEmail] = useState("");
+  // Two ways to name a recipient: search by name (default — resolves to
+  // `recipient_id`, server-side email resolution in create-pif-donation) or
+  // type an email directly (the original flow, unchanged). Exactly one is
+  // active at a time.
+  const [recipientMode, setRecipientMode] = useState<"search" | "email">("search");
+  const [selectedRecipient, setSelectedRecipient] = useState<RecipientMatch | null>(null);
   const [note, setNote] = useState("");
   // Occasion drives which designs are offered and what the note placeholder
   // suggests; design is what the recipient actually sees. Both persist on the
@@ -81,7 +89,13 @@ export default function PayItForward() {
   const effectiveAmount = selectedAmount ?? (customAmount ? parseFloat(customAmount) : null);
   const trimmedRecipient = recipientEmail.trim().toLowerCase();
   const emailValid = EMAIL_RE.test(trimmedRecipient);
-  const isSelfGift = !!myEmail && trimmedRecipient === myEmail;
+  const isSelfGiftEmail = !!myEmail && trimmedRecipient === myEmail;
+  // In "search" mode the recipient is a picked profile, not typed text — the
+  // RPC already excludes the caller's own row, but guard here too in case a
+  // stale selection lingers across a mode switch.
+  const isSelfGiftSelected = !!user?.id && selectedRecipient?.user_id === user.id;
+  const hasValidRecipient =
+    recipientMode === "email" ? emailValid && !isSelfGiftEmail : !!selectedRecipient && !isSelfGiftSelected;
 
   // ── Stripe return handling (?gift=success | ?gift=cancelled) ───────────────
   useEffect(() => {
@@ -246,13 +260,20 @@ export default function PayItForward() {
       const amt = effectiveAmount;
       if (!amt || isNaN(amt) || amt < MIN_GIFT) throw new Error(`The smallest gift card is $${MIN_GIFT}.`);
       if (amt > MAX_GIFT) throw new Error(`The largest single gift card is $${MAX_GIFT}.`);
-      if (!emailValid) throw new Error("Enter a valid email for the person you're gifting.");
-      if (isSelfGift) throw new Error("You can't send a gift card to yourself.");
+      if (recipientMode === "email") {
+        if (!emailValid) throw new Error("Enter a valid email for the person you're gifting.");
+        if (isSelfGiftEmail) throw new Error("You can't send a gift card to yourself.");
+      } else {
+        if (!selectedRecipient) throw new Error("Search for and select who this gift is for.");
+        if (isSelfGiftSelected) throw new Error("You can't send a gift card to yourself.");
+      }
 
       const { data, error } = await supabase.functions.invoke("create-pif-donation", {
         body: {
           amount: amt,
-          recipient_email: trimmedRecipient,
+          ...(recipientMode === "email"
+            ? { recipient_email: trimmedRecipient }
+            : { recipient_id: selectedRecipient!.user_id }),
           message: note.trim(),
           occasion: occasionId,
           design_id: design.id,
@@ -296,24 +317,10 @@ export default function PayItForward() {
     effectiveAmount >= MIN_GIFT &&
     effectiveAmount <= MAX_GIFT &&
     !isNaN(effectiveAmount) &&
-    emailValid &&
-    !isSelfGift;
+    hasValidRecipient;
 
   return (
-    <div className="min-h-screen bg-premium-page pb-safe-nav">
-      {/* Geometry is the CANONICAL Profile sub-screen ladder, shared verbatim
-          with the Profile tab bodies (Profile.tsx) and PageHeader's `default`
-          width. The header used to declare `width="2xl-5xl-7xl"` against a
-          body that had already moved to the wide ladder, so the title sat in
-          a different column from the content underneath it. `onBack` went to
-          `navigate(-1)`, which is a dead end when the page is opened straight
-          from an emailed claim link; every sibling returns to /profile. */}
-      <PageHeader
-        title="Gift Card"
-        backTo="/profile"
-      />
-
-      <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pt-4 pb-8">
+    <AppPage title="Gift Card" backTo="/profile">
         {/* ── Claiming a gift (from the emailed claim link) ─────────────────── */}
         {/* Spans full width above the split so the status is visible regardless
             of which column the eye lands on first. */}
@@ -335,14 +342,19 @@ export default function PayItForward() {
           </div>
         )}
 
-        {/* Desktop splits into a sticky context/action rail on the left and the
-            gift history listings on the right. Mobile stays a single stacked
-            column — the grid degrades to grid-cols-1 below lg. */}
         {/* SINGLE COLUMN on desktop (owner). Was a 12-col split; both halves
-            carry content, so they stack instead of one being dropped. */}
+            carry content, so they stack instead of one being dropped. The
+            `lg:col-span-*`/`lg:sticky` classes that used to make sense on the
+            old 12-col grid were left behind on this now-block-layout wrapper:
+            since this page scrolls inside AppShell's internal container
+            (AppPage), `position: sticky` still activates in plain block flow
+            — it pinned the ENTIRE form (including this preview) at the top
+            of the viewport while the "sent to you" / "sent by you" lists
+            scrolled up underneath it, reading as everything overlapping the
+            card. Removed along with the dead col-span classes. */}
         <div className="space-y-6">
           {/* ── Left rail: context + primary action ─────────────────────────── */}
-          <aside className="lg:col-span-5 xl:col-span-4 space-y-6 lg:sticky lg:top-6 lg:self-start">
+          <aside className="space-y-6">
             {/* What is this? */}
             {/* Card radius + padding are the canonical profile-card values
                 (`rounded-2xl … p-5`). Only the FILL stays gift-tinted — the
@@ -384,46 +396,25 @@ export default function PayItForward() {
                 boxShadow: "inset 0 1px 1px 0 rgba(255,255,255,0.6)",
               }}
             >
-              {/* Recipient email */}
-              <div>
-                <p
-                  className="font-serif italic text-ds-12 mb-2"
-                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                >
-                  Recipient's email
-                </p>
-                <input
-                  type="email"
-                  inputMode="email"
-                  autoComplete="email"
-                  value={recipientEmail}
-                  onChange={(e) => setRecipientEmail(e.target.value)}
-                  aria-label="Recipient's email"
-                  className="w-full rounded-ds-sm py-2 px-3 text-ds-13 font-sans"
-                  style={{
-                    background: "hsl(var(--parchment) / 0.6)",
-                    border: `0.5px solid hsl(var(--bark) / ${recipientEmail && !emailValid ? "0.4" : "0.22"})`,
-                    color: "hsl(var(--ink-deep))",
-                    outline: "none",
-                  }}
-                />
-                {recipientEmail.trim() && !emailValid && (
-                  <p
-                    className="font-serif italic text-ds-11 mt-1.5"
-                    style={{ color: "hsl(var(--burnt-sienna))" }}
-                  >
-                    Enter a valid email address.
-                  </p>
-                )}
-                {isSelfGift && (
-                  <p
-                    className="font-serif italic text-ds-11 mt-1.5"
-                    style={{ color: "hsl(var(--burnt-sienna))" }}
-                  >
-                    You can't send a gift to yourself.
-                  </p>
-                )}
-              </div>
+              {/* Recipient — search by name (default) or type an email */}
+              <RecipientPicker
+                selected={selectedRecipient}
+                onSelect={setSelectedRecipient}
+                onClearSelected={() => setSelectedRecipient(null)}
+                mode={recipientMode}
+                onModeChange={(m) => {
+                  setRecipientMode(m);
+                  // Switching modes clears the other mode's half-entered
+                  // state so a stale email can't silently ride along with a
+                  // freshly-picked recipient (or vice versa).
+                  if (m === "search") setRecipientEmail("");
+                  else setSelectedRecipient(null);
+                }}
+                emailValue={recipientEmail}
+                onEmailChange={setRecipientEmail}
+                emailValid={emailValid}
+                isSelfGiftEmail={isSelfGiftEmail}
+              />
 
               {/* Occasion — a horizontal chip rail. Picking one swaps the
                   design set and the note placeholder, so the choice does real
@@ -470,8 +461,13 @@ export default function PayItForward() {
               </div>
 
               {/* Live preview — the sender is choosing an artifact, not filling
-                  in a form, so they see exactly what lands in the inbox. */}
-              <div>
+                  in a form, so they see exactly what lands in the inbox.
+                  Capped to 320px: the preview holds a fixed ISO 7810 aspect
+                  ratio, so at the form's full column width (this card is no
+                  longer a narrow 5-col rail — see the single-column note
+                  above) it grew tall enough to need scrolling to see the
+                  amount below it. Capping the width caps the height with it. */}
+              <div className="max-w-[320px] mx-auto">
                 <GiftCardPreview
                   design={design}
                   amount={effectiveAmount || null}
@@ -594,7 +590,7 @@ export default function PayItForward() {
                 disabled={!canDonate || donateMutation.isPending}
                 className="w-full rounded-ds-sm font-display italic font-semibold"
                 style={{
-                  background: canDonate ? "hsl(var(--success-ink))" : "hsl(var(--bark) / 0.15)",
+                  background: canDonate ? "hsl(var(--bark))" : "hsl(var(--bark) / 0.15)",
                   color: canDonate ? "hsl(var(--parchment))" : "hsl(var(--bark) / 0.5)",
                   border: "none",
                 }}
@@ -606,7 +602,7 @@ export default function PayItForward() {
           </aside>
 
           {/* ── Right pane: gift listings ────────────────────────────────────── */}
-          <section className="lg:col-span-7 xl:col-span-8 space-y-6 pb-8">
+          <section className="space-y-6 pb-8">
             {/* Gifts sent to you */}
             <div>
               <p className="text-ds-13 font-sans font-semibold mb-3" style={{ color: "hsl(var(--ink-deep))" }}>
@@ -680,7 +676,6 @@ export default function PayItForward() {
             </div>
           </section>
         </div>
-      </div>
-    </div>
+    </AppPage>
   );
 }

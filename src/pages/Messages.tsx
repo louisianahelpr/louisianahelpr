@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { BlockUserDialog } from "@/components/BlockUserDialog";
 import { hapticHeavy, hapticSuccess, hapticError } from "@/lib/haptics";
+import { MESSAGE_MAX_LENGTH } from "@/lib/messageLimits";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { toast } from "sonner";
 import ReportDialog from "@/components/ReportDialog";
@@ -88,6 +89,7 @@ const Messages = () => {
   // the exact `.or()` thread filters) are preserved verbatim there.
   const {
     conversations,
+    allConversations,
     setConversations,
     activeConvo,
     setActiveConvo,
@@ -242,12 +244,15 @@ const Messages = () => {
   const archiveConversationLocal = (convo: Conversation) => {
     if (!userId) return;
     hapticHeavy();
+    // No manual setConversations filter here (there used to be one): it
+    // stripped the thread from the shared `allConversations` query cache
+    // permanently, not just the visible `conversations` — which broke the
+    // "Recently Deleted" view (ConversationList), which needs that thread
+    // to still be findable there to restore it. archiveConversation's own
+    // ARCHIVE_CHANGED_EVENT already drives useMessagesData's archiveNonce,
+    // which re-filters `conversations` on the same tick — no extra state
+    // write needed for the inbox to update.
     archiveConversation(userId, convo.jobId, convo.otherUserId);
-    setConversations((prev) =>
-      prev.filter(
-        (c) => !(c.jobId === convo.jobId && c.otherUserId === convo.otherUserId),
-      ),
-    );
     hapticSuccess();
     setDeleteConvoConfirm(null);
   };
@@ -259,15 +264,12 @@ const Messages = () => {
   const confirmBatchArchive = () => {
     if (!batchArchiveConfirm || !userId) return;
     hapticHeavy();
+    // See archiveConversationLocal above for why there's no manual
+    // setConversations filter here — it would strip these threads from
+    // `allConversations` too, breaking Recently Deleted's restore path.
     for (const convo of batchArchiveConfirm) {
       archiveConversation(userId, convo.jobId, convo.otherUserId);
     }
-    const keys = new Set(
-      batchArchiveConfirm.map((c) => `${c.jobId}_${c.otherUserId}`),
-    );
-    setConversations((prev) =>
-      prev.filter((c) => !keys.has(`${c.jobId}_${c.otherUserId}`)),
-    );
     hapticSuccess();
     setBatchArchiveConfirm(null);
     setSelectionResetNonce((x) => x + 1);
@@ -285,8 +287,8 @@ const Messages = () => {
 
   const deleteMessage = async (messageId: string) => {
     hapticHeavy();
-    const { error } = await supabase.from("messages").delete().eq("id", messageId);
-    if (error) {
+    const { data, error } = await supabase.from("messages").delete().eq("id", messageId).select("id");
+    if (error || !data || data.length === 0) {
       hapticError();
       toast.error("Couldn't delete that one — give it another try?");
     } else {
@@ -318,6 +320,51 @@ const Messages = () => {
     setDeleteMessageConfirm(null);
   };
 
+  // Sender-only, 15-minute-window edit — the same constraints the RLS
+  // policy enforces server-side (see
+  // supabase/migrations/20260831003117_add_message_editing.sql). The
+  // trigger stamps `edited_at`; we optimistically mirror it here rather
+  // than round-tripping a re-fetch.
+  const editMessage = async (messageId: string, newContent: string) => {
+    const trimmed = newContent.trim();
+    if (!trimmed) return;
+    if (trimmed.length > MESSAGE_MAX_LENGTH) {
+      hapticError();
+      toast.error(`Messages are limited to ${MESSAGE_MAX_LENGTH.toLocaleString()} characters.`);
+      return;
+    }
+    const { data, error } = await supabase
+      .from("messages")
+      .update({ content: trimmed })
+      .eq("id", messageId)
+      .select("id, edited_at");
+    if (error || !data || data.length === 0) {
+      hapticError();
+      toast.error("Couldn't save that edit — give it another try?");
+      return;
+    }
+    const editedAt = data[0].edited_at ?? new Date().toISOString();
+    const updated = messages.map((m) =>
+      m.id === messageId ? { ...m, content: trimmed, edited_at: editedAt } : m,
+    );
+    setMessages(updated);
+    // Mirror deleteMessage: only the thread's latest real message drives
+    // the inbox preview, so re-derive it the same way.
+    if (activeConvo) {
+      const lastReal = [...updated].reverse().find((m) => !m.is_system);
+      if (lastReal?.id === messageId) {
+        setConversations((prev) =>
+          prev.map((c) =>
+            c.jobId === activeConvo.jobId && c.otherUserId === activeConvo.otherUserId
+              ? { ...c, lastMessage: trimmed }
+              : c,
+          ),
+        );
+      }
+    }
+    hapticSuccess();
+  };
+
   // The two panes, built once and reused by both the mobile screen-swap
   // and the desktop side-by-side split. `embedded={isWebDesktop}` strips
   // each component's own full-viewport shell on desktop so they compose
@@ -326,6 +373,7 @@ const Messages = () => {
   const listEl = (
     <ConversationList
       conversations={conversations}
+      allConversations={allConversations}
       loading={loading}
       loadError={loadError}
       userId={userId}
@@ -367,6 +415,7 @@ const Messages = () => {
       setReportTarget={setReportTarget}
       setBlockTarget={setBlockTarget}
       setDeleteMessageConfirm={setDeleteMessageConfirm}
+      onEditMessage={editMessage}
       onToggleMute={handleToggleMute}
       onSnoozeMute={handleSnoozeMute}
       onUnmute={handleUnmute}
@@ -386,25 +435,20 @@ const Messages = () => {
               className="w-[340px] shrink-0 min-h-0 flex flex-col"
               style={{ borderRight: "1px solid hsl(var(--olivewood) / 0.12)" }}
             >
-              <div className="flex-1 min-h-0">
+              {/* `flex flex-col` (not just `flex-1 min-h-0`) is required here:
+                  this div's own parent IS a flex column, so `flex-1` on THIS
+                  div correctly stretches it to fill available height — but
+                  without `display:flex` on this div itself, ConversationList's
+                  root (`flex-1 min-h-0 flex flex-col`, embedded case) has no
+                  flex context to size against and collapses to its content
+                  height instead. Invisible with a long thread list (it
+                  scrolls internally either way), but with one short thread
+                  the select-mode floating action bar — positioned `bottom:
+                  1rem` inside what it assumes is the full-height pane —
+                  landed at content-height instead, directly on top of (and
+                  hiding) the only row. */}
+              <div className="flex-1 min-h-0 flex flex-col">
                 <SectionBoundary label="conversations">{listEl}</SectionBoundary>
-              </div>
-              {/* Bottom-anchored discovery hint — the thread list can be
-                  short on desktop (a few conversations) leaving a wide
-                  empty band. This footer hint fills that space with a
-                  quiet on-brand editorial line explaining how to start a
-                  new conversation, so the rail never reads as dead space. */}
-              <div
-                aria-hidden
-                className="shrink-0 px-4 py-3 border-t text-ds-11 font-serif italic leading-snug"
-                style={{
-                  borderColor: "hsl(var(--olivewood) / 0.1)",
-                  color: "hsl(var(--olivewood) / 0.65)",
-                  background: "hsl(var(--olivewood) / 0.02)",
-                }}
-              >
-                Threads open when someone applies to your job — or when
-                you message a Helpr from their profile.
               </div>
             </div>
             {/* Right pane — the open thread, or a resting empty state when

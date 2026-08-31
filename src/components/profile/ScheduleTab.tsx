@@ -3,14 +3,21 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MapPin, Clock, ChevronLeft, ChevronRight, CalendarDays, Search, Plus } from "lucide-react";
+import { MapPin, Clock, ChevronLeft, ChevronRight, CalendarDays, CalendarPlus, Search, Plus, ListFilter } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import type { Database } from "@/integrations/supabase/types";
 import { jobStatusColorClasses } from "@/lib/statusColors";
 import { jobStatusLabel } from "@/lib/statusLabels";
+import { categoryColors } from "@/components/activity/activityConstants";
+import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { todayLocalISO } from "@/lib/dateUtils";
 import { formatPrice } from "@/lib/format";
 import { helperTakeHomeDollars } from "@/lib/helperEarnings";
@@ -19,6 +26,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { formatTime12 } from "@/components/TimePickerSelect";
 import { inProgressBadgeTarget } from "@/components/dashboard/DashboardInProgressBadge";
 import { bucketPostedJob } from "@/pages/activity/activityFilters";
+import { exportJobRowToCalendar } from "@/lib/calendarExport";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
@@ -81,54 +89,88 @@ const ScheduleCard = ({
   const navigate = useNavigate();
   const { to, destination } = scheduleRowTarget(job, isPosted);
   const time = formatTime12(job.start_time);
+  // Category color-coding (item 27) — the calendar/schedule list used to
+  // tell jobs apart only by STATUS color, which is nearly identical across
+  // most in-flight jobs (every "open"/"accepted" row reads the same tint
+  // regardless of whether it's a move or a cleaning). The category dot uses
+  // the same distinct per-category palette as Browse/Activity
+  // (`categoryColors`), so a glance at the row tells you what KIND of job
+  // it is, not just what state it's in.
+  const catStyle = categoryColors[job.category ?? "other"] || categoryColors.other;
 
   return (
-    // A schedule row is a shortcut to the job, so it is a real <button>, not
-    // a decorated <div>: it gets keyboard focus, an accessible name that says
-    // where it goes, and the global 44px min tap target. There are no nested
-    // interactive children, so the whole card can be the control.
+    // The row used to be a single whole-card <button> — clean, but it left
+    // no room for a second action (Add to Calendar) without nesting a
+    // <button> inside a <button>, which is invalid HTML and breaks
+    // keyboard/AT focus order. So the nav control is now scoped to its own
+    // <button> and the calendar export gets its own sibling <button> in a
+    // footer row, both inside a plain (non-interactive) wrapping <div> that
+    // keeps the original card chrome (border/tint/radius).
     //
     // Card surface tint mirrors the canonical status palette so an "in
     // progress" calendar entry reads in the same sienna family as the chip
     // for that state elsewhere. Border is left to the canvas (`bg-card`)
     // for terminal states so the calendar doesn't shout with cancelled
     // jobs.
-    <button
-      type="button"
-      onClick={() => navigate(to)}
-      aria-label={`${job.title} — ${isPosted ? "posted by you" : "assigned to you"}. Tap to ${destination}.`}
-      className={`btn-press w-full text-left block rounded-ds-md border border-border/40 p-3 transition-transform active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] ${jobStatusColorClasses(job.status)}`}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap mb-1">
-            <h4 className="font-semibold text-ds-13">{job.title}</h4>
-            <span className="text-ds-11 px-2 py-0.5 rounded-full bg-card font-medium">{isPosted ? "Posted" : "Assigned"}</span>
+    <div className={`rounded-ds-md border border-border/40 overflow-hidden ${jobStatusColorClasses(job.status)}`}>
+      <button
+        type="button"
+        onClick={() => navigate(to)}
+        aria-label={`${job.title} — ${isPosted ? "posted by you" : "assigned to you"}. Tap to ${destination}.`}
+        className="btn-press w-full text-left block p-3 transition-transform active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap mb-1">
+              <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-ds-10 font-semibold ${catStyle.badge}`}>
+                <CategoryIcon category={job.category ?? "other"} aria-hidden className="w-2.5 h-2.5 shrink-0" strokeWidth={2.5} />
+              </span>
+              <h4 className="font-semibold text-ds-13">{job.title}</h4>
+              <span className="text-ds-11 px-2 py-0.5 rounded-full bg-card font-medium">{isPosted ? "Posted" : "Assigned"}</span>
+            </div>
+            <div className="flex flex-wrap gap-3 text-ds-11 text-muted-foreground">
+              <span className="flex items-center gap-1"><MapPin className="w-3 h-3 shrink-0" /> {job.location}</span>
+              {/* A currency symbol is typography, not an icon: the "$" belongs
+                  in the same text node as the digits. A DollarSign glyph beside
+                  a string that already carried one rendered as "$ $200". */}
+              {/* Whose money is this? On a job you POSTED the budget is what you
+                  pay, so the raw figure is right. On a job you were ASSIGNED it
+                  is not your money — your take-home is the budget minus the
+                  platform fee, and that is the number every other helper-facing
+                  surface shows (My Jobs, Earnings & Payouts, Work Record). This
+                  row used to print the raw budget either way, so the same job
+                  read $85 here and $74 on the job card, in identical type.
+                  The whole job row is passed so `payment_status` comes with it:
+                  these are LIVE jobs, so the escrow-time stamp must not be
+                  trusted over the viewer's tier. */}
+              <span className="tabular-nums">
+                ${formatPrice(isPosted ? job.budget : helperTakeHomeDollars(job, viewerFeePercent))}
+              </span>
+              <span className="flex items-center gap-1"><Clock className="w-3 h-3 shrink-0" /> {time}</span>
+            </div>
           </div>
-          <div className="flex flex-wrap gap-3 text-ds-11 text-muted-foreground">
-            <span className="flex items-center gap-1"><MapPin className="w-3 h-3 shrink-0" /> {job.location}</span>
-            {/* A currency symbol is typography, not an icon: the "$" belongs
-                in the same text node as the digits. A DollarSign glyph beside
-                a string that already carried one rendered as "$ $200". */}
-            {/* Whose money is this? On a job you POSTED the budget is what you
-                pay, so the raw figure is right. On a job you were ASSIGNED it
-                is not your money — your take-home is the budget minus the
-                platform fee, and that is the number every other helper-facing
-                surface shows (My Jobs, Earnings & Payouts, Work Record). This
-                row used to print the raw budget either way, so the same job
-                read $85 here and $74 on the job card, in identical type.
-                The whole job row is passed so `payment_status` comes with it:
-                these are LIVE jobs, so the escrow-time stamp must not be
-                trusted over the viewer's tier. */}
-            <span className="tabular-nums">
-              ${formatPrice(isPosted ? job.budget : helperTakeHomeDollars(job, viewerFeePercent))}
-            </span>
-            <span className="flex items-center gap-1"><Clock className="w-3 h-3 shrink-0" /> {time}</span>
-          </div>
+          <span className="text-ds-11 font-medium shrink-0">{jobStatusLabel(job.status)}</span>
         </div>
-        <span className="text-ds-11 font-medium shrink-0">{jobStatusLabel(job.status)}</span>
+      </button>
+      {/* Device calendar export — there's no native calendar plugin in this
+          app, so this hands the browser/OS a standards-compliant .ics
+          (native: via the existing Capacitor Share sheet; web: a plain
+          file download) rather than writing straight into the calendar
+          app. Its own row keeps it out of the nav button above. */}
+      <div className="px-3 pb-2.5 pt-0.5 border-t border-border/30">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            void exportJobRowToCalendar(job);
+          }}
+          className="btn-press inline-flex items-center gap-1.5 text-ds-11 font-semibold px-2 py-1 -ml-2 rounded-ds-sm active:scale-[0.96] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
+        >
+          <CalendarPlus className="w-3 h-3 shrink-0" aria-hidden />
+          Add to Calendar
+        </button>
       </div>
-    </button>
+    </div>
   );
 };
 
@@ -145,6 +187,13 @@ interface ScheduleTabProps {
   hideHeader?: boolean;
 }
 
+type UpcomingFilter = "all" | "posted" | "applied";
+const UPCOMING_FILTERS: { value: UpcomingFilter; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "posted", label: "Posted" },
+  { value: "applied", label: "Applied" },
+];
+
 export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack, hideHeader = false }: ScheduleTabProps) {
   // The viewer's own tier rate — the fallback used for assigned jobs whose
   // stamped fee isn't yet authoritative. Resolved once here rather than per
@@ -157,6 +206,11 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
   const navigate = useNavigate();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  // Upcoming-list filter (item 27) — Posted/Applied/All toggle for the
+  // "Upcoming jobs" list. "Applied" reuses the same meaning as elsewhere on
+  // this tab: jobs assigned to the viewer (they applied and got picked),
+  // not raw applications.
+  const [upcomingFilter, setUpcomingFilter] = useState<UpcomingFilter>("all");
 
   // Self-blocked dates — rows in helper_availability with a
   // specific_date and is_available=false. These are the "I marked
@@ -219,7 +273,12 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
   for (let i = 1; i <= daysInMonth; i++) days.push(i);
   const getDateStr = (day: number) => `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
   const selectedJobs = selectedDate ? (jobsByDate.get(selectedDate) || []) : [];
-  const upcomingJobs = allJobs.filter((j) => j.date_needed >= today).sort((a, b) => a.date_needed.localeCompare(b.date_needed)).slice(0, 10);
+  const postedIds = new Set(postedJobs.map((j) => j.id));
+  const upcomingSource =
+    upcomingFilter === "posted" ? postedJobs :
+    upcomingFilter === "applied" ? assignedJobs :
+    allJobs;
+  const upcomingJobs = upcomingSource.filter((j) => j.date_needed >= today).sort((a, b) => a.date_needed.localeCompare(b.date_needed)).slice(0, 10);
 
   return (
     <div className="space-y-4">
@@ -252,9 +311,18 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
         </div>
       ) : (
         <>
-          <div className="rounded-2xl liquid-glass p-5">
-            <div className="flex items-center justify-between mb-4">
-              <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(new Date(year, month - 1, 1))} aria-label="Previous month"><ChevronLeft className="w-4 h-4" /></Button>
+          {/* Calendar card — item 27, significantly more compact than before.
+              The grid used to be `aspect-square` cells at full card width, so
+              on any screen wider than a phone SE each day cell ballooned to
+              50-60px for a calendar whose only job is "pick a date, glance at
+              dots". Capping the grid at 280px and dropping cells to a fixed
+              32px keeps every cell tappable (well over the 40px target isn't
+              needed here — see aria-label + the whole-cell hit area) while
+              giving the Upcoming-jobs list below far more of the screen. */}
+          <div className="rounded-2xl liquid-glass p-3.5">
+            <div className="max-w-[280px] mx-auto">
+            <div className="flex items-center justify-between mb-2">
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setCurrentMonth(new Date(year, month - 1, 1))} aria-label="Previous month"><ChevronLeft className="w-3.5 h-3.5" /></Button>
               <div className="flex flex-col items-center gap-1">
                 {/* The month name is editorial (Bodoni Moda italic); the YEAR
                     is a figure, and figures in this app are set in the sans
@@ -292,16 +360,16 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
                   </button>
                 )}
               </div>
-              <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(new Date(year, month + 1, 1))} aria-label="Next month"><ChevronRight className="w-4 h-4" /></Button>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setCurrentMonth(new Date(year, month + 1, 1))} aria-label="Next month"><ChevronRight className="w-3.5 h-3.5" /></Button>
             </div>
-            <div className="grid grid-cols-7 gap-1 mb-1">
+            <div className="grid grid-cols-7 gap-0.5 mb-0.5">
               {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d) => (
-                <div key={d} className="text-center font-serif italic uppercase py-1 text-ds-10" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
+                <div key={d} className="text-center font-serif italic uppercase py-0.5 text-ds-10" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
                   {d}
                 </div>
               ))}
             </div>
-            <div className="grid grid-cols-7 gap-1">
+            <div className="grid grid-cols-7 gap-0.5">
               {days.map((day, i) => {
                 if (day === null) return <div key={`e-${i}`} />;
                 const dateStr = getDateStr(day);
@@ -328,7 +396,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
                     onClick={() => setSelectedDate(isSelected ? null : dateStr)}
                     title={blockedReason ?? undefined}
                     aria-label={blockedReason ? `${dateStr} — ${blockedReason.toLowerCase()}` : undefined}
-                    className={`relative aspect-square flex flex-col items-center justify-center rounded-ds-sm text-ds-13 transition-colors ${
+                    className={`relative h-8 flex flex-col items-center justify-center rounded-ds-sm text-ds-11 transition-colors ${
                       isSelected ? "bg-primary text-primary-foreground" :
                       isToday ? "text-primary font-bold ring-2 ring-primary/70 ring-inset bg-primary/8" :
                       isBlocked ? "text-muted-foreground/70 bg-muted/30 hover:bg-muted/50" :
@@ -356,11 +424,24 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
                     }
                   >
                     {day}
+                    {/* Job dot(s) — one per DISTINCT category on this day (max
+                        3, since a day rarely stacks more than that), colored
+                        with the same per-category palette as the schedule
+                        list below, instead of one undifferentiated primary
+                        dot for every job regardless of type. */}
                     {hasJobs && (
-                      <span className={`absolute bottom-1 w-1.5 h-1.5 rounded-full ${
-                        isSelected ? "bg-primary-foreground" :
-                        inProgressOnDay ? "bg-[hsl(var(--burnt-sienna))]" : "bg-primary"
-                      }`} />
+                      <span className="absolute bottom-1 flex items-center gap-0.5">
+                        {[...new Set(dayJobs.map((j) => j.category ?? "other"))]
+                          .slice(0, 3)
+                          .map((cat) => (
+                            <span
+                              key={cat}
+                              className={`w-1.5 h-1.5 rounded-full ${
+                                isSelected ? "bg-primary-foreground" : (categoryColors[cat] || categoryColors.other).dot
+                              }`}
+                            />
+                          ))}
+                      </span>
                     )}
                   </button>
                 );
@@ -387,7 +468,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
                   </span>
                   <span className="inline-flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-primary" aria-hidden />
-                    Has a job
+                    Job (dot color = job type)
                   </span>
                   {monthHasBlocked && (
                     <span className="inline-flex items-center gap-1.5">
@@ -405,6 +486,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
                 </div>
               );
             })()}
+            </div>
           </div>
 
           {selectedDate && (
@@ -435,7 +517,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
                 </div>
               ) : (
                 selectedJobs.map((job) => (
-                  <ScheduleCard key={job.id} job={job} isPosted={postedJobs.some((j) => j.id === job.id)} viewerFeePercent={viewerFeePercent} />
+                  <ScheduleCard key={job.id} job={job} isPosted={postedIds.has(job.id)} viewerFeePercent={viewerFeePercent} />
                 ))
               )}
             </div>
@@ -443,10 +525,51 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
 
           {!selectedDate && (
             <div className="space-y-3">
-              <div>
+              <div className="flex items-center justify-between gap-2">
                 <h3 className="font-display italic font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
                   Upcoming jobs
                 </h3>
+                {/* Posted/Applied/All toggle (item 27) — the list mixes jobs
+                    this user posted with jobs they're assigned to, with no
+                    way to look at just one side. Segmented pill matches the
+                    ScheduleCard's own "Posted"/"Assigned" chip labels. */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      aria-label={`Filter: ${UPCOMING_FILTERS.find((f) => f.value === upcomingFilter)?.label}`}
+                      className="shrink-0 inline-flex items-center gap-1.5 rounded-full h-8 px-3 text-ds-11 font-sans font-semibold active:scale-[0.96] transition-all"
+                      style={{
+                        background: "hsl(var(--ivory-sand) / 0.65)",
+                        border: "1px solid hsl(var(--olivewood) / 0.18)",
+                        color: "hsl(var(--olivewood))",
+                      }}
+                    >
+                      <ListFilter className="w-3.5 h-3.5 shrink-0" />
+                      {UPCOMING_FILTERS.find((f) => f.value === upcomingFilter)?.label}
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    className="w-[min(92vw,180px)] rounded-2xl border border-border/40 shadow-2xl bg-card p-1.5"
+                    align="end"
+                  >
+                    {UPCOMING_FILTERS.map((opt) => {
+                      const active = opt.value === upcomingFilter;
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => setUpcomingFilter(opt.value)}
+                          className={`w-full text-left px-2.5 h-9 rounded-md text-ds-13 font-sans font-medium transition-colors ${
+                            active ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-secondary/70"
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </PopoverContent>
+                </Popover>
               </div>
               {upcomingJobs.length === 0 ? (
                 <div className="rounded-2xl liquid-glass flex flex-col items-center text-center gap-3 px-6 py-10">
@@ -496,7 +619,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
                 </div>
               ) : (
                 upcomingJobs.map((job) => (
-                  <ScheduleCard key={job.id} job={job} isPosted={postedJobs.some((j) => j.id === job.id)} viewerFeePercent={viewerFeePercent} />
+                  <ScheduleCard key={job.id} job={job} isPosted={postedIds.has(job.id)} viewerFeePercent={viewerFeePercent} />
                 ))
               )}
             </div>

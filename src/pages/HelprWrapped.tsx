@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Gift, Share2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import PageHeader from "@/components/PageHeader";
+import AppPage from "@/components/AppPage";
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -323,17 +323,12 @@ const HelprWrapped = () => {
   const loadFailed = isError || (!!stats?.incomplete && !hasActivity);
 
   return (
-    <div className="min-h-screen bg-premium-page pb-safe-nav">
-      <PageHeader
-        eyebrow="Louisiana Helpr"
-        title={`Your ${SEASON.title}`}
-        // Body is a single centered card, so the header must not fall through
-        // to `default` (max-w-5xl→90rem) — that left the H1 stranded hundreds
-        // of px to the left of the card on desktop.
-        width="lg"
-      />
-
-      <div className="px-5 py-6 flex flex-col items-center">
+    <AppPage title={`Your ${SEASON.title}`} backTo="/profile">
+      {/* AppPage owns the shell (AppShell + title + the one centered content
+          column), so this page adds only the card's own centering. No
+          `page-measure`/gutter wrapper here — that would be a second
+          max-width inside AppPage's. */}
+      <div className="py-2 flex flex-col items-center">
         <div
           className="w-full max-w-[420px] rounded-ds-lg overflow-hidden"
           style={{
@@ -465,7 +460,7 @@ const HelprWrapped = () => {
           )}
         </div>
       </div>
-    </div>
+    </AppPage>
   );
 };
 

@@ -1,9 +1,8 @@
-import { memo, useCallback, type KeyboardEvent, type TouchEvent } from "react";
+import { memo, useCallback, type KeyboardEvent } from "react";
 import {
   MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Users, Repeat, CheckCheck,
 } from "lucide-react";
-import { hapticLight, hapticMedium } from "@/lib/haptics";
-import { useLongPress } from "@/hooks/useLongPress";
+import { hapticLight } from "@/lib/haptics";
 import { differenceInHours } from "date-fns";
 
 import { categoryLabels, categoryColors } from "@/components/activity/activityConstants";
@@ -60,20 +59,23 @@ interface JobCardProps {
   userLat?: number | null;
   userLng?: number | null;
   /**
-   * Long-press handler — when defined, a 500ms press on the card opens
-   * a quick-action sheet (Save / Hide / Share / Report) instead of the
-   * detail dialog. The dashboard owner (Dashboard.tsx) supplies this;
-   * guest mode leaves it undefined so a tap opens the read-only preview
-   * dialog instead.
-   */
-  onLongPress?: (jobId: string) => void;
-  /**
    * Marks this card as one of the top relevance-matched picks. When true a
    * small, unobtrusive "Recommended" pill renders near the category label.
    * Only the first couple of recommended cards set this — the rest of the
    * feed leaves it false and shows no pill.
    */
   recommended?: boolean;
+  /**
+   * Drops the card's own outer chrome (rounded corners, border, shadow,
+   * background, hover lift) so it can sit directly inside another
+   * container that already provides that shape — the map pin's callout
+   * bubble, e.g. (owner, 2026-08-30: "should be 1 component not
+   * multiple" — MapKit's `.mk-bubble` and this card were each drawing
+   * their own rounded rect, so the popup read as a card nested inside a
+   * second card). Everything below the outer wrapper — rail, badges,
+   * title, meta — is unchanged; only the wrapper's own paint is dropped.
+   */
+  bare?: boolean;
 }
 
 // Category colors apply ONLY to the category badge pill at the top of
@@ -81,7 +83,7 @@ interface JobCardProps {
 // charcoal) across all categories so the brand reads consistently and
 // the colored badge stays the single accent in the row. The `accent`
 // gradient tints are kept for the boosted/recommended highlight strip.
-const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: _showApply = true, onSelect, index = 0, isExpanded: _isExpanded = false, onToggleExpand: _onToggleExpand, isSaved: _isSaved = false, onToggleSave: _onToggleSave, variant = "default", guestPricing = false, userLat = null, userLng = null, onLongPress, recommended = false }: JobCardProps) => {
+const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: _showApply = true, onSelect, index = 0, isExpanded: _isExpanded = false, onToggleExpand: _onToggleExpand, isSaved: _isSaved = false, onToggleSave: _onToggleSave, variant = "default", guestPricing = false, userLat = null, userLng = null, recommended = false, bare = false }: JobCardProps) => {
   const isGuest = variant === "guest";
 
   // A tap always opens the job detail view. Saving lives behind the
@@ -92,21 +94,6 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
     onSelect(job);
   }, [job, onSelect]);
 
-  // Long-press hook — fires onLongPress after 500ms hold, falls through
-  // to a normal tap (onSelect via handleTap) when the user lifts before
-  // the threshold. We always create the hook to keep the component's
-  // render shape stable across renders, but ignore its props when there's
-  // no handler.
-  const longPress = useLongPress({
-    threshold: 500,
-    onLongPress: () => {
-      if (onLongPress) {
-        hapticMedium();
-        onLongPress(job.id);
-      }
-    },
-    onTap: handleTap,
-  });
   // Show the gross posted budget (vs the helper's net take-home) whenever
   // the full guest variant is active OR the lighter guestPricing flag is set.
   // Net "You earn" take-home is the default for guests too (they're shown an
@@ -236,10 +223,6 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
   // element by the caller (a <button> in Jobs.tsx that opens the preview),
   // so the card root must NOT be a nested interactive element — drop
   // role/tabIndex/handlers and let the wrapper own the tap.
-  // With onLongPress supplied, the press/release handlers from
-  // useLongPress own both tap (fires onSelect on short release) and
-  // long-press (fires the quick-action sheet at threshold). Without it
-  // we fall back to a plain onClick so the gesture surface stays simple.
   const interactiveProps = isGuest
     ? {
         // Guest: the whole card routes to /signup on tap (onSelect is
@@ -250,45 +233,20 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
         onClick: () => { hapticLight(); onSelect(job); },
         ...prefetchHandlers,
       }
-    : onLongPress
-      ? {
-          ...longPress,
-          ...prefetchHandlers,
-          // prefetchHandlers.onTouchStart would otherwise clobber
-          // longPress.onTouchStart (last-write-wins spread), leaving the
-          // long-press/tap lifecycle un-armed. This branch has no onClick,
-          // so taps depend entirely on longPress's touch handlers — losing
-          // onTouchStart made single taps misfire (needing a double-tap).
-          // Compose both: warm the prefetch AND begin the press lifecycle.
-          onTouchStart: (e: TouchEvent) => {
-            prefetchHandlers.onTouchStart();
-            longPress.onTouchStart(e);
-          },
-          role: "button" as const,
-          tabIndex: 0,
-          "aria-label": `View ${job.title} — ${priceAria}`,
-          onKeyDown: (e: KeyboardEvent) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              hapticLight();
-              onSelect(job);
-            }
-          },
-        }
-      : {
-          onClick: handleTap,
-          role: "button" as const,
-          tabIndex: 0,
-          "aria-label": `View ${job.title} — ${priceAria}`,
-          onKeyDown: (e: KeyboardEvent) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              hapticLight();
-              onSelect(job);
-            }
-          },
-          ...prefetchHandlers,
-        };
+    : {
+        onClick: handleTap,
+        role: "button" as const,
+        tabIndex: 0,
+        "aria-label": `View ${job.title} — ${priceAria}`,
+        onKeyDown: (e: KeyboardEvent) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            hapticLight();
+            onSelect(job);
+          }
+        },
+        ...prefetchHandlers,
+      };
 
   return (
     <div
@@ -300,14 +258,20 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
       // the card actually fill the cell it was already given. In a non-stretch
       // parent (auto height) this resolves to auto, so single-card contexts are
       // unaffected.
-      className="motion-safe:animate-fade-in group relative h-full rounded-2xl border border-border/60 bg-card cursor-pointer transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-0.5 active:scale-[0.99] shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      className={
+        bare
+          ? "group relative h-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          : "motion-safe:animate-fade-in group relative h-full rounded-2xl border border-border/60 bg-card cursor-pointer transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-0.5 active:scale-[0.99] shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      }
       {...interactiveProps}
     >
       {/* Clipped inner surface — rounds the rail, body, and guest CTA to
           the card shape. The category tab + rail both live inside this clip
           so they share the card's rounded top-left corner and read as one
-          continuous shape. */}
-      <div className="relative h-full rounded-2xl overflow-hidden">
+          continuous shape. `bare` still clips (the callout bubble itself is
+          rounded, and the category rail/tab need SOME edge to align to) but
+          carries no paint of its own. */}
+      <div className={`relative h-full overflow-hidden ${bare ? "rounded-lg" : "rounded-2xl"}`}>
         {/* Category rail — vertical color stripe down the left edge. The
             tab below sits flush on top of it (same left edge) so the tab's
             flat left side flows straight into the rail with no gap. */}
@@ -360,7 +324,13 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               className="inline-flex items-center gap-1 px-2 py-1 rounded-b-lg border-b border-r text-ds-10 font-semibold leading-none shadow-sm pointer-events-none"
               style={{
                 background: "hsl(var(--burnt-sienna) / 0.12)",
-                color: "hsl(var(--burnt-sienna))",
+                // --sienna-ink, not --burnt-sienna: this is 10px label text on
+                // the sienna family's own 12% tint, which is the exact case
+                // --sienna-ink was minted for. Raw --burnt-sienna measured
+                // 3.89:1 here in dark mode (#d46735 on #332927), under the 4.5
+                // AA bar. Light mode is unchanged — the two tokens are
+                // byte-identical there.
+                color: "hsl(var(--sienna-ink))",
                 borderColor: "hsl(var(--burnt-sienna) / 0.20)",
               }}
             >
@@ -414,7 +384,13 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 }}
               >
                 <Zap className="w-2.5 h-2.5 shrink-0" style={{ color: "hsl(var(--accent))", fill: "hsl(var(--accent))" }} />
-                {bonus > 0 ? `+$${formatPrice(bonus)} Urgent` : "Urgent"}
+                {/* Just "Urgent", not "+$10 Urgent" (owner, 2026-08-30: the
+                    dollar prefix read as "does the helper get this on TOP of
+                    the posted budget?" — ambiguous, since the bonus is
+                    already folded into the net take-home JobPrice shows).
+                    The bonus amount is still in the aria-label for anyone
+                    who needs the detail; it just isn't the visible claim. */}
+                Urgent
               </span>
             );
           }
@@ -433,25 +409,18 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
         })()}
         <div className="w-full px-3.5 pt-6 pb-2.5">
         {/* Title + price share the top row — price chip is vertically
-            centered against the title so on a two-line title it sits in the
-            middle. The location/date/time meta spans the full card width
-            below. Titles clamp to two lines — see the note on the h3. */}
+            centered against the title. The location/date/time meta spans
+            the full card width below.
+            Truncates to ONE line (owner, 2026-08-30: match the My Posts
+            card's density — see PostedJobCard's JobCardTitleBar). This also
+            fixes the row-height-variance bug the previous 2-line reservation
+            was working around: every card now has exactly one title line, so
+            the virtualized feed's measureElement never has to reconcile a
+            short-vs-tall run of cards. `min-w-0` lets it shrink/truncate
+            inside the flex row at all. */}
         <div className="flex items-center justify-between gap-3">
           <h3
-            // TWO lines, not one (owner). Clamping by LINE rather than by a
-            // character count is still the right mechanism — a fixed character
-            // limit can't know the column width, and an em-heavy title
-            // ("Assemble IKEA PAX wardrobe + dresser") wraps well before a
-            // digit-heavy one of equal length. But one line was clamping the
-            // one thing the card is about: at 375 the feed read "Replace a
-            // leaking kitchen…" and "Grocery run and pharmacy…", so the reader
-            // had to open a job to find out what it was.
-            //
-            // Two lines keeps every card exactly the same height — which is
-            // what the clamp was protecting — and fits almost every real title
-            // whole. `min-w-0` is what lets it shrink inside the flex row at
-            // all.
-            className="text-headline-card flex-1 font-display italic font-bold text-foreground leading-tight line-clamp-2 min-w-0"
+            className="text-headline-card flex-1 font-display italic font-bold text-foreground leading-tight truncate min-w-0"
             style={{
               color: "hsl(var(--ink-deep))",
               letterSpacing: "-0.02em",
@@ -472,7 +441,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
 
         {/* Meta row — category lives in the badge above, so this leads
             with location. */}
-        <div className="mt-2 flex flex-col gap-1 text-ds-11 text-muted-foreground leading-tight">
+        <div className="mt-1.5 flex flex-col gap-0.5 text-ds-11 text-muted-foreground leading-tight">
           {/* Row 1 — where + when. The expiry countdown deliberately does NOT
               live here: this row is flex-nowrap, so every extra chip steals
               width from the city, which has min-w-0 and collapses first. With

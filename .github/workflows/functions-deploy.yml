@@ -98,24 +98,42 @@ jobs:
               | sort -u \
               | tr '\n' ' ' || true)
             if [ -z "$FUNCTIONS" ]; then
-              echo "No function changes detected (or only _shared changed). Nothing to deploy."
-              echo "skip_deploy=true" >> $GITHUB_OUTPUT
-              exit 0
+              echo "No function code changes detected (or only _shared changed)."
+            else
+              echo "Auto-detected changed functions: $FUNCTIONS"
             fi
-            echo "Auto-detected changed functions: $FUNCTIONS"
           fi
 
           # If _shared changed, that's a library; we redeploy ALL functions
           # since any of them could depend on it. Detected via a separate
           # diff check (the grep above filtered _shared out of the function
           # list, so check the raw CHANGED for _shared touches).
+          #
+          # config.toml or this workflow file changing is treated the same
+          # way: config.toml carries per-function deploy-time settings
+          # (verify_jwt etc.) that aren't tied to any single function dir,
+          # and a workflow-file edit means we can't trust the auto-detect
+          # logic that just ran. Deploy-all is the safe fallback for both —
+          # otherwise a config.toml-only commit finds zero changed function
+          # files, sets skip_deploy=true, and reports success while
+          # deploying nothing (prod's function config silently goes stale).
           if [ -n "$MANUAL_INPUT" ]; then
-            echo "Skipping _shared check — manual single-function deploy."
+            echo "Skipping _shared/config.toml/workflow check — manual single-function deploy."
           else
+            CONFIG_OR_WORKFLOW_CHANGED=$(git diff --name-only HEAD~1 HEAD -- 'supabase/config.toml' '.github/workflows/functions-deploy.yml' 2>/dev/null || true)
             if echo "$CHANGED" | grep -qE '^supabase/functions/_shared/'; then
               echo "::warning::_shared changed — promoting to deploy-all to avoid leaving stale callers."
               FUNCTIONS=$(ls supabase/functions/ | grep -v '^_shared$' | tr '\n' ' ' || true)
+            elif [ -n "$CONFIG_OR_WORKFLOW_CHANGED" ]; then
+              echo "::warning::supabase/config.toml or the workflow file changed — promoting to deploy-all so deploy-time settings (e.g. verify_jwt) actually apply."
+              FUNCTIONS=$(ls supabase/functions/ | grep -v '^_shared$' | tr '\n' ' ' || true)
             fi
+          fi
+
+          if [ -z "$FUNCTIONS" ]; then
+            echo "No function changes, config.toml changes, or workflow changes detected. Nothing to deploy."
+            echo "skip_deploy=true" >> $GITHUB_OUTPUT
+            exit 0
           fi
 
           echo "functions=$FUNCTIONS" >> $GITHUB_OUTPUT

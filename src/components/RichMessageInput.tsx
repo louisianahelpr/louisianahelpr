@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Send, Plus, X, FileText, Loader2, Mic, MicOff, Square } from "lucide-react";
 import { toast } from "sonner";
 import { scanMessage } from "@/lib/messageScanner";
+import { MESSAGE_MAX_LENGTH } from "@/lib/messageLimits";
 import { hapticLight, hapticMedium, hapticError } from "@/lib/haptics";
 import { usePermissionRationale } from "@/hooks/usePermissionRationale";
 import { useVoiceDictation } from "@/hooks/useVoiceDictation";
@@ -50,6 +51,10 @@ export const RichMessageInput = ({
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const libraryInputRef = useRef<HTMLInputElement>(null);
   const filesInputRef = useRef<HTMLInputElement>(null);
+  // Anchors the attach popover to the "+" button — see AttachSourceSheet's
+  // anchorRef doc / FilterSheet.tsx for why a ref rather than a
+  // <PopoverTrigger> subtree.
+  const attachButtonRef = useRef<HTMLButtonElement>(null);
   const { request: requestPermission } = usePermissionRationale();
 
   // Throttle the presence broadcast: without this, onTyping fires once per
@@ -288,6 +293,11 @@ export const RichMessageInput = ({
     if (!assertWritable()) return;
 
     if (text.trim()) {
+      if (text.length > MESSAGE_MAX_LENGTH) {
+        hapticError();
+        toast.error(`Messages are limited to ${MESSAGE_MAX_LENGTH.toLocaleString()} characters.`);
+        return;
+      }
       const violations = scanMessage(text);
       if (violations.length > 0) {
         hapticError();
@@ -398,6 +408,7 @@ export const RichMessageInput = ({
             Nothing was removed: attach and location are both in that sheet
             now, alongside the camera/library/files sources it already held. */}
         <Button
+          ref={attachButtonRef}
           variant="ghost"
           size="icon"
           className="shrink-0 h-11 w-11 rounded-full liquid-glass glass-press"
@@ -420,6 +431,7 @@ export const RichMessageInput = ({
           value={text}
           onChange={(e) => { setText(e.target.value); notifyTyping(); }}
           onKeyDown={(e) => e.key === "Enter" && handleSend()}
+          maxLength={MESSAGE_MAX_LENGTH}
           className="flex-1"
           disabled={disabled || uploading || recorder.state === "recording" || recorder.state === "stopped"}
         />
@@ -427,7 +439,12 @@ export const RichMessageInput = ({
             frequent action (Send) keeps the rightmost slot. Mounts only
             on platforms with SpeechRecognition (degrades cleanly on web
             browsers without it and on Capacitor WebViews that don't
-            expose it). Live red dot indicates an active session. */}
+            expose it). Live red dot indicates an active session.
+            NOT a duplicate of "Voice note" in the attach ("+") menu: this
+            button transcribes speech INTO the text draft (nothing is sent
+            until Send is tapped); the attach-menu action records and sends
+            an audio clip as its own attachment. Different input methods,
+            different outputs. */}
         {voice.supported && recorder.state === "idle" && (
           <Button
             type="button"
@@ -437,7 +454,11 @@ export const RichMessageInput = ({
             onClick={toggleVoice}
             disabled={disabled || uploading}
             aria-label={voice.isListening ? "Stop dictating" : "Dictate a message"}
-            title={voice.isListening ? "Stop dictating" : "Dictate a message"}
+            title={
+              voice.isListening
+                ? "Stop dictating"
+                : "Types what you say into the message (the attach menu's Voice note instead records and sends an audio clip)"
+            }
           >
             {voice.isListening ? (
               <>
@@ -504,6 +525,7 @@ export const RichMessageInput = ({
       <AttachSourceSheet
         open={attachSheetOpen}
         onOpenChange={setAttachSheetOpen}
+        anchorRef={attachButtonRef}
         onPickCamera={pickFromCamera}
         onPickLibrary={pickFromLibrary}
         onPickFiles={pickFromFiles}

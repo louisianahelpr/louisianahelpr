@@ -16,8 +16,37 @@ serve(async (req) => {
   });
   if (!allowed) return rateLimitResponse(retryAfter!, corsHeaders);
 
+  // This endpoint spends real money on every call (Gemini). It previously had
+  // NO auth check — only the per-IP rate limit — and the publishable key it
+  // accepts ships inside the public client bundle, so anyone could pull a full
+  // completion billed to us. Verified against prod before this guard:
+  // `curl -H "apikey: <publishable>" -d '{"messages":[...]}'` returned a
+  // complete job posting. Require a real signed-in user first.
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_ANON_KEY")!,
+    { global: { headers: { Authorization: authHeader } } },
+  );
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData?.user) {
+    return new Response(JSON.stringify({ error: "Not authenticated" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   try {
-    const { messages, jobContext } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const { messages, jobContext } = body ?? {};
+    // Was `messages is not iterable` — a raw internal error handed to the
+    // caller. Validate the shape and answer 400 instead.
+    if (!Array.isArray(messages)) {
+      return new Response(JSON.stringify({ error: "`messages` must be an array" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
     if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured");
 

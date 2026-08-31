@@ -128,8 +128,8 @@ serve(async (req) => {
         if (await alreadyNagged(party.user_id)) continue;
 
         const title = inFirstWindow
-          ? "How was your experience? ⭐"
-          : "Last reminder — how was your experience? ⭐";
+          ? "How was your experience?"
+          : "Last reminder — how was your experience?";
         const message = `Take 30 seconds to rate ${party.reviewing} for "${job.title}". Reviews help the next ${
           party.reviewing.includes("helper") ? "helper" : "customer"
         } feel safe choosing.`;

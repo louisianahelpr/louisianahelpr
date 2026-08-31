@@ -170,21 +170,6 @@ export function useProfileSchedule(userId: string | undefined, enabled: boolean)
 }
 
 /** Landing inline job lists — opened from the posted/completed tabs. */
-export function useProfileInlineJobs(userId: string | undefined, enabled: boolean) {
-  return useQuery<{ posted: Job[]; completed: Job[] }>({
-    queryKey: profileKey(userId ?? "", "inlineJobs"),
-    enabled: !!userId && enabled,
-    queryFn: async () => {
-      const id = userId!;
-      const [posted, completed] = await Promise.all([
-        supabase.from("jobs").select("*").eq("customer_id", id).order("created_at", { ascending: false }).limit(20),
-        supabase.from("jobs").select("*").or(`customer_id.eq.${id},helper_id.eq.${id}`).eq("status", "completed").order("created_at", { ascending: false }).limit(20),
-      ]);
-      return { posted: unwrap(posted) ?? [], completed: unwrap(completed) ?? [] };
-    },
-  });
-}
-
 /** Warnings tab — the user's violation history. */
 export function useProfileViolations(userId: string | undefined, enabled: boolean) {
   return useQuery<ProfileViolation[]>({

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
-  Stethoscope, AlertTriangle, Phone, Siren,
+  Stethoscope, AlertTriangle, Phone,
   UtensilsCrossed, Fingerprint,
 } from "lucide-react";
 import type { PetProfile } from "./types";
@@ -87,24 +87,15 @@ export function PetDetail({
             </p>
           )}
         </div>
-        <div className="hidden sm:flex gap-2 shrink-0">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setEditing(true)}
-          >
-            Edit
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="text-destructive border-destructive/30 hover:bg-destructive/5"
-            disabled={deletePending}
-            onClick={() => onRequestDelete(pet)}
-          >
-            Remove
-          </Button>
-        </div>
+        {/* No Edit/Remove buttons here at ≥sm (2026-08-30 fix): this pane only
+            ever renders alongside the left rail (desktop `lg:block` split
+            column — PetDetail never mounts below `lg`, well above this `sm`
+            breakpoint), and PetRailRow already carries a pencil + trash icon
+            button for the SAME active pet. Duplicating "Edit"/"Remove" text
+            buttons here put two full sets of controls for one pet on screen
+            at once. The `sm:hidden` fallback below is untouched — it's the
+            only edit/delete entry point if this pane is ever reused below
+            `lg` without the rail alongside it. */}
       </div>
 
       {/* Body */}
@@ -172,27 +163,13 @@ export function PetDetail({
           </DetailBlock>
         )}
 
-        {/* Evacuation status */}
-        {pet.is_evacuation_registered && (
-          <div
-            className="flex items-start gap-2 rounded-ds-sm px-3 py-2"
-            style={{ background: "hsl(var(--burnt-sienna) / 0.08)", border: "1px solid hsl(var(--burnt-sienna) / 0.20)" }}
-          >
-            <Siren className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--burnt-sienna))" }} />
-            <p className="text-ds-12 leading-snug" style={{ color: "hsl(var(--burnt-sienna))" }}>
-              Registered for evacuation transport. Transport helpers can see this pet during declared emergencies.
-            </p>
-          </div>
-        )}
-
         {/* When there's nothing to show, gently prompt the user to fill it out */}
         {!pet.medical_notes &&
           !pet.behavioral_notes &&
           !pet.feeding_schedule &&
           !pet.vet_name && !pet.vet_phone &&
           !pet.emergency_contact &&
-          !pet.microchip_id &&
-          !pet.is_evacuation_registered && (
+          !pet.microchip_id && (
             <p className="text-ds-12 text-muted-foreground italic">
               No care details yet. Tap Edit to add feeding, medical notes,
               and a vet — the more your Helpr knows, the better.

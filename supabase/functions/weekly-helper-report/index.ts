@@ -116,7 +116,7 @@ Deno.serve(async (req) => {
 
       // Send as in-app notification (email would require email infrastructure)
       const message = [
-        `📊 Your Weekly Report (${weekAgo.toLocaleDateString()} – ${now.toLocaleDateString()})`,
+        `Your Weekly Report (${weekAgo.toLocaleDateString()} – ${now.toLocaleDateString()})`,
         ``,
         `💰 Earnings: $${weeklyEarnings.toFixed(2)}`,
         `✅ Jobs Completed: ${completedJobs}`,

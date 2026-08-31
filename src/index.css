@@ -955,6 +955,20 @@ html.web-desktop {
   html.web-desktop .mobile-nav-frame {
     display: none !important;
   }
+  /* `.empty-state-dock` (EmptyState.tsx, `dock` variant) squares its bottom
+     corners inline so the card bleeds under the floating mobile dock with no
+     hard edge. That dock doesn't exist here — it's hidden above — so the
+     card's bottom edge on desktop ends inside the panel with nothing to
+     bleed under. Round it back to match the top and restore the hairline
+     border `.liquid-glass` normally carries on every edge (EmptyState zeroes
+     it only for the mobile bleed). `!important` needed: EmptyState sets the
+     zeroed radii as an inline style, which only a stylesheet `!important`
+     rule can beat. */
+  html.web-desktop .empty-state-dock {
+    border-bottom-left-radius: 1.5rem !important;
+    border-bottom-right-radius: 1.5rem !important;
+    border-bottom: 1px solid hsl(var(--border)) !important;
+  }
   /* Widen the inner content column on desktop. PageScaffold's centered column
      is capped at max-w-3xl (768px) on mobile; on desktop it FILLS the frame.
 
@@ -1056,12 +1070,21 @@ html.web-desktop {
      cards don't stretch unreadably wide on 2xl monitors. Cards themselves
      stay their natural width; the grid fills the space rather than
      centering a narrow column. */
+  /* No max-width. The 1400px cap here was a SECOND measure stacked inside
+     a frame that already caps itself once — `.app-shell-frame .container`
+     just above already sets `max-width: none` specifically because
+     Tailwind's `.container` (2xl: 1400px) was doing the exact same
+     "extra cap inside an already-inset frame" thing and got removed for
+     it (see that comment). This grid's own 1400px cap was the same bug
+     recreated one layer down: cards stopped at 1400px inside a container
+     that could be 1656px+, leaving a real, un-fillable dead gutter no
+     amount of centering fixes (owner, 2026-08-31, repeatedly: "FILL THE
+     SPACE"). Cards now genuinely use the full frame width. */
   html.web-desktop .ds-activity-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     gap: 0.75rem;
     align-items: start;
-    max-width: 1400px;
   }
   /* ONE column at every width (owner). The 2-up at 1024 and 3-up at 1440 were
      added to stop a narrow column stranding a wide monitor — but these are not
@@ -1141,10 +1164,45 @@ html.web-desktop {
   cursor: pointer;
 }
 
+/* Desktop split-view hover sync (BrowseMap's hoveredJobId effect): scales
+   the pin whose feed card the pointer is over, from the tip (see
+   transform-origin on the pin itself). */
+.browse-map-pin-hovered {
+  transform: scale(1.25);
+  z-index: 30;
+}
+
 .browse-map-callout {
-  padding: 10px 12px;
+  /* No padding of our own (owner, 2026-08-30: the bubble read bigger than
+     the card it holds — "make it the same size as the job card"). MapKit's
+     own `.mk-bubble` chrome already pads its content; stacking our 10px/12px
+     on top of that made the bubble's outer edge visibly wider than the
+     JobCard inside it. JobCard supplies its own internal spacing, so this
+     wrapper needs none. */
   box-sizing: border-box;
   max-width: calc(100vw - 32px);
+  /* Paint the card's own surface rather than trusting MapKit's native
+     `.mk-bubble` chrome. That chrome is the browser's bare default popover
+     styling, not our design system — it reads as a different app in a
+     screenshot (a floating X with the page's own gradient bleeding through
+     the corners, no card behind it). The `bare` JobCard inside carries no
+     paint of its own, by design, so SOMETHING has to; this wrapper is that
+     something, reusing the same solid-fill + hairline + shadow recipe as
+     `.liquid-glass` but at the callout's own radius (rounded-lg, matching
+     the JobCard `bare` clip) instead of that class's 24px. */
+  background-color: hsl(0 0% 100%);
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.5rem;
+  box-shadow:
+    inset 0 1px 0 0 hsla(0, 0%, 100%, 0.9),
+    0 1px 3px hsl(var(--olivewood) / 0.1),
+    0 14px 28px -8px hsl(var(--olivewood) / 0.16),
+    0 32px 64px -16px hsl(var(--olivewood) / 0.2);
+}
+
+[data-theme="dark"] .browse-map-callout {
+  background-color: var(--glass-bg-soft);
+  border-color: var(--glass-border);
 }
 
 /* Zoom buttons: centre the glyph in the button it is actually in.
@@ -2192,7 +2250,12 @@ button,
    padding, max-height — stays at the call site. */
 .glass-modal {
   border: 1px solid hsla(0, 0%, 100%, 0.3);
-  background-color: hsl(var(--background) / 0.85);
+  /* Bumped from 0.85 (owner, 2026-08-30: "the background feels darker than
+     the [feed] job card" — a warm-tinted scrim bleeding through 15%
+     transparency, blurred over whatever's behind it, read muddier than the
+     feed card's fully-opaque surface). Global — every dialog uses this
+     class — so every dialog gets the same closer-to-solid card now. */
+  background-color: hsl(var(--background) / 0.95);
   backdrop-filter: blur(40px);
   -webkit-backdrop-filter: blur(40px);
   box-shadow: 0 30px 80px -20px hsl(160 10% 12% / 0.35);
@@ -2813,6 +2876,31 @@ button,
   .boosted-pulse {
     animation: none;
     background-image: linear-gradient(90deg, hsl(var(--gold-warm) / 0.22), hsl(var(--gold-warm) / 0.32));
+  }
+}
+
+/* Step-current pulse — same gentle heartbeat as urgent-pulse, but its
+   glow color is set per-instance via --step-pulse-ring/--step-pulse-ring-end
+   custom props (the job tracker's "current step" dot changes color by
+   status — bark/green/amber/red — so the animation can't hardcode one hue
+   the way urgent-pulse hardcodes burnt-sienna). */
+@keyframes step-current-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 var(--step-pulse-ring, hsl(var(--bark) / 0.45));
+  }
+  50% {
+    transform: scale(1.06);
+    box-shadow: 0 0 0 5px var(--step-pulse-ring-end, hsl(var(--bark) / 0));
+  }
+}
+.step-current-pulse {
+  animation: step-current-pulse 1.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  transform-origin: center;
+}
+@media (prefers-reduced-motion: reduce) {
+  .step-current-pulse {
+    animation: none;
   }
 }
 

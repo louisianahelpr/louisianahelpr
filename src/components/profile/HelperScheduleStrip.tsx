@@ -368,11 +368,6 @@ export function HelperScheduleStrip({ helperId, enabled }: HelperScheduleStripPr
       >
         <DialogContent>
           <DialogHero
-            eyebrow={
-              <>
-                <CalendarDays className="w-3 h-3" /> Your schedule
-              </>
-            }
             title={
               openDayDate
                 ? openDayDate.toLocaleDateString("en-US", {

@@ -59,26 +59,95 @@ export const ProfileHeaderCard = ({
           whether to let this person into their home, even though nobody
           reviews the upload. It now reads `stripe_identity_verified`; the
           label names Stripe so it claims exactly what was actually done. */}
-      {isIdVerified && (
-        <div
-          aria-label="Identity verified by Stripe"
-          className="absolute top-3 right-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full"
-          style={{
-            background: "hsl(var(--gold-warm) / 0.14)",
-            border: "0.5px solid hsl(var(--gold-warm) / 0.36)",
-            boxShadow:
-              "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
-              "0 1px 2px hsl(var(--gold-warm) / 0.12), " +
-              "0 4px 10px -3px hsl(var(--gold-warm) / 0.28)",
-          }}
-        >
-          <ShieldCheck className="w-3 h-3" style={{ color: "hsl(var(--gold-warm))" }} strokeWidth={2.5} />
-          <span
-            className="font-sans font-bold uppercase tracking-wider text-ds-10"
-            style={{ color: "hsl(var(--gold-warm))", letterSpacing: "0.16em" }}
-          >
-            Stripe verified
-          </span>
+      {/* Top-right corner stack (item 25, 2026-08-30): the Stripe-verified
+          ribbon, "Active today"/"Active now" presence, and the mutual-jobs
+          pill all live in ONE corner column now, instead of presence/mutual
+          sitting inline under the name where they crowded the bio and wrapped
+          on narrow phones. All three are the same kind of thing — a small
+          corner-badge fact about this profile, not part of the identity row
+          itself — so they read as one stack, top-aligned to the card. */}
+      {(isIdVerified || lastActiveLabel || (!isOwnProfile && mutualJobsCount > 0)) && (
+        <div className="absolute top-3 right-3 flex flex-col items-end gap-1.5 z-10">
+          {isIdVerified && (
+            <div
+              aria-label="Identity verified by Stripe"
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full"
+              style={{
+                background: "hsl(var(--gold-warm) / 0.14)",
+                border: "0.5px solid hsl(var(--gold-warm) / 0.36)",
+                boxShadow:
+                  "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
+                  "0 1px 2px hsl(var(--gold-warm) / 0.12), " +
+                  "0 4px 10px -3px hsl(var(--gold-warm) / 0.28)",
+              }}
+            >
+              <ShieldCheck className="w-3 h-3" style={{ color: "hsl(var(--gold-warm))" }} strokeWidth={2.5} />
+              <span
+                className="font-sans font-bold uppercase tracking-wider text-ds-10"
+                style={{ color: "hsl(var(--gold-warm))", letterSpacing: "0.16em" }}
+              >
+                Stripe verified
+              </span>
+            </div>
+          )}
+          {/* Last-active presence chip (#28). Compact, low-weight —
+              meant to read at-a-glance, not compete with the badges.
+              Green dot when active within 10 minutes ("live"),
+              olivewood for everything else. Hidden when stale (>7d). */}
+          {lastActiveLabel && (
+            <div
+              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-ds-11"
+              style={{
+                background: lastActiveLabel.isLive
+                  ? "hsl(var(--live) / 0.10)"
+                  : "hsl(var(--olivewood) / 0.08)",
+                border: `0.5px solid ${
+                  lastActiveLabel.isLive
+                    ? "hsl(var(--live) / 0.35)"
+                    : "hsl(var(--olivewood) / 0.20)"
+                }`,
+                color: lastActiveLabel.isLive
+                  ? "hsl(var(--live))"
+                  : "hsl(var(--olivewood))",
+              }}
+            >
+              <span
+                className="w-1.5 h-1.5 rounded-full"
+                style={{
+                  background: lastActiveLabel.isLive
+                    ? "hsl(var(--live))"
+                    : "hsl(var(--olivewood) / 0.8)",
+                  boxShadow: lastActiveLabel.isLive
+                    ? "0 0 0 3px hsl(var(--live) / 0.18)"
+                    : "none",
+                }}
+                aria-hidden
+              />
+              <span className="font-medium">{lastActiveLabel.text}</span>
+            </div>
+          )}
+          {/* Mutual jobs pill (#1) — shown for viewers who have already
+              worked with this user before, in either direction. A
+              strong trust signal: prior shared history short-circuits
+              the "who is this person?" calculus. Hidden at 0 (no
+              history) or when viewing your own profile. */}
+          {!isOwnProfile && mutualJobsCount > 0 && (
+            <div
+              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-ds-11"
+              style={{
+                background: "hsl(var(--bark) / 0.10)",
+                border: "0.5px solid hsl(var(--bark) / 0.22)",
+                color: "hsl(var(--bark))",
+              }}
+            >
+              <Users className="w-3 h-3" />
+              <span className="font-medium">
+                Worked together{" "}
+                <span className="font-display italic font-bold tabular-nums">{mutualJobsCount}</span>{" "}
+                {mutualJobsCount === 1 ? "time" : "times"}
+              </span>
+            </div>
+          )}
         </div>
       )}
       {/* WHO THEY ARE on the left, HOW THEY PERFORM on the right (owner:
@@ -213,65 +282,20 @@ export const ProfileHeaderCard = ({
                 )}
               </p>
             )}
+            {/* Bio sits with the identity block, directly under location
+                (owner, 2026-08-29). It used to live in a separate column far
+                below the badges and presence chip, so "who this person says
+                they are" was split from their name and place by everything
+                else on the card. */}
+            {profile.bio && (
+              <p
+                className="font-serif italic mt-2 leading-relaxed text-ds-14"
+                style={{ color: "hsl(var(--ink-deep) / 0.88)" }}
+              >
+                {profile.bio}
+              </p>
+            )}
           </div>
-            {/* Last-active presence chip (#28). Compact, low-weight —
-                meant to read at-a-glance, not compete with the badges.
-                Green dot when active within 10 minutes ("live"),
-                olivewood for everything else. Hidden when stale (>7d). */}
-            {lastActiveLabel && (
-              <div
-                className="inline-flex items-center gap-1.5 mt-1.5 px-2 py-0.5 rounded-full text-ds-11"
-                style={{
-                  background: lastActiveLabel.isLive
-                    ? "hsl(var(--live) / 0.10)"
-                    : "hsl(var(--olivewood) / 0.08)",
-                  border: `0.5px solid ${
-                    lastActiveLabel.isLive
-                      ? "hsl(var(--live) / 0.35)"
-                      : "hsl(var(--olivewood) / 0.20)"
-                  }`,
-                  color: lastActiveLabel.isLive
-                    ? "hsl(var(--live))"
-                    : "hsl(var(--olivewood))",
-                }}
-              >
-                <span
-                  className="w-1.5 h-1.5 rounded-full"
-                  style={{
-                    background: lastActiveLabel.isLive
-                      ? "hsl(var(--live))"
-                      : "hsl(var(--olivewood) / 0.8)",
-                    boxShadow: lastActiveLabel.isLive
-                      ? "0 0 0 3px hsl(var(--live) / 0.18)"
-                      : "none",
-                  }}
-                  aria-hidden
-                />
-                <span className="font-medium">{lastActiveLabel.text}</span>
-              </div>
-            )}
-            {/* Mutual jobs pill (#1) — shown for viewers who have already
-                worked with this user before, in either direction. A
-                strong trust signal: prior shared history short-circuits
-                the "who is this person?" calculus. Hidden at 0 (no
-                history) or when viewing your own profile. */}
-            {!isOwnProfile && mutualJobsCount > 0 && (
-              <div
-                className="inline-flex items-center gap-1.5 mt-1.5 ml-1.5 px-2 py-0.5 rounded-full text-ds-11"
-                style={{
-                  background: "hsl(var(--bark) / 0.10)",
-                  border: "0.5px solid hsl(var(--bark) / 0.22)",
-                  color: "hsl(var(--bark))",
-                }}
-              >
-                <Users className="w-3 h-3" />
-                <span className="font-medium">
-                  You've worked together{" "}
-                  <span className="font-display italic font-bold tabular-nums">{mutualJobsCount}</span>{" "}
-                  {mutualJobsCount === 1 ? "time" : "times"}
-                </span>
-              </div>
-            )}
             <div className="pt-2 flex flex-wrap justify-start gap-1.5">
               {/* Verification ladder (#112) — sits with credentials
                   because both answer "should I trust this person?",
@@ -343,14 +367,7 @@ export const ProfileHeaderCard = ({
                 <Phone className="w-3 h-3" />{profile.phone}
               </p>
             )}
-            {profile.bio && (
-              <p
-                className="font-serif italic mt-2 leading-relaxed text-ds-14"
-                style={{ color: "hsl(var(--ink-deep) / 0.88)" }}
-              >
-                {profile.bio}
-              </p>
-            )}
+            {/* Bio moved up beside the name — see the identity block above. */}
             {profile.skills && (
               <div className="flex flex-wrap gap-1.5 mt-3">
                 {profile.skills.split(",").map(s => s.trim()).filter(Boolean).map((s, i) => (

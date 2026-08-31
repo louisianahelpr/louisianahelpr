@@ -4,7 +4,6 @@ import { functionErrorMessage } from "@/lib/supabaseResult";
 import { Dialog, DialogContent, DialogHero } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { CurrencyInput } from "@/components/ui/currency-input";
-import { Gift } from "lucide-react";
 import { toast } from "sonner";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import { openExternalUrl } from "@/lib/openExternalUrl";
@@ -55,7 +54,6 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent>
         <DialogHero
-          eyebrow={<><Gift className="w-3 h-3" /> A little extra</>}
           /* Helper names arrive abbreviated ("Camille R."), so the template's
              own period doubled it up — "Send a tip to Camille R..". */
           title={`Send a tip${helperName ? ` to ${helperName.replace(/\.$/, "")}` : ""}.`}

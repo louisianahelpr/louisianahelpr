@@ -232,18 +232,9 @@ export function ChatHeader({
       </button>
 
       <div className="flex items-center gap-0.5 shrink-0">
-      {/* Quick-report shortcut — one-tap surface for the most
-          urgent safety action. The same handler is reachable via
-          the MoreVertical dropdown ("Report user") for users who
-          look there first; the Flag button saves one tap for users
-          who need it urgently and scan the header icons. */}
-      <button
-        className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-ds-sm text-muted-foreground hover:bg-secondary transition-colors shrink-0 self-center"
-        aria-label="Report user"
-        onClick={onReportUser}
-      >
-        <Flag className="w-4 h-4" />
-      </button>
+      {/* The standalone Flag "report user" shortcut was removed — it
+          duplicated "Report User" in the ⋮ menu below, one and the same
+          handler behind two icons in the same header. One entry point now. */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button

@@ -20,7 +20,9 @@ const repoRoot = path.resolve(__dirname, '..');
 const TARGET = 'https://www.louisianahelpr.com';
 const TEST_EMAIL = 'eli.test.helper@louisianahelpr.com';
 const TEST_USER_ID = '6bdc1f67-ae1f-46a0-8edf-4035629a6147';
-const DATE_DIR = '2026-08-29';
+// Was a hardcoded date that had to be edited by hand before every run — forget
+// and you silently overwrite the previous capture. Defaults to today.
+const DATE_DIR = process.env.AUDIT_DATE || new Date().toISOString().slice(0, 10);
 const OUT_DIR = path.join(process.env.HOME, 'lh-audit-shots', DATE_DIR);
 const VIEWPORTS = [
   { name: '375x812', width: 375, height: 812 },
@@ -33,26 +35,37 @@ const PARALLELISM = 3;
 const AUTHED_ROUTES = [
   '/dashboard', '/browse', '/my-jobs', '/my-jobs?filter=scheduled', '/my-jobs?filter=waiting',
   '/my-jobs?filter=completed', '/my-posts', '/my-posts?filter=scheduled', '/my-posts?filter=waiting',
-  '/my-posts?filter=done', '/messages', '/post-job', '/jobs', '/subscription', '/settings',
-  '/settings/profile', '/availability', '/schedule', '/earnings', '/analytics', '/pets', '/family',
+  // '/subscription' and '/family' were REMOVED: neither is a registered route
+  // any more, so both render the 404 page. Sweeping them graded NotFound twice
+  // under names that read like real screens. The membership screen is
+  // /profile?tab=subscription, already covered by PROFILE_TABS.
+  '/my-posts?filter=done', '/messages', '/post-job', '/jobs', '/settings',
+  '/settings/profile', '/availability', '/schedule', '/earnings', '/analytics', '/pets',
   '/pay-it-forward', '/benefits', '/home-history', '/work-record', '/saved-helpers', '/auto-tip',
   '/str-settings', '/data-rights', '/gift-card', '/wrapped', '/payment-success', '/help', '/support',
   '/legal', '/privacy', '/terms', '/rules',
   '/user/e977a30f-7065-4e75-8498-dba435ac2044',
 ];
 
+// Mirror of the `Tab` union in src/pages/profile/types.ts (minus 'landing',
+// which is plain /profile). posted_jobs and completed_jobs are NOT tabs any
+// more; 'accessibility' is and was missing.
 const PROFILE_TABS = [
   'profile', 'earnings', 'schedule', 'availability', 'payment', 'security', 'legal', 'reviews',
-  'referral', 'subscription', 'support', 'notifications', 'posted_jobs', 'completed_jobs',
-  'warnings', 'credentials', 'saved_helpers',
+  'referral', 'subscription', 'support', 'notifications',
+  'warnings', 'credentials', 'saved_helpers', 'accessibility',
 ];
 const PROFILE_ROUTES = ['/profile', ...PROFILE_TABS.map((t) => `/profile?tab=${t}`)];
 
+// Mirror of `type View` in src/pages/Admin.tsx — re-derive from that union when
+// it changes. This list had drifted: parishtax, idv, geography, business_verify
+// and business_accounts are all DELETED views. /admin coerces their dead deep
+// links to home, so sweeping them silently graded the dashboard under five
+// extra names and reported them as covered.
 const ADMIN_VIEWS = [
   'analytics', 'people', 'jobs', 'settings', 'disputes', 'broadcasts', 'notifications', 'notiflogs',
   'reports', 'support', 'referrals', 'subscriptions', 'fraud', 'audit', 'health', 'export', 'payouts',
-  'parishtax', 'tiers', 'idv', 'geography', 'marketing', 'credentials', 'business_verify',
-  'business_accounts', 'exceptions',
+  'tiers', 'marketing', 'idvreview', 'credentials', 'exceptions', 'banreview',
 ];
 const ADMIN_ROUTES = ['/admin', ...ADMIN_VIEWS.map((v) => `/admin?view=${v}`)];
 

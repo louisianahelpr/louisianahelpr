@@ -27,7 +27,6 @@ import {
   useProfileReviews,
   useProfileEarnings,
   useProfileSchedule,
-  useProfileInlineJobs,
   useProfileViolations,
 } from "@/hooks/useProfileTabData";
 
@@ -40,7 +39,7 @@ import {
 import { ProfileLanding } from "@/components/profile/ProfileLanding";
 import SectionBoundary from "@/components/SectionBoundary";
 import { ProfileTabPanels } from "./profile/ProfileTabPanels";
-import { TAB_TITLES, type Profile, type Tab } from "./profile/types";
+import { TAB_TITLES, resolveTab, type Profile, type Tab } from "./profile/types";
 import { hasInAppHistory } from "@/lib/inAppHistory";
 const DeleteAccountDialog = lazy(() => import("@/components/profile/DeleteAccountDialog").then(m => ({ default: m.DeleteAccountDialog })));
 
@@ -88,7 +87,7 @@ const ProfilePage = () => {
   const [saving, setSaving] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
   const [avatarBroken, setAvatarBroken] = useState(false);
-  const initialTab = (searchParams.get("tab") as Tab) || "landing";
+  const initialTab = resolveTab(searchParams.get("tab"));
   const [tab, setTab] = useState<Tab>(initialTab);
 
   /**
@@ -138,7 +137,7 @@ const ProfilePage = () => {
   // Sync tab to URL for bookmarkability; React Router owns history so browser
   // back/forward updates searchParams, which the effect below mirrors to state.
   useEffect(() => {
-    const current = (searchParams.get("tab") as Tab | null) || "landing";
+    const current = resolveTab(searchParams.get("tab"));
     if (current === tab) return;
     setSearchParams(
       (prev) => {
@@ -153,7 +152,7 @@ const ProfilePage = () => {
 
   // Mirror URL → state when back/forward (or a deep link) changes the tab param.
   useEffect(() => {
-    const urlTab = (searchParams.get("tab") as Tab | null) || "landing";
+    const urlTab = resolveTab(searchParams.get("tab"));
     setTab((prev) => (prev === urlTab ? prev : urlTab));
   }, [searchParams]);
 
@@ -192,7 +191,6 @@ const ProfilePage = () => {
   // Availability is its own tab again and renders no job list, so it no
   // longer needs the schedule fetch — only the calendar tab does.
   const scheduleQuery = useProfileSchedule(userId, tab === "schedule");
-  const inlineJobsQuery = useProfileInlineJobs(userId, tab === "posted_jobs" || tab === "completed_jobs");
   const violationsQuery = useProfileViolations(userId, tab === "warnings");
 
   const completedCount = statsQuery.data?.completedCount ?? 0;
@@ -205,8 +203,6 @@ const ProfilePage = () => {
   const tips = earningsQuery.data?.tips ?? [];
   const schedulePostedJobs = scheduleQuery.data?.posted ?? [];
   const scheduleAssignedJobs = scheduleQuery.data?.assigned ?? [];
-  const inlinePostedJobs = inlineJobsQuery.data?.posted ?? [];
-  const inlineCompletedJobs = inlineJobsQuery.data?.completed ?? [];
   const violations = violationsQuery.data ?? [];
 
   // Profile fields
@@ -585,8 +581,21 @@ const ProfilePage = () => {
           The safe-area inset moves to the AppShell's `pt-safe-top`, which is
           exactly where PageScaffold puts it, so the inset is applied in ONE
           layer here too (owner: same spacing across Home / Posts / Jobs /
-          Messages / Profile). */}
-      <div className="container mx-auto px-5 lg:px-8 xl:px-12 pt-3 lg:pt-5 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden">
+          Messages / Profile).
+
+          `pt-3 lg:pt-5` is CONDITIONAL on the landing tab (owner, 2026-08-30:
+          "spacing not correct" — the same double-padding bug the comment below
+          already describes fixing once, recreated at a different layer). Every
+          non-landing tab now renders through ProfileTabHeader → PageHeader,
+          which owns its OWN `pt-4` above the title as part of the app-wide
+          "equal air above and below" rule. Keeping this container's padding
+          for those tabs stacked a second top gap in front of PageHeader's —
+          measured 20px (this padding) + 16px (PageHeader) = 36px above the
+          title against a clean 16px below it. The landing tab has no
+          PageHeader of its own (ProfileLanding renders straight into this
+          container), so it still needs this padding to match its
+          PageScaffold siblings — hence the split rather than a flat removal. */}
+      <div className={`container mx-auto px-5 lg:px-8 xl:px-12 ${tab === "landing" ? "pt-3 lg:pt-5" : ""} pb-0 flex-1 min-h-0 flex flex-col overflow-hidden`}>
         {tab === "landing" ? (
           /* Landing scrolls inside a PullToRefreshWrapper so swiping
              down re-syncs the profile, Stripe status, stats + reviews. */
@@ -651,7 +660,7 @@ const ProfilePage = () => {
               makes the gap above and below the title very nearly equal, which
               is what the owner asked for ("it needs to be the same height above
               and below"). */
-          <div className="w-full page-measure mx-auto h-full overflow-y-auto pb-[calc(var(--safe-area-bottom,0px)_+_96px_+_1rem)]">
+          <div className="w-full page-measure mx-auto h-full overflow-y-auto px-3 -mx-3 pb-[calc(var(--safe-area-bottom,0px)_+_96px_+_1rem)]">
           <SectionBoundary key={tab} label={`the ${tab.replace(/_/g, " ")} section`}>
           {/* `key={tab}` on the boundary re-mounts this wrapper on every
               tab switch, so `animate-ds-page-in` replays its entrance each
@@ -687,15 +696,12 @@ const ProfilePage = () => {
             onIdUpload={handleIdUpload}
             earningsQuery={earningsQuery}
             scheduleQuery={scheduleQuery}
-            inlineJobsQuery={inlineJobsQuery}
             reviewsQuery={reviewsQuery}
             violationsQuery={violationsQuery}
             earningsJobs={earningsJobs}
             tips={tips}
             schedulePostedJobs={schedulePostedJobs}
             scheduleAssignedJobs={scheduleAssignedJobs}
-            inlinePostedJobs={inlinePostedJobs}
-            inlineCompletedJobs={inlineCompletedJobs}
             reviews={reviews}
             violations={violations}
             totalEarnings={totalEarnings}

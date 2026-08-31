@@ -2,7 +2,6 @@ import { memo, useRef, useState } from "react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import {
   CheckCircle2, Star, Users,
   RefreshCw, XCircle,
@@ -41,8 +40,8 @@ import { DisputedSection } from "./appliedJobCard/DisputedSection";
 function AppliedJobCardInner({
   app,
   highlight = false,
-  expandedJobId,
-  setExpandedJobId,
+  expandedJobIds,
+  toggleExpandedJobId,
   helperReviewedJobIds,
   initialTracking,
   userId,
@@ -133,7 +132,7 @@ function AppliedJobCardInner({
     app,
     job,
     helperReviewedJobIds,
-    expandedJobId,
+    expandedJobIds,
     // The viewer's own tier rate, used only when the job has no rate stamped
     // on it yet — see the fee-precedence note in appliedJobCardHelpers.
     viewerFeePercent,
@@ -145,14 +144,31 @@ function AppliedJobCardInner({
    * the point: these two cards sit in the same two tabs of the same screen.
    */
   const metaRow = (
-            <JobCardMetaRow
-              dateNeeded={job.date_needed}
-              startTime={job.start_time}
-              location={job.location}
-              latitude={job.latitude}
-              longitude={job.longitude}
-              expiresAt={isPending && !job.helper_id ? job.expires_at : null}
-            />
+    <>
+      {/* Issue #67 — who posted it used to be readable only after expanding
+          (the full "Posted by" row below, or a state-section tracker). A
+          collapsed card is what most of the list looks like, so the name was
+          invisible for most of the scroll. Same avatar-badge treatment as the
+          expanded row below, shrunk to fit the title bar; hidden once expanded
+          so the two don't say the same thing twice — the fuller row (with the
+          profile link) takes over from there. */}
+      {!isExpanded && app.posterName && (
+        <div className="flex items-center gap-1 mb-1">
+          <div className="w-4 h-4 rounded-full bg-primary/15 text-primary flex items-center justify-center text-ds-9 font-bold shrink-0">
+            {app.posterName[0].toUpperCase()}
+          </div>
+          <span className="text-ds-11 text-muted-foreground truncate">{app.posterName}</span>
+        </div>
+      )}
+      <JobCardMetaRow
+        dateNeeded={job.date_needed}
+        startTime={job.start_time}
+        location={job.location}
+        latitude={job.latitude}
+        longitude={job.longitude}
+        expiresAt={isPending && !job.helper_id ? job.expires_at : null}
+      />
+    </>
   );
 
   return (
@@ -161,7 +177,7 @@ function AppliedJobCardInner({
         <JobCardShell
           expandable={!isMinimalCard}
           expanded={isExpanded}
-          onToggle={() => setExpandedJobId(isExpanded ? null : app.job_id)}
+          onToggle={() => toggleExpandedJobId(app.job_id)}
           category={job.category}
         >
           <JobCardTitleBar
@@ -231,10 +247,21 @@ function AppliedJobCardInner({
                 permanent line for something the helper only needs when they
                 are actually weighing the job — and it was the reason the row
                 below existed at all. */}
+            {/* Avatar-badge row — matches PostedJobCard's "Offered to
+                {helper}" treatment (initial-letter circle + name link in a
+                tinted pill) exactly, rather than a bare text line, so
+                My Posts and My Jobs draw a "who's on the other side of
+                this job" fact the same way. */}
             {!isMinimalCard && isExpanded && app.posterName && (
-              <p className="text-ds-11 text-muted-foreground truncate">
-                Posted by <a href={`/user/${job.customer_id}`} onClick={(e) => e.stopPropagation()} className="font-medium text-primary hover:underline">{app.posterName}</a>
-              </p>
+              <div className="flex items-center gap-2 py-1.5 px-2.5 rounded-ds-sm bg-muted/40">
+                <div className="w-6 h-6 rounded-full bg-primary/15 text-primary flex items-center justify-center text-ds-10 font-bold shrink-0">
+                  {app.posterName[0].toUpperCase()}
+                </div>
+                <span className="text-ds-11 text-muted-foreground">Posted by</span>
+                <a href={`/user/${job.customer_id}`} onClick={(e) => e.stopPropagation()} className="text-ds-11 font-medium text-primary hover:underline truncate">
+                  {app.posterName}
+                </a>
+              </div>
             )}
             {!isMinimalCard && isExpanded && job.description.trim().toLowerCase() !== (job.title || "").trim().toLowerCase() && (
               <p className="text-ds-11 text-muted-foreground leading-relaxed">{job.description}</p>
@@ -316,7 +343,7 @@ function AppliedJobCardInner({
                   ariaLabel="Edit your application"
                   tone="edit"
                   onClick={() => {
-                    setExpandedJobId(app.job_id);
+                    if (!isExpanded) toggleExpandedJobId(app.job_id);
                     setEditingMessageAppId(app.id);
                     setEditMessageText(app.message || "");
                   }}
@@ -395,14 +422,31 @@ function AppliedJobCardInner({
                 afterUrls={job.proof_after_urls || []}
                 canUpload={false}
               />
+              {/* Same icon-over-label chip PostedJobCard's completed state
+                  uses for Review/Reviewed — this was a plain full-width
+                  outline Button, the one place the two Done-tab cards
+                  visibly diverged in style. */}
               {job.payment_status === "released" && (
-                helperReviewedJobIds.has(app.job_id) ? (
-                  <Button size="sm" variant="outline" className="w-full" disabled><Star className="w-4 h-4 mr-1" /> Reviewed</Button>
-                ) : (
-                  <Button size="sm" variant="outline" className="w-full" onClick={() => onHelperReview(app.job_id, job.customer_id, app.posterName || "Poster")}>
-                    <Star className="w-4 h-4 mr-1" /> Review Poster
-                  </Button>
-                )
+                <JobActionRow columns={1}>
+                  {helperReviewedJobIds.has(app.job_id) ? (
+                    <JobActionChip
+                      icon={CheckCircle2}
+                      label="Reviewed"
+                      ariaLabel="Already reviewed the poster"
+                      tone="done"
+                      disabled
+                      onClick={() => {}}
+                    />
+                  ) : (
+                    <JobActionChip
+                      icon={Star}
+                      label="Review Poster"
+                      ariaLabel="Leave a review for the poster"
+                      tone="edit"
+                      onClick={() => onHelperReview(app.job_id, job.customer_id, app.posterName || "Poster")}
+                    />
+                  )}
+                </JobActionRow>
               )}
               {/* Issue #113 — discoverable dispute path for helpers within
                   the 7-day window after completion. Self-hides outside the

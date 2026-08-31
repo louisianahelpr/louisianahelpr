@@ -20,8 +20,8 @@ import { ApplicantsPanel } from "./postedJobs/ApplicantsPanel";
 interface PostedJobsTabProps {
   jobs: Job[];
   applicantCounts: Record<string, number>;
-  expandedJobId: string | null;
-  setExpandedJobId: (id: string | null) => void;
+  expandedJobIds: Set<string>;
+  toggleExpandedJobId: (id: string) => void;
   helperNames: Record<string, string>;
   completedJobMeta: Record<string, { tipped: boolean; reviewed: boolean }>;
   /** Batched per-card tracking + group-helper data, pre-fetched by
@@ -40,6 +40,7 @@ interface PostedJobsTabProps {
   onTip: (jobId: string, helperName: string) => void;
   onReview: (job: Job) => void;
   onDispute: (job: Job) => void;
+  onReport: (job: Job) => void;
   /** Open the read-only timeline + follow-up evidence uploader for a
    *  job that's already in dispute. */
   onViewDispute: (job: Job) => void;
@@ -72,11 +73,11 @@ interface PostedJobsTabProps {
 }
 
 export const PostedJobsTab = ({
-  jobs, applicantCounts, expandedJobId, setExpandedJobId,
+  jobs, applicantCounts, expandedJobIds, toggleExpandedJobId,
   helperNames, completedJobMeta,
   latestTracking, groupHelpersByJob, userId,
   onBoost, onEdit, onCancel, onComplete, completingJobId,
-  onRevision, onNoShow, onTip, onReview, onDispute, onViewDispute, onConfirmArrival, confirmingArrivalJobId, onConfirmWorking, confirmingWorkingJobId,
+  onRevision, onNoShow, onTip, onReview, onDispute, onReport, onViewDispute, onConfirmArrival, confirmingArrivalJobId, onConfirmWorking, confirmingWorkingJobId,
   onLoadApplications, selectedJob, setSelectedJob, applications,
   applicationsLoading = false, applicationsError = false,
   onAcceptApplication, onDeclineApplication, onLoadInlineApplicants,
@@ -129,8 +130,8 @@ export const PostedJobsTab = ({
       <PostedJobCard
         job={job}
         applicantCounts={applicantCounts}
-        expandedJobId={expandedJobId}
-        setExpandedJobId={setExpandedJobId}
+        expandedJobIds={expandedJobIds}
+        toggleExpandedJobId={toggleExpandedJobId}
         helperNames={helperNames}
         completedJobMeta={completedJobMeta}
         // `latestTracking[job.id]` may legitimately be `null` ("we
@@ -151,6 +152,7 @@ export const PostedJobsTab = ({
         onTip={onTip}
         onReview={onReview}
         onDispute={onDispute}
+        onReport={onReport}
         onViewDispute={onViewDispute}
         onConfirmArrival={onConfirmArrival}
         confirmingArrivalJobId={confirmingArrivalJobId}
@@ -230,18 +232,9 @@ export const PostedJobsTab = ({
       {visibleJobs.map((job) => (
         <div key={job.id}>{renderJobCard(job)}</div>
       ))}
-      {/* A single-status bucket with only 1-2 cards leaves most of the
-          fixed-height AppShell panel as a stark blank void below the last
-          card (found in the 2026-08-29 visual pass on the Done filter at
-          375px). A quiet trailing line, not a restructure of the scroll
-          shell, closes that gap the same way an empty state closes it —
-          content instead of nothing — without touching the grouped "All"
-          view or any other status filter's card count. */}
-      {visibleJobs.length <= 2 && (
-        <p className="text-center font-serif italic text-ds-12 py-6" style={{ color: "hsl(var(--olivewood) / 0.55)" }}>
-          That's everything here.
-        </p>
-      )}
+      {/* The "That's everything here." trailing line (which used to fill the
+          blank space a 1-2 card bucket leaves in the fixed-height AppShell
+          panel) was removed (owner, 2026-08-30). */}
     </div>
   );
 
@@ -262,7 +255,6 @@ export const PostedJobsTab = ({
       {/* Applicants full-screen comparison view */}
       {selectedJob && (
         <ApplicantsPanel
-          expandedJobId={expandedJobId}
           selectedJob={selectedJob}
           setSelectedJob={setSelectedJob}
           applications={applications}

@@ -22,8 +22,8 @@ interface AppliedJobsTabProps {
    *  scrolls into view and shows a brief pulse ring on mount. Consumed
    *  once — the parent strips the param from the URL after mount. */
   highlightAppId?: string | null;
-  expandedJobId: string | null;
-  setExpandedJobId: (id: string | null) => void;
+  expandedJobIds: Set<string>;
+  toggleExpandedJobId: (id: string) => void;
   helperReviewedJobIds: Set<string>;
   /** Batched per-job tracking rows, pre-fetched by useActivityData and
       threaded down to <JobTracking> so each active card doesn't re-fetch
@@ -51,7 +51,7 @@ interface AppliedJobsTabProps {
 }
 
 export const AppliedJobsTab = ({
-  apps, highlightAppId, expandedJobId, setExpandedJobId,
+  apps, highlightAppId, expandedJobIds, toggleExpandedJobId,
   helperReviewedJobIds, latestTracking, userId, onHelperResponse,
   respondingHelperAppId,
   onComplete, completingJobId,
@@ -230,8 +230,8 @@ export const AppliedJobsTab = ({
     <AppliedJobCard
       app={app}
       highlight={!!highlightAppId && highlightAppId === app.id}
-      expandedJobId={expandedJobId}
-      setExpandedJobId={setExpandedJobId}
+      expandedJobIds={expandedJobIds}
+      toggleExpandedJobId={toggleExpandedJobId}
       helperReviewedJobIds={helperReviewedJobIds}
       // `latestTracking[app.job_id]` may legitimately be `null`
       // ("we looked, no row exists") — the card forwards that into
@@ -333,14 +333,8 @@ export const AppliedJobsTab = ({
       {apps.map((app) => (
         <div key={app.id}>{renderAppliedCard(app)}</div>
       ))}
-      {/* Mirrors the same trailing line in PostedJobsTab — a 1-2 card
-          bucket otherwise leaves most of the fixed-height AppShell panel
-          blank below the last card. */}
-      {apps.length <= 2 && (
-        <p className="text-center font-serif italic text-ds-12 py-6" style={{ color: "hsl(var(--olivewood) / 0.55)" }}>
-          That's everything here.
-        </p>
-      )}
+      {/* The "That's everything here." trailing line (mirrored from
+          PostedJobsTab) was removed (owner, 2026-08-30). */}
     </div>
   );
 
@@ -362,15 +356,15 @@ export const AppliedJobsTab = ({
           }
         }}
       >
-        {/* `max-w-md mx-auto` like MuteSheet and AttachSourceSheet — without it
-            this sheet spans the full desktop width, so the four reason chips
-            render ~700px wide with a 13px label floating in the middle and the
-            confirm button becomes a 1400px band. `rounded-t-2xl`, not the
-            one-off `rounded-t-[20px]`, is what every other bottom sheet uses.
-            The bespoke drag handle went with it: SheetContent enables
-            drag-to-dismiss on every bottom sheet, so one sheet advertising the
-            gesture and fourteen with the same capability staying silent taught
-            the wrong thing. */}
+        {/* `max-w-md mx-auto` like MuteSheet — without it this sheet spans the
+            full desktop width, so the four reason chips render ~700px wide
+            with a 13px label floating in the middle and the confirm button
+            becomes a 1400px band. Every other titled sheet in the app shares
+            this same `rounded-2xl`, centered-modal treatment now
+            (`side="bottom"` stopped being a floor-anchored sheet — see
+            sheet.tsx's `sheetVariants`), so there's no bespoke drag handle to
+            keep in sync with here: drag-to-dismiss was removed app-wide, not
+            just from this one sheet. */}
         <SheetContent
           side="bottom"
           className="border-t-0 px-5 pt-6 pb-[calc(var(--safe-area-bottom,0px)_+_24px)] max-h-[85dvh] overflow-y-auto"

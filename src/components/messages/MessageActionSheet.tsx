@@ -1,4 +1,4 @@
-import { Ban, Copy, Flag, Reply, Trash2 } from "lucide-react";
+import { Ban, Copy, Flag, Pencil, Reply, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
 import { hapticLight } from "@/lib/haptics";
@@ -27,7 +27,17 @@ interface MessageActionSheetProps {
   myReaction?: string | null;
   /** Start a reply that quotes this message. */
   onReply?: (message: Message) => void;
+  /** Open inline edit mode for the viewer's own message. Omitted actions
+   *  render nothing — only offered when `mine` and still inside the
+   *  15-minute window the server also enforces (see EDIT_WINDOW_MS). */
+  onEdit?: (message: Message) => void;
 }
+
+/** Mirrors the RLS policy's `created_at > now() - interval '15 minutes'`
+ *  window in supabase/migrations/20260831003117_add_message_editing.sql —
+ *  purely a UI gate so "Edit" isn't offered for a write the server will
+ *  reject; the DB is still the authority. */
+const EDIT_WINDOW_MS = 15 * 60 * 1000;
 
 /** Photo and location messages encode a URL + emoji prefix, so their raw
  *  `content` is not human-meaningful to copy. Only offer Copy for plain
@@ -56,10 +66,17 @@ export function MessageActionSheet({
   onReact,
   myReaction,
   onReply,
+  onEdit,
 }: MessageActionSheetProps) {
   if (!message) return null;
 
   const canCopy = isPlainText(message.content);
+  const canEdit =
+    !!onEdit &&
+    mine &&
+    !message.is_system &&
+    canCopy &&
+    Date.now() - new Date(message.created_at).getTime() < EDIT_WINDOW_MS;
 
   const handleCopy = async () => {
     void hapticLight();
@@ -82,6 +99,12 @@ export function MessageActionSheet({
     onBlock();
     // Close BEFORE the block dialog opens so the sheet isn't stacked
     // underneath it (same ordering as handleDelete).
+    onClose();
+  };
+
+  const handleEdit = () => {
+    if (!onEdit) return;
+    onEdit(message);
     onClose();
   };
 
@@ -141,12 +164,21 @@ export function MessageActionSheet({
             />
           )}
           {mine ? (
-            <ActionRow
-              icon={<Trash2 className="w-5 h-5" strokeWidth={2} />}
-              label="Delete"
-              onClick={handleDelete}
-              tone="danger"
-            />
+            <>
+              {canEdit && (
+                <ActionRow
+                  icon={<Pencil className="w-5 h-5" strokeWidth={2} />}
+                  label="Edit"
+                  onClick={handleEdit}
+                />
+              )}
+              <ActionRow
+                icon={<Trash2 className="w-5 h-5" strokeWidth={2} />}
+                label="Delete"
+                onClick={handleDelete}
+                tone="danger"
+              />
+            </>
           ) : (
             /* Inbound message — the two safety actions, in the same order
                and with the same weight as the ChatHeader ⋮ menu ("Report

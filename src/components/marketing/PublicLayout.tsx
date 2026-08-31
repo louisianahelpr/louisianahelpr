@@ -5,6 +5,7 @@ import Footer from "@/components/Footer";
 import AppShell from "@/components/AppShell";
 import { authPages } from "@/components/mobileNav/mobileNavHelpers";
 import { isNativePlatform } from "@/lib/nativeInit";
+import { useAuthReady } from "@/hooks/useAuthReady";
 
 /**
  * PublicLayout — shared chrome for the public marketing / SEO surface
@@ -38,16 +39,33 @@ const PublicLayout = ({
   noNavSpacer = false,
 }: PublicLayoutProps) => {
   const location = useLocation();
+  const { user } = useAuthReady();
 
-  // NATIVE (iOS/Android WebView): the marketing Navbar + Footer are web-only
-  // chrome — an "App Store download" footer inside the app is nonsensical and
-  // reads as a different product. On native, render the page content in the
-  // canonical in-app shell (AppShell + a status-bar cap for the notch inset),
-  // dropping the marketing nav, footer, CTA band, and web nav spacer. The
-  // global MobileNav supplies bottom navigation on authed routes, so reserve
-  // that space only when the current route carries the bottom bar. Centralised
-  // here so no PublicLayout page can regress the footer onto the app surface.
-  if (isNativePlatform) {
+  // TWO VERSIONS OF EVERY SHARED PAGE — public and signed-in (owner,
+  // 2026-08-30: "there should be a public and signed in version of help and
+  // legal ... there should not be any redirection back to public pages once
+  // they are signed in").
+  //
+  // /help, /legal, /support and /subscription are reachable BOTH from the
+  // marketing site (Footer destinations, logged out) and from inside the app
+  // (Profile → Legal & Policies, Help Center, Membership). They used to render
+  // marketing chrome — the Navbar with its Log In / Get Started CTAs and the
+  // "download on the App Store" Footer — to everyone, so a signed-in person
+  // opening Legal from their Profile was dropped onto the marketing site
+  // wearing sign-up buttons they had already used.
+  //
+  // The split used to be `isNativePlatform`, which is the wrong axis twice
+  // over: it gave signed-in WEB users marketing chrome, and it split phone-web
+  // from the native app (one surface — they must never diverge). It is now
+  // AUTH: signed in, or native, means the in-app shell.
+  const useAppChrome = isNativePlatform || !!user;
+
+  // In-app shell: AppShell + a status-bar cap for the notch inset, dropping the
+  // marketing nav, footer and web nav spacer. The global MobileNav supplies
+  // bottom navigation on authed routes, so reserve that space only when the
+  // current route carries the bottom bar. Centralised here so no PublicLayout
+  // page can regress the marketing footer onto the app surface.
+  if (useAppChrome) {
     const reserveBottomNav = authPages.some((p) => location.pathname.startsWith(p));
     const statusBarCap = (
       <div

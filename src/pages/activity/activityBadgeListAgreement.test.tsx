@@ -121,7 +121,7 @@ const FIXTURES: Fixture[] = [
   fixture("offered — accepted, not yet confirmed", "needs_you", "accepted", {
     status: "accepted", helper_id: HELPER,
   }),
-  fixture("offer expired — job reopened, application rejected", "done", "rejected", {
+  fixture("offer expired — job reopened, application rejected", "cancelled", "rejected", {
     status: "open",
   }),
   fixture("confirmed booking", "scheduled", "accepted", {
@@ -151,12 +151,12 @@ const FIXTURES: Fixture[] = [
     status: "completed", helper_id: HELPER, helper_confirmed_at: ago(70),
     helper_completed_at: ago(30), poster_completed_at: ago(29),
   }),
-  fixture("cancelled", "done", "accepted", { status: "cancelled", helper_id: HELPER }),
-  fixture("not selected", "done", "rejected", { status: "accepted", helper_id: "someone-else" }),
-  fixture("not selected, job no longer visible (job === null)", "done", "rejected", null),
+  fixture("cancelled", "cancelled", "accepted", { status: "cancelled", helper_id: HELPER }),
+  fixture("not selected", "cancelled", "rejected", { status: "accepted", helper_id: "someone-else" }),
+  fixture("not selected, job no longer visible (job === null)", "cancelled", "rejected", null),
 ];
 
-const BUCKETS: ActivityBucket[] = ["needs_you", "scheduled", "waiting", "done"];
+const BUCKETS: ActivityBucket[] = ["needs_you", "scheduled", "waiting", "done", "cancelled"];
 
 function filters(statusFilter: string) {
   return renderHook(() =>
@@ -180,11 +180,11 @@ describe("Activity (helper) — bucketing is total and exclusive", () => {
     }
   });
 
-  it("the four buckets account for every row exactly once", () => {
+  it("the five buckets account for every row exactly once", () => {
     const total = BUCKETS.reduce((n, b) => n + filters(b).filteredAppliedApps.length, 0);
     expect(
       total,
-      "a row is either missing from every tab or showing in two — the four buckets " +
+      "a row is either missing from every tab or showing in two — the five buckets " +
         "must partition the list",
     ).toBe(FIXTURES.length);
   });
@@ -220,8 +220,8 @@ describe("Activity (helper) — every counted row actually renders a card", () =
         <AppliedJobCard
           app={app}
           highlight={false}
-          expandedJobId={null}
-          setExpandedJobId={noop}
+          expandedJobIds={new Set()}
+          toggleExpandedJobId={noop}
           helperReviewedJobIds={new Set<string>()}
           initialTracking={null}
           userId={HELPER}

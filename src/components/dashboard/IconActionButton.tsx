@@ -47,6 +47,16 @@ export interface IconActionButtonProps {
   pressedColor?: string;
   /** Reflects toggle state to assistive tech (Save). */
   ariaPressed?: boolean;
+  /**
+   * Shrinks the tap target below the global 44px HIG floor (owner,
+   * 2026-08-30, via a pop-up question: icons "smaller... because it makes
+   * a large gap above title" — the corner cluster's height is what forces
+   * the whole title row down). Only for `bare`; needs an inline
+   * min-height/min-width override since the global
+   * `button { min-height: 44px }` rule otherwise wins over any Tailwind
+   * size utility.
+   */
+  compact?: boolean;
 }
 
 const RESTING_SHADOW =
@@ -66,6 +76,7 @@ export const IconActionButton = forwardRef<HTMLButtonElement, IconActionButtonPr
       pressedColor,
       ariaPressed,
       bare = false,
+      compact = false,
     },
     ref,
   ) {
@@ -75,6 +86,10 @@ export const IconActionButton = forwardRef<HTMLButtonElement, IconActionButtonPr
       ? ({
           color: pressed ? pressedColor : "hsl(var(--muted-foreground))",
           transition: "color 0.2s ease",
+          // Below the global `button { min-height/min-width: 44px }` floor —
+          // inline styles are the only thing that beats it (a Tailwind size
+          // utility loses to that plain-CSS rule).
+          ...(compact ? { minHeight: "32px", minWidth: "32px" } : {}),
         } as CSSProperties)
       : ({
           backgroundColor: pressed ? pressedBackground : "var(--glass-bg-soft)",
@@ -99,7 +114,7 @@ export const IconActionButton = forwardRef<HTMLButtonElement, IconActionButtonPr
         onClick={onClick}
         className={
           bare
-            ? "group rounded-md h-11 w-11 shrink-0 btn-press hover:text-foreground transition-colors"
+            ? `group rounded-md ${compact ? "h-8 w-8" : "h-11 w-11"} shrink-0 btn-press hover:text-foreground hover:bg-transparent active:bg-transparent transition-colors`
             : "group glass-press rounded-ds-md h-11 w-11 sm:h-12 sm:w-12 shrink-0 " +
               "transition-all duration-200 hover:scale-105 active:scale-95 " +
               // CSS-driven hover (desktop only): lift the glow + recolor the icon

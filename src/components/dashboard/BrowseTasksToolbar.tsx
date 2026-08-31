@@ -1,15 +1,11 @@
 import { useState } from "react";
-import { Bookmark, ChevronRight, Clock, MapPin, X } from "lucide-react";
-import { categoryLabels } from "@/components/dashboard/JobFilters";
+import { ChevronRight, SearchCheck } from "lucide-react";
 import { FilterSheet, buildJobFilterSections } from "@/components/dashboard/FilterSheet";
-import { ScreenHeaderRow } from "@/components/ui/ScreenHeaderRow";
 import { SavedSearches } from "@/components/SavedSearches";
 import { hapticLight } from "@/lib/haptics";
 import type { FeedDensity } from "@/components/dashboard/feedDensity";
-import { budgetChipLabel } from "./browseTasksToolbar/constants";
-import type { BrowseTasksToolbarProps, ChipDef } from "./browseTasksToolbar/types";
+import type { BrowseTasksToolbarProps } from "./browseTasksToolbar/types";
 import { BrowseSearchBar } from "./browseTasksToolbar/BrowseSearchBar";
-import { SwipeableFilterChip } from "./browseTasksToolbar/SwipeableFilterChip";
 import { CategoryChipRow } from "./browseTasksToolbar/CategoryChipRow";
 import { BrowseViewToggle } from "./browseTasksToolbar/BrowseViewToggle";
 
@@ -60,7 +56,12 @@ export function BrowseTasksToolbar({
   setView,
   hideViewToggle = false,
   onClearAllFilters,
-  titleSrOnly = false,
+  // No longer read: the heading is always sr-only now that the visible
+  // "Filtered · N active" eyebrow it used to gate was removed (owner:
+  // redundant with the highlighted category chip + the filter sheet).
+  // Kept in the prop list (BrowseTasksToolbarProps) so callers passing it
+  // (Dashboard, DashboardGuest) don't need a matching change.
+  titleSrOnly: _titleSrOnly = false,
   filtersAnchorRef,
   compactActions = false,
   savedOnly = false,
@@ -72,73 +73,9 @@ export function BrowseTasksToolbar({
   // outside the sheet, or it would unmount with the row that opened it.
   const [savedSearchesOpen, setSavedSearchesOpen] = useState(false);
 
-  // Human-readable description of the active location filter, reused in the
-  // chip clear-button aria-labels so a screen reader hears WHICH location is
-  // being cleared (e.g. "within 10 mi", "Orleans") rather than a generic
-  // "location filter".
-  const locationFilterText = filters.locationFilter
-    ? filters.locationFilter.startsWith("nearby:")
-      ? `within ${filters.locationFilter.slice(7)} mi`
-      : filters.locationFilter
-    : "";
-
   // One source for the row's heading text, used by both the normal and the
   // search state (search keeps it sr-only rather than dropping the h1).
   const headingTitle = filters.hasFilters ? "Filtered Results" : "Browse Jobs";
-
-  const recapChips: ChipDef[] = [];
-  if (filters.selectedCategory) {
-    recapChips.push({
-      key: "category",
-      label: categoryLabels[filters.selectedCategory],
-      onClear: () => filters.setSelectedCategory(null),
-      ariaLabel: `Clear category filter (${categoryLabels[filters.selectedCategory]} selected)`,
-    });
-  }
-  if (filters.locationFilter) {
-    recapChips.push({
-      key: "location",
-      label: (
-        <>
-          <MapPin className="w-3 h-3" />
-          {filters.locationFilter.startsWith("nearby:")
-            ? `Within ${filters.locationFilter.slice(7)} mi`
-            : filters.locationFilter}
-        </>
-      ),
-      onClear: () => filters.setLocationFilter(""),
-      ariaLabel: `Clear location filter (${locationFilterText} selected)`,
-    });
-  }
-  if (filters.minBudget || filters.maxBudget) {
-    recapChips.push({
-      key: "budget",
-      label: <>{budgetChipLabel(filters.minBudget, filters.maxBudget)}</>,
-      onClear: () => { filters.setMinBudget(""); filters.setMaxBudget(""); },
-      ariaLabel: `Clear budget filter (${budgetChipLabel(filters.minBudget, filters.maxBudget)})`,
-    });
-  }
-  if (filters.expiresWithin) {
-    recapChips.push({
-      key: "expires",
-      label: filters.expiresWithin,
-      onClear: () => filters.setExpiresWithin(""),
-      ariaLabel: `Clear expiry filter (${filters.expiresWithin})`,
-    });
-  }
-  if (filters.matchAvailability) {
-    recapChips.push({
-      key: "availability",
-      label: (
-        <>
-          <Clock className="w-3 h-3" /> My hours
-        </>
-      ),
-      onClear: () => filters.setMatchAvailability(false),
-      ariaLabel: "Clear availability filter (matching my hours)",
-    });
-  }
-  const showRecapRow = recapChips.length >= 3;
 
   return (
     <>
@@ -176,23 +113,15 @@ export function BrowseTasksToolbar({
           The <h1> is NOT dropped with it: a screen with zero headings is an
           a11y defect, so the sr-only heading renders on its own in the
           collapsed case and keeps the document structure the row gave. */}
-      {filters.hasFilters ? (
-        <ScreenHeaderRow
-          className="shrink-0 px-4"
-          title={headingTitle}
-          titleSrOnly={titleSrOnly}
-          meta={
-            <span
-              className="font-serif italic tracking-[0.18em] uppercase text-ds-10 shrink-0"
-              style={{ color: "hsl(var(--burnt-sienna))" }}
-            >
-              {`Filtered · ${filters.activeFilterCount} active`}
-            </span>
-          }
-        />
-      ) : (
-        <h1 className="sr-only">{headingTitle}</h1>
-      )}
+      {/* No more visible "Filtered · N active" eyebrow, and no separate
+          "Active filters" chip recap row below (owner: redundant — the
+          selected category already stays visually highlighted in the
+          one-tap category row right below, and every other active filter
+          is one tap away in the filter sheet, which already shows its own
+          "Clear All"). The heading itself stays sr-only either way; this
+          screen has no visible title by design ("home will not have a
+          title just the H logo"). */}
+      <h1 className="sr-only">{headingTitle}</h1>
 
       {/* One-tap category picker row. */}
       {filters.selectedCategory && (
@@ -200,28 +129,6 @@ export function BrowseTasksToolbar({
           selectedCategory={filters.selectedCategory}
           setSelectedCategory={filters.setSelectedCategory}
         />
-      )}
-
-      {/* Active-filter recap chip row — only when 3+ filters are active. */}
-      {showRecapRow && (
-        <div className="flex flex-wrap gap-1.5 px-4 py-2 border-b border-border/30" role="group" aria-label="Active filters">
-          {recapChips.map((chip) => (
-            <SwipeableFilterChip
-              key={chip.key}
-              onClear={chip.onClear}
-              ariaLabel={chip.ariaLabel}
-            >
-              {chip.label}
-              <button
-                onClick={chip.onClear}
-                aria-label={chip.ariaLabel}
-                className="relative hover:text-primary/70 btn-press before:absolute before:left-1/2 before:top-1/2 before:h-11 before:w-11 before:-translate-x-1/2 before:-translate-y-1/2 before:content-['']"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </SwipeableFilterChip>
-          ))}
-        </div>
       )}
 
       {/* Unified filter bottom sheet — the SlidersHorizontal button above
@@ -292,33 +199,38 @@ export function BrowseTasksToolbar({
             urgentOnly: filters.urgentOnly, setUrgentOnly: filters.setUrgentOnly,
             userLocStatus: filters.userLoc?.status,
             userLocMessage: filters.userLoc?.status === "error" ? filters.userLoc.message : undefined,
+            // Saved Searches OPENS a dialog — it is an action, not a filter,
+            // but it used to sit alone in the sheet footer, disconnected
+            // from every section above it. Folded into "Show only" (the
+            // last section) instead, right after the other narrowing
+            // switches, so it reads as part of the sheet. Signed-in only,
+            // exactly as the bookmark icon was: saved searches are rows in
+            // a per-user table.
+            savedSearchesButton: user ? (
+              <button
+                type="button"
+                onClick={() => {
+                  hapticLight();
+                  // Close the sheet FIRST — this row lives inside it, and
+                  // the dialog it opens is mounted outside it (below).
+                  filters.setFiltersOpen(false);
+                  setSavedSearchesOpen(true);
+                }}
+                className="w-full flex items-center gap-2 h-11 px-3 rounded-ds-md squircle border border-border/60 bg-white/70 dark:bg-card/60 backdrop-blur text-left btn-press transition-all duration-200 hover:border-primary/50 hover:bg-white/90 dark:hover:bg-card/90"
+              >
+                {/* SearchCheck, not Bookmark — the "Only Saved Jobs" toggle row
+                    right above this one already uses Bookmark for a saved
+                    JOB, so this row (a saved SEARCH query) needs its own glyph
+                    or the two read as the same feature. */}
+                <SearchCheck className="w-3.5 h-3.5 shrink-0 text-primary" strokeWidth={2.25} aria-hidden />
+                <span className="min-w-0 flex-1 text-ds-12 font-semibold text-foreground">
+                  Saved Searches
+                </span>
+                <ChevronRight className="w-3.5 h-3.5 shrink-0 text-muted-foreground" aria-hidden />
+              </button>
+            ) : undefined,
           }),
         ]}
-        // Saved Searches OPENS a dialog — it is an action, not a filter, so it
-        // sits in the footer beside Clear All rather than wearing a section.
-        // Signed-in only, exactly as the bookmark icon was: saved searches are
-        // rows in a per-user table.
-        footer={
-          user ? (
-            <button
-              type="button"
-              onClick={() => {
-                hapticLight();
-                // Close the sheet FIRST — this row lives inside it, and
-                // the dialog it opens is mounted outside it (below).
-                filters.setFiltersOpen(false);
-                setSavedSearchesOpen(true);
-              }}
-              className="w-full flex items-center gap-2 h-11 px-3 rounded-ds-md squircle border border-border/60 bg-white/70 dark:bg-card/60 backdrop-blur text-left btn-press transition-all duration-200 hover:border-primary/50 hover:bg-white/90 dark:hover:bg-card/90"
-            >
-              <Bookmark className="w-3.5 h-3.5 shrink-0 text-primary" strokeWidth={2.25} aria-hidden />
-              <span className="min-w-0 flex-1 text-ds-12 font-semibold text-foreground">
-                Saved Searches
-              </span>
-              <ChevronRight className="w-3.5 h-3.5 shrink-0 text-muted-foreground" aria-hidden />
-            </button>
-          ) : undefined
-        }
       />
 
       {/* The saved-searches dialog itself — mounted here rather than inside
@@ -344,82 +256,6 @@ export function BrowseTasksToolbar({
             filters.setLocationFilter(saved.location_keyword || "");
           }}
         />
-      )}
-
-      {/* Active filter chips — each wrapped in SwipeableFilterChip so a
-          leftward drag removes the chip's filter with no confirm step.
-          When ≥2 filters are active the "Clear all" affordance also
-          scrolls the feed back to the top (via onClearAllFilters), so
-          the user lands on a clean unfiltered top-of-feed instead of
-          mid-list. */}
-      {!filters.filtersOpen && (filters.selectedCategory || filters.locationFilter || filters.minBudget || filters.maxBudget || filters.expiresWithin || filters.matchAvailability) && (
-        <div className="flex flex-wrap gap-1.5 px-4 py-2.5 border-b border-border/30" role="group" aria-label="Active filters">
-          {filters.selectedCategory && (
-            <SwipeableFilterChip
-              onClear={() => filters.setSelectedCategory(null)}
-              ariaLabel={`Clear category filter (${categoryLabels[filters.selectedCategory]} selected)`}
-            >
-              {categoryLabels[filters.selectedCategory]}
-              <button onClick={() => filters.setSelectedCategory(null)} aria-label={`Clear category filter (${categoryLabels[filters.selectedCategory]} selected)`} className="relative hover:text-primary/70 btn-press before:absolute before:left-1/2 before:top-1/2 before:h-11 before:w-11 before:-translate-x-1/2 before:-translate-y-1/2 before:content-['']"><X className="w-3 h-3" /></button>
-            </SwipeableFilterChip>
-          )}
-          {filters.locationFilter && (
-            <SwipeableFilterChip
-              onClear={() => filters.setLocationFilter("")}
-              ariaLabel={`Clear location filter (${locationFilterText} selected)`}
-            >
-              <MapPin className="w-3 h-3" />
-              {filters.locationFilter.startsWith("nearby:")
-                ? `Within ${filters.locationFilter.slice(7)} mi`
-                : filters.locationFilter}
-              <button onClick={() => filters.setLocationFilter("")} aria-label={`Clear location filter (${locationFilterText} selected)`} className="relative hover:text-primary/70 btn-press before:absolute before:left-1/2 before:top-1/2 before:h-11 before:w-11 before:-translate-x-1/2 before:-translate-y-1/2 before:content-['']"><X className="w-3 h-3" /></button>
-            </SwipeableFilterChip>
-          )}
-          {(filters.minBudget || filters.maxBudget) && (
-            <SwipeableFilterChip
-              onClear={() => { filters.setMinBudget(""); filters.setMaxBudget(""); }}
-              ariaLabel={`Clear budget filter (${budgetChipLabel(filters.minBudget, filters.maxBudget)})`}
-            >
-              {budgetChipLabel(filters.minBudget, filters.maxBudget)}
-              <button onClick={() => { filters.setMinBudget(""); filters.setMaxBudget(""); }} aria-label={`Clear budget filter (${budgetChipLabel(filters.minBudget, filters.maxBudget)})`} className="relative hover:text-primary/70 btn-press before:absolute before:left-1/2 before:top-1/2 before:h-11 before:w-11 before:-translate-x-1/2 before:-translate-y-1/2 before:content-['']"><X className="w-3 h-3" /></button>
-            </SwipeableFilterChip>
-          )}
-          {filters.expiresWithin && (
-            <SwipeableFilterChip
-              onClear={() => filters.setExpiresWithin("")}
-              ariaLabel={`Clear expiry filter (${filters.expiresWithin})`}
-            >
-              {filters.expiresWithin}
-              <button onClick={() => filters.setExpiresWithin("")} aria-label={`Clear expiry filter (${filters.expiresWithin})`} className="relative hover:text-primary/70 btn-press before:absolute before:left-1/2 before:top-1/2 before:h-11 before:w-11 before:-translate-x-1/2 before:-translate-y-1/2 before:content-['']"><X className="w-3 h-3" /></button>
-            </SwipeableFilterChip>
-          )}
-          {filters.matchAvailability && (
-            <SwipeableFilterChip
-              onClear={() => filters.setMatchAvailability(false)}
-              ariaLabel="Clear availability filter (matching my hours)"
-            >
-              <Clock className="w-3 h-3" /> My hours
-              <button onClick={() => filters.setMatchAvailability(false)} aria-label="Clear availability filter (matching my hours)" className="relative hover:text-primary/70 btn-press before:absolute before:left-1/2 before:top-1/2 before:h-11 before:w-11 before:-translate-x-1/2 before:-translate-y-1/2 before:content-['']"><X className="w-3 h-3" /></button>
-            </SwipeableFilterChip>
-          )}
-          {filters.activeFilterCount >= 2 && (
-            <button
-              onClick={() => {
-                filters.clearFilters();
-                onClearAllFilters?.();
-              }}
-              aria-label={`Clear all ${filters.activeFilterCount} active filters`}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-ds-md text-ds-11 font-semibold btn-press"
-              style={{
-                color: "hsl(var(--burnt-sienna))",
-                background: "hsl(var(--burnt-sienna) / 0.1)",
-                border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
-              }}
-            >
-              <X className="w-3 h-3" strokeWidth={2.25} /> Clear All
-            </button>
-          )}
-        </div>
       )}
     </>
   );

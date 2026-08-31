@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHero } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { FileSignature, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { toast } from "sonner";
@@ -82,11 +82,6 @@ const W9CollectionDialog = ({ open, onOpenChange, jobId, helperId, businessId, o
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHero
-          eyebrow={
-            <>
-              <FileSignature className="w-3 h-3" /> Tax form
-            </>
-          }
           title="Sign Your W-9"
         />
         {/* Relocated OUT of DialogHero's `subtitle` (2026-07-25 "one main

@@ -4,6 +4,7 @@ import { report } from "@/lib/errorLogger";
 import { hapticWarning } from "@/lib/haptics";
 import { formatName } from "@/lib/utils";
 import { toast } from "sonner";
+import { JOB_CATEGORY_LABELS, type JobCategory } from "@/lib/jobCategories";
 import type { SavedHelper, SavedSort } from "./types";
 import { sortOptions } from "./types";
 
@@ -24,6 +25,9 @@ export function useSavedHelpers({ user }: UseSavedHelpersArgs) {
   const [wasOffline, setWasOffline] = useState(false);
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<SavedSort>("recent");
+  // Skill-category filter (item 26) — narrows the list to helprs whose
+  // `skills` string mentions the selected category. `null` = no filter.
+  const [categoryFilter, setCategoryFilter] = useState<JobCategory | null>(null);
   // Per-helper note editor — `editingNoteFor` holds the helper_id of
   // the row whose textarea is open; `noteDraft` holds the in-flight
   // text so the user can cancel without losing their place.
@@ -161,7 +165,9 @@ export function useSavedHelpers({ user }: UseSavedHelpersArgs) {
   };
 
   const filtered = useMemo(() => {
+    const categoryLabel = categoryFilter ? JOB_CATEGORY_LABELS[categoryFilter].toLowerCase() : null;
     const matched = helpers.filter((h) => {
+      if (categoryLabel && !(h.skills || "").toLowerCase().includes(categoryLabel)) return false;
       if (!search.trim()) return true;
       const q = search.toLowerCase();
       return (
@@ -212,7 +218,7 @@ export function useSavedHelpers({ user }: UseSavedHelpersArgs) {
       const bLast = b.last_job_at ? new Date(b.last_job_at).getTime() : 0;
       return bLast - aLast;
     });
-  }, [helpers, search, sortBy]);
+  }, [helpers, search, sortBy, categoryFilter]);
 
   const activeSortLabel = sortOptions.find((o) => o.value === sortBy)?.label ?? sortOptions[0].label;
 
@@ -229,6 +235,8 @@ export function useSavedHelpers({ user }: UseSavedHelpersArgs) {
     setSearch,
     sortBy,
     setSortBy,
+    categoryFilter,
+    setCategoryFilter,
     editingNoteFor,
     noteDraft,
     setNoteDraft,

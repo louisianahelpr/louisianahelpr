@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHero } from "@/components/ui/dialog";
-import { ChevronLeft } from "lucide-react";
 import {
-  Users, Repeat, Rocket, Zap, Bookmark, Flag,
+  Repeat, Rocket, Zap, Bookmark, Flag, Star,
 } from "lucide-react";
 import { categoryLabels, categoryColors } from "@/components/activity/activityConstants";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
@@ -17,7 +16,6 @@ import { PhotoLightbox } from "./PhotoLightbox";
 import { JobPrice } from "./JobPrice";
 import { useJobDetailData } from "./jobDetailDialog/useJobDetailData";
 import { JobStatTiles } from "./jobDetailDialog/JobStatTiles";
-import { ApplicantQueueBanner } from "./jobDetailDialog/ApplicantQueueBanner";
 import { JobDetailFooter } from "./jobDetailDialog/JobDetailFooter";
 
 interface JobDetailDialogProps {
@@ -76,11 +74,9 @@ const JobDetailDialog = ({
     descExpanded, setDescExpanded,
     lightboxIndex, setLightboxIndex,
     gridOpenNonce, setGridOpenNonce,
-    applicationCount,
     viewerAppPosition,
     viewerUserId,
     repeatJobs,
-    posterCancelRate,
     viewerTier,
     distMilesForDriving,
     drivingLabel,
@@ -90,6 +86,12 @@ const JobDetailDialog = ({
 
   const photos = job.photos || [];
   const catStyle = categoryColors[job.category] || categoryColors.other;
+  // Mirrors JobCard's `recommended={i === 0}` — that prop is purely
+  // positional (the first card of whatever list is currently showing), not
+  // a field on the job row, so the dialog derives the same thing from the
+  // same list it already gets for swipe navigation (owner: "if a job is
+  // recommended it should carry over" into this dialog too).
+  const isRecommended = !!_allJobs && _allJobs[0]?.id === job.id;
 
   const helpers = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
   // Viewer fee only — the same resolver the Browse card and apply sheet use.
@@ -106,9 +108,65 @@ const JobDetailDialog = ({
     navigate(`/messages?userId=${job.customer_id}&jobId=${job.id}`);
   };
 
+  // Corner actions — Save · Share · Report, in the SAME row as the dialog's
+  // own X (owner, 2026-08-30: "this with the x" / "not pieced together" —
+  // used to be a second `absolute`-positioned div hand-offset to sit beside
+  // the shared close button rather than sharing its row). Passed to
+  // DialogContent's `topRightSlot` instead. Guests get none of them: all
+  // three need an account, and the guest footer already carries its one
+  // sign-up CTA.
+  const cornerActions = !guest && (
+    <>
+      {/* Share leftmost (owner: "share on the left") — Bookmark then
+          Flag follow. `compact` (32px, not the usual 44px) so the row
+          needs less clearance above the title (owner: 44px icons
+          "made a large gap above title") — the X button itself is
+          separate shared chrome and stays its usual size. */}
+      {viewerUserId !== job.customer_id && (
+        <ShareJobButton
+          variant="icon"
+          bare
+          compact
+          job={{ id: job.id, title: job.title, budget: job.budget, category: job.category, city: getCity(job.location).replace(/,\s*LA\s*$/i, "") }}
+          ariaLabel="Share this job"
+        />
+      )}
+      {onToggleSave && (
+        <IconActionButton
+          ariaLabel={isSaved ? "Unsave job" : "Save job"}
+          ariaPressed={isSaved}
+          onClick={() => onToggleSave(job.id, !isSaved)}
+          pressed={isSaved}
+          pressedBackground="hsl(var(--primary) / 0.12)"
+          pressedBorder="0.5px solid hsl(var(--primary) / 0.4)"
+          pressedColor="hsl(var(--primary))"
+          bare
+          compact
+          icon={
+            <Bookmark
+              className={`w-4 h-4 transition-transform duration-300 group-hover:-translate-y-0.5 ${isSaved ? "fill-primary bookmark-pop" : ""}`}
+              key={String(isSaved)}
+              strokeWidth={2}
+            />
+          }
+        />
+      )}
+      <IconActionButton
+        ariaLabel="Report this job"
+        onClick={() => { onReport(job.id); onClose(); }}
+        bare
+        compact
+        icon={
+          <Flag className="w-4 h-4 transition-transform duration-300 group-hover:-rotate-12 group-active:rotate-0" />
+        }
+      />
+    </>
+  );
+
   return (
     <Dialog open={!!job} onOpenChange={() => onClose()}>
       <DialogContent
+        topRightSlot={cornerActions}
         // grid-cols-1: the base DialogContent is `display:grid` with implicit
         // `auto` columns, which size to max-content and can grow wider than
         // the dialog; paired with the content's `overflow-y-auto` (which makes
@@ -147,7 +205,7 @@ const JobDetailDialog = ({
         className={[
           "grid-cols-1",
           // 1. phone geometry
-          "left-0 top-auto bottom-0 translate-x-0 translate-y-0",
+          "left-0 top-auto bottom-0 translate-x-0 translate-y-0 [translate:0_0]",
           "w-full max-w-none max-h-[92dvh] rounded-b-none rounded-t-[28px]",
           // 2. phone animation
           "data-[state=open]:slide-in-from-left-0 data-[state=open]:slide-in-from-bottom-full data-[state=open]:zoom-in-100",
@@ -168,7 +226,22 @@ const JobDetailDialog = ({
           //    `max-h` matches the global 86vh for the same reason: two
           //    ceilings 2dvh apart on one component is a difference nobody
           //    chose.
-          "sm:left-[50%] sm:top-[7vh] sm:bottom-auto sm:translate-x-[-50%] sm:translate-y-0",
+          // `sm:[translate:-50%_0]`, not `sm:translate-x-[-50%] sm:translate-y-0`:
+          // the base DialogContent centers via the standalone `translate` CSS
+          // property (`[translate:-50%_-50%]`, chosen so tailwindcss-animate's
+          // keyframes — which write `transform` — never clobber it). Tailwind's
+          // `translate-x-*`/`translate-y-*` utilities set `--tw-translate-x/y`
+          // composed into `transform`, a DIFFERENT property from `translate` —
+          // so `sm:translate-y-0` was zeroing a `transform` that was never the
+          // one moving this box, while the base's real `translate-y: -50%`
+          // stayed in effect at every width. On a dialog taller than the
+          // viewport (top-anchored at 7vh, not vertically centered) that extra
+          // -50% shift pushed the whole card up past the top edge — the title/
+          // category/price header rendered above y=0, unreachably clipped by
+          // the fixed positioning (confirmed live: measured top -131px against
+          // an intended +32px/7vh). Overriding the SAME `translate` property
+          // the base uses is the only way to actually zero it.
+          "sm:left-[50%] sm:top-[7vh] sm:bottom-auto sm:[translate:-50%_0]",
           "sm:w-[calc(100%-2rem)] sm:max-w-lg sm:max-h-[86vh] sm:rounded-t-[28px] sm:rounded-b-[28px]",
           "sm:data-[state=open]:slide-in-from-left-1/2 sm:data-[state=open]:slide-in-from-top-4 sm:data-[state=open]:zoom-in-95",
           "sm:data-[state=closed]:slide-out-to-left-1/2 sm:data-[state=closed]:slide-out-to-top-4 sm:data-[state=closed]:zoom-out-95",
@@ -211,27 +284,6 @@ const JobDetailDialog = ({
           _onSelect(_allJobs[nextIdx]);
         }}
       >
-        {step === "apply" && applyStep ? (
-          <div className="min-w-0">
-            {/* Back to the job, not out of the sheet. The apply step is a
-                continuation of the thing behind it, so the primary escape is
-                backwards — the top-right X still closes the whole sheet. */}
-            <button
-              type="button"
-              onClick={() => setStep("detail")}
-              className="inline-flex items-center gap-1 -ml-1 mb-1 min-h-[44px] font-sans text-ds-13 active:opacity-70 transition-opacity"
-              style={{ color: "hsl(var(--bark))" }}
-            >
-              <ChevronLeft className="w-4 h-4 shrink-0" strokeWidth={2.25} aria-hidden />
-              <span className="truncate">Back to job</span>
-            </button>
-            <DialogHero title={job.title} />
-            <div className="pt-3">
-              {applyStep({ onBack: () => setStep("detail") })}
-            </div>
-          </div>
-        ) : (
-        <>
         {/* Category chip, then the canonical popup title (DialogHero).
             The chip is rendered HERE rather than passed to DialogHero as an
             `eyebrow`: DialogHero accepts that prop but deliberately does not
@@ -241,76 +293,147 @@ const JobDetailDialog = ({
             helpr filters on — and opening the job dropped it entirely. Same
             dot + icon + label treatment as the feed card so the two read as
             the same object. */}
-        {/* Corner actions — Save · Share · Report, parked beside the
-            dialog's own X so the footer can be a single full-width Apply
-            (owner, 2026-08-30: "this with the x"). Absolutely positioned
-            against the DialogContent's padding box, mirroring the X's
-            own `right-3 top-3`, and offset left of it by one 44px slot
-            each. Guests get none of them: all three need an account, and
-            the guest footer already carries its one sign-up CTA. */}
-        {!guest && (
-          <div className="absolute right-[3.25rem] top-3 z-10 flex items-center gap-0.5">
-            {onToggleSave && (
-              <IconActionButton
-                ariaLabel={isSaved ? "Unsave job" : "Save job"}
-                ariaPressed={isSaved}
-                onClick={() => onToggleSave(job.id, !isSaved)}
-                pressed={isSaved}
-                pressedBackground="hsl(var(--primary) / 0.12)"
-                pressedBorder="0.5px solid hsl(var(--primary) / 0.4)"
-                pressedColor="hsl(var(--primary))"
-                bare
-                icon={
-                  <Bookmark
-                    className={`w-4 h-4 transition-transform duration-300 group-hover:-translate-y-0.5 ${isSaved ? "fill-primary bookmark-pop" : ""}`}
-                    key={String(isSaved)}
-                    strokeWidth={2}
-                  />
-                }
-              />
-            )}
-            {viewerUserId !== job.customer_id && (
-              <ShareJobButton
-                variant="icon"
-                bare
-                job={{ id: job.id, title: job.title, budget: job.budget, category: job.category, city: getCity(job.location).replace(/,\s*LA\s*$/i, "") }}
-                ariaLabel="Share this job"
-              />
-            )}
-            <IconActionButton
-              ariaLabel="Report this job"
-              onClick={() => { onReport(job.id); onClose(); }}
-              bare
-              icon={
-                <Flag className="w-4 h-4 transition-transform duration-300 group-hover:-rotate-12 group-active:rotate-0" />
-              }
-            />
-          </div>
-        )}
-        <div className="flex items-center gap-1.5 pr-10">
-          {/* THE SAME CHIP the feed card and the map popup wear (owner: "should
-              be in top left like the job card"). It used to be a bespoke
-              treatment here — a coloured dot in a circle plus burnt-sienna
-              serif caps — so the one object had three appearances across the
-              three surfaces it shows up on, two of which sit side by side on
-              the desktop website. Now it is `catStyle.badge` + CategoryIcon +
-              the serif-italic label, verbatim, and a change to the category
-              palette moves all three together. */}
+        {/* Category — top-LEFT corner tab, flush on the card's own edge,
+            plus the rail stripe down the left side (owner, via pop-up
+            question, 2026-08-30: "category top left ... add the category
+            stripe back to the left side").
+            data-frame-chrome: these elements deliberately bleed into the
+            dialog's padding gutter (absolute left-0 relative to the fixed
+            DialogContent, not the p-5 content box) to achieve the flush-edge
+            design — the apply-dialog-fit e2e excludes them from its content-
+            overflow check on that basis. */}
+        <span
+          aria-hidden
+          data-frame-chrome="true"
+          className={`absolute left-0 top-0 bottom-0 w-1.5 z-10 rounded-tl-lg rounded-bl-lg ${catStyle.dot}`}
+        />
+        <div data-frame-chrome="true" className="absolute top-0 left-0 z-20 flex items-stretch">
           <span
-            className={`inline-flex items-center gap-1 px-2 py-1 rounded-ds-sm border text-ds-10 font-semibold leading-none ${catStyle.badge}`}
+            className={`inline-flex items-center gap-1.5 pl-3.5 pr-3 py-1.5 rounded-tl-lg text-ds-13 font-semibold leading-none shadow-sm border-b border-r ${!isRecommended && !job.is_urgent && !job.isBoosted ? "rounded-br-lg" : ""} ${catStyle.badge}`}
           >
             <CategoryIcon
               category={job.category}
               aria-hidden
-              className="w-2.5 h-2.5 shrink-0"
+              className="w-3.5 h-3.5 shrink-0"
               strokeWidth={2.25}
             />
             <span className="font-serif italic">
               {categoryLabels[job.category] || job.category}
             </span>
           </span>
+          {/* Recommended — right of category, before Urgent/Boosted (owner:
+              "if a job is recommended it should carry over on the right of
+              the category before urgent/boosted"). Same tab styling as
+              JobCard's own Recommended chip. */}
+          {isRecommended && (
+            <span
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-ds-13 font-semibold leading-none shadow-sm border-b ${!job.is_urgent && !job.isBoosted ? "rounded-br-lg" : ""}`}
+              style={{
+                background: "hsl(var(--burnt-sienna) / 0.12)",
+                color: "hsl(var(--burnt-sienna))",
+                borderColor: "hsl(var(--burnt-sienna) / 0.20)",
+              }}
+            >
+              <Star className="w-3.5 h-3.5 shrink-0" strokeWidth={2} style={{ fill: "hsl(var(--burnt-sienna) / 0.3)" }} />
+              Recommended
+            </span>
+          )}
+          {/* Urgent/Boosted — right of category, same top-left cluster
+              (owner: "move to right of category"). */}
+          {job.is_urgent && (
+            <span
+              aria-label="Urgent"
+              className={`urgent-pulse inline-flex items-center gap-1.5 px-3 py-1.5 text-ds-12 font-bold uppercase leading-none shadow-sm border-b ${!job.isBoosted ? "rounded-br-lg" : ""}`}
+              style={{
+                color: "hsl(var(--accent))",
+                background: "hsl(var(--accent) / 0.15)",
+                borderColor: "hsl(var(--accent) / 0.5)",
+                letterSpacing: "0.05em",
+              }}
+            >
+              <Zap className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--accent))", fill: "hsl(var(--accent))" }} />
+              Urgent
+            </span>
+          )}
+          {job.isBoosted && (
+            <span
+              aria-label="Boosted"
+              className="boosted-pulse inline-flex items-center gap-1.5 px-3 py-1.5 rounded-br-lg text-ds-12 font-bold uppercase leading-none shadow-sm border-b"
+              style={{
+                color: "hsl(var(--boost-ink))",
+                background: "hsl(var(--boost-tint) / 0.16)",
+                borderColor: "hsl(var(--boost-tint) / 0.5)",
+                letterSpacing: "0.05em",
+              }}
+            >
+              <Rocket className="w-3.5 h-3.5 shrink-0" strokeWidth={2.25} style={{ color: "hsl(var(--boost-tint))", fill: "hsl(var(--boost-tint) / 0.35)" }} />
+              Boosted
+            </span>
+          )}
         </div>
-        <DialogHero title={job.title} />
+        {/* Title+description share the row with price, price as a small
+            pill vertically centered against BOTH lines — same layout as
+            JobCard's title row (owner: "fix the layout so it's more
+            similar to the job card, with money on the right of the title
+            in a pill box", then "center [it] better between title and
+            description"). `chip` is the exact component JobCard uses so the
+            number is styled identically on both surfaces.
+            `mt-1`: measured live (owner kept saying "still too much space"
+            and was right — `mt-7` was tuned for the OLD 44px icon row and
+            never brought down after the icons became `compact` (32px), so
+            it was stacking a stale margin on top of DialogHero's own `pt-2`).
+            Icon row bottom sits ~45px from the dialog's true top; normal
+            flow (after the dialog's own p-7 padding) already starts around
+            28px, and DialogHero's `pt-2` adds another 8px — `mt-1` is what's
+            actually left to clear the icons, no more. */}
+        <div className="mt-5 flex items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <DialogHero title={job.title} />
+            {/* Description — always visible right under the title (owner:
+                "move the description under the title, put posted by info
+                there [in Details]"). It used to fold behind the Details
+                toggle alongside the poster card; that toggle is gone too
+                now (owner: "remove details and put posted by info here"). */}
+            {job.description && (
+              <div className="relative min-w-0 mt-1">
+                {/* line-clamp-3 turns this <p> into a display:-webkit-box, which
+                    defaults to min-width:auto and sizes to its max-content width
+                    — so a normal word near the edge overflows and the box's own
+                    overflow:hidden clips it mid-word instead of wrapping.
+                    min-w-0 lets the box shrink to its container so text wraps,
+                    and we only clamp when the text is actually long enough to
+                    need it so short descriptions stay plain blocks that wrap
+                    cleanly. */}
+                <p
+                  className={`font-serif text-ds-15 leading-relaxed break-words min-w-0 ${!descExpanded && job.description.length > 180 ? "line-clamp-3" : ""}`}
+                  style={{ color: "hsl(var(--ink-deep) / 0.88)" }}
+                >
+                  {job.description}
+                </p>
+                {job.description.length > 180 && (
+                  <button
+                    type="button"
+                    onClick={() => setDescExpanded((v) => !v)}
+                    className="mt-1.5 text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] hover:opacity-80 transition-opacity"
+                    style={{ color: "hsl(var(--burnt-sienna) / 0.85)" }}
+                  >
+                    {descExpanded ? "Show Less" : "Read More"}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+          <div className="shrink-0">
+            <JobPrice
+              variant="chip"
+              size="lg"
+              budget={job.budget}
+              effectiveFee={commissionPercent}
+              urgentFee={job.urgent_fee ?? 0}
+              helpersNeeded={helpers}
+            />
+          </div>
+        </div>
 
         {/* One column at every width. This used to become a 7/5 split-pane
             at xl — sized for the era when the dialog opened at xl:max-w-6xl
@@ -321,42 +444,11 @@ const JobDetailDialog = ({
             source order and stat-tile grouping are untouched. */}
         <div className="contents">
         <div className="contents min-w-0">
-        {/* Photo cover wrapped so Boosted (top-right) and Urgent
-            (top-left) can stamp the corners without being clipped by
-            the photo's overflow-hidden. */}
+        {/* Photo cover. Urgent/Boosted used to stamp this photo's corners —
+            they now live on the money box instead (see below), the one
+            place they show up regardless of whether a photo exists. */}
         {photos.length > 0 && (
           <div className="relative">
-            {job.is_urgent && (
-              <span
-                aria-label="Urgent"
-                className="urgent-pulse absolute -top-2 -left-2 z-10 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent/15 text-accent text-ds-9 font-bold uppercase tracking-wider"
-                style={{ border: "0.5px solid hsl(var(--accent) / 0.5)" }}
-              >
-                <Zap className="w-2.5 h-2.5 text-accent fill-accent" /> Urgent
-              </span>
-            )}
-            {job.isBoosted && (
-              <span
-                aria-label="Boosted"
-                className="boosted-shimmer boosted-pulse absolute -top-2 -right-2 z-10 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-ds-9 font-bold uppercase tracking-wider"
-                style={{
-                  color: "hsl(var(--amber-ink))",
-                  border: "0.5px solid hsl(var(--boost-tint) / 0.6)",
-                  boxShadow:
-                    "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
-                    "inset 0 -1px 1px 0 hsl(var(--boost-tint) / 0.20), " +
-                    "0 1px 2px hsl(var(--boost-tint) / 0.20), " +
-                    "0 4px 10px -3px hsl(var(--boost-tint) / 0.34)",
-                }}
-              >
-                <Rocket
-                  className="w-2.5 h-2.5"
-                  strokeWidth={2.25}
-                  style={{ color: "hsl(var(--boost-tint))", fill: "hsl(var(--boost-tint) / 0.35)" }}
-                />
-                Boosted
-              </span>
-            )}
             <button
               type="button"
               onClick={() => setLightboxIndex(0)}
@@ -419,56 +511,13 @@ const JobDetailDialog = ({
           </div>
         )}
 
-        {/* Status pills — urgent · boosted · group size · recurrence — in
-            one aligned flex row so the signals read as a single set
-            instead of stacking unevenly. Urgent/Boosted only join this
-            row when there's no photo; with a photo they overlay the
-            image's corners up top instead. */}
-        {((job.is_urgent && photos.length === 0) || (job.isBoosted && photos.length === 0) || job.is_group_job || job.is_recurring) && (
+        {/* Recurrence — its own row below the category/urgent/boosted line.
+            Urgent/Boosted moved up into that row (owner: "move to the right
+            of category"); recurrence stays separate since it isn't one of
+            the pills the mockup called out. */}
+        {job.is_recurring && (
           <div className="flex items-center gap-1.5 flex-wrap">
-            {job.is_urgent && photos.length === 0 && (
-              <span
-                aria-label="Urgent"
-                className="urgent-pulse inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent/15 text-accent text-ds-10 font-semibold uppercase tracking-wider"
-                style={{ border: "0.5px solid hsl(var(--accent) / 0.5)" }}
-              >
-                <Zap className="w-3 h-3 fill-accent" strokeWidth={2.25} />
-                Urgent
-              </span>
-            )}
-            {/* Boosted used to sit alone, absolutely positioned over the
-                description box below — visually orphaned from every other
-                status pill (owner: caught live, reads as a layout bug).
-                It's a badge like the others now; joins this row instead. */}
-            {job.isBoosted && photos.length === 0 && (
-              <span
-                aria-label="Boosted"
-                className="boosted-shimmer boosted-pulse inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-ds-10 font-semibold uppercase tracking-wider"
-                style={{
-                  color: "hsl(var(--amber-ink))",
-                  border: "0.5px solid hsl(var(--boost-tint) / 0.6)",
-                  boxShadow:
-                    "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
-                    "inset 0 -1px 1px 0 hsl(var(--boost-tint) / 0.20), " +
-                    "0 1px 2px hsl(var(--boost-tint) / 0.20)",
-                }}
-              >
-                <Rocket
-                  className="w-3 h-3"
-                  strokeWidth={2.25}
-                  style={{ color: "hsl(var(--boost-tint))", fill: "hsl(var(--boost-tint) / 0.35)" }}
-                />
-                Boosted
-              </span>
-            )}
-            {job.is_group_job && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-ds-10 font-semibold uppercase tracking-wider border border-primary/20">
-                <Users className="w-3 h-3" strokeWidth={2.25} />
-                {job.helpers_needed ?? 2} Helprs needed
-              </span>
-            )}
-            {job.is_recurring && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[hsl(var(--burnt-sienna)/0.08)] text-[hsl(var(--burnt-sienna))] text-ds-10 font-semibold uppercase tracking-wider border border-[hsl(var(--burnt-sienna)/0.2)]">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[hsl(var(--burnt-sienna)/0.08)] text-[hsl(var(--burnt-sienna))] text-ds-10 font-semibold uppercase tracking-wider border border-[hsl(var(--burnt-sienna)/0.2)]">
                 <Repeat className="w-3 h-3" strokeWidth={2.25} />
                 {/* The SHAPE, not just the word (owner, 2026-08-24: a sitter
                     deciding whether to take a series needs "Mon, Wed, Fri ×
@@ -484,7 +533,6 @@ const JobDetailDialog = ({
                   return job.recurrence_interval || "Recurring";
                 })()}
               </span>
-            )}
           </div>
         )}
 
@@ -509,55 +557,6 @@ const JobDetailDialog = ({
           </div>
         )}
 
-        {/* Description — own glass plate. When there's no photo, the
-            Boosted (top-right) stamp lives here; Urgent has moved up into
-            the status-pill row. "Read more" expands the text inline. */}
-        {/* min-w-0: as a grid item of the DialogContent grid this defaults
-            to min-width:auto, so a long unbroken word would force the item
-            wider than the track and the line-clamp box would clip the
-            overflow. min-w-0 lets it shrink to the track and wrap. */}
-        <div className="relative min-w-0">
-          <div
-            className="rounded-ds-md px-3.5 py-2.5"
-            style={{
-              backgroundColor: "var(--glass-bg-soft)",
-              backdropFilter: "blur(18px) saturate(160%)",
-              WebkitBackdropFilter: "blur(18px) saturate(160%)",
-              border: "0.5px solid var(--glass-border)",
-              boxShadow:
-                "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
-                "0 1px 2px hsl(var(--olivewood) / 0.05)",
-            }}
-          >
-            {/* line-clamp-3 turns this <p> into a display:-webkit-box,
-                which defaults to min-width:auto and sizes to its max-content
-                width — so a normal word near the edge overflows and the box's
-                own overflow:hidden clips it mid-word instead of wrapping.
-                min-w-0 lets the box shrink to its container so text wraps,
-                and we only clamp when the text is actually long enough to
-                need it (matching the Read more threshold) so short
-                descriptions stay plain blocks that wrap cleanly. */}
-            <p
-              className={`font-serif text-ds-15 leading-relaxed break-words min-w-0 ${!descExpanded && (job.description?.length ?? 0) > 180 ? "line-clamp-3" : ""}`}
-              style={{ color: "hsl(var(--ink-deep) / 0.88)" }}
-            >
-              {job.description}
-            </p>
-            {/* Show "Read more" only when the description is long enough
-                to overflow line-clamp-3. ~180 chars covers the threshold. */}
-            {(job.description?.length ?? 0) > 180 && (
-              <button
-                type="button"
-                onClick={() => setDescExpanded((v) => !v)}
-                className="mt-1.5 text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] hover:opacity-80 transition-opacity"
-                style={{ color: "hsl(var(--burnt-sienna) / 0.85)" }}
-              >
-                {descExpanded ? "Show Less" : "Read More"}
-              </button>
-            )}
-          </div>
-        </div>
-
         <JobStatTiles job={job} distMilesForDriving={distMilesForDriving} drivingLabel={drivingLabel} />
         </div>
         {/* Right column — the "act on this job" pane. Sticky at xl+ so
@@ -569,59 +568,47 @@ const JobDetailDialog = ({
             each child slots back into the outer single-column grid,
             preserving the original vertical order. */}
         <div className="contents min-w-0">
-        {/* Payout — the shared JobPrice element (detail variant), tap
-            anywhere to expand the breakdown. Same component as the feed
-            card so the number is identical across surfaces. */}
-        <div className="relative">
-          <JobPrice
-            variant="detail"
-            budget={job.budget}
-            effectiveFee={commissionPercent}
-            urgentFee={job.urgent_fee ?? 0}
-            helpersNeeded={helpers}
-          />
-        </div>
-
-        {/* Poster card is AUTHED-ONLY (owner decision 2026-08-22: "guest page
-            should not have who posted the job").
-
-            It used to render for guests as social proof, but on the logged-out
-            preview it is the weakest tile on the screen and the most costly:
-            its two differentiating signals (repeat-customer count, poster
-            cancellation rate) are authed-only and silently collapse to their
-            guest defaults, so a guest saw a name and an avatar and nothing
-            that helps them judge the job. Worse, the tile is a link to
-            /user/:id — a ProtectedRoute — so the one tappable thing in it
-            bounced a guest to /login mid-preview. The guest dialog now stays
-            about the JOB; identity is something you get after signing up. */}
+        {/* Posted-by — always visible now, no toggle (owner: "remove
+            details and put posted by info here"). Poster card is
+            AUTHED-ONLY (owner decision 2026-08-22: "guest page should not
+            have who posted the job") — a guest never sees it at all. */}
         {!guest && (
-          <JobPosterCard job={job} repeatJobs={repeatJobs} cancellationRate={posterCancelRate} guest={guest} />
+          <JobPosterCard job={job} repeatJobs={repeatJobs} guest={guest} />
         )}
 
-        <ApplicantQueueBanner guest={guest} applicationCount={applicationCount} viewerAppPosition={viewerAppPosition} />
-
-        <JobDetailFooter
-          job={job}
-          guest={guest}
-          onApply={async (id) => {
-            const accepted = await onApply(id);
-            // Without an apply step (the guest surfaces) this closes as it
-            // always did. With one, the sheet STAYS UP and swaps its body —
-            // but only if the request was actually accepted, or we would show
-            // an apply form for a job the flow just refused.
-            if (!applyStep) { onClose(); return; }
-            if (accepted !== false) setStep("apply");
-          }}
-          navigate={navigate}
-          viewerUserId={viewerUserId}
-          viewerAppPosition={viewerAppPosition}
-          viewerTier={viewerTier}
-          onAskQuestion={handleAskQuestion}
-        />
-        </div>
-        </div>
-        </>
+        {/* Apply lives on THIS screen now — no second popup (owner: "they
+            will apply on the screen before this", "doesn't need to be 2
+            steps", "delete [the apply step]"). Tapping Apply Now used to
+            swap the whole sheet to a second view with its own back button
+            and a second copy of the title; it now just reveals the note +
+            attachments form in place, in the same scroll, same title. The
+            plain footer (Message / Apply / Applied / your-post / credential
+            gate) hides once that form is up — there is nothing left for it
+            to do until the helpr submits or the sheet closes. */}
+        {step === "apply" && applyStep ? (
+          applyStep({ onBack: () => setStep("detail") })
+        ) : (
+          <JobDetailFooter
+            job={job}
+            guest={guest}
+            onApply={async (id) => {
+              const accepted = await onApply(id);
+              // Without an apply step (the guest surfaces) this closes as it
+              // always did. With one, the form reveals in place — but only if
+              // the request was actually accepted, or we would show an apply
+              // form for a job the flow just refused.
+              if (!applyStep) { onClose(); return; }
+              if (accepted !== false) setStep("apply");
+            }}
+            navigate={navigate}
+            viewerUserId={viewerUserId}
+            viewerAppPosition={viewerAppPosition}
+            viewerTier={viewerTier}
+            onAskQuestion={handleAskQuestion}
+          />
         )}
+        </div>
+        </div>
 
         <PhotoLightbox photos={photos} lightboxIndex={lightboxIndex} setLightboxIndex={setLightboxIndex} openInGridNonce={gridOpenNonce} />
       </DialogContent>

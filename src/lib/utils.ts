@@ -28,10 +28,24 @@ const DS_FONT_SIZES = [
   "ds-40",
 ] as const;
 
+// Same class of bug as DS_FONT_SIZES above, one group over: tailwind-merge
+// ships Tailwind's default `rounded-*` scale (sm/md/lg/…) but has no idea
+// `rounded-ds-lg`/`rounded-ds-md`/`rounded-ds-sm` (this project's own radius
+// scale, declared in tailwind.config.ts's borderRadius) belong to the SAME
+// group. Unrecognised, `rounded-ds-lg` doesn't get deduped against a
+// component's own default `rounded-md` — both classes ship in the DOM, and
+// whichever wins the cascade (not necessarily the one written last) is what
+// renders. That's exactly how FilterSheet's desktop popover — which passes
+// `className="... rounded-ds-lg ..."` into <PopoverContent>, whose own
+// default className already carries `rounded-md` — ended up with square
+// corners: `rounded-md` (6px) was winning over the intended 20px.
+const DS_RADII = ["ds-sm", "ds-md", "ds-lg", "ds-avatar", "ds-pill"] as const;
+
 const twMerge = extendTailwindMerge({
   extend: {
     classGroups: {
       "font-size": [{ text: [...DS_FONT_SIZES] }],
+      rounded: [{ rounded: [...DS_RADII] }],
     },
   },
 });

@@ -295,14 +295,57 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                   ? "liquid-glass border-2 border-primary/40 shadow-[0_8px_24px_-8px_hsl(var(--primary)/0.25)]"
                   : "liquid-glass"
               } ${isActive ? "ring-2 ring-primary" : ""}`}
+              // The active card also gets a warm tint (was plain white like
+              // every other row, same as the removed hero card's surface),
+              // so "this is the plan you're on" reads at a glance, not just
+              // from the outline (owner, 2026-08-30: "make this more
+              // obvious it's their current plan").
+              style={
+                isActive && !isFree
+                  ? {
+                      background:
+                        "radial-gradient(70% 90% at 100% 0%, hsl(var(--burnt-sienna) / 0.08) 0%, transparent 55%), " +
+                        "radial-gradient(60% 80% at 0% 100%, hsl(var(--gold-warm) / 0.10) 0%, transparent 60%), " +
+                        "var(--surface-premium)",
+                    }
+                  : undefined
+              }
             >
-              {isPro && (
+              {isPro && !isActive && (
                 <span
                   className="absolute -top-2 left-3 text-ds-9 uppercase px-2 py-0.5 rounded-full bg-primary text-primary-foreground font-bold shadow-sm whitespace-nowrap"
                   style={{ letterSpacing: "0.18em" }}
                 >
                   Most popular
                 </span>
+              )}
+              {/* "Current plan" takes priority over "Most popular" if a tier
+                  is somehow both — knowing you're already on it is the more
+                  useful fact at that point. Refresh sits right beside the
+                  badge, both pinned top-LEFT — it was top-right at first
+                  (mirroring the badge's opposite corner), but that put its
+                  44px tap target directly over the price column, which also
+                  lives on the right (owner: "your plan" badge is one thing,
+                  it can't collide with the number underneath it). */}
+              {isActive && !isFree && (
+                <div className="absolute -top-2 left-3 flex items-center gap-1.5">
+                  <span
+                    className="text-ds-9 uppercase px-2 py-0.5 rounded-full font-bold shadow-sm whitespace-nowrap"
+                    style={{ background: accent, color: "hsl(var(--parchment))", letterSpacing: "0.18em" }}
+                  >
+                    Your plan
+                  </span>
+                  <button
+                    type="button"
+                    onClick={refreshSubscription}
+                    disabled={refreshing}
+                    aria-label="Refresh membership status"
+                    className="w-7 h-7 rounded-full flex items-center justify-center bg-background shadow-sm border border-border transition-colors hover:bg-secondary disabled:opacity-60"
+                    style={{ color: "hsl(var(--bark))" }}
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} aria-hidden />
+                  </button>
+                </div>
               )}
 
               <div className="flex items-start gap-3">
@@ -458,10 +501,15 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                     </Button>
                   )}
                   {/* The current PAID plan's own row carries its management
-                      actions directly — merged in from what used to be a
+                      action directly — merged in from what used to be a
                       separate "your plan" hero card above the list (owner,
                       2026-08-30: "merge with the plan where it is below").
-                      One representation of "this is your plan," not two. */}
+                      Refresh lives up in the card's top-right corner instead
+                      of stacked here — a second button in this narrow column
+                      overflowed onto the feature list at phone width, and
+                      pairing it with the "Your plan" badge up top reads as
+                      "here's your plan, here's how to re-check it," in one
+                      glance instead of buried at the bottom. */}
                   {isActive && !isFree && (
                     <div className="mt-1 flex flex-col items-end gap-1">
                       {expiresAt && (
@@ -475,13 +523,6 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                           </span>
                         </p>
                       )}
-                      {/* Stacked, not side-by-side: Manage + a labeled
-                          Refresh together ran wider than this shrink-0
-                          column on a 375px card, overflowing left onto the
-                          feature list instead of wrapping (flex children
-                          don't wrap). Vertical stacking keeps both within
-                          the column's own width, same as the price/fee/save
-                          lines above them. */}
                       <Button
                         variant="outline"
                         size="sm"
@@ -492,16 +533,6 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                         {loadingPortal ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Crown className="w-3.5 h-3.5" aria-hidden />}
                         Manage
                       </Button>
-                      <button
-                        type="button"
-                        onClick={refreshSubscription}
-                        disabled={refreshing}
-                        aria-label="Refresh membership status"
-                        className="w-11 h-11 rounded-ds-md flex items-center justify-center transition-colors hover:bg-secondary disabled:opacity-60"
-                        style={{ color: "hsl(var(--bark))" }}
-                      >
-                        <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} aria-hidden />
-                      </button>
                     </div>
                   )}
                   {/* Free carries no BUY CTA in either direction: there is

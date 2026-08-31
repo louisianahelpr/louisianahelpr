@@ -23,6 +23,16 @@ export const MAX_JOB_BUDGET_DOLLARS = 5000;
 /** Minimum urgent bonus a poster may add on an urgent job (whole dollars). */
 export const URGENT_FEE_FLOOR_DOLLARS = 5;
 
+/** Maximum urgent bonus (whole dollars).
+ *
+ *  The bonus had a floor and NO ceiling — not in the form, not in
+ *  useJobSubmit, and no DB CHECK — while the budget it rides on is capped at
+ *  $5,000 in both places. A 2026-08-31 audit put $99,999 in the field on a
+ *  $100 job and reached a live Stripe checkout for $103,088.88 with the Pay
+ *  button enabled. Capped at the budget ceiling: a rush premium larger than
+ *  the largest job we allow is a typo or an attack, never an intent. */
+export const MAX_URGENT_FEE_DOLLARS = MAX_JOB_BUDGET_DOLLARS;
+
 /** Default urgent-bonus value pre-filled in the post-job wizard. */
 export const DEFAULT_URGENT_FEE_DOLLARS = 5;
 

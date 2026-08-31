@@ -415,13 +415,30 @@ export function BrowseTasksFeed({
   // always spliced in front of it, silently burying an active boost below
   // up to 5 recommended picks. Re-partition after merging so a boosted job
   // never sits below an unboosted one, recommended or not.
+  //
+  // An EXPLICIT sort must win over both of those arrangements. This used to
+  // concatenate two independently-sorted lists — which is not a sorted list —
+  // and then pin boosted jobs on top unconditionally, so "Highest pay"
+  // returned $211, $352, $228, $132, $77, $74, $58, $140, … : the 8th item
+  // paid more than the 4th. `filters.sortBy` was not even in the dep array,
+  // so the memo did not recompute when the user changed it. The two sibling
+  // sort sites above both guard on `sortBy === "smart"`; this one did not.
   const combinedVisible = useMemo(() => {
     const merged = [...recommendedVisible, ...visibleJobs];
+
+    // Explicit sort: honour it across the WHOLE list. No recommended band, no
+    // boost pinning — the user asked for an order and gets exactly that.
+    if (filters.sortBy !== "smart") {
+      return merged.slice().sort((a, b) => compareJobsBySortMode(a, b, filters.sortBy));
+    }
+
+    // "Smart" (the default): recommended band first, then everything else,
+    // with active boosts pinned above both.
     const boosted = merged.filter((j) => j.isBoosted);
     if (boosted.length === 0) return merged;
     const rest = merged.filter((j) => !j.isBoosted);
     return [...boosted, ...rest];
-  }, [recommendedVisible, visibleJobs]);
+  }, [recommendedVisible, visibleJobs, filters.sortBy]);
 
   // The "Recommended" pill goes on the first combined-list card that is
   // actually a recommended pick — not always index 0, now that a boosted

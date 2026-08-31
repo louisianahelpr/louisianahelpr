@@ -19,6 +19,7 @@ import {
   MIN_JOB_BUDGET_DOLLARS,
   MAX_JOB_BUDGET_DOLLARS,
   URGENT_FEE_FLOOR_DOLLARS,
+  MAX_URGENT_FEE_DOLLARS,
   formatDollarsWhole,
 } from "@/lib/moneyLimits";
 import { openExternalUrl } from "@/lib/openExternalUrl";
@@ -167,6 +168,10 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     if (!budget || parseFloat(budget) < MIN_JOB_BUDGET_DOLLARS) { toast.error(`Minimum budget is ${formatDollarsWhole(MIN_JOB_BUDGET_DOLLARS)}`); scrollToField("budget"); return; }
     if (parseFloat(budget) > MAX_JOB_BUDGET_DOLLARS) { toast.error(`Maximum budget is ${formatDollarsWhole(MAX_JOB_BUDGET_DOLLARS)}.`); scrollToField("budget"); return; }
     if (isUrgent && (parseFloat(urgentFee) < URGENT_FEE_FLOOR_DOLLARS || isNaN(parseFloat(urgentFee)))) { toast.error(`Urgent bonus must be at least ${formatDollarsWhole(URGENT_FEE_FLOOR_DOLLARS)}`); scrollToField("custom-urgent-fee"); return; }
+    // The bonus had a floor but no CEILING, while the budget it rides on is
+    // capped at $5,000. $99,999 in this field on a $100 job reached a live
+    // Stripe checkout for $103,088.88 with Pay enabled.
+    if (isUrgent && parseFloat(urgentFee) > MAX_URGENT_FEE_DOLLARS) { toast.error(`Urgent bonus can't be more than ${formatDollarsWhole(MAX_URGENT_FEE_DOLLARS)}`); scrollToField("custom-urgent-fee"); return; }
     // A series with no days is not a series. The picker seeds the job's own
     // weekday so this should be unreachable from a fresh form, but a restored
     // draft predating the day set would come back empty — and letting it

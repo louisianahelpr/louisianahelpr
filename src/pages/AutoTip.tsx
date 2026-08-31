@@ -275,20 +275,32 @@ const AutoTip = () => {
               </p>
             </div>
           )}
+        </section>
 
-          {/* Instant release — the sibling money-trust preference (owner,
-              2026-08-24). Lives here because both answer the same question:
-              "how much friction do you want after a job wraps?" Safe to offer
-              because completion is DB-gated (photos + 30-min floor,
-              20260824235000); release fires on the next auto-release pass,
-              which runs every 30 minutes. */}
+        {/* Instant release gets its own section, not a subsection of
+            Auto-Tip (issue #172). The two used to share one <section> with
+            no heading of its own — a release-timing preference is a
+            different question from a tip amount, so burying it inside the
+            tip card read as a stray toggle rather than its own setting.
+            Same card chrome + heading treatment as the tip section above;
+            Save still persists both in one write (they're one profile row),
+            so the button stays below both rather than duplicating inside
+            each. Kept here because both answer "how much friction do you
+            want after a job wraps?" (owner, 2026-08-24). Safe to offer
+            because completion is DB-gated (photos + 30-min floor,
+            20260824235000); release fires on the next auto-release pass,
+            which runs every 30 minutes. */}
+        <section className="liquid-glass rounded-ds-md p-5 space-y-3">
+          <h2 className="font-display font-bold text-ds-14" style={{ color: "hsl(var(--ink-deep))" }}>
+            Instant Release
+          </h2>
           <div
             className="rounded-ds-md p-3 flex items-center justify-between gap-3"
             style={{ background: "hsl(var(--bark) / 0.06)", border: "0.5px solid hsl(var(--bark) / 0.18)" }}
           >
             <div className="min-w-0">
               <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
-                Instant Release
+                Release on completion
               </p>
               <p className="font-serif italic text-ds-11 leading-snug" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 Release payment as soon as the Helpr marks the job done with
@@ -302,16 +314,16 @@ const AutoTip = () => {
               className="shrink-0"
             />
           </div>
-
-          <Button
-            variant="primary"
-            onClick={() => void save()}
-            disabled={saving || !valueValid || !capValid}
-            className="w-full rounded-ds-md"
-          >
-            {saving ? "Saving…" : "Save"}
-          </Button>
         </section>
+
+        <Button
+          variant="primary"
+          onClick={() => void save()}
+          disabled={saving || !valueValid || !capValid}
+          className="w-full rounded-ds-md"
+        >
+          {saving ? "Saving…" : "Save"}
+        </Button>
         {/* A trailing explainer card used to sit here. Removed on owner
             instruction: it was a second explanation of the same feature at the
             far end of a short screen, after the Save button had already ended

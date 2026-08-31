@@ -19,9 +19,16 @@ import { isNativePlatform } from "@/lib/nativeInit";
  *   - iOS (native shell)  → `maps://` opens Apple Maps directly.
  *   - Android (native)    → `geo:` is the platform's own intent, so the user's
  *                           default maps app answers rather than a hardcoded one.
- *   - Web                 → Google Maps' documented search URL. On the web
- *                           there is no default-app signal to read, and this is
- *                           the one every browser resolves.
+ *   - Web                 → `maps.apple.com`'s documented search URL (owner,
+ *                           2026-08-31: "in browser it should open to Apple
+ *                           Maps also") — Apple Maps' own web front end,
+ *                           consistent with the app's Browse map already
+ *                           being Apple MapKit. On iOS Safari it deep-links
+ *                           straight into the native Apple Maps app the same
+ *                           as the `maps://` branch; every other browser
+ *                           lands on Apple's own web map, which needs no
+ *                           account and resolves an address the same way
+ *                           Google's did.
  */
 export function mapsSearchUrl(address: string): string {
   const q = encodeURIComponent(address.trim());
@@ -34,7 +41,7 @@ export function mapsSearchUrl(address: string): string {
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     return isIOS ? `maps://?q=${q}` : `geo:0,0?q=${q}`;
   }
-  return `https://www.google.com/maps/search/?api=1&query=${q}`;
+  return `https://maps.apple.com/?q=${q}`;
 }
 
 export default mapsSearchUrl;

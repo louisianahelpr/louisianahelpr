@@ -3450,6 +3450,34 @@ html.senior-mode *::after {
 }
 
 
+/* ── The overlay scrim — ONE tint, ONE blur, named once ───────────────────
+   Every popup in the app dims the page with the SAME warm 8%-alpha parchment
+   tint over the SAME 24px blur: dialogs, alert dialogs, sheets and the two
+   anchored panels (Notifications off the bell, Filters off the sliders
+   button). The owner has lightened it three times globally — 45% near-black
+   -> 26% -> 14% -> 8% — and each time the value had to be found and edited in
+   every file that had copied it.
+
+   It had reached FIVE copies of the same literal (dialog.tsx,
+   alert-dialog.tsx, sheet.tsx, popover.tsx, anchoredPanel.tsx), and
+   `dialogShell.test.ts` only asserts that TWO of them agree — so a fourth
+   lightening applied to the dialog pair would have drifted the other three
+   silently, which is exactly how AlertDialogOverlay got stranded at 26% once
+   already.
+
+   These tokens are the single source. `ui/popover.tsx`'s `PopoverScrim` (the
+   one shared anchored-panel scrim) reads them. The dialog / alert-dialog /
+   sheet overlays still carry the literal and should be switched to
+   `var(--scrim-tint)` / `var(--scrim-blur)` — that edit belongs with whoever
+   owns those primitives, and after it lands the "change one, change both"
+   comments in them can go away entirely, because there will be one value to
+   change. */
+:root {
+  --scrim-tint: hsla(38, 22%, 22%, 0.08);
+  --scrim-blur: blur(24px) saturate(1.5);
+}
+
+
 /* ── Modal entrance under Reduce Motion ───────────────────────────────────
    The dialog / alert-dialog primitives enter with a scale-and-rise
    (`zoom-in-95` + `slide-in-from-*`, see the note in ui/dialog.tsx). Scale is

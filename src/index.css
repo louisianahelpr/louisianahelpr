@@ -1181,6 +1181,28 @@ html.web-desktop {
      wrapper needs none. */
   box-sizing: border-box;
   max-width: calc(100vw - 32px);
+  /* Paint the card's own surface rather than trusting MapKit's native
+     `.mk-bubble` chrome. That chrome is the browser's bare default popover
+     styling, not our design system — it reads as a different app in a
+     screenshot (a floating X with the page's own gradient bleeding through
+     the corners, no card behind it). The `bare` JobCard inside carries no
+     paint of its own, by design, so SOMETHING has to; this wrapper is that
+     something, reusing the same solid-fill + hairline + shadow recipe as
+     `.liquid-glass` but at the callout's own radius (rounded-lg, matching
+     the JobCard `bare` clip) instead of that class's 24px. */
+  background-color: hsl(0 0% 100%);
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.5rem;
+  box-shadow:
+    inset 0 1px 0 0 hsla(0, 0%, 100%, 0.9),
+    0 1px 3px hsl(var(--olivewood) / 0.1),
+    0 14px 28px -8px hsl(var(--olivewood) / 0.16),
+    0 32px 64px -16px hsl(var(--olivewood) / 0.2);
+}
+
+[data-theme="dark"] .browse-map-callout {
+  background-color: var(--glass-bg-soft);
+  border-color: var(--glass-border);
 }
 
 /* Zoom buttons: centre the glyph in the button it is actually in.

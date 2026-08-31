@@ -156,6 +156,24 @@ export function useMessagesRealtime({
       )
       .on(
         "postgres_changes",
+        // Mirrors the sender-side UPDATE listener above, but for messages
+        // *received* by this user — otherwise a sender's edit (see
+        // supabase/migrations/20260831003117_add_message_editing.sql) never
+        // reaches the other participant's open thread until they leave and
+        // reopen it.
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "messages",
+          filter: `receiver_id=eq.${userId}`,
+        },
+        (payload) => {
+          const updated = payload.new as Message;
+          setMessages((prev) => prev.map((m) => m.id === updated.id ? updated : m));
+        },
+      )
+      .on(
+        "postgres_changes",
         // No server-side filter here, deliberately: a DELETE payload carries
         // only the old row's primary key (REPLICA IDENTITY default), so a
         // receiver_id filter can never match and would silently drop every

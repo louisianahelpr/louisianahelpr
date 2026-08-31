@@ -1868,6 +1868,7 @@ export type Database = {
           attachment_url: string | null
           content: string
           created_at: string
+          edited_at: string | null
           flag_reason: string | null
           flagged_hidden: boolean
           id: string
@@ -1885,6 +1886,7 @@ export type Database = {
           attachment_url?: string | null
           content: string
           created_at?: string
+          edited_at?: string | null
           flag_reason?: string | null
           flagged_hidden?: boolean
           id?: string
@@ -1902,6 +1904,7 @@ export type Database = {
           attachment_url?: string | null
           content?: string
           created_at?: string
+          edited_at?: string | null
           flag_reason?: string | null
           flagged_hidden?: boolean
           id?: string

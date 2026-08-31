@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { AlertTriangle, X } from "lucide-react";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { MessageActionSheet } from "./MessageActionSheet";
+import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { MuteSheet } from "./MuteSheet";
 import { ChatHeader } from "./ChatHeader";
 import { PhotoLightbox } from "@/components/dashboard/PhotoLightbox";
@@ -72,6 +73,10 @@ interface ChatViewProps {
   setReportTarget: Dispatch<SetStateAction<{ type: "message" | "user"; id: string } | null>>;
   setBlockTarget: Dispatch<SetStateAction<{ id: string; name: string } | null>>;
   setDeleteMessageConfirm: Dispatch<SetStateAction<string | null>>;
+  /** Persist an edit to a sent message's content. Mirrors the sender-only,
+   *  15-minute-window RLS policy — see
+   *  supabase/migrations/20260831003117_add_message_editing.sql. */
+  onEditMessage: (messageId: string, newContent: string) => Promise<void>;
   /** Toggle the muted state of the open thread. Mute is per-user and
    *  silences push only — the conversation stays visible and the unread
    *  badge still increments (matches iMessage's "Hide Alerts"). */
@@ -139,6 +144,7 @@ export function ChatView({
   setReportTarget,
   setBlockTarget,
   setDeleteMessageConfirm,
+  onEditMessage,
   onToggleMute,
   onSnoozeMute,
   onUnmute,
@@ -184,6 +190,19 @@ export function ChatView({
   // Message whose long-press action sheet is open (null = closed). One
   // shared sheet for the whole thread, mirroring JobQuickActionSheet.
   const [actionMessage, setActionMessage] = useState<Message | null>(null);
+  // Message being edited via the sheet's "Edit" action, plus the draft text
+  // for the edit dialog below. Separate from `draft` (the composer's own
+  // in-progress text) so opening an edit never clobbers an unsent reply.
+  const [editingMessage, setEditingMessage] = useState<Message | null>(null);
+  const [editDraft, setEditDraft] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+  const saveEdit = async () => {
+    if (!editingMessage) return;
+    setSavingEdit(true);
+    await onEditMessage(editingMessage.id, editDraft);
+    setSavingEdit(false);
+    setEditingMessage(null);
+  };
   // Tapbacks for the open thread. Scoped by job so the realtime subscription
   // can be filtered server-side (see useMessageReactions).
   const { reactions, react } = useMessageReactions(activeConvo?.jobId ?? null, userId);
@@ -428,10 +447,37 @@ export function ChatView({
         onReport={(id) => setReportTarget({ type: "message", id })}
         onBlock={() => setBlockTarget({ id: activeConvo.otherUserId, name: activeConvo.otherUserName })}
         onDelete={setDeleteMessageConfirm}
+        onEdit={(m) => { setEditDraft(m.content); setEditingMessage(m); }}
         onReact={react}
         myReaction={actionMessage ? (reactions.get(actionMessage.id)?.mine ?? null) : null}
         onReply={setReplyTo}
       />
+
+      {/* Edit dialog — opened from the action sheet's "Edit" row. A plain
+          textarea rather than reusing ChatComposer: editing replaces a
+          sent message in place, it doesn't attach/reply/send a new one,
+          so the composer's send-pipeline machinery doesn't apply here. */}
+      <BrandConfirmDialog
+        open={!!editingMessage}
+        onOpenChange={(open) => { if (!open) setEditingMessage(null); }}
+        title="Edit Message"
+        description="Changes are visible to the other person, and the message is marked as edited."
+        primaryLabel={savingEdit ? "Saving…" : "Save"}
+        primaryTone="bark"
+        primaryDisabled={savingEdit || !editDraft.trim()}
+        primaryHaptic="none"
+        onPrimary={(e) => { e.preventDefault(); saveEdit(); }}
+        secondaryLabel="Cancel"
+      >
+        <textarea
+          value={editDraft}
+          onChange={(e) => setEditDraft(e.target.value)}
+          rows={3}
+          autoFocus
+          className="w-full rounded-ds-md border px-3 py-2 text-ds-13 font-sans resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
+          style={{ borderColor: "hsl(var(--olivewood) / 0.2)", background: "hsl(var(--ivory-sand) / 0.5)", color: "hsl(var(--ink-deep))" }}
+        />
+      </BrandConfirmDialog>
     </ChatPaneShell>
   );
 }

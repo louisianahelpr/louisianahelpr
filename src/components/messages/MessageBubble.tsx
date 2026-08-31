@@ -315,6 +315,7 @@ export function MessageBubble({
             {!grouped && (
               <span>
                 {new Date(m.created_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true })}
+                {m.edited_at && " · Edited"}
               </span>
             )}
             {showReadReceipt && (

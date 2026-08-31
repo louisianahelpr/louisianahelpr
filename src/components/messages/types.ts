@@ -16,6 +16,10 @@ export type Message = {
    *  supabase/migrations/20260830233932_add_messages_read_at.sql. */
   read_at?: string | null;
   created_at: string;
+  /** Set by a server-side trigger the first time the sender edits `content`.
+   *  Null on never-edited messages. See
+   *  supabase/migrations/20260831003117_add_message_editing.sql. */
+  edited_at?: string | null;
   attachment_url: string | null;
   attachment_mime: string | null;
   attachment_size: number | null;

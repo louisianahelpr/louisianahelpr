@@ -319,6 +319,46 @@ const Messages = () => {
     setDeleteMessageConfirm(null);
   };
 
+  // Sender-only, 15-minute-window edit — the same constraints the RLS
+  // policy enforces server-side (see
+  // supabase/migrations/20260831003117_add_message_editing.sql). The
+  // trigger stamps `edited_at`; we optimistically mirror it here rather
+  // than round-tripping a re-fetch.
+  const editMessage = async (messageId: string, newContent: string) => {
+    const trimmed = newContent.trim();
+    if (!trimmed) return;
+    const { data, error } = await supabase
+      .from("messages")
+      .update({ content: trimmed })
+      .eq("id", messageId)
+      .select("id, edited_at");
+    if (error || !data || data.length === 0) {
+      hapticError();
+      toast.error("Couldn't save that edit — give it another try?");
+      return;
+    }
+    const editedAt = data[0].edited_at ?? new Date().toISOString();
+    const updated = messages.map((m) =>
+      m.id === messageId ? { ...m, content: trimmed, edited_at: editedAt } : m,
+    );
+    setMessages(updated);
+    // Mirror deleteMessage: only the thread's latest real message drives
+    // the inbox preview, so re-derive it the same way.
+    if (activeConvo) {
+      const lastReal = [...updated].reverse().find((m) => !m.is_system);
+      if (lastReal?.id === messageId) {
+        setConversations((prev) =>
+          prev.map((c) =>
+            c.jobId === activeConvo.jobId && c.otherUserId === activeConvo.otherUserId
+              ? { ...c, lastMessage: trimmed }
+              : c,
+          ),
+        );
+      }
+    }
+    hapticSuccess();
+  };
+
   // The two panes, built once and reused by both the mobile screen-swap
   // and the desktop side-by-side split. `embedded={isWebDesktop}` strips
   // each component's own full-viewport shell on desktop so they compose
@@ -369,6 +409,7 @@ const Messages = () => {
       setReportTarget={setReportTarget}
       setBlockTarget={setBlockTarget}
       setDeleteMessageConfirm={setDeleteMessageConfirm}
+      onEditMessage={editMessage}
       onToggleMute={handleToggleMute}
       onSnoozeMute={handleSnoozeMute}
       onUnmute={handleUnmute}

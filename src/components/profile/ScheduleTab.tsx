@@ -397,7 +397,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
                     title={blockedReason ?? undefined}
                     aria-label={blockedReason ? `${dateStr} — ${blockedReason.toLowerCase()}` : undefined}
                     className={`relative h-8 flex flex-col items-center justify-center rounded-ds-sm text-ds-11 transition-colors ${
-                      isSelected ? "bg-primary text-primary-foreground" :
+                      isSelected ? "btn-grad-primary text-[hsl(var(--parchment))]" :
                       isToday ? "text-primary font-bold ring-2 ring-primary/70 ring-inset bg-primary/8" :
                       isBlocked ? "text-muted-foreground/70 bg-muted/30 hover:bg-muted/50" :
                       "hover:bg-secondary text-foreground"
@@ -561,7 +561,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
                           type="button"
                           onClick={() => setUpcomingFilter(opt.value)}
                           className={`w-full text-left px-2.5 h-9 rounded-md text-ds-13 font-sans font-medium transition-colors ${
-                            active ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-secondary/70"
+                            active ? "btn-grad-primary text-[hsl(var(--parchment))]" : "text-foreground hover:bg-secondary/70"
                           }`}
                         >
                           {opt.label}

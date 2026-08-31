@@ -77,8 +77,27 @@ export const categoryColors: Record<string, { badge: string; title: string; dot:
  * New code: import `jobStatusColorClasses(status)` instead.
  */
 import { jobStatusColorClasses } from "@/lib/statusColors";
+import type { Database } from "@/integrations/supabase/types";
 
-export const statusBadge: Record<string, string> = {
+type JobStatus = Database["public"]["Enums"]["job_status"];
+
+/**
+ * Typed `Record<JobStatus, …>`, NOT `Record<string, …>`.
+ *
+ * The doc above claims "the activity-constants test asserts every job_status
+ * enum value has a row here". It did not — the test's `required` array was
+ * hand-maintained and never listed `pending_approval`, so the map silently
+ * lost a status and `Record<string, string>` meant the compiler could not say
+ * so either. A missing status returns `undefined`, which renders as an
+ * unstyled badge.
+ *
+ * With the key type bound to the DB enum, omitting a status is a COMPILE
+ * error and a new enum value breaks the build until someone gives it a colour.
+ * That is the third time in this codebase a status has fallen through a map or
+ * a switch and rendered nothing; a comment asking people to remember was the
+ * safeguard each time, and it failed each time.
+ */
+export const statusBadge: Record<JobStatus, string> = {
   open:               jobStatusColorClasses("open"),
   accepted:           jobStatusColorClasses("accepted"),
   in_progress:        jobStatusColorClasses("in_progress"),
@@ -86,6 +105,7 @@ export const statusBadge: Record<string, string> = {
   completed:          jobStatusColorClasses("completed"),
   cancelled:          jobStatusColorClasses("cancelled"),
   disputed:           jobStatusColorClasses("disputed"),
+  pending_approval:   jobStatusColorClasses("pending_approval"),
 };
 
 export type EnrichedApplication = Application & {

@@ -527,7 +527,18 @@ function ToggleRow({
         checked={checked}
         onCheckedChange={(v) => { hapticLight(); onChange(v); }}
         disabled={disabled}
-        aria-label={ariaLabel}
+        // COMPOSED, not substituted. This rendered `ariaLabel` alone, so the
+        // switch's accessible name replaced its visible text — a voice-control
+        // user saying the words they can see ("Boosted Jobs") hits nothing,
+        // WCAG 2.5.3. Today's four call sites happen to contain their label;
+        // nothing made the fifth. Prefixing the visible label guarantees it,
+        // and the pass-through keeps a caller that already leads with it from
+        // saying it twice.
+        aria-label={
+          ariaLabel.toLowerCase().startsWith(label.toLowerCase())
+            ? ariaLabel
+            : `${label} — ${ariaLabel}`
+        }
         // Sienna, not the global olivewood: on THIS surface the accent color
         // already means "narrowing is on" (Clear All, the Filtered eyebrow,
         // the Boosted/Urgent icons), so the lit switch joins that family.

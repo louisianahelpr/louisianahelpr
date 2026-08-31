@@ -205,7 +205,7 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
                           type="button"
                           onClick={() => setSortBy(opt.value)}
                           className={`w-full text-left px-2.5 h-9 rounded-md text-ds-13 font-sans font-medium transition-colors ${
-                            active ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-secondary/70"
+                            active ? "btn-grad-primary text-[hsl(var(--parchment))]" : "text-foreground hover:bg-secondary/70"
                           }`}
                         >
                           {opt.label}

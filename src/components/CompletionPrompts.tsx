@@ -229,7 +229,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
                   onClick={() => toggleQuickOption(opt)}
                   className={`text-ds-11 px-3 py-1.5 rounded-full border transition-colors ${
                     feedback.includes(opt)
-                      ? "bg-primary text-primary-foreground border-primary"
+                      ? "btn-grad-primary text-[hsl(var(--parchment))] border-transparent"
                       : "bg-secondary text-secondary-foreground border-border hover:bg-accent"
                   }`}
                 >

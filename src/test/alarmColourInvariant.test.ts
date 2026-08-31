@@ -147,10 +147,14 @@ function railTones(opts: {
     const disputedWorking = jobStatus === "disputed" && key === "working";
     if (disputedWorking) return "alarm";
     if (isCurrent) {
-      // JobTracking.tsx: the `currentTone` ternary chain.
-      if (jobStatus === "disputed") return "alarm";
-      if (jobStatus === "revision_requested") return "amber";
-      return allDone ? "green" : "bark";
+      // JobTracking.tsx: `const currentTone = allDone ? --success-ink : --amber-solid`.
+      // The old ternary chain painted the current step ALARM under a dispute and
+      // BARK otherwise — a second green a shade off --success-ink. Both were
+      // defects the owner named ("both can't be red"; "shouldn't be 2 different
+      // green"). Red is now carried solely by `disputedWorking` above, so amber
+      // means exactly "on this step, not finished" and green means exactly
+      // "this step completed".
+      return allDone ? "green" : "amber";
     }
     if (isPassed || (isActive && allDone)) return "green";
     if (isActive) return "bark-tint";
@@ -169,12 +173,18 @@ describe("the progress rail's colour rule", () => {
     ).toMatch(/disputedWorking\s*=\s*jobStatus === "disputed" && s\.key === "working"/);
     expect(
       SOURCE,
-      "the `currentTone` ternary changed shape — re-transcribe railTones()",
-    ).toMatch(/currentTone\s*=[\s\S]{0,120}jobStatus === "disputed"[\s\S]{0,200}jobStatus === "revision_requested"/);
+      "`currentTone` changed shape — re-transcribe railTones(). It should be the " +
+        "two-branch allDone ? --success-ink : --amber-solid, NOT a ternary chain " +
+        "keyed on jobStatus (that chain is what put two reds on one card).",
+    ).toMatch(/currentTone\s*=\s*allDone[\s\S]{0,200}--amber-solid/);
     expect(
       SOURCE,
-      "the current step no longer paints from --destructive under a dispute — " +
-        "if the alarm colour moved, re-transcribe",
+      "the current step paints from --destructive again — red must be carried " +
+        "ONLY by disputedWorking, or two steps can go alarm red at once",
+    ).not.toMatch(/currentTone\s*=[\s\S]{0,300}--destructive/);
+    expect(
+      SOURCE,
+      "disputedWorking no longer paints --destructive — the alarm colour moved",
     ).toMatch(/hsl\(var\(--destructive\)\)/);
   });
 
@@ -216,7 +226,11 @@ describe("the progress rail's colour rule", () => {
     const steps = ["assigned", "confirmed", "job_confirmed", "on_the_way", "arrived", "working", "done"] as const;
     const tones = railTones({ steps, displayIdx: 3, jobStatus: "in_progress" });
     expect(tones.slice(0, 3).every((t) => t === "green"), `steps behind the cursor: ${tones.slice(0, 3)}`).toBe(true);
-    expect(tones[3], "the current step must be the single accent").toBe("bark");
+    // Amber, not bark. The owner's rule: "Yellow if they're on that step until
+    // they're done that step." Bark was a second green a shade off the
+    // completed --success-ink, so the current step — the one thing the rail
+    // exists to point at — was indistinguishable from the ones behind it.
+    expect(tones[3], "the current step must be the single accent").toBe("amber");
     expect(
       tones.slice(4).every((t) => t === "grey"),
       `steps ahead of the cursor must all be the not-reached grey, got: ${tones.slice(4)}`,
@@ -244,13 +258,21 @@ describe("the progress rail's colour rule", () => {
     for (const jobStatus of Constants.public.Enums.job_status) {
       for (let idx = 0; idx < steps.length; idx++) {
         const tones = railTones({ steps, displayIdx: idx, jobStatus });
-        // An "attention" colour (alarm or amber) marks ONE thing: where the
-        // trouble is. More than one in a row means the user cannot tell where.
-        const attention = tones.filter((t) => t === "alarm" || t === "amber").length;
-        if (attention > 1) {
+        // ONE COLOUR, ONE MEANING — and alarm and amber are now two different
+        // meanings, so a row may legitimately carry one of each.
+        //   amber = "you are on this step, it is not finished"
+        //   alarm = "this is the step that went wrong"
+        // What must never happen is TWO of the same: two ambers leaves the
+        // reader unable to say where they are, and two alarms was the owner's
+        // original finding ("Both can't be red") — Working pinned red under a
+        // dispute while the current step went red as well.
+        const alarms = tones.filter((t) => t === "alarm").length;
+        const ambers = tones.filter((t) => t === "amber").length;
+        const dupe = alarms > 1 ? "alarm" : ambers > 1 ? "amber" : null;
+        if (dupe) {
           collisions.push(
-            `status="${jobStatus}", cursor on "${steps[idx]}" → ${attention} attention-coloured ` +
-              `steps (${steps.filter((_, i) => tones[i] === "alarm" || tones[i] === "amber").join(", ")})`,
+            `status="${jobStatus}", cursor on "${steps[idx]}" → ${dupe === "alarm" ? alarms : ambers} ` +
+              `"${dupe}" steps (${steps.filter((_, i) => tones[i] === dupe).join(", ")})`,
           );
         }
       }

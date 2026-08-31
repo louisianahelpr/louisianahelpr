@@ -168,7 +168,7 @@ export function NpsPrompt({ userId, onClose }: NpsPromptProps) {
                   className={cn(
                     "flex-1 min-w-0 h-11 rounded-ds-md border text-ds-13 font-semibold transition-colors",
                     selected
-                      ? "bg-[hsl(var(--bark))] text-[hsl(var(--parchment))] border-[hsl(var(--bark))]"
+                      ? "btn-grad-primary text-[hsl(var(--parchment))] border-transparent"
                       : "bg-[hsl(var(--parchment))] text-[hsl(var(--olivewood))] border-[hsl(var(--bark)/0.25)] hover:bg-[hsl(var(--bark)/0.08)]",
                   )}
                 >

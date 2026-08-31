@@ -179,10 +179,16 @@ export const QuickReplies = ({ onSelect, onSend, audience = "helper", jobStatus,
           <Send className="w-2.5 h-2.5 opacity-70" />
         </Button>
       ))}
+      {/* The variant owns the fill. This button repainted it with `bg-primary`
+          + hover:bg-primary/90 — a FLAT brand colour laid over the shared
+          glossy gradient, so the most prominent send action in Messages looked
+          like it came from a different button system than every other primary
+          in the app. */}
       {showEnRoute && (
         <Button
+          variant="primary"
           size="sm"
-          className="shrink-0 text-ds-11 min-h-[44px] px-2.5 gap-1 rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
+          className="shrink-0 text-ds-11 min-h-[44px] px-2.5 gap-1 rounded-full"
           onClick={() => setShowEta(true)}
         >
           <Navigation className="w-3 h-3" />

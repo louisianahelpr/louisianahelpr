@@ -1345,14 +1345,33 @@ export function JobTracking({
               // steps behind it really did happen and recolouring the whole
               // line would read as "none of this counts" — except Working
               // under an open dispute, and Done once the whole job is green.
-              const currentTone =
-                jobStatus === "disputed"
-                  ? { fill: "hsl(var(--destructive))", ring: "hsl(var(--destructive) / 0.30)", ringEnd: "hsl(var(--destructive) / 0)" }
-                  : jobStatus === "revision_requested"
-                    ? { fill: "hsl(var(--amber-solid))", ring: "hsl(var(--amber-solid) / 0.30)", ringEnd: "hsl(var(--amber-solid) / 0)" }
-                    : allDone
-                      ? { fill: "hsl(var(--success-ink))", ring: "hsl(var(--success-ink) / 0.30)", ringEnd: "hsl(var(--success-ink) / 0)" }
-                      : { fill: "hsl(var(--bark))", ring: "hsl(var(--bark) / 0.30)", ringEnd: "hsl(var(--bark) / 0)" };
+              // ONE GREEN, ONE AMBER, ONE RED — the owner's rule, and it
+              // replaces two separate defects that were both live:
+              //
+              //   "Shouldn't be 2 different green. Yellow if they're on that
+              //    step until they're done that step."
+              //   "Both can't be red."
+              //
+              // The old scheme painted completed steps --success-ink and the
+              // CURRENT step --bark. Two greens a shade apart read as the same
+              // colour at a glance, so the current step — the one thing the
+              // rail exists to tell you — did not stand out at all.
+              //
+              // And red had two sources that could both fire on one card:
+              // `disputedWorking` (below) pins Working red wherever the cursor
+              // is, while this branch painted the CURRENT step red under a
+              // dispute. A disputed job carrying a completion stamp parks on
+              // `done`, so Working AND Done both went alarm red — exactly the
+              // screenshot the owner sent.
+              //
+              // Now: amber is "you are on this step, it is not finished", red
+              // is ONLY "this is the step that went wrong" (disputedWorking),
+              // and green is only ever a step that genuinely completed. When
+              // the current step IS the problem step the two coincide and red
+              // wins, which is correct — it is the more urgent meaning.
+              const currentTone = allDone
+                ? { fill: "hsl(var(--success-ink))", ring: "hsl(var(--success-ink) / 0.30)", ringEnd: "hsl(var(--success-ink) / 0)" }
+                : { fill: "hsl(var(--amber-solid))", ring: "hsl(var(--amber-solid) / 0.30)", ringEnd: "hsl(var(--amber-solid) / 0)" };
               const Icon = s.icon;
               const ts = stepTimestamps[s.key];
               // Tooltip only on a genuinely COMPLETED step (passed, or the

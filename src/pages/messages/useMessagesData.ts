@@ -266,13 +266,27 @@ export function useMessagesData({
   useEffect(() => {
     if (deepLinkHandled.current) return;
     if (!resolvedUserId || !allConversations) return;
-    if (!deepLinkJobId || !deepLinkUserId) return;
+    // jobId alone is enough. Every message notification produced in prod
+    // carries ONLY `?jobId=` (notify_message_recipient, migration
+    // 20260510032531) — verified against live rows — while this required BOTH
+    // params, so tapping a new-message notification always landed on the inbox
+    // and never opened the thread. The trigger now also sends `userId`, but
+    // requiring it here would still strand every notification already sitting
+    // in someone's list.
+    if (!deepLinkJobId) return;
     deepLinkHandled.current = true;
 
     const openIfMatch = (list: Conversation[]) => {
-      const match = list.find(
-        (c) => c.jobId === deepLinkJobId && c.otherUserId === deepLinkUserId,
-      );
+      // With both params, match exactly. With jobId alone, open it only when
+      // that job has exactly ONE conversation — a group job can have several,
+      // and guessing which counterparty the user meant would be worse than
+      // leaving them on the inbox.
+      const candidates = list.filter((c) => c.jobId === deepLinkJobId);
+      const match = deepLinkUserId
+        ? candidates.find((c) => c.otherUserId === deepLinkUserId)
+        : candidates.length === 1
+          ? candidates[0]
+          : undefined;
       if (!match) return false;
       setActiveConvo(match);
       openThreadUrl();
@@ -299,6 +313,12 @@ export function useMessagesData({
       );
       if (refreshed && openIfMatch(refreshed)) return;
 
+      // A placeholder needs to know WHO the thread is with. On a jobId-only
+      // link (every message notification produced before the trigger started
+      // sending userId) we don't know, and guessing would open a thread with
+      // the wrong person. Leave them on the inbox — the conversation they want
+      // is in the list, just not auto-opened.
+      if (!deepLinkUserId) return;
       const placeholder = await buildDeepLinkPlaceholder(
         resolvedUserId,
         deepLinkJobId,

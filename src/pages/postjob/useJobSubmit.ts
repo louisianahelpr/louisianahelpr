@@ -439,10 +439,17 @@ export function useJobSubmit(params: UseJobSubmitParams) {
       });
       const coords = await geocodeAddress(composed);
       if (coords) {
-        await supabase
+        const { data: rows } = await supabase
           .from("jobs")
           .update({ latitude: coords.latitude, longitude: coords.longitude })
-          .eq("id", jobData.id);
+          .eq("id", jobData.id)
+          .select("id");
+        if (rows && rows.length === 0) {
+          report(new Error("job geocode update affected 0 rows"), {
+            tags: { source: "PostJob.geocodeAttach" },
+            context: { job_id: jobData.id },
+          });
+        }
       }
     })();
 

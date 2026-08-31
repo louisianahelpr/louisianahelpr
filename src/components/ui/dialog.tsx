@@ -166,47 +166,51 @@ const DialogContent = React.forwardRef<
       {...props}
     >
       {children}
-      {/* ONE row, not two siblings faking one: `topRightSlot` (Share/Save/
-          Report, when a caller passes them) and the close X share this same
-          flex container instead of each being independently `absolute`-
-          positioned with a magic-number offset tuned to not collide with
-          the other. `top-2`, not `top-3` (owner, 2026-08-30: "move up so
-          it's not so close to money") when a slot is present — that content
-          usually sits directly above a price chip near the dialog's top
-          edge, and the default offset crowded it. */}
-      <div className={`absolute right-3 z-10 flex items-center gap-0.5 ${topRightSlot ? "top-2" : "top-3"}`}>
-        {topRightSlot}
-        {/* Bare X — no filled disc, border, or shadow, matching SheetContent's
-            close and BackButton's bare chevron. `rounded-md` shapes the focus
-            ring only; nothing is painted at rest.
-            44x44 by default (the HIG tap-target floor) — `compactClose`
-            shrinks it to 32x32 to match a `topRightSlot`'s own compact icons
-            (owner, 2026-08-30: "the 4 icons do not follow the same rules and
-            they need to" / "should be same size and spacing" — JobDetailDialog's
-            Share/Save/Flag are `compact` 32px, so the X was the one
-            inconsistent tile in that row). This is the shared close button
-            for every dialog in the app, so the inline min-height/min-width
-            override (needed to beat the global `button { min-height: 44px }`
-            floor) applies everywhere; `compactClose` only opts a specific
-            dialog instance INTO the smaller target, it never shrinks the
-            floor for dialogs that don't pass it. */}
-        <DialogPrimitive.Close
-          // `group` + the icon's own hover transform match the small lift every
-          // other chrome icon (Share/Save/Flag) gets on hover (owner,
-          // 2026-08-30: "make x do the same globally") — applied here since
-          // this X is the one shared by every dialog in the app.
-          // `focus-visible:`, not `focus:` (owner, 2026-08-31: "there
-          // shouldn't be a box around it when it's clicked") — plain
-          // `focus:` fires the ring on every mouse click, not just keyboard
-          // navigation. Matches the shared `Button` component's own
-          // convention (button.tsx uses `focus-visible:` throughout).
-          className="group w-8 p-0 box-border rounded-md btn-press flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none"
-          style={compactClose ? { minHeight: "32px", minWidth: "32px" } : { minHeight: "44px", minWidth: "32px" }}
-        >
-          <X className="h-[18px] w-[18px] transition-transform duration-300 group-hover:-translate-y-0.5" strokeWidth={2} />
-          <span className="sr-only">Close</span>
-        </DialogPrimitive.Close>
-      </div>
+      {/* `topRightSlot` (Share/Save/Report, when a caller passes them) sits to
+          the left of the close X in its own absolute container. The offset
+          right-[46px] = right-3(12px) + w-8(32px) + gap-0.5(2px) keeps the
+          same visual gap as the previous single-row flex layout, while keeping
+          the close X independently absolute (required — see next comment). */}
+      {topRightSlot && (
+        <div className="absolute right-[46px] top-2 z-10 flex items-center gap-0.5">
+          {topRightSlot}
+        </div>
+      )}
+      {/* Bare X — no filled disc, border, or shadow, matching SheetContent's
+          close and BackButton's bare chevron. `rounded-md` shapes the focus
+          ring only; nothing is painted at rest.
+          44x44 by default (the HIG tap-target floor) — `compactClose`
+          shrinks it to 32x32 to match a `topRightSlot`'s own compact icons
+          (owner, 2026-08-30: "the 4 icons do not follow the same rules and
+          they need to" / "should be same size and spacing" — JobDetailDialog's
+          Share/Save/Flag are `compact` 32px, so the X was the one
+          inconsistent tile in that row). This is the shared close button
+          for every dialog in the app, so the inline min-height/min-width
+          override (needed to beat the global `button { min-height: 44px }`
+          floor) applies everywhere; `compactClose` only opts a specific
+          dialog instance INTO the smaller target, it never shrinks the
+          floor for dialogs that don't pass it.
+          MUST BE `position: absolute` (not a flex child): the apply-dialog-fit
+          e2e spec detects frame-chrome buttons via
+          `getComputedStyle(btn).position === "absolute"` and exempts them from
+          the content-box edge assertion — the X intentionally spans the padding
+          gutter at right-3, so it needs that exemption. */}
+      <DialogPrimitive.Close
+        // `group` + the icon's own hover transform match the small lift every
+        // other chrome icon (Share/Save/Flag) gets on hover (owner,
+        // 2026-08-30: "make x do the same globally") — applied here since
+        // this X is the one shared by every dialog in the app.
+        // `focus-visible:`, not `focus:` (owner, 2026-08-31: "there
+        // shouldn't be a box around it when it's clicked") — plain
+        // `focus:` fires the ring on every mouse click, not just keyboard
+        // navigation. Matches the shared `Button` component's own
+        // convention (button.tsx uses `focus-visible:` throughout).
+        className={`absolute right-3 z-10 ${topRightSlot ? "top-2" : "top-3"} group w-8 p-0 box-border rounded-md btn-press flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none`}
+        style={compactClose ? { minHeight: "32px", minWidth: "32px" } : { minHeight: "44px", minWidth: "32px" }}
+      >
+        <X className="h-[18px] w-[18px] transition-transform duration-300 group-hover:-translate-y-0.5" strokeWidth={2} />
+        <span className="sr-only">Close</span>
+      </DialogPrimitive.Close>
     </DialogPrimitive.Content>
   </DialogPortal>
 ));

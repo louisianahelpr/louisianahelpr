@@ -551,6 +551,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           rather than kept as permanent non-functional furniture. */}
       {view === "insights" && (
       <section className="space-y-4">
+      <p className="text-ds-11 px-1" style={{ color: "hsl(var(--olivewood) / 0.6)" }}>More insights with every completed job</p>
 
       {/* PIE + YTD vs PRIOR-YTD compare ───────────────────
           Self-hides if there's no completed-job data. */}

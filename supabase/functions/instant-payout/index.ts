@@ -53,7 +53,7 @@ serve(async (req) => {
     // Look up helper's Stripe Connect account
     const { data: profile, error: profileErr } = await supabaseAdmin
       .from("profiles")
-      .select("stripe_account_id, full_name")
+      .select("stripe_account_id, full_name, subscription_tier, subscription_expires_at")
       .eq("user_id", user.id)
       .maybeSingle();
 
@@ -67,6 +67,38 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "No payout account connected. Set up your payout account first." }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400,
       });
+    }
+
+    // PAID ENTITLEMENT — enforced on the server, for BOTH quote and execute.
+    //
+    // Instant Payouts is sold on Basic/Pro/Elite, but the only gate used to be
+    // the client (EarningsTab.tsx `canUseInstantPayout` and WalletCard). A
+    // 2026-08-31 audit called this endpoint directly with
+    // `subscription_tier = null` and it executed a REAL payout
+    // (po_1UAWFR3gUgw4QMyhMnVrRjbA, $66.93 net, ledger row completed). Any
+    // free account could take the paid feature — and pay us the 3% fee for a
+    // service they were never entitled to buy, which is the worse half.
+    //
+    // The tier ladder and the expiry convention are mirrored EXACTLY from
+    // EarningsTab.tsx:84-94 so the button and the endpoint cannot disagree:
+    // a null expiry means "active" (lifetime/comped), a past expiry means
+    // lapsed. The minimum-cashout floor below already carries the same
+    // "a client that skips the UI gate" reasoning — this closes the gap it
+    // left open.
+    const tier = profile?.subscription_tier ?? "free";
+    const expiresAt = profile?.subscription_expires_at
+      ? new Date(profile.subscription_expires_at)
+      : null;
+    const subActive = expiresAt ? expiresAt > new Date() : true;
+    const entitled = subActive && (tier === "basic" || tier === "pro" || tier === "elite");
+    if (!entitled) {
+      return new Response(
+        JSON.stringify({
+          error: "Instant payout is a membership feature. Upgrade to Basic, Pro or Elite to cash out instantly — your funds still pay out free on the standard schedule.",
+          code: "membership_required",
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 },
+      );
     }
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {

@@ -62,17 +62,31 @@ serve(async (req) => {
       apiVersion: "2025-08-27.basil",
     });
 
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+    // `limit: 1` here was the same bug check-pro-subscription:62-65 already
+    // fixed and documented: a user can hold MULTIPLE Stripe customer records
+    // for one email, and list() returns an arbitrary one. If the active
+    // subscription lived on any other record, the "already subscribed" guard
+    // below never fired, we tried to open a second checkout, Stripe rejected
+    // it, and the catch masked that as a 500. An audit reproduced it five
+    // times out of five on a subscribed account.
+    //
+    // Mirror the sibling function: consider EVERY customer record for the
+    // email, and treat an active subscription on any of them as subscribed.
+    const customers = await stripe.customers.list({ email: user.email, limit: 100 });
     let customerId;
     if (customers.data.length > 0) {
+      // Prefer a record that actually carries the active subscription, so the
+      // checkout attaches to the right customer rather than an empty duplicate.
       customerId = customers.data[0].id;
       if (billing_cycle !== "one_time") {
-        const subs = await stripe.subscriptions.list({ customer: customerId, status: "active", limit: 10 });
-        if (subs.data.length > 0) {
-          return new Response(JSON.stringify({ error: "You already have an active subscription. Manage it from the portal to switch tiers." }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-            status: 400,
-          });
+        for (const customer of customers.data) {
+          const subs = await stripe.subscriptions.list({ customer: customer.id, status: "active", limit: 10 });
+          if (subs.data.length > 0) {
+            return new Response(JSON.stringify({ error: "You already have an active subscription. Manage it from the portal to switch tiers." }), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+              status: 400,
+            });
+          }
         }
       }
     }
@@ -80,7 +94,15 @@ serve(async (req) => {
     const isOneTime = billing_cycle === "one_time";
 
     // Build subscription data with optional billing anchor day (only for recurring)
-    const subscriptionData: Record<string, any> = {};
+    // Stamp the user onto the SUBSCRIPTION itself, not just the Session.
+    // customer.subscription.updated/deleted events carry the subscription, not
+    // the session, so without this they had nothing to resolve a user by and
+    // fell back to matching `profiles.email` — a column with NO unique
+    // constraint, so a renewal could hit zero rows or several. Now every
+    // lifecycle event can resolve the exact account.
+    const subscriptionData: Record<string, any> = {
+      metadata: { user_id: user.id, tier },
+    };
     if (!isOneTime && billing_day && billing_day >= 1 && billing_day <= 28) {
       subscriptionData.billing_cycle_anchor_config = { day_of_month: billing_day };
     }
@@ -103,7 +125,7 @@ serve(async (req) => {
       automatic_tax: { enabled: true },
     };
 
-    if (!isOneTime && Object.keys(subscriptionData).length > 0) {
+    if (!isOneTime) {
       sessionParams.subscription_data = subscriptionData;
     }
 

@@ -218,7 +218,7 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
   // Floor raised from 180 to 220 — below that the location/date/time meta
   // row (nowrap by design, shared with the feed card) had no room to
   // breathe and its pieces visually crowded/overlapped each other.
-  const calloutWidth = paneWidth ? Math.max(220, Math.min(280, paneWidth - 40)) : 280;
+  const calloutWidth = paneWidth ? Math.max(220, Math.min(320, paneWidth - 40)) : 320;
 
   const retry = () => {
     setLoadError(false);
@@ -397,7 +397,7 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
               try { map.selectedAnnotations = []; } catch { /* ignore */ }
             }}
             aria-label="Close"
-            className="absolute -top-1 -right-1 z-20 w-6 h-6 flex items-center justify-center text-muted-foreground hover:text-foreground"
+            className="absolute top-1 right-1 z-20 w-6 h-6 flex items-center justify-center text-muted-foreground hover:text-foreground"
           >
             <X className="w-4 h-4" strokeWidth={2.5} />
           </button>
@@ -408,6 +408,7 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
             onApply={() => onJobAction?.(job.id)}
             onReport={() => { /* no report surface on the map pin popup */ }}
             guestPricing={effectiveFee === undefined}
+            bare
           />
         </div>,
       );

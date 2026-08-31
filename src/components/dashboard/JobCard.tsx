@@ -65,6 +65,17 @@ interface JobCardProps {
    * feed leaves it false and shows no pill.
    */
   recommended?: boolean;
+  /**
+   * Drops the card's own outer chrome (rounded corners, border, shadow,
+   * background, hover lift) so it can sit directly inside another
+   * container that already provides that shape — the map pin's callout
+   * bubble, e.g. (owner, 2026-08-30: "should be 1 component not
+   * multiple" — MapKit's `.mk-bubble` and this card were each drawing
+   * their own rounded rect, so the popup read as a card nested inside a
+   * second card). Everything below the outer wrapper — rail, badges,
+   * title, meta — is unchanged; only the wrapper's own paint is dropped.
+   */
+  bare?: boolean;
 }
 
 // Category colors apply ONLY to the category badge pill at the top of
@@ -72,7 +83,7 @@ interface JobCardProps {
 // charcoal) across all categories so the brand reads consistently and
 // the colored badge stays the single accent in the row. The `accent`
 // gradient tints are kept for the boosted/recommended highlight strip.
-const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: _showApply = true, onSelect, index = 0, isExpanded: _isExpanded = false, onToggleExpand: _onToggleExpand, isSaved: _isSaved = false, onToggleSave: _onToggleSave, variant = "default", guestPricing = false, userLat = null, userLng = null, recommended = false }: JobCardProps) => {
+const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: _showApply = true, onSelect, index = 0, isExpanded: _isExpanded = false, onToggleExpand: _onToggleExpand, isSaved: _isSaved = false, onToggleSave: _onToggleSave, variant = "default", guestPricing = false, userLat = null, userLng = null, recommended = false, bare = false }: JobCardProps) => {
   const isGuest = variant === "guest";
 
   // A tap always opens the job detail view. Saving lives behind the
@@ -247,14 +258,20 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
       // the card actually fill the cell it was already given. In a non-stretch
       // parent (auto height) this resolves to auto, so single-card contexts are
       // unaffected.
-      className="motion-safe:animate-fade-in group relative h-full rounded-2xl border border-border/60 bg-card cursor-pointer transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-0.5 active:scale-[0.99] shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      className={
+        bare
+          ? "group relative h-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          : "motion-safe:animate-fade-in group relative h-full rounded-2xl border border-border/60 bg-card cursor-pointer transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-0.5 active:scale-[0.99] shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      }
       {...interactiveProps}
     >
       {/* Clipped inner surface — rounds the rail, body, and guest CTA to
           the card shape. The category tab + rail both live inside this clip
           so they share the card's rounded top-left corner and read as one
-          continuous shape. */}
-      <div className="relative h-full rounded-2xl overflow-hidden">
+          continuous shape. `bare` still clips (the callout bubble itself is
+          rounded, and the category rail/tab need SOME edge to align to) but
+          carries no paint of its own. */}
+      <div className={`relative h-full overflow-hidden ${bare ? "rounded-lg" : "rounded-2xl"}`}>
         {/* Category rail — vertical color stripe down the left edge. The
             tab below sits flush on top of it (same left edge) so the tab's
             flat left side flows straight into the rail with no gap. */}
@@ -386,41 +403,21 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
         })()}
         <div className="w-full px-3.5 pt-6 pb-2.5">
         {/* Title + price share the top row — price chip is vertically
-            centered against the title so on a two-line title it sits in the
-            middle. The location/date/time meta spans the full card width
-            below. Titles clamp to two lines — see the note on the h3. */}
+            centered against the title. The location/date/time meta spans
+            the full card width below.
+            Truncates to ONE line (owner, 2026-08-30: match the My Posts
+            card's density — see PostedJobCard's JobCardTitleBar). This also
+            fixes the row-height-variance bug the previous 2-line reservation
+            was working around: every card now has exactly one title line, so
+            the virtualized feed's measureElement never has to reconcile a
+            short-vs-tall run of cards. `min-w-0` lets it shrink/truncate
+            inside the flex row at all. */}
         <div className="flex items-center justify-between gap-3">
           <h3
-            // TWO lines, not one (owner). Clamping by LINE rather than by a
-            // character count is still the right mechanism — a fixed character
-            // limit can't know the column width, and an em-heavy title
-            // ("Assemble IKEA PAX wardrobe + dresser") wraps well before a
-            // digit-heavy one of equal length. But one line was clamping the
-            // one thing the card is about: at 375 the feed read "Replace a
-            // leaking kitchen…" and "Grocery run and pharmacy…", so the reader
-            // had to open a job to find out what it was.
-            //
-            // Two lines keeps every card exactly the same height — which is
-            // what the clamp was protecting — and fits almost every real title
-            // whole. `min-w-0` is what lets it shrink inside the flex row at
-            // all.
-            className="text-headline-card flex-1 font-display italic font-bold text-foreground leading-tight line-clamp-2 min-w-0"
+            className="text-headline-card flex-1 font-display italic font-bold text-foreground leading-tight truncate min-w-0"
             style={{
               color: "hsl(var(--ink-deep))",
               letterSpacing: "-0.02em",
-              // Reserve the full two-line box (leading-tight = 1.25em/line)
-              // even when the title only wraps to one line. Without this, a
-              // short one-line title makes its card measurably shorter than
-              // its two-line neighbors — real height variance the virtualized
-              // feed (VirtualizedJobList) measures per row via measureElement.
-              // A short-then-tall run of cards produces visible gaps: rows
-              // mount at the estimated/cached height and only correct once
-              // measureElement catches up (deferred during active scroll),
-              // so the mismatch is visible as uneven spacing. This keeps
-              // "equal card height is the stronger rule" (see the meta-row
-              // comment below) intact without truncating any title — the
-              // two-line clamp for long titles is unchanged.
-              minHeight: "2.5em",
             }}
           >
             {job.title}

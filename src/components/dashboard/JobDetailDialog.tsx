@@ -16,7 +16,6 @@ import { PhotoLightbox } from "./PhotoLightbox";
 import { JobPrice } from "./JobPrice";
 import { useJobDetailData } from "./jobDetailDialog/useJobDetailData";
 import { JobStatTiles } from "./jobDetailDialog/JobStatTiles";
-import { ApplicantQueueBanner } from "./jobDetailDialog/ApplicantQueueBanner";
 import { JobDetailFooter } from "./jobDetailDialog/JobDetailFooter";
 
 interface JobDetailDialogProps {
@@ -75,7 +74,6 @@ const JobDetailDialog = ({
     descExpanded, setDescExpanded,
     lightboxIndex, setLightboxIndex,
     gridOpenNonce, setGridOpenNonce,
-    applicationCount,
     viewerAppPosition,
     viewerUserId,
     repeatJobs,
@@ -310,7 +308,7 @@ const JobDetailDialog = ({
         />
         <div data-frame-chrome="true" className="absolute top-0 left-0 z-20 flex items-stretch">
           <span
-            className={`inline-flex items-center gap-1.5 pl-4 pr-3.5 py-2 rounded-tl-lg text-ds-15 font-semibold leading-none shadow-sm border-b border-r ${!isRecommended && !job.is_urgent && !job.isBoosted ? "rounded-br-lg" : ""} ${catStyle.badge}`}
+            className={`inline-flex items-center gap-1.5 pl-3.5 pr-3 py-1.5 rounded-tl-lg text-ds-13 font-semibold leading-none shadow-sm border-b border-r ${!isRecommended && !job.is_urgent && !job.isBoosted ? "rounded-br-lg" : ""} ${catStyle.badge}`}
           >
             <CategoryIcon
               category={job.category}
@@ -328,7 +326,7 @@ const JobDetailDialog = ({
               JobCard's own Recommended chip. */}
           {isRecommended && (
             <span
-              className={`inline-flex items-center gap-1.5 px-3.5 py-2 text-ds-15 font-semibold leading-none shadow-sm border-b ${!job.is_urgent && !job.isBoosted ? "rounded-br-lg" : ""}`}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-ds-13 font-semibold leading-none shadow-sm border-b ${!job.is_urgent && !job.isBoosted ? "rounded-br-lg" : ""}`}
               style={{
                 background: "hsl(var(--burnt-sienna) / 0.12)",
                 color: "hsl(var(--burnt-sienna))",
@@ -344,7 +342,7 @@ const JobDetailDialog = ({
           {job.is_urgent && (
             <span
               aria-label="Urgent"
-              className={`urgent-pulse inline-flex items-center gap-1.5 px-3.5 py-2 text-ds-14 font-bold uppercase leading-none shadow-sm border-b ${!job.isBoosted ? "rounded-br-lg" : ""}`}
+              className={`urgent-pulse inline-flex items-center gap-1.5 px-3 py-1.5 text-ds-12 font-bold uppercase leading-none shadow-sm border-b ${!job.isBoosted ? "rounded-br-lg" : ""}`}
               style={{
                 color: "hsl(var(--accent))",
                 background: "hsl(var(--accent) / 0.15)",
@@ -359,7 +357,7 @@ const JobDetailDialog = ({
           {job.isBoosted && (
             <span
               aria-label="Boosted"
-              className="boosted-pulse inline-flex items-center gap-1.5 px-3.5 py-2 rounded-br-lg text-ds-14 font-bold uppercase leading-none shadow-sm border-b"
+              className="boosted-pulse inline-flex items-center gap-1.5 px-3 py-1.5 rounded-br-lg text-ds-12 font-bold uppercase leading-none shadow-sm border-b"
               style={{
                 color: "hsl(var(--boost-ink))",
                 background: "hsl(var(--boost-tint) / 0.16)",
@@ -576,8 +574,6 @@ const JobDetailDialog = ({
         {!guest && (
           <JobPosterCard job={job} repeatJobs={repeatJobs} cancellationRate={posterCancelRate} guest={guest} />
         )}
-
-        <ApplicantQueueBanner guest={guest} applicationCount={applicationCount} viewerAppPosition={viewerAppPosition} />
 
         {/* Apply lives on THIS screen now — no second popup (owner: "they
             will apply on the screen before this", "doesn't need to be 2

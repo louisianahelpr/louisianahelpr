@@ -1159,7 +1159,12 @@ html.web-desktop {
 }
 
 .browse-map-callout {
-  padding: 10px 12px;
+  /* No padding of our own (owner, 2026-08-30: the bubble read bigger than
+     the card it holds — "make it the same size as the job card"). MapKit's
+     own `.mk-bubble` chrome already pads its content; stacking our 10px/12px
+     on top of that made the bubble's outer edge visibly wider than the
+     JobCard inside it. JobCard supplies its own internal spacing, so this
+     wrapper needs none. */
   box-sizing: border-box;
   max-width: calc(100vw - 32px);
 }

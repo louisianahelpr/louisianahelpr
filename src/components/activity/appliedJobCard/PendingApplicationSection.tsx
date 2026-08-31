@@ -42,18 +42,8 @@ export function PendingApplicationSection({
 
       {/* Your application message — editable */}
       <div className="rounded-ds-sm bg-primary/5 border border-primary/15 p-2" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-1">
-          {/* Same eyebrow token as "Your attachments" 40px below. These were
-              `text-ds-10 font-medium` Title Case and `text-ds-10 uppercase
-              tracking-wide font-semibold` respectively — two sibling labels,
-              two treatments, neither matching the card's own eyebrow. */}
-          <p
-            className="font-serif italic uppercase text-ds-10"
-            style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-          >
-            Your message
-          </p>
-          {editingMessageAppId !== app.id && (
+        {editingMessageAppId !== app.id && (
+          <div className="flex justify-end mb-1">
             <button
               type="button"
               aria-label="Edit your message"
@@ -62,8 +52,8 @@ export function PendingApplicationSection({
             >
               <Pencil className="w-3 h-3" />
             </button>
-          )}
-        </div>
+          </div>
+        )}
         {editingMessageAppId === app.id ? (
           <div className="space-y-1.5">
             <Textarea

@@ -171,44 +171,48 @@ export function EmptyState({
         </div>
       )}
 
-      {/* w-full + min-w-0 lets the text column shrink to the card's
-          available width at 320w so long titles wrap instead of
-          forcing the column wider than the viewport. Without these,
-          flex-col + items-center keeps children at their natural
-          inline width and they overflow off the right edge. */}
-      <div className="w-full min-w-0 space-y-2">
-        {eyebrow && (
-          <span className="text-display-eyebrow tracking-widest">
-            {eyebrow}
-          </span>
-        )}
-        {title && (
+      {/* Body copy, CTA and footnote live in one tighter-spaced group so they
+          read as a single composed block — description leads into the
+          button, footnote trails right under it — rather than three evenly
+          gap-5'd siblings that felt like disconnected chunks. The icon
+          keeps the wider gap-5 above; only this group's internal rhythm is
+          tightened. */}
+      <div className="w-full min-w-0 flex flex-col items-center gap-3">
+        {/* w-full + min-w-0 lets the text column shrink to the card's
+            available width at 320w so long titles wrap instead of
+            forcing the column wider than the viewport. Without these,
+            flex-col + items-center keeps children at their natural
+            inline width and they overflow off the right edge. */}
+        <div className="w-full min-w-0 space-y-2">
+          {eyebrow && (
+            <span className="text-display-eyebrow tracking-widest">
+              {eyebrow}
+            </span>
+          )}
+          {title && (
+            <p
+              className="font-display italic font-bold leading-tight break-words"
+              style={{
+                fontSize: "clamp(1.15rem, 1.5vw + 0.45rem, 1.45rem)",
+                color: "hsl(var(--ink-deep))",
+                letterSpacing: "-0.025em",
+              }}
+            >
+              {title}
+            </p>
+          )}
           <p
-            className="font-display italic font-bold leading-tight break-words"
-            style={{
-              fontSize: "clamp(1.15rem, 1.5vw + 0.45rem, 1.45rem)",
-              color: "hsl(var(--ink-deep))",
-              letterSpacing: "-0.025em",
-            }}
+            className="font-serif italic text-ds-13 leading-relaxed max-w-[26rem] mx-auto break-words"
+            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
-            {title}
+            {body}
           </p>
-        )}
-        <p
-          className="font-serif italic text-ds-13 leading-relaxed max-w-[26rem] mx-auto break-words"
-          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-        >
-          {body}
-        </p>
+        </div>
+
+        {action}
+
+        {footnote}
       </div>
-
-      {action && (
-        /* Breathing room between body copy and the CTA so the button
-           doesn't feel glued to the paragraph. */
-        <div className="mt-1">{action}</div>
-      )}
-
-      {footnote}
     </div>
   );
 }

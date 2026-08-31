@@ -62,10 +62,19 @@ const SwipeableJobCard = ({
   const [held, setHeld] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // All 4 snap-back animations below use a FIXED-duration tween (was
+  // spring physics, same stiffness/damping everywhere) — a spring's settle
+  // time is proportional to how far it has to travel, so two cards
+  // released after different drag distances visibly finished at different
+  // real times even though both used identical spring params (owner,
+  // 2026-08-31: "the jobs have different transition. they open at
+  // different times. this should not be happening"). A fixed duration
+  // makes every card settle in exactly 220ms regardless of drag distance.
+
   // When dismiss is cancelled (dialog closed without confirming), snap back
   useEffect(() => {
     if (!dismissPending && held) {
-      if (reducedMotion) { x.set(0); } else { animate(x, 0, { type: "spring", stiffness: 500, damping: 30 }); }
+      if (reducedMotion) { x.set(0); } else { animate(x, 0, { type: "tween", duration: 0.22, ease: "easeOut" }); }
       setHeld(false);
     }
   }, [dismissPending, held, reducedMotion]);
@@ -73,17 +82,17 @@ const SwipeableJobCard = ({
   const handleDragEnd = (_: any, info: PanInfo) => {
     if (info.offset.x < DISMISS_THRESHOLD) {
       // Hold in swiped position, show confirm dialog
-      if (reducedMotion) { x.set(-120); } else { animate(x, -120, { type: "spring", stiffness: 500, damping: 30 }); }
+      if (reducedMotion) { x.set(-120); } else { animate(x, -120, { type: "tween", duration: 0.22, ease: "easeOut" }); }
       setHeld(true);
       onDismiss(job.id);
     } else if (info.offset.x > APPLY_THRESHOLD) {
       // Apply has its own confirm flow (handleApplyRequest opens the confirm
       // dialog) — the card just snaps back rather than holding, since
       // nothing here needs to stay swiped while that dialog is open.
-      if (reducedMotion) { x.set(0); } else { animate(x, 0, { type: "spring", stiffness: 500, damping: 30 }); }
+      if (reducedMotion) { x.set(0); } else { animate(x, 0, { type: "tween", duration: 0.22, ease: "easeOut" }); }
       onApply(job.id);
     } else {
-      if (reducedMotion) { x.set(0); } else { animate(x, 0, { type: "spring", stiffness: 500, damping: 30 }); }
+      if (reducedMotion) { x.set(0); } else { animate(x, 0, { type: "tween", duration: 0.22, ease: "easeOut" }); }
     }
     setSwiping(false);
   };

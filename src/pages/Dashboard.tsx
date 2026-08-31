@@ -477,13 +477,13 @@ const Dashboard = () => {
                               same shape as the "N unread" and bucket counts
                               every sibling screen puts in that slot. */}
                           <span
-                            /* Same TYPE as the status tabs Posts and Jobs put in
-                               this slot (owner: "needs to be same size as Post
-                               and Jobs") — font-display italic at ds-13, not
-                               font-serif at ds-11. Home sat two steps smaller
-                               and in a different family than its two siblings,
-                               for the same kind of label in the same position. */
-                            className="font-display italic text-ds-13 leading-none min-w-0 truncate"
+                            /* Bumped from ds-13 to ds-16 to match the desktop
+                               sidebar nav's own link size (owner, 2026-08-31:
+                               "17 jobs should be the same size fonta as the
+                               info on the right panel"). Still font-display
+                               italic, same family as the status-tab count this
+                               previously matched. */
+                            className="font-display italic text-ds-16 leading-none min-w-0 truncate"
                             /* --ink-deep, matching the SELECTED status tab on
                                Posts and Jobs — those went black in the same
                                pass and this is the same label in the same slot

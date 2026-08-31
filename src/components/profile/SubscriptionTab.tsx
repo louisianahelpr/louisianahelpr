@@ -624,6 +624,19 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                       `showActiveTreatment`'s definition above. On the
                       Once/Annual tabs the truly-active tier falls through to
                       the ordinary Change button below instead. */}
+                  {/* Renews above Manage — owner, 2026-08-30: "swap the
+                      button and renews". */}
+                  {showActiveTreatment && !isFree && expiresAt && (
+                    <p
+                      className="font-serif italic leading-none text-ds-12 whitespace-nowrap"
+                      style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+                    >
+                      Renews{" "}
+                      <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
+                        {expiresAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                      </span>
+                    </p>
+                  )}
                   {showActiveTreatment && !isFree && (
                     <Button
                       variant="outline"
@@ -635,17 +648,6 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                       {loadingPortal ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Crown className="w-3.5 h-3.5" aria-hidden />}
                       Manage
                     </Button>
-                  )}
-                  {showActiveTreatment && !isFree && expiresAt && (
-                    <p
-                      className="font-serif italic leading-none text-ds-12 whitespace-nowrap"
-                      style={{ color: "hsl(var(--olivewood) / 0.75)" }}
-                    >
-                      Renews{" "}
-                      <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
-                        {expiresAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                      </span>
-                    </p>
                   )}
                   {/* Free carries no BUY CTA in either direction: there is
                       nothing to buy when you are already on it, and when you

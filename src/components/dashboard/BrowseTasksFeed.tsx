@@ -64,7 +64,6 @@ interface JobCardCommonProps {
   onReport: Dispatch<SetStateAction<string | null>>;
   onSelect: Dispatch<SetStateAction<EnrichedJob | null>>;
   onDismiss: (jobId: string) => void;
-  confirmDismissJobId: string | null;
   expandedCardId: string | null;
   onToggleExpand: (id: string) => void;
   savedJobIds: Set<string>;
@@ -101,7 +100,6 @@ function JobFeedCard({
       onReport={common.onReport}
       onSelect={common.onSelect}
       onDismiss={common.onDismiss}
-      dismissPending={common.confirmDismissJobId === job.id}
       index={index}
       isExpanded={common.expandedCardId === job.id}
       onToggleExpand={common.onToggleExpand}
@@ -224,7 +222,6 @@ interface BrowseTasksFeedProps {
   handleApplyRequest: (jobId: string) => void;
   handleDismissRequest: (jobId: string) => void;
   handleToggleSave: (jobId: string, saved: boolean) => void;
-  confirmDismissJobId: string | null;
   expandedCardId: string | null;
   setExpandedCardId: Dispatch<SetStateAction<string | null>>;
   savedJobIds: Set<string>;
@@ -270,7 +267,6 @@ export function BrowseTasksFeed({
   handleApplyRequest,
   handleDismissRequest,
   handleToggleSave,
-  confirmDismissJobId,
   expandedCardId,
   setExpandedCardId,
   savedJobIds,
@@ -440,7 +436,6 @@ export function BrowseTasksFeed({
     onReport: setReportJobId,
     onSelect: setDetailJob,
     onDismiss: handleDismissRequest,
-    confirmDismissJobId,
     expandedCardId,
     onToggleExpand: handleToggleExpand,
     savedJobIds,

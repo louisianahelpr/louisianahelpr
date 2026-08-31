@@ -1,4 +1,4 @@
-import { memo, useState, useRef, useEffect } from "react";
+import { memo, useState, useRef } from "react";
 import { motion, useMotionValue, useTransform, animate, useReducedMotion, PanInfo } from "framer-motion";
 import { Send, X } from "lucide-react";
 import JobCard from "./JobCard";
@@ -13,7 +13,6 @@ interface SwipeableJobCardProps {
   onReport: (jobId: string) => void;
   onSelect: (job: EnrichedJob) => void;
   onDismiss: (jobId: string) => void;
-  dismissPending?: boolean;
   index?: number;
   isExpanded?: boolean;
   onToggleExpand?: (jobId: string) => void;
@@ -41,7 +40,6 @@ const SwipeableJobCard = ({
   onReport,
   onSelect,
   onDismiss,
-  dismissPending,
   index,
   isExpanded,
   onToggleExpand,
@@ -71,17 +69,11 @@ const SwipeableJobCard = ({
   // different times. this should not be happening"). A fixed duration
   // makes every card settle in exactly 220ms regardless of drag distance.
 
-  // When dismiss is cancelled (dialog closed without confirming), snap back
-  useEffect(() => {
-    if (!dismissPending && held) {
-      if (reducedMotion) { x.set(0); } else { animate(x, 0, { type: "tween", duration: 0.22, ease: "easeOut" }); }
-      setHeld(false);
-    }
-  }, [dismissPending, held, reducedMotion]);
-
   const handleDragEnd = (_: any, info: PanInfo) => {
     if (info.offset.x < DISMISS_THRESHOLD) {
-      // Hold in swiped position, show confirm dialog
+      // Hold in swiped position — the dismiss is immediate (toast+Undo, no
+      // confirm dialog), so the card just stays swiped-out until the parent
+      // re-renders without it a moment later.
       if (reducedMotion) { x.set(-120); } else { animate(x, -120, { type: "tween", duration: 0.22, ease: "easeOut" }); }
       setHeld(true);
       onDismiss(job.id);

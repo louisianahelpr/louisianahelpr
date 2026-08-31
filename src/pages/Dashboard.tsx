@@ -54,7 +54,6 @@ import { useDashboardSideQueries } from "./dashboard/useDashboardSideQueries";
 import { useSaveJob } from "./dashboard/useSaveJob";
 import { useApplyFlow } from "./dashboard/useApplyFlow";
 import { useDetailJob } from "./dashboard/useDetailJob";
-import { DismissJobDialog } from "./dashboard/DismissJobDialog";
 
 
 const Dashboard = () => {
@@ -210,8 +209,6 @@ const Dashboard = () => {
   // corresponding map pin. null = no card hovered.
   const [hoveredJobId, setHoveredJobId] = useState<string | null>(null);
 
-  const [confirmDismissJobId, setConfirmDismissJobId] = useState<string | null>(null);
-
   // Pay It Forward — count of available credits in the user's parish.
   // Shown as a teaser banner above the community teaser when > 0.
   // PGRST202-safe: table may not be on prod yet between merge + db push.
@@ -238,20 +235,31 @@ const Dashboard = () => {
     handleApplyRequest, handleApplyConfirm,
   } = useApplyFlow({ user, allJobs });
 
+  // Immediate optimistic dismiss + toast/Undo (owner: the "Not Interested?"
+  // confirm dialog was a whole modal for a reversible, purely-local action —
+  // same mismatch as the attachment-remove undo in AppliedJobsTab). The job
+  // drops off the feed right away; Undo puts the id back in storage + state.
   const handleDismissRequest = useCallback((jobId: string) => {
-    setConfirmDismissJobId(jobId);
-  }, []);
-
-  const handleDismissConfirm = useCallback(() => {
-    if (!confirmDismissJobId) return;
     setDismissedJobIds(prev => {
       const next = new Set(prev);
-      next.add(confirmDismissJobId);
+      next.add(jobId);
       safeStorage.setItem("helpr_dismissed_jobs", JSON.stringify([...next]));
       return next;
     });
-    setConfirmDismissJobId(null);
-  }, [confirmDismissJobId, setDismissedJobIds]);
+    toast.success("Job removed from your feed", {
+      action: {
+        label: "Undo",
+        onClick: () => {
+          setDismissedJobIds(prev => {
+            const next = new Set(prev);
+            next.delete(jobId);
+            safeStorage.setItem("helpr_dismissed_jobs", JSON.stringify([...next]));
+            return next;
+          });
+        },
+      },
+    });
+  }, [setDismissedJobIds]);
 
   // The in-progress pill is no longer rendered in the brand row (owner:
   // "remove"). That row is logo, filter, notification. The job it pointed at is
@@ -587,7 +595,6 @@ const Dashboard = () => {
                     handleApplyRequest={handleApplyRequest}
                     handleDismissRequest={handleDismissRequest}
                     handleToggleSave={handleToggleSave}
-                    confirmDismissJobId={confirmDismissJobId}
                     expandedCardId={expandedCardId}
                     setExpandedCardId={setExpandedCardId}
                     savedJobIds={savedJobIds}
@@ -740,11 +747,6 @@ const Dashboard = () => {
         </Suspense>
       )}
 
-      <DismissJobDialog
-        confirmDismissJobId={confirmDismissJobId}
-        onOpenChange={(open) => { if (!open) setConfirmDismissJobId(null); }}
-        onConfirm={handleDismissConfirm}
-      />
       {/* No payout-setup dialog here. It was mounted behind a
           `payoutSetupDialogOpen` flag whose setter was never called from
           anywhere, so it could not open — a lazy chunk and a piece of state

@@ -20,6 +20,7 @@ export function JobConfirmation({
   jobStatus,
   helperOnTheWayAt,
   onConfirm,
+  onCantMakeIt,
 }: {
   jobId: string;
   isOwner: boolean;
@@ -34,6 +35,14 @@ export function JobConfirmation({
   jobStatus?: string;
   helperOnTheWayAt?: string | null;
   onConfirm?: () => void;
+  /**
+   * Opens the caller's existing cancel/decline flow (CancellationDialog for
+   * posters, the helper_cancel_booking confirm for Helprs) — this component
+   * has no backend logic of its own for backing out. Omitted where the
+   * caller has no such flow to hand back to (e.g. ActiveJobSection, where
+   * the job is already day-of and past the point of backing out).
+   */
+  onCantMakeIt?: () => void;
 }) {
   const [confirming, setConfirming] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -288,10 +297,7 @@ export function JobConfirmation({
                 border: "0.5px solid hsl(var(--olivewood) / 0.10)",
               }}
             >
-              <p
-                className="font-serif italic uppercase mb-0.5 text-ds-10"
-                style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-              >
+              <p className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground mb-0.5">
                 Scheduled for
               </p>
               <p
@@ -328,6 +334,19 @@ export function JobConfirmation({
               {confirming ? "Confirming…" : "Yes, I Confirm"}
             </Button>
           </DialogFooter>
+          {/* Distinct from Cancel: Cancel just dismisses this popup, nothing
+              changes. This hands off to the caller's real cancel/decline flow
+              — a reliability strike for a Helpr backing out, a reopened job
+              for a poster — so it can't read as a second, lighter Cancel. */}
+          {onCantMakeIt && (
+            <button
+              type="button"
+              onClick={() => { setShowConfirmDialog(false); onCantMakeIt(); }}
+              className="w-full text-center text-ds-11 font-serif italic underline underline-offset-2 text-muted-foreground hover:text-foreground transition-colors min-h-[44px]"
+            >
+              Can't make it? See what happens
+            </button>
+          )}
         </DialogContent>
       </Dialog>
     </>

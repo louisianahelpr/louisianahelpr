@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import type { CSSProperties } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Crown, CheckCircle, Loader2, RefreshCw, Sparkles } from "lucide-react";
@@ -28,6 +29,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
   // quoted a different price depending on which surface you arrived at.
   const [billingInterval, setBillingInterval] = useState<"monthly" | "annual" | "one_time">("monthly");
   const [refreshing, setRefreshing] = useState(false);
+  const reduceMotion = useReducedMotion();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const currentTier = profile?.subscription_tier || null;
@@ -162,15 +164,27 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
         onBack={onBack}
       />
 
-      {/* Billing cycle pills — Annual carries the save badge inline so the
-          cheapest option is the most visually inviting one. Refresh is a
-          4th segment in the SAME pill, not a second box beside it — two
-          separate liquid-glass containers side by side read as two
-          different controls (owner, 2026-08-30: "should all be in 1 toggle
-          not separates"). It was on the active tier's card first, then
-          beside its "Your Plan" badge, before landing here — both of those
-          crowded a card whose only job is to state "this is your plan." */}
-      <div className="flex items-center gap-1 rounded-2xl liquid-glass p-1.5">
+      {/* Billing cycle pills — same structure as the Legal page's Terms/
+          Rules/Privacy tab bar (owner, 2026-08-30: "should have the same
+          toggle as the public legal page"): a TRANSPARENT container (no
+          liquid-glass fill of its own) whose active segment carries a
+          single lifted pill that SLIDES between segments via framer's
+          shared-layout `layoutId`, rather than each button just swapping
+          its own background class on click. Refresh is a 4th segment in
+          the same row, not a second box beside it (owner: "should all be
+          in 1 toggle not separates"). */}
+      {/* Legal's own tab bar is transparent with no card of its own — but
+          on THIS page, floating with no boundary read as unfinished (owner,
+          2026-08-30, after confirming Legal really has none: "add a card
+          container" anyway). liquid-glass wrap restored, sliding-pill
+          mechanics unchanged inside it. */}
+      <div className="rounded-2xl liquid-glass p-1.5">
+      {/* Once/Monthly/Annual share the row equally; Refresh gets a fixed
+          44px column instead of a 4th equal share — an even 4-up grid gave
+          the icon-only button the same width as a text label, leaving it
+          looking like an oversized empty box (owner, 2026-08-30: "doesn't
+          need such a large box, make it smaller and others bigger"). */}
+      <div className="grid grid-cols-[1fr_1fr_1fr_44px] items-center gap-1 rounded-2xl p-1 bg-transparent">
         {([
           { key: "one_time" as const, label: "Once" },
           { key: "monthly" as const, label: "Monthly" },
@@ -181,41 +195,28 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
             <button
               key={opt.key}
               onClick={() => setBillingInterval(opt.key)}
-              // Matches the Legal page's tab-pill treatment (owner,
-              // 2026-08-30) — the active segment gets the same
-              // `btn-grad-primary` gloss + inset highlight + layered shadow
-              // as Legal's Terms/Rules/Privacy pill, not a flat `bg-primary`
-              // fill.
-              className={`flex-1 px-3 h-11 rounded-ds-md text-ds-13 font-semibold transition-all inline-flex items-center justify-center gap-1.5 ${
-                active
-                  ? "btn-grad-primary"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-              style={
-                active
-                  ? {
-                      color: "hsl(var(--parchment))",
-                      border: "1px solid hsl(var(--bark-border))",
-                      boxShadow:
-                        "inset 0 1px 0 hsl(var(--parchment) / 0.22), " +
-                        "0 1px 1px hsl(var(--ink-deep) / 0.10), " +
-                        "0 2px 6px hsl(var(--ink-deep) / 0.12), " +
-                        "0 4px 12px -2px hsl(var(--ink-deep) / 0.08)",
-                    }
-                  : undefined
-              }
+              className="relative h-11 rounded-ds-md text-ds-13 font-semibold transition-colors duration-200 inline-flex items-center justify-center gap-1.5"
+              style={{ color: active ? "hsl(var(--parchment))" : "hsl(var(--olivewood))" }}
             >
-              {opt.label}
+              {active && (
+                <motion.span
+                  layoutId="membershipBillingPill"
+                  transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 34 }}
+                  className="absolute inset-0 rounded-ds-md btn-grad-primary"
+                  style={{
+                    border: "1px solid hsl(var(--bark-border))",
+                    boxShadow:
+                      "inset 0 1px 0 hsl(var(--parchment) / 0.22), " +
+                      "0 1px 1px hsl(var(--ink-deep) / 0.10), " +
+                      "0 2px 6px hsl(var(--ink-deep) / 0.12), " +
+                      "0 4px 12px -2px hsl(var(--ink-deep) / 0.08)",
+                  }}
+                />
+              )}
+              <span className="relative">{opt.label}</span>
               {opt.save && (
                 <span
-                  // `bg-burnt-sienna-soft` is a non-existent Tailwind class
-                  // (brand tokens aren't extended in tailwind.config.ts —
-                  // see the CLAUDE.md footgun note) so it compiled to no
-                  // background. The inactive `style` block below already
-                  // supplies the real background via `hsl(var(--burnt-sienna)
-                  // / 0.14)`, so dropping the dead class is purely cleanup
-                  // — no visual change.
-                  className={`text-ds-9 font-bold tracking-wider px-1 py-0.5 rounded ${
+                  className={`relative text-ds-9 font-bold tracking-wider px-1 py-0.5 rounded ${
                     active ? "bg-primary-foreground/20 text-primary-foreground" : ""
                   }`}
                   style={
@@ -243,11 +244,12 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
           onClick={refreshSubscription}
           disabled={refreshing}
           aria-label="Refresh membership status"
-          className="shrink-0 w-11 h-11 rounded-ds-md flex items-center justify-center transition-colors hover:bg-secondary disabled:opacity-60"
+          className="shrink-0 h-11 rounded-ds-md flex items-center justify-center transition-colors hover:bg-secondary disabled:opacity-60"
           style={{ color: "hsl(var(--bark))" }}
         >
           <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} aria-hidden />
         </button>
+      </div>
       </div>
 
       {/* Manage row used to live here — now consolidated into the active
@@ -292,11 +294,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
           and distributes the three cards down it (justify-between) so
           there's no dead zone above the bottom nav, while gap-3 keeps a
           sane minimum spacing on shorter screens. */}
-      {/* gap-8, not gap-3: the "Most Popular"/"Your Plan" pills sit ABOVE
-          each card's top edge (`-top-2`), so a tight gap left them almost
-          touching the price/fee text of the card above (owner, 2026-08-30,
-          twice: "too close" / "needs a lot more spacing"). */}
-      <div className="flex-1 flex flex-col justify-between gap-8 min-h-0">
+      <div className="flex-1 flex flex-col justify-between gap-3 min-h-0">
         {tierConfig.map((tier) => {
           // Free is the plan you are on when you are on no plan at all, so it
           // cannot be matched by name against `subscription_tier` — that column
@@ -488,7 +486,13 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                 </div>
 
                 {/* Price + CTA on the right edge */}
-                <div className="shrink-0 flex flex-col items-end gap-1">
+                {/* min-w so the buttons below have real width to fill —
+                    `shrink-0` alone sizes this column to its content, which
+                    left the price/fee/button cluster small and stranded in
+                    a lot of empty card space (owner, 2026-08-30: "make the
+                    info on the right fill the space better"). Price/fee/
+                    save stay right-aligned text; only the buttons stretch. */}
+                <div className="shrink-0 min-w-[132px] flex flex-col items-end gap-1">
                   <p
                     className="font-display italic font-bold tabular-nums leading-none text-ds-16"
                     style={{ color: accent, letterSpacing: "-0.02em" }}
@@ -550,17 +554,6 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                       2026-08-30: "move back up into box"). */}
                   {isActive && !isFree && (
                     <div className="mt-1 flex flex-col items-end gap-1">
-                      {expiresAt && (
-                        <p
-                          className="font-serif italic leading-none text-ds-10 whitespace-nowrap"
-                          style={{ color: "hsl(var(--olivewood) / 0.75)" }}
-                        >
-                          Renews{" "}
-                          <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
-                            {expiresAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                          </span>
-                        </p>
-                      )}
                       <Button
                         variant="outline"
                         size="sm"
@@ -571,6 +564,17 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                         {loadingPortal ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Crown className="w-3.5 h-3.5" aria-hidden />}
                         Manage
                       </Button>
+                      {expiresAt && (
+                        <p
+                          className="font-serif italic leading-none text-ds-12 whitespace-nowrap"
+                          style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+                        >
+                          Renews{" "}
+                          <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
+                            {expiresAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                          </span>
+                        </p>
+                      )}
                     </div>
                   )}
                   {/* Free carries no BUY CTA in either direction: there is

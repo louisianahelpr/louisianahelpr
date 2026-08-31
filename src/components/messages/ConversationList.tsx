@@ -445,16 +445,29 @@ export function ConversationList({
   // active none of the underline tabs highlight — this chip is the only
   // thing telling the user why the list shrank and how to get back.
   const pinnedFilterChip = (inboxFilter === "pinned" || inboxFilter === "recentlyDeleted") && (
-    <button
-      type="button"
-      onClick={() => setInboxFilter("all")}
-      className="flex items-center gap-1.5 px-4 py-1.5 text-ds-11 font-sans font-semibold shrink-0"
-      style={{ color: "hsl(var(--burnt-sienna))" }}
-    >
-      {inboxFilter === "pinned" ? <Pin className="w-3 h-3" /> : <Trash2 className="w-3 h-3" />}
-      {inboxFilter === "pinned" ? "Showing pinned only" : "Showing recently deleted"}
-      <X className="w-3 h-3" />
-    </button>
+    <div className="shrink-0">
+      <button
+        type="button"
+        onClick={() => setInboxFilter("all")}
+        className="flex items-center gap-1.5 px-4 py-1.5 text-ds-11 font-sans font-semibold"
+        style={{ color: "hsl(var(--burnt-sienna))" }}
+      >
+        {inboxFilter === "pinned" ? <Pin className="w-3 h-3" /> : <Trash2 className="w-3 h-3" />}
+        {inboxFilter === "pinned" ? "Showing pinned only" : "Showing recently deleted"}
+        <X className="w-3 h-3" />
+      </button>
+      {/* Two honesty notes, since "Recently Deleted" as a name implies both
+          "temporary" and "complete" and this view is neither: hiding a
+          thread never expires it on its own (it stays hidden until you
+          restore it, not just for N days), and very old archives can fall
+          outside the 200-message fetch window (see the onClick refresh
+          above) and simply not be resolvable here yet. */}
+      {inboxFilter === "recentlyDeleted" && (
+        <p className="px-4 pb-1 text-ds-10 font-serif italic" style={{ color: "hsl(var(--olivewood) / 0.6)" }}>
+          Hidden threads stay here until restored — not on a timer. Very old ones may take a refresh to appear.
+        </p>
+      )}
+    </div>
   );
 
   /* THE TITLE CARD, on phone and native (owner, 2026-08-27).
@@ -612,7 +625,11 @@ export function ConversationList({
                       Recently Deleted, and thus restoring that thread,
                       permanently unreachable through the UI.) */}
                   <div className="flex items-center gap-1 shrink-0">
-                    {hasThreads && (
+                    {/* Pinned/Recently Deleted read a different source than
+                        the default inbox (see isSpecialFilterView above), so
+                        they can have their own threads to search even when
+                        hasThreads (the DEFAULT inbox) is false. */}
+                    {(hasThreads || isSpecialFilterView) && (
                       <button
                         onClick={() => { hapticLight(); setSearchOpen(true); }}
                         aria-label="Search conversations"
@@ -664,7 +681,21 @@ export function ConversationList({
                           <Pin className="w-4 h-4 mr-2" />
                           Pinned
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setInboxFilter("recentlyDeleted")}>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setInboxFilter("recentlyDeleted");
+                            // allConversations is capped to the 200 most
+                            // recent messages across every thread
+                            // (fetchConversations) — a thread archived long
+                            // enough ago to fall outside that window (or
+                            // archived before this device's cache was ever
+                            // populated) wouldn't be resolvable without a
+                            // fresh fetch. Refresh on open so this view is as
+                            // complete as that cap allows; it's still not a
+                            // guarantee for very old archives.
+                            if (userId) void loadConversations(userId);
+                          }}
+                        >
                           <Trash2 className="w-4 h-4 mr-2" />
                           Recently Deleted
                         </DropdownMenuItem>

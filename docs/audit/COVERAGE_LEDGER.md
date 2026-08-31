@@ -482,12 +482,58 @@ could not drive is `UNVERIFIED` with the reason, never a pass.
 
 ### Status of this axis — 2026-08-31
 
-**Every cell starts UNVERIFIED and is promoted only by a driven frame.** The
-manifest and the harness landed on 2026-08-31; the first full run is recorded
-in `$STATE_SWEEP_OUT/index.json`, which carries the per-cell verdict and the
-reason for every cell it could not drive. Read that file, not this table, for
-the current number — this ledger does not carry a count that a run can
+**Every cell starts UNVERIFIED and is promoted only by a driven frame.** Read
+`$STATE_SWEEP_OUT/index.json`, not this table, for the current number — it
+carries the per-cell verdict and the reason for every cell that was not driven,
+and this ledger deliberately does not duplicate a count that a run can
 invalidate without anyone noticing.
+
+**First clean run, 2026-08-31 (Chromium against a mocked Supabase, a Vite dev
+server, 4 workers, 8.3 minutes):**
+
+| | Frames | Note |
+| --- | ---: | --- |
+| Expected | 334 | |
+| Captured | 334 | a PNG and a review record for every one |
+| **Driven** | **296** | the surface was confirmed to have entered the named state |
+| UNVERIFIED | 38 | each with a recorded reason, below |
+
+`PARTIAL` is the ceiling for all 296 under this ledger's own rule: the rows are
+`page.route()` responses, not a real backend. A driven frame proves the React
+tree renders that state. It does not prove the RPC returns it or that RLS lets
+it through.
+
+The 38 UNVERIFIED frames, with reasons:
+
+| Reason | Frames | Class |
+| --- | ---: | --- |
+| the job-detail dialog did not open from a feed card | 26 | harness gap — the feed-card trigger selector does not match; tracked as `interaction` |
+| a named trigger was not found (`Apply`, `Decline`, `Continue`) | 8 | harness gap — three multi-step dialogs whose step 2 is still unreached |
+| the region could not be resolved; the frame is the whole viewport | 4 | the frame exists and is reviewable, but at page scope rather than card scope |
+| declared gaps | 6 | the `native` / `unreachable` cells below |
+
+Three harness bugs were found and fixed inside that day, each by READING a
+record rather than trusting a green result. All three had the same shape — the
+harness reported success while measuring the wrong thing:
+
+- **The sweep was collapsing the page header instead of expanding the card.**
+  `button[aria-expanded]` matched `ActivityHeader`'s filter chevron first, so
+  every "expanded" cell photographed a collapsed card and still recorded
+  `driven: true`. Caught by finding "Expand Job Details" in the `copy` of a
+  cell that was supposed to be open. The sweep now matches the toggle by its
+  own label and CONFIRMS the card opened before recording the frame.
+- **`?filter=all` groups the list into accordions and only Active starts
+  open.** Every `completed` / `cancelled` / `disputed` poster cell loaded a
+  page whose card was inside a shut accordion, found nothing, and reported
+  "the seeded row did not reach the list" — wrong, and wrong in the direction
+  of blaming the app. `Cancelled` sits behind a second gate again ("Show
+  Cancelled"). Both are opened now.
+- **The drive loop was too slow to finish a single cell.** Twenty-odd
+  Playwright locator round trips per frame, each with its own actionability
+  polling, exhausted the per-test budget against a dev server; whole runs
+  wrote zero frames while the failure pointed at whichever call happened to be
+  in flight. Collapsed to one `page.evaluate`: a cell went from a 135-second
+  timeout to 3.8 seconds.
 
 Six cells are declared gaps that no browser run can promote, each with its
 reason in the manifest:
@@ -503,26 +549,65 @@ reason in the manifest:
 
 ### Findings this axis produced on its first run
 
-- **`pending_approval` had never been rendered in any screenshot this repo has
-  produced.** It is absent from `e2e/happy-path/seedData.ts` (which seeds seven
-  of the eight statuses), and it is the one status with no card-body branch of
-  its own. Found by enumerating the enum rather than the seed file.
-- **The tracker rail paints two different greens at once, and they are not even
-  the same hue family.** Measured in `applied-active-arrival-verified-expanded`
-  at 390 light: passed step dots are `rgb(38,115,66)` — h142 s50 l30,
-  `--success-ink`, a true green — and the current step dot is `rgb(95,101,67)`
-  — h71 s20 l33, `--bark`, an olive. Four dots in one row, three of one green
-  and one of another. Both clear WCAG AA, neither overflows, both are over
-  44px: no existing gate can see it.
-- **Two controls for the same money action, one enabled and one disabled, in
-  one card.** Same frame: `JobTracking`'s Done-step CTA renders as an enabled
-  primary **"Request My Payout"** while `ActiveJobSection`'s completion button
-  sits ~200px below it, disabled, reading **"Upload before & after photos
-  first"**. The tracker CTA enforces the identical gate — but on click, via a
-  round trip and a toast (`JobTracking.tsx:707-737`). The comment on that gate
-  says the two "must not disagree again"; they no longer disagree about the
-  *rule*, but they still disagree about what the reader is allowed to do
-  before pressing.
+Each is stated with the cell that produced it and the measurement, so it can be
+re-run or refuted. None of them violates any predicate the existing gates check.
+
+**1. `pending_approval` had never been rendered in any screenshot this repo has
+produced.** It is absent from `e2e/happy-path/seedData.ts`, which seeds seven of
+the eight statuses, and it is the one status with no card-body branch of its
+own. Found by enumerating the enum rather than the seed file. Cells
+`posted-pending-approval-awaiting-approver-{collapsed,expanded}` are the first
+frames of it that exist.
+
+**2. Corroborated: the same status was missing from `statusBadge`.** The map in
+`activityConstants.ts` carried 7 of 8, and the test that exists to catch exactly
+that (`activityConstants.test.ts`) hardcoded the same 7, so it never could. The
+`src/` lane fixed this during the same session by retyping the map as
+`Record<JobStatus, string>` — a compile error now, not a comment asking people
+to remember. Recorded here because the state matrix and that fix found the same
+hole independently, which is the point of deriving coverage from the enum.
+
+**3. Two money controls for one action, one enabled and one disabled, in one
+card — 17 frames.** In `applied-active-arrival-verified-*` and
+`applied-active-payout-gate-closed-*`, `JobTracking`'s Done-step CTA renders as
+an enabled primary **"Request My Payout"** while `ActiveJobSection`'s completion
+button sits below it, disabled, reading **"Upload before & after photos
+first"**. The tracker CTA enforces the identical gate — but only on click, via
+a round trip and a toast (`JobTracking.tsx:707-737`). The comment on that gate
+says the two "must not disagree again"; they no longer disagree about the rule,
+but they still disagree about what the reader is allowed to do before pressing,
+and the one that looks pressable is the one that fails. Detected by pairing
+`actions[]` labels with the `describe` of the state; no predicate in this repo
+would flag it, because both are valid buttons.
+
+**4. The poster card never labels its description; the helper card always
+does — 0 of 85 against 71 of 71.** Every helper-side frame that renders the
+description carries an `h4 "Job description"` eyebrow at 10px above it. **Zero
+of the 85 expanded poster-card frames carry any eyebrow**: their `sections`
+list goes straight from the `h2` title to the `h3` "Job tracking", with the
+identical description text in between, unlabelled. Same content, same card
+family, one labelled and one not. This is the "missing section eyebrows" class,
+located and counted.
+
+**5. The tracker rail paints two saturated hue families on one row of step
+dots — 81 driven frames.** Passed steps are `rgb(38,115,66)` (h142, a true
+green, `--success-ink`); the current step is `rgb(154,102,25)` (h36, amber,
+`--amber-solid`). Green-for-done beside amber-for-current is legible and looks
+deliberate, so this is surfaced as a QUESTION for the reviewer rather than
+filed as a defect — which is exactly what the `siblingColorSplits` signal is
+for. Worth recording alongside it: a capture taken earlier the same day, before
+`src/` simplified `currentTone` to `allDone ? success-ink : amber-solid`, showed
+the current dot as `rgb(95,101,67)` (h71, `--bark`, an olive) beside the same
+h142 green — two greens on one rail, the owner's original finding, reproduced
+deterministically at a named cell. The signal that catches it is now permanent.
+
+**6. Chromium cannot see Dynamic Type — and the simulator can.** Frames captured
+through `scripts/ios-state-probe.sh` at `content_size medium` and at
+`accessibility-extra-extra-extra-large` are laid out identically: same title
+size, same card heights, same number of cards on screen. The OS text-size
+setting does nothing in this app. Expected for a Capacitor app that has not
+opted in, so a design gap rather than a regression — but no browser sweep, axe
+rule or prior audit could have reported it. See `IOS_COVERAGE.md`.
 
 ## Related mechanisms
 

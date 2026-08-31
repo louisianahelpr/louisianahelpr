@@ -116,6 +116,8 @@ export interface StateObservation {
   copy: string[];
   /** Console errors seen while this state rendered. */
   consoleErrors: string[];
+  /** True when the region was too large to inspect whole and was capped. */
+  nodeCapHit?: boolean;
 }
 
 /**
@@ -213,7 +215,17 @@ export async function observe(page: Page, consoleErrors: string[]): Promise<Stat
       else colorMap.set(key, { role, on: on.slice(0, 40), count: 1 });
     };
 
-    const nodes = [region, ...(Array.from(region.querySelectorAll("*")) as HTMLElement[])];
+    // HARD CAP. The overlap pass is O(n^2) and the colour pass calls
+    // getComputedStyle per node; on a `main`-scoped region (#root, a few
+    // thousand elements) that is minutes, not seconds, and the sweep's tests
+    // simply timed out with no frame written and no explanation. A region worth
+    // reviewing is a card or a dialog; when the fallback widens it to the whole
+    // app, judging the first 1,500 elements is the right trade against judging
+    // none of them.
+    const NODE_CAP = 1500;
+    const allNodes = [region, ...(Array.from(region.querySelectorAll("*")) as HTMLElement[])];
+    const nodeCapHit = allNodes.length > NODE_CAP;
+    const nodes = allNodes.slice(0, NODE_CAP);
     for (const n of nodes) {
       const b = n.getBoundingClientRect();
       if (b.width < 2 || b.height < 2) continue;
@@ -423,7 +435,8 @@ export async function observe(page: Page, consoleErrors: string[]): Promise<Stat
       )
       .filter((n) => !isVisuallyHidden(n))
       .map((n) => ({ n, b: n.getBoundingClientRect() }))
-      .filter(({ b }) => b.width >= 6 && b.height >= 6);
+      .filter(({ b }) => b.width >= 6 && b.height >= 6)
+      .slice(0, 350); // O(n^2) below — 350 pairs is 61k comparisons, not 4M
     const overlaps: { a: string; b: string; area: number }[] = [];
     for (let i = 0; i < interactive.length && overlaps.length < 20; i++) {
       for (let j = i + 1; j < interactive.length && overlaps.length < 20; j++) {
@@ -484,6 +497,7 @@ export async function observe(page: Page, consoleErrors: string[]): Promise<Stat
       sections,
       actions,
       copy: copy.slice(0, 120),
+      nodeCapHit,
     };
   });
 

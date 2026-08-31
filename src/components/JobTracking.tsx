@@ -394,6 +394,12 @@ export function JobTracking({
   helperArrivalVerifiedAt: initialHelperArrivalVerifiedAt,
   posterConfirmedArrivalAt: initialPosterConfirmedArrivalAt,
   helperCompletedAt: initialHelperCompletedAt,
+  // Optional. Supplied by the surface that already holds the job row, so the
+  // Done CTA can honour the proof gate at RENDER time instead of only on tap.
+  // Undefined means "caller doesn't know", and the gate stays inactive — the
+  // click-time check below is unchanged and remains the enforcement.
+  proofBeforeUrls,
+  proofAfterUrls,
   posterCompletedAt: initialPosterCompletedAt,
   initialTracking,
   jobLatitude,
@@ -442,6 +448,9 @@ export function JobTracking({
   helperArrivalVerifiedAt?: string | null;
   posterConfirmedArrivalAt?: string | null;
   helperCompletedAt?: string | null;
+  /** Optional; when omitted the Done CTA's render-time proof gate stays off. */
+  proofBeforeUrls?: string[] | null;
+  proofAfterUrls?: string[] | null;
   posterCompletedAt?: string | null;
   /**
    * Optional pre-fetched latest tracking row. When provided (including
@@ -1782,11 +1791,26 @@ export function JobTracking({
         // reasons — and now the arrival gate too, which must never be a silent
         // dead button: every branch of `arrivalBlockReason` names the poster's
         // "Confirm They Arrived" tap, which is the way out.
+        // The proof-photo gate, at RENDER time rather than only on click.
+        // A state sweep found the two money controls disagreeing in 17 frames:
+        // this CTA rendered an ENABLED "Request My Payout" while
+        // ActiveJobSection's button sat directly below it, DISABLED, reading
+        // "Upload before & after photos first". Both enforce the same rule —
+        // the comment on the click-time gate below says the two "must not
+        // disagree again" — but this one enforced it by failing on tap and
+        // showing a toast. So the control that LOOKED pressable was the one
+        // that didn't work, which is the worse half of the pair to get wrong.
+        const needsProof =
+          isDoneStep &&
+          proofBeforeUrls !== undefined &&
+          !hasRequiredProof(undefined, proofBeforeUrls, proofAfterUrls);
+
         const disabledReason = updating
           ? "Saving your update — one moment…"
           : isLocked
             ? lockMessage
-            : arrivalBlockReason;
+            : arrivalBlockReason
+              ?? (needsProof ? requiredProof().reason : null);
 
         return (
           <div className="pt-2 border-t border-border space-y-2">
@@ -1812,7 +1836,7 @@ export function JobTracking({
                 if (isDoneStep) setConfirmDoneOpen(true);
                 else void updateStatus(nextStatus.key);
               }}
-              disabled={updating || isLocked || needsArrival}
+              disabled={updating || isLocked || needsArrival || needsProof}
             >
               <nextStatus.icon className="w-3.5 h-3.5 mr-1" />
               {/* The ACTION, not the step's name — see STATUSES. */}

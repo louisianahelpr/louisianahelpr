@@ -213,6 +213,11 @@ Output lands in `$STATE_SWEEP_OUT` (default `/tmp/lh-state-sweep`): a PNG and a
 JSON review record per frame, plus `index.json` listing every frame the sweep
 could **not** drive, with the reason.
 
+First clean run, 2026-08-31, against a Vite dev server with 4 workers:
+**334 of 334 frames captured in 8.3 minutes, 296 driven, 38 UNVERIFIED**
+(26 of those are one harness gap — the job-detail dialog's feed-card trigger).
+A single cell takes about 4 seconds.
+
 Nothing here is wired into a workflow file — workflows are owned elsewhere. The
 intended CI shape is: capture, review, fail on any HIGH finding, upload
 `findings.json` and the ranked queue as artifacts.

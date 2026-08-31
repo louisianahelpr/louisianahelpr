@@ -51,7 +51,7 @@
  */
 
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync } from "node:fs";
-import { resolve, basename } from "node:path";
+import { resolve } from "node:path";
 
 // ---------------------------------------------------------------------------
 // args

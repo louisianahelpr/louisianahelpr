@@ -72,7 +72,13 @@ import {
 import { observe, tagRegion, type StateObservation } from "./observe";
 
 const OUT = process.env.STATE_SWEEP_OUT || "/tmp/lh-state-sweep";
-mkdirSync(OUT, { recursive: true });
+// Only touch the filesystem when this spec is actually going to run. Both
+// describes below are skipped without one of these env vars, and the normal
+// `npm run test:e2e:happy` run should not create directories for a sweep it is
+// not performing.
+if (process.env.RUN_STATE_SWEEP || process.env.EMIT_STATE_MATRIX) {
+  mkdirSync(OUT, { recursive: true });
+}
 
 const CELLS = enumerateStates();
 
@@ -292,34 +298,107 @@ async function prepare(context: BrowserContext, page: Page, cell: StateCell, sho
  * artifact that would have been filed as an app defect.
  */
 async function expandFirstCard(page: Page): Promise<boolean> {
-  // Match on the button's OWN LABEL, not on `button[aria-expanded]`.
+  // Matched by the toggle's OWN LABEL, with a CSS locator plus a text filter.
   //
-  // ActivityHeader renders its own aria-expanded chevron above the list, and
-  // `[aria-expanded]` in document order matched THAT. Every "expanded" cell in
-  // the first run collapsed the header instead of opening the card, and the
-  // records still said driven:true because a card region was found either way —
-  // the exact shape of quiet wrongness this sweep exists to stop. Caught by
-  // reading a record's `copy` and seeing "Expand Job Details" on a cell that
-  // was supposed to be expanded.
-  const toggle = page.getByRole("button", { name: "Expand Job Details", includeHidden: true }).first();
+  // Two bugs are fixed here, both found by reading records rather than trusting
+  // a green result:
+  //
+  //  1. A bare `button[aria-expanded]` matched ActivityHeader's filter chevron
+  //     first, so every "expanded" cell collapsed the page header instead of
+  //     opening the card — and still recorded `driven: true`. Caught by seeing
+  //     "Expand Job Details" in the `copy` of a cell that was meant to be open.
+  //  2. The obvious fix — `getByRole("button", { name, includeHidden: true })`
+  //     — forces Playwright to compute the whole accessibility tree on every
+  //     poll. On these pages that is tens of seconds per call, and with three
+  //     calls per shot every test hit its ceiling and wrote no frame at all.
+  //     A CSS locator with `hasText` reads textContent and costs nothing.
+  //
+  // `hasText` sees the sr-only label because it matches textContent, not
+  // visible text.
+  const toggle = page.locator("button[aria-expanded]").filter({ hasText: "Expand Job Details" }).first();
   await page
-    .getByRole("button", { name: /(Expand|Collapse) Job Details/, includeHidden: true })
+    .locator("button[aria-expanded]")
+    .filter({ hasText: /(Expand|Collapse) Job Details/ })
     .first()
-    .waitFor({ state: "attached", timeout: 12_000 })
+    .waitFor({ state: "attached", timeout: 8_000 })
     .catch(() => undefined);
   if ((await toggle.count()) === 0) return false;
   // dispatchEvent, not click(): the toggle is `sr-only`, so Playwright treats it
   // as invisible and click() would time out. The handler is identical — it is
   // the same onToggle the card wrapper calls.
-  await toggle.dispatchEvent("click");
+  await toggle.dispatchEvent("click").catch(() => undefined);
   await page.waitForTimeout(600);
   // Confirm it actually opened. A dispatch that changed nothing must read as
   // "could not reach", never as a driven frame.
   const opened = await page
-    .getByRole("button", { name: "Collapse Job Details", includeHidden: true })
-    .first()
+    .locator("button[aria-expanded]")
+    .filter({ hasText: "Collapse Job Details" })
     .count();
   return opened > 0;
+}
+
+/**
+ * Open the collapsed status GROUPS the Activity list renders under
+ * `?filter=all`.
+ *
+ * `groupByStatus` (Activity.tsx) folds the list into Active / Completed /
+ * Cancelled accordions and only Active starts open, so every `completed`,
+ * `cancelled` and `disputed` cell loaded a page whose card was inside a shut
+ * accordion, found no card toggle, and reported "the seeded row did not reach
+ * the list" — wrong, and wrong in the direction of blaming the app. Cancelled
+ * sits behind a second gate again: a "Show Cancelled" opt-in that is not an
+ * accordion and carries no aria-expanded.
+ *
+ * Done as ONE `page.evaluate` that clicks in the page, not as a sequence of
+ * Playwright locator calls.
+ *
+ * The locator version cost every test its entire budget: each `count()`,
+ * `textContent()`, `boundingBox()` and `click()` is a separate round trip with
+ * its own actionability polling, and against a Vite dev server that added up
+ * past the timeout before a single frame was written. Twenty-plus round trips
+ * became one. Nothing is lost by clicking directly — these are ordinary
+ * buttons with React onClick handlers, and the sweep is not testing whether
+ * they are clickable, it is trying to get past them.
+ */
+async function openCollapsedGroups(page: Page): Promise<void> {
+  await page
+    .evaluate(() => {
+      const GROUP = /^(Active|Completed|Cancelled)\s*\d*$/i;
+      const SHOW = /^Show (Cancelled|Completed|Done)/i;
+      const buttons = [...document.querySelectorAll("#root button")] as HTMLElement[];
+      let clicked = 0;
+      for (const b of buttons) {
+        const label = (b.textContent ?? "").trim();
+        if (SHOW.test(label)) {
+          b.click();
+          clicked += 1;
+          continue;
+        }
+        // Group headers only: named, full width, and currently shut.
+        if (!GROUP.test(label)) continue;
+        if (b.getAttribute("aria-expanded") !== "false") continue;
+        if (b.getBoundingClientRect().width < 200) continue; // a tab chip
+        b.click();
+        clicked += 1;
+      }
+      return clicked;
+    })
+    .catch(() => 0);
+  await page.waitForTimeout(400);
+
+  // One more pass: revealing a group can mount another shut one.
+  await page
+    .evaluate(() => {
+      const GROUP = /^(Active|Completed|Cancelled)\s*\d*$/i;
+      for (const b of [...document.querySelectorAll('#root button[aria-expanded="false"]')] as HTMLElement[]) {
+        const label = (b.textContent ?? "").trim();
+        if (!GROUP.test(label)) continue;
+        if (b.getBoundingClientRect().width < 200) continue;
+        b.click();
+      }
+    })
+    .catch(() => undefined);
+  await page.waitForTimeout(350);
 }
 
 /** Click through a named trigger chain. Returns the step it failed at, if any. */
@@ -392,13 +471,14 @@ async function driveCell(
     unverified.push({ cellId: cell.id, reason: rec.unverified! });
     return;
   }
-  await page.waitForLoadState("networkidle", { timeout: 12_000 }).catch(() => undefined);
+  await page.waitForLoadState("networkidle", { timeout: 8_000 }).catch(() => undefined);
   await page.waitForTimeout(700);
 
   let failedAt: string | null = null;
   let regionMode: "card" | "dialog" | "main";
 
   if (cell.surface === "dialog") {
+    await openCollapsedGroups(page);
     failedAt = await openChain(page, cell.open ?? []);
     regionMode = "dialog";
   } else if (cell.surface === "job-detail") {
@@ -418,11 +498,16 @@ async function driveCell(
   } else if (cell.surface === "activity-shell") {
     regionMode = "main";
   } else {
+    // `?filter=all` groups the list into collapsed accordions; open them first
+    // or the seeded card is inside a shut one and looks like it never loaded.
+    await openCollapsedGroups(page);
     if (cell.expanded) {
       const ok = await expandFirstCard(page);
       if (!ok) failedAt = "no expandable card rendered (the seeded row did not reach the list)";
     }
-    regionMode = cell.surface === "activity-shell" ? "main" : "card";
+    // Not a ternary on activity-shell: the `else if` above already claimed
+    // that surface, so this branch can only be a card surface.
+    regionMode = "card";
   }
 
   const anchor = String((cell.fixture?.job as Record<string, unknown> | undefined)?.title ?? "");
@@ -449,7 +534,8 @@ async function driveCell(
 
   const observation = await observe(page, consoleErrors).catch(() => ({
     region: null, colors: [], hueFamilies: [], nearMissAlignments: [], emptyBands: [],
-    overlaps: [], sections: [], actions: [], copy: [], consoleErrors,
+    overlaps: [], sections: [], actions: [], copy: [], siblingColorSplits: [],
+    consoleErrors,
   }));
 
   const record: ReviewRecord = {
@@ -555,7 +641,13 @@ sweepDescribe("state sweep", () => {
 
   for (const cell of CELLS.filter((c) => c.shots.length > 0)) {
     test(`${cell.surface} :: ${cell.id}`, async ({ context, page }) => {
-      test.setTimeout(60_000 + cell.shots.length * 30_000);
+      // A Vite DEV server compiles routes on demand, so the FIRST hit of a route
+      // can take tens of seconds while later hits are fast. 30s per shot was
+      // enough against a production preview and not enough against dev: tests
+      // hit the 90s ceiling, Playwright tore the page down mid-drive, and the
+      // records blamed the app. 90s per shot covers the cold path; a run against
+      // `PLAYWRIGHT_WEB_SERVER=1` (production bundle) never approaches it.
+      test.setTimeout(45_000 + cell.shots.length * 90_000);
       for (const shot of cell.shots) {
         await driveCell(context, page, cell, shot);
       }

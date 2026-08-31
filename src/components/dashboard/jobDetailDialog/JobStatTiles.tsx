@@ -6,6 +6,7 @@ import { formatDistanceToNow, differenceInHours } from "date-fns";
 import { formatTime12 } from "@/components/TimePickerSelect";
 import type { EnrichedJob } from "../types";
 import { mapsSearchUrl } from "@/lib/mapsLink";
+import { calendarEventUrl } from "@/lib/calendarLink";
 
 interface JobStatTilesProps {
   job: EnrichedJob;
@@ -45,10 +46,19 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
         const dateValid = !isNaN(dateNeeded.getTime());
         let calendarUrl: string | null = null;
         if (dateValid) {
-          const dateStartIso = dateNeeded.toISOString().slice(0, 10).replace(/-/g, "");
           const dateEnd = new Date(dateNeeded.getTime() + (job.estimated_hours ? Number(job.estimated_hours) * 3600 * 1000 : 24 * 3600 * 1000));
-          const dateEndIso = dateEnd.toISOString().slice(0, 10).replace(/-/g, "");
-          calendarUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(job.title)}&dates=${dateStartIso}/${dateEndIso}&details=${encodeURIComponent(job.description.slice(0, 200))}&location=${encodeURIComponent(job.location)}`;
+          // Platform-aware (owner, 2026-08-30: "what if they're on the app?
+          // then app should open the calendar on their phone") — native opens
+          // the device's own calendar app via an .ics payload instead of
+          // always building a Google Calendar web link. Same pattern as
+          // mapsSearchUrl below for the Where tile.
+          calendarUrl = calendarEventUrl(
+            job.title,
+            dateNeeded.toISOString(),
+            dateEnd.toISOString(),
+            job.description.slice(0, 200),
+            job.location,
+          );
         }
         // Same helper as the activity cards, so the two surfaces open the same
         // app with the same query — and so the platform choice lives in one

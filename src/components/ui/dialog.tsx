@@ -47,8 +47,30 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, onOpenAutoFocus, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
+    /**
+     * Extra icon buttons (Share/Save/Report, etc.) rendered in the SAME
+     * flex row as the close X, immediately to its left — not a second,
+     * independently-positioned element the caller has to hand-offset to
+     * line up beside it (owner, 2026-08-30: "it does not belong to the
+     * component ... not pieced together" — JobDetailDialog used to render
+     * its own icon row at a magic-number `right-[2.875rem]` so it wouldn't
+     * collide with this button's own `right-3`, two siblings faking one
+     * toolbar). Pass the icon buttons here instead; this component owns
+     * the single row they all share.
+     */
+    topRightSlot?: React.ReactNode;
+    /**
+     * Shrinks the close X's tap target from the default 44px down to 32px,
+     * matching `topRightSlot`'s own compact icons (owner, 2026-08-30:
+     * "should be same size and spacing" — the X's 44px floor made it
+     * visibly larger than the 32px Share/Save/Report buttons beside it in
+     * the same row). Only affects THIS dialog instance — every other
+     * dialog's X keeps the full 44px accessible target.
+     */
+    compactClose?: boolean;
+  }
+>(({ className, children, onOpenAutoFocus, topRightSlot, compactClose = false, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
     <DialogPrimitive.Content
@@ -138,27 +160,42 @@ const DialogContent = React.forwardRef<
       {...props}
     >
       {children}
-      {/* Bare X — no filled disc, border, or shadow, matching SheetContent's
-          close and BackButton's bare chevron. `rounded-md` shapes the focus
-          ring only; nothing is painted at rest.
-          32x32, not the HIG-default 44x44 (owner, 2026-08-30: "the 4 icons
-          do not follow the same rules and they need to" — JobDetailDialog's
-          Share/Save/Flag are `compact` 32px, so a 44px X sitting right next
-          to them was the one inconsistent tile in that row). This is the
-          shared close button for every dialog in the app, so the inline
-          min-height/min-width override (needed to beat the global
-          `button { min-height: 44px }` floor) applies everywhere. */}
-      <DialogPrimitive.Close
-        // `group` + the icon's own hover transform match the small lift every
-        // other chrome icon (Share/Save/Flag) gets on hover (owner,
-        // 2026-08-30: "make x do the same globally") — applied here since
-        // this X is the one shared by every dialog in the app.
-        className="group absolute right-3 top-3 w-8 p-0 box-border rounded-md btn-press flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
-        style={{ minHeight: "44px", minWidth: "32px" }}
-      >
-        <X className="h-[18px] w-[18px] transition-transform duration-300 group-hover:-translate-y-0.5" strokeWidth={2} />
-        <span className="sr-only">Close</span>
-      </DialogPrimitive.Close>
+      {/* ONE row, not two siblings faking one: `topRightSlot` (Share/Save/
+          Report, when a caller passes them) and the close X share this same
+          flex container instead of each being independently `absolute`-
+          positioned with a magic-number offset tuned to not collide with
+          the other. `top-2`, not `top-3` (owner, 2026-08-30: "move up so
+          it's not so close to money") when a slot is present — that content
+          usually sits directly above a price chip near the dialog's top
+          edge, and the default offset crowded it. */}
+      <div className={`absolute right-3 z-10 flex items-center gap-0.5 ${topRightSlot ? "top-2" : "top-3"}`}>
+        {topRightSlot}
+        {/* Bare X — no filled disc, border, or shadow, matching SheetContent's
+            close and BackButton's bare chevron. `rounded-md` shapes the focus
+            ring only; nothing is painted at rest.
+            44x44 by default (the HIG tap-target floor) — `compactClose`
+            shrinks it to 32x32 to match a `topRightSlot`'s own compact icons
+            (owner, 2026-08-30: "the 4 icons do not follow the same rules and
+            they need to" / "should be same size and spacing" — JobDetailDialog's
+            Share/Save/Flag are `compact` 32px, so the X was the one
+            inconsistent tile in that row). This is the shared close button
+            for every dialog in the app, so the inline min-height/min-width
+            override (needed to beat the global `button { min-height: 44px }`
+            floor) applies everywhere; `compactClose` only opts a specific
+            dialog instance INTO the smaller target, it never shrinks the
+            floor for dialogs that don't pass it. */}
+        <DialogPrimitive.Close
+          // `group` + the icon's own hover transform match the small lift every
+          // other chrome icon (Share/Save/Flag) gets on hover (owner,
+          // 2026-08-30: "make x do the same globally") — applied here since
+          // this X is the one shared by every dialog in the app.
+          className="group w-8 p-0 box-border rounded-md btn-press flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
+          style={compactClose ? { minHeight: "32px", minWidth: "32px" } : { minHeight: "44px", minWidth: "32px" }}
+        >
+          <X className="h-[18px] w-[18px] transition-transform duration-300 group-hover:-translate-y-0.5" strokeWidth={2} />
+          <span className="sr-only">Close</span>
+        </DialogPrimitive.Close>
+      </div>
     </DialogPrimitive.Content>
   </DialogPortal>
 ));

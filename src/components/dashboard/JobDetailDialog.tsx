@@ -108,9 +108,66 @@ const JobDetailDialog = ({
     navigate(`/messages?userId=${job.customer_id}&jobId=${job.id}`);
   };
 
+  // Corner actions — Save · Share · Report, in the SAME row as the dialog's
+  // own X (owner, 2026-08-30: "this with the x" / "not pieced together" —
+  // used to be a second `absolute`-positioned div hand-offset to sit beside
+  // the shared close button rather than sharing its row). Passed to
+  // DialogContent's `topRightSlot` instead. Guests get none of them: all
+  // three need an account, and the guest footer already carries its one
+  // sign-up CTA.
+  const cornerActions = !guest && (
+    <>
+      {/* Share leftmost (owner: "share on the left") — Bookmark then
+          Flag follow. `compact` (32px, not the usual 44px) so the row
+          needs less clearance above the title (owner: 44px icons
+          "made a large gap above title") — the X button itself is
+          separate shared chrome and stays its usual size. */}
+      {viewerUserId !== job.customer_id && (
+        <ShareJobButton
+          variant="icon"
+          bare
+          compact
+          job={{ id: job.id, title: job.title, budget: job.budget, category: job.category, city: getCity(job.location).replace(/,\s*LA\s*$/i, "") }}
+          ariaLabel="Share this job"
+        />
+      )}
+      {onToggleSave && (
+        <IconActionButton
+          ariaLabel={isSaved ? "Unsave job" : "Save job"}
+          ariaPressed={isSaved}
+          onClick={() => onToggleSave(job.id, !isSaved)}
+          pressed={isSaved}
+          pressedBackground="hsl(var(--primary) / 0.12)"
+          pressedBorder="0.5px solid hsl(var(--primary) / 0.4)"
+          pressedColor="hsl(var(--primary))"
+          bare
+          compact
+          icon={
+            <Bookmark
+              className={`w-4 h-4 transition-transform duration-300 group-hover:-translate-y-0.5 ${isSaved ? "fill-primary bookmark-pop" : ""}`}
+              key={String(isSaved)}
+              strokeWidth={2}
+            />
+          }
+        />
+      )}
+      <IconActionButton
+        ariaLabel="Report this job"
+        onClick={() => { onReport(job.id); onClose(); }}
+        bare
+        compact
+        icon={
+          <Flag className="w-4 h-4 transition-transform duration-300 group-hover:-rotate-12 group-active:rotate-0" />
+        }
+      />
+    </>
+  );
+
   return (
     <Dialog open={!!job} onOpenChange={() => onClose()}>
       <DialogContent
+        topRightSlot={cornerActions}
+        compactClose
         // grid-cols-1: the base DialogContent is `display:grid` with implicit
         // `auto` columns, which size to max-content and can grow wider than
         // the dialog; paired with the content's `overflow-y-auto` (which makes
@@ -237,60 +294,6 @@ const JobDetailDialog = ({
             helpr filters on — and opening the job dropped it entirely. Same
             dot + icon + label treatment as the feed card so the two read as
             the same object. */}
-        {/* Corner actions — Save · Share · Report, parked beside the
-            dialog's own X so the footer can be a single full-width Apply
-            (owner, 2026-08-30: "this with the x"). Absolutely positioned
-            against the DialogContent's padding box, mirroring the X's
-            own `right-3 top-3`, and offset left of it by one 44px slot
-            each. Guests get none of them: all three need an account, and
-            the guest footer already carries its one sign-up CTA. */}
-        {!guest && (
-          <div className="absolute right-[2.875rem] top-3 z-10 flex items-center gap-0.5">
-            {/* Share leftmost (owner: "share on the left") — Bookmark then
-                Flag follow. `compact` (32px, not the usual 44px) so the row
-                needs less clearance above the title (owner: 44px icons
-                "made a large gap above title") — the X button itself is
-                separate shared chrome and stays its usual size. */}
-            {viewerUserId !== job.customer_id && (
-              <ShareJobButton
-                variant="icon"
-                bare
-                compact
-                job={{ id: job.id, title: job.title, budget: job.budget, category: job.category, city: getCity(job.location).replace(/,\s*LA\s*$/i, "") }}
-                ariaLabel="Share this job"
-              />
-            )}
-            {onToggleSave && (
-              <IconActionButton
-                ariaLabel={isSaved ? "Unsave job" : "Save job"}
-                ariaPressed={isSaved}
-                onClick={() => onToggleSave(job.id, !isSaved)}
-                pressed={isSaved}
-                pressedBackground="hsl(var(--primary) / 0.12)"
-                pressedBorder="0.5px solid hsl(var(--primary) / 0.4)"
-                pressedColor="hsl(var(--primary))"
-                bare
-                compact
-                icon={
-                  <Bookmark
-                    className={`w-4 h-4 transition-transform duration-300 group-hover:-translate-y-0.5 ${isSaved ? "fill-primary bookmark-pop" : ""}`}
-                    key={String(isSaved)}
-                    strokeWidth={2}
-                  />
-                }
-              />
-            )}
-            <IconActionButton
-              ariaLabel="Report this job"
-              onClick={() => { onReport(job.id); onClose(); }}
-              bare
-              compact
-              icon={
-                <Flag className="w-4 h-4 transition-transform duration-300 group-hover:-rotate-12 group-active:rotate-0" />
-              }
-            />
-          </div>
-        )}
         {/* Category — top-LEFT corner tab, flush on the card's own edge,
             plus the rail stripe down the left side (owner, via pop-up
             question, 2026-08-30: "category top left ... add the category

@@ -1,5 +1,4 @@
-import { useId, useState } from "react";
-import { formatPrice, formatPriceExact, formatPriceFloor } from "@/lib/format";
+import { formatPrice, formatPriceFloor } from "@/lib/format";
 import { netUrgentFeeDollars } from "@/lib/stripeFees";
 
 export interface JobPriceProps {
@@ -85,10 +84,7 @@ export function JobPrice({
   className,
   size = "sm",
 }: JobPriceProps) {
-  const [expanded, setExpanded] = useState(false);
-  const panelId = useId();
-
-  const { helpers, netEarnings, netUrgent } = computeNet(
+  const { netEarnings } = computeNet(
     budget,
     effectiveFee,
     urgentFee,
@@ -147,66 +143,19 @@ export function JobPrice({
           border: "0.5px solid hsl(var(--bark) / 0.28)",
         };
 
-    // Guest/poster surfaces show a static budget with no net breakdown to
-    // reveal, so the chip is purely presentational. Render a plain <div>,
-    // NOT a <button> — these surfaces wrap the whole card in an outer
-    // <button> (guest Browse), and a <button> may not nest inside a
+    // Plain <div>, not a <button> — these surfaces wrap the whole card in an
+    // outer <button> (guest Browse), and a <button> may not nest inside a
     // <button> (validateDOMNesting). A non-interactive element keeps the
     // markup valid while the outer card stays the single tap target.
-    if (showBudget) {
-      return (
-        <div className={chipClass} style={chipSurface}>
-          {amountNode}
-        </div>
-      );
-    }
-
+    //
+    // No tap-to-reveal breakdown any more (owner, 2026-08-30: "money should
+    // not be tappable like this") — the chip is a single static net figure,
+    // same treatment as the showBudget branch above it. The fee math still
+    // lives one tap away, in the job-detail view.
     return (
-      <button
-        type="button"
-        // Stop the tap bubbling to the card root (which opens the detail
-        // view) — tapping the price only ever toggles the breakdown.
-        onClick={(e) => {
-          e.stopPropagation();
-          setExpanded((v) => !v);
-        }}
-        aria-expanded={expanded}
-        // Only point at the panel while it exists. The breakdown below is
-        // mounted on expand, so an unconditional `aria-controls` left every
-        // collapsed chip referencing a missing id — a dangling IDREF that
-        // axe flags and that assistive tech cannot follow. Collapsed, the
-        // chip is described by `aria-expanded` alone.
-        aria-controls={expanded ? panelId : undefined}
-        className={chipClass}
-        style={{
-          ...chipSurface,
-          cursor: "pointer",
-          // Override the global 44px min-height/width that every <button>
-          // gets (it's a tap-target rule) so the price chip hugs the
-          // amount tightly — the whole card is the real tap target.
-          minHeight: 0,
-          minWidth: 0,
-        }}
-      >
+      <div className={chipClass} style={chipSurface}>
         {amountNode}
-        {/* No caption under the amount — the feed chip is a single clean
-            net figure. The "You earn" framing, the fee math, and the urgent
-            bonus all live in the corner badge + the job-detail breakdown,
-            so they're one tap away rather than crowding the card. */}
-        {/* Tap-to-reveal breakdown — "Budget $80 − 10% fee". Kept compact;
-            collapses by default so the chip stays the size of the title row. */}
-        {expanded && (
-          <span
-            id={panelId}
-            className="font-sans tabular-nums text-ds-9 tracking-[0.02em] mt-1 pt-1 whitespace-nowrap"
-            style={{ color: "hsl(var(--olivewood) / 0.8)", borderTop: "0.5px solid hsl(var(--bark) / 0.18)" }}
-          >
-            Budget ${formatPriceExact(budget)} − {effectiveFee}% fee
-            {helpers > 1 ? ` ÷ ${helpers}` : ""}
-            {netUrgent > 0 ? ` + $${formatPriceExact(netUrgent)}` : ""}
-          </span>
-        )}
-      </button>
+      </div>
     );
   }
 

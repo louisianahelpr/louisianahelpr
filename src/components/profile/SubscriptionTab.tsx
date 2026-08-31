@@ -3,7 +3,7 @@ import type { CSSProperties } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Crown, CheckCircle, Loader2, RefreshCw, Sparkles } from "lucide-react";
+import { Crown, CheckCircle, Loader2, RefreshCw, Sparkles, Clock } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
@@ -289,6 +289,33 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
         </div>
       )}
 
+      {/* Once (one-time pass) explainer — same box treatment as the Annual
+          lock-in pill above (owner, 2026-08-30: "make a box under the
+          toggle about the 30 day pass kind of similar to how the annual
+          box is"), restating the expiry disclosure that already lives on
+          each card's price line ("$5 · 30-day pass") as a clearer
+          up-front sentence rather than a comment claiming it. */}
+      {billingInterval === "one_time" && (
+        <div
+          className="rounded-ds-md px-3 py-2 flex items-center gap-2"
+          style={{
+            background: "hsl(var(--burnt-sienna) / 0.08)",
+            border: "0.5px solid hsl(var(--burnt-sienna) / 0.28)",
+          }}
+        >
+          <Clock className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--burnt-sienna))" }} strokeWidth={2.25} />
+          <p
+            className="font-serif italic leading-snug text-ds-12"
+            style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+          >
+            <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
+              One-time, {ONE_TIME_PASS_DAYS} days.
+            </span>{" "}
+            A one-time pass unlocks the tier's perks for {ONE_TIME_PASS_DAYS} days, then lapses — no auto-renewal.
+          </p>
+        </div>
+      )}
+
       {/* Tier cards — each row is [icon] [name + forWhom + features]
           [price + CTA]. The section grows to fill the leftover viewport
           and distributes the three cards down it (justify-between) so
@@ -387,10 +414,15 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                 </span>
               )}
 
-              <div className="flex items-start gap-3">
+              {/* items-stretch, not items-start: the price/CTA column needs
+                  the row's FULL height so its items can spread evenly across
+                  it (see justify-between below) — icon and feature-list opt
+                  back OUT with `self-start` since they should stay pinned to
+                  the top regardless. */}
+              <div className="flex items-stretch gap-3">
                 {/* Icon — smaller (w-8) to free vertical space */}
                 <span
-                  className="shrink-0 w-8 h-8 rounded-ds-md flex items-center justify-center"
+                  className="shrink-0 self-start w-8 h-8 rounded-ds-md flex items-center justify-center"
                   style={{ background: accentSoft, color: accent }}
                 >
                   <TierIcon name={tier.iconName} className="w-4 h-4" />
@@ -401,7 +433,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                     Elite's 5 features fit in 2 short lines on a 320pt
                     viewport — the user explicitly asked to see all
                     features without scrolling. */}
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 flex-1 self-start">
                   <div className="flex items-baseline gap-2 flex-wrap">
                     <h3
                       className="font-display italic font-bold leading-none text-ds-16"
@@ -492,7 +524,19 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                     a lot of empty card space (owner, 2026-08-30: "make the
                     info on the right fill the space better"). Price/fee/
                     save stay right-aligned text; only the buttons stretch. */}
-                <div className="shrink-0 min-w-[132px] flex flex-col items-end gap-1">
+                {/* justify-between (equal-across-the-box) looked right on
+                    Basic/Elite but broke on Pro: 5 features + the "Most
+                    Popular" pill make that card tall while its CTA column
+                    still only has 3 items, so evenly dividing the WHOLE
+                    height stretched one huge, obviously-broken gap between
+                    fee and Change (owner: "5 and 20 look good but this does
+                    not" — then: "cap the max gap"). Fix: a normal small
+                    FIXED gap between price/fee/save (never grows), and
+                    `mt-auto` on just the CTA button below — any leftover
+                    space collects in ONE place, right above the button,
+                    instead of being smeared across every pair. py-1 keeps
+                    top/bottom padding off the stretched row's bare edges. */}
+                <div className="shrink-0 min-w-[132px] py-1 flex flex-col items-end gap-1.5">
                   <p
                     className="font-display italic font-bold tabular-nums leading-none text-ds-16"
                     style={{ color: accent, letterSpacing: "-0.02em" }}
@@ -541,7 +585,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                       styled span so it inherits the exact box, height and
                       typography of the Subscribe buttons it lines up with. */}
                   {isActive && isFree && (
-                    <Button variant="outline" size="sm" disabled aria-current="true">
+                    <Button variant="outline" size="sm" disabled aria-current="true" className="mt-auto">
                       <CheckCircle className="w-3.5 h-3.5" aria-hidden /> Current
                     </Button>
                   )}
@@ -563,6 +607,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                     <Button
                       variant="outline"
                       size="sm"
+                      className="mt-auto"
                       onClick={handleManageSubscription}
                       disabled={loadingPortal}
                       aria-current="true"
@@ -571,7 +616,19 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                       Manage
                     </Button>
                   )}
-                  {isActive && !isFree && expiresAt && (
+                  {/* Monthly only: there is no stored `billing_cycle` on
+                      the profile row anywhere in the schema, so this screen
+                      genuinely cannot know whether the account's real
+                      subscription is monthly, annual, or a one-time pass —
+                      it only has the tier and an expiry date. Showing the
+                      SAME "Renews Sep 23" under three different prices
+                      ($20, $20/mo, $200/yr) as the user flips tabs read as
+                      three simultaneous active plans (owner, 2026-08-30:
+                      "this is not right. they cant have all 3 plans").
+                      Monthly is the safest single assumption to render a
+                      date under; Manage above stays visible on every tab
+                      since it makes no cycle-specific claim. */}
+                  {isActive && !isFree && expiresAt && billingInterval === "monthly" && (
                     <p
                       className="font-serif italic leading-none text-ds-12 whitespace-nowrap"
                       style={{ color: "hsl(var(--olivewood) / 0.75)" }}
@@ -592,11 +649,14 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                     <Button
                       variant={isPro ? "primary" : "outline"}
                       size="sm"
-                      // No margin override — the column's own `gap-1` already
-                      // spaces this from the price/fee/save group above it,
-                      // same as every other pair in the column (owner,
-                      // 2026-08-30: "every one of the columns there should
-                      // have equal spacing").
+                      // mt-auto: pushes the button to the bottom of the
+                      // stretched column, absorbing whatever leftover space
+                      // the card's height has — Pro's 5-feature list makes
+                      // it the tallest card, so its button sat under a huge
+                      // dead gap when that leftover was evenly smeared
+                      // across every pair instead of collected in one spot
+                      // (owner, 2026-08-30: "cap the max gap").
+                      className="mt-auto"
                       onClick={() =>
                         currentTier && !isExpired
                           ? handleManageSubscription()

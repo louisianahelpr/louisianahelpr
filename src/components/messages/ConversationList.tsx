@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
 import { defaultInboxTab } from "@/lib/inboxDefault";
-import { CheckSquare, Menu, MessageSquare, Pin, Search, Trash2, X } from "lucide-react";
+import { CheckSquare, Menu, MessageSquare, Pin, RotateCcw, Search, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { hapticLight } from "@/lib/haptics";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
@@ -28,6 +28,11 @@ import { VirtualList } from "@/components/VirtualList";
 import { ConversationRow } from "./ConversationRow";
 import { SwipeableConversationRow } from "./SwipeableConversationRow";
 import { getPinnedSet, loadPins, pinnedKey, togglePinned } from "@/lib/pinnedConversations";
+import {
+  ARCHIVE_CHANGED_EVENT,
+  isArchived as isConvoArchived,
+  unarchiveConversation,
+} from "@/lib/archivedConversations";
 import type { Conversation } from "./types";
 
 /**
@@ -51,6 +56,10 @@ const CONVO_LIMIT = 50;
 
 interface ConversationListProps {
   conversations: Conversation[];
+  /** Full inbox including locally-archived threads — needed for the
+   *  hamburger's "Recently Deleted" view, since `conversations` above has
+   *  archived threads already filtered out (see useMessagesData). */
+  allConversations?: Conversation[];
   loading: boolean;
   loadError: boolean;
   userId: string | null;
@@ -108,6 +117,7 @@ const MESSAGES_HEADER_PADDING = "!py-1.5 lg:!py-2";
  */
 export function ConversationList({
   conversations,
+  allConversations,
   loading,
   loadError,
   userId,
@@ -145,6 +155,16 @@ export function ConversationList({
   // sessionStorage (the pin set is read directly to avoid a parallel
   // state branch). Cheap, scoped to a paint.
   const [pinNonce, setPinNonce] = useState(0);
+  // Same idea as pinNonce, for the "Recently Deleted" view below — bumped
+  // whenever a thread is archived/restored anywhere (this list's own swipe
+  // action, or another tab/device) so the archived-only filter re-reads
+  // the local archive map instead of going stale.
+  const [archiveNonce, setArchiveNonce] = useState(0);
+  useEffect(() => {
+    const onArchiveChanged = () => setArchiveNonce((n) => n + 1);
+    window.addEventListener(ARCHIVE_CHANGED_EVENT, onArchiveChanged);
+    return () => window.removeEventListener(ARCHIVE_CHANGED_EVENT, onArchiveChanged);
+  }, []);
 
   // Pull the pin list from the server once the user is known.
   //
@@ -208,7 +228,22 @@ export function ConversationList({
                   pinnedSet.has(pinnedKey(c.jobId, c.otherUserId)),
                 );
               })()
-            : orderedConversations;
+            : inboxFilter === "recentlyDeleted"
+              ? (() => {
+                  // Real filter, not a stub: archiving already exists (swipe
+                  // action → archivedConversations.ts) and useMessagesData
+                  // already keeps the full pre-filter list around as
+                  // `allConversations` for deep-link resolution — this just
+                  // reads both instead of toasting "coming soon". Threads
+                  // here aren't in `conversations`/`orderedConversations`
+                  // (already filtered out), so this reads allConversations
+                  // directly rather than filtering the byTab source above.
+                  if (!userId || !allConversations) return [];
+                  return [...allConversations]
+                    .filter((c) => isConvoArchived(userId, c.jobId, c.otherUserId, c.lastAt))
+                    .sort(byLastAtDesc);
+                })()
+              : orderedConversations;
     const q = searchQuery.trim().toLowerCase();
     if (!q) return byTab;
     return byTab.filter((c) => {
@@ -217,7 +252,13 @@ export function ConversationList({
       const title = c.jobTitle?.toLowerCase() ?? "";
       return name.includes(q) || snippet.includes(q) || title.includes(q);
     });
-  }, [orderedConversations, searchQuery, inboxFilter, userId, pinNonce]);
+  }, [orderedConversations, searchQuery, inboxFilter, userId, pinNonce, allConversations, archiveNonce]);
+  const isRecentlyDeletedView = inboxFilter === "recentlyDeleted";
+  // Pinned and Recently Deleted both read a different source than the
+  // default inbox (see filteredConversations above), so an empty default
+  // inbox must not blank either of them out — see the render-gate comment
+  // below where this is used.
+  const isSpecialFilterView = inboxFilter === "pinned" || isRecentlyDeletedView;
 
   // Seed the default tab from the FIRST loaded page, once. See the state decl.
   // The rule itself lives in `defaultInboxTab` so the app and its tests read it
@@ -399,19 +440,19 @@ export function ConversationList({
     />
   );
 
-  // "Pinned" isn't one of the three visible tabs (reached via the hamburger
-  // instead), so with it active none of the underline tabs highlight —
-  // this chip is the only thing telling the user why the list shrank and
-  // how to get back.
-  const pinnedFilterChip = inboxFilter === "pinned" && (
+  // Neither "Pinned" nor "Recently Deleted" is one of the three visible
+  // tabs (both are reached via the hamburger instead), so with either
+  // active none of the underline tabs highlight — this chip is the only
+  // thing telling the user why the list shrank and how to get back.
+  const pinnedFilterChip = (inboxFilter === "pinned" || inboxFilter === "recentlyDeleted") && (
     <button
       type="button"
       onClick={() => setInboxFilter("all")}
       className="flex items-center gap-1.5 px-4 py-1.5 text-ds-11 font-sans font-semibold shrink-0"
       style={{ color: "hsl(var(--burnt-sienna))" }}
     >
-      <Pin className="w-3 h-3" />
-      Showing pinned only
+      {inboxFilter === "pinned" ? <Pin className="w-3 h-3" /> : <Trash2 className="w-3 h-3" />}
+      {inboxFilter === "pinned" ? "Showing pinned only" : "Showing recently deleted"}
       <X className="w-3 h-3" />
     </button>
   );
@@ -561,15 +602,26 @@ export function ConversationList({
                         twice. */}
                     {embedded && hasThreads && inboxTabs}
                   </div>
-                  <div className={`flex items-center gap-1 shrink-0 ${hasThreads ? "" : "hidden"}`}>
-                    <button
-                      onClick={() => { hapticLight(); setSearchOpen(true); }}
-                      aria-label="Search conversations"
-                      className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-ds-md transition-colors btn-press shrink-0"
-                      style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                    >
-                      <Search className="w-4 h-4" />
-                    </button>
+                  {/* Search is gated on hasThreads (nothing to search when
+                      the CURRENT view is empty), but the hamburger itself is
+                      NOT — Pinned/Recently Deleted are views onto DIFFERENT
+                      data than what's currently showing, so an empty "All"
+                      must not strand the user unable to reach either one.
+                      (Concretely: archive the one thread you have and the
+                      inbox goes empty — hiding the hamburger here would make
+                      Recently Deleted, and thus restoring that thread,
+                      permanently unreachable through the UI.) */}
+                  <div className="flex items-center gap-1 shrink-0">
+                    {hasThreads && (
+                      <button
+                        onClick={() => { hapticLight(); setSearchOpen(true); }}
+                        aria-label="Search conversations"
+                        className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-ds-md transition-colors btn-press shrink-0"
+                        style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                      >
+                        <Search className="w-4 h-4" />
+                      </button>
+                    )}
                     {/* Hamburger — replaces the old text "Select" button, and
                         sits to the RIGHT of search (was to its left). Opens a
                         menu: entering multi-select is one entry among several
@@ -588,39 +640,33 @@ export function ConversationList({
                         </button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={enterSelectMode}>
-                          <CheckSquare className="w-4 h-4 mr-2" />
-                          Select messages
-                        </DropdownMenuItem>
-                        {/* Recently Deleted and the status filters below are
-                            still stubs — each just confirms receipt so the
-                            menu doesn't feel dead. Pinned is wired to the
-                            real pin state (swipe-to-pin already writes it,
-                            see getPinnedSet/pinnedKey above) since that data
-                            already existed; a soft-delete trash and an inbox
-                            status filter reusing the Activity "Needs You /
-                            Scheduled / Waiting / Done" bucket concept from
-                            activityFilters.ts still need real data behind
-                            them — follow-up work, not part of this pass. */}
+                        {hasThreads && (
+                          <DropdownMenuItem onClick={enterSelectMode}>
+                            <CheckSquare className="w-4 h-4 mr-2" />
+                            Select messages
+                          </DropdownMenuItem>
+                        )}
+                        {/* Both entries are wired to real data: Pinned reads
+                            the existing swipe-to-pin state (getPinnedSet/
+                            pinnedKey above); Recently Deleted reads the
+                            existing archive state (archivedConversations.ts,
+                            already backing the swipe-to-archive action) via
+                            allConversations, the pre-archive-filter list
+                            useMessagesData already keeps around for deep
+                            links. The status-filter stubs (Needs You /
+                            Scheduled / Waiting / Done) were removed — they
+                            had no data behind them and no owner-approved
+                            design for what "status" means for a two-party
+                            thread (unlike Activity's single-sided job
+                            status), so a toast-only entry was pure
+                            dead-end UI. Re-add if/when that's designed. */}
                         <DropdownMenuItem onClick={() => setInboxFilter("pinned")}>
                           <Pin className="w-4 h-4 mr-2" />
                           Pinned
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => toast("Recently Deleted coming soon")}>
+                        <DropdownMenuItem onClick={() => setInboxFilter("recentlyDeleted")}>
                           <Trash2 className="w-4 h-4 mr-2" />
                           Recently Deleted
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => toast("Needs You filter coming soon")}>
-                          Needs You
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => toast("Scheduled filter coming soon")}>
-                          Scheduled
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => toast("Waiting filter coming soon")}>
-                          Waiting
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => toast("Done filter coming soon")}>
-                          Done
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -657,7 +703,15 @@ export function ConversationList({
                 onRetry={() => { if (userId) loadConversations(userId); }}
               />
             </div>
-          ) : !loading && conversations.length === 0 ? (
+          ) : !loading && conversations.length === 0 && !isSpecialFilterView ? (
+            // `conversations` (the default inbox, archived threads already
+            // dropped) being empty does NOT mean Pinned/Recently Deleted are
+            // empty too — they read a DIFFERENT source (orderedConversations
+            // / allConversations, see filteredConversations above). Gating
+            // this global "No messages yet" state on the default inbox alone
+            // meant archiving your one thread made Recently Deleted
+            // permanently show "No messages yet" instead of the thread you
+            // just hid — the exact thing that view exists to surface.
             <div className="flex-1 min-h-0 flex">
               <EmptyState
                 icon={MessageSquare}
@@ -719,7 +773,11 @@ export function ConversationList({
               >
                 {inboxFilter === "unread"
                   ? "Every thread has been read. Switch to All to see them."
-                  : "No conversations belong to a job that's still running. Switch to All to see them."}
+                  : inboxFilter === "pinned"
+                    ? "No conversations are pinned. Swipe a thread right to pin it."
+                    : inboxFilter === "recentlyDeleted"
+                      ? "Nothing hidden. Swipe a thread left to hide it — it stays here, not deleted."
+                      : "No conversations belong to a job that's still running. Switch to All to see them."}
               </p>
             </div>
           ) : noSearchMatches ? (
@@ -793,6 +851,29 @@ export function ConversationList({
                               />
                             </span>
                           )}
+                          {/* Recently Deleted view: a real "un-hide" control,
+                              not just a re-visit. Swiping isn't available
+                              here (that's the archive gesture itself, and
+                              re-archiving an already-archived thread is a
+                              dead end), so restore needs its own button. */}
+                          {isRecentlyDeletedView && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (userId) unarchiveConversation(userId, c.jobId, c.otherUserId);
+                              }}
+                              aria-label={`Restore conversation with ${c.otherUserName ?? "this person"}`}
+                              className="absolute top-1/2 -translate-y-1/2 right-2 z-10 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-ds-sm text-ds-11 font-sans font-semibold btn-press transition-colors"
+                              style={{
+                                background: "hsl(var(--bark) / 0.10)",
+                                color: "hsl(var(--bark))",
+                              }}
+                            >
+                              <RotateCcw className="w-3 h-3" />
+                              Restore
+                            </button>
+                          )}
                           <ConversationRow
                             convo={c}
                             currentUserId={userId}
@@ -805,9 +886,11 @@ export function ConversationList({
                         </div>
                       );
                       // Swipe gestures (archive / pin) are inert in select
-                      // mode — render the bare row so a drag can't fire an
-                      // archive mid-selection.
-                      return selectMode ? row : (
+                      // mode, and meaningless in the Recently Deleted view
+                      // (Restore replaces them there) — render the bare row
+                      // so a drag can't fire an archive mid-selection or
+                      // re-archive an already-archived thread.
+                      return selectMode || isRecentlyDeletedView ? row : (
                         <SwipeableConversationRow
                           isPinned={pinned}
                           onArchive={() => handleArchive(c)}

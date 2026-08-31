@@ -14,7 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { toast } from "sonner";
 import { queryKeys } from "@/lib/queryKeys";
-import { isArchived } from "@/lib/archivedConversations";
+import { ARCHIVE_CHANGED_EVENT, isArchived } from "@/lib/archivedConversations";
 import {
   deriveJobSystemEvents,
   type JobSystemEvent,
@@ -175,6 +175,18 @@ export function useMessagesData({
     meta: { persist: false },
   });
 
+  // Bumped whenever a thread is archived/restored (locally, via safeStorage
+  // — no query invalidation happens for that) so the memo below re-reads
+  // the archive map. Without this, restoring a thread from "Recently
+  // Deleted" (ConversationList) would drop it from that view but never
+  // bring it back into the main inbox until an unrelated refetch happened.
+  const [archiveNonce, setArchiveNonce] = useState(0);
+  useEffect(() => {
+    const onArchiveChanged = () => setArchiveNonce((n) => n + 1);
+    window.addEventListener(ARCHIVE_CHANGED_EVENT, onArchiveChanged);
+    return () => window.removeEventListener(ARCHIVE_CHANGED_EVENT, onArchiveChanged);
+  }, []);
+
   // Drop locally-archived threads from the inbox. A thread auto-resurfaces
   // once a message newer than the archive moment arrives, so `isArchived`
   // is checked against each conversation's latest-message timestamp.
@@ -184,7 +196,9 @@ export function useMessagesData({
     return allConversations.filter(
       (c) => !isArchived(resolvedUserId, c.jobId, c.otherUserId, c.lastAt),
     );
-  }, [allConversations, resolvedUserId]);
+    // archiveNonce is a dependency even though it's not read in the body —
+    // bumping it forces a re-read of the archive map.
+  }, [allConversations, resolvedUserId, archiveNonce]);
 
   // A DISABLED query reports `isPending` forever. `enabled: !!resolvedUserId`,
   // so if the session never rehydrates — which is exactly what happens when the
@@ -551,6 +565,10 @@ export function useMessagesData({
 
   return {
     conversations,
+    /** Full inbox including locally-archived threads — for surfacing a real
+     *  "Recently Deleted" view (see ConversationList's `recentlyDeleted`
+     *  filter branch) rather than a stub toast. */
+    allConversations,
     setConversations,
     activeConvo,
     setActiveConvo,

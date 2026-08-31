@@ -86,6 +86,19 @@ export function archiveConversation(
   emitArchiveChanged();
 }
 
+/** Restore a conversation to the inbox (undo `archiveConversation`). */
+export function unarchiveConversation(
+  userId: string,
+  jobId: string,
+  otherUserId: string,
+): void {
+  if (!userId) return;
+  const map = readMap(userId);
+  delete map[conversationKey(jobId, otherUserId)];
+  writeMap(userId, map);
+  emitArchiveChanged();
+}
+
 /**
  * True when a conversation is archived AND no newer message has arrived
  * since it was archived. `lastAt` is the conversation's latest-message

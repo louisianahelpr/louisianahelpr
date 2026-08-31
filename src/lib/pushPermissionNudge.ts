@@ -152,9 +152,12 @@ async function shouldNudgeForReason(
 /** Copy lives next to the trigger so the toast stays grep-able.
  *  Title only — the explainer line under it was cut on the owner's call
  *  (2026-08-24): the question plus Enable / Not now says everything. */
+// Short enough to stay on one line next to the Not now / Enable buttons in
+// the toast's fixed-width row — "Turn on notifications?" wrapped to two
+// lines there (owner, 2026-08-30).
 const COPY: Record<NudgeReason, { title: string }> = {
-  "customer-first-bid": { title: "Turn on notifications?" },
-  "helper-first-accept": { title: "Turn on notifications?" },
+  "customer-first-bid": { title: "Get notified?" },
+  "helper-first-accept": { title: "Get notified?" },
 };
 
 // In-memory guard against concurrent triggers — two near-simultaneous

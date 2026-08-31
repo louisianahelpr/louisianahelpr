@@ -90,6 +90,12 @@ export function EmptyState({
         // to the bottom radii two lines down.
         borderTopLeftRadius: 0,
         borderTopRightRadius: 0,
+        // Bottom radii/border are zeroed here too — mobile's dock-bleed
+        // treatment. `html.web-desktop .empty-state-dock` in index.css
+        // restores rounded bottom corners + the border with `!important`
+        // (the only thing that can beat an inline style), since there's no
+        // floating dock to bleed under on desktop — it's hidden there,
+        // index.css:955 — and a square bottom edge there belongs to nothing.
         borderBottomLeftRadius: 0,
         borderBottomRightRadius: 0,
         borderBottom: "none",
@@ -143,7 +149,7 @@ export function EmptyState({
       // still bleeds under the dock with no hard edge there.
       className={
         isDock
-          ? "flex-1 min-w-0 max-w-full liquid-glass flex flex-col items-center text-center justify-center gap-5 px-5 sm:px-8 py-10 rounded-none"
+          ? "empty-state-dock flex-1 min-w-0 max-w-full liquid-glass flex flex-col items-center text-center justify-center gap-5 px-5 sm:px-8 py-10 rounded-none"
           : "flex-1 min-w-0 max-w-full liquid-glass flex flex-col items-center text-center justify-center gap-5 px-5 sm:px-8 py-14 rounded-2xl"
       }
       style={cardStyle}

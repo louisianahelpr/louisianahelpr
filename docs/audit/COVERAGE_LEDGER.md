@@ -20,9 +20,9 @@ incomplete audit, no matter how confident its prose.
 
 | Status | Count | Share |
 | --- | ---: | ---: |
-| **WALKED** — operated against real data, with a durable artifact | **152** | 66% |
+| **WALKED** — operated against real data, with a durable artifact | **155** | 67% |
 | **PARTIAL** — touched only by an E2E spec (Chromium against a *mocked* Supabase) | **0** | 0% |
-| **NEVER WALKED** | **80** | 34% |
+| **NEVER WALKED** | **77** | 33% |
 | **Total tracked units** | **232** | |
 
 Breakdown of the 232, each figure derived from source, not asserted:
@@ -35,7 +35,7 @@ Breakdown of the 232, each figure derived from source, not asserted:
 | Activity tabs | 2 | 2 | 0 |
 | Admin views | 24 | 24 | 0 |
 | Edge functions | 63 | 63 | 0 |
-| **Overlay/dialog roots** | **78** | **0** | **78** |
+| **Overlay/dialog roots** | **78** | **3** | **75** |
 
 The 2 unwalked routes are the parameterised pair, `/jobs/:id` and
 `/user/:userId` — they need a live job id and profile id and were not driven in
@@ -358,9 +358,26 @@ Source of truth:
 why previous audits could report "all routes walked" while no popup in the app
 had ever been opened by an auditor.
 
-**Status: 0 of 78 WALKED.** A control sweep clicked 1,600+ controls across every
+**Status: 3 of 78 WALKED.**
+
+| Overlay | Trigger | Status | Evidence |
+| --- | --- | --- | --- |
+| `FilterSheet` | `/dashboard` → Filters | WALKED | 2026-08-31 · browser; opened light+dark, axe 0 inside the dialog, Escape closes; `~/lh-audit-2026-08-30/dialogs/filter-sheet-{light,dark}.png` |
+| `JobDetailDialog` | `/dashboard` → job card | WALKED | 2026-08-31 · browser; real seeded row "Deep clean a 3-bedroom / $220 / Lafayette / Tre B. 5.0", axe 0, Escape closes; `dialogs/job-detail-dialog-{light,dark}.png` |
+| `SecurityTab` change-email | `/profile?tab=security` → Change | WALKED | 2026-08-31 · browser; opened light+dark, axe 0, Escape closes; `dialogs/security-change-email-{light,dark}.png` |
+
+**A harness driving this app from a fresh context MUST dismiss the onboarding
+tour first.** `OnboardingTour` opens over `/dashboard` on every new browser
+context and blurs the page behind it, so an unprepared sweep screenshots the
+tour rather than the screen, and every click it attempts is intercepted by the
+tour's overlay. Seed
+`localStorage["helpr_onboarding"] = {completed:true,currentStep:0,completedSteps:[]}`.
+The first screenshot pass of 2026-08-31 hit exactly this and was regenerated.
+
+A blind control sweep clicked 1,600+ controls across every
 authed route, but the preview server was restarted under it three times during
-rebuilds, so its results are contaminated and nothing is promoted on them. The
+rebuilds and it then hung with four workers stuck at 54/69 cells, so its results
+are contaminated and nothing is promoted on them. The
 sweep also proved it MUTATES state — it toggled the seeded helper's
 `push_enabled` to false and all seven `helper_availability` rows to unavailable
 (both restored, verified by SQL read). Any future overlay sweep must snapshot

@@ -23,7 +23,7 @@ real rows — not the mocked backend the Playwright suite uses.
 | Fixed and pushed | 23 |
 | Left open (needs you) | 1 |
 | Commits | 12, all on `main`, all pushed |
-| Coverage manifest | 152 / 232 units walked (was 12 / 134) |
+| Coverage manifest | 155 / 232 units walked (was 12 / 134) |
 
 **Release state.** `typecheck` clean · `lint` clean · `build` clean ·
 `vitest` 1925 passing (200 files, 4 new tests) · `check:edge` 114 files, 0
@@ -244,6 +244,35 @@ dark  axe: 0 | overflow: 0 | h1!=1: 0 | fill<65: 0 | errors: 0
 - **Layout discipline holds.** Zero horizontal overflow at any of the 6
   breakpoints across 558 light cells. No page floats in a narrow orphan column.
 - **1925 unit tests pass** (200 files), typecheck clean, `check:edge` clean.
+- **3 overlays opened and operated**, in both themes, each screenshotted, each
+  axe-clean inside the dialog, each dismissible with Escape:
+  `FilterSheet` (Dashboard → Filters), `JobDetailDialog` (Dashboard → job card,
+  real seeded row "Deep clean a 3-bedroom / $220 / Lafayette"), and the
+  `SecurityTab` change-email dialog. Records in
+  `~/lh-audit-2026-08-30/dialogs/report.json`.
+
+### A correction to my own method, found late
+
+My first screenshot pass captured the **onboarding tour**, not the screens
+behind it. `OnboardingTour` opens on every fresh browser context and blurs the
+page under it, so `~/lh-audit-2026-08-30/light/1440/authed-dashboard.png` from
+that run is a picture of "Welcome to Helpr — Step 1 of 6" over a blurred
+dashboard. It is also why my first attempt to open any dialog failed: the tour
+was intercepting every click.
+
+I found this by probing for clickable controls and getting
+`"Step 1: Welcome to Helpr" … "Skip"` instead of dashboard buttons.
+
+Fixed by seeding `localStorage["helpr_onboarding"] = {completed:true,…}` in the
+harness, and **every measurement above was re-run with the tour dismissed**.
+The numbers did not move — 0 axe violations, 0 overflow, one `<h1>`, 0 under
+the fill bar, in both themes — because axe reads computed styles rather than
+the visual blur, and the underlying DOM was present throughout. But the stored
+screenshots from the first pass were not pictures of the screens they claimed
+to be, and have been regenerated.
+
+Worth carrying forward: **any harness that drives this app from a fresh context
+must dismiss the tour first**, or it is auditing the tour.
 
 ---
 
@@ -252,11 +281,13 @@ dark  axe: 0 | overflow: 0 | h1!=1: 0 | fill<65: 0 | errors: 0
 This section is not empty and should not be read as failure. It is the honest
 remainder.
 
-1. **All 78 overlays — dialogs, sheets, popovers, drawers.** The largest hole.
-   I ran a control sweep that clicked 1,600+ controls across every authed route,
-   but I restarted the preview server underneath it three times for rebuilds,
-   so its dead-control verdicts are contaminated. I am not reporting numbers
-   from a contaminated run. Nothing was promoted in the ledger on its strength.
+1. **75 of 78 overlays — dialogs, sheets, popovers, drawers.** The largest
+   hole. 3 are now verified (below); the rest are not.
+   I first ran a blind control sweep that clicked 1,600+ controls across every
+   authed route, but I restarted the preview server underneath it three times
+   for rebuilds, and it eventually hung with 4 workers stuck at 54/69 cells. I
+   am not reporting numbers from a contaminated, incomplete run, and nothing was
+   promoted in the ledger on its strength.
 2. **All destructive admin dialogs** (ban, refund, delete user, status
    override). You approved executing these on seed accounts with revert; the
    contaminated sweep meant I never got a clean pass to do it in. These are

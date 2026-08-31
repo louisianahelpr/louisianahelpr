@@ -25,6 +25,39 @@ import { LedgerList } from "./adminPayoutBatches/LedgerList";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 import { requireBiometric } from "@/lib/biometricGate";
 
+/**
+ * Guard against a SILENT NO-OP on the money path.
+ *
+ * "Send Payout" and "Bulk Approve" invoke the `stripe-payouts` edge function
+ * with `{ helper_id }`. That function never reads `helper_id`, and it never
+ * calls `stripe.transfers.create` — it looks up THE CALLER'S OWN
+ * `profiles.stripe_account_id` and returns a read-only Connect balance summary
+ * (`{ connected, payouts_enabled, available, pending, payouts }`). It is the
+ * same endpoint a Helpr's own Earnings tab calls with an empty body.
+ *
+ * An admin has no `stripe_account_id`, so the function returns
+ * `{ connected:false, payouts:[] }` with HTTP 200 and NO `error` field. The old
+ * code's `if (error) throw error` therefore never fired: after a Face ID
+ * prompt and a confirm dialog reading "This moves real money and can't be
+ * undone", the UI wrote an `admin_audit_log` row claiming the payout was
+ * triggered, closed the dialog, and moved on — while zero cents moved and the
+ * batch stayed in the queue.
+ *
+ * Until the backend gains a real admin batch-payout endpoint (the working
+ * per-job transfer lives in the `release-payout` function, which takes a
+ * `job_id`; `get_payout_batches()` does not currently return job ids, so the
+ * client cannot call it), this makes the no-op LOUD instead of silent: the
+ * admin sees a real error and the audit log is not falsified.
+ */
+function assertTransferHappened(data: unknown): void {
+  const d = data as Record<string, unknown> | null | undefined;
+  if (d && ("connected" in d || "payouts_enabled" in d)) {
+    throw new Error(
+      "Payout not sent. The endpoint this button calls only reads a Connect balance — it never creates a transfer, so no money moved. Escrow release still runs automatically; this batch is unchanged.",
+    );
+  }
+}
+
 const AdminPayoutBatches = () => {
   const qc = useQueryClient();
   const { user } = useAuthReady();
@@ -155,10 +188,11 @@ const AdminPayoutBatches = () => {
     if (!ok) return;
     setPaying(batch.helper_id);
     try {
-      const { error } = await supabase.functions.invoke("stripe-payouts", {
+      const { data, error } = await supabase.functions.invoke("stripe-payouts", {
         body: { helper_id: batch.helper_id },
       });
       if (error) throw error;
+      assertTransferHappened(data);
       await logAdminAction("trigger_payout", "user", batch.helper_id, {
         job_count: batch.job_count,
         total_payout: batch.total_payout,
@@ -207,10 +241,11 @@ const AdminPayoutBatches = () => {
     setBulkPaying(true);
     for (const batch of selectedBatches) {
       try {
-        const { error } = await supabase.functions.invoke("stripe-payouts", {
+        const { data, error } = await supabase.functions.invoke("stripe-payouts", {
           body: { helper_id: batch.helper_id },
         });
         if (error) throw error;
+        assertTransferHappened(data);
         await logAdminAction("trigger_payout", "user", batch.helper_id, {
           job_count: batch.job_count,
           total_payout: batch.total_payout,
@@ -261,7 +296,10 @@ const AdminPayoutBatches = () => {
       )}
 
       {/* Tabs — Ready vs Hold for Review. Held batches sit in their own
-          queue so they don't sneak into a bulk select. */}
+          queue so they don't sneak into a bulk select. NOTE: holds live in
+          localStorage (see adminPayoutBatchesHelpers), so they are scoped to
+          THIS browser — the tab label says so, because a second admin sees an
+          unheld batch with a live Pay Out button. */}
       {batches.length > 0 && (
         <div role="tablist" aria-label="Payout queue" className="flex gap-1.5 border-b border-border">
           <button
@@ -289,6 +327,7 @@ const AdminPayoutBatches = () => {
           >
             <span className="inline-flex items-center gap-1.5">
               <Pause className="w-3.5 h-3.5" /> Hold for Review
+              <span className="text-ds-10 font-normal text-muted-foreground">(this device)</span>
               <span className="text-ds-11 tabular-nums">({heldBatches.length})</span>
             </span>
           </button>

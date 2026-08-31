@@ -16,6 +16,7 @@ import { unwrap } from "@/lib/supabaseResult";
 import { toneBadgeClasses, type Tone } from "@/components/admin/tones";
 import { report } from "@/lib/errorLogger";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 import {
@@ -38,11 +39,15 @@ interface FraudFlag {
   user_name?: string;
 }
 
+// Only flag types SOMETHING ACTUALLY WRITES belong in this filter.
+// `fast_completion` and `high_dispute_rate` were listed here and had zero
+// writers anywhere in supabase/migrations or supabase/functions — so filtering
+// to either always returned nothing, which on a fraud console reads as "no
+// fast-completion fraud right now" rather than the truth, "this detector was
+// never built". Re-add each the day a rule starts raising it.
 const FLAG_TYPES = [
   { value: "all", label: "All Types" },
   { value: "off_platform_contact", label: "Off-Platform Contact" },
-  { value: "fast_completion", label: "Fast Completion" },
-  { value: "high_dispute_rate", label: "High Dispute Rate" },
   { value: "referral_abuse", label: "Referral Abuse" },
   { value: "application_spam", label: "Application Spam" },
   { value: "review_manipulation", label: "Review Manipulation" },
@@ -62,7 +67,7 @@ const AdminFraudDashboard = () => {
   const [resolveTarget, setResolveTarget] = useState<FraudFlag | null>(null);
 
   const queryKey = ["admin-fraud-flags", filter, showResolved];
-  const { data: flags, isInitialLoading } = useInstantQuery<FraudFlag[]>({
+  const { data: flags, isInitialLoading, isError, refetch } = useInstantQuery<FraudFlag[]>({
     key: queryKey,
     fallback: [],
     fetcher: async () => {
@@ -169,6 +174,19 @@ const AdminFraudDashboard = () => {
       >
       {isInitialLoading ? (
         <p className="text-ds-11 text-muted-foreground">Loading flags…</p>
+      ) : isError ? (
+        /* A failed read must NOT fall through to the all-clear card below.
+           Without this branch the fetcher's thrown error left the view showing
+           "Nothing flagged — No unresolved fraud flags. That is the good
+           outcome." on the platform's fraud console: the single most dangerous
+           false reassurance in the admin surface. */
+        <ErrorState
+          surfaceStyle={NESTED_EMPTY_SURFACE}
+          variant="inline"
+          title="We couldn't load the fraud flags."
+          body="Tap Try again. Do not read this as all-clear — nothing was checked."
+          onRetry={() => refetch()}
+        />
       ) : flags.length === 0 ? (
         /* The shared EmptyState, like every other admin queue. This screen
            hand-rolled an icon-over-grey-line card, so the one view an admin

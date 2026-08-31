@@ -345,6 +345,23 @@ const AdminSettings = () => {
 
   return (
     <AdminViewShell>
+      {/* Two columns from `lg` up, one below. Each of the five cards below is a
+          short, self-contained control panel, so they were individually capped
+          (`max-w-md` / `max-w-lg`) to stop a single form field stretching to
+          1128px. Stacked vertically that produced the exact failure CLAUDE.md's
+          "every page must FIT THE SCREEN" section names: at 1440 the whole
+          Settings screen sat in a ~448px ribbon down the left with ~680px of
+          empty page beside it. The cap belongs to the CARD's inner rhythm, not
+          to the page, so the caps are gone and the grid does the constraining —
+          repeating sibling cards laying out as a grid on wide web is the rule
+          the rest of the app already follows. `items-start` keeps a short card
+          from stretching to match a tall neighbour. */}
+      {/* `[&>*]:min-w-0` is required, not decoration: a grid track defaults to
+          `min-width:auto`, so the widest unbreakable child (the fee ladder rows
+          and the inline <code> payload string) pushed the single 320px column
+          out to 325px and clipped the card inside <main>. Zeroing the track
+          minimum lets the cards shrink to the column instead. */}
+      <div className="grid items-start gap-5 sm:gap-6 lg:grid-cols-2 [&>*]:min-w-0">
       {/* ── Fee model — READ ONLY ──
           This was two number inputs and a "Total platform take: 20%" calculator
           with a Save button, and every part of it was wrong. The platform has
@@ -364,7 +381,6 @@ const AdminSettings = () => {
           it is not a control. It is shown here as what it is: a fallback, with
           its live values, and no way to edit it by accident. */}
       <AdminCard
-        className="max-w-md"
         title={<span className="flex items-center gap-2"><Percent className="w-4 h-4 text-primary" /> Fee Model</span>}
         subtitle="Set by subscription tier, not by this screen."
         contentClassName="space-y-4"
@@ -410,7 +426,6 @@ const AdminSettings = () => {
 
       {/* Social Webhook URL */}
       <AdminCard
-        className="max-w-md"
         title="Social Webhook URL"
         subtitle={`Where the Facebook Post Generator's "Send to Social" posts go for scheduling.`}
         contentClassName="space-y-4"
@@ -435,7 +450,6 @@ const AdminSettings = () => {
 
       {/* Feature Flags */}
       <AdminCard
-        className="max-w-lg"
         title={<span className="flex items-center gap-2"><Flag className="w-4 h-4 text-primary" /> Feature Flags</span>}
         subtitle="Emergency controls. Off is the normal state — leave them off unless you are working an incident."
       >
@@ -493,12 +507,21 @@ const AdminSettings = () => {
 
       {/* Min Supported Build */}
       <AdminCard
-        className="max-w-md"
         title={<span className="flex items-center gap-2"><Smartphone className="w-4 h-4 text-primary" /> Minimum Supported Build</span>}
         subtitle={
           <>
-            Binaries below this build code are forced to update on next launch; <code className="text-foreground">0</code>{" "}
-            disables the check.
+            {/* NOT ENFORCED YET — and saying otherwise is the dangerous kind of
+                wrong, because an operator would set this during an incident and
+                believe old builds were being turned away. `min_supported_build`
+                is written and read ONLY by this screen: an exhaustive grep of
+                src/** and supabase/functions/** finds no gate, hook, or route
+                that reads the column, and the force-update component its
+                migration references does not exist in the repo. The control is
+                left in place because the column is the intended home for the
+                value; the copy now states what actually happens. */}
+            Stored for the launch gate. <strong className="text-foreground">Nothing enforces it yet</strong> — no
+            build currently reads this column, so setting it does not block any device.{" "}
+            <code className="text-foreground">0</code> is the off value.
           </>
         }
       >
@@ -524,7 +547,6 @@ const AdminSettings = () => {
 
       {/* Admin Management */}
       <AdminCard
-        className="max-w-lg"
         title={<span className="flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-primary" /> Admin Users</span>}
         subtitle={adminsLoading ? undefined : `${admins.length} ${admins.length === 1 ? "account holds" : "accounts hold"} the admin role`}
         action={
@@ -568,6 +590,8 @@ const AdminSettings = () => {
           </div>
         )}
       </AdminCard>
+
+      </div>
 
       {/* The "How the split fee model works" card that used to live here is
           gone — its three bullets moved into the Fee Model card at the top of

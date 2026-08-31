@@ -132,7 +132,12 @@ const AdminExport = () => {
         contentClassName="grid grid-cols-1 sm:grid-cols-3 gap-3"
       >
         {DATASETS.map(({ key, icon: Icon, title, body, label, run }) => (
-          <div key={key} className="rounded-ds-md border border-border/60 bg-background/40 p-4 space-y-3">
+          /* `flex-col` + `mt-auto` on the button: the three descriptions are
+             different lengths, so "Users" wrapped to two lines and its Export
+             button sat a line lower than its two siblings — three buttons on
+             three different baselines across one row. The button now pins to
+             the bottom of every card regardless of copy length. */
+          <div key={key} className="flex flex-col rounded-ds-md border border-border/60 bg-background/40 p-4 space-y-3">
             <div className="w-9 h-9 rounded-ds-sm bg-primary/10 flex items-center justify-center">
               <Icon className="w-4 h-4 text-primary" />
             </div>
@@ -140,7 +145,7 @@ const AdminExport = () => {
               <h3 className="font-display font-semibold text-foreground text-ds-13">{title}</h3>
               <p className="text-ds-11 text-muted-foreground">{body}</p>
             </div>
-            <Button size="sm" onClick={run} disabled={!!exporting}>
+            <Button size="sm" className="mt-auto self-start" onClick={run} disabled={!!exporting}>
               {exporting === key ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Download className="w-3 h-3 mr-1" />}
               {label}
             </Button>

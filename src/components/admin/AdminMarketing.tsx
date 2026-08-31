@@ -117,7 +117,15 @@ const AdminMarketing = () => {
               value={html}
               onChange={(e) => setHtml(e.target.value)}
               rows={10}
-              className="font-mono text-ds-11"
+              /* 16px on the native surface, the compact 11px only from `sm` up.
+                 iOS WKWebView ZOOMS the whole page when a focused field's text
+                 is under 16px, and it does not zoom back out — so tapping into
+                 this composer on an iPhone threw the admin out of the layout
+                 mid-edit. Measured in the simulator: this was the only sub-16px
+                 field in the whole admin console (11px). The mono face is what
+                 signals "this is markup"; the size is not load-bearing on a
+                 phone, where there is no room for ten dense rows anyway. */
+              className="font-mono text-base sm:text-ds-11"
             />
           </div>
       </AdminCard>

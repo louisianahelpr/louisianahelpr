@@ -303,8 +303,18 @@ const AdminUsers = () => {
             role="tab"
             aria-selected={tab === t.key}
             onClick={() => setTab(t.key)}
-            className={`shrink-0 whitespace-nowrap px-2.5 py-1.5 rounded-md text-ds-10 sm:text-ds-13 font-medium transition-colors flex items-center justify-center gap-1 ${
-              tab === t.key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            /* `relative` is load-bearing, not decoration. The count badge below
+               carries an `sr-only` span, and `sr-only` is `position:absolute`.
+               With no positioned ancestor between it and the page, its
+               containing block resolved ABOVE this strip's `overflow-x-auto`,
+               so it escaped the clip and contributed its static x-offset
+               (~397px) to the DOCUMENT's scrollable overflow — the whole
+               /admin?view=people page scrolled 77px sideways at 320 and 22px at
+               375, failing CLAUDE.md's zero-horizontal-overflow rule. Making
+               the button the containing block keeps the sr-only box inside the
+               scroller, where it is clipped like everything else. */
+            className={`relative shrink-0 whitespace-nowrap px-2.5 py-1.5 rounded-md text-ds-10 sm:text-ds-13 font-medium transition-colors flex items-center justify-center gap-1 ${
+              tab === t.key ? "btn-grad-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             <span>{t.label}</span>
@@ -315,7 +325,14 @@ const AdminUsers = () => {
                  "users" rather than anything like "needing attention": these
                  counts are per-tab populations (All is every user, Active is
                  every approved one), not a work queue. */
-              <span className="text-ds-9 sm:text-ds-10 bg-destructive/10 text-destructive px-1 py-0.5 rounded-full flex-shrink-0">
+              /* Neutral, NOT destructive. These are populations — "Active 27",
+                 "All 28" — and the comment above already says so, yet they
+                 shipped in the alarm colour, so a healthy user base rendered as
+                 six red warnings and the one colour that means "something is
+                 wrong" in this console (open reports, strikes, disputed jobs)
+                 also meant "how many rows are in this tab". One alarm colour,
+                 one meaning per view. */
+              <span className="text-ds-9 sm:text-ds-10 bg-muted text-muted-foreground px-1 py-0.5 rounded-full flex-shrink-0">
                 <span aria-hidden="true">{t.count}</span>
                 <span className="sr-only">{`${t.count} ${t.count === 1 ? "user" : "users"}`}</span>
               </span>

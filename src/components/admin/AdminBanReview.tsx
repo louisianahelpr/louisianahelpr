@@ -21,6 +21,7 @@ import { toneBadgeClasses, toneTextClasses } from "@/components/admin/tones";
 import { cn } from "@/lib/utils";
 import { report } from "@/lib/errorLogger";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 
@@ -95,7 +96,7 @@ const BanReviewInner = () => {
   const [dismissTarget, setDismissTarget] = useState<ReviewCase | null>(null);
   const [note, setNote] = useState("");
 
-  const { data: cases, isInitialLoading } = useInstantQuery<ReviewCase[]>({
+  const { data: cases, isInitialLoading, isError, refetch } = useInstantQuery<ReviewCase[]>({
     key: queryKey,
     fallback: [],
     fetcher: async () => {
@@ -111,8 +112,12 @@ const BanReviewInner = () => {
         if ((error as { code?: string }).code === "PGRST202" || error.message?.includes("does not exist")) {
           return [];
         }
-        toast.error(error.message);
-        return [];
+        // Throw rather than return []: a swallowed read error rendered "No
+        // accounts awaiting review", which is the same screen as a genuinely
+        // empty queue — an outage read as an all-clear on the surface that
+        // decides whether someone stays banned. The PGRST202 branch above is
+        // the ONE legitimate empty: the migration simply hasn't deployed yet.
+        throw error;
       }
 
       const pending = (data ?? []) as ViolationRow[];
@@ -223,7 +228,15 @@ const BanReviewInner = () => {
           ) : undefined
         }
       >
-        {cases.length === 0 ? (
+        {isError ? (
+          <ErrorState
+            surfaceStyle={NESTED_EMPTY_SURFACE}
+            variant="inline"
+            title="We couldn't load the ban review queue."
+            body="Tap Try again. Nobody's case has been decided — this list is read straight from their violations."
+            onRetry={() => refetch()}
+          />
+        ) : cases.length === 0 ? (
           <EmptyState
             surfaceStyle={NESTED_EMPTY_SURFACE}
             variant="inline"

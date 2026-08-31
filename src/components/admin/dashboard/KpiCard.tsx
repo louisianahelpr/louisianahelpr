@@ -71,10 +71,26 @@ export const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick, spar
           {trend.up ? "+" : "−"}{trend.pct}% {compareLabel}
         </p>
       )}
+      {/* A tile that ASKED for a sparkline always gets the lane, even when the
+          series is flat zero. KpiSparkline returns null on an all-zero array,
+          so "Active Jobs" (0 in the window) rendered with no lane at all — and
+          because the KPI grid stretches its rows, that short card was inflated
+          to match the tall "New Users" tile beside it and read as a bordered
+          box with a number floating in a field of nothing. A flat baseline is
+          both honest ("no activity in this window") and keeps the two tiles in
+          a row the same height. `hasSpark` distinguishes "asked and had none"
+          from "never asked" — tiles with no sparkline prop still render short,
+          which is why the grid no longer stretches them. */}
       {sparkline && sparkline.length > 0 && (
-        <Suspense fallback={<div className="h-7 mt-2" aria-hidden />}>
-          <KpiSparkline data={sparkline} tone={accent} />
-        </Suspense>
+        sparkline.some((n) => n) ? (
+          <Suspense fallback={<div className="h-7 mt-2" aria-hidden />}>
+            <KpiSparkline data={sparkline} tone={accent} />
+          </Suspense>
+        ) : (
+          <div className="h-7 mt-2 flex items-end" aria-hidden>
+            <div className="h-px w-full bg-border" />
+          </div>
+        )
       )}
     </button>
   );

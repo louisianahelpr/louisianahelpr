@@ -11,6 +11,7 @@ import { useInstantQuery } from "@/hooks/useInstantQuery";
 import { formatShortDate } from "@/lib/format";
 import { report } from "@/lib/errorLogger";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { AdminViewShell, AdminFilterStrip } from "@/components/admin/AdminViewShell";
 
 type Ticket = {
@@ -40,7 +41,7 @@ const AdminSupport = () => {
   const [updating, setUpdating] = useState<string | null>(null);
 
   const queryKey = ["admin-support", filter];
-  const { data: tickets, isInitialLoading } = useInstantQuery<Ticket[]>({
+  const { data: tickets, isInitialLoading, isError, refetch } = useInstantQuery<Ticket[]>({
     key: queryKey,
     fallback: [],
     fetcher: async () => {
@@ -54,10 +55,13 @@ const AdminSupport = () => {
       if (filter === "resolved") query = query.neq("status", "pending");
 
       const { data, error } = await query;
-      if (error) {
-        toast.error("Couldn't load support tickets — refresh to retry.");
-        return [];
-      }
+      // THROW, don't `return []`. Swallowing the error here made an outage
+      // render as "No support tickets — Nobody has written in. That is the
+      // good outcome." on a trust-and-safety queue: the one screen where a
+      // silent empty list is indistinguishable from a healthy one, and the
+      // most expensive place to be wrong. Throwing flips React Query's
+      // isError, which the ErrorState branch below now renders.
+      if (error) throw error;
 
       const userIds = [...new Set((data || []).map(r => r.reporter_id))];
       if (userIds.length > 0) {
@@ -133,6 +137,13 @@ const AdminSupport = () => {
 
       {isInitialLoading ? (
         <p className="text-muted-foreground text-ds-11 py-8 text-center">Loading tickets…</p>
+      ) : isError ? (
+        <ErrorState
+          variant="inline"
+          title="We couldn't load the support queue."
+          body="Tap Try again. No ticket is lost — this list is read straight from the reports table."
+          onRetry={() => refetch()}
+        />
       ) : tickets.length === 0 ? (
         <EmptyState
           variant="inline"

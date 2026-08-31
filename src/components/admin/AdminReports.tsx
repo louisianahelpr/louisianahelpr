@@ -27,6 +27,7 @@ import { AdminViewShell, AdminFilterStrip } from "@/components/admin/AdminViewSh
 import { cn } from "@/lib/utils";
 import { report } from "@/lib/errorLogger";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
 
 type Report = {
   id: string;
@@ -70,7 +71,12 @@ const AdminReports = () => {
   const [deletingReview, setDeletingReview] = useState(false);
 
   const queryKey = ["admin-reports", filter];
-  const { data: reports, isInitialLoading } = useInstantQuery<Report[]>({
+  // isError/refetch, not a swallowed toast. This caught the error, told the
+  // user once, and returned [] — so a failed read rendered "No pending
+  // reports", which is the same screen as a genuinely empty queue. An admin
+  // looking at an outage saw an all-clear and moved on. AdminIDVReview.tsx
+  // already ships the right shape; this matches it.
+  const { data: reports, isInitialLoading, isError, refetch } = useInstantQuery<Report[]>({
     key: queryKey,
     fallback: [],
     fetcher: async () => {
@@ -88,10 +94,9 @@ const AdminReports = () => {
       if (filter === "dismissed") query = query.eq("status", "dismissed");
 
       const { data, error } = await query;
-      if (error) {
-        toast.error("Couldn't load reports — refresh to retry.");
-        return [];
-      }
+      // Throw into React Query rather than returning a fallback: an empty
+      // array here is indistinguishable from "the queue is clear".
+      if (error) throw error;
 
       const reportRows = (data || []) as Report[];
       const userIds = [
@@ -350,6 +355,13 @@ const AdminReports = () => {
 
       {isInitialLoading ? (
         <p className="text-muted-foreground text-ds-11 py-8 text-center">Loading reports…</p>
+      ) : isError ? (
+        <ErrorState
+          variant="inline"
+          title="We couldn't load the reports queue."
+          body="Tap Try again. Nothing has been dismissed — this list is read straight from the reports table."
+          onRetry={() => refetch()}
+        />
       ) : reports.length === 0 ? (
         <EmptyState
           variant="inline"

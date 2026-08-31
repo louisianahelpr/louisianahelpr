@@ -37,13 +37,25 @@ export const BatchRow = ({
   const isHeld = !!hold;
   return (
     <div className="rounded-ds-md liquid-glass p-4 flex flex-col sm:flex-row sm:items-center gap-3">
-      {tab === "ready" && batch.stripe_account_id && (
-        <Checkbox
-          checked={isSelected}
-          onCheckedChange={() => onToggleSelected(batch.helper_id)}
-          aria-label={`Select ${batch.helper_name} for bulk payout`}
-          className="mt-0.5"
-        />
+      {/* The checkbox slot is ALWAYS reserved on the Ready tab, and only
+          filled when the batch can actually be selected. It used to be
+          conditionally rendered with nothing in its place, so a row for a
+          Helpr with no Stripe account started ~30px to the left of every other
+          row — a ragged left edge down a money queue, on exactly the rows that
+          most need to look deliberate rather than broken. Reserving the lane
+          keeps the names on one axis; `aria-hidden` keeps the spacer out of
+          the accessibility tree. */}
+      {tab === "ready" && (
+        batch.stripe_account_id ? (
+          <Checkbox
+            checked={isSelected}
+            onCheckedChange={() => onToggleSelected(batch.helper_id)}
+            aria-label={`Select ${batch.helper_name} for bulk payout`}
+            className="mt-0.5"
+          />
+        ) : (
+          <div className="hidden sm:block h-4 w-4 shrink-0" aria-hidden="true" />
+        )
       )}
       <div className="flex-1 min-w-0 space-y-1">
         <div className="flex items-center gap-2 flex-wrap">

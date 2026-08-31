@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState } from "react";
-import { MapPin } from "lucide-react";
+import { Inbox, MapPin } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { Badge } from "@/components/ui/badge";
 import { cn, formatName } from "@/lib/utils";
@@ -12,7 +12,24 @@ import { tierDisplayName } from "@/lib/subscriptionTiers";
 import { formatCategory, formatPrice, formatPriceExact, formatShortDate } from "@/lib/format";
 import { formatJobDate } from "@/lib/dateUtils";
 import { PIE_COLORS } from "./adminAnalyticsConstants";
-import { toneTextClasses, type Tone } from "@/components/admin/tones";
+import { toneTextClasses } from "@/components/admin/tones";
+import { PAYMENT_TONE } from "@/components/admin/adminJobs/types";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
+
+/**
+ * Zero-row state for a drill-down list.
+ *
+ * Every one of the five drill-downs below is a filter strip over a list, and
+ * none of them had a zero-row branch: choosing a filter that matched nothing
+ * left the chips (and, on Payouts, a $0.00 total) floating over an empty
+ * bordered container with no explanation — the "renders a box with nothing in
+ * it" defect this codebase has shipped twice before. One shared component so
+ * all five read identically.
+ */
+const DrillDownEmpty = ({ title, body }: { title: string; body: string }) => (
+  <EmptyState surfaceStyle={NESTED_EMPTY_SURFACE} variant="inline" icon={Inbox} title={title} body={body} />
+);
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
@@ -60,6 +77,9 @@ export const UsersDrillDown = ({ users, roleByUser }: { users: Profile[]; roleBy
           );
         })}
       </div>
+      {filtered.length === 0 ? (
+        <DrillDownEmpty title="No users in this status" body="Nothing matches this filter — switch back to All." />
+      ) : (
       <div className="space-y-2 max-h-[60vh] overflow-y-auto">
         {filtered.map(u => (
           <div key={u.id} className="rounded-ds-md liquid-glass p-4">
@@ -82,6 +102,7 @@ export const UsersDrillDown = ({ users, roleByUser }: { users: Profile[]; roleBy
           </div>
         ))}
       </div>
+      )}
     </div>
   );
 };
@@ -109,6 +130,9 @@ export const SubscriptionsDrillDown = ({ users }: { users: Profile[] }) => {
           );
         })}
       </div>
+      {filtered.length === 0 ? (
+        <DrillDownEmpty title="No subscribers in this tier" body="Nothing matches this filter — switch back to All." />
+      ) : (
       <div className="space-y-2 max-h-[60vh] overflow-y-auto">
         {filtered.map(u => (
           <div key={u.id} className="rounded-ds-md liquid-glass p-4 flex items-center justify-between">
@@ -127,6 +151,7 @@ export const SubscriptionsDrillDown = ({ users }: { users: Profile[] }) => {
           </div>
         ))}
       </div>
+      )}
     </div>
   );
 };
@@ -139,6 +164,9 @@ export const CategoriesDrillDown = ({ data }: { data: { name: string; count: num
         <CategoriesBarChart data={data} />
       </Suspense>
     </div>
+    {data.length === 0 ? (
+      <DrillDownEmpty title="No categories yet" body="No completed job has been filed under a category in this window." />
+    ) : (
     <div className="space-y-2">
       {data.map((cat, i) => (
         <div key={cat.name} className="rounded-ds-md liquid-glass p-4 flex items-center justify-between">
@@ -153,6 +181,7 @@ export const CategoriesDrillDown = ({ data }: { data: { name: string; count: num
         </div>
       ))}
     </div>
+    )}
   </div>
 );
 
@@ -162,14 +191,11 @@ export const PayoutsDrillDown = ({ jobs }: { jobs: Job[] }) => {
   const statuses = ["all", "escrow", "payout_pending", "released", "refunded"];
   const filtered = filter === "all" ? jobs : jobs.filter(j => j.payment_status === filter);
 
-  const statusTone: Record<string, Tone> = {
-    escrow: "warning",
-    payout_pending: "info",
-    released: "success",
-    refunded: "danger",
-  };
+  // Imported, not re-declared. This local copy and the one in
+  // adminJobs/types.ts were the two disagreeing payment-status colour maps —
+  // see the note on PAYMENT_TONE for which reading won and why.
   const statusDot = (status: string) =>
-    cn("bg-current", toneTextClasses[statusTone[status] ?? "neutral"]);
+    cn("bg-current", toneTextClasses[PAYMENT_TONE[status] ?? "neutral"]);
 
   return (
     <div className="space-y-3">
@@ -189,6 +215,9 @@ export const PayoutsDrillDown = ({ jobs }: { jobs: Job[] }) => {
         </span>
       </div>
 
+      {filtered.length === 0 ? (
+        <DrillDownEmpty title="No jobs at this payment status" body="Nothing matches this filter — switch back to All. The total above is for the whole selection." />
+      ) : (
       <div className="space-y-2 max-h-[60vh] overflow-y-auto">
         {filtered.map(j => (
           <div key={j.id} className="rounded-ds-md liquid-glass p-4">
@@ -211,6 +240,7 @@ export const PayoutsDrillDown = ({ jobs }: { jobs: Job[] }) => {
           </div>
         ))}
       </div>
+      )}
     </div>
   );
 };
@@ -244,6 +274,9 @@ export const JobsDrillDown = ({ jobs, showFinancials, showFees }: { jobs: Job[];
         </div>
       )}
 
+      {filtered.length === 0 ? (
+        <DrillDownEmpty title="No jobs at this status" body="Nothing matches this filter — switch back to All." />
+      ) : (
       <div className="space-y-2 max-h-[60vh] overflow-y-auto">
         {filtered.map(j => (
           <div key={j.id} className="rounded-ds-md liquid-glass p-4">
@@ -270,6 +303,7 @@ export const JobsDrillDown = ({ jobs, showFinancials, showFees }: { jobs: Job[];
           </div>
         ))}
       </div>
+      )}
     </div>
   );
 };

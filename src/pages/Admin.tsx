@@ -473,7 +473,27 @@ const Admin = () => {
             by `html.web-desktop.desktop-rail:not(.app-shell) #root
             { padding-top: 3.5rem }` — /admin is a document-scroll route — so a
             pt-14 here would stack a second 56px on top of it. */}
-        <div className={`flex-1 flex flex-col min-w-0 ${isWebDesktop ? "" : "pt-14"}`}>
+        <div
+          className="flex-1 flex flex-col min-w-0"
+          style={
+            isWebDesktop
+              ? undefined
+              : // `3.5rem + var(--safe-area-top)`, not a bare `pt-14`.
+                //
+                // AdminTopBar is `fixed` and pads ITSELF by the safe-area top
+                // inset, so on a device its real height is inset + 56px — 118px
+                // on an iPhone 17 Pro (62 + 56). This spacer reserved only the
+                // 56px, so every admin screen sat 62px too high UNDER the bar.
+                // Measured in the simulator's WKWebView on 2026-08-31: the
+                // AdminSectionHeader <h1> ("Users", "Disputes", "Analytics", …)
+                // had its top at y=72 while the bar's bottom was at y=118 — the
+                // page title was occluded by the chrome on all 24 views, and
+                // the Dashboard's "Welcome back" with it. Chrome never showed
+                // it because `--safe-area-top` is 0 in a desktop browser, which
+                // is exactly why this needed the device pass to catch.
+                { paddingTop: "calc(3.5rem + var(--safe-area-top, 0px))" }
+          }
+        >
           {/* NO SECOND TOP BAR ON THE DESKTOP WEBSITE.
               App.tsx mounts DesktopTopNav and DesktopSidebarNav unconditionally
               for every signed-in user, and neither hides on /admin — so this

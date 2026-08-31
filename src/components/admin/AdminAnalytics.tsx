@@ -292,7 +292,12 @@ const AdminAnalytics = () => {
     <AdminViewShell>
       {/* ── Money ── */}
       <SectionLabel>Money</SectionLabel>
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Two-up from 320, not one-up until `sm`. These four tiles hold one
+          number each; stacked full-width on a phone they cost four screens of
+          scroll before an admin reaches anything else, and each rendered as a
+          135px-tall card wrapped around a single figure. Two-up is how the
+          Dashboard's own KPI grid already behaves at the same width. */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* NOT "Revenue" — this is budget + poster fee across captured jobs,
             i.e. the gross value flowing THROUGH the platform, most of which is
             owed to helpers. Calling it revenue put it beside "$0.00 Platform
@@ -376,9 +381,9 @@ const AdminAnalytics = () => {
       <div className="grid sm:grid-cols-2 gap-4">
         <button onClick={() => openDrillDown("subscriptions")} className="rounded-ds-md liquid-glass p-5 text-left hover:border-primary/30 transition-all group">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-ds-13 font-semibold text-foreground flex items-center gap-2">
+            <h2 className="text-ds-13 font-semibold text-foreground flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-primary" /> Subscription Revenue
-            </h3>
+            </h2>
             <span className="text-ds-11 text-primary opacity-0 group-hover:opacity-100 transition-opacity">Details →</span>
           </div>
           <p className="text-ds-24 font-bold text-foreground">${totalSubRevenue.toFixed(2)}<span className="text-ds-13 font-normal text-muted-foreground">/mo</span></p>
@@ -467,10 +472,10 @@ const AdminAnalytics = () => {
       <div className="grid sm:grid-cols-2 gap-4">
         {/* Payout pipeline */}
         <button onClick={() => openDrillDown("payouts")} className="rounded-ds-md liquid-glass p-5 text-left hover:border-primary/30 transition-all group">
-          <h3 className="text-ds-13 font-semibold text-foreground mb-4 flex items-center gap-2">
+          <h2 className="text-ds-13 font-semibold text-foreground mb-4 flex items-center gap-2">
             <Clock className="w-4 h-4 text-primary" /> Payout Pipeline
             <span className="text-ds-11 text-primary opacity-0 group-hover:opacity-100 transition-opacity ml-auto">Details →</span>
-          </h3>
+          </h2>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -523,10 +528,10 @@ const AdminAnalytics = () => {
 
         {/* Category breakdown */}
         <button onClick={() => openDrillDown("categories")} className="rounded-ds-md liquid-glass p-5 text-left hover:border-primary/30 transition-all group">
-          <h3 className="text-ds-13 font-semibold text-foreground mb-3 flex items-center gap-2">
+          <h2 className="text-ds-13 font-semibold text-foreground mb-3 flex items-center gap-2">
             <PieChart className="w-4 h-4 text-primary" /> Top Categories
             <span className="text-ds-11 text-primary opacity-0 group-hover:opacity-100 transition-opacity ml-auto">Details →</span>
-          </h3>
+          </h2>
           <div className="space-y-2">
             {categoryData.slice(0, 5).map((cat, i) => (
               <div key={cat.name} className="flex items-center gap-3">

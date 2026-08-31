@@ -190,10 +190,23 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
         // the write the app actually reads to lock the account. A zero-row
         // update (RLS on profiles, stale user_id) returns error === null, and
         // the dialog used to close on a ban that never took effect.
+        // `auto_suspended_until` is NOT optional bookkeeping — it is the only
+        // column anything reads to END this suspension, and the only one that
+        // tells the user when it ends:
+        //   • sweep_expired_auto_bans (the cron that lifts a temp ban) selects
+        //     `ban_status='temp_banned' AND auto_suspended_until < NOW()`. It
+        //     never looks at user_bans.expires_at, and nothing else does either.
+        //   • StrikeBanner.tsx renders the "suspended until …" countdown from
+        //     this column and shows nothing without it.
+        // So writing only `user_bans.expires_at` (as this did) meant an admin's
+        // "Ban for 7 days" — with the dialog and the user's own notification
+        // both promising a duration — never auto-lifted and never displayed an
+        // end date. The account stayed locked until a human happened to click
+        // Lift Ban. Writing the same instant here makes the promise true.
         unwrapMutation(
           await supabase
             .from("profiles")
-            .update({ ban_status: "temp_banned" })
+            .update({ ban_status: "temp_banned", auto_suspended_until: expiresAt.toISOString() })
             .eq("user_id", profile.user_id)
             .select("user_id"),
           {

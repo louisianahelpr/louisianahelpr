@@ -4,6 +4,7 @@
  * Imported lazily from Admin.tsx so recharts stays out of the
  * critical-path bundle for non-admin users.
  */
+import { useId } from "react";
 import { Area, AreaChart, ResponsiveContainer } from "recharts";
 
 interface KpiSparklineProps {
@@ -20,6 +21,14 @@ const STROKE: Record<string, string> = {
 };
 
 export const KpiSparkline = ({ data, tone = "primary" }: KpiSparklineProps) => {
+  // useId must run before any early return — hooks are unconditional.
+  // The gradient id was `kpiSpark-${tone}`, i.e. one of THREE strings for the
+  // whole app, so the Dashboard's four KPI tiles emitted the same <linearGradient
+  // id> more than once (axe: duplicate-id on /admin home). Duplicate SVG ids are
+  // not cosmetic — `fill="url(#id)"` resolves to the FIRST match in the
+  // document, so every tile of a given tone was painting with the first tile's
+  // gradient node and would inherit its colour if the tones ever diverged.
+  const uid = useId();
   if (!data || data.length === 0) return null;
   const allZero = data.every((n) => !n);
   if (allZero) return null;
@@ -27,7 +36,7 @@ export const KpiSparkline = ({ data, tone = "primary" }: KpiSparklineProps) => {
   // recharts wants an array of objects.
   const series = data.map((v, i) => ({ i, v }));
   const colour = STROKE[tone] ?? STROKE.primary;
-  const gradientId = `kpiSpark-${tone}`;
+  const gradientId = `kpiSpark-${tone}-${uid.replace(/:/g, "")}`;
 
   return (
     <div className="h-7 -mx-1 mt-2 pointer-events-none" aria-hidden>

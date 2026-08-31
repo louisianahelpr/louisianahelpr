@@ -17,7 +17,7 @@ export const LedgerList = ({ ledger }: LedgerListProps) => {
     <div className="space-y-3 pt-4 border-t border-border/50">
       <div className="flex items-center gap-2">
         <ListChecks className="w-4 h-4 text-primary" />
-        <h3 className="text-ds-13 font-semibold text-foreground">Recent transfers</h3>
+        <h2 className="text-ds-13 font-semibold text-foreground">Recent transfers</h2>
         <Badge variant="sienna" className="text-ds-10">last {ledger.length}</Badge>
       </div>
       <p className="text-ds-11 text-muted-foreground">
@@ -45,7 +45,13 @@ export const LedgerList = ({ ledger }: LedgerListProps) => {
                 <p className="text-ds-11 text-muted-foreground mt-0.5 truncate">
                   {jobTitle}
                   {t.stripe_transfer_id && (
-                    <span className="ml-2 font-mono opacity-60" title="Stripe transfer ID">
+                    /* No `opacity-60`. Stacked on the parent's already-muted
+                       colour it measured 2.66:1 against the card (axe,
+                       /admin?view=payouts at 375/768/1440) — the worst contrast
+                       in the admin console, on the one string an admin
+                       reconciles against Stripe. `text-muted-foreground` alone
+                       clears 4.5:1; the mono face is what marks it as an id. */
+                    <span className="ml-2 font-mono" title="Stripe transfer ID">
                       {t.stripe_transfer_id.slice(-8)}
                     </span>
                   )}

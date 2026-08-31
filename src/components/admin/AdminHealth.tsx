@@ -175,9 +175,16 @@ const AdminHealth = () => {
             <Mail className="w-4 h-4" /> Emails (24h)
           </span>
           <div className="flex flex-wrap gap-x-3 gap-y-1 text-ds-13">
-            <span className={cn("font-semibold", toneTextClasses.success)}>{emailStats.sent} sent</span>
-            <span className={cn("font-semibold", toneTextClasses.danger)}>{emailStats.failed} failed</span>
-            <span className={cn("font-semibold", toneTextClasses.notice)}>{emailStats.suppressed} suppressed</span>
+            {/* An alarm colour has to mean an alarm. These three were painted
+                unconditionally, so a perfectly healthy hour rendered "0 failed"
+                in red and "0 suppressed" in yellow — two warnings on a
+                dashboard whose entire job is to tell an operator at a glance
+                whether anything is wrong. Zero of a bad thing is good news and
+                now reads as ordinary muted text; the colour only appears when
+                there is genuinely something to look at. */}
+            <span className={cn("font-semibold", emailStats.sent > 0 ? toneTextClasses.success : "text-muted-foreground")}>{emailStats.sent} sent</span>
+            <span className={cn("font-semibold", emailStats.failed > 0 ? toneTextClasses.danger : "text-muted-foreground")}>{emailStats.failed} failed</span>
+            <span className={cn("font-semibold", emailStats.suppressed > 0 ? toneTextClasses.notice : "text-muted-foreground")}>{emailStats.suppressed} suppressed</span>
           </div>
         </div>
 

@@ -2,8 +2,15 @@ import * as React from 'npm:react@18.3.1'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { cronResult } from '../_shared/cron-result.ts'
 import { getAppUrl } from '../_shared/appUrl.ts'
-import { FROM_DEFAULT, unsubscribeHeaders } from '../_shared/resend.ts'
+import { FROM_DEFAULT } from '../_shared/resend.ts'
+import { buildUnsubscribeUrl, unsubscribeHeaders } from '../_shared/unsubscribe.ts'
 import { AdminDigestEmail, ApprovalReminderEmail } from '../_shared/email-templates/lifecycle.tsx'
+import {
+  ReEngagementEmail,
+  WelcomeDripStep1Email,
+  WelcomeDripStep2Email,
+  WelcomeDripStep3Email,
+} from '../_shared/email-templates/drip.tsx'
 import { renderEmail } from '../_shared/email-templates/render.ts'
 
 // Declared because line 163 already used it. That reference was the only one
@@ -27,25 +34,44 @@ const corsHeaders = {
 // host, so the same product mailed people from four identities across two
 // domains.
 
-// ─── Email Templates ──────────────────────────────────────────────
+// ─── What this cron sends, and under which rules ──────────────────────
 //
-// The templates themselves live in `_shared/email-templates/lifecycle.tsx` as
-// react-email components; this file only supplies the data. The local
-// `wrapEmail` / `btn` / `p` / `h1` string builders are gone with them.
+// The templates live in `_shared/email-templates/`; this file only supplies
+// the data and decides who gets what.
 //
-// SCOPE NOTE (2026-08-31): the three welcome-drip steps ("You're in…",
-// "A quick tour…", "Four things great Helprs do.") and the "New jobs are open
-// in your area." win-back were DELETED rather than ported. Their primary
-// purpose is promotional, which makes CAN-SPAM's physical-postal-address
-// requirement (§7704(a)(5)) bite, and the business has chosen not to publish
-// an address. What remains in this cron is account-status mail (the
-// approved-but-never-logged-in reminder) and the internal Monday admin digest
-// — neither of which is commercial.
+// COMMERCIAL — welcome drip steps 1/2/3 and the "New jobs are open in your
+// area." win-back (`drip.tsx`). Deleted in fa6a7898 when the business chose
+// not to publish a postal address; RESTORED 2026-08-31 by owner decision with
+// that gap knowingly open (see the constant note in `_shared/resend.ts`).
+// Every one of them:
+//   • is gated on EXPLICIT consent — `profiles.marketing_consent` (the signup
+//     opt-in box) AND `notification_preferences.email_promotions`. Both reads
+//     fail CLOSED. This is STRICTER than the pre-deletion code, which gated
+//     drip steps 1–3 on neither: it mailed promotional content to every
+//     verified approved profile, including the people who left the opt-in box
+//     unticked. `marketing_consent` DEFAULTS TO FALSE (migration
+//     20260708011322), so expect the drip volume to be a fraction of what it
+//     was — that is the correct number, not a regression.
+//   • carries `<MarketingFooter>` with the recipient's own signed one-click
+//     unsubscribe link, and `List-Unsubscribe` / `List-Unsubscribe-Post`
+//     headers pointing at the same link.
 //
-// The `profiles.drip_step` / `last_drip_at` columns are LEFT ALONE. Nothing
-// else in the repo reads them (only the column-lock triggers, which merely
-// preserve them), but dropping columns is a migration and this change owns no
-// migrations. They simply stop advancing.
+// TRANSACTIONAL — the approved-but-never-logged-in reminder. Account-status
+// mail under §7702(17)(A)(iv). It carries the plain transactional footer and
+// NO `List-Unsubscribe`: it is not gated on marketing consent (you should
+// hear that your account was approved regardless), so advertising an opt-out
+// it would then ignore would be a lie. See the note on the component.
+//
+// INTERNAL — the Monday admin digest. Ops mail to this platform's own
+// administrators about this platform. Not commercial, not a mailing list, and
+// no longer carrying an unsubscribe control that would have flipped an admin's
+// own `marketing_consent` if they ever tapped Gmail's button.
+
+interface RenderedEmail {
+  subject: string
+  html: string
+  text: string
+}
 
 async function adminDigestEmail(stats: {
   newUsers: number
@@ -54,7 +80,7 @@ async function adminDigestEmail(stats: {
   pendingApprovals: number
   openReports: number
   revenue: number
-}): Promise<{ subject: string; html: string; text: string }> {
+}): Promise<RenderedEmail> {
   const subject = `Louisiana Helpr Weekly Digest — Week of ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
   // Both parts come from the one component — react-email renders the plaintext
   // twin, so the two can no longer drift.
@@ -67,6 +93,22 @@ async function adminDigestEmail(stats: {
   )
   return { subject, html, text }
 }
+
+/** The three welcome-drip steps, keyed by step number. */
+const DRIP_STEPS = {
+  1: {
+    component: WelcomeDripStep1Email,
+    subject: "You're in. Here's where to start on Louisiana Helpr.",
+  },
+  2: {
+    component: WelcomeDripStep2Email,
+    subject: "A quick tour of how Louisiana Helpr works.",
+  },
+  3: {
+    component: WelcomeDripStep3Email,
+    subject: "Four things great Helprs do.",
+  },
+} as const
 
 // ─── Main Handler ──────────────────────────────────────────────────
 
@@ -83,9 +125,7 @@ Deno.serve(async (_req) => {
   const supabaseKey = (Deno.env.get('SECRET_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!
   const supabase = createClient(supabaseUrl, supabaseKey)
 
-  // `drip` and `reEngagement` counters are gone with the promotional sends
-  // they counted (see the SCOPE NOTE above the templates).
-  const results = { approvalResend: 0, adminDigest: 0, errors: [] as string[] }
+  const results = { drip: 0, approvalResend: 0, reEngagement: 0, adminDigest: 0, errors: [] as string[] }
 
   try {
     // ─── Load suppressed emails to avoid CAN-SPAM violations ─────
@@ -94,6 +134,13 @@ Deno.serve(async (_req) => {
     // error meant a failed read produced an EMPTY suppression set, so every
     // drip/approval/win-back sequence below would mail the exact people we are
     // required not to mail — and would look like a normal successful run.
+    //
+    // This is the HARD list (bounces + spam complaints, written by
+    // resend-webhook). It applies to EVERY send below, transactional included,
+    // because continuing to mail a hard-bounced address is how a sending
+    // domain dies. It is NOT where a commercial opt-out is recorded — that is
+    // the two consent columns below, which is what keeps someone who left the
+    // promo list still receiving their payout mail.
     const { data: suppressedList, error: suppressedError } = await supabase
       .from('suppressed_emails')
       .select('email')
@@ -109,14 +156,170 @@ Deno.serve(async (_req) => {
     }
     const suppressedSet = new Set((suppressedList || []).map(s => s.email.toLowerCase()))
 
-    const now = new Date()
+    // ─── Load commercial opt-outs ─────────────────────────────────
+    // `notification_preferences.email_promotions = false` is the in-app
+    // Promotions toggle AND what `email-unsubscribe` writes on a one-click
+    // opt-out. Only the COMMERCIAL loops consult it.
+    //
+    // Fail closed for the same reason the suppression read does: a dropped
+    // error here yields an EMPTY opt-out set, and every person who
+    // unsubscribed gets the next drip step. An unsent campaign is retryable;
+    // one sent to people who opted out is not.
+    const { data: promoPrefs, error: promoPrefsError } = await supabase
+      .from('notification_preferences')
+      .select('user_id, email_promotions')
+    if (promoPrefsError) {
+      console.error('[engagement-automations] promo opt-out list unavailable:', promoPrefsError.message)
+      return new Response(
+        JSON.stringify({
+          error: 'Email preference list unavailable — aborted before sending.',
+          details: promoPrefsError.message,
+        }),
+        { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
+    const promoOptedOut = new Set(
+      (promoPrefs || []).filter((p) => p.email_promotions === false).map((p) => p.user_id),
+    )
 
-    // ─── 1b. Auto-resend Approval Emails ─────────────────────────
+    const now = new Date()
+    const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString()
+
+    /**
+     * Enqueue one COMMERCIAL email.
+     *
+     * The unsubscribe URL is built per recipient and used TWICE — inside the
+     * footer and in the `List-Unsubscribe` headers — so the native Gmail /
+     * Apple Mail control and the visible link land on the same handler and
+     * have the same effect.
+     */
+    const queueCommercial = async (
+      user: { user_id: string; email: string; full_name: string | null },
+      element: (unsubscribeUrl: string) => unknown,
+      subject: string,
+      label: string,
+    ): Promise<string | null> => {
+      const unsubscribeUrl =
+        (await buildUnsubscribeUrl(user.email)) ?? `${getAppUrl()}/profile?tab=notifications`
+      const { html, text } = await renderEmail(element(unsubscribeUrl))
+      const messageId = crypto.randomUUID()
+
+      await supabase.from('email_send_log').insert({
+        message_id: messageId,
+        template_name: label,
+        recipient_email: user.email,
+        status: 'pending',
+      })
+
+      // `.rpc()` RESOLVES { data, error }; it does not throw. Without the
+      // destructure a failed enqueue would still bump the counter and advance
+      // the drip step, so the recipient would silently skip a step forever.
+      const { error: enqueueErr } = await supabase.rpc('enqueue_email', {
+        queue_name: 'transactional_emails',
+        payload: {
+          run_id: crypto.randomUUID(),
+          message_id: messageId,
+          to: user.email,
+          from: FROM_DEFAULT,
+          subject,
+          html,
+          text,
+          // Advisory marker on the queue payload — nothing reads it today, but
+          // it is the one place a queued message says which body of rules it
+          // was sent under.
+          purpose: 'commercial',
+          headers: await unsubscribeHeaders(user.email),
+          label,
+          queued_at: now.toISOString(),
+        },
+      })
+
+      if (enqueueErr) {
+        await supabase
+          .from('email_send_log')
+          .update({ status: 'failed', error_message: `enqueue_email: ${enqueueErr.message}`.slice(0, 1000) })
+          .eq('message_id', messageId)
+        return enqueueErr.message
+      }
+      return null
+    }
+
+    // ─── 1. Welcome Drip Sequence (COMMERCIAL) ────────────────────
+    const { data: dripUsers, error: dripUsersError } = await supabase
+      .from('profiles')
+      .select('user_id, full_name, email, drip_step, last_drip_at, created_at')
+      .lt('drip_step', 3)
+      .not('email', 'is', null)
+      // Automated lifecycle mail previously went to EVERY profile with an
+      // address — including unverified addresses and accounts an admin had
+      // denied. send-marketing-blast already gated on these two columns; the
+      // cron loops did not.
+      .eq('email_verified', true)
+      .eq('approval_status', 'approved')
+      // The signup opt-in. NEW versus the pre-deletion code, which gated the
+      // drip on nothing of the sort — see the header note.
+      .eq('marketing_consent', true)
+    if (dripUsersError) {
+      // Fail closed rather than treating a read failure as "nobody qualifies":
+      // a silent empty result here is indistinguishable from a working run.
+      results.errors.push(`drip recipient query failed: ${dripUsersError.message}`)
+    }
+
+    for (const user of dripUsers || []) {
+      if (suppressedSet.has((user.email || '').toLowerCase())) continue
+      if (promoOptedOut.has(user.user_id)) continue
+
+      const signupDate = new Date(user.created_at)
+      const daysSinceSignup = (now.getTime() - signupDate.getTime()) / (1000 * 60 * 60 * 24)
+
+      // Which step is due, from days since signup.
+      let targetStep: 1 | 2 | 3 | -1 = -1
+      if (user.drip_step === 0 && daysSinceSignup >= 1) targetStep = 1
+      else if (user.drip_step === 1 && daysSinceSignup >= 3) targetStep = 2
+      else if (user.drip_step === 2 && daysSinceSignup >= 7) targetStep = 3
+
+      if (targetStep === -1) continue
+
+      // Never more than one drip email per day.
+      if (user.last_drip_at) {
+        const hoursSinceLastDrip = (now.getTime() - new Date(user.last_drip_at).getTime()) / (1000 * 60 * 60)
+        if (hoursSinceLastDrip < 20) continue
+      }
+
+      const step = DRIP_STEPS[targetStep]
+      const failure = await queueCommercial(
+        user,
+        (unsubscribeUrl) =>
+          React.createElement(step.component, {
+            greetingName: user.full_name || '',
+            dashboardUrl: `${getAppUrl()}/dashboard`,
+            unsubscribeUrl,
+          }),
+        step.subject,
+        `welcome_drip_step_${targetStep}`,
+      )
+
+      if (failure) {
+        results.errors.push(`Drip failed for ${user.email}: ${failure}`)
+        continue
+      }
+
+      await supabase.from('profiles').update({
+        drip_step: targetStep,
+        last_drip_at: now.toISOString(),
+      }).eq('user_id', user.user_id)
+
+      results.drip++
+    }
+
+    // ─── 1b. Auto-resend Approval Emails (TRANSACTIONAL) ─────────
     // Approved users who haven't logged in, resend every 3 days up to 3 emails total
     // Only target users approved within the last 14 days — long-approved users
     // should never receive "your account is approved" reminders, even if their
     // counter was bumped manually or by a backfill.
-    const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString()
+    //
+    // Deliberately NOT gated on marketing_consent / email_promotions: this is
+    // account-status mail. It correspondingly carries no unsubscribe control.
     const { data: approvedUsers } = await supabase
       .from('profiles')
       .select('user_id, full_name, email, approval_email_count, last_approval_email_at, created_at')
@@ -140,7 +343,6 @@ Deno.serve(async (_req) => {
       }
 
       // Check if user has any activity (jobs, messages, recent profile update)
-      const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString()
       const [jobsRes, msgsRes] = await Promise.all([
         supabase.from('jobs').select('id', { count: 'exact', head: true }).eq('customer_id', user.user_id),
         supabase.from('messages').select('id', { count: 'exact', head: true }).eq('sender_id', user.user_id),
@@ -158,6 +360,7 @@ Deno.serve(async (_req) => {
         React.createElement(ApprovalReminderEmail, {
           greetingName: user.full_name || "",
           dashboardUrl: `${getAppUrl()}/dashboard`,
+          prefsUrl: `${getAppUrl()}/profile?tab=notifications`,
         }),
       )
 
@@ -180,7 +383,9 @@ Deno.serve(async (_req) => {
           html: htmlContent,
           text: textContent,
           purpose: 'transactional',
-          headers: unsubscribeHeaders(),
+          // No List-Unsubscribe: transactional mail must never offer an
+          // opt-out control, because a mail client will happily use it to
+          // "unsubscribe" someone from their own account notices.
           label: 'approval_reminder',
           queued_at: now.toISOString(),
         },
@@ -199,7 +404,62 @@ Deno.serve(async (_req) => {
       results.approvalResend++
     }
 
-    // ─── 3. Admin Weekly Digest (Monday mornings only) ───────────
+    // ─── 2. Re-engagement Nudges (COMMERCIAL) ─────────────────────
+    // Users inactive for 14+ days (no job posted, no message, no login update)
+    // who finished the drip (step >= 3), so the two sequences never overlap.
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString()
+
+    const { data: inactiveUsers, error: inactiveUsersError } = await supabase
+      .from('profiles')
+      .select('user_id, full_name, email, last_drip_at')
+      .lt('updated_at', fourteenDaysAgo)
+      .gt('updated_at', thirtyDaysAgo) // Don't nudge very old inactive accounts
+      .gte('drip_step', 3)
+      .not('email', 'is', null)
+      // "New jobs are open in your area." is unambiguously promotional, so it
+      // requires the signup marketing opt-in and a verified address.
+      .eq('email_verified', true)
+      .eq('marketing_consent', true)
+    if (inactiveUsersError) {
+      results.errors.push(`win-back recipient query failed: ${inactiveUsersError.message}`)
+    }
+
+    for (const user of inactiveUsers || []) {
+      if (suppressedSet.has((user.email || '').toLowerCase())) continue
+      if (promoOptedOut.has(user.user_id)) continue
+
+      // Only send re-engagement once every 14 days
+      if (user.last_drip_at) {
+        const daysSinceLastEmail = (now.getTime() - new Date(user.last_drip_at).getTime()) / (1000 * 60 * 60 * 24)
+        if (daysSinceLastEmail < 14) continue
+      }
+
+      const failure = await queueCommercial(
+        user,
+        (unsubscribeUrl) =>
+          React.createElement(ReEngagementEmail, {
+            greetingName: user.full_name || '',
+            dashboardUrl: `${getAppUrl()}/dashboard`,
+            unsubscribeUrl,
+          }),
+        'New jobs are open in your area.',
+        're_engagement',
+      )
+
+      if (failure) {
+        results.errors.push(`Re-engagement failed for ${user.email}: ${failure}`)
+        continue
+      }
+
+      // Update last_drip_at to track when we last emailed them
+      await supabase.from('profiles').update({
+        last_drip_at: now.toISOString(),
+      }).eq('user_id', user.user_id)
+
+      results.reEngagement++
+    }
+
+    // ─── 3. Admin Weekly Digest (INTERNAL, Monday mornings only) ──
     const dayOfWeek = now.getUTCDay() // 0=Sun, 1=Mon
     if (dayOfWeek !== 1) {
       console.log('Skipping admin digest — not Monday')
@@ -242,7 +502,7 @@ Deno.serve(async (_req) => {
 
       await supabase.from('email_send_log').insert({
         message_id: messageId,
-        template_name: 'admin_daily_digest',
+        template_name: 'admin_weekly_digest',
         recipient_email: adminProfile.email,
         status: 'pending',
       })
@@ -260,8 +520,10 @@ Deno.serve(async (_req) => {
           subject,
           html,
           text,
-          purpose: 'transactional',
-          headers: unsubscribeHeaders(),
+          purpose: 'internal',
+          // No List-Unsubscribe. It used to carry one, which meant a stray tap
+          // on Gmail's native control would have set marketing_consent=false
+          // on an ADMIN's own profile once the handler became real.
           label: 'admin_weekly_digest',
           queued_at: now.toISOString(),
         },

@@ -122,18 +122,33 @@ export const TransactionalFooter = ({ children }: { children: React.ReactNode })
 )
 
 /**
- * Footer for COMMERCIAL / lifecycle mail.
+ * Footer for COMMERCIAL mail — the welcome drip, the win-back, an admin
+ * campaign. It carries the two things CAN-SPAM asks of that class of message.
  *
- * CAN-SPAM §7704(a)(5) requires a physical postal address on this class of
- * message. `POSTAL_ADDRESS` comes from the `HELPR_POSTAL_ADDRESS` function
- * secret and is an empty string until the owner sets it — the line is OMITTED
- * rather than faked. See the note at the top of `_shared/resend.ts`.
+ * 1. THE OPT-OUT (§7704(a)(3)-(4)). Pass `unsubscribeUrl` — the recipient's
+ *    signed one-click link from `buildUnsubscribeUrl()` in
+ *    `_shared/unsubscribe.ts`. One click on it opts that address out of every
+ *    commercial send path; see `functions/email-unsubscribe/index.ts` for the
+ *    hop-by-hop path.
+ *
+ *    OMITTING IT IS A DEGRADATION, NOT A DEFAULT. The fallback below is the
+ *    logged-in preferences screen, which a signed-out recipient cannot use —
+ *    it exists only so a footer still renders something when no signing
+ *    secret is configured. Every real sender passes the URL.
+ *
+ * 2. THE POSTAL ADDRESS (§7704(a)(5)). `POSTAL_ADDRESS` is the single shared
+ *    constant in `_shared/resend.ts` and is EMPTY today, so the block below
+ *    renders nothing rather than printing a placeholder. Set the address in
+ *    that one place and it appears here, in every commercial template, with
+ *    no other edit. The full note on what counts as a valid address is at the
+ *    top of `_shared/resend.ts`.
  */
 export const MarketingFooter = ({
   reasonLine,
   unsubscribeUrl,
 }: {
   reasonLine?: string
+  /** The recipient's signed one-click URL. See note 1 above — always pass it. */
   unsubscribeUrl?: string
 }) => {
   const unsubUrl = unsubscribeUrl ?? `${getAppUrl()}/profile?tab=notifications`

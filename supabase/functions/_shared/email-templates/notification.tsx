@@ -16,7 +16,7 @@
 import * as React from 'npm:react@18.3.1'
 import { Heading, Link, Text } from 'npm:@react-email/components@0.0.22'
 import { brand, h1, text as textStyle } from './styles.ts'
-import { BaseLayout, BrandButton, TransactionalFooter } from './components.tsx'
+import { BaseLayout, BrandButton, MarketingFooter, TransactionalFooter } from './components.tsx'
 
 export interface NotificationEmailProps {
   title: string
@@ -28,6 +28,22 @@ export interface NotificationEmailProps {
   prefsUrl: string
   /** Bare host, e.g. "www.louisianahelpr.com" — used in the footer sentence. */
   host: string
+  /**
+   * Set ONLY for a `promotion`-type notification — the one `TYPE_MAP` entry in
+   * send-notification-email that is commercial rather than transactional.
+   *
+   * Almost every notification here is transactional (a job update, a payment,
+   * a message) and gets the plain preferences footer. But the `promotion` type
+   * exists in the map, is gated on `email_promotions`, and would otherwise ship
+   * promotional copy through the product's highest-volume email path with a
+   * transactional footer, no unsubscribe link and no `List-Unsubscribe` — a
+   * commercial send with no opt-out. Nothing in the repo creates one today;
+   * this closes the hole before something does.
+   *
+   * When set, the footer becomes <MarketingFooter> with this signed one-click
+   * URL, and the sender additionally sets the List-Unsubscribe headers.
+   */
+  unsubscribeUrl?: string
 }
 
 /** Body sign-off. NOT a sender identity — the From header is FROM_DEFAULT. */
@@ -40,21 +56,26 @@ export const NotificationEmail = ({
   userName,
   prefsUrl,
   host,
+  unsubscribeUrl,
 }: NotificationEmailProps) => (
   <BaseLayout
     preheader={`${title} — open Helpr for the details.`}
     footer={
-      <TransactionalFooter>
-        You're receiving this because you enabled email notifications on {host}.{' '}
-        <Link
-          href={prefsUrl}
-          className="e-footer"
-          style={{ color: brand.footerOlive, textDecoration: 'underline' }}
-        >
-          Manage your notification preferences
-        </Link>
-        .
-      </TransactionalFooter>
+      unsubscribeUrl ? (
+        <MarketingFooter unsubscribeUrl={unsubscribeUrl} />
+      ) : (
+        <TransactionalFooter>
+          You're receiving this because you enabled email notifications on {host}.{' '}
+          <Link
+            href={prefsUrl}
+            className="e-footer"
+            style={{ color: brand.footerOlive, textDecoration: 'underline' }}
+          >
+            Manage your notification preferences
+          </Link>
+          .
+        </TransactionalFooter>
+      )
     }
   >
     <Heading className="e-h1" style={{ ...h1, fontSize: '20px' }}>

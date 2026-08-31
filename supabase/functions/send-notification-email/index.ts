@@ -3,6 +3,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsHeadersFull as corsHeaders } from '../_shared/cors.ts'
 import { sanitizeSameOriginLink, timingSafeEqual } from '../_shared/safe-strings.ts'
 import { FROM_DEFAULT, sendWithResend } from '../_shared/resend.ts'
+import { buildUnsubscribeUrl, unsubscribeHeaders } from '../_shared/unsubscribe.ts'
 import { NotificationEmail } from '../_shared/email-templates/notification.tsx'
 import { renderEmail } from '../_shared/email-templates/render.ts'
 import { getAppUrl } from '../_shared/appUrl.ts'
@@ -44,6 +45,7 @@ async function renderNotificationEmail(
   message: string,
   link: string | null,
   userName: string,
+  unsubscribeUrl?: string,
 ): Promise<{ html: string; text: string }> {
   const siteUrl = getAppUrl()
   const actionUrl = link ? `${siteUrl}${link}` : siteUrl
@@ -58,6 +60,7 @@ async function renderNotificationEmail(
       userName,
       prefsUrl,
       host: siteUrl.replace(/^https?:\/\//, ''),
+      ...(unsubscribeUrl ? { unsubscribeUrl } : {}),
     }),
   )
 }
@@ -174,7 +177,28 @@ Deno.serve(async (req) => {
       })
     }
 
-    const { html, text } = await renderNotificationEmail(title, message, safeLink, profile.full_name || '')
+    // `promotion` is the one COMMERCIAL entry in TYPE_MAP. Every other
+    // notification type is transactional — a job update, a payment, a message
+    // — and must never carry an unsubscribe control, because a mail client
+    // will happily use one to opt a user out of their own account notices.
+    //
+    // A promotion, on the other hand, is commercial mail and needs the same
+    // treatment as a campaign: the marketing footer with a signed one-click
+    // link, and the List-Unsubscribe headers. Nothing in the repo creates a
+    // `promotion` notification today, so this is a hole being closed before
+    // it is used rather than a live defect.
+    const isCommercial = category === 'promotions'
+    const unsubscribeUrl = isCommercial
+      ? ((await buildUnsubscribeUrl(profile.email)) ?? undefined)
+      : undefined
+
+    const { html, text } = await renderNotificationEmail(
+      title,
+      message,
+      safeLink,
+      profile.full_name || '',
+      unsubscribeUrl,
+    )
     const messageId = crypto.randomUUID()
 
     const emailPayload = {
@@ -185,6 +209,7 @@ Deno.serve(async (req) => {
       text,
       message_id: messageId,
       template_name: `notification_${category}`,
+      ...(isCommercial ? { headers: await unsubscribeHeaders(profile.email) } : {}),
     }
 
     await supabase.from('email_send_log').insert({
@@ -226,6 +251,11 @@ Deno.serve(async (req) => {
           subject: title,
           html,
           text,
+          // Same headers the queued path would have carried. Without this the
+          // fallback would ship a commercial promotion with the footer link
+          // but no native unsubscribe control — the two paths must not differ
+          // in what the recipient can do about the mail.
+          ...(isCommercial ? { headers: await unsubscribeHeaders(profile.email) } : {}),
         })
         await supabase.from('email_send_log').update({ status: 'sent' }).eq('message_id', messageId)
         await recordLog('sent', 'fallback_direct')

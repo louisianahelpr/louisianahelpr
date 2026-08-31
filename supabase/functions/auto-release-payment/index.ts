@@ -327,7 +327,23 @@ serve(async (req) => {
         .select("id, title, helper_id, budget, urgent_fee, is_group_job, helpers_needed, payout_scheduled_at")
         .eq("status", "completed")
         .eq("payment_status", "payout_pending")
-        .lte("payout_scheduled_at", new Date().toISOString());
+        .lte("payout_scheduled_at", new Date().toISOString())
+        // ── Group jobs belong to the fan-out path, not here ────────────────
+        // release-payout REFUSES a multi-helper roster (index.ts:160) rather
+        // than pay 1 of N, and answers 409 plus a CRITICAL Slack page every
+        // time. Handing it group jobs therefore cannot ever settle one — it
+        // only burns this job's 5-attempt give-up budget and saturates the
+        // money alarm, the exact alarm-fatigue outcome
+        // GIVE_UP_AFTER_FAILED_ATTEMPTS exists to stop.
+        // process-scheduled-payouts (re-scheduled by 20260831195609) is the
+        // only path that pays every roster member.
+        //
+        // `.or(...)`, not `.eq("is_group_job", false)`: the column is
+        // nullable and .eq drops NULL rows — which is every legacy
+        // single-helper job. This disjunction mirrors release-payout's own
+        // predicate `is_group_job && (helpers_needed ?? 1) > 1` so the two
+        // agree exactly on what "group" means.
+        .or("is_group_job.is.null,is_group_job.eq.false,helpers_needed.lte.1");
       if (!includeSeed) dueQuery2 = dueQuery2.eq("is_seed", false);
       const { data: dueJobs, error: dueJobsErr } = await dueQuery2;
 

@@ -49,6 +49,14 @@ project_id = "fncmgoasalhdgfwzhsqa"
     verify_jwt = false
   [functions.email-tracking]
     verify_jwt = false
+  # The commercial-email opt-out. Two callers, neither of which can present a
+  # Supabase JWT: a mail client performing an RFC 8058 one-click POST from
+  # List-Unsubscribe, and a recipient who clicked the footer link and is by
+  # definition not signed in — an opt-out that demands a login is not an
+  # opt-out. Authenticity is the HMAC in the link's own token, verified inside
+  # the function; a bad signature writes nothing and answers 400.
+  [functions.email-unsubscribe]
+    verify_jwt = false
   # admin-update-email deliberately has NO verify_jwt override: it is the only
   # endpoint that can change a user's login identity, and it is called from the
   # admin UI via supabase.functions.invoke (which attaches the caller's JWT), so

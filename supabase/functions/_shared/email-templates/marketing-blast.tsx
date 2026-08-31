@@ -43,10 +43,21 @@ export interface MarketingBlastEmailProps {
   preheader: string
   /** Admin-authored campaign HTML, already personalised ({{name}} substituted). */
   bodyHtml: string
+  /**
+   * The recipient's signed one-click unsubscribe URL, from
+   * `buildUnsubscribeUrl()`. REQUIRED — this is the most unambiguously
+   * commercial message in the product, so it is the last one that should ever
+   * fall back to the logged-in preferences page.
+   */
+  unsubscribeUrl: string
 }
 
-export const MarketingBlastEmail = ({ preheader, bodyHtml }: MarketingBlastEmailProps) => (
-  <BaseLayout preheader={preheader} footer={<MarketingFooter />}>
+export const MarketingBlastEmail = ({
+  preheader,
+  bodyHtml,
+  unsubscribeUrl,
+}: MarketingBlastEmailProps) => (
+  <BaseLayout preheader={preheader} footer={<MarketingFooter unsubscribeUrl={unsubscribeUrl} />}>
     {/* Admin-authored HTML — see the block comment at the top of this file. */}
     <div className="e-text" dangerouslySetInnerHTML={{ __html: bodyHtml }} />
   </BaseLayout>

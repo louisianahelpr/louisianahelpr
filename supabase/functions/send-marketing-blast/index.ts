@@ -7,12 +7,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 // postal-address secret all come from the one Resend module now — this
 // function used to carry its own copy of each, including the only use of
 // hello@ in the product.
-import {
-  FROM_DEFAULT,
-  POSTAL_ADDRESS,
-  sendWithResend,
-  unsubscribeHeaders,
-} from "../_shared/resend.ts";
+import { FROM_DEFAULT, POSTAL_ADDRESS, sendWithResend } from "../_shared/resend.ts";
+import { buildUnsubscribeUrl, unsubscribeHeaders } from "../_shared/unsubscribe.ts";
+import { getAppUrl } from "../_shared/appUrl.ts";
 // The campaign is wrapped in the shared react-email shell, which is where the
 // branded card, the preheader, dark mode and <MarketingFooter> (unsubscribe +
 // POSTAL_ADDRESS) now come from. Both the HTML and the plaintext part are
@@ -92,36 +89,28 @@ Deno.serve(async (req) => {
     }
 
     // ─────────────────────────────────────────────────────────────────────
-    // LEGAL HARD STOP — DO NOT REMOVE OR WEAKEN.
+    // POSTAL ADDRESS — A LOUD WARNING, NO LONGER A HARD STOP.
     //
-    // This is the only unambiguously commercial send in the product, and
-    // CAN-SPAM §7704(a)(5) requires every commercial message to carry the
-    // sender's valid PHYSICAL POSTAL ADDRESS. Helpr's address is deliberately
-    // not in this repo and must never be invented — it comes from the
-    // HELPR_POSTAL_ADDRESS function secret (see _shared/resend.ts), and the
-    // owner has not set it yet.
+    // This function used to REFUSE with a 400 whenever POSTAL_ADDRESS was
+    // unset, which is what disabled commercial email entirely. The owner
+    // decided on 2026-08-31 to restore the capability with the address
+    // requirement still unmet, having been told exactly what CAN-SPAM
+    // §7704(a)(5) asks for (see the constant's note in _shared/resend.ts).
+    // That is an accepted business risk, so the block is a log line now.
     //
-    // So until that secret exists this function refuses to send anything. The
-    // guard sits here — immediately after the admin check and BEFORE the body
-    // is even parsed — so there is no path around it: the recipient query, the
-    // test_email preview branch and the send loop are all downstream. A
-    // `test_email` send is the same commercial content to a real inbox, so it
-    // is covered too.
+    // What has NOT been relaxed: the opt-out half of the statute. Every
+    // recipient below gets a working, signed, one-click unsubscribe in the
+    // footer and in the List-Unsubscribe headers, honoured on the next send by
+    // the marketing_consent / email_promotions filters here.
     //
-    // To lift it: `supabase secrets set HELPR_POSTAL_ADDRESS="…"`. The address
-    // then renders in the campaign footer automatically via the shared
-    // <MarketingFooter> inside MarketingBlastEmail.
+    // To close the remaining gap it is one edit — POSTAL_ADDRESS_LITERAL in
+    // _shared/resend.ts, or `supabase secrets set HELPR_POSTAL_ADDRESS="…"`.
+    // The address then renders in this campaign's footer automatically via the
+    // shared <MarketingFooter> inside MarketingBlastEmail; nothing here changes.
     // ─────────────────────────────────────────────────────────────────────
-    if (!POSTAL_ADDRESS.trim()) {
-      console.error(
-        "[send-marketing-blast] refused: HELPR_POSTAL_ADDRESS is not set — commercial email requires a physical postal address",
-      );
-      return new Response(
-        JSON.stringify({
-          error:
-            "Commercial email requires a physical postal address (CAN-SPAM §7704(a)(5)). Set the HELPR_POSTAL_ADDRESS function secret before sending a campaign. No email was sent.",
-        }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    if (!POSTAL_ADDRESS) {
+      console.warn(
+        "[send-marketing-blast] HELPR_POSTAL_ADDRESS is unset — this campaign will ship WITHOUT the physical postal address CAN-SPAM §7704(a)(5) requires. Sending anyway per owner decision 2026-08-31.",
       );
     }
 
@@ -149,6 +138,34 @@ Deno.serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
+
+    // ── Hard suppression list ────────────────────────────────────────────
+    // Bounces and spam complaints, written by `resend-webhook`. This function
+    // was the ONLY sender with a marketing footer that never consulted it:
+    // send-notification-email and engagement-automations both do, both fail
+    // closed. So a campaign kept mailing every hard-bounced and every
+    // complained-about address on the platform — up to 5000 of them at a time,
+    // which is the single fastest way to lose a sending domain.
+    //
+    // Fail CLOSED, and BEFORE the segment branches so the `test_email` preview
+    // is covered too. A dropped error would produce an empty set, which looks
+    // exactly like "nobody is suppressed".
+    const { data: suppressedList, error: suppressedError } = await supabase
+      .from("suppressed_emails")
+      .select("email");
+    if (suppressedError) {
+      console.error("[send-marketing-blast] suppression list unavailable:", suppressedError.message);
+      return new Response(
+        JSON.stringify({
+          error:
+            `Could not load the bounce/complaint suppression list (${suppressedError.message}). Blast aborted — no email was sent.`,
+        }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    const suppressedSet = new Set(
+      (suppressedList || []).map((s) => (s.email || "").toLowerCase()),
+    );
 
     // Resolve recipient list
     let recipients: { email: string; full_name: string | null }[] = [];
@@ -236,6 +253,15 @@ Deno.serve(async (req) => {
         .map((p) => ({ email: p.email!, full_name: p.full_name }));
     }
 
+    // Applies to both branches, including the `test_email` preview.
+    const beforeSuppression = recipients.length;
+    recipients = recipients.filter((r) => !suppressedSet.has(r.email.toLowerCase()));
+    if (recipients.length !== beforeSuppression) {
+      console.log(
+        `[send-marketing-blast] dropped ${beforeSuppression - recipients.length} suppressed recipient(s)`,
+      );
+    }
+
     if (recipients.length === 0) {
       return new Response(JSON.stringify({ sent: 0, failed: 0, message: "No recipients" }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -251,9 +277,10 @@ Deno.serve(async (req) => {
     //     and the dark-mode stylesheet, none of which the bare campaign HTML
     //     had;
     //   • <MarketingFooter>, which emits the unsubscribe link, the mailto
-    //     unsubscribe, and — now that the guard above proves it is set — the
-    //     POSTAL_ADDRESS the law requires, with links routed through
-    //     getAppUrl() instead of the hardcoded apex domain.
+    //     unsubscribe, and the POSTAL_ADDRESS block — rendered only when that
+    //     one shared constant is populated, so nothing false is printed while
+    //     it is empty. Links route through getAppUrl() rather than a
+    //     hardcoded apex domain.
     //
     // The old code appended marketingFooter() to the HTML by hand and skipped
     // that append when the campaign already contained "/profile?tab=notifications"
@@ -273,14 +300,26 @@ Deno.serve(async (req) => {
     //
     // The preheader is the campaign subject: the inbox preview used to be
     // whatever words happened to start the admin's HTML.
+    //
+    // The unsubscribe link is now PER RECIPIENT — a signed one-click URL for
+    // that address — and the same URL goes into both the footer and the
+    // List-Unsubscribe headers, so Gmail's native control and the visible link
+    // hit the same handler. Previously both pointed at the logged-in
+    // preferences page while the headers still claimed RFC 8058 one-click, so
+    // a recipient tapping Gmail's button was told they were unsubscribed and
+    // nothing was written.
     const preheader = body.subject.trim();
-    const renderCampaign = (rawHtml: string, fullName: string | null) =>
-      renderEmail(
+    const renderCampaign = async (rawHtml: string, fullName: string | null, email: string) => {
+      const unsubscribeUrl =
+        (await buildUnsubscribeUrl(email)) ?? `${getAppUrl()}/profile?tab=notifications`;
+      return await renderEmail(
         React.createElement(MarketingBlastEmail, {
           preheader,
           bodyHtml: rawHtml.replaceAll("{{name}}", fullName || "neighbor"),
+          unsubscribeUrl,
         }),
       );
+    };
 
     let sent = 0, failed = 0;
     const errors: string[] = [];
@@ -329,6 +368,7 @@ Deno.serve(async (req) => {
           const { html: personalisedHtml, text: personalisedText } = await renderCampaign(
             body.html,
             r.full_name,
+            r.email,
           );
           // sendWithResend THROWS on any non-2xx — there is no non-ok
           // Response to inspect any more, so both the HTTP-failure and the
@@ -339,9 +379,11 @@ Deno.serve(async (req) => {
             subject: body.subject,
             html: personalisedHtml,
             text: personalisedText,
-            // This is the only unambiguously commercial send in the product
-            // and it carried no opt-out of any kind.
-            headers: unsubscribeHeaders(),
+            // Recipient-specific, so the native Gmail / Apple Mail control
+            // resolves to the same signed one-click endpoint as the footer
+            // link. This send carried no opt-out of any kind before the
+            // template migration, and then a non-functional one.
+            headers: await unsubscribeHeaders(r.email),
           });
           if (resendId) messageId = resendId;
           sent++;

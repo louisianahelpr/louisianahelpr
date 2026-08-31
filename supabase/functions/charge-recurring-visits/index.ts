@@ -438,6 +438,36 @@ serve(async (req) => {
           .single();
 
         if (childErr || !child) {
+          // ── 23505 is a LOST RACE, not a failure. Never refund it. ─────────
+          //
+          // `jobs_one_visit_per_series_date` (migration 20260831200113) makes
+          // (parent_job_id, date_needed) unique, which turns two overlapping
+          // runs into one winner and one 23505 instead of two job rows sharing
+          // a single PaymentIntent — two rows that would each release a payout
+          // out of one escrow.
+          //
+          // But the loser lands HERE, and the branch below refunds
+          // `intent.id`. The Stripe idempotency key is
+          // `recurring-visit:${parent.id}:${visitDate}`, so both runs hold the
+          // SAME PaymentIntent — the one already backing the winner's row.
+          // Refunding it would strip the money out from under a visit that
+          // exists and is booked, leaving a job in `payment_status='escrow'`
+          // with a refunded intent and a helper who will never be paid. That
+          // is strictly worse than the duplicate the index exists to prevent,
+          // so the unique violation has to be recognised BEFORE the refund.
+          //
+          // Nothing was lost: the winner charged the poster once and created
+          // the visit. This run's only correct move is to count it as already
+          // present and move on, exactly as the pre-flight `alreadyThere`
+          // check would have done had it seen the winner's row.
+          if (childErr?.code === "23505") {
+            console.log(
+              `[charge-recurring-visits] visit ${parent.id} ${visitDate} was created by a concurrent run; skipping (no refund — the PaymentIntent backs that row).`,
+            );
+            results.skippedExisting++;
+            continue;
+          }
+
           // The charge went through and the row did not. Refund immediately —
           // holding a poster's money for a visit that does not exist is the
           // worst outcome available here, and it is silent unless we act.
@@ -521,6 +551,21 @@ serve(async (req) => {
  * A declined card means no visit. Say so while there is still time to fix it —
  * FUND_LEAD_DAYS is chosen so this notification lands before the helper would
  * have turned up.
+ *
+ * BOTH SIDES GET TOLD. This used to notify only the poster, and the asymmetry
+ * had a physical cost: the standing helper's whole reason for holding a series
+ * is that the date is theirs and they do not have to check. When the card
+ * declined, the visit was silently never created — no job row, no
+ * notification, nothing on their schedule that changed — so the first thing
+ * they learned about it was standing on a doorstep at 8am. The helper is the
+ * one person in this transaction who has to physically GO somewhere, and they
+ * were the one person not informed.
+ *
+ * The helper's copy deliberately does not say "your poster's card was
+ * declined": that is the poster's private billing detail, and the helper only
+ * needs the operative fact — this date is not booked, do not go, and it may
+ * come back if the poster fixes it (the next daily run re-tries any date still
+ * inside FUND_LEAD_DAYS).
  */
 async function notifyPosterCardProblem(
   supabase: ReturnType<typeof createClient>,
@@ -537,4 +582,18 @@ async function notifyPosterCardProblem(
     link: "/profile?tab=payment",
   });
   if (error) console.error("[charge-recurring-visits] poster notification failed", error);
+
+  // The standing helper is only known once the series has one. A parent with a
+  // null `recurring_helper_id` is never selected by this cron at all
+  // (`.not("recurring_helper_id", "is", null)`), so this is belt-and-braces.
+  const helperId = parent.recurring_helper_id as string | null | undefined;
+  if (!helperId) return;
+  const { error: helperErr } = await supabase.from("notifications").insert({
+    user_id: helperId,
+    title: "Your next visit isn't booked",
+    message: `"${parent.title}" on ${visitDate} couldn't be set up, so it's not on your schedule — please don't head out for it. We'll let you know if it gets booked.`,
+    type: "job_updates",
+    link: "/my-jobs",
+  });
+  if (helperErr) console.error("[charge-recurring-visits] helper notification failed", helperErr);
 }

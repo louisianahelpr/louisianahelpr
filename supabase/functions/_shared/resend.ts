@@ -23,36 +23,90 @@
 // in a caller.
 
 import { Resend } from 'npm:resend@6.25.0'
-import { getAppUrl } from './appUrl.ts'
 
 /**
- * ─────────────────────────────────────────────────────────────────────────
- * CAN-SPAM §7704(a)(5) — PHYSICAL POSTAL ADDRESS
+ * ═════════════════════════════════════════════════════════════════════════
+ * THE POSTAL ADDRESS. ONE CONSTANT. ONE EDIT.
  *
- * Commercial email must carry a valid physical postal address for the sender.
- * Helpr's address is not in this repo and must NOT be invented, so it is read
- * from a Supabase function secret:
+ * ── WHAT THE LAW ASKS FOR ───────────────────────────────────────────────
+ * CAN-SPAM (15 U.S.C. §7704) puts TWO independent requirements on every
+ * message whose primary purpose is COMMERCIAL. Both must hold; satisfying
+ * one does not excuse the other.
  *
- *     supabase secrets set HELPR_POSTAL_ADDRESS="123 Example St, New Orleans, LA 70112"
+ *   1. §7704(a)(3)-(4) — A WORKING OPT-OUT. A clear and conspicuous way to
+ *      decline further commercial mail, honoured within 10 business days,
+ *      functional for at least 30 days after the message was sent, and free
+ *      — no login, no fee, no "tell us why" form as a precondition.
+ *      → Helpr's is `supabase/functions/email-unsubscribe/index.ts`, reached
+ *        from `MarketingFooter` and from the `List-Unsubscribe` headers
+ *        below. See that file for the hop-by-hop path.
  *
- * The owner has chosen not to publish one yet, so the exposure was removed
- * rather than papered over:
+ *   2. §7704(a)(5)(A)(iii) — A VALID PHYSICAL POSTAL ADDRESS for the sender,
+ *      in the body of the message. This is the requirement THIS constant
+ *      exists to satisfy, and it is currently UNMET (see below).
  *
- *   • The three welcome-drip steps and the "New jobs are open in your area."
- *     win-back — the only purely promotional automated sends — were DELETED
- *     from engagement-automations.
- *   • send-marketing-blast (admin-authored free-text campaigns, and now the
- *     only commercial send left) REFUSES with a 400 unless this secret is set.
- *     The guard runs before the request body is even parsed, so the preview
- *     `test_email` path cannot slip past it either.
- *   • What remains is transactional and account-status mail, which the
- *     statute's address requirement does not reach.
+ * ── WHAT COUNTS AS A "VALID PHYSICAL POSTAL ADDRESS" ────────────────────
+ * The FTC's rule (16 C.F.R. §316.2(p), and the 2008 amendments) accepts
+ * exactly three things. Anything else is not an address for this purpose:
  *
- * When the address is set, MarketingFooter() renders it automatically and the
- * blast unlocks. Nothing else needs to change.
- * ─────────────────────────────────────────────────────────────────────────
+ *   (a) The sender's CURRENT STREET ADDRESS — where the business actually
+ *       is. A home address is legally sufficient if that is the business
+ *       address; that is the usual reason a sole operator balks at this.
+ *   (b) A POST OFFICE BOX the sender has REGISTERED WITH THE USPS. An
+ *       informally used box number is not enough — it must be a box rented
+ *       in the sender's name.
+ *   (c) A private mailbox at a COMMERCIAL MAIL RECEIVING AGENCY (a CMRA —
+ *       a UPS Store / Postal Annex / registered-agent style mailbox), where
+ *       the agency is established under USPS regulations and the box is
+ *       registered to the sender.
+ *
+ * NOT acceptable, however tempting: an email address, a phone number, a URL,
+ * a city/parish/state with no delivery point, "New Orleans, LA", a
+ * competitor's or a landlord's address, or anything invented. A wrong
+ * address is a worse outcome than a missing one — it is an affirmative
+ * misrepresentation on top of the omission.
+ *
+ * ── HOW TO SET IT ───────────────────────────────────────────────────────
+ * Put the real address on the line below, formatted as it would be written
+ * on an envelope, in ONE line (commas, not newlines):
+ *
+ *     const POSTAL_ADDRESS_LITERAL = "Louisiana Helpr, 123 Example St, New Orleans, LA 70112"
+ *
+ * That is the whole change. Every commercial footer in the product reads
+ * this one value through `MarketingFooter` — nothing else needs touching,
+ * and no template needs to learn about it.
+ *
+ * You can ALSO set it without a code deploy, which takes precedence:
+ *
+ *     supabase secrets set HELPR_POSTAL_ADDRESS="Louisiana Helpr, 123 Example St, New Orleans, LA 70112"
+ *
+ * ── WHAT HAPPENS WHILE IT IS EMPTY (TODAY'S STATE) ──────────────────────
+ * It renders as NOTHING. `MarketingFooter` omits the address block entirely
+ * when this is blank, so no false or placeholder address is ever printed —
+ * the message simply ships without the line the statute wants.
+ *
+ * That is a KNOWN, ACCEPTED GAP, not an oversight: the owner decided on
+ * 2026-08-31 to restore commercial email with the address requirement still
+ * unmet, having been told what the statute requires. The opt-out half of the
+ * obligation IS implemented and working. Do not add a UI warning about this,
+ * and do not re-litigate it — just fill in the line above when the address
+ * exists.
+ * ═════════════════════════════════════════════════════════════════════════
  */
-export const POSTAL_ADDRESS = Deno.env.get("HELPR_POSTAL_ADDRESS") ?? "";
+const POSTAL_ADDRESS_LITERAL = "";
+
+/**
+ * The one postal address for every commercial footer in the product.
+ *
+ * Consumed by exactly one place — `MarketingFooter` in
+ * `email-templates/components.tsx` — which every commercial template
+ * (`drip.tsx`, `marketing-blast.tsx`, `lifecycle.tsx`) renders. To change it,
+ * edit `POSTAL_ADDRESS_LITERAL` above or set `HELPR_POSTAL_ADDRESS`.
+ *
+ * Trimmed so a secret set to whitespace behaves like "unset" rather than
+ * rendering an empty line under the unsubscribe links.
+ */
+export const POSTAL_ADDRESS = (Deno.env.get("HELPR_POSTAL_ADDRESS") ?? POSTAL_ADDRESS_LITERAL).trim();
 
 /** The Resend-verified sending domain. */
 export const SENDER_DOMAIN = "louisianahelpr.com";
@@ -220,19 +274,15 @@ export async function sendWithResend(
   return data?.id ?? ''
 }
 
-/**
- * List-Unsubscribe headers for commercial / lifecycle mail.
- *
- * Gmail and Apple Mail render their own one-click unsubscribe control above
- * the message body when these are present, which is both a deliverability win
- * and the thing a recipient actually reaches for.
- */
-export function unsubscribeHeaders(): Record<string, string> {
-  return {
-    'List-Unsubscribe': `<${getAppUrl()}/profile?tab=notifications>, <mailto:${UNSUBSCRIBE_MAILBOX}>`,
-    'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-  }
-}
+// `unsubscribeHeaders()` USED TO LIVE HERE and took no arguments: it always
+// advertised `List-Unsubscribe-Post: One-Click` against the logged-in
+// preferences page, which cannot honour a POST. It now lives in
+// `_shared/unsubscribe.ts`, takes the recipient's address, and points at the
+// signed `email-unsubscribe` endpoint — import it from there.
+//
+// This module keeps no unsubscribe logic of its own so there is exactly one
+// definition of what an opt-out link is. `UNSUBSCRIBE_MAILBOX` above is the
+// only piece that stayed, because it is part of the sender identity.
 
 export interface QueuedEmail {
   to: string;

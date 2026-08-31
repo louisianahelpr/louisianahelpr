@@ -94,8 +94,12 @@ const ROUTES = [
   "/profile?tab=support",
   "/profile?tab=legal",
   "/profile?tab=earnings",
-  "/profile?tab=posted_jobs",
-  "/profile?tab=completed_jobs",
+  // posted_jobs / completed_jobs were removed from the Tab union. `resolveTab`
+  // (src/pages/profile/types.ts) now maps any unrecognised ?tab= to `landing`,
+  // so sweeping those two URLs just probed /profile a second and third time
+  // under two names that no longer exist — while `accessibility`, the tab that
+  // replaced them, went unprobed. Same correction auditRoutes.ts made.
+  "/profile?tab=accessibility",
   "/settings",
   "/schedule",
   "/pets",

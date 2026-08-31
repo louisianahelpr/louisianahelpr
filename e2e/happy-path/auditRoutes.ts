@@ -255,7 +255,9 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   { name: "home-history", url: "/home-history" },
   // REMOVED 2026-08-22: /job-history's redirect stub was deleted in 2352466e,
   // so this row rendered the 404 page while reporting as the job-history
-  // screen. The real screen is /profile?tab=completed_jobs, already covered.
+  // screen. The completed-work screen it meant to reach is `/work-record`
+  // (the `?tab=completed_jobs` tab this comment used to name was itself
+  // removed from the Tab union — see the Profile block above).
   // ⚠ These seven `/jobs/*` rows do NOT audit JobDetail. JobDetail.tsx:79
   // redirects every SIGNED-IN visitor to `/dashboard?quickApply={id}` by
   // design (the dashboard owns the apply flow), so all seven land on the

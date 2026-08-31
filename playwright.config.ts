@@ -51,6 +51,23 @@ function findAvailableHeadlessShell(): string | undefined {
 
 const headlessShell = findAvailableHeadlessShell();
 
+// The happy-path preview server's port, in ONE place.
+//
+// It used to be the literal 4173 in three places (the project's baseURL, the
+// webServer command, the webServer url) plus a fourth in
+// e2e/happy-path/fixtures.ts. With `reuseExistingServer: !CI`, two local
+// sessions running this suite at once share one server on one port — and the
+// documented way to get a fresh build is `kill $(lsof -ti:4173)`, so whichever
+// session starts second kills the first one's server mid-run. That surfaces as
+// `net::ERR_CONNECTION_REFUSED at http://127.0.0.1:4173/…` on whatever specs
+// happened to be in flight — a different, arbitrary set every time, with
+// nothing wrong in the app or the spec. Set HAPPY_PATH_PORT (or the full
+// HAPPY_PATH_BASE_URL, which fixtures.ts already reads) to give a session its
+// own server. CI runs one job per machine and needs neither.
+const HAPPY_PATH_PORT = process.env.HAPPY_PATH_PORT || "4173";
+const HAPPY_PATH_BASE_URL =
+  process.env.HAPPY_PATH_BASE_URL || `http://127.0.0.1:${HAPPY_PATH_PORT}`;
+
 export default defineConfig({
   testDir: "./e2e",
   timeout: 30_000,
@@ -98,7 +115,7 @@ export default defineConfig({
         userAgent:
           "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1",
         // Override the deployed baseURL with the local Vite preview.
-        baseURL: process.env.HAPPY_PATH_BASE_URL || "http://127.0.0.1:4173",
+        baseURL: HAPPY_PATH_BASE_URL,
         // Block service worker registration so the Workbox SW (bundled in the
         // production build) cannot intercept Supabase fetches before
         // page.route() mocks can handle them. Without this the SW's
@@ -119,8 +136,8 @@ export default defineConfig({
   // (or use the test:e2e:happy npm script which sets it for you).
   webServer: process.env.PLAYWRIGHT_WEB_SERVER
     ? {
-        command: "npm run build && npx vite preview --port 4173 --strictPort --host 127.0.0.1",
-        url: "http://127.0.0.1:4173",
+        command: `npm run build && npx vite preview --port ${HAPPY_PATH_PORT} --strictPort --host 127.0.0.1`,
+        url: HAPPY_PATH_BASE_URL,
         reuseExistingServer: !process.env.CI,
         timeout: 180_000,
         stdout: "pipe",

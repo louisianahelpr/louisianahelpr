@@ -101,17 +101,24 @@ export function normalizeDeepLinkUrl(rawUrl: string): string | null {
   const uMatch = /^\/u\/([^/]+)$/.exec(path);
   if (uMatch) return `/user/${uMatch[1]}${search}`;
 
-  // Short job link → /jobs/:id (a future-routed canonical detail page).
-  // Today /jobs/:id falls through to NotFound; PR followups will add the
-  // actual JobDetail route. Until then, the user lands on the in-app
-  // 404, which is still inside the app — better than Safari.
+  // Short job link → /jobs/:id, which is a real route (JobDetail, App.tsx).
+  // The previous comment here said the route did not exist yet and the user
+  // would land on the in-app 404 — that stopped being true once JobDetail
+  // shipped, and it misled anyone reasoning about short-link behaviour.
   const jMatch = /^\/j\/([^/]+)$/.exec(path);
   if (jMatch) return `/jobs/${jMatch[1]}${search}`;
 
   // Short message-thread link → /messages?jobId=:id (the existing
   // Messages page reads `jobId` + `userId` query params to auto-open a
   // thread; see src/pages/Messages.tsx).
-  const mMatch = /^\/m\/([^/]+)$/.exec(path);
+  // Accept BOTH the short `/m/:id` form and the long `/messages/:id` form.
+  // The AASA file claims `/messages/*` (and its components block documents it
+  // as "Messages thread deep link"), but App.tsx only defines `/messages` —
+  // there is no `/messages/:id` route — and this normalizer had no branch for
+  // it, so a shared thread link fell through to the verbatim pass-through and
+  // landed on the in-app 404. That violated this module's own contract above:
+  // every AASA-claimed path must match an App.tsx route or normalize to one.
+  const mMatch = /^\/(?:m|messages)\/([^/]+)$/.exec(path);
   if (mMatch) {
     const params = new URLSearchParams(search);
     params.set("jobId", mMatch[1]);

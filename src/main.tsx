@@ -42,8 +42,29 @@ initSimpleMode();
 // boundaries keep the same detection as a backstop for throws that bypass
 // this event (e.g. a bare `import()` rejection inside an effect).
 window.addEventListener("vite:preloadError", (event) => {
-  event.preventDefault();
-  recoverFromChunkError();
+  // Only swallow the throw when we are ACTUALLY going to recover.
+  //
+  // This used to call preventDefault() unconditionally, BEFORE knowing
+  // whether recoverFromChunkError() would reload. Vite's preload helper wraps
+  // both the dependency preload and the real import() in one catch, so
+  // preventDefault() makes that catch resolve the import with `undefined`.
+  // React.lazy then reads `.default` off undefined and throws a plain
+  // TypeError — which is NOT the "Failed to fetch dynamically imported
+  // module" string isChunkLoadError() matches (lib/chunkReload.ts:15-32).
+  //
+  // So whenever recovery declines — the 10s one-shot guard
+  // (chunkReload.ts:102) or being offline (chunkReload.ts:95) — three things
+  // went wrong at once: a routine stale deploy showed the generic
+  // "This page hit a problem" card instead of the chunk-aware "Update ready"
+  // copy; "Try Again" re-rendered the same dead module reference and threw
+  // again, leaving the user stuck; and report() fired, turning every stale
+  // deploy into Sentry route-error noise — the exact noise the chunk branch
+  // at RouteErrorBoundary.tsx:81-91 exists to prevent.
+  //
+  // Letting the event through when we are not recovering restores the
+  // intended fallthrough: the boundary sees a real chunk error and renders
+  // the right copy. Verified by blocking an asset chunk in Playwright.
+  if (recoverFromChunkError()) event.preventDefault();
 });
 
 // Dev-mode service-worker exorcism — production registers a Workbox SW

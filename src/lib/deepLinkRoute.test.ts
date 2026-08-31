@@ -104,3 +104,25 @@ describe("normalizeDeepLinkUrl", () => {
     expect(normalizeDeepLinkUrl("")).toBeNull();
   });
 });
+
+describe("AASA contract — every claimed path resolves", () => {
+  // deepLinkRoute.ts states: "All allowed paths in AASA must either match an
+  // App.tsx route or normalize to one here." /messages/* was claimed by the
+  // AASA file but had neither a route nor a normalizer branch, so a shared
+  // thread link 404'd inside the app. This pins the contract.
+  it("normalizes the long /messages/:id form, not just /m/:id", () => {
+    expect(normalizeDeepLinkUrl("https://www.louisianahelpr.com/messages/job-123"))
+      .toBe("/messages?jobId=job-123");
+    expect(normalizeDeepLinkUrl("https://www.louisianahelpr.com/m/job-123"))
+      .toBe("/messages?jobId=job-123");
+  });
+
+  it("preserves an existing userId query param on a thread link", () => {
+    expect(normalizeDeepLinkUrl("https://www.louisianahelpr.com/messages/job-1?userId=u-9"))
+      .toBe("/messages?userId=u-9&jobId=job-1");
+  });
+
+  it("still refuses a foreign host", () => {
+    expect(normalizeDeepLinkUrl("https://louisianahelpr.com.evil.example.com/messages/x")).toBeNull();
+  });
+});

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { Dispatch, Ref, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertTriangle, X } from "lucide-react";
+import { toast } from "sonner";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { MessageActionSheet } from "./MessageActionSheet";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
@@ -196,6 +197,27 @@ export function ChatView({
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const [editDraft, setEditDraft] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
+  // Ticking countdown for the edit dialog, mirroring the server's 15-minute
+  // RLS window (see EDIT_WINDOW_MS in MessageActionSheet.tsx and the policy
+  // in supabase/migrations/20260831003117_add_message_editing.sql). Without
+  // this, a save that straddles the deadline just silently fails server-side
+  // with no warning the window was closing.
+  const [editSecondsLeft, setEditSecondsLeft] = useState<number | null>(null);
+  useEffect(() => {
+    if (!editingMessage) { setEditSecondsLeft(null); return; }
+    const deadline = new Date(editingMessage.created_at).getTime() + 15 * 60 * 1000;
+    const tick = () => {
+      const remaining = Math.round((deadline - Date.now()) / 1000);
+      setEditSecondsLeft(Math.max(remaining, 0));
+      if (remaining <= 0) {
+        setEditingMessage(null);
+        toast.error("The 15-minute edit window closed — that change wasn't saved.");
+      }
+    };
+    tick();
+    const id = window.setInterval(tick, 1000);
+    return () => window.clearInterval(id);
+  }, [editingMessage]);
   const saveEdit = async () => {
     if (!editingMessage) return;
     setSavingEdit(true);
@@ -461,7 +483,13 @@ export function ChatView({
         open={!!editingMessage}
         onOpenChange={(open) => { if (!open) setEditingMessage(null); }}
         title="Edit Message"
-        description="Changes are visible to the other person, and the message is marked as edited."
+        description={
+          editSecondsLeft !== null
+            ? `Changes are visible to the other person, and the message is marked as edited. Editable for ${
+                editSecondsLeft >= 60 ? `${Math.ceil(editSecondsLeft / 60)}m` : `${editSecondsLeft}s`
+              } more.`
+            : "Changes are visible to the other person, and the message is marked as edited."
+        }
         primaryLabel={savingEdit ? "Saving…" : "Save"}
         primaryTone="bark"
         primaryDisabled={savingEdit || !editDraft.trim()}

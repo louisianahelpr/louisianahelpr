@@ -93,6 +93,14 @@ export const AttachSourceSheet = ({
                 type="button"
                 onClick={pick(row.onPick)}
                 disabled={"disabled" in row ? row.disabled : false}
+                // Voice note records and sends an audio CLIP as its own
+                // attachment — distinct from the composer's mic "Dictate"
+                // button, which transcribes speech INTO the text draft and
+                // sends nothing until you tap Send (see the fuller note on
+                // that button in RichMessageInput.tsx). One-line hint here
+                // since this menu is the more likely place to wonder "wait,
+                // isn't there already a mic icon?"
+                title={row.key === "voice" ? "Records and sends an audio clip (the mic icon in the composer instead types out what you say)" : undefined}
                 className="w-full min-h-[56px] flex items-center gap-3 px-4 text-left transition-colors hover:bg-secondary/40 active:bg-secondary/60 disabled:opacity-40 disabled:pointer-events-none"
                 style={i > 0 ? { borderTop: "0.5px solid hsl(var(--olivewood) / 0.12)" } : undefined}
               >

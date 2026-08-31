@@ -31,6 +31,7 @@ import { getPinnedSet, loadPins, pinnedKey, togglePinned } from "@/lib/pinnedCon
 import {
   ARCHIVE_CHANGED_EVENT,
   isArchived as isConvoArchived,
+  loadArchives,
   unarchiveConversation,
 } from "@/lib/archivedConversations";
 import type { Conversation } from "./types";
@@ -178,6 +179,20 @@ export function ConversationList({
     let cancelled = false;
     void loadPins(userId).then(() => {
       if (!cancelled) setPinNonce((n) => n + 1);
+    });
+    return () => { cancelled = true; };
+  }, [userId]);
+
+  // Same idea, for archives (public.thread_archives — see
+  // archivedConversations.ts). Without this, a thread hidden on another
+  // device wouldn't be filtered out of THIS device's inbox, or show up in
+  // THIS device's Recently Deleted, until something else happened to
+  // trigger a re-read of the local mirror.
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    void loadArchives(userId).then(() => {
+      if (!cancelled) setArchiveNonce((n) => n + 1);
     });
     return () => { cancelled = true; };
   }, [userId]);
@@ -834,7 +849,13 @@ export function ConversationList({
                 className="font-serif italic text-ds-13 max-w-[240px]"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
-                Try a different name or keyword.
+                {/* Same generic search-empty state as the default inbox, but
+                    scoped so it doesn't read as "you have zero X" — it means
+                    "zero X match this search," which is a different claim
+                    when X is Pinned or Recently Deleted specifically. */}
+                {isSpecialFilterView
+                  ? `Try a different name or keyword, or clear the search to see all ${inboxFilter === "pinned" ? "pinned" : "hidden"} threads.`
+                  : "Try a different name or keyword."}
               </p>
             </div>
           ) : (
@@ -892,7 +913,17 @@ export function ConversationList({
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if (userId) unarchiveConversation(userId, c.jobId, c.otherUserId);
+                                if (!userId) return;
+                                unarchiveConversation(userId, c.jobId, c.otherUserId);
+                                // Archive has an explicit confirm dialog
+                                // ("Hide 1 conversation?"); Restore was the
+                                // only one-tap action here with no feedback
+                                // beyond the row silently vanishing from
+                                // THIS list — a toast closes that gap without
+                                // adding a confirm step Restore doesn't need
+                                // (it's the non-destructive direction).
+                                hapticLight();
+                                toast(`Restored conversation with ${c.otherUserName ?? "this person"}`);
                               }}
                               aria-label={`Restore conversation with ${c.otherUserName ?? "this person"}`}
                               className="absolute top-1/2 -translate-y-1/2 right-2 z-10 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-ds-sm text-ds-11 font-sans font-semibold btn-press transition-colors"

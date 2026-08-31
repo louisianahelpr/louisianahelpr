@@ -447,7 +447,11 @@ export const RichMessageInput = ({
             onClick={toggleVoice}
             disabled={disabled || uploading}
             aria-label={voice.isListening ? "Stop dictating" : "Dictate a message"}
-            title={voice.isListening ? "Stop dictating" : "Dictate a message"}
+            title={
+              voice.isListening
+                ? "Stop dictating"
+                : "Types what you say into the message (the attach menu's Voice note instead records and sends an audio clip)"
+            }
           >
             {voice.isListening ? (
               <>

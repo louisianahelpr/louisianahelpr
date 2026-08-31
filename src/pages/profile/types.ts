@@ -29,7 +29,7 @@ export const TAB_TITLES: Record<Exclude<Tab, "landing">, string> = {
   // therefore carries that screen's title rather than one of its own.
   payment: "Earnings & Payouts",
   security: "Account Security",
-  legal: "Legal & Policies",
+  legal: "Legal",
   reviews: "My Reviews",
   referral: "Referrals",
   subscription: "Membership",

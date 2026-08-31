@@ -38,7 +38,7 @@ import {
   LOGO_URL,
   main,
 } from './styles.ts'
-import { POSTAL_ADDRESS, UNSUBSCRIBE_MAILBOX } from '../resend.ts'
+import { POSTAL_ADDRESS } from '../resend.ts'
 import { getAppUrl } from '../appUrl.ts'
 
 /**
@@ -160,14 +160,6 @@ export const MarketingFooter = ({
       <br />
       <Link href={unsubUrl} className="e-footer" style={{ color: brand.footerOlive, textDecoration: 'underline' }}>
         Unsubscribe from these emails
-      </Link>
-      {' · '}
-      <Link
-        href={`mailto:${UNSUBSCRIBE_MAILBOX}`}
-        className="e-footer"
-        style={{ color: brand.footerOlive, textDecoration: 'underline' }}
-      >
-        unsubscribe by email
       </Link>
       {POSTAL_ADDRESS ? (
         <>

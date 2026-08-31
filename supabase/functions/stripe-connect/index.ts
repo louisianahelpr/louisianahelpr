@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { safeReturnUrl } from "../_shared/appUrl.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
@@ -142,8 +143,8 @@ serve(async (req) => {
 
       const accountLink = await stripe.accountLinks.create({
         account: accountId,
-        refresh_url: return_url || "https://www.louisianahelpr.com/profile",
-        return_url: return_url || "https://www.louisianahelpr.com/profile",
+        refresh_url: safeReturnUrl(return_url),
+        return_url: safeReturnUrl(return_url),
         type: "account_onboarding",
         collection_options: collectionOptions(collect),
       });
@@ -340,8 +341,8 @@ serve(async (req) => {
       } else {
         const accountLink = await stripe.accountLinks.create({
           account: profile.stripe_account_id,
-          refresh_url: return_url || "https://www.louisianahelpr.com/profile",
-          return_url: return_url || "https://www.louisianahelpr.com/profile",
+          refresh_url: safeReturnUrl(return_url),
+          return_url: safeReturnUrl(return_url),
           type: "account_onboarding",
           collection_options: {
             fields: "currently_due",
@@ -419,8 +420,8 @@ serve(async (req) => {
 
       const accountLink = await stripe.accountLinks.create({
         account: accountId,
-        refresh_url: return_url || "https://www.louisianahelpr.com/profile",
-        return_url: return_url || "https://www.louisianahelpr.com/profile",
+        refresh_url: safeReturnUrl(return_url),
+        return_url: safeReturnUrl(return_url),
         type: "account_onboarding",
         collection_options: {
           fields: "currently_due",
@@ -448,8 +449,8 @@ serve(async (req) => {
 
       const accountLink = await stripe.accountLinks.create({
         account: profile.stripe_account_id,
-        refresh_url: return_url || "https://www.louisianahelpr.com/profile",
-        return_url: return_url || "https://www.louisianahelpr.com/profile",
+        refresh_url: safeReturnUrl(return_url),
+        return_url: safeReturnUrl(return_url),
         type: "account_onboarding",
         collection_options: collectionOptions(collect),
       });

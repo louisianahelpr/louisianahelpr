@@ -1,15 +1,48 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
-    { "source": "/auth/v1/:path*", "destination": "https://fncmgoasalhdgfwzhsqa.supabase.co/auth/v1/:path*" },
-    { "source": "/((?!api/|_vercel/).*)", "destination": "/index.html" }
+    {
+      "source": "/auth/v1/:path*",
+      "destination": "https://fncmgoasalhdgfwzhsqa.supabase.co/auth/v1/:path*"
+    },
+    {
+      "source": "/((?!api/|_vercel/).*)",
+      "destination": "/index.html"
+    }
   ],
   "images": {
-    "sizes": [16, 32, 48, 64, 96, 128, 256, 384, 640, 750, 828, 1080, 1200, 1920, 2048, 3840],
-    "formats": ["image/avif", "image/webp"],
+    "sizes": [
+      16,
+      32,
+      48,
+      64,
+      96,
+      128,
+      256,
+      384,
+      640,
+      750,
+      828,
+      1080,
+      1200,
+      1920,
+      2048,
+      3840
+    ],
+    "formats": [
+      "image/avif",
+      "image/webp"
+    ],
     "minimumCacheTTL": 31536000,
     "remotePatterns": [
-      { "protocol": "https", "hostname": "fncmgoasalhdgfwzhsqa.supabase.co" }
+      {
+        "protocol": "https",
+        "hostname": "fncmgoasalhdgfwzhsqa.supabase.co"
+      },
+      {
+        "protocol": "https",
+        "hostname": "api.dicebear.com"
+      }
     ]
   },
   "headers": [
@@ -20,9 +53,18 @@
           "key": "Cache-Control",
           "value": "public, max-age=0, must-revalidate"
         },
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "X-Frame-Options", "value": "DENY" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
         {
           "key": "Permissions-Policy",
           "value": "camera=(self), microphone=(), geolocation=(self), payment=(self)"
@@ -40,8 +82,14 @@
     {
       "source": "/.well-known/apple-app-site-association",
       "headers": [
-        { "key": "Content-Type", "value": "application/json" },
-        { "key": "Cache-Control", "value": "public, max-age=3600" }
+        {
+          "key": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600"
+        }
       ]
     },
     {

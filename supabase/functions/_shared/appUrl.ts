@@ -53,3 +53,39 @@ export function buildRedirectUrl(path: string, native = false): string {
 export function isNativeRequest(body: unknown): boolean {
   return typeof body === "object" && body !== null && (body as { native?: unknown }).native === true;
 }
+
+/**
+ * Validate a CLIENT-SUPPLIED redirect target against our own origin.
+ *
+ * WHY THIS EXISTS. getAppUrl() above documents, at length, why the Origin
+ * header must never reach a Stripe redirect: a legitimate Stripe URL that
+ * bounces the user to an attacker's domain is textbook phishing, and the user
+ * has every reason to trust the page they were sent from. That reasoning was
+ * applied to Checkout and not to Connect — `stripe-connect` took `return_url`
+ * straight out of the request body and handed it to accounts.createAccountLink
+ * at four call sites, unvalidated. A body field is exactly as attacker-
+ * controlled as a header.
+ *
+ * Fails CLOSED: anything not provably on our own origin becomes the safe
+ * default. Rejecting a legitimate-but-odd URL costs a user one extra tap;
+ * accepting a hostile one costs them their Stripe account.
+ */
+export function safeReturnUrl(candidate: unknown, fallbackPath = "/profile"): string {
+  const base = getAppUrl();
+  const fallback = new URL(fallbackPath, base).toString();
+  if (typeof candidate !== "string" || candidate.length === 0) return fallback;
+  let url: URL;
+  try {
+    // Resolved against our own base, so a relative path ("/profile?x=1") is
+    // accepted and an absolute foreign one keeps its own origin to be caught
+    // by the check below.
+    url = new URL(candidate, base);
+  } catch {
+    return fallback;
+  }
+  // Only http(s) — blocks javascript:, data: and custom schemes that a
+  // WebView would happily follow.
+  if (url.protocol !== "https:" && url.protocol !== "http:") return fallback;
+  if (url.origin !== new URL(base).origin) return fallback;
+  return url.toString();
+}

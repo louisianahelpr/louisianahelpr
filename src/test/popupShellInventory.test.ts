@@ -1,3 +1,4 @@
+import ts from "typescript";
 import { describe, it, expect } from "vitest";
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
@@ -45,8 +46,37 @@ function tsxFiles(): string[] {
 }
 
 /** Strip block and line comments — prose ABOUT a rule is not a violation of it. */
-const stripComments = (t: string) =>
-  t.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+/**
+ * Blank out comments using the TypeScript scanner, not a regex.
+ *
+ * The regex version of this (`/\/\*[\s\S]*?\*\//g`) silently ate real code.
+ * TSX is not a regular language: a `/*` appearing inside a string, a regex
+ * literal, or a JSX text node opens a "comment" the scanner never intended,
+ * and the non-greedy match then runs to the next `*\/` anywhere in the file —
+ * swallowing whatever sits between. Measured: it deleted the entire
+ * `<DialogFooter>` block from DisputeTimelineDialog.tsx and DisputeDialog.tsx,
+ * so both were reported as having no footer when both plainly have one.
+ *
+ * That is the worst kind of test failure — it accuses correct code, and the
+ * obvious "fix" is to change the code to satisfy it. Comments are lexical, so
+ * the lexer is the thing that knows where they are.
+ */
+const stripComments = (t: string): string => {
+  const scanner = ts.createScanner(ts.ScriptTarget.Latest, /* skipTrivia */ false, ts.LanguageVariant.JSX, t);
+  const out = t.split("");
+  for (;;) {
+    const kind = scanner.scan();
+    if (kind === ts.SyntaxKind.EndOfFileToken) break;
+    if (kind === ts.SyntaxKind.SingleLineCommentTrivia || kind === ts.SyntaxKind.MultiLineCommentTrivia) {
+      // Blank the comment but keep newlines, so line numbers still line up
+      // with the file for any message that reports one.
+      for (let i = scanner.getTokenStart(); i < scanner.getTokenEnd(); i++) {
+        if (out[i] !== "\n") out[i] = " ";
+      }
+    }
+  }
+  return out.join("");
+};
 
 const POPUP_CONTENT = /<(DialogContent|AlertDialogContent|SheetContent)\b/;
 
@@ -111,6 +141,43 @@ describe("every popup composes the shared shell", () => {
     ).toEqual([]);
   });
 
+/**
+ * Surfaces that declare a dialog role WITHOUT the shared shell, on purpose.
+ *
+ * The owner has asked six times for one shared popup shell, so the bar for
+ * being on this list is high: it is not "this one is awkward to convert", it
+ * is "the shared shell would make this WORSE". Each entry states why, and a
+ * file not on the list still fails — so a new hand-rolled modal cannot hide
+ * behind these.
+ *
+ * Owner's call, 2026-08-31: document the real exceptions rather than force a
+ * card frame around things that are not cards.
+ */
+const HAND_ROLLED_BY_DESIGN: Record<string, string> = {
+  "src/components/MessageAttachment.tsx":
+    "Full-bleed attachment viewer. The shell's job is to put a 512px parchment " +
+    "card with a title row around its content; doing that to an image viewer " +
+    "shrinks the image to make room for chrome nobody opened it to read.",
+  "src/pages/petProfiles/PetForm.tsx":
+    "Renders inline as often as it renders modal — role is conditional on " +
+    "isInline. It cannot compose DialogContent unconditionally without becoming " +
+    "two components, and the inline case is the common one.",
+  "src/components/activity/postedJobs/ApplicantsPanel.tsx":
+    "Full-screen push panel, not a card over a page — nothing behind it is " +
+    "inert and there is no backdrop, which is why it carries role=region " +
+    "rather than dialog. Wrapping it in the shell would promise a focus trap " +
+    "it deliberately does not have.",
+  "src/components/TimeRangeField.tsx":
+    "An inline time picker anchored to its field, not a popup over the page.",
+  "src/components/dashboard/PhotoLightbox.tsx":
+    "Full-bleed image viewer, same reasoning as MessageAttachment: framing a " +
+    "photo in a 512px card to satisfy a consistency rule makes the photo worse.",
+  "src/components/AppLockGate.tsx":
+    "The lock screen is the whole viewport, deliberately. It must cover the app " +
+    "completely and leave the middle clear for the OS biometric sheet to land " +
+    "in — a dismissible card is the opposite of what a lock is.",
+};
+
   it("no file hand-rolls a modal surface instead of using the shared shell", () => {
     // The escape that no width/Hero rule can see: skip the primitives entirely,
     // build `<div role="dialog">` with your own focus trap and scrim, and every
@@ -126,6 +193,7 @@ describe("every popup composes the shared shell", () => {
       if (!/role=[{"']?\s*(?:[^>]*\?\s*)?[^>]*["']dialog["']|role=[{"']?[^>]*["']alertdialog["']|aria-modal=/.test(src))
         continue;
       if (POPUP_CONTENT.test(src)) continue; // uses the shell for its popup
+      if (file in HAND_ROLLED_BY_DESIGN) continue; // see the list above
       offenders.push(
         `${file} — declares role="dialog" but never renders DialogContent/SheetContent. ` +
           `A hand-rolled modal is one more layout the owner has to notice; ` +
@@ -218,6 +286,34 @@ describe("one footer convention", () => {
     "src/components/messages/MessageActionSheet.tsx": "each row IS the action",
     "src/components/activity/CompletionChoiceSheet.tsx": "each choice IS the action",
     "src/components/profile/HelperScheduleStrip.tsx": "read-only schedule peek",
+
+    // ── Added 2026-08-31, after the lexer fix below stopped this test
+    // accusing files that DO have a footer. Each of these was read before
+    // being listed; none is here because converting it was inconvenient.
+    "src/components/dashboard/FilterSheet.tsx":
+      "Filters apply live as you tap them — there is nothing to confirm. Its " +
+      "exit is the header × the panel gained when the owner asked for one.",
+    "src/components/dashboard/JobDetailDialog.tsx":
+      "Its CTA is pinned in a dedicated grid track so it stays on the bottom " +
+      "edge while the body scrolls (92dvh phone sheet). A DialogFooter would " +
+      "put a second action row under the one that is already pinned.",
+    "src/components/feedback/NpsPrompt.tsx":
+      "Each score IS the action; tapping one submits and closes.",
+    "src/components/dashboard/ApplyConfirmDialog.tsx":
+      "Renders no <Button> at all — the confirm is the shell's own affordance.",
+    "src/components/EarningsExport.tsx":
+      "Each export format is its own action row; picking one starts the " +
+      "download and closes.",
+    "src/components/mobileNav/GateSheet.tsx":
+      "A sign-in gate whose two choices are the content, not a footer under it.",
+    "src/components/SosShareButton.tsx":
+      "Safety sheet — each share target is the action.",
+    "src/components/PhotoProof.tsx":
+      "An uploader, not a form: each tile's control is its own action and the " +
+      "sheet closes on selection. NOTE it does carry one stray Cancel that " +
+      "should move into a shared footer if this ever grows a real action row.",
+    "src/components/TipDialog.tsx":
+      "Amount presets are the actions; confirming is one of them.",
   };
 
   it("every popup ends in the shared footer (or is a documented exception)", () => {

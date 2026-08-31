@@ -31,8 +31,32 @@ function getGreetingName(fullName?: string | null): string {
   return firstName
 }
 
+/**
+ * The HMAC key for every tracking URL this function mints.
+ *
+ * NEVER fall back to '' here. `CRON_SECRET` unset used to mean the key was the
+ * empty string — a value anyone can reproduce — so every "signed" pixel and
+ * click link we issued was forgeable, and an attacker could mint valid
+ * `email-tracking` URLs for an arbitrary uid/type/event. Fail closed instead,
+ * exactly the way the verifier on the other side of these links already does
+ * (`email-tracking/index.ts`: missing CRON_SECRET -> 500).
+ *
+ * Same class of bug as the `Bearer undefined` cron-auth bypass this repo
+ * already fixed: an unset secret must never resolve to a guessable literal.
+ */
+function requireSigningSecret(): string {
+  const secret = Deno.env.get('CRON_SECRET')
+  if (!secret) {
+    // Thrown, not defaulted. The handler pre-checks this and returns 500
+    // before any send; this throw is the backstop for any future call path
+    // that forgets to.
+    throw new Error('CRON_SECRET not configured — refusing to sign tracking links')
+  }
+  return secret
+}
+
 async function computeSig(uid: string, type: string, event: string): Promise<string> {
-  const secret = Deno.env.get('CRON_SECRET') || ''
+  const secret = requireSigningSecret()
   const enc = new TextEncoder()
   const key = await crypto.subtle.importKey(
     'raw',
@@ -126,6 +150,19 @@ Deno.serve(async (req) => {
     if (!resendApiKey) {
       console.error('RESEND_API_KEY not configured')
       return new Response(JSON.stringify({ error: 'Email service not configured' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    // Every email this function sends embeds HMAC-signed tracking URLs. With
+    // no CRON_SECRET there is no key to sign them with, so refuse the whole
+    // request rather than send links signed with a publishable value. Checked
+    // here, up front, so we fail before the email_send_log insert and before
+    // Resend — a misconfigured deploy leaves no half-finished state behind.
+    if (!Deno.env.get('CRON_SECRET')) {
+      console.error('CRON_SECRET not configured — refusing to send signed tracking links')
+      return new Response(JSON.stringify({ error: 'Email tracking not configured' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })

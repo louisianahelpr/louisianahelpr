@@ -131,6 +131,13 @@ export const FROM_CONTACT = `${SENDER_NAME} Contact <${SENDER_ADDRESS}>`;
 export const SUPPORT_EMAIL = Deno.env.get("SUPPORT_INBOX_EMAIL") || `admin@${SENDER_DOMAIN}`;
 
 /** Mailbox referenced by List-Unsubscribe on commercial/lifecycle mail. */
+// RETIRED, deliberately not deleted. Nothing advertises this address any more:
+// CAN-SPAM only permits a manual opt-out mechanism if a human honours it within
+// 10 business days, and no code here reads that mailbox — so publishing it
+// promised a channel nobody was listening on. The signed one-click link is the
+// opt-out now. Kept as a named constant so that if the alias is ever actually
+// staffed, wiring it back is one import rather than a rediscovery.
+// Owner's call, 2026-08-31.
 export const UNSUBSCRIBE_MAILBOX = `unsubscribe@${SENDER_DOMAIN}`;
 
 export interface SendEmailParams {

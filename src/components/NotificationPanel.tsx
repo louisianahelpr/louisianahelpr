@@ -38,6 +38,16 @@ const NotificationPanel = () => {
   const reducedMotion = useReducedMotion();
   const titleId = useId();
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  /* The TRUE unread total, not the count within the fetched page.
+     Measured before this existed: the database held 76 unread while the badge
+     read 47, because both were derived from a `limit(50)` fetch. The bell and
+     the panel agreed with each other — which is what stopped them
+     contradicting on screen — but both under-reported reality, and did so
+     WORSE the more someone used the app. The most engaged users saw the least
+     accurate number.
+     `head: true` returns no rows, and the (user_id, read) index already exists
+     for exactly this shape, so it costs a count and no payload. */
+  const [unreadTotal, setUnreadTotal] = useState<number | null>(null);
   const [open, setOpen] = useState(false);
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushSupported, setPushSupported] = useState(false);
@@ -90,6 +100,21 @@ const NotificationPanel = () => {
     }
     setLoadError(false);
     if (data) setNotifications(data);
+
+    // Counted separately and deliberately: the list is a page, the badge is a
+    // fact. A failure here leaves unreadTotal null and the UI falls back to
+    // the page-derived count — stale, but never a number invented from an
+    // error path.
+    const { count, error: countErr } = await supabase
+      .from("notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", session.user.id)
+      .eq("read", false);
+    if (countErr) {
+      report(countErr, { tags: { source: "NotificationPanel.unreadCount" } });
+      return;
+    }
+    setUnreadTotal(count ?? 0);
   };
 
   // Pull-to-refresh on the notification list — manual recovery path
@@ -204,7 +229,13 @@ const NotificationPanel = () => {
      had looked at anything and "what have I missed" would be unanswerable on
      the next open. Read is claimed explicitly: opening a row (which is also
      how you act on it) or the Mark-all-read control. */
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const unreadInPage = notifications.filter((n) => !n.read).length;
+  // Prefer the counted total; fall back to the page while it is still loading
+  // or if the count query failed. Never show a number derived from an error.
+  const unreadCount = unreadTotal ?? unreadInPage;
+  // The list can only ever show what it fetched. Saying so is the honest
+  // alternative to quietly shrinking the badge to match the page.
+  const hasMoreThanPage = unreadTotal !== null && unreadTotal > unreadInPage;
   // Seed the default from the first loaded page, once. `null` means "not chosen
   // yet" so the very first render — when `notifications` is still empty — does
   // not lock the panel to All.
@@ -617,6 +648,20 @@ const NotificationPanel = () => {
             </div>
           )}
         </PullToRefreshWrapper>
+
+        {/* The list is a page; the badge is a fact. When they differ, say so.
+            The alternative — quietly shrinking the badge to match what was
+            fetched — is what produced a bell reading 47 over a database
+            holding 76. "Mark all read" still only claims the rows on screen,
+            which is why this line names the shown count first. */}
+        {hasMoreThanPage && (
+          <p
+            className="shrink-0 px-4 py-2 text-ds-11 font-sans text-center border-t border-[hsl(var(--olivewood)/0.12)]"
+            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+          >
+            Showing the latest {notifications.length} · {unreadTotal} unread in total
+          </p>
+        )}
 
         {/* Push opt-in lives in a footer row, outside the scroll area, rather
             than as a big button inside the empty state — it is relevant

@@ -46,7 +46,6 @@
 // where a `suppressed_emails` row is append-only and permanent.
 
 import { getAppUrl } from './appUrl.ts'
-import { UNSUBSCRIBE_MAILBOX } from './resend.ts'
 
 /**
  * Signing key for unsubscribe tokens.
@@ -197,16 +196,22 @@ export function unsubscribeSigningConfigured(): boolean {
  * offer to unsubscribe from a receipt or a security notice.
  */
 export async function unsubscribeHeaders(recipientEmail?: string): Promise<Record<string, string>> {
-  const mailto = `<mailto:${UNSUBSCRIBE_MAILBOX}?subject=unsubscribe>`
+  // NO mailto. CAN-SPAM permits a manual opt-out mechanism only if a human
+  // honours it within 10 business days, and nothing in this repo reads that
+  // mailbox — so advertising it promised a channel nobody was listening on,
+  // which is worse than not offering one. The signed one-click URL below is
+  // verified working end to end (GET and POST both flip the flags, a forged
+  // signature 400s, an unknown address writes nothing), so the opt-out half of
+  // CAN-SPAM is satisfied without it. Owner's call, 2026-08-31.
   const oneClick = recipientEmail ? await buildUnsubscribeUrl(recipientEmail) : null
 
   if (!oneClick) {
     return {
-      'List-Unsubscribe': `<${getAppUrl()}/profile?tab=notifications>, ${mailto}`,
+      'List-Unsubscribe': `<${getAppUrl()}/profile?tab=notifications>`,
     }
   }
   return {
-    'List-Unsubscribe': `<${oneClick}>, ${mailto}`,
+    'List-Unsubscribe': `<${oneClick}>`,
     'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
   }
 }

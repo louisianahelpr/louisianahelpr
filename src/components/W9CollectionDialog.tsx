@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Dialog, DialogContent, DialogHero } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -120,10 +120,20 @@ const W9CollectionDialog = ({ open, onOpenChange, jobId, helperId, businessId, o
           {ip && (
             <p className="text-ds-10 text-muted-foreground font-mono">Recorded with IP {ip}</p>
           )}
-          <Button onClick={submit} disabled={submitting || !name.trim() || !agreed} className="w-full">
+        </div>
+        {/* The submit lives in the shared footer rather than trailing the form
+            body. Every other dialog in the app closes with this row, and a
+            signature dialog is exactly where a reader should recognise the
+            shape without thinking about it. */}
+        <DialogFooter>
+          <Button
+            variant="primary"
+            onClick={submit}
+            disabled={submitting || !name.trim() || !agreed}
+          >
             {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Sign W-9"}
           </Button>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

@@ -307,8 +307,13 @@ export function ProfileEditForm({
                   type="button"
                   onClick={() => toggleSkillPreset(label)}
                   aria-pressed={active}
-                  className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-ds-11 font-semibold transition-colors active:scale-95 ${catStyle.badge} ${
-                    active ? "" : "opacity-45"
+                  /* Unselected chips are an OUTLINE of the same category colour, not a
+                     45%-opacity copy of the filled one. `opacity-45` multiplied through the
+                     AA-tuned badge tokens and dropped every unselected label to ~1.85:1 — a
+                     WCAG AA failure on all 11 presets. Filled-vs-outline carries the
+                     selected state without touching the text colour. */
+                  className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-ds-11 font-semibold transition-colors active:scale-95 ${
+                    active ? catStyle.badge : `bg-transparent border-border ${catStyle.title}`
                   }`}
                 >
                   {active ? (

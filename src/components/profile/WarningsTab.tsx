@@ -85,8 +85,11 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
             ) => {
               const palette = {
                 destructive: { ring: "border-destructive/40", icon: "text-destructive", title: "hsl(var(--destructive))", fill: "bg-destructive" },
-                orange: { ring: "border-warning/30", icon: "text-warning", title: "hsl(25 90% 45%)", fill: "bg-warning" },
-                amber: { ring: "border-warning/30", icon: "text-warning", title: "hsl(38 92% 45%)", fill: "bg-warning" },
+                /* Titles are darkened from L45% to L34/32%: at 45% the amber
+                   "Strike N of 3" headline measured 2.63:1 on the card, under the 3:1
+                   AA bar for large bold text. The hue is unchanged. */
+                orange: { ring: "border-warning/30", icon: "text-warning", title: "hsl(25 90% 34%)", fill: "bg-warning" },
+                amber: { ring: "border-warning/30", icon: "text-warning", title: "hsl(38 92% 32%)", fill: "bg-warning" },
                 primary: { ring: "border-primary/30", icon: "text-primary", title: "hsl(var(--primary))", fill: "bg-primary" },
               }[tone];
               const Icon = icon;
@@ -113,7 +116,8 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
                           />
                         ))}
                       </div>
-                      <p className="text-ds-11 font-semibold uppercase tracking-wide" style={{ color: "hsl(var(--olivewood) / 0.65)" }}>
+                      {/* 0.65 measured 4.46:1 — a 0.04 miss on the 4.5 AA bar at 11px. */}
+                      <p className="text-ds-11 font-semibold uppercase tracking-wide" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                         {strikesOf3} of 3 strikes
                       </p>
                     </div>
@@ -145,9 +149,11 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-ds-10 font-bold uppercase tracking-wider shrink-0 ${
+                        /* `text-warning` (L53%) on a 10% tint measured 2.94:1 at 10px bold.
+                           The darker same-hue value clears AA; --warning stays as-is because
+                           it is correct for fills and icons, which have no text bar. */
                         v.action_taken === "permanent_ban" ? "bg-destructive/10 text-destructive"
-                        : v.action_taken === "suspension" || v.action_taken === "temporary_ban" ? "bg-warning/10 text-warning"
-                        : "bg-warning/10 text-warning"
+                        : "bg-warning/10 text-[hsl(33_35%_32%)] dark:text-[hsl(33_50%_78%)]"
                       }`}>
                         {v.action_taken.replace(/_/g, " ")}
                       </span>

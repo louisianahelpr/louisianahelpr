@@ -105,17 +105,28 @@ BEGIN
       -- side of every resolved dispute landed on "My Posts" — someone else's
       -- screen. Each party now goes to their own surface, on the job.
       -- Anchored on the recipient column so the two inserts get different
-      -- links; the lazy `.{0,600}?` stops at that insert's own link literal and
-      -- is reproduced verbatim by the \1 backreference, so nothing between the
+      -- links; the lazy bound stops at that insert's own link literal and is
+      -- reproduced verbatim by the \1 backreference, so nothing between the
       -- anchor and the link can be disturbed. Plain `.` on purpose: Postgres
       -- regexes are newline-INsensitive by default (no `n` flag passed), so `.`
       -- already spans lines — and `[\s\S]` would be rejected outright, since a
       -- class-shorthand escape like \S is illegal inside a bracket expression.
+      --
+      -- WHY THREE CHAINED {0,200} INSTEAD OF ONE {0,600}. Postgres caps a
+      -- single {m,n} repetition at 255; `{0,600}` is a hard
+      -- `invalid repetition count(s)` (SQLSTATE 2201B) and it took the WHOLE
+      -- deploy down — no migration in the batch applied, including the
+      -- address-privacy fix two files earlier. PGlite did not catch it because
+      -- this file's DO block was never executed there. The bound itself is
+      -- load-bearing and must stay ~600: unbounded `.*?` would let the
+      -- _customer_id pattern run past its own insert and rewrite the HELPER's
+      -- link, which is the exact bug this entry exists to fix. Three lazy
+      -- {0,200} chain to the same 600 ceiling while each stays legal.
       (30, 'rpc_decide_dispute',
-           $p$(_customer_id,.{0,600}?)'/activity'$p$,
+           $p$(_customer_id,.{0,200}?.{0,200}?.{0,200}?)'/activity'$p$,
            $q$\1'/my-posts?job=' || _job_id::text$q$, ''),
       (31, 'rpc_decide_dispute',
-           $p$(_helper_id,.{0,600}?)'/activity'$p$,
+           $p$(_helper_id,.{0,200}?.{0,200}?.{0,200}?)'/activity'$p$,
            $q$\1'/my-jobs?job=' || _job_id::text$q$, ''),
 
       -- Poster-side notifications: the insert is a SELECT over public.jobs, so

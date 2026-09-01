@@ -569,19 +569,19 @@ const NotificationPanel = () => {
                       return (
                       <motion.div
                         key={n.id}
-                        {...(actionable
-                          ? {
-                              role: "button",
-                              tabIndex: 0,
-                              onClick: () => handleClick(n),
-                              onKeyDown: (e: ReactKeyboardEvent) => {
+                        role={actionable ? "button" : undefined}
+                        tabIndex={actionable ? 0 : undefined}
+                        onClick={actionable ? () => handleClick(n) : undefined}
+                        onKeyDown={
+                          actionable
+                            ? (e: ReactKeyboardEvent) => {
                                 if (e.key === "Enter" || e.key === " ") {
                                   e.preventDefault();
                                   handleClick(n);
                                 }
-                              },
-                            }
-                          : {})}
+                              }
+                            : undefined
+                        }
                         layout={!reducedMotion}
                         initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -12 }}
                         animate={reducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}

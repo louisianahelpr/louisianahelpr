@@ -82,6 +82,16 @@ const CHANNEL_META: Record<string, { label: string; Icon: typeof Mail }> = {
 const channelMeta = (channel: string) =>
   CHANNEL_META[channel] ?? { label: channel, Icon: Bell };
 
+/**
+ * Status label. The badge is `capitalize`d, which turns the raw column value
+ * into sentence case for the four single-word statuses but renders
+ * `token_deleted` as the literal "Token_deleted" — the database's spelling
+ * leaking onto an operator's screen. Named here instead.
+ */
+const STATUS_LABEL: Record<string, string> = {
+  token_deleted: "Token deleted",
+};
+
 const PAGE_SIZE = 50;
 
 interface AdminNotificationLogsProps {
@@ -220,7 +230,7 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
           one card: subtitle, header action, then filters over content. */}
       <AdminCard
         title="Delivery Log"
-        subtitle="Every alert sent via in-app or email. Failed deliveries are red."
+        subtitle="Every alert sent in-app, by email, or as a push. Failed deliveries are red."
         action={
           <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
             <RefreshCw className={cn("w-4 h-4 mr-2", isFetching && "animate-spin")} />
@@ -351,7 +361,7 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
                   </td>
                   <td className="px-4 py-2.5">
                     <Badge variant="outline" className={cn("text-ds-11 capitalize", STATUS_VARIANT[row.status] || "")}>
-                      {row.status}
+                      {STATUS_LABEL[row.status] ?? row.status}
                     </Badge>
                   </td>
                 </tr>
@@ -380,7 +390,7 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                       <Badge variant="outline" className={cn("text-ds-11 capitalize", STATUS_VARIANT[row.status] || "")}>
-                        {row.status}
+                        {STATUS_LABEL[row.status] ?? row.status}
                       </Badge>
                       {(() => {
                         const { label, Icon } = channelMeta(row.channel);

@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, useMemo } from "react";
+import { useEffect, useId, useRef, useState, useMemo, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,15 +10,15 @@ import {
   PopoverTrigger,
   PopoverContent,
   PopoverPortal,
-  PopoverScrim,
+  PopoverAnchor,
+  PopoverDismissLayer,
 } from "@/components/ui/popover";
 import {
-  AnchoredPanelCaret,
   AnchoredPanelHeader,
   AnchoredPanelSegmented,
-  anchoredPanelBodyClass,
-  anchoredPanelContentClass,
-  anchoredPanelMaxHeight,
+  screenPanelContentClass,
+  screenPanelContentProps,
+  useScreenPanelBand,
 } from "@/components/ui/anchoredPanel";
 import { isPushSupported, registerServiceWorker, showLocalNotification, getPushPermission } from "@/lib/pushNotifications";
 import { useRequestPushPermission } from "@/lib/nativePush";
@@ -49,6 +49,12 @@ const NotificationPanel = () => {
      for exactly this shape, so it costs a count and no payload. */
   const [unreadTotal, setUnreadTotal] = useState<number | null>(null);
   const [open, setOpen] = useState(false);
+  /* The bell itself. `PopoverTrigger asChild` composes its own ref with the
+     child's, so passing this to <NotificationTrigger> costs nothing and gives
+     `useScreenPanelBand` the element whose header bar decides where the
+     panel's top edge lands. */
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const { anchorRef, band } = useScreenPanelBand(open, triggerRef);
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushSupported, setPushSupported] = useState(false);
   /* UNREAD BY DEFAULT — but only when there IS unread (owner). A notification
@@ -306,12 +312,30 @@ const NotificationPanel = () => {
     hapticLight();
   };
 
+  /* Does this row have somewhere to go?
+     Only a root-relative path is navigable in-app; a null link, an absolute
+     URL and a `javascript:` string are all equally un-followable. 6 rows in
+     prod today carry `link: null` ("Test from Helpr", "Application declined"). */
+  const hasDestination = (n: Notification): n is Notification & { link: string } =>
+    typeof n.link === "string" && n.link.startsWith("/");
+
+  /* Is there anything a tap on this row can DO?
+     Two things can happen on tap: navigate, and mark read. A row with no link
+     that is already read offers neither — every previous render still gave it
+     `role="button"`, `cursor-pointer` and `active:opacity-80`, so it looked
+     like a control, absorbed a tap, and returned nothing. That is a small lie
+     the user pays for with a tap, and it repeats every time they scroll past.
+     An UNREAD row without a link is genuinely actionable: tapping clears the
+     dot and repaints the row, which is a visible result and an honest one. So
+     the affordance is shown exactly when a tap has an effect. */
+  const isActionable = (n: Notification): boolean => hasDestination(n) || !n.read;
+
   const handleClick = (n: Notification) => {
     void markAsRead(n.id);
     // A notification exists to take you somewhere — follow its link when it
     // has one. Only in-app (root-relative) links are navigable; anything
     // absent or malformed just marks read and keeps the panel open.
-    if (n.link && n.link.startsWith("/")) {
+    if (hasDestination(n)) {
       // Navigate first, close a frame later — closing synchronously in the
       // same tick as the route change reads as one jarring instant unmount
       // stacked on top of the page transition.
@@ -323,35 +347,37 @@ const NotificationPanel = () => {
   const showPushRow = pushSupported && !pushEnabled;
 
   return (
-    /* `modal` is load-bearing, not decoration. It is what locks the page
-       behind the scrim (so the FEED can't scroll under an open panel — the
-       panel's own list is the only thing that moves), traps focus inside the
-       panel, and returns focus to the bell on close. Dismissal is still
-       tap-outside / Escape via Radix's DismissableLayer, plus the explicit X
-       in the header for touch. */
+    /* `modal` is load-bearing, not decoration — and it is KEPT even though the
+       scrim is gone. It is what locks the page (so the FEED can't scroll under
+       an open panel — the panel's own list is the only thing that moves),
+       traps focus inside the panel, and returns focus to the bell on close.
+       None of those were the scrim's doing. Dismissal is still tap-outside /
+       Escape via Radix's DismissableLayer, plus the explicit X in the header
+       for touch. */
     <Popover open={open} onOpenChange={setOpen} modal>
       <PopoverTrigger asChild>
-        <NotificationTrigger unreadCount={unreadCount} />
+        <NotificationTrigger ref={triggerRef} unreadCount={unreadCount} />
       </PopoverTrigger>
-      {/* Dim + blur the page underneath, exactly as every modal in the app
-          does — and the SAME `PopoverScrim` the Filters panel mounts, in its
-          own portal placed before the Content's, the way `SheetPortal` stacks
-          `SheetOverlay` under `SheetContent`. There is one anchored-panel
-          scrim in the app, not one per panel. See `ui/popover.tsx` for why it
-          is z-50 and why `pointer-events-auto` is what stops a tap-outside
-          from also opening the job card under your finger, and
-          `ui/anchoredPanel.tsx` for why all four parts of the treatment
-          (scrim / glass-modal surface / caret / header) travel together. */}
+      {/* The panel is positioned against a measured SCREEN BAND, not against
+          the bell: a zero-height rect spanning the viewport at the bottom edge
+          of the header the bell sits in. The trigger still opens it; the band
+          is what decides where it lands. See `useScreenPanelBand`. */}
+      <PopoverAnchor virtualRef={anchorRef} />
+      {/* NO SCRIM — the page behind is neither dimmed nor blurred (owner,
+          2026-08-31: "Same for this. No blur"). What is still mounted is a
+          layer that PAINTS NOTHING and exists only to receive the tap that
+          dismisses the panel: without it, Radix's deferred outside-dismiss
+          lets the very same click land on the job card underneath and open it.
+          See `PopoverDismissLayer` in `ui/popover.tsx`. Its own portal, placed
+          before the Content's, the way `SheetPortal` stacks `SheetOverlay`
+          under `SheetContent`. */}
       <PopoverPortal>
-        <PopoverScrim />
+        <PopoverDismissLayer />
       </PopoverPortal>
       <PopoverContent
-        align="end"
-        sideOffset={10}
-        collisionPadding={12}
+        {...screenPanelContentProps(band)}
         aria-labelledby={titleId}
-        className={anchoredPanelContentClass}
-        style={{ maxHeight: anchoredPanelMaxHeight }}
+        className={screenPanelContentClass}
         // Park focus on the PANEL, not on its first focusable child. Radix's
         // default would land on "Mark all as read", so opening the panel and
         // pressing Enter — or a screen reader's first move — would silently
@@ -363,17 +389,24 @@ const NotificationPanel = () => {
           (event.currentTarget as HTMLElement | null)?.focus({ preventScroll: true });
         }}
       >
-        {/* Points back at the bell, so it is obvious what opened this. Sits
-            OUTSIDE the clipping wrapper below — it is positioned beyond the
-            panel's box, so anything that clips would delete it. */}
-        <AnchoredPanelCaret />
+        {/* No caret. The panel spans the screen, so there is no edge for a
+            notch to point back at the bell from (owner: "it should be anchored
+            to screen").
 
-        {/* The clipping wrapper — header + list + footer live inside it so the
-            panel's 28px corners actually cut a tinted unread row or the footer
-            button. Its children are left at the outer indent level on purpose:
-            re-indenting the whole panel to add one wrapper would bury the real
-            change in a 200-line whitespace diff. */}
-        <div className={anchoredPanelBodyClass}>
+            The wrapper below is the flex column that holds header + list +
+            footer. Its children are left at the outer indent level on purpose:
+            re-indenting the whole panel would bury the real change in a
+            200-line whitespace diff.
+
+            `mx-auto max-w-lg` is a CONTENT measure, not a side margin: the
+            SURFACE still runs edge to edge (that is the whole point of a
+            screen-anchored band), but the rows inside it stop at the app's
+            shared popup measure. Without it the Unread/All segmented control
+            stretched to 1440px on the desktop website — one pill the width of
+            the window, which is not a control anyone reads as a control.
+            Below 512px, which is every phone the owner reviewed this on, the
+            measure is wider than the screen and changes nothing. */}
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden w-full max-w-lg mx-auto">
         <AnchoredPanelHeader
           titleId={titleId}
           title="Notifications"
@@ -523,27 +556,43 @@ const NotificationPanel = () => {
                       down + fade). The first render of the sheet stays
                       static so the panel doesn't feel slow to open. */}
                   <AnimatePresence initial={false}>
-                    {group.items.map((n) => (
+                    {group.items.map((n) => {
+                      /* A row only DRESSES as a control when a tap on it does
+                         something (see `isActionable`). When it doesn't, every
+                         part of the promise comes off together — the role, the
+                         tab stop, the pointer cursor, the press feedback and
+                         the handlers — because leaving any one of them behind
+                         still tells the user "press me". The row keeps its
+                         padding and min-height so the list rhythm is
+                         unchanged; only the affordance goes. */
+                      const actionable = isActionable(n);
+                      return (
                       <motion.div
                         key={n.id}
-                        role="button"
-                        tabIndex={0}
+                        {...(actionable
+                          ? {
+                              role: "button",
+                              tabIndex: 0,
+                              onClick: () => handleClick(n),
+                              onKeyDown: (e: ReactKeyboardEvent) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault();
+                                  handleClick(n);
+                                }
+                              },
+                            }
+                          : {})}
                         layout={!reducedMotion}
                         initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -12 }}
                         animate={reducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
                         exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -12 }}
                         transition={reducedMotion ? { duration: 0 } : { duration: 0.2, ease: "easeOut" }}
-                        onClick={() => handleClick(n)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            handleClick(n);
-                          }
-                        }}
                         // `min-h-[44px]`: the row is the primary tap target in
                         // this panel and must clear the HIG floor even when a
                         // notification is a single short line.
-                        className="w-full text-left px-4 py-3 min-h-[44px] transition-colors active:opacity-80 cursor-pointer"
+                        className={`w-full text-left px-4 py-3 min-h-[44px] transition-colors${
+                          actionable ? " active:opacity-80 cursor-pointer" : ""
+                        }`}
                         style={{
                           background: !n.read ? "hsl(var(--burnt-sienna) / 0.06)" : undefined,
                           borderBottom: "0.5px solid hsl(var(--olivewood) / 0.08)",
@@ -641,7 +690,8 @@ const NotificationPanel = () => {
                           </div>
                         </div>
                       </motion.div>
-                    ))}
+                      );
+                    })}
                   </AnimatePresence>
                 </section>
               ))}

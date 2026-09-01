@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Activity, RefreshCw, Mail, ShieldAlert, Database, Bug, MapPin, Zap, Bell, Send, Loader2, TrendingUp, ChevronUp, ChevronDown } from "lucide-react";
 import { report } from "@/lib/errorLogger";
+import { functionErrorBody, functionErrorMessage } from "@/lib/supabaseResult";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { FILL_DAYS_OPTIONS } from "./adminHealth/types";
@@ -27,24 +28,50 @@ const AdminHealth = () => {
   // Send a test push to the admin's own user_id. Verifies the entire
   // pipeline (push_tokens lookup → APNs/FCM auth → device delivery)
   // without needing to wait on a real notification trigger to fire.
+  //
+  // ── This used to be a guaranteed 401 ──────────────────────────────────
+  // It invoked `send-push-notification` directly. `supabase.functions.invoke`
+  // attaches the CALLER'S JWT, and that function requires the bearer to equal
+  // the service-role key exactly (`authHeader !== \`Bearer ${serviceRoleKey}\``
+  // → 401). An admin's JWT never equals a service-role key, so the button could
+  // not succeed on any system, healthy or broken — the worst possible state for
+  // a diagnostic, because it reported "push is broken" unconditionally and so
+  // reported nothing at all. Confirmed against prod on 2026-09-01: admin JWT →
+  // 401 {"error":"Unauthorized"}; service-role bearer → a real result body.
+  //
+  // The fix is NOT to hand the client a service-role key — that key can push
+  // arbitrary Helpr-branded copy to any user on the platform and must never
+  // leave the server. It goes through `admin-test-push`, an authenticated
+  // edge function that re-checks `has_role(admin)` server-side and then calls
+  // the push function with the service-role bearer. It always targets the
+  // caller's own id, read from the verified JWT — the body carries no user_id.
   const sendTestPush = async () => {
     setSendingTestPush(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast.error("Not signed in");
+      const { data, error } = await supabase.functions.invoke("admin-test-push", {
+        body: {},
+      });
+      if (error) {
+        // Deploy-lag twin of the PGRST202 fallback used for brand-new RPCs:
+        // edge functions and the client bundle ship on separate deploys, so
+        // between them the gateway answers 404 for a function that does not
+        // exist yet. "Not deployed yet" is a completely different fact from
+        // "push is broken", and saying the second when the first is true is
+        // the exact failure this button already had once.
+        const ctx = (error as { context?: unknown }).context;
+        if (ctx instanceof Response && ctx.status === 404) {
+          toast("Test push not available yet", {
+            description: "The admin-test-push function hasn't finished deploying. Try again in a minute.",
+          });
+          return;
+        }
+        const body = await functionErrorBody(error);
+        const message = await functionErrorMessage(error, "Couldn't send the test push.");
+        report(error, { tags: { source: "AdminHealth.sendTestPush" }, context: { body } });
+        toast.error("Test push failed", { description: message });
         return;
       }
-      const { data, error } = await supabase.functions.invoke("send-push-notification", {
-        body: {
-          user_id: user.id,
-          title: "Helpr",
-          body: "Test push from Admin Health · " + new Date().toLocaleTimeString(),
-          thread_id: "admin_test",
-        },
-      });
-      if (error) throw error;
-      const result = data as {
+      const result = (data ?? {}) as {
         sent?: number; failed?: number; no_tokens?: boolean;
         skipped?: string; total?: number;
       };

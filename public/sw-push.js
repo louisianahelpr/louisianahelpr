@@ -54,14 +54,25 @@ self.addEventListener('fetch', (event) => {
 });
 
 // Push notification handling
+//
+// A NULL LINK MEANS "NO DESTINATION" — it does not mean "/dashboard".
+// Both this file and `showLocalNotification` in src/lib/pushNotifications.ts
+// used to substitute `/dashboard` for a missing link, while the two readers
+// that matter — `NotificationPanel.handleClick` and `nativePush.ts`, the one
+// that actually runs in the shipped iOS app — navigate only when the link
+// `startsWith("/")` and otherwise stay put. The same notification therefore
+// went somewhere via web push and nowhere in-app. `/dashboard` is a guess, and
+// for the rows in prod that carry `link: null` it is the wrong one. All three
+// now agree: no link, no navigation.
 self.addEventListener("push", (event) => {
   const data = event.data ? event.data.json() : {};
   const title = data.title || "Helpr";
+  const link = typeof data.link === "string" && data.link.startsWith("/") ? data.link : null;
   const options = {
     body: data.message || "You have a new notification",
     icon: "/apple-touch-icon.png",
     badge: "/favicon-32.png",
-    data: { link: data.link || "/dashboard" },
+    data: { link },
     tag: data.tag || "helpr-notification",
     renotify: true,
   };
@@ -70,16 +81,25 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const link = event.notification.data?.link || "/dashboard";
+  const raw = event.notification.data?.link;
+  const link = typeof raw === "string" && raw.startsWith("/") ? raw : null;
   event.waitUntil(
     clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {
         if (client.url.includes(self.location.origin) && "focus" in client) {
-          client.navigate(link);
+          // With no destination, bring the tab they already have forward and
+          // leave it exactly where it was. That is the browser equivalent of
+          // what tapping a link-less notification does in the app and on
+          // native: the app comes to the front, nothing navigates.
+          if (link) client.navigate(link);
           return client.focus();
         }
       }
-      return clients.openWindow(link);
+      // No window open at all. A notification click has to open SOMETHING —
+      // an inert click reads as a broken notification — so with no link we
+      // open the app's root and let it route to the normal post-auth landing,
+      // rather than asserting a page the notification never named.
+      return clients.openWindow(link || "/");
     })
   );
 });

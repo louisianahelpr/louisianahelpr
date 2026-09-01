@@ -43,6 +43,19 @@ const FUNCTIONS_DIR = "supabase/functions";
 const ADMIN_ENDPOINTS = [
   "admin-delete-user",
   "admin-resend-verification",
+  // The "Send Test Push to Me" button on Admin Health. It is the narrowest
+  // endpoint in this list and it is still listed, because it is the one that
+  // holds the service-role key on the caller's behalf: it re-checks
+  // `has_role(caller, 'admin')` server-side and only then calls
+  // `send-push-notification` — which requires the service-role bearer and must
+  // never be reachable with a user JWT — on the server side of the wire.
+  //
+  // Its target is ALWAYS the caller's own user id, read from the verified JWT;
+  // no user_id is accepted from the request body and the title/body are fixed
+  // in the function. So it cannot be turned into "push arbitrary Helpr-branded
+  // copy at an arbitrary user", which is exactly what relaxing
+  // send-push-notification's own gate would have created.
+  "admin-test-push",
   "admin-update-email",
   "admin-user-actions",
 ];

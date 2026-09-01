@@ -3,6 +3,7 @@ import type { WebhookContext } from "../context.ts";
 import { PRODUCT_TO_TIER } from "../constants.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { resolveSubscriptionUserId } from "./_resolveUser.ts";
+import { CLEARED_SUBSCRIPTION_LINKAGE } from "../../_shared/subscriptionLinkage.ts";
 
 export async function handleCustomerSubscriptionDeleted(
   event: Stripe.Event,
@@ -48,7 +49,14 @@ export async function handleCustomerSubscriptionDeleted(
 
   const { data: clearedProfiles, error } = await supabase
     .from("profiles")
-    .update({ subscription_tier: null, subscription_expires_at: null })
+    .update({
+      subscription_tier: null,
+      subscription_expires_at: null,
+      // Same clear as the cancellation branch of customerSubscriptionUpdated,
+      // and idempotent for the same reason: fixed values keyed on user_id, so a
+      // Stripe redelivery rewrites the identical row.
+      ...CLEARED_SUBSCRIPTION_LINKAGE,
+    })
     .eq("user_id", userId)
     .select("user_id");
 

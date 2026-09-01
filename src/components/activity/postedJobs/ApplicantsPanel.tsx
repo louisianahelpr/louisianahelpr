@@ -1,9 +1,9 @@
 import { useState, useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { formatName } from "@/lib/utils";
-import { OptimizedImage } from "@/components/ui/optimized-image";
+import UserAvatar from "@/components/UserAvatar";
 import { Button } from "@/components/ui/button";
-import { Eye, Pencil, Plus, ShieldAlert, ShieldCheck, Sparkles, Star, X } from "lucide-react";
+import { ArrowUp, Eye, Pencil, Plus, ShieldAlert, ShieldCheck, Sparkles, Star, X } from "lucide-react";
 import AppPage from "@/components/AppPage";
 import { AttachmentLink } from "@/components/AttachmentLink";
 import CredentialBadge from "@/components/CredentialBadge";
@@ -243,8 +243,28 @@ export function ApplicantsPanel({
                   setApplicantSort={setApplicantSort}
                 />
 
+                {/* Paid-ordering disclosure.
+                    The poster is choosing a person, so if money moved the
+                    order they are entitled to know before they read the list
+                    top-down — an undisclosed pay-for-position ranking on a
+                    hiring surface is the trust defect, not the perk itself.
+                    Shown only when Priority Placement ACTUALLY promoted
+                    someone in this list (see `promotedByTier`), so it is a
+                    fact about what they are looking at rather than boilerplate
+                    that trains people to ignore it. */}
+                {applicantSort === "recommended" && sortedApplications.some((s) => s.promotedByTier) && (
+                  <p
+                    className="text-ds-11 font-sans mb-3 -mt-1"
+                    style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+                  >
+                    Ranked on ratings, work history and verified credentials.
+                    {" "}Pro and Elite members get a small placement bump — enough to
+                    settle a close call, never enough to outrank a stronger helper.
+                  </p>
+                )}
+
                 {/* Applicant cards */}
-                {sortedApplications.map(({ app, signals, neighborCount }) => {
+                {sortedApplications.map(({ app, signals, neighborCount, promotedByTier }) => {
                   const helperTier = (app.profiles?.subscription_tier ?? "free") as string;
                   const isElite = helperTier === "elite";
                   const isPro = helperTier === "pro";
@@ -275,6 +295,24 @@ export function ApplicantsPanel({
                         </div>
                       )}
 
+                      {/* Per-card half of the disclosure: this specific card
+                          sits above where its earned score alone would have
+                          put it. Mutually exclusive with the badge above —
+                          the quality top pick cannot be promoted past itself.
+                          Muted, not celebratory: it is an explanation the
+                          poster is owed, not a second endorsement. */}
+                      {promotedByTier && (
+                        <div className="flex items-center gap-1.5 mb-1.5 pl-1">
+                          <ArrowUp className="w-3 h-3" style={{ color: "hsl(var(--olivewood) / 0.7)" }} aria-hidden />
+                          <span
+                            className="text-ds-10 font-sans font-semibold uppercase"
+                            style={{ color: "hsl(var(--olivewood) / 0.7)", letterSpacing: "0.06em" }}
+                          >
+                            Priority placement
+                          </span>
+                        </div>
+                      )}
+
                       {/* Compact applicant card */}
                       <div
                         className="rounded-ds-md p-3.5 space-y-2.5"
@@ -292,29 +330,50 @@ export function ApplicantsPanel({
                       >
                         {/* Row 1: avatar + name + rating + hire button */}
                         <div className="flex items-center gap-3">
+                          {/* Migrated onto the shared `<UserAvatar>`
+                              (2026-08-31). This is a hiring decision: the
+                              poster is choosing between people, and the
+                              previous markup gave a candidate whose upload is
+                              a flat coloured block NO identity at all — an
+                              `<OptimizedImage>` with no guard beyond a bare
+                              404, layered over an initials span that only
+                              rendered when `avatar_url` was null. Every blank
+                              avatar on prod returns 200, so the initials never
+                              got a turn and the applicant read as an anonymous
+                              tinted circle. See `src/lib/avatarImage.ts`.
+
+                              The <a> keeps the link, the halo ring (top-pick /
+                              verified) and the 44px tap target; the avatar
+                              inside is now the app-wide one. `ring-0` cancels
+                              `UserAvatar`'s own hairline so the halo is the
+                              only edge. */}
                           <a
                             href={`/user/${app.helper_id}`}
+                            // The avatar inside is `aria-hidden` (the name link
+                            // beside it already names this person), so without
+                            // an explicit label this link would have no
+                            // accessible name at all. It had none before either
+                            // whenever a photo was present — `alt=""` on the
+                            // image and nothing else in the anchor — so this is
+                            // a fix, not a consequence of the migration.
+                            aria-label={`View ${helperName}'s profile`}
                             className="shrink-0 w-11 h-11 rounded-full overflow-hidden inline-flex items-center justify-center"
                             style={{
-                              background: "hsl(var(--bark) / 0.12)",
                               boxShadow: haloColor
                                 ? `0 0 0 2.5px ${haloColor}`
                                 : "0 0 0 1px hsl(var(--olivewood) / 0.18)",
                             }}
                           >
-                            {app.profiles?.avatar_url ? (
-                              <OptimizedImage
-                                src={app.profiles.avatar_url}
-                                width={44}
-                                height={44}
-                                alt=""
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <span className="font-sans font-semibold text-ds-14" style={{ color: "hsl(var(--bark))" }}>
-                                {helperInitials}
-                              </span>
-                            )}
+                            <UserAvatar
+                              userId={app.helper_id}
+                              src={app.profiles?.avatar_url}
+                              name={helperName}
+                              initials={helperInitials}
+                              pixelSize={44}
+                              aria-hidden
+                              className="w-full h-full"
+                              fallbackClassName="text-ds-14 ring-0"
+                            />
                           </a>
 
                           <div className="flex-1 min-w-0">

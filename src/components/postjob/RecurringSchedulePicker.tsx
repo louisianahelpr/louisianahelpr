@@ -57,8 +57,40 @@ export function RecurringSchedulePicker({
         <Label>Which days?</Label>
         {/* Seven fixed columns, Sunday first — a calendar week, in the order
             people read one. A wrapping chip row would reflow Sun–Sat into
-            ragged lines at narrow widths and stop reading as a week. */}
-        <div role="group" aria-label="Days of the week" className="grid grid-cols-7 gap-1">
+            ragged lines at narrow widths and stop reading as a week.
+
+            THE TWO CLASSES BELOW ARE LOAD-BEARING ON A PHONE, and their absence
+            was a defect no overflow assertion could see. A grid item defaults
+            to `min-width: auto`, i.e. min-CONTENT — so each cell refused to go
+            below the intrinsic width of its three-letter label (44px) while the
+            seven tracks at 375 are only 34px wide, and at 320 only 26px.
+            Measured before the fix: ALL SIX adjacent pairs overlapped at both
+            widths, "Mon" sat on top of "Sun", and the row escaped its own card
+            by 14px (375) / 22px (320). `document.documentElement.scrollWidth`
+            never moved, because the card clips it — which is exactly why this
+            shipped: the page reports zero horizontal overflow and the row is
+            still visibly broken. Only a screenshot showed it.
+            `min-w-0` does NOT fix it, and that is the interesting part: the
+            44px floor is the GLOBAL tap-target rule at index.css:1543
+            (`button:not([role=checkbox])…{min-width:44px}`), whose selector is
+            (0,3,1) — a Tailwind `min-w-0` at (0,1,0) loses. That rule is right
+            and stays; overriding it inline would buy a fitting row by dropping
+            the cells under the WCAG 2.5.5 target size, which is a worse defect
+            than the one being fixed.
+
+            So the row COUNT adapts instead of the cell size. Seven 44px cells
+            plus six 4px gaps need 332px, and this column is `viewport − 140`
+            (measured), so the week only fits across from ~480px up. Below that
+            it wraps to four (then three at ≤329px) — every cell still ≥44×44,
+            nothing overlapping, and it still reads Sunday-first in calendar
+            order.
+
+            The label also shortens to two letters — unambiguous across Su/Sa
+            and Tu/Th where one letter is not, and DERIVED from WEEKDAY_LABELS
+            rather than being a second hand-typed list — with the full day name
+            moved to `aria-label`, so the accessible name gets better, not
+            worse. */}
+        <div role="group" aria-label="Days of the week" className="grid grid-cols-3 min-[330px]:grid-cols-4 min-[480px]:grid-cols-7 gap-1">
           {WEEKDAY_LABELS.map((label, d) => {
             const active = days.includes(d);
             return (
@@ -66,25 +98,42 @@ export function RecurringSchedulePicker({
                 key={label}
                 type="button"
                 aria-pressed={active}
+                aria-label={label}
                 onClick={() => toggle(d)}
                 // A chosen day has to be unmistakable at a glance across a row
                 // of seven, from the far side of a phone. The translucent
                 // bark/0.10 tint that reads fine on a two-or-three-chip row
                 // (filters, decline reasons) does not survive being repeated
                 // seven times: the eye cannot pick three tinted cells out of
-                // seven at a glance. Solid fill and inverted ink is the same
-                // treatment the job-type control above uses for exactly this
-                // reason, so the two rows also stop disagreeing.
-                className="h-11 rounded-ds-md text-ds-11 font-semibold transition-all active:scale-[0.97]"
+                // seven at a glance. Full fill and inverted ink it is.
+                //
+                // GLOSSY, VIA THE SHARED CLASS — measured, not asserted. A flat
+                // `background: hsl(var(--bark))` is what shipped, and Chrome
+                // reported `background-image: none` on the pressed cell at all
+                // four breakpoints: a selected control painting itself bark
+                // while every other selected surface in the app wears the
+                // radial `.btn-grad-primary`. Two things this has to get right,
+                // both of which have silently defeated the gloss before:
+                //   1. NOT a Tailwind variant (`data-[…]:btn-grad-primary`
+                //      compiles to nothing — variants only compose over
+                //      utilities Tailwind generates, and this class lives in
+                //      index.css). Toggled in JS instead.
+                //   2. NO inline `background` SHORTHAND on the active cell — the
+                //      shorthand resets `background-image` and the gradient
+                //      disappears with the class still sitting on the element.
+                //      Only the inactive cell keeps an inline background.
+                className={`h-11 min-w-0 rounded-ds-md text-ds-11 font-semibold transition-all active:scale-[0.97] ${
+                  active ? "btn-grad-primary" : ""
+                }`}
                 style={{
-                  background: active ? "hsl(var(--bark))" : "hsl(var(--ivory-sand) / 0.55)",
+                  ...(active ? {} : { background: "hsl(var(--ivory-sand) / 0.55)" }),
                   color: active ? "hsl(var(--parchment))" : "hsl(var(--olivewood) / 0.85)",
                   border: active
-                    ? "0.5px solid hsl(var(--bark))"
+                    ? "0.5px solid hsl(var(--bark-deep))"
                     : "0.5px solid hsl(var(--olivewood) / 0.2)",
                 }}
               >
-                {label}
+                {label.slice(0, 2)}
               </button>
             );
           })}
@@ -142,16 +191,27 @@ export function RecurringSchedulePicker({
           <p className="text-ds-12 font-semibold text-foreground">
             {dates.length} visit{dates.length === 1 ? "" : "s"}
             {budget > 0 && (
-              <> · <span className="text-primary">${formatPriceExact(total)}</span> total</>
+              <> · <span className="text-primary">${formatPriceExact(total)}</span> in labor</>
             )}
           </p>
           {budget > 0 && (
             // Spelled out because the budget field says "$50" and the commitment
             // is the other number. Never let the smaller figure be the only one
             // on screen at the moment they decide.
+            //
+            // "before fees" is not hedging. `seriesTotalDollars` is
+            // `budget x visits` and nothing else, but `charge-recurring-visits`
+            // bills each later visit `budget + poster service fee + sales tax`
+            // — the same line items the checkout screen itemises for visit one.
+            // On a free-tier poster that is 12% the picker was not naming, so a
+            // "$450 total" series actually settles above $500. Quoting a total
+            // that is structurally lower than what gets charged is the exact
+            // failure this preview was built to end; label it rather than
+            // restate a fee rate here, which would be a second source of truth
+            // for a number that lives in subscriptionTiers.
             <p className="text-ds-11 text-muted-foreground leading-snug">
-              ${formatPriceExact(budget)} per visit, charged a few days before each
-              one — not all at once.
+              ${formatPriceExact(budget)} per visit before fees, charged a few days
+              before each one — not all at once.
             </p>
           )}
         </div>
@@ -159,5 +219,3 @@ export function RecurringSchedulePicker({
     </div>
   );
 }
-
-export default RecurringSchedulePicker;

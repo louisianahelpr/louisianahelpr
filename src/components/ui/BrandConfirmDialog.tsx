@@ -34,7 +34,7 @@ import {
   hapticError,
 } from "@/lib/haptics";
 
-export type BrandPrimaryTone = "bark" | "sienna";
+type BrandPrimaryTone = "bark" | "sienna";
 export type BrandPrimaryHaptic =
   | "medium"
   | "heavy"

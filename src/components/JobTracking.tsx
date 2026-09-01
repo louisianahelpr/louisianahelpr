@@ -258,14 +258,40 @@ export function deriveCurrentStatusIdx({
   // Floor at 0: the tracker always shows at least "Offered".
   const idx = Math.max(0, trackingIdx, jobIdx);
 
-  // A REVISION UNDOES "Done". `helper_completed_at` stays stamped when the
-  // poster sends the work back, so the tracker sat on a fully-green Done —
-  // beside a card that said "Revision requested" and an action row offering
-  // Approve or Dispute. Owner: "all of these things can't be true at once."
-  // The work is back with the helpr, which is what Working means, and the
-  // stamp is not cleared because it is a record of what happened; the tracker
-  // just stops treating it as the final word while the job is in revision.
-  if (jobStatus === "revision_requested") {
+  // A REVISION OR A DISPUTE UNDOES "Done".
+  //
+  // REVISION: `helper_completed_at` stays stamped when the poster sends the
+  // work back, so the tracker sat on a fully-green Done — beside a card that
+  // said "Revision requested" and an action row offering Approve or Dispute.
+  // Owner: "all of these things can't be true at once." The work is back with
+  // the helpr, which is what Working means, and the stamp is not cleared
+  // because it is a record of what happened; the tracker just stops treating
+  // it as the final word while the job is in revision.
+  //
+  // DISPUTE: the same stamp, the same lie, one state later. Owner: "Can't be
+  // marked done if it's in revision is dispute." Their screenshot was a
+  // disputed job whose rail read Confirmed → On the Way → Arrived → Working
+  // (red) → DONE (green), sitting directly on top of a panel reading
+  // "Escalated to Admin … nothing is charged or released until then". Done on
+  // this rail is not "the helpr pressed a button"; it is the completion that
+  // releases the money, and under an open dispute a human has not yet decided
+  // whether that completion stands. So the rail must not spend a green on it.
+  //
+  // Both clamp to Working — the step the job is genuinely stuck at. The work
+  // was performed and is contested, which is exactly "Working": begun, not
+  // accepted. Working is also where the alarm colour is pinned for a dispute
+  // (`disputedStep` in the step row below), so the clamp and the colour rule
+  // land on the SAME step — one red dot that is also the current step, no
+  // second amber "current" elsewhere, and Done left inactive-grey rather than
+  // green. It is deliberately a CEILING, not a floor: a dispute raised from
+  // `accepted` (the state machine allows it — 20260825190000) still shows the
+  // earlier step it really reached.
+  //
+  // This is a RENDER-TIME REFUSAL, not a rewrite. If `job_tracking.status`
+  // carries a stale `done` from before the dispute, that row is left exactly
+  // as it is — it is a true record of a tap that happened — and the clamp
+  // simply stops it being the final word. Nothing here writes.
+  if (jobStatus === "revision_requested" || jobStatus === "disputed") {
     return Math.min(idx, STATUS_IDX.working);
   }
   return idx;
@@ -1042,7 +1068,11 @@ export function JobTracking({
           title: "Work has started",
           message: `Your Helpr started working on "${job.title}".`,
           type: "info",
-          link: `/my-posts?filter=scheduled`,
+          // `?job=`, not `?filter=scheduled`. `scheduled` IS a live chip, but it
+          // is not stable: the same job is in "Needs you" the moment its day has
+          // passed (jobIsOverdue, activityFilters.ts), and this notification can
+          // sit unread across that boundary. Activity resolves the live bucket.
+          link: `/my-posts?job=${jobId}`,
         });
         if (pushErr) posterNotified = false;
       } else {
@@ -1340,11 +1370,25 @@ export function JobTracking({
               // done, current dot included (owner: "if it reaches Done, all
               // green").
               const allDone = displayIdx === displaySteps.length - 1;
-              // A dispute is pinned to the Working step specifically —
-              // wherever the row actually is when it happens, "Working" is
-              // where the job went wrong, so it stays red even once the job
-              // has since moved past it.
-              const disputedWorking = jobStatus === "disputed" && s.key === "working";
+              // THE ALARM SITS ON THE STEP THE DISPUTE STOPPED THE JOB AT.
+              //
+              // This was `jobStatus === "disputed" && s.key === "working"` — a
+              // hard pin on Working, written to survive a rail that had run
+              // PAST Working onto a green Done. `deriveCurrentStatusIdx` now
+              // clamps a disputed job to Working, so that overshoot cannot
+              // happen and the pin has nothing left to survive; what it could
+              // still do was paint a solid red dot on a Working step the job
+              // never reached (a dispute may be raised from `accepted` —
+              // 20260825190000's transition table), which is the same class of
+              // lie as the green Done, just in the other direction.
+              //
+              // Anchored to `displayIdx` instead, it lands on Working for
+              // every disputed job that got as far as the work — the reported
+              // case, unchanged — and on the actual step otherwise. And
+              // because it can only ever be the CURRENT step, there is exactly
+              // one alarm dot and it never fights the amber current-step tone
+              // for a second "you are here".
+              const disputedStep = jobStatus === "disputed" && idx === displayIdx;
               // THE CURRENT STEP CARRIES THE TROUBLE. A job in revision or in
               // dispute used to paint the same bark green as one running
               // perfectly, so the tracker — the biggest thing on the card —
@@ -1366,18 +1410,20 @@ export function JobTracking({
               // colour at a glance, so the current step — the one thing the
               // rail exists to tell you — did not stand out at all.
               //
-              // And red had two sources that could both fire on one card:
-              // `disputedWorking` (below) pins Working red wherever the cursor
-              // is, while this branch painted the CURRENT step red under a
-              // dispute. A disputed job carrying a completion stamp parks on
+              // And red had two sources that could both fire on one card: the
+              // dispute pin (above) painted Working red wherever the cursor
+              // was, while this branch painted the CURRENT step red under a
+              // dispute. A disputed job carrying a completion stamp parked on
               // `done`, so Working AND Done both went alarm red — exactly the
               // screenshot the owner sent.
               //
               // Now: amber is "you are on this step, it is not finished", red
-              // is ONLY "this is the step that went wrong" (disputedWorking),
-              // and green is only ever a step that genuinely completed. When
-              // the current step IS the problem step the two coincide and red
-              // wins, which is correct — it is the more urgent meaning.
+              // is ONLY "this is the step that went wrong" (`disputedStep`),
+              // and green is only ever a step that genuinely completed. The
+              // two can no longer disagree about where the job is: red is
+              // defined AS the current step of a disputed job, so red simply
+              // replaces the amber on that one dot — one "you are here"
+              // marker, in the more urgent colour.
               const currentTone = allDone
                 ? { fill: "hsl(var(--success-ink))", ring: "hsl(var(--success-ink) / 0.30)", ringEnd: "hsl(var(--success-ink) / 0)" }
                 : { fill: "hsl(var(--amber-solid))", ring: "hsl(var(--amber-solid) / 0.30)", ringEnd: "hsl(var(--amber-solid) / 0)" };
@@ -1416,9 +1462,9 @@ export function JobTracking({
                     // `relative` is for the 44px hit overlay below; it does not
                     // affect the tooltip, which is absolutely positioned
                     // against the COLUMN (the outer div), not against this dot.
-                    className={`relative w-7 h-7 rounded-full flex items-center justify-center transition-all !min-h-0 !min-w-0 ${isCurrent && !disputedWorking ? "step-current-pulse" : ""}`}
+                    className={`relative w-7 h-7 rounded-full flex items-center justify-center transition-all !min-h-0 !min-w-0 ${isCurrent && !disputedStep ? "step-current-pulse" : ""}`}
                     style={
-                      disputedWorking
+                      disputedStep
                         ? {
                             background: "hsl(var(--destructive))",
                             color: "hsl(var(--parchment))",
@@ -1695,7 +1741,21 @@ export function JobTracking({
         // at Working in this state, which made its next-step button "Done" —
         // so the card offered Done, "I'll Fix It" and "Mark Fixed" at once,
         // three CTAs for one decision. Hide the tracker's Done here.
-        if (nextStatus.key === "done" && jobStatus === "revision_requested") return null;
+        //
+        // `disputed` is in the same list for the same mechanical reason and a
+        // sharper one. The clamp above now caps a disputed job at Working too,
+        // which makes its next step "Done" — and Done here is not a label, it
+        // is `completeJob`: it REQUESTS THE PAYOUT. Offering that on a job
+        // whose card says "nothing is charged or released until then" would
+        // hand the helper a money button while an admin holds the money. The
+        // completion for a disputed job comes out of the dispute's resolution,
+        // never out of this rail.
+        if (
+          nextStatus.key === "done" &&
+          (jobStatus === "revision_requested" || jobStatus === "disputed")
+        ) {
+          return null;
+        }
 
         // Locked until TWO HOURS BEFORE the start time, not just until
         // midnight of the job day (owner, 2026-08-24 transition audit): the

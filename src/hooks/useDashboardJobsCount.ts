@@ -45,7 +45,6 @@ export interface DashboardJobsCountFilters {
   expiresWithin: string;
   /** Same resolver output useDashboardFilters/useDashboardData use — keeps this layer in sync with both. */
   earlyAccessTier: string | null;
-  earlyAccessExempt?: boolean;
 }
 
 // Escape the characters that are structurally significant inside a
@@ -58,13 +57,13 @@ function escapeIlike(raw: string): string {
 export function useDashboardJobsCount(filters: DashboardJobsCountFilters) {
   const {
     userId, selectedCategory, searchQuery, minBudget, maxBudget,
-    urgentOnly, boostedOnly, expiresWithin, earlyAccessTier, earlyAccessExempt = false,
+    urgentOnly, boostedOnly, expiresWithin, earlyAccessTier,
   } = filters;
 
   return useQuery({
     queryKey: [
       "dashboardJobsCount", userId, selectedCategory, searchQuery, minBudget, maxBudget,
-      urgentOnly, boostedOnly, expiresWithin, earlyAccessTier, earlyAccessExempt,
+      urgentOnly, boostedOnly, expiresWithin, earlyAccessTier,
     ],
     queryFn: async () => {
       const now = new Date();
@@ -91,10 +90,12 @@ export function useDashboardJobsCount(filters: DashboardJobsCountFilters) {
         // than no count.
         .or(`expires_at.is.null,expires_at.gt.${now.toISOString()}`);
 
-      if (!earlyAccessExempt) {
-        const cutoff = new Date(Date.now() - earlyAccessDelayMs(earlyAccessTier)).toISOString();
-        query = query.lte("created_at", cutoff);
-      }
+      // Early access applies to EVERY viewer, guests included — there is no
+      // exemption any more (owner, 2026-09-01: the guest exemption was the
+      // log-out bypass). Redundant with the server gate in
+      // `public.early_access_cutoff()`; kept so the count matches the list it
+      // counts during the db-deploy window.
+      query = query.lte("created_at", new Date(Date.now() - earlyAccessDelayMs(earlyAccessTier)).toISOString());
       if (userId) query = query.neq("customer_id", userId);
       // Cast: `category` is a narrow generated enum; the filter value here
       // is free-text state from the URL/UI, not one of the literal members.

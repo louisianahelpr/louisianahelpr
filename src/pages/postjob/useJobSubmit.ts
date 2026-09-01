@@ -27,6 +27,40 @@ import { openExternalUrl } from "@/lib/openExternalUrl";
 import { isNativePlatform } from "@/lib/nativeInit";
 
 /**
+ * Remove a job whose payment setup failed, and PROVE it went.
+ *
+ * `.select("id")` is the whole point. A DELETE that matches zero rows is
+ * `{ data: [], error: null }`, so `if (cleanupError) report(...)` was silent
+ * about the one outcome that actually matters here: the job row survives. That
+ * leaves an orphan in the marketplace with NO escrow behind it — browsable,
+ * applicable-to, and impossible to pay out — which is exactly what the cleanup
+ * exists to prevent, reported as a success.
+ *
+ * Deliberately never throws: both call sites are already on an error path
+ * (payment setup failed) that owns the user-facing toast and the step reset.
+ * A failed cleanup must be loud in monitoring, not a second exception thrown
+ * over the first one.
+ */
+async function cleanupOrphanJob(jobId: string): Promise<void> {
+  try {
+    const { data, error } = await supabase.from("jobs").delete().eq("id", jobId).select("id");
+    if (error) {
+      report(error, { tags: { source: "PostJob.orphanCleanup" }, context: { job_id: jobId } });
+      return;
+    }
+    if (!data || data.length === 0) {
+      report(new Error("Orphan job cleanup deleted 0 rows — unfunded job may be live"), {
+        severity: "error",
+        tags: { source: "PostJob.orphanCleanup", kind: "mutation_rejected" },
+        context: { job_id: jobId, rowsAffected: data?.length ?? 0 },
+      });
+    }
+  } catch (err) {
+    report(err, { tags: { source: "PostJob.orphanCleanup" }, context: { job_id: jobId } });
+  }
+}
+
+/**
  * useJobSubmit — owns the review-gate, pre-submit checks, and the full
  * job-insert → payment-redirect flow. Pure structural extraction from
  * usePostJobForm: every Supabase call, error check, `report()`, and money
@@ -313,6 +347,12 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     const buildPayload = (opts: { withExtras: boolean }) =>
       buildJobInsertPayload({
         userId: user.id,
+        // Always NULL. There are no business accounts: `businesses` and
+        // `business_members` were dropped in migration 20260828011811, and the
+        // jobs INSERT policy now requires `business_id IS NULL`. The column is
+        // kept (AdminExport still exports it), so the field stays on the
+        // payload type — it just has no non-null source. Same story for
+        // `department` below.
         businessId: null,
         title,
         description,
@@ -353,9 +393,17 @@ export function useJobSubmit(params: UseJobSubmitParams) {
       .single();
 
     if (error) {
-      // jobs.department / pending_approval enum value may not exist on
-      // prod yet (migration unapplied). Strip the new fields and retry
-      // so the post still lands.
+      // A column this payload opts into may not exist on prod yet (migration
+      // unapplied). `withExtras: false` is what the retry actually strips:
+      // jobs.credential_tier (migration 20260612150000). Strip it and retry so
+      // the post still lands.
+      //
+      // This used to also cover a `status = 'pending_approval'` write — hence
+      // 22P02 (invalid_text_representation), which fired when the job_status
+      // enum on an old prod lacked that label. Nothing writes `status` from the
+      // post flow any more (see jobSubmitHelpers), so 22P02 is no longer
+      // reachable from that cause; it is kept only because retrying on it is
+      // harmless and a future enum-valued field would want it.
       const code = (error as { code?: string }).code;
       const missingNew = code === "PGRST204" || code === "42703" || code === "22P02";
       if (missingNew) {
@@ -506,8 +554,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
 
       if (hasError) {
         // Delete the job since payment setup failed — don't leave orphan jobs.
-        const { error: cleanupError } = await supabase.from("jobs").delete().eq("id", jobData.id);
-        if (cleanupError) report(cleanupError, { tags: { source: "PostJob.orphanCleanup" }, context: { job_id: jobData.id } });
+        await cleanupOrphanJob(jobData.id);
         safeStorage.removeItem(COOLDOWN_KEY);
         const errorMsg = paymentData?.error || paymentError?.message || "Payment setup failed";
         hapticError();
@@ -547,8 +594,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     } catch (err) {
       report(err, { tags: { source: "PostJob.paymentInvoke" }, context: { job_id: jobData.id } });
       // Delete the job since payment setup failed
-      const { error: cleanupError } = await supabase.from("jobs").delete().eq("id", jobData.id);
-      if (cleanupError) report(cleanupError, { tags: { source: "PostJob.orphanCleanup" }, context: { job_id: jobData.id } });
+      await cleanupOrphanJob(jobData.id);
       safeStorage.removeItem(COOLDOWN_KEY);
       hapticError();
       toast.error("We couldn't set up payment just yet — please try again.");

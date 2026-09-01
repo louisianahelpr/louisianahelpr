@@ -12,6 +12,7 @@ import { ReferralExtras } from "@/components/profile/ReferralExtras";
 import { getPublicSiteUrl } from "@/lib/authRedirects";
 import { requireBiometric } from "@/lib/biometricGate";
 import { shareNative, copyToClipboard } from "@/lib/nativeShare";
+import { isNativePlatform } from "@/lib/nativeInit";
 import { hapticLight, hapticSuccess } from "@/lib/haptics";
 import { formatPriceExact } from "@/lib/format";
 
@@ -30,6 +31,22 @@ const ReferralSection = ({ userId }: { userId: string }) => {
 
   const [copied, setCopied] = useState(false);
   const [cashingOut, setCashingOut] = useState(false);
+
+  /**
+   * Does this device have anything registered for the `sms:` scheme?
+   *
+   * There is no feature test for a URL scheme, so this is the same proxy the
+   * rest of the app uses: the native shell always has Messages, and on the web
+   * only a phone/tablet does. Read once at mount — it cannot change for the
+   * life of the page, and computing it in render would make the button count
+   * depend on which render happened to run first.
+   */
+  const [canSms] = useState(
+    () =>
+      isNativePlatform ||
+      (typeof navigator !== "undefined" &&
+        /iphone|ipad|ipod|android|mobile/i.test(navigator.userAgent || "")),
+  );
 
   const copyCode = async () => {
     if (!referralCode) return;
@@ -173,7 +190,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
         <p className="font-display italic font-bold tabular-nums leading-none text-ds-40" style={{ color: "hsl(var(--primary))", letterSpacing: "0.18em" }}>
           {referralCode}
         </p>
-        <div className="grid grid-cols-3 gap-2">
+        <div className={canSms ? "grid grid-cols-3 gap-2" : "grid grid-cols-2 gap-2"}>
           <Button
             variant="primary"
             size="sm"
@@ -184,7 +201,18 @@ const ReferralSection = ({ userId }: { userId: string }) => {
             Share
           </Button>
           {/* SMS shortcut — pre-fills the Messages app body with the
-              code + signup URL so the user only picks recipients. */}
+              code + signup URL so the user only picks recipients.
+
+              Rendered ONLY where an `sms:` handler exists. `shareViaSMS`
+              clicks a transient <a href="sms:…">, and a platform with nothing
+              registered for that scheme drops it on the floor: no navigation,
+              no error, no way for the page to detect it. On a desktop browser
+              this button was therefore a guaranteed silent no-op — the exact
+              "tap does nothing and says nothing" shape this share lane exists
+              to remove. Share and Copy both work everywhere and cover the same
+              need, so the honest move is not to offer the third option where
+              it cannot work. */}
+          {canSms && (
           <Button
             variant="outline"
             size="sm"
@@ -194,13 +222,22 @@ const ReferralSection = ({ userId }: { userId: string }) => {
             <MessageSquare className="w-4 h-4 mr-1.5" />
             Text
           </Button>
+          )}
           <Button variant="outline" size="sm" className="h-11 rounded-ds-md" onClick={copyCode}>
             {copied ? <Check className="w-4 h-4 mr-1.5" /> : <Copy className="w-4 h-4 mr-1.5" />}
             {copied ? "Copied" : "Copy"}
           </Button>
         </div>
         <p className="font-serif italic leading-snug text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-          When a friend completes their first job using your code, <span className="font-semibold not-italic" style={{ color: "hsl(var(--ink-deep))" }}>you both earn $5</span>. Up to 5 friends ($25 max).
+          {/* "Up to 5 friends ($25 max)" was wrong for exactly the users this
+              program creates. `enforce_referral_cap` counts a user's
+              referrer_bonus AND first_job_bonus rows against one cap of 5, so
+              anyone who themselves arrived through a referral link has already
+              spent a slot and can only ever be paid for FOUR friends. Verified
+              by running the live trigger in PGlite: the referrer topped out at
+              $25 across 5 credits and the 6th was silently suppressed. The
+              enforced ceiling is the dollar figure, so that is what we state. */}
+          When a friend completes their first job using your code, <span className="font-semibold not-italic" style={{ color: "hsl(var(--ink-deep))" }}>you both earn $5</span>, up to $25 in referral credits.
         </p>
       </div>
 
@@ -215,12 +252,22 @@ const ReferralSection = ({ userId }: { userId: string }) => {
       <div className="grid grid-cols-3 gap-2">
         {[
           { icon: Users, label: "Referrals", value: String(referralCount) },
-          { icon: DollarSign, label: "Total earned", value: `$${totalCredits}` },
-          { icon: Gift, label: "To cash out", value: `$${unredeemedCredits}` },
+          // formatPriceExact, NOT raw interpolation. `$${totalCredits}` printed
+          // the JS number verbatim, so a $12.50 balance rendered "$12.5" in this
+          // tile while the cash-out button beside it (which already used
+          // formatPriceExact) rendered "$12.50" and the rank card below it used
+          // formatPrice and rendered "$13". Three spellings of one balance on
+          // one screen. Credits are money: they use the exact formatter.
+          { icon: DollarSign, label: "Total earned", value: `$${formatPriceExact(totalCredits)}` },
+          { icon: Gift, label: "To cash out", value: `$${formatPriceExact(unredeemedCredits)}` },
         ].map(({ icon: Icon, label, value }) => (
           <div key={label} className="rounded-ds-md liquid-glass p-3 text-center">
-            <div className="flex items-center justify-center gap-1 mb-1">
-              <Icon className="w-3 h-3 text-primary" />
+            <div className="flex items-center justify-center gap-1 mb-1 min-h-[1.5rem]">
+              <Icon className="w-3 h-3 text-primary shrink-0" />
+              {/* min-h + items-center keeps the three numbers on ONE baseline.
+                  "Total earned" wraps to two lines at 320/375 while its two
+                  siblings stay on one, which pushed the middle tile's figure a
+                  line lower than the numbers either side of it. */}
               <span className="font-serif italic uppercase text-ds-10" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
                 {label}
               </span>

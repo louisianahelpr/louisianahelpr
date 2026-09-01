@@ -1,7 +1,14 @@
-import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/format";
 import { paymentStatusLabel } from "@/lib/statusLabels";
-import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHero,
+  DialogBody,
+  DialogFooter,
+  DialogSecondaryAction,
+  DialogDestructiveAction,
+} from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import type { Job } from "./types";
 
@@ -37,12 +44,14 @@ export const RefundJobDialog = ({
           title="Refund Poster"
         />
         <div className="space-y-3">
-          <p className="text-ds-11 text-muted-foreground">
-            Issues a Stripe refund for the captured payment. Leave the
-            amount field blank for a full refund (cancels the job +
-            notifies both parties); enter a smaller dollar amount to issue
-            a partial refund (job state stays intact). Logged to admin_audit_log.
-          </p>
+          <DialogBody>
+            <p>
+              Issues a Stripe refund for the captured payment. Leave the
+              amount field blank for a full refund (cancels the job +
+              notifies both parties); enter a smaller dollar amount to issue
+              a partial refund (job state stays intact). Logged to admin_audit_log.
+            </p>
+          </DialogBody>
           {detailJob && (
             <div className="rounded-ds-sm bg-secondary/30 p-3 space-y-1">
               <p className="text-ds-11 text-muted-foreground">Refunding</p>
@@ -102,16 +111,15 @@ export const RefundJobDialog = ({
             whose only control is the dismiss. `gap-2` restated DialogFooter's
             own gap. */}
         <DialogFooter>
-          <Button variant="ghost" onClick={onCancel}>
+          <DialogSecondaryAction onClick={onCancel}>
             Cancel
-          </Button>
-          <Button
-            variant="destructive"
+          </DialogSecondaryAction>
+          <DialogDestructiveAction
             onClick={onConfirm}
             disabled={refunding}
           >
             {refunding ? "Refunding…" : "Issue Refund"}
-          </Button>
+          </DialogDestructiveAction>
         </DialogFooter>
       </DialogContent>
     </Dialog>

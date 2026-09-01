@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +11,7 @@ import {
   Calendar,
   DollarSign,
   Award,
+  Loader2,
 } from "lucide-react";
 import AppPage from "@/components/AppPage";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -18,15 +20,24 @@ import { unwrap } from "@/lib/supabaseResult";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { JobCardSkeleton } from "@/components/SkeletonLoaders";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { shareNative } from "@/lib/nativeShare";
+import { shareNative, shareFileNative } from "@/lib/nativeShare";
 import { isNativePlatform } from "@/lib/nativeInit";
+import { report } from "@/lib/errorLogger";
 import { toast } from "sonner";
 import { formatPriceFloor } from "@/lib/format";
 import HelprMark from "@/components/HelprMark";
 import type { Database } from "@/integrations/supabase/types";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
 import { sumHelperTakeHomeDollars } from "@/lib/helperEarnings";
-import { getPublicSiteUrl } from "@/lib/authRedirects";
+import {
+  buildWorkRecordPdf,
+  buildWorkRecordSummaryLines,
+  formatMonthYear,
+  formatWorkDayMonthYear,
+  formatLongDate,
+  resolveWorkDayRange,
+  type WorkRecordDocumentInput,
+} from "@/lib/workRecordDocument";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
 
@@ -42,12 +53,13 @@ interface WorkRecordData {
   avgRating: number | null;
   reviewCount: number;
   topCategories: string[];
-  dateRange: { first: string; last: string } | null;
+  /** First/last DAY WORKED, `YYYY-MM-DD`. See `resolveWorkDayRange`. */
+  workDays: { first: string; last: string } | null;
 }
 
-function formatMonthYear(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("en-US", { month: "long", year: "numeric" });
-}
+// `formatMonthYear` now lives in `@/lib/workRecordDocument` alongside the rest
+// of the document's content rules, so the shared PDF and this screen cannot
+// render the same date two ways.
 
 // Why the Print button is conditional: `window.print()` is a NO-OP in every
 // WKWebView-hosted context this record actually gets opened from. The shipped
@@ -155,17 +167,13 @@ const WorkRecord = () => {
         .slice(0, 4)
         .map(([cat]) => cat);
 
-      // Date range
-      let dateRange: { first: string; last: string } | null = null;
-      if (completedJobs.length > 0) {
-        const sorted = [...completedJobs].sort(
-          (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
-        );
-        dateRange = {
-          first: sorted[0].created_at,
-          last: sorted[sorted.length - 1].created_at,
-        };
-      }
+      // The Active Period, resolved by the shared document rule rather than
+      // here: min/max of the day each job was WORKED (`date_needed`), not the
+      // day it was posted (`created_at`), which is what this sorted `created_at`
+      // range used to report. `resolveWorkDayRange` owns the null-`date_needed`
+      // fallback and the zone handling, and lives beside the formatter that
+      // prints the result so the screen and the PDF cannot diverge.
+      const workDays = resolveWorkDayRange(completedJobs);
 
       return {
         profile,
@@ -174,48 +182,94 @@ const WorkRecord = () => {
         avgRating,
         reviewCount,
         topCategories,
-        dateRange,
+        workDays,
       };
     },
   });
 
   const loading = isLoading && !data;
-  const today = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  const today = formatLongDate(new Date());
 
-  // There is NO public work-record route or share token: /work-record is
-  // ProtectedRoute-wrapped and always renders the VIEWER's own record, so the
-  // old `${origin}/work-record` link sent the recipient to their own record —
-  // or a login wall — never the sharer's. Rather than invent a token/route,
-  // share the record's verifiable claims as self-contained text plus the same
-  // verification address the document footer prints, and point the link at the
-  // Helpr homepage (a page that really does exist and really is about Helpr).
+  // WHAT GETS SHARED: THE RECORD, AS A PDF.
   //
-  // The dollar figure is deliberately NOT in the share text: a share sheet can
-  // land anywhere, and the original text disclosed only a job count. Anyone who
-  // needs income verification uses Print (→ Save as PDF), which carries the
-  // full document.
-  async function handleShare() {
-    if (!data) return;
-    const jobs = data.completedJobs.length;
-    const period = data.dateRange
-      ? ` (${formatMonthYear(data.dateRange.first)} – ${formatMonthYear(data.dateRange.last)})`
-      : "";
-    const lines = [
-      `Helpr Work Record — ${data.profile.full_name ?? "Helpr Member"}`,
-      `${jobs} job${jobs === 1 ? "" : "s"} completed on Helpr${period}`,
-      data.avgRating !== null
-        ? `${data.avgRating.toFixed(1)}★ average across ${data.reviewCount} review${data.reviewCount === 1 ? "" : "s"}`
-        : null,
-      data.profile.stripe_identity_verified === true ? "Identity verified by Stripe" : null,
-      "Verify this record: admin@louisianahelpr.com",
-    ].filter((l): l is string => !!l);
+  // This used to pass `{ text: <good summary>, url: getPublicSiteUrl() }`. iOS
+  // prefers the URL when it is handed both — so the share sheet rendered the
+  // link preview for the marketing homepage and the summary was buried or
+  // dropped. Owner: "Just shared the website not their work history."
+  //
+  // No URL could have been right. `/work-record` is ProtectedRoute-wrapped and
+  // always renders the VIEWER's own record; `/user/:userId` is protected too;
+  // there is no share token, no public record route, nothing to link to. A
+  // fabricated link would 404 or show the recipient their own empty record,
+  // which is worse than no link — so the homepage is not swapped for another
+  // URL, it is removed.
+  //
+  // What a leasing office, a lender or an employer can actually act on is a
+  // document, which is what this sheet already claims to be. So: build the
+  // record as a PDF and hand the OS the file — the same idiom calendarExport.ts
+  // uses, files-only so iOS offers Save to Files / Mail / Print instead of
+  // link targets. The text summary survives as the FALLBACK for when the PDF
+  // can't be built (offline, chunk load failure), now with no `url` at all.
+  const [isSharing, setIsSharing] = useState(false);
 
-    await shareNative({
-      title: "My Helpr Work Record",
-      text: lines.join("\n"),
-      url: getPublicSiteUrl(),
-      dialogTitle: "Share my Helpr Work Record",
-    });
+  function documentInput(d: WorkRecordData): WorkRecordDocumentInput {
+    return {
+      fullName: d.profile.full_name,
+      memberSince: d.profile.created_at,
+      // Stripe Connect's own verdict only (see the footer comment below).
+      identityVerified: d.profile.stripe_identity_verified === true,
+      jobsCompleted: d.completedJobs.length,
+      totalEarnings: d.totalEarnings,
+      avgRating: d.avgRating,
+      reviewCount: d.reviewCount,
+      firstWorkDay: d.workDays?.first ?? null,
+      lastWorkDay: d.workDays?.last ?? null,
+      generatedAt: new Date(),
+    };
+  }
+
+  async function handleShare() {
+    // Guarding on `isSharing` matters: building the PDF is async, and a double
+    // tap would stage two files and open two sheets.
+    if (!data || isSharing) return;
+    setIsSharing(true);
+    const input = documentInput(data);
+    try {
+      const file = await buildWorkRecordPdf(input);
+      const outcome = await shareFileNative({
+        ...file,
+        title: "Helpr Employment & Earnings Record",
+        dialogTitle: "Share my Helpr Work Record",
+        source: "workRecord",
+        // `shareFileNative` confirms its own web downloads now; this screen
+        // opts out and says it in the terms that matter HERE — what the file is
+        // for, on the page whose whole purpose is handing it to a third party.
+        suppressDownloadConfirmation: true,
+      });
+      // The web branch is a download: the page is pixel-identical afterwards
+      // and desktop Safari writes to ~/Downloads in silence, so this is the
+      // ONLY thing that tells the user the record exists.
+      //
+      // The bare `toast(...)` callable, NOT `toast.success` — which is what
+      // this was, and which `src/lib/toastPolicy.ts` no-ops app-wide for any
+      // payload without an `action`. The line read as live and rendered
+      // nothing, on the exact branch it was written to cover.
+      if (outcome === "downloaded") {
+        toast("Work record saved", { description: `${file.fileName} — attach or print it.` });
+      }
+    } catch (err) {
+      // The PDF itself couldn't be built. Fall back to the text summary — and
+      // note there is still NO url on it. Whatever else goes wrong, the one
+      // thing that must never happen again is sending the homepage.
+      report(err, { severity: "error", tags: { source: "workRecord.buildPdf" } });
+      await shareNative({
+        title: "My Helpr Work Record",
+        text: buildWorkRecordSummaryLines(input).join("\n"),
+        dialogTitle: "Share my Helpr Work Record",
+      });
+    } finally {
+      setIsSharing(false);
+    }
   }
 
   // Even where a print dialog is supposed to exist, a throwing `print()` must
@@ -225,7 +279,7 @@ const WorkRecord = () => {
       window.print();
     } catch {
       toast.error("Couldn't open the print dialog.", {
-        description: "Use Share summary to send this record instead.",
+        description: "Use Share Record (PDF) to send this record instead.",
       });
     }
   }
@@ -370,24 +424,32 @@ const WorkRecord = () => {
                       label="Jobs Completed"
                       value={String(data.completedJobs.length)}
                     />
-                    {/* Total earnings */}
+                    {/* Total earnings. Floored: on a document a helpr shows a
+                        prospective client as a record of what they were paid,
+                        this is the one number that must never read a cent
+                        above the transfers.
+
+                        The figure is take-home and stays take-home. It carried
+                        an "after platform fee" sub-label, removed from the PDF
+                        and then from here on 2026-08-31 (owner) so the two
+                        surfaces say the same thing. Only the caption went. */}
                     <StatBlock
                       icon={<DollarSign className="w-4 h-4" />}
                       label="Total Earnings"
-                      // Floored. This block is labelled "after platform fee"
-                      // on a document a helpr shows a prospective client as a
-                      // record of what they were paid — the one number here
-                      // that must never read a cent above the transfers.
                       value={`$${formatPriceFloor(data.totalEarnings)}`}
-                      sub="after platform fee"
                     />
-                    {/* Date range */}
+                    {/* Active Period — the months WORKED (`date_needed`), not
+                        the months the jobs were posted in. `workDays` holds
+                        bare `YYYY-MM-DD` calendar days, so it must go through
+                        `formatWorkDayMonthYear`, which applies no offset;
+                        `formatMonthYear` would shift a day-1 value back into
+                        the previous month. */}
                     <StatBlock
                       icon={<Calendar className="w-4 h-4" />}
                       label="Active Period"
                       value={
-                        data.dateRange
-                          ? `${formatMonthYear(data.dateRange.first)} – ${formatMonthYear(data.dateRange.last)}`
+                        data.workDays
+                          ? `${formatWorkDayMonthYear(data.workDays.first)} – ${formatWorkDayMonthYear(data.workDays.last)}`
                           : "—"
                       }
                     />
@@ -492,20 +554,61 @@ const WorkRecord = () => {
                 see the @media print block in index.css) keeps the Share/Print
                 controls off the saved PDF: this record is printed as an
                 income/employment document, and an interactive button row on
-                page 1 undercuts that. */}
+                page 1 undercuts that.
+
+                HIDDEN ENTIRELY UNTIL THERE IS A RECORD TO SHARE.
+
+                With zero completed jobs the button worked perfectly and
+                produced a truthful, signed-looking PDF reading "Jobs Completed
+                0 / Total Earnings $0 / Active Period —". There is no reader
+                for that document. Its only audience is a landlord, a lender or
+                an employer, and handing one a formal sheet stating you have
+                never worked is strictly worse for the helper than handing them
+                nothing — it converts "no history yet" into a filed, dated
+                claim about them.
+
+                So it is hidden rather than relabelled. Different copy on the
+                button ("Share anyway", "Share empty record") only moves the
+                trap one tap later: the PDF it produces is the same PDF, and
+                the person most likely to press through a warning is the one
+                who least understands what the sheet will say about them.
+
+                Nothing is left dangling by hiding it, which is the test for
+                whether hiding is honest: the empty state directly above
+                already explains the state ("No completed helper jobs yet …
+                your work record will fill in automatically") and offers the
+                action that actually helps — Browse Jobs. That is the correct
+                primary control for someone with no history, and with the share
+                row gone it is the only one, instead of competing with a button
+                that leads somewhere harmful.
+
+                Print goes with it for the same reason and one more: it prints
+                this same empty sheet. */}
+            {data.completedJobs.length > 0 && (
             <div data-print-hide className="flex flex-col sm:flex-row gap-3">
+              {/* "Share Record", not "Share Summary" — what leaves the app is
+                  now the document itself (a PDF of this sheet), not a blurb.
+                  The label has to match, because the helper is standing in a
+                  leasing office deciding whether this button will produce
+                  something the clerk will accept. */}
               <button
                 type="button"
                 onClick={() => { void handleShare(); }}
-                className="flex-1 flex items-center justify-center gap-2 rounded-ds-lg py-3.5 text-ds-14 font-semibold active:scale-[0.99] transition-all"
+                disabled={isSharing}
+                aria-busy={isSharing}
+                className="flex-1 flex items-center justify-center gap-2 rounded-ds-lg py-3.5 text-ds-14 font-semibold active:scale-[0.99] transition-all disabled:opacity-60"
                 style={{
                   background: "hsl(var(--bark) / 0.10)",
                   border: "1px solid hsl(var(--bark) / 0.30)",
                   color: "hsl(var(--bark))",
                 }}
               >
-                <Share2 className="w-4 h-4" />
-                Share Summary
+                {isSharing ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Share2 className="w-4 h-4" />
+                )}
+                {isSharing ? "Preparing record\u2026" : "Share Record (PDF)"}
               </button>
               {canPrintDocument && (
                 <button
@@ -523,19 +626,25 @@ const WorkRecord = () => {
                 </button>
               )}
             </div>
+            )}
 
-            {/* No print dialog here (see `canPrintDocument` above). Rather than
-                leave the helper guessing why the button vanished, name the one
-                place a printable PDF really can be made. */}
-            {!canPrintDocument && (
+            {/* No print dialog here (see `canPrintDocument` above). The share
+                path is no longer a consolation prize — it now hands over a PDF
+                of this exact document — so say that, instead of the old line
+                that sent people to a desktop browser to get a real file.
+
+                Gated on having a record too: with no completed jobs there is no
+                Share Record button for this sentence to explain, so it would be
+                describing a control that isn't on the screen. */}
+            {!canPrintDocument && data.completedJobs.length > 0 && (
               <p
                 data-print-hide
                 className="font-serif italic text-ds-12 text-center leading-relaxed px-2"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
-                Printing isn&rsquo;t available inside the app. Share the summary above, or
-                open louisianahelpr.com in a browser and sign in to print or save
-                this record as a PDF.
+                Printing isn&rsquo;t available inside the app, so Share Record sends this
+                document as a PDF you can save to Files, attach to an email, or hand
+                to a landlord or lender.
               </p>
             )}
           </>
@@ -545,14 +654,16 @@ const WorkRecord = () => {
   );
 };
 
+// No `sub` slot. Its only caller was Total Earnings' "after platform fee"
+// caption, removed 2026-08-31 to match the PDF; an unused optional prop is a
+// standing invitation to put the caption back on this surface alone.
 interface StatBlockProps {
   icon: React.ReactNode;
   label: string;
   value: string;
-  sub?: string;
 }
 
-function StatBlock({ icon, label, value, sub }: StatBlockProps) {
+function StatBlock({ icon, label, value }: StatBlockProps) {
   return (
     // `.doc-tile` — the inset-well rung of the document surface ladder. The
     // old `parchment/0.55` fill composited to within 0.3/255 of the card it
@@ -570,9 +681,6 @@ function StatBlock({ icon, label, value, sub }: StatBlockProps) {
       <p className="text-ds-15 font-bold leading-tight" style={{ color: "hsl(var(--ink-deep))" }}>
         {value}
       </p>
-      {sub && (
-        <p className="text-ds-10 text-muted-foreground mt-0.5">{sub}</p>
-      )}
     </div>
   );
 }

@@ -224,5 +224,3 @@ export const UserAuditLog = ({ userId }: UserAuditLogProps) => {
     </div>
   );
 };
-
-export default UserAuditLog;

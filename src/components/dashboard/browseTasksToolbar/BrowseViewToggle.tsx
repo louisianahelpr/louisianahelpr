@@ -70,5 +70,3 @@ export function BrowseViewToggle({ view, setView, onSelect }: BrowseViewTogglePr
     </div>
   );
 }
-
-export default BrowseViewToggle;

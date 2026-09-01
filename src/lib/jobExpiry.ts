@@ -17,7 +17,7 @@
  */
 
 /** Shortest window a listing is allowed to stay visible for. */
-export const MIN_LISTING_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const MIN_LISTING_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
 /**
  * Parses `date_needed` + `start_time` as a local wall-clock instant.

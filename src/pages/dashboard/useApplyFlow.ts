@@ -60,7 +60,18 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
     (async () => {
       const { data, error } = await supabase
         .from("jobs")
-        .select("*")
+        // NAMED COLUMNS, NOT `*`. This read is the reason the "Applicants can
+        // view their pending applied jobs" policy existed, and under it `*`
+        // handed a helper who had merely tapped Apply the job's full street
+        // address and exact lat/lng — proven against prod rows. That policy is
+        // dropped by `20260831232513_address_only_when_offered`, so this read
+        // now returns nothing until the poster actually chooses this helper.
+        // The list is exactly what the confirm dialog renders (see the comment
+        // above); the apply mutation itself only needs the id, so the
+        // best-effort miss below is unchanged in behaviour.
+        .select(
+          "id, title, budget, category, date_needed, pricing_mode, instant_book, is_urgent, customer_id, status",
+        )
         .eq("id", confirmApplyJobId)
         .maybeSingle();
       // Best-effort: a miss/RLS-denial just leaves confirmApplyJob null and the
@@ -300,13 +311,20 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
       // the helper saw the card vanish from Browse with no confirmation and
       // no obvious way to find the application again. Toast up front =
       // confirmation can never be swallowed by a later best-effort call.
+      // `?job=` — not a bare "/my-jobs". My Jobs opens on the "Needs you"
+      // bucket, and neither of these two lands there: a booking the helper has
+      // already confirmed is `scheduled`, and an application awaiting the
+      // poster's decision is `waiting`. Tapping View went to an empty list
+      // both times. Activity resolves `?job=` to whichever bucket the job is
+      // in right now (see the deep-link effect in pages/Activity.tsx), so the
+      // card is on screen and pulsing whatever state it is in.
       if (vars.isInstantBook) {
         toast.success("You're booked! Check My Jobs for details.", {
-          action: { label: "View", onClick: () => navigate("/my-jobs") },
+          action: { label: "View", onClick: () => navigate(`/my-jobs?job=${vars.jobId}`) },
         });
       } else {
         toast.success("Application sent! Track it in My Jobs.", {
-          action: { label: "View", onClick: () => navigate("/my-jobs") },
+          action: { label: "View", onClick: () => navigate(`/my-jobs?job=${vars.jobId}`) },
         });
       }
       // First-application funnel event — strictly best-effort analytics, so

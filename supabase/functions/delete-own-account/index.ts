@@ -119,7 +119,11 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
+    // `catch` binds `unknown`: a thrown string, a Supabase error object or a
+    // rejected non-Error all reach here, and `err.message` on `null`/`undefined`
+    // throws INSIDE the handler — turning a diagnosable 500 into an empty one.
+    const message = err instanceof Error ? err.message : String(err);
+    return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

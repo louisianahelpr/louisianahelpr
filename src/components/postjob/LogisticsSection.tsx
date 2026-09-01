@@ -298,9 +298,18 @@ export function LogisticsSection({
                   setIsRecurring(opt.key === "recurring");
                   setIsGroupJob(opt.key === "group");
                 }}
-                className={`h-10 rounded-ds-md text-ds-13 font-semibold tracking-tight transition-all ${
+                // Selected segment wears the shared glossy primary, not a flat
+                // `bg-primary`. Measured at 320/375/768/1440 before the change:
+                // computed `background-image: none` on the pressed segment —
+                // the control that chooses One-Time / Repeats / Group was the
+                // flat one sitting directly above a picker that cited it as its
+                // precedent, so both rows drifted together. `.btn-grad-primary`
+                // is a plain class (not a Tailwind variant, which would compile
+                // to nothing) and nothing here sets an inline `background`
+                // shorthand that would reset the gradient.
+                className={`h-11 rounded-ds-md text-ds-13 font-semibold tracking-tight transition-all ${
                   active
-                    ? "bg-primary text-primary-foreground shadow-sm"
+                    ? "btn-grad-primary text-primary-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >

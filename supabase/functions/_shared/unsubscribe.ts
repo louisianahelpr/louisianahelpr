@@ -118,7 +118,7 @@ function timingSafeEqual(a: string, b: string): boolean {
 }
 
 /** Addresses are compared and signed lowercased — mailbox case is not identity here. */
-export function normalizeEmail(email: string): string {
+function normalizeEmail(email: string): string {
   return email.trim().toLowerCase()
 }
 

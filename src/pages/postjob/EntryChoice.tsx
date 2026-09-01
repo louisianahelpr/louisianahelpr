@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { PenLine, FileText, LayoutTemplate, ChevronRight, ChevronDown, RotateCcw } from "lucide-react";
 import { sampleJobs } from "@/data/sampleJobs";
 import { useRecentPostedJobs } from "@/hooks/useRecentPostedJobs";
@@ -58,6 +58,13 @@ export function EntryChoice({ form }: EntryChoiceProps) {
   // posted, so the row hides itself for first-time posters.
   const recentPosted = useRecentPostedJobs(3);
   const navigate = useNavigate();
+  // The entry screen can be reached WITH state already in the URL — most
+  // importantly `pif_credit` (and its `budget`), because a gift recipient
+  // lands here from "Use This Gift" and then picks how to start their post.
+  // Rebuilding the query string from scratch silently dropped all of it, so
+  // choosing "Repost" spent no gift and charged full price. Preserve what's
+  // there and only ADD the new intent.
+  const [searchParams] = useSearchParams();
 
   // Repost + template lists are collapsed by default so "Start fresh" reads
   // as the primary action — the user opens a section only when they want it.
@@ -80,7 +87,13 @@ export function EntryChoice({ form }: EntryChoiceProps) {
   // step. Keeps this entry-screen logic thin.
   const handleRepost = (jobId: string) => {
     track("post_job_entry_choice", { choice: "repost_recent" });
-    navigate(`/post-job?rebook=${jobId}`);
+    const next = new URLSearchParams(searchParams);
+    next.set("rebook", jobId);
+    // The rebook prefill supplies its own budget from the previous job, so a
+    // `budget` seeded by a gift link would be overwritten a moment later
+    // anyway. Drop it rather than leave a stale number racing the prefill.
+    next.delete("budget");
+    navigate(`/post-job?${next.toString()}`);
   };
 
   const hasRecent = recentPosted && recentPosted.length > 0;

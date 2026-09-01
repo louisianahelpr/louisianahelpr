@@ -9,7 +9,6 @@ import { createNotification } from "@/lib/notifications";
 import { formatDistanceToNow } from "date-fns";
 import { PhotoProofGroup } from "@/components/PhotoProof";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
-import { SectionEyebrow } from "./SectionEyebrow";
 import type { AppliedApp, Job } from "../activityConstants";
 
 interface DisputedSectionProps {
@@ -81,13 +80,19 @@ export function DisputedSection({
           style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
         >
           <AlertTriangle className="w-3 h-3" />
-          {disputeStatus === "escalated" ? "Admin reviewing" : "Dispute open"}
+          {/* Keyed to `awaitingAdmin`, NOT to `escalated` alone. With the
+              narrower test, a dispute sitting at `under_review` printed
+              "Dispute open" here and "Both sides are talking it out." below
+              — while the paragraph a few lines further down said "An admin is
+              deciding this one." One card, two contradictory answers to the
+              only question the helper has. */}
+          {awaitingAdmin ? "Admin reviewing" : "Dispute open"}
         </span>
         <p
           className="font-display italic font-bold leading-tight mt-2 text-ds-16"
           style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
         >
-          {disputeStatus === "escalated"
+          {awaitingAdmin
             ? "An admin is on it."
             : "Both sides are talking it out."}
         </p>
@@ -134,11 +139,12 @@ export function DisputedSection({
       {/* Helper's response */}
       {hasResponded && (
         <section aria-labelledby={`dispute-response-${app.job_id}`} className="p-2 rounded-ds-sm bg-primary/5 border border-primary/20">
-          {/* Was a bare grey "Your response:" — the ONE block on this card
-              carrying the helper's own words, labelled in a style no other
-              section header on these cards uses. Same eyebrow as everywhere
-              else now (owner, 2026-08-30). */}
-          <SectionEyebrow id={`dispute-response-${app.job_id}`}>Your response</SectionEyebrow>
+          {/* Owner, 2026-08-31: "Remove eye brows." The visible label is gone
+              on every card section; the tinted panel and the quotation marks
+              already mark these as the helper's own words. The name survives
+              for screen readers so the aria-labelledby above still resolves —
+              dropping it would leave this section unnamed. */}
+          <h4 id={`dispute-response-${app.job_id}`} className="sr-only">Your response</h4>
           <p className="text-ds-11 text-foreground mt-0.5">"{job.dispute_helper_response}"</p>
         </section>
       )}
@@ -159,11 +165,13 @@ export function DisputedSection({
           )}
           {respondingJobId === app.job_id ? (
             <div className="space-y-2">
-              {/* A REAL <label htmlFor>, not an aria-label alone: this editor
-                  had no visible label at all, so a sighted user saw an
-                  unexplained box while only a screen reader was told what it
-                  was. The eyebrow is the label. */}
-              <SectionEyebrow htmlFor={`dispute-reply-${app.job_id}`}>Your side of it</SectionEyebrow>
+              {/* Still a REAL <label htmlFor>, just not a visible one (owner,
+                  2026-08-31: "Remove eye brows"). An aria-label alone was
+                  rejected here and still is. What a sighted user reads instead
+                  is the placeholder, which says the same thing in more words —
+                  so removing the eyebrow costs nothing on screen, unlike the
+                  case that put a label here in the first place. */}
+              <label htmlFor={`dispute-reply-${app.job_id}`} className="sr-only">Your side of it</label>
               <Textarea
                 id={`dispute-reply-${app.job_id}`}
                 placeholder="Explain your side — what work was done, any issues, etc."
@@ -197,7 +205,9 @@ export function DisputedSection({
                       : { dispute_helper_response: disputeResponse.trim() };
                   const { data: saved, error } = await supabase.from("jobs").update(patch).eq("id", app.job_id).select("id");
                   if (error || !saved || saved.length === 0) { hapticError(); toast.error("We couldn't submit your response — please try again."); setSubmittingResponse(false); return; }
-                  if (job.customer_id) await createNotification({ user_id: job.customer_id, title: "Helpr responded to dispute", message: awaitingAdmin ? `The Helpr added their side of the dispute on "${job.title}". An admin is reviewing it.` : `The Helpr has responded to the dispute on "${job.title}". Please review and mark resolved or escalate.`, type: "info", link: "/my-posts?filter=disputed" });
+                  if (job.customer_id) await createNotification({ user_id: job.customer_id, title: "Helpr responded to dispute", message: awaitingAdmin ? `The Helpr added their side of the dispute on "${job.title}". An admin is reviewing it.` : `The Helpr has responded to the dispute on "${job.title}". Please review and mark resolved or escalate.`, // `?job=` — `disputed` has no chip; an open dispute buckets to
+          // "Needs you" and moves the moment it resolves.
+          type: "info", link: `/my-posts?job=${job.id}` });
                   hapticSuccess();
                   setSubmittingResponse(false);
                   setRespondingJobId(null);
@@ -243,7 +253,7 @@ export function DisputedSection({
           icon={MessageSquare}
           label="Message"
           ariaLabel="Message poster"
-          tone="info"
+          tone="message"
           onClick={() => navigate(`/messages?jobId=${app.job_id}&userId=${job.customer_id}`)}
         />
         <JobActionChip

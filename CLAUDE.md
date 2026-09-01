@@ -9,11 +9,23 @@ native iOS/Android shell. `capacitor.config.ts` bundles `dist/` into the
 `.ipa`/`.apk` — it is a real, self-contained, App Store-distributed app
 (App Store Connect, currently v1.0.x), just with a web UI layer.
 
-There is **no meaningful native code**: `ios/App/App/AppDelegate.swift` is
-stock Capacitor boilerplate. Do **not** audit for SwiftUI patterns
-(`@State`, `@StateObject`, `@Observable`, Swift concurrency) — there are
-none. Audit and improve the React/TypeScript code in `src/`; that *is* the
-iOS app. Map any "native" concept to its React/Capacitor equivalent.
+Do **not** audit for SwiftUI patterns (`@State`, `@StateObject`,
+`@Observable`, Swift concurrency) — there are none. Audit and improve the
+React/TypeScript code in `src/`; that *is* the iOS app. Map any "native"
+concept to its React/Capacitor equivalent.
+
+**But `AppDelegate.swift` is NOT out of scope, and "it's stock boilerplate"
+is not a reason to skip it.** This file used to say there was no meaningful
+native code, and that sentence is why push notifications were broken for the
+entire life of the project without anyone looking: Capacitor's
+`PushNotificationsPlugin` observes `.capacitorDidRegisterForRemoteNotifications`,
+that notification is *declared* by the framework but **posted from nowhere**,
+and the host app must post it from
+`didRegisterForRemoteNotificationsWithDeviceToken`. Stock boilerplate does
+not, so iOS handed the app a valid APNs token on every launch and it was
+dropped on the floor — unfillable `push_tokens`, no error, no log. If a
+native capability appears dead in a way no amount of TypeScript explains,
+read the AppDelegate.
 
 - **Backend:** Supabase — Postgres, RPCs, edge functions in `supabase/functions/`.
 - **Payments:** Stripe Connect (escrow).
@@ -92,6 +104,12 @@ this list tight; project-specific trivia belongs in code comments, not here.
   (`supabase db push`, also manually runnable via `gh workflow run db-deploy.yml`).
   No manual pushes, no side channels. Ship a graceful fallback for PGRST202
   "function not found" on brand-new RPCs (deploy lag window).
+- **Check which project the CLI is linked to before trusting it.**
+  `supabase/.temp/project-ref` currently points at **staging**
+  (`okpxtpfvwtmbuxugqsws`), not prod (`fncmgoasalhdgfwzhsqa`). A secrets
+  listing through the CLI today nearly produced the false conclusion that
+  APNs was unconfigured, because it was reading the wrong project. Verify the
+  ref before reading config or pushing anything.
 - **NEVER apply migrations to prod via MCP `apply_migration`** (records the
   wrong timestamp and poisons `schema_migrations` — cost a full ledger repair
   once already). `execute_sql` for read-only checks/test rows is fine. If ever unavoidable,
@@ -104,6 +122,54 @@ this list tight; project-specific trivia belongs in code comments, not here.
   <slug>`; `src/test/migrationVersions.test.ts` fails CI on any collision.
 - **Migrations must be replay-safe** — guard DDL against objects a later
   migration may define (`IF to_regprocedure(...) IS NOT NULL`).
+- **You CAN execute a migration locally without Docker — use PGlite.**
+  "No local Postgres" has repeatedly meant migrations shipped reviewed-by-eye
+  only. `@electric-sql/pglite` is real Postgres compiled to WASM: install it
+  **outside the repo** (a scratch dir — do not add it to `package.json`),
+  build a prod-shaped schema, and run the migration verbatim. This is how the
+  PIF-restore migration got 22 assertions including a proven-idempotent
+  second run and a unique-violation race, none of which a read could have
+  established. Apply the file 3× consecutively to prove replay-safety.
+- **`position: fixed` inside a page is NOT relative to the viewport —
+  assume it never is.** A `transform`, `filter`, `backdrop-filter`,
+  `perspective`, `contain` or `will-change` on ANY ancestor makes that
+  ancestor the containing block for `fixed` descendants. Two independent
+  sources of this exist app-wide: `AppPage.tsx` wraps every child in
+  `animate-ds-page-in`, whose keyframe ends on `transform: translateY(0)`
+  with `animation-fill-mode: forwards`, so a non-`none` transform stays
+  applied forever; and — the bigger one — **every frosted surface**
+  (`.liquid-glass`, `.glass-modal`, the nav dock pill) carries
+  `backdrop-filter`. So a hand-rolled `fixed inset-0` overlay sizes itself to
+  whatever panel it happens to sit in. Measured: a "full-screen" dialog at
+  329×433 in a 393×852 viewport; a photo lightbox opened inside
+  JobDetailDialog at **10.2% of viewport height**; the nav quick-menu scrim
+  at 6.6%, so tapping anywhere above the dock did nothing. In every case the
+  element stays perfectly scrollable, so `overflow-y-auto` "fixes" nothing
+  and the real defect is invisible to a code read. **Portal overlays to
+  `document.body`** (the shared `Dialog` already does).
+  Two consequences of portalling that have each bitten once: an open Radix
+  modal sets `body { pointer-events: none }`, which **inherits** — a portaled
+  sibling renders at full size and is completely inert unless it sets
+  `pointer-events: auto`; and Radix's `hideOthers()` stamps `aria-hidden` on
+  late-added `<body>` children, so guard against your own overlay becoming
+  `role="dialog" aria-modal="true" aria-hidden="true"`.
+- **Two silent ways to lose the gloss. Both shipped.** The rule is that
+  primary and selected controls wear `btn-grad-primary`; these defeat it with
+  no error and no warning, and in both cases the class is still on the element
+  so the class list looks correct.
+  1. **A Tailwind variant over a hand-written class compiles to NOTHING.**
+     `data-[state=checked]:btn-grad-primary` emits no CSS — variants only
+     compose over utilities Tailwind generates, and `.btn-grad-primary` lives
+     in `index.css`. Toggle these in JS instead.
+  2. **An inline `background` SHORTHAND resets `background-image`.** A
+     `style={{ background: "linear-gradient(...)" }}` on a `<Button>` that
+     already has `btn-grad-primary` wins, and the gradient you get is the
+     hand-painted one. This is how the job-sheet CTA and its apply-step twin
+     stayed flat. Use `backgroundImage` if you must override, or better,
+     don't.
+  **Therefore: when asserting gloss in a test, read the computed
+  `background-image` and check it is a real gradient.** Asserting the class
+  name passes on a flat control, which is why this kept coming back.
 - **Never drop the Supabase `error`.** In a React Query `queryFn` use
   `unwrap()` (`src/lib/supabaseResult.ts`); elsewhere check `error` explicitly.
 - **A null `error` does NOT mean the write happened.** UPDATE/DELETE matching
@@ -116,6 +182,13 @@ this list tight; project-specific trivia belongs in code comments, not here.
   server-side `filter` scoped to the user, and a unique name via
   `channelNonce()` (`src/lib/realtimeChannel.ts`) — reused names silently drop
   the second subscription.
+- **`node scripts/parsecheck.mjs <file>` (or `--all`) is the fast syntax
+  gate.** Seconds, no contention — use it after every edit when the real
+  typecheck is busy or forbidden. It catches the `{/* … */}`-between-JSX-
+  attributes break that `tsc --noEmit -p tsconfig.json` misses. It does
+  **not** resolve symbols, so it cannot see a missing import: `icon={Lock}`
+  with no lucide import parses clean and silently binds the DOM global
+  `Lock`. A clean parse is never a substitute for `npx tsc -b --noEmit`.
 - **Parallel lanes: stagger the gates.** Don't let concurrent sessions run
   `typecheck`/`vitest`/`eslint` simultaneously — serialize them. Worktrees
   belong under `$HOME` (e.g. `~/.lh-b-ws/tree`), never `/tmp`; commit

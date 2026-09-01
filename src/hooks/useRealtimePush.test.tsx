@@ -26,6 +26,13 @@ const registerSWMock = vi.fn();
 vi.mock("@/lib/pushNotifications", () => ({
   showLocalNotification: (...args: unknown[]) => showLocalMock(...args),
   registerServiceWorker: () => registerSWMock(),
+  // The hook reads permission through this helper rather than touching
+  // `Notification.permission` directly (that global does not exist in the
+  // iOS WebView). Mirror the real web behaviour so the cases below, which
+  // drive `window.Notification.permission`, keep testing what they say.
+  getPushPermission: () =>
+    (window as unknown as { Notification?: { permission?: string } }).Notification
+      ?.permission ?? "unsupported",
 }));
 
 let capturedHandler: ((payload: { new: unknown }) => void) | null = null;

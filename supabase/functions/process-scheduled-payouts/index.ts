@@ -46,7 +46,14 @@ serve(async (req) => {
     if (!supabaseUrl) missing.push("SUPABASE_URL");
     if (!stripeSecretKey) missing.push("STRIPE_SECRET_KEY");
     if (!serviceRoleKey) missing.push("SECRET_KEY or SUPABASE_SERVICE_ROLE_KEY");
-    if (missing.length) throw new Error(`Missing required env vars: ${missing.join(", ")}`);
+    // The `||` tail is logically redundant with `missing.length` — it is spelled
+    // out so the compiler can narrow the three consts to `string` below. Without
+    // it `createClient(supabaseUrl, serviceRoleKey)` and `new Stripe(key)` are
+    // called with `string | undefined` as far as the types are concerned, which
+    // is exactly the shape that hides a real missing-config crash.
+    if (missing.length || !supabaseUrl || !stripeSecretKey || !serviceRoleKey) {
+      throw new Error(`Missing required env vars: ${missing.join(", ")}`);
+    }
 
     // Verify cron secret
     const authHeader = req.headers.get("Authorization");
@@ -117,6 +124,29 @@ serve(async (req) => {
     // isolation for free: one helper's missing Connect account can't block the
     // rest of the roster from being paid.
     const payoutTargets: { job: typeof jobs[number]; helperId: string }[] = [];
+    // How many helpers this job will ACTUALLY be paid out to, keyed by job id.
+    //
+    // This is not the same number as `helpers_needed`, and conflating the two
+    // strands money and wedges the job. `helpers_needed` is what the poster
+    // asked for and what the escrow was split into; the roster is who turned
+    // up. `accept_group_application` keeps the job 'open' until the roster is
+    // full, but a roster row can still be removed while it is staffing, and a
+    // legacy group job may have no roster at all — so an UNDER-FILLED group
+    // job can reach 'completed'. When it does:
+    //
+    //   * every roster member is correctly paid `budget / helpers_needed`,
+    //     which is exactly the 1/N share they accepted, and
+    //   * the release check below used to require
+    //     `distinctPaid >= helpers_needed`, a threshold an under-filled roster
+    //     can never reach — so the job sat in `payout_pending` forever, was
+    //     re-swept every hour, and the unallocated remainder of the escrow was
+    //     never surfaced to anyone.
+    //
+    // Counting against the roster releases the job once everyone who is owed
+    // has been paid, and the alert below makes the leftover escrow visible so
+    // it can be refunded to the poster instead of resting on the platform
+    // balance in silence.
+    const rosterSizeByJob = new Map<string, number>();
     for (const job of (jobs || [])) {
       if (job.is_group_job) {
         const { data: roster, error: rosterErr } = await supabaseAdmin
@@ -136,10 +166,40 @@ serve(async (req) => {
           // Roster empty but the job completed — fall back to the lead helper
           // so a legacy group job (created before the roster existed) still
           // pays someone rather than silently paying nobody.
-          if (job.helper_id) payoutTargets.push({ job, helperId: job.helper_id });
+          if (job.helper_id) {
+            payoutTargets.push({ job, helperId: job.helper_id });
+            rosterSizeByJob.set(job.id, 1);
+          }
           continue;
         }
-        for (const helperId of rosterIds) payoutTargets.push({ job, helperId });
+        const distinctRoster = new Set(rosterIds);
+        rosterSizeByJob.set(job.id, distinctRoster.size);
+        if (distinctRoster.size < (job.helpers_needed ?? 1)) {
+          // Page, but do NOT skip. Everyone on the roster still gets the share
+          // they agreed to; what needs a human is the slice of escrow that
+          // belongs to a slot nobody filled, which no automatic path can
+          // decide the destination of (refund to the poster vs. redistribute
+          // is a product/contract call, not a cron's).
+          console.error(
+            `[process-scheduled-payouts] group job ${job.id} is under-filled: ${distinctRoster.size} of ${job.helpers_needed} slots. Paying the roster; the remaining share is unallocated.`,
+          );
+          await postSlackOpsAlert({
+            kind: "payout_failed",
+            severity: "warning",
+            title: "Under-filled group job paid out — escrow remainder unallocated",
+            message:
+              "A group job completed with fewer helpers on its roster than it was funded for. Every roster member is being paid their agreed budget/helpers_needed share, but the unfilled slot's share stays on the platform balance and needs a decision (refund the poster, or redistribute).",
+            fields: {
+              "Job ID": job.id,
+              "Roster size": String(distinctRoster.size),
+              "Helpers needed": String(job.helpers_needed ?? 1),
+              "Unallocated share":
+                `${(job.helpers_needed ?? 1) - distinctRoster.size}/${job.helpers_needed ?? 1} of $${Number(job.budget ?? 0).toFixed(2)}`,
+            },
+            link: "https://www.louisianahelpr.com/admin?tab=payouts",
+          });
+        }
+        for (const helperId of distinctRoster) payoutTargets.push({ job, helperId });
       } else if (job.helper_id) {
         payoutTargets.push({ job, helperId: job.helper_id });
       }
@@ -571,7 +631,11 @@ serve(async (req) => {
             allRosterPaid = false;
           } else {
             const distinctPaid = new Set((paidRows ?? []).map((r) => r.helper_id)).size;
-            allRosterPaid = distinctPaid >= (job.helpers_needed ?? 1);
+            // Against the ROSTER, not `helpers_needed` — see rosterSizeByJob
+            // above. `helpers_needed` is a threshold an under-filled roster can
+            // never reach, which left the job cycling through this cron forever
+            // with every member already paid.
+            allRosterPaid = distinctPaid >= (rosterSizeByJob.get(job.id) ?? job.helpers_needed ?? 1);
           }
         }
 
@@ -590,12 +654,24 @@ serve(async (req) => {
         //
         // Now it mirrors execute-dispute-split:879-885: explicit allowed
         // states, `.select("id")`, and a zero-row branch that alerts.
+        // `helper_fee_percent` and `platform_fee_amount` are PER-HELPER values
+        // on a row that a group job shares between N of them. This flip runs on
+        // whichever roster member happened to settle last, so stamping them on a
+        // group job wrote one arbitrary helper's tier rate onto everybody's job
+        // — and `helperEarnings.ts` treats the frozen percent as the authority
+        // on exactly those rows (`shares !== 1`), so an Elite helper's card
+        // would quote a free-tier helper's 12% (or, worse, the reverse: a
+        // displayed take-home HIGHER than the transfer, the one thing
+        // `JobPrice.tsx` says must never happen). The truth is already per-helper
+        // in `payout_transfers`; leave the shared row's escrow-time stamp alone
+        // rather than overwriting it with a number that is right for one of N.
+        const releaseFields: Record<string, unknown> = { payment_status: "released" };
+        if (!job.is_group_job) {
+          releaseFields.helper_fee_percent = jobHelperFeePercent;
+          releaseFields.platform_fee_amount = Math.round(perHelperBudget * jobHelperFeePercent) / 100;
+        }
         const { data: flippedJob, error: statusUpdateErr } = allRosterPaid
-          ? await supabaseAdmin.from("jobs").update({
-              payment_status: "released",
-              helper_fee_percent: jobHelperFeePercent,
-              platform_fee_amount: Math.round(perHelperBudget * jobHelperFeePercent) / 100,
-            })
+          ? await supabaseAdmin.from("jobs").update(releaseFields)
             .eq("id", job.id)
             .in("payment_status", [...RELEASABLE_PAYMENT_STATES])
             .select("id")

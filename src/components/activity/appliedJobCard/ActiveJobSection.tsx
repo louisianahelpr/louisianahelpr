@@ -14,7 +14,7 @@ import { PhotoProofGroup } from "@/components/PhotoProof";
 import { hasRequiredProof } from "@/lib/photoProofPolicy";
 import { report } from "@/lib/errorLogger";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
-import type { TrackingData } from "@/components/JobTracking";
+import { deriveCurrentStatusIdx, STATUS_IDX, type TrackingData } from "@/components/JobTracking";
 import { HelperTrackerPanel } from "./HelperTrackerPanel";
 import { DirectionsButton } from "./DirectionsButton";
 import { HelperRevisionCard } from "@/components/activity/HelperRevisionCard";
@@ -85,7 +85,47 @@ export function ActiveJobSection({
     return () => clearInterval(interval);
   }, [payoutGateClosed]);
 
-  // ── The sanctioned exit for a job already underway ──
+  // ── The sanctioned exit, and the point at which it stops being offered ──
+  //
+  // Owner, 2026-08-30: "can't finish should not be an option." Taken literally
+  // that strands the state machine — a helper mid-job with no sanctioned exit
+  // has no recorded reason, no automatic re-open and escrow held until a human
+  // intervenes, which is the ghosting `helper_abort_job` exists to price. So
+  // the exit is not deleted, it is BOUNDED: it stays while the job has not
+  // actually started, and it is gone once work is underway.
+  //
+  //   scheduled / on the way / arrived  → the exit is offered
+  //   working (and anything after)      → no exit chip at all
+  //
+  // Past that line the honest move is a conversation, and Message is the
+  // control that is still on the row. `helper_abort_job` is untouched and is
+  // still the correct RPC for the states above the line — this removes a
+  // CONTROL from one state, not the path.
+  //
+  // `deriveCurrentStatusIdx` is the same derivation the step rail directly
+  // above this row is drawn from, so the chip and the rail can never disagree
+  // about whether work has started — a card reading "Working" with a
+  // "Can't Finish" chip under it is the exact inconsistency this avoids. The
+  // evidence handed to it is the evidence HelperTrackerPanel hands JobTracking,
+  // item for item. `initialTracking` refreshes on the `job_tracking` realtime
+  // subscription in useActivityData, so the tap that starts work also takes
+  // the chip away.
+  const workUnderway =
+    deriveCurrentStatusIdx({
+      trackingStatus: initialTracking?.status ?? null,
+      jobStatus: job.status,
+      helperConfirmedAt: job.helper_confirmed_at,
+      helperDayofConfirmedAt: job.helper_dayof_confirmed_at,
+      jobDateNeeded: job.date_needed,
+      posterConfirmedAt: job.poster_confirmed_at,
+      helperOnTheWayAt: job.helper_on_the_way_at,
+      helperArrivedAt: job.helper_arrived_at,
+      helperArrivalVerifiedAt: job.helper_arrival_verified_at,
+      posterConfirmedArrivalAt: job.poster_confirmed_arrival_at,
+      helperCompletedAt: job.helper_completed_at,
+      posterCompletedAt: job.poster_completed_at,
+    }) >= STATUS_IDX.working;
+
   // Server owns every part of this decision (helper_abort_job, migration
   // 20260825190000): which settlement path the job takes, and what the strike
   // costs. The client only states it truthfully before the tap.
@@ -361,7 +401,15 @@ export function ActiveJobSection({
             assumed; JobActionRow's explicit `columns` exists for exactly this. */}
         {(() => {
           const showDirections = !job.helper_arrived_at && !!job.location?.trim();
-          const columns = (1 + (showDirections ? 1 : 0) + (aborted ? 0 : 1)) as 1 | 2 | 3;
+          /* The exit is offered only BEFORE work starts, and only until it has
+             been taken — see `workUnderway` above. `columns` is derived from
+             what actually renders, which is why the row does not strand a lone
+             stretched button when the exit drops out: at `working` the helpr
+             has also arrived, so Directions is already gone and the row is a
+             single full-width Message chip rather than one chip floating in a
+             three-column grid. */
+          const showExit = !aborted && !workUnderway;
+          const columns = (1 + (showDirections ? 1 : 0) + (showExit ? 1 : 0)) as 1 | 2 | 3;
           return (
             <>
               <JobActionRow columns={columns}>
@@ -370,7 +418,7 @@ export function ActiveJobSection({
                   icon={MessageSquare}
                   label="Message"
                   ariaLabel="Message the poster about this job"
-                  tone="neutral"
+                  tone="message"
                   onClick={() => navigate(job.customer_id ? `/messages?jobId=${app.job_id}&userId=${job.customer_id}` : "/messages")}
                 />
                 {/* The sanctioned exit for a job already underway. This REPLACES
@@ -379,7 +427,7 @@ export function ActiveJobSection({
                     written, and the defect: ghosting was the only remaining move
                     AND the cheapest one, because it recorded no strike while
                     every honest exit did. */}
-                {!aborted && (
+                {showExit && (
                   <JobActionChip
                     icon={CalendarX2}
                     label="Can't Finish"

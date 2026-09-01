@@ -13,23 +13,30 @@ import {
   type SubscriptionTier,
 } from "./subscriptionTiers";
 
-// Consumer-subscribable paid tiers only. Business is deliberately excluded
-// — it isn't a consumer subscription; Business accounts are billed per-seat
-// on the seat plans in supabase/functions/_shared/businessSeatTiers.ts, so
-// TIER_PERKS.business.price
-// is intentionally null and the "paid tier has a price" invariant doesn't
-// apply. TIER_PERKS.business.platformFeePercent is still the real 6% fee
-// used by the ladder / commission math and IS covered by the fee tests.
+// Every paid tier is a consumer subscription, and every tier there is. The
+// table used to carry a fifth `business` row at 6% with a null price, excluded
+// from these invariants because it was billed per-seat on a
+// `_shared/businessSeatTiers.ts` ladder — a file that does not exist. It was
+// removed on 2026-09-01: nothing could sell that tier, nothing could store it,
+// and the prod census was zero rows. So PAID and ALL now differ only by "free".
 const PAID_CONSUMER_TIERS: SubscriptionTier[] = ["basic", "pro", "elite"];
-const ALL_TIERS: SubscriptionTier[] = ["free", "basic", "pro", "elite", "business"];
+const ALL_TIERS: SubscriptionTier[] = ["free", "basic", "pro", "elite"];
 
 describe("TIER_PERKS fee model", () => {
-  it("uses the documented platform fee per tier (12 / 11 / 10 / 8 / 6)", () => {
+  it("uses the documented platform fee per tier (12 / 11 / 10 / 8)", () => {
     expect(TIER_PERKS.free.platformFeePercent).toBe(12);
     expect(TIER_PERKS.basic.platformFeePercent).toBe(11);
     expect(TIER_PERKS.pro.platformFeePercent).toBe(10);
     expect(TIER_PERKS.elite.platformFeePercent).toBe(8);
-    expect(TIER_PERKS.business.platformFeePercent).toBe(6);
+  });
+
+  it("has exactly four tiers — the retired Business row is gone", () => {
+    // Pins the KEY SET, not just the values. The `business` row had to leave
+    // this table and `TIER_FEE_PERCENT` in one commit (the parity tests tie the
+    // two key sets together), so a re-added row here must be a deliberate edit
+    // that also updates the edge ladder.
+    expect(Object.keys(TIER_PERKS).sort()).toEqual(["basic", "elite", "free", "pro"]);
+    expect((TIER_PERKS as Record<string, unknown>).business).toBeUndefined();
   });
 
   it("keeps every fee a sane percentage (0 < fee < 100)", () => {
@@ -50,19 +57,23 @@ describe("TIER_PERKS fee model", () => {
     expect(TIER_PERKS.pro.platformFeePercent).toBeGreaterThan(
       TIER_PERKS.elite.platformFeePercent,
     );
-    expect(TIER_PERKS.elite.platformFeePercent).toBeGreaterThan(
-      TIER_PERKS.business.platformFeePercent,
-    );
   });
 
-  it("implies Helprs keep 88–94% of the agreed price", () => {
+  it("bottoms out at Elite's 8% — nothing on the ladder is cheaper", () => {
+    // The retired Business row was the only rung below Elite (6%). Guard the
+    // floor directly so a future cheaper tier is a deliberate, reviewed edit.
+    const lowest = Math.min(...ALL_TIERS.map((t) => TIER_PERKS[t].platformFeePercent));
+    expect(lowest).toBe(TIER_PERKS.elite.platformFeePercent);
+    expect(lowest).toBe(8);
+  });
+
+  it("implies Helprs keep 88–92% of the agreed price", () => {
     // keep% = 100 − fee%. This is the number the Legal page and in-feed
     // preview promise, so guard it directly.
     expect(100 - TIER_PERKS.free.platformFeePercent).toBe(88);
     expect(100 - TIER_PERKS.basic.platformFeePercent).toBe(89);
     expect(100 - TIER_PERKS.pro.platformFeePercent).toBe(90);
     expect(100 - TIER_PERKS.elite.platformFeePercent).toBe(92);
-    expect(100 - TIER_PERKS.business.platformFeePercent).toBe(94);
   });
 
   it("Free is priceless; every PAID CONSUMER tier costs more as it rises", () => {
@@ -78,27 +89,25 @@ describe("TIER_PERKS fee model", () => {
     expect(TIER_PERKS.pro.price!).toBeLessThan(TIER_PERKS.elite.price!);
   });
 
-  it("Business is intentionally price:null — it is not a consumer tier", () => {
-    // Business isn't a consumer subscription; the seat plans in
-    // edge functions carry the real prices. Guarding that this stays
-    // null so a future edit doesn't accidentally re-introduce a fictional
-    // consumer-side Business price without also removing this test.
-    expect(TIER_PERKS.business.price).toBeNull();
-    expect(TIER_PERKS.business.annualPrice).toBeNull();
-    // The fee ladder still descends into Business at 6%, unchanged.
-    expect(TIER_PERKS.business.platformFeePercent).toBe(6);
+  it("Free is the ONLY priceless tier", () => {
+    // The retired Business row was the second null-priced entry, and its null
+    // was the reason "every paid tier has a price" had to carve out an
+    // exception. With it gone the invariant is total: price:null ⇔ free.
+    for (const tier of ALL_TIERS) {
+      const priceless = TIER_PERKS[tier].price === null;
+      expect(priceless, `${tier} disagrees with the price:null ⇔ free rule`).toBe(tier === "free");
+    }
   });
 
   it("carries the current tier display names (rebrand guard)", () => {
     // Owner's 2026-08-24 naming rule: the brand leads the tier name
     // everywhere a human reads it — bare "Basic / Pro / Elite" as of
     // 2026-08-27 (the "Helpr " prefix was reversed by the owner).
-    // Free and Business stay unprefixed (see tierNames.parity.test.ts).
+    // Free stays unprefixed too (see tierNames.parity.test.ts).
     expect(TIER_PERKS.free.name).toBe("Free");
     expect(TIER_PERKS.basic.name).toBe("Basic");
     expect(TIER_PERKS.pro.name).toBe("Pro");
     expect(TIER_PERKS.elite.name).toBe("Elite");
-    expect(TIER_PERKS.business.name).toBe("Business");
   });
 });
 
@@ -134,13 +143,15 @@ describe("getPaysSelfBack", () => {
     );
   });
 
-  it("returns empty for Business — no consumer price to pay back", () => {
-    // Business isn't a consumer subscription (see the TIER_PERKS test above);
-    // its price is null, so getPaysSelfBack short-circuits at `!perks.price`.
-    // The per-seat "pays for itself" story belongs on the Business surface,
-    // not the consumer paysback calc.
-    expect(getPaysSelfBack("business", 200, 5)).toBe("");
-    expect(getPaysSelfBack("business", 1000, 20)).toBe("");
+  it("returns empty for a stale 'business' row, via the normalizer", () => {
+    // `business` was removed on 2026-09-01, so TIER_PERKS has no row for it and
+    // the type can no longer express it. Every caller reaches this function
+    // through `toSubscriptionTier`, which maps the stale string to "free" — and
+    // free short-circuits at `!perks.price`. Pinning the composed path is the
+    // useful assertion: it proves a legacy column value still renders a
+    // membership card instead of throwing on a missing perks row.
+    expect(getPaysSelfBack(toSubscriptionTier("business"), 200, 5)).toBe("");
+    expect(getPaysSelfBack(toSubscriptionTier("business"), 1000, 20)).toBe("");
   });
 });
 
@@ -148,7 +159,13 @@ describe("toSubscriptionTier", () => {
   it("passes through the canonical paid tier ids", () => {
     expect(toSubscriptionTier("pro")).toBe("pro");
     expect(toSubscriptionTier("elite")).toBe("elite");
-    expect(toSubscriptionTier("business")).toBe("business");
+  });
+
+  it("maps the retired 'business' id to free, never through to a 6% rung", () => {
+    // Removed 2026-09-01. A stale row holding it must be treated as an unknown
+    // value and land on the safe default, which is also the never-under-charge
+    // direction for `tierFeePercent` (12%).
+    expect(toSubscriptionTier("business")).toBe("free");
   });
 
   it("maps null / undefined / empty to free (the default case)", () => {

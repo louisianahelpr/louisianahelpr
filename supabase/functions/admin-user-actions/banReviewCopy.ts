@@ -65,7 +65,7 @@ export type BanReviewCopy = {
  * a confirmation that closes several DIFFERENT kinds of case at once — naming
  * one of them would be as wrong as naming the wrong one.
  */
-export const UNKNOWN_BAN_REVIEW_COPY: BanReviewCopy = {
+const UNKNOWN_BAN_REVIEW_COPY: BanReviewCopy = {
   evidence: 'the violations on your account',
   banReason: 'Repeat platform policy violations (admin-confirmed)',
   dismissAdvice: 'Please review the platform rules so this does not come up again.',

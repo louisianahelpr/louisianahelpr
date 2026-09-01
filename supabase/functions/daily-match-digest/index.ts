@@ -24,6 +24,14 @@ Deno.serve(async (req) => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceRoleKey = Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const cronSecret = Deno.env.get("CRON_SECRET");
+  // With no service-role key, `createClient(url, undefined)` throws
+  // "supabaseKey is required" RIGHT HERE — before the try/catch below and
+  // before the auth check, which already tolerates a missing key. The caller
+  // got an opaque 500 with no CORS headers and no clue why. Answer instead.
+  if (!serviceRoleKey) {
+    console.error("[daily-match-digest] SECRET_KEY / SUPABASE_SERVICE_ROLE_KEY is not configured");
+    return new Response("Service role key not configured", { status: 503, headers: corsHeaders });
+  }
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 
   const defects = defectTracker();
@@ -117,24 +125,61 @@ Deno.serve(async (req) => {
     // 4. Drain the queue rows we just summarized. Done after the
     //    notifications insert succeeds so a partial failure leaves
     //    the queue intact for retry.
+    //    A null `error` here does NOT mean the rows went away: a DELETE
+    //    matching zero rows returns `{ data: [], error: null }`. The error was
+    //    already checked, but the ROW COUNT was not — and a silent no-op is the
+    //    worse half of the same failure, because the notifications above have
+    //    already been sent. Every row left behind is re-summarized and re-sent
+    //    to a real person tomorrow, and the day after, forever, while the run
+    //    reports 200. So the drain now counts what it actually removed.
+    //
+    //    Policy on a short drain: record a DEFECT (the run answers 500 via
+    //    cronResult, which is what `sweep_cron_http_failures()` watches) and do
+    //    NOT suppress anything. Suppression is not available as a remedy: the
+    //    drain runs AFTER the send, so by the time we learn a row is stuck the
+    //    digest it belongs to is already delivered, and there is nothing to
+    //    stop within this run. What prevents the repeat is a human clearing the
+    //    row before tomorrow's 13:00 UTC tick — so the only useful behaviour is
+    //    to say so, loudly, with the count.
+    //
+    //    Chunked at 500: PostgREST caps how many rows a request returns
+    //    (`db-max-rows`), so a single 5,000-id DELETE ... RETURNING could be
+    //    truncated and look like a short drain on a perfectly clean run — a
+    //    false page. 500 stays well under any configured cap and keeps the
+    //    `?id=in.(...)` URL a sane length.
     const queueIds = queueRows.map((r: { id: string }) => r.id);
-    if (queueIds.length > 0) {
-      const { error: deleteErr } = await supabase
+    const DRAIN_CHUNK = 500;
+    let drained = 0;
+    for (let i = 0; i < queueIds.length; i += DRAIN_CHUNK) {
+      const batch = queueIds.slice(i, i + DRAIN_CHUNK);
+      const { data: deletedRows, error: deleteErr } = await supabase
         .from("match_digest_queue")
         .delete()
-        .in("id", queueIds);
+        .in("id", batch)
+        .select("id");
       if (deleteErr) {
         console.warn("queue drain failed (will retry next run):", deleteErr.message);
         // "Retries next run" is only comforting if the next run succeeds. A
         // permanently failing drain re-sends the SAME digest every day forever,
         // and the run reports 200 the whole time.
-        defects.record(`queue drain (${queueIds.length} rows): ${deleteErr.message}`);
+        defects.record(`queue drain (${batch.length} rows): ${deleteErr.message}`);
+        continue;
+      }
+      const removed = deletedRows?.length ?? 0;
+      drained += removed;
+      if (removed < batch.length) {
+        console.warn(
+          `queue drain removed only ${removed}/${batch.length} rows — the rest will re-send the same digest tomorrow`,
+        );
+        defects.record(
+          `queue drain matched ${removed}/${batch.length} rows with no error — undrained match_digest_queue rows re-send the same digest to the same people every day until they are deleted`,
+        );
       }
     }
 
     return cronResult(
       "daily-match-digest",
-      { users: byUser.size, queued: queueRows.length },
+      { users: byUser.size, queued: queueRows.length, drained },
       defects.defects,
       corsHeaders,
     );

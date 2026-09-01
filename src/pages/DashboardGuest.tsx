@@ -253,6 +253,17 @@ const DashboardGuest = () => {
         avatarMap: new Map<string, string | null>(
           profilesRes.data?.map((p) => [p.user_id, p.avatar_url ?? null]) || [],
         ),
+        // Poster tier, for the bounded placement term in `smartScore`. This
+        // map used to not exist and every guest job was hardcoded to a null
+        // tier below, so the logged-out preview ranked jobs differently from
+        // the /jobs board (which applies the same lift server-side, in
+        // get_ranked_open_jobs) and differently again from the signed-in
+        // dashboard. get_safe_profiles already returns this column, with
+        // subscription expiry folded in server-side (20260901022522), so a
+        // lapsed poster correctly buys nothing.
+        tierMap: new Map<string, string | null>(
+          profilesRes.data?.map((p) => [p.user_id, p.subscription_tier ?? null]) || [],
+        ),
         reviewStatsMap,
       };
     },
@@ -269,23 +280,34 @@ const DashboardGuest = () => {
         posterReviewCount: stats?.count ?? 0,
         posterAvgRating: stats?.avg ?? 0,
         posterCompletedJobs: 0,
-        posterSubscriptionTier: null,
+        posterSubscriptionTier: posterInfo.tierMap.get(j.customer_id) ?? null,
       };
     });
   }, [baseJobs, posterInfo]);
 
   // Same filter engine the authenticated dashboard uses — search, category,
   // budget range, location radius, expiry, sort. Guests pass no user /
-  // profile / availability, and are `earlyAccessExempt` so the logged-out
-  // preview shows every open job immediately (the 20-min no-tier delay is a
-  // subscriber perk, not something to impose on prospects evaluating signup).
+  // profile / availability.
+  //
+  // Guests now WAIT THE FULL 20 MINUTES, like any other free viewer.
+  // This call used to pass `earlyAccessExempt: true`, on the reasoning that a
+  // conversion preview shouldn't impose a subscriber perk's delay on someone
+  // evaluating signup. That exemption was the bypass: Early Access is sold as
+  // "see new jobs before non-subscribers", and a free member could sign out —
+  // or just open a private window — and read the same early jobs for nothing.
+  // A perk anyone can have by clicking Log out is not a perk. Owner decided on
+  // 2026-09-01: guest 20 min, free 20 min, Basic 15, Pro 10, Elite 0.
+  //
+  // The flag is gone entirely rather than left passing `false`: it is enforced
+  // server-side now (`public.early_access_cutoff()`), so a client flag could
+  // not have re-granted the exemption anyway, and a no-op prop that reads as
+  // live is exactly the failure mode this codebase keeps hitting.
   const filters = useDashboardFilters({
     allJobs: jobs,
     userId: undefined,
     profile: null,
     helprTier: null,
     helperAvailability: [],
-    earlyAccessExempt: true,
   });
 
   // Bounce already-authenticated users straight to the real dashboard so

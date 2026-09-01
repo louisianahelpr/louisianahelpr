@@ -137,6 +137,76 @@ describe("process-scheduled-payouts edge function", () => {
     });
   });
 
+  // ── Fee fallback when the helper's PROFILE READ FAILS ────────────────────
+  //
+  // The twin of the same block in release-payout.test.ts, and it exists as a
+  // PAIR on purpose: either path can settle the same job depending on whether
+  // release was manual or automatic, so if the two disagree on this fallback
+  // the commission a helper is charged depends on which one reached them
+  // first. Both must resolve the FREE rate (12), derived from
+  // DEFAULT_TIER_FEE_PERCENT rather than a literal.
+  describe("fee fallback on a failed tier read", () => {
+    function failTierRead() {
+      const healthy = scenario.reads.profiles;
+      scenario.reads.profiles = {
+        ...healthy,
+        selectOverrides: [
+          {
+            includes: "subscription_tier",
+            result: { error: { message: "tier read boom" } },
+          },
+        ],
+      };
+    }
+
+    it("falls back to the FREE rate (12) when the job carries no frozen percent", async () => {
+      // helper_fee_percent null is the Pay-It-Forward shape: create-payment's
+      // PIF branch returns before the escrow stamp, so nothing was frozen.
+      seedPayableJob(scenario, {
+        job: { helper_fee_percent: null, platform_fee_amount: null },
+        profile: { onboarding_fee_paid: true },
+      });
+      failTierRead();
+
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: {} }),
+      );
+      expect(res.status).toBe(200);
+
+      // The percent COMMITTED to the job is the direct observation of what the
+      // fallback resolved to. $100 budget at 12% → $12.00 platform cut.
+      const jobWrite = scenario.writes.find(
+        (w) => w.table === "jobs" && w.op === "update",
+      );
+      expect((jobWrite?.payload as Record<string, unknown>).helper_fee_percent).toBe(12);
+      expect((jobWrite?.payload as Record<string, unknown>).platform_fee_amount).toBe(12);
+
+      // …and the money that actually moved matches it: $100 − $12 = $88.
+      const transferArgs = stripeMock.transfers.create.mock.calls[0][0];
+      expect(transferArgs.amount).toBe(8800);
+    });
+
+    it("still prefers the rate FROZEN on the job over the free rate", async () => {
+      seedPayableJob(scenario, {
+        job: { helper_fee_percent: 8 },
+        profile: { onboarding_fee_paid: true },
+      });
+      failTierRead();
+
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: {} }),
+      );
+      expect(res.status).toBe(200);
+      const jobWrite = scenario.writes.find(
+        (w) => w.table === "jobs" && w.op === "update",
+      );
+      expect((jobWrite?.payload as Record<string, unknown>).helper_fee_percent).toBe(8);
+      expect(stripeMock.transfers.create.mock.calls[0][0].amount).toBe(9200);
+    });
+  });
+
   describe("onboarding-fee claim + deduction", () => {
     it("claims and deducts the $2 fee on the helper's first payout", async () => {
       seedPayableJob(scenario);

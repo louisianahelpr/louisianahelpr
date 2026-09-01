@@ -4,12 +4,16 @@ import { X } from "lucide-react";
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
+import { Button, type ButtonProps } from "@/components/ui/button";
+import {
+  POPUP_FOOTER_ROW,
+  POPUP_SECONDARY_CLS,
+  POPUP_COMMIT_CLS,
+} from "@/components/ui/popupFooter";
 
 const Sheet = SheetPrimitive.Root;
 
-const SheetTrigger = SheetPrimitive.Trigger;
 
-const SheetClose = SheetPrimitive.Close;
 
 const SheetPortal = SheetPrimitive.Portal;
 
@@ -171,10 +175,11 @@ const SheetHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElemen
 SheetHeader.displayName = "SheetHeader";
 
 const SheetFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  // `gap-2` was missing — DialogFooter and AlertDialogFooter both have it, so
-  // a sheet's stacked buttons touched on a phone while a dialog's sat 8px
-  // apart. Otherwise identical to both; change one, change all three.
-  <div className={cn("flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:space-x-2", className)} {...props} />
+  // THE SHARED ROW, from popupFooter.ts. This was a third hand-written copy of
+  // the layout string and had already lost `gap-2` from it once, so a sheet's
+  // stacked buttons touched on a phone while a dialog's sat 8px apart. There
+  // is now nothing to keep in sync.
+  <div className={cn(POPUP_FOOTER_ROW, className)} {...props} />
 );
 SheetFooter.displayName = "SheetFooter";
 
@@ -194,13 +199,6 @@ const SheetTitle = React.forwardRef<
 ));
 SheetTitle.displayName = SheetPrimitive.Title.displayName;
 
-const SheetDescription = React.forwardRef<
-  React.ElementRef<typeof SheetPrimitive.Description>,
-  React.ComponentPropsWithoutRef<typeof SheetPrimitive.Description>
->(({ className, ...props }, ref) => (
-  <SheetPrimitive.Description ref={ref} className={cn("text-xs text-muted-foreground", className)} {...props} />
-));
-SheetDescription.displayName = SheetPrimitive.Description.displayName;
 
 /**
  * SheetHero — the bottom/side-sheet twin of DialogHero. Sheets use the same
@@ -263,16 +261,58 @@ const SheetHero = ({
 );
 SheetHero.displayName = "SheetHero";
 
+
+/**
+ * The sheet's footer actions — DialogSecondaryAction / DialogPrimaryAction /
+ * DialogDestructiveAction's twins, exactly as SheetHero is DialogHero's.
+ *
+ * A bottom sheet is a popup. The owner's 2026-08-31 instruction was "every
+ * single pop up like this needs to be styled the same, globally, no excuses",
+ * and the previous pass that unified popup HEADERS stopped at dialogs and left
+ * sheets to hand-copy the stack — which is how they ended up with four
+ * different title sizes. Sheets get the footer contract from the start this
+ * time, rather than three call sites each writing `<Button variant="ghost">`
+ * and drifting from there.
+ *
+ * Width, alignment and size come from `popupFooter.ts`; no `className`,
+ * `variant` or `size` prop, for the same reason the Dialog twins have none.
+ */
+type SheetActionProps = Omit<
+  ButtonProps,
+  "variant" | "className" | "size" | "asChild" | "shimmer"
+>;
+
+const stripSheetOverrides = (props: Record<string, unknown>) => {
+  const { className: _c, variant: _v, size: _s, asChild: _a, shimmer: _sh, ...rest } = props;
+  void _c; void _v; void _s; void _a; void _sh;
+  return rest;
+};
+
+const SheetSecondaryAction = React.forwardRef<HTMLButtonElement, SheetActionProps>(
+  ({ children, ...props }, ref) => (
+    <Button ref={ref} variant="ghost" size="sm" className={POPUP_SECONDARY_CLS} {...stripSheetOverrides(props)}>
+      {children}
+    </Button>
+  ),
+);
+SheetSecondaryAction.displayName = "SheetSecondaryAction";
+
+const SheetPrimaryAction = React.forwardRef<HTMLButtonElement, SheetActionProps>(
+  ({ children, ...props }, ref) => (
+    <Button ref={ref} variant="primary" className={POPUP_COMMIT_CLS} {...stripSheetOverrides(props)}>
+      {children}
+    </Button>
+  ),
+);
+SheetPrimaryAction.displayName = "SheetPrimaryAction";
+
+
 export {
   Sheet,
-  SheetClose,
   SheetContent,
-  SheetDescription,
   SheetFooter,
-  SheetHeader,
   SheetHero,
-  SheetOverlay,
-  SheetPortal,
   SheetTitle,
-  SheetTrigger,
+  SheetSecondaryAction,
+  SheetPrimaryAction,
 };

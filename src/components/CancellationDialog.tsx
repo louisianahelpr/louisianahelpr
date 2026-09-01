@@ -10,8 +10,14 @@ import { supabase } from "@/integrations/supabase/client";
 // future write lands here.
 import { isWriteRejected } from "@/lib/mutationResult";
 import { report } from "@/lib/errorLogger";
-import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHero,
+  DialogFooter,
+  DialogSecondaryAction,
+  DialogDestructiveAction,
+} from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertTriangle, ShieldAlert, DollarSign, CheckCircle, ArrowRight, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
@@ -461,33 +467,29 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, hasHel
             />
           </div>
         </div>
+        {/* THE SHARED FOOTER ACTIONS.
+            This was the app's last hand-built popup button, and it broke three
+            standing rules at once. The commit painted a FLAT burnt-sienna with
+            `backgroundImage: "none"` — the same explicit gloss-deletion that
+            was removed from BrandConfirmDialog and PhotoProof — in the brand
+            ACCENT colour, giving cancellation a third destructive treatment
+            alongside `--destructive` red and the sienna BrandConfirmDialog had
+            already given up. It also re-declared Montserrat (the global sans),
+            its own weight, its own letter-spacing and its own shadow, so the
+            one dialog a poster sees when money is about to move looked like it
+            came from a different app. The dismiss carried `font-sans
+            font-semibold` and an inline bark colour on top of the ghost
+            variant that already styles it.
+            Cancelling an accepted job charges a fee and cannot be undone here,
+            so it is destructive; "Keep the Job" is the dismiss. Copy, fee
+            arithmetic and handlers are untouched. */}
         <DialogFooter>
-          <Button
-            variant="ghost"
-            disabled={cancelling}
-            onClick={onClose}
-            className="rounded-ds-md font-sans font-semibold"
-            style={{ color: "hsl(var(--bark))" }}
-          >
+          <DialogSecondaryAction disabled={cancelling} onClick={onClose}>
             Keep the Job
-          </Button>
-          <Button
-            onClick={handleCancel}
-            disabled={cancelling}
-            className="rounded-ds-md"
-            style={{
-              background: "hsl(var(--burnt-sienna))",
-              backgroundImage: "none",
-              border: "1px solid hsl(var(--burnt-sienna))",
-              color: "hsl(var(--parchment))",
-              fontFamily: "Montserrat, system-ui, sans-serif",
-              fontWeight: 600,
-              letterSpacing: "0.01em",
-              boxShadow: "var(--elev-sienna-raised)",
-            }}
-          >
+          </DialogSecondaryAction>
+          <DialogDestructiveAction onClick={handleCancel} disabled={cancelling}>
             {cancelling ? "Cancelling…" : cancellationFee > 0 ? `Cancel · pay $${cancellationFee}` : "Cancel Job"}
-          </Button>
+          </DialogDestructiveAction>
         </DialogFooter>
       </DialogContent>
     </Dialog>

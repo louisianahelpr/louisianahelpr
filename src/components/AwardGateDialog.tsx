@@ -1,6 +1,13 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHero,
+  DialogBody,
+  DialogFooter,
+  DialogSecondaryAction,
+  DialogPrimaryAction,
+} from "@/components/ui/dialog";
 import { BadgeDollarSign, Loader2, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { functionErrorMessage } from "@/lib/supabaseResult";
@@ -77,12 +84,9 @@ export function AwardGateDialog({
           title={copy.title}
         />
 
-        <p
-          className="font-serif italic px-1 pt-1 text-ds-13"
-          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-        >
-          {copy.body}
-        </p>
+        <DialogBody>
+          <p>{copy.body}</p>
+        </DialogBody>
 
         {/* The two requirements, with the failing one called out. Showing both
             answers the question the single-line version left open — "is this
@@ -100,15 +104,13 @@ export function AwardGateDialog({
         </div>
 
         <DialogFooter>
-          <Button
-            variant="ghost"
+          <DialogSecondaryAction
             onClick={() => onOpenChange(false)}
             disabled={loading}
           >
             Not Now
-          </Button>
-          <Button
-            variant="primary"
+          </DialogSecondaryAction>
+          <DialogPrimaryAction
             onClick={handleFix}
             disabled={loading}
           >
@@ -118,7 +120,7 @@ export function AwardGateDialog({
               <Icon className="w-4 h-4 mr-2" />
             )}
             {copy.ctaLabel}
-          </Button>
+          </DialogPrimaryAction>
         </DialogFooter>
       </DialogContent>
     </Dialog>

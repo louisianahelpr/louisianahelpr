@@ -6,9 +6,19 @@ export type ApplicantSort = "recommended" | "rated" | "soonest";
 
 type ScoredApp = {
   app: EnrichedApplication;
+  /** Earned quality only — badge + card copy read this. */
   score: number;
+  /** `score` + the bounded Priority Placement boost — ORDER reads this. */
+  rankScore: number;
   signals: string[];
   neighborCount: number;
+  /**
+   * True only when Priority Placement actually moved this applicant UP
+   * relative to the quality-only order — not merely because they hold a paid
+   * tier. The card discloses the bump off this flag, so a Pro applicant who
+   * would have been in that slot anyway is not labelled as having bought it.
+   */
+  promotedByTier: boolean;
 };
 
 interface UseApplicantComparisonArgs {
@@ -53,6 +63,16 @@ export function useApplicantComparison({
   // Scoring is purely client-side — no extra queries needed.
   // The score map is keyed by helper_id so the "Recommended" badge
   // can identify the top pick in O(1).
+  //
+  // TWO numbers come out of the scorer and they are deliberately not the same
+  // one (see applicantScoring.ts):
+  //   `score`     — earned quality only. Drives the "Helpr Recommended" badge
+  //                 and the signals printed on the card.
+  //   `rankScore` — score + a bounded Priority Placement boost (Elite 2, Pro 1,
+  //                 on a 100-point scale). Drives ORDER, and nothing else.
+  // Before this, the tier sort applied in useApplicantsState.fetchApplicants
+  // was overwritten here by a plain `b.score - a.score`, so the advertised
+  // perk was computed and discarded on every render.
   const { sortedApplications, scoreMap } = useMemo(() => {
     if (applications.length === 0) return { sortedApplications: [] as ScoredApp[], scoreMap: new Map<string, number>() };
 
@@ -88,15 +108,39 @@ export function useApplicantComparison({
         distanceKm: distanceMap.get(app.helper_id) ?? null,
         responseTimeMinutes: null,
         neighborCount,           // live from get_neighbor_hire_count RPC
+        // Priority Placement. `get_safe_profiles` folds subscription expiry
+        // into this column in SQL (migration 20260901022522), so a lapsed Pro
+        // arrives here as null and buys nothing — the client has no expiry
+        // date for another member and could not resolve it itself.
+        priorityTier: p?.subscription_tier ?? null,
       };
       const result = scoreApplicant(data);
       map.set(app.helper_id, result.score);
-      return { app, score: result.score, signals: result.signals, neighborCount };
+      return {
+        app,
+        score: result.score,
+        rankScore: result.rankScore,
+        signals: result.signals,
+        neighborCount,
+        promotedByTier: false, // resolved below, once both orders exist
+      };
     });
 
     const sorted = [...scored];
     if (applicantSort === "recommended") {
-      sorted.sort((a, b) => b.score - a.score);
+      // Order by rankScore (quality + the bounded tier boost). Ties fall back
+      // to quality so a paid applicant never displaces an equal-ranking free
+      // one who scored higher on merit alone.
+      sorted.sort((a, b) => (b.rankScore - a.rankScore) || (b.score - a.score));
+      // Disclosure input: who did the money actually move? Compare against the
+      // quality-only order rather than labelling every paid card, so the chip
+      // means "this position was bought" instead of "this person subscribes"
+      // (the Pro/Elite chip beside their name already says the latter).
+      const qualityOrder = [...scored].sort((a, b) => b.score - a.score);
+      const qualityIndex = new Map(qualityOrder.map((s, i) => [s.app.helper_id, i]));
+      sorted.forEach((s, i) => {
+        s.promotedByTier = s.rankScore > s.score && i < (qualityIndex.get(s.app.helper_id) ?? i);
+      });
     } else if (applicantSort === "rated") {
       sorted.sort((a, b) => {
         const ratingDiff = (b.app.avgRating ?? 0) - (a.app.avgRating ?? 0);
@@ -145,6 +189,13 @@ export function useApplicantComparison({
   }, [noteDraft]);
 
   // The top recommended applicant — used to render the badge.
+  //
+  // Reads `scoreMap`, which holds the QUALITY-ONLY score. That is the whole
+  // point of keeping the two numbers apart: "Helpr Recommended" is the app
+  // vouching for a stranger the poster is about to let into their home, and an
+  // endorsement that can be bought for $10/mo is worth nothing to the poster
+  // and, quickly, nothing to the helper who bought it. Priority Placement can
+  // move a card up the list; it can never put this badge on it.
   const topHelperIdByScore = useMemo(() => {
     if (applications.length === 0) return null;
     let topId: string | null = null;

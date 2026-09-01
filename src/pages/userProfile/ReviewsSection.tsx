@@ -26,8 +26,21 @@ type Props = {
   onSaveResponse: (reviewId: string) => void;
   savingResponse: boolean;
   reviewsHasMore: boolean;
-  /** Server-side total (the count query), not just the rows loaded so far. */
+  /** How many reviews this viewer can LOAD — the pagination denominator. */
   reviewsTotalCount: number;
+  /**
+   * How many reviews EXIST. Not the same number: review prose is granted to
+   * signed-in members only (the `reviews` SELECT policy has always been
+   * `TO authenticated`), so a signed-out visitor is told the true count by
+   * `get_public_profile_stats` and can load none of the text.
+   */
+  trueReviewCount: number;
+  /**
+   * FALSE only for a viewer with no session. Without it this panel printed
+   * "No reviews yet" over a profile with five — a flat untruth, and precisely
+   * the failure mode this whole change exists to end.
+   */
+  canReadReviewText: boolean;
   loadMoreReviews: () => void;
   loadingMoreReviews: boolean;
 };
@@ -52,6 +65,8 @@ export const ReviewsSection = ({
   savingResponse,
   reviewsHasMore,
   reviewsTotalCount,
+  trueReviewCount,
+  canReadReviewText,
   loadMoreReviews,
   loadingMoreReviews,
 }: Props) => {
@@ -346,7 +361,16 @@ export const ReviewsSection = ({
         <div className="rounded-2xl liquid-glass p-6 text-center">
           <Star className="w-5 h-5 text-muted-foreground/30 mx-auto mb-2" />
           <p className="text-ds-11 text-muted-foreground">
-            {hasActiveFilter ? "No reviews match this filter" : "No reviews yet"}
+            {hasActiveFilter
+              ? "No reviews match this filter"
+              : /* THE DISTINCTION THAT MATTERS. An empty list means one of two
+                   completely different things, and saying the wrong one is a
+                   trust claim made without knowing it is true. Reviews EXIST
+                   but their prose is members-only → say that. Nothing exists →
+                   say that. Never print "No reviews yet" over five reviews. */
+                !canReadReviewText && trueReviewCount > 0
+              ? `Sign in to read ${trueReviewCount === 1 ? "the review" : `all ${trueReviewCount} reviews`}`
+              : "No reviews yet"}
           </p>
         </div>
       )}

@@ -150,9 +150,14 @@ export function WalletCard({
         return (
           <div className="mt-3 rounded-ds-md border border-primary/30 bg-gradient-to-br from-primary/10 to-primary/5 p-3 flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <Zap className="w-3.5 h-3.5 text-primary" />
-                <span className="text-ds-11 font-semibold text-foreground">Instant cash out</span>
+              {/* flex-wrap + nowrap on the label: at 320px "Instant cash out"
+                  was breaking across THREE lines ("Instant / cash / out") to
+                  make room for the BASIC chip beside it, which also dropped
+                  the Zap icon off the row. The words now stay intact and the
+                  chip moves to its own line instead. */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <Zap className="w-3.5 h-3.5 text-primary shrink-0" />
+                <span className="text-ds-11 font-semibold text-foreground whitespace-nowrap">Instant cash out</span>
                 {!canUseInstantPayout && (
                   <span
                     className="text-ds-9 font-bold uppercase tracking-wider px-1 py-0.5 rounded-full"

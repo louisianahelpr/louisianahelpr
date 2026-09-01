@@ -38,7 +38,12 @@ export function ChatPaneShell({
       // button — the last thing in the row — was sliced by the pane's own
       // overflow clip (owner: "doesn't fit very well"). The header and thread
       // take the same gutter so the whole column shares one edge.
-      <div className="flex-1 min-h-0 flex flex-col px-4">
+      //
+      // `--chat-gutter` MIRRORS that padding. The composer dock cancels it with
+      // a negative inline margin and re-applies it as its own padding, so the
+      // frosted bar reaches the pane's edges while its controls keep the same
+      // gutter as the bubbles above them. See CHAT_GUTTER_BLEED in ChatComposer.
+      <div className="flex-1 min-h-0 flex flex-col px-4 [--chat-gutter:1rem]">
         {header}
         {children}
       </div>
@@ -55,7 +60,12 @@ export function ChatPaneShell({
       reserveBottomNav={false}
       className="bg-premium-page"
     >
-      <div className="container mx-auto px-5 lg:px-8 xl:px-12 pt-0 flex-1 min-h-0 flex flex-col">
+      {/* `--chat-gutter` must track the `px-*` on this same element at every
+          breakpoint (1.25rem/2rem/3rem = px-5/px-8/px-12). The composer dock
+          reads it to cancel this gutter and re-apply it inside itself, so the
+          bar spans edge to edge while its controls stay aligned with the
+          message bubbles. Change one, change both. */}
+      <div className="container mx-auto px-5 lg:px-8 xl:px-12 [--chat-gutter:1.25rem] lg:[--chat-gutter:2rem] xl:[--chat-gutter:3rem] pt-0 flex-1 min-h-0 flex flex-col">
         <div className="w-full max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto flex-1 min-h-0 flex flex-col">
           {children}
         </div>

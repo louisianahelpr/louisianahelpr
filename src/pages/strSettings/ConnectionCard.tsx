@@ -1,5 +1,5 @@
 import {
-  Home, CalendarOff, RefreshCw, Trash2, CheckCircle, AlertCircle, Loader2,
+  Home, CalendarOff, RefreshCw, Trash2, CheckCircle, AlertCircle, Clock, Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { StrConnection } from "./types";
@@ -19,9 +19,22 @@ interface ConnectionCardProps {
 }
 
 export function ConnectionCard({ conn, onSync, onRequestRemove, syncing, removing }: ConnectionCardProps) {
+  // THREE states, not two. A connection that has never synced carries
+  // `last_synced_at: null` AND `last_sync_error: null` — which the old
+  // two-way split (`hasError ? error : ok`) rendered as a SAGE GREEN CHECK
+  // beside the words "Never synced". Every calendar was born looking healthy,
+  // because the row is inserted with both columns null, so the reassuring
+  // tick appeared before a single fetch had happened and stayed there if the
+  // cron never ran. A status icon that cannot say "don't know yet" is a claim
+  // nothing checks.
   const hasError = !!conn.last_sync_error;
-  const statusColor = hasError ? "hsl(var(--burnt-sienna))" : "hsl(var(--sage))";
-  const StatusIcon = hasError ? AlertCircle : CheckCircle;
+  const neverSynced = !hasError && !conn.last_synced_at;
+  const statusColor = hasError
+    ? "hsl(var(--burnt-sienna))"
+    : neverSynced
+      ? "hsl(var(--olivewood) / 0.7)"
+      : "hsl(var(--sage))";
+  const StatusIcon = hasError ? AlertCircle : neverSynced ? Clock : CheckCircle;
 
   return (
     <div className="rounded-ds-md p-4 space-y-3" style={cardStyle}>

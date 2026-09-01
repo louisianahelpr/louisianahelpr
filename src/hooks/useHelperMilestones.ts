@@ -138,5 +138,3 @@ export function useHelperMilestones({
     void maybeCelebrate("first_complete", { particleCount: 100 });
   }, [helperId, completedJobCount, totalEarningsDollars, lastCompletedAt, qc]);
 }
-
-export default useHelperMilestones;

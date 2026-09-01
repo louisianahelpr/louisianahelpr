@@ -235,10 +235,17 @@ serve(async (req) => {
   // rollbackIdempotency(). No-op when we didn't insert the row ourselves.
   const rollbackIdempotency = async () => {
     if (!idempotencyRecorded) return;
-    const { error: delErr } = await supabase
+    // `.select("event_id")` — NOT `.select("id")`. A DELETE matching zero rows
+    // returns `{ data: [], error: null }`, so without a returning projection a
+    // no-op rollback reads exactly like a successful one. `event_id` is this
+    // table's primary key and there is no `id` column (verified against prod:
+    // `?select=id` → 400), so asking for `id` would turn every rollback into a
+    // hard 400 and a false critical page.
+    const { data: rolledBack, error: delErr } = await supabase
       .from("stripe_webhook_events")
       .delete()
-      .eq("event_id", event.id);
+      .eq("event_id", event.id)
+      .select("event_id");
     if (delErr) {
       // If the rollback delete itself fails, the dedupe row survives — so
       // Stripe's 500-triggered retry will hit the wall and 200-skip, silently
@@ -251,6 +258,27 @@ serve(async (req) => {
         title: "Stripe webhook idempotency rollback FAILED — event may be stranded",
         message: `Could not delete stripe_webhook_events row for \`${event?.type || "unknown"}\`; the retry will dedupe-skip and drop this paid event. Manual replay needed.`,
         fields: { "Event ID": event?.id || "—", Error: String(delErr).slice(0, 200) },
+      });
+      return;
+    }
+
+    // Zero rows deleted — not a benign race. `idempotencyRecorded` is only true
+    // because THIS request inserted the row seconds ago; a concurrent delivery
+    // of the same event.id would have hit 23505 and 200-skipped without ever
+    // reaching this rollback; the only call site returns immediately after
+    // awaiting; and `cleanup_stripe_webhook_events()` prunes at 30 days. So no
+    // rows matched means the row is still there, Stripe's retry will
+    // dedupe-skip, and a PAID event — subscription grant, escrow funding,
+    // credit mint — is stranded un-applied. Same consequence as the delete
+    // erroring, so the same page.
+    if (!rolledBack || (rolledBack as unknown[]).length === 0) {
+      console.error("[STRIPE-WEBHOOK] Idempotency rollback matched ZERO rows — dedupe row may survive:", event?.id);
+      await postSlackOpsAlert({
+        kind: "stripe_webhook_error",
+        severity: "critical",
+        title: "Stripe webhook idempotency rollback matched 0 rows — paid event may be stranded",
+        message: `The rollback DELETE for \`${event?.type || "unknown"}\` reported no error but removed no row, even though this request inserted it moments ago. If the row survives, Stripe's retry will dedupe-skip and this paid event is dropped. Check \`stripe_webhook_events\` for this event id and delete it manually to allow redelivery.`,
+        fields: { "Event ID": event?.id || "—" },
       });
     }
   };

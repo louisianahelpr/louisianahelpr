@@ -4,7 +4,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { hapticError, hapticLight, hapticSuccess } from "@/lib/haptics";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetFooter, SheetHero } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetFooter,
+  SheetHero,
+  SheetPrimaryAction,
+  SheetSecondaryAction,
+} from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { Briefcase, Check } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -491,8 +498,7 @@ export const AppliedJobsTab = ({
               is reversible — the helper can apply again — so it takes the
               ordinary glossy primary, not a destructive treatment. */}
           <SheetFooter className="mt-5">
-            <Button
-              variant="ghost"
+            <SheetSecondaryAction
               disabled={!!withdrawingAppId}
               onClick={() => {
                 setWithdrawTarget(null);
@@ -501,15 +507,14 @@ export const AppliedJobsTab = ({
               }}
             >
               Keep It
-            </Button>
-            <Button
-              variant="primary"
+            </SheetSecondaryAction>
+            <SheetPrimaryAction
               disabled={!!withdrawingAppId}
               aria-busy={!!withdrawingAppId}
               onClick={confirmWithdraw}
             >
               {withdrawingAppId ? "Withdrawing…" : "Confirm Withdrawal"}
-            </Button>
+            </SheetPrimaryAction>
           </SheetFooter>
         </SheetContent>
       </Sheet>

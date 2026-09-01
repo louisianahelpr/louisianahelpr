@@ -1,8 +1,16 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
-import { CheckCircle2, Clock, AlertTriangle, ShieldCheck, CalendarClock } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHero,
+  DialogCallout,
+  DialogFooter,
+  DialogSecondaryAction,
+  DialogPrimaryAction,
+} from "@/components/ui/dialog";
+import { CheckCircle2, Clock, ShieldCheck, CalendarClock } from "lucide-react";
 import { parseLocalDate } from "@/lib/dateUtils";
 import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
@@ -241,7 +249,16 @@ export function JobConfirmation({
             title: isOwner ? "Poster confirmed the job!" : "Helpr confirmed the job!",
             message: `${isOwner ? "The poster" : "The Helpr"} confirmed they're committed to "${job.title}". Tap to confirm your side too.`,
             type: "info",
-            link: isOwner ? `/my-jobs?filter=offered` : `/my-posts?filter=offered`,
+            // `?job=`, not `?filter=offered`. `offered` is a LEGACY filter key —
+            // the strip is five buckets now (activityFilters.ts) and `offered` has
+            // no chip, so the recipient landed on a filtered list with nothing
+            // showing as selected. 33 rows in prod `notifications` are on
+            // `?filter=offered` (measured 2026-08-31). The bucket is not fixed
+            // either: an unconfirmed booking reads "Waiting" to the poster and
+            // "Needs you" to the helper, and both flip once the other side
+            // confirms or the day passes. Activity resolves it from the job id at
+            // open time; an explicit `?filter=` would override that resolution.
+            link: isOwner ? `/my-jobs?job=${jobId}` : `/my-posts?job=${jobId}`,
           });
         }
       }
@@ -291,32 +308,23 @@ export function JobConfirmation({
               {jobDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
             </p>
           </div>
-          <div
-            className="rounded-ds-md p-3"
-            style={{
-              background: "hsl(var(--burnt-sienna) / 0.08)",
-              border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
-            }}
-          >
-            <p
-              className="font-serif italic leading-snug flex items-start gap-2 text-ds-12"
-              style={{ color: "hsl(var(--burnt-sienna))" }}
-            >
-              <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-              <span>No-shows or last-minute cancellations after confirming may result in a warning or account restrictions.</span>
-            </p>
-          </div>
+          {/* The SHARED consequence box. This was a hand-built copy of it —
+              same 8% sienna fill, same sienna hairline, same AlertTriangle —
+              one border width and one radius token off from the one
+              BrandConfirmDialog renders behind every confirm in the app.
+              Copy unchanged. */}
+          <DialogCallout>
+            No-shows or last-minute cancellations after confirming may result in a warning or account restrictions.
+          </DialogCallout>
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={() => setShowConfirmDialog(false)} className="rounded-ds-md">Cancel</Button>
-          <Button
-            variant="primary"
+          <DialogSecondaryAction onClick={() => setShowConfirmDialog(false)}>Cancel</DialogSecondaryAction>
+          <DialogPrimaryAction
             onClick={handleConfirm}
             disabled={confirming}
-            className="rounded-ds-md"
           >
             {confirming ? "Confirming…" : "Yes, I Confirm"}
-          </Button>
+          </DialogPrimaryAction>
         </DialogFooter>
         {/* Distinct from Cancel: Cancel just dismisses this popup, nothing
             changes. This hands off to the caller's real cancel/decline flow

@@ -449,33 +449,62 @@ describe("money the UI names is the money the backend moves", () => {
     }
   });
 
-  it("FINDING — the referral cap the copy states is not enforced anywhere", () => {
-    // "Up to 5 friends ($25 max)" (ReferralSection.tsx:203, and the +$5 · $25
-    // max rung in ReferralExtras.tsx). Checked: check_referral_bonus
-    // (20260311032939 → 20260312012642 → 20260823010000) and the
-    // referral_credits_one_per_reason unique index. The index dedupes ONE bonus
-    // per (user, code, referred user, reason). There is NO cap of five and no
-    // $25 ceiling in any migration or edge function. A user who refers ten
-    // people is credited $50.
+  it("the referral cap that IS enforced in SQL is the ceiling the copy states", () => {
+    // This test used to assert the OPPOSITE — "there is NO cap of five and no
+    // $25 ceiling in any migration", concluding "a user who refers ten people
+    // is credited $50". That finding note was wrong, and the test passed anyway
+    // because its detector could not see the cap it was looking for.
     //
-    // The statement is therefore FALSE (in the user's favour, which is why
-    // nobody reported it). It is asserted here so that IF a cap is ever added,
-    // this test fails and the copy gets checked against it — and so the claim
-    // is on the record rather than in a reviewer's head.
+    // The cap has existed since `enforce_referral_cap` (20260403151012), a
+    // BEFORE INSERT trigger on referral_credits. The old regex required
+    // `count(*) >= 5` as one adjacent expression; the real function is
+    //     SELECT count(*) INTO credit_count ...
+    //     IF credit_count >= 5 THEN ... RETURN NULL;
+    // so the two halves are on different lines and never matched. A guard that
+    // has never fired is not evidence — this one was structurally blind.
+    //
+    // Executed against the live function in PGlite (2026-08-31): a referrer
+    // completing eight referred users' first jobs ended on exactly 5 credits =
+    // $25, with the 6th+ silently suppressed and a `referral_abuse` fraud flag
+    // raised each time. So the "$25 max" half of the copy is TRUE and enforced.
+    //
+    // The "5 friends" half is NOT true for everyone: the cap counts
+    // `first_job_bonus` as well as `referrer_bonus`, so a user who themselves
+    // arrived via a referral link can only ever be paid for FOUR friends. The
+    // copy therefore states the dollar ceiling, which holds for every user.
     const migrations = execFileSync("git", ["ls-files", "supabase/migrations"], {
       cwd: ROOT,
       encoding: "utf8",
     }).trim().split("\n");
     const capped = migrations.filter((m) => {
       const sql = repoFile(m);
-      return /referral/i.test(sql) && /count\(\*\)\s*[<>]=?\s*5\b|max_referrals|referral_limit/i.test(sql);
+      if (!/referral/i.test(sql)) return false;
+      // Match the real shape (count into a variable, compared later) as well as
+      // the inline form, so this cannot go blind the same way twice.
+      return /enforce_referral_cap/i.test(sql)
+        || /count\(\*\)\s*[<>]=?\s*5\b/i.test(sql)
+        || /\b\w*count\w*\s*>=\s*5\b/i.test(sql)
+        || /max_referrals|referral_limit/i.test(sql);
     });
     expect(
       capped,
-      "a referral cap now EXISTS in SQL (" + capped.join(", ") + "). ReferralSection.tsx " +
-        "has always claimed 'Up to 5 friends ($25 max)' — check the copy against the real " +
-        "cap and then delete this test's finding note.",
-    ).toEqual([]);
+      "the referral cap disappeared from SQL. ReferralSection.tsx tells users they " +
+        "can earn 'up to $25 in referral credits'; if enforce_referral_cap is gone, " +
+        "that ceiling is now a promise nothing keeps and the copy is a lie.",
+    ).not.toEqual([]);
+
+    // The stated ceiling must equal cap x per-referral amount.
+    const capSql = repoFile(
+      "supabase/migrations/20260403151012_d3d3f353-1a28-453d-9d90-fe4e6cb6f143.sql",
+    );
+    const capN = Number(capSql.match(/credit_count\s*>=\s*(\d+)/)![1]);
+    const copy = stripComments(repoFile("src/components/ReferralSection.tsx"));
+    const ceiling = Number(copy.match(/up to \$(\d+) in referral credits/i)![1]);
+    expect(
+      ceiling,
+      `ReferralSection.tsx promises a $${ceiling} ceiling but enforce_referral_cap ` +
+        `allows ${capN} credits of $5 = $${capN * 5}.`,
+    ).toBe(capN * 5);
   });
 
   it("the urgent-fee floor the form states is the floor moneyLimits defines", () => {

@@ -137,5 +137,3 @@ export function CityAutocomplete({ id, value, onChange, className }: CityAutocom
     </div>
   );
 }
-
-export default CityAutocomplete;

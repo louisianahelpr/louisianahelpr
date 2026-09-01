@@ -384,10 +384,26 @@ Deno.serve(async (req) => {
     if (action === 'formal_warning') {
       // 3-strike system: 1st = warning, 2nd = final warning (banner shown in app), 3rd = 7-day auto-suspension
       // Count prior strikes (warning + final_warning) to determine escalation tier
-      const { count: priorStrikes } = await admin.from('user_violations')
+      // Fail CLOSED on a read fault. The error used to be dropped, and that is
+      // not a cosmetic omission: on any read failure PostgREST returns
+      // `count === null`, `(priorStrikes || 0)` turns that into 0,
+      // `strikeNumber` becomes 1, and a user who has earned a 3rd strike (a
+      // 7-day auto-suspension) is handed "Formal warning (Strike 1 of 3)"
+      // instead. The response still reports `success: true, strike_number: 1`
+      // and the `admin_audit_log` row records `prior_strikes: 0`, so the audit
+      // trail actively misstates what happened — the consequence ladder is
+      // silently reset by a transient database blip.
+      const { count: priorStrikes, error: strikeCountErr } = await admin.from('user_violations')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', targetUserId)
         .in('action_taken', ['warning', 'final_warning'])
+      if (strikeCountErr) {
+        console.error('[admin-user-actions] strike count read failed:', strikeCountErr.message)
+        return new Response(
+          JSON.stringify({ error: "Couldn't read this user's strike history, so the escalation tier can't be determined. Nothing was changed — please try again." }),
+          { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        )
+      }
 
       // If admin chose to bypass the next strike (one-time courtesy), keep
       // strike number at the current level (still log the warning, but don't escalate).
@@ -463,7 +479,14 @@ Deno.serve(async (req) => {
             'Suspended until': suspendUntil.toISOString().slice(0, 10),
             Reason: note?.slice(0, 200) || '—',
           },
-          link: `${appUrl}/admin?tab=users&user=${targetUserId}`,
+          // `?view=`, not `?tab=`, and `people`, not `users`. Admin.tsx:47
+          // reads `searchParams.get("view")` and its `View` union (Admin.tsx:45)
+          // has no `users` member — `isRealView` then bounces an unknown view
+          // to home, so this alert (the one that pages someone about a 3-strike
+          // auto-suspension) landed on the admin landing page and dropped the
+          // `?user=` id, which AdminUsers only reads once the people view has
+          // actually mounted.
+          link: `${appUrl}/admin?view=people&user=${targetUserId}`,
         })
       }
 

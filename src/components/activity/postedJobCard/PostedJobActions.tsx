@@ -9,10 +9,7 @@ import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
 import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { AUTO_COMPLETE_HOURS, hoursToMs } from "../../../../supabase/functions/_shared/escrowTiming";
-import {
-   DollarSign, XCircle, CheckCircle2, RotateCcw, Star, MessageSquare,
-  MessageCircle, Pencil, AlertTriangle, Rocket, Wrench, Flag, Clock,
-} from "lucide-react";
+import { DollarSign, XCircle, CheckCircle2, RotateCcw, Star, MessageSquare, MessageCircle, Pencil, AlertTriangle, Rocket, Wrench, Flag } from "lucide-react";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { SosShareButton } from "@/components/SosShareButton";
 import { PhotoProofGroup } from "@/components/PhotoProof";
@@ -75,10 +72,11 @@ interface PostedJobActionsProps {
  * sheet, the resolve-dispute confirm, and the dispute-action in-flight state
  * that only this section reads.
  *
- * EVERY job_status must land in a branch or in the `cancelled` early-return.
- * A status that falls through them all still renders this component's ruled,
- * padded shell around an empty div — a band of card stock with no controls in
- * it. That is what `pending_approval` did until it got a branch of its own.
+ * EVERY job_status must land in a branch, or be classified `false` in
+ * STATUS_RENDERS_ACTIONS so the early return sends it out as `null`. A status
+ * that falls through them all still renders this component's ruled, padded
+ * shell around an empty div — a band of card stock with no controls in it.
+ * That is what `pending_approval` did, twice.
  *
  * That sentence used to be the whole safeguard, and it failed twice — a comment
  * cannot fail a build. STATUS_RENDERS_ACTIONS below turns it into a type error.
@@ -94,8 +92,9 @@ interface PostedJobActionsProps {
  * replaces is silent and visual — a status with no branch fell through the JSX
  * chain below and left the component's bordered `px-4 py-3` shell wrapped
  * around an empty `space-y-2`, i.e. a ruled band of blank card stock where the
- * poster's controls should be. It shipped that way for `pending_approval`, and
- * again after. A comment saying "every status must land in a branch" cannot
+ * poster's controls should be. It shipped that way for `pending_approval`
+ * twice — once with no branch, and again after its branch was deleted as
+ * residue without this map being updated to match. A comment saying "every status must land in a branch" cannot
  * enforce itself; this can.
  *
  * `false` is a real answer, not an omission — it means "this status
@@ -108,7 +107,20 @@ const STATUS_RENDERS_ACTIONS = {
   revision_requested: true,
   completed: true,
   disputed: true,
-  pending_approval: true,
+  /**
+   * FALSE, and the key stays. Nothing in the product can produce this status:
+   * the `businesses` table it belongs to does not exist in the database,
+   * `initialStatus` has zero call sites so the post flow can never write it,
+   * and there is no `/business` route for the approver notification to link
+   * to. The only rows carrying it are seed fixtures. The key is kept because
+   * `satisfies Record<Job["status"], boolean>` requires it — `job_status` is
+   * still a DB enum value — and because `false` is the answer that routes it
+   * through the early return below, which renders NOTHING. Deleting the key
+   * would be a compile error, which is the guard doing its job; deleting the
+   * branch without setting this to `false` would put the empty bordered band
+   * back, which is the bug that started this.
+   */
+  pending_approval: false,
   /** Its one move, "Re-post This Job", is rendered by the card, not here. */
   cancelled: false,
 } as const satisfies Record<Job["status"], boolean>;
@@ -174,7 +186,9 @@ export function PostedJobActions({
         onActionComplete();
         return;
       }
-      if (job.helper_id) await createNotification({ user_id: job.helper_id, title: "Dispute resolved ✓", message: `The poster confirmed the issue on "${job.title}" is resolved. Payment will be released.`, type: "payment", link: "/my-jobs?filter=completed" });
+      if (job.helper_id) await createNotification({ user_id: job.helper_id, title: "Dispute resolved ✓", message: `The poster confirmed the issue on "${job.title}" is resolved. Payment will be released.`, // `?job=` — `completed` is a legacy key (the chip is "Done"), and the
+        // payment is still releasing, so the bucket is not settled yet.
+        type: "payment", link: `/my-jobs?job=${job.id}` });
       hapticSuccess();
       // The one action in this card that moves money and said NOTHING when it
       // landed — every sibling handler (confirm arrival, confirm working)
@@ -233,76 +247,26 @@ export function PostedJobActions({
       onClick={(e) => e.stopPropagation()}
     >
       <div className="space-y-2">
-        {/* PENDING APPROVAL — the branch that did not exist.
+        {/* NO `pending_approval` BRANCH — the state itself is residue.
 
-            `pending_approval` fell through every condition below, so the
-            component still rendered its bordered `px-4 py-3` shell around an
-            empty `space-y-2`: a ruled band of card stock with nothing in it,
-            the exact defect the `cancelled` early-return above was added to
-            kill (audit, 2026-08-30: live jobs were sitting in it).
+            Owner, 2026-08-30, on the amber panel that used to be here
+            ("Waiting on your team's approver…"): "waiting on team?? what team??
+            no such thing." They are right, and it checks out end to end:
+            `public.businesses` does not exist (a query returns PGRST205), no
+            call site anywhere in `src/` passes `initialStatus`, so the post
+            flow cannot produce this status, there is no `/business` route in
+            the router, and migration 20260828011811_remove_business_seats_residue
+            already recorded that the approver notification links to a route
+            that isn't there. The only rows in this state are seed fixtures with
+            a null `business_id` — the status was written by fixtures, not
+            earned. Explaining a team-approval queue to a poster who has no team
+            is worse than saying nothing.
 
-            What the state actually IS: a job posted under a BUSINESS whose
-            budget cleared `businesses.require_approval_above`, so
-            `jobSubmitHelpers` inserted it as `pending_approval` instead of
-            `open` and `trg_notify_business_approvers` pinged the team's
-            approvers (20260609170000_business_team_roles.sql). There is no
-            helper, no escrow and no submitted work here — it is a draft
-            waiting on a colleague, which is why `postedActivityBucket` files
-            it under WAITING, not "Needs you".
-
-            What the server will accept from the POSTER, checked rather than
-            assumed:
-              • Edit — a plain field UPDATE. `enforce_job_status_transition`
-                short-circuits when the status is unchanged, and the
-                "Customers can update their own jobs" policy is the only gate.
-                Offered.
-              • Cancel — NOT offered. `rpc_cancel_job` refuses anything outside
-                open/accepted/in_progress/revision_requested with
-                `not_cancellable`, and `trg_cancellation_requires_rpc` blocks
-                the raw UPDATE, so the one `pending_approval -> cancelled` edge
-                in the matrix is reachable only from inside
-                `reject_pending_job` — the approver's path, not the poster's.
-                A Cancel chip here would fail every time.
-              • Share / Boost — the post is invisible to Helprs until it
-                clears, so both promote a link that leads nowhere.
-              • Message / Approve / Dispute — there is no helper and no money
-                in escrow to argue about.
-            So: say what is happening, and offer the one control that works. */}
-        {job.status === "pending_approval" && (
-          <div className="space-y-2">
-            <div
-              className="rounded-ds-md px-3 py-2 flex items-start gap-2"
-              style={{
-                background: "hsl(var(--amber-tint) / 0.10)",
-                border: "0.5px solid hsl(var(--amber-tint) / 0.32)",
-              }}
-            >
-              <Clock className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: "hsl(var(--amber-ink))" }} strokeWidth={2.25} />
-              <p
-                className="font-serif italic leading-snug text-ds-12"
-                style={{ color: "hsl(var(--olivewood) / 0.85)" }}
-              >
-                <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
-                  Waiting on your team's approver.
-                </span>{" "}
-                This post is over your team's approval limit, so Helprs can't see
-                it yet. You can still edit it while it waits.
-              </p>
-            </div>
-            {/* Full-width, not a lone stacked chip: one control that owns the
-                whole row reads better horizontally — the same call
-                JOB_ACTION_FULL_CLASS documents for Confirm They Arrived. */}
-            <Button
-              size="sm"
-              variant="outline"
-              className={JOB_ACTION_FULL_CLASS}
-              style={jobActionChipStyle("edit")}
-              onClick={() => onEdit(job)}
-            >
-              <Pencil className="w-4 h-4" /> Edit Post
-            </Button>
-          </div>
-        )}
+            So the status renders NOTHING now — see STATUS_RENDERS_ACTIONS,
+            where it is `false` — and "nothing" means the early return above,
+            not this component's bordered shell wrapped around an empty
+            `space-y-2`. That empty band is the defect this whole area has now
+            shipped twice; the gate is what stops it a third time. */}
         {job.status === "open" && (() => {
           // Boost cooldown — show when the job is currently
           // boosted so the poster knows the boost is running
@@ -359,7 +323,7 @@ export function PostedJobActions({
                   job={{ id: job.id, title: job.title, budget: job.budget, category: job.category }}
                   layout="stack"
                   className={JOB_ACTION_CHIP_CLASS}
-                  style={jobActionChipStyle("info")}
+                  style={jobActionChipStyle("share")}
                 />
                 <JobActionChip
                   icon={Rocket}
@@ -420,7 +384,7 @@ export function PostedJobActions({
                 icon={MessageSquare}
                 label="Message"
                 ariaLabel="Message Helpr"
-                tone="info"
+                tone="message"
                 onClick={() => navigate(job.helper_id ? `/messages?jobId=${job.id}&userId=${job.helper_id}` : "/messages")}
               />
               <JobActionChip
@@ -641,7 +605,7 @@ export function PostedJobActions({
                       // Quiet olivewood outline — owner call 2026-08-24
                       // ("brand the action buttons"), superseding the earlier
                       // blue. Still one Message colour everywhere.
-                      tone="info"
+                      tone="message"
                       // Straight into the thread with THIS helpr on THIS job, not
                       // the conversation list — owner: "when I tap message it
                       // should take me right into Eli's message". Same
@@ -1089,7 +1053,7 @@ export function PostedJobActions({
                 icon={MessageSquare}
                 label="Message"
                 ariaLabel="Message Helpr"
-                tone="info"
+                tone="message"
                 onClick={() => navigate(`/messages?jobId=${job.id}&userId=${job.helper_id}`)}
               />
               <JobActionChip

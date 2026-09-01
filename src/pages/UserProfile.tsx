@@ -10,7 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Briefcase, Crown, Lock, MoreVertical, Flag, Ban, ShieldCheck, UserX } from "lucide-react";
+import { Banknote, Briefcase, Crown, Lock, MoreVertical, Flag, Ban, ShieldCheck, UserX } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -101,7 +101,10 @@ const UserProfile = () => {
     postedJobs,
     workedJobs,
     completedWorkedJobs,
-    responseMetrics,
+    completedWorkedCount,
+    canReadReviewText,
+    statSamples,
+    replyLatency,
     cancellationRate,
     mutualJobsCount,
     onTimeArrivalRate,
@@ -130,25 +133,33 @@ const UserProfile = () => {
     ? new Date(profile.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" })
     : null;
 
-  // THE HEADER NAMES THE PERSON (owner, 2026-08-31: "the page title is just
-  // 'Profile'… the title carries no information"). A visitor is looking at
-  // Marie H.'s profile, so the h1 — and the browser tab — say "Marie H.".
-  // Place and tenure sit in the masthead card just below (PageHeader paints
-  // no meta line — see the note under it).
+  // THE HEADER SAYS "Profile", FULL STOP (owner, 2026-08-31: "put the name
+  // back in the box and profile back where it was to the right of back").
+  //
+  // An earlier pass this morning put the member's NAME in this h1. That is
+  // what emptied the masthead: the card stopped printing the name to avoid
+  // saying it twice, and was left as an avatar next to a bare "Since May
+  // 2026". The h1 is a fixed label again, sitting right of the back button
+  // where it has always been, and the name is back in the box beside the
+  // avatar — where it appears exactly once.
   //
   // The own-profile view keeps "Profile Review": there the subject is not a
   // stranger to identify, it is the preview itself, and the whole screen
   // exists to answer "what do others see?".
-  // `profile?.full_name`, NOT `displayName` — `formatName` falls back to the
-  // literal string "A neighbor" for a missing name, so keying off it made the
-  // skeleton header read "A neighbor" for the whole load (caught in Chrome at
-  // 320 during the verification pass, where the fetch is slowest).
-  const headerTitle = isOwnProfile
-    ? "Profile Review"
-    : profile?.full_name
-      ? displayName
-      : "Profile";
-  usePageTitle(`${headerTitle} — Helpr`);
+  const headerTitle = isOwnProfile ? "Profile Review" : "Profile";
+
+  // The BROWSER TAB still names the person — a tab strip with four identical
+  // "Profile — Helpr" entries is useless, and a document title is not a
+  // second heading on the screen. `profile?.full_name`, NOT `displayName`:
+  // `formatName` falls back to the literal "A neighbor" for a missing name,
+  // so keying off it made the tab read "A neighbor" for the whole load.
+  usePageTitle(
+    isOwnProfile
+      ? "Profile Review — Helpr"
+      : profile?.full_name
+        ? `${displayName} — Helpr`
+        : "Profile — Helpr",
+  );
 
   const headerEyebrow = isOwnProfile ? "How others see you" : "Helpr profile";
   // NOTE: PageHeader paints NEITHER `eyebrow` NOR `meta` — both were retired
@@ -181,15 +192,20 @@ const UserProfile = () => {
   // marketing PublicLayout, whose Navbar/Footer would double-stack on top of
   // the app shell. Every rendered state routes through this wrapper.
   //
-  // `flex flex-col` + a `flex-1` body is what makes the page FILL the shell.
-  // Without it the column was `h-fit`: on a sparse profile the content ended
-  // roughly a third of the way down and the rest of the screen was bare page
-  // colour (owner, 2026-08-31: "roughly a third of the screen is empty grey").
-  // The body stretches, and its closing trust footer is pinned to the bottom
-  // with `mt-auto`, so the page has a deliberate bottom edge at every height
-  // instead of trailing off.
+  // NO `flex flex-col` + `flex-1` STRETCH HERE ANY MORE, and no `mt-auto` on
+  // the closing block. That combination was an attempt to answer "roughly a
+  // third of the screen is empty grey" by stretching the column to the shell
+  // and pinning the trust footer to the bottom of it. It did not remove the
+  // empty third — it MOVED it, out of the tail and into the middle of the
+  // page, between the last card and the footer. Measured on a sparse profile
+  // before this change: a 177–199px hole sat between the masthead and
+  // "Booking on Helpr" at every one of 320 / 375 / 768 / 1440.
+  //
+  // Owner's call: unpin it. Content flows, the closing block follows the last
+  // card, and the page simply ends there. Leftover space belongs at the end
+  // of a short page, not punched through the middle of it.
   const wrap = (inner: ReactNode) => (
-    <div className="min-h-screen bg-premium-page pb-safe-nav flex flex-col">{inner}</div>
+    <div className="min-h-screen bg-premium-page pb-safe-nav">{inner}</div>
   );
 
   if (loading) {
@@ -327,7 +343,29 @@ const UserProfile = () => {
     isIdVerified ||
     (profile as unknown as { is_id_verified?: boolean }).is_id_verified === true;
 
-  const initials = (profile.full_name || "?").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
+  // PAYOUT READINESS — public, and the only place on this page that reads it.
+  // `(stripe_account_id IS NOT NULL AND stripe_payouts_enabled)`, computed
+  // server-side in `get_safe_profiles` (restored by migration 20260831213259
+  // after 20260831145430 dropped the column). Strict `=== true` so a row that
+  // predates the restore, or a fallback row from the direct self-select
+  // below, reads "not set up" rather than throwing.
+  const profilePayoutReady =
+    (profile as unknown as { is_payout_ready?: boolean }).is_payout_ready === true;
+
+  // `.filter(Boolean)` before `.map`: " ".split(" ") is ["", ""], whose first
+  // characters are `undefined`, and Array#join turns those into "" — so a
+  // whitespace-only name produced EMPTY initials, and the avatar fallback
+  // painted a coloured square with nothing in it. (ProfileHeaderCard carries
+  // its own last-resort guard too; this one keeps the bad value from being
+  // manufactured in the first place.)
+  const initials =
+    (profile.full_name || "")
+      .split(/\s+/)
+      .filter(Boolean)
+      .map(w => w[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2) || "?";
   const badges = computeBadges({ avgRating: stats.avgRating, reviewCount: stats.reviewCount, completedJobs: stats.completedJobs, helprTier: profile.subscription_tier || null });
 
   const lastActiveLabel = computeLastActiveLabel(lastActiveAt);
@@ -460,13 +498,13 @@ const UserProfile = () => {
         }
       />
 
-      {/* THE BODY FILLS THE SHELL.
-          `flex-1 flex flex-col` on the container + `mt-auto` on the closing
-          footer is the fix for the owner's first complaint ("roughly a third
-          of the screen is empty grey before the bottom nav"): a sparse profile
-          no longer ends a third of the way up a page-coloured void — the
-          column stretches to the shell and the page has a deliberate bottom
-          edge at every viewport height.
+      {/* THE BODY IS A PLAIN DOCUMENT COLUMN — it does NOT stretch.
+          See the note on `wrap` above: stretching it and pinning the footer
+          with `mt-auto` relocated the empty band into the middle of the page.
+
+          ORDER, top to bottom: who they are (identity + bio) → what their
+          record says (At a glance, endorsements, reviews, history) → how
+          booking works. Nothing about the platform outranks the person.
 
           NO per-page desktop-rail inset here, deliberately. The rail is inset
           in exactly ONE layer, globally: document-scroll pages like this one
@@ -477,7 +515,7 @@ const UserProfile = () => {
           choice and route list agree. */}
       <div
         data-profile-body
-        className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pb-8 w-full flex-1 flex flex-col"
+        className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pb-8 w-full"
       >
         {/* ONE COLUMN at every width (owner: "should all be in 1 column", and
             "fix this to all go up and down"). The 12-col split put the identity
@@ -491,7 +529,7 @@ const UserProfile = () => {
             goes 2-up → 6-up, the chip rows wrap, and prose carries its own
             reading cap. That is how a single column fills a 1440 frame without
             reintroducing a layout the owner has already rejected. */}
-        <div className="flex flex-col gap-5 items-stretch flex-1">
+        <div className="flex flex-col gap-5 items-stretch">
           {/* ── MASTHEAD ──
               ONE card: who this person is, what they have earned, and what
               their record says. It used to be four separate cards stacked in a
@@ -533,14 +571,20 @@ const UserProfile = () => {
                 // anyone with more than 20 jobs. The exact count is already
                 // fetched on this same load (count: exact, head: true).
                 postedJobsCount={postedTotalCount}
-                workedJobsCount={completedWorkedJobs.length}
-                responseMetrics={responseMetrics}
+                // completedWorkedCount, NOT completedWorkedJobs.length: that
+                // array is a .limit(20) page of `jobs` rows RLS hides from
+                // every visitor, so the tile read "0 Jobs completed" on a
+                // stranger's view of a helper with a dozen. The count is a
+                // SECURITY DEFINER aggregate; the list stays the list.
+                workedJobsCount={completedWorkedCount}
+                replyLatency={replyLatency}
                 onTimeArrivalRate={onTimeArrivalRate}
                 revisionFrequency={revisionFrequency}
                 cancellationRate={cancellationRate}
                 posterReputation={posterReputation}
                 petCareSignal={petCareSignal}
                 repeatHirePercent={data?.repeatHirePercent ?? null}
+                statSamples={statSamples}
                 showReviews={showReviews}
                 showPostedJobs={showPostedJobs}
                 showWorkedJobs={showWorkedJobs}
@@ -664,7 +708,13 @@ const UserProfile = () => {
                 preview reproduces what a prospective poster actually
                 reads. Read-only: quotes from past customers, no control
                 that could let anyone review themselves. */}
-            {showReviews && stats.reviewCount > 0 && (
+            {/* `canReadReviewText` guard: this wall runs its own `reviews`
+                select, and that policy is TO authenticated — so for a
+                signed-out visitor it fetches nothing and renders its "be the
+                first to review" empty state, which would now sit under a
+                truthful "4.8 · 5 reviews" tile. ReviewsSection below says the
+                honest thing instead ("Sign in to read all 5 reviews"). */}
+            {showReviews && stats.reviewCount > 0 && canReadReviewText && (
               <PublicReviewWall
                 helperId={userId!}
                 totalReviewCount={stats.reviewCount}
@@ -706,16 +756,26 @@ const UserProfile = () => {
                 savingResponse={savingResponse}
                 reviewsHasMore={reviewsHasMore}
                 reviewsTotalCount={reviewsTotalCount}
+                trueReviewCount={stats.reviewCount}
+                canReadReviewText={canReadReviewText}
                 loadMoreReviews={loadMoreReviews}
                 loadingMoreReviews={loadingMoreReviews}
               />
             )}
 
             {/* Posted Jobs expanded inline */}
-            {showPostedJobs && <JobsList jobs={postedJobs} variant="posted" />}
+            {showPostedJobs && (
+              <JobsList jobs={postedJobs} variant="posted" knownCount={postedTotalCount} />
+            )}
 
             {/* Worked Jobs expanded inline */}
-            {showWorkedJobs && <JobsList jobs={completedWorkedJobs} variant="worked" />}
+            {showWorkedJobs && (
+              <JobsList
+                jobs={completedWorkedJobs}
+                variant="worked"
+                knownCount={completedWorkedCount}
+              />
+            )}
 
             {/* No hourly-rate card. Louisiana Helpr prices jobs POSTER-side:
                 the poster sets the price and the helper bids against it, so a
@@ -738,27 +798,42 @@ const UserProfile = () => {
           </div>
 
           {/* ── HOW A BOOKING IS PROTECTED ──
-              `mt-auto` pins this to the bottom of the stretched column, which
-              is what gives a short profile a deliberate bottom edge instead of
-              a third of a screen of bare page colour (owner, 2026-08-31).
+              NOT pinned. It follows the last card and the page ends with it;
+              see the note on `wrap`. On a young marketplace the profile a
+              visitor lands on most often is one with no reviews and no record,
+              and the question it leaves them with is "so how do I know this is
+              safe?". This is the answer, and every line of it is sourced from
+              `get_safe_profiles` — the one read path that returns real values
+              to a viewer with no shared history.
 
-              It is NOT spacer. On a young marketplace the profile a visitor
-              lands on most often is one with no reviews and no record, and the
-              question that profile leaves them with is "so how do I know this
-              is safe?". This answers it with the two facts the page can state
-              truthfully — whether this member's ID was actually checked, and
-              what happens to the money — and carries the safety exit, which
-              until now was only reachable behind the ⋮ menu.
+              ORDER MATTERS HERE (owner, 2026-08-31: keep the ID line, "but
+              quieter — below the escrow explainer, not leading"). The escrow
+              promise is unconditional and true of every booking, so it leads.
+              The ID line follows. A member who signed up this morning is not
+              introduced to a stranger with a sentence about what they have
+              not done.
 
-              Both claims are sourced. The ID line reads `is_id_verified`, a
-              column `get_safe_profiles` returns to any viewer precisely so a
-              stranger can see it (the older `isIdVerified` prop comes from a
-              direct `profiles` select and is own-row-only under RLS, i.e.
-              always false here). The escrow line states no timing figure on
-              purpose — the release window is config, and restating a config
-              number in prose is how the Legal "90%" bug happened. */}
+              WHAT IS *NOT* HERE: "Report this profile". Report User and Block
+              User already sit in the ⋮ menu at the top right, which is the
+              conventional home for them and was already built. A second entry
+              point at the foot of the page was a third way to say the same
+              thing (owner: "remove report from the bottom").
+
+              SOURCING. Every claim reads a column `get_safe_profiles` returns
+              to any caller — verified against prod on 2026-08-31 with the
+              anon key, i.e. a viewer with no session at all:
+                • `is_id_verified`  → true for 6bdc1f67, false for 2222…2201
+                • `is_payout_ready` → true for 6bdc1f67, false for 76b07824
+              Neither is reachable any other way: the direct `profiles` select
+              this page also runs returns ZERO rows for another member under
+              RLS (measured), so `isIdVerified` from the hook is permanently
+              false for a visitor and cannot be used on its own.
+
+              The escrow line states no timing figure on purpose — the release
+              window is config, and restating a config number in prose is how
+              the Legal "90%" bug happened. */}
           <div
-            className="mt-auto pt-5 flex flex-col gap-2.5"
+            className="pt-5 flex flex-col gap-2.5"
             style={{ borderTop: "0.5px solid hsl(var(--olivewood) / 0.14)" }}
           >
             <p
@@ -767,7 +842,21 @@ const UserProfile = () => {
             >
               Booking on Helpr
             </p>
-            <div className="grid gap-2 sm:grid-cols-2">
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              <p
+                className="font-serif italic text-ds-13 leading-relaxed flex items-start gap-2"
+                style={{ color: "hsl(var(--olivewood) / 0.9)" }}
+              >
+                <Lock
+                  className="w-4 h-4 shrink-0 mt-0.5"
+                  style={{ color: "hsl(var(--bark) / 0.75)" }}
+                  aria-hidden
+                />
+                <span>
+                  You pay Helpr, not the member — the money is held in escrow
+                  and released once the job is done.
+                </span>
+              </p>
               <p
                 className="font-serif italic text-ds-13 leading-relaxed flex items-start gap-2"
                 style={{ color: "hsl(var(--olivewood) / 0.9)" }}
@@ -787,32 +876,40 @@ const UserProfile = () => {
                     : `${displayName} hasn't verified a government ID yet.`}
                 </span>
               </p>
+              {/* PAYOUT SETUP — new, and the one public fact about this member
+                  that this page rendered nowhere. It was dropped from
+                  `get_safe_profiles` by 20260831145430 and restored by
+                  20260831213259; `src/integrations/supabase/types.ts` already
+                  carries it, so no cast is needed. It is the difference
+                  between "escrow will reach this person" and "it will sit
+                  there", which is exactly what a poster about to pay wants to
+                  know, and it is legible on a profile with no other record. */}
               <p
                 className="font-serif italic text-ds-13 leading-relaxed flex items-start gap-2"
                 style={{ color: "hsl(var(--olivewood) / 0.9)" }}
               >
-                <Lock
+                <Banknote
                   className="w-4 h-4 shrink-0 mt-0.5"
-                  style={{ color: "hsl(var(--bark) / 0.75)" }}
+                  style={{
+                    color: profilePayoutReady
+                      ? "hsl(var(--bark) / 0.75)"
+                      : "hsl(var(--olivewood) / 0.5)",
+                  }}
                   aria-hidden
                 />
                 <span>
-                  You pay Helpr, not the member — the money is held in escrow
-                  and released once the job is done.
+                  {/* The negative branch is phrased about the SETUP, not the
+                      person, and names nobody. A brand-new profile already
+                      carries "hasn't built a public record yet" and "hasn't
+                      verified a government ID yet"; a third sentence beginning
+                      with their name and the word "hasn't" turns an honest
+                      page into a character reference. Same fact, no pile-on. */}
+                  {profilePayoutReady
+                    ? `${displayName} has finished payout setup with Stripe, so escrow can be released to them.`
+                    : "Payout setup isn't complete yet — no money can leave escrow until it is."}
                 </span>
               </p>
             </div>
-            {!isOwnProfile && currentUserId && (
-              <button
-                type="button"
-                onClick={() => setShowReport(true)}
-                className="self-start inline-flex items-center gap-1.5 min-h-[44px] px-3 -mx-3 rounded-ds-md font-sans font-semibold text-ds-12 transition-opacity active:opacity-70 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                style={{ color: "hsl(var(--burnt-sienna))" }}
-              >
-                <Flag className="w-3.5 h-3.5" aria-hidden />
-                Report this profile
-              </button>
-            )}
           </div>
         </div>
       </div>

@@ -178,20 +178,27 @@ Deno.serve(async (req) => {
       }
     }
 
-    const { error: insertError } = await adminClient.from("notifications").insert({
-      user_id,
-      title,
-      message,
-      type,
-      link: sanitizedLink,
-    });
+    // `.select("id").single()` is not decoration: a null `error` alone does not
+    // prove a row landed, and the id is what lets the caller (and the "Send a
+    // Test" button) say "the bell row is really there" instead of assuming it.
+    const { data: inserted, error: insertError } = await adminClient
+      .from("notifications")
+      .insert({
+        user_id,
+        title,
+        message,
+        type,
+        link: sanitizedLink,
+      })
+      .select("id")
+      .single();
 
-    if (insertError) {
+    if (insertError || !inserted?.id) {
       console.error("Failed to create notification:", insertError);
-      return new Response(JSON.stringify({ error: "Failed to create notification" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Failed to create notification" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     // Chain the email HERE, with the service key. send-notification-email is
@@ -203,6 +210,24 @@ Deno.serve(async (req) => {
     // already authorized the caller (self / admin / job counterparty), so it
     // is the trusted place to trigger delivery. Fire-and-forget: an email
     // failure must not fail the in-app notification that already landed.
+    // Per-channel outcome, reported back to the caller.
+    //
+    // This used to be a bare `{ success: true }` no matter what actually
+    // happened downstream, which is how "Send a Test" could tell the owner to
+    // "check your email" on a run where send-notification-email had returned
+    // HTTP 200 `{ skipped: true, reason: "email_disabled" }` and no mail was
+    // ever queued. A 200 from the email function is NOT proof of a send — only
+    // its body says which of send / skip / fail occurred, so read the body.
+    type ChannelResult = {
+      status: "sent" | "skipped" | "failed";
+      reason?: string;
+      /** Masked recipient, e.g. `lexi…@gmail.com`, when one was resolved. */
+      detail?: string;
+      /** The notification_preferences column that turned the email off. */
+      pref_column?: string;
+    };
+    let emailResult: ChannelResult = { status: "failed", reason: "unknown" };
+
     try {
       const emailRes = await fetch(`${supabaseUrl}/functions/v1/send-notification-email`, {
         method: "POST",
@@ -212,16 +237,63 @@ Deno.serve(async (req) => {
         },
         body: JSON.stringify({ user_id, title, message, type, link: sanitizedLink }),
       });
+      const emailBody = await emailRes.json().catch(() => null) as
+        | {
+            success?: boolean; skipped?: boolean; reason?: string; to?: string;
+            delivery?: string; error?: string; pref_column?: string;
+          }
+        | null;
+
       if (!emailRes.ok) {
-        console.error("send-notification-email failed:", emailRes.status, await emailRes.text());
+        console.error("send-notification-email failed:", emailRes.status, JSON.stringify(emailBody));
+        emailResult = { status: "failed", reason: emailBody?.reason ?? `http_${emailRes.status}` };
+      } else if (emailBody?.skipped) {
+        emailResult = {
+          status: "skipped",
+          reason: emailBody.reason ?? "skipped",
+          detail: emailBody.to,
+          ...(emailBody.pref_column ? { pref_column: emailBody.pref_column } : {}),
+        };
+      } else if (emailBody?.success) {
+        emailResult = { status: "sent", reason: emailBody.delivery, detail: emailBody.to };
+      } else {
+        emailResult = { status: "failed", reason: emailBody?.reason ?? "send_failed", detail: emailBody?.to };
       }
     } catch (emailErr) {
       console.error("send-notification-email unreachable:", emailErr);
+      emailResult = { status: "failed", reason: "unreachable" };
     }
 
-    return new Response(JSON.stringify({ success: true }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    // Push is fanned out asynchronously by the fan_out_push_on_notification
+    // trigger on the INSERT above, so we cannot observe its delivery here —
+    // but we CAN report the one fact that decides whether push was ever
+    // possible: how many devices this user has registered. Zero devices is the
+    // difference between "your push didn't arrive" and "there is nowhere to
+    // send it", and the caller must be able to say which.
+    const { count: pushDevices, error: pushCountError } = await adminClient
+      .from("push_tokens")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user_id);
+    if (pushCountError) {
+      console.error("push_tokens count failed:", pushCountError);
+    }
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        notification_id: inserted.id,
+        channels: {
+          in_app: { status: "sent", id: inserted.id },
+          email: emailResult,
+          push: {
+            status: (pushDevices ?? 0) > 0 ? "queued" : "skipped",
+            devices: pushDevices ?? 0,
+            ...((pushDevices ?? 0) === 0 ? { reason: "no_registered_devices" } : {}),
+          },
+        },
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   } catch (error) {
     console.error("Create notification error:", error);
     return new Response(JSON.stringify({ error: "Internal server error" }), {

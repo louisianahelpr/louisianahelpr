@@ -2719,7 +2719,11 @@ export type Database = {
           stripe_charges_enabled: boolean
           stripe_identity_verified: boolean
           stripe_identity_verified_at: string | null
+          stripe_customer_id: string | null
           stripe_payouts_enabled: boolean
+          stripe_subscription_id: string | null
+          subscription_billing_cycle: string | null
+          subscription_cancel_at_period_end: boolean
           subscription_expires_at: string | null
           subscription_tier: string | null
           terms_accepted_at: string | null
@@ -2813,7 +2817,11 @@ export type Database = {
           stripe_charges_enabled?: boolean
           stripe_identity_verified?: boolean
           stripe_identity_verified_at?: string | null
+          stripe_customer_id?: string | null
           stripe_payouts_enabled?: boolean
+          stripe_subscription_id?: string | null
+          subscription_billing_cycle?: string | null
+          subscription_cancel_at_period_end?: boolean
           subscription_expires_at?: string | null
           subscription_tier?: string | null
           terms_accepted_at?: string | null
@@ -2907,7 +2915,11 @@ export type Database = {
           stripe_charges_enabled?: boolean
           stripe_identity_verified?: boolean
           stripe_identity_verified_at?: string | null
+          stripe_customer_id?: string | null
           stripe_payouts_enabled?: boolean
+          stripe_subscription_id?: string | null
+          subscription_billing_cycle?: string | null
+          subscription_cancel_at_period_end?: boolean
           subscription_expires_at?: string | null
           subscription_tier?: string | null
           terms_accepted_at?: string | null

@@ -36,6 +36,20 @@
 --    crons — which is exactly how one fixture drove the payout cron to HTTP 500
 --    every 30 minutes for two days and saturated the ops alarm.
 --
+-- 3. NEVER SEED A STATUS THE PRODUCT CANNOT REACH — specifically NOT
+--    `pending_approval`.
+--
+--    A fixture in an unreachable status is not a harmless extra: it is a screen
+--    nobody designed, shown to a real person. Two hand-inserted prod fixtures
+--    sat in `pending_approval`, one of them on the app owner's own account, and
+--    rendered "Waiting on your team's approver. This post is over your team's
+--    approval limit." on a product with no teams and no approval limits — the
+--    `businesses` table was dropped in 20260828011811 and nothing has been able
+--    to write that status since (migration 20260831232522 moved both rows to
+--    `in_progress`). The statuses below are exactly the ones a poster can
+--    actually produce; keep it that way. If you need coverage of a status, seed
+--    a row that a real flow could have created, timestamps and all.
+--
 -- Bypass FK to auth.users so the seed is self-contained and idempotent.
 -- SET session_replication_role = replica disables FK checks for this session only.
 

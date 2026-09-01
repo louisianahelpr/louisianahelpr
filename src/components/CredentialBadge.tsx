@@ -23,7 +23,7 @@ interface CredentialState {
  * - One verified   → blue/silver "Licensed" or "Insured" badge.
  * - Either pending → same badge at 50% opacity with "Pending" label.
  */
-export function CredentialBadge({
+function CredentialBadge({
   credentials,
   size = "sm",
 }: {

@@ -3,33 +3,60 @@ import { jobLocalMidnightMs } from "../../supabase/functions/_shared/cancellatio
 /**
  * ONE way to read `jobs.date_needed`.
  *
- * It is a bare `YYYY-MM-DD` with no zone, and it was being parsed FOUR
- * different ways across the codebase — each of which lands on a different
- * instant:
+ * It is a bare `YYYY-MM-DD` with no zone, so `new Date(d)` lands on UTC
+ * midnight, `new Date(d + "T00:00:00")` lands on the RUNTIME's midnight, and
+ * the two are five or six hours apart in Central. Four different spellings
+ * were in use across the codebase, comparisons were being made between them,
+ * and this module exists so the question has one answer.
  *
- *   new Date(d)                  UTC midnight        adminJobsHelpers,
- *                                                    applyConfirmDialogHelpers:108,
- *                                                    useDashboardFilters:279,
- *                                                    useOpenJobsFeed
- *   new Date(d + "T00:00:00")    the RUNTIME's zone  applyConfirmDialogHelpers:57,
- *                                                    fetchAnalytics, useUserProfileData
- *   new Date(d + "T12:00:00")    runtime zone, noon  smartSort, useDashboardFilters:233
- *   jobLocalMidnightMs(d)        the PLATFORM's zone CancellationDialog only
- *
- * `applyConfirmDialogHelpers` used two of them, fifty lines apart, in one file.
- *
- * The one that was actually wrong rather than merely inconsistent is the admin
- * jobs queue: it compared `new Date(date_needed)` (UTC midnight) against
+ * The one that was actually wrong rather than merely inconsistent was the
+ * admin jobs queue: it compared `new Date(date_needed)` (UTC midnight) against
  * `new Date(new Date().toDateString())` (LOCAL midnight). In Central those are
- * 00:00Z and 05:00Z, so a job dated today always sorted as earlier than "today"
- * and the moderation queue flagged "Date needed is in the past" on every
- * same-day job. Eight active jobs dated today, zero of them actually past.
+ * 00:00Z and 05:00Z, so a job dated today always sorted as earlier than
+ * "today" and the moderation queue flagged "Date needed is in the past" on
+ * every same-day job. Eight active jobs dated today, zero of them actually
+ * past.
  *
  * This wraps `jobLocalMidnightMs` — the helper the money paths already use,
  * which resolves midnight in the PLATFORM's zone (America/Chicago) rather than
  * whatever zone the browser or the edge runtime happens to be in. A Louisiana
  * marketplace has exactly one answer to "what day is this job on", and it is
  * not the reader's timezone.
+ *
+ * WHERE THE DIVERGENCE STANDS (re-derived 2026-08-31)
+ * --------------------------------------------------
+ * It is resolved. Every place that compares a job's day against ANOTHER
+ * instant now resolves both sides in the platform's zone — `adminJobsHelpers`
+ * and `activityFilters` through `isPastDue`, `ApplicantsStates` through
+ * `jobDateMs`/`daysPastDue`, and `CancellationDialog`/`BlockUserDialog`
+ * through `jobLocalMidnightMs` directly. Three raw parses survive, and none of
+ * them is a cross-zone comparison:
+ *
+ *   - `useDashboardFilters` drops stale posts by LEXICOGRAPHIC compare of two
+ *     `YYYY-MM-DD` strings, which needs no parsing at all, and separately
+ *     builds `new Date(d + "T12:00:00")` purely to read `.getDay()` for a
+ *     day-of-week availability match. Noon is the point: no zone on earth is
+ *     twelve hours off, so the weekday cannot slip.
+ *   - `smartSort` and `useOpenJobsFeed` sort by
+ *     `new Date(a.date_needed) - new Date(b.date_needed)`. Both operands take
+ *     the same offset, so it cancels; the ORDER is correct in every zone, and
+ *     order is all a comparator claims.
+ *
+ * This comment previously cited `applyConfirmDialogHelpers:108` and `:57` as
+ * two divergent parses fifty lines apart in one file. Both lines still exist
+ * and still disagree — but they sit in `getApplyTips` and
+ * `buildStarterSentences`, and BOTH of those exports now have zero importers
+ * (`ApplyBody.tsx` takes only the draft-key constants from that module). They
+ * are dead code, not a live inconsistency. `fetchAnalytics`, also cited, no
+ * longer exists under that name anywhere in `src/`.
+ *
+ * Functions are named rather than line numbers cited, deliberately. Two of the
+ * old citations had already rotted onto code that no longer says what they
+ * claimed — `useDashboardFilters:279` is the lexicographic compare described
+ * above, not a `new Date(d)`, and `useUserProfileData` parses
+ * `date_needed`+`start_time` as a scheduled START TIME, a different question
+ * from "which day". A line number that still resolves is worse than a missing
+ * one, because it reads as verified.
  */
 export function jobDateMs(dateNeeded: string | null | undefined): number | null {
   if (!dateNeeded) return null;

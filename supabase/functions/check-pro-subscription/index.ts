@@ -3,6 +3,8 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { PRODUCT_TO_TIER } from "../_shared/productTiers.ts";
 import { tierDisplayName } from "../_shared/tierNames.ts";
+import { subscriptionCurrentPeriodEndISO } from "../_shared/stripeSubscriptionPeriod.ts";
+import { CLEARED_SUBSCRIPTION_LINKAGE, subscriptionLinkage } from "../_shared/subscriptionLinkage.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -80,11 +82,45 @@ serve(async (req) => {
         const productId = sub.items.data[0]?.price.product as string;
         const tier = PRODUCT_TO_TIER[productId];
         if (tier) {
-          const expiresAt = new Date(sub.current_period_end * 1000).toISOString();
-          await supabaseAdmin.from("profiles").update({
-            subscription_tier: tier,
-            subscription_expires_at: expiresAt,
-          }).eq("user_id", user.id);
+          // NOT `sub.current_period_end` — gone from the Subscription object
+          // as of API version 2025-03-31.basil (this function pins
+          // 2025-08-27.basil), so it read `undefined` and
+          // `new Date(NaN).toISOString()` threw RangeError. The throw landed in
+          // the outer catch, which answers 200 `{ subscribed: false }` — so
+          // this reconciliation poll told every genuinely-subscribed caller
+          // they had no membership. See _shared/stripeSubscriptionPeriod.ts.
+          const expiresAt = subscriptionCurrentPeriodEndISO(sub);
+          // `.select("user_id")` + an explicit error/zero-row check, per
+          // CLAUDE.md: this is an entitlement write, and a null `error` on an
+          // UPDATE matching zero rows is indistinguishable from success. It
+          // used to drop both, so a failed grant answered `subscribed: true`
+          // and the next profile read disagreed with what was just claimed.
+          const { data: granted, error: grantError } = await supabaseAdmin
+            .from("profiles")
+            .update({
+              subscription_tier: tier,
+              subscription_expires_at: expiresAt,
+              // This function reconciles a member against Stripe on every
+              // dashboard load, so it is also the natural BACKFILL for the
+              // linkage columns on accounts whose last webhook predates them.
+              ...subscriptionLinkage(sub),
+            })
+            .eq("user_id", user.id)
+            .select("user_id");
+          if (grantError) {
+            console.error("[check-pro-subscription] tier grant failed:", grantError.message);
+            return new Response(
+              JSON.stringify({ error: "Couldn't sync your membership. Please try again." }),
+              { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+            );
+          }
+          if (!granted || granted.length === 0) {
+            console.error("[check-pro-subscription] tier grant matched 0 profiles for", user.id);
+            return new Response(
+              JSON.stringify({ error: "Couldn't sync your membership. Please try again." }),
+              { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+            );
+          }
 
           // Referral upgrade bonus — if this user was referred AND
           // they just upgraded to a paid tier (pro/elite), award the
@@ -115,25 +151,70 @@ serve(async (req) => {
                   existingBonusError.message,
                 );
               } else if (!existingBonus) {
-                await supabaseAdmin.from("referral_credits").insert({
-                  user_id: referral.referrer_id,
-                  referred_user_id: user.id,
-                  referral_code_id: referral.referral_code_id,
-                  amount: 10,
-                  reason: "subscription_bonus",
-                  redeemed: false,
-                });
-                // Notify the referrer so the upgrade-credit moment isn't
-                // silent. Best-effort — failure here doesn't block the
-                // subscription update.
-                await supabaseAdmin.from("notifications").insert({
-                  user_id: referral.referrer_id,
-                  title: "Bonus credit earned",
-                  message: `Someone you referred upgraded to ${tierDisplayName(tier)} — you earned $10.`,
-                  type: "payment",
-                  link: "/profile?tab=referral",
-                  read: false,
-                });
+                // The dedupe read above is a read-then-write, and this function
+                // runs on EVERY dashboard load — two concurrent loads both see
+                // "no bonus yet". The real arbiter is the unique index
+                // `referral_credits_one_per_reason` on
+                // (user_id, referral_code_id, referred_user_id, reason)
+                // (migration 20260823010000), so the loser's INSERT comes back
+                // 23505 and no second credit is minted. Good.
+                //
+                // But the result was DISCARDED and the notification sent
+                // unconditionally, so the loser still told the referrer
+                // "you earned $10" with no credit behind it — and so did every
+                // genuine insert failure. Notify only when a row was actually
+                // created; `.select("id")` is what makes that knowable, since a
+                // null `error` alone never proves a write happened.
+                const { data: mintedRows, error: mintErr } = await supabaseAdmin
+                  .from("referral_credits")
+                  .insert({
+                    user_id: referral.referrer_id,
+                    referred_user_id: user.id,
+                    referral_code_id: referral.referral_code_id,
+                    amount: 10,
+                    reason: "subscription_bonus",
+                    redeemed: false,
+                  })
+                  .select("id");
+                const minted = !mintErr && (mintedRows?.length ?? 0) > 0;
+                if (!minted) {
+                  // 23505 is the expected, benign outcome of losing the race —
+                  // the credit exists, it just wasn't this call that made it.
+                  // Anything else is a real failure worth seeing.
+                  const code = (mintErr as { code?: string } | null)?.code;
+                  if (code === "23505") {
+                    console.log(
+                      `[check-pro-subscription] referral bonus already granted for referrer ${referral.referrer_id} / referred ${user.id} — not re-notifying`,
+                    );
+                  } else {
+                    console.error(
+                      `[check-pro-subscription] referral bonus MINT FAILED for referrer ${referral.referrer_id} / referred ${user.id}:`,
+                      mintErr?.message ?? "insert returned zero rows",
+                    );
+                  }
+                } else {
+                  // Notify the referrer so the upgrade-credit moment isn't
+                  // silent. Best-effort — a failed notification doesn't block
+                  // the subscription update, but it isn't dropped either: the
+                  // credit is real and the referrer was not told about it.
+                  const { data: notifRows, error: notifErr } = await supabaseAdmin
+                    .from("notifications")
+                    .insert({
+                      user_id: referral.referrer_id,
+                      title: "Bonus credit earned",
+                      message: `Someone you referred upgraded to ${tierDisplayName(tier)} — you earned $10.`,
+                      type: "payment",
+                      link: "/profile?tab=referral",
+                      read: false,
+                    })
+                    .select("id");
+                  if (notifErr || (notifRows?.length ?? 0) === 0) {
+                    console.error(
+                      `[check-pro-subscription] referral bonus credited but the referrer ${referral.referrer_id} was not notified:`,
+                      notifErr?.message ?? "insert returned zero rows",
+                    );
+                  }
+                }
               }
             }
           }
@@ -185,6 +266,7 @@ serve(async (req) => {
     const { error: clearError } = await supabaseAdmin.from("profiles").update({
       subscription_tier: null,
       subscription_expires_at: null,
+      ...CLEARED_SUBSCRIPTION_LINKAGE,
     }).eq("user_id", user.id);
 
     if (clearError) {

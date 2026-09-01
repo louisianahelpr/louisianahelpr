@@ -46,6 +46,9 @@ interface ReferralData {
   codes: ReferralCode[];
   referrals: Referral[];
   credits: ReferralCredit[];
+  /** Datasets that hit the 1000-row page cap, so the totals below them are a
+   *  floor rather than a figure. Empty in the normal case. */
+  truncated: string[];
 }
 
 const AdminReferrals = () => {
@@ -57,17 +60,33 @@ const AdminReferrals = () => {
   // tabs. CLAUDE.md: "Never drop the Supabase `error`".
   const { data, isInitialLoading, isError, refetch } = useInstantQuery<ReferralData>({
     key: ["admin-referrals"],
-    fallback: { codes: [], referrals: [], credits: [] },
+    fallback: { codes: [], referrals: [], credits: [], truncated: [] },
     fetcher: async () => {
+      // PostgREST enforces db-max-rows = 1000 on this project (measured:
+      // notifications, 1619 rows -> `content-range: 0-999/1619`). An unbounded
+      // select silently truncates AFTER the ORDER BY, with no error and no
+      // marker — and this screen reduces these three arrays into the operator's
+      // referral TOTALS, including dollars issued and outstanding. Past 1000
+      // rows those totals would quietly start under-reporting real money.
+      //
+      // So: ask for one row more than we display, and surface the truncation
+      // instead of averaging it into a wrong number.
+      const PAGE = 1000;
       const [codesRes, referralsRes, creditsRes] = await Promise.all([
-        supabase.from("referral_codes").select("*").order("created_at", { ascending: false }),
-        supabase.from("referrals").select("*").order("created_at", { ascending: false }),
-        supabase.from("referral_credits").select("*").order("created_at", { ascending: false }),
+        supabase.from("referral_codes").select("*").order("created_at", { ascending: false }).range(0, PAGE),
+        supabase.from("referrals").select("*").order("created_at", { ascending: false }).range(0, PAGE),
+        supabase.from("referral_credits").select("*").order("created_at", { ascending: false }).range(0, PAGE),
       ]);
 
       const allCodes = unwrap(codesRes) || [];
       const allReferrals = unwrap(referralsRes) || [];
       const allCredits = unwrap(creditsRes) || [];
+
+      const truncated = [
+        allCodes.length > PAGE ? "codes" : null,
+        allReferrals.length > PAGE ? "referrals" : null,
+        allCredits.length > PAGE ? "credits" : null,
+      ].filter(Boolean) as string[];
 
       const userIds = new Set<string>();
       allCodes.forEach(c => userIds.add(c.user_id));
@@ -90,13 +109,14 @@ const AdminReferrals = () => {
       }
 
       return {
-        codes: allCodes.map(c => ({ ...c, userName: nameMap[c.user_id] || c.user_id.slice(0, 8) })),
-        referrals: allReferrals.map(r => ({
+        truncated,
+        codes: allCodes.slice(0, PAGE).map(c => ({ ...c, userName: nameMap[c.user_id] || c.user_id.slice(0, 8) })),
+        referrals: allReferrals.slice(0, PAGE).map(r => ({
           ...r,
           referrerName: nameMap[r.referrer_id] || r.referrer_id.slice(0, 8),
           referredName: nameMap[r.referred_id] || r.referred_id.slice(0, 8),
         })),
-        credits: allCredits.map(c => ({
+        credits: allCredits.slice(0, PAGE).map(c => ({
           ...c,
           userName: nameMap[c.user_id] || c.user_id.slice(0, 8),
         })),
@@ -169,6 +189,26 @@ const AdminReferrals = () => {
 
   return (
     <AdminViewShell>
+      {/* A silently-capped page would make every money figure below read as a
+          measured total when it is really a floor. Say so rather than let an
+          operator reconcile against a number that quietly stopped counting. */}
+      {data.truncated.length > 0 && (
+        <div
+          className="rounded-2xl p-4 mb-4"
+          style={{
+            background: "hsl(var(--burnt-sienna) / 0.10)",
+            border: "1px solid hsl(var(--burnt-sienna) / 0.42)",
+          }}
+        >
+          <p className="text-ds-13" style={{ color: "hsl(var(--ink-deep))" }}>
+            <span className="font-semibold">Totals below are a floor, not a total.</span>{" "}
+            {data.truncated.join(", ")} hit the 1,000-row page limit, so every figure on
+            this screen counts only the most recent 1,000 rows. Export the full ledger
+            before reconciling.
+          </p>
+        </div>
+      )}
+
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[

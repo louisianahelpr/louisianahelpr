@@ -12,8 +12,10 @@ import {
   DialogContent,
   DialogHero,
   DialogFooter,
+  DialogSecondaryAction,
+  DialogPrimaryAction,
+  DialogDestructiveAction,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -160,7 +162,10 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
             reason ||
             "You have received a warning for violating platform rules. Another violation may result in a ban.",
           type: "warning",
-          link: "/profile",
+          // The strike this notification is about is listed on Warnings &
+          // Strikes; bare "/profile" opens the landing tab, which never
+          // mentions it.
+          link: "/profile?tab=warnings",
         });
         await logAdminAction("ban_user", "user", profile.user_id, {
           type: "warning",
@@ -220,7 +225,10 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
           title: "🚫 Temporary Ban",
           message: `Your account has been temporarily banned for ${duration} days. Reason: ${reason}`,
           type: "warning",
-          link: "/profile",
+          // The strike this notification is about is listed on Warnings &
+          // Strikes; bare "/profile" opens the landing tab, which never
+          // mentions it.
+          link: "/profile?tab=warnings",
         });
         await logAdminAction("ban_user", "user", profile.user_id, {
           type: "temporary",
@@ -265,7 +273,10 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
           title: "⛔ Account Permanently Banned",
           message: `Your account has been permanently banned. Reason: ${reason}`,
           type: "warning",
-          link: "/profile",
+          // A permanent ban has its own screen, and it is the only one the
+          // banned user can still reach — matching the '/account-banned' the
+          // server-side ban path (auto_restrict_repeat_violators) writes.
+          link: "/account-banned",
         });
         await logAdminAction("ban_user", "user", profile.user_id, {
           type: "permanent",
@@ -396,23 +407,35 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
               edge by 4px at every breakpoint and drew across the rounded
               corner radius. */}
           <DialogFooter>
-          <Button variant="ghost" onClick={handleClose} className="w-full sm:w-auto">
+          <DialogSecondaryAction onClick={handleClose}>
             Cancel
-          </Button>
-          <Button
-            variant={banType === "warning" ? "default" : "destructive"}
-            onClick={submit}
-            disabled={banning || (reasonCategory === "other" && !reasonNote.trim())}
-            className="w-full sm:w-auto"
-          >
-            {banning
-              ? "Processing…"
-              : banType === "warning"
-              ? "Issue Warning"
-              : banType === "temporary"
-              ? `Ban for ${duration} days`
-              : "Permanently Ban"}
-          </Button>
+          </DialogSecondaryAction>
+          {/* The tone is a CHOICE OF COMPONENT, not a `variant` expression.
+              A warning is reversible — it is the bottom rung of the ladder —
+              so it commits with the glossy primary; a temporary or permanent
+              ban takes something away, so it takes the one destructive red.
+              Written as two elements rather than `variant={cond ? … : …}`
+              because a runtime variant is exactly the seam a `className`
+              override slips back in through. */}
+          {banType === "warning" ? (
+            <DialogPrimaryAction
+              onClick={submit}
+              disabled={banning || (reasonCategory === "other" && !reasonNote.trim())}
+            >
+              {banning ? "Processing…" : "Issue Warning"}
+            </DialogPrimaryAction>
+          ) : (
+            <DialogDestructiveAction
+              onClick={submit}
+              disabled={banning || (reasonCategory === "other" && !reasonNote.trim())}
+            >
+              {banning
+                ? "Processing…"
+                : banType === "temporary"
+                ? `Ban for ${duration} days`
+                : "Permanently Ban"}
+            </DialogDestructiveAction>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

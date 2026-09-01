@@ -68,7 +68,9 @@ describe("job-boost price by tier (UI mirror of create-boost-payment)", () => {
     }
   });
 
-  it("charges Free and Business posters the full list price", () => {
+  it("charges Free and any unrecognised tier the full list price", () => {
+    // "business" is in the list as a RETIRED id (removed 2026-09-01), not a
+    // tier: it must be treated exactly like "nonsense" and get no discount.
     for (const tier of ["free", "business", "nonsense", null, undefined]) {
       expect(boostPriceForTier(tier, true)).toEqual({
         free: false,

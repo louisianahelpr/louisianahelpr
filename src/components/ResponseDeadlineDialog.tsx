@@ -1,6 +1,13 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHero,
+  DialogBody,
+  DialogFooter,
+  DialogSecondaryAction,
+  DialogPrimaryAction,
+} from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { MessageSquare, TriangleAlert } from "lucide-react";
@@ -70,10 +77,15 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose }:
         <div className="space-y-4">
           {/* Lede in the same serif-italic olivewood every other money/offer
               dialog opens with (TipDialog, InstantPayoutDialog). This dialog
-              was the one all-grayscale member of that set. */}
-          <p className="font-serif italic leading-relaxed text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-            How long should <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>{helperName}</span> have to accept or decline this job?
-          </p>
+              was the one all-grayscale member of that set. It now says so
+              through DialogBody rather than restating the tokens, which is
+              how it had drifted to olivewood/0.85 while the confirm sheet
+              beside it used /0.8. */}
+          <DialogBody>
+            <p>
+              How long should <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>{helperName}</span> have to accept or decline this job?
+            </p>
+          </DialogBody>
           <div className="space-y-2">
             <Select value={hours} onValueChange={setHours}>
               <SelectTrigger aria-label="Response deadline">
@@ -167,10 +179,10 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose }:
           )}
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={handleClose} disabled={submitting}>Cancel</Button>
-          <Button onClick={handleConfirm} disabled={submitting}>
+          <DialogSecondaryAction onClick={handleClose} disabled={submitting}>Cancel</DialogSecondaryAction>
+          <DialogPrimaryAction onClick={handleConfirm} disabled={submitting}>
             {submitting ? "Sending…" : "Send Offer"}
-          </Button>
+          </DialogPrimaryAction>
         </DialogFooter>
       </DialogContent>
     </Dialog>

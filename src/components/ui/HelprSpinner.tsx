@@ -97,5 +97,3 @@ export const HelprSpinner = ({
     </span>
   );
 };
-
-export default HelprSpinner;

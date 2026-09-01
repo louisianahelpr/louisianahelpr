@@ -44,7 +44,7 @@ import HelprMark from "@/components/HelprMark";
  *     chunk has already loaded shows the same shape too, instead of a
  *     third one.
  */
-export const DashboardRouteSkeleton = () => (
+const DashboardRouteSkeleton = () => (
   <div role="status" aria-live="polite" aria-busy="true" data-testid="dashboard-route-skeleton">
     <span className="sr-only">Loading…</span>
     <PageScaffold

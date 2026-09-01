@@ -339,7 +339,7 @@ are no nested route files. **Re-derive before starting.**
 |---|---|---|---|---|---|
 | 1 | `/` | `Index` | public | `RouteErrorBoundary` → `MarketingRedirect` → `PageTransition` | native branch renders `NativeRedirect` |
 | 2 | `/login` | `Login` | public | own signed-in bounce | social auth sheet on native |
-| 3 | `/signup` | `Signup` | public | | multi-step; business signup path |
+| 3 | `/signup` | `Signup` | public | | multi-step (2026-08-31: "business signup path" removed from this row — the whole business surface is gone; `src/pages/ForBusiness.tsx`, `src/components/business/` and `src/pages/business/` do not exist and `find src -iname "*usiness*"` returns nothing) |
 | 4 | `/signup-pending` | `SignupPending` | public | | |
 | 5 | `/complete-profile` | `CompleteProfile` | signed-in | `ProtectedRoute allowUnapproved` | checklist gate |
 | 6 | `/account-pending` | `AccountPending` | public | | force via `approval_status` |
@@ -780,10 +780,16 @@ not raw viewport center). Screenshot both.
 - Canonical nouns: **job** (not task), **Helpr / Helprs**, **poster**,
   **Membership**, **Gift Card**. There is **no bidding and no quotes**. The app
   is **never role-based** — every account can both post and work.
-- ⚠️ `.text-display-eyebrow` is `display: none` (`src/index.css:1848`). The
-  skill still mandates the eyebrow stack and calls a missing eyebrow a defect —
-  **that guidance is stale.** Either restore the class or stop treating a
-  missing eyebrow as a finding; decide and fix one way.
+- ✅ **Eyebrows are retired — settled 2026-08-31, do not file a missing one.**
+  `.text-display-eyebrow` is `display: none` (`src/index.css:1959` — the cite
+  here used to say `:1848`, which has drifted), under the decision recorded at
+  that rule: 2026-07-25, "all eyebrows gone". The `SectionEyebrow` component is
+  gone from `src/` entirely (`grep -rn "SectionEyebrow" src/` → zero hits).
+  This entry previously said "decide and fix one way"; the decision is the
+  removal. A block still needs a *name* — `AppliedJobCard.tsx` keeps its
+  `<h4 …className="sr-only">Job description</h4>` inside a
+  `<section aria-labelledby>` — but nothing is painted, so "no visible eyebrow"
+  is not a finding at any tier.
 - `statusLabels.ts` casing is **test-enforced** — changing a label means
   updating `statusLabels.test.ts` in the same commit.
 
@@ -1030,7 +1036,10 @@ prompt already names:
 - `auditRoutes.ts` lists two dead profile tabs and omits `accessibility`.
 - `sitemap.xml` lists a non-existent route; its test doesn't check resolution.
 - `COVERAGE_LEDGER.md` tracks 134 units and omits the entire 78-overlay axis.
-- `.text-display-eyebrow` is `display:none` while the standard still mandates it.
+- ~~`.text-display-eyebrow` is `display:none` while the standard still mandates it.~~
+  RESOLVED 2026-08-31 — eyebrows are retired app-wide and `SectionEyebrow` is
+  deleted; the standard should not treat a missing one as a defect. See the
+  Copy/nouns section above.
 - SKILL.md §1 and §5 contradict each other on UNVERIFIED.
 - SKILL.md and AGENTS.md contradict each other on gloss.
 - `.claude/commands/audit.md` contradicts CLAUDE.md on branching and migrations.

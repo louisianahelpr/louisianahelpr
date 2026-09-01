@@ -149,6 +149,8 @@ describe("deriveCurrentStatusIdx", () => {
   });
 
   it("keeps a disputed job at the furthest milestone its stamps evidence", () => {
+    // The clamp below is a CEILING, not a floor — a dispute raised before the
+    // work does not drag the rail forward to Working.
     expect(
       deriveCurrentStatusIdx({
         jobStatus: "disputed",
@@ -160,7 +162,7 @@ describe("deriveCurrentStatusIdx", () => {
 });
 
 
-describe("a revision undoes Done", () => {
+describe("a revision or a dispute undoes Done", () => {
   it("caps a revision-requested job at Working even with a completion stamp", () => {
     // `helper_completed_at` survives the poster sending the work back, so
     // without the cap the tracker showed a fully-green Done beside a card
@@ -173,11 +175,76 @@ describe("a revision undoes Done", () => {
     ).toBe(STATUS_IDX.working);
   });
 
+  it("caps a DISPUTED job at Working even with a completion stamp", () => {
+    // The reported bug. Owner: "Can't be marked done if it's in revision is
+    // dispute." Their screenshot: Confirmed / On the Way / Arrived all green,
+    // Working red, DONE GREEN — directly above "Escalated to Admin … nothing
+    // is charged or released until then". Done on this rail is the completion
+    // that releases the money; while an admin is still deciding whether that
+    // completion stands, the rail must not spend a green on it.
+    expect(
+      deriveCurrentStatusIdx({
+        jobStatus: "disputed",
+        helperConfirmedAt: AT,
+        posterConfirmedAt: AT,
+        helperOnTheWayAt: AT,
+        helperArrivedAt: AT,
+        helperArrivalVerifiedAt: AT,
+        helperCompletedAt: "2026-08-01T00:00:00Z",
+      }),
+    ).toBe(STATUS_IDX.working);
+  });
+
+  it("refuses a STALE `done` in job_tracking on a disputed job", () => {
+    // Persisted state must never lead reality (the standing rule in this
+    // file). The helper really did tap Done before the poster disputed, so the
+    // tracking row legitimately reads `done` and is NOT rewritten — the clamp
+    // is a render-time refusal, and this is the case that proves the tracking
+    // row cannot walk around it via `Math.max(trackingIdx, jobIdx)`.
+    expect(
+      deriveCurrentStatusIdx({
+        trackingStatus: "done",
+        jobStatus: "disputed",
+        helperCompletedAt: AT,
+      }),
+    ).toBe(STATUS_IDX.working);
+    // Same guarantee on the revision path.
+    expect(
+      deriveCurrentStatusIdx({
+        trackingStatus: "done",
+        jobStatus: "revision_requested",
+        helperCompletedAt: AT,
+      }),
+    ).toBe(STATUS_IDX.working);
+  });
+
+  it("caps at Working even when the POSTER's completion stamp is the evidence", () => {
+    // `posterCompletedAt` is the other route to `done`. A dispute opened from
+    // `completed` (the state machine allows it — 20260825190000) carries it.
+    expect(
+      deriveCurrentStatusIdx({
+        jobStatus: "disputed",
+        helperCompletedAt: AT,
+        posterCompletedAt: AT,
+      }),
+    ).toBe(STATUS_IDX.working);
+  });
+
   it("still reaches Done once the job actually completes", () => {
     expect(
       deriveCurrentStatusIdx({
         jobStatus: "completed",
         helperCompletedAt: "2026-08-01T00:00:00Z",
+      }),
+    ).toBe(STATUS_IDX.done);
+    // The happy path with a live tracking row on it, too — the clamps must not
+    // touch anything but the two unresolved states.
+    expect(
+      deriveCurrentStatusIdx({
+        trackingStatus: "done",
+        jobStatus: "completed",
+        helperCompletedAt: AT,
+        posterCompletedAt: AT,
       }),
     ).toBe(STATUS_IDX.done);
   });

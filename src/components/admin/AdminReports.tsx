@@ -9,7 +9,15 @@ import { createNotification } from "@/lib/notifications";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHero,
+  DialogBody,
+  DialogFooter,
+  DialogSecondaryAction,
+  DialogPrimaryAction,
+} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -533,9 +541,9 @@ const AdminReports = () => {
             title={`Message ${messageTarget?.name}`}
           />
           <div className="space-y-3">
-            <p className="text-ds-11 text-muted-foreground">
-              This will send an in-app notification to {messageTarget?.name}.
-            </p>
+            <DialogBody>
+              <p>This will send an in-app notification to {messageTarget?.name}.</p>
+            </DialogBody>
             <Textarea
               aria-label="Message to user"
               value={messageText}
@@ -544,10 +552,10 @@ const AdminReports = () => {
             />
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setMessageTarget(null)}>Cancel</Button>
-            <Button onClick={handleSendMessage} disabled={sendingMessage || !messageText.trim()}>
+            <DialogSecondaryAction onClick={() => setMessageTarget(null)}>Cancel</DialogSecondaryAction>
+            <DialogPrimaryAction onClick={handleSendMessage} disabled={sendingMessage || !messageText.trim()}>
               {sendingMessage ? "Sending…" : "Send Message"}
-            </Button>
+            </DialogPrimaryAction>
           </DialogFooter>
         </DialogContent>
       </Dialog>

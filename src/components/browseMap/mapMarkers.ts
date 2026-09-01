@@ -37,7 +37,7 @@ function resolveToken(varName: string, fallback: string): string {
  *  agree with it: MapKit centres an element on its coordinate, so the pin
  *  is shifted up by half its height to put the TIP on the coordinate (the
  *  Leaflet `iconAnchor: [14, 36]` equivalent). */
-export const PIN_WIDTH = 28;
+const PIN_WIDTH = 28;
 export const PIN_HEIGHT = 36;
 
 /**

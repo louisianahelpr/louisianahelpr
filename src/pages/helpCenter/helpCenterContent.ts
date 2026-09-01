@@ -90,6 +90,13 @@ export const SECTION_ACCENTS: Record<string, string> = {
   "Payments & Escrow": "hsl(var(--gold-ink))",
   "Trust & Safety": "hsl(var(--olivewood))",
   "Account & Settings": "hsl(var(--burnt-sienna))",
+  // FAQ_SECTIONS has SEVEN topics and this map had six keys, so "Membership &
+  // Billing" fell through HelpCenter.tsx's `?? burnt-sienna` default — giving
+  // THREE of seven sections the identical accent and defeating the varied
+  // palette this map exists to produce. Same byte-identical-key drift the
+  // TOPICS comment above was written about; it just failed quietly here
+  // because the fallback looked like a real colour.
+  "Membership & Billing": "hsl(var(--sage))",
 };
 
 // ─── FAQ data ─────────────────────────────────────────────────────────────────
@@ -131,7 +138,13 @@ export const FAQ_SECTIONS: FaqSection[] = [
       },
       {
         q: "How is the price determined?",
-        a: "You set the price. We suggest a range from local market data for your category and parish, and you can take the suggested amount in one tap.",
+        // WAS "a range from local market data for your category and parish".
+        // There is no market data and no parish dimension: src/lib/pricingGuide.ts
+        // is a hardcoded table of fixed min/max per category and getSmartPrice()
+        // returns the midpoint rounded to $5. The word "parish" does not appear
+        // in that file. Describing a static table as local market data is the
+        // same defect class as a stat nothing computes.
+        a: "You set the price. We suggest a typical range for the category, and you can take the suggested amount in one tap.",
       },
       {
         q: "Can I cancel after someone applies?",
@@ -148,11 +161,23 @@ export const FAQ_SECTIONS: FaqSection[] = [
       },
       {
         q: "When do I get paid?",
-        a: "Payment releases to your Helpr account after the poster confirms completion. Same-day transfer to your bank if your payout account is set up.",
+        // WAS: "Same-day transfer to your bank if your payout account is set
+        // up." Instant Payout is a PAID membership feature — enforced
+        // server-side to Basic/Pro/Elite in
+        // supabase/functions/instant-payout/index.ts (`entitled`, 403
+        // `membership_required`) — and it charges a fee. A free Helpr reading
+        // the old sentence expected same-day money that does not exist for
+        // them, which is the worst possible thing to be wrong about on the
+        // "When do I get paid?" question.
+        a: "Payment releases to your Helpr account after the poster confirms completion, then transfers to your bank on the standard schedule. Instant Payout — cashing out the same day — is a Basic, Pro or Elite membership feature and charges a small fee; standard payouts are always free.",
       },
       {
         q: "What if a poster doesn't confirm completion?",
-        a: "If a poster doesn't confirm within 24 hours of you marking work done, it auto-completes and payment releases (funds typically reach you about 48 hours after completion).",
+        // WAS "…about 48 hours after completion". The notification the very
+        // same event sends says 24 (auto-release-payment/index.ts:302-303,
+        // 315-316), so a helper saw both numbers for one payout. Single number,
+        // matching what the push actually promises.
+        a: "If a poster doesn't confirm within 24 hours of you marking work done, it auto-completes and payment releases — funds reach your account about 24 hours after that.",
       },
     ],
   },
@@ -169,7 +194,11 @@ export const FAQ_SECTIONS: FaqSection[] = [
       },
       {
         q: "What if there's a dispute?",
-        a: "Open a dispute from the job detail screen. Our team reviews both sides and can release the payment to either party.",
+        // The 72-hour deadline was omitted entirely. `auto-resolve-disputes`
+        // moves the money with NO human review once `dispute_deadline` passes
+        // — which is precisely the fact someone opening a dispute needs to
+        // know, and the old answer implied a person always looks at it.
+        a: "Open a dispute from the job detail screen. Our team reviews both sides and can release the payment to either party. Disputes have a 72-hour window: if it isn't resolved or escalated in that time, platform policy releases the payment to the Helpr automatically, so don't sit on it.",
       },
     ],
   },
@@ -178,7 +207,16 @@ export const FAQ_SECTIONS: FaqSection[] = [
     items: [
       {
         q: "How are Helprs verified?",
-        a: "Every Helpr submits a government-issued ID. Licensed trade work (electrical, plumbing) requires matching verified license.",
+        // WAS: "Every Helpr submits a government-issued ID. Licensed trade
+        // work (electrical, plumbing) requires matching verified license."
+        // Neither is enforced. ID verification is an OPTIONAL profile badge,
+        // and the credential requirement is chosen per job BY THE POSTER,
+        // defaulting to `credentialTier = 0` — open to anyone
+        // (usePostJobForm.ts). This was the most load-bearing trust claim on
+        // the page and it described a platform that does not exist. The
+        // replacement describes the control the poster actually has, which is
+        // the useful answer anyway.
+        a: "Helprs can verify their identity with Stripe and upload trade licenses and insurance; verified badges show on their profile. When you post a job you choose what it requires — open to anyone, ID-verified only, licensed, or licensed and insured — and only Helprs who meet it can apply.",
       },
       {
         q: "What is the cancellation rate?",
@@ -186,7 +224,10 @@ export const FAQ_SECTIONS: FaqSection[] = [
       },
       {
         q: "Can I report a Helpr or poster?",
-        a: 'Yes — the "Report" option is in every job detail and profile. Our team reviews all reports within 24 hours.',
+        // Dropped "within 24 hours" — an SLA nothing in the product measures,
+        // tracks or guarantees. Promising a review window we don't instrument
+        // is a trust claim we can only ever break.
+        a: 'Yes — the "Report" option is in every job detail and profile. We review every report.',
       },
     ],
   },
@@ -199,11 +240,16 @@ export const FAQ_SECTIONS: FaqSection[] = [
       },
       {
         q: "Can I delete my account?",
-        a: "Yes. Profile → ··· menu → Delete account. We retain transaction records per Louisiana law but remove all personal data.",
+        // There is no "···" menu — the control is an outlined pill in the
+        // Profile landing's settings section (SettingsSection.tsx).
+        a: "Yes. Open your Profile and scroll to Settings → Delete account. We retain transaction records per Louisiana law but remove all personal data.",
       },
       {
         q: "What is Senior Mode?",
-        a: "Senior Mode simplifies the interface and enables a trusted family member to monitor jobs on your behalf. Enable it in Profile → Settings.",
+        // There is no Settings TAB. Senior Mode lives on the Accessibility tab
+        // (AccessibilityTab.tsx). A help answer that names a screen the app
+        // does not have sends the reader looking for it.
+        a: "Senior Mode simplifies the interface and enables a trusted family member to monitor jobs on your behalf. Enable it in Profile → Accessibility.",
       },
     ],
   },

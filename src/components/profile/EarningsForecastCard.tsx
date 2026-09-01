@@ -334,5 +334,3 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
     </div>
   );
 }
-
-export default EarningsForecastCard;

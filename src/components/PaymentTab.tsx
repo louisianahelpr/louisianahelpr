@@ -144,7 +144,6 @@ export function PaymentTab({ totalEarnings, onSeeEarnings }: PaymentTabProps) {
     : spentJobs;
   const totalSpent = scope === "lifetime" ? lifetimeSpent : scopedJobs.reduce((s, j) => s + j.budget, 0);
   const spentCount = scopedJobs.length;
-  const monthLabel = now.toLocaleDateString("en-US", { month: "long" });
   // No money has ever moved — collapse the summary to a single empty
   // state (no scope toggle, no dual $0.00 columns, no triple "no
   // activity" copy).
@@ -262,10 +261,41 @@ export function PaymentTab({ totalEarnings, onSeeEarnings }: PaymentTabProps) {
             </div>
           ) : (
           <>
-          {/* Scope toggle — lifetime vs this month. Inline so the
-              switch is right next to the numbers it reframes. */}
+          {/* SAY WHOSE MONEY THIS IS. This card and <EarningsSummaryCard /> on
+              the same screen state the two halves of one person's finances —
+              what they spent as a POSTER and what they earned as a HELPER —
+              and each carries its own segmented range control. Unlabelled,
+              the two read as one figure with two contradictory toggles (owner,
+              2026-08-30). A named header on each, matching the wallet's
+              icon+title anatomy, is what tells the two roles apart. */}
+          <div className="flex items-center gap-2.5 mb-3">
+            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <DollarSign className="w-4 h-4 text-primary" />
+            </div>
+            <div className="min-w-0">
+              <h2
+                className="font-display italic font-bold leading-tight text-ds-17"
+                style={{ color: "hsl(var(--ink-deep))" }}
+              >
+                Spent
+              </h2>
+              <p className="font-serif italic text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                on tasks you posted
+              </p>
+            </div>
+          </div>
+          {/* Scope toggle — inside the card whose figures it reframes, exactly
+              as the earnings range toggle now sits inside its own card.
+              "This Month" rather than the literal month name: the sibling
+              control on this same screen offers "This Month", and two controls
+              that mean the same thing must not spell it two ways ("August" vs
+              "This Month" was the pair a reader had to reconcile). */}
           <div
-            className="flex items-center gap-0.5 p-0.5 rounded-full mb-4"
+            /* Wraps rather than squeezing — see the matching note in
+               EarningsRangeToggle. Unwrapped, "This Week" and "This Month"
+               broke across two lines INSIDE their own pills at 375, which is
+               why the two rows of the control had different heights. */
+            className="flex flex-wrap items-center gap-0.5 p-0.5 rounded-2xl mb-4"
             style={{
               background: "hsl(var(--ivory-sand) / 0.4)",
               border: "0.5px solid hsl(var(--olivewood) / 0.08)",
@@ -274,7 +304,7 @@ export function PaymentTab({ totalEarnings, onSeeEarnings }: PaymentTabProps) {
             {([
               { key: "lifetime" as const, label: "Lifetime" },
               { key: "week" as const, label: "This Week" },
-              { key: "month" as const, label: monthLabel },
+              { key: "month" as const, label: "This Month" },
               { key: "year" as const, label: "This Year" },
             ]).map((opt) => {
               const active = scope === opt.key;
@@ -283,16 +313,20 @@ export function PaymentTab({ totalEarnings, onSeeEarnings }: PaymentTabProps) {
                   key={opt.key}
                   type="button"
                   onClick={() => setScope(opt.key)}
-                  className="flex-1 px-3 h-7 rounded-full text-ds-11 font-sans font-semibold transition-all"
-                  style={
-                    active
-                      ? {
-                          background: "hsl(var(--bark))",
-                          color: "hsl(var(--parchment))",
-                          boxShadow: "var(--elev-bark-flat)",
-                        }
-                      : { color: "hsl(var(--olivewood) / 0.8)" }
+                  /* SELECTED = the glossy shared primary surface, never a flat
+                     brand fill (standing project rule). This was a flat
+                     `hsl(var(--bark))` set through an inline `style`, which is
+                     why glossyPrimaryInvariant.test.ts — it reads classNames —
+                     never saw it. `h-11` because index.css's bare
+                     `button { min-height: 44px }` was already overriding the
+                     `h-7` declared here; declare what actually renders. */
+                  className={
+                    "grow basis-[calc(50%-0.125rem)] sm:basis-auto min-w-fit whitespace-nowrap px-3 h-11 rounded-full text-ds-11 font-sans font-semibold transition-all " +
+                    (active
+                      ? "btn-grad-primary !text-[hsl(var(--parchment))] shadow-[inset_0_1px_0_hsl(var(--parchment)/0.22),0_2px_8px_-3px_hsl(var(--bark)/0.55)]"
+                      : "")
                   }
+                  style={active ? undefined : { color: "hsl(var(--olivewood) / 0.8)" }}
                 >
                   {opt.label}
                 </button>

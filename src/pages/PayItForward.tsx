@@ -18,7 +18,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Gift, Sparkles } from "lucide-react";
+import { Check, Gift, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap, functionErrorMessage } from "@/lib/supabaseResult";
@@ -380,13 +380,15 @@ export default function PayItForward() {
                 className="font-serif italic text-ds-13 leading-relaxed"
                 style={{ color: "hsl(var(--ink-deep) / 0.75)" }}
               >
-                Send a Helpr gift card to someone you know. Enter their email, choose an amount, and
-                we'll send them a link to claim it — they can put it toward any job they need done.
+                Send a Helpr gift card to someone you know. Find them by name or type their email,
+                choose an amount, and we'll send them a link to claim it — they can put it toward
+                any job they need done.
               </p>
             </div>
 
             {/* Give a gift form */}
             <div
+              data-testid="gift-form"
               className="rounded-2xl p-5 space-y-4"
               style={{
                 background:
@@ -416,22 +418,28 @@ export default function PayItForward() {
                 isSelfGiftEmail={isSelfGiftEmail}
               />
 
-              {/* Occasion — a horizontal chip rail. Picking one swaps the
-                  design set and the note placeholder, so the choice does real
-                  work rather than just tagging the gift. */}
+              {/* Occasion — picking one swaps the design set and the note
+                  placeholder, so the choice does real work rather than just
+                  tagging the gift.
+
+                  WRAPS at every width. It used to be a masked scroll-rail
+                  below `sm`, un-scrollbarred, with the fade its only "there's
+                  more" hint — on a 320/375 phone that clipped a chip mid-word
+                  at the right edge and hid up to three of the six occasions
+                  behind a gesture nothing announced. The desktop half of this
+                  component already argued the case ("a hidden one is hidden
+                  product") and wrapped from `sm` up; the argument holds on a
+                  phone too, and six short labels cost two or three rows. The
+                  rail, the mask and the negative gutter go together. */}
               <div>
-                <p className="font-serif italic text-ds-12 mb-2" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                <p
+                  id="gift-occasion-label"
+                  className="font-serif italic text-ds-12 mb-2"
+                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                >
                   Occasion
                 </p>
-                {/* Scroll-rail on phone, wrapped grid from sm up. The rail's
-                    fade mask is the only "there's more" affordance, and it has
-                    no scrollbar — fine under a thumb, but on desktop it hid 3
-                    of the 6 occasions behind a gesture, clipped mid-word, while
-                    the column beside it sat empty. Each occasion swaps the card
-                    art AND the note placeholder, so a hidden one is hidden
-                    product. sm:flex-wrap drops the rail, the mask and the
-                    negative gutter together. */}
-                <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-1 px-1 pb-1 [-webkit-mask-image:linear-gradient(to_right,black_calc(100%-20px),transparent)] [mask-image:linear-gradient(to_right,black_calc(100%-20px),transparent)] sm:flex-wrap sm:overflow-x-visible sm:mx-0 sm:px-0 sm:[-webkit-mask-image:none] sm:[mask-image:none]">
+                <div role="group" aria-labelledby="gift-occasion-label" className="flex flex-wrap gap-2">
                   {GIFT_OCCASIONS.map((o) => {
                     const active = o.id === occasionId;
                     return (
@@ -446,12 +454,30 @@ export default function PayItForward() {
                           // birthday cake on a sympathy card.
                           setDesignId(o.designs[0].id);
                         }}
-                        className="shrink-0 px-3 h-9 rounded-ds-pill text-ds-12 font-sans font-semibold transition-colors"
-                        style={{
-                          background: active ? "hsl(var(--bark) / 0.15)" : "transparent",
-                          border: `1px solid hsl(var(--bark) / ${active ? "0.40" : "0.18"})`,
-                          color: "hsl(var(--bark))",
-                        }}
+                        // SELECTED = GLOSSY. `btn-grad-primary` is the app's one
+                        // primary surface; this chip painted a flat 15%-bark
+                        // tint, the same rule break the review tags and the
+                        // withdraw-reason rows already had fixed. The active
+                        // `style` sets COLOR ONLY — a `background` shorthand
+                        // here would wipe the class's background-image.
+                        // px-3 is the app's chip padding (ReviewForm's quick
+                        // tags, the filter pills). It also buys a row back at
+                        // 320: with px-4 only "Congratulations" and
+                        // "Just because" fit alone, giving five rows.
+                        className={`min-h-11 px-3 rounded-ds-pill text-ds-12 font-sans font-semibold transition-all duration-150 ease-ds-spring active:scale-[0.97] ${
+                          active
+                            ? "btn-grad-primary border border-[hsl(var(--bark))] shadow-[inset_0_1px_0_hsl(var(--parchment)/0.22),0_1px_1px_hsl(var(--ink-deep)/0.10),0_2px_6px_hsl(var(--ink-deep)/0.12)]"
+                            : ""
+                        }`}
+                        style={
+                          active
+                            ? { color: "hsl(var(--parchment))" }
+                            : {
+                                background: "var(--surface-premium)",
+                                border: "1px solid hsl(var(--bark) / 0.18)",
+                                color: "hsl(var(--bark))",
+                              }
+                        }
                       >
                         {o.label}
                       </button>
@@ -467,76 +493,195 @@ export default function PayItForward() {
                   longer a narrow 5-col rail — see the single-column note
                   above) it grew tall enough to need scrolling to see the
                   amount below it. Capping the width caps the height with it. */}
-              <div className="max-w-[320px] mx-auto">
+              {/* `sm:max-w-[420px]`: the 320px cap exists so the ISO-ratio
+                  card can't grow tall enough to need scrolling at the form's
+                  full column width (704px at 768, 1030px at 1440). At those
+                  widths a 320px card left most of the band empty around the
+                  screen's stated centrepiece; 420px is still only 265px tall,
+                  well inside the fold, and the phone cap is untouched. */}
+              <div className="max-w-[320px] sm:max-w-[420px] mx-auto">
                 <GiftCardPreview
                   design={design}
                   amount={effectiveAmount || null}
                   note={note}
                   senderName={profile?.full_name ?? null}
+                  occasionLabel={occasion.label}
                 />
+                {/* Card design. Two bare gradient rectangles with no labels and
+                    no state beyond a 2px border read as decoration, not as a
+                    control — you could not tell what either one was called or
+                    which was selected. Each option is now a labelled row: the
+                    art stays as a swatch (it IS the thing being chosen), the
+                    name is VISIBLE text (so the accessible name comes from the
+                    label rather than an aria-label standing in for it —
+                    WCAG 2.5.3), and the selected row wears the app's glossy
+                    primary surface plus a check, like every other selected
+                    control in the app.
+
+                    One column on a phone, two from `sm`: at 320 a two-up grid
+                    left ~44px for the name and truncated "Parchment" to
+                    "Parch…". */}
                 {occasion.designs.length > 1 && (
-                  <div className="flex gap-2 mt-3">
-                    {occasion.designs.map((d) => {
-                      const active = d.id === design.id;
-                      return (
-                        <button
-                          key={d.id}
-                          type="button"
-                          aria-label={`${d.label} design`}
-                          aria-pressed={active}
-                          onClick={() => setDesignId(d.id)}
-                          className="flex-1 h-10 rounded-ds-sm transition-transform active:scale-95"
-                          style={{
-                            background: d.background,
-                            border: active
-                              ? "2px solid hsl(var(--bark))"
-                              : "0.5px solid hsl(var(--olivewood) / 0.20)",
-                          }}
-                        />
-                      );
-                    })}
+                  <div className="mt-3">
+                    <p
+                      id="gift-design-label"
+                      className="font-serif italic text-ds-12 mb-2"
+                      style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                    >
+                      Card design
+                    </p>
+                    <div
+                      role="group"
+                      aria-labelledby="gift-design-label"
+                      className="grid grid-cols-1 sm:grid-cols-2 gap-2"
+                    >
+                      {occasion.designs.map((d) => {
+                        const active = d.id === design.id;
+                        return (
+                          <button
+                            key={d.id}
+                            type="button"
+                            aria-pressed={active}
+                            onClick={() => setDesignId(d.id)}
+                            className={`flex items-center gap-2 min-h-11 px-2 py-1.5 rounded-ds-sm text-left transition-all duration-150 ease-ds-spring active:scale-[0.97] ${
+                              active
+                                ? "btn-grad-primary border border-[hsl(var(--bark))] shadow-[inset_0_1px_0_hsl(var(--parchment)/0.22),0_1px_1px_hsl(var(--ink-deep)/0.10),0_2px_6px_hsl(var(--ink-deep)/0.12)]"
+                                : ""
+                            }`}
+                            style={
+                              active
+                                ? undefined
+                                : {
+                                    background: "var(--surface-premium)",
+                                    border: "1px solid hsl(var(--olivewood) / 0.20)",
+                                  }
+                            }
+                          >
+                            <span
+                              aria-hidden
+                              className="w-8 h-8 shrink-0 rounded-[6px]"
+                              style={{
+                                background: d.background,
+                                border: "0.5px solid hsl(var(--ink-deep) / 0.15)",
+                              }}
+                            />
+                            <span
+                              className="flex-1 min-w-0 truncate font-sans font-semibold text-ds-12"
+                              style={{
+                                color: active ? "hsl(var(--parchment))" : "hsl(var(--ink-deep))",
+                              }}
+                            >
+                              {d.label}
+                            </span>
+                            {active && (
+                              <Check
+                                className="w-4 h-4 shrink-0"
+                                style={{ color: "hsl(var(--parchment))" }}
+                                aria-hidden
+                              />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </div>
 
-              {/* Amount chips */}
+              {/* Amount.
+
+                  The presets and the custom field used to share ONE flex row of
+                  four equal tiles: $25 / $50 / $75 / a bare unlabelled
+                  <input type=number>. Empty — which is its default state — the
+                  fourth tile rendered as a blank box the same size and shape as
+                  the three priced ones, so it read as a preset that had failed
+                  to render rather than as "type your own". Its only name was an
+                  aria-label, invisible to everyone not using a screen reader.
+                  So: three presets in their own grid, then the custom field on
+                  its own full-width row under a REAL <label> (visible text, and
+                  the accessible name derives from it rather than an aria-label
+                  standing in for it — WCAG 2.5.3), with a persistent "$" so it
+                  reads in the same units as the tiles above.
+
+                  State is unchanged: picking a preset clears the custom field,
+                  typing in the custom field clears the preset, and
+                  `effectiveAmount` still resolves the same way. */}
               <div>
                 <p
+                  id="gift-amount-label"
                   className="font-serif italic text-ds-12 mb-2"
                   style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >
                   Amount
                 </p>
-                <div className="flex gap-2 flex-wrap">
-                  {AMOUNT_PRESETS.map((amt) => (
-                    <button
-                      key={amt}
-                      onClick={() => { setSelectedAmount(amt); setCustomAmount(""); }}
-                      className="flex-1 py-2 rounded-ds-sm text-ds-13 font-sans font-semibold transition-colors"
-                      style={{
-                        background: selectedAmount === amt ? "hsl(var(--bark) / 0.15)" : "transparent",
-                        border: `1px solid hsl(var(--bark) / ${selectedAmount === amt ? "0.4" : "0.18"})`,
-                        color: "hsl(var(--bark))",
-                      }}
-                    >
-                      ${amt}
-                    </button>
-                  ))}
+                <div role="group" aria-labelledby="gift-amount-label" className="grid grid-cols-3 gap-2">
+                  {AMOUNT_PRESETS.map((amt) => {
+                    const active = selectedAmount === amt;
+                    return (
+                      <button
+                        key={amt}
+                        type="button"
+                        aria-pressed={active}
+                        onClick={() => { setSelectedAmount(amt); setCustomAmount(""); }}
+                        // SELECTED = GLOSSY, like every other selected control.
+                        // The active `style` sets COLOR ONLY: a `background`
+                        // shorthand would wipe btn-grad-primary's image.
+                        className={`min-h-11 px-2 rounded-ds-sm text-ds-13 font-sans font-semibold transition-all duration-150 ease-ds-spring active:scale-[0.97] ${
+                          active
+                            ? "btn-grad-primary border border-[hsl(var(--bark))] shadow-[inset_0_1px_0_hsl(var(--parchment)/0.22),0_1px_1px_hsl(var(--ink-deep)/0.10),0_2px_6px_hsl(var(--ink-deep)/0.12)]"
+                            : ""
+                        }`}
+                        style={
+                          active
+                            ? { color: "hsl(var(--parchment))" }
+                            : {
+                                background: "var(--surface-premium)",
+                                border: "1px solid hsl(var(--bark) / 0.18)",
+                                color: "hsl(var(--bark))",
+                              }
+                        }
+                      >
+                        ${amt}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <label
+                  htmlFor="gift-custom-amount"
+                  className="block font-serif italic text-ds-12 mt-3 mb-1.5"
+                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                >
+                  Or enter a custom amount
+                </label>
+                <div className="relative">
+                  <span
+                    aria-hidden
+                    className="absolute left-3 top-1/2 -translate-y-1/2 font-sans font-semibold text-ds-13 pointer-events-none"
+                    style={{ color: "hsl(var(--bark) / 0.7)" }}
+                  >
+                    $
+                  </span>
                   <input
+                    id="gift-custom-amount"
                     type="number"
-                    aria-label="Custom gift amount in dollars"
+                    inputMode="decimal"
                     min={MIN_GIFT}
                     max={MAX_GIFT}
+                    aria-invalid={amountTooLarge || undefined}
+                    aria-describedby="gift-amount-help"
                     value={customAmount}
                     onChange={(e) => { setCustomAmount(e.target.value); setSelectedAmount(null); }}
-                    className="flex-1 py-2 px-3 rounded-ds-sm text-ds-13 font-sans font-semibold text-center"
+                    className="w-full min-h-11 py-2 pl-7 pr-3 rounded-ds-sm text-ds-13 font-sans font-semibold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     style={{
-                      background: customAmount ? "hsl(var(--bark) / 0.10)" : "transparent",
+                      background: customAmount ? "hsl(var(--bark) / 0.10)" : "var(--surface-premium)",
                       border: amountTooLarge
                         ? "1px solid hsl(var(--burnt-sienna) / 0.55)"
                         : `1px solid hsl(var(--bark) / ${customAmount ? "0.40" : "0.18"})`,
                       color: "hsl(var(--bark))",
-                      outline: "none",
+                      // No `outline: "none"`. An INLINE outline:none beats the
+                      // global `:focus-visible { outline: 2px solid … }` rule,
+                      // so this field had no visible keyboard focus at all.
                       minWidth: 0,
                     }}
                   />
@@ -550,6 +695,7 @@ export default function PayItForward() {
                   </p>
                 )}
                 <p
+                  id="gift-amount-help"
                   className="font-serif italic text-ds-11 mt-1.5"
                   style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 >
@@ -560,12 +706,20 @@ export default function PayItForward() {
               {/* Personal note */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <p
+                  {/* A real <label>, not an aria-label. The aria-label read
+                      "Personal note (optional)" while the visible text read
+                      "Personal note — optional": an accessible name that does
+                      not contain its own visible label is a WCAG 2.5.3 failure,
+                      and voice control ("click Personal note — optional")
+                      misses it. Associating the visible text is both correct
+                      and one fewer string to keep in sync. */}
+                  <label
+                    htmlFor="gift-note"
                     className="font-serif italic text-ds-12"
                     style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                   >
                     Personal note — optional
-                  </p>
+                  </label>
                   <span
                     className="font-sans tabular-nums text-ds-11"
                     style={{ color: "hsl(var(--olivewood) / 0.8)" }}
@@ -574,7 +728,7 @@ export default function PayItForward() {
                   </span>
                 </div>
                 <Textarea
-                  aria-label="Personal note (optional)"
+                  id="gift-note"
                   value={note}
                   onChange={(e) => setNote(e.target.value.slice(0, MAX_NOTE_LENGTH))}
                   placeholder={occasion.notePlaceholder}
@@ -584,25 +738,34 @@ export default function PayItForward() {
                 />
               </div>
 
-              {/* Submit */}
+              {/* Submit.
+
+                  No inline `background` any more. The <Button> default variant
+                  IS the app's glossy primary surface (`btn-grad-primary` — see
+                  button.tsx), and a `background` shorthand in an inline style
+                  wins the cascade AND resets `background-image`, so this CTA
+                  was painting a flat bark fill over the gradient — the exact
+                  failure PhotoProof.tsx documents. Disabled state comes from the
+                  primitive's own `disabled:opacity-50` rather than a hand-mixed
+                  15%-tint, so it dims like every other disabled CTA in the app
+                  instead of turning into a different-looking control. */}
               <Button
                 onClick={handleDonate}
                 disabled={!canDonate || donateMutation.isPending}
-                className="w-full rounded-ds-sm font-display italic font-semibold"
-                style={{
-                  background: canDonate ? "hsl(var(--bark))" : "hsl(var(--bark) / 0.15)",
-                  color: canDonate ? "hsl(var(--parchment))" : "hsl(var(--bark) / 0.5)",
-                  border: "none",
-                }}
+                className="w-full font-display italic font-semibold"
               >
-                <Gift className="w-4 h-4 mr-2" />
+                <Gift aria-hidden />
                 {donateMutation.isPending ? "Starting Checkout…" : "Continue to Checkout"}
               </Button>
             </div>
           </aside>
 
-          {/* ── Right pane: gift listings ────────────────────────────────────── */}
-          <section className="space-y-6 pb-8">
+          {/* ── Right pane: gift listings ──────────────────────────────────────
+              No `pb-8` here: AppPage's scroll column already carries the
+              canonical bottom-nav clearance (safe-area + 96px dock + 1rem), and
+              a second per-page pad is the double-inset CLAUDE.md warns about —
+              it only adds dead space under the last card. */}
+          <section className="space-y-6">
             {/* Gifts sent to you */}
             <div>
               <p className="text-ds-13 font-sans font-semibold mb-3" style={{ color: "hsl(var(--ink-deep))" }}>

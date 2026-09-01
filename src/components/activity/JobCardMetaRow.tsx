@@ -1,5 +1,5 @@
 import { useCallback, useRef, type ReactNode } from "react";
-import { Calendar, Clock, MapPin, Timer } from "lucide-react";
+import { Calendar, Clock, MapPin, Timer, Users } from "lucide-react";
 import { differenceInHours } from "date-fns";
 import { formatJobDate, formatTimeLeft } from "@/lib/dateUtils";
 import { getCity } from "@/lib/locationUtils";
@@ -17,7 +17,7 @@ import { hapticImpactForce } from "@/lib/haptics";
  * threshold re-creates the misfire this exists to stop, and a longer one feels
  * broken because the user's thumb lifts before the app agrees a press happened.
  */
-export const LOCATION_MAP_PRESS_MS = 500;
+const LOCATION_MAP_PRESS_MS = 500;
 
 /**
  * Pixels the finger may drift before the press is abandoned.
@@ -28,6 +28,54 @@ export const LOCATION_MAP_PRESS_MS = 500;
  * visibly moved — a scroll that begins on the location can never open the map.
  */
 const LOCATION_MAP_MOVE_TOLERANCE = 8;
+
+/**
+ * "👥 3" — how many Helprs the job needs, as ONE component for every surface
+ * that states it.
+ *
+ * Owner, 2026-08-30: "3 helprs needed goes to the right of time." On the
+ * applied card the count used to render as its own line at the very BOTTOM of
+ * the card, under the Edit/Withdraw row, detached from the facts it belongs
+ * with and reading like a footer — while the browse feed already had it inline
+ * in the meta row right after the time. Two surfaces, two answers, for one
+ * fact. It is the same chip in both places now.
+ *
+ * Only the two metrics the HOST ROW already sets for every other chip in it are
+ * parameterised — the feed's meta row runs 10px icons and a tighter gap, the
+ * activity cards' runs 12px and `gap-1.5` — so the chip matches its neighbours
+ * without inventing a second visual language. Markup, colour, weight and
+ * accessible name are fixed here and cannot drift between the two.
+ *
+ * The count is the only VISIBLE text: "3 Helprs needed" spelled out is ~90px of
+ * a `flex-nowrap` row that has none to give at 320, and the person icon carries
+ * the noun. The words survive for assistive tech in the `sr-only` span — an
+ * `aria-label` on the wrapper would be ignored, since a bare <span> has no
+ * role for one to name.
+ */
+export function JobHelprsChip({
+  helpersNeeded,
+  className = "gap-1.5",
+  iconClassName = "w-3 h-3",
+}: {
+  helpersNeeded?: number | null;
+  /** Gap + any outer margin. Supplied by the row so it matches its siblings. */
+  className?: string;
+  iconClassName?: string;
+}) {
+  /* 2 is the floor a group job can have — `is_group_job` with a null
+     `helpers_needed` is an older row, and "1 Helpr" is not a group. */
+  const count = helpersNeeded && helpersNeeded > 0 ? helpersNeeded : 2;
+  return (
+    <span
+      className={`inline-flex items-center shrink-0 whitespace-nowrap ${className}`}
+      style={{ color: "hsl(var(--primary))" }}
+    >
+      <Users className={`${iconClassName} shrink-0`} strokeWidth={2.25} aria-hidden="true" />
+      <span className="font-sans font-medium">{count}</span>
+      <span className="sr-only"> Helprs needed</span>
+    </span>
+  );
+}
 
 interface JobCardMetaRowProps {
   dateNeeded: string;
@@ -46,6 +94,17 @@ interface JobCardMetaRowProps {
       to hide the expiry chip; the caller is responsible for any extra
       gating (e.g. only show while pending, only show with no helper). */
   expiresAt?: string | null;
+  /**
+   * How many Helprs a GROUP job needs. Pass `null`/`undefined` on a
+   * single-helper job and no chip renders.
+   *
+   * A first-class prop rather than another `children` chip (which is where the
+   * posted card used to put it) because its POSITION is the whole point of the
+   * owner's ask: immediately right of the time, before the expiry countdown and
+   * before anything a caller appends. `children` cannot guarantee that — it is
+   * appended last by definition — and the applied card had no chip here at all.
+   */
+  helpersNeeded?: number | null;
   /** Optional extra chips appended to the row (e.g. applicant counts,
       recurring, group-task) — Posted uses this. */
   children?: ReactNode;
@@ -88,6 +147,7 @@ export function JobCardMetaRow({
   flexibleLabel = "Flexible",
   location,
   expiresAt,
+  helpersNeeded,
   children,
   trailing,
   locationPressToMap = false,
@@ -281,7 +341,28 @@ export function JobCardMetaRow({
         <Calendar className="w-3 h-3 shrink-0" />
         {formatJobDate(dateNeeded)}
       </span>
-      <span className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
+      {/* THE START TIME IS THE FIRST THING THIS ROW DROPS WHEN IT IS FULL, and
+          only then — the same rule, at the same 400px, that the browse feed's
+          own meta row already applies, for the same measured reason.
+
+          "Full" here means the expiry countdown is rendering, which happens on
+          exactly one state (a pending application still open to other Helprs)
+          and adds a fifth chip to a `flex-nowrap` row. Measured at 375 on that
+          card before this guard: the five chips wanted 373px of a 267px row, so
+          the city — the only item that shrinks — was squeezed to 10.7px, i.e.
+          the map pin and NOTHING ELSE, while "4 days left" wrapped to three
+          lines and made that one card 32px taller than every card around it.
+          Both halves of that are worse than not printing the o'clock.
+
+          With the time out at ≤399px the row is city + date + helprs + expiry,
+          which fits, and the city gets ~60px back. Above 400 — and on every
+          card without an expiry, which is most of them — nothing changes and
+          the time is exactly where it was. */}
+      <span
+        className={`flex items-center gap-1.5 shrink-0 whitespace-nowrap${
+          expiresAt ? " [@media(max-width:399px)]:hidden" : ""
+        }`}
+      >
         <Clock className="w-3 h-3 shrink-0" />
         {!startTime
           ? flexibleLabel
@@ -290,6 +371,24 @@ export function JobCardMetaRow({
               minute: "2-digit",
             })}
       </span>
+      {/* DIRECTLY RIGHT OF THE TIME (owner, 2026-08-30: "3 helprs needed goes
+          to the right of time"), and before the expiry countdown, so the row
+          reads place → day → hour → how many of us, which is the order the
+          facts are needed in.
+
+          Hidden below 360px, the same guard the feed's own start-time chip
+          already carries and for the same measured reason: this row is
+          `flex-nowrap` and clipped, so a chip that does not fit is not tight,
+          it is silently GONE — and what it takes on the way out is the city,
+          the only item here that shrinks. Group jobs are the minority and the
+          count is repeated in the expanded card, so at 320 the chip is the
+          right thing to drop rather than letting it ellipsise a parish. */}
+      {helpersNeeded ? (
+        <JobHelprsChip
+          helpersNeeded={helpersNeeded}
+          className="gap-1.5 [@media(max-width:359px)]:hidden"
+        />
+      ) : null}
       {/* No "3h" estimate chip. Post a Job has no estimated-hours field any
           more (owner), so on every job posted since it was dropped this
           rendered nothing, and on the older ones it showed a second clock icon
@@ -303,8 +402,15 @@ export function JobCardMetaRow({
             const expiringSoon = differenceInHours(expiry, new Date()) < 24;
             const text = expired ? "Expired" : formatTimeLeft(expiry);
             return (
+              /* `shrink-0 whitespace-nowrap`, like every other chip on this
+                 row. Without them this was the ONE item here that could wrap
+                 inside itself, and on a squeezed 320/375 card it did: "4 days
+                 left" broke across three lines and took the whole meta row —
+                 and therefore that one card — 32px taller than its neighbours,
+                 which is the equal-card-height rule this list is built on. A
+                 nowrap row whose chips wrap internally is not a nowrap row. */
               <span
-                className={`flex items-center gap-1 ${expiringSoon ? "text-destructive font-medium" : ""}`}
+                className={`flex items-center gap-1 shrink-0 whitespace-nowrap ${expiringSoon ? "text-destructive font-medium" : ""}`}
               >
                 <Timer className="w-3 h-3 shrink-0" /> {text}
               </span>

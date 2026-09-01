@@ -10,8 +10,67 @@ import {
   Bell, CheckCircle2, Loader2, Mail, Smartphone, Lock, Moon, Send,
 } from "lucide-react";
 import { QuietHoursClock } from "@/components/profile/QuietHoursClock";
+import { functionErrorMessage } from "@/lib/supabaseResult";
 import type { Prefs } from "./notificationPreferences/types";
 import { defaultPrefs, trimTime, rows } from "./notificationPreferences/constants";
+
+/** One delivery channel's outcome, as reported by `create-notification`. */
+type TestChannel = {
+  status?: "sent" | "skipped" | "failed" | "queued";
+  /** Machine reason for a skip/failure (e.g. `email_disabled`). */
+  reason?: string;
+  /** Masked recipient, e.g. `lexi…@gmail.com`. */
+  detail?: string;
+  /** The `notification_preferences` column that suppressed the email. */
+  pref_column?: string;
+  /** Push only: how many devices this account has registered. */
+  devices?: number;
+};
+
+type TestSendResult = {
+  success?: boolean;
+  notification_id?: string;
+  channels?: { in_app?: TestChannel; email?: TestChannel; push?: TestChannel };
+};
+
+// The email pref column the server names maps back to the row label the user
+// can actually see and flip on this very screen, so the failure copy points at
+// a switch rather than at a database column.
+const EMAIL_PREF_LABEL: Record<string, string> = {
+  email_new_offers: "Job Offers",
+  email_messages: "Messages",
+  email_transit_updates: "Transit Updates",
+  email_work_status: "Work Status",
+  email_financial_alerts: "Payments & Tips",
+  email_reviews: "Reviews",
+  email_promotions: "Promotions",
+  email_system_alerts: "system alerts",
+};
+
+/** `["a", "b", "c"]` -> `"a, b and c"`. */
+const joinList = (parts: string[]): string =>
+  parts.length <= 1
+    ? (parts[0] ?? "")
+    : `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
+
+const emailSkipCopy = (ch: TestChannel): string => {
+  switch (ch.reason) {
+    case "email_disabled": {
+      const label = ch.pref_column ? EMAIL_PREF_LABEL[ch.pref_column] : undefined;
+      return label
+        ? `the Email switch for ${label} is off`
+        : "email is turned off for this category";
+    }
+    case "no_email":
+      return "your account has no email address on file";
+    case "suppressed":
+      return "your email address is on our bounce list";
+    case "suppression_check_failed":
+      return "we couldn't check your email address";
+    default:
+      return "the email was skipped";
+  }
+};
 
 const NotificationPreferences = () => {
   const [prefs, setPrefs] = useState<Prefs>(defaultPrefs);
@@ -182,24 +241,79 @@ const NotificationPreferences = () => {
     if (!userId || sendingTest) return;
     setSendingTest(true);
     try {
-      const { error } = await supabase.functions.invoke("create-notification", {
-        body: {
-          user_id: userId,
-          title: "Test from Helpr",
-          message: "If you got this, notifications are working. " + new Date().toLocaleTimeString(),
-          type: "info",
+      // Read `data`, not just `error`. A 200 from create-notification used to
+      // be reported as "Test sent — check your email and the bell icon" even on
+      // runs where the email had been silently skipped (the Email switch for
+      // this category was off, the address was suppressed, or Resend refused
+      // it) — the function returned a blanket `{ success: true }` and the copy
+      // promised delivery it had no evidence for. It now reports each channel,
+      // and this toast says only what actually happened.
+      const { data, error } = await supabase.functions.invoke<TestSendResult>(
+        "create-notification",
+        {
+          body: {
+            user_id: userId,
+            title: "Test from Helpr",
+            message: "If you got this, notifications are working. " + new Date().toLocaleTimeString(),
+            type: "info",
+          },
         },
-      });
-      if (error) throw error;
-      toast.success(
-        pushTokenCount === 0
-          ? "Test sent — check your email and the bell icon."
-          : "Test sent — check your device, email, and the bell icon.",
       );
+      if (error) throw error;
+
+      const channels = data?.channels;
+      // An older deploy of the edge function (no `channels` in the body) still
+      // has to end in feedback rather than in silence — just without the
+      // per-channel claim we can no longer back up.
+      if (!channels) {
+        toast.success("Test sent — check the bell icon, and your email.");
+        return;
+      }
+
+      // Keep the row's own copy honest: the device count the server just
+      // measured beats whatever we read when the screen first mounted.
+      if (typeof channels.push?.devices === "number") {
+        setPushTokenCount(channels.push.devices);
+      }
+
+      const devices = channels.push?.devices ?? 0;
+
+      const landed: string[] = [];
+      if (channels.in_app?.status === "sent") landed.push("the bell icon");
+      if (channels.email?.status === "sent") {
+        landed.push(channels.email.detail ? `email to ${channels.email.detail}` : "email");
+      }
+      if (devices > 0) {
+        landed.push(`push to ${devices} device${devices === 1 ? "" : "s"}`);
+      }
+
+      // Something went wrong that the user did not already know about.
+      const issues: string[] = [];
+      if (channels.email?.status === "skipped") {
+        issues.push(emailSkipCopy(channels.email));
+      } else if (channels.email?.status === "failed") {
+        issues.push("the email couldn't be sent");
+      }
+      // Zero registered devices is a stated fact, not a surprise — the row's
+      // own subtitle already says so. It is worth repeating in the result so
+      // "nothing buzzed my phone" has an answer, but it does not by itself
+      // make an otherwise-clean send into a warning.
+      const pushNote = devices === 0 ? "no device is registered for push" : null;
+
+      if (landed.length === 0) {
+        hapticError();
+        toast.error(`Test didn't reach you — ${joinList([...issues, ...(pushNote ? [pushNote] : [])]) || "no channel was available"}.`);
+      } else if (issues.length > 0) {
+        toast.warning(`Sent to ${joinList(landed)} — but ${joinList([...issues, ...(pushNote ? [pushNote] : [])])}.`);
+      } else {
+        toast.success(`Sent to ${joinList(landed)}.${pushNote ? " No device is registered for push." : ""}`);
+      }
     } catch (err: unknown) {
       hapticError();
-      const msg = err instanceof Error ? err.message : "Test failed.";
-      toast.error(msg);
+      // The SDK's own message on a non-2xx is the useless "Edge Function
+      // returned a non-2xx status code"; the real reason is in the response
+      // body, which functionErrorMessage digs out.
+      toast.error(await functionErrorMessage(err, "Test failed — please try again."));
     } finally {
       setSendingTest(false);
     }

@@ -231,5 +231,3 @@ export function BrowseSearchBar({
     </div>
   );
 }
-
-export default BrowseSearchBar;

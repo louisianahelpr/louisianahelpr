@@ -1,7 +1,7 @@
 import { memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, RotateCcw, Users, RefreshCw, Clock, Check, MapPinOff } from "lucide-react";
+import { CheckCircle2, RotateCcw, RefreshCw, Clock, Check, MapPinOff } from "lucide-react";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
 import { SeriesStrip } from "@/components/activity/SeriesStrip";
 import { JobCountdown } from "@/components/activity/JobCountdown";
@@ -150,6 +150,9 @@ function PostedJobCardInner({
                 latitude={job.latitude}
                 longitude={job.longitude}
                 expiresAt={!job.helper_id && job.status !== "cancelled" ? job.expires_at : null}
+                // "👥 3", right after the time — the same chip and the same
+                // slot the browse feed and the applied card now use.
+                helpersNeeded={job.is_group_job ? (job.helpers_needed ?? 2) : null}
                 // "View details" costs no row of its own any more.
                 //
                 // It used to sit below the meta row as a standalone 44px
@@ -185,9 +188,13 @@ function PostedJobCardInner({
                  {job.is_recurring && !(job.recurrence_days && job.recurrence_days.length > 0) && (
                    <span className="flex items-center gap-1"><RefreshCw className="w-3 h-3 shrink-0 text-primary" /> {formatRecurrenceInterval(job.recurrence_interval)}</span>
                  )}
-                 {job.is_group_job && (
-                   <span className="flex items-center gap-1"><Users className="w-3 h-3 shrink-0 text-primary" /> {job.helpers_needed ? `${job.helpers_needed} Helpr${job.helpers_needed === 1 ? "" : "s"}` : "Group job"}</span>
-                 )}
+                 {/* The group-size chip is NOT a child any more — it is
+                     JobCardMetaRow's own `helpersNeeded` prop, which pins it
+                     directly after the TIME (owner: "3 helprs needed goes to
+                     the right of time"). As a child it landed last, after the
+                     recurring chip and the expiry countdown, and the applied
+                     card stated the same fact in a footer line at the bottom of
+                     the card. One chip, one position, both surfaces. */}
                </JobCardMetaRow>
             </>
   );
@@ -636,7 +643,7 @@ function PostedJobCardInner({
               {(job.status === "in_progress" || job.status === "accepted") && (
                 <div className="px-4 pb-3 space-y-3" onClick={(e) => e.stopPropagation()}>
                   <JobConfirmation jobId={job.id} isOwner={true} isHelper={false} posterConfirmedAt={job.poster_confirmed_at} helperConfirmedAt={job.helper_confirmed_at} helperDayofConfirmedAt={job.helper_dayof_confirmed_at} dateNeeded={job.date_needed} jobStatus={job.status} helperOnTheWayAt={job.helper_on_the_way_at} onCantMakeIt={() => onCancel(job)} />
-                  {job.is_group_job && <GroupJobHelpers jobId={job.id} helpersNeeded={job.helpers_needed || 2} isOwner={true} initialHelpers={initialGroupHelpers} />}
+                  {job.is_group_job && <GroupJobHelpers jobId={job.id} helpersNeeded={job.helpers_needed || 2} isOwner={true} jobStatus={job.status} initialHelpers={initialGroupHelpers} />}
 
                 </div>
               )}

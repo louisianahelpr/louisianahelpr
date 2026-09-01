@@ -98,5 +98,3 @@ export function ScreenHeaderRow({
     </div>
   );
 }
-
-export default ScreenHeaderRow;

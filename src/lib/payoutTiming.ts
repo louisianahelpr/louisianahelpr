@@ -18,7 +18,7 @@
  * This describes the STANDARD path only. The instant path has its own fee and
  * its own timing — see `instantPayoutFee.ts`.
  */
-export const STANDARD_PAYOUT_WINDOW_DAYS = 2;
+const STANDARD_PAYOUT_WINDOW_DAYS = 2;
 
 /** "within 2 business days" — the fragment both surfaces interpolate. */
 export const STANDARD_PAYOUT_WINDOW = `within ${STANDARD_PAYOUT_WINDOW_DAYS} business days`;

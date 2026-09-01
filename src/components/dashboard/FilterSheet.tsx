@@ -17,11 +17,15 @@ import {
 import {
   Popover,
   PopoverAnchor,
-  PopoverArrow,
   PopoverContent,
   PopoverPortal,
-  PopoverScrim,
+  PopoverDismissLayer,
 } from "@/components/ui/popover";
+import {
+  screenPanelContentClass,
+  screenPanelContentProps,
+  useScreenPanelBand,
+} from "@/components/ui/anchoredPanel";
 import { Switch } from "@/components/ui/switch";
 import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 import { hapticLight } from "@/lib/haptics";
@@ -167,17 +171,30 @@ function PanelScroller({ children }: { children: ReactNode }) {
           overflowing block that the card's `overflow-hidden` then CROPPED:
           nothing below the fold was reachable at all. `min-h-0` is what lets
           a flex child shrink below its content and actually scroll. */}
-      <div ref={ref} className="min-h-0 flex-1 overflow-y-auto overscroll-contain pt-3">
+      {/* `pb-8` clears the fade below: without it the last section's final row
+          came to rest UNDER the gradient, so the thing you scrolled to the
+          bottom to read was the one thing still half-erased. */}
+      <div ref={ref} className="min-h-0 flex-1 overflow-y-auto overscroll-contain pt-3 pb-8">
         {children}
       </div>
       {/* Positioned against the card (which is `relative`), not against the
-          scroller — a fade inside the scroller would scroll away with it. */}
+          scroller — a fade inside the scroller would scroll away with it.
+
+          TALLER AND STRONGER THAN A HAIRLINE FADE (h-14, ramping from 55%).
+          The panel is now a full-bleed band with a hard bottom edge, and a
+          32px whisper of a fade left the row straddling that edge looking
+          SHEARED rather than scrolled — which is the exact complaint the owner
+          raised about "Only Saved Jobs" being cut mid-item. A list that is
+          longer than its box will always cut a row somewhere; the fix is that
+          the cut reads as "there is more below", so the whole partially
+          visible row dissolves instead of being sliced. */}
       {more && (
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-8"
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-14"
           style={{
-            background: "linear-gradient(to bottom, transparent, hsl(var(--background)) 92%)",
+            background:
+              "linear-gradient(to bottom, transparent 0%, hsl(var(--background) / 0.82) 55%, hsl(var(--background)) 92%)",
           }}
         />
       )}
@@ -250,44 +267,58 @@ export function FilterSheet({
   // scrolls the focused field into view; this is what gives it somewhere to
   // scroll to. 0 whenever no keyboard is up (and always on web).
   const keyboardInset = useKeyboardInset();
+  /* The panel is placed against a measured SCREEN BAND — a zero-height rect
+     spanning the viewport at the bottom of the header the Filters button sits
+     in — not against the button itself. `anchorRef` is still what identifies
+     the button (for the measurement, and for the outside-press guard below).
+     The keyboard inset is folded into the band's height budget so a panel that
+     is already sized to the screen shrinks when the software keyboard covers
+     the bottom of it. */
+  // A stable stand-in for the sheet-fallback path (no `anchorRef` prop). It
+  // must be a real ref, not `{ current: null }` inline: a fresh object every
+  // render would change the hook's `measure` identity every render, which
+  // would tear down and re-register its resize listeners on every render.
+  const noTriggerRef = useRef<HTMLElement>(null);
+  const { anchorRef: screenAnchorRef, band } = useScreenPanelBand(
+    open,
+    anchorRef ?? noTriggerRef,
+    keyboardInset,
+  );
 
-  // A panel hanging off the Filters button, not a centered modal — at ANY
-  // width, not just desktop (owner, 2026-08-30: reviewed a centered-modal /
-  // inset-sheet / anchored-panel comparison and picked anchored for Filters
-  // specifically). Anchored, but a LAYER: it carries the app's shared scrim
-  // and the shared `.glass-modal` surface.
+  // A panel ANCHORED TO THE SCREEN, not a centered modal and not a floating
+  // card off the Filters button — at ANY width (owner, 2026-08-30: reviewed a
+  // centered-modal / inset-sheet / anchored-panel comparison and picked
+  // anchored for Filters specifically; then 2026-08-31, seeing it on device:
+  // "This blur is not correct it should be anchored to screen remove the
+  // blur"). So: full-bleed under the header, no scrim, no caret, no side
+  // margins, opaque surface.
   //
-  // It used to be non-modal and unscrimmed, on the reasoning that the board
-  // should stay lit and visibly re-filter behind you as you pick. The owner
-  // rejected that on device (2026-08-31: "how can we improve notifications or
-  // anchored filters so they stand out better") — with the feed at full
-  // contrast directly below and beside it, on a surface a shade off the page's
-  // own, the panel read as one more band of the page rather than something
-  // that had opened over it. `modal` also buys the three things the bare
-  // popover lacked: a focus trap, `aria-hidden` on the page behind, and a
-  // scroll lock, so the feed can't scroll under an open filter panel.
+  // `modal` STAYS. It is not what produced the blur — it is what buys the
+  // focus trap, `aria-hidden` on the page behind, and the scroll lock that
+  // stops the feed scrolling under an open filter panel. Dropping it to remove
+  // the scrim would have thrown away three things nobody complained about.
   //
-  // NotificationPanel gets the identical treatment (same `PopoverScrim`, same
-  // `.glass-modal`, same notch) — the two anchored panels in the header must
-  // not be two different objects.
+  // NotificationPanel gets the identical treatment (same band geometry, same
+  // dismiss layer, same surface) — the two anchored panels in the header must
+  // not be two different objects. Owner, asked whether they should match:
+  // "Yes — both the same".
   if (anchorRef) {
     return (
       <Popover open={open} onOpenChange={onOpenChange} modal>
-        <PopoverAnchor virtualRef={anchorRef} />
-        {/* Scrim FIRST, in its own portal, so it stacks under the panel the
-            same way SheetOverlay stacks under SheetContent. */}
+        <PopoverAnchor virtualRef={screenAnchorRef} />
+        {/* NO SCRIM. What is mounted here paints NOTHING — it is a full-bleed
+            layer whose only job is to receive the tap that dismisses the
+            panel. Radix defers the outside-dismiss to the `click`, so without
+            something to catch it that same click lands on the job card under
+            your finger and opens it. See `PopoverDismissLayer` in
+            `ui/popover.tsx`. Its own portal, first, so it stacks under the
+            panel the way SheetOverlay stacks under SheetContent. */}
         <PopoverPortal>
-          <PopoverScrim />
+          <PopoverDismissLayer />
         </PopoverPortal>
         <PopoverContent
           ref={panelRef}
-          align="end"
-          sideOffset={10}
-          // The trigger sits at the far right of the window; without this the
-          // panel would hang off the edge. It also feeds Radix's
-          // `--radix-popover-content-available-height`, which the inner card
-          // caps itself with below.
-          collisionPadding={16}
+          {...screenPanelContentProps(band)}
           aria-labelledby={titleId}
           // NO AUTOFOCUS ON THE SEARCH FIELD.
           //
@@ -324,42 +355,50 @@ export function FilterSheet({
             const target = e.target as Node | null;
             if (target && anchorRef.current?.contains(target)) e.preventDefault();
           }}
+          // RETURN FOCUS TO THE FILTERS BUTTON.
+          //
+          // Radix restores focus to the element that opened the popover — but
+          // only when that element is a `<PopoverTrigger>`. This panel is
+          // opened by a button OUTSIDE the popover subtree and positioned
+          // against a virtual anchor, so Radix has no trigger to hand focus
+          // back to: measured on 2026-08-31, pressing Escape closed the panel
+          // and left `document.activeElement` on `<body>`, which drops a
+          // keyboard user back at the top of the document and announces
+          // nothing. The notifications panel does not have this problem
+          // because its bell IS a `PopoverTrigger`.
+          //
+          // Guarded on `event.defaultPrevented` so a future handler can still
+          // opt out, and on the ref being live in case the button unmounted
+          // while the panel was open.
+          onCloseAutoFocus={(event) => {
+            if (event.defaultPrevented) return;
+            const button = anchorRef.current;
+            if (!button) return;
+            event.preventDefault();
+            button.focus({ preventScroll: true });
+          }}
           // (Tapping outside closes the panel WITHOUT also opening the job
-          // card under your finger — that is the scrim's `pointer-events-auto`
-          // doing the work, see `PopoverScrim`. Radix defers this dismiss to
+          // card under your finger — that is `PopoverDismissLayer`'s
+          // `pointer-events-auto` doing the work. Radix defers this dismiss to
           // the click, so nothing here can swallow it after the fact; the
-          // scrim has to be what receives the click in the first place.)
-          // The Content box itself is now just the positioner: no padding, no
-          // border, no background, no clipping — the visible card is the inner
-          // div, and the notch (`PopoverArrow`) hangs OUTSIDE that card, so
-          // Content must not clip its own children.
-          className="w-[400px] max-w-[calc(100vw-2rem)] p-0 border-0 bg-transparent shadow-none"
+          // layer has to be what receives the click in the first place.)
+          //
+          // The Content box carries the band's own width and height budget
+          // (from `screenPanelContentProps`) plus the opaque full-bleed
+          // surface; the inner div below is only the flex column that holds
+          // the header and the scroller.
+          className={screenPanelContentClass}
         >
-          {/* The notch that points back at the sliders icon — says "this
-              opened from THAT button", and that the panel is anchored rather
-              than floating free. Solid fill, not the card's translucency: an
-              SVG cannot inherit a backdrop-filter. */}
-          <PopoverArrow
-            width={16}
-            height={8}
-            className="fill-[hsl(var(--background))] drop-shadow-none"
-          />
+          {/* No notch. A band that reaches both screen edges is not pointing
+              at anything, and the owner asked for it anchored to the screen
+              rather than to the sliders icon. */}
           <div
-            className="glass-modal relative flex flex-col overflow-hidden rounded-ds-lg"
+            // `mx-auto max-w-lg` is a CONTENT measure, not a side margin — the
+            // band's SURFACE still reaches both screen edges. Without it every
+            // chip row and switch stretched to the full window on desktop.
+            // Below 512px (every phone) it changes nothing.
+            className="relative flex min-h-0 w-full max-w-lg flex-1 mx-auto flex-col overflow-hidden"
             style={{
-              // The panel must never run under the bottom nav — the owner's
-              // screenshot had the Saved Searches row sheared mid-word by the
-              // panel edge with a job card and the dock still visible below
-              // it. Radix's available-height already stops it at the viewport;
-              // subtract the dock and the home-indicator inset on top of that,
-              // with a floor so a very short viewport still gets a usable
-              // panel rather than a sliver.
-              //
-              // `max(dock, keyboard)` rather than dock + keyboard: the two
-              // occupy the SAME strip of screen — when the keyboard is up it
-              // sits over the dock — so adding them would shrink the panel by
-              // roughly twice what is actually covered.
-              maxHeight: `max(220px, calc(var(--radix-popover-content-available-height, 70vh) - max(var(--bottom-nav-h, 96px), ${keyboardInset}px) - var(--safe-area-bottom, 0px)))`,
               // The scrolling chip rows fade against the panel's OWN surface,
               // not the page's — see `--filter-surface` in JobFilters.tsx.
               "--filter-surface": "var(--background)",

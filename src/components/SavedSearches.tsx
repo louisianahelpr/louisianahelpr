@@ -4,7 +4,12 @@ import { unwrap } from "@/lib/supabaseResult";
 import { report } from "@/lib/errorLogger";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog, DialogContent, DialogFooter, DialogHero, DialogTrigger,
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHero,
+  DialogFooter,
+  DialogSecondaryAction,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -443,9 +448,9 @@ export function SavedSearches({
             exactly that in the report dialog). Paired secondaries stay ghost;
             a lone one is a real button. */}
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>
+          <DialogSecondaryAction onClick={() => setOpen(false)}>
             Close
-          </Button>
+          </DialogSecondaryAction>
         </DialogFooter>
       </DialogContent>
     </Dialog>

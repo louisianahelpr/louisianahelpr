@@ -9,9 +9,11 @@ import {
   Dialog,
   DialogContent,
   DialogHero,
+  DialogBody,
   DialogFooter,
+  DialogSecondaryAction,
+  DialogPrimaryAction,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { formatName } from "@/lib/utils";
@@ -66,12 +68,14 @@ export function ReuploadIdDialog({ profile, onClose, onSuccess }: ReuploadIdDial
           title="Request ID Re-Upload"
         />
         <div className="space-y-3">
-          <p className="text-ds-11 text-muted-foreground">
-            Send {formatName(profile?.full_name)} a friendly email asking for a clearer ID photo.
-            Their verification resets to <strong className="text-foreground">not started</strong> and
-            they get a fresh verification attempt — the cap is one attempt, so without this they
-            cannot retry.
-          </p>
+          <DialogBody>
+            <p>
+              Send {formatName(profile?.full_name)} a friendly email asking for a clearer ID photo.
+              Their verification resets to <strong className="text-foreground">not started</strong> and
+              they get a fresh verification attempt — the cap is one attempt, so without this they
+              cannot retry.
+            </p>
+          </DialogBody>
           <div className="space-y-2">
             <p className="text-ds-11 font-medium text-muted-foreground uppercase tracking-wide">Note (optional)</p>
             <Textarea
@@ -84,12 +88,12 @@ export function ReuploadIdDialog({ profile, onClose, onSuccess }: ReuploadIdDial
           </div>
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={handleClose} disabled={busy}>
+          <DialogSecondaryAction onClick={handleClose} disabled={busy}>
             Cancel
-          </Button>
-          <Button onClick={submit} disabled={busy}>
+          </DialogSecondaryAction>
+          <DialogPrimaryAction onClick={submit} disabled={busy}>
             {busy ? "Sending…" : "Send Re-Upload Request"}
-          </Button>
+          </DialogPrimaryAction>
         </DialogFooter>
       </DialogContent>
     </Dialog>

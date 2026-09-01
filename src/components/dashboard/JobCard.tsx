@@ -1,11 +1,12 @@
 import { memo, useCallback, type KeyboardEvent } from "react";
 import {
-  MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Users, Repeat, CheckCheck,
+  MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Repeat, CheckCheck,
 } from "lucide-react";
 import { hapticLight } from "@/lib/haptics";
 import { differenceInHours } from "date-fns";
 
 import { categoryLabels, categoryColors } from "@/components/activity/activityConstants";
+import { JobHelprsChip } from "@/components/activity/JobCardMetaRow";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { formatJobDate, formatTimeLeft } from "@/lib/dateUtils";
 import { formatPrice, formatPriceFloor } from "@/lib/format";
@@ -540,24 +541,37 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               see the `is_group_job` chip, which drops its separator and rides
               tighter than the rest of the row. */}
           <div className="flex items-center gap-x-2 flex-nowrap overflow-hidden">
-            <span className="flex items-center gap-1 min-w-0 flex-1 overflow-hidden">
+            <span className="flex items-center gap-1 min-w-0 overflow-hidden">
               <MapPin className="w-2.5 h-2.5 shrink-0" />
-              {/* `flex-1` + `min-w-0` + `overflow-hidden`, NOT a min-width
-                  floor. The floor that used to live here (`min-w-[6ch]`) was
-                  larger than the space this group actually got on a narrow
-                  card, so the city text overflowed its own parent box and
-                  PAINTED ON TOP of the date beside it — measured on the real
-                  feed at 320px on every card ("Lafayette" over "Fri, Sep 4",
-                  "Scott" over "Fri, Sep 4") and at 375px on any long parish
-                  ("St. Martinville" over "Mon, Aug 31"). A floor cannot make
-                  space that isn't there; it can only make the overflow
-                  invisible to the layout.
-                  `flex-1` gives the city every pixel the fixed-width "when"
-                  group beside it does not need — a better floor than 6ch
-                  whenever there is room, and a graceful ellipsis instead of
-                  an overlap when there isn't. The 150px cap is gone with it:
-                  on a wide card the "when" group is shrink-0, so the city
-                  taking the slack is the intended result. */}
+              {/* `min-w-0` + `overflow-hidden` + `truncate`, and NOTHING that
+                  sets a width. Two wrong answers were tried here first, and the
+                  comment records both so neither comes back:
+
+                  1. A MIN-WIDTH FLOOR (`min-w-[6ch] max-w-[150px]`). The floor
+                     was larger than the space this group actually got on a
+                     narrow card, so the city overflowed its own parent box and
+                     PAINTED ON TOP of the date beside it — measured on the real
+                     feed at 320px on every card ("Lafayette" over "Fri, Sep 4",
+                     "Scott" over "Fri, Sep 4") and at 375px on any long parish
+                     ("St. Martinville" over "Mon, Aug 31"). A floor cannot make
+                     space that isn't there; it can only make the overflow
+                     invisible to the layout.
+
+                  2. `flex-1`, which replaced it. That fixed the overlap, but it
+                     fixed it by making the city GROW into every pixel the
+                     fixed-width "when" group did not need — so on the common
+                     card with a short city ("Scott", "Crowley") the group
+                     stretched the whole width of the card and shoved the date
+                     and time out to the far right edge. Owner, 2026-08-30:
+                     "why did you add so much space between location and date?"
+
+                  The city only ever needed to SHRINK, not to grow. A flex item
+                  shrinks by default, so with the floor gone and no `flex-1`,
+                  the city takes exactly its own text width when there is room
+                  and ellipsises when there isn't — and the date sits one
+                  `gap-x-2` away from the end of the city name on every card,
+                  whatever its length. The "when" group beside it stays
+                  `shrink-0`, so it is still the city that gives. */}
               <span className="truncate font-sans">{cityState}</span>
             </span>
             {distanceLabel && (
@@ -637,22 +651,24 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 on small phones. Freshness is still signalled by the "New"
                 chip (<30m) at the head of the row. */}
             {job.is_group_job && (
-              // No leading "·" and a tighter gap than its siblings. Every chip
-              // on this nowrap row is width the city does not get, and the city
-              // is the only item that shrinks — so a multi-person job used to
-              // render "Abbev." while single-helper cards next to it showed
-              // "Abbeville" in full. Dropping the separator and halving the gap
-              // returns ~14px to the parish for the cost of nothing legible:
-              // the person icon already separates this from the time beside it.
-              <span
-                className="flex items-center gap-0.5 shrink-0 ml-0.5"
-                style={{ color: "hsl(var(--primary))" }}
-              >
-                <Users className="w-2.5 h-2.5 shrink-0" strokeWidth={2.25} aria-label="Helprs needed" />
-                <span className="font-sans font-medium">
-                  {job.helpers_needed ?? 2}
-                </span>
-              </span>
+              // THE SAME CHIP the activity cards render (JobHelprsChip, in
+              // JobCardMetaRow) — one component now states "how many Helprs"
+              // everywhere, after the owner found the applied card putting it
+              // in a footer line while this row had it inline. Only the two
+              // metrics this row sets for every other chip in it are passed:
+              // 10px icons, and no leading "·" with a tighter gap than its
+              // siblings. Every chip on this nowrap row is width the city does
+              // not get, and the city is the only item that shrinks — so a
+              // multi-person job used to render "Abbev." while single-helper
+              // cards next to it showed "Abbeville" in full. Dropping the
+              // separator and halving the gap returns ~14px to the parish for
+              // the cost of nothing legible: the person icon already separates
+              // this from the time beside it.
+              <JobHelprsChip
+                helpersNeeded={job.helpers_needed}
+                className="gap-0.5 ml-0.5"
+                iconClassName="w-2.5 h-2.5"
+              />
             )}
             {job.is_recurring && (
               // Lowest-priority chip on the row, so it carries the widest

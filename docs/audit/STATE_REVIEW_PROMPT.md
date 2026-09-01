@@ -19,7 +19,9 @@ reported the app clean.
 - a close (X) laid on top of a price — both elements are over 44px
 - a status badge six pixels out of line with its sibling — no rule mentions 6px
 - a forty-pixel empty band — an empty `div` is valid HTML and valid ARIA
-- missing section eyebrows — axe does not require a section to be labelled
+- a section nobody named — axe does not require a section to be labelled
+  (2026-08-31: this example used to read "missing section eyebrows". Eyebrows
+  were retired app-wide; see §4 for what to check instead.)
 - a "Report" button on a job that finished a week ago — a button is a button
 
 There is no predicate to add. Each of these is obvious to a person looking at
@@ -131,13 +133,27 @@ so you can judge whether the gap belongs.
 
 *A block of content nobody named.*
 
-`SectionEyebrow` exists in `src/components/activity/appliedJobCard/` precisely
-because these blocks need naming. Where it is missing, a reader meets a group
-of controls with no idea what group they are in.
+**Updated 2026-08-31 — do not look for `SectionEyebrow`; it no longer exists.**
+This section used to read "`SectionEyebrow` exists in
+`src/components/activity/appliedJobCard/` precisely because these blocks need
+naming." That component has been deleted: `grep -rn "SectionEyebrow" src/`
+returns zero hits, and `.text-display-eyebrow` in `src/index.css` is
+`display: none` under the 2026-07-25 decision recorded there ("all eyebrows
+gone"). A reviewer sent looking for a missing eyebrow now files a finding
+against a deliberate, app-wide design decision — a false positive on every
+card in the matrix.
 
-Look for: a visually distinct block with no heading or eyebrow above it; two
-adjacent blocks that read as one because neither is named; a heading whose
-words do not describe what follows; a heading level that skips.
+What survives the removal is the *accessible* half. `AppliedJobCard.tsx` still
+renders `<h4 id="job-desc-…" className="sr-only">Job description</h4>` inside a
+`<section aria-labelledby>`, so the block keeps a programmatic name with
+nothing painted. That is the shape to check: a block whose heading was made
+`sr-only` is correctly labelled; a block with no heading at all, visible or
+`sr-only`, is not.
+
+Look for: a visually distinct block with no heading *and no `sr-only` heading*
+above it; two adjacent blocks that read as one because neither is named; a
+heading whose words do not describe what follows; a heading level that skips.
+Do **not** file "no visible eyebrow" on its own.
 
 Record field: `sections` (tag, text, font size, vertical offset). Compare the
 count and positions against the visual blocks you can see in the screenshot —
@@ -212,7 +228,7 @@ Use the `lh-audit` tiers (`.claude/skills/lh-audit/SKILL.md` §4):
 | --- | --- |
 | **HIGH** | The state misleads the reader about money, trust or safety; an action that could take the wrong irreversible step; content unreachable or unreadable. |
 | **MEDIUM** | The state reads as broken — overlap, a dead band, a contradiction — but nothing is lost by it. |
-| **LOW** | Polish: a few pixels, a near-duplicate hue, a missing eyebrow on an otherwise obvious block. |
+| **LOW** | Polish: a few pixels, a near-duplicate hue, an unnamed block that is obvious anyway. (2026-08-31: was "a missing eyebrow on an otherwise obvious block" — eyebrows are retired app-wide, so a missing one is not a finding at any tier.) |
 
 A HIGH finding must name the harm, not just the symptom.
 

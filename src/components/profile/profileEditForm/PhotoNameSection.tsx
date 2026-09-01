@@ -1,4 +1,5 @@
 import { Loader2, Camera } from "lucide-react";
+import UserAvatar from "@/components/UserAvatar";
 import type { Profile } from "./types";
 
 interface PhotoNameSectionProps {
@@ -6,6 +7,13 @@ interface PhotoNameSectionProps {
   firstName: string;
   lastName: string;
   initials: string;
+  /**
+   * Both retained for the caller's prop shape (ProfileEditForm still threads
+   * them) but no longer read here. They implemented an `onError`-only photo
+   * guard, which is unreachable for the defect that actually ships — an
+   * avatar that returns HTTP 200 and decodes to a flat block. `<UserAvatar>`
+   * owns every guard now; see `src/lib/avatarImage.ts`.
+   */
   avatarBroken: boolean;
   setAvatarBroken: (v: boolean) => void;
   avatarUploading: boolean;
@@ -17,8 +25,6 @@ export function PhotoNameSection({
   firstName,
   lastName,
   initials,
-  avatarBroken,
-  setAvatarBroken,
   avatarUploading,
   onAvatarUpload,
 }: PhotoNameSectionProps) {
@@ -33,20 +39,34 @@ export function PhotoNameSection({
           {/* Squircle (rounded-ds-avatar) to match the avatar on the
               Profile landing hero exactly — both use the same 26px
               curve so the avatar reads identically across pages. */}
-          {profile?.avatar_url && !avatarBroken ? (
-            <img
-              loading="lazy"
-              decoding="async"
-              src={profile.avatar_url}
-              alt=""
-              className="w-20 h-20 rounded-ds-avatar squircle object-cover border-2 border-primary/20"
-              onError={() => setAvatarBroken(true)}
-            />
-          ) : (
-            <div className="w-20 h-20 rounded-ds-avatar squircle bg-primary/10 text-primary flex items-center justify-center text-ds-24 font-display italic font-bold border-2 border-primary/20">
-              {initials}
-            </div>
-          )}
+          {/* Migrated onto the shared `<UserAvatar>` (2026-08-31). The two
+              branches this replaces were the same unreachable guard the rest
+              of the app had: the photo rendered whenever `avatar_url` was
+              non-null and the `<img>` had not fired `onError`, and the flat
+              `bg-primary/10` initials block rendered otherwise. Every broken
+              avatar measured on prod returns 200 and decodes fine — they just
+              contain nothing — so `onError` never fired and the initials
+              branch was unreachable for exactly the rows that needed it. The
+              member editing their profile saw a blank coloured square where
+              their face should be, with no way to tell whether the upload had
+              worked. See `src/lib/avatarImage.ts`.
+
+              This is also the surface where the fix is most legible: a
+              monogram here means "we cannot show a photo", which is a true and
+              actionable statement right next to the camera chip that fixes it.
+              A cache-busted `?t=` lands on `avatar_url` after every upload, so
+              `<UserAvatar>`'s src-change reset re-evaluates a fresh photo
+              immediately rather than staying on a stale verdict. */}
+          <UserAvatar
+            userId={profile?.user_id}
+            src={profile?.avatar_url}
+            name={`${firstName} ${lastName}`.trim()}
+            initials={initials}
+            pixelSize={80}
+            aria-hidden
+            className="w-20 h-20 rounded-ds-avatar squircle border-2 border-primary/20"
+            fallbackClassName="text-ds-24 ring-0"
+          />
           <label
             className="absolute -bottom-2 -right-2 w-10 h-10 rounded-full flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
             style={{

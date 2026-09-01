@@ -21,9 +21,9 @@
 
 const GATEWAY_URL = 'https://connector-gateway.lovable.dev/slack/api'
 
-export type SlackAlertSeverity = 'critical' | 'warning' | 'info'
+type SlackAlertSeverity = 'critical' | 'warning' | 'info'
 
-export type SlackAlertKind =
+type SlackAlertKind =
   | 'dispute_filed'
   | 'dispute_won'
   | 'dispute_lost'
@@ -123,7 +123,12 @@ export async function postSlackOpsAlert(input: SlackAlertInput): Promise<void> {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${lovableKey}`,
-            'X-Connection-Api-Key': slackKey,
+            // The guard at the top of this function already returned unless
+            // `webhookUrl` OR (`lovableKey` && `slackKey`) is set, so reaching
+            // this branch means both gateway keys are present. TS cannot narrow
+            // through that composite condition; assert what the guard proved
+            // rather than weaken the guard.
+            'X-Connection-Api-Key': slackKey as string,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(payload),

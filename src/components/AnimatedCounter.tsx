@@ -83,5 +83,3 @@ export function AnimatedCounter({
     </span>
   );
 }
-
-export default AnimatedCounter;

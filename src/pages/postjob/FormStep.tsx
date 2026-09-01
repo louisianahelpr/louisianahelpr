@@ -157,6 +157,7 @@ export function FormStep({ form }: FormStepProps) {
             setCustomUrgentFee={form.setCustomUrgentFee}
             budgetComplete={form.budgetComplete}
             category={form.category}
+            giftAmount={form.giftCreditAmount}
           />
         </div>
 

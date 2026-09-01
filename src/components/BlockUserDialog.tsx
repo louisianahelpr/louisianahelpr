@@ -6,12 +6,14 @@ import { useEffect, useState } from "react";
 // different pop up dialog shells? Why??".
 import {
   Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHero,
   DialogClose,
+  DialogContent,
+  DialogHero,
+  DialogBody,
+  DialogFooter,
+  DialogSecondaryAction,
+  DialogDestructiveAction,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -134,10 +136,8 @@ export function BlockUserDialog({
           title={<>Block {blockedUserName}?</>}
         />
         <div className="space-y-3 mt-2">
-              <ul
-                className="font-serif italic space-y-1 list-disc pl-5 leading-relaxed text-ds-13"
-                style={{ color: "hsl(var(--olivewood) / 0.85)" }}
-              >
+              <DialogBody>
+                <ul className="space-y-1 list-disc pl-5">
                 <li>You won&apos;t see their messages, applications, or profile.</li>
                 <li>They won&apos;t be able to apply to your jobs or message you.</li>
                 <li>They won&apos;t be notified that you blocked them.</li>
@@ -164,7 +164,8 @@ export function BlockUserDialog({
                     )}
                   </li>
                 )}
-              </ul>
+                </ul>
+              </DialogBody>
               <div className="space-y-1.5">
                 <label
                   className="font-serif italic uppercase block text-ds-10"
@@ -205,16 +206,29 @@ export function BlockUserDialog({
             the app. */}
         <DialogFooter>
           <DialogClose asChild>
-            <Button variant="ghost" disabled={submitting}>Cancel</Button>
+            <DialogSecondaryAction disabled={submitting}>Cancel</DialogSecondaryAction>
           </DialogClose>
-          <Button
-            variant={onReportAndBlock ? "outline" : "destructive"}
-            onClick={(e) => {
-              e.preventDefault();
-              handleBlock();
-            }}
-            disabled={submitting}
-          >
+          {/* THE ONLY THREE-ACTION FOOTER IN THE APP, and the one documented
+              exception in dialogShell.test.ts. It is not decoration: "Just
+              Block" and "Block and Report" are two different writes, and the
+              brief for this pass was explicit that no dialog loses an action
+              to fit the pattern.
+              The demotion the old `outline` expressed is kept, said in the
+              canonical vocabulary: when a report path is offered, "Block and
+              Report" is the one red commit and "Just Block" steps back to the
+              app's demoted treatment (ghost) rather than to a bordered
+              `outline` button no other popup uses. With no report path there
+              is nothing to demote against, so blocking IS the commit and takes
+              the red. Two reds side by side would be the hierarchy defect this
+              avoids. */}
+          {onReportAndBlock ? (
+            <DialogSecondaryAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleBlock();
+              }}
+              disabled={submitting}
+            >
             {submitting ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -223,10 +237,27 @@ export function BlockUserDialog({
             ) : (
               "Just Block"
             )}
-          </Button>
+            </DialogSecondaryAction>
+          ) : (
+            <DialogDestructiveAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleBlock();
+              }}
+              disabled={submitting}
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Blocking…
+                </>
+              ) : (
+                "Just Block"
+              )}
+            </DialogDestructiveAction>
+          )}
           {onReportAndBlock && (
-            <Button
-              variant="destructive"
+            <DialogDestructiveAction
               onClick={async (e) => {
                 e.preventDefault();
                 const blocked = await handleBlock();
@@ -242,7 +273,7 @@ export function BlockUserDialog({
               ) : (
                 "Block and Report"
               )}
-            </Button>
+            </DialogDestructiveAction>
           )}
         </DialogFooter>
       </DialogContent>

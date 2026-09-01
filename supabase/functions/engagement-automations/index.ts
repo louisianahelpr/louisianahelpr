@@ -112,6 +112,50 @@ const DRIP_STEPS = {
 
 // ─── Main Handler ──────────────────────────────────────────────────
 
+/**
+ * Advance a per-user send cursor and PROVE it moved.
+ *
+ * Every automation below is "decide from a column, send mail, write the column
+ * back". The write is the only thing that stops tomorrow's run re-sending the
+ * same mail to the same person — and all three of them used to be a bare
+ * `await supabase.from('profiles').update(...).eq(...)` with the result thrown
+ * away. Two failure modes, both silent and both indistinguishable from success:
+ * a PostgREST error (supabase-js RESOLVES with `{ error }`, it never throws, so
+ * no try/catch would have caught it) and a zero-row match, which returns
+ * `{ data: [], error: null }`.
+ *
+ * The consequence is not a lost log line. The drip cursor decides
+ * `drip_step === 0 && daysSinceSignup >= 1`, so a failed write re-sends the
+ * same commercial drip EVERY DAY, forever. The win-back cursor is worse: its
+ * eligibility window is `14 < inactive < 30 days` measured on `updated_at`,
+ * which only a successful profile write advances — so a failed write re-sends
+ * the same marketing email daily for sixteen consecutive days, to someone whose
+ * defining characteristic is that they stopped engaging with us.
+ *
+ * Returns true only when exactly the intended row was written. Callers must
+ * treat false as a DEFECT (it dropped work), not as an outcome.
+ */
+async function advanceCursor(
+  supabase: { from: (t: string) => any },
+  userId: string,
+  patch: Record<string, unknown>,
+  label: string,
+  results: { errors: string[] },
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .update(patch)
+    .eq('user_id', userId)
+    .select('user_id')
+  if (error || (data?.length ?? 0) === 0) {
+    results.errors.push(
+      `${label} cursor NOT advanced for ${userId} (${error?.message ?? 'zero rows matched'}) — this send will repeat on the next run`,
+    )
+    return false
+  }
+  return true
+}
+
 Deno.serve(async (_req) => {
   // Verify cron secret
   const cronSecret = Deno.env.get("CRON_SECRET");
@@ -304,10 +348,14 @@ Deno.serve(async (_req) => {
         continue
       }
 
-      await supabase.from('profiles').update({
-        drip_step: targetStep,
-        last_drip_at: now.toISOString(),
-      }).eq('user_id', user.user_id)
+      const dripAdvanced = await advanceCursor(
+        supabase,
+        user.user_id,
+        { drip_step: targetStep, last_drip_at: now.toISOString() },
+        'drip',
+        results,
+      )
+      if (!dripAdvanced) continue
 
       results.drip++
     }
@@ -396,10 +444,17 @@ Deno.serve(async (_req) => {
         continue
       }
 
-      await supabase.from('profiles').update({
-        approval_email_count: emailCount + 1,
-        last_approval_email_at: now.toISOString(),
-      }).eq('user_id', user.user_id)
+      const approvalAdvanced = await advanceCursor(
+        supabase,
+        user.user_id,
+        {
+          approval_email_count: emailCount + 1,
+          last_approval_email_at: now.toISOString(),
+        },
+        'approval-resend',
+        results,
+      )
+      if (!approvalAdvanced) continue
 
       results.approvalResend++
     }
@@ -452,9 +507,14 @@ Deno.serve(async (_req) => {
       }
 
       // Update last_drip_at to track when we last emailed them
-      await supabase.from('profiles').update({
-        last_drip_at: now.toISOString(),
-      }).eq('user_id', user.user_id)
+      const winBackAdvanced = await advanceCursor(
+        supabase,
+        user.user_id,
+        { last_drip_at: now.toISOString() },
+        're-engagement',
+        results,
+      )
+      if (!winBackAdvanced) continue
 
       results.reEngagement++
     }
@@ -543,7 +603,9 @@ Deno.serve(async (_req) => {
     }
     } // end Monday check
   } catch (err) {
-    results.errors.push(err.message)
+    // `catch` binds `unknown`; a non-Error throw here would replace the recorded
+    // reason with a second exception and lose the run's whole error report.
+    results.errors.push(err instanceof Error ? err.message : String(err))
     console.error('Engagement automation error:', err)
   }
 

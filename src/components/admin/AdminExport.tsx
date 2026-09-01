@@ -6,15 +6,35 @@ import { Button } from "@/components/ui/button";
 import { Download, Users, Briefcase, DollarSign, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
+import { saveOrShareFile } from "@/lib/fileExport";
 
-const downloadCSV = (filename: string, header: string, rows: string[]) => {
-  const blob = new Blob([header + "\n" + rows.join("\n")], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
+/**
+ * Hand a built CSV to the admin's device.
+ *
+ * This used to be `URL.createObjectURL` → `<a download>` → `.click()` →
+ * `revokeObjectURL`, which is a NO-OP inside the shipped app: Capacitor serves
+ * bundled `dist/` from WKWebView, which honours neither the `download`
+ * attribute nor a `blob:` navigation. All three Export buttons on this screen
+ * were therefore completely dead for any admin working from a phone — the click
+ * fired, no file appeared, nothing was thrown and nothing was logged (owner,
+ * 2026-08-30: "Download csv pdf etc does not work").
+ *
+ * `saveOrShareFile` picks the route the current platform actually supports —
+ * native stages the file and opens the OS share sheet, web keeps the anchor
+ * download — and toasts on every failure. See src/lib/fileExport.ts.
+ *
+ * `charset=utf-8` on the Blob is not cosmetic: these rows carry real names and
+ * locations, and an unlabelled CSV is opened as the platform's legacy encoding
+ * by Excel, which turns every accented character into mojibake.
+ */
+const downloadCSV = (dataset: string, header: string, rows: string[]) => {
+  const blob = new Blob([header + "\n" + rows.join("\n")], { type: "text/csv;charset=utf-8" });
+  return saveOrShareFile({
+    blob,
+    filename: `${dataset}-${new Date().toISOString().slice(0, 10)}.csv`,
+    label: `the ${dataset} export`,
+    source: `AdminExport.${dataset}`,
+  });
 };
 
 const esc = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
@@ -54,7 +74,10 @@ const AdminExport = () => {
     }
     const header = "User ID,Name,Email,Role,Status,Ban Status,Location,Created,Subscription";
     const rows = data.map(p => [p.user_id, p.full_name, p.email, roleByUser.get(p.user_id) ?? "", p.approval_status, p.ban_status, p.location, p.created_at, p.subscription_tier].map(esc).join(","));
-    downloadCSV(`users-${new Date().toISOString().slice(0, 10)}.csv`, header, rows);
+    // Awaited: the native path stages a file and opens the share sheet, so the
+    // button must stay in its spinner until the handoff resolves rather than
+    // snapping back while the sheet is still coming up.
+    await downloadCSV("users", header, rows);
     setExporting(null);
   };
 
@@ -95,7 +118,7 @@ const AdminExport = () => {
       j.id, j.title, j.category, j.status, j.budget, j.platform_fee_amount, j.customer_id, j.helper_id,
       j.date_needed, j.created_at, j.payment_status, j.department ?? "", j.business_id ?? "",
     ].map(esc).join(","));
-    downloadCSV(`jobs-${new Date().toISOString().slice(0, 10)}.csv`, header, rows);
+    await downloadCSV("jobs", header, rows);
     setExporting(null);
   };
 
@@ -145,7 +168,7 @@ const AdminExport = () => {
         j.urgent_fee, j.helper_id, j.customer_id, j.payment_status, j.updated_at,
       ].map(esc).join(",");
     });
-    downloadCSV(`earnings-${new Date().toISOString().slice(0, 10)}.csv`, header, rows);
+    await downloadCSV("earnings", header, rows);
     setExporting(null);
   };
 

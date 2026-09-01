@@ -1,3 +1,24 @@
+> # ⚠️ STALE — DO NOT FOLLOW THIS DOCUMENT
+>
+> **Everything below describes a feature that no longer exists.** Do not create
+> the three Stripe Prices it asks for.
+>
+> The business/seat backend was dropped by migrations `20260828004538` and
+> `20260828011811` (`businesses`, `business_members`, the seat ladder, the
+> verification queue). There is no `create-business-seat-checkout` function and
+> no `_shared/businessSeatTiers.ts` — the file this doc's premise ("everything
+> on the Helpr side is already wired") depended on. The `business` subscription
+> tier itself was retired on 2026-09-01: it is gone from `TIER_PERKS`,
+> `TIER_FEE_PERCENT`, `TIER_DISPLAY_NAMES`, the early-access ladder and the
+> `get_open_jobs_for_map` SQL, and a prod census that day found zero rows
+> holding it.
+>
+> The six `STRIPE_PRICE_SEAT_*` edge secrets and the Crew/Team/Enterprise
+> Products still live in the Stripe account. Nothing reads them. They are listed
+> for the owner to archive; see the tier-retirement report.
+>
+> Kept only as a record of what was once planned.
+
 # Annual seat Prices — setup steps
 
 Everything on the Helpr side is already wired. The only thing missing is three

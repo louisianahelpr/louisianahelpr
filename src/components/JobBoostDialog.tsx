@@ -2,8 +2,14 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { functionErrorMessage } from "@/lib/supabaseResult";
-import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHero,
+  DialogFooter,
+  DialogSecondaryAction,
+  DialogPrimaryAction,
+} from "@/components/ui/dialog";
 import { Rocket, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
@@ -190,12 +196,10 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
           </ul>
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={onClose} className="rounded-ds-md">Cancel</Button>
-          <Button
-            variant="primary"
+          <DialogSecondaryAction onClick={onClose}>Cancel</DialogSecondaryAction>
+          <DialogPrimaryAction
             onClick={handleBoost}
             disabled={boosting}
-            className="rounded-ds-md"
           >
             <Rocket className="w-4 h-4 mr-1.5" />
             {boosting
@@ -205,7 +209,7 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
                 : isSubscriber
                   ? "Boost — Included"
                   : `Boost for ${BOOST_PRICE}`}
-          </Button>
+          </DialogPrimaryAction>
         </DialogFooter>
       </DialogContent>
     </Dialog>

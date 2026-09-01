@@ -65,7 +65,9 @@ Deno.serve(async (req) => {
       .select('*', { count: 'exact', head: true })
     checks.database = error ? `error: ${error.message}` : 'ok'
   } catch (e) {
-    checks.database = `error: ${e.message}`
+    // `catch` binds `unknown`; `e.message` on a non-Error throw would blow up the
+    // health check itself, which is the one endpoint that must always answer.
+    checks.database = `error: ${e instanceof Error ? e.message : String(e)}`
   }
 
   // 2. External services. This endpoint is admin-gated above, so it reports

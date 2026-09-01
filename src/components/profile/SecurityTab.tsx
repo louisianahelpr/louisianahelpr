@@ -9,14 +9,16 @@ import {
   DialogContent,
   DialogHero,
   DialogFooter,
+  DialogSecondaryAction,
+  DialogPrimaryAction,
 } from "@/components/ui/dialog";
 import { Mail, Lock, Monitor, Smartphone, Tablet, LogOut, Fingerprint } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
-import { isNativePlatform } from "@/lib/nativeInit";
 import {
   APP_LOCK_GRACE_OPTIONS,
   getAppLockGraceMs,
   isAppLockEnabled,
+  isAppLockSupported,
   setAppLockEnabled,
   setAppLockGraceMs,
 } from "@/lib/appLock";
@@ -84,6 +86,29 @@ export function parseUserAgent(ua: string | null): { label: string; icon: Sessio
   const label = browser ? `${device} · ${browser}` : device;
   return { label, icon };
 }
+
+/**
+ * Short display labels for the "Lock again" segmented control, keyed by the
+ * STORED value in ms.
+ *
+ * The canonical labels ("Immediately" / "After 1 minute" / "After 5 minutes")
+ * cannot fit three-across at 320pt, and the owner's requirement is that all
+ * three options sit on ONE row at every width. So the segmented control shows
+ * these, and each option still carries the canonical label as its accessible
+ * name via `aria-label` — nothing is lost to a screen reader.
+ *
+ * Deliberately a lookup in THIS file rather than an edit to
+ * `APP_LOCK_GRACE_OPTIONS`: `lib/appLock.ts` owns which value is written to
+ * safeStorage and validated on read (`ALLOWED_GRACE_MS`), and a cosmetic change
+ * to a lock screen must not go anywhere near that. The key here IS the stored
+ * value, and anything without an entry falls back to the canonical label, so a
+ * future option cannot render blank.
+ */
+const GRACE_SHORT_LABELS: Record<number, string> = {
+  0: "Now",
+  60_000: "1 min",
+  300_000: "5 min",
+};
 
 interface SecurityTabProps {
   email: string | undefined;
@@ -322,27 +347,26 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
             </p>
           </div>
 
+          {/* THE shared footer — the two shared action primitives and nothing
+              else. These were raw <Button>s (a `ghost` Cancel and a `primary`
+              Confirm) that happened to land on the right colours, which is
+              exactly how the app ended up with five footers: a raw Button in a
+              footer is a treatment restated at the call site, so the next edit
+              is free to diverge. The primitives own ghost/`size="sm"`,
+              `btn-grad-primary`, and the phone-column / desktop-row widths
+              from popupFooter.ts; none of them accepts className, variant or
+              size, so this footer cannot drift again. Dismiss first in the DOM
+              keeps the commit last in the tab sequence. */}
           <DialogFooter>
-            {/* Plain ghost. The bark tint + `font-semibold` made this Cancel
-                a different colour and weight from the muted-foreground bold
-                Cancel in every other dialog footer. */}
-            <Button
-              variant="ghost"
-              onClick={() => setEmailDialogOpen(false)}
-            >
+            <DialogSecondaryAction onClick={() => setEmailDialogOpen(false)}>
               Cancel
-            </Button>
-            {/* Shared glossy primary. The inline block set
-                `backgroundImage: "none"`, flattening the CTA gradient, and
-                hand-rolled a disabled state that the `disabled:opacity-50` on
-                the shared Button already provides. */}
-            <Button
-              variant="primary"
+            </DialogSecondaryAction>
+            <DialogPrimaryAction
               onClick={handleEmailChange}
               disabled={submitting || !newEmail.trim()}
             >
               {submitting ? "Sending…" : "Confirm Change"}
-            </Button>
+            </DialogPrimaryAction>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -377,7 +401,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
           top-level spacing slot in favor of a fixed mt-1 under the title
           row instead of the outer `space-y-3` giving it a full row's worth
           of air on every card. */}
-      <div className="rounded-2xl liquid-glass p-3.5 space-y-1">
+      <div className="rounded-2xl liquid-glass p-3.5">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
             <Mail className="w-4 h-4 text-primary" />
@@ -402,7 +426,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
         </div>
       </div>
 
-      <div className="rounded-2xl liquid-glass p-3.5 space-y-1">
+      <div className="rounded-2xl liquid-glass p-3.5">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
             <Lock className="w-4 h-4 text-primary" />
@@ -411,6 +435,15 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
             <h2 className="font-display italic font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
               Password
             </h2>
+            {/* Sits INSIDE the title block, exactly where the email address
+                sits on the card above — not in a detached band under the whole
+                title+button row. The old layout put it there, so the 44px
+                button set the row height, the one-line title floated in the
+                middle of it, and the prose landed below with a dead strip
+                above AND below: three cards, three silhouettes. */}
+            <p className="text-ds-11 font-serif italic mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              Reset via secure email link.
+            </p>
           </div>
           <Button
             size="sm"
@@ -437,9 +470,6 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
             {resettingPassword ? "Sending…" : "Reset"}
           </Button>
         </div>
-        <p className="text-ds-11 font-serif italic pl-10" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-          Reset via secure email link.
-        </p>
       </div>
 
       <TwoFactorCard />
@@ -456,7 +486,12 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
           already guards individual money actions; this guards the app itself.
           Card structure copied from "Active sessions" below so the two read as
           siblings rather than one-offs. */}
-      {isNativePlatform && (
+      {/* `isAppLockSupported()`, not the raw `isNativePlatform`: it is the same
+          `isNativePlatform` in every production build, but it ALSO honours the
+          dev-only `?app_lock_demo=1` harness that `AppLockGate` already gates
+          on — so this settings card can be rendered and measured in a browser
+          instead of being invisible everywhere except a device. */}
+      {isAppLockSupported() && (
         <div className="rounded-2xl liquid-glass p-5 space-y-3">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
@@ -480,9 +515,24 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
           {/* Grace window. Only shown when the lock is on — an "ask me after…"
               control under a switch that is off is a setting for nothing.
 
-              Segmented buttons rather than a <select>: three options is small
-              enough to show whole, and the current choice being visible without
-              a tap is the point of a security setting. */}
+              A true SEGMENTED CONTROL (one track, three equal thirds) rather
+              than content-width pills. The pills were sized to their labels, so
+              at 393pt "Immediately" + "After 1 minute" filled the row and
+              "After 5 minutes" wrapped to a second line on its own — an
+              orphaned third option that reads like a different control. Equal
+              thirds cannot wrap at ANY width: `grid-cols-3` is
+              `repeat(3, minmax(0, 1fr))`, so the cells always share exactly one
+              row and shrink together instead of overflowing.
+              `whitespace-nowrap` keeps each label on one line inside its cell.
+
+              Equal thirds also forces short labels — a cell at 320pt is ~64px —
+              hence the "Now / 1 min / 5 min" set. The canonical wording rides
+              along as each option's `aria-label`, so the accessible name is
+              still "Immediately" / "After 1 minute" / "After 5 minutes".
+
+              This is the iOS idiom for exactly this question (Settings →
+              Face ID & Passcode → Require Passcode), and it keeps the current
+              choice visible without a tap, which a <select> would not. */}
           {appLockOn && (
             <div
               role="radiogroup"
@@ -493,9 +543,24 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
                 className="text-ds-11 font-serif italic"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
-                Lock again after
+                Lock again
               </p>
-              <div className="flex flex-wrap gap-1.5">
+              {/* The track. The inset surface that used to be painted on each
+                  individual pill now lives here once, so the three cells read
+                  as one control. */}
+              {/* max-w caps the track on desktop. Without it the three cells
+                  stretched to 405px each at 1440 — a 1215px-wide segmented
+                  control for three two-word options, which reads as a toolbar,
+                  not a picker. The cap is above the widest phone track (237px
+                  at 393pt), so it changes nothing on the device the control is
+                  actually for. */}
+              <div
+                className="grid grid-cols-3 gap-1 p-1 rounded-ds-md max-w-[280px]"
+                style={{
+                  background: "hsl(var(--ivory-sand) / 0.55)",
+                  border: "0.5px solid hsl(var(--olivewood) / 0.18)",
+                }}
+              >
                 {APP_LOCK_GRACE_OPTIONS.map((option) => {
                   const selected = graceMs === option.ms;
                   return (
@@ -504,10 +569,17 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
                       type="button"
                       role="radio"
                       aria-checked={selected}
+                      // Full wording for assistive tech — the visible label is
+                      // abbreviated to fit three-across, the accessible name is
+                      // not.
+                      aria-label={option.label}
                       onClick={() => handleGraceChange(option.ms)}
-                      // min-h-11 = 44px — Apple's minimum tap target.
+                      // min-h-11 = 44px — Apple's minimum tap target. min-w-0
+                      // lets the cell shrink to its third instead of pushing
+                      // the track wider than the card.
                       className={
-                        "squircle min-h-11 rounded-ds-md px-3.5 text-ds-12 font-sans font-semibold " +
+                        "squircle min-h-11 w-full min-w-0 rounded-ds-sm px-1 " +
+                        "text-ds-12 font-sans font-semibold whitespace-nowrap " +
                         "transition-[transform,box-shadow,filter] duration-[150ms] ease-ds-spring " +
                         "active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 " +
                         "focus-visible:ring-ring focus-visible:ring-offset-2 " +
@@ -520,14 +592,10 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
                       style={
                         selected
                           ? undefined
-                          : {
-                              background: "hsl(var(--ivory-sand) / 0.55)",
-                              border: "0.5px solid hsl(var(--olivewood) / 0.18)",
-                              color: "hsl(var(--ink-deep))",
-                            }
+                          : { color: "hsl(var(--ink-deep))" }
                       }
                     >
-                      {option.label}
+                      {GRACE_SHORT_LABELS[option.ms] ?? option.label}
                     </button>
                   );
                 })}

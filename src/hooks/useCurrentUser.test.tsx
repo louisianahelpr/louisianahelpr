@@ -144,6 +144,7 @@ describe("useCurrentUser", () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.profile?.full_name).toBe("Lexi");
     expect(result.current.isAdmin).toBe(true);
+    expect(result.current.adminStatus).toBe("admin");
   });
 
   it("hydrates profile with isAdmin=false for non-admin users", async () => {
@@ -161,6 +162,107 @@ describe("useCurrentUser", () => {
     const { result } = renderHook(() => useCurrentUser(), { wrapper: wrap });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.isAdmin).toBe(false);
+    // A CONFIRMED non-admin — the role query answered, it just answered "no".
+    expect(result.current.adminStatus).toBe("not_admin");
+  });
+
+  // ── Role lookup that cannot answer: "unknown" is not "not an admin" ───────
+  //
+  // The regression: the role lookup was wrapped in `.catch(() => false)`, so a
+  // slow or failing `user_roles` response was reported as a confirmed
+  // non-admin. AdminRoute reads that and redirects to /dashboard, so a real
+  // admin on a bad connection is silently told they have no admin rights —
+  // with no way to tell a permissions problem from a network one. Reproduced
+  // against prod on 2026-08-31 with the role row present.
+  describe("undetermined admin state", () => {
+    it("reports adminStatus='unknown' (not 'not_admin') when the role query errors", async () => {
+      mocks.authReadyState.user = { id: "u1" };
+      mocks.authReadyState.isReady = true;
+      mocks.profileMaybeSingle.mockResolvedValue({
+        data: { user_id: "u1", full_name: "Lexi" },
+        error: null,
+      });
+      mocks.rolesMaybeSingle.mockResolvedValue({
+        data: null,
+        error: { message: "network error" },
+      });
+
+      const { result } = renderHook(() => useCurrentUser(), { wrapper: wrap });
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+      expect(result.current.adminStatus).toBe("unknown");
+      // Fail CLOSED: an undetermined check grants nothing.
+      expect(result.current.isAdmin).toBe(false);
+      // ...but the profile still loads — the role failure must never blank
+      // the account screen (the older regression this catch exists for).
+      expect(result.current.profile?.full_name).toBe("Lexi");
+    });
+
+    it("reports adminStatus='unknown' when the role query is slower than the 10s timeout", async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        mocks.authReadyState.user = { id: "u1" };
+        mocks.authReadyState.isReady = true;
+        mocks.profileMaybeSingle.mockResolvedValue({
+          data: { user_id: "u1", full_name: "Lexi" },
+          error: null,
+        });
+        // A slow network, not a broken one: the request is in flight and the
+        // row IS there — it simply has not come back inside the budget. This
+        // is the exact prod shape (response body confirmed [{"role":"admin"}]).
+        mocks.rolesMaybeSingle.mockImplementation(
+          () =>
+            new Promise((resolve) => {
+              setTimeout(() => resolve({ data: { role: "admin" }, error: null }), 30_000);
+            }),
+        );
+
+        const { result } = renderHook(() => useCurrentUser(), { wrapper: wrap });
+
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(11_000);
+        });
+
+        // Gate on the SETTLED state first. `adminStatus` is legitimately
+        // "unknown" on the loading render too, so asserting it without this
+        // would pass vacuously against the old `.catch(() => false)` code.
+        await waitFor(() => expect(result.current.isLoading).toBe(false));
+        expect(result.current.adminStatus).toBe("unknown");
+        expect(result.current.isAdmin).toBe(false);
+        // The old behaviour was indistinguishable from this:
+        //   adminStatus would have been "not_admin" and AdminRoute would have
+        //   redirected with no explanation.
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("is retryable: refresh() resolves 'unknown' to 'admin' once the network recovers", async () => {
+      mocks.authReadyState.user = { id: "u1" };
+      mocks.authReadyState.isReady = true;
+      mocks.profileMaybeSingle.mockResolvedValue({
+        data: { user_id: "u1", full_name: "Lexi" },
+        error: null,
+      });
+      mocks.rolesMaybeSingle.mockResolvedValue({
+        data: null,
+        error: { message: "network error" },
+      });
+
+      const { result } = renderHook(() => useCurrentUser(), { wrapper: wrap });
+      // Settled-state gate — see the note in the timeout test above.
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+      expect(result.current.adminStatus).toBe("unknown");
+
+      // Network comes back; the retry affordance re-runs the check.
+      mocks.rolesMaybeSingle.mockResolvedValue({ data: { role: "admin" }, error: null });
+      await act(async () => {
+        await result.current.refresh();
+      });
+
+      await waitFor(() => expect(result.current.adminStatus).toBe("admin"));
+      expect(result.current.isAdmin).toBe(true);
+    });
   });
 
   it("subscribes to a postgres_changes channel for the user's profile row", async () => {

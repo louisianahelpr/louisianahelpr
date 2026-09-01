@@ -1,7 +1,14 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHero,
+  DialogFooter,
+  DialogSecondaryAction,
+  DialogPrimaryAction,
+} from "@/components/ui/dialog";
 import { Camera, ImagePlus, X, CheckCircle2, Image } from "lucide-react";
 import { toast } from "sonner";
 import { report } from "@/lib/errorLogger";
@@ -259,20 +266,19 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded }: PhotoProofProps) 
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setOpen(false)} className="rounded-ds-md">Cancel</Button>
+            <DialogSecondaryAction onClick={() => setOpen(false)}>Cancel</DialogSecondaryAction>
             {/* Shared glossy primary. Was a hand-written inline style that
                 set `backgroundImage: "none"` — i.e. it deliberately DELETED
                 the `.btn-grad-primary` gradient and painted a flat bark fill,
                 against the standing "primary controls are glossy, never flat"
                 rule. It also re-implemented the disabled state by dropping the
                 style object, which lost the shared 50%-opacity treatment. */}
-            <Button
-              variant="primary"
+            <DialogPrimaryAction
               onClick={upload}
               disabled={uploading || files.length === 0}
             >
               {uploading ? "Uploading…" : "Upload"}
-            </Button>
+            </DialogPrimaryAction>
           </DialogFooter>
         </DialogContent>
       </Dialog>

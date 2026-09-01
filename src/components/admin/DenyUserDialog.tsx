@@ -13,9 +13,11 @@ import {
   Dialog,
   DialogContent,
   DialogHero,
+  DialogBody,
   DialogFooter,
+  DialogSecondaryAction,
+  DialogDestructiveAction,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { formatName } from "@/lib/utils";
@@ -86,7 +88,8 @@ export function DenyUserDialog({ profile, onClose, onSuccess }: DenyUserDialogPr
         ? `Your account was not approved. Reason: ${reason.trim()}`
         : "Your account was not approved. Please contact support for details.",
       type: "warning",
-      link: "/profile",
+      // A denied account has its own screen; /profile is not it.
+      link: "/account-denied",
     });
     // Branded denial email — non-blocking; report on failure.
     supabase.functions
@@ -108,9 +111,9 @@ export function DenyUserDialog({ profile, onClose, onSuccess }: DenyUserDialogPr
           title={`Deny ${formatName(profile?.full_name)}`}
         />
         <div className="space-y-4">
-          <p className="text-ds-11 text-muted-foreground">
-            Provide a reason for denying this application.
-          </p>
+          <DialogBody>
+            <p>Provide a reason for denying this application.</p>
+          </DialogBody>
           <Textarea
             aria-label="Reason for denial"
             value={reason}
@@ -119,12 +122,12 @@ export function DenyUserDialog({ profile, onClose, onSuccess }: DenyUserDialogPr
           />
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={handleClose} disabled={denying}>
+          <DialogSecondaryAction onClick={handleClose} disabled={denying}>
             Cancel
-          </Button>
-          <Button variant="destructive" onClick={denyUser} disabled={denying}>
+          </DialogSecondaryAction>
+          <DialogDestructiveAction onClick={denyUser} disabled={denying}>
             {denying ? "Denying…" : "Deny User"}
-          </Button>
+          </DialogDestructiveAction>
         </DialogFooter>
       </DialogContent>
     </Dialog>

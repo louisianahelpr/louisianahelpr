@@ -1,7 +1,15 @@
 import { useState, lazy, Suspense } from "react";
-import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHero,
+  DialogBody,
+  DialogFooter,
+  DialogSecondaryAction,
+  DialogPrimaryAction,
+  DialogDestructiveAction,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
 import { supabase } from "@/integrations/supabase/client";
@@ -116,7 +124,10 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
       {/* Poster reviewing helper */}
       {props.reviewJob && props.reviewTarget && (
         <Suspense fallback={null}>
-          <ReviewForm open={!!props.reviewJob} onClose={() => { props.setReviewJob(null); props.setReviewTarget(null); props.onRefresh(); }} jobId={props.reviewJob.id} revieweeId={props.reviewTarget.id} revieweeName={props.reviewTarget.name} />
+          {/* `canTip`: only the POSTER may tip, and only this mount is the
+              poster. The helper-side mount below leaves it off — see
+              ReviewFormProps.canTip. */}
+          <ReviewForm canTip open={!!props.reviewJob} onClose={() => { props.setReviewJob(null); props.setReviewTarget(null); props.onRefresh(); }} jobId={props.reviewJob.id} revieweeId={props.reviewTarget.id} revieweeName={props.reviewTarget.name} />
         </Suspense>
       )}
 
@@ -134,14 +145,16 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
             title="Request Revision"
           />
           <div className="space-y-4">
-            <p className="text-ds-11 text-muted-foreground">Describe what needs to be fixed or redone. The Helpr will be notified.</p>
+            <DialogBody>
+              <p>Describe what needs to be fixed or redone. The Helpr will be notified.</p>
+            </DialogBody>
             <Textarea value={revisionNote} onChange={(e) => setRevisionNote(e.target.value)} rows={3} aria-label="Revision request details" />
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => props.setRevisionJobId(null)}>Cancel</Button>
-            <Button onClick={requestRevision} disabled={requestingRevision || !revisionNote.trim()}>
+            <DialogSecondaryAction onClick={() => props.setRevisionJobId(null)}>Cancel</DialogSecondaryAction>
+            <DialogPrimaryAction onClick={requestRevision} disabled={requestingRevision || !revisionNote.trim()}>
               {requestingRevision ? "Sending…" : "Request Revision"}
-            </Button>
+            </DialogPrimaryAction>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -174,19 +187,28 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
           <DialogHero
             title="Report No-Show"
           />
-          <div className="space-y-3">
-            <p className="text-ds-11 text-muted-foreground">Are you sure the Helpr didn't show up? This will:</p>
-            <ul className="text-ds-11 text-muted-foreground space-y-1 list-disc pl-5">
+          {/* THE HOUSE VOICE, not shadcn's grey default. Copy is untouched —
+              same question, same three consequences, same ladder sentence —
+              but it now reads in the serif italic every other popup uses
+              instead of `text-ds-11 text-muted-foreground`. This was the
+              "upright sans + bullets" dialog in the owner's screenshot set,
+              sitting one tap away from four serif-italic siblings.
+              A serif-italic bulleted consequence list is not new here:
+              BlockUserDialog already renders its effects list exactly this
+              way. Same treatment, now from the shared primitive. */}
+          <DialogBody>
+            <p>Are you sure the Helpr didn't show up? This will:</p>
+            <ul className="space-y-1 list-disc pl-5">
               <li>Go on the Helpr's record — {NO_SHOW_LADDER_SENTENCE}</li>
               <li>Reopen your job so you can pick another applicant</li>
               <li>Notify the admin team</li>
             </ul>
-          </div>
+          </DialogBody>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => props.setNoShowJobId(null)}>Cancel</Button>
-            <Button variant="destructive" onClick={() => props.noShowJobId && props.onNoShow(props.noShowJobId)} disabled={props.reportingNoShow}>
+            <DialogSecondaryAction onClick={() => props.setNoShowJobId(null)}>Cancel</DialogSecondaryAction>
+            <DialogDestructiveAction onClick={() => props.noShowJobId && props.onNoShow(props.noShowJobId)} disabled={props.reportingNoShow}>
               {props.reportingNoShow ? "Reporting…" : "Confirm No-Show"}
-            </Button>
+            </DialogDestructiveAction>
           </DialogFooter>
         </DialogContent>
       </Dialog>

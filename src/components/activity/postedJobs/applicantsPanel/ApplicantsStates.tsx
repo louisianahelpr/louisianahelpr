@@ -105,7 +105,7 @@ function hoursSincePosted(job: { created_at?: string | null }, now = Date.now())
   return Math.max(0, Math.floor((now - t) / 3_600_000));
 }
 
-export function applicantsEmptyPhase(
+function applicantsEmptyPhase(
   job: { created_at?: string | null; date_needed?: string | null },
   now = Date.now(),
 ): ApplicantsEmptyPhase {

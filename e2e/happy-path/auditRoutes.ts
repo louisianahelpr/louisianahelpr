@@ -234,10 +234,15 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   // fixture values; a route that redirects (many of these do, depending on
   // profile state) still gets audited, just as whatever it lands on.
   { name: "activity", url: "/activity" },
-  // REMOVED 2026-08-23: /analytics is a <Navigate> to /profile?tab=earnings
-  // now, not a screen. Left in, this row would have audited the Earnings tab
-  // under the wrong name and counted it twice — the over-counting the catalog
-  // guard exists to catch. `profile-earnings` already covers the destination.
+  // RESTORED 2026-09-01. It was removed on 2026-08-23 because /analytics had
+  // become a <Navigate> to /profile?tab=earnings, so the row would have audited
+  // the Earnings tab under the wrong name and counted it twice. /analytics is a
+  // real screen again — Advanced Analytics, the Pro/Elite perk — and it is a
+  // DIFFERENT screen from the Earnings tab, not the same body retitled. Note
+  // that what it renders depends on the account's tier: an entitled helper gets
+  // the dashboard, everyone else gets the upgrade offer. Both are real states
+  // and both want auditing; the seeded audit helper is Elite.
+  { name: "analytics", url: "/analytics" },
   { name: "auto-tip", url: "/auto-tip" },
   { name: "availability", url: "/availability" },
   { name: "earnings", url: "/earnings" },

@@ -3,7 +3,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
 import { useNavigate } from "react-router-dom";
 import {
-  CheckCircle2, Star, Users,
+  CheckCircle2, Star,
   RefreshCw, XCircle,
   Eye, Pencil,
 } from "lucide-react";
@@ -21,7 +21,6 @@ import type { AppliedJobCardProps, ApplicationViewFields } from "./appliedJobCar
 import { useHighlightPulse } from "./appliedJobCard/useHighlightPulse";
 import { deriveAppliedJobCardState } from "./appliedJobCard/appliedJobCardHelpers";
 import { CancellationFeePill } from "./appliedJobCard/CancellationFeePill";
-import { SectionEyebrow } from "./appliedJobCard/SectionEyebrow";
 import { PendingApplicationSection } from "./appliedJobCard/PendingApplicationSection";
 import { OfferedActions } from "./appliedJobCard/OfferedActions";
 import { ConfirmedSection } from "./appliedJobCard/ConfirmedSection";
@@ -178,6 +177,14 @@ function AppliedJobCardInner({
         latitude={job.latitude}
         longitude={job.longitude}
         expiresAt={isPending && !job.helper_id ? job.expires_at : null}
+        /* "👥 3", inline right after the time (owner, 2026-08-30: "3 helprs
+           needed goes to the right of time"). It used to be a line of its own
+           at the very BOTTOM of the card, under the Edit/Withdraw row, in the
+           photos/recurring footer — a fact about the JOB stranded below the
+           helper's own actions, reading like small print. The browse feed
+           already stated it in the meta row; this is the same chip, in the
+           same place, on both surfaces. */
+        helpersNeeded={job.is_group_job ? (job.helpers_needed ?? 2) : null}
       />
     </>
   );
@@ -288,26 +295,29 @@ function AppliedJobCardInner({
                 </a>
               </div>
             )}
-            {/* EYEBROW RESTORED (owner, 2026-08-30: "eye brows were removed so
-                update so they know what things are"). The expanded card stacks
-                the poster's description and — right under it — the helper's own
-                application message in an editor, two passages of prose with
-                nothing saying which is whose. "Your attachments" told you what
-                it was; these did not.
+            {/* EYEBROW GONE AGAIN, and this time for good (owner, 2026-08-30:
+                "remove eye brows" — reversing the same day's "eye brows were
+                removed so update so they know what things are"). The
+                burnt-sienna small-caps label read as a section masthead on a
+                card that is one short passage of prose, and the apply screen
+                the helper came from had already dropped exactly that treatment
+                for exactly that reason (see ApplyBody's own note).
 
-                Same treatment as that one, exactly: `font-serif italic
-                uppercase text-ds-10`, burnt-sienna, 0.18em tracking. Title case
-                in the SOURCE with the capitals applied by CSS — an all-caps
-                string is spelled out letter by letter by some screen readers.
-                And a real <h4>, not a decorative <p>, associated with the
-                paragraph it labels via aria-labelledby, so the structure a
-                sighted reader gets is the structure a screen-reader user gets.
+                What tells the two passages apart now is TYPE, not a heading:
+                this one — the POSTER's description — is `text-ds-11` grey, and
+                the helper's own message below is `text-ds-14` in
+                `text-foreground`, the size and colour they typed it at on the
+                apply screen. Small and grey is context; large and dark is
+                yours.
 
-                "Job description" vs "Your message" — the "your" is what carries
-                ownership, the same signal "Your attachments" already used. */}
+                The <section> and its `aria-labelledby` are UNCHANGED — the
+                heading is still there, still associated, just `sr-only`. A
+                landmark with no accessible name is what the eyebrow was
+                originally added to fix, and dropping the name would re-break
+                that for a screen-reader user while fixing nothing visible. */}
             {showDescription && (
               <section aria-labelledby={`job-desc-${app.job_id}`} className="space-y-1">
-                <SectionEyebrow id={`job-desc-${app.job_id}`}>Job description</SectionEyebrow>
+                <h4 id={`job-desc-${app.job_id}`} className="sr-only">Job description</h4>
                 <p className="text-ds-11 text-muted-foreground leading-relaxed">{job.description}</p>
               </section>
             )}
@@ -567,19 +577,19 @@ function AppliedJobCardInner({
           )}
 
           {/* Footer: extra details (photos, requirements, group/recurring) */}
-          {!isMinimalCard && (!isFullyDone || isExpanded) && ((job.photos || []).length > 0 || job.is_recurring || job.is_group_job) && (
+          {/* NO group-size line here any more — it moved into the meta row,
+              inline after the time (owner: "3 helprs needed goes to the right
+              of time"). It was the last item on the whole card, below the
+              Edit/Withdraw chips, so a fact about the job was printed
+              underneath the helper's own controls. See the `helpersNeeded`
+              prop on JobCardMetaRow above. */}
+          {!isMinimalCard && (!isFullyDone || isExpanded) && ((job.photos || []).length > 0 || job.is_recurring) && (
             <div className="px-4 py-2.5 border-t border-border/20 space-y-2">
               <JobCardPhotoStrip urls={job.photos || []} size="sm" />
               {job.is_recurring && (
                 <div className="flex items-center gap-1.5 text-ds-11 text-muted-foreground">
                   <RefreshCw className="w-3 h-3 text-primary" />
                   <span>{formatRecurrenceInterval(job.recurrence_interval)}{job.recurrence_end_date && ` until ${formatShortDate(job.recurrence_end_date)}`}</span>
-                </div>
-              )}
-              {job.is_group_job && (
-                <div className="flex items-center gap-1.5 text-ds-11 text-muted-foreground">
-                  <Users className="w-3 h-3 text-primary" />
-                  <span>{job.helpers_needed ? `${job.helpers_needed} Helprs needed` : "Group job"}</span>
                 </div>
               )}
             </div>

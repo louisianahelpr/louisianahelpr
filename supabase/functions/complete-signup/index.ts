@@ -447,13 +447,29 @@ serve(async (req) => {
     if (jobRadius) updateData.job_radius = jobRadius;
     if (extraComments) updateData.extra_comments = extraComments;
 
-    const { error: profileErr } = await supabase
+    // `.select("user_id")` + a zero-row branch, per CLAUDE.md. This UPDATE is
+    // what sets `approval_status: "approved"` (line 397) — it is the write that
+    // decides whether the account can post or apply at all — and an UPDATE
+    // matching zero rows returns `{ data: [], error: null }`, indistinguishable
+    // from success.
+    //
+    // Zero rows is genuinely reachable here, not theoretical: on the JWT path
+    // the profile read at :323-335 deliberately tolerates PGRST116 ("no profile
+    // row yet"), so execution arrives here with no proof a row exists. Without
+    // the guard the function answered `success: true` and Signup.tsx treated
+    // the account as finished, leaving the user stranded unapproved with no
+    // error surfaced anywhere.
+    const { data: updatedRows, error: profileErr } = await supabase
       .from("profiles")
       .update(updateData)
-      .eq("user_id", userId);
+      .eq("user_id", userId)
+      .select("user_id");
 
-    if (profileErr) {
-      console.error("Profile update error:", profileErr);
+    if (profileErr || (updatedRows?.length ?? 0) === 0) {
+      console.error(
+        "Profile update error:",
+        profileErr ?? `zero rows matched for user_id ${userId} — profile row missing, account left unapproved`,
+      );
       return new Response(JSON.stringify({ error: "Failed to update profile" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -486,36 +502,63 @@ serve(async (req) => {
         .eq("user_id", userId)
         .single();
 
+      // ONE definition, read by both the dedupe query and the insert. Two
+      // hand-written copies of this string is what made the dedupe dead.
+      const NEW_MEMBER_TITLE = "New member joined";
       const userName = profile?.full_name || "Someone";
       const userLocation = profile?.location ? ` from ${profile.location}` : "";
       const notifMessage = `${userName}${userLocation} just joined. They're auto-approved and can start posting + applying right away.`;
 
-      // Dedupe: skip if an identical notification was sent in the last 24h
+      // Dedupe: skip if an identical notification was sent in the last 24h.
+      //
+      // The title on BOTH sides comes from one constant now. It did not: the
+      // query asked for "👤 New member joined" (with the emoji) while the
+      // insert below wrote "New member joined" (without), so the two could
+      // never match and the dedupe was dead from the day the emoji was
+      // dropped. Verified against prod 2026-08-31: 88 notification rows carry
+      // the plain title and ZERO carry the emoji one, and those 88 rows hold
+      // only 6 distinct messages — one repeated 26 times.
+      //
+      // A failed dedupe READ must fail CLOSED (skip the fan-out) rather than
+      // default to sending: `!existing?.length` treated a read error as "no
+      // prior notification", which is the same shape that re-mailed the cohort.
       const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      const { data: existing } = await supabase
+      const { data: existing, error: existingErr } = await supabase
         .from("notifications")
         .select("id")
-        .eq("title", "👤 New member joined")
+        .eq("title", NEW_MEMBER_TITLE)
         .eq("message", notifMessage)
         .gte("created_at", since)
         .limit(1);
-
-      if (!existing?.length) {
-        const { data: admins } = await supabase
+      if (existingErr) {
+        console.error("[complete-signup] admin-notify dedupe read failed; skipping fan-out:", existingErr.message);
+      } else if (!existing?.length) {
+        const { data: admins, error: adminsErr } = await supabase
           .from("user_roles")
           .select("user_id")
           .eq("role", "admin");
-
-        if (admins?.length) {
+        if (adminsErr) {
+          console.error("[complete-signup] admin lookup failed; no admin was told about this signup:", adminsErr.message);
+        } else if (admins?.length) {
           const adminNotifs = admins.map((admin: { user_id: string }) => ({
             user_id: admin.user_id,
-            title: "New member joined",
+            title: NEW_MEMBER_TITLE,
             message: notifMessage,
+            // `?view=people&user=<id>` — the id-bearing deep link Admin.tsx:47
+            // actually reads (`searchParams.get("view")`, and the View union
+            // spells it `people`, not `users`). A bare "/admin" made the
+            // reviewer hunt for the account the notification is about.
             type: "info",
-            link: "/admin",
+            link: `/admin?view=people&user=${userId}`,
           }));
 
-          await supabase.from("notifications").insert(adminNotifs);
+          // PostgREST resolves with `{ error }`; it does not throw, so the
+          // enclosing try/catch could never see a failed insert. Read the
+          // error off the result.
+          const { error: notifInsertErr } = await supabase.from("notifications").insert(adminNotifs);
+          if (notifInsertErr) {
+            console.error("[complete-signup] admin notification insert failed:", notifInsertErr.message);
+          }
         }
       }
     } catch (notifErr) {

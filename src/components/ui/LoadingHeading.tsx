@@ -36,5 +36,3 @@ export function LoadingHeading({ title, message }: LoadingHeadingProps) {
     </>
   );
 }
-
-export default LoadingHeading;

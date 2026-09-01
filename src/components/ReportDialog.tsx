@@ -2,7 +2,15 @@ import { useEffect, useId, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogFooter, DialogHero } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHero,
+  DialogSecondaryAction,
+  DialogPrimaryAction,
+  DialogBody,
+} from "@/components/ui/dialog";
 import {
   AlertTriangle,
   Banknote,
@@ -124,7 +132,11 @@ const REPORTED_NOUN_INLINE: Record<ReportedType, string> = {
   review: "review",
 };
 
-/** The visible question above the list, in the reporter's own terms. */
+/**
+ * The question the reason list answers, in the reporter's own terms. It is
+ * the list's ACCESSIBLE name only — it is deliberately not painted (see the
+ * reason step below); the dialog title and lede already say it on screen.
+ */
 const REASON_PROMPT: Record<ReportedType, string> = {
   job: "What's wrong with this job?",
   message: "What's wrong with this message?",
@@ -181,7 +193,6 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
   const [caseNumber, setCaseNumber] = useState<string | null>(null);
 
   const uid = useId();
-  const promptId = `${uid}-reason-prompt`;
   const detailsId = `${uid}-details`;
   const detailsHintId = `${uid}-details-hint`;
 
@@ -283,15 +294,22 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
               We never tell the other person who reported them.
             </p>
 
-            <p
-              id={promptId}
-              className="font-serif italic uppercase text-ds-10"
-              style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-            >
-              {REASON_PROMPT[reportedType]}
-            </p>
+            {/* NO EYEBROW ABOVE THE LIST (owner, 2026-08-31: "Remove
+                eyebrow."). The rust letterspaced "WHAT'S WRONG WITH THIS
+                JOB?" line that used to sit here said nothing the dialog had
+                not already said twice — the hero title reads "Report job" and
+                the lede directly above explains where the report goes. Three
+                stacked framing lines before the first tappable row is a
+                preamble, not a heading.
 
-            <div role="group" aria-labelledby={promptId} className="space-y-1.5">
+                The question survives as the group's ACCESSIBLE name: a screen
+                reader still hears "What's wrong with this job?, group" before
+                the first radio, so nothing is lost non-visually. */}
+            <div
+              role="group"
+              aria-label={REASON_PROMPT[reportedType]}
+              className="space-y-1.5"
+            >
               {reasons.map(({ label, Icon }) => {
                 const active = reason === label;
                 return (
@@ -375,19 +393,18 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
             {/* A real footer button on the shared `DialogFooter`, matching
                 every other dialog — was a bare ghost "Cancel" floating in a
                 hand-rolled `justify-end` row with no button treatment and no
-                alignment to the list above it. `outline` (not `ghost`) here
-                because it is the only control in this footer: a flat ghost
-                alone in a row is exactly the "text floating at the bottom"
-                the owner flagged. */}
+                alignment to the list above it.
+                It was then given `outline` on the argument that a lone ghost
+                reads as "text floating at the bottom". The owner has since
+                settled the treatment directly (2026-08-31, shown all three
+                variants their screenshots contained): "Small, I feel like left
+                aligned makes more sense than right." A lone dismiss is the
+                same small ghost, in the same place, as one that has a commit
+                beside it — see popupFooter.ts. */}
             <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleClose}
-                className="rounded-ds-md"
-              >
+              <DialogSecondaryAction type="button" onClick={handleClose}>
                 Cancel
-              </Button>
+              </DialogSecondaryAction>
             </DialogFooter>
           </div>
         )}
@@ -480,25 +497,26 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
               </div>
             </div>
 
-            <DialogFooter className="sm:!justify-between">
-              <Button
+            {/* No `sm:!justify-between`. The shared footer already puts the
+                dismiss hard-left and the commit hard-right at every width,
+                which is what that override was reaching for — and this
+                dialog's compact secondary is now the app-wide standard, so it
+                no longer has to state it locally. */}
+            <DialogFooter>
+              <DialogSecondaryAction
                 type="button"
-                variant="ghost"
                 onClick={() => setStep("reason")}
                 disabled={submitting}
-                className="rounded-ds-md"
               >
                 <ChevronLeft className="w-4 h-4" />
                 Back
-              </Button>
-              {/* Glossy primary (`btn-grad-primary` via variant="primary"),
+              </DialogSecondaryAction>
+              {/* Glossy primary (`btn-grad-primary` via DialogPrimaryAction),
                   not the flat inline bark fill this used to hand-roll. */}
-              <Button
+              <DialogPrimaryAction
                 type="button"
-                variant="primary"
                 onClick={handleSubmit}
                 disabled={!canSubmit}
-                className="rounded-ds-md"
               >
                 {submitting ? (
                   <>
@@ -508,7 +526,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
                 ) : (
                   "Submit Report"
                 )}
-              </Button>
+              </DialogPrimaryAction>
             </DialogFooter>
           </div>
         )}
@@ -595,23 +613,20 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
                   <Copy className="w-3.5 h-3.5 opacity-60" aria-hidden="true" />
                 </button>
               </div>
-              <p className="text-ds-11 text-muted-foreground">
-                Email{" "}
-                <a href="mailto:admin@louisianahelpr.com" className="underline">
-                  admin@louisianahelpr.com
-                </a>{" "}
-                with this number if you have more to add.
-              </p>
+              <DialogBody>
+                <p>
+                  Email{" "}
+                  <a href="mailto:admin@louisianahelpr.com" className="underline">
+                    admin@louisianahelpr.com
+                  </a>{" "}
+                  with this number if you have more to add.
+                </p>
+              </DialogBody>
             </div>
             <DialogFooter>
-              <Button
-                type="button"
-                variant="primary"
-                onClick={handleClose}
-                className="rounded-ds-md"
-              >
+              <DialogPrimaryAction type="button" onClick={handleClose}>
                 Done
-              </Button>
+              </DialogPrimaryAction>
             </DialogFooter>
           </div>
         )}

@@ -3,7 +3,7 @@ import { hapticLight } from "@/lib/haptics";
 /** The four things this tab is actually about. */
 export type EarningsView = "money" | "history" | "insights" | "payouts";
 
-export const EARNINGS_VIEWS: { key: EarningsView; label: string }[] = [
+const EARNINGS_VIEWS: { key: EarningsView; label: string }[] = [
   { key: "money", label: "Money" },
   { key: "history", label: "History" },
   { key: "insights", label: "Insights" },

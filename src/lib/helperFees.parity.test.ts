@@ -10,7 +10,7 @@ import {
 } from "../../supabase/functions/_shared/helperFees";
 
 describe("helper-fee tier ladder parity (UI ↔ edge)", () => {
-  const tiers: SubscriptionTier[] = ["free", "basic", "pro", "elite", "business"];
+  const tiers: SubscriptionTier[] = ["free", "basic", "pro", "elite"];
 
   it("edge TIER_FEE_PERCENT matches UI TIER_PERKS.platformFeePercent for every tier", () => {
     for (const tier of tiers) {
@@ -19,11 +19,20 @@ describe("helper-fee tier ladder parity (UI ↔ edge)", () => {
   });
 
   it("covers exactly the UI tier set (no extra/missing edge tiers)", () => {
-    expect(Object.keys(TIER_FEE_PERCENT).sort()).toEqual([...tiers].sort());
+    // Derive BOTH sides from their own tables rather than comparing two
+    // hardcoded lists. The old form compared `Object.keys(TIER_FEE_PERCENT)`
+    // against the local `tiers` literal, so adding a row to TIER_PERKS alone
+    // — exactly the half of the retired `business` tier that lived on the
+    // client — slipped straight past this guard. Now either table growing a key
+    // the other lacks reds here, in whichever direction it happens.
+    expect(Object.keys(TIER_FEE_PERCENT).sort()).toEqual(Object.keys(TIER_PERKS).sort());
+    // And the literal above still has to name every one of them, so a tier
+    // added to both tables cannot quietly skip the per-tier loops in this file.
+    expect(Object.keys(TIER_PERKS).sort()).toEqual([...tiers].sort());
   });
 
-  it("encodes the agreed 12 / 11 / 10 / 8 / 6 ladder", () => {
-    expect(TIER_FEE_PERCENT).toEqual({ free: 12, basic: 11, pro: 10, elite: 8, business: 6 });
+  it("encodes the agreed 12 / 11 / 10 / 8 ladder", () => {
+    expect(TIER_FEE_PERCENT).toEqual({ free: 12, basic: 11, pro: 10, elite: 8 });
   });
 
   it("normalizes case and falls back to the free rate for unknown tiers", () => {
@@ -35,7 +44,7 @@ describe("helper-fee tier ladder parity (UI ↔ edge)", () => {
 });
 
 describe("tierFeePercent (client dashboard resolver) mirrors the edge payout resolver", () => {
-  const tiers: SubscriptionTier[] = ["free", "basic", "pro", "elite", "business"];
+  const tiers: SubscriptionTier[] = ["free", "basic", "pro", "elite"];
 
   it("resolves the same percent as edge feePercentForTier for every active tier", () => {
     for (const tier of tiers) {
@@ -44,12 +53,21 @@ describe("tierFeePercent (client dashboard resolver) mirrors the edge payout res
     }
   });
 
-  it("encodes the agreed 12 / 11 / 10 / 8 / 6 ladder", () => {
+  it("encodes the agreed 12 / 11 / 10 / 8 ladder", () => {
     expect(tierFeePercent("free")).toBe(12);
     expect(tierFeePercent("basic")).toBe(11);
     expect(tierFeePercent("pro")).toBe(10);
     expect(tierFeePercent("elite")).toBe(8);
-    expect(tierFeePercent("business")).toBe(6);
+  });
+
+  it("has NO rung below Elite — 'business' is off the ladder and pays free", () => {
+    // The `business` tier was removed on 2026-09-01 (nothing could sell or
+    // store it; the prod census was zero rows). A legacy string must resolve
+    // through the unknown-tier default to the FREE rate, never to the 6% the
+    // retired rung used to grant.
+    expect(tierFeePercent("business")).toBe(12);
+    expect(feePercentForTier("business")).toBe(DEFAULT_TIER_FEE_PERCENT);
+    expect(Object.values(TIER_FEE_PERCENT).every((p) => p >= 8)).toBe(true);
   });
 
   it("reverts an EXPIRED paid tier to the free rate, matching getHelperFeePercent", () => {

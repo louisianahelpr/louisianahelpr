@@ -9,6 +9,9 @@ import {
   DialogContent,
   DialogHero,
   DialogFooter,
+  DialogSecondaryAction,
+  DialogPrimaryAction,
+  DialogDestructiveAction,
 } from "@/components/ui/dialog";
 import { ShieldCheck, Copy, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -49,14 +52,19 @@ export function TwoFactorCard() {
   const [disableOpen, setDisableOpen] = useState(false);
 
   return (
-    <div className="rounded-2xl liquid-glass p-3.5 space-y-1">
-      {/* Same shape as the Email / Password / Face ID cards, compacted to
-          match (item 29, 2026-08-30): the action sits on the title row and
-          the prose runs full width underneath, instead of the button owning
-          a second 44px row. The "Off" pill is gone — a pill reading "Off"
-          beside a button reading "Turn on" is the same fact twice. The "On"
-          pill stays: that one is a state worth advertising, and "Turn off"
-          is the action, not the state. */}
+    <div className="rounded-2xl liquid-glass p-3.5">
+      {/* ONE card shape, shared with Email / Password / Face ID: the icon, the
+          title block (title + its one line of prose), and the action, all on a
+          single row. The prose used to run full width UNDER that row, which
+          left a dead strip above it (the 44px button set the row height while
+          the lone title line floated centred in it) and another below it before
+          the card ended — the owner's "spacing under password and 2 step".
+          It now sits directly beneath the title, where the email address sits
+          on the first card.
+
+          The "Off" pill is gone — a pill reading "Off" beside a button reading
+          "Turn on" is the same fact twice. The "On" pill stays: that one is a
+          state worth advertising, and "Turn off" is the action, not the state. */}
       <div className="flex items-center gap-2">
         <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
           <ShieldCheck className="w-4 h-4 text-primary" />
@@ -68,6 +76,35 @@ export function TwoFactorCard() {
           >
             Two-step verification
           </h2>
+          {isLoading ? (
+            // Sized to the one line of prose it stands in for, so the card
+            // doesn't change height when the query lands.
+            <Skeleton className="h-3.5 w-40 max-w-full mt-1 rounded-full" />
+          ) : (
+            <p
+              className="text-ds-11 font-serif italic mt-0.5"
+              style={{
+                color: isError
+                  ? "hsl(var(--destructive))"
+                  : "hsl(var(--olivewood) / 0.8)",
+              }}
+            >
+              {/* Shorter than before, because the prose now lives in the
+                  title column (~163px at 393pt) instead of running the full
+                  card width. Measured: the old 74-character string wrapped to
+                  three lines there and made this card 28px taller than the
+                  Email and Password cards beside it; "Authenticator code at
+                  sign-in." is one line at 393pt and brings the card to within
+                  12px of them — the remainder is the two-line TITLE, which is
+                  content, not spacing. Nothing is lost: the enrol dialog is
+                  where the setup instructions actually live. */}
+              {isError
+                ? "We couldn't check your status."
+                : verified
+                  ? "Required at sign-in. Support can remove it."
+                  : "Authenticator code at sign-in."}
+            </p>
+          )}
         </div>
         {!isLoading && !isError && verified && (
           <span
@@ -80,6 +117,20 @@ export function TwoFactorCard() {
           >
             On
           </span>
+        )}
+        {/* Retry takes the action slot when the state is unknown, so the error
+            branch keeps the same one-row silhouette as every other state
+            instead of growing a second row of its own. */}
+        {isError && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="shrink-0"
+            aria-label="Retry checking two-step verification status"
+            onClick={() => refetch()}
+          >
+            Retry
+          </Button>
         )}
         {/* Gated on !isError: with the state unknown, offering "Turn on" to
             someone who already HAS 2FA — or "Turn off" to someone who doesn't
@@ -110,31 +161,6 @@ export function TwoFactorCard() {
           </Button>
         ))}
       </div>
-
-      {isLoading ? (
-        <Skeleton className="h-9 rounded-ds-md" />
-      ) : isError ? (
-        <div className="flex items-center justify-between gap-3">
-          <p
-            className="text-ds-11 font-serif italic"
-            style={{ color: "hsl(var(--destructive))" }}
-          >
-            We couldn&apos;t check your two-step verification status.
-          </p>
-          <Button size="sm" variant="outline" className="shrink-0" onClick={() => refetch()}>
-            Retry
-          </Button>
-        </div>
-      ) : (
-        <p
-          className="text-ds-11 font-serif italic pl-10"
-          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-        >
-          {verified
-            ? "An authenticator app is required at sign-in. Keep it safe — if you lose access, contact support to remove it."
-            : "Add a code from an authenticator app at sign-in for extra account security."}
-        </p>
-      )}
 
       {enrollOpen && (
         <EnrollDialog
@@ -299,17 +325,15 @@ function EnrollDialog({
         )}
 
         <DialogFooter>
-          <Button variant="ghost" onClick={onClose}>
+          <DialogSecondaryAction onClick={onClose}>
             Cancel
-          </Button>
-          <Button
-            variant="primary"
+          </DialogSecondaryAction>
+          <DialogPrimaryAction
             onClick={handleVerify}
             disabled={verifying || code.length !== 6 || !data}
-            className="rounded-ds-md"
           >
             {verifying ? "Verifying…" : "Verify & Turn On"}
-          </Button>
+          </DialogPrimaryAction>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -385,26 +409,23 @@ function DisableDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="ghost" onClick={onClose}>
+          <DialogSecondaryAction onClick={onClose}>
             Keep It On
-          </Button>
+          </DialogSecondaryAction>
           {/* Turning 2FA off is a security downgrade, so it keeps a
               destructive treatment — but the SHARED one. It was a flat inline
               burnt-sienna fill: a third colour for "destructive", alongside
               the `--destructive` red used by Confirm No-Show / Delete User /
               Deny Payout and the sienna BrandConfirmDialog used everywhere
               else. */}
-          <Button
-            variant="destructive"
+          <DialogDestructiveAction
             onClick={handleDisable}
             disabled={working || code.length !== 6}
           >
             {working ? "Turning Off…" : "Turn Off"}
-          </Button>
+          </DialogDestructiveAction>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
-
-export default TwoFactorCard;

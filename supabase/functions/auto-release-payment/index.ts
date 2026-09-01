@@ -62,7 +62,14 @@ serve(async (req) => {
     if (!supabaseUrl) missing.push("SUPABASE_URL");
     if (!stripeSecretKey) missing.push("STRIPE_SECRET_KEY");
     if (!serviceRoleKey) missing.push("SECRET_KEY or SUPABASE_SERVICE_ROLE_KEY");
-    if (missing.length) throw new Error(`Missing required env vars: ${missing.join(", ")}`);
+    // The `||` tail is logically redundant with `missing.length` — it is spelled
+    // out so the compiler can narrow the three consts to `string` below. Without
+    // it `createClient(supabaseUrl, serviceRoleKey)` and `new Stripe(key)` are
+    // called with `string | undefined` as far as the types are concerned, which
+    // is exactly the shape that hides a real missing-config crash.
+    if (missing.length || !supabaseUrl || !stripeSecretKey || !serviceRoleKey) {
+      throw new Error(`Missing required env vars: ${missing.join(", ")}`);
+    }
 
     // Verify cron secret
     const authHeader = req.headers.get("Authorization");
@@ -94,7 +101,7 @@ serve(async (req) => {
 
     let dueQuery = supabaseAdmin
       .from("jobs")
-      .select("id, title, helper_id, customer_id, budget, platform_fee_amount, urgent_fee, poster_completed_at, helper_completed_at, stripe_session_id, stripe_payment_intent_id, status, is_group_job, helpers_needed")
+      .select("id, title, helper_id, customer_id, budget, platform_fee_amount, urgent_fee, helper_fee_percent, poster_completed_at, helper_completed_at, stripe_session_id, stripe_payment_intent_id, status, is_group_job, helpers_needed")
       .in("status", ["in_progress", "revision_requested", "accepted"])
       .eq("payment_status", "escrow")
       // A requested revision STOPS the payout clock. The 24h window is keyed on
@@ -130,7 +137,7 @@ serve(async (req) => {
     // per-job guards below run for these rows too.
     let recentQuery = supabaseAdmin
       .from("jobs")
-      .select("id, title, helper_id, customer_id, budget, platform_fee_amount, urgent_fee, poster_completed_at, helper_completed_at, stripe_session_id, stripe_payment_intent_id, status, is_group_job, helpers_needed")
+      .select("id, title, helper_id, customer_id, budget, platform_fee_amount, urgent_fee, helper_fee_percent, poster_completed_at, helper_completed_at, stripe_session_id, stripe_payment_intent_id, status, is_group_job, helpers_needed")
       .eq("status", "in_progress")
       .eq("payment_status", "escrow")
       .is("poster_completed_at", null)
@@ -260,7 +267,27 @@ serve(async (req) => {
       // Estimate only — the real transfer in process-scheduled-payouts resolves
       // the tier again at payout time. Keep this preview consistent with it.
       // Group jobs: budget is the total for the roster; each helper earns budget/N.
-      const helperFeePercent = await getHelperFeePercent(supabaseAdmin, job.helper_id, DEFAULT_TIER_FEE_PERCENT);
+      //
+      // The fallback chain must be IDENTICAL to the payer's, not merely land on
+      // the same number in the common case. This used to pass
+      // DEFAULT_TIER_FEE_PERCENT straight through and never selected
+      // `helper_fee_percent` at all, so the moment a tier read blipped, an Elite
+      // job frozen at 8% was previewed at 12 — the helper was told $176 on a
+      // $200 job that process-scheduled-payouts would still pay at $184,
+      // because THAT function prefers the frozen rate before the free rung.
+      //
+      // No money was ever wrong here (this path only writes a notification), and
+      // that is exactly why it was easy to leave alone. It is still a figure a
+      // helper is shown and cannot check — the same defect class as a report
+      // emailing the wrong number. Agreeing with the payer costs one column.
+      //
+      // DEFAULT_TIER_FEE_PERCENT, never a bare 12, so retuning the ladder moves
+      // this preview and the payout together.
+      const helperFeePercent = await getHelperFeePercent(
+        supabaseAdmin,
+        job.helper_id,
+        job.helper_fee_percent ?? DEFAULT_TIER_FEE_PERCENT,
+      );
       const helpersCount = (job.is_group_job && job.helpers_needed > 0) ? job.helpers_needed : 1;
       const perHelperBudget = job.budget / helpersCount;
       // Same rounding as the path that actually pays, so the preview can never
@@ -274,7 +301,10 @@ serve(async (req) => {
           message: instantIds.has(job.id)
             ? `"${job.title}" is complete — the poster releases instantly. $${formatPayoutDollars(helperPayout)} will be transferred to your account in 24 hours.`
             : `"${job.title}" was auto-completed after 24 hours. $${formatPayoutDollars(helperPayout)} will be transferred to your account in 24 hours.`,
-          type: "payment", link: "/my-jobs?filter=completed",
+          // `?job=`, not `?filter=completed`: `completed` is a legacy filter key
+          // with no chip in the five-bucket strip (the bucket is `done`), and the
+          // bucket is resolved live by Activity from the job id.
+          type: "payment", link: `/my-jobs?job=${job.id}`,
         });
       }
       if (job.customer_id) {
@@ -284,7 +314,7 @@ serve(async (req) => {
           message: instantIds.has(job.id)
             ? `"${job.title}" released instantly per your Instant Release setting. The Helpr will be paid in 24 hours.`
             : `"${job.title}" was automatically marked complete after 24 hours. The helpr will be paid in 24 hours.`,
-          type: "info", link: "/my-posts?filter=completed",
+          type: "info", link: `/my-posts?job=${job.id}`,
         });
       }
       released++;

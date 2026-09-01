@@ -157,7 +157,7 @@ async function generateLink(supabaseUrl, serviceKey, email) {
  * Supabase redirects to `<site>/#access_token=…&refresh_token=…`; the tokens
  * are in the FRAGMENT, so they never appear in a query string or a server log.
  */
-async function exchangeForSession(actionLink, userId) {
+async function exchangeForSession(actionLink, userId, supabaseUrl, anonKey) {
   const res = await fetch(actionLink, { redirect: "manual" });
   const location = res.headers.get("location");
   if (!location) throw new Error(`no Location header from action_link (status ${res.status})`);
@@ -169,13 +169,42 @@ async function exchangeForSession(actionLink, userId) {
   if (!access_token || !refresh_token) {
     throw new Error(`missing tokens in hash fragment: ${location}`);
   }
+  // FETCH THE REAL USER OBJECT. This used to be `user: { id: userId }` — a stub
+  // with nothing but an id. Three separate verification harnesses were silently
+  // broken by it on 2026-08-31 and each rediscovered the cause independently:
+  // `ProtectedRoute` reads `email_confirmed_at` off `session.user`, an absent
+  // field is falsy, so EVERY authed route bounced to /account-pending and then
+  // /dashboard. The harness looked signed in, and every deep link it tried
+  // landed somewhere else — which reads as an app bug, not a harness bug.
+  //
+  // `GET /auth/v1/user` with the freshly-minted access token returns exactly
+  // the object supabase-js would have cached, so the blob is now faithful by
+  // construction rather than by us guessing which fields matter next.
+  let user = { id: userId };
+  try {
+    const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
+      headers: { apikey: anonKey, Authorization: `Bearer ${access_token}` },
+    });
+    if (userRes.ok) {
+      const full = await userRes.json();
+      if (full?.id) user = full;
+      else console.error("[warn] /auth/v1/user returned no id; falling back to the id-only stub");
+    } else {
+      console.error(`[warn] /auth/v1/user returned ${userRes.status}; falling back to the id-only stub`);
+    }
+  } catch (err) {
+    // Never fatal: a usable-but-thin session still beats no session, and the
+    // warning above tells you why a route bounce is the harness, not the app.
+    console.error(`[warn] could not fetch the full user object: ${err?.message ?? err}`);
+  }
+
   return {
     access_token,
     refresh_token,
     token_type: "bearer",
     expires_in: 3600,
     expires_at: Number(hash.get("expires_at")) || Math.floor(Date.now() / 1000) + 3600,
-    user: { id: userId },
+    user,
   };
 }
 
@@ -225,7 +254,10 @@ async function main() {
     return;
   }
 
-  const session = await exchangeForSession(actionLink, resolvedUserId);
+  // anon key preferred for /auth/v1/user — it is the key a real client would
+  // present; the service key works too but would mask an anon-key misconfig.
+  const anonKey = env.VITE_SUPABASE_ANON_KEY || env.SUPABASE_ANON_KEY || serviceKey;
+  const session = await exchangeForSession(actionLink, resolvedUserId, supabaseUrl, anonKey);
   const value = JSON.stringify(session);
 
   if (wantJson) {

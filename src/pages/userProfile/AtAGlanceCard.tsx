@@ -1,6 +1,5 @@
 import {
   Clock,
-  CheckCircle,
   Timer,
   RotateCcw,
   Star,
@@ -13,10 +12,11 @@ import {
 import { cn } from "@/lib/utils";
 import type {
   ProfileStatsShape,
-  ResponseMetrics,
+  ReplyLatency,
   CancellationRate,
   PosterReputation,
   PetCareSignal,
+  StatSamples,
 } from "./types";
 
 /**
@@ -152,14 +152,25 @@ type Props = {
   stats: ProfileStatsShape;
   postedJobsCount: number;
   workedJobsCount: number;
-  responseMetrics: ResponseMetrics;
+  /**
+   * The owner's own median reply time. Owner-only by construction — see the
+   * cell below and `get_my_reply_latency()` (20260901005108).
+   */
+  replyLatency: ReplyLatency;
   onTimeArrivalRate: number | null;
   revisionFrequency: number | null;
   cancellationRate: CancellationRate;
   posterReputation: PosterReputation | null;
   petCareSignal: PetCareSignal | null | undefined;
-  /** % of this helper's clients who hired them again. Public RPC. */
+  /**
+   * % of this helper's clients who hired them again. NULL below three
+   * distinct clients — ungated, one returning customer published a boldfaced
+   * "100% Clients who rebooked", which sat next to "New · No reviews yet" on
+   * the same card and made a stranger doubt both.
+   */
   repeatHirePercent: number | null;
+  /** Sample sizes behind each gated rate. See `StatSamples`. */
+  statSamples: StatSamples;
   showReviews: boolean;
   showPostedJobs: boolean;
   showWorkedJobs: boolean;
@@ -175,13 +186,14 @@ export const AtAGlanceCard = ({
   stats,
   postedJobsCount,
   workedJobsCount,
-  responseMetrics,
+  replyLatency,
   onTimeArrivalRate,
   revisionFrequency,
   cancellationRate,
   posterReputation,
   petCareSignal,
   repeatHirePercent,
+  statSamples,
   showReviews,
   showPostedJobs,
   showWorkedJobs,
@@ -232,25 +244,61 @@ export const AtAGlanceCard = ({
     });
   }
 
-  // ── How they behave ──────────────────────────────────────────────────
-  if (responseMetrics.totalApplications > 0 && responseMetrics.avgResponseHours !== null) {
-    const h = responseMetrics.avgResponseHours;
+  /* ── TYPICAL REPLY TIME ───────────────────────────────────────────────
+     "Avg. reply time" used to be `avg(applications.updated_at - created_at)`
+     over applications this member SUBMITTED. `created_at` is them applying;
+     `updated_at` is a last-touch column only the POSTER may write. So the
+     figure was the poster's latency, printed under the helper's name — and
+     because `updated_at` moves on ANY write, not even reliably that: on prod,
+     three helpers on three jobs shared one `updated_at` to the microsecond
+     (one bulk maintenance write), and this cell rendered the distance to it as
+     "22d", "17d" and "3d". One of them had a real median reply time of 24
+     MINUTES.
+
+     It now shows the median gap between the other party's message and this
+     member's answer. MEDIAN, not average: a real member's 47-minute median
+     becomes a 6.6-hour mean on the strength of one overnight gap, and "Avg."
+     would then be a claim about their worst night. Hence the label change.
+
+     OWNER ONLY, deliberately. `get_my_reply_latency()` reads auth.uid() and
+     takes no argument, so there is no version of it a visitor can call about
+     someone else — the same visibility the broken stat effectively had, since
+     `applications` is RLS-scoped to the parties. Publishing a reply time to
+     strangers is now defensible on accuracy grounds, but it is a disclosure
+     decision that belongs in `get_public_profile_stats` next to the other
+     public aggregates, not here. */
+  if (isOwnProfile && replyLatency.medianReplyMinutes !== null) {
+    const m = replyLatency.medianReplyMinutes;
     cells.push({
       key: "reply",
       icon: Clock,
-      value: h < 1 ? `${Math.round(h * 60)}m` : h < 24 ? `${h.toFixed(1)}h` : `${Math.round(h / 24)}d`,
-      label: "Avg. reply time",
+      value:
+        m < 60
+          ? `${Math.round(m)}m`
+          : m < 1440
+          ? `${(m / 60).toFixed(1)}h`
+          : `${Math.round(m / 1440)}d`,
+      label: "Typical reply time",
     });
   }
 
-  if (responseMetrics.totalApplications > 0 && responseMetrics.acceptanceRate !== null) {
-    cells.push({
-      key: "accept",
-      icon: CheckCircle,
-      value: `${responseMetrics.acceptanceRate.toFixed(0)}%`,
-      label: "Accept rate",
-    });
-  }
+  /* ── ACCEPT RATE: DELETED, NOT REPAIRED ───────────────────────────────
+     It was `accepted / total` over the applications this member sent, and no
+     arithmetic fixes what it is: a tally of hiring decisions other people
+     made, rendered as a property of the applicant. A helper who reaches for
+     harder jobs, who is new, or who simply was not picked carries the low
+     number, and none of them has a lever to move it.
+
+     The denominator made it worse rather than merely unfair. `pending` — an
+     application nobody has answered yet — counted as a miss, so a poster who
+     ghosts lowered the HELPER's score. On prod 2026-09-01, 16 of 27
+     applications were pending and only 2 were rejected: the number was
+     overwhelmingly a measure of poster inactivity, attributed to helpers.
+
+     And publishing it shapes behaviour in the direction the marketplace least
+     wants — the rational response to a visible accept rate is to stop applying
+     to competitive jobs. There is no honest label for "other people's choices
+     about you", so this is a deletion, not a relabel. */
 
   if (onTimeArrivalRate !== null) {
     cells.push({
@@ -272,6 +320,10 @@ export const AtAGlanceCard = ({
   // a milestone — the number itself was never shown. It is the single best
   // "would someone book them again?" signal a stranger can be given, so it is
   // now a cell of its own.
+  // `> 0` is deliberate and unchanged: a measured 0% across three or more
+  // one-off clients is a true number but a punitive one, and "nobody has
+  // rebooked them" is not a claim this card was built to make. Withheld, not
+  // rendered as a zero — and the withheld-stats line below says so.
   if (repeatHirePercent !== null && repeatHirePercent > 0) {
     cells.push({
       key: "repeat",
@@ -348,6 +400,46 @@ export const AtAGlanceCard = ({
     });
   }
 
+  /* ── WHAT WE WON'T PUBLISH, AND WHY ──────────────────────────────────
+     A rate below its sample floor arrives as `null` and its cell is simply
+     never pushed. That is right — rendering "0% on time" from one data point
+     is a lie of precision — but silence alone is its own small lie: the
+     reader cannot tell a withheld stat from a bad one, and this codebase has
+     form here (six admin queues once rendered an outage as an all-clear, and
+     "No disputes on record" printed on every profile regardless of truth).
+
+     So when a stat is withheld ONLY for want of history, say so in one quiet
+     line. Gated on `hasServerStats` because while the aggregates RPC is
+     undeployed the numbers on screen are the old client-side derivations,
+     which a visitor measures as zero — and editorialising about a sample size
+     we did not actually measure would be the same bug wearing new copy. */
+  const withheld: string[] = [];
+  /* Reply time carries its own measured-flag rather than riding on
+     `hasServerStats`: it comes from a different RPC, it is owner-only, and a
+     visitor never calls it — so a visitor must never be told a stat was
+     withheld from them that was never computed in the first place. */
+  if (
+    isOwnProfile &&
+    replyLatency.measured &&
+    replyLatency.medianReplyMinutes === null &&
+    replyLatency.replySample > 0
+  ) {
+    withheld.push("your reply time");
+  }
+  if (statSamples.hasServerStats) {
+    if (cancellationRate.rate === null && statSamples.jobs > 0) withheld.push("cancellations");
+    if (onTimeArrivalRate === null && statSamples.onTime > 0) withheld.push("on-time arrival");
+    if (revisionFrequency === null && statSamples.revisions > 0) withheld.push("revisions");
+    if (repeatHirePercent === null && statSamples.repeatClients > 0) withheld.push("repeat bookings");
+    if (posterReputation === null && statSamples.posterReviews > 0) withheld.push("their rating as a poster");
+  }
+  const withheldSentence =
+    withheld.length === 0
+      ? null
+      : withheld.length === 1
+      ? withheld[0]
+      : `${withheld.slice(0, -1).join(", ")} and ${withheld[withheld.length - 1]}`;
+
   const label = (
     <h2
       id="at-a-glance-heading"
@@ -386,9 +478,13 @@ export const AtAGlanceCard = ({
               className="font-serif italic text-ds-13 leading-relaxed mt-0.5 max-w-[60ch]"
               style={{ color: "hsl(var(--olivewood) / 0.9)" }}
             >
+              {/* Two different promises, because the two readers see two
+                  different cards. Reply time is owner-only, so telling a
+                  visitor it will appear here is a promise the page cannot
+                  keep — the previous copy made it to both. */}
               {isOwnProfile
-                ? "Your rating, reply time and job history will appear here once you finish your first job."
-                : `${displayName} joined${memberSinceLabel ? ` in ${memberSinceLabel}` : ""} and hasn't built a public record yet. Ratings, reply time and job history appear here after their first job.`}
+                ? "Your rating, job history and reply time will appear here as you work and answer messages."
+                : `${displayName} joined${memberSinceLabel ? ` in ${memberSinceLabel}` : ""} and hasn't built a public record yet. Ratings and job history appear here after their first job.`}
             </p>
           </div>
         </div>
@@ -416,6 +512,15 @@ export const AtAGlanceCard = ({
           style={{ color: "hsl(var(--olivewood) / 0.65)" }}
         >
           Tap a highlighted figure to see what's behind it.
+        </p>
+      )}
+      {withheldSentence && (
+        <p
+          className="mt-2 font-serif italic text-ds-11 max-w-[60ch]"
+          style={{ color: "hsl(var(--olivewood) / 0.65)" }}
+        >
+          Not enough history yet for {withheldSentence} — Helpr publishes a
+          figure only once there is enough behind it to be fair.
         </p>
       )}
     </section>

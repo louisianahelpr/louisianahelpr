@@ -6,7 +6,7 @@
 // feature was removed at the owner's request.)
 
 import { Trophy } from "lucide-react";
-import { formatPrice } from "@/lib/format";
+import { formatPriceExact } from "@/lib/format";
 
 interface ReferralExtrasProps {
   referralCount: number;
@@ -14,10 +14,19 @@ interface ReferralExtrasProps {
   totalEarned: number;
 }
 
-// Tier ladder — one rung per referred friend, matching the program's
-// actual cap: $5 per friend, up to 5 friends ($25 max). Five boxes so
-// every rung maps 1:1 onto a real $5 credit instead of skipping ahead
-// to arbitrary milestone numbers.
+// Tier ladder — one rung per referred friend, $5 each.
+//
+// CAVEAT, verified by running `enforce_referral_cap` (migration
+// 20260403151012) in PGlite: the cap is FIVE CREDIT ROWS per user, and it
+// counts `first_job_bonus` alongside `referrer_bonus`. A user who themselves
+// signed up through a referral link already holds a first_job_bonus, so only
+// FOUR of these five rungs can ever pay them — the fifth insert is silently
+// suppressed (`RETURN NULL`) and raises a `referral_abuse` fraud flag. The
+// rungs still describe the goal correctly for a user who was not referred; the
+// dollar ceiling ($25) is the part that holds for everyone, which is why the
+// headline copy in ReferralSection states the ceiling rather than a friend
+// count. Flagged for a product decision: either exclude first_job_bonus from
+// the cap, or render four rungs for a referred user.
 const LADDER = [
   { goal: 1, label: "Friend 1", reward: "+$5" },
   { goal: 2, label: "Friend 2", reward: "+$5" },
@@ -68,7 +77,11 @@ export function ReferralExtras({ referralCount, totalEarned }: ReferralExtrasPro
               className="font-display italic font-bold tabular-nums leading-none text-ds-16"
               style={{ color: "hsl(var(--ink-deep))" }}
             >
-              ${formatPrice(totalEarned)}
+              {/* formatPriceExact, not formatPrice: formatPrice ROUNDS to whole
+                  dollars, so a $12.50 balance read "$13" here while the tiles
+                  above and the cash-out button said "$12.50". Credits are money
+                  the user can withdraw — never round them for display. */}
+              ${formatPriceExact(totalEarned)}
             </p>
             <p
               className="font-serif italic text-ds-10"
@@ -191,5 +204,3 @@ export function ReferralExtras({ referralCount, totalEarned }: ReferralExtrasPro
     </div>
   );
 }
-
-export default ReferralExtras;

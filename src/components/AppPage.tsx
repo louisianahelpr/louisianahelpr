@@ -62,7 +62,7 @@ interface AppPageProps {
   children: ReactNode;
 }
 
-export function AppPage({ title, backTo, onBack, titleActions, children }: AppPageProps) {
+function AppPage({ title, backTo, onBack, titleActions, children }: AppPageProps) {
   return (
     <AppShell
       scrollable={false}

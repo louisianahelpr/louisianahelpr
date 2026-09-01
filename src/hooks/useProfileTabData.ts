@@ -141,8 +141,28 @@ export function useProfileEarnings(userId: string | undefined, enabled: boolean)
     enabled: !!userId && enabled,
     queryFn: async () => {
       const id = userId!;
+      // GROUP JOBS: only ONE roster member is ever written to `jobs.helper_id`,
+      // but `release-payout` transfers to EVERY member of `group_job_helpers`
+      // (it reads the roster separately and fans out `budget / N` each). So a
+      // `helper_id`-only query drops a completed group job from the earnings of
+      // every member except the lead — money that was genuinely paid, missing
+      // from the tab that exists to account for it.
+      //
+      // PostgREST cannot express `helper_id = me OR id IN (subquery)` in one
+      // request, so the roster ids are fetched first and folded into the `or`.
+      // Empty roster (the case today: zero rows in prod) degrades to exactly
+      // the previous query.
+      const rosterRes = await supabase
+        .from("group_job_helpers")
+        .select("job_id")
+        .eq("helper_id", id);
+      const rosterJobIds = [...new Set((unwrap(rosterRes) ?? []).map((r) => r.job_id))];
+      const jobsQuery = supabase.from("jobs").select("*").neq("status", "cancelled");
       const [jobsRes, tipsRes] = await Promise.all([
-        supabase.from("jobs").select("*").eq("helper_id", id).neq("status", "cancelled").order("created_at", { ascending: false }),
+        (rosterJobIds.length
+          ? jobsQuery.or(`helper_id.eq.${id},id.in.(${rosterJobIds.join(",")})`)
+          : jobsQuery.eq("helper_id", id)
+        ).order("created_at", { ascending: false }),
         // Only PAID tips count toward displayed earnings. Unfiltered, a
         // `pending` row — written by create-payment before the tipper even
         // reaches Stripe, and left behind for good if they abandon checkout —

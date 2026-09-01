@@ -14,7 +14,7 @@ import { queryKeys } from "@/lib/queryKeys";
 import { functionErrorMessage } from "@/lib/supabaseResult";
 import { ONE_TIME_PASS_DAYS } from "@/lib/subscriptionTiers";
 import { tierConfig, TierIcon } from "@/components/profile/subscriptionTab/tierConfig";
-import { CancelSurveyDialog } from "@/components/profile/subscriptionTab/CancelSurveyDialog";
+import { renewalLabel } from "@/lib/subscriptionRenewalLabel";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { isNativePlatform } from "@/lib/nativeInit";
 
@@ -35,6 +35,31 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
   const expiresAt = profile?.subscription_expires_at ? new Date(profile.subscription_expires_at) : null;
   const isExpired = expiresAt ? expiresAt < new Date() : false;
 
+  // ── What this membership actually DOES on that date ──────────────────────
+  //
+  // This card used to print "Renews {date}" for every paid tier, because the
+  // schema held only a tier and an expiry and nothing recorded which kind of
+  // purchase produced them. So a 30-day one-time pass — which lapses, with no
+  // auto-renewal, as the Once info box two screens up explicitly promises —
+  // and a cancelled subscription — which ends — both told the member they were
+  // about to be charged again. Two different false statements about somebody's
+  // money, from one missing column.
+  //
+  // `subscription_billing_cycle` and `subscription_cancel_at_period_end`
+  // (migration 20260901011254, written by the Stripe webhook) are what let this
+  // say the true thing instead. Order matters: a cancelled subscription is
+  // ending whatever cycle it was on, so that test comes first.
+  //
+  // NULL cycle is the legacy case — a row granted before those columns existed
+  // — and it deliberately does NOT fall back to "Renews". Guessing the more
+  // flattering of two claims about a charge is how this defect started. It
+  // says what is actually known: access runs through that date.
+  const billingCycle = profile?.subscription_billing_cycle ?? null;
+  const cancelAtPeriodEnd = profile?.subscription_cancel_at_period_end === true;
+  // Extracted to src/lib/subscriptionRenewalLabel.ts so the claim is pinned by
+  // a test against real Stripe payloads, not just an inline ternary.
+  const renewLabel = renewalLabel({ billingCycle, cancelAtPeriodEnd });
+
   useEffect(() => {
     if (searchParams.get("pro") === "success") refreshSubscription();
      
@@ -52,13 +77,30 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
     }
   };
 
-  // Cancellation drag — intercept Manage Subscription with a quick
-  // "why leave" survey before opening the Stripe portal. Surfaces a
-  // brand-friendly retention prompt that's lower-friction than the
-  // default Stripe portal cancellation flow. The optional pause-offer
-  // is shown ahead of the survey so the lightest-touch retention move
-  // ("just pause") is the first thing a leaving user sees.
-  const [cancelSurveyOpen, setCancelSurveyOpen] = useState(false);
+  // THE CANCELLATION SURVEY IS GONE — deliberately, not by oversight.
+  //
+  // `CancelSurveyDialog` was rendered at the bottom of this component with its
+  // own `cancelSurveyOpen` state, and `setCancelSurveyOpen(true)` was never
+  // called from anywhere in the codebase. It could not open. It had shipped
+  // that way, describing itself in its own header comment as a retention
+  // mechanism that "reduces churn at the moment of intent" while being
+  // incapable of appearing.
+  //
+  // It was removed rather than re-wired because the only place left to wire it
+  // is the one place this file already established it must not go. The comment
+  // below records why: intercepting "Manage"/"Change" with a "thinking of
+  // cancelling?" prompt told an UPGRADING customer they were leaving, and made
+  // the billing portal — the only route to a tier switch or a card update —
+  // reachable only by declaring a cancellation reason. That interception was
+  // removed on purpose. Restoring it under a different name would re-break it.
+  //
+  // Cancellation itself happens inside Stripe's billing portal, off this
+  // surface entirely, so there is no in-app moment of cancel INTENT left to
+  // survey. The honest hook, if retention capture is wanted later, is the
+  // state AFTER the fact: `subscription_cancel_at_period_end` is now stored
+  // (20260901011254) and the card already says "Ends {date}" when it is set —
+  // that is a real, detectable, still-recoverable moment. Building on it is a
+  // product decision, not a dead-code cleanup, so it is not smuggled in here.
 
   // Straight to the Stripe billing portal, for everyone.
   //
@@ -300,15 +342,24 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
           const isActive = isFree
             ? onFreePlan
             : currentTier?.toLowerCase() === tier.id && !isExpired;
-          // The "you're on this" badge/tint/ring/Manage-button treatment is
-          // further gated to the Monthly tab for paid tiers — see the note
-          // by the Renews line below for why (no stored billing_cycle
-          // anywhere in the schema). Free has no cycle to be wrong about,
-          // so its Current state shows on every tab. Without this gate the
-          // SAME tier read as "your plan" under three different prices at
-          // once as the user flipped tabs (owner, 2026-08-30: "its still
-          // showing youre plan on elite for once monthly and annual").
-          const showActiveTreatment = isActive && (isFree || billingInterval === "monthly");
+          // The "you're on this" badge/tint/ring/Manage-button treatment shows
+          // on the tab for the cycle the member is ACTUALLY on.
+          //
+          // This used to be hardcoded to `billingInterval === "monthly"` — not
+          // because monthly was right, but because nothing in the schema said
+          // which cycle a membership was, and pinning it to one tab was the
+          // only way to stop the same tier reading as "your plan" under three
+          // different prices at once as the user flipped tabs (owner,
+          // 2026-08-30, twice: "they cant have all 3 plans"). The cost was that
+          // an ANNUAL or one-time member was told, on the tab showing what they
+          // actually bought, that it was not their plan.
+          //
+          // `subscription_billing_cycle` (20260901011254) removes the guess.
+          // Legacy rows with no stored cycle keep the old monthly-tab behaviour
+          // exactly, so nothing regresses for a membership bought before it
+          // started being recorded. Free has no cycle to be wrong about.
+          const activeCycle = billingCycle ?? "monthly";
+          const showActiveTreatment = isActive && (isFree || billingInterval === activeCycle);
           const isPro = tier.id === "pro";
           // --gold-ink, not --gold-warm: this value is used as TEXT below, and
           // the brand gold measures 2.89:1 there. The accent colour itself is
@@ -595,7 +646,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                       className="font-serif italic leading-none text-ds-12 whitespace-nowrap"
                       style={{ color: "hsl(var(--olivewood) / 0.75)" }}
                     >
-                      Renews{" "}
+                      {renewLabel}{" "}
                       <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
                         {expiresAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                       </span>
@@ -654,14 +705,6 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
           );
         })}
       </div>
-
-
-      <CancelSurveyDialog
-        cancelSurveyOpen={cancelSurveyOpen}
-        setCancelSurveyOpen={setCancelSurveyOpen}
-        currentTier={currentTier}
-        openStripePortal={openStripePortal}
-      />
     </div>
   );
 };

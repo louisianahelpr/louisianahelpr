@@ -35,4 +35,13 @@ export const PRODUCT_TO_TIER: Record<string, string> = {
   // across modes, so listing both modes here is safe and it is what keeps
   // test-mode QA of a paid tier honest.
   "prod_UqSRFTWivuEMrl": "elite", // test: monthly + annual + one-time
+  // Basic and Pro had the SAME hole Elite was fixed for and were missed: their
+  // test-mode products existed in Stripe but not here, so a completed test-mode
+  // Basic or Pro checkout resolved `PRODUCT_TO_TIER[productId] || null` to null
+  // and the handler's `if (tier)` block was skipped — paid, no entitlement, no
+  // alert. Read off the live test-mode Price list on 2026-09-01
+  // (acct_1RQbAfKp2H4b7tEC, livemode:false): lookup keys helpr_pro_*_test
+  // ($10 / $100 / $10) and helpr_basic_*_test ($5 / $50 / $5).
+  "prod_UqSRPJAe0f92Xf": "pro",   // test: monthly + annual + one-time
+  "prod_UqSyR1FW6IT0a7": "basic", // test: monthly + annual + one-time
 };

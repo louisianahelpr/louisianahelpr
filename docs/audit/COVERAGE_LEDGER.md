@@ -480,6 +480,23 @@ could not drive is `UNVERIFIED` with the reason, never a pass.
 | `cancelled` | 9 |
 | `pending_approval` | 2 |
 
+**2026-08-31 — `pending_approval` was retired as a product state; its `2` stays
+put on purpose.** That column counts *state-matrix cells*, not production rows,
+and `e2e/happy-path/state-matrix/stateMatrix.ts` still emits two of them.
+Changing the number here without changing the module would desync this ledger
+from the source it names one paragraph above. The state itself is dead:
+`businesses` / `business_members` were dropped by `20260828011811` and return
+PGRST205 on prod; the only writer (`initialStatus` in
+`src/pages/postjob/jobSubmitHelpers.ts`) had zero call sites and is deleted; the
+enum label is kept deliberately so a stray row can never render a blank card.
+The two-row data repair
+(`supabase/migrations/20260831232522_retire_business_approval_residue.sql`) is
+**written but untracked, so it has not deployed** — prod still holds exactly two
+`pending_approval` jobs, both `is_seed = true`, verified by direct query on
+2026-08-31. Full reasoning in `STATE_MATRIX.md`. When that migration ships, the
+right move is to mark both cells `unreachable` in `stateMatrix.ts` with the
+reason, and let this table follow the module.
+
 ### Status of this axis — 2026-08-31
 
 **Every cell starts UNVERIFIED and is promoted only by a driven frame.** Read
@@ -588,6 +605,25 @@ list goes straight from the `h2` title to the `h3` "Job tracking", with the
 identical description text in between, unlabelled. Same content, same card
 family, one labelled and one not. This is the "missing section eyebrows" class,
 located and counted.
+
+> **SUPERSEDED 2026-08-31 — the visible half of this finding no longer exists,
+> and the measurement above must not be re-run as written.** Eyebrows were
+> retired app-wide (`src/index.css`: `.text-display-eyebrow { display: none }`,
+> under the 2026-07-25 "all eyebrows gone" decision recorded at that rule), and
+> the `SectionEyebrow` component is gone from `src/` entirely —
+> `grep -rn "SectionEyebrow" src/` returns zero hits. The helper card's heading
+> survives as `<h4 id="job-desc-…" className="sr-only">Job description</h4>`
+> inside a `<section aria-labelledby>`
+> (`src/components/activity/AppliedJobCard.tsx`), so it paints nothing.
+> **The asymmetry this finding rests on — "one labelled and one not" — is
+> therefore false as stated: both cards are now visually unlabelled, by
+> decision.**
+>
+> The half that survives is real and narrower, and is the one to carry forward:
+> the helper card still carries an *accessible* name for that block and the
+> poster card carries none, so a screen reader announces the section on one
+> card and an unnamed region on the other. Re-measure on `sections` entries
+> that include `sr-only` headings, never on painted eyebrows.
 
 **5. The tracker rail paints two saturated hue families on one row of step
 dots — 81 driven frames.** Passed steps are `rgb(38,115,66)` (h142, a true

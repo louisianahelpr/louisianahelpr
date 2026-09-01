@@ -83,7 +83,7 @@ export const LOGO_URL =
   'https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/brand-asset'
 
 /** Body face. Montserrat is the app's sans; degrades to the usual grotesques. */
-export const bodyFontStack =
+const bodyFontStack =
   "'Montserrat', 'Helvetica Neue', Helvetica, Arial, sans-serif"
 
 export const main = {

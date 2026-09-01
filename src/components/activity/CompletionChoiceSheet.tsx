@@ -17,13 +17,13 @@
  */
 import { useState } from "react";
 import { CheckCircle2, ChevronLeft, RotateCcw, X, Upload, AlertTriangle } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Sheet,
   SheetContent,
   SheetFooter,
   SheetHero,
+  SheetPrimaryAction,
 } from "@/components/ui/sheet";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrapMutation } from "@/lib/mutationResult";
@@ -201,7 +201,9 @@ export function CompletionChoiceSheet({
           title: "Revision requested",
           message: `The poster wants a small fix on "${description.trim().slice(0, 80)}${description.length > 80 ? "…" : ""}". Tap to see details.`,
           type: "warning",
-          link: `/my-jobs?filter=revision_requested`,
+          // `?job=` — `revision_requested` has no chip; the live bucket is
+          // "Needs you" for the helper and moves once they resubmit.
+          link: `/my-jobs?job=${jobId}`,
         });
       }
 
@@ -448,13 +450,12 @@ export function CompletionChoiceSheet({
                   Asking for a revision is reversible, so it is the ordinary
                   primary. */}
               <SheetFooter className="pt-1">
-                <Button
-                  variant="primary"
+                <SheetPrimaryAction
                   onClick={handleRevisionSubmit}
                   disabled={submitting || !description.trim()}
                 >
                   {submitting ? "Sending…" : "Send Revision Request"}
-                </Button>
+                </SheetPrimaryAction>
               </SheetFooter>
             </div>
           </>

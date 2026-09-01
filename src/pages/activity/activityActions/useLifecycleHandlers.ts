@@ -296,7 +296,12 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
       }
       const job = postedJobs.find(j => j.id === jobId);
       if (job?.helper_id) {
-        await createNotification({ user_id: job.helper_id, title: "✅ Arrival confirmed", message: `The poster confirmed you've arrived for "${job.title}".`, type: "success", link: "/my-jobs?filter=in_progress" });
+        await createNotification({ user_id: job.helper_id, title: "✅ Arrival confirmed", message: `The poster confirmed you've arrived for "${job.title}".`,
+        // `?job=`, not `?filter=in_progress`: `in_progress` is a legacy filter
+        // key with no chip in the five-bucket strip (activityFilters.ts), so
+        // the helper landed on a filtered list with nothing selected — 17 rows
+        // in prod are on it. Activity resolves the live bucket from the job id.
+        type: "success", link: `/my-jobs?job=${job.id}` });
       }
       hapticSuccess();
       toast.success("Arrival confirmed!");
@@ -329,7 +334,12 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
       }
       const job = postedJobs.find(j => j.id === jobId);
       if (job?.helper_id) {
-        await createNotification({ user_id: job.helper_id, title: "✅ Work confirmed", message: `The poster confirmed you're working on "${job.title}".`, type: "success", link: "/my-jobs?filter=in_progress" });
+        await createNotification({ user_id: job.helper_id, title: "✅ Work confirmed", message: `The poster confirmed you're working on "${job.title}".`,
+        // `?job=`, not `?filter=in_progress`: `in_progress` is a legacy filter
+        // key with no chip in the five-bucket strip (activityFilters.ts), so
+        // the helper landed on a filtered list with nothing selected — 17 rows
+        // in prod are on it. Activity resolves the live bucket from the job id.
+        type: "success", link: `/my-jobs?job=${job.id}` });
       }
       hapticSuccess();
       toast.success("Work confirmed!");
@@ -405,7 +415,9 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
             ? "A second no-show was reported against you. Your account is restricted for 7 days while an admin reviews it. If you think this is wrong, email admin@louisianahelpr.com."
             : `You received a no-show warning for "${job.title}".`,
         type: "warning",
-        link: "/profile",
+        // Warnings & Strikes, not the Profile landing tab — this notification
+        // IS a strike, and `?tab=warnings` is the screen that lists it.
+        link: "/profile?tab=warnings",
       });
       // Admin fan-out — a silent drop here means no admin gets the
       // no-show alert. Warn-report but continue (the poster's toast still

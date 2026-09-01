@@ -16,7 +16,16 @@ import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
-import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHero,
+  DialogBody,
+  DialogFooter,
+  DialogSecondaryAction,
+  DialogPrimaryAction,
+  DialogDestructiveAction,
+} from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import type { PayoutBatch, PayoutLedgerRow } from "./adminPayoutBatches/types";
 import { loadHolds, saveHolds } from "./adminPayoutBatches/adminPayoutBatchesHelpers";
@@ -486,10 +495,12 @@ const AdminPayoutBatches = () => {
             title="Hold Payout for Review"
           />
           <div className="space-y-3">
-            <p className="text-ds-11 text-muted-foreground">
-              Moves this helper's batch to the Hold-for-review queue. No
-              Stripe transfer is fired. Logged to admin_audit_log.
-            </p>
+            <DialogBody>
+              <p>
+                Moves this helper's batch to the Hold-for-review queue. No
+                Stripe transfer is fired. Logged to admin_audit_log.
+              </p>
+            </DialogBody>
             <Textarea
               aria-label="Hold reason"
               placeholder="Reason — visible to other admins reviewing the queue."
@@ -499,8 +510,8 @@ const AdminPayoutBatches = () => {
             />
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setHoldReasonDraft(null)}>Cancel</Button>
-            <Button
+            <DialogSecondaryAction onClick={() => setHoldReasonDraft(null)}>Cancel</DialogSecondaryAction>
+            <DialogPrimaryAction
               onClick={() => {
                 if (!holdReasonDraft) return;
                 addHold(holdReasonDraft.helperId, holdReasonDraft.reason.trim() || "No reason given");
@@ -509,7 +520,7 @@ const AdminPayoutBatches = () => {
               disabled={!holdReasonDraft?.reason.trim()}
             >
               Hold for Review
-            </Button>
+            </DialogPrimaryAction>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -520,10 +531,12 @@ const AdminPayoutBatches = () => {
             title="Deny This Payout"
           />
           <div className="space-y-3">
-            <p className="text-ds-11 text-muted-foreground">
-              Records the denial decision to admin_audit_log and tags the
-              hold as denied. No Stripe transfer is fired or reversed.
-            </p>
+            <DialogBody>
+              <p>
+                Records the denial decision to admin_audit_log and tags the
+                hold as denied. No Stripe transfer is fired or reversed.
+              </p>
+            </DialogBody>
             <Textarea
               aria-label="Denial reason"
               value={denyDraft?.reason ?? ""}
@@ -532,9 +545,8 @@ const AdminPayoutBatches = () => {
             />
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setDenyDraft(null)}>Cancel</Button>
-            <Button
-              variant="destructive"
+            <DialogSecondaryAction onClick={() => setDenyDraft(null)}>Cancel</DialogSecondaryAction>
+            <DialogDestructiveAction
               onClick={() => {
                 if (!denyDraft) return;
                 const reason = denyDraft.reason.trim();
@@ -545,7 +557,7 @@ const AdminPayoutBatches = () => {
               disabled={!denyDraft?.reason.trim()}
             >
               Deny Payout
-            </Button>
+            </DialogDestructiveAction>
           </DialogFooter>
         </DialogContent>
       </Dialog>

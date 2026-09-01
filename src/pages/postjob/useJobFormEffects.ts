@@ -195,7 +195,7 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
         .eq("status", "open")
         .then(({ count }) => { setOpenJobCount(count ?? 0); });
       // Whether this poster still owes the one-time setup fee, and their own
-      // subscription tier — so the shown service fee (12/10/8/6) and total match
+      // subscription tier — so the shown service fee (12/11/10/8) and total match
       // what the create-payment edge function will actually charge. The global
       // customer_fee_percent fetched above stays as the fallback if no row.
       supabase
@@ -260,6 +260,27 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
       return;
     }
   }, [searchParams]);
+
+  /*
+   * `?budget=<dollars>` is DELIBERATELY NOT CONSUMED. It is not dead code we
+   * forgot to wire — not wiring it is the decision.
+   *
+   * PayItForward's "Use This Gift" navigates to
+   * `/post-job?budget=75&pif_credit=…`, where 75 is the GIFT's value. Seeding
+   * the budget box with it makes the gift look like the budget: the poster
+   * lands on a form that has already decided they are spending exactly $75,
+   * and the checkout total then reads $0 for as long as they leave it alone.
+   * That is the wrong shape of the feature. The gift is money OFF a job the
+   * poster prices themselves — "deducted off the amount they choose to spend"
+   * — so a $120 job funded by a $75 gift is a completely normal outcome, and
+   * anchoring the field at 75 quietly argues them out of it.
+   *
+   * The thing the empty field actually failed to do was reassure the
+   * recipient the gift survived the trip. That is answered directly instead,
+   * by the gift note on the Budget step (BudgetSection's `giftAmount`) and
+   * the "Gift applied −$X" line at checkout — both of which say what the gift
+   * IS (a deduction) rather than implying what the budget should be.
+   */
 
   // Smart defaults — prefill the state to LA (every Helpr job is in
   // Louisiana) and the city from the poster's saved profile location.

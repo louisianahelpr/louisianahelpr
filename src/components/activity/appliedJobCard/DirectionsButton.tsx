@@ -103,5 +103,3 @@ export function DirectionsButton({
     </Button>
   );
 }
-
-export default DirectionsButton;

@@ -37,6 +37,34 @@ function dockPaddingBottom(keyboardInset: number): string {
 }
 
 /**
+ * Edge-to-edge bleed for the dock.
+ *
+ * The dock is a child of the chat column, which sits inside the shell's
+ * horizontal gutter (`px-5 / lg:px-8 / xl:px-12` standalone, `px-4` embedded —
+ * see ChatPaneShell). Inheriting that gutter left the frosted panel and its top
+ * hairline stopping 20px short of each screen edge, so the composer read as a
+ * floating card that had missed its margins rather than a bar attached to the
+ * bottom of the thread — AND, because the dock had no padding of its own, the
+ * "+" and Send buttons sat flush against that panel's own edges, which is what
+ * "the send button is cut off" actually was (measured: at 375 the dock spanned
+ * x=20→355 and Send's right edge was 355.0 — exactly the panel edge, 20px of
+ * screen still to its right).
+ *
+ * So: cancel the inherited gutter with a negative inline margin, then re-apply
+ * the SAME value as the dock's own padding. Net effect — the material runs
+ * screen edge to screen edge, while every control keeps the gutter it had and
+ * stays aligned with the message bubbles above it.
+ *
+ * `--chat-gutter` is declared on the same element that owns the `px-*`, so the
+ * two can never drift; the `0px` fallback makes this a no-op for any future
+ * host that doesn't set it.
+ */
+const CHAT_GUTTER_BLEED = {
+  marginInline: "calc(var(--chat-gutter, 0px) * -1)",
+  paddingInline: "var(--chat-gutter, 0px)",
+} as const;
+
+/**
  * The composer dock — the poster-first lock card, the status-aware quick
  * replies, and the rich message input.
  */
@@ -81,7 +109,7 @@ export function ChatComposer({
     return (
       <div
         className="pt-2 pb-3 glass-dock sticky bottom-0"
-        style={{ paddingBottom: dockPaddingBottom(keyboardInset) }}
+        style={{ ...CHAT_GUTTER_BLEED, paddingBottom: dockPaddingBottom(keyboardInset) }}
       >
         <div
           className="flex items-start gap-2.5 rounded-ds-md px-3.5 py-3"
@@ -114,7 +142,7 @@ export function ChatComposer({
   return (
     <div
       className="pt-2 pb-3 glass-dock sticky bottom-0"
-      style={{ paddingBottom: dockPaddingBottom(keyboardInset) }}
+      style={{ ...CHAT_GUTTER_BLEED, paddingBottom: dockPaddingBottom(keyboardInset) }}
     >
       {/* The empty-thread ice-breaker chips ("When can you start?", "Do you
           have your own tools?", …) were removed at the owner's request: a

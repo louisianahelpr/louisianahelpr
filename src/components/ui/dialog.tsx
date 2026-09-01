@@ -1,8 +1,14 @@
 import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { X } from "lucide-react";
+import { AlertTriangle, X, type LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { Button, type ButtonProps } from "@/components/ui/button";
+import {
+  POPUP_FOOTER_ROW,
+  POPUP_SECONDARY_CLS,
+  POPUP_COMMIT_CLS,
+} from "@/components/ui/popupFooter";
 
 const Dialog = DialogPrimitive.Root;
 
@@ -256,8 +262,12 @@ const DialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivEleme
 );
 DialogHeader.displayName = "DialogHeader";
 
+// THE SHARED ROW — see popupFooter.ts for the shape and why the owner chose
+// it. Declared there, not here, because this exact layout also has to be
+// AlertDialogFooter's and SheetFooter's; three literals kept in agreement by a
+// test is how they drifted apart last time (SheetFooter was missing `gap-2`).
 const DialogFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn("flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:space-x-2", className)} {...props} />
+  <div className={cn(POPUP_FOOTER_ROW, className)} {...props} />
 );
 DialogFooter.displayName = "DialogFooter";
 
@@ -273,13 +283,6 @@ const DialogTitle = React.forwardRef<
 ));
 DialogTitle.displayName = DialogPrimitive.Title.displayName;
 
-const DialogDescription = React.forwardRef<
-  React.ElementRef<typeof DialogPrimitive.Description>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Description>
->(({ className, ...props }, ref) => (
-  <DialogPrimitive.Description ref={ref} className={cn("text-xs text-muted-foreground", className)} {...props} />
-));
-DialogDescription.displayName = DialogPrimitive.Description.displayName;
 
 /**
  * DialogHero — the ONE canonical popup header. Every dialog/sheet header
@@ -327,6 +330,207 @@ const DialogHero = ({ title }: {
 );
 DialogHero.displayName = "DialogHero";
 
+
+/**
+ * ─── THE POPUP GRAMMAR ──────────────────────────────────────────────────────
+ *
+ * `DialogHero` unified the popup HEADER (2026-07-25) and every dialog in the
+ * app adopted it. What it never covered is everything BELOW the title, and
+ * that is what the owner is looking at now (2026-08-31, five screenshots side
+ * by side): "Every single pop up like this needs to be styled the same.
+ * Globally no excuses."
+ *
+ * The shell was already one shell — glass material, 512px measure, 28px
+ * radius, serif title, bare X in the corner. The GRAMMAR inside it was not.
+ * Measured across all 51 <DialogContent> blocks in `src/`:
+ *
+ *   BODY   24 dialogs spoke the house voice (serif italic) at SEVEN different
+ *          sizes (ds-9 … ds-15); 21 spoke `text-ds-11 text-muted-foreground`
+ *          (upright sans, grey) — including "Report No-Show", whose
+ *          consequence list is the one a poster reads before ending someone's
+ *          booking.
+ *   FOOTER 5 dialogs, 5 different footers. The SECONDARY action alone shipped
+ *          as a ghost (24x), an `outline` button (6x: Timeline's "Close",
+ *          SavedSearches, CancelSurvey, CompletionPrompts x2, ReportDialog),
+ *          and a bespoke inline-styled slab (CancellationDialog). The PRIMARY
+ *          shipped as the glossy green, as `variant="destructive"` red, as a
+ *          hand-rolled burnt-sienna button with `backgroundImage:"none"`
+ *          explicitly switching the gloss OFF, and as nothing at all.
+ *          Fourteen footer buttons carried a `className` — mostly
+ *          `rounded-ds-md`, restating the radius `buttonVariants` already
+ *          applies, which is how a no-op today becomes a divergence tomorrow.
+ *
+ * WHY THESE PARTICULAR RULES, AND NOT SOMEONE'S TASTE. Each one is the
+ * treatment the app ALREADY applies to the largest number of popups — in
+ * every case the confirm primitives, `AlertDialogContent` +
+ * `BrandConfirmDialog`, which sit behind ~26 call sites (Log Out, Delete
+ * Account, Decline This Job, Ban Permanently, every permission rationale).
+ * That family was canonicalised first; this is the Dialog family being made
+ * its twin, exactly as `AlertDialogHero` is `DialogHero`'s twin. Where the two
+ * files state one value twice, the comment says "change one, change both" —
+ * and `dialogShell.test.ts` fails if they drift.
+ *
+ *   HEADER  `<DialogHero title>` and NOTHING above it. No icon tile.
+ *           PermissionRationaleDialog was the only popup in the app with one
+ *           (a bespoke 56px tile above the Hero); it was removed earlier the
+ *           same day because it pushed the title off the top row and left the
+ *           X aligned to an icon instead of to a heading. So "no tile" is not
+ *           a new rule — it is what 51 of 51 dialogs now do. If icons in popup
+ *           headers are ever wanted they belong in the Hero, as one slot, used
+ *           by all of them.
+ *   BODY    `<DialogBody>` — serif italic, ds-12, olivewood/0.8. Byte-identical
+ *           to the treatment `BrandConfirmDialog` gives every confirm's
+ *           description, which is the single largest cohort of popups in the
+ *           product. The 21 grey-sans bodies were never a decision: they are
+ *           shadcn's `text-muted-foreground` default, copied dialog to dialog.
+ *   FOOTER  `<DialogFooter>` holding at most one `<DialogSecondaryAction>` and
+ *           at most one `<DialogPrimaryAction>` OR `<DialogDestructiveAction>`,
+ *           DISMISS FIRST — small and hard-left, commit at the right end.
+ *           Four shapes, no fifth. See popupFooter.ts for the full rationale.
+ *
+ * None of these primitives accepts `className`, `variant`, or `size` — same
+ * reason DialogHero accepts no `titleClassName`: an escape hatch on a shared
+ * popup primitive is how ~150 popups become 150 designs, and this is the third
+ * time that has had to be undone.
+ */
+
+/**
+ * DialogBody — the ONE body voice for popup prose.
+ *
+ * Renders a container, not a `<p>`, so a dialog whose body is a list (the
+ * no-show consequences, the block-user effects) or two paragraphs inherits the
+ * same font, size, colour and rhythm without restating them. Children are
+ * plain `<p>` / `<ul className="list-disc pl-5 space-y-1">` — no type classes
+ * of their own.
+ *
+ * NOT for field labels, data rows, or money tables: those are UI chrome, they
+ * are already consistent, and setting them in editorial italic would be a
+ * change nobody asked for. This is for the prose a dialog uses to explain
+ * itself.
+ *
+ * The type token, colour and leading are AlertDialogDescription's, as applied
+ * by BrandConfirmDialog — change one, change both.
+ */
+const DialogBody = ({ children }: { children: React.ReactNode }) => (
+  <div
+    className="font-serif italic text-ds-12 leading-relaxed space-y-2"
+    style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+  >
+    {children}
+  </div>
+);
+DialogBody.displayName = "DialogBody";
+
+/**
+ * DialogCallout — the sienna consequence box.
+ *
+ * BrandConfirmDialog's `callout` prop, lifted so the Dialog family can render
+ * the identical object. JobConfirmation ("No-shows or last-minute
+ * cancellations…") had already hand-built this exact box — same 8% sienna
+ * fill, same ~22% sienna hairline, same AlertTriangle — one radius token and
+ * one border width off. Two copies of one thing is how they drift; this is the
+ * one.
+ *
+ * Reserved for a stated CONSEQUENCE. If every dialog gets a sienna box, the
+ * sienna box stops meaning anything.
+ */
+const DialogCallout = ({ icon: Icon = AlertTriangle, children }: {
+  icon?: LucideIcon;
+  children: React.ReactNode;
+}) => (
+  <div
+    className="my-2 rounded-ds-md p-3 text-ds-11 flex items-start gap-2"
+    style={{
+      background: "hsl(var(--burnt-sienna) / 0.08)",
+      border: "1px solid hsl(var(--burnt-sienna) / 0.25)",
+      color: "hsl(var(--burnt-sienna))",
+    }}
+  >
+    <Icon className="w-4 h-4 shrink-0 mt-0.5" />
+    <span>{children}</span>
+  </div>
+);
+DialogCallout.displayName = "DialogCallout";
+
+/**
+ * The three footer actions. A dialog's footer is built from these and nothing
+ * else.
+ *
+ * Each is the Dialog-family twin of an AlertDialog primitive that already
+ * exists and is already the app's most-used treatment:
+ *
+ *   DialogSecondaryAction    <- AlertDialogCancel  (ghost)
+ *   DialogPrimaryAction      <- AlertDialogAction  (glossy `btn-grad-primary`)
+ *   DialogDestructiveAction  <- AlertDialogAction variant="destructive"
+ *
+ * Their widths and alignment come from `popupFooter.ts`, which is also where
+ * AlertDialogAction/Cancel and the Sheet footer get theirs — one contract, one
+ * file, so a change to the footer cannot land on two of the three popup
+ * families and miss the third.
+ *
+ * NO `className`, `variant`, `size` or `asChild`. They are omitted from the
+ * prop type AND destructured off at runtime, so neither a `@ts-expect-error`
+ * nor a plain-JS caller can reintroduce the `rounded-ds-md` restatements or
+ * the inline-styled sienna slab these replaced.
+ */
+type DialogActionProps = Omit<
+  ButtonProps,
+  "variant" | "className" | "size" | "asChild" | "shimmer"
+>;
+
+const stripOverrides = (props: Record<string, unknown>) => {
+  const { className: _c, variant: _v, size: _s, asChild: _a, shimmer: _sh, ...rest } = props;
+  void _c; void _v; void _s; void _a; void _sh;
+  return rest;
+};
+
+/**
+ * The dismiss. Ghost, `size="sm"`, hard-left — the owner's choice, 2026-08-31:
+ * "Small, I feel like left aligned makes more sense than right." 44px tall, so
+ * still on the HIG tap-target floor while reading a clear step down from the
+ * 56px commit beside it.
+ */
+const DialogSecondaryAction = React.forwardRef<HTMLButtonElement, DialogActionProps>(
+  ({ children, ...props }, ref) => (
+    <Button ref={ref} variant="ghost" size="sm" className={POPUP_SECONDARY_CLS} {...stripOverrides(props)}>
+      {children}
+    </Button>
+  ),
+);
+DialogSecondaryAction.displayName = "DialogSecondaryAction";
+
+/** The commit. Always the glossy green `btn-grad-primary` CTA. */
+const DialogPrimaryAction = React.forwardRef<HTMLButtonElement, DialogActionProps>(
+  ({ children, ...props }, ref) => (
+    <Button ref={ref} variant="primary" className={POPUP_COMMIT_CLS} {...stripOverrides(props)}>
+      {children}
+    </Button>
+  ),
+);
+DialogPrimaryAction.displayName = "DialogPrimaryAction";
+
+/**
+ * The commit, when it is irreversible or takes something away — solid
+ * `--destructive` red, deliberately NOT glossy so it cannot be tapped by
+ * muscle memory for the green one (button.tsx: "keep red flat-looking so it
+ * doesn't get accidentally pressed").
+ *
+ * ONE destructive colour app-wide. `--burnt-sienna` is the brand ACCENT — it
+ * paints eyebrows, callout borders, and things that are merely notable — so a
+ * sienna commit button says "notable" in the same breath it says "permanent".
+ * BrandConfirmDialog gave up its sienna tone for this reason; CancellationDialog's
+ * hand-styled sienna button (`backgroundImage: "none"`, i.e. gloss explicitly
+ * switched off) was the last one left.
+ */
+const DialogDestructiveAction = React.forwardRef<HTMLButtonElement, DialogActionProps>(
+  ({ children, ...props }, ref) => (
+    <Button ref={ref} variant="destructive" className={POPUP_COMMIT_CLS} {...stripOverrides(props)}>
+      {children}
+    </Button>
+  ),
+);
+DialogDestructiveAction.displayName = "DialogDestructiveAction";
+
 export {
   Dialog,
   DialogPortal,
@@ -337,6 +541,9 @@ export {
   DialogHeader,
   DialogHero,
   DialogFooter,
-  DialogTitle,
-  DialogDescription,
+  DialogBody,
+  DialogCallout,
+  DialogSecondaryAction,
+  DialogPrimaryAction,
+  DialogDestructiveAction,
 };

@@ -1,7 +1,12 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { functionErrorMessage } from "@/lib/supabaseResult";
-import { Dialog, DialogContent, DialogHero } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHero,
+  DialogBody,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { toast } from "sonner";
@@ -64,9 +69,9 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
             user has to be able to read. The `subtitle` prop is gone from the
             hero above rather than left sr-only, so screen readers hear it
             once, here, instead of twice. */}
-        <p className="font-serif italic leading-relaxed text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-          Pure thanks — no platform cut, just the small card-processing fee.
-        </p>
+        <DialogBody>
+          <p>Pure thanks — no platform cut, just the small card-processing fee.</p>
+        </DialogBody>
         <div className="space-y-4">
           {/* Suggested amounts — celebratory tier-styled pills first
               since most people pick from quick-picks rather than typing. */}

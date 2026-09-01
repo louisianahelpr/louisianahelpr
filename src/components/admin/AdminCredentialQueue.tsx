@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { report } from "@/lib/errorLogger";
+import UserAvatar from "@/components/UserAvatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -198,13 +199,28 @@ const AdminCredentialQueue = () => {
           {rows.map((r) => (
             <div key={r.user_id} className="rounded-ds-md border border-border/60 bg-background/40 p-4 space-y-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center overflow-hidden text-ds-13 font-bold">
-                  {r.avatar_url ? (
-                    <img loading="lazy" decoding="async" src={r.avatar_url} alt="" aria-hidden="true" className="w-full h-full object-cover" />
-                  ) : (
-                    (r.full_name || r.email || "?").slice(0, 2).toUpperCase()
-                  )}
-                </div>
+                {/* Migrated onto the shared `<UserAvatar>` (2026-08-31). The
+                    row's own initials were `(full_name || email || "?")
+                    .slice(0, 2)` — the first two CHARACTERS, so "Jo" for
+                    "John Smith" and "he" for "helpr-audit@…" — and they only
+                    rendered when `avatar_url` was null. Every blank-but-200
+                    avatar therefore painted a flat `bg-primary/10` circle with
+                    nothing in it, which on a queue of pending credentials is
+                    several visually identical rows the admin is approving one
+                    by one. `initials` is still passed so an email-only row
+                    keeps a stable two-character monogram; `<UserAvatar>`
+                    falls through to real name initials when it is blank. See
+                    `src/lib/avatarImage.ts`. */}
+                <UserAvatar
+                  userId={r.user_id}
+                  src={r.avatar_url}
+                  name={r.full_name || r.email}
+                  initials={(r.full_name || r.email || "").slice(0, 2).toUpperCase()}
+                  pixelSize={40}
+                  aria-hidden
+                  className="w-10 h-10"
+                  fallbackClassName="text-ds-13 ring-0"
+                />
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-ds-13 text-foreground truncate">{r.full_name || "Unnamed"}</p>
                   <p className="text-ds-11 text-muted-foreground truncate">{r.email}</p>

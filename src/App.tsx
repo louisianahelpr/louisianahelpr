@@ -107,6 +107,7 @@ const HelpCenter = lazy(() => import("./pages/HelpCenter"));
 const Support = lazy(() => import("./pages/Support"));
 const HomeHistory = lazy(() => import("./pages/HomeHistory"));
 const WorkRecord = lazy(() => import("./pages/WorkRecord"));
+const HelperAnalytics = lazy(() => import("./pages/HelperAnalytics"));
 const PetProfiles = lazy(() => import("./pages/PetProfiles"));
 const BenefitsPage = lazy(() => import("./pages/BenefitsPage"));
 
@@ -281,11 +282,22 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/gift-card" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PayItForward /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* Legacy /pay-it-forward → /gift-card (feature renamed). */}
       <Route path="/pay-it-forward" element={<Navigate to="/gift-card" replace />} />
-      {/* /analytics rendered the SAME body as the Earnings tab under a
-          different title — an orphan route kept for deep links, and a second
-          screen for one subject. It redirects now, so the bookmarks keep
-          working and there is one Earnings & Analytics, not two (owner). */}
-      <Route path="/analytics" element={<Navigate to="/profile?tab=earnings" replace />} />
+      {/* /analytics — Advanced Analytics, the perk printed on the $10 Pro card.
+          It was a <Navigate> to the Earnings tab from 2026-08-23, and that was
+          the right call at the time: the old page rendered the SAME body as the
+          Earnings tab under a different title, so it was a second screen for one
+          subject. This is not that page returning. An audit found the Pro bullet
+          pointed at nothing — every free helper already had the tab it
+          redirected to — and the owner chose to build the perk rather than drop
+          the bullet. The new page answers "how do I earn more" (fee split,
+          category vs market rates, application funnel, posting clock); the
+          Earnings tab keeps "what did I make and where is the money". Half of
+          this page's data is other people's jobs, which a helper cannot read at
+          all, so it could never have lived on the Earnings tab.
+          Gated in SQL: get_helper_analytics() returns entitled:false to
+          non-subscribers and the page renders an upgrade offer, not a locked
+          copy of the dashboard. */}
+      <Route path="/analytics" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><HelperAnalytics /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* Public vertical landing pages */}
 
       <Route path="/home-history" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><HomeHistory /></ProtectedRoute>)}</RouteErrorBoundary>} />

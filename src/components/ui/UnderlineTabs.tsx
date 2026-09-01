@@ -114,5 +114,3 @@ export function UnderlineTabs({
     </div>
   );
 }
-
-export default UnderlineTabs;

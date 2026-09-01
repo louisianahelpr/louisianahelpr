@@ -1,7 +1,14 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHero,
+  DialogBody,
+  DialogFooter,
+  DialogSecondaryAction,
+  DialogPrimaryAction,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
 import { Zap, Loader2, Clock } from "lucide-react";
@@ -92,9 +99,9 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
             user has to be able to read. The `subtitle` prop is gone from the
             hero above rather than left sr-only, so screen readers hear it
             once, here, instead of twice. */}
-        <p className="font-serif italic leading-relaxed text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-          In your debit card in ~30 minutes.
-        </p>
+        <DialogBody>
+          <p>In your debit card in ~30 minutes.</p>
+        </DialogBody>
         {loading ? (
           <div className="py-8 flex justify-center">
             <HelprSpinner size={32} delay={0} />
@@ -160,14 +167,12 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
         ) : null}
 
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={processing} className="rounded-ds-md">
+          <DialogSecondaryAction onClick={() => onOpenChange(false)} disabled={processing}>
             Cancel
-          </Button>
-          <Button
-            variant="primary"
+          </DialogSecondaryAction>
+          <DialogPrimaryAction
             onClick={handleConfirm}
             disabled={!quote || processing || !!error}
-            className="gap-2 rounded-ds-md"
           >
             {processing ? (
               <>
@@ -178,7 +183,7 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
                 <Zap className="w-4 h-4" /> Cash Out {quote ? fmt(quote.net_cents) : ""}
               </>
             )}
-          </Button>
+          </DialogPrimaryAction>
         </DialogFooter>
       </DialogContent>
     </Dialog>

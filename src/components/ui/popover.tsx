@@ -14,104 +14,88 @@ const PopoverTrigger = PopoverPrimitive.Trigger;
 // existing popover changes behaviour.
 const PopoverAnchor = PopoverPrimitive.Anchor;
 
-// Exposed so a caller can portal a SCRIM into the same layer as the panel
-// (see `PopoverScrim`). `PopoverContent` opens its own portal internally, so
-// a scrim rendered as its sibling needs one of its own — and it must be a
-// portal, not a bare `position: fixed` div, because these panels open inside
-// <PageTransition>, whose framer-motion transform would otherwise become the
-// fixed element's containing block and pin the scrim to the page instead of
+// Exposed so a caller can portal a DISMISS LAYER into the same layer as the
+// panel (see `PopoverDismissLayer`). `PopoverContent` opens its own portal
+// internally, so a layer rendered as its sibling needs one of its own — and it
+// must be a portal, not a bare `position: fixed` div, because these panels open
+// inside <PageTransition>, whose framer-motion transform would otherwise become
+// the fixed element's containing block and pin the layer to the page instead of
 // the viewport.
 const PopoverPortal = PopoverPrimitive.Portal;
 
-/**
- * The small notch that points a dropped-down panel back at the control that
- * opened it. Radix positions it along the aligned edge, clamped inside the
- * panel, so it lands under the trigger without any manual math.
- *
- * Paint it with the panel's own surface color (`fill`) — the panel surfaces
- * in this app are translucent + blurred, and an arrow cannot inherit a
- * backdrop-filter, so it renders as the solid version of the same hue rather
- * than trying (and failing) to match the blur.
- */
-const PopoverArrow = PopoverPrimitive.Arrow;
+/* NO ARROW RE-EXPORT. `PopoverPrimitive.Arrow` used to be re-exported here as
+   `PopoverArrow` for the anchored panels' notch. Both panels are now bands
+   pinned to the screen edges (owner, 2026-08-31: "it should be anchored to
+   screen"), and a band that spans the viewport has nothing to point back at.
+   Re-export it again only if a panel that genuinely floats over the page
+   arrives; adding a notch to these two is a regression, not a feature. */
 
 /**
- * THE scrim for an anchored panel — the figure/ground layer that makes a
- * dropdown read as a layer ABOVE the page instead of one more band of it.
+ * THE dismiss layer for an anchored panel — a full-bleed sheet that PAINTS
+ * NOTHING and exists only to catch the tap that closes the panel.
  *
- * ONE primitive, both panels. Notifications (off the bell) and Filters (off
- * the sliders button) were built hours apart on the same day and shipped two
- * of these — `PopoverScrim` here and an `AnchoredPanelScrim` in
- * `ui/anchoredPanel.tsx`, same tokens, different z-index, each with its own
- * comment block promising to stay in sync with the other. That is the
- * duplication the owner has objected to repeatedly; the second one is gone and
- * this is what both panels mount. Anything a new anchored panel needs belongs
- * here, not in a third copy.
+ * IT IS NOT A SCRIM ANY MORE. It used to be one: warm 8% parchment tint over a
+ * 24px blur, the same recipe as `DialogOverlay`/`SheetOverlay`, read from
+ * `--scrim-tint` / `--scrim-blur`. The owner rejected that on device
+ * (2026-08-31, on the Filters panel: "This blur is not correct it should be
+ * anchored to screen remove the blur", and on Notifications: "Same for this.
+ * No blur", then "Yes — both the same"). An anchored panel is now a
+ * screen-level band that hangs under the header, not a floating card that
+ * needs the page dimmed behind it to read as a layer — the full-bleed edge and
+ * the opaque surface do that job on their own. Dialogs keep their backdrop;
+ * this change is scoped to the two anchored panels.
  *
- * Deliberately the SAME recipe as `SheetOverlay`/`DialogOverlay` (warm 8%
- * parchment tint + a 24px blur), not a bespoke one: the owner's note was that
- * the anchored panels "sit on a surface almost identical to the page behind
- * them", and the fix is to join the app's existing overlay family. The tint
- * and blur come from `--scrim-tint` / `--scrim-blur` (`index.css`) rather than
- * a copied literal, so the next global lightening is one edit.
+ * WHAT SURVIVED THE SCRIM, AND WHY THIS ELEMENT STILL EXISTS.
  *
- * Render it inside the popover's own Portal, immediately before the Content,
- * exactly the way `SheetPortal` stacks `SheetOverlay` under `SheetContent`.
+ * `pointer-events-auto` is the whole point of the element and is LOAD-BEARING.
+ * Radix Popover passes `deferPointerDownOutside`, so the dismiss fires on the
+ * `click`, not the `pointerdown` — which means the very click that closes the
+ * panel is still live on the page underneath. Measured on both panels before
+ * this layer existed: a tap outside closed the panel AND opened the job card
+ * under your finger (`/dashboard` -> `/dashboard?job=…`), at 320, 375, 768 and
+ * 1440. A trailing-click swallower cannot help, because it would have to be
+ * registered during the click that is already happening. Something has to
+ * RECEIVE that click, and this is it: it sits above the page and below the
+ * panel, absorbs the tap, and Radix still sees an outside-interaction and
+ * dismisses. Deleting the scrim's PAINT is safe; deleting the ELEMENT
+ * reintroduces the tap-through.
  *
- * WHY z-50 AND NOT z-40. It sat at z-40 on the reasoning that the panel is
- * z-50 and a scrim belongs one step under it. But the app's fixed chrome —
- * `MobileNav`'s dock and `DesktopTopNav`/`Navbar` — is ALSO z-50, and it is
- * not inside any stacking context that would confine it, so at z-40 the scrim
- * painted *under* the chrome: measured on 2026-08-31 by A/B-ing the same open
- * panel at both values, the bottom dock (and its green FAB) at 375 and the
- * desktop top bar at 1440 both stayed fully saturated and crisp on top of the
- * blur, while everything else went back. A modal layer sets
- * `body { pointer-events: none }`, so those crisp controls were also inert —
- * the panel advertised five tap targets that did nothing. At z-50 the scrim is
- * a later sibling in `document.body` than the chrome (which lives inside
- * `#root`), so equal z-index resolves in the scrim's favour and the whole page
- * goes back together. The panel still paints over it for the same reason: the
- * Radix content portal mounts AFTER this one, so it is a later sibling again.
+ * A modal layer also sets `body { pointer-events: none }`, which is the second
+ * reason `auto` is stated rather than inherited — it would otherwise inherit
+ * `none` and be transparent to the tap again.
+ *
+ * WHY z-50 AND NOT z-40. Kept from the scrim, and still true even though this
+ * layer paints nothing, because z-index is what decides who receives the
+ * click. The app's fixed chrome — `MobileNav`'s dock and
+ * `DesktopTopNav`/`Navbar` — is z-50 and is not inside any stacking context
+ * that would confine it. At z-40 this layer sits UNDER the dock, so a tap on a
+ * bottom-nav item goes to the dock instead of dismissing (and, on a modal
+ * layer, to a control that `body { pointer-events: none }` has already made
+ * inert — a tap target that does nothing). At z-50 it is a later sibling in
+ * `document.body` than the chrome (which lives inside `#root`), so equal
+ * z-index resolves in this layer's favour. The panel still paints over it for
+ * the same reason: the Radix content portal mounts AFTER this one.
  *
  * Dismissal: this element is OUTSIDE the Radix DismissableLayer, so a press on
  * it is an outside-interaction and closes the panel through Radix's normal
  * dismiss path — no click handler of our own, and no second source of truth
  * for "is it open".
  *
- * `pointer-events-auto` is LOAD-BEARING, not a default. Radix Popover passes
- * `deferPointerDownOutside`, so the dismiss fires on the `click`, not the
- * `pointerdown` — which means the very click that closes the panel is also
- * still live on the page underneath. Measured on both panels before this: a
- * tap outside closed the panel AND opened the job card under your finger
- * (`?job=…`), at 320, 375 and 1440. A trailing-click swallower cannot help,
- * because it would have to be registered during the click that is already
- * happening. The scrim has to be the thing that RECEIVES that click. It sits
- * above the page and below the panel, so it absorbs the tap, the page never
- * sees it, and Radix still gets its outside-click and dismisses. `body
- * { pointer-events: none }` on a modal layer is also why this states `auto`
- * rather than relying on the default — it would otherwise inherit `none` and
- * be right back to being transparent to the tap.
+ * Render it inside a portal of its own, immediately before the Content — the
+ * way `SheetPortal` stacks `SheetOverlay` under `SheetContent`.
  */
-const PopoverScrim = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+const PopoverDismissLayer = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
       aria-hidden
-      data-anchored-panel-scrim=""
-      className={cn(
-        "fixed inset-0 z-50 pointer-events-auto motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200",
-        className,
-      )}
-      style={{
-        backgroundColor: "var(--scrim-tint)",
-        backdropFilter: "var(--scrim-blur)",
-        WebkitBackdropFilter: "var(--scrim-blur)",
-      }}
+      data-anchored-panel-dismiss=""
+      className={cn("fixed inset-0 z-50 pointer-events-auto bg-transparent", className)}
       {...props}
     />
   ),
 );
-PopoverScrim.displayName = "PopoverScrim";
+PopoverDismissLayer.displayName = "PopoverDismissLayer";
 
 const PopoverContent = React.forwardRef<
   React.ElementRef<typeof PopoverPrimitive.Content>,
@@ -136,8 +120,7 @@ export {
   Popover,
   PopoverTrigger,
   PopoverAnchor,
-  PopoverArrow,
   PopoverContent,
   PopoverPortal,
-  PopoverScrim,
+  PopoverDismissLayer,
 };

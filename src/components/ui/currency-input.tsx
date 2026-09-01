@@ -46,7 +46,7 @@ function toEditableString(value: number | undefined): string {
   return value.toString();
 }
 
-export interface CurrencyInputProps
+interface CurrencyInputProps
   extends Omit<
     React.ComponentProps<"input">,
     "value" | "onChange" | "type" | "defaultValue"

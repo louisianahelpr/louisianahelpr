@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { daysPastDue, isPastDue } from "@/lib/jobDate";
+import { isPastDue } from "@/lib/jobDate";
 import type { Job, AppliedApp } from "@/components/activity/activityConstants";
 
 /**
@@ -136,26 +136,11 @@ export const APPLIED_STATUS_FILTERS: StatusFilter[] = BUCKET_FILTERS;
  * Terminal states are checked BEFORE this in both bucketers: a job that
  * completed or was cancelled has nothing left to chase, whatever its date.
  */
-export function jobIsOverdue(j: { status?: string | null; date_needed?: string | null }): boolean {
+function jobIsOverdue(j: { status?: string | null; date_needed?: string | null }): boolean {
   if (j.status === "completed" || j.status === "cancelled") return false;
   return isPastDue(j.date_needed);
 }
 
-/**
- * The one wording for "this job's day has passed", so every surface that says
- * it says it identically.
- *
- * Returns null when the job is not overdue, so a caller can render it or not
- * from a single call. Phrased as a fact about the DATE, not an accusation
- * ("Was due yesterday", never "You're late") — the reader is as likely to be
- * the party who was let down as the one who dropped it.
- */
-export function overdueLabel(j: { status?: string | null; date_needed?: string | null }): string | null {
-  if (!jobIsOverdue(j)) return null;
-  const days = daysPastDue(j.date_needed);
-  if (days <= 1) return "Was due yesterday";
-  return `Was due ${days} days ago`;
-}
 
 function submissionAwaitingPoster(j: {
   helper_completed_at?: string | null;

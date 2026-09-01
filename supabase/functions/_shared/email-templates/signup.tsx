@@ -46,8 +46,29 @@ export const SignupEmail = ({
         ) to continue setting up your account:
       </Text>
       <BrandButton href={confirmationUrl} label="Verify My Email" />
+      {/* This line used to read: "Once verified, our team will review your
+          profile and ID. This usually takes 24–48 hours. We'll email you when
+          you're approved!"
+          Every clause of it was false, and had been since manual review was
+          removed:
+            • `complete-signup/index.ts` sets `approval_status: "approved"`
+              unconditionally, with its own comment saying "Auto-approve —
+              there's no manual admin review step anymore".
+            • There is therefore no 24–48 hour window. Prod, 2026-08-31: 30 of
+              30 profiles are `approved`, 0 pending, 0 denied — nobody has ever
+              sat in a review queue.
+            • No approval email is sent on this path at all;
+              `send-account-status-email` fires only on an explicit admin action
+              or the IDV webhook.
+            • Signup collects no ID document on this path, so "review your
+              profile and ID" named an artefact that does not exist yet.
+          It also contradicted the in-app screen, which promises "under 2 hours"
+          — two different invented numbers for the same non-existent step. The
+          copy now describes what the code actually does. */}
       <Text className="e-text e-rule" style={subtext}>
-        Once verified, our team will review your profile and ID. This usually takes 24–48 hours. We'll email you when you're approved!
+        Verifying takes a moment and you're in — no waiting on approval. Identity
+        checks and payout setup come later, only when you first post or accept a
+        job.
       </Text>
       <TransactionalFooter>
         If you didn't create an account on Helpr, you can safely ignore this email.

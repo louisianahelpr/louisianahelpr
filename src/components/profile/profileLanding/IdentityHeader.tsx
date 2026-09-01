@@ -4,8 +4,8 @@ import {
   Star, Share2, Edit, Eye,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { avatarGradientFor } from "@/lib/avatarGradient";
-import { cn } from "@/lib/utils";
+import UserAvatar from "@/components/UserAvatar";
+import { isPlaceholderAvatarUrl } from "@/lib/avatarImage";
 import HelperTierBadge from "@/components/profile/HelperTierBadge";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import { hapticLight } from "@/lib/haptics";
@@ -17,6 +17,15 @@ interface IdentityHeaderProps {
   userId?: string | null;
   displayName: string;
   initials: string;
+  /**
+   * Retained for the caller's prop shape (Profile.tsx → ProfileLanding still
+   * threads it) but deliberately NOT read here any more. The `<img onError>`
+   * that used to call it was the whole of this header's photo guard, and an
+   * `onError`-only guard is unreachable for the defect that actually ships:
+   * an avatar that returns 200 and decodes to a blank block. `<UserAvatar>`
+   * owns load failure, placeholder-URL rejection and blank-bitmap rejection
+   * internally now — see `src/lib/avatarImage.ts`.
+   */
   setAvatarBroken: (v: boolean) => void;
   avgRating: number | null;
   reviewCount: number;
@@ -33,7 +42,6 @@ export function IdentityHeader({
   userId,
   displayName,
   initials,
-  setAvatarBroken,
   avgRating,
   reviewCount,
   completedCount,
@@ -44,6 +52,20 @@ export function IdentityHeader({
   earnedBadges,
 }: IdentityHeaderProps) {
   const navigate = useNavigate();
+
+  // `hasPhoto` upstream means only "the column is non-null and the <img> did
+  // not fire onError". A DiceBear / ui-avatars / `?d=mp` gravatar URL is a
+  // monogram GENERATOR, not a photograph — it loads fine, so it satisfied
+  // `hasPhoto`, which suppressed the "Add a profile photo" affordance and put
+  // an "ID verified" badge on the corner of a generated block. The check is
+  // free and synchronous (no network), so it is applied here as well as inside
+  // `<UserAvatar>`, which is what actually decides whether to paint it.
+  //
+  // The bitmap-level verdict (a 200 that decodes to a flat colour) is NOT
+  // reachable from here — it lives inside `<UserAvatar>` and has no callback —
+  // so a blank upload still reads as `showsPhoto`. The monogram renders
+  // correctly either way; only the corner badge is affected.
+  const showsPhoto = hasPhoto && !isPlaceholderAvatarUrl(profile?.avatar_url);
 
   return (
     <>
@@ -73,25 +95,37 @@ export function IdentityHeader({
               bark for everyone else. ID-verified checkmark sits on the
               bottom-right as a trust signal visible at a glance. */}
           <div className="relative shrink-0">
+            {/* Migrated onto the shared `<UserAvatar>` (2026-08-31). This is
+                the member's own profile avatar — the single most visible one
+                in the app, and the surface the owner screenshotted as "a solid
+                red square with no letters on it".
+
+                What was here: a bare `<img>` whose ONLY guard was
+                `onError={() => setAvatarBroken(true)}`. That guard cannot fire
+                for the defect that actually ships, because the broken avatars
+                on prod return HTTP 200 and decode perfectly — they just
+                contain nothing (a 240×240 frame of one colour, a 16×16
+                `#c04040`, a smooth brown→olive gradient, a DiceBear frame that
+                is 88% one flat red). `onError` never runs, so the monogram
+                behind it was unreachable for exactly the avatars that needed
+                it. See the measured prod evidence in `src/lib/avatarImage.ts`.
+
+                `<UserAvatar>` carries all three guards — placeholder-URL,
+                decoded-bitmap (luma range AND mean-absolute-Laplacian, because
+                a linear gradient passes a range test at any sane threshold),
+                and a real load error — plus the mandatory
+                retry-without-`crossOrigin` path so a genuine photo on a
+                non-CORS host is never hidden by a check that could not run.
+
+                The button stays the frame: size, the tier ring, and the tap
+                target are all still owned here. `ring-0` on the fallback
+                cancels `UserAvatar`'s own hairline ring, which would otherwise
+                sit a second edge just inside the tier ring. */}
             <button
               type="button"
               onClick={() => onSelectTab("profile")}
-              aria-label={hasPhoto ? "Edit profile" : "Add a profile photo"}
-              className={cn(
-                "w-[88px] h-[88px] rounded-ds-avatar squircle flex items-center justify-center text-ds-24 font-display italic font-bold overflow-hidden active:scale-[0.98] transition-transform",
-                // When a real photo is present the gradient is hidden by
-                // the `<img>` overlay; when it isn't, the warm hashed
-                // gradient replaces the old flat `bg-primary/10` so each
-                // user has a recognizable placeholder. `--ink-deep` text
-                // + a hair of drop-shadow keeps initials readable on
-                // every variant in the palette.
-                hasPhoto
-                  ? "bg-primary/10 text-primary"
-                  : cn(
-                      "bg-gradient-to-br text-[hsl(var(--ink-deep))] drop-shadow-sm",
-                      avatarGradientFor(profile?.id),
-                    ),
-              )}
+              aria-label={showsPhoto ? "Edit profile" : "Add a profile photo"}
+              className="w-[88px] h-[88px] rounded-ds-avatar squircle overflow-hidden active:scale-[0.98] transition-transform"
               style={{
                 boxShadow:
                   tier === "elite"
@@ -101,17 +135,16 @@ export function IdentityHeader({
                       : "0 0 0 2px hsl(var(--bark) / 0.18)",
               }}
             >
-              {hasPhoto ? (
-                <img
-                  loading="lazy"
-                  decoding="async"
-                  src={profile!.avatar_url as string}
-                  alt=""
-                  aria-hidden="true"
-                  className="w-full h-full object-cover"
-                  onError={() => setAvatarBroken(true)}
-                />
-              ) : initials}
+              <UserAvatar
+                userId={userId ?? profile?.user_id}
+                src={profile?.avatar_url}
+                name={displayName}
+                initials={initials}
+                pixelSize={88}
+                aria-hidden
+                className="w-full h-full rounded-ds-avatar squircle"
+                fallbackClassName="text-ds-24 ring-0 drop-shadow-sm"
+              />
             </button>
             {/* role="img" on the badge below is load-bearing, not decoration:
                 aria-label is PROHIBITED on a bare <div> (an implicit
@@ -123,7 +156,7 @@ export function IdentityHeader({
             {/* Stripe's verdict, not `idv_status` — see
                 useProfileLandingDerived and
                 supabase/functions/_shared/stripeIdentity.ts. */}
-            {hasPhoto && profile?.stripe_identity_verified === true && (
+            {showsPhoto && profile?.stripe_identity_verified === true && (
               <div
                 role="img"
                 aria-label="ID verified by Stripe"
@@ -136,7 +169,7 @@ export function IdentityHeader({
                 <BadgeCheck className="w-4 h-4" style={{ color: "hsl(var(--parchment))" }} strokeWidth={2.5} />
               </div>
             )}
-            {!hasPhoto && (
+            {!showsPhoto && (
               <div
                 aria-hidden
                 className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center pointer-events-none"
@@ -329,11 +362,45 @@ export function IdentityHeader({
             onClick={() => {
               hapticLight();
               const ratingText = avgRating ? avgRating.toFixed(1) + "★" : "New Helpr";
+              const url = `https://www.louisianahelpr.com/user/${userId}`;
+              const text = `${displayName} · ${completedCount} job${completedCount === 1 ? "" : "s"} · ${ratingText}\n\nHire me on Helpr:`;
+              /**
+               * KNOWN LIMITATION — `/user/:userId` IS BEHIND A LOGIN WALL.
+               *
+               * Verified against production, signed out: this URL 302s in-app
+               * to `/login?redirect=%2Fuser%2F<id>` and renders "That page
+               * needs an account." So a recipient who is not already a Helpr
+               * user does not see the profile they were sent.
+               *
+               * The URL is nonetheless kept, and this is a deliberate call
+               * rather than an oversight:
+               *  - It is not FILLER. Unlike the Work Record bug (which sent
+               *    the marketing homepage) and Helpr Wrapped (which sent the
+               *    same), this URL is the exact resource being shared. The
+               *    link preview a recipient gets is generic either way — the
+               *    site is a client-rendered SPA with one static index.html,
+               *    so every route serves identical `og:` tags — but the
+               *    destination is right.
+               *  - `/login` preserves `?redirect=`, so the journey completes:
+               *    sign up, land on the profile. Hiring requires an account
+               *    regardless, so the wall is on the path either way.
+               *  - Dropping the URL would leave the text ending on a dangling
+               *    "Hire me on Helpr:" with nothing after it, and would give
+               *    the recipient no way to reach the person at all.
+               *
+               * The real fix is a public, guest-readable profile preview —
+               * the treatment `/jobs/:id` already gets via `JobDetail`
+               * (read-only for guests, Apply routed to `/signup`). That is a
+               * routing + privacy decision about what of a member's profile
+               * may be shown to a stranger, so it belongs to whoever owns
+               * `App.tsx` and `UserProfile.tsx`, not to this button.
+               */
               void shareNative({
                 title: `${displayName} on Helpr`,
-                text: `${displayName} · ${completedCount} job${completedCount === 1 ? "" : "s"} · ${ratingText}\n\nHire me on Helpr:`,
-                url: `https://www.louisianahelpr.com/user/${userId}`,
+                text,
+                url,
                 dialogTitle: "Share your profile",
+                clipboardText: `${text}\n${url}`,
               });
             }}
             className="flex flex-col items-center justify-center gap-1 min-h-[64px] rounded-ds-md px-1 py-2 active:scale-95 transition-transform disabled:opacity-50"

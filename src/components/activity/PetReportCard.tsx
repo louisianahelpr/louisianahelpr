@@ -57,23 +57,41 @@ export function SendReportCard({
 }: SendReportCardProps) {
   const queryClient = useQueryClient();
 
-  // Load pets belonging to this owner so the helper can select which pet
-  // they're filing for. PGRST202 graceful fallback: if the table doesn't
-  // exist yet in production, silently treat pets as empty.
-  const { data: pets, isLoading: petsLoading } = useQuery<PetProfile[]>({
-    queryKey: ["pet_profiles_for_job", ownerId],
-    queryFn: async () => {
-      const res = await supabase
-        .from("pet_profiles")
-        .select("id, name, species")
-        .eq("owner_id", ownerId);
-      if (res.error) {
-        if (res.error.code === "PGRST202") return [];
-        throw res.error;
-      }
-      return (res.data ?? []) as unknown as PetProfile[];
-    },
-  });
+  // Load the pets attached to THIS JOB so the helper can pick which one they
+  // are filing for.
+  //
+  // This used to read `pet_profiles` directly, filtered by `owner_id` — and it
+  // could never return a row. The only policy on `pet_profiles` is
+  // `FOR ALL USING (auth.uid() = owner_id)`, and this query runs as the HELPER,
+  // so PostgREST answered `{ data: [], error: null }` every single time: no
+  // error, no log, an empty chip list, the "owner hasn't added pet profiles
+  // yet" empty state, and a submit hard-blocked on `if (!petId)`. The whole
+  // sheet was dead, and a null `error` made it look healthy.
+  //
+  // `get_job_pets` is the sanctioned cross-party read: SECURITY DEFINER,
+  // granted to `authenticated` only, and it raises `not_authorized` unless the
+  // caller is the job's poster or its assigned helper. Scoping to the job also
+  // narrows the picker to the pets actually booked rather than every animal the
+  // owner has ever registered.
+  const { data: pets, isLoading: petsLoading, isError: petsError } =
+    useQuery<PetProfile[]>({
+      queryKey: ["job_pets", jobId],
+      queryFn: async () => {
+        const { data, error: rpcErr } = await supabase.rpc("get_job_pets", {
+          p_job_id: jobId,
+        });
+        // PGRST202 = migration merged, db-deploy not finished. Expected for a
+        // few minutes after a deploy; treat as "no pets" rather than an error.
+        if (rpcErr) {
+          if (rpcErr.code === "PGRST202") return [];
+          // Reported here rather than in the render body: a `report()` during
+          // render re-fires on every re-render and doubles under StrictMode.
+          report(rpcErr, { tags: { source: "SendReportCard.get_job_pets" } });
+          throw rpcErr;
+        }
+        return (data ?? []) as unknown as PetProfile[];
+      },
+    });
 
   const [petId, setPetId] = useState<string>("");
   const [ateWell, setAteWell] = useState<boolean | null>(null);
@@ -208,6 +226,13 @@ export function SendReportCard({
             </h3>
             {petsLoading ? (
               <div className="rounded-ds-lg liquid-glass h-12 motion-safe:animate-pulse" />
+            ) : petsError ? (
+              // A failed read must NOT wear the empty state's clothes. It used
+              // to: any error rendered "the owner hasn't added pet profiles",
+              // which told the helper a falsehood and offered no retry.
+              <DialogBody>
+                <p>We couldn't load this job's pets. Check your connection and reopen this sheet.</p>
+              </DialogBody>
             ) : pets && pets.length > 0 ? (
               <div className="flex flex-wrap gap-2">
                 {pets.map((p) => (
@@ -215,29 +240,37 @@ export function SendReportCard({
                     key={p.id}
                     type="button"
                     onClick={() => setPetId(p.id)}
-                    className="px-3 py-1.5 rounded-ds-md text-ds-13 font-medium transition-all"
-                    style={{
-                      background:
-                        petId === p.id
-                          ? "hsl(var(--bark) / 0.15)"
-                          : "hsl(var(--olivewood) / 0.06)",
-                      color:
-                        petId === p.id
-                          ? "hsl(var(--bark))"
-                          : "hsl(var(--olivewood) / 0.8)",
-                      border:
-                        petId === p.id
-                          ? "1px solid hsl(var(--bark) / 0.35)"
-                          : "1px solid transparent",
-                    }}
+                    // Gloss is toggled in JS, never as a Tailwind variant:
+                    // `data-[state=checked]:btn-grad-primary` compiles to
+                    // NOTHING, because variants only compose over utilities
+                    // Tailwind generates and `.btn-grad-primary` is hand-written
+                    // in index.css. The selected chip also must not carry an
+                    // inline `background` shorthand — that resets
+                    // `background-image` and silently flattens the gradient.
+                    className={`px-3 py-1.5 rounded-ds-md text-ds-13 font-medium transition-all ${
+                      petId === p.id ? "btn-grad-primary" : ""
+                    }`}
+                    style={
+                      petId === p.id
+                        ? { border: "1px solid hsl(var(--bark) / 0.35)" }
+                        : {
+                            backgroundColor: "hsl(var(--olivewood) / 0.06)",
+                            color: "hsl(var(--olivewood) / 0.8)",
+                            border: "1px solid transparent",
+                          }
+                    }
                   >
                     {p.name}
                   </button>
                 ))}
               </div>
             ) : (
+              // No pets are ATTACHED TO THIS JOB. The old copy ("you can still
+              // send a general note") was false: submit hard-blocks on
+              // `if (!petId)` and `pet_report_cards.pet_id` is NOT NULL, so
+              // there is no general-note path to offer.
               <DialogBody>
-                <p>The owner hasn't added pet profiles yet — you can still send a general note.</p>
+                <p>No pets were attached to this job, so there's nothing to report on yet. Ask the owner to add them from the job.</p>
               </DialogBody>
             )}
           </section>

@@ -6,6 +6,24 @@
       "destination": "https://fncmgoasalhdgfwzhsqa.supabase.co/auth/v1/:path*"
     },
     {
+      "source": "/jobs/:id",
+      "destination": "/api/share?_og=job&_id=:id"
+    },
+    {
+      "source": "/signup",
+      "has": [
+        {
+          "type": "query",
+          "key": "ref"
+        }
+      ],
+      "destination": "/api/share?_og=signup"
+    },
+    {
+      "source": "/user/:userId",
+      "destination": "/api/share?_og=user&_id=:userId"
+    },
+    {
       "source": "/((?!api/|_vercel/).*)",
       "destination": "/index.html"
     }

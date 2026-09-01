@@ -388,10 +388,12 @@ serve(async (req) => {
   // Compute payout: budget - platform cut + any urgent fee, in cents.
   // The platform cut is the helper's tiered commission (free 12 / pro 10 /
   // elite 8 / business 6), resolved from their live subscription tier at
-  // payout time. platform_settings.helper_fee_percent is the fallback if the
-  // tier read fails, preserving prior behavior on a transient error.
-  // Fail LOUD if platform_settings can't be read — silently paying out at
-  // a hardcoded default fee misprices the platform cut for the whole outage.
+  // payout time; see the fallback note below for what happens when that read
+  // fails.
+  // This row is still read here for `onboarding_fee_cents` (deducted further
+  // down), and the null-check is kept as a config-sanity assertion: fail LOUD
+  // rather than settle money against a platform_settings row we could not
+  // read at all. It is no longer the source of the fee fallback.
   const { data: feeSettings, error: feeSettingsErr } = await supabaseAdmin
     .from("platform_settings")
     .select("helper_fee_percent, onboarding_fee_cents")
@@ -401,13 +403,34 @@ serve(async (req) => {
     console.error(`[release-payout] platform_settings read failed for job ${job.id} — refusing default-fee payout:`, feeSettingsErr);
     return jsonResponse({ error: "fee configuration unavailable — retry" }, 500);
   }
-  // Prefer the rate FROZEN onto the job when escrow was funded, and fall back
-  // to the global only if the job predates that column. create-payment,
-  // process-scheduled-payouts, execute-dispute-split and
-  // void-cancelled-payments all resolve it this way; release-payout went
-  // straight to the global, so on a tier-read failure it settled a free
-  // helper at the stored 10% instead of their real 12% — the platform
-  // under-charging itself on the primary payout path.
+  // FEE FALLBACK — used only when the helper's profile read fails inside
+  // getHelperFeePercent. Order of authority: the rate FROZEN onto the job when
+  // escrow was funded, then the FREE-tier rate (DEFAULT_TIER_FEE_PERCENT).
+  //
+  // The last step used to be `platform_settings.helper_fee_percent` (10 in
+  // prod), justified as "preserving prior behavior on a transient error". That
+  // justification is retired: preserving prior behavior here meant settling a
+  // free-tier helper at 10% instead of their real 12%, i.e. the platform
+  // UNDER-CHARGING itself on its primary payout path. helperFees.ts states the
+  // governing principle — DEFAULT_TIER_FEE_PERCENT is deliberately the free
+  // rate "so an unexpected value never under-charges the platform" — and an
+  // unreadable tier is exactly an unexpected value. Erring toward the highest
+  // ladder rate is the safe direction: the helper's real rate can only be
+  // equal or lower, so we can refund a difference but can never claw back a
+  // discount we already gave away.
+  //
+  // This bites hardest on Pay-It-Forward jobs: create-payment's PIF branch
+  // short-circuits BEFORE the escrow stamp, so a PIF-funded job carries NO
+  // frozen percent and lands on this last step every time the profile read
+  // errors.
+  //
+  // THE TWO PAYOUT PATHS MUST AGREE. process-scheduled-payouts resolves the
+  // identical chain (`job.helper_fee_percent ?? DEFAULT_TIER_FEE_PERCENT`) and
+  // either path can settle the same job depending on whether release was
+  // manual or auto — if these two disagree, the commission a helper is charged
+  // depends on which cron happened to reach them first. Derive from
+  // DEFAULT_TIER_FEE_PERCENT on BOTH sides, never a bare literal, so the two
+  // cannot silently desync when the ladder changes.
   const frozenPercent =
     job.helper_fee_percent === null || job.helper_fee_percent === undefined
       ? null
@@ -415,7 +438,7 @@ serve(async (req) => {
   const fallbackFeePercent =
     frozenPercent !== null && Number.isFinite(frozenPercent)
       ? frozenPercent
-      : feeSettings.helper_fee_percent;
+      : DEFAULT_TIER_FEE_PERCENT;
   const helperFeePercent = await getHelperFeePercent(
     supabaseAdmin,
     job.helper_id,

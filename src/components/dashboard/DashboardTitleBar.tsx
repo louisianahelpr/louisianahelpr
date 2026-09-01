@@ -177,5 +177,3 @@ export function DashboardTitleBar({
     </div>
   );
 }
-
-export default DashboardTitleBar;

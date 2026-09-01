@@ -3,6 +3,8 @@ import type { WebhookContext } from "../context.ts";
 import { PRODUCT_TO_TIER } from "../constants.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { resolveSubscriptionUserId } from "./_resolveUser.ts";
+import { subscriptionCurrentPeriodEndISO } from "../../_shared/stripeSubscriptionPeriod.ts";
+import { CLEARED_SUBSCRIPTION_LINKAGE, subscriptionLinkage } from "../../_shared/subscriptionLinkage.ts";
 
 export async function handleCustomerSubscriptionUpdated(
   event: Stripe.Event,
@@ -46,12 +48,43 @@ export async function handleCustomerSubscriptionUpdated(
 
   if (subscription.status === "active") {
     const tier = PRODUCT_TO_TIER[productId];
-    const expiresAt = new Date(subscription.current_period_end * 1000).toISOString();
-    logStep("Subscription updated to active", { email, tier });
+    // NOT `subscription.current_period_end` — removed from the Subscription
+    // object in API version 2025-03-31.basil, and this function pins
+    // 2025-08-27.basil. Reading it yielded `undefined`, so `new Date(NaN)
+    // .toISOString()` threw RangeError here on EVERY renewal, rolling back the
+    // idempotency row and 500-ing until Stripe gave up. See
+    // _shared/stripeSubscriptionPeriod.ts.
+    const expiresAt = subscriptionCurrentPeriodEndISO(subscription);
+    logStep("Subscription updated to active", { email, tier, expiresAt });
+    if (!expiresAt) {
+      // Still apply the tier — the renewal was paid — but a null expiry never
+      // lapses (expire-subscriptions filters on `subscription_expires_at IS NOT
+      // NULL`), so this must not pass quietly.
+      await postSlackOpsAlert({
+        kind: "custom",
+        severity: "critical",
+        title: "Subscription renewal — no period end on the Stripe subscription",
+        message: "No subscription item carried a current period end, so the tier is being renewed with NO expiry and will never lapse on its own. Reconcile manually.",
+        fields: { email: email ?? "(missing)", tier: tier ?? "(missing)", subscription_id: subscription.id },
+      });
+    }
 
+    // The linkage is re-stamped on every renewal, not only at first purchase.
+    // That is what keeps `subscription_cancel_at_period_end` honest: Stripe
+    // reports a portal cancellation by keeping status "active" and flipping
+    // that flag on a customer.subscription.updated event, and this is the only
+    // handler that sees it. Without re-writing it here the Membership card
+    // would keep saying "Renews" for a membership that is ending.
+    //
+    // Idempotent by construction — every value is derived from the event's own
+    // subscription object, so a Stripe redelivery writes the same row again.
     const { data: updatedProfiles, error } = await supabase
       .from("profiles")
-      .update({ subscription_tier: tier, subscription_expires_at: expiresAt })
+      .update({
+        subscription_tier: tier,
+        subscription_expires_at: expiresAt,
+        ...subscriptionLinkage(subscription),
+      })
       .eq("user_id", userId)
       .select("user_id");
 
@@ -101,7 +134,14 @@ export async function handleCustomerSubscriptionUpdated(
 
     const { data: clearedProfiles, error } = await supabase
       .from("profiles")
-      .update({ subscription_tier: null, subscription_expires_at: null })
+      .update({
+        subscription_tier: null,
+        subscription_expires_at: null,
+        // Clear what described the subscription, keep stripe_customer_id — see
+        // CLEARED_SUBSCRIPTION_LINKAGE. Leaving a subscription id behind on a
+        // tier-less row is drift the reconciler would then have to report.
+        ...CLEARED_SUBSCRIPTION_LINKAGE,
+      })
       .eq("user_id", userId)
       .select("user_id");
 

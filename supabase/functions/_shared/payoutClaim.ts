@@ -67,10 +67,10 @@ export interface LedgerRow {
  * and this one should stand down rather than race it to the same ledger row.
  * Above it, the claim is orphaned and gets resumed against the same key.
  */
-export const OPEN_CLAIM_INFLIGHT_MS = 2 * 60 * 1000;
+const OPEN_CLAIM_INFLIGHT_MS = 2 * 60 * 1000;
 
 /** Statuses that mean money is out, or believed out. Mirrors the DB index. */
-export const LIVE_TRANSFER_STATES = ["pending", "paid", "reversed"] as const;
+const LIVE_TRANSFER_STATES = ["pending", "paid", "reversed"] as const;
 
 export type ClaimDecision =
   /** Safe to proceed. `claimId` is the row to settle; `failedCount` salts the key. */

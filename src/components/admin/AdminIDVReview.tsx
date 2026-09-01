@@ -54,6 +54,9 @@ import {
   AlertDialogFooter,
   AlertDialogHero,
 } from "@/components/ui/alert-dialog";
+// DialogBody is a presentational wrapper, not a Radix Dialog part — the
+// confirm family uses it so both popup families narrate in one voice.
+import { DialogBody } from "@/components/ui/dialog";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -430,7 +433,9 @@ const AdminIDVReview = () => {
               }
               rows={3}
             />
-            <p className="text-ds-11 text-muted-foreground">This decision is written to the admin audit log.</p>
+            {/* House voice, from the shared primitive — the same treatment
+                BrandConfirmDialog gives every confirm's description. */}
+            <DialogBody><p>This decision is written to the admin audit log.</p></DialogBody>
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>

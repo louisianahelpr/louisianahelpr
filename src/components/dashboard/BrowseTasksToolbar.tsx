@@ -3,14 +3,10 @@ import { ChevronRight, SearchCheck } from "lucide-react";
 import { FilterSheet, buildJobFilterSections } from "@/components/dashboard/FilterSheet";
 import { SavedSearches } from "@/components/SavedSearches";
 import { hapticLight } from "@/lib/haptics";
-import type { FeedDensity } from "@/components/dashboard/feedDensity";
 import type { BrowseTasksToolbarProps } from "./browseTasksToolbar/types";
 import { BrowseSearchBar } from "./browseTasksToolbar/BrowseSearchBar";
 import { CategoryChipRow } from "./browseTasksToolbar/CategoryChipRow";
 import { BrowseViewToggle } from "./browseTasksToolbar/BrowseViewToggle";
-
-// Re-export so consumers can import from a single location.
-export type { FeedDensity };
 
 /**
  * BrowseTasksToolbar — the Browse feed's control strip: the

@@ -3,11 +3,15 @@ import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog";
 
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
+import {
+  POPUP_FOOTER_ROW,
+  POPUP_SECONDARY_CLS,
+  POPUP_COMMIT_CLS,
+} from "@/components/ui/popupFooter";
 import { X } from "lucide-react";
 
 const AlertDialog = AlertDialogPrimitive.Root;
 
-const AlertDialogTrigger = AlertDialogPrimitive.Trigger;
 
 const AlertDialogPortal = AlertDialogPrimitive.Portal;
 
@@ -207,8 +211,12 @@ const AlertDialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDiv
 );
 AlertDialogHeader.displayName = "AlertDialogHeader";
 
+// THE SHARED ROW, from popupFooter.ts — the same object DialogFooter and
+// SheetFooter render. It used to be a third copy of the literal, kept honest
+// only by a test; the owner's 2026-08-31 footer decision (small dismiss, hard
+// left) is exactly the kind of change that lands on two of the three copies.
 const AlertDialogFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn("flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:space-x-2", className)} {...props} />
+  <div className={cn(POPUP_FOOTER_ROW, className)} {...props} />
 );
 AlertDialogFooter.displayName = "AlertDialogFooter";
 
@@ -306,7 +314,7 @@ const AlertDialogAction = React.forwardRef<
 >(({ className, variant = "default", ...props }, ref) => (
   <AlertDialogPrimitive.Action
     ref={ref}
-    className={cn(buttonVariants({ variant }), "w-full sm:w-auto", className)}
+    className={cn(buttonVariants({ variant }), POPUP_COMMIT_CLS, className)}
     {...props}
   />
 ));
@@ -315,12 +323,13 @@ AlertDialogAction.displayName = AlertDialogPrimitive.Action.displayName;
 /**
  * The confirm box's dismiss.
  *
- * GHOST, not outline. Every one of the ~24 Cancel buttons in a DialogFooter is
- * `<Button variant="ghost">` — bare text, no fill, no border — and that is the
- * treatment in the "Report No-Show" screenshot the owner pointed at as the one
- * to match. AlertDialogCancel was `outline`: a bordered, filled, elevated
- * button. So the same word, "Cancel", was a real button in every confirm box
- * and bare text in every dialog, one tap apart.
+ * GHOST and SMALL, hard-left — DialogSecondaryAction's twin, from the same
+ * `popupFooter.ts` contract. It was `outline` (a bordered, filled, elevated
+ * button) while every Cancel in a DialogFooter was bare ghost text, so the
+ * same word was two different objects one tap apart; then it was ghost at full
+ * width. The owner settled the treatment on 2026-08-31 after being shown the
+ * three variants their own screenshots contained: "Small, I feel like left
+ * aligned makes more sense than right."
  */
 const AlertDialogCancel = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Cancel>,
@@ -328,7 +337,7 @@ const AlertDialogCancel = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <AlertDialogPrimitive.Cancel
     ref={ref}
-    className={cn(buttonVariants({ variant: "ghost" }), "w-full sm:w-auto mt-0", className)}
+    className={cn(buttonVariants({ variant: "ghost", size: "sm" }), POPUP_SECONDARY_CLS, "mt-0", className)}
     {...props}
   />
 ));
@@ -336,13 +345,8 @@ AlertDialogCancel.displayName = AlertDialogPrimitive.Cancel.displayName;
 
 export {
   AlertDialog,
-  AlertDialogPortal,
-  AlertDialogOverlay,
-  AlertDialogTrigger,
   AlertDialogContent,
-  AlertDialogHeader,
   AlertDialogFooter,
-  AlertDialogTitle,
   AlertDialogDescription,
   AlertDialogHero,
   AlertDialogAction,

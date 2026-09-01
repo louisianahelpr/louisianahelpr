@@ -5,6 +5,8 @@ import { XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { applicationStatusLabel } from "@/lib/statusLabels";
 import { report } from "@/lib/errorLogger";
+import { unwrapMutation, mutationErrorMessage, isWriteRejected } from "@/lib/mutationResult";
+import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 
 type GroupHelper = {
   id: string;
@@ -17,11 +19,19 @@ export function GroupJobHelpers({
   jobId,
   helpersNeeded,
   isOwner,
+  jobStatus,
   initialHelpers,
 }: {
   jobId: string;
   helpersNeeded: number;
   isOwner: boolean;
+  /**
+   * `jobs.status`. Removal is only offered while the crew is still being
+   * assembled ('open'), which is the same window the DELETE policy allows —
+   * see the note on `canRemove` below. Omitting it hides removal entirely
+   * rather than rendering a control that will be refused.
+   */
+  jobStatus?: string | null;
   /**
    * Optional pre-fetched group-helper rows for this job. When provided
    * (including an empty array), the per-card initial 2-query waterfall
@@ -36,6 +46,7 @@ export function GroupJobHelpers({
   // queries per group-job card on every Activity render.
   const [helpers, setHelpers] = useState<GroupHelper[]>(initialHelpers ?? []);
   const [removingIds, setRemovingIds] = useState<Set<string>>(new Set());
+  const [pendingRemoval, setPendingRemoval] = useState<GroupHelper | null>(null);
 
   useEffect(() => {
     // Only fall back to a per-card fetch when the parent did NOT supply
@@ -88,6 +99,21 @@ export function GroupJobHelpers({
     }
   };
 
+  /**
+   * Removal is only possible while the crew is still being assembled.
+   *
+   * The DELETE policy added in 20260901030422 requires `jobs.status = 'open'`,
+   * which is exactly the window `accept_group_application` holds the job in
+   * until the final slot fills. After that the job is a live commitment with
+   * escrow behind it and a Helpr who has arranged their day around it —
+   * dropping them is a cancellation that owes them notice and a fee
+   * settlement, not a row delete. Rendering the control past that point would
+   * be a button the server refuses on every tap, which is what this component
+   * shipped with: there was no DELETE policy at all, so every removal matched
+   * zero rows, forever.
+   */
+  const canRemove = isOwner && jobStatus === "open";
+
   const removeHelper = async (id: string) => {
     if (removingIds.has(id)) return;
     const removed = helpers.find((h) => h.id === id);
@@ -95,7 +121,24 @@ export function GroupJobHelpers({
     // Optimistically drop the helper so the UI updates on tap.
     setHelpers((prev) => prev.filter((h) => h.id !== id));
 
-    const { error } = await supabase.from("group_job_helpers").delete().eq("id", id);
+    // `.select("id")` because a DELETE that matches zero rows is
+    // `{ data: [], error: null }`. The row was dropped from the list
+    // optimistically above, so without the row count an RLS refusal or a stale
+    // id left the poster looking at a crew of two while a third Helpr was
+    // still assigned to the job — and still expecting to be paid for it.
+    let failure: unknown = null;
+    try {
+      unwrapMutation(
+        await supabase.from("group_job_helpers").delete().eq("id", id).select("id"),
+        {
+          action: "remove this Helpr from the job",
+          rejectedMessage: "That Helpr wasn't removed — they may have already been taken off.",
+          context: { job_id: jobId, group_job_helper_id: id },
+        },
+      );
+    } catch (err) {
+      failure = err;
+    }
 
     setRemovingIds((prev) => {
       const next = new Set(prev);
@@ -103,10 +146,14 @@ export function GroupJobHelpers({
       return next;
     });
 
-    if (error) {
-      console.error("[GroupJobHelpers] failed to remove helper:", error);
-      report(error, { tags: { source: "GroupJobHelpers.remove" } });
-      toast.error("Couldn't remove Helpr.");
+    if (failure) {
+      console.error("[GroupJobHelpers] failed to remove helper:", failure);
+      // unwrapMutation already reported a zero-row rejection; this covers the
+      // transport / RLS error it rethrows unreported.
+      if (!isWriteRejected(failure)) {
+        report(failure, { tags: { source: "GroupJobHelpers.remove" } });
+      }
+      toast.error(mutationErrorMessage(failure, "Couldn't remove Helpr."));
       // Revert: re-add the removed helper, or reload if we lost the snapshot.
       if (removed) {
         setHelpers((prev) => (prev.some((h) => h.id === id) ? prev : [...prev, removed]));
@@ -116,9 +163,34 @@ export function GroupJobHelpers({
       return;
     }
 
+    // Tell them. Being dropped from a crew you accepted is the single event in
+    // this component the other party most needs to know about, and it was the
+    // only lifecycle change in the whole group flow that notified nobody — the
+    // Helpr's Activity tab would simply stop listing a job they had planned
+    // their day around. Best-effort: the removal itself has already succeeded,
+    // so a failed notify must not roll it back or claim the removal failed.
+    if (removed) {
+      const { error: notifyError } = await supabase.from("notifications").insert({
+        user_id: removed.helper_id,
+        title: "You're no longer on this group job",
+        message: "The poster is still putting this crew together and has taken you off it. You haven't been charged and nothing is owed.",
+        type: "job_updates",
+        link: `/my-jobs?job=${jobId}`,
+      });
+      if (notifyError) {
+        console.error("[GroupJobHelpers] removal notification failed:", notifyError);
+        report(notifyError, { severity: "warning", tags: { source: "GroupJobHelpers.removeNotify" } });
+      }
+    }
   };
 
+  // `status === "accepted"` is the roster's DEFAULT, so every row counts unless
+  // something has explicitly moved it. `helpersNeeded` is poster-supplied and
+  // has been null/0 on legacy rows: guard the divisor or the progress bar's
+  // width becomes `Infinity%`/`NaN%` and the caption reads "-1 more Helprs".
+  const slotTotal = Math.max(1, Math.floor(helpersNeeded) || 1);
   const filledSlots = helpers.filter((h) => h.status === "accepted").length;
+  const remaining = Math.max(0, slotTotal - filledSlots);
 
   return (
     <div className="rounded-2xl liquid-glass p-5 space-y-3">
@@ -134,11 +206,11 @@ export function GroupJobHelpers({
         <div className="h-2 flex-1 rounded-full bg-secondary overflow-hidden">
           <div
             className="h-full bg-primary rounded-full transition-all"
-            style={{ width: `${(filledSlots / helpersNeeded) * 100}%` }}
+            style={{ width: `${Math.min(100, (filledSlots / slotTotal) * 100)}%` }}
           />
         </div>
         <span className="text-ds-11 font-medium text-foreground">
-          {filledSlots}/{helpersNeeded} Helprs
+          {filledSlots}/{slotTotal} Helprs
         </span>
       </div>
 
@@ -157,8 +229,19 @@ export function GroupJobHelpers({
                   {applicationStatusLabel(h.status)}
                 </span>
               </div>
-              {isOwner && (
-                <button onClick={() => removeHelper(h.id)} aria-label="Remove Helpr" className="text-muted-foreground hover:text-destructive">
+              {canRemove && (
+                // 44px target (Apple HIG) with a negative inset so the row's
+                // visual rhythm is unchanged — the bare 16px icon was a
+                // quarter of the minimum and sat next to a status pill.
+                // Confirm first: this drops a Helpr who has already accepted.
+                <button
+                  type="button"
+                  onClick={() => setPendingRemoval(h)}
+                  disabled={removingIds.has(h.id)}
+                  aria-label={`Remove ${h.helperName || "Helpr"} from this job`}
+                  className="-m-2.5 p-2.5 shrink-0 inline-flex items-center justify-center rounded-full transition-colors disabled:opacity-40"
+                  style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                >
                   <XCircle className="w-4 h-4" />
                 </button>
               )}
@@ -167,11 +250,33 @@ export function GroupJobHelpers({
         </div>
       )}
 
-      {filledSlots < helpersNeeded && (
+      {remaining > 0 && (
         <p className="text-ds-11 text-muted-foreground text-center">
-          {helpersNeeded - filledSlots} more Helpr{helpersNeeded - filledSlots > 1 ? "s" : ""} needed
+          {remaining} more Helpr{remaining > 1 ? "s" : ""} needed
         </p>
       )}
+
+      <BrandConfirmDialog
+        open={pendingRemoval !== null}
+        onOpenChange={(next) => { if (!next) setPendingRemoval(null); }}
+        title="Remove this Helpr?"
+        description={
+          <>
+            {pendingRemoval?.helperName || "This Helpr"} accepted this job and is
+            holding the date. Removing them frees the slot for someone else and
+            lets them know straight away.
+          </>
+        }
+        primaryLabel="Remove Helpr"
+        primaryTone="sienna"
+        primaryHaptic="warning"
+        onPrimary={() => {
+          const target = pendingRemoval;
+          setPendingRemoval(null);
+          if (target) void removeHelper(target.id);
+        }}
+        secondaryLabel="Keep them on"
+      />
     </div>
   );
 }

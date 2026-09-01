@@ -438,5 +438,3 @@ export function HelperScheduleStrip({ helperId, enabled }: HelperScheduleStripPr
     </>
   );
 }
-
-export default HelperScheduleStrip;

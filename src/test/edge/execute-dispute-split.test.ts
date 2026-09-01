@@ -4,16 +4,20 @@
  * This is the function that turns a RECORDED dispute split (poster X% /
  * helper Y%, written by `rpc_decide_dispute`) into real money: one Stripe
  * transfer to the Helpr's Connect account and one refund to the poster, both
- * off the job's original PaymentIntent.
+ * off the job's original PaymentIntent — plus, when a Pay-It-Forward gift
+ * funded the job, a replacement gift for the poster's share of it, because
+ * that half of the escrow has no charge to reverse.
  *
  * What these tests pin down, in rough order of how much a bug would cost:
  *   - the money math, to the cent, including the shared commission helper and
  *     the non-refundable Stripe processing floor;
  *   - endpoint parity — a 100/0 split must settle like a full release and a
  *     0/100 like a full refund, or the slider lies at its extremes;
- *   - the hard cap that refuses to move more than the escrow captured;
- *   - every fail-closed precondition (group job, Pay-It-Forward, wrong state,
- *     uncaptured charge, unparseable split, non-admin caller);
+ *   - the hard cap that refuses to move more than the escrow was funded with,
+ *     gift included — on a gift-funded job the transfer has no
+ *     `source_transaction`, so that assertion is the only guard left;
+ *   - every fail-closed precondition (group job, a gift that can't be valued,
+ *     wrong state, uncaptured charge, unparseable split, non-admin caller);
  *   - idempotency, both flavours: a re-invoke of a settled split is refused,
  *     and a HALF-settled split resumes on the leg that didn't finish rather
  *     than re-paying the leg that did.
@@ -43,6 +47,13 @@ const DISPUTE_ID = "11111111-1111-4111-8111-111111111111";
 const CAPTURED_CENTS = 11_000;
 /** Stripe keeps 2.9% + $0.30 on that capture and never returns it. */
 const STRIPE_COST_CENTS = Math.round(CAPTURED_CENTS * 0.029) + 30; // 349
+/**
+ * What a Pay-It-Forward gift applied to the gift-funded job: the $100 budget,
+ * and nothing else. No poster service fee (waived — the donor paid the
+ * processing floor when the gift was bought) and no Stripe processing cost,
+ * because Stripe never touched this money.
+ */
+const GIFT_APPLIED_CENTS = 10_000;
 
 async function load(): Promise<EdgeHarness> {
   setEnv({
@@ -168,6 +179,34 @@ function seedExecutable(
     amount: params.amount,
     currency: "usd",
   }));
+}
+
+/**
+ * Seed the same executable split, but funded by a Pay-It-Forward gift instead
+ * of a card: no PaymentIntent, no checkout session, a redeemed `pif_credits`
+ * row against the job, and `restore_pif_credit_for_job` answering with the
+ * $100 the gift applied.
+ *
+ * The RPC is a FUNCTION, not a fixed value, because the source asks it twice
+ * for different things — once to value the gift (`p_dry_run: true`, before any
+ * money moves) and once to mint the replacement (`p_dry_run: false`).
+ */
+function seedGiftFunded(
+  s: SupabaseScenario,
+  opts: Parameters<typeof seedExecutable>[1] = {},
+) {
+  seedExecutable(s, {
+    ...opts,
+    job: { stripe_payment_intent_id: null, stripe_session_id: null, ...opts.job },
+  });
+  s.reads.pif_credits = { rows: [{ id: "pif-1", status: "redeemed" }] };
+  s.rpc.restore_pif_credit_for_job = (args: any) => {
+    const bps = Number(args?.p_share_bps ?? 10_000);
+    const restore = Math.floor((GIFT_APPLIED_CENTS * bps) / 10_000);
+    return args?.p_dry_run
+      ? { outcome: "would_restore", credit_id: "pif-1", applied_cents: GIFT_APPLIED_CENTS, restore_cents: restore }
+      : { outcome: "restored", credit_id: "pif-new", parent_credit_id: "pif-1", recipient_id: "poster-1", applied_cents: GIFT_APPLIED_CENTS, restore_cents: restore };
+  };
 }
 
 function invoke(fn: EdgeHarness, body: unknown = { dispute_id: DISPUTE_ID }) {
@@ -516,16 +555,26 @@ describe("execute-dispute-split edge function", () => {
       expect(stripeMock.transfers.create).not.toHaveBeenCalled();
     });
 
-    it("refuses a Pay-It-Forward job, which has no poster charge to split", async () => {
+    it("refuses a job whose Pay-It-Forward gift is only RESERVED — the escrow can't be reconciled", async () => {
       seedExecutable(scenario);
-      scenario.reads.pif_credits = { rows: [{ id: "pif-1" }] };
+      scenario.reads.pif_credits = { rows: [{ id: "pif-1", status: "reserved" }] };
       const fn = await load();
       const res = await invoke(fn);
       expect(res.status).toBe(409);
-      expect((await json(res)).error).toMatch(/pay-it-forward/i);
+      expect((await json(res)).error).toMatch(/reserved/i);
       expect(stripeMock.transfers.create).not.toHaveBeenCalled();
     });
 
+    it("refuses a gift-funded job it cannot VALUE rather than guessing the escrow", async () => {
+      seedGiftFunded(scenario);
+      // PGRST202 is the real shape of this: the function exists in the repo but
+      // the migration that defines it has not deployed yet.
+      scenario.rpcErrors = { restore_pif_credit_for_job: { message: "function not found", code: "PGRST202" } };
+      const fn = await load();
+      const res = await invoke(fn);
+      expect(res.status).toBe(503);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    });
     it("refuses to move more than the escrow captured, and alerts ops", async () => {
       // The poster paid a $110 session, then the budget was raised to $10,000.
       // Without the cap the transfer would come out of the platform balance.
@@ -573,6 +622,97 @@ describe("execute-dispute-split edge function", () => {
       // The claim is walked back to a re-claimable 'failed' with the reason.
       const last = writesTo("disputes").pop();
       expect(last).toMatchObject({ execution_status: "failed" });
+    });
+  });
+
+  // The defect this suite used to enshrine: a gift-funded job was refused
+  // outright with "resolve it with the full release or full refund action" —
+  // advice that could not work, because a full refund also reverses a
+  // PaymentIntent and this job has none. The gift IS the money, so the poster's
+  // share has to come back as a gift.
+  describe("Pay-It-Forward jobs — the gift leg", () => {
+    it("settles a gift-funded job with no PaymentIntent at all", async () => {
+      seedGiftFunded(scenario);
+      const fn = await load();
+      const res = await invoke(fn);
+      const body = await json(res);
+
+      expect(res.status).toBe(200);
+      // Never asked Stripe about a PaymentIntent that doesn't exist.
+      expect(stripeMock.paymentIntents.retrieve).not.toHaveBeenCalled();
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      // Helper's 60% of a $100 budget less the 12% commission, paid from the
+      // platform balance — no source_transaction, because there is no charge.
+      expect(stripeMock.transfers.create).toHaveBeenCalled();
+      const transferArgs = stripeMock.transfers.create.mock.calls[0][0];
+      expect(transferArgs.amount).toBe(5280);
+      expect(transferArgs.source_transaction).toBeUndefined();
+      // Poster's 40% of the $100 gift, back as a gift.
+      expect(body.gift_restored_cents).toBe(4000);
+      expect(body.refund_cents).toBe(0);
+      expect(body.poster_returned_cents).toBe(4000);
+    });
+
+    it("values the gift with a dry run BEFORE moving anything, then mints", async () => {
+      seedGiftFunded(scenario);
+      const fn = await load();
+      await invoke(fn);
+
+      const calls = (scenario.rpcCalls ?? []).filter((c) => c.name === "restore_pif_credit_for_job");
+      expect(calls).toHaveLength(2);
+      expect((calls[0].args as any).p_dry_run).toBe(true);
+      expect((calls[1].args as any).p_dry_run).toBe(false);
+      // The poster's share is passed as basis points, never as a dollar figure
+      // this side computed — the amount is the RPC's to derive.
+      expect((calls[1].args as any).p_share_bps).toBe(4000);
+    });
+
+    it("refuses a gift split that would exceed what the gift actually paid", async () => {
+      // $100 gift, but the budget was edited up to $10,000 afterwards.
+      seedGiftFunded(scenario, { helperShare: 1, posterShare: 0, job: { budget: 10_000 } });
+      const fn = await load();
+      const res = await invoke(fn);
+
+      expect(res.status).toBe(409);
+      expect((await json(res)).error).toMatch(/exceeds the captured escrow/i);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    });
+
+    it("a re-run that finds the gift already restored settles without minting a second one", async () => {
+      // The database guarantees this: a partial unique index on
+      // pif_credits.restored_from_job_id permits one restoration per job,
+      // forever, so the second call reports the FIRST one's amount.
+      seedGiftFunded(scenario, { dispute: { execution_status: "failed" } });
+      scenario.rpc.restore_pif_credit_for_job = (args: any) =>
+        args?.p_dry_run
+          ? { outcome: "already_restored", credit_id: "pif-new", applied_cents: 10_000, restore_cents: 4000 }
+          : { outcome: "already_restored", credit_id: "pif-new", restore_cents: 4000 };
+
+      const fn = await load();
+      const res = await invoke(fn);
+      const body = await json(res);
+
+      expect(res.status).toBe(200);
+      expect(body.gift_restored_cents).toBe(4000);
+      expect(body.gift_credit_id).toBe("pif-new");
+    });
+
+    it("parks the split as resumable — never silently short — if the gift can't be minted", async () => {
+      seedGiftFunded(scenario);
+      scenario.rpc.restore_pif_credit_for_job = (args: any) =>
+        args?.p_dry_run
+          ? { outcome: "would_restore", credit_id: "pif-1", applied_cents: 10_000, restore_cents: 4000 }
+          // A null `error` with an outcome the function never defines is NOT
+          // proof the gift came back.
+          : { outcome: "no_credit" };
+
+      const fn = await load();
+      const res = await invoke(fn);
+
+      expect(res.status).toBe(500);
+      expect(alerts().some((a) => /could not return the poster's Pay-It-Forward gift/i.test(a.title ?? ""))).toBe(true);
+      const failed = writesTo("disputes").find((p) => p.execution_status === "failed");
+      expect(failed).toBeTruthy();
     });
   });
 
@@ -819,6 +959,164 @@ describe("execute-dispute-split edge function", () => {
       const fn = await load();
       await invoke(fn);
       expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    });
+  });
+
+  // ────────────────────────────────────────────────────────────────────────
+  describe("mixed funding — a gift PLUS a card shortfall", () => {
+    /**
+     * The gap that let a real bug ship: every PIF test above forces
+     * `stripe_payment_intent_id: null`, so `escrowValueCents = captured +
+     * giftApplied` was never once exercised with BOTH terms non-zero — which
+     * is the shape of a gift that didn't cover the whole job.
+     *
+     * $100 budget, $80 of it paid by a gift, the $20 shortfall (plus the $10
+     * poster service fee) collected by card.
+     */
+    const SHORTFALL_CAPTURED = 3_000; // $20 shortfall + $10 service fee
+    const MIXED_GIFT_APPLIED = 8_000; // $80 of the budget came from the gift
+
+    function seedMixed(opts: Parameters<typeof seedExecutable>[1] = {}) {
+      seedExecutable(scenario, {
+        ...opts,
+        job: { stripe_payment_intent_id: "pi_1", stripe_session_id: null, ...opts.job },
+      });
+      scenario.reads.pif_credits = { rows: [{ id: "pif-1", status: "redeemed" }] };
+      scenario.rpc.restore_pif_credit_for_job = (args: any) => {
+        const bps = Number(args?.p_share_bps ?? 10_000);
+        const restore = Math.floor((MIXED_GIFT_APPLIED * bps) / 10_000);
+        return args?.p_dry_run
+          ? { outcome: "would_restore", credit_id: "pif-1", applied_cents: MIXED_GIFT_APPLIED, restore_cents: restore }
+          : { outcome: "restored", credit_id: "pif-new", parent_credit_id: "pif-1", recipient_id: "poster-1", applied_cents: MIXED_GIFT_APPLIED, restore_cents: restore };
+      };
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({
+        id: "pi_1",
+        status: "succeeded",
+        amount_received: SHORTFALL_CAPTURED,
+        latest_charge: "ch_shortfall",
+      });
+    }
+
+    it("never pins the helper transfer to the shortfall charge", async () => {
+      // THE REGRESSION THIS FILE EXISTS TO CATCH. The helper's leg is scaled
+      // off the whole $100 budget, but the charge behind a mixed job only
+      // holds the $20 shortfall. Passing it as `source_transaction` asks
+      // Stripe to move more than the source charge contains, so
+      // `transfers.create` throws — permanently, because leg 1 returns before
+      // the poster's refund and the gift restore ever run. A retry reproduces
+      // it exactly and the escrow is stranded with the dispute unexecutable.
+      seedMixed({ helperShare: 1, posterShare: 0 });
+      const fn = await load();
+      const res = await invoke(fn);
+
+      expect(res.status).toBe(200);
+      expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
+      const [params] = stripeMock.transfers.create.mock.calls[0];
+      expect(params.source_transaction).toBeUndefined();
+      // Still capped by what actually funded the escrow: $88 of a
+      // $30 capture + $80 gift = $110 of escrow value.
+      expect(params.amount).toBe(8_800);
+    });
+
+    it("keeps source_transaction on a pure-card job, where the charge IS the escrow", async () => {
+      // The guard is withheld only when a gift contributed. Without this the
+      // fix above could silently drop Stripe's server-side over-draw cap on
+      // every ordinary dispute.
+      seedExecutable(scenario, { helperShare: 1, posterShare: 0 });
+      const fn = await load();
+      const res = await invoke(fn);
+
+      expect(res.status).toBe(200);
+      const [params] = stripeMock.transfers.create.mock.calls[0];
+      expect(params.source_transaction).toBe("ch_1");
+    });
+
+    it("refunds the poster from the card and the gift separately, never over-drawing either", async () => {
+      seedMixed({ helperShare: 0, posterShare: 1 });
+      const fn = await load();
+      const res = await invoke(fn);
+      const body = await json(res);
+
+      expect(res.status).toBe(200);
+      // Cash leg draws on the CAPTURE, not on escrow value — it can never try
+      // to refund card money that was never charged.
+      const [refundParams] = stripeMock.refunds.create.mock.calls[0];
+      expect(refundParams.amount).toBeLessThanOrEqual(SHORTFALL_CAPTURED);
+      // Gift leg comes back as credit, valued at the gift's applied amount.
+      expect(body.gift_restored_cents).toBe(MIXED_GIFT_APPLIED);
+      // And the two legs together never exceed what was held.
+      expect(refundParams.amount + MIXED_GIFT_APPLIED).toBeLessThanOrEqual(
+        SHORTFALL_CAPTURED + MIXED_GIFT_APPLIED,
+      );
+    });
+  });
+
+  // ────────────────────────────────────────────────────────────────────────
+  describe("a lost ledger write must not double-pay the Helpr", () => {
+    /**
+     * Stripe replays a reused idempotency key for only ~24h. The sequence
+     * "transfer succeeded → `payout_transfers` insert failed → nobody retried
+     * for a day" therefore had nothing left standing between it and a SECOND
+     * real transfer. The refund leg already asked Stripe directly; the
+     * transfer leg trusted the one record we know can be missing.
+     */
+    it("adopts a transfer Stripe already made for this dispute instead of making another", async () => {
+      seedExecutable(scenario, {
+        helperShare: 0.6,
+        dispute: { execution_status: "failed" }, // a resume
+      });
+      scenario.reads.payout_transfers = { rows: [] }; // the ledger write was lost
+      stripeMock.transfers.list.mockResolvedValue({
+        data: [{ id: "tr_already", metadata: { dispute_id: DISPUTE_ID } }],
+      });
+
+      const fn = await load();
+      const res = await invoke(fn);
+      const body = await json(res);
+
+      expect(res.status).toBe(200);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(body.stripe_transfer_id).toBe("tr_already");
+    });
+
+    it("falls back to the transfer id stamped on the dispute row, verified against Stripe", async () => {
+      seedExecutable(scenario, {
+        helperShare: 0.6,
+        dispute: { execution_status: "failed", execution_transfer_id: "tr_stamped" },
+      });
+      scenario.reads.payout_transfers = { rows: [] };
+      stripeMock.transfers.list.mockResolvedValue({ data: [] }); // group lookup finds nothing
+      stripeMock.transfers.retrieve.mockResolvedValue({ id: "tr_stamped" });
+
+      const fn = await load();
+      const res = await invoke(fn);
+
+      expect(res.status).toBe(200);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    });
+
+    it("fails CLOSED when the prior-transfer history cannot be read", async () => {
+      // An unverifiable history is exactly the case this check exists for, so
+      // it must never fall through to "nothing was paid".
+      seedExecutable(scenario, { helperShare: 0.6, dispute: { execution_status: "failed" } });
+      scenario.reads.payout_transfers = { rows: [] };
+      stripeMock.transfers.list.mockRejectedValue(new Error("stripe down"));
+
+      const fn = await load();
+      const res = await invoke(fn);
+
+      expect(res.status).toBe(502);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    });
+
+    it("does not ask Stripe on a FIRST attempt, where there is nothing to find", async () => {
+      seedExecutable(scenario, { helperShare: 0.6 }); // execution_status: null
+      const fn = await load();
+      const res = await invoke(fn);
+
+      expect(res.status).toBe(200);
+      expect(stripeMock.transfers.list).not.toHaveBeenCalled();
+      expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
     });
   });
 

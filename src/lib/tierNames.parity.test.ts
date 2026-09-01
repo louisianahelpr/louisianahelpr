@@ -14,7 +14,7 @@ import { describe, it, expect } from "vitest";
 import { TIER_PERKS, tierDisplayName, type SubscriptionTier } from "./subscriptionTiers";
 import { TIER_DISPLAY_NAMES } from "../../supabase/functions/_shared/tierNames";
 
-const ALL_TIERS: SubscriptionTier[] = ["free", "basic", "pro", "elite", "business"];
+const ALL_TIERS: SubscriptionTier[] = ["free", "basic", "pro", "elite"];
 
 describe("tier display names (client TIER_PERKS <-> edge tierNames)", () => {
   it("gives every tier the same name on both sides", () => {
@@ -34,11 +34,18 @@ describe("tier display names (client TIER_PERKS <-> edge tierNames)", () => {
     expect(TIER_DISPLAY_NAMES.elite).toBe("Elite");
   });
 
-  it("leaves Free and Business unprefixed on purpose", () => {
-    // Free is the absence of a Helpr plan; Business is billed per-seat on the
-    // businessSeatTiers ladder, not sold as a consumer "Helpr <tier>".
+  it("leaves Free unprefixed on purpose", () => {
+    // Free is the absence of a Helpr plan, not a plan of its own.
     expect(TIER_DISPLAY_NAMES.free).toBe("Free");
-    expect(TIER_DISPLAY_NAMES.business).toBe("Business");
+  });
+
+  it("has no Business name to print — that tier was retired", () => {
+    // Removed 2026-09-01 alongside the `business` rung in helperFees.ts and the
+    // TIER_PERKS row. A legacy id must read back as "Free" like any other
+    // unknown value, never as the plan name for something nobody can buy.
+    expect(TIER_DISPLAY_NAMES.business).toBeUndefined();
+    expect(tierDisplayName("business")).toBe("Free");
+    expect(Object.keys(TIER_DISPLAY_NAMES).sort()).toEqual(["basic", "elite", "free", "pro"]);
   });
 
   it("no 'Helpr ' prefix can creep back onto a consumer tier", () => {

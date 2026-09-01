@@ -24,6 +24,10 @@ import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { stripeMock, resetStripeMock } from "./mocks/stripe";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { slackAlerts, resetSharedMocks } from "./mocks/shared";
+import {
+  REAL_ACTIVE_SUBSCRIPTION,
+  REAL_CANCELLED_SUBSCRIPTION,
+} from "./subscriptionLinkage.test";
 
 /** Load stripe-webhook with both Stripe key + webhook secret present. */
 async function loadConfigured(): Promise<EdgeHarness> {
@@ -480,6 +484,483 @@ describe("stripe-webhook edge function", () => {
     });
   });
 
+  /**
+   * Membership lifecycle: purchase → grant, renewal → extend, lapse/cancel →
+   * clear.
+   *
+   * These exist because every RECURRING purchase and every renewal was silently
+   * broken. Stripe removed `current_period_start`/`current_period_end` from the
+   * Subscription object in API version **2025-03-31.basil**; these functions pin
+   * `2025-08-27.basil` and import `esm.sh/stripe@18.5.0`, whose own
+   * `types/Subscriptions.d.ts` has no such property. So
+   * `new Date(subscription.current_period_end * 1000).toISOString()` was
+   * `new Date(NaN).toISOString()` — a `RangeError`, not a wrong date. The throw
+   * reached the dispatcher, which rolled back the dedupe row and returned 500,
+   * so Stripe redelivered and it threw again until it gave up: the customer was
+   * charged and never received the tier. Nothing caught it because
+   * `tsconfig.app.json` does not compile `supabase/functions/**`.
+   *
+   * `PERIOD_END` below is the real item timestamp from a subscription created
+   * against the live test-mode API on 2026-09-01 (Elite monthly $20). Note it is
+   * set ONLY on the subscription ITEM — putting it on the subscription root
+   * instead is the exact shape Stripe no longer sends.
+   */
+  describe("membership lifecycle", () => {
+    const PERIOD_END = 1790815257;
+    const PERIOD_END_ISO = new Date(PERIOD_END * 1000).toISOString();
+    /** Live-mode Pro monthly product, from _shared/productTiers.ts. */
+    const PRO_PRODUCT = "prod_U8rTRJZSUyzaha";
+
+    const subscriptionObject = (over: Record<string, unknown> = {}) => ({
+      id: "sub_test_1",
+      customer: "cus_1",
+      status: "active",
+      metadata: { user_id: "user-1", tier: "pro" },
+      items: {
+        data: [
+          {
+            price: { product: PRO_PRODUCT },
+            current_period_start: 1788223257,
+            current_period_end: PERIOD_END,
+          },
+        ],
+      },
+      ...over,
+    });
+
+    const profileWrite = () =>
+      scenario.writes.find((w) => w.table === "profiles" && w.op === "update")
+        ?.payload as Record<string, unknown> | undefined;
+
+    it("grants the tier and stamps the expiry from the ITEM on a subscription checkout", async () => {
+      const fn = await loadConfigured();
+      stripeMock.subscriptions.retrieve.mockResolvedValue(subscriptionObject());
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_sub_checkout",
+        type: "checkout.session.completed",
+        data: {
+          object: {
+            mode: "subscription",
+            customer_email: "buyer@test.com",
+            client_reference_id: "user-1",
+            subscription: "sub_test_1",
+            metadata: { tier: "pro", billing_cycle: "monthly", user_id: "user-1" },
+          },
+        },
+      });
+
+      const res = await fn.fetch(webhookRequest(fn, "{}"));
+
+      // Before the fix this was 500 + processing_error, forever.
+      expect(res.status).toBe(200);
+      expect(profileWrite()?.subscription_tier).toBe("pro");
+      expect(profileWrite()?.subscription_expires_at).toBe(PERIOD_END_ISO);
+    });
+
+    it("still grants the tier — and pages ops — when NO item carries a period end", async () => {
+      const fn = await loadConfigured();
+      stripeMock.subscriptions.retrieve.mockResolvedValue(
+        subscriptionObject({ items: { data: [{ price: { product: PRO_PRODUCT } }] } }),
+      );
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_sub_no_period",
+        type: "checkout.session.completed",
+        data: {
+          object: {
+            mode: "subscription",
+            customer_email: "buyer@test.com",
+            client_reference_id: "user-1",
+            subscription: "sub_test_1",
+            metadata: { tier: "pro", billing_cycle: "monthly", user_id: "user-1" },
+          },
+        },
+      });
+
+      const res = await fn.fetch(webhookRequest(fn, "{}"));
+
+      // Denying a paying customer is the worse failure, so the tier is still
+      // granted — but an expiry-less tier is one `expire-subscriptions` can
+      // never clear (it filters `subscription_expires_at IS NOT NULL`), so it
+      // must not pass quietly.
+      expect(res.status).toBe(200);
+      expect(profileWrite()?.subscription_tier).toBe("pro");
+      expect(profileWrite()?.subscription_expires_at).toBeUndefined();
+      expect(
+        slackAlerts.some((a) =>
+          String((a as { title?: string }).title).includes("no period end"),
+        ),
+      ).toBe(true);
+    });
+
+    it("recovers the tier from session metadata when the product id is unmapped, and alerts", async () => {
+      const fn = await loadConfigured();
+      stripeMock.subscriptions.retrieve.mockResolvedValue(
+        subscriptionObject({
+          items: {
+            data: [
+              { price: { product: "prod_not_in_the_map" }, current_period_end: PERIOD_END },
+            ],
+          },
+        }),
+      );
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_sub_unmapped",
+        type: "checkout.session.completed",
+        data: {
+          object: {
+            mode: "subscription",
+            customer_email: "buyer@test.com",
+            client_reference_id: "user-1",
+            subscription: "sub_test_1",
+            metadata: { tier: "elite", billing_cycle: "monthly", user_id: "user-1" },
+          },
+        },
+      });
+
+      const res = await fn.fetch(webhookRequest(fn, "{}"));
+
+      // Without the metadata fallback the handler's `if (tier)` block is skipped
+      // entirely: paid, no entitlement, no alert. That was live for the
+      // test-mode Basic and Pro products.
+      expect(res.status).toBe(200);
+      expect(profileWrite()?.subscription_tier).toBe("elite");
+      expect(
+        slackAlerts.some((a) =>
+          String((a as { title?: string }).title).includes("PRODUCT_TO_TIER"),
+        ),
+      ).toBe(true);
+    });
+
+    it("extends the expiry on a renewal (customer.subscription.updated, active)", async () => {
+      const fn = await loadConfigured();
+      stripeMock.customers.retrieve.mockResolvedValue({ id: "cus_1", email: "buyer@test.com" });
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_sub_renew",
+        type: "customer.subscription.updated",
+        data: { object: subscriptionObject() },
+      });
+
+      const res = await fn.fetch(webhookRequest(fn, "{}"));
+
+      expect(res.status).toBe(200);
+      expect(profileWrite()?.subscription_tier).toBe("pro");
+      expect(profileWrite()?.subscription_expires_at).toBe(PERIOD_END_ISO);
+    });
+
+    it("clears the tier when a renewal FAILS (status past_due)", async () => {
+      const fn = await loadConfigured();
+      stripeMock.customers.retrieve.mockResolvedValue({ id: "cus_1", email: "buyer@test.com" });
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_sub_past_due",
+        type: "customer.subscription.updated",
+        data: { object: subscriptionObject({ status: "past_due" }) },
+      });
+
+      const res = await fn.fetch(webhookRequest(fn, "{}"));
+
+      // Stripe reports a failed renewal as a subscription status change, so
+      // this branch — not a separate invoice.payment_failed handler — is what
+      // stops a lapsed card keeping a paid tier.
+      expect(res.status).toBe(200);
+      expect(profileWrite()?.subscription_tier).toBeNull();
+      expect(profileWrite()?.subscription_expires_at).toBeNull();
+    });
+
+    it("keeps the tier through the paid-for period when cancel_at_period_end is set", async () => {
+      const fn = await loadConfigured();
+      stripeMock.customers.retrieve.mockResolvedValue({ id: "cus_1", email: "buyer@test.com" });
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_sub_cancel_at_period_end",
+        type: "customer.subscription.updated",
+        // Stripe keeps status "active" and only flips cancel_at_period_end when
+        // someone cancels in the portal. Perks must last until the period they
+        // already paid for ends — the later subscription.deleted event is what
+        // actually revokes.
+        data: { object: subscriptionObject({ cancel_at_period_end: true }) },
+      });
+
+      const res = await fn.fetch(webhookRequest(fn, "{}"));
+
+      expect(res.status).toBe(200);
+      expect(profileWrite()?.subscription_tier).toBe("pro");
+      expect(profileWrite()?.subscription_expires_at).toBe(PERIOD_END_ISO);
+    });
+
+    // ── Stripe linkage (migration 20260901011254) ─────────────────────────
+    //
+    // Before these columns the ONLY join from a membership back to Stripe was
+    // the customer's email — not unique in `profiles`, and one person can hold
+    // several Stripe customers on one address. That is why the
+    // `current_period_end` outage could not be detected from our own data.
+
+    const linkageWrites = () =>
+      scenario.writes.filter((w) => w.table === "profiles" && w.op === "update");
+    /** The MOST RECENT profiles update — profileWrite() returns the first. */
+    const lastProfileWrite = () => {
+      const all = linkageWrites();
+      return all[all.length - 1]?.payload as Record<string, unknown> | undefined;
+    };
+
+    it("stamps the Stripe customer, subscription and billing cycle on a subscription checkout", async () => {
+      const fn = await loadConfigured();
+      stripeMock.subscriptions.retrieve.mockResolvedValue(
+        subscriptionObject({
+          items: {
+            data: [
+              {
+                price: { product: PRO_PRODUCT, recurring: { interval: "month" } },
+                current_period_end: PERIOD_END,
+              },
+            ],
+          },
+        }),
+      );
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_link_checkout",
+        type: "checkout.session.completed",
+        data: {
+          object: {
+            mode: "subscription",
+            customer_email: "buyer@test.com",
+            client_reference_id: "user-1",
+            subscription: "sub_test_1",
+            metadata: { tier: "pro", billing_cycle: "monthly", user_id: "user-1" },
+          },
+        },
+      });
+
+      const res = await fn.fetch(webhookRequest(fn, "{}"));
+      expect(res.status).toBe(200);
+      const w = profileWrite()!;
+      expect(w.stripe_customer_id).toBe("cus_1");
+      expect(w.stripe_subscription_id).toBe("sub_test_1");
+      expect(w.subscription_billing_cycle).toBe("monthly");
+      expect(w.subscription_cancel_at_period_end).toBe(false);
+    });
+
+    it("reads the cycle from the PRICE, not the session metadata, when they disagree", async () => {
+      const fn = await loadConfigured();
+      // The price is what Stripe will actually charge; metadata is only what
+      // the checkout was asked for. An annual price with stale monthly metadata
+      // must not tell the member they are billed monthly.
+      stripeMock.subscriptions.retrieve.mockResolvedValue(
+        subscriptionObject({
+          items: {
+            data: [
+              {
+                price: { product: PRO_PRODUCT, recurring: { interval: "year" } },
+                current_period_end: PERIOD_END,
+              },
+            ],
+          },
+        }),
+      );
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_link_annual",
+        type: "checkout.session.completed",
+        data: {
+          object: {
+            mode: "subscription",
+            customer_email: "buyer@test.com",
+            client_reference_id: "user-1",
+            subscription: "sub_test_1",
+            metadata: { tier: "pro", billing_cycle: "monthly", user_id: "user-1" },
+          },
+        },
+      });
+
+      await fn.fetch(webhookRequest(fn, "{}"));
+      expect(profileWrite()?.subscription_billing_cycle).toBe("annual");
+    });
+
+    it("marks a one-time pass as one_time with NO subscription id", async () => {
+      const fn = await loadConfigured();
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_pass",
+        type: "checkout.session.completed",
+        data: {
+          object: {
+            mode: "payment",
+            customer: "cus_pass",
+            customer_email: "buyer@test.com",
+            client_reference_id: "user-1",
+            metadata: { tier: "pro", billing_cycle: "one_time", user_id: "user-1" },
+          },
+        },
+      });
+
+      const res = await fn.fetch(webhookRequest(fn, "{}"));
+      expect(res.status).toBe(200);
+      const w = profileWrite()!;
+      // A pass is a real paid entitlement with no Stripe subscription object.
+      // Recording the cycle is what keeps every pass buyer out of the
+      // reconciler's "tier with no live subscription" bucket, and what stops
+      // the Membership card telling them their 30-day pass renews.
+      expect(w.subscription_tier).toBe("pro");
+      expect(w.subscription_billing_cycle).toBe("one_time");
+      expect(w.stripe_subscription_id).toBeNull();
+      expect(w.stripe_customer_id).toBe("cus_pass");
+      expect(typeof w.subscription_expires_at).toBe("string");
+    });
+
+    it("stores cancel_at_period_end so the card can say 'Ends' instead of 'Renews'", async () => {
+      const fn = await loadConfigured();
+      stripeMock.customers.retrieve.mockResolvedValue({ id: "cus_1", email: "buyer@test.com" });
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_cape",
+        type: "customer.subscription.updated",
+        data: { object: subscriptionObject({ cancel_at_period_end: true }) },
+      });
+
+      await fn.fetch(webhookRequest(fn, "{}"));
+      const w = profileWrite()!;
+      // Tier survives — they paid through the period — but the renewal claim
+      // must not.
+      expect(w.subscription_tier).toBe("pro");
+      expect(w.subscription_cancel_at_period_end).toBe(true);
+      expect(w.stripe_subscription_id).toBe("sub_test_1");
+    });
+
+    it("clears the subscription linkage (but keeps the customer) on deletion", async () => {
+      const fn = await loadConfigured();
+      stripeMock.customers.retrieve.mockResolvedValue({ id: "cus_1", email: "buyer@test.com" });
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_del_link",
+        type: "customer.subscription.deleted",
+        data: { object: subscriptionObject({ status: "canceled" }) },
+      });
+
+      await fn.fetch(webhookRequest(fn, "{}"));
+      const w = profileWrite()!;
+      expect(w.stripe_subscription_id).toBeNull();
+      expect(w.subscription_billing_cycle).toBeNull();
+      expect(w.subscription_cancel_at_period_end).toBe(false);
+      // The Customer object survives cancellation and is the durable handle for
+      // reconciling a later resubscribe, so it is deliberately NOT in the patch.
+      expect(Object.keys(w)).not.toContain("stripe_customer_id");
+    });
+
+    // ── The REAL payloads, through the REAL handler ───────────────────────
+    //
+    // A hand-written fixture cannot catch a Stripe SHAPE change, because
+    // whoever writes it writes the shape they already believe — which is
+    // exactly how `current_period_end` went on being read for the life of the
+    // pinned API version. These two objects were captured on 2026-09-01 from a
+    // subscription created and then cancelled in TEST MODE on the project's own
+    // account (acct_1RQbAfKp2H4b7tEC, livemode:false; cancelled, refunded and
+    // marked for deletion afterwards). See subscriptionLinkage.test.ts.
+
+    // The two constants are the Stripe objects verbatim. In production
+    // `create-pro-checkout` stamps `metadata.user_id` onto the subscription and
+    // `_resolveUser` prefers it over the email fallback; the ad-hoc test
+    // subscription was created directly against the API and so carries none.
+    // Added here rather than baked into the constants, so the captured payloads
+    // stay exactly what Stripe returned.
+    const withOwner = (sub: Record<string, unknown>) => ({
+      ...sub,
+      metadata: { user_id: "user-1", tier: "pro" },
+    });
+
+    it("derives every column from a REAL active Stripe subscription", async () => {
+      const fn = await loadConfigured();
+      stripeMock.customers.retrieve.mockResolvedValue({ id: "cus_VB2aUOOVNYDZ0E", email: "buyer@test.com" });
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_real_active",
+        type: "customer.subscription.updated",
+        data: { object: withOwner(REAL_ACTIVE_SUBSCRIPTION) },
+      });
+
+      const res = await fn.fetch(webhookRequest(fn, "{}"));
+
+      expect(res.status).toBe(200);
+      expect(profileWrite()).toEqual({
+        subscription_tier: "pro",
+        // Resolved from items.data[0], NOT the absent top-level field. This
+        // single expectation is the regression pin for the outage.
+        subscription_expires_at: new Date(1790818146 * 1000).toISOString(),
+        stripe_customer_id: "cus_VB2aUOOVNYDZ0E",
+        stripe_subscription_id: "sub_1UAgVbKp2H4b7tECgY5A6IO8",
+        subscription_billing_cycle: "monthly",
+        subscription_cancel_at_period_end: false,
+      });
+    });
+
+    it("keeps the tier but drops the renewal claim on a REAL cancelled subscription", async () => {
+      const fn = await loadConfigured();
+      stripeMock.customers.retrieve.mockResolvedValue({ id: "cus_VB2aUOOVNYDZ0E", email: "buyer@test.com" });
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_real_cancelled",
+        type: "customer.subscription.updated",
+        data: { object: withOwner(REAL_CANCELLED_SUBSCRIPTION) },
+      });
+
+      await fn.fetch(webhookRequest(fn, "{}"));
+
+      const w = profileWrite()!;
+      // Stripe keeps status "active" and the same period end — the member paid
+      // through it and keeps their perks. Only the renewal claim changes.
+      expect(w.subscription_tier).toBe("pro");
+      expect(w.subscription_expires_at).toBe(new Date(1790818146 * 1000).toISOString());
+      expect(w.subscription_cancel_at_period_end).toBe(true);
+    });
+
+    it("is idempotent: a Stripe redelivery of the same event writes nothing a second time", async () => {
+      const fn = await loadConfigured();
+      const event = {
+        id: "evt_replay_me",
+        type: "customer.subscription.updated",
+        data: { object: subscriptionObject() },
+      };
+      stripeMock.customers.retrieve.mockResolvedValue({ id: "cus_1", email: "buyer@test.com" });
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue(event);
+
+      const first = await fn.fetch(webhookRequest(fn, "{}"));
+      expect(first.status).toBe(200);
+      const afterFirst = linkageWrites().length;
+      expect(afterFirst).toBe(1);
+      const firstPayload = { ...profileWrite()! };
+
+      // Stripe retries. In production the unique index on
+      // stripe_webhook_events.event_id is what turns the second delivery into a
+      // 23505, which the dispatcher reads as "already handled".
+      scenario.writeErrors.stripe_webhook_events = {
+        message: "duplicate key value violates unique constraint",
+        code: "23505",
+      };
+      const second = await fn.fetch(webhookRequest(fn, "{}"));
+
+      expect(second.status).toBe(200);
+      expect((await json(second)).duplicate).toBe(true);
+      // No SECOND profiles write — not a duplicate row, not a second update.
+      expect(linkageWrites().length).toBe(afterFirst);
+
+      // And belt-and-braces on the values themselves: even if the dedupe row
+      // were lost, every field written here is a pure projection of the event's
+      // own subscription object, so a replay recomputes the identical patch.
+      delete scenario.writeErrors.stripe_webhook_events;
+      const third = await fn.fetch(webhookRequest(fn, "{}"));
+      expect(third.status).toBe(200);
+      expect(linkageWrites().length).toBe(afterFirst + 1);
+      expect(lastProfileWrite()).toEqual(firstPayload);
+    });
+
+    it("clears the tier on customer.subscription.deleted", async () => {
+      const fn = await loadConfigured();
+      stripeMock.customers.retrieve.mockResolvedValue({ id: "cus_1", email: "buyer@test.com" });
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_sub_deleted",
+        type: "customer.subscription.deleted",
+        data: { object: subscriptionObject({ status: "canceled" }) },
+      });
+
+      const res = await fn.fetch(webhookRequest(fn, "{}"));
+
+      expect(res.status).toBe(200);
+      expect(profileWrite()?.subscription_tier).toBeNull();
+      expect(profileWrite()?.subscription_expires_at).toBeNull();
+    });
+  });
+
   describe("processing errors fail closed (retry-safe)", () => {
     it("returns 500 + processing_error and rolls back the dedupe row when a handler throws", async () => {
       const fn = await loadConfigured();
@@ -510,6 +991,85 @@ describe("stripe-webhook edge function", () => {
         (w) => w.table === "stripe_webhook_events" && w.op === "delete",
       );
       expect(rollback).toBeDefined();
+    });
+
+    /**
+     * The rollback DELETE used to discard its row count. A DELETE matching zero
+     * rows returns `{ data: [], error: null }`, so a rollback that removed
+     * nothing was indistinguishable from one that worked — and the consequence
+     * of the row surviving is that Stripe's retry 200-skips as a duplicate and
+     * a PAID event is dropped forever. These two tests force the delete to match
+     * zero rows and assert the outcome is now visible.
+     */
+    async function runHandlerFailure() {
+      const fn = await loadConfigured();
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_zero_rollback",
+        type: "customer.subscription.updated",
+        data: {
+          object: {
+            customer: "cus_1",
+            items: { data: [{ price: { product: "prod_U8rS2fR6KvQoRk" } }] },
+            status: "active",
+          },
+        },
+      });
+      stripeMock.customers.retrieve.mockRejectedValue(new Error("stripe down"));
+      return fn.fetch(webhookRequest(fn, "{}"));
+    }
+
+    it("pages ops when the idempotency rollback DELETE matches zero rows", async () => {
+      // The delete reports success with an empty row set — the exact shape a
+      // no-op DELETE returns from PostgREST.
+      scenario.writeSelectRows["stripe_webhook_events:delete"] = [];
+
+      const res = await runHandlerFailure();
+      expect(res.status).toBe(500);
+
+      // BEFORE the fix this produced NO alert at all: the delete's result was
+      // never inspected, so a rollback that removed nothing was silent and the
+      // paid event was stranded with no signal anywhere.
+      const zeroRowAlert = slackAlerts.find((a) =>
+        String((a as { title?: string }).title ?? "").includes("rollback matched 0 rows"),
+      ) as { severity?: string; fields?: Record<string, string> } | undefined;
+      expect(zeroRowAlert).toBeDefined();
+      expect(zeroRowAlert?.severity).toBe("critical");
+      // The alert has to name the event, or an operator cannot find the row.
+      expect(zeroRowAlert?.fields?.["Event ID"]).toBe("evt_zero_rollback");
+    });
+
+    it("stays quiet about the rollback when the DELETE actually removes the row", async () => {
+      scenario.writeSelectRows["stripe_webhook_events:delete"] = [
+        { event_id: "evt_zero_rollback" },
+      ];
+
+      const res = await runHandlerFailure();
+      expect(res.status).toBe(500);
+
+      // A successful rollback must not page — otherwise every ordinary handler
+      // failure would fire a critical alert and the alert would get muted.
+      expect(
+        slackAlerts.filter((a) =>
+          String((a as { title?: string }).title ?? "").includes("rollback"),
+        ),
+      ).toHaveLength(0);
+    });
+
+    it("asks the rollback DELETE for `event_id`, the only key this table has", async () => {
+      // The mock store resolves a write's `.select()` by table name and hands
+      // back whatever the scenario seeded, regardless of projection — so the two
+      // tests above would pass just as happily on `.select("id")`. They cannot:
+      // `stripe_webhook_events` is `event_id TEXT PRIMARY KEY` with no `id`
+      // column, verified against prod (`?select=id` → 400, `?select=event_id`
+      // → 200). Asking for `id` would turn every rollback into a hard 400 and a
+      // permanent false "rollback FAILED" page. So assert the projection itself.
+      scenario.writeSelectRows["stripe_webhook_events:delete"] = [];
+      await runHandlerFailure();
+
+      const rollback = scenario.writes.find(
+        (w) => w.table === "stripe_webhook_events" && w.op === "delete",
+      );
+      expect(rollback?.selectCols).toBe("event_id");
     });
   });
 });

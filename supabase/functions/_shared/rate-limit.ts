@@ -1,3 +1,13 @@
+// The rate-limit store hangs off `globalThis` so it survives between requests
+// on a warm isolate. Declaring it here is what makes that legal to read and
+// write under `noImplicitAny` — an untyped `globalThis.__rateLimitStore` is an
+// implicit `any`, i.e. the store could be reassigned to anything at all and
+// nothing would complain.
+declare global {
+  // eslint-disable-next-line no-var
+  var __rateLimitStore: Map<string, number[]> | undefined;
+}
+
 interface RateLimitOptions {
   windowMs: number;  // Time window in ms
   maxRequests: number;  // Max requests per window
@@ -28,7 +38,7 @@ export async function checkRateLimit(
     globalThis.__rateLimitStore = new Map<string, number[]>();
   }
 
-  const store = globalThis.__rateLimitStore as Map<string, number[]>;
+  const store = globalThis.__rateLimitStore;
   const timestamps = (store.get(key) || []).filter((t: number) => t > windowStart);
   
   if (timestamps.length >= maxRequests) {

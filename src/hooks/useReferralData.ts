@@ -4,7 +4,7 @@ import { queryKeys } from "@/lib/queryKeys";
 import { unwrap } from "@/lib/supabaseResult";
 import { report } from "@/lib/errorLogger";
 
-export interface ReferralCredit {
+interface ReferralCredit {
   id: string;
   amount: number;
   reason: string;

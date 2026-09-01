@@ -126,7 +126,10 @@ Deno.serve(async (req) => {
     // rather than mailing "Hey {{first_name}}" to the whole list.
     const leftoverTokens = [
       ...new Set(
-        (body.html.replaceAll("{{name}}", "").match(/\{\{\s*[\w.]+\s*\}\}/g) ?? [])
+        // `?? []` on its own infers `never[]`, so `.concat()` then refuses the
+        // RegExpMatchArray from the subject scan and the subject's leftover
+        // tokens would have to be dropped to compile. Seed the element type.
+        (body.html.replaceAll("{{name}}", "").match(/\{\{\s*[\w.]+\s*\}\}/g) ?? ([] as string[]))
           .concat(body.subject.match(/\{\{\s*[\w.]+\s*\}\}/g) ?? []),
       ),
     ];
@@ -355,7 +358,10 @@ Deno.serve(async (req) => {
         // Correlation key. Resend's own id is preferred when the send lands
         // (it's what a bounce/complaint webhook reports back); a locally
         // generated uuid covers failures and any response without an id.
-        let messageId = crypto.randomUUID();
+        // Annotated `string`: `crypto.randomUUID()` returns the template literal
+        // type `${string}-${string}-${string}-${string}-${string}`, which the
+        // Resend message id assigned below does not satisfy.
+        let messageId: string = crypto.randomUUID();
         try {
           // Rendering is per-recipient ({{name}} is substituted before the
           // shell is rendered) and ASYNCHRONOUS, so it is awaited before the

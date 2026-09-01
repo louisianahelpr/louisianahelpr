@@ -117,3 +117,8 @@ sim-sweep.png
 # Audit artifacts from background agents — never commit
 tmp/audit/
 .audit-out/
+
+# Link-preview shell snapshot — regenerated from dist/index.html by
+# scripts/build-og-shell.mjs on every `npm run build`. Never commit it: a
+# stale copy would serve last week`s asset hashes to /jobs/:id.
+scripts/generated/

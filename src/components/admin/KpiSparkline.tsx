@@ -20,7 +20,7 @@ const STROKE: Record<string, string> = {
   destructive: "hsl(var(--destructive))",
 };
 
-export const KpiSparkline = ({ data, tone = "primary" }: KpiSparklineProps) => {
+const KpiSparkline = ({ data, tone = "primary" }: KpiSparklineProps) => {
   // useId must run before any early return — hooks are unconditional.
   // The gradient id was `kpiSpark-${tone}`, i.e. one of THREE strings for the
   // whole app, so the Dashboard's four KPI tiles emitted the same <linearGradient

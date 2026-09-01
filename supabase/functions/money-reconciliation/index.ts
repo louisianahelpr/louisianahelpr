@@ -256,13 +256,18 @@ serve(async (req) => {
     // ── Load jobs ────────────────────────────────────────────────────────────
     // Never drop a Supabase `error`: a swallowed failure here would report
     // "all clean" while having scanned nothing, which is worse than no alarm.
+    // The column list MUST stay one unbroken string literal. postgrest-js parses
+    // the select at the TYPE level to build the row shape, and it can only do
+    // that from a literal: `"a, b" + "c, d"` widens to plain `string`, the parser
+    // gives up and every row becomes `GenericStringError`, so `job.budget`,
+    // `job.helper_id` and the other 20 columns below are all type errors. Written
+    // as a `+` concatenation this one query produced 70 of the 120 errors the
+    // edge typecheck first reported. Same characters, same query — a template
+    // literal or a `+` chain would put it straight back.
     let jobQuery = admin
       .from("jobs")
       .select(
-        "id, is_seed, status, payment_status, budget, date_needed, cancelled_at, helper_id, " +
-          "cancellation_fee, cancellation_fee_status, late_cancellation, platform_fee_amount, " +
-          "helper_fee_percent, is_group_job, helpers_needed, has_active_dispute, dispute_status, " +
-          "poster_completed_at, helper_completed_at, payout_scheduled_at, updated_at",
+        "id, is_seed, status, payment_status, budget, date_needed, cancelled_at, helper_id, cancellation_fee, cancellation_fee_status, late_cancellation, platform_fee_amount, helper_fee_percent, is_group_job, helpers_needed, has_active_dispute, dispute_status, poster_completed_at, helper_completed_at, payout_scheduled_at, updated_at",
       )
       .limit(SCAN_LIMIT);
     if (!includeSeed) jobQuery = jobQuery.eq("is_seed", false);

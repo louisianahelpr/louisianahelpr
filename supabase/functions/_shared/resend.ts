@@ -112,10 +112,10 @@ export const POSTAL_ADDRESS = (Deno.env.get("HELPR_POSTAL_ADDRESS") ?? POSTAL_AD
 export const SENDER_DOMAIN = "louisianahelpr.com";
 
 /** Envelope address for every outbound Helpr email. */
-export const SENDER_ADDRESS = `noreply@${SENDER_DOMAIN}`;
+const SENDER_ADDRESS = `noreply@${SENDER_DOMAIN}`;
 
 /** The one brand display name. Was: "The Helpr Team" / "Helpr" / "Louisiana Helpr". */
-export const SENDER_NAME = "Helpr";
+const SENDER_NAME = "Helpr";
 
 /** Default From header — use this unless you have a reason not to. */
 export const FROM_DEFAULT = `${SENDER_NAME} <${SENDER_ADDRESS}>`;
@@ -159,7 +159,7 @@ export interface SendEmailParams {
 }
 
 /** Error thrown by `sendWithResend`, carrying the HTTP status for the caller. */
-export interface ResendSendError extends Error {
+interface ResendSendError extends Error {
   status?: number;
   /** Only set on 429, from the Retry-After header (defaults to 60s). */
   retryAfterSeconds?: number;

@@ -159,5 +159,3 @@ export function PetPicker({
     </div>
   );
 }
-
-export default PetPicker;

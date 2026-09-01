@@ -1,5 +1,4 @@
 export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-export const ALLOWED_DOC_TYPES = [...ALLOWED_IMAGE_TYPES, "application/pdf"];
 export const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 export const sanitizeExt = (name: string) => {

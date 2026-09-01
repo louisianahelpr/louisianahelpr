@@ -57,6 +57,12 @@ const DOCUMENT_SCROLL_ROUTES = [
   // AppShell's scroll surface (iOS double-rubber-band).
   "/user",         // /user/:userId — UserProfile (PageHeader + min-h-screen)
   "/admin",        // Admin dashboard (min-h-screen document-scroll + sidebar)
+  // /analytics — HelperAnalytics: PageHeader + `min-h-screen bg-premium-page
+  // pb-safe-nav`, a stack of panels that grows with the helper's history and
+  // routinely exceeds the fold. It renders NO AppShell/AppPage, so it belongs
+  // here; off this list, `html.app-shell { overflow: hidden }` would clip the
+  // lower panels with no way to scroll to them.
+  "/analytics",
   // /str-settings, /gift-card, /benefits, /auto-tip and /wrapped moved OFF
   // this list (owner, 2026-08-30: "app shell globally"). They are
   // strictly-authed app screens reached from the Profile landing, so unlike

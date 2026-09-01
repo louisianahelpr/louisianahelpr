@@ -13,10 +13,45 @@ import { formatDelay } from "./adminHealth/adminHealthHelpers";
 import { useHealthData } from "./adminHealth/useHealthData";
 import { toneBadgeClasses, toneTextClasses } from "@/components/admin/tones";
 import { useFillRate } from "./adminHealth/useFillRate";
-import { useConfigChecks, type CheckTone } from "./adminHealth/useConfigChecks";
+import { useConfigChecks, type CheckTone, type ConfigCheck } from "./adminHealth/useConfigChecks";
+import { useCronHealth } from "./adminHealth/useCronHealth";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
+
+/**
+ * One check row. Extracted so the Configuration and Scheduled-jobs cards render
+ * identically — two lists of the same kind of assertion should not be two
+ * hand-copied blocks that drift apart.
+ */
+const CheckRow = ({ check }: { check: ConfigCheck }) => {
+  const dot: Record<CheckTone, string> = {
+    ok: "bg-[hsl(var(--bark))]",
+    warn: "bg-[hsl(var(--burnt-sienna))]",
+    danger: "bg-destructive",
+    unknown: "bg-muted-foreground",
+  };
+  return (
+    <li className="flex items-start gap-3 rounded-ds-sm border border-border bg-card p-3">
+      <span className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", dot[check.tone])} aria-hidden="true" />
+      <div className="min-w-0">
+        <p className="text-ds-13 font-semibold text-foreground">
+          {check.label}
+          {/* The dot is decorative; the state has to reach a screen reader as
+              words, not as a colour. */}
+          <span className="sr-only">
+            {check.tone === "ok"
+              ? " — passing"
+              : check.tone === "unknown"
+                ? " — could not check"
+                : " — needs attention"}
+          </span>
+        </p>
+        <p className="text-ds-11 text-muted-foreground leading-tight">{check.detail}</p>
+      </div>
+    </li>
+  );
+};
 
 const AdminHealth = () => {
   const qc = useQueryClient();
@@ -24,6 +59,7 @@ const AdminHealth = () => {
 
   const { fillDays, setFillDays, fillSort, fillSortAsc, fillData, fillFetching, sortedParishes, handleFillSort } = useFillRate();
   const { data: configChecks } = useConfigChecks();
+  const { data: cronChecks } = useCronHealth();
 
   // Send a test push to the admin's own user_id. Verifies the entire
   // pipeline (push_tokens lookup → APNs/FCM auth → device delivery)
@@ -144,33 +180,31 @@ const AdminHealth = () => {
           <p className="text-ds-11 text-muted-foreground">Running checks…</p>
         ) : (
           <ul className="space-y-2">
-            {configChecks.map((c) => {
-              const dot: Record<CheckTone, string> = {
-                ok: "bg-[hsl(var(--bark))]",
-                warn: "bg-[hsl(var(--burnt-sienna))]",
-                danger: "bg-destructive",
-                unknown: "bg-muted-foreground",
-              };
-              return (
-                <li key={c.id} className="flex items-start gap-3 rounded-ds-sm border border-border bg-card p-3">
-                  <span
-                    className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", dot[c.tone])}
-                    aria-hidden="true"
-                  />
-                  <div className="min-w-0">
-                    <p className="text-ds-13 font-semibold text-foreground">
-                      {c.label}
-                      {/* The dot is decorative; the state has to reach a screen
-                          reader as words, not as a colour. */}
-                      <span className="sr-only">
-                        {c.tone === "ok" ? " — passing" : c.tone === "unknown" ? " — could not check" : " — needs attention"}
-                      </span>
-                    </p>
-                    <p className="text-ds-11 text-muted-foreground leading-tight">{c.detail}</p>
-                  </div>
-                </li>
-              );
-            })}
+            {configChecks.map((c) => (
+              <CheckRow key={c.id} check={c} />
+            ))}
+          </ul>
+        )}
+      </AdminCard>
+
+      {/* Scheduled jobs. About forty pg_cron jobs run this product with no user
+          in the loop — escrow auto-release, cancellation-fee settlement,
+          subscription expiry, the email queue, every push and digest. Until
+          this card, none of it reached a screen: a dead cron surfaced only as a
+          Slack message and rows in error_logs nothing renders. The 2026-09-01
+          cron audit found money-reconciliation had not completed an observed
+          run in four days while every dashboard read green. */}
+      <AdminCard
+        title="Scheduled Jobs"
+        subtitle="Whether the automation that runs without anyone watching is actually running."
+      >
+        {!cronChecks || cronChecks.length === 0 ? (
+          <p className="text-ds-11 text-muted-foreground">Reading cron history…</p>
+        ) : (
+          <ul className="space-y-2">
+            {cronChecks.map((c) => (
+              <CheckRow key={c.id} check={c} />
+            ))}
           </ul>
         )}
       </AdminCard>

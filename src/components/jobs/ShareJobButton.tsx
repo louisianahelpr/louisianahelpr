@@ -1,13 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, Share2 } from "lucide-react";
-import { Capacitor } from "@capacitor/core";
-import { Share } from "@capacitor/share";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { cn } from "@/lib/utils";
 import { hapticLight } from "@/lib/haptics";
-import { copyToClipboard } from "@/lib/nativeShare";
+import { shareNative } from "@/lib/nativeShare";
+import { isNativePlatform } from "@/lib/nativeInit";
 
 interface ShareJobButtonProps {
   /** The job being shared — only the title/budget/category/id/city are referenced. */
@@ -75,20 +73,19 @@ interface ShareJobButtonProps {
 /**
  * Share a job to whoever the user wants — neighbor, friend, social.
  *
- * Tiered fallback chain so the affordance still works on every surface
- * the app ships to:
+ * The tiered fallback chain (Capacitor native sheet → `navigator.share` →
+ * clipboard → surface the raw link) lives in `shareNative`
+ * (`src/lib/nativeShare.ts`). This component used to carry its OWN copy of
+ * that ladder, calling `Capacitor.isNativePlatform()` and `Share.share`
+ * directly, which meant two independent implementations of one behaviour and
+ * neither picking up the other's fixes — `nativeShare` making `url` optional
+ * (the structural cause of the Work Record "shared the homepage" bug) never
+ * reached this file, and this file's discovery that confirmation toasts are
+ * suppressed never reached `nativeShare`. Both now go through one function.
  *
- *  1. **Capacitor native** — on iOS/Android, hand off to the OS Share
- *     Sheet via `@capacitor/share`. This gets us AirDrop, Messages,
- *     Mail, Instagram DM, etc., for free.
- *  2. **`navigator.share`** — modern Chrome/Safari implements the Web
- *     Share API which mimics the native sheet.
- *  3. **Clipboard fallback** — copy the URL and toast a hint. Works
- *     everywhere else (desktop Firefox, older browsers, embedded
- *     webviews without the API).
- *
- * User-cancellation of the OS sheet is normal — we silently ignore it
- * rather than toasting an error.
+ * `shareNative` returns a `ShareOutcome` precisely so this button can keep its
+ * inline confirmation — see below — instead of that being the reason to keep a
+ * duplicate ladder.
  *
  * WHY THE CONFIRMATION IS INLINE AND NOT A TOAST
  * ----------------------------------------------
@@ -99,8 +96,11 @@ interface ShareJobButtonProps {
  * screen changed. That is precisely the reported "share button does nothing" —
  * the share worked, the feedback didn't. The confirmation is therefore owned by
  * the button itself (icon + label flip to "Copied" for 2s, plus an sr-only live
- * region), which cannot be suppressed by the toast policy. `toast.error` is
- * still used for genuine failures — that channel is NOT neutered.
+ * region), which cannot be suppressed by the toast policy. Because the button
+ * owns that confirmation it passes `suppressCopyConfirmation` so `shareNative`
+ * does not announce the same copy a second time. Failure reporting is NOT
+ * suppressed — `shareNative` still raises `toast.error`, a channel the policy
+ * leaves alive, and the "surfaced" tier still shows the link itself.
  *
  * The URL points at the public `/jobs/:id` preview route. Guests who tap
  * get a read-only job preview (apply gated to /signup); signed-in
@@ -139,15 +139,24 @@ export function ShareJobButton({
    * control labelled "Share" that answers with "Copied" reads as the wrong
    * thing having happened (owner: "I don't understand why it says copied when
    * it's clicked"). Nothing about the behaviour changes; the label just stops
-   * promising a sheet the browser cannot open. Phones and the native app have
-   * `navigator.share`, so they keep "Share" and the real sheet.
+   * promising a sheet the browser cannot open.
+   *
+   * `isNativePlatform` MUST be part of this test. It used to check only
+   * `navigator.share`, which the iOS WKWebView does not reliably expose — the
+   * whole reason `@capacitor/share` exists. So inside the shipped app the
+   * button rendered "Copy link", then opened the real OS share sheet anyway:
+   * the label contradicted the behaviour on the app's primary platform. On
+   * native the Capacitor bridge is always the branch that runs, so the sheet
+   * is guaranteed regardless of what the WebView advertises.
    *
    * Read once at mount rather than per render: it cannot change for the life
    * of the page, and calling it in render would make the label depend on
    * whether a re-render happened to run before hydration finished.
    */
   const [canNativeShare] = useState(
-    () => typeof navigator !== "undefined" && typeof navigator.share === "function",
+    () =>
+      isNativePlatform ||
+      (typeof navigator !== "undefined" && typeof navigator.share === "function"),
   );
   const restLabel = canNativeShare ? "Share" : "Copy link";
 
@@ -174,53 +183,25 @@ export function ShareJobButton({
     const clipText = `${text}\n${url}`;
 
     try {
-      // 1. Native Share Sheet — only on actual iOS/Android shells.
-      if (Capacitor.isNativePlatform()) {
-        await Share.share({ title, text, url, dialogTitle: "Share this job" });
-        return;
-      }
-
-      // 2. Web Share API — modern browsers, often on mobile web.
-      if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
-        await navigator.share({ title, text, url });
-        return;
-      }
-
-      // 3. Clipboard fallback — paste-to-share, confirmed on the button.
-      if (await copyToClipboard(clipText)) {
-        confirmCopied();
-        return;
-      }
-
-      // 4. No clipboard at all. Surface the URL through the one toast
-      //    channel the policy leaves alive, so the tap is never a no-op.
-      toast.error(`Couldn't copy automatically — the link is ${url}`, {
-        duration: 10_000,
+      // One ladder, shared with every other share surface in the app.
+      // `shareNative` owns the platform branching, the cancellation test, the
+      // clipboard recovery after a failed sheet, and the error toast.
+      const outcome = await shareNative({
+        title,
+        text,
+        url,
+        dialogTitle: "Share this job",
+        clipboardText: clipText,
+        // This button confirms a copy on itself; without this it would ALSO
+        // get shareNative's "Link copied" toast for the same one copy.
+        suppressCopyConfirmation: true,
       });
-    } catch (err) {
-      // The user dismissing the share sheet throws an AbortError on
-      // both the Web Share API and Capacitor's bridge. That's not an
-      // error to surface — they decided not to share. Treat any
-      // cancellation-shaped error as silent.
-      const isCancel =
-        err instanceof Error &&
-        (err.name === "AbortError" ||
-          /cancel/i.test(err.message) ||
-          /dismiss/i.test(err.message));
-      if (isCancel) return;
-      // A real failure of the share sheet (OS bridge down, permission
-      // refused, WebView without a share provider). Don't dead-end on an
-      // error toast — the user asked to share a link and the clipboard can
-      // still deliver one, so try that before admitting defeat.
-      try {
-        if (await copyToClipboard(clipText)) {
-          confirmCopied();
-          return;
-        }
-      } catch {
-        /* clipboard unavailable too — fall through to the error below */
-      }
-      toast.error("Couldn't share — try again.");
+      // Only "copied" gets the inline flip. "shared" means the OS sheet took
+      // it (the sheet is its own confirmation), "cancelled" must stay silent,
+      // and "surfaced"/"failed" have already put something on screen — a
+      // "Copied" badge on either of those would be a lie about where the link
+      // ended up, which is the class of bug this file keeps re-learning.
+      if (outcome === "copied") confirmCopied();
     } finally {
       setSharing(false);
     }
@@ -370,5 +351,3 @@ export function ShareJobButton({
     </Button>
   );
 }
-
-export default ShareJobButton;

@@ -14,7 +14,7 @@ export const ALLOWED_IMAGE_TYPES = [
   "image/gif",
 ];
 
-export const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 
 export const SIGNUP_COOLDOWN_MS = 60_000; // 1 minute between attempts
 export const SIGNUP_COOLDOWN_KEY = "helpr_signup_last";

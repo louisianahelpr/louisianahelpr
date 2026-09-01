@@ -54,14 +54,12 @@ export interface BuildJobInsertPayloadInput {
   /** How long a direct offer is held for the targeted helpr, in hours.
    *  Poster-chosen (DirectOfferBanner); defaults to 24 for older drafts. */
   offerResponseHours?: number;
-  /** Cost-center / department label set by business-account posters.
-      Persisted to jobs.department (migration 20260609170000). */
+  /** Cost-center / department label. Persisted to jobs.department (migration
+      20260609170000) and still exported by AdminExport, but no caller passes a
+      non-null value today: it was a business-account field and business
+      accounts were removed in 20260828011811. Kept because the column is live;
+      wire a source to it before assuming it does anything. */
   department?: string | null;
-  /** Initial status — defaults to undefined (= DB default 'open') so we
-      keep the historic behavior. The PostJob flow sets this to
-      'pending_approval' when the business's `require_approval_above`
-      threshold is crossed. */
-  initialStatus?: "open" | "pending_approval";
   /** When true, a helper who applies is auto-confirmed immediately without
       poster review. Stored as jobs.instant_book (migration 20260612090000).
       Only included in the INSERT when true so a pre-push prod still accepts
@@ -113,7 +111,6 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
     salesTaxRate,
     offerToHelperId,
     department,
-    initialStatus,
   } = input;
   const offerResponseHours = input.offerResponseHours ?? DEFAULT_OFFER_RESPONSE_HOURS;
 
@@ -205,16 +202,21 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
     // when > 0 so a pre-push prod INSERT still succeeds (DB default of 0
     // is applied automatically on the column). Retry path strips withExtras.
     ...(credentialTier > 0 ? ({ credential_tier: credentialTier } as Record<string, unknown>) : {}),
-    // jobs.department + jobs.status — both ship in migration
-    // 20260609170000. Cast through `any` because the generated Supabase
-    // types haven't picked them up yet, and don't include the keys at
-    // all when they're undefined so a pre-migration prod still accepts
-    // the insert.
+    // jobs.department ships in migration 20260609170000. Cast through a
+    // Record because the generated Supabase types haven't picked it up yet,
+    // and omit the key entirely when it's empty so a pre-migration prod
+    // still accepts the insert.
+    //
+    // NO `status` KEY IS EVER WRITTEN HERE. Every post lands on the column
+    // default, 'open'. There used to be an `initialStatus` input that could
+    // write 'pending_approval' for a business over its
+    // `businesses.require_approval_above` threshold — but the businesses /
+    // business_members tables were removed (migration 20260828011811), no
+    // call site ever set it, and the only jobs left in that status were seed
+    // rows that showed posters an "awaiting your team's approver" panel for a
+    // team that does not exist. Don't reintroduce a status override here.
     ...(department && department.trim()
       ? ({ department: department.trim() } as Record<string, unknown>)
-      : {}),
-    ...(initialStatus === "pending_approval"
-      ? ({ status: "pending_approval" } as Record<string, unknown>)
       : {}),
     ...(offerToHelperId
       ? {

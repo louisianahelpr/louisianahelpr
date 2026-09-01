@@ -1,11 +1,33 @@
-// helperFees — single source of truth for the tiered platform commission that
-// is deducted from a helper's payout, for the Deno edge runtime.
+// helperFees — single source of truth for the tiered platform fee, for the Deno
+// edge runtime. It is the commission deducted from a helper's payout AND (via
+// `posterFees.ts`, which aliases the resolver below) the service fee a poster is
+// charged at checkout: one user, one tier, one percent, whichever side of the
+// job they are on.
 //
-// The helper's subscription tier sets the percentage the platform keeps from
-// each completed-job payout:
+// The subscription tier sets the percentage:
 //
-//     free → 12%   basic → 11%   pro → 10%   plus → 9%   elite → 8%
-//     business → 6%
+//     free → 12%   basic → 11%   pro → 10%   elite → 8%
+//
+// There is no `plus` tier — this header used to list "plus → 9%", which has
+// never existed in `TIER_FEE_PERCENT`, in `subscriptionTiers.ts`, or as a
+// purchasable Stripe price. A raw "plus" therefore resolves to the free rate
+// (12) via DEFAULT_TIER_FEE_PERCENT, which is the safe direction, but the
+// comment implied a discount the code does not grant.
+//
+// There is no `business` tier either. A `business: 6` rung sat in the table
+// below until 2026-09-01. Nothing could sell it (`create-pro-checkout`'s
+// ALLOWED_TIERS is ["basic","pro","elite"] and throws otherwise; `ProTierKey`
+// is "basic"|"pro"|"elite"; no Stripe Price maps to it; there is no
+// seat-checkout function) and nothing could hold it (the business backend was
+// dropped by migrations 20260828004538 / 20260828011811, and the
+// `_shared/businessSeatTiers.ts` several headers cited as its pricing authority
+// does not exist). A prod census immediately before the removal found ZERO
+// `profiles` rows holding it, so nobody was re-rated. It had to come out of
+// this table and `TIER_PERKS` in one commit, because the parity tests pin the
+// two key sets together and removing it from one side alone reds the build.
+//
+// A stray "business" now resolves to DEFAULT_TIER_FEE_PERCENT (12) like any
+// other unrecognised value — the same safe direction as "plus".
 //
 // This MUST stay in lock-step with `src/lib/subscriptionTiers.ts` TIER_PERKS
 // (the React/TS source the UI renders from). The edge runtime is Deno and
@@ -24,7 +46,6 @@ export const TIER_FEE_PERCENT: Record<string, number> = {
   basic: 11,
   pro: 10,
   elite: 8,
-  business: 6,
 };
 
 /**
@@ -33,9 +54,37 @@ export const TIER_FEE_PERCENT: Record<string, number> = {
  */
 export const DEFAULT_TIER_FEE_PERCENT = TIER_FEE_PERCENT.free; // 12
 
-/** Map a raw `profiles.subscription_tier` value (may be null) to a fee percent. */
-export function feePercentForTier(rawTier: string | null | undefined): number {
-  const tier = (rawTier ?? "").toLowerCase();
+/**
+ * THE tier → fee-percent resolver, for BOTH roles.
+ *
+ * Product rule: one user, one tier, one percent — the percentage a person is
+ * charged must be identical whether they are posting a job or helping on one.
+ * So this function is the single resolver both sides call, and it must take the
+ * SAME inputs on both sides or the two roles can still diverge on the inputs
+ * even while sharing the table.
+ *
+ * `expiresAt` used to live only on the poster side (`posterFeePercentForTier`),
+ * which meant the two resolvers had different signatures and only one of them
+ * could see a lapsed subscription. Nothing shipped a wrong percent because every
+ * helper-side CALLER (`getHelperFeePercent`, `money-reconciliation`) did its own
+ * `expires_at` comparison before calling in — but the asymmetry was a live trap:
+ * any new helper-side caller that passed just the tier would keep charging a
+ * lapsed Pro 10% while the poster side charged them 12%. Folding expiry in here
+ * removes the trap: an expired paid tier reverts to the free rate on both sides
+ * even if the `expire-subscriptions` cron hasn't nulled the column yet.
+ *
+ * An unparseable / absent `expiresAt` is treated as NOT expired (NaN < now is
+ * false), so a malformed timestamp never silently re-rates someone.
+ *
+ * @param rawTier   raw `profiles.subscription_tier` (may be null; case-insensitive)
+ * @param expiresAt raw `profiles.subscription_expires_at` (may be null)
+ */
+export function feePercentForTier(
+  rawTier: string | null | undefined,
+  expiresAt?: string | null,
+): number {
+  const expired = expiresAt ? new Date(expiresAt).getTime() < Date.now() : false;
+  const tier = (expired ? "free" : (rawTier ?? "")).toLowerCase();
   return TIER_FEE_PERCENT[tier] ?? DEFAULT_TIER_FEE_PERCENT;
 }
 
@@ -82,10 +131,9 @@ export async function getHelperFeePercent(
       console.warn(`[helperFees] tier read failed for ${helperId}, using fallback ${fallbackPercent}%:`, error);
       return fallbackPercent;
     }
-    const expired = data.subscription_expires_at
-      ? new Date(data.subscription_expires_at).getTime() < Date.now()
-      : false;
-    return feePercentForTier(expired ? "free" : data.subscription_tier);
+    // Expiry is handled INSIDE feePercentForTier so this path and the poster
+    // path (`posterFeePercentForTier`) cannot drift on the lapsed-tier rule.
+    return feePercentForTier(data.subscription_tier, data.subscription_expires_at);
   } catch (e) {
     console.warn(`[helperFees] tier read threw for ${helperId}, using fallback ${fallbackPercent}%:`, e);
     return fallbackPercent;

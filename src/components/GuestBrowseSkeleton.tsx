@@ -20,7 +20,7 @@ import { JobCardSkeleton } from "@/components/ui/skeletons/JobCardSkeleton";
  * divs) so it stays in the eager bundle and renders instantly, before the
  * route chunk arrives.
  */
-export const GuestBrowseSkeleton = () => (
+const GuestBrowseSkeleton = () => (
   <div
     role="status"
     aria-live="polite"

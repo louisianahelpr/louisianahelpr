@@ -239,4 +239,14 @@ export const queryKeys = {
     jobViewCounts: (jobIdsKey: string) =>
       ["job-view-counts", jobIdsKey] as const,
   },
+  /**
+   * /analytics — the Pro/Elite Advanced Analytics payload. Keyed by user AND
+   * window, because the RPC's answer changes with `p_days` and a shared key
+   * would serve the 90-day answer under the 365-day label.
+   */
+  helperAnalytics: {
+    all: ["helper-analytics"] as const,
+    byUser: (userId: string | undefined | null, days: number) =>
+      ["helper-analytics", userId, days] as const,
+  },
 } as const;

@@ -127,7 +127,9 @@ export function AutoRestrictedRail({ onReview, onChange }: AutoRestrictedRailPro
       title: "Restriction lifted",
       message: "An admin reviewed your account and lifted the temporary restriction.",
       type: "success",
-      link: "/profile",
+      // "Restriction lifted" means they can work again — send them to the
+      // feed, the way admin-user-actions' own dismiss branch does.
+      link: "/dashboard",
     });
     hapticSuccess();
     setReversing(null);

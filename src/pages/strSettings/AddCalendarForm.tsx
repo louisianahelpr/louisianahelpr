@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -105,12 +106,25 @@ export function AddCalendarForm({
               key={p}
               type="button"
               onClick={() => set("platform", p)}
-              className="rounded-ds-md px-3 py-1 font-serif italic font-semibold transition-all text-ds-12"
+              // The SELECTED chip wears the shared gloss, like every other
+              // selected control in the app. It was a flat inline
+              // `background: hsl(var(--bark))` — measured `background-image:
+              // none` — sitting next to primary buttons that all carry the
+              // gradient. Applied as a plain conditional class, NOT as a
+              // Tailwind `data-[…]:btn-grad-primary` variant: variants only
+              // compose over utilities Tailwind generates, and
+              // `.btn-grad-primary` is hand-written in index.css, so the
+              // variant form emits no CSS at all and fails silently.
+              // The unselected branch keeps its inline tint (there is no
+              // gradient to preserve there); the selected branch must not set
+              // `background`, because the shorthand would reset the very
+              // `background-image` the class provides.
+              className={cn(
+                "rounded-ds-md px-3 py-1 font-serif italic font-semibold transition-all text-ds-12",
+                form.platform === p && "btn-grad-primary",
+              )}
               style={{
-                background:
-                  form.platform === p
-                    ? "hsl(var(--bark))"
-                    : "hsl(var(--bark) / 0.08)",
+                ...(form.platform === p ? {} : { background: "hsl(var(--bark) / 0.08)" }),
                 color: form.platform === p ? "hsl(var(--parchment))" : "hsl(var(--bark))",
                 border: "0.5px solid hsl(var(--bark) / 0.3)",
               }}
@@ -262,8 +276,15 @@ export function AddCalendarForm({
         onClick={() => onAdd(form)}
         disabled={loading || !form.ical_url.trim() || !!icalUrlError || !!budgetError}
         className="w-full rounded-ds-md"
-        style={{ background: "hsl(var(--bark))", color: "hsl(var(--parchment))" }}
       >
+        {/* The `style={{ background: "hsl(var(--bark))" }}` that used to sit
+            here was silent gloss-killer #2 from CLAUDE.md, verbatim: an inline
+            `background` SHORTHAND resets `background-image`, so the default
+            Button variant's `btn-grad-primary` gradient was overwritten by a
+            flat bark fill. The class was still on the element, so the class
+            list read correct — only the computed `background-image` showed it.
+            This is the page's one primary CTA; it now inherits the same gloss
+            every other primary control in the app wears. */}
         {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
         {loading ? "Connecting…" : "Connect Calendar"}
       </Button>

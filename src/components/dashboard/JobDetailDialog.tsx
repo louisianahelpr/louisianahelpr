@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { Dialog, DialogContent, DialogHero } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHero, DialogBody } from "@/components/ui/dialog";
 import {
   Repeat, Rocket, Zap, Bookmark, Flag, Star,
 } from "lucide-react";
@@ -190,129 +190,136 @@ const JobDetailDialog = ({
     <Dialog open={!!job} onOpenChange={() => onClose()}>
       <DialogContent
         topRightSlot={cornerActions}
-        // grid-cols-1: the base DialogContent is `display:grid` with implicit
-        // `auto` columns, which size to max-content and can grow wider than
-        // the dialog; paired with the content's `overflow-y-auto` (which makes
-        // overflow-x compute to `auto`), the over-wide track gets clipped,
-        // cutting long words in the description mid-glyph. grid-cols-1 swaps the
-        // track to `minmax(0,1fr)`, pinning it to the dialog width so children
-        // wrap instead of overflowing.
+        // ONE SHELL AT EVERY WIDTH — TOP-ANCHORED, CONTENT-SIZED.
         //
-        // xl+ bumps to max-w-6xl so the two-column split-pane layout below
-        // has breathing room (left 7/12 job content, right 5/12 sticky
-        // apply pane). Below xl the dialog keeps its single-column stack.
-        // PHONE = BOTTOM SHEET, sm+ = the usual centred dialog.
+        // History, because this box has been wrong in three different
+        // directions and each fix has to survive the next one:
         //
-        // As a centred card this used ~58% of a 402x874 screen with ~21% dead
-        // scrim above AND below it — a job preview, the densest read in the
-        // app, boxed into the middle half of the phone while the thumb sat
-        // over empty backdrop. Anchoring it to the bottom is the standard iOS
-        // presentation for exactly this (a detail sheet over a list), gives
-        // the content ~92dvh instead of 88% of a shrunken box, and puts the
-        // "Sign up to apply" CTA in the thumb arc rather than mid-screen.
+        //   · IT WAS A BOTTOM SHEET (2026-08-31, commit 7a8ee749). The owner
+        //     said the phone sheet "should open not at the bottom"; that was
+        //     read as "it is too short" and answered with `h-[92dvh]`, three
+        //     explicit grid tracks and the CTA welded to the bottom edge. The
+        //     complaint was the ANCHOR, not the height — the owner has since
+        //     spelled it out: "hug it, no minimum — but it would open from the
+        //     bottom of the screen which is odd. That's not right." The fixed
+        //     height made a sparse job WORSE: measured at 375x812, a title +
+        //     one-line description + meta chips + poster card opened at 747px
+        //     (92.0% of the viewport) with 364.7px of empty space between the
+        //     last content pixel and a stranded "Continue" on the bottom edge
+        //     (320: the same 364.7px; a recommended+urgent+boosted job at 375:
+        //     337.7px). All of that is gone — no height, no explicit tracks,
+        //     no bottom anchor.
         //
-        // …WHICH `max-h` ALONE NEVER DELIVERED (owner, 2026-08-31: "phone
-        // should open not at the bottom"). `max-h-[92dvh]` is a CEILING, and a
-        // short job never came near it: measured at 375x812, a title + one-line
-        // description + three meta chips + poster row + CTA opened the sheet at
-        // 397.7px — 49.0% of the viewport, i.e. a small box pinned to the
-        // bottom edge under a half-screen of blurred dead band. (320: 54.9%.
-        // A boosted/urgent/recommended job: 51.9%.) The fix is a FIXED height,
-        // `h-[92dvh]`, so every job opens at the same generous size and the
-        // sheet's proportions stop being a function of how much the poster
-        // typed. Only a fixed height also makes "the CTA sits in the thumb
-        // arc" true for the SHORT case, which is the case that was wrong.
+        //   · IT WAS VERTICALLY CENTRED before that, and a vertically-centred
+        //     box RE-CENTRES as its content arrives, so the panel opened small
+        //     and grew in both directions while you read it (owner: "opens
+        //     small then gets bigger?"). `top-[7vh]` is the fix, and it now
+        //     applies at EVERY width rather than only sm+ — the phone gets the
+        //     same anchor for the same reason.
         //
-        // A fixed height on a `display:grid` box needs explicit tracks or the
-        // default `align-content: normal` stretches every auto row to fill it,
-        // which just re-distributes the dead space instead of removing it. So
-        // the phone sheet declares three rows —
-        //   grid-rows-[auto_minmax(0,1fr)_auto]
-        //     row 1  the badge strip (flush corner tabs, see below)
-        //     row 2  the scrollable body — `minmax(0,…)` + `min-h-0` on the
-        //            div so it can actually SHRINK below its content and
-        //            scroll internally rather than pushing row 3 off-screen
-        //     row 3  the footer CTA, pinned in the thumb arc
-        // — and the JSX below renders EXACTLY three in-flow children to fill
-        // them (the left rail stripe is `absolute`, PhotoLightbox portals, so
-        // neither takes a track). The outer box keeps the base
-        // `overflow-y-auto` but can no longer scroll: rows 1+3 are ~170px of a
-        // 747px sheet, so row 2 always absorbs the slack.
+        //   · `translate` AND `transform` ARE NOT INTERCHANGEABLE HERE. The
+        //     base DialogContent centres with the standalone `translate`
+        //     property (`[translate:-50%_-50%]`), deliberately, so
+        //     tailwindcss-animate's keyframes — which write `transform` —
+        //     can never clobber the centring. Tailwind's `translate-x-*` /
+        //     `translate-y-*` utilities feed `transform`, a DIFFERENT
+        //     property, so a `translate-y-0` here zeroed something that was
+        //     never moving this box while the base's real `translate: … -50%`
+        //     stayed in effect at every width. On a top-anchored dialog that
+        //     surplus -50% pushed the header above y=0 (measured live at
+        //     top: -131px). Only `[translate:-50%_0]` — the same property the
+        //     base uses — actually zeroes it.
         //
-        // The overrides come in three parts because the base DialogContent is
-        // centred by transform, not by inset:
-        //   1. geometry — top-auto/bottom-0 + zeroed translate, full width,
-        //      FIXED 92dvh height + the three-row track, square bottom corners
-        //      (28px top only, from .glass-modal).
-        //   2. animation — the base sets --tw-enter-translate-x:-50% via
-        //      `slide-in-from-left-1/2` to compensate for its own centering
-        //      transform. With the transform gone that would fly the sheet in
-        //      from off-screen left, so it is neutralised to -0 and the sheet
-        //      rises from the bottom instead. zoom is dropped to 100 — a
-        //      bottom sheet slides, it does not scale.
-        //   3. sm: — every one of the above is restored so tablet/desktop
-        //      render EXACTLY as before. This is a phone-only presentation.
-        // tailwind-merge resolves each against the base class in the same
+        // WHAT IS LEFT, and why each line is here:
+        //
+        //   grid-cols-1
+        //     The base DialogContent is `display:grid` with implicit `auto`
+        //     columns, which size to max-content and can grow wider than the
+        //     dialog; paired with `overflow-y-auto` (which makes overflow-x
+        //     compute to `auto`) the over-wide track gets clipped, cutting
+        //     long words in the description mid-glyph. This pins the track to
+        //     `minmax(0,1fr)` so children wrap instead of overflowing.
+        //
+        //   left-[50%] top-[7vh] bottom-auto [translate:-50%_0]
+        //     Horizontally centred, TOP-anchored, bottom free — unprefixed, so
+        //     phone and desktop are the same object. `bottom-auto` is
+        //     belt-and-braces against a `bottom-0` creeping back in.
+        //
+        //   max-h-[86dvh]
+        //     A CEILING, not a height: with no `h-*` the box hugs its content
+        //     ("hug it, no minimum"), and only a job tall enough to need it
+        //     scrolls internally, in the base's own `overflow-y-auto`.
+        //     86 — NOT the 92 the bottom sheet used — because the top edge sits
+        //     at 7vh now: 7 + 92 = 99vh would leave the CTA ~8px off the bottom
+        //     of the screen, i.e. under the home indicator on every modern
+        //     iPhone, which is the bottom-anchored look this change exists to
+        //     remove. 7 + 86 = 93vh leaves a 7vh gutter, symmetric with the
+        //     top. `dvh` rather than the base's `vh` so a mobile browser's
+        //     dynamic toolbar cannot push the card past the visible viewport;
+        //     the two units are identical on desktop, so sm+ measures exactly
+        //     as it did before (698.3px on an 812-tall window, confirmed).
+        //
+        //   content-start
+        //     Kept from the deleted body wrapper. A grid's default
+        //     `align-content` behaves as STRETCH, and on the fixed-height sheet
+        //     that inflated every row on a short job — the title floated in the
+        //     middle of an over-tall first row, the stat tiles drifted apart,
+        //     and the poster card became a mostly-empty slab. A content-sized
+        //     box has no free space to distribute, so this is a no-op today and
+        //     a guard against the next `h-*`.
+        //
+        //   sm:w-[calc(100%-2rem)] sm:max-w-lg · sm:pb-7 · lg:max-w-3xl
+        //     Measure and sm+ padding, both unchanged. The phone keeps the base
+        //     `w-[calc(100vw-2rem)]` — the same 16px gutter every other dialog
+        //     in the app gets. `lg:max-w-3xl` caps the desktop card at the
+        //     reading column the page behind it uses (owner): `xl:max-w-6xl`
+        //     opened this at 1152px and read as a modal dwarfing the page.
+        //
+        // WHAT IS DELIBERATELY ABSENT:
+        //
+        //   · No radius classes. `.glass-modal` already sets
+        //     `border-radius: 28px`; the sheet's `rounded-b-none` existed only
+        //     because it was welded to the bottom edge. FLOATING CARD, NOT
+        //     FULL-BLEED — the decision this rewrite had to make. Square bottom
+        //     corners and edge-to-edge sides are the grammar of a sheet that
+        //     MEETS the screen edge; anchored at 7vh with a free bottom, both
+        //     of those edges end in mid-air, where a flat corner reads as a
+        //     clipped card rather than a designed one. It also honours the
+        //     app-wide rule recorded in dialog.tsx — these popups share one
+        //     shell.
+        //
+        //   · No `pb-[calc(1.25rem+env(safe-area-inset-bottom))]`. That was
+        //     home-indicator clearance for a sheet flush to the bottom edge.
+        //     The card bottoms out at 93vh in the worst case now, so the inset
+        //     is dead weight and the phone returns to the base `p-4`.
+        //
+        //   · No slide-* animation overrides, at ANY width. The phone branch
+        //     used `slide-in-from-bottom-full`, meaningless once the card is
+        //     top-anchored. The `sm:` branch used `slide-in-from-left-1/2`,
+        //     inherited from the era when the base centred by `transform`: it
+        //     sets `--tw-enter-translate-x: -50%`, which now COMPOSES with the
+        //     base's `translate: -50%` instead of restating it, for -100%
+        //     total. Sampled live at 768 before this change, the card entered
+        //     at left: -115.2px (off screen) and slid 256px into place —
+        //     exactly the "flies in from off-screen left" bug this file's
+        //     history says was fixed once already. Deleting both branches hands
+        //     the animation back to the base's fade + zoom-95, which is what
+        //     dialog.tsx documents as correct now that centring rides
+        //     `translate`.
+        //
+        //   · No `overscroll-contain`. `.glass-modal` already declares
+        //     `overscroll-behavior-y: contain`, which is all the deleted body
+        //     wrapper was restating.
+        //
+        // tailwind-merge resolves each line against the base class in the same
         // group, so ordering here is the whole mechanism.
         className={[
           "grid-cols-1",
-          // 1. phone geometry
-          "left-0 top-auto bottom-0 translate-x-0 translate-y-0 [translate:0_0]",
-          "w-full max-w-none h-[92dvh] max-h-[92dvh] rounded-b-none rounded-t-[28px]",
-          "grid-rows-[auto_minmax(0,1fr)_auto]",
-          // 2. phone animation
-          "data-[state=open]:slide-in-from-left-0 data-[state=open]:slide-in-from-bottom-full data-[state=open]:zoom-in-100",
-          "data-[state=closed]:slide-out-to-left-0 data-[state=closed]:slide-out-to-bottom-full data-[state=closed]:zoom-out-100",
-          // 3. sm+ restores DialogContent's OWN geometry — top-anchored at 7vh,
-          //    not the vertically-centred dialog this used to rebuild.
-          //
-          //    It restored `top-[50%] translate-y-[-50%]` verbatim, which is
-          //    the arrangement DialogContent moved away from: a vertically
-          //    centred box RE-CENTRES as its content arrives, so the panel
-          //    opens small and then grows in both directions while you are
-          //    reading it (owner: "opens small then gets bigger?"). Every
-          //    other dialog in the app was fixed by anchoring the top edge;
-          //    this one — the job detail, the most-opened modal here — kept
-          //    rebuilding the old behaviour inside its phone-sheet override
-          //    and so kept jumping.
-          //
-          //    `max-h` matches the global 86vh for the same reason: two
-          //    ceilings 2dvh apart on one component is a difference nobody
-          //    chose.
-          // `sm:[translate:-50%_0]`, not `sm:translate-x-[-50%] sm:translate-y-0`:
-          // the base DialogContent centers via the standalone `translate` CSS
-          // property (`[translate:-50%_-50%]`, chosen so tailwindcss-animate's
-          // keyframes — which write `transform` — never clobber it). Tailwind's
-          // `translate-x-*`/`translate-y-*` utilities set `--tw-translate-x/y`
-          // composed into `transform`, a DIFFERENT property from `translate` —
-          // so `sm:translate-y-0` was zeroing a `transform` that was never the
-          // one moving this box, while the base's real `translate-y: -50%`
-          // stayed in effect at every width. On a dialog taller than the
-          // viewport (top-anchored at 7vh, not vertically centered) that extra
-          // -50% shift pushed the whole card up past the top edge — the title/
-          // category/price header rendered above y=0, unreachably clipped by
-          // the fixed positioning (confirmed live: measured top -131px against
-          // an intended +32px/7vh). Overriding the SAME `translate` property
-          // the base uses is the only way to actually zero it.
-          "sm:left-[50%] sm:top-[7vh] sm:bottom-auto sm:[translate:-50%_0]",
-          // `sm:h-auto sm:grid-rows-none` undo the two phone-only lines above:
-          // above sm this is a floating card that shrinks to its content and
-          // lays its children out on implicit auto rows, exactly as before.
-          "sm:h-auto sm:grid-rows-none",
-          "sm:w-[calc(100%-2rem)] sm:max-w-lg sm:max-h-[86vh] sm:rounded-t-[28px] sm:rounded-b-[28px]",
-          "sm:data-[state=open]:slide-in-from-left-1/2 sm:data-[state=open]:slide-in-from-top-4 sm:data-[state=open]:zoom-in-95",
-          "sm:data-[state=closed]:slide-out-to-left-1/2 sm:data-[state=closed]:slide-out-to-top-4 sm:data-[state=closed]:zoom-out-95",
-          // Home-indicator clearance. The sheet is flush to the bottom edge,
-          // so without this the footer CTA sits under the indicator on every
-          // modern iPhone. sm+ is a floating card again and returns to the
-          // base p-7 padding.
-          "pb-[calc(1.25rem+env(safe-area-inset-bottom))] sm:pb-7",
-          /* CAPPED AT THE READING COLUMN (owner). `xl:max-w-6xl` opened this
-             at 1152px — half again as wide as `max-w-3xl`, the column every
-             page behind it uses — for a job that is usually a title, three
-             meta chips and a paragraph. It read as a modal dwarfing the page
-             rather than sitting over it. 3xl matches the page; phone sheet and
-             tablet are untouched, this only changes 1024px and up. */
+          "left-[50%] top-[7vh] bottom-auto [translate:-50%_0]",
+          "max-h-[86dvh]",
+          "content-start",
+          "sm:w-[calc(100%-2rem)] sm:max-w-lg",
+          "sm:pb-7",
           "lg:max-w-3xl",
         ].join(" ")}
 
@@ -341,8 +348,126 @@ const JobDetailDialog = ({
           _onSelect(_allJobs[nextIdx]);
         }}
       >
-        {/* Category chip, then the canonical popup title (DialogHero).
-            The chip is rendered HERE rather than passed to DialogHero as an
+        {/* NO BODY WRAPPER. Everything from here down to the footer is a
+            direct grid item of DialogContent, on the base's own implicit
+            auto rows and its `gap-3`. That is the shape sm+ has always
+            rendered: the 2026-08-31 phone wrapper carried `sm:contents`,
+            which dissolved it above 640px, so this IS that shape — now at
+            every width. It existed only to give a FIXED-height sheet a
+            scrollable middle track and a footer pinned under it; with the
+            height gone there is no slack to pin against, and a job long
+            enough to overflow scrolls in the dialog's own
+            `overflow-y-auto` (see the geometry note on DialogContent).
+            `content-start` moved up to DialogContent with it. */}
+        {/* Title+description share the row with price, price as a small
+            pill vertically centered against BOTH lines — same layout as
+            JobCard's title row (owner: "fix the layout so it's more
+            similar to the job card, with money on the right of the title
+            in a pill box", then "center [it] better between title and
+            description"). `chip` is the exact component JobCard uses so the
+            number is styled identically on both surfaces.
+            `mt-1`, not the `mt-5` this carried until 2026-08-31: that margin
+            existed to clear the badge row while the badge row was `absolute`
+            and therefore invisible to layout — a hand-measured number that had
+            already been wrong twice (it was `mt-7`, tuned for the pre-`compact`
+            44px icon row, before that). The badge row takes its own grid track
+            now, so the dialog's own `gap-3` does the clearing and this is just
+            the last few px needed to clear the corner icon cluster
+            (absolute, y=8..40). Measured after: title top lands at 43px on
+            phone and 43px at sm — the sm case was 40px before, so the desktop
+            card is unmoved for all practical purposes. */}
+        <div className="mt-1 flex items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <DialogHero title={job.title} />
+            {/* Description — always visible right under the title (owner:
+                "move the description under the title, put posted by info
+                there [in Details]"). It used to fold behind the Details
+                toggle alongside the poster card; that toggle is gone too
+                now (owner: "remove details and put posted by info here"). */}
+            {job.description && (
+              <div className="relative min-w-0 mt-1">
+                {/* THE HOUSE BODY VOICE, not this dialog's own (2026-08-31).
+                    This was `font-serif text-ds-15` at `ink-deep / 0.88`,
+                    hand-set here — upright serif, one of the SEVEN different
+                    body sizes the popup audit found across 24 dialogs, and two
+                    steps larger and darker than the prose every confirm in the
+                    app speaks. A helpr reading a job description and then a
+                    cancellation confirm was reading two different products.
+                    `DialogBody` is that one voice (serif italic, ds-12,
+                    olivewood/0.8 — byte-identical to what BrandConfirmDialog
+                    gives ~26 confirms), and it takes no className, so this
+                    cannot drift back one utility at a time.
+                    The <p> keeps only NON-TYPE utilities: line-clamp-3 turns it
+                    into a display:-webkit-box, which defaults to
+                    min-width:auto and sizes to its max-content width — so a
+                    normal word near the edge overflows and the box's own
+                    overflow:hidden clips it mid-word instead of wrapping.
+                    min-w-0 lets the box shrink to its container so text wraps,
+                    and we only clamp when the text is actually long enough to
+                    need it so short descriptions stay plain blocks that wrap
+                    cleanly. */}
+                <DialogBody>
+                  <p
+                    className={`break-words min-w-0 ${!descExpanded && job.description.length > 180 ? "line-clamp-3" : ""}`}
+                  >
+                    {job.description}
+                  </p>
+                </DialogBody>
+                {job.description.length > 180 && (
+                  <button
+                    type="button"
+                    onClick={() => setDescExpanded((v) => !v)}
+                    className="mt-1.5 text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] hover:opacity-80 transition-opacity"
+                    style={{ color: "hsl(var(--burnt-sienna) / 0.85)" }}
+                  >
+                    {descExpanded ? "Show Less" : "Read More"}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+          <div className="shrink-0">
+            <JobPrice
+              variant="chip"
+              size="lg"
+              budget={job.budget}
+              effectiveFee={commissionPercent}
+              urgentFee={job.urgent_fee ?? 0}
+              helpersNeeded={helpers}
+            />
+          </div>
+        </div>
+
+        {/* ── FRAME CHROME, RENDERED AFTER THE HERO ─────────────────────────
+            NOTHING RENDERS ABOVE THE HERO (dialog.tsx, "THE POPUP GRAMMAR").
+            These two elements used to be the first children of DialogContent,
+            which is what held this file out of the 2026-08-31 popup-grammar
+            pass: the rule exists because the one dialog that put a 56px icon
+            tile above its title pushed the title off the row the X is aligned
+            to, and a reader opening a popup should meet its title first.
+            They come AFTER the Hero in the DOM now — which is what they are:
+            card chrome, not header content. Both carry
+            `data-frame-chrome` and both bleed into the p-4/p-5 gutter (the
+            rail is `absolute`; the badge row cancels the padding with negative
+            margins), neither is in the reading stack, and a screen reader now
+            gets "<job title>" before "Home Repair · Urgent · Boosted" rather
+            than after — the better order of the two.
+            The badge row takes `order-first` to stay the top-left corner tab
+            the owner asked for ("category top left"). `order` is safe here and
+            nowhere near the WCAG 2.4.3 problem the footer has: this row holds
+            nothing focusable (it is `pointer-events-none`), so there is no
+            focus order to mismatch, and the reading order it produces is the
+            sensible one. It is also the ONLY way to keep both halves — the
+            corner tab AND a Hero with nothing above it — without going back to
+            `absolute`, which is the defect below.
+            The alternative considered and rejected: moving the strip visually
+            BELOW the title. That deletes an owner-approved design element
+            (the flush corner tab) to satisfy a rule aimed at icon tiles in the
+            header stack, so the strip stays where the owner put it and only
+            its DOM position changes.
+
+            The category chip is rendered as its own element rather than
+            passed to DialogHero as an
             `eyebrow`: DialogHero accepts that prop but deliberately does not
             render it (the 2026-07-25 "one main title" decision), so the
             category this dialog used to pass was silently discarded. The
@@ -413,7 +538,7 @@ const JobDetailDialog = ({
             because the collision was measured at 768 too. */}
         <div
           data-frame-chrome="true"
-          className={`relative z-20 pointer-events-none flex flex-wrap items-stretch -mt-4 -mx-4 sm:-mt-5 sm:-mx-5 ${iconLaneReserve}`}
+          className={`relative order-first z-20 pointer-events-none flex flex-wrap items-stretch -mt-4 -mx-4 sm:-mt-5 sm:-mx-5 ${iconLaneReserve}`}
         >
           <span
             className={`inline-flex items-center gap-1.5 pl-3.5 pr-3 py-1.5 rounded-tl-lg text-ds-13 font-semibold leading-none shadow-sm border-b border-r ${!isRecommended && !job.is_urgent && !job.isBoosted ? "rounded-br-lg" : ""} ${catStyle.badge}`}
@@ -477,96 +602,6 @@ const JobDetailDialog = ({
               Boosted
             </span>
           )}
-        </div>
-        {/* ROW 2 — THE SCROLLING BODY.
-            Everything the helpr reads lives in here so the footer CTA below
-            can hold the bottom edge of a fixed-height sheet instead of
-            floating wherever the content happened to end (see the geometry
-            note on DialogContent). `min-h-0` is the load-bearing half: a grid
-            item defaults to `min-height:auto`, which refuses to shrink below
-            its content, so without it a long job would push the CTA row off
-            the bottom of the sheet rather than scrolling inside this box.
-            `overflow-x-hidden` pairs with the `min-w-0` for the same reason
-            grid-cols-1 exists on the dialog — a long unbroken word must wrap,
-            not widen the column.
-            `content-start` is the other half of giving a grid a fixed height:
-            a grid's default `align-content` behaves as STRETCH, so on a short
-            job every row inflated to share out the 600px of new body space —
-            the title floated in the middle of an over-tall first row, the stat
-            tiles drifted apart, and the poster card became a mostly-empty slab
-            (seen on the first pass at 375). Packing the rows to the top keeps
-            each one its natural size and collects the slack in ONE place,
-            immediately above the pinned CTA, which is what a roomy sheet is
-            supposed to look like.
-            `sm:contents` DISSOLVES this wrapper above sm, so every child slots
-            straight back into the dialog's own implicit-row grid in the same
-            source order and the tablet/desktop card renders exactly as it did
-            before this file grew a phone body. */}
-        <div className="grid grid-cols-1 content-start gap-3 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden overscroll-contain sm:contents">
-        {/* Title+description share the row with price, price as a small
-            pill vertically centered against BOTH lines — same layout as
-            JobCard's title row (owner: "fix the layout so it's more
-            similar to the job card, with money on the right of the title
-            in a pill box", then "center [it] better between title and
-            description"). `chip` is the exact component JobCard uses so the
-            number is styled identically on both surfaces.
-            `mt-1`, not the `mt-5` this carried until 2026-08-31: that margin
-            existed to clear the badge row while the badge row was `absolute`
-            and therefore invisible to layout — a hand-measured number that had
-            already been wrong twice (it was `mt-7`, tuned for the pre-`compact`
-            44px icon row, before that). The badge row takes its own grid track
-            now, so the dialog's own `gap-3` does the clearing and this is just
-            the last few px needed to clear the corner icon cluster
-            (absolute, y=8..40). Measured after: title top lands at 43px on
-            phone and 43px at sm — the sm case was 40px before, so the desktop
-            card is unmoved for all practical purposes. */}
-        <div className="mt-1 flex items-center gap-3">
-          <div className="flex-1 min-w-0">
-            <DialogHero title={job.title} />
-            {/* Description — always visible right under the title (owner:
-                "move the description under the title, put posted by info
-                there [in Details]"). It used to fold behind the Details
-                toggle alongside the poster card; that toggle is gone too
-                now (owner: "remove details and put posted by info here"). */}
-            {job.description && (
-              <div className="relative min-w-0 mt-1">
-                {/* line-clamp-3 turns this <p> into a display:-webkit-box, which
-                    defaults to min-width:auto and sizes to its max-content width
-                    — so a normal word near the edge overflows and the box's own
-                    overflow:hidden clips it mid-word instead of wrapping.
-                    min-w-0 lets the box shrink to its container so text wraps,
-                    and we only clamp when the text is actually long enough to
-                    need it so short descriptions stay plain blocks that wrap
-                    cleanly. */}
-                <p
-                  className={`font-serif text-ds-15 leading-relaxed break-words min-w-0 ${!descExpanded && job.description.length > 180 ? "line-clamp-3" : ""}`}
-                  style={{ color: "hsl(var(--ink-deep) / 0.88)" }}
-                >
-                  {job.description}
-                </p>
-                {job.description.length > 180 && (
-                  <button
-                    type="button"
-                    onClick={() => setDescExpanded((v) => !v)}
-                    className="mt-1.5 text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] hover:opacity-80 transition-opacity"
-                    style={{ color: "hsl(var(--burnt-sienna) / 0.85)" }}
-                  >
-                    {descExpanded ? "Show Less" : "Read More"}
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-          <div className="shrink-0">
-            <JobPrice
-              variant="chip"
-              size="lg"
-              budget={job.budget}
-              effectiveFee={commissionPercent}
-              urgentFee={job.urgent_fee ?? 0}
-              helpersNeeded={helpers}
-            />
-          </div>
         </div>
 
         {/* One column at every width. This used to become a 7/5 split-pane
@@ -681,12 +716,16 @@ const JobDetailDialog = ({
               className="w-full max-h-48 object-cover"
               style={{ background: "hsl(var(--bark) / 0.05)" }}
             />
-            <p
-              className="font-serif italic text-ds-11 mt-1 text-center"
-              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-            >
-              Scope video — see exactly what's needed
-            </p>
+            {/* Same body voice as the description above — this line was
+                `text-ds-11` where the description was `text-ds-15`, two of the
+                seven sizes one dialog was speaking. Alignment and the top gap
+                live on the wrapper because DialogBody takes no className, by
+                design. */}
+            <div className="mt-1 text-center">
+              <DialogBody>
+                <p>Scope video — see exactly what's needed</p>
+              </DialogBody>
+            </div>
           </div>
         )}
 
@@ -709,22 +748,55 @@ const JobDetailDialog = ({
             plain footer (Message / Apply / Applied / your-post / credential
             gate) hides once that form is up — there is nothing left for it
             to do until the helpr submits or the sheet closes.
-            The apply FORM renders inside the scrolling body (here), not in
-            the pinned footer track below: it is a note field plus an
-            attachment picker and is routinely taller than the sheet, so a
-            fixed-height auto row would either crush the body to nothing or
-            overflow it. As the body's last child it scrolls exactly the way
-            it did when the whole dialog was one scroll container. */}
+            The apply FORM renders here, in the body's source position and
+            above the footer: it is a note field plus an attachment picker
+            and is routinely taller than the sheet, so it belongs in the run
+            of content the dialog scrolls, not in a pinned track. */}
         {step === "apply" && applyStep ? applyStep({ onBack: () => setStep("detail") }) : null}
-        </div>
 
-        {/* ROW 3 — THE PINNED FOOTER. Its own grid track, so on a phone the
-            primary CTA sits on the sheet's bottom edge (inside the
-            home-indicator inset) for EVERY job, short or long, instead of
-            landing wherever the content stopped. `sm:contents` dissolves the
-            wrapper above sm so the footer is a plain row of the floating
-            card's grid again, unchanged. */}
-        <div className="min-w-0 sm:contents">
+        {/* ── WHY THERE IS NO <DialogFooter> HERE ────────────────────────────
+            Deliberate, and the one part of the popup grammar this dialog does
+            not adopt. Recorded here rather than left as a silent omission.
+            THE MEASUREMENT. `DialogFooter` is only a flex row, so wrapping
+            this action strip in one would not by itself pin anything — but
+            every previous attempt to give this sheet a footer TRACK came with
+            a height to pin it against, and that is what produced the defect in
+            the geometry note on DialogContent above: `h-[92dvh]` +
+            `grid-rows-[auto_1fr_auto]` opened a sparse job at 747px with
+            364.7px of dead space between the last content pixel and a
+            stranded CTA (320: the same; a recommended+urgent+boosted job at
+            375: 337.7px). The lesson recorded there is that pinning a footer
+            to fill leftover space moves the emptiness somewhere worse. A
+            footer here is one `h-*` away from that every time.
+            THE SHAPE DOES NOT FIT EITHER, independently of the geometry. The
+            grammar's footer is at most one dismiss plus at most one commit,
+            built only from DialogSecondaryAction / DialogPrimaryAction /
+            DialogDestructiveAction. This strip is not that:
+              · Three of its four mutually-exclusive slot branches are not
+                commits at all — "This is your post" and "Applied — #3" are
+                STATUS, and the credential gate is a navigation.
+              · Those branches are deliberately the same `h-11 sm:h-12` box,
+                because `viewerTier` resolves a beat after open and an
+                unequal branch made the dialog visibly resize under the reader
+                (880px → 746px, the owner's "opens bigger then gets smaller").
+                The action primitives accept no `size` or `className` — by
+                design — so that equal-height invariant cannot be expressed
+                through them.
+              · The Message button is a 44px ICON, not a ghost text dismiss,
+                and the owner explicitly consolidated this row to ONE
+                full-width CTA with Message beside it (2026-08-30). On a phone
+                `POPUP_FOOTER_ROW` is a reversed COLUMN, so a DialogFooter
+                would stack Message as a second full-width bar under the CTA —
+                the two-slabs-of-equal-weight treatment that consolidation
+                removed.
+            Everything else in the grammar IS adopted: one shell, the Hero with
+            nothing above it, DialogBody prose, the shared close X, one
+            destructive colour. This dialog has a body-level action strip
+            instead of a footer, and that is the whole exception.
+            If you are about to add a `<DialogFooter>` here: re-read the
+            geometry note above, then re-measure a sparse job at 320/375 before
+            and after. `dialogShell.test.ts` pins this decision so the
+            re-reading is not optional. */}
         {step === "apply" && applyStep ? null : (
           <JobDetailFooter
             job={job}
@@ -745,7 +817,6 @@ const JobDetailDialog = ({
             onAskQuestion={handleAskQuestion}
           />
         )}
-        </div>
 
         <PhotoLightbox photos={photos} lightboxIndex={lightboxIndex} setLightboxIndex={setLightboxIndex} openInGridNonce={gridOpenNonce} />
       </DialogContent>

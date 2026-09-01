@@ -285,13 +285,62 @@ describe("useDashboardFilters — sort priority chain", () => {
     expect(result.current.filteredJobs[0].id).toBe("j2");
   });
 
-  it("subscribed posters' jobs prioritized for subscribed helpers", () => {
+  // ── Poster placement: bounded, viewer-independent ────────────────────────
+  //
+  // This slot used to assert the opposite contract: "subscribed posters' jobs
+  // prioritized for SUBSCRIBED helpers", with a Basic poster beating a free
+  // one. Three things were wrong with the behaviour it pinned, all fixed on
+  // 2026-09-01. It was viewer-gated, so two helpers side by side saw different
+  // orders. It graded ANY tier, including Basic, which does not carry
+  // `priorityPlacement` in TIER_PERKS. And it was an unbounded stratum sitting
+  // above the smart rank, so a paid poster's job beat a fresher, closer,
+  // better-paid one outright. The perk is now a bounded term inside
+  // `smartScore` (see smartSort.test.ts for the cap).
+
+  it("floats a paid poster's job above an otherwise identical free one", () => {
+    const sameTime = new Date(Date.now() - 60 * 60 * 1000).toISOString();
     const jobs = [
-      makeJob({ id: "free-poster", posterSubscriptionTier: null }),
-      makeJob({ id: "paid-poster", posterSubscriptionTier: "basic" }),
+      makeJob({ id: "free-poster", posterSubscriptionTier: null, created_at: sameTime, budget: 100 }),
+      makeJob({ id: "paid-poster", posterSubscriptionTier: "elite", created_at: sameTime, budget: 100 }),
     ];
-    const { result } = setup(jobs, { helprTier: "basic" });
+    const { result } = setup(jobs, { helprTier: null });
     expect(result.current.filteredJobs[0].id).toBe("paid-poster");
+  });
+
+  it("applies that lift for an UNsubscribed viewer too", () => {
+    // The old behaviour required helprTier to be set. Ranking must not depend
+    // on who is looking at it.
+    const sameTime = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const jobs = [
+      makeJob({ id: "free-poster", posterSubscriptionTier: null, created_at: sameTime, budget: 100 }),
+      makeJob({ id: "paid-poster", posterSubscriptionTier: "pro", created_at: sameTime, budget: 100 }),
+    ];
+    const { result } = setup(jobs, { helprTier: null });
+    expect(result.current.filteredJobs[0].id).toBe("paid-poster");
+  });
+
+  it("does NOT let a paid poster outrank a materially better job", () => {
+    // A free poster's job that is both fresher and better paid must win. The
+    // boost settles near-ties; it does not buy the top of the feed.
+    const jobs = [
+      makeJob({ id: "paid-stale", posterSubscriptionTier: "elite", budget: 40, created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString() }),
+      makeJob({ id: "free-strong", posterSubscriptionTier: null, budget: 400, created_at: new Date(Date.now() - 60 * 60 * 1000).toISOString() }),
+    ];
+    const { result } = setup(jobs, { helprTier: "elite" });
+    expect(result.current.filteredJobs[0].id).toBe("free-strong");
+  });
+
+  it("gives a Basic poster no lift — Basic has no priorityPlacement perk", () => {
+    const sameTime = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const jobs = [
+      makeJob({ id: "basic-poster", posterSubscriptionTier: "basic", created_at: sameTime, budget: 100 }),
+      makeJob({ id: "free-poster", posterSubscriptionTier: null, created_at: sameTime, budget: 100 }),
+    ];
+    const { result } = setup(jobs, { helprTier: "elite" });
+    // Exact tie in score → stable sort keeps input order, so the first-listed
+    // job stays first. Basic bought nothing.
+    expect(result.current.filteredJobs[0].id).toBe("basic-poster");
+    expect(result.current.filteredJobs[1].id).toBe("free-poster");
   });
 
   it("sortBy='newest' orders by created_at descending after priority tiers", () => {

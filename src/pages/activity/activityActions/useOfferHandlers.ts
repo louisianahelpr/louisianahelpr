@@ -10,6 +10,7 @@ import { fireSuccessMoment } from "@/lib/successMoment";
 import type { usePushPermissionNudge } from "@/lib/pushPermissionNudge";
 import type { useStripeConnectCheck } from "@/hooks/useStripeConnectCheck";
 import { awardBlockFromError, posterAwardBlockMessage, type AwardBlockReason } from "@/lib/awardGate";
+import { postedActivityBucket } from "@/pages/activity/activityFilters";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import type {
   Job,
@@ -163,7 +164,14 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
         title: "Application declined",
         message: `${posterFirstName} declined your application for "${jobTitle}": ${declineNote}`,
         type: "info",
-        link: "/my-jobs?filter=cancelled",
+        // `?job=`, not `?filter=cancelled`. `cancelled` IS a live chip and a
+        // declined application looks terminal — but it is not: a later direct
+        // offer for the same job promotes the SAME applications row back to
+        // `accepted` (respond_to_direct_offer, ON CONFLICT DO UPDATE), and the
+        // card moves out of Cancelled while this notification is still unread.
+        // Kept in lockstep with notify_on_application(), which is the primary
+        // producer for this event and now writes the same shape.
+        link: `/my-jobs?job=${app.job_id}`,
       });
     }
   };
@@ -307,7 +315,13 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
         );
       }
     }
-    await createNotification({ user_id: deadlineDialogApp.helper_id, title: "📋 New job offer!", message: `You've been selected for "${selectedJob.title}". Respond within ${deadlineHours} hour${deadlineHours > 1 ? "s" : ""} or the offer expires.`, type: "info", link: "/my-jobs?filter=offered" });
+    // `?job=`, not `?filter=offered`: `offered` is a legacy filter key with no
+    // chip in the five-bucket strip, so the helper landed on a filtered list
+    // with nothing selected — 33 such rows in prod. The applications row was
+    // just set to `accepted` above, so `?job=` resolves against it and Activity
+    // both selects the live bucket ("Needs you", since the offer is being held
+    // for them) and pulses the card.
+    await createNotification({ user_id: deadlineDialogApp.helper_id, title: "📋 New job offer!", message: `You've been selected for "${selectedJob.title}". Respond within ${deadlineHours} hour${deadlineHours > 1 ? "s" : ""} or the offer expires.`, type: "info", link: `/my-jobs?job=${selectedJob.id}` });
     // Success moment — the poster just hired an applicant. hapticSuccess is
     // a result haptic (fires even under Reduce Motion); the overlay itself
     // self-respects reduced motion (static check, no draw-in).
@@ -318,7 +332,20 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
     setApplications([]);
     setInlineApplicants(prev => { const copy = { ...prev }; delete copy[selectedJob.id]; return copy; });
     await refresh();
-    setStatusFilter("offered");
+    // The poster's OWN view after hiring. Same defect as the links above:
+    // "offered" is a legacy key with no chip, so this left the strip with
+    // nothing selected on the one screen the poster was just sent to. Ask the
+    // single source of truth for the bucket the job is actually in now
+    // (accepted + unconfirmed → "Waiting", or "Needs you" if its day has
+    // already passed) instead of naming one.
+    setStatusFilter(
+      postedActivityBucket({
+        status: "accepted",
+        helper_id: deadlineDialogApp.helper_id,
+        helper_confirmed_at: null,
+        date_needed: selectedJob.date_needed,
+      }),
+    );
   };
 
   /**

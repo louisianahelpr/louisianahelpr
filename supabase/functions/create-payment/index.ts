@@ -25,6 +25,33 @@ import { formatPayoutDollars } from "../_shared/money.ts";
  */
 const TAX_BEHAVIOR = "exclusive" as const;
 
+/**
+ * NOTIFICATION LINKS: `?job=<id>`, never a fixed `?filter=`.
+ *
+ * Every Activity notification this function writes carries the job id and lets
+ * the page resolve the bucket at OPEN time (the deep-link effect in
+ * src/pages/Activity.tsx). A fixed `?filter=` can never be right from the
+ * producer side, for two independent reasons:
+ *
+ *  - The bucket a job belongs to is a question about its LIVE state ("whose
+ *    move is it?"), and the answer changes while the notification sits unread.
+ *    A job linked as `?filter=scheduled` is in "Needs you" the moment its day
+ *    passes; one linked `?filter=cancelled` moves out of that bucket if a
+ *    later direct offer revives the helper's application.
+ *  - Most of the keys these links used are LEGACY: the chip strip is five
+ *    buckets (needs_you / scheduled / waiting / done / cancelled,
+ *    activityFilters.ts). `in_progress`, `completed`, `revision`,
+ *    `not_selected`, `offered`, `open` still work as filter VALUES but have no
+ *    chip, so the reader landed on a filtered list with nothing showing as
+ *    selected and no way to tell what they were looking at. 66 rows in prod
+ *    `notifications` are sitting on exactly that (measured 2026-08-31).
+ *
+ * And an explicit `?filter=` WINS over `?job=` resolution (`deepLinkHadFilter`
+ * in Activity.tsx), so a stale filter actively defeats the fix — passing both
+ * is worse than passing neither. Same rule, same reasons, as migration
+ * 20260831232514_notification_links_land_on_the_right_spot.sql.
+ */
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -166,11 +193,42 @@ serve(async (req) => {
             metadata: { job_id: jobId, customer_id: user.id, pif_credit_id: pifCreditId },
           },
           success_url: buildRedirectUrl(`/payment-success?job_id=${jobId}`, isNative),
-          cancel_url: buildRedirectUrl(`/post-job`, isNative),
+          // Carry the credit back with them. A bare `/post-job` cancel_url
+          // dropped the `pif_credit` query param that PostJob reads
+          // (usePostJobForm: searchParams.get("pif_credit")), so a recipient
+          // who backed out of the shortfall checkout landed on a plain
+          // post-a-task form — and their next submit created a SECOND job at
+          // FULL price while the gift sat 'reserved' against the abandoned
+          // one, unusable on anything else until the session expired.
+          cancel_url: buildRedirectUrl(`/post-job?pif_credit=${encodeURIComponent(pifCreditId)}`, isNative),
           metadata: { job_id: jobId, customer_id: user.id, pif_credit_id: pifCreditId },
         }, {
           idempotencyKey: `pif-diff-${jobId}`,
         });
+
+        // Record the session on the job, exactly as the full-escrow path below
+        // does. Two things depend on it and BOTH were blind on this branch:
+        // the double-payment guard at the top of this action (which requires a
+        // stripe_session_id before it will refuse a second checkout, so an
+        // already-PIF-funded job could be charged again at full price), and
+        // void-cancelled-payments' abandoned-checkout sweep (Part B selects on
+        // `.not("stripe_session_id","is",null)`) — without it an abandoned PIF
+        // shortfall left the job open+unpaid forever, permanently consuming one
+        // of the poster's open-job slots in enforce_open_job_limit.
+        // .select("id") because a zero-row match returns error === null.
+        const { data: diffUpdated, error: diffUpdateErr } = await supabaseAdmin
+          .from("jobs")
+          .update({ stripe_session_id: diffSession.id })
+          .eq("id", jobId)
+          .select("id");
+        if (diffUpdateErr || !diffUpdated || diffUpdated.length === 0) {
+          console.error(`[create-payment] PIF difference session ${diffSession.id} created for job ${jobId} but jobs.update failed:`, diffUpdateErr ?? "matched 0 rows");
+          // Safe to fail loudly: the credit is still 'reserved' against THIS
+          // job, and redeem_pif_credit treats re-entry for the same job as a
+          // retry, so the user can simply try again.
+          throw new Error("Could not record the payment session — please try again");
+        }
+
         return new Response(JSON.stringify({ url: diffSession.url }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
         });
@@ -190,31 +248,58 @@ serve(async (req) => {
         console.error(`[create-payment] platform_settings read failed — refusing to price escrow with default fees:`, settingsErr);
         throw new Error("Pricing configuration is temporarily unavailable — please try again in a moment");
       }
-      const globalCustomerFeePercent = settings.customer_fee_percent; // fallback only
+      // customer_fee_percent is READ but deliberately NOT BOUND. It is still
+      // selected and null-checked above because an unreadable/incomplete
+      // settings row means the pricing config is broken and this function must
+      // fail loud rather than price escrow on guesses — but its VALUE no longer
+      // reaches any charge (see the fee fallback below for why).
       const helperFeePercent = settings.helper_fee_percent;
       const onboardingFeeCents = settings.onboarding_fee_cents; // NOT NULL DEFAULT 200 in schema
 
       // Check if the poster owes the one-time onboarding fee (first job post) and
       // resolve their OWN subscription tier so the service fee follows the
-      // 12/10/8/6 ladder (a Business poster pays 6%, matching the helper side).
-      // The global customer_fee_percent is only a fallback if the row can't be read.
+      // 12/11/10/8 ladder — one user, one tier, one percent, whichever side of
+      // the job they are on.
+      // If that read fails, the fee falls back to the FREE-tier rate — see the
+      // fallback expression below for why it is not the global setting.
       const { data: posterProfile, error: posterProfileErr } = await supabaseAdmin
         .from("profiles")
         .select("onboarding_fee_paid, subscription_tier, subscription_expires_at")
         .eq("user_id", user.id)
         .single();
       if (posterProfileErr) {
-        // Don't fail the charge — fall back to the global fee percent — but make
-        // the failure findable, never silent. Critically, only bill the one-time
+        // Don't fail the charge — fall back to the free-tier rate — but make the
+        // failure findable, never silent. Critically, only bill the one-time
         // onboarding fee when we can PROVE it's unpaid: a read failure leaves
         // posterProfile null, so guarding on `!!posterProfile` prevents
         // re-charging onboarding to someone who already paid it.
-        console.error(`[create-payment] poster profile read failed — using global fee fallback, skipping onboarding charge:`, posterProfileErr);
+        console.error(`[create-payment] poster profile read failed — using the free-tier fee fallback, skipping onboarding charge:`, posterProfileErr);
       }
       const owesOnboardingFee = !!posterProfile && !posterProfile.onboarding_fee_paid && onboardingFeeCents > 0;
+      // FALLBACK = DEFAULT_TIER_FEE_PERCENT (the free rate), never
+      // `platform_settings.customer_fee_percent` and never a bare literal.
+      //
+      // This used to be `globalCustomerFeePercent`. The stored global is 10 and
+      // the free ladder rung is 12, so an unreadable poster profile quietly
+      // billed a free-tier poster 10% — two points of budget under their real
+      // rate, on the ONE path where the number is charged to a card. The helper
+      // side had the identical bug on its payout fallbacks and was fixed the
+      // same way; this is its charge-side twin, and it matters more, because a
+      // payout re-resolves the rate later (process-scheduled-payouts) while a
+      // capture does not: the shortfall is never clawed back.
+      //
+      // Direction is the whole argument. An unexpected value must never
+      // UNDER-charge the platform — over-charging a discounted poster is
+      // refundable, a discount already given is not recoverable — and
+      // DEFAULT_TIER_FEE_PERCENT is deliberately the free (highest) rung, so it
+      // is the safe end of the ladder in both roles.
+      //
+      // Deriving it from DEFAULT_TIER_FEE_PERCENT rather than writing 12 keeps
+      // this pinned to the ladder: retune TIER_FEE_PERCENT.free and both the
+      // poster and helper fallbacks move with it, automatically and together.
       const customerFeePercent = posterProfile
         ? posterFeePercentForTier(posterProfile.subscription_tier, posterProfile.subscription_expires_at)
-        : globalCustomerFeePercent;
+        : DEFAULT_TIER_FEE_PERCENT;
 
       // Customer service fee (added as a line item — taxable, platform revenue).
       // Floored at Stripe's real processing cost on the WHOLE transaction (budget
@@ -556,7 +641,8 @@ serve(async (req) => {
           user_id: job.helper_id,
           title: "Poster marked the job complete",
           message: `The poster marked "${job.title}" as complete. Please confirm completion to release payment.`,
-          type: "info", link: "/my-jobs?filter=in_progress",
+          // `?job=` — see the note on the shared rule at the top of this file.
+          type: "info", link: `/my-jobs?job=${job.id}`,
         });
       }
       if (isHelper && !posterDone) {
@@ -564,7 +650,7 @@ serve(async (req) => {
           user_id: job.customer_id,
           title: "Helpr marked the job complete",
           message: `The helpr marked "${job.title}" as complete. Please confirm completion to release payment.`,
-          type: "info", link: "/my-posts?filter=in_progress",
+          type: "info", link: `/my-posts?job=${job.id}`,
         });
       }
 
@@ -581,7 +667,7 @@ serve(async (req) => {
           user_id: job.customer_id,
           title: "Job completed!",
           message: `"${job.title}" is complete. Payment has been captured. The helpr will be paid in 24 hours.`,
-          type: "payment", link: "/my-posts?filter=completed",
+          type: "payment", link: `/my-posts?job=${job.id}`,
         });
       }
 
@@ -620,7 +706,7 @@ serve(async (req) => {
           user_id: job.helper_id,
           title: "Revision requested",
           message: `The poster has requested revisions on "${job.title}": ${note || "Please check the details."}`,
-          type: "warning", link: "/my-jobs?filter=revision",
+          type: "warning", link: `/my-jobs?job=${job.id}`,
         });
       }
 
@@ -656,7 +742,7 @@ serve(async (req) => {
         user_id: job.customer_id,
         title: "Revision completed — review needed",
         message: `The helpr has fixed the revision for "${job.title}". You have 72 hours to accept (mark complete) or dispute. If you do nothing, payment auto-releases.`,
-        type: "warning", link: "/my-posts?filter=revision_requested",
+        type: "warning", link: `/my-posts?job=${job.id}`,
       });
 
       return new Response(JSON.stringify({ success: true }), {
@@ -1043,7 +1129,7 @@ serve(async (req) => {
         user_id: job.customer_id,
         title: "Dispute resolved",
         message: `The dispute on "${job.title}" has been resolved. Payment was released to the helpr.`,
-        type: "info", link: "/my-posts?filter=completed",
+        type: "info", link: `/my-posts?job=${job.id}`,
       });
 
       return new Response(JSON.stringify({ success: true }), {
@@ -1211,14 +1297,14 @@ serve(async (req) => {
         user_id: job.customer_id,
         title: "Dispute resolved — refund issued",
         message: `The dispute on "${job.title}" has been resolved in your favor. A refund has been issued.`,
-        type: "payment", link: "/my-posts?filter=cancelled",
+        type: "payment", link: `/my-posts?job=${job.id}`,
       });
       if (job.helper_id) {
         await supabaseAdmin.from("notifications").insert({
           user_id: job.helper_id,
           title: "Dispute resolved",
           message: `The dispute on "${job.title}" has been resolved. The customer has been refunded.`,
-          type: "info", link: "/my-jobs?filter=not_selected",
+          type: "info", link: `/my-jobs?job=${job.id}`,
         });
       }
 
@@ -1382,7 +1468,11 @@ serve(async (req) => {
         title: isPartial ? "Partial refund issued" : "Refund issued",
         message: customerMessage,
         type: "payment",
-        link: isPartial ? `/my-posts` : "/my-posts?filter=cancelled",
+        // A partial refund leaves the job running, so it has no single fixed
+        // bucket — link the job and let Activity place it. (The full-refund
+        // branch cancels the job, so `cancelled` is safe there, but `?job=`
+        // says the same thing more directly.)
+        link: `/my-posts?job=${job.id}`,
       });
 
       // Helper notification — only on full refund (job is cancelled). Partial
@@ -1393,7 +1483,25 @@ serve(async (req) => {
           user_id: job.helper_id,
           title: "Job cancelled",
           message: `"${job.title}" was cancelled by support and refunded to the customer.${reason ? ` Reason: ${reason}` : ""}`,
-          type: "info", link: "/my-jobs?filter=not_selected",
+          // `?job=` — same shape as the poster half above, and as every
+          // producer converted in migration
+          // 20260831232514_notification_links_land_on_the_right_spot.sql.
+          //
+          // This was `/my-jobs?filter=not_selected`. Two things were wrong
+          // with it. `not_selected` is a LEGACY filter key: the Activity strip
+          // is five buckets now (needs_you / scheduled / waiting / done /
+          // cancelled, activityFilters.ts), and legacy enum keys still work as
+          // filter VALUES but have no chip — so the helper landed on a filter
+          // that no chip showed as selected, on a list filtered by it. And an
+          // explicit `?filter=` WINS over `?job=` resolution in Activity's
+          // deep-link effect (`deepLinkHadFilter`), so it could not even be
+          // rescued by also passing the job.
+          //
+          // A fixed `?filter=` can never be right from the producer side
+          // anyway: which bucket a job sits in is a question about its LIVE
+          // state, and the answer changes while the notification sits unread.
+          // `?job=` lets Activity resolve the bucket at open time.
+          type: "info", link: `/my-jobs?job=${job.id}`,
         });
       }
 

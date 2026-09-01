@@ -2,12 +2,24 @@ import { useState, useEffect } from "react";
 import { TimePickerSelect } from "@/components/TimePickerSelect";
 import { DatePickerField } from "@/components/DatePickerField";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHero,
+  DialogCallout,
+  DialogFooter,
+  DialogSecondaryAction,
+  DialogPrimaryAction,
+} from "@/components/ui/dialog";
+// `Lock` is the lucide glyph, imported explicitly. Without this line the
+// identifier still RESOLVES — to the DOM global `Lock` (the Web Locks API
+// interface in lib.dom.d.ts) — so the file parses and only a full `tsc`
+// catches it. Same trap for Range / Selection / Notification / Image / Text.
+import { Lock } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHero } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
@@ -146,16 +158,9 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
         <DialogHero title={title ? `"${title}"` : "Edit Job"} />
         <div className="space-y-5">
           {locked && (
-            <p
-              className="font-serif italic text-ds-13 leading-relaxed rounded-ds-md p-2.5"
-              style={{
-                color: "hsl(var(--olivewood) / 0.85)",
-                background: "hsl(var(--amber-tint) / 0.10)",
-                border: "0.5px solid hsl(var(--amber-tint) / 0.30)",
-              }}
-            >
+            <DialogCallout icon={Lock}>
               These fields are locked — a Helpr's already accepted this job.
-            </p>
+            </DialogCallout>
           )}
 
           {/* ── The task — what it is ─────────────────────────────────── */}
@@ -226,16 +231,15 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
               with a muted label and a secondary hover — the class list here
               was re-declaring it by hand, one hover token off from every other
               dialog's Cancel. */}
-          <Button variant="ghost" onClick={() => handleClose(false)}>
+          <DialogSecondaryAction onClick={() => handleClose(false)}>
             Cancel
-          </Button>
-          <Button
-            variant="primary"
+          </DialogSecondaryAction>
+          <DialogPrimaryAction
             onClick={handleSaveClick}
             disabled={saving || hasHelper}
           >
             {saving ? "Saving…" : "Save Changes"}
-          </Button>
+          </DialogPrimaryAction>
         </DialogFooter>
       </DialogContent>
     </Dialog>

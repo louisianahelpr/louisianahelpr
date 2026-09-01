@@ -34,7 +34,7 @@ export interface PifGiftEmailOpts {
  *
  * ASYNC because react-email's renderer is. `sendPifGiftEmail` awaits it.
  */
-export async function renderPifGiftEmail(
+async function renderPifGiftEmail(
   opts: PifGiftEmailOpts,
 ): Promise<{ html: string; text: string; subject: string }> {
   const amount = `$${(opts.amountCents / 100).toFixed(0)}`;

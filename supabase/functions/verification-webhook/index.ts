@@ -223,10 +223,20 @@ Deno.serve(async (req) => {
     // Keyed on dedupeKey, not rawEventId: every delivery now writes a dedupe row
     // (hash-keyed when the vendor sends no id), so guarding on rawEventId here
     // would leave those rows in place and make the retry 200-skip forever.
-    const { error: delErr } = await supabase
+    //
+    // `.select("event_id")` — NOT `.select("id")`. A null `error` does NOT mean
+    // the row went away: a DELETE matching zero rows returns
+    // `{ data: [], error: null }`, so without a returning projection this
+    // rollback could no-op and still look like it worked, which is precisely the
+    // failure it exists to prevent. The projection is `event_id` because that IS
+    // this table's primary key and it has no `id` column at all (verified
+    // against prod: `?select=id` → 400, `?select=event_id` → 200) — asking for
+    // `id` would turn every rollback into a hard 400 and a false critical page.
+    const { data: rolledBack, error: delErr } = await supabase
       .from("stripe_webhook_events")
       .delete()
-      .eq("event_id", `${vendor}:${dedupeKey}`);
+      .eq("event_id", `${vendor}:${dedupeKey}`)
+      .select("event_id");
     if (delErr) {
       // Both sibling webhooks page ops here, and for good reason: a surviving
       // dedupe row makes the vendor's retry hit the dedupe wall and 200-skip,
@@ -242,6 +252,41 @@ Deno.serve(async (req) => {
           Vendor: vendor,
           "Event ID": String(dedupeKey),
           Error: String((delErr as { message?: string }).message ?? delErr).slice(0, 200),
+        },
+      });
+      return;
+    }
+
+    // Zero rows deleted. This is NOT a benign race, and treating it as one is
+    // what made the bug invisible:
+    //   • We inserted this exact row moments ago in THIS request — any insert
+    //     error returned early, so reaching here means the insert succeeded.
+    //   • A concurrent delivery of the same event cannot have removed it: it
+    //     would have hit 23505 on insert and 200-skipped as a duplicate,
+    //     without ever reaching this rollback.
+    //   • Every call site returns immediately after awaiting this, so it cannot
+    //     run twice in one request and self-race.
+    //   • `cleanup_stripe_webhook_events()` only prunes rows older than 30 days.
+    // So zero rows means the predicate did not match our row — which is the
+    // same world as the delete erroring: the dedupe row SURVIVES, the vendor's
+    // retry hits the dedupe wall and 200-skips, and this verification status
+    // transition is stranded with no further delivery to fix it. Same
+    // consequence, same alert. (It is also the only signal that would catch the
+    // key drifting out of step with the insert again — that exact bug shipped
+    // once, keyed on rawEventId while the insert used dedupeKey.)
+    if (!rolledBack || (rolledBack as unknown[]).length === 0) {
+      console.error(
+        "[verification-webhook] Idempotency rollback matched ZERO rows — dedupe row may survive:",
+        `${vendor}:${dedupeKey}`,
+      );
+      await postSlackOpsAlert({
+        kind: "stripe_webhook_error",
+        severity: "critical",
+        title: "Verification webhook idempotency rollback matched 0 rows — status may be stranded",
+        message: `The rollback DELETE for \`${vendor}:${dedupeKey}\` reported no error but removed no row, even though this request inserted it moments ago. If the row is still there the vendor's retry will 200-skip as a duplicate and this verification status transition will never be applied. Check \`stripe_webhook_events\` for this event_id and delete it manually to allow redelivery.`,
+        fields: {
+          Vendor: vendor,
+          "Event ID": String(dedupeKey),
         },
       });
     }

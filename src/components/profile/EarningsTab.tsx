@@ -1,9 +1,8 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { TrendingUp, Gift, Briefcase, Zap, Info } from "lucide-react";
+import { Zap, Info } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatPriceExact } from "@/lib/format";
 import { instantPayoutFeeLabel, instantPayoutMinLabel } from "@/lib/instantPayoutFee";
 import {
   FORM_1099K_GROSS_THRESHOLD_DOLLARS,
@@ -18,6 +17,7 @@ import { EarningsExport } from "@/components/EarningsExport";
 import InstantPayoutDialog from "@/components/InstantPayoutDialog";
 import ProUpgradeSheet from "@/components/ProUpgradeSheet";
 import { safeStorage } from "@/lib/safeStorage";
+import { saveOrShareFile } from "@/lib/fileExport";
 import { EarningsBreakdownCharts } from "@/components/profile/EarningsBreakdownCharts";
 import { PayoutCelebration } from "@/components/wallet/PayoutCelebration";
 import { EarningsForecastCard } from "@/components/profile/EarningsForecastCard";
@@ -28,11 +28,16 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useHelperMilestones } from "@/hooks/useHelperMilestones";
 import type { EarningsTabProps } from "@/components/profile/earningsTab/types";
-import { buildPayoutsCsv } from "@/components/profile/earningsTab/earningsTabHelpers";
+import {
+  buildPayoutsCsv,
+  completedWithin,
+  rangeStartMs,
+} from "@/components/profile/earningsTab/earningsTabHelpers";
 import { useEarningsData } from "@/components/profile/earningsTab/useEarningsData";
 import { EarningsToolsMenu } from "@/components/profile/earningsTab/EarningsToolsMenu";
 import { EarningsViewSwitcher, type EarningsView } from "@/components/profile/earningsTab/EarningsViewSwitcher";
-import { EarningsRangeToggle, type EarningsRange } from "@/components/profile/earningsTab/EarningsRangeToggle";
+import { type EarningsRange } from "@/components/profile/earningsTab/EarningsRangeToggle";
+import { EarningsSummaryCard } from "@/components/profile/earningsTab/EarningsSummaryCard";
 import { ThresholdBanner } from "@/components/profile/earningsTab/ThresholdBanner";
 import { WalletCard } from "@/components/profile/earningsTab/WalletCard";
 import { PayoutHistory } from "@/components/profile/earningsTab/PayoutHistory";
@@ -117,7 +122,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
     }
   }, [payoutYears, exportYear]);
 
-  const handleExportCSV = () => {
+  const handleExportCSV = async () => {
     const year = Number(exportYear);
     const { rows, csv } = buildPayoutsCsv(stripeData?.payouts ?? [], year);
 
@@ -126,18 +131,20 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
       return;
     }
 
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `helpr-payouts-${year}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-
-    toast.success("Export ready", {
-      description: `${rows.length} payout${rows.length === 1 ? "" : "s"} exported for ${year}.`,
+    // Was `URL.createObjectURL` + `<a download>` + click, inline here. That
+    // idiom is a silent no-op in WKWebView — the tap did nothing at all in the
+    // shipped app (owner: "Download csv pdf etc does not work"). saveOrShareFile
+    // keeps the anchor on web and routes native through the OS share sheet, and
+    // toasts on every outcome. See src/lib/fileExport.ts.
+    // saveOrShareFile owns the messaging now, so the old "Export ready" toast
+    // is gone rather than doubled up. (Note: it never actually rendered —
+    // toastPolicy.ts suppresses every non-actionable `toast.success` app-wide.
+    // On web the browser's own download is the confirmation; what matters is
+    // that a FAILURE is now stated, which is the half that was missing.)
+    await saveOrShareFile({
+      blob: new Blob([csv], { type: "text/csv;charset=utf-8;" }),
+      filename: `helpr-payouts-${year}.csv`,
+      label: `your ${year} payouts CSV`,
     });
   };
 
@@ -154,10 +161,11 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   // stripeProcessingCostCents(tip) as the application fee, so the transfer is
   // tip − fee. Summing the gross overstated a $20 tip by 88¢ on the very tile
   // that tells a helpr what they earned.
-  const totalTips = tips.reduce(
-    (sum, t) => sum + (t.amount - stripeProcessingCostCents(Math.round(t.amount * 100)) / 100),
-    0,
-  );
+  const sumNetTipDollars = (rows: { amount: number }[]) =>
+    rows.reduce(
+      (sum, t) => sum + (t.amount - stripeProcessingCostCents(Math.round(t.amount * 100)) / 100),
+      0,
+    );
 
   const availableTotal = (stripeData?.available ?? []).reduce((s, b) => s + b.amount, 0);
   const pendingTotal = (stripeData?.pending ?? []).reduce((s, b) => s + b.amount, 0);
@@ -209,6 +217,24 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
      the wallet balance is always lifetime; selecting "week" or "month" opts
      into the forward-looking cards those ranges fold in (see EarningsRangeToggle). */
   const [range, setRange] = useState<EarningsRange>("lifetime");
+
+  /* THE FIGURES <EarningsSummaryCard /> ACTUALLY PRINTS, scoped to `range`.
+     Until 2026-08-31 the range toggle scoped nothing: the headline total, the
+     job count and the tips figure were lifetime under every option, so "This
+     Year" was a no-op and "This Week" printed a lifetime total under a label
+     that said otherwise. `rangeStartMs` buckets by completion timestamp the
+     same way PaymentTab's poster-spend toggle does, so "This Week" means one
+     week on this screen, not two.
+     Lifetime `totalEarnings` is still what PaymentTab and the milestone hook
+     read — those are lifetime facts and must not follow the toggle. */
+  const rangeSince = rangeStartMs(range);
+  const rangeJobs = completedWithin(completedJobs, rangeSince);
+  const rangeTipRows =
+    rangeSince === null
+      ? tips
+      : tips.filter((t) => new Date(t.created_at).getTime() >= rangeSince);
+  const rangeEarnings = sumHelperTakeHomeDollars(rangeJobs, helperFeeFallbackPct);
+  const rangeTips = sumNetTipDollars(rangeTipRows);
 
   // ─── 1099-K threshold awareness ───────────────────────────────
   // Once YTD payouts cross the FEDERAL gross threshold we surface a quiet,
@@ -326,41 +352,26 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
         />
       )}
 
-      {/* KEY TOTAL — lifetime take-home, promoted above the tabs so it is the
-          first number a helpr sees on the page rather than a small tile three
-          sections down. Skeleton-sized while `loading` so this line doesn't
-          pop in after the tabs below it and shove them down (#8). */}
-      {loading ? (
-        <div className="space-y-1.5 px-1">
-          <Skeleton className="h-3 w-24 rounded" />
-          <Skeleton className="h-8 w-32 rounded" />
-        </div>
-      ) : (
-        <div className="px-1">
-          <span className="sr-only">Total lifetime earnings</span>
-          <p
-            className="font-display italic font-bold tabular-nums leading-none text-ds-30"
-            style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
-          >
-            ${formatPriceExact(totalEarnings)}
-          </p>
-          <p className="font-serif italic mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            total earned
-          </p>
-        </div>
-      )}
+      {/* THE ORPHANED "$357 / total earned" USED TO SIT HERE (owner,
+          2026-08-30: "357 is oddly placed. Fix it.") — a bare <p> on the page
+          background between the poster-spend card above and the tab bar below,
+          the only figure on the screen without a container. It has moved into
+          <EarningsSummaryCard /> at the top of the Money view, which is also
+          where the duplicate of it lived: the same `totalEarnings` value was
+          printed here AND as the first of three small tiles further down, one
+          number stated twice on one screen. One statement now, in a card whose
+          anatomy matches the wallet directly beneath it.
+
+          The date-range toggle used to sit here too, full-width and attached to
+          nothing, a screen above PaymentTab's near-identical poster-spend pill.
+          It now renders inside the card whose figures it scopes, and only in
+          the Money view — it governs nothing in History, Insights or Payouts,
+          where it was previously still on screen and inert. */}
 
       {/* ONE VIEW AT A TIME. Everything above this line is either global
           (header, celebration) or urgent (the 1099 banner, the connect card),
           so it stays put; the four groups below take turns. */}
       <EarningsViewSwitcher value={view} onChange={setView} />
-
-      {/* Date-range toggle — decides which slice of time the Money view's
-          numbers cover. Selecting "This Week" or "This Month" folds in the
-          Sunday-projection and monthly-goal cards that used to be
-          permanently visible on the page (see the `range === ...` gates
-          inside the Money view below). */}
-      <EarningsRangeToggle value={range} onChange={setRange} />
 
       {/* ─── MONEY ─── what I have, and what is coming ─── */}
       {view === "money" && (
@@ -377,6 +388,24 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
             retryDisabled={refreshing}
           />
         )}
+
+        {/* EARNED — the first card of the Money view, and the only place on
+            this screen that states take-home. Sits above the wallet on
+            purpose: "what have I made" is the question a helpr opens this tab
+            with, and "where is that money right now" is the follow-up. It also
+            renders for a helpr who has NOT connected Stripe (who has earnings
+            but no wallet), which is exactly the state the owner screenshotted. */}
+        <EarningsSummaryCard
+          loading={loading}
+          range={range}
+          onRangeChange={setRange}
+          earnedDollars={rangeEarnings}
+          jobCount={rangeJobs.length}
+          tipsDollars={rangeTips}
+          tipCount={rangeTipRows.length}
+          inProgressCount={inProgressJobs.length}
+        />
+
         {/* Wallet card (Available + Pending side-by-side).
             NOT RENDERED UNTIL STRIPE IS CONNECTED. Its disconnected state was
             a second "Set up Payouts" card — the first thing on the page —
@@ -422,38 +451,13 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
         />
         )}
 
-        {/* Compact secondary stats — 3-up tiny tiles */}
-        {!loading && (
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              /* NET IS TAKE-HOME, so it formats EXACT (format.ts: "NOT for the
-                 helper's net take-home… Take-home surfaces use
-                 `formatPriceExact`"). Rounded, this tile said "$229" while the
-                 payout ledger three sections below said "$228.80" for the same
-                 single job — one payment, two numbers, on one screen. Tips are
-                 money that moved too, so they take the same rule. */
-              { icon: TrendingUp, label: "Net", value: `$${formatPriceExact(totalEarnings)}`, sub: `${completedJobs.length} job${completedJobs.length === 1 ? "" : "s"}` },
-              { icon: Gift, label: "Tips", value: `$${formatPriceExact(totalTips)}`, sub: `${tips.length} tip${tips.length === 1 ? "" : "s"}` },
-              { icon: Briefcase, label: "Active", value: String(inProgressJobs.length), sub: "in progress" },
-            ].map(({ icon: Icon, label, value, sub }) => (
-              <div key={label} className="rounded-ds-md liquid-glass px-3 py-3 transition-all hover:-translate-y-0.5">
-                <div className="flex items-center gap-1 mb-1">
-                  <Icon className="w-3 h-3 text-primary" />
-                  {/* Owner removed the small-caps eyebrow; kept sr-only so the
-                      tile still announces which figure it is (the icon and the
-                      `sub` line carry it visually). */}
-                  <span className="sr-only">{label}</span>
-                </div>
-                <p className="font-display italic font-bold tabular-nums leading-none text-ds-18" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
-                  {value}
-                </p>
-                <p className="font-serif italic mt-1 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                  {sub}
-                </p>
-              </div>
-            ))}
-          </div>
-        )}
+        {/* THE 3-UP TILE ROW (Net / Tips / Active) WAS HERE. Its "Net" tile
+            printed `totalEarnings` — the identical value the orphaned headline
+            above the tab bar was already printing, from the same variable
+            through the same formatter. One figure, twice, on one screen. All
+            three facts now live in <EarningsSummaryCard /> above, where the
+            money ones follow the range toggle and the live job count is stated
+            separately as "right now" rather than sharing a scope it never had. */}
 
       {/* ─── COMING UP ────────────────────────────────────────────
           Forward-looking content now lives BEHIND the date-range toggle
@@ -575,6 +579,32 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
       {/* PIE + YTD vs PRIOR-YTD compare ───────────────────
           Self-hides if there's no completed-job data. */}
       <EarningsBreakdownCharts earningsJobs={earningsJobs} feeFallbackPercent={helperFeeFallbackPct} />
+
+      {/* The ONE entry point to /analytics (Advanced Analytics, built
+          2026-09-01 to satisfy the Pro bullet that previously pointed at
+          nothing). It is a link, not a locked teaser card: the charts above
+          stay free for everyone, and the page it opens decides for itself —
+          server-side — whether this helper gets the dashboard or the upgrade
+          offer. Deliberately not gated here; a client-side gate on a paid
+          perk is the bug this feature was built to stop repeating, and a
+          hidden link would leave the pricing bullet undiscoverable. */}
+      <button
+        type="button"
+        onClick={() => navigate("/analytics")}
+        className="w-full rounded-2xl liquid-glass px-4 py-3 flex items-center gap-3 text-left active:scale-[0.99] transition-transform"
+      >
+        <span className="min-w-0 flex-1">
+          <span className="block text-ds-13 font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
+            Advanced Analytics
+          </span>
+          <span className="block text-ds-11 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.65)" }}>
+            Where your money comes from, and when work gets posted near you
+          </span>
+        </span>
+        <span className="text-ds-13 shrink-0" style={{ color: "hsl(var(--olivewood) / 0.5)" }} aria-hidden="true">
+          &rsaquo;
+        </span>
+      </button>
       </section>
       )}
 

@@ -1,6 +1,13 @@
 import { formatName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetFooter, SheetHero } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetFooter,
+  SheetHero,
+  SheetPrimaryAction,
+  SheetSecondaryAction,
+} from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { Check } from "lucide-react";
 import { hapticLight } from "@/lib/haptics";
@@ -150,12 +157,12 @@ export function DeclineApplicantSheet({
                   reversible (the poster can invite someone else, or the same
                   person again), so it is the ordinary glossy primary. */}
               <SheetFooter>
-                <Button variant="ghost" disabled={declineSending} onClick={onClose}>
+                <SheetSecondaryAction disabled={declineSending} onClick={onClose}>
                   Cancel
-                </Button>
-                <Button variant="primary" disabled={declineSending} onClick={onConfirm}>
+                </SheetSecondaryAction>
+                <SheetPrimaryAction disabled={declineSending} onClick={onConfirm}>
                   {declineSending ? "Declining…" : "Confirm Decline"}
-                </Button>
+                </SheetPrimaryAction>
               </SheetFooter>
             </div>
           );

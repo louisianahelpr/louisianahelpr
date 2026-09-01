@@ -100,13 +100,44 @@ Deno.serve(async (req) => {
   // The SDK verifies the standard-webhooks signature and hands back a typed
   // event. `verify` THROWS on a bad signature, a replayed timestamp, or a
   // malformed body — all of which are a 401, never a 200.
+  //
+  // `headers` is NOT a Fetch Headers object. resend@6.25.0's Webhooks.verify()
+  // does exactly this:
+  //
+  //     new Webhook(secret).verify(payload.payload, {
+  //       'webhook-id':        payload.headers.id,
+  //       'webhook-timestamp': payload.headers.timestamp,
+  //       'webhook-signature': payload.headers.signature,
+  //     })
+  //
+  // — three plain PROPERTY reads. A Fetch `Headers` instance has no `.id`,
+  // `.timestamp` or `.signature`; its values are only reachable through
+  // `.get()`. So passing `req.headers` handed standardwebhooks three
+  // `undefined`s, its `if (!msgSignature || !msgId || !msgTimestamp)` guard
+  // threw `Missing required headers`, and this function answered 401 to EVERY
+  // Resend delivery it has ever received. `suppressed_emails` therefore stayed
+  // empty and both suppression guards stayed no-ops — the exact failure this
+  // function was written to end, still in place after the verify_jwt fix.
+  // Nothing caught it because the vendor's own types say `headers: { id;
+  // timestamp; signature }`, and no edge function was ever type-checked.
+  //
+  // Resend signs with Svix, which sends `svix-*`; standard-webhooks renamed the
+  // same three headers to `webhook-*`. Read either, so a header rename on
+  // Resend's side cannot silently re-break suppression.
+  const signatureHeader = (svix: string, standard: string): string =>
+    req.headers.get(svix) ?? req.headers.get(standard) ?? ''
+
   let payload: { type?: string; data?: Record<string, unknown>; created_at?: string }
   try {
     payload = new Resend(Deno.env.get('RESEND_API_KEY') ?? 'unused').webhooks.verify({
       payload: rawBody,
-      headers: req.headers,
+      headers: {
+        id: signatureHeader('svix-id', 'webhook-id'),
+        timestamp: signatureHeader('svix-timestamp', 'webhook-timestamp'),
+        signature: signatureHeader('svix-signature', 'webhook-signature'),
+      },
       webhookSecret: secret,
-    }) as typeof payload
+    }) as unknown as typeof payload
   } catch (err) {
     console.error('[resend-webhook] signature verification failed:', err instanceof Error ? err.message : String(err))
     return json({ error: 'Invalid signature' }, 401)

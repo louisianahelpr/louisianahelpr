@@ -121,7 +121,7 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
           icon={MessageSquare}
           label="Message"
           ariaLabel="Message the poster about this job"
-          tone="neutral"
+          tone="message"
           onClick={() => navigate(job.customer_id ? `/messages?jobId=${app.job_id}&userId=${job.customer_id}` : "/messages")}
         />
         <JobActionChip

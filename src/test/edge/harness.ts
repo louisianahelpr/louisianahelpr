@@ -72,6 +72,17 @@ function rewriteExternalImports(src: string): string {
     `import $1{$2} from "${MOCK.supabase}";`,
   );
 
+  // supabase-js via esm.sh: `import { createClient } from
+  // "https://esm.sh/@supabase/supabase-js@2"` (also `@2.99.0`). Functions are
+  // split roughly half and half between this form and the `npm:` form above —
+  // verification-webhook and daily-match-digest use esm.sh — and without this
+  // rule their `createClient` resolved to the REAL library, which then tried to
+  // reach the network instead of the in-memory table store.
+  out = out.replace(
+    /import\s+(type\s+)?\{([^}]*)\}\s+from\s+["']https:\/\/esm\.sh\/@supabase\/supabase-js@[^"']+["'];?/g,
+    `import $1{$2} from "${MOCK.supabase}";`,
+  );
+
   // serve: `import { serve } from "https://deno.land/std@.../http/server.ts"`
   // Drop the import entirely — `serve` is provided as a harness global below.
   out = out.replace(
@@ -123,6 +134,43 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/payoutClaim.ts";`,
   );
 
+  // Subscription period resolver: `_shared/stripeSubscriptionPeriod.ts` has
+  // ZERO imports (it is structurally typed over the Stripe payload), so the
+  // generated file points at the REAL module rather than a mock — same
+  // reasoning as payoutClaim above. This helper is the ONLY thing standing
+  // between a paid recurring membership and a `RangeError: Invalid time value`
+  // that 500s the whole webhook: `subscription.current_period_end` was removed
+  // from the Subscription object in Stripe API version 2025-03-31.basil and
+  // these functions pin 2025-08-27.basil. Mocking it would mean the fix for a
+  // "customer charged, entitlement never granted" bug is the one thing not
+  // under test.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/stripeSubscriptionPeriod\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/stripeSubscriptionPeriod.ts";`,
+  );
+
+  // Tier display names: `_shared/tierNames.ts` has ZERO imports and is a plain
+  // lookup table, so the generated file points at the REAL module. It is what
+  // stops a lapse notification telling a member "Your pro pass ended" with the
+  // raw column id in it, which is a user-visible string worth having under test.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/tierNames\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/tierNames.ts";`,
+  );
+
+  // Stripe->profile linkage projection: `_shared/subscriptionLinkage.ts` has
+  // ZERO imports and is a pure function of the Stripe payload, so — same
+  // reasoning as stripeSubscriptionPeriod above — the generated file points at
+  // the REAL module. It decides the customer id, subscription id, billing cycle
+  // and cancel-at-period-end that get written onto `profiles`, which is what
+  // makes a membership reconcilable against Stripe at all and what decides
+  // whether the Membership card says "Renews", "Ends" or "Expires". Mocking it
+  // would leave exactly that untested.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/subscriptionLinkage\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/subscriptionLinkage.ts";`,
+  );
+
   // Stripe product -> membership tier: `_shared/productTiers.ts` is a plain
   // constant map (no Deno/remote imports), so the generated file points at the
   // REAL module. Matched for BOTH forms, because stripe-webhook/constants.ts
@@ -142,6 +190,20 @@ function rewriteExternalImports(src: string): string {
   out = out.replace(
     /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/stripeIdentity\.ts["'];?/g,
     `import {$1} from "../../../supabase/functions/_shared/stripeIdentity.ts";`,
+  );
+
+  // Flat one-time product prices: `_shared/productPrices.ts` is a plain
+  // constant module (no Deno/remote imports), so the generated file points at
+  // the REAL module. These ARE the amounts Stripe charges for a boost and a
+  // background check, and BOOST_DISCOUNT_PCT / BOOST_MIN_UNIT_AMOUNT_CENTS
+  // decide what a subscriber actually pays — mocking them would leave the one
+  // thing worth asserting (the charged cents) untested. Without this rule the
+  // specifier stayed `../_shared/productPrices.ts`, unresolvable from a
+  // `.gen.ts` in this directory, so create-boost-payment could not be loaded
+  // by the harness at all.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/productPrices\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/productPrices.ts";`,
   );
 
   // Stripe processing-cost floor: `_shared/stripeFees.ts` is likewise pure

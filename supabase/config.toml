@@ -91,6 +91,8 @@ project_id = "fncmgoasalhdgfwzhsqa"
     verify_jwt = false
   [functions.money-reconciliation]
     verify_jwt = false
+  [functions.subscription-reconciliation]
+    verify_jwt = false
   [functions.cleanup-abandoned-accounts]
     verify_jwt = false
   # Cron-authenticated like its siblings (verifyCronSecret), not JWT — no user

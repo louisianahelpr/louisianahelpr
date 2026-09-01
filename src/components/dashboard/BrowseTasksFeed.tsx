@@ -562,8 +562,8 @@ export function BrowseTasksFeed({
           title={
             filters.hasFilters
               ? (nearbyActive
-                ? `No tasks within ${currentMiles} mi of you.`
-                : "No tasks match your filters.")
+                ? `No jobs within ${currentMiles} mi of you.`
+                : "No jobs match your filters.")
               : `Nothing today, ${emptyStateGreeting}.`
           }
           body={
@@ -721,7 +721,7 @@ export function BrowseTasksFeed({
                 {isFetchingNextPage ? (
                   <span className="text-ds-11 text-muted-foreground inline-flex items-center gap-2">
                     <span className="w-3 h-3 rounded-full border-2 border-primary/30 border-t-primary motion-safe:animate-spin" />
-                    Loading more tasks…
+                    Loading more jobs…
                   </span>
                 ) : (
                   <Button

@@ -346,72 +346,133 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
           aria-modal="true"
           aria-labelledby="app-lock-title"
           data-app-lock="locked"
-          // Content is anchored to the TOP and the BOTTOM, leaving the vertical
-          // middle clear.
+          // PHONE: IDENTITY CENTRED, ACTION BOTTOM-ANCHORED, GAP CAPPED.
+          // sm+ : one centred column.
           //
-          // `justify-center` with no inset put the heading exactly where iOS
-          // draws the Face ID sheet, so on shorter devices the two collided —
-          // observed on an iPhone 17 Pro simulator, not theoretical.
-          // sm: and up is a browser window, where there is no OS sheet to make
-          // room for and the top/bottom split just reads as a broken layout
-          // with a dead middle — so the two blocks close up and centre.
-          className="bg-premium-page fixed inset-0 z-[100] flex flex-col items-center overflow-y-auto px-6 sm:justify-center"
+          // The owner chose this shape explicitly, shown both alternatives
+          // side by side: "Centre block, button stays at bottom."
+          //
+          // WHAT WAS WRONG. The mark/title/explainer used to be pinned to the
+          // TOP, on the theory that the middle had to be kept clear for the
+          // iOS Face ID sheet. Measured (393x852): the explainer finished at
+          // y=217 — 25% down — and the next pixel of content was the e-mail at
+          // y=743. A 525px hole, 62% of the screen. Owner: "Move the top info
+          // to the center."
+          //
+          // THE TENSION, STATED HONESTLY, because the next person to touch
+          // this will otherwise "fix" it back. Let F be the free space left
+          // after the identity block (I) and the account+action block (B):
+          //
+          //     topMargin + gap = F,  so  gap = F - topMargin
+          //
+          // Centring the identity in the space above a bottom-flush action
+          // means topMargin == gap == F/2. At 393x852 that is 282.7px of
+          // nothing in the middle — and the ONLY way to shrink it is to raise
+          // topMargin, i.e. push the identity DOWN, away from centre. Centred
+          // block + bottom-flush action + small gap cannot all be true on a
+          // tall phone; it is arithmetic, not a layout bug. This is the same
+          // shape the job-detail sheet was rebuilt to escape (see the history
+          // block in dashboard/JobDetailDialog.tsx, where a 92dvh sheet with
+          // the CTA welded to the bottom stranded 364.7px above it): pinning
+          // content to an edge relocates emptiness rather than removing it.
+          //
+          // WHAT WE DO ABOUT IT. The gap is not left to grow — the lower
+          // spacer is capped at `max-h-56` (14rem / 224px) and the surplus is
+          // handed to the UPPER spacer, where it becomes ordinary top-of-screen
+          // margin instead of an interior hole. Two consequences, both wanted:
+          //
+          //   · the gap is bounded FOREVER. It is 224px on every phone tall
+          //     enough to hit the cap and cannot exceed it on any future
+          //     device, where the uncapped version grew without limit
+          //     (282.7px at 852, 322.7 at 932, 456.7 on a 1200-tall window).
+          //   · the cap makes the gap smaller than the top margin (224 vs
+          //     341.4 at 393x852, a 0.66 ratio), so proximity groups the block
+          //     WITH the action below it instead of leaving two equidistant
+          //     clusters. That ratio is what stops it reading as a hole.
+          //
+          // Measured identity-block centres with the cap in place: 42.5% at
+          // 320x568, 49.5% at 375x812, 51.9% at 393x852, 56.0% at 430x932 —
+          // centred at every real phone size, which is what was asked for.
+          //
+          // 14rem was chosen over tighter caps deliberately: 13rem drops the
+          // 393x852 centre to 53.8% and 12rem to 55.6%, buying a smaller gap
+          // by pushing the block off the centre the owner asked for.
+          //
+          // `min-h-full` on the inner column (rather than `justify-center` on
+          // this scroller) is deliberate: centring a flex container's child
+          // directly makes overflow unreachable above the top edge. The column
+          // grows past the viewport instead, so a very short window scrolls
+          // normally rather than clipping the heading away. The spacers are
+          // `flex-1` off a zero basis, so they collapse first and the content
+          // is never what gets squeezed. In practice it never scrolls —
+          // verified down to 320x360 with the safe-area insets applied.
+          className="bg-premium-page fixed inset-0 z-[100] overflow-y-auto px-6"
           style={{
             paddingTop: "max(var(--safe-area-top, 0px), 1rem)",
             paddingBottom: "max(var(--safe-area-bottom, 0px), 1rem)",
           }}
         >
-          {/* Top block — what this screen is. The old version shipped the mark
-              and a bare "Unlock" button with no words at all: it never said the
-              app was locked, whose account it was, or what the button would do.
-              iOS's own sheet names itself, but it appears AFTER the tap (and
-              not at all if the user cancelled once), so the screen underneath
-              has to stand on its own. */}
-          <div className="flex w-full max-w-sm shrink-0 flex-col items-center pt-8 text-center sm:pt-0">
-            {/* The real Helpr mark, not a generic padlock glyph. */}
-            <img
-              src="/helpr-splash-icon.png"
-              alt=""
-              aria-hidden
-              className="h-16 w-16 object-contain"
-            />
-            <h1 id="app-lock-title" className="text-page-title mt-4">
-              Louisiana Helpr is locked
-            </h1>
-            <p
-              className="mt-2 max-w-[30ch] font-serif text-ds-13 italic"
-              style={{ color: "hsl(var(--olivewood) / 0.85)" }}
-            >
-              {explainer}
-            </p>
-          </div>
+          <div className="flex min-h-full w-full flex-col items-center sm:justify-center">
+            {/* Upper spacer — uncapped, so every pixel the lower one refuses
+                lands here as top margin rather than as an interior hole. */}
+            <div aria-hidden className="w-full flex-1 sm:hidden" />
 
-          {/* Spacer, so the OS sheet has the middle of the screen to land in. */}
-          <div className="min-h-8 flex-1 sm:hidden" />
-
-          {/* Bottom block — whose account, and the single action. */}
-          <div className="flex w-full max-w-sm shrink-0 flex-col items-center gap-3 pb-2 sm:mt-10 sm:pb-0">
-            {email && (
+            {/* What this screen is. The old version shipped the mark and a bare
+                "Unlock" button with no words at all: it never said the app was
+                locked, whose account it was, or what the button would do. iOS's
+                own sheet names itself, but it appears AFTER the tap (and not at
+                all if the user cancelled once), so the screen underneath has to
+                stand on its own. */}
+            <div className="flex w-full max-w-sm shrink-0 flex-col items-center text-center">
+              {/* The real Helpr mark, not a generic padlock glyph. */}
+              <img
+                src="/helpr-splash-icon.png"
+                alt=""
+                aria-hidden
+                className="h-16 w-16 object-contain"
+              />
+              <h1 id="app-lock-title" className="text-page-title mt-4">
+                Louisiana Helpr is locked
+              </h1>
               <p
-                className="max-w-full break-words text-center font-sans text-ds-12"
-                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                className="mt-2 max-w-[30ch] font-serif text-ds-13 italic"
+                style={{ color: "hsl(var(--olivewood) / 0.85)" }}
               >
-                Signed in as{" "}
-                <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
-                  {email}
-                </span>
+                {explainer}
               </p>
-            )}
-            {/* Glossy primary (btn-grad-primary via variant="primary"); default
-                size is h-14, comfortably over the 44px minimum target. */}
-            <Button
-              variant="primary"
-              className="w-full"
-              onClick={() => void attemptUnlock()}
-              disabled={checking}
-            >
-              {checking ? "Unlocking…" : unlockLabel}
-            </Button>
+            </div>
+
+            {/* Lower spacer — THE gap. Capped, per the block comment above:
+                it grows to centre the identity and then stops at 14rem. */}
+            <div aria-hidden className="max-h-56 w-full flex-1 sm:hidden" />
+
+            {/* Whose account, and the single action. Bottom-flush on the phone
+                (the scroller's own safe-area padding is the only thing under
+                it, so the home indicator never overlaps the button); on sm+
+                there is no spacer, so `mt-10` supplies the step instead. */}
+            <div className="flex w-full max-w-sm shrink-0 flex-col items-center gap-3 sm:mt-10">
+              {email && (
+                <p
+                  className="max-w-full break-words text-center font-sans text-ds-12"
+                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                >
+                  Signed in as{" "}
+                  <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
+                    {email}
+                  </span>
+                </p>
+              )}
+              {/* Glossy primary (btn-grad-primary via variant="primary"); default
+                  size is h-14, comfortably over the 44px minimum target. */}
+              <Button
+                variant="primary"
+                className="w-full"
+                onClick={() => void attemptUnlock()}
+                disabled={checking}
+              >
+                {checking ? "Unlocking…" : unlockLabel}
+              </Button>
+            </div>
           </div>
         </div>
       )}

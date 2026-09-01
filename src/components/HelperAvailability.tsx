@@ -6,6 +6,9 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { report } from "@/lib/errorLogger";
+import { unwrapMutation, isWriteRejected, mutationErrorMessage } from "@/lib/mutationResult";
 import type { Database } from "@/integrations/supabase/types";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -30,6 +33,11 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
   );
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  // A failed LOAD must not fall through to the editable grid. `slots` is
+  // seeded above with a fabricated "available every day, 9–5" week purely as
+  // a starting shape; when the fetch fails the helper was shown that week as
+  // if it were theirs, and one tap on Save overwrote their real hours with it.
+  const [loadFailed, setLoadFailed] = useState(false);
 
   useEffect(() => {
     loadAvailability();
@@ -45,10 +53,17 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
 
     if (error) {
       console.error("[HelperAvailability] failed to load availability:", error);
+      report(error, {
+        severity: "error",
+        tags: { source: "HelperAvailability.load" },
+        context: { helperId: userId },
+      });
       toast.error("Couldn't load your availability — try again?");
+      setLoadFailed(true);
       setLoaded(true);
       return;
     }
+    setLoadFailed(false);
 
     if (data && data.length > 0) {
       const existingSlots = DAYS.map((_, i) => {
@@ -119,12 +134,25 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
   const handleSave = async () => {
     setSaving(true);
     try {
-      // Delete existing weekly slots
-      await supabase
-        .from("helper_availability")
-        .delete()
-        .eq("helper_id", userId)
-        .is("specific_date", null);
+      // Clear the existing weekly slots. The result used to be DISCARDED
+      // entirely — no await destructure, no `error` check, no `.select()`.
+      // That is the worst shape this codebase has: if the delete were refused
+      // (RLS, a stale session) the insert below still ran, so every tap of
+      // Save added another 7 rows. `loadAvailability` does `data.find(...)`,
+      // which returns the first match, so the duplicates were invisible on
+      // THIS screen while `useDashboardData` and `HelperAvailabilityDisplay`
+      // read the same table. `min: 0` because a helper who has never saved
+      // legitimately has nothing to delete — the assertion here is that the
+      // statement was ACCEPTED, not that it matched rows.
+      unwrapMutation(
+        await supabase
+          .from("helper_availability")
+          .delete()
+          .eq("helper_id", userId)
+          .is("specific_date", null)
+          .select("id"),
+        { action: "update your weekly hours", min: 0, context: { helperId: userId } },
+      );
 
       // Insert new slots
       const inserts: HelperAvailabilityInsert[] = slots.map((s) => ({
@@ -136,18 +164,49 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
         specific_date: null,
       }));
 
-      const { error } = await supabase.from("helper_availability").insert(inserts);
-      if (error) throw error;
+      // Guarded for the same reason: an insert silently filtered by RLS
+      // returns `{ data: [], error: null }`, and the old code fired
+      // hapticSuccess() on it. `min: inserts.length` — a partial insert means
+      // the week is now half-written, which the helper must be told about.
+      unwrapMutation(
+        await supabase.from("helper_availability").insert(inserts).select("id"),
+        { action: "save your weekly hours", min: inserts.length, context: { helperId: userId } },
+      );
       hapticSuccess();
+      // The screen cannot answer "did that work?" on its own: the grid already
+      // showed the typed state before the save, so a successful save leaves
+      // the page byte-identical. `toast.success` would be swallowed by
+      // toastPolicy (non-actionable confirmations are no-ops app-wide), so
+      // this uses the BARE callable, which the policy deliberately lets
+      // through. Without it the only feedback was a haptic — a no-op on web.
+      toast("Weekly hours saved");
     } catch (err: unknown) {
       hapticError();
-      toast.error(getErrorMessage(err));
+      toast.error(
+        isWriteRejected(err) ? mutationErrorMessage(err, getErrorMessage(err)) : getErrorMessage(err),
+      );
     } finally {
       setSaving(false);
     }
   };
 
   if (!loaded) return <p className="text-ds-11 text-muted-foreground p-3">Loading availability...</p>;
+
+  // See `loadFailed` above — never hand back the fabricated default week as if
+  // it were the helper's saved schedule.
+  if (loadFailed) {
+    return (
+      <ErrorState
+        title="We couldn't load your hours."
+        body="Your saved schedule is still safe — we just couldn't read it right now."
+        onRetry={() => {
+          setLoaded(false);
+          setLoadFailed(false);
+          void loadAvailability();
+        }}
+      />
+    );
+  }
 
   if (compact) {
     return (

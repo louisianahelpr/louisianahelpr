@@ -113,7 +113,14 @@ Deno.serve(async (req) => {
           // reminder has never once been delivered since the function was
           // written, while the run still returned HTTP 200 with sent: 0. The
           // link already carries the poster to the job.
-          link: "/my-posts?filter=in_progress",
+          // `?job=`, not `?filter=in_progress`. `in_progress` is a legacy filter
+          // key with no chip in the five-bucket strip (activityFilters.ts), so
+          // the poster landed on a filtered list with nothing selected. And the
+          // right bucket here is not fixed anyway: a submission awaiting the
+          // poster buckets to "Needs you", which is exactly what this reminder
+          // is about, but it moves the moment they act. Activity resolves the
+          // bucket from the job id at open time.
+          link: `/my-posts?job=${job.id}`,
         });
 
         if (notifErr) {

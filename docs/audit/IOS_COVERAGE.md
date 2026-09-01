@@ -121,6 +121,18 @@ on 2026-08-31 was three open jobs. `pending_approval`, `disputed`,
 `revision_requested`, a claimed-not-verified arrival, a four-day-past-due job:
 none of them existed on that account, and none was captured.
 
+**2026-08-31, same day, on `pending_approval` specifically: stop trying to
+reach it.** The state was retired — `businesses` / `business_members` were
+dropped by `20260828011811` (PGRST205 on prod), and its only writer
+(`initialStatus` in `src/pages/postjob/jobSubmitHelpers.ts`) had zero call
+sites and is deleted. It cannot be produced by any account, seeded or
+otherwise, so option 1 below ("seed a staging account") cannot cover it and a
+session that tries will burn the time discovering that. Prod still carries two
+stranded `is_seed` rows in that status because the repair migration
+(`20260831232522_retire_business_approval_residue.sql`) is written but not yet
+committed or deployed; those are residue, not a reproducible state. See
+`STATE_MATRIX.md` for why the cell count stays at 2.
+
 Three ways to close it, none of them wired today, in increasing order of cost:
 
 1. **Seed a staging account.** Write the 195 cells' job rows into the staging

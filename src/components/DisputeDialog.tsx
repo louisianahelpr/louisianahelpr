@@ -1,8 +1,14 @@
 import { useState } from "react";
 import { lifecycleErrorMessage } from "@/lib/lifecycleErrors";
 import { fireSlackAlert } from "@/lib/slackAlerts";
-import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHero,
+  DialogFooter,
+  DialogSecondaryAction,
+  DialogDestructiveAction,
+} from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
@@ -124,13 +130,23 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
       // Cast through `any` until the next `supabase gen types` lands —
       // this RPC is added in migration 20260609140000 which hasn't been
       // reflected in `src/integrations/supabase/types.ts` yet.
-      const { error: rpcError } = await (supabase.rpc as any)(
+      const { data: disputeId, error: rpcError } = await (supabase.rpc as any)(
         "rpc_open_dispute",
         { _job_id: jobId, _reason: reasonText, _evidence_urls: evidenceUrls },
       );
 
       if (rpcError && rpcError.code !== "PGRST202") {
         throw rpcError;
+      }
+
+      // The RPC returns the dispute's uuid. A null error is not proof it
+      // filed — this is the one screen where "we said it worked and it did
+      // not" freezes someone's money on a promise the database never made, so
+      // the returned id is checked rather than discarded.
+      if (!rpcError && !disputeId) {
+        throw new Error(
+          "This job couldn't be disputed — it may have already been resolved or closed. Refresh and try again.",
+        );
       }
 
       if (rpcError?.code === "PGRST202") {
@@ -157,22 +173,33 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
         );
       }
 
-      // Bulk-fan to admins in one INSERT.
-      const { data: adminRoles, error: adminRolesError } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
-      if (adminRolesError) report(adminRolesError, { tags: { source: "DisputeDialog.fetchAdmins" } });
-      if (adminRoles?.length) {
-        const { error: notifyError } = await supabase.from("notifications").insert(
-          adminRoles.map((a: { user_id: string }) => ({
-            user_id: a.user_id,
-            title: "🚨 Job disputed",
-            message: `"${jobTitle}" has been disputed. Reason: ${DISPUTE_REASONS.find((r) => r.value === reason)?.label}. Payment is on hold pending review.`,
-            type: "warning",
-            link: "/admin?view=disputes",
-            read: false,
-          })),
-        );
-        if (notifyError) report(notifyError, { tags: { source: "DisputeDialog.notifyAdmins" } });
-      }
+      // NO client-side admin fan-out. There used to be one here — read
+      // `user_roles` for every admin, then bulk-INSERT a notification for
+      // each — and it could never have worked. Both halves are refused by
+      // RLS, and both refusals are silent:
+      //
+      //   1. `user_roles` has no SELECT policy for an ordinary user, so the
+      //      read returns `{ data: [], error: null }`. The `if
+      //      (adminRoles?.length)` guard then skipped the insert entirely, so
+      //      even the error path never ran.
+      //   2. The insert itself is 403 / 42501 — the only surviving
+      //      `notifications` INSERT policies are admin-only and
+      //      service-role-only (the two user-facing ones were dropped in
+      //      20260403180249 and 20260412180149 and never recreated).
+      //
+      // Both verified against production on 2026-08-31 with an ordinary
+      // authenticated account: the role read returned 0 rows, and a direct
+      // insert for another user returned 42501. So no admin has ever received
+      // an in-app notification for a filed dispute, and the `report()` on the
+      // insert error never fired because the insert was never reached.
+      //
+      // Notifying is the SERVER's job, and it is the only place that can do
+      // it: `rpc_open_dispute` is SECURITY DEFINER and already holds the job's
+      // both-party ids. Routing it through `create-notification` would not
+      // work either — that function allows self, admin, or a shared-job
+      // counterparty, and a filer shares no job with an admin.
+      //
+      // The Slack ops alert below is the channel that does work today.
 
       // Fire Slack ops alert (non-blocking)
       const reasonLabel = DISPUTE_REASONS.find((r) => r.value === reason)?.label || "Unknown";
@@ -187,7 +214,12 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
           "Disputed by": userId,
           "Evidence files": evidenceUrls.length,
         },
-        link: `https://www.louisianahelpr.com/admin?tab=disputes`,
+        // `?view=`, not `?tab=`. Admin.tsx reads `searchParams.get("view")`
+        // (Admin.tsx:86) and falls back to "home" for anything else, so the
+        // `?tab=disputes` this used to send dropped every responder on the
+        // admin dashboard with no idea which queue to open — on the one alert
+        // that says real money is frozen.
+        link: `https://www.louisianahelpr.com/admin?view=disputes`,
       });
 
       hapticSuccess();
@@ -293,18 +325,17 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
           </div>
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={onClose} className="rounded-ds-md">Cancel</Button>
+          <DialogSecondaryAction onClick={onClose}>Cancel</DialogSecondaryAction>
           {/* Destructive: a filed dispute cannot be withdrawn from this
               screen and it freezes the counterparty's escrow, so it belongs to
               the same family as "Confirm No-Show". Shared `destructive`
               variant, not a hand-copied burnt-sienna style block. */}
-          <Button
-            variant="destructive"
+          <DialogDestructiveAction
             onClick={handleSubmit}
             disabled={submitting || !reason}
           >
             {submitting ? "Submitting…" : "Submit Dispute"}
-          </Button>
+          </DialogDestructiveAction>
         </DialogFooter>
       </DialogContent>
     </Dialog>

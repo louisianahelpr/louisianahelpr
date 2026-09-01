@@ -59,10 +59,72 @@ export function compareJobsBySortMode(a: EnrichedJob, b: EnrichedJob, sortBy: st
 const RECENCY_HALFLIFE_MS = 4 * 24 * 60 * 60 * 1000;
 
 /** Proximity tiers (miles → flat bonus). */
-const NEAR_BONUS = 0.3;
+export const NEAR_BONUS = 0.3;
 const NEAR_MILES = 10;
-const MID_BONUS = 0.15;
+export const MID_BONUS = 0.15;
 const MID_MILES = 25;
+
+/**
+ * POSTER PLACEMENT — a BOUNDED boost for jobs posted by Pro/Elite members.
+ *
+ * This replaces an UNBOUNDED one. `useDashboardData` used to finish its
+ * queryFn with a full re-sort of the page by `tierWeight` (elite 3, pro 1,
+ * else 0), which put every Elite poster's job above every other job outright,
+ * regardless of freshness, budget or distance. Two things were wrong with it:
+ *
+ *   1. It was an OVERRIDE, not a boost — exactly what a helper's browse feed
+ *      must not be. A helper scanning for work is the customer of this
+ *      ranking; a feed that sells them a worse-matched job is worth less to
+ *      them and, downstream, to the posters paying for placement.
+ *   2. It did not even reach the screen. `sortJobsSmart` re-ranks `allJobs`
+ *      by `smartScore` with only an input-index tie-break, and smartScore is
+ *      continuous, so exact ties essentially never occur — the tier order was
+ *      computed and discarded on every render, the same defect the applicant
+ *      list had (see applicantScoring.ts).
+ *
+ * So the boost moves HERE, where it survives, and is capped below the
+ * smallest discrete signal this scorer awards:
+ *
+ *   proximity, 10–25 mi band (MID_BONUS)        0.15
+ *   proximity, under 10 mi (NEAR_BONUS)         0.30
+ *   a $20 → $100 budget step                  ≈ 0.68
+ *   full recency span (fresh → ancient)         1.00
+ *   POSTER_PLACEMENT_MAX_POINTS (Elite)         0.10   ← strictly less
+ *
+ * 0.10 is 10% of the recency span — an Elite poster's job ranks roughly as a
+ * job ~15 hours fresher would, and no more. It cannot overcome a proximity
+ * band, a real budget difference, or a meaningful age gap. `smartSort.test.ts`
+ * pins that inequality so a later "make this feel stronger" fails the build
+ * instead of quietly becoming an override again.
+ *
+ * The SAME 10%/5%-of-the-recency-span ratio is applied server-side in
+ * `get_ranked_open_jobs`' `rank_score` (Elite 5, Pro 2.5 on its 0–50 recency
+ * span), so the public /jobs board and the signed-in dashboard agree about how
+ * far a paid poster moves. Before that, /jobs applied no poster weight at all
+ * and the feed visibly reordered itself the moment you signed in.
+ *
+ * DISCLOSURE: deliberately none. The applicant list discloses its placement
+ * bump because a poster is choosing between PEOPLE there; this is a job feed,
+ * and the owner decided on 2026-09-01 not to surface it. Recording the
+ * trade-off so the next reader knows it was a decision, not an oversight:
+ * some app-store and marketplace rules require paid ranking to be disclosed.
+ * That call is the owner's and they have made it.
+ */
+export const POSTER_PLACEMENT_MAX_POINTS = 0.1;
+
+/**
+ * Placement points for a poster's ACTIVE tier. Basic gets nothing — only Pro
+ * and Elite carry `priorityPlacement` in TIER_PERKS. Null, free, an expired
+ * tier (already resolved to null by `get_safe_profiles`) and any unrecognised
+ * string including the retired 'business' all score 0: unknown must lose a
+ * perk, never gain one, the same direction DEFAULT_TIER_FEE_PERCENT takes.
+ */
+export function posterPlacementBonus(tier: string | null | undefined): number {
+  const t = (tier ?? "").toLowerCase();
+  if (t === "elite") return POSTER_PLACEMENT_MAX_POINTS;
+  if (t === "pro") return POSTER_PLACEMENT_MAX_POINTS / 2;
+  return 0;
+}
 
 /**
  * Recency component: 1.0 for a job posted right now, decaying exponentially
@@ -117,14 +179,17 @@ function proximityBonus(
  * rather than in callers.
  */
 export function smartScore(
-  job: Pick<EnrichedJob, "created_at" | "budget" | "latitude" | "longitude">,
+  job: Pick<EnrichedJob, "created_at" | "budget" | "latitude" | "longitude" | "posterSubscriptionTier">,
   helperLocation?: HelperLocation | null,
   now: number = Date.now(),
 ): number {
   return (
     recencyScore(job.created_at, now) +
     budgetScore(job.budget) +
-    proximityBonus(job, helperLocation)
+    proximityBonus(job, helperLocation) +
+    // Bounded, and applied LAST so it reads as what it is: a nudge on top of
+    // the three signals that actually describe the job. See the cap note above.
+    posterPlacementBonus(job.posterSubscriptionTier)
   );
 }
 

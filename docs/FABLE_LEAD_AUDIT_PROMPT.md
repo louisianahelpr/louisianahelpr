@@ -165,12 +165,17 @@ prior investigation, so nobody has to rediscover them.
 
 ### Agent: money formulas
 Source-of-truth modules live in `supabase/functions/_shared/` and `src/lib/`:
-`helperFees` (12/11/10/8/6 ladder) · `posterFees` (same ladder + a Stripe-floor
+`helperFees` (12/11/10/8 ladder) · `posterFees` (same ladder + a Stripe-floor
 fixed-point loop) · `stripeFees` (2.9% + 30¢) · `cancellationFee` (0/25/50 by
 hours, America/Chicago) · `instantPayoutFee` (3%, $25 floor) · `salesTax`
 (assembly + handyman only) · `escrowTiming` (48h auto-complete, 24h hold) ·
-`subscriptionTiers` · `proTiers` · `businessSeatTiers` · `seatTierGrant` ·
-`productPrices` · `moneyLimits` · `helperEarnings`.
+`subscriptionTiers` · `proTiers` · `productPrices` · `moneyLimits` ·
+`helperEarnings`.
+
+(`businessSeatTiers` and `seatTierGrant` used to be listed here. Neither file
+exists — the business/seat backend was dropped by migrations 20260828004538 /
+20260828011811 and the `business` tier itself was retired on 2026-09-01. Do not
+go looking for them.)
 
 **Seed it with these confirmed local recomputations** — each re-derives a number
 a shared module already owns:
@@ -194,8 +199,6 @@ gaps to confirm and extend:
   floor-don't-round payout rule
 - `PRODUCT_TO_TIER` is copy-pasted from `stripe-webhook/constants.ts` into
   `check-pro-subscription/index.ts:10` — not imported, not guarded
-- `_shared/seatTierGrant.ts` maps seat plans to fee rungs and **nothing asserts
-  it agrees with `TIER_PERKS`**
 - `get_payout_batches()` (migration `20260725113904`) hardcodes `0.029` and
   `10` **in SQL** — a third untested copy of both constants
 - **`auto-release-payment/index.ts` does not import `escrowTiming.ts`.** It
@@ -211,7 +214,9 @@ dispatch and rolled back on throw.
 Known collisions to verify and extend:
 - `profiles.subscription_tier` is written by **four** paths — three webhook
   handlers plus a page-triggered reconciliation poll. A personal-membership
-  event can overwrite a business seat grant; flagged in-code as open
+  event can overwrite another; the business-seat grant that used to be the
+  fourth writer is gone (tier retired 2026-09-01), but the collision between the
+  remaining personal-membership paths stands
 - `jobs.sales_tax_amount` is written by both `payment_intent.succeeded` and
   `checkout.session.completed`, deliberately — but only the latter also writes
   `sales_tax_rate`, so if the PI event lands last the two can disagree
@@ -253,7 +258,7 @@ Money, tax, escrow and legal copy get a stricter standard than prose. Check
 every claim against what the code *does*.
 
 Anchors:
-- fees are a **12/11/10/8/6 tier ladder**, not a flat rate
+- fees are a **12/11/10/8 tier ladder** (free/basic/pro/elite), not a flat rate
 - tax is computed by **Stripe** (`automatic_tax`); Louisiana is an
   enumerated-services state and only `assembly` and `handyman` labour is taxed
 - escrow timing derives from `escrowTiming.ts` and is never typed

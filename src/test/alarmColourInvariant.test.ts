@@ -143,15 +143,23 @@ function railTones(opts: {
     const isActive = idx <= displayIdx;
     const isCurrent = idx === displayIdx;
     const isPassed = idx < displayIdx;
-    // JobTracking.tsx: `const disputedWorking = jobStatus === "disputed" && s.key === "working"`
-    const disputedWorking = jobStatus === "disputed" && key === "working";
-    if (disputedWorking) return "alarm";
+    // JobTracking.tsx:1387 — `const disputedStep = jobStatus === "disputed" && idx === displayIdx`
+    //
+    // 2026-08-31: this was `disputedWorking = … && s.key === "working"`, which
+    // pinned red to the Working step *wherever the cursor actually was*. On a
+    // disputed job carrying a completion stamp the cursor sits on Done, so
+    // Working AND Done both went red — the "both can't be red" the owner
+    // reported. Keying the pin to the CURRENT step instead makes "at most one
+    // alarm" true by construction rather than by careful arithmetic: the
+    // predicate can match exactly one index, always.
+    const disputedStep = jobStatus === "disputed" && idx === displayIdx;
+    if (disputedStep) return "alarm";
     if (isCurrent) {
       // JobTracking.tsx: `const currentTone = allDone ? --success-ink : --amber-solid`.
       // The old ternary chain painted the current step ALARM under a dispute and
       // BARK otherwise — a second green a shade off --success-ink. Both were
       // defects the owner named ("both can't be red"; "shouldn't be 2 different
-      // green"). Red is now carried solely by `disputedWorking` above, so amber
+      // green"). Red is now carried solely by `disputedStep` above, so amber
       // means exactly "on this step, not finished" and green means exactly
       // "this step completed".
       return allDone ? "green" : "amber";
@@ -168,9 +176,12 @@ describe("the progress rail's colour rule", () => {
   it("the transcription still matches the source (guards this block going stale)", () => {
     expect(
       SOURCE,
-      "the `disputedWorking` pin is gone from JobTracking.tsx — railTones() in this " +
-        "test no longer describes the rail. Re-read the step map and re-transcribe.",
-    ).toMatch(/disputedWorking\s*=\s*jobStatus === "disputed" && s\.key === "working"/);
+      "the `disputedStep` pin is gone from JobTracking.tsx — railTones() in this " +
+        "test no longer describes the rail. Re-read the step map and re-transcribe. " +
+        "(If it reverted to a key-based pin like `s.key === \"working\"`, that is the " +
+        "regression this file exists to catch: it can match a step that is not the " +
+        "cursor, which is how two dots went red at once.)",
+    ).toMatch(/disputedStep\s*=\s*jobStatus === "disputed" && idx === displayIdx/);
     expect(
       SOURCE,
       "`currentTone` changed shape — re-transcribe railTones(). It should be the " +
@@ -180,18 +191,27 @@ describe("the progress rail's colour rule", () => {
     expect(
       SOURCE,
       "the current step paints from --destructive again — red must be carried " +
-        "ONLY by disputedWorking, or two steps can go alarm red at once",
+        "ONLY by disputedStep, or two steps can go alarm red at once",
     ).not.toMatch(/currentTone\s*=[\s\S]{0,300}--destructive/);
     expect(
       SOURCE,
-      "disputedWorking no longer paints --destructive — the alarm colour moved",
+      "disputedStep no longer paints --destructive — the alarm colour moved",
     ).toMatch(/hsl\(var\(--destructive\)\)/);
   });
 
   it("AT MOST ONE step may carry the alarm colour", () => {
     // THE OWNER'S FINDING, REPRODUCED. `deriveCurrentStatusIdx` is exported, so
-    // this is a real derivation, not a hypothetical: a disputed job whose helper
-    // has stamped completion sits on `done`.
+    // this is a real derivation, not a hypothetical.
+    //
+    // 2026-08-31: this scenario used to land on `done`, and that WAS the bug —
+    // a job under dispute was drawing a completed rail, so the disputed pin
+    // (then keyed to the Working step) lit a second red dot behind the cursor.
+    // `disputed` now clamps to Working, the same way `revision_requested`
+    // already did: work whose outcome is contested is not finished. So the
+    // scenario is kept — a helper HAS stamped completion here — but the
+    // expected cursor moved with the clamp. Both halves of that fix have to
+    // hold for the rail to read correctly, which is why this asserts the
+    // derivation before asserting the colours.
     const steps = ["assigned", "confirmed", "job_confirmed", "on_the_way", "arrived", "working", "done"] as const;
 
     const idx = deriveCurrentStatusIdx({
@@ -201,9 +221,9 @@ describe("the progress rail's colour rule", () => {
     });
     expect(
       idx,
-      "a disputed job with a completion stamp no longer lands on the Done step — " +
+      "a disputed job with a completion stamp no longer clamps to Working — " +
         "re-derive this scenario before trusting the assertion below",
-    ).toBe(STATUS_IDX.done);
+    ).toBe(STATUS_IDX.working);
 
     const tones = railTones({ steps, displayIdx: idx, jobStatus: "disputed" });
     const alarms = steps.filter((_, i) => tones[i] === "alarm");
@@ -213,10 +233,9 @@ describe("the progress rail's colour rule", () => {
         `sitting on "${steps[idx]}": ${alarms.join(" + ")}. ` +
         `Two dots, one colour, two meanings — the colour stops meaning anything, which is ` +
         `exactly the "Working and Done both red on one card" the owner reported. ` +
-        `The two rules collide: \`disputedWorking\` pins Working red wherever the row is, ` +
-        `AND \`currentTone\` paints the CURRENT step red under a dispute. Make them ` +
-        `exclusive — e.g. skip the disputedWorking pin when Working is not the current ` +
-        `step, or drop the pin now that currentTone carries the dispute. ` +
+        `The alarm pin must be able to match at most ONE index. It is now keyed to ` +
+        `the cursor (\`idx === displayIdx\`), which guarantees that; a pin keyed to a ` +
+        `step NAME does not, because the cursor can be somewhere else entirely. ` +
         `(src/components/JobTracking.tsx, the step map at ~1288 and ~1298.)`,
     ).toHaveLength(1);
   });

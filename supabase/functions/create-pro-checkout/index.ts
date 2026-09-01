@@ -41,7 +41,16 @@ serve(async (req) => {
     const proBody = await req.json();
     const { tier, billing_cycle = "monthly", billing_day } = proBody;
     const isNative = isNativeRequest(proBody);
-    const cycle = PRICE_MAP[billing_cycle];
+    // `billing_cycle` is caller-controlled and was being used as a raw index —
+    // the SAME prototype-lookup hole the `tier` allowlist below was added to
+    // close, left open on the sibling key. `PRICE_MAP["constructor"]` is
+    // truthy, so `if (!cycle)` waved it through and the checkout carried on
+    // with `Function` standing in for the price table. Validate it the same way.
+    const ALLOWED_CYCLES = ["monthly", "annual", "one_time"] as const;
+    if (!ALLOWED_CYCLES.includes(billing_cycle)) {
+      throw new Error(`Invalid billing_cycle. Use: ${ALLOWED_CYCLES.join(", ")}`);
+    }
+    const cycle = PRICE_MAP[billing_cycle as (typeof ALLOWED_CYCLES)[number]];
     if (!cycle) throw new Error("Invalid billing_cycle. Use: monthly, annual, or one_time");
     // Validate `tier` against an explicit allowlist BEFORE using it as an index.
     // Two reasons, both real: (1) the old check was `if (!priceId)` on a raw

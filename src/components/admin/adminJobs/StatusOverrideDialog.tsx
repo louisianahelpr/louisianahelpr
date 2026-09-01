@@ -1,5 +1,12 @@
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHero,
+  DialogBody,
+  DialogFooter,
+  DialogSecondaryAction,
+  DialogPrimaryAction,
+} from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { jobStatusLabel } from "@/lib/statusLabels";
 import type { Job } from "./types";
@@ -38,11 +45,13 @@ export const StatusOverrideDialog = ({
           title="Manual Status Override"
         />
         <div className="space-y-3">
-          <p className="text-ds-11 text-muted-foreground">
-            Force the job into a different status. Logged to admin_audit_log and
-            both parties are notified.
-            {detailJob && <> Current: <strong className="text-foreground">{jobStatusLabel(detailJob.status)}</strong>.</>}
-          </p>
+          <DialogBody>
+            <p>
+              Force the job into a different status. Logged to admin_audit_log and
+              both parties are notified.
+              {detailJob && <> Current: <strong className="text-foreground">{jobStatusLabel(detailJob.status)}</strong>.</>}
+            </p>
+          </DialogBody>
           <div className="space-y-1.5">
             <p className="text-ds-11 font-semibold uppercase tracking-wide text-muted-foreground">Set status to</p>
             <div className="grid grid-cols-3 gap-2">
@@ -84,15 +93,15 @@ export const StatusOverrideDialog = ({
             whose only control is the dismiss. `gap-2` restated DialogFooter's
             own gap. */}
         <DialogFooter>
-          <Button variant="ghost" onClick={onCancel}>
+          <DialogSecondaryAction onClick={onCancel}>
             Cancel
-          </Button>
-          <Button
+          </DialogSecondaryAction>
+          <DialogPrimaryAction
             onClick={onConfirm}
             disabled={overriding || !overrideReason.trim()}
           >
             {overriding ? "Updating…" : `Set to ${overrideStatus}`}
-          </Button>
+          </DialogPrimaryAction>
         </DialogFooter>
       </DialogContent>
     </Dialog>

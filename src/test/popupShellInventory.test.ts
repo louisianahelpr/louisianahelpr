@@ -158,10 +158,22 @@ const HAND_ROLLED_BY_DESIGN: Record<string, string> = {
     "Full-bleed attachment viewer. The shell's job is to put a 512px parchment " +
     "card with a title row around its content; doing that to an image viewer " +
     "shrinks the image to make room for chrome nobody opened it to read.",
-  "src/pages/petProfiles/PetForm.tsx":
-    "Renders inline as often as it renders modal — role is conditional on " +
-    "isInline. It cannot compose DialogContent unconditionally without becoming " +
-    "two components, and the inline case is the common one.",
+  // PetForm.tsx was here until 2026-08-31 for the reason below, and the
+  // reason turned out to be the bug:
+  //
+  //   "Renders inline as often as it renders modal — role is conditional on
+  //    isInline. It cannot compose DialogContent unconditionally without
+  //    becoming two components, and the inline case is the common one."
+  //
+  // The hand-rolled surface it kept instead was a `fixed inset-0` overlay, and
+  // `fixed` resolves against the nearest transformed ancestor — which AppPage
+  // supplies via `animate-ds-page-in`'s forwards-filled `translateY(0)`. So
+  // "Add a Pet" opened at the size of the page's CONTENT COLUMN (measured
+  // 329x433 in a 393x852 viewport, half the screen, sliced mid-field) rather
+  // than the screen. The shared shell portals to document.body and could never
+  // have had that failure. Nothing about the two-shell requirement forced a
+  // hand-rolled modal: one body, rendered into a `<DialogContent>` or into the
+  // inline card, is one component and the exemption is gone.
   "src/components/activity/postedJobs/ApplicantsPanel.tsx":
     "Full-screen push panel, not a card over a page — nothing behind it is " +
     "inert and there is no backdrop, which is why it carries role=region " +
@@ -293,10 +305,22 @@ describe("one footer convention", () => {
     "src/components/dashboard/FilterSheet.tsx":
       "Filters apply live as you tap them — there is nothing to confirm. Its " +
       "exit is the header × the panel gained when the owner asked for one.",
+    // Reason REWRITTEN 2026-08-31. It used to read "pinned in a dedicated grid
+    // track … 92dvh phone sheet" — and that geometry was deleted the same day.
+    // The sheet is now content-driven (top-[7vh], max-h-[86dvh], no h-*, no
+    // grid-rows), because pinning a footer to fill leftover space put 364.7px
+    // of dead air above a stranded CTA on a sparse job. So the ORIGINAL reason
+    // for the exemption is gone; these two are the reasons that survive.
     "src/components/dashboard/JobDetailDialog.tsx":
-      "Its CTA is pinned in a dedicated grid track so it stays on the bottom " +
-      "edge while the body scrolls (92dvh phone sheet). A DialogFooter would " +
-      "put a second action row under the one that is already pinned.",
+      "1) Geometry: every attempt to give this sheet a footer track came with " +
+      "a height to pin it against, and that is exactly what produced the dead " +
+      "band above a stranded CTA. Content decides the height here; slack stays " +
+      "at the end. 2) Shape: three of the CTA slot's four mutually-exclusive " +
+      "branches are not commits at all (\"This is your post\", \"Applied — #N\", " +
+      "the credential gate), and all four share one h-11/h-12 box to stop the " +
+      "sheet resizing when viewerTier lands. dialogShell.test.ts carries the " +
+      "matching NO_FOOTER_BY_DESIGN assertion, which fails if this file grows " +
+      "a <DialogFooter> or loses its recorded reason.",
     "src/components/feedback/NpsPrompt.tsx":
       "Each score IS the action; tapping one submits and closes.",
     "src/components/dashboard/ApplyConfirmDialog.tsx":
@@ -352,7 +376,10 @@ describe("one footer convention", () => {
         offenders.push(
           `${file} — "${m[2]}" is a clickable <${m[1]}>, not a <Button>. ` +
             `It has no 44px target, no focus ring and no keyboard activation. ` +
-            `Move it into the <DialogFooter> as <Button variant="ghost">.`,
+            `Move it into the <DialogFooter> as <DialogSecondaryAction>. ` +
+            `(Not <Button variant="ghost"> — the shared action primitives ` +
+            `reject variant/size/className by design, which is what stops ` +
+            `footers drifting apart again.)`,
         );
       }
     }
@@ -365,6 +392,15 @@ describe("one footer convention", () => {
   it("the reference implementation still IS the reference", () => {
     // If ReportDialog.tsx stops following the convention it encodes, this whole
     // describe block is measuring against nothing.
+    //
+    // 2026-08-31: the reference MOVED. This used to assert ReportDialog
+    // rendered a raw `<Button>` for Cancel/Back, because it was the file the
+    // convention had been transcribed from. The convention now lives in real
+    // primitives (`ui/popupFooter.ts` + the Dialog*Action components), 66
+    // popup blocks across 45 files were converted onto them, and those
+    // primitives reject `variant`/`size`/`className` outright — so a raw
+    // `<Button>` in a footer is now the DEFECT this suite exists to catch,
+    // not the reference. Asserting the old shape would have pinned the bug.
     const report = repoFile("src/components/ReportDialog.tsx");
     expect(
       report,
@@ -373,7 +409,9 @@ describe("one footer convention", () => {
     ).toMatch(/DialogFooter/);
     expect(
       report,
-      "ReportDialog.tsx no longer renders a real <Button> for Cancel/Back",
-    ).toMatch(/<Button[^>]*>[\s\S]{0,40}(Cancel|Back)/);
+      "ReportDialog.tsx no longer uses the shared dismiss primitive for " +
+        "Cancel/Back. It is the reference for this suite, so it must be built " +
+        "from DialogSecondaryAction like every other converted footer.",
+    ).toMatch(/<DialogSecondaryAction[\s\S]{0,80}(Cancel|Back|Done)/);
   });
 });

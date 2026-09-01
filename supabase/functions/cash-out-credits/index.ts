@@ -96,23 +96,58 @@ serve(async (req) => {
 
     // Roll back the claim helper — credits must not be lost if we bail or the
     // transfer fails, so we flip redeemed back to false for the claimed rows.
-    const rollbackClaim = () =>
-      supabase.from("referral_credits").update({ redeemed: false }).in("id", creditIds);
-
-    if (totalCents < 100) {
-      // Rollback failure here is the same risk as in the transfer catch block:
-      // credits stay redeemed=true with no payout. Use the same .catch() pattern
-      // so ops can find and manually reset the row(s) from logs.
-      await rollbackClaim().catch((rollbackErr: unknown) => {
+    //
+    // This used to be `rollbackClaim().catch(...)` at both call sites, and it
+    // could never have worked. A PostgrestFilterBuilder is a *thenable*: it
+    // implements `then` and nothing else, so `.catch` is `undefined` and
+    // `rollbackClaim().catch(fn)` throws `TypeError: ... .catch is not a
+    // function` — synchronously, BEFORE the update was ever awaited. Both
+    // rollbacks therefore never ran: a sub-$1 cash-out attempt 500'd instead of
+    // returning its 400, and a failed Stripe transfer threw the TypeError in
+    // place of the real transfer error. In both cases the user's credits were
+    // left `redeemed = true` with no payout — permanently lost, silently.
+    //
+    // And even with a working `.catch`, postgrest does not REJECT on a database
+    // error; it resolves with `{ error }`. So the error had to be read off the
+    // result, not caught. `.select("id")` + a row count is the house rule for
+    // any write touching money (CLAUDE.md): a zero-row UPDATE returns
+    // `{ data: [], error: null }`, which is the same "credits lost" outcome
+    // wearing a success mask.
+    const rollbackClaim = async (context: string) => {
+      try {
+        const { data, error } = await supabase
+          .from("referral_credits")
+          .update({ redeemed: false })
+          .in("id", creditIds)
+          .select("id");
+        if (error || (data?.length ?? 0) !== creditIds.length) {
+          console.error(
+            `[cash-out-credits] CRITICAL: ${context} rollback failed — credits may be permanently lost`,
+            {
+              creditIds,
+              rolledBack: data?.length ?? 0,
+              rollbackError: error?.message ?? null,
+              userId,
+            },
+          );
+        }
+      } catch (rollbackErr: unknown) {
         console.error(
-          "[cash-out-credits] CRITICAL: minimum-amount rollback failed — credits may be permanently lost",
+          `[cash-out-credits] CRITICAL: ${context} rollback threw — credits may be permanently lost`,
           {
             creditIds,
             rollbackError: rollbackErr instanceof Error ? rollbackErr.message : String(rollbackErr),
             userId,
           },
         );
-      });
+      }
+    };
+
+    if (totalCents < 100) {
+      // Rollback failure here is the same risk as in the transfer catch block:
+      // credits stay redeemed=true with no payout, logged loudly so ops can
+      // find and manually reset the row(s).
+      await rollbackClaim("minimum-amount");
       return new Response(
         JSON.stringify({ error: "Minimum cash-out amount is $1.00." }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
@@ -143,16 +178,7 @@ serve(async (req) => {
       // Transfer failed — release the claim so the user keeps their credits.
       // If the rollback itself fails, the credits stay redeemed=true with no
       // payout — log critically so ops can manually reset the row(s).
-      await rollbackClaim().catch((rollbackErr: unknown) => {
-        console.error(
-          "[cash-out-credits] CRITICAL: credit rollback failed — credits may be permanently lost",
-          {
-            creditIds,
-            rollbackError: rollbackErr instanceof Error ? rollbackErr.message : String(rollbackErr),
-            userId,
-          },
-        );
-      });
+      await rollbackClaim("transfer-failed");
       throw transferError;
     }
 
@@ -164,7 +190,8 @@ serve(async (req) => {
       title: "Cash-out successful!",
       message: `$${formatPayoutDollars(totalAmount)} in referral credits has been sent to your connected Stripe account.`,
       type: "payment",
-      link: "/profile",
+      // Earnings & Payouts, not the Profile landing tab.
+      link: "/profile?tab=earnings",
     });
     if (notifErr) console.error(`[cash-out-credits] success notification insert failed for user ${userId} (transfer ${transfer.id}):`, notifErr);
 

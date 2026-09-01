@@ -280,33 +280,28 @@ export function ApplyBody({
           </button>
         )}
         {/* Same primitive and surface as the "Continue" CTA that leads here
-            (JobDetailFooter) — one button, one set of effects: the gradient
-            wash, the hover brighten/lift/glow and the active press collapse
-            all come from <Button>'s primary variant. */}
+            (JobDetailFooter) — one button, one set of effects: the glossy
+            `btn-grad-primary` radial, the hover brighten/lift/glow and the
+            active press collapse all come from <Button>'s primary variant.
+            That sentence used to be aspirational: BOTH buttons then overrode
+            the variant with an inline `background: linear-gradient(bark →
+            bark/0.86)` — the surface of the deleted `bark` variant, painted
+            by hand. Inline background beats the class, so the computed
+            background-image here was the flat two-stop linear, not the
+            radial every other primary CTA resolves to. These two are the two
+            STEPS of one sheet, so they are converted together or not at all:
+            a glossy Continue leading to a flat Apply Now is the same surface
+            disagreeing with itself mid-act.
+            Geometry (`h-11 sm:h-12`) stays local and unchanged — it matches
+            the CTA slot on the step before this one. */}
         <Button
           size="lg"
           type="button"
           onClick={handleConfirm}
           disabled={applyLoading}
-          className="btn-liquid-fill flex-1 min-w-0 rounded-ds-md h-11 sm:h-12 px-4 group relative overflow-hidden disabled:opacity-60"
-          style={{
-            background:
-              "linear-gradient(180deg, hsl(var(--bark)) 0%, hsl(var(--bark) / 0.86) 100%)",
-            border: "0.5px solid hsl(var(--bark))",
-            fontFamily: "Montserrat, system-ui, sans-serif",
-            fontWeight: 600,
-            letterSpacing: "0.01em",
-            boxShadow:
-              "inset 0 1px 1px 0 rgba(255, 255, 255, 0.25), " +
-              "inset 0 -1px 1px 0 rgba(0, 0, 0, 0.18), " +
-              "0 1px 2px hsl(var(--olivewood) / 0.12), " +
-              "0 8px 22px -6px hsl(var(--bark) / 0.45)",
-          }}
+          className="flex-1 min-w-0 rounded-ds-md h-11 sm:h-12 px-4 group disabled:opacity-60"
         >
-          <span
-            className="relative z-10"
-            style={{ color: "white", textShadow: "0 1px 2px rgba(0, 0, 0, 0.28)" }}
-          >
+          <span>
             {applyLoading
               ? isInstantBook ? "Booking…" : "Applying…"
               : !online ? "Try Again" : isInstantBook ? "Book Now" : "Apply Now"}

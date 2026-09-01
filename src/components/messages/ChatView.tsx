@@ -374,7 +374,7 @@ export function ChatView({
             refreshing={refreshing}
             isPulling={isPulling}
             canTrigger={canTrigger}
-            className="flex-1 space-y-3 pt-4 pb-2"
+            className="flex-1 flex flex-col space-y-3 pt-4 pb-2"
           >
           {/* The reveal handlers live on this plain div, NOT on
               PullToRefreshWrapper: that component destructures a fixed prop
@@ -382,7 +382,18 @@ export function ChatView({
               compiled, rendered, and did nothing. `overflow-x-clip` keeps the
               revealed time column from widening the page while the rows are
               translated left. */}
-          <div {...revealHandlers} className="overflow-x-clip">
+          {/* `mt-auto` / `my-auto` anchor the timeline to the BOTTOM of the
+              scroller (or centre it while the thread is empty) instead of the
+              top. A three-message thread used to sit pinned under the header
+              with a ~400px void between the last bubble and the composer,
+              which is what made the dock read as a panel floating in dead
+              space. Auto margins collapse to 0 the moment the content is
+              taller than the scroller, so a real thread scrolls exactly as
+              before. */}
+          <div
+            {...revealHandlers}
+            className={`overflow-x-clip ${timeline.length === 0 ? "my-auto" : "mt-auto"}`}
+          >
           <ChatTimeline
             reveal={reveal}
             timeline={timeline}

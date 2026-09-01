@@ -7,11 +7,17 @@
 // refund the escrow manually in Stripe after deciding." This function is the
 // execution half of that decision.
 //
-// Two legs, both off the job's ORIGINAL PaymentIntent:
+// Three legs — the first two off the job's ORIGINAL PaymentIntent, the third
+// off the Pay-It-Forward gift when one funded the job:
 //   1. TRANSFER  — the helper's share of the budget, minus the platform
 //                  commission, to their Connect account.
 //   2. REFUND    — the poster's share of what was actually captured, minus
 //                  Stripe's non-refundable processing cost.
+//   3. GIFT      — the poster's share of whatever a Pay-It-Forward gift paid,
+//                  minted back as a replacement gift by
+//                  `restore_pif_credit_for_job`. There is no charge to
+//                  reverse on that money, so a Stripe refund cannot return
+//                  it; the gift IS the money.
 //
 // The two legs are INDEPENDENTLY resumable. A run that transfers and then dies
 // before refunding records the transfer id on the dispute and leaves
@@ -31,17 +37,37 @@
 //   • GROUP JOBS — one escrow, N helpers. A partial split across a roster needs
 //     per-helper shares and N transfers; that is a follow-up, and paying only
 //     the lead helper would strand the rest of the roster's money.
-//   • PAY-IT-FORWARD jobs — funded from the prepaid platform balance, so there
-//     is no poster charge to refund a share off.
+//     (Pay-It-Forward jobs USED to be guarded here too, refused with "resolve
+//     it with the full release or full refund action". That advice could not
+//     work: a full refund also reverses a PaymentIntent, and a gift-funded job
+//     has none — so the admin was told the money was recoverable when nothing
+//     anywhere could recover it. Leg 3 below is that guard replaced with an
+//     answer.)
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
+// Separate `import type` line on purpose: src/test/edge/harness.ts rewrites
+// this exact form when it bundles the function for vitest.
+import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
-import { getHelperFeePercent, helperCommissionDollars } from "../_shared/helperFees.ts";
+import { getHelperFeePercent, helperCommissionDollars, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
 import { netUrgentFeeDollars, actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { formatPayoutDollars } from "../_shared/money.ts";
+
+/**
+ * The client type these helpers accept.
+ *
+ * NOT `ReturnType<typeof createClient>`: `createClient` is overloaded, and
+ * `ReturnType` resolves the LAST overload — `SupabaseClient<unknown, ...>`,
+ * whose row and payload types collapse to `never`. `createClient(url, key)`
+ * actually returns `SupabaseClient<any, "public", "public", any, any>`, so the
+ * annotation rejected the only client it is ever called with, and every
+ * `.insert()`/`.update()` inside these helpers was checked against `never`.
+ */
+// deno-lint-ignore no-explicit-any
+type AdminClient = SupabaseClient<any>;
 
 /** Job payment states from which a decided split may be executed for the FIRST time. */
 const EXECUTABLE_PAYMENT_STATES = ["escrow", "payout_pending"] as const;
@@ -234,29 +260,74 @@ serve(async (req) => {
     return json({ error: "split awards the poster a share but the job has no customer_id" }, 409);
   }
 
-  // Pay-It-Forward jobs are funded from the prepaid platform balance and carry
-  // no poster charge, so there is nothing to refund a share off. Fail closed on
-  // a read error too — "we could not tell how this was funded" must never
-  // become "assume there is a chargeable PaymentIntent".
+  // ── How was this escrow funded? ──────────────────────────────────────────
+  // A job can be funded by a Stripe charge, by a Pay-It-Forward gift, or by
+  // BOTH (a gift smaller than the cost is redeemed and the shortfall is
+  // collected by Stripe). The gift half carries no PaymentIntent, so a Stripe
+  // refund cannot return it — leg 3 mints it back instead.
+  //
+  // Fail closed on a read error: "we could not tell how this was funded" must
+  // never become "assume the whole escrow is a chargeable PaymentIntent",
+  // which would refund the poster Stripe money that the gift, not their card,
+  // put there.
   const { data: pifRow, error: pifErr } = await supabaseAdmin
     .from("pif_credits")
-    .select("id")
+    .select("id, status")
     .eq("job_id", job.id)
-    .eq("status", "redeemed")
+    .in("status", ["redeemed", "reserved"])
     .limit(1)
     .maybeSingle();
   if (pifErr) {
     console.error(`[execute-dispute-split] pif_credits read failed for job ${job.id}:`, pifErr);
     return json({ error: "funding-source check failed — retry" }, 500);
   }
+
+  // How many cents of this escrow the gift actually paid for. Computed by
+  // `restore_pif_credit_for_job` in dry-run mode rather than here, on purpose:
+  // the applied figure is NOT the gift's face value (a gift bigger than the
+  // job has its remainder minted as a separate child credit the recipient
+  // already holds), and a second copy of that arithmetic on this side is
+  // exactly the drift this file's commission comment warns about.
+  let giftAppliedCents = 0;
   if (pifRow) {
-    return json(
-      {
-        error:
-          "this job was funded by a Pay-It-Forward credit, not a poster charge — there is no PaymentIntent to split. Resolve it with the full release or full refund action.",
-      },
-      409,
+    if ((pifRow as { status?: string }).status === "reserved") {
+      // Reserved, not redeemed: the gift was earmarked for this job but the
+      // shortfall was never paid, so this job cannot be in escrow off the
+      // back of it. Something is inconsistent — refuse rather than guess.
+      return json(
+        {
+          error:
+            "this job's Pay-It-Forward gift is still only reserved, so the escrow's funding cannot be reconciled — nothing was moved. Cancel the job instead; that returns the gift.",
+        },
+        409,
+      );
+    }
+    const { data: giftPreview, error: giftPreviewErr } = await supabaseAdmin.rpc(
+      "restore_pif_credit_for_job",
+      { p_job_id: job.id, p_share_bps: 10000, p_dry_run: true },
     );
+    const preview = (giftPreview ?? null) as { outcome?: string; applied_cents?: number } | null;
+    const previewOutcome = giftPreviewErr ? null : preview?.outcome;
+    if (previewOutcome !== "would_restore" && previewOutcome !== "already_restored") {
+      // A null `error` is not proof of an answer — only the outcomes the
+      // function actually defines are. PGRST202 here means the migration
+      // that defines it has not deployed yet; either way the gift half of
+      // this escrow is unknowable, so nothing may move.
+      const why = giftPreviewErr
+        ? `${giftPreviewErr.message}${(giftPreviewErr as { code?: string }).code ? ` (${(giftPreviewErr as { code?: string }).code})` : ""}`
+        : `unrecognised outcome ${JSON.stringify(preview)}`;
+      console.error(
+        `[execute-dispute-split] gift valuation failed for job ${job.id}: ${why}`,
+      );
+      return json(
+        { error: "could not value this job's Pay-It-Forward gift — nothing was moved, retry" },
+        503,
+      );
+    }
+    giftAppliedCents = Number(preview?.applied_cents ?? 0);
+    if (!Number.isFinite(giftAppliedCents) || giftAppliedCents < 0) {
+      return json({ error: "this job's Pay-It-Forward gift has no usable applied amount — refused" }, 409);
+    }
   }
 
   const stripe = new Stripe(stripeSecretKey, { apiVersion: "2025-08-27.basil" });
@@ -290,40 +361,81 @@ serve(async (req) => {
       console.warn(`[execute-dispute-split] could not retrieve session for job ${job.id}:`, e);
     }
   }
-  if (!paymentIntentId) {
+  if (!paymentIntentId && giftAppliedCents === 0) {
     return json({ error: "no payment intent on file — cannot verify or split the escrow" }, 409);
   }
 
-  let pi: Stripe.PaymentIntent;
-  try {
-    pi = await stripe.paymentIntents.retrieve(paymentIntentId, {
-      expand: ["latest_charge.balance_transaction"],
-    });
-  } catch (e) {
-    console.error(`[execute-dispute-split] paymentIntents.retrieve failed for ${paymentIntentId}:`, e);
-    return json({ error: "could not verify the escrow charge — retry" }, 502);
+  // A wholly gift-funded job legitimately has no PaymentIntent: `redeem_pif_credit`
+  // flips it straight to 'escrow' out of the prepaid platform balance without
+  // ever opening a checkout. Everything Stripe-shaped below is therefore
+  // conditional, and settles to zero when there is no charge — the same shape
+  // release-payout uses for its PIF branch.
+  let pi: Stripe.PaymentIntent | null = null;
+  let capturedCents = 0;
+  let escrowChargeId: string | null = null;
+  if (paymentIntentId) {
+    try {
+      pi = await stripe.paymentIntents.retrieve(paymentIntentId, {
+        expand: ["latest_charge.balance_transaction"],
+      });
+    } catch (e) {
+      console.error(`[execute-dispute-split] paymentIntents.retrieve failed for ${paymentIntentId}:`, e);
+      return json({ error: "could not verify the escrow charge — retry" }, 502);
+    }
+    if (pi.status !== "succeeded") {
+      return json(
+        { error: `escrow charge not captured (PaymentIntent status: ${pi.status}) — split refused`, pi_status: pi.status },
+        409,
+      );
+    }
+    const received = pi.amount_received ?? pi.amount;
+    if (!Number.isFinite(received) || (received as number) <= 0) {
+      await postSlackOpsAlert({
+        kind: "custom",
+        severity: "warning",
+        title: "Dispute split aborted — invalid captured amount",
+        message:
+          "execute-dispute-split could not compute a split: the PaymentIntent's captured amount was missing or non-positive. Nothing moved; the dispute is left unexecuted for manual review.",
+        fields: { job_id: job.id, dispute_id: disputeId, payment_intent: paymentIntentId, captured_cents: String(received) },
+      });
+      return json({ error: "escrow captured amount is missing or non-positive — split refused" }, 409);
+    }
+    capturedCents = received as number;
+    escrowChargeId = typeof pi.latest_charge === "string"
+      ? pi.latest_charge
+      : pi.latest_charge?.id ?? null;
   }
-  if (pi.status !== "succeeded") {
-    return json(
-      { error: `escrow charge not captured (PaymentIntent status: ${pi.status}) — split refused`, pi_status: pi.status },
-      409,
-    );
-  }
-  const capturedCents = pi.amount_received ?? pi.amount;
-  if (!Number.isFinite(capturedCents) || (capturedCents as number) <= 0) {
-    await postSlackOpsAlert({
-      kind: "custom",
-      severity: "warning",
-      title: "Dispute split aborted — invalid captured amount",
-      message:
-        "execute-dispute-split could not compute a split: the PaymentIntent's captured amount was missing or non-positive. Nothing moved; the dispute is left unexecuted for manual review.",
-      fields: { job_id: job.id, dispute_id: disputeId, payment_intent: paymentIntentId, captured_cents: String(capturedCents) },
-    });
-    return json({ error: "escrow captured amount is missing or non-positive — split refused" }, 409);
-  }
-  const escrowChargeId = typeof pi.latest_charge === "string"
-    ? pi.latest_charge
-    : pi.latest_charge?.id ?? null;
+
+  // The whole escrow, whatever paid for it. THE cap every leg is judged
+  // against. On a gift-funded job the helper transfer has no
+  // `source_transaction` (there is no charge to draw from), so Stripe cannot
+  // enforce "never over-draw the escrow" server-side and this figure is the
+  // only guard left standing.
+  const escrowValueCents = capturedCents + giftAppliedCents;
+
+  // Which charge — if any — the helper transfer may be drawn from.
+  //
+  // `source_transaction` makes Stripe enforce the escrow cap server-side, but
+  // ONLY when that charge IS the escrow. On a MIXED job (a gift smaller than
+  // the cost, with the shortfall collected by card) the PaymentIntent covers
+  // just the shortfall, while the helper's leg is scaled off the whole budget
+  // — so pinning the transfer to it asks Stripe to move more than the source
+  // charge holds and `transfers.create` throws every time. That failure is
+  // permanent: leg 1 returns before the poster's refund and the gift restore
+  // ever run, so a retry reproduces it exactly and the escrow is stranded
+  // with the dispute unexecutable.
+  //
+  // `release-payout` avoids this by skipping the whole PaymentIntent block for
+  // any PIF-funded job (index.ts:341) — it never refunds, so it never needs
+  // `capturedCents`. This function does need it (the poster's cash leg draws
+  // on the capture), so the charge is still retrieved; only its use as a
+  // transfer SOURCE is withheld. `checkoutSessionCompleted.ts:617-619` states
+  // the contract: a gift-funded job pays the helper from the platform balance,
+  // never from the difference PI.
+  //
+  // When no gift contributed, the charge is the entire escrow and remains the
+  // correct source — that path is unchanged.
+  const transferSourceChargeId = giftAppliedCents > 0 ? null : escrowChargeId;
 
   // ── 4. Money math ────────────────────────────────────────────────────────
   //
@@ -356,15 +468,25 @@ serve(async (req) => {
     .limit(1)
     .single();
   if (feeSettingsErr || feeSettings?.helper_fee_percent == null) {
-    // Same rule as release-payout: refuse rather than quietly settle at a
-    // guessed commission. A wrong default misprices every split for the outage.
+    // Same rule as release-payout: refuse rather than settle money against a
+    // platform_settings row we could not read at all. Kept as a config-sanity
+    // assertion — the percent itself is no longer the fee fallback.
     console.error(`[execute-dispute-split] platform_settings read failed for job ${job.id}:`, feeSettingsErr);
     return json({ error: "fee configuration unavailable — retry" }, 500);
   }
+  // Fee fallback (profile-read failure only): frozen per-job rate, then the
+  // FREE-tier rate. Identical chain to release-payout and
+  // process-scheduled-payouts — every path that resolves a helper commission
+  // must fall back to the same number, or the rate a helper is charged depends
+  // on which path happened to settle their job. Derived from
+  // DEFAULT_TIER_FEE_PERCENT, never a literal, so the ladder stays the single
+  // source of truth. This used to fall back to
+  // platform_settings.helper_fee_percent (10 in prod), which under-charged the
+  // platform against a free helper's real 12%.
   const helperFeePercent = await getHelperFeePercent(
     supabaseAdmin,
     job.helper_id,
-    job.helper_fee_percent ?? feeSettings.helper_fee_percent,
+    job.helper_fee_percent ?? DEFAULT_TIER_FEE_PERCENT,
   );
 
   const perHelperBudget = Number(job.budget);
@@ -376,11 +498,23 @@ serve(async (req) => {
   const helperCents = Math.max(0, Math.round(helperPayoutDollars * 100));
   const platformFeeCents = Math.round(platformFeeDollars * 100);
 
-  const nonRefundableCents = actualOrEstimatedFeeCents(pi, capturedCents as number);
-  const refundableCents = Math.max(0, (capturedCents as number) - nonRefundableCents);
+  // Stripe's processing floor applies only to money Stripe actually processed.
+  // The gift leg has none: create-pif-donation already charged the DONOR that
+  // cost when the gift was bought, so withholding it again here would take the
+  // same cut twice out of one dollar.
+  const nonRefundableCents = pi ? actualOrEstimatedFeeCents(pi, capturedCents) : 0;
+  const refundableCents = Math.max(0, capturedCents - nonRefundableCents);
   const refundCents = Math.max(0, Math.round(refundableCents * posterShare));
 
-  if (helperCents === 0 && refundCents === 0) {
+  // Gift leg. Basis points, not dollars: the amount is computed inside
+  // `restore_pif_credit_for_job` from the applied value it alone knows, so the
+  // formula lives in exactly one place. `Math.floor` mirrors that function's
+  // integer division so this figure and the row it eventually writes agree to
+  // the cent — and rounds toward the platform, never toward minting money.
+  const giftShareBps = Math.min(10000, Math.max(0, Math.round(posterShare * 10000)));
+  const giftRestoreCents = Math.floor((giftAppliedCents * giftShareBps) / 10000);
+
+  if (helperCents === 0 && refundCents === 0 && giftRestoreCents === 0) {
     // Nothing to move — a degenerate split, or a capture entirely consumed by
     // the Stripe fee. Never a silent success: no ledger row would be written,
     // so this alert is the only durable trace.
@@ -398,7 +532,8 @@ serve(async (req) => {
         dispute_id: disputeId,
         job_id: job.id,
         helper_share: helperShare,
-        captured_cents: capturedCents as number,
+        captured_cents: capturedCents,
+        gift_applied_cents: giftAppliedCents,
         non_refundable_cents: nonRefundableCents,
       },
     });
@@ -406,26 +541,33 @@ serve(async (req) => {
   }
 
   // HARD CAP, the same one release-payout carries: never move more than the
-  // escrow actually captured. `budget` is poster-writable while the job is
-  // unpaid, so a raised budget must not become a transfer out of the platform's
-  // own balance. `source_transaction` on the transfer below is the second,
-  // independent guard — Stripe itself then refuses to over-draw the charge.
-  if (helperCents + refundCents > (capturedCents as number)) {
+  // escrow was actually funded with. `budget` is poster-writable while the job
+  // is unpaid, so a raised budget must not become a transfer out of the
+  // platform's own balance. `source_transaction` on the transfer below is the
+  // second, independent guard — Stripe itself then refuses to over-draw the
+  // charge — but a gift-funded job has no charge to draw from, so on that path
+  // this assertion stands alone. The gift leg counts against the cap: it is
+  // real value leaving the platform, just denominated in credit rather than
+  // dollars.
+  if (helperCents + refundCents + giftRestoreCents > escrowValueCents) {
     console.error(
-      `[execute-dispute-split] REFUSING: helper ${helperCents}c + refund ${refundCents}c exceeds captured ${capturedCents}c (dispute ${disputeId}).`,
+      `[execute-dispute-split] REFUSING: helper ${helperCents}c + refund ${refundCents}c + gift ${giftRestoreCents}c exceeds escrow ${escrowValueCents}c (captured ${capturedCents}c + gift ${giftAppliedCents}c) (dispute ${disputeId}).`,
     );
     await postSlackOpsAlert({
       kind: "custom",
       severity: "critical",
       title: "Dispute split blocked — exceeds captured escrow",
       message:
-        "A dispute split computed to more than the PaymentIntent captured. Nothing moved. The job's budget may have been altered after checkout.",
+        "A dispute split computed to more than the escrow was funded with. Nothing moved. The job's budget may have been altered after checkout.",
       fields: {
         dispute_id: disputeId,
         job_id: job.id,
         helper_cents: helperCents,
         refund_cents: refundCents,
-        captured_cents: capturedCents as number,
+        gift_restore_cents: giftRestoreCents,
+        captured_cents: capturedCents,
+        gift_applied_cents: giftAppliedCents,
+        escrow_value_cents: escrowValueCents,
       },
     });
     return json(
@@ -433,7 +575,9 @@ serve(async (req) => {
         error: "split exceeds the captured escrow — refused",
         helper_cents: helperCents,
         refund_cents: refundCents,
-        captured_cents: capturedCents as number,
+        gift_restore_cents: giftRestoreCents,
+        captured_cents: capturedCents,
+        escrow_value_cents: escrowValueCents,
       },
       409,
     );
@@ -462,10 +606,107 @@ serve(async (req) => {
   // (money never left) is safely re-payable, and it salts the idempotency key
   // below so Stripe issues a genuinely new attempt rather than replaying the
   // cached failure.
-  const settledTransfer = (transferRows ?? []).find((r) =>
+  // Typed explicitly (not inferred from `.find`) so the Stripe-recovery branch
+  // below can synthesise a settled row without a cast through `undefined`.
+  type SettledTransfer = {
+    stripe_transfer_id: string | null;
+    status: string | null;
+    amount_cents: number | null;
+    platform_fee_cents: number | null;
+  };
+  let settledTransfer: SettledTransfer | undefined = (transferRows ?? []).find((r) =>
     ["pending", "paid", "reversed"].includes(r.status as string)
   );
   const failedTransferCount = (transferRows ?? []).filter((r) => r.status === "failed").length;
+
+  // Last-resort cross-check for the TRANSFER leg, the exact mirror of the
+  // refund heal below — and for the exact same reason.
+  //
+  // The idempotency key stops protecting anything after Stripe's ~24h replay
+  // window, so "transfer succeeded → `payout_transfers` insert failed →
+  // nobody retried for a day" would let this function issue a SECOND real
+  // transfer to the Helpr. The refund leg already guards that case by asking
+  // Stripe; the transfer leg was relying on the ledger alone, which is the one
+  // record we have just proved can be missing.
+  //
+  // Two independent recovery sources, both already in hand and neither
+  // dependent on the window:
+  //   1. `dispute.execution_transfer_id` — `markFailed` records it precisely
+  //      when the transfer settled but its ledger write did not (:895).
+  //   2. Stripe's own transfer list for this job's `transfer_group`, matched
+  //      on `metadata.dispute_id`, which every transfer here carries.
+  // Kept off the first-attempt path, where there is nothing to find.
+  if (!settledTransfer && isResume && helperCents > 0) {
+    let recovered: string | null = null;
+    try {
+      const priorTransfers = await stripe.transfers.list({
+        transfer_group: `job_${job.id}`,
+        limit: 100,
+      });
+      const match = (priorTransfers?.data ?? []).find(
+        (t: Stripe.Transfer) => t?.metadata?.dispute_id === disputeId,
+      );
+      if (match) recovered = match.id;
+    } catch (e) {
+      // Fail CLOSED: an unverifiable transfer history is exactly the case
+      // this check exists for, so never fall through to "nothing was paid".
+      console.error(`[execute-dispute-split] transfers.list failed for job ${job.id}:`, e);
+      return json({ error: "could not verify prior transfers — retry" }, 502);
+    }
+    // The dispute row's own record is the second source. Only trusted when
+    // Stripe confirms the object exists, so a stale or hand-edited value can
+    // never make this function skip a payout that never happened.
+    if (!recovered && dispute.execution_transfer_id) {
+      try {
+        const stamped = await stripe.transfers.retrieve(dispute.execution_transfer_id);
+        if (stamped?.id) recovered = stamped.id;
+      } catch (e) {
+        console.error(
+          `[execute-dispute-split] could not verify stamped transfer ${dispute.execution_transfer_id}:`,
+          e,
+        );
+        return json({ error: "could not verify prior transfers — retry" }, 502);
+      }
+    }
+    if (recovered) {
+      console.warn(
+        `[execute-dispute-split] transfer ${recovered} for dispute ${disputeId} exists at Stripe but not in payout_transfers — treating the leg as settled and healing the ledger.`,
+      );
+      settledTransfer = {
+        stripe_transfer_id: recovered,
+        status: "paid",
+        amount_cents: helperCents,
+        platform_fee_cents: platformFeeCents,
+      };
+      // Heal the divergence we just proved. Best-effort: the leg is settled
+      // either way, so a failed write must not block the rest of the split.
+      const { error: healErr } = await supabaseAdmin.from("payout_transfers").upsert(
+        {
+          job_id: job.id,
+          helper_id: job.helper_id,
+          stripe_transfer_id: recovered,
+          amount_cents: helperCents,
+          platform_fee_cents: platformFeeCents,
+          status: "paid",
+          initiated_by: "admin",
+          initiated_by_user_id: adminUserId,
+          metadata: {
+            source: "execute_dispute_split",
+            dispute_id: disputeId,
+            helper_share: helperShare,
+            recovered_from_stripe: true,
+          },
+        },
+        { onConflict: "stripe_transfer_id", ignoreDuplicates: true },
+      );
+      if (healErr) {
+        console.error(
+          `[execute-dispute-split] could not heal the payout_transfers row for ${recovered}:`,
+          healErr,
+        );
+      }
+    }
+  }
 
   const { data: refundRows, error: refundReadErr } = await supabaseAdmin
     .from("payment_refunds")
@@ -487,7 +728,7 @@ serve(async (req) => {
   // creates carries `metadata.dispute_id`, so one already out for this dispute
   // is recognisable no matter how long ago it was made. Kept off the first-
   // attempt path, where there is by definition nothing to find.
-  if (!settledRefund && isResume && refundCents > 0) {
+  if (!settledRefund && isResume && refundCents > 0 && paymentIntentId) {
     try {
       const priorRefunds = await stripe.refunds.list({ payment_intent: paymentIntentId, limit: 100 });
       const match = (priorRefunds?.data ?? []).find(
@@ -585,9 +826,12 @@ serve(async (req) => {
   // ran on this run's arithmetic; if the ledger says a bigger transfer already
   // went out, the cap has to be judged on that number instead — otherwise a
   // resume could refund the poster on top of an over-sized prior payout.
-  if (movedHelperCents !== helperCents && movedHelperCents + refundCents > (capturedCents as number)) {
+  if (
+    movedHelperCents !== helperCents &&
+    movedHelperCents + refundCents + giftRestoreCents > escrowValueCents
+  ) {
     console.error(
-      `[execute-dispute-split] REFUSING resume of dispute ${disputeId}: settled transfer ${movedHelperCents}c + refund ${refundCents}c exceeds captured ${capturedCents}c.`,
+      `[execute-dispute-split] REFUSING resume of dispute ${disputeId}: settled transfer ${movedHelperCents}c + refund ${refundCents}c + gift ${giftRestoreCents}c exceeds escrow ${escrowValueCents}c.`,
     );
     await postSlackOpsAlert({
       kind: "payout_failed",
@@ -600,7 +844,10 @@ serve(async (req) => {
         job_id: job.id,
         settled_transfer_cents: movedHelperCents,
         refund_cents: refundCents,
-        captured_cents: capturedCents as number,
+        gift_restore_cents: giftRestoreCents,
+        captured_cents: capturedCents,
+        gift_applied_cents: giftAppliedCents,
+        escrow_value_cents: escrowValueCents,
       },
     });
     return json(
@@ -685,8 +932,10 @@ serve(async (req) => {
           destination: helper.stripe_account_id,
           // Ties the transfer to the exact charge that funded it, so Stripe
           // enforces the "never over-draw the escrow" cap server-side even if
-          // the assertion above is ever bypassed.
-          ...(escrowChargeId ? { source_transaction: escrowChargeId } : {}),
+          // the assertion above is ever bypassed. Null on any gift-funded job
+          // (pure OR mixed) — see `transferSourceChargeId` above; there the
+          // `escrowValueCents` cap is the guard.
+          ...(transferSourceChargeId ? { source_transaction: transferSourceChargeId } : {}),
           transfer_group: `job_${job.id}`,
           description: `Helpr dispute split for job ${job.id} — ${job.title}`,
           metadata: {
@@ -856,6 +1105,83 @@ serve(async (req) => {
     }
   }
 
+  // ── 8b. Leg three: give the poster back their share of the GIFT ──────────
+  //
+  // A Pay-It-Forward gift is money the poster never charged to a card, so
+  // there is nothing for `stripe.refunds.create` to reverse. Their share comes
+  // back as a replacement gift instead: same recipient, same donor, same card
+  // art, `parent_credit_id` pointing at the gift that was spent and
+  // `restored_from_job_id` at this job.
+  //
+  // IDEMPOTENCY lives in the database, not in a Stripe key. A partial unique
+  // index on `restored_from_job_id` allows exactly one restoration per job
+  // forever, so a re-run — an admin double-click, or a resume after the
+  // refund leg failed — returns 'already_restored' and mints nothing. That is
+  // strictly stronger than the ~24h window the two Stripe legs rely on.
+  //
+  // No `payment_refunds` row: that ledger's `stripe_refund_id` is UNIQUE NOT
+  // NULL, and inventing a fake id to satisfy it would poison the one column
+  // every reconciliation job joins on. The replacement credit, with its two
+  // back-references, IS the ledger entry for this leg.
+  let restoredCreditId: string | null = null;
+  let restoredGiftCents = 0;
+  if (giftRestoreCents > 0) {
+    const { data: restoreData, error: restoreErr } = await supabaseAdmin.rpc(
+      "restore_pif_credit_for_job",
+      { p_job_id: job.id, p_share_bps: giftShareBps, p_dry_run: false },
+    );
+    const restored = (restoreData ?? null) as
+      | { outcome?: string; credit_id?: string; recipient_id?: string; restore_cents?: number }
+      | null;
+    const restoreOutcome = restoreErr ? null : restored?.outcome;
+    if (restoreOutcome !== "restored" && restoreOutcome !== "already_restored") {
+      // A null `error` is not proof the gift came back. Both Stripe legs may
+      // already have settled, so this is a half-finished split, not a clean
+      // refusal — park it as resumable and page ops.
+      const why = restoreErr
+        ? `${restoreErr.message}${(restoreErr as { code?: string }).code ? ` (${(restoreErr as { code?: string }).code})` : ""}`
+        : `unrecognised outcome ${JSON.stringify(restored)}`;
+      console.error(
+        `CRITICAL: [execute-dispute-split] dispute ${disputeId} settled its Stripe legs but the gift restore failed for job ${job.id}: ${why}`,
+      );
+      await postSlackOpsAlert({
+        kind: "custom",
+        severity: "critical",
+        title: "Dispute split could not return the poster's Pay-It-Forward gift",
+        message:
+          "A dispute split moved its Stripe legs but could not mint the poster's replacement gift, so they are short by that amount. The split is left resumable — retry once the cause is cleared.",
+        fields: {
+          dispute_id: disputeId,
+          job_id: job.id,
+          gift_restore_cents: giftRestoreCents,
+          transfer_id: transferId ?? "—",
+          refund_id: refundId ?? "—",
+          reason: why.slice(0, 200),
+        },
+      });
+      await markFailed(supabaseAdmin, disputeId, `gift restore failed: ${why}`, {
+        transferId,
+        refundId,
+        helperCents: movedHelperCents,
+        refundCents,
+      });
+      return json(
+        {
+          error:
+            "the Stripe legs settled but the poster's Pay-It-Forward gift could not be returned — retry to finish the split",
+          stripe_transfer_id: transferId,
+          stripe_refund_id: refundId,
+        },
+        500,
+      );
+    }
+    restoredCreditId = restored?.credit_id ?? null;
+    restoredGiftCents = Number(restored?.restore_cents ?? 0) || 0;
+  }
+
+  // What the poster actually gets back, in both currencies of this settlement.
+  const posterReturnedCents = refundCents + restoredGiftCents;
+
   // ── 9. Settle: the job's payment state, then the dispute's ───────────────
   // 'released' whenever the helper was paid anything (money left escrow toward
   // the helper); 'refunded' only when the poster took the whole award. Both are
@@ -922,7 +1248,12 @@ serve(async (req) => {
       execution_transfer_id: transferId,
       execution_refund_id: refundId,
       execution_helper_cents: movedHelperCents,
-      execution_refund_cents: refundCents,
+      // What the poster got back, counting a restored Pay-It-Forward gift.
+      // On an ordinary Stripe job `restoredGiftCents` is 0 and this is the
+      // refund figure exactly, as before — but on a gift-funded job recording
+      // only the Stripe leg would tell the admin queue the poster received
+      // nothing when they received their whole share.
+      execution_refund_cents: posterReturnedCents,
       execution_error: null,
     })
     .eq("id", disputeId);
@@ -960,13 +1291,25 @@ serve(async (req) => {
       );
     }
   }
-  if (job.customer_id && refundCents > 0) {
+  if (job.customer_id && posterReturnedCents > 0) {
+    // Say where the money went back TO. A poster who paid with a gift and is
+    // told it went "to your original payment method" will go looking for a
+    // card refund that will never arrive.
+    const posterHow = restoredGiftCents > 0 && refundCents > 0
+      ? `$${formatPayoutDollars(refundDollars)} has been refunded to your original payment method and $${formatPayoutDollars(restoredGiftCents / 100)} is back as a gift you can use on another job.`
+      : restoredGiftCents > 0
+      ? `$${formatPayoutDollars(restoredGiftCents / 100)} is back as a gift you can use on another job.`
+      : `$${formatPayoutDollars(refundDollars)} has been refunded to your original payment method.`;
     const { error: posterNoteErr } = await supabaseAdmin.from("notifications").insert({
       user_id: job.customer_id,
-      title: "Dispute settled — refund issued",
-      message: `The dispute on "${job.title}" was settled with a ${Math.round(posterShare * 100)}% share to you. $${formatPayoutDollars(refundDollars)} has been refunded to your original payment method.`,
+      title: restoredGiftCents > 0 && refundCents === 0
+        ? "Dispute settled — your gift is back"
+        : "Dispute settled — refund issued",
+      message: `The dispute on "${job.title}" was settled with a ${Math.round(posterShare * 100)}% share to you. ${posterHow}`,
       type: "payment",
-      link: "/my-posts",
+      // The settled job. A resolved dispute leaves the job completed or
+      // cancelled — either way not in the "Needs you" bucket /my-posts opens on.
+      link: `/my-posts?job=${job.id}`,
     });
     if (posterNoteErr) {
       console.error(
@@ -986,6 +1329,11 @@ serve(async (req) => {
     helper_cents: movedHelperCents,
     platform_fee_cents: movedPlatformFeeCents,
     refund_cents: refundCents,
+    // The gift leg, reported separately so a caller can never mistake credit
+    // for cash back on a card.
+    gift_restored_cents: restoredGiftCents,
+    gift_credit_id: restoredCreditId,
+    poster_returned_cents: posterReturnedCents,
     stripe_transfer_id: transferId,
     stripe_refund_id: refundId,
     payment_status: finalPaymentStatus,
@@ -1037,7 +1385,7 @@ function parseSplit(
  * nothing may walk it back.
  */
 async function markFailed(
-  admin: ReturnType<typeof createClient>,
+  admin: AdminClient,
   disputeId: string,
   reason: string,
   settled: { transferId?: string | null; refundId?: string | null; helperCents?: number; refundCents?: number } = {},

@@ -93,5 +93,3 @@ export function ProfileLanding({
     </>
   );
 }
-
-export default ProfileLanding;

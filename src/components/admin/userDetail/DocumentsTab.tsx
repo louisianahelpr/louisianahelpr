@@ -1,4 +1,5 @@
 import { FileText } from "lucide-react";
+import UserAvatar from "@/components/UserAvatar";
 import { TabsContent } from "@/components/ui/tabs";
 import type { Profile } from "../adminUserHelpers";
 
@@ -48,9 +49,39 @@ export function DocumentsTab({ viewProfile, idDocSignedUrl }: DocumentsTabProps)
       <div className="space-y-2">
         <h4 className="text-ds-11 sm:text-ds-13 font-semibold text-foreground uppercase tracking-wide">Profile Picture</h4>
         {viewProfile.avatar_url ? (
-          <a href={viewProfile.avatar_url} target="_blank" rel="noopener noreferrer" className="inline-block">
-            <img loading="lazy" decoding="async" src={viewProfile.avatar_url} alt="Profile" className="w-32 h-32 rounded-ds-md object-cover border-2 border-border hover:border-primary transition-colors" />
-          </a>
+          /* Migrated onto the shared `<UserAvatar>` (2026-08-31) — the one
+             surface in this lane where that needed thinking about, because
+             here the avatar is EVIDENCE, not decoration: an admin opens this
+             tab to see what the member actually uploaded.
+
+             Showing the raw file would have kept this panel painting the exact
+             blank block the fix exists to remove; showing only a monogram
+             would have hidden the artifact under review. So both ship: the
+             guarded avatar identifies the account at a glance, and the
+             "Open original ↗" link below it — the same affordance the
+             non-image ID-document branch above already uses — always reaches
+             the unaltered object. The monogram appearing here is itself
+             informative: it means the upload carries no image content, which
+             is a fact worth an admin's attention. */
+          <div className="space-y-1.5">
+            <UserAvatar
+              userId={viewProfile.user_id}
+              src={viewProfile.avatar_url}
+              name={viewProfile.full_name}
+              pixelSize={128}
+              aria-hidden
+              className="w-32 h-32 rounded-ds-md border-2 border-border"
+              fallbackClassName="rounded-ds-md text-ds-24 ring-0"
+            />
+            <a
+              href={viewProfile.avatar_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block text-ds-11 text-primary underline"
+            >
+              Open original ↗
+            </a>
+          </div>
         ) : (
           <p className="text-ds-11 text-muted-foreground italic">Not provided</p>
         )}

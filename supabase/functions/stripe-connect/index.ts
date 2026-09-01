@@ -209,23 +209,31 @@ serve(async (req) => {
       // Log an in-app notification so the helpr can spot account takeover
       // attempts. Stripe's hosted onboarding handles 2FA + email confirm
       // for ADDING a new method, so this closes the loop on removals.
-      try {
-        await supabaseAdmin.from("notifications").insert({
+      //
+      // NOT a try/catch. PostgREST does not THROW on a database error — it
+      // resolves with `{ data, error }` — so wrapping this in `try/catch` and
+      // discarding the result made the catch unreachable and the failure
+      // completely silent, which is the exact opposite of what the comment
+      // above it claimed. Read the error off the result, and treat a zero-row
+      // insert the same way: this is the user's only signal that a payout
+      // destination changed on their account, so a dropped one hides exactly
+      // the event an account takeover would produce. It must not block the
+      // removal itself, which has already happened at Stripe.
+      const { data: notifRows, error: notifyErr } = await supabaseAdmin
+        .from("notifications")
+        .insert({
           user_id: user.id,
           title: "Payout method removed",
           message:
             "A payout method was just removed from your account. If this wasn't you, contact support immediately.",
           type: "financial_alerts",
           link: "/profile?tab=payment",
-        });
-      } catch (notifyErr) {
-        // A notification failure must not block the actual removal — but it
-        // must NOT be invisible either. This is the user's only signal that a
-        // payout destination changed on their account, so a silently dropped
-        // one hides exactly the event an account takeover would produce.
+        })
+        .select("id");
+      if (notifyErr || (notifRows?.length ?? 0) === 0) {
         console.error(
-          "[stripe-connect] FAILED to send 'payout method removed' security notification — user was not warned:",
-          notifyErr instanceof Error ? notifyErr.message : String(notifyErr),
+          `[stripe-connect] FAILED to send 'payout method removed' security notification to ${user.id} — user was NOT warned:`,
+          notifyErr?.message ?? "insert returned zero rows",
         );
       }
 
@@ -374,7 +382,42 @@ serve(async (req) => {
         try {
           await stripe.accounts.del(profile.stripe_account_id);
         } catch (e) {
-          console.log("Could not delete old account:", (e as Error).message);
+          // A failed delete used to be swallowed with `console.log` and the
+          // reset carried on regardless — nulling `stripe_account_id` and
+          // minting a fresh account underneath it. That is how a helper's
+          // money gets stranded: Stripe REFUSES to delete a connected account
+          // that still holds a balance, so the exact helper most harmed by a
+          // reset (one with funds waiting to pay out) was the one whose old
+          // account got orphaned while their profile was re-pointed at an
+          // empty new one. Nothing in the app can reach the old account
+          // afterwards, and nothing sweeps for it.
+          //
+          // Only "it is already gone" is a safe reason to continue — that is
+          // precisely the stale-link state reset exists to clear. Anything
+          // else aborts BEFORE the link is nulled, so the profile keeps
+          // pointing at the account that holds the money.
+          const err = e as { statusCode?: number; code?: string; message?: string };
+          const alreadyGone =
+            err.statusCode === 404 ||
+            err.code === "resource_missing" ||
+            err.code === "account_invalid" ||
+            (err.message ?? "").includes("No such account");
+          if (!alreadyGone) {
+            console.error(
+              `[stripe-connect] reset ABORTED for ${user.id}: could not delete Connect account ${profile.stripe_account_id} — link left intact so any balance stays reachable:`,
+              err.message,
+            );
+            return new Response(
+              JSON.stringify({
+                error:
+                  "We couldn't reset your payout account — Stripe still has activity on it (this usually means money is waiting to pay out). Nothing was changed. Contact support and we'll sort it out.",
+              }),
+              { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 },
+            );
+          }
+          console.warn(
+            `[stripe-connect] reset: Connect account ${profile.stripe_account_id} was already gone at Stripe; clearing the stale link.`,
+          );
         }
       }
 
@@ -398,23 +441,26 @@ serve(async (req) => {
       // accounts and pending payout configuration — more destructive than
       // removing a single payout method. Mirrors the notification in
       // delete_payout_method so account takeover attempts are visible.
-      try {
-        await supabaseAdmin.from("notifications").insert({
+      //
+      // Same correction as delete_payout_method above: PostgREST resolves with
+      // `{ error }` rather than throwing, so the try/catch this replaces could
+      // never fire and the failure was silent. Must not block the reset, which
+      // has already happened.
+      const { data: resetNotifRows, error: resetNotifyErr } = await supabaseAdmin
+        .from("notifications")
+        .insert({
           user_id: user.id,
           title: "Payout account reset",
           message:
             "Your payout account was reset and a new one created. If this wasn't you, contact support immediately.",
           type: "financial_alerts",
           link: "/profile?tab=payment",
-        });
-      } catch (notifyErr) {
-        // A notification failure must not block the reset — but it must NOT be
-        // invisible. This is the user's only signal that their payout account
-        // was wiped and replaced, so a silently dropped one hides exactly the
-        // event an account takeover would produce.
+        })
+        .select("id");
+      if (resetNotifyErr || (resetNotifRows?.length ?? 0) === 0) {
         console.error(
-          "[stripe-connect] FAILED to send 'payout account reset' security notification — user was not warned:",
-          notifyErr instanceof Error ? notifyErr.message : String(notifyErr),
+          `[stripe-connect] FAILED to send 'payout account reset' security notification to ${user.id} — user was NOT warned:`,
+          resetNotifyErr?.message ?? "insert returned zero rows",
         );
       }
 

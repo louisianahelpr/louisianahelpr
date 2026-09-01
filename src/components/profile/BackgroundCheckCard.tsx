@@ -51,7 +51,7 @@ const BGC_PURCHASE_ENABLED = false;
  *   - pending  → in-progress
  *   - none/failed → purchase CTA (calls create-bgc-payment → Stripe Checkout)
  */
-export function BackgroundCheckCard({ status }: { status: string }) {
+function BackgroundCheckCard({ status }: { status: string }) {
   const [loading, setLoading] = useState(false);
 
   const startCheck = async () => {

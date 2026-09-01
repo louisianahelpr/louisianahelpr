@@ -1,10 +1,9 @@
-import { useState, type ComponentProps, type ReactNode } from "react";
-import { Clock, MapPin, ShieldCheck, Users } from "lucide-react";
+import { type ComponentProps, type ReactNode } from "react";
+import { Briefcase, Clock, MapPin, ShieldCheck, Users } from "lucide-react";
 import CredentialBadge from "@/components/CredentialBadge";
 import HelperTierBadge from "@/components/profile/HelperTierBadge";
+import UserAvatar from "@/components/UserAvatar";
 import type { Database } from "@/integrations/supabase/types";
-import { cn } from "@/lib/utils";
-import { avatarGradientFor } from "@/lib/avatarGradient";
 import type { ProfileStatsShape, LastActiveLabel } from "./types";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
@@ -43,12 +42,23 @@ type Props = {
  *    of the bio. Verification now sits in a normal wrapped chip row in the
  *    flow, where nothing can collide with anything.
  *
- * 2. **The name is not repeated here.** The page's `<PageHeader>` title is now
- *    the person's name (it used to read the uninformative "Profile"), so
- *    restating it 40px lower in an `<h2>` was the same fact twice. One
- *    heading, no shadow copy. Place and tenure stay in this card — PageHeader
- *    paints no `meta` line at all (retired app-wide, see PageHeader.tsx), so
- *    they had nowhere else to go.
+ * 2. **The name lives HERE, in the box, beside the avatar** (owner,
+ *    2026-08-31: "put the name back in the box and profile back where it was
+ *    to the right of back"). An earlier pass moved it up into the
+ *    `<PageHeader>` h1 and left this card headless — an avatar next to a bare
+ *    "Since May 2026" and nothing else. The header title is the literal string
+ *    "Profile" again, sitting to the right of the back button where it was,
+ *    and the person's name is the first thing in the identity column. It
+ *    appears exactly ONCE on screen: here.
+ *
+ *    The trading name sits directly under it when there is one. It arrives
+ *    pre-gated: `get_safe_profiles` emits `business_name` only once an admin
+ *    has verified the licence or the COI and NULL otherwise, so there is
+ *    deliberately no client-side status check here — duplicating the rule is
+ *    how the two drift apart. NULL is the overwhelmingly common case, so the
+ *    line renders nothing at all when absent (no empty row, no reserved gap),
+ *    and the name is stripped from CredentialBadge's own suffix so the same
+ *    string is not printed twice a few pixels apart.
  *
  * 3. **"Worked together" is demoted.** It is a genuinely useful trust signal
  *    and a genuinely minor one; it was wearing the loudest treatment on the
@@ -82,10 +92,43 @@ export const ProfileHeaderCard = ({
   recognition,
   atAGlance,
 }: Props) => {
-  // A truthy-but-broken avatar_url (stale storage path, 404) would otherwise
-  // pass the null/empty guard below, fail to load, and paint the alt text.
-  // Treat a load error as "no photo" so we fall through to the initials block.
-  const [avatarFailed, setAvatarFailed] = useState(false);
+  /* ── AVATAR: MIGRATED ONTO THE SHARED `<UserAvatar>` (2026-09-01) ───────
+     This card was the LAST holdout of the owner's original defect — an avatar
+     rendering as a solid coloured block with no letters. It carried a local
+     fork of the guard, written by the lane that first diagnosed the bug and
+     deliberately never updated while the shared implementation moved on, and
+     that fork was strictly weaker in three ways:
+
+       1. Its placeholder-URL matcher covered only `?d=(blank|identicon|mp|
+          mystery)`; the shared one also covers `monsterid|retro|robohash|
+          wavatar`.
+       2. It had the luma-RANGE check and nothing else. A linear gradient has
+          an arbitrarily wide range and still carries no information, and prod
+          row 6b472670 (Camille Testeur) is exactly that — a smooth brown→olive
+          wash measuring range 16.8, detail 0.73 — so it sailed past a range
+          test and rendered here, today, as the flat coloured square the owner
+          reported. `isBlankAvatarBitmap` adds the mean-absolute-Laplacian
+          test, which is identically zero for ANY linear gradient however wide
+          its stops, and that is what catches it.
+       3. No transparency handling: no alpha skip on the detail pass and no
+          `opaque === 0` case, so a fully transparent PNG read as a photo.
+
+     The two things the fork got RIGHT are why `<UserAvatar>` is a safe
+     replacement rather than a regression — it keeps both. It retries once
+     without `crossOrigin` before calling a load failure a verdict (a host with
+     no `access-control-allow-origin` fails the CORS load outright, and a real
+     photograph must not become a monogram because of it), and it treats a
+     tainted canvas as "cannot judge → show it". Hiding a real photo is worse
+     than showing a blank one.
+
+     `avatarInitials` inside `<UserAvatar>` also subsumes the hand-rolled
+     `monogram` derivation this file used to keep, including its
+     never-render-an-empty-block guarantee.
+
+     KNOWN GAP, NOT FIXED HERE: `<UserAvatar>` has no callback when it rejects
+     a blank bitmap, so a member whose upload is a flat block still gets the
+     "ID verified" badge over their monogram. Closing that needs an
+     `onPhotoRejected` prop on `<UserAvatar>`, which is outside this file. */
 
   // See (5) above: the private, own-row-only flag OR the public column that
   // `get_safe_profiles` exposes precisely so visitors can see this.
@@ -96,6 +139,10 @@ export const ProfileHeaderCard = ({
   const memberSinceLabel = profile.created_at
     ? new Date(profile.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" })
     : null;
+
+  // Server-gated: NULL unless an admin has verified the licence or the COI.
+  const businessName =
+    (profile as unknown as { business_name?: string | null }).business_name?.trim() || null;
 
   const skills = (profile.skills ?? "")
     .split(",")
@@ -115,31 +162,31 @@ export const ProfileHeaderCard = ({
         <div className="flex flex-row items-start gap-4">
           {/* ── Avatar ── */}
           <div className="relative inline-block shrink-0">
-            {profile.avatar_url && !avatarFailed ? (
-              <img
-                loading="lazy"
-                decoding="async"
-                src={profile.avatar_url}
-                alt={`${displayName} profile picture`}
-                onError={() => setAvatarFailed(true)}
-                className="w-20 h-20 sm:w-28 sm:h-28 rounded-ds-avatar squircle object-cover"
-                style={{ boxShadow: "0 0 0 2px hsl(var(--bark) / 0.18)" }}
-              />
-            ) : (
-              <div
-                className={cn(
-                  // Deterministic warm-palette gradient hashed off the user id,
-                  // so a photoless profile still has a signature.
-                  // `rounded-ds-avatar squircle` is the app-wide avatar radius
-                  // (IdentityHeader, PhotoNameSection).
-                  "w-20 h-20 sm:w-28 sm:h-28 rounded-ds-avatar squircle bg-gradient-to-br text-[hsl(var(--ink-deep))] drop-shadow-sm flex items-center justify-center text-ds-24 font-display italic font-bold",
-                  avatarGradientFor(userId),
-                )}
-                style={{ boxShadow: "0 0 0 2px hsl(var(--bark) / 0.18)" }}
-              >
-                {initials}
-              </div>
-            )}
+            {/* The bark hairline moves onto the Avatar ROOT so it frames the
+                photo and the monogram identically — it used to be duplicated
+                on the two branches. `ring-0` on the fallback suppresses
+                `<UserAvatar>`'s own olivewood hairline so there is one ring,
+                not two, and `text-ds-24` preserves this card's large monogram
+                (the shared fallback inherits a list-sized default). Sizing
+                and radius tokens are unchanged from the markup they replace,
+                and match IdentityHeader / PhotoNameSection. */}
+            <UserAvatar
+              userId={userId}
+              src={profile.avatar_url}
+              name={displayName}
+              initials={initials}
+              pixelSize={112}
+              alt={`${displayName} profile picture`}
+              className="w-20 h-20 sm:w-28 sm:h-28 rounded-ds-avatar squircle"
+              // `rounded-ds-avatar squircle` is repeated on the FALLBACK, not
+              // just the root: `AvatarFallback` ships `rounded-full`, so
+              // without it the gradient is a circle sitting inside a squircle
+              // frame with four pale corner gaps — measured at 1440, it reads
+              // as a misaligned inlay. The same repetition is why the admin
+              // migrations pass `rounded-ds-md` here.
+              fallbackClassName="rounded-ds-avatar squircle text-ds-24 ring-0 drop-shadow-sm"
+              style={{ boxShadow: "0 0 0 2px hsl(var(--bark) / 0.18)" }}
+            />
             {idVerified && (
               <div
                 // role="img" is required for the label to survive: aria-label is
@@ -160,15 +207,34 @@ export const ProfileHeaderCard = ({
 
           {/* ── Place, verification, bio, skills ── */}
           <div className="min-w-0 flex-1">
-            {/* PLACE + TENURE — the line that used to sit under the name.
-                The name itself moved up to the <PageHeader> h1, but its meta
-                could NOT follow it: PageHeader deliberately paints neither
-                `eyebrow` nor `meta` (both retired app-wide by owner decision,
-                see the note in PageHeader.tsx), so anything passed there is
-                silently dropped. Verified in Chrome — the props render
-                nothing. So place and tenure live here, as the first line of
-                the identity column, where they still read as part of the
-                name block sitting directly above them. */}
+            {/* THE NAME — back in the box, beside the avatar, and the only
+                place it appears on screen. `break-words` rather than
+                `truncate`: at 320 a long name has to be readable, and an
+                ellipsised person is worse than a two-line one. */}
+            <h2
+              className="font-display italic font-bold text-ds-22 leading-tight break-words mb-1"
+              style={{ color: "hsl(var(--ink-deep))" }}
+            >
+              {displayName}
+            </h2>
+
+            {/* TRADING NAME — nothing at all when there is none. See (2). */}
+            {businessName && (
+              <p
+                className="font-sans font-semibold text-ds-13 leading-snug mb-1 flex items-start gap-1.5 break-words"
+                style={{ color: "hsl(var(--bark))" }}
+              >
+                <Briefcase className="w-3.5 h-3.5 shrink-0 mt-[3px]" aria-hidden />
+                <span className="min-w-0">{businessName}</span>
+              </p>
+            )}
+
+            {/* PLACE + TENURE — directly under the name it qualifies. It has
+                to live here and nowhere else: PageHeader deliberately paints
+                neither `eyebrow` nor `meta` (both retired app-wide by owner
+                decision, see the note in PageHeader.tsx), so anything passed
+                there is silently dropped. Verified in Chrome — those props
+                render nothing. */}
             {(location || memberSinceLabel) && (
               // STACKED below `sm`, one row from `sm` up — and the separator
               // only exists in the row form. As a wrappable flex child the "·"
@@ -230,7 +296,19 @@ export const ProfileHeaderCard = ({
                   // CredentialState are structurally unrelated, so a direct
                   // cast is a type error and `as never` is not comparable —
                   // route it through the component's own prop type.
-                  profile as unknown as ComponentProps<typeof CredentialBadge>["credentials"]
+                  //
+                  // business_name is nulled ON PURPOSE. The badge appends
+                  // "· <name>" to its own label, and this card now prints the
+                  // trading name as a line under the person's name (see (2)),
+                  // so leaving it in renders the same string twice about 60px
+                  // apart. The badge keeps its job — "Licensed & Insured" —
+                  // and the identity block keeps the name. Every OTHER surface
+                  // in the app still gets the suffix; the component is
+                  // untouched.
+                  {
+                    ...(profile as unknown as Record<string, unknown>),
+                    business_name: null,
+                  } as ComponentProps<typeof CredentialBadge>["credentials"]
                 }
                 size="md"
               />

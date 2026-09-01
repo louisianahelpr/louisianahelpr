@@ -93,7 +93,7 @@ const sizeStyles: Record<Size, { pill: string; icon: string }> = {
   md: { pill: "text-ds-11 px-2.5 py-1 gap-1.5", icon: "w-3.5 h-3.5" },
 };
 
-export function HelperTierBadge(props: HelperTierBadgeProps) {
+function HelperTierBadge(props: HelperTierBadgeProps) {
   const { size = "sm", showProgress = true, className, profile, stats } = props;
   const [open, setOpen] = useState(false);
 

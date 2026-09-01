@@ -11,7 +11,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { toast } from "sonner";
-import { Camera, Check, Loader2, ShieldCheck, X } from "lucide-react";
+import { Camera, Check, Circle, Loader2, ShieldCheck, X } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { DatePickerField } from "@/components/DatePickerField";
 import { CityAutocomplete } from "@/components/postjob/CityAutocomplete";
@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { isProfileComplete } from "@/components/ProtectedRoute";
 import { splitName } from "@/lib/splitName";
 import { queryKeys } from "@/lib/queryKeys";
+import { unwrapMutationRow, isWriteRejected, mutationErrorMessage } from "@/lib/mutationResult";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
 import AuthShell from "@/components/auth/AuthShell";
 import { uploadProfileFiles } from "./completeProfile/uploadProfileFiles";
@@ -49,6 +50,11 @@ const CompleteProfile = () => {
 
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  // A remote avatar_url can 404 (a deleted Storage object, a dead dicebear
+  // URL). Falling back to the camera placeholder on `onError` is what lets us
+  // render the real photo optimistically instead of refusing to render any
+  // non-blob: URL at all — see the preview block below.
+  const [avatarBroken, setAvatarBroken] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -73,7 +79,13 @@ const CompleteProfile = () => {
     if (profile.phone && !phone) setPhone(formatPhone(profile.phone));
     if (profile.location && !location) setLocation(profile.location);
     if (profile.bio && !bio) setBio(profile.bio);
-    if (profile.avatar_url && !avatarPreview) setAvatarPreview(profile.avatar_url);
+    // NOTE: avatar_url is deliberately NOT hydrated here. This effect is
+    // one-shot (hydratedRef), and the avatar is the one field the gate reads
+    // LIVE off `profile.avatar_url` (see `checklist` below). Hydrating it here
+    // let the two drift: a profile whose avatar landed after this ran showed
+    // "Profile photo * · tap to add" under an ENABLED "Enter App" button —
+    // the screen naming a required field as missing while the gate counted it
+    // as present. The dedicated effect below keeps them in sync instead.
     // Persisted terms acceptance — read straight from the row so refresh / re-entry
     // doesn't reset the user's previous "yes I agree".
     if (profile.accepted_terms_at) setAcceptedPolicies(true);
@@ -81,6 +93,17 @@ const CompleteProfile = () => {
   // The hydratedRef is the real guard; user_id is included to correctly reset
   // the gate when the logged-in user changes (e.g. in a shared-device test).
   }, [profile?.user_id]);
+
+  // Keeps the avatar THUMBNAIL in step with the avatar the GATE reads.
+  // A locally-picked file always wins (its blob: URL is the freshest truth);
+  // otherwise mirror whatever `profile.avatar_url` currently is, including a
+  // value that arrives on a later refetch.
+  useEffect(() => {
+    if (avatarFile) return;
+    const url = profile?.avatar_url ?? null;
+    setAvatarPreview((prev) => (prev === url ? prev : url));
+    setAvatarBroken(false);
+  }, [profile?.avatar_url, avatarFile]);
 
   const validateFile = (file: File, allowedTypes: string[], label: string): boolean => {
     if (!allowedTypes.includes(file.type)) {
@@ -98,6 +121,7 @@ const CompleteProfile = () => {
     const file = e.target.files?.[0];
     if (file && validateFile(file, ALLOWED_IMAGE_TYPES, "Profile picture")) {
       setAvatarFile(file);
+      setAvatarBroken(false);
       setAvatarPreview(URL.createObjectURL(file));
     }
   };
@@ -234,7 +258,16 @@ const CompleteProfile = () => {
         bio: bio.trim(),
         location: location.trim(),
         date_of_birth: dateOfBirth,
-        approval_status: "pending",
+        // `approval_status: "pending"` used to be sent here. It never did
+        // anything for a normal user — the BEFORE UPDATE trigger
+        // `tr_prevent_self_escalation` (public.prevent_self_escalation) pins
+        // approval_status back to OLD for every non-admin, so the column was
+        // written and discarded on every submit. For an ADMIN the trigger
+        // returns NEW untouched, so the one account it COULD reach was an
+        // admin completing their own profile — demoting themselves to
+        // `pending` and locking themselves out of every non-allowPending
+        // route. A field the DB refuses to take from this caller does not
+        // belong in this caller's payload.
         // Stamp the moment the user accepted the rules / terms / privacy.
         // Persisting this means the checklist won't ask again on refresh.
         accepted_terms_at: new Date().toISOString(),
@@ -246,23 +279,35 @@ const CompleteProfile = () => {
       // Big-7 completeness gate re-evaluates the instant we navigate to
       // /dashboard, so the cache MUST hold the authoritative saved row — not
       // an optimistic guess that a stale background refetch could clobber.
-      const { data: savedRow, error: updateErr } = await withTimeout(
-        Promise.resolve(
-          supabase.from("profiles").update(updates).eq("user_id", user.id).select("*").maybeSingle(),
+      //
+      // Guarded through unwrapMutation because a null `error` does NOT mean
+      // the write happened: an UPDATE matching zero rows (RLS refusing the
+      // row, a session whose auth.uid() no longer matches) returns
+      // `{ data: [], error: null }`. The previous shape read that as success
+      // and fell back to an OPTIMISTIC merge — writing a profile the database
+      // does not have into the cache, letting the gate pass, and dropping the
+      // user on /dashboard until the next real fetch bounced them back here
+      // with nothing to show for the attempt. This is the one write on the
+      // screen, and it is the screen's only exit, so a silent rejection has to
+      // surface as a failure.
+      const savedRow = unwrapMutationRow<Record<string, unknown>>(
+        await withTimeout(
+          Promise.resolve(
+            supabase.from("profiles").update(updates).eq("user_id", user.id).select("*"),
+          ),
+          "Profile save",
         ),
-        "Profile save",
+        {
+          action: "save your profile",
+          context: { userId: user.id },
+        },
       );
-      if (updateErr) throw updateErr;
 
       queryClient.setQueryData(queryKeys.currentUser.byId(user.id), (current: any) => ({
         ...(current ?? {}),
-        // Prefer the row Postgres actually persisted; fall back to a merged
-        // optimistic shape only if the read-back came back empty.
-        profile: savedRow ?? {
-          ...(current?.profile ?? profile ?? {}),
-          ...updates,
-          user_id: user.id,
-        },
+        // The row Postgres actually persisted — guaranteed non-null by the
+        // guard above.
+        profile: savedRow,
         isAdmin: current?.isAdmin ?? false,
       }));
       // No invalidate + sleep here: that triggered a background refetch that
@@ -274,7 +319,17 @@ const CompleteProfile = () => {
       navigate("/dashboard", { replace: true });
     } catch (err: any) {
       const recovered = await recoverCompletedProfile();
-      if (!recovered) { hapticError(); toast.error(err?.message || "We couldn't save your profile just yet — give it another try."); }
+      if (!recovered) {
+        hapticError();
+        // A silently-rejected write gets its own sentence (the row wasn't
+        // ours / wasn't there); everything else keeps the human fallback so a
+        // raw PostgREST code never reaches the one screen a user cannot leave.
+        toast.error(
+          isWriteRejected(err)
+            ? mutationErrorMessage(err)
+            : err?.message || "We couldn't save your profile just yet — give it another try.",
+        );
+      }
     } finally {
       setSubmitting(false);
     }
@@ -386,8 +441,22 @@ const CompleteProfile = () => {
                 aria-label={avatarPreview ? "Change profile picture" : "Upload profile picture"}
               >
                 <div className="w-24 h-24 rounded-full overflow-hidden ring-2 ring-border bg-muted flex items-center justify-center transition-all group-hover:ring-primary/50">
-                  {avatarPreview && avatarPreview.startsWith("blob:") ? (
-                    <img loading="lazy" decoding="async" src={avatarPreview} alt="Profile preview" className="w-full h-full object-cover" />
+                  {/* Renders ANY preview URL, not just a freshly-picked
+                      `blob:`. The old `startsWith("blob:")` guard meant a user
+                      who already had an avatar on file saw an empty camera
+                      placeholder under the caption "Tap to change" — the
+                      screen implying the photo was missing on the one screen
+                      that will not let them leave until it isn't. A remote URL
+                      that 404s falls back to the placeholder via onError. */}
+                  {avatarPreview && !avatarBroken ? (
+                    <img
+                      loading="lazy"
+                      decoding="async"
+                      src={avatarPreview}
+                      alt="Profile preview"
+                      className="w-full h-full object-cover"
+                      onError={() => setAvatarBroken(true)}
+                    />
                   ) : (
                     <Camera className="w-7 h-7 text-muted-foreground" />
                   )}
@@ -404,7 +473,7 @@ const CompleteProfile = () => {
                 />
               </label>
               <p className="text-ds-11 text-muted-foreground">
-                {avatarPreview
+                {avatarPreview && !avatarBroken
                   ? "Tap to change · JPG, PNG, WebP (5MB max)"
                   : <>Profile photo <span className="text-destructive">*</span> · tap to add</>}
               </p>
@@ -548,6 +617,54 @@ const CompleteProfile = () => {
               </span>
             </label>
 
+            {/* WHAT IS STILL MISSING — the whole point of this screen.
+                The `checklist` above has existed since the gate shipped and was
+                never rendered: the only signal a blocked user got was a
+                DISABLED button reading "Complete Required Fields", with every
+                field on the form wearing an identical red asterisk whether it
+                was satisfied or not. Because the button is disabled whenever
+                `allComplete` is false, the per-field `fail()` toasts in
+                handleSubmit are unreachable too — so a user missing exactly one
+                field (four accounts in prod on 2026-08-31, two of them missing
+                only City) had nothing anywhere on the page naming it.
+                This is a redirect the app will not let them out of, so naming
+                the remaining fields is not a nicety.
+                Shown only while incomplete: once every item is done the list
+                is noise and the enabled "Enter App" button says it better. */}
+            {!allComplete && (
+              <div
+                className="rounded-ds-md border p-3.5"
+                style={{
+                  borderColor: "hsl(var(--burnt-sienna) / 0.28)",
+                  background: "hsl(var(--burnt-sienna) / 0.06)",
+                }}
+              >
+                {/* NOT `text-display-eyebrow` — that utility is `display: none`
+                    app-wide (index.css, the 2026-07-25 "all eyebrows gone"
+                    decision), so a label written with it renders nothing.
+                    Caught here by reading the computed page text, not the
+                    class name — same trap as asserting gloss by class. */}
+                <p className="text-ds-11 font-semibold" style={{ color: "hsl(var(--burnt-sienna))" }}>
+                  Still needed
+                </p>
+                <ul className="mt-2 space-y-1.5" aria-live="polite">
+                  {checklist
+                    .filter((c) => !c.done)
+                    .map((c) => (
+                      <li key={c.label} className="flex items-center gap-2 text-ds-11" style={{ color: "hsl(var(--ink-deep))" }}>
+                        <Circle className="w-3 h-3 shrink-0" strokeWidth={2.5} style={{ color: "hsl(var(--burnt-sienna) / 0.7)" }} aria-hidden />
+                        {c.label}
+                      </li>
+                    ))}
+                </ul>
+                {checklist.some((c) => c.done) && (
+                  <p className="mt-2.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                    {checklist.filter((c) => c.done).length} of {checklist.length} done.
+                  </p>
+                )}
+              </div>
+            )}
+
             <Button
               type="submit"
               size="lg"
@@ -573,6 +690,22 @@ const CompleteProfile = () => {
             >
               <X className="w-4 h-4 mr-2" /> Sign Out
             </Button>
+
+            {/* The only route to a human from inside the gate. ProtectedRoute's
+                PROFILE_GATE_ALLOWED set lets a half-onboarded user reach
+                /support, /terms, /rules, /privacy and /profile?tab=legal — but
+                until now this screen linked to four of those five and never to
+                support, so the escape hatch existed and was invisible. Someone
+                stuck on a field they cannot satisfy (a phone number the format
+                rejects, a city not in the list) had "Sign Out" as their only
+                other affordance. /help is NOT on the allowed list, so link
+                /support, which is. */}
+            <p className="text-center text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              Stuck on something?{" "}
+              <a href="/support" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
+                Contact support
+              </a>
+            </p>
           </form>
       </div>
     </AuthShell>

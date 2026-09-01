@@ -75,6 +75,41 @@ Edit Post button, and — found while building this — it is **absent from
 `e2e/happy-path/seedData.ts` entirely**, so it has never appeared in any
 screenshot this repository has ever produced.
 
+**2026-08-31 — `pending_approval` was retired as a product state. Its row above
+stays at 2, and that is not an oversight.** The number in that column counts
+*state-matrix cells*, and `e2e/happy-path/state-matrix/stateMatrix.ts` — this
+document's declared source of truth — still emits two
+(`posted-pending-approval-awaiting-approver-{collapsed,expanded}`). Editing the
+count without editing the module would put the doc and its source out of step,
+which is the failure mode this file exists to prevent. What changed is the
+*reason the cells matter*, so it is recorded here rather than in the count:
+
+- The backing tables are gone. `businesses` and `business_members` were dropped
+  by `20260828011811`; both return PGRST205 "Could not find the table" against
+  prod (checked 2026-08-31). `businesses.require_approval_above`, the threshold
+  that was supposed to gate the status, went with them.
+- No code path can write it. The only writer was
+  `buildJobInsertPayload({ initialStatus: 'pending_approval' })` in
+  `src/pages/postjob/jobSubmitHelpers.ts`; that parameter had zero call sites
+  and has been deleted. The rewritten jobs INSERT policy also requires
+  `business_id IS NULL`, so the old trigger's guard can never be satisfied.
+- The enum label is **deliberately kept**. Dropping an enum label is a heavy,
+  non-transactional migration, and the exhaustiveness guards
+  (`src/lib/assertNever.ts`, `src/test/jobStatusExhaustive.test.ts`,
+  `statusLabels` / `statusColors`, the transition matrix in `20260828020000`)
+  all still handle it on purpose, so a stray row can never render a blank card.
+
+**Not yet true, as of this edit:** the data repair has NOT shipped.
+`supabase/migrations/20260831232522_retire_business_approval_residue.sql`
+moves the two stranded rows to `in_progress`, but it is **untracked and
+uncommitted**, so `db-deploy.yml` has not run it. Prod still holds exactly two
+`pending_approval` jobs (both `is_seed = true`, `business_id` NULL), verified
+by direct query on 2026-08-31. Once that migration merges, these two cells
+become *source-only* — reachable by mocking a row, unreachable by any live
+account — and should be re-labelled `unreachable` in `stateMatrix.ts` with that
+reason, at which point this table's `2` legitimately becomes `0`. Do not
+pre-empt that here.
+
 ---
 
 ## Why it is not a million cells

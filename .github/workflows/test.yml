@@ -53,6 +53,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
+    env:
+      # Where `deno check` caches the remote type declarations it downloads for
+      # the edge-function type check. Pinned so actions/cache below has a
+      # deterministic path to save and restore.
+      DENO_DIR: ${{ runner.temp }}/deno_cache
+
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -62,6 +68,26 @@ jobs:
         with:
           node-version: "22"
           cache: "npm"
+
+      # Edge functions are Deno, not Node — `tsc` cannot resolve their `npm:`
+      # and `https://` imports, so type-checking them needs the real runtime.
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: "v2.x"
+
+      # `deno check` fetches remote type declarations (stripe, supabase-js,
+      # deno.land/std) on a cold run. Cache them so the common case is offline
+      # and one flaky esm.sh response cannot redden an unrelated PR.
+      # Kept OUTSIDE the workspace on purpose: a cache directory inside it would
+      # be walked by `eslint .`, knip and the production build.
+      - name: Cache Deno dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/deno_cache
+          key: deno-${{ runner.os }}-${{ hashFiles('supabase/functions/**/*.ts', 'supabase/functions/**/*.tsx', 'scripts/edge-typecheck.deno.json') }}
+          restore-keys: |
+            deno-${{ runner.os }}-
 
       - name: Install dependencies
         # Use `npm install` (not `npm ci`) so CI heals a stale lockfile
@@ -81,13 +107,30 @@ jobs:
       - name: TypeScript type check
         run: npx tsc -b --noEmit
 
-      # `tsc -b` above covers src/ ONLY — supabase/functions is Deno, with
-      # https:// imports tsc cannot resolve, so it is excluded from tsconfig.
-      # The tests that touch those files read them as TEXT. That leaves edge
-      # functions with no syntax gate at all: a stray comment terminator inside
-      # a JSDoc block passed lint, typecheck and 1825 tests, reached main, and
-      # only appeared as "failed to create the graph" once Deno tried to bundle
-      # it. Deno aborts the entire deploy on one such error.
+      # `tsc -b` above still covers src/ ONLY — supabase/functions is Deno, with
+      # `npm:` and https:// imports tsc cannot resolve, so it stays out of
+      # tsconfig. The tests that touch those files read them as TEXT.
+      #
+      # That used to leave 65+ money-handling edge functions with no type gate at
+      # all, which is how three call sites came to read
+      # `subscription.current_period_end` — removed from Stripe's Subscription
+      # object in API version 2025-03-31.basil, against a client pinned to
+      # 2025-08-27.basil. `new Date(undefined * 1000).toISOString()` throws
+      # RangeError, the webhook dispatcher rolled back the idempotency row and
+      # returned 500, and every recurring membership charge took the money and
+      # granted nothing. The step below rejects exactly that.
+      #
+      # Coverage is by glob: every .ts/.tsx under supabase/functions, so a new
+      # edge function is checked the moment it exists. Nobody has to add it to a
+      # list. (scripts/typecheck-edge.mjs)
+      - name: Edge function type check
+        run: npm run typecheck:edge
+
+      # Kept as well as the type check, not instead of it. It is network-free
+      # and sub-second, so it still gives a verdict if a registry is down and
+      # the type check cannot resolve its remote declarations — and a parse
+      # error is the one class that makes Deno abort the WHOLE deploy with
+      # "failed to create the graph", so it is worth gating twice.
       - name: Edge function syntax check
         run: npm run check:edge
 

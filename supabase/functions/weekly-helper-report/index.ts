@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";
 import { sumHelperTakeHomeDollars } from "../_shared/helperEarnings.ts";
-import { DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
+import { feePercentForTier } from "../_shared/helperFees.ts";
 import { cronError, cronResult } from "../_shared/cron-result.ts";
 
 const corsHeaders = {
@@ -82,7 +82,14 @@ Deno.serve(async (req) => {
           .gte("created_at", weekAgoISO),
         supabase
           .from("jobs")
-          .select("budget, platform_fee_amount, urgent_fee, helper_fee_percent, is_group_job, helpers_needed")
+          // `payment_status` is REQUIRED, not decorative: helperEarnings'
+          // isSettledForDisplay opts a row out of the stamped-fee shortcut
+          // unless it is 'released', and a row that omits the column is
+          // treated as settled. This query is NOT filtered on
+          // payment_status — a job completed an hour ago is still inside the
+          // 24-hour payout window — so without this column the guard would be
+          // inert and the report would keep quoting the escrow-time stamp.
+          .select("budget, platform_fee_amount, urgent_fee, helper_fee_percent, is_group_job, helpers_needed, payment_status")
           .eq("helper_id", helper.user_id)
           .eq("status", "completed")
           .gte("updated_at", weekAgoISO),
@@ -108,9 +115,19 @@ Deno.serve(async (req) => {
       // helper, so it is still not deducted here (a prior version subtracted a
       // phantom 8.5%-of-fee "tax" that under-reported pay versus the actual
       // Stripe transfer).
+      //
+      // The fallback percent is THIS HELPER'S OWN tier rate, not a global
+      // default — the same contract the client twin documents, and the same
+      // rate `getHelperFeePercent` resolves when the payout actually runs. It
+      // is what an unsettled row (still inside the 24-hour payout window) is
+      // priced at, since that row's stamp is escrow-time bookkeeping off the
+      // global rate and encodes no tier at all. Passing a flat default here
+      // would just swap one wrong number for another: an Elite helper (8%) was
+      // emailed a figure UNDERSTATING their pay off the 10% stamp, and would
+      // still be understated off a flat 12.
       const weeklyEarnings = sumHelperTakeHomeDollars(
         earningsRes.data || [],
-        DEFAULT_TIER_FEE_PERCENT,
+        feePercentForTier(helper.subscription_tier, helper.subscription_expires_at),
       );
       const applicationsSubmitted = appsRes.data?.length || 0;
 

@@ -1,5 +1,4 @@
 import * as React from "react";
-import * as PopoverPrimitive from "@radix-ui/react-popover";
 import { X } from "lucide-react";
 
 /**
@@ -7,122 +6,294 @@ import { X } from "lucide-react";
  * button wears (Notifications off the bell, Browse Filters off the Filters
  * button).
  *
- * WHY THIS EXISTS (owner, 2026-08-30: "how can we improve notifications or
- * anchored filters so they stand out better"): both panels used to be bare
- * `PopoverContent`s painted `bg-premium-page` — the SAME surface as the page
- * behind them, with no scrim, no caret and no close control. Dropped over a
- * colourful job feed they read as another section of the page that had pushed
- * the feed down, not as a layer above it. Nothing said "this is temporary,
- * this belongs to that button, here is how you dismiss it".
+ * WHAT THESE PANELS ARE NOW (owner, 2026-08-31, on the Filters panel: "This
+ * blur is not correct it should be anchored to screen remove the blur"; on
+ * Notifications: "Same for this. No blur"; and, asked whether the two should
+ * match: "Yes — both the same").
  *
- * Four parts, and a panel is only wearing the treatment if it has all four:
+ * A panel is a SCREEN-ANCHORED BAND, not a floating card:
  *
- *   1. `PopoverScrim`         — dim + blur the page underneath, using the
- *                               EXACT tokens `DialogOverlay` uses, so an
- *                               anchored panel separates from the page the
- *                               same way every modal in the app already does.
- *                               It lives in `ui/popover.tsx`, NOT here: this
- *                               file briefly shipped a second scrim of its own
- *                               (`AnchoredPanelScrim`) that was the same recipe
- *                               at a different z-index, which is the "two
- *                               primitives for one concept" the owner keeps
- *                               rejecting. Mount it as
- *                               `<PopoverPortal><PopoverScrim /></PopoverPortal>`
- *                               immediately before the `PopoverContent`.
- *   2. `anchoredPanelContentClass` — the shared `.glass-modal` surface and
- *                               the shared `max-w-lg` measure (see
- *                               `src/components/ui/dialogShell.test.ts`:
- *                               every popup wears one shell, and `max-w-lg`
- *                               is it). Real elevation, not a flat card.
- *   3. `AnchoredPanelCaret`   — a small notch pointing back at the trigger,
- *                               so it is obvious what opened this and that it
- *                               is anchored rather than floating.
- *   4. `AnchoredPanelHeader`  — title + an unambiguous 44px close control.
- *                               Tap-outside and Escape still dismiss (Radix
- *                               `DismissableLayer`); the X is the visible,
- *                               touch-discoverable equivalent.
+ *   1. No scrim.              The page behind is neither dimmed nor blurred.
+ *                             `ui/popover.tsx` still portals a
+ *                             `PopoverDismissLayer` — a full-bleed sheet that
+ *                             paints NOTHING — because that element is what
+ *                             receives the tap-outside; see its comment for
+ *                             why removing it (rather than its paint)
+ *                             reintroduces the tap-through bug.
+ *   2. Full-bleed.            Edge to edge, x = 0 to the viewport width, top
+ *                             flush with the bottom of the header the trigger
+ *                             sits in. No side margins, no caret, no floating
+ *                             rounded card — `useScreenPanelBand` measures the
+ *                             band and `screenPanelContentProps` feeds it to
+ *                             Radix.
+ *   3. Opaque surface.        `screenPanelSurfaceStyle`, not `.glass-modal`:
+ *                             a solid `--background` with a hairline bottom
+ *                             edge and a soft downward shadow. A full-bleed
+ *                             band separates from the page by its EDGE, and a
+ *                             translucent blurred one would be exactly the
+ *                             blur the owner asked to remove.
+ *   4. `AnchoredPanelHeader`. Title + an unambiguous 44px close control.
+ *                             Tap-outside and Escape still dismiss (Radix
+ *                             `DismissableLayer`); the X is the visible,
+ *                             touch-discoverable equivalent.
  *
- * Mount the panel with `modal` on `<Popover>`: that is what locks page scroll
- * behind the scrim (so the panel's own list scrolls, not the feed), traps
- * focus inside the panel, and returns focus to the trigger on close.
+ * Mount the panel with `modal` on `<Popover>`. That is deliberately KEPT even
+ * though the scrim is gone: it is what locks page scroll behind the panel (so
+ * the panel's own list scrolls, not the feed), traps focus inside the panel,
+ * and returns focus to the trigger on close. None of those depended on the
+ * scrim's paint; all three would be lost by going non-modal.
  */
 
-/**
- * Height budget for an anchored panel.
- *
- * `--radix-popover-content-available-height` is the distance from the trigger
- * to the collision boundary, so it already stops the panel running off the
- * bottom of the window — but NOT off the bottom nav, which is a fixed dock
- * floating over the viewport. Subtract the dock the same way every page does
- * (`--bottom-nav-h` + `--safe-area-bottom`, the pair behind Tailwind's
- * `safe-nav`), so the panel's last row can never sit under it.
- *
- * The `min()` with a viewport fraction keeps the panel from becoming a
- * full-height slab on a tall desktop window, where it would stop reading as
- * a dropdown.
- */
-export const anchoredPanelMaxHeight =
-  "min(72vh, calc(var(--radix-popover-content-available-height, 72vh) - var(--bottom-nav-h, 96px) - var(--safe-area-bottom, 0px) - 0.75rem))";
+/* ─────────────────────────────────────────────────────────────────────────
+   SCREEN-ANCHORED GEOMETRY
+   ─────────────────────────────────────────────────────────────────────────
+   Radix positions a popover against its anchor with Floating UI, and the
+   positioner it renders (`[data-radix-popper-content-wrapper]`) carries a
+   `transform` — which makes it the containing block for any `position: fixed`
+   descendant. So a panel CANNOT opt out of Radix's placement by declaring
+   itself fixed and full-bleed: it would be fixed to the wrapper, i.e. right
+   back where Radix put it.
+
+   The way out is to give Radix an anchor whose rect IS the band we want. A
+   zero-height rect spanning the viewport at the header's bottom edge, plus
+   `side="bottom" align="center" sideOffset={0}` and a content width equal to
+   that rect's width, resolves to exactly x = 0, y = header bottom. No CSS
+   overrides, no `!important`, no fighting the positioner. */
+
+/** Ancestors that count as "the header this panel hangs under". */
+const PANEL_HEADER_SELECTOR =
+  ".glass-nav, .glass-header, header, [data-app-shell-header], .liquid-glass";
 
 /**
- * The shared surface + measure for an anchored panel's `PopoverContent`.
- *
- * `.glass-modal` is the app's overlay surface (see `index.css`): near-opaque
- * background, 40px backdrop blur, `border-radius: 28px`, and a real modal
- * shadow. Using it — rather than `bg-premium-page`, which is the PAGE — is
- * what makes the panel read as a layer.
- *
- * `max-w-lg` is the shared popup measure documented by `dialogShell.test.ts`;
- * `w-[calc(100vw-1.5rem)]` lets it shrink to a 320px phone without ever
- * touching the edges.
- *
- * `p-0` because the panel owns its own header/body/footer padding.
- *
- * NOTE it deliberately does NOT clip: `AnchoredPanelCaret` is a child of the
- * content element but is positioned OUTSIDE its box (that is how it pokes out
- * toward the trigger), so `overflow: hidden` here would erase the caret
- * entirely. The clipping that the rounded corners need lives one level in, on
- * `anchoredPanelBodyClass`.
+ * A header is a BAR. `.liquid-glass` is also the app's general card surface,
+ * and on the desktop website the Filters button lives inside a full-height
+ * `.liquid-glass` content card whose bottom edge is the bottom of the page —
+ * anchoring to that would drop the panel off-screen. Anything taller than a
+ * plausible bar is not the header, so keep walking.
  */
-export const anchoredPanelContentClass =
-  "glass-modal w-[calc(100vw-1.5rem)] max-w-lg p-0 gap-0 flex flex-col";
+const MAX_HEADER_HEIGHT = 200;
+
+/** Breathing room under the trigger when no header bar could be identified. */
+const TRIGGER_FALLBACK_GAP = 8;
+
+/** Gap kept between the panel's bottom edge and the dock (or the screen). */
+const PANEL_BOTTOM_GAP = 12;
+
+/** Smallest panel worth showing, however cramped the viewport. */
+const PANEL_MIN_HEIGHT = 160;
+
+export interface ScreenPanelBand {
+  /** Always 0 — the band starts at the left edge of the screen. */
+  left: number;
+  /** Viewport y of the panel's top edge (the header's bottom). */
+  top: number;
+  /** `documentElement.clientWidth` — the scrollbar is excluded on purpose, so
+   *  a full-bleed panel can never itself create horizontal overflow. */
+  width: number;
+  /** Height budget: everything from `top` down to the dock, less a gap. */
+  maxHeight: number;
+}
+
+const EMPTY_BAND: ScreenPanelBand = { left: 0, top: 0, width: 0, maxHeight: 0 };
+
+function measureScreenPanelBand(
+  trigger: HTMLElement | null,
+  extraBottomInset: number,
+): ScreenPanelBand {
+  if (typeof document === "undefined") return EMPTY_BAND;
+  const doc = document.documentElement;
+  const width = doc.clientWidth;
+  const viewportHeight = doc.clientHeight;
+
+  let top = 0;
+  if (trigger) {
+    const triggerRect = trigger.getBoundingClientRect();
+    top = triggerRect.bottom + TRIGGER_FALLBACK_GAP;
+    for (let el: HTMLElement | null = trigger.parentElement; el; el = el.parentElement) {
+      if (!el.matches(PANEL_HEADER_SELECTOR)) continue;
+      const rect = el.getBoundingClientRect();
+      if (rect.height > MAX_HEADER_HEIGHT) continue;
+      if (rect.bottom < triggerRect.bottom) continue;
+      top = rect.bottom;
+      break;
+    }
+  }
+
+  // The dock is a FIXED bar floating over the viewport, so the viewport's own
+  // height does not account for it. Measure the real thing rather than
+  // subtracting `--bottom-nav-h`'s 96px fallback everywhere: that fallback is
+  // also what a desktop viewport (where `.mobile-nav-frame` is
+  // `display: none`) would subtract, stranding 96px of empty screen under
+  // every desktop panel.
+  const dock = document.querySelector<HTMLElement>(".mobile-nav-frame");
+  let bottomInset = 0;
+  if (dock && window.getComputedStyle(dock).display !== "none") {
+    bottomInset = Math.max(0, viewportHeight - dock.getBoundingClientRect().top);
+  }
+  // `max`, not `+`: the software keyboard occupies the SAME strip of screen as
+  // the dock, so adding them would shrink the panel by roughly twice what is
+  // actually covered.
+  bottomInset = Math.max(bottomInset, extraBottomInset);
+
+  const maxHeight = Math.max(
+    PANEL_MIN_HEIGHT,
+    viewportHeight - top - bottomInset - PANEL_BOTTOM_GAP,
+  );
+
+  return { left: 0, top: Math.round(top), width, maxHeight: Math.round(maxHeight) };
+}
 
 /**
- * The clipping wrapper that goes immediately inside the content element and
- * holds the header / scroll area / footer.
+ * Measures the screen band a panel should occupy and hands back the virtual
+ * anchor that puts Radix there.
  *
- * `rounded-[28px]` matches `.glass-modal`'s own radius exactly — a tinted
- * unread row or a footer button reaching the panel's bottom edge would
- * otherwise square off the corners the surface just rounded.
+ * `anchorRef.current.getBoundingClientRect` reads the LIVE band rather than a
+ * snapshot, so every reposition Floating UI runs (its own resize/scroll
+ * listeners, plus the ResizeObserver on the content) picks up the current
+ * numbers without this hook having to force one.
+ *
+ * @param open              whether the panel is open — nothing is measured or
+ *                          listened for while it is closed.
+ * @param triggerRef        the button the panel hangs off; its nearest header
+ *                          bar decides the band's top edge.
+ * @param extraBottomInset  additional bottom occlusion, e.g. the software
+ *                          keyboard (`useKeyboardInset`).
  */
-export const anchoredPanelBodyClass =
-  "flex-1 min-h-0 flex flex-col overflow-hidden rounded-[28px]";
+export function useScreenPanelBand(
+  open: boolean,
+  triggerRef: React.RefObject<HTMLElement | null>,
+  extraBottomInset = 0,
+): { anchorRef: React.RefObject<{ getBoundingClientRect: () => DOMRect }>; band: ScreenPanelBand } {
+  const [band, setBand] = React.useState<ScreenPanelBand>(EMPTY_BAND);
+  const bandRef = React.useRef<ScreenPanelBand>(EMPTY_BAND);
+  const insetRef = React.useRef(extraBottomInset);
+  insetRef.current = extraBottomInset;
+
+  const measure = React.useCallback(() => {
+    const next = measureScreenPanelBand(triggerRef.current, insetRef.current);
+    bandRef.current = next;
+    setBand((prev) =>
+      prev.top === next.top && prev.width === next.width && prev.maxHeight === next.maxHeight
+        ? prev
+        : next,
+    );
+  }, [triggerRef]);
+
+  // Layout effect, not effect: this runs in the same commit that mounts the
+  // panel, so the measured width/height land BEFORE paint and the panel never
+  // flashes at zero width.
+  React.useLayoutEffect(() => {
+    if (!open) return;
+    measure();
+    // A second pass on the next frame: the trigger's row can still be settling
+    // (web fonts, a badge appearing) in the commit that opens the panel.
+    const raf = requestAnimationFrame(measure);
+    const vv = window.visualViewport;
+    window.addEventListener("resize", measure);
+    window.addEventListener("orientationchange", measure);
+    vv?.addEventListener("resize", measure);
+    vv?.addEventListener("scroll", measure);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", measure);
+      window.removeEventListener("orientationchange", measure);
+      vv?.removeEventListener("resize", measure);
+      vv?.removeEventListener("scroll", measure);
+    };
+  }, [open, measure]);
+
+  // The keyboard can rise and fall while the panel stays open.
+  React.useEffect(() => {
+    if (open) measure();
+  }, [open, extraBottomInset, measure]);
+
+  const anchorRef = React.useRef<{ getBoundingClientRect: () => DOMRect }>({
+    getBoundingClientRect: () => {
+      const b = bandRef.current;
+      return new DOMRect(b.left, b.top, b.width, 0);
+    },
+  });
+
+  return { anchorRef, band };
+}
+
+/**
+ * The `PopoverContent` props that pin a panel to a measured band.
+ *
+ * `avoidCollisions={false}` is deliberate: collision handling exists to keep a
+ * floating card on screen, and this panel is already sized and placed against
+ * the screen. Left on, `shift` would slide a full-viewport-width panel
+ * sideways to "fit" it and reintroduce the side margins.
+ */
+export function screenPanelContentProps(band: ScreenPanelBand) {
+  return {
+    side: "bottom" as const,
+    align: "center" as const,
+    sideOffset: 0,
+    alignOffset: 0,
+    avoidCollisions: false,
+    style: {
+      width: band.width || undefined,
+      maxHeight: band.maxHeight || undefined,
+      ...screenPanelSurfaceStyle,
+    } satisfies React.CSSProperties,
+  };
+}
+
+/**
+ * The band's surface. OPAQUE, square, with a hairline bottom edge and a soft
+ * downward shadow — the panel separates from the feed by its edge, not by
+ * dimming or blurring what is behind it.
+ *
+ * Not `.glass-modal`: that surface is 95% `--background` over a 40px
+ * `backdrop-filter`, which is a blur, which is the thing the owner asked to
+ * remove. Its 28px radius is wrong here too — a band that reaches both screen
+ * edges has no corners to round on the sides.
+ */
+const screenPanelSurfaceStyle = {
+  background: "hsl(var(--background))",
+  borderBottom: "1px solid hsl(var(--olivewood) / 0.14)",
+  boxShadow: "0 18px 40px -22px hsl(160 10% 12% / 0.45)",
+  // `PopoverContent`'s shared class enters with `zoom-in-95`, which on a
+  // 1440px-wide band is a visible sideways stretch rather than the small pop a
+  // dropdown gets. tailwindcss-animate drives that scale from a custom
+  // property, and tailwind-merge does not know its class names well enough to
+  // let a `zoom-in-100` override win reliably — so pin the property itself
+  // here, where an inline value beats any class. The `slide-in-from-top-2`
+  // drop survives, which is the part that reads as "this came down from the
+  // header".
+  "--tw-enter-scale": "1",
+  "--tw-exit-scale": "1",
+} as React.CSSProperties;
+
+/** Layout classes for a screen-anchored panel's `PopoverContent`. */
+export const screenPanelContentClass =
+  "flex flex-col w-auto max-w-none p-0 gap-0 border-0 rounded-none bg-transparent shadow-none outline-none overflow-hidden";
 
 /*
- * The scrim used to live here as `AnchoredPanelScrim`, a second copy of the
- * scrim `ui/popover.tsx` already exported. It is gone: `PopoverScrim` is the
- * one both anchored panels mount, and it is where the z-index reasoning, the
- * `pointer-events-auto` tap-through fix and the `--scrim-tint` / `--scrim-blur`
- * tokens now live. Do not add another one here.
- */
-
-/**
- * The notch pointing back at the trigger. Radix positions it against whichever
- * side the panel ended up on, so it keeps pointing at the button even when a
- * collision flips the panel above the trigger.
+ * The old exports that made a panel a FLOATING CARD are gone, not deprecated:
  *
- * Filled with the `.glass-modal` background so it reads as part of the panel's
- * surface rather than a separate decoration.
+ *   `anchoredPanelMaxHeight`   — a CSS `min(72vh, …)` expression built on
+ *                                `--radix-popover-content-available-height`.
+ *                                A screen-anchored panel knows its own top
+ *                                edge, so its height budget is arithmetic, not
+ *                                an estimate: `useScreenPanelBand` returns it.
+ *   `anchoredPanelContentClass`— `.glass-modal` + `max-w-lg` + a 1.5rem side
+ *                                inset. All three said "floating card".
+ *   `anchoredPanelBodyClass`   — existed only to clip the 28px corners the
+ *                                card had. A full-bleed band has none.
+ *   `AnchoredPanelCaret`       — the notch pointing back at the trigger. A
+ *                                band that spans the screen is not pointing
+ *                                anywhere (owner: "it should be anchored to
+ *                                screen").
+ *   `AnchoredPanelScrim`       — a second copy of the scrim `ui/popover.tsx`
+ *                                already exported. Both are gone; what
+ *                                survives there is `PopoverDismissLayer`,
+ *                                which paints nothing.
+ *
+ * Do not reintroduce any of them without the owner asking for a floating card
+ * back.
  */
-export function AnchoredPanelCaret() {
-  return (
-    <PopoverPrimitive.Arrow
-      width={18}
-      height={9}
-      style={{ fill: "hsl(var(--background) / 0.95)" }}
-    />
-  );
-}
 
 /**
  * Title row + close control. The close button is a full 44px target (Apple

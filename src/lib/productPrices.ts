@@ -23,8 +23,8 @@ export const formatFeeUsd = (cents: number): string => `$${formatPriceExact(cent
 //   • active Elite            → free (the boost flags are flipped directly, no
 //                               Checkout session at all)
 //   • active Basic/Pro        → BOOST_DISCOUNT_PCT off BOOST_FEE_CENTS
-//   • Free / Business / any   → BOOST_FEE_CENTS
-//     lapsed subscription
+//   • Free / any lapsed or    → BOOST_FEE_CENTS
+//     unrecognised tier
 //
 // `BOOST_MIN_UNIT_AMOUNT_CENTS` is the server's defensive floor covering
 // Stripe's per-charge cost; it only bites if BOOST_FEE_CENTS is ever cut below

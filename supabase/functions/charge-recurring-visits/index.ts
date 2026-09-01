@@ -31,6 +31,9 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
+// Separate `import type` line on purpose: src/test/edge/harness.ts rewrites
+// this exact form when it bundles the function for vitest.
+import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { verifyCronSecret } from "../_shared/cron-auth.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import {
@@ -42,6 +45,19 @@ import { posterFeePercentForTier, posterServiceFeeCents } from "../_shared/poste
 import { isLaborTaxable } from "../_shared/salesTax.ts";
 import { recurringVisitDates } from "../_shared/recurringSchedule.ts";
 import { cronResult } from "../_shared/cron-result.ts";
+
+/**
+ * The client type these helpers accept.
+ *
+ * NOT `ReturnType<typeof createClient>`: `createClient` is overloaded, and
+ * `ReturnType` resolves the LAST overload — `SupabaseClient<unknown, ...>`,
+ * whose row and payload types collapse to `never`. `createClient(url, key)`
+ * actually returns `SupabaseClient<any, "public", "public", any, any>`, so the
+ * annotation rejected the only client it is ever called with, and every
+ * `.insert()`/`.update()` inside these helpers was checked against `never`.
+ */
+// deno-lint-ignore no-explicit-any
+type AdminClient = SupabaseClient<any>;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -289,23 +305,23 @@ serve(async (req) => {
         // its whole service fee; and the cancellation refund reads
         // `customer_fee_amount ?? 0`, so it would hand back a fee that WAS
         // collected.
-        const { data: settingsRow } = await supabase
-          .from("platform_settings")
-          .select("helper_fee_percent")
-          .limit(1)
-          .maybeSingle();
-        // The last-resort fallback is the FREE-tier rate, not a literal 10.
-        // helperFees.ts picks free (12) on purpose: an unrecognised or
-        // unreadable tier must never under-charge the platform, and a bare 10
-        // silently applied the Pro rate whenever platform_settings was
-        // unreadable.
-        const fallbackHelperFeePercent = typeof settingsRow?.helper_fee_percent === "number"
-          ? settingsRow.helper_fee_percent
-          : DEFAULT_TIER_FEE_PERCENT;
+        // The fallback (profile-read failure only) is the FREE-tier rate, not
+        // a literal and not the global setting. helperFees.ts picks free (12)
+        // on purpose: an unrecognised or unreadable tier must never
+        // under-charge the platform.
+        //
+        // This used to prefer `platform_settings.helper_fee_percent` and only
+        // fall through to DEFAULT_TIER_FEE_PERCENT if that read failed — so in
+        // the normal case it applied the stored 10 (the Pro rate) to a free
+        // helper. A generated visit has no frozen per-job percent to prefer
+        // (the row is being created here), so the free rate is the whole
+        // chain. That read fed nothing else and is gone. Every path that
+        // resolves a helper commission now falls back to the same number,
+        // derived from DEFAULT_TIER_FEE_PERCENT rather than a literal.
         const helperFeePercent = await getHelperFeePercent(
           supabase as never,
           parent.recurring_helper_id as string,
-          fallbackHelperFeePercent,
+          DEFAULT_TIER_FEE_PERCENT,
         );
         // Use the shared commission helper, not the unrounded
         // `(budget * pct) / 100` form. helperFees.ts documents why: the
@@ -494,27 +510,68 @@ serve(async (req) => {
         // offer does: earnings, reviews and the completion flow all join
         // through it. ON CONFLICT because a helper who happened to apply
         // separately must not collide with the unique (job_id, helper_id).
-        await supabase.from("applications").upsert(
+        // The error was being dropped here, on the row the comment above calls
+        // load-bearing. Without an `applications` row the helper's Activity tab
+        // never lists the visit (`fetchAppliedActivity` reads jobs THROUGH their
+        // applications), so the helper is booked and charged-for but the job is
+        // invisible to them — and the money is already in escrow, so nothing
+        // downstream ever notices. Refunding is wrong (the visit is real and the
+        // helper is committed); the correct outcome is a loud, actionable defect
+        // on a run that otherwise reports `ok: true`.
+        const { error: appErr } = await supabase.from("applications").upsert(
           { job_id: child.id, helper_id: parent.recurring_helper_id, status: "accepted", message: null },
           { onConflict: "job_id,helper_id" },
         );
+        if (appErr) {
+          console.error(
+            `[charge-recurring-visits] application row failed for visit ${child.id} (series ${parent.id}, ${visitDate})`,
+            appErr,
+          );
+          results.errors++;
+          await postSlackOpsAlert({
+            kind: "custom",
+            severity: "critical",
+            title: "Recurring visit created without its application row",
+            message:
+              "The visit is funded and assigned, but the helper has no application row — it will not appear in their Activity tab and the completion flow cannot resolve it. Insert the row by hand.",
+            fields: {
+              parentJobId: String(parent.id),
+              visitJobId: String(child.id),
+              helperId: String(parent.recurring_helper_id),
+              visitDate,
+              error: appErr.message,
+            },
+          });
+        }
 
-        await supabase.from("notifications").insert([
+        const { error: notifyErr } = await supabase.from("notifications").insert([
           {
             user_id: parent.recurring_helper_id,
             title: "Your next visit is booked",
             message: `"${parent.title}" on ${visitDate} is confirmed and paid. Can't make it? Release the date from My Jobs.`,
             type: "job_updates",
-            link: "/my-jobs",
+            // THIS visit, not the My Jobs default bucket — a confirmed booking
+            // is `scheduled`, and /my-jobs opens on "Needs you".
+            link: `/my-jobs?job=${child.id}`,
           },
           {
             user_id: parent.customer_id,
             title: "Next visit funded",
             message: `"${parent.title}" on ${visitDate} is booked and held in escrow.`,
             type: "job_updates",
-            link: "/my-posts",
+            link: `/my-posts?job=${child.id}`,
           },
         ]);
+        // Not fatal — the visit exists and is funded either way — but the whole
+        // reason the helper's copy was added is that a booked date they are not
+        // told about is a date they do not show up for. A silently dropped
+        // insert reproduces exactly that, on a run reporting `ok: true`.
+        if (notifyErr) {
+          console.error(
+            `[charge-recurring-visits] booking notifications failed for visit ${child.id} (series ${parent.id}, ${visitDate})`,
+            notifyErr,
+          );
+        }
 
         results.funded++;
       }
@@ -568,7 +625,7 @@ serve(async (req) => {
  * inside FUND_LEAD_DAYS).
  */
 async function notifyPosterCardProblem(
-  supabase: ReturnType<typeof createClient>,
+  supabase: AdminClient,
   parent: Record<string, unknown>,
   visitDate: string,
   reason: string,
@@ -593,7 +650,10 @@ async function notifyPosterCardProblem(
     title: "Your next visit isn't booked",
     message: `"${parent.title}" on ${visitDate} couldn't be set up, so it's not on your schedule — please don't head out for it. We'll let you know if it gets booked.`,
     type: "job_updates",
-    link: "/my-jobs",
+    // The series parent — there is no child job for a visit that was never
+    // created. If the helper has no card for it, Activity leaves the view on
+    // its default rather than pinning an empty bucket.
+    link: `/my-jobs?job=${parent.id}`,
   });
   if (helperErr) console.error("[charge-recurring-visits] helper notification failed", helperErr);
 }

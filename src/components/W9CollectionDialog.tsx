@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
-import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHero,
+  DialogBody,
+  DialogFooter,
+  DialogPrimaryAction,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
@@ -91,10 +97,12 @@ const W9CollectionDialog = ({ open, onOpenChange, jobId, helperId, businessId, o
             user has to be able to read. The `subtitle` prop is gone from the
             hero above rather than left sr-only, so screen readers hear it
             once, here, instead of twice. */}
-        <p className="font-serif italic leading-relaxed text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-          This job requires a W-9 from the accepted Helpr. Type your full legal
-          name to sign — we'll mail you a copy on file.
-        </p>
+        <DialogBody>
+          <p>
+            This job requires a W-9 from the accepted Helpr. Type your full legal
+            name to sign — we'll mail you a copy on file.
+          </p>
+        </DialogBody>
         <div className="space-y-3">
           <div>
             <Label htmlFor="w9-name">Full legal name</Label>
@@ -126,13 +134,12 @@ const W9CollectionDialog = ({ open, onOpenChange, jobId, helperId, businessId, o
             signature dialog is exactly where a reader should recognise the
             shape without thinking about it. */}
         <DialogFooter>
-          <Button
-            variant="primary"
+          <DialogPrimaryAction
             onClick={submit}
             disabled={submitting || !name.trim() || !agreed}
           >
             {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Sign W-9"}
-          </Button>
+          </DialogPrimaryAction>
         </DialogFooter>
       </DialogContent>
     </Dialog>

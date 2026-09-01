@@ -276,7 +276,9 @@ Deno.serve(async (req) => {
     );
   } catch (error) {
     console.error("Instant match error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    // `catch` binds `unknown` — see delete-own-account for why this is not a nit.
+    const message = error instanceof Error ? error.message : String(error);
+    return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

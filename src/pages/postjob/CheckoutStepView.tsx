@@ -13,6 +13,11 @@ interface CheckoutStepViewProps {
  * A two-step rail at the top makes it visible that the form (step 1) is
  * still tappable to go back. Without this, the only way back from the
  * checkout was the page-header arrow, which the user often missed.
+ *
+ * The `gift*` props are load-bearing, not decoration: without them this screen
+ * quoted the full budget + service fee + tax while create-payment settled the
+ * post from the gift and charged $0. A total that isn't the total is a trust
+ * bug even when the surprise is pleasant.
  */
 export function CheckoutStepView({ form }: CheckoutStepViewProps) {
   return (
@@ -53,6 +58,11 @@ export function CheckoutStepView({ form }: CheckoutStepViewProps) {
         customerFeeAmount={form.customerFeeAmount}
         onboardingFeeAmount={form.onboardingFeeAmount}
         totalCharge={form.totalCharge}
+        hasGift={form.hasGift}
+        giftAppliedAmount={form.giftAppliedAmount}
+        giftCreditAmount={form.giftCreditAmount}
+        giftLoading={form.giftLoading}
+        giftUnavailable={form.giftUnavailable}
         confirmed={form.confirmed}
         setConfirmed={form.setConfirmed}
         saveCardForFuture={form.saveCardForFuture}

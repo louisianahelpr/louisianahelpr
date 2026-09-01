@@ -43,17 +43,17 @@ interface UseDashboardFiltersOptions {
   allJobs: EnrichedJob[];
   userId?: string;
   profile: Profile | null;
-  helprTier: string | null;
+  /**
+   * The viewer's own tier. No longer read by this hook — the poster-tier lift
+   * it used to gate is a bounded term in `smartScore` now, applied for every
+   * viewer alike — but callers still pass it and the field is kept so the
+   * option shape stays stable. Do not reintroduce viewer-gated ranking here.
+   */
+  helprTier?: string | null;
   helperAvailability: { day_of_week: number; is_available: boolean; start_time: string; end_time: string }[];
-  // Skip the subscription-tier "early access" delay entirely. The
-  // logged-out guest Browse surface is a conversion preview, not a
-  // free-tier helper choosing not to subscribe — so anonymous visitors
-  // see every open job immediately rather than waiting out the 20-min
-  // no-tier delay that would hide the freshest (most enticing) posts.
-  earlyAccessExempt?: boolean;
 }
 
-export function useDashboardFilters({ allJobs, userId, profile, helprTier, helperAvailability, earlyAccessExempt = false }: UseDashboardFiltersOptions) {
+export function useDashboardFilters({ allJobs, userId, profile, helperAvailability }: UseDashboardFiltersOptions) {
   // Browse state lives in the URL, not only in React state.
   //
   // It used to be plain `useState`, which made every history entry for the
@@ -177,7 +177,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
   // grade the same tier. It used to read `helprTier` (the
   // check-pro-subscription edge result) here while the server layer derived
   // from the profile with the opposite null-expiry rule — two layers, two
-  // answers. `helprTier` remains in use only for the Search Priority sort.
+  // answers. `helprTier` is no longer read by this hook at all.
   const earlyAccessTier = resolveEarlyAccessTier(
     profile?.subscription_tier,
     profile?.subscription_expires_at,
@@ -239,15 +239,22 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
         if (expiresWithin === "7d" && hoursLeft > 168) return false;
       }
       if (expiresWithin && !job.expires_at) return false;
-      // Subscription-tier "early access" perk — applies to ALL users
-      // equally, regardless of role. Free/no-tier users see brand-new
-      // jobs after a 20-minute delay; Basic shaves 5 min off, Pro 10,
-      // Elite the full 20 (so subscribers see jobs immediately while
-      // free users wait). Encourages helpers AND posters to subscribe.
-      if (!earlyAccessExempt) {
-        const jobAge = Date.now() - new Date(job.created_at).getTime();
-        if (jobAge < earlyAccessDelayMs(earlyAccessTier)) return false;
-      }
+      // Subscription-tier "early access" perk — applies to ALL viewers
+      // equally, signed-in or not. Free/no-tier users (and guests) see
+      // brand-new jobs after a 20-minute delay; Basic shaves 5 min off, Pro
+      // 10, Elite the full 20.
+      //
+      // There is no longer an exemption. This filter used to be skipped
+      // entirely for the logged-out guest feed, on the reasoning that the
+      // delay shouldn't be imposed on prospects evaluating signup. That
+      // exemption WAS the bypass: any free member could sign out, or open a
+      // private window, and read the same "early" jobs the perk was being
+      // sold for — so the thing being charged for was free to anyone who
+      // clicked Log out. Guests wait the same 20 minutes (owner, 2026-09-01).
+      // This is now a redundant client pre-filter in any case: the server
+      // enforces it via `public.early_access_cutoff()`.
+      const jobAge = Date.now() - new Date(job.created_at).getTime();
+      if (jobAge < earlyAccessDelayMs(earlyAccessTier)) return false;
       if (matchAvailability && helperAvailability.length > 0) {
         const jobDate = new Date(job.date_needed + "T12:00:00");
         const jobDow = jobDate.getDay();
@@ -285,14 +292,19 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
         if (aParishMatch && !bParishMatch) return -1;
         if (!aParishMatch && bParishMatch) return 1;
       }
-      // Search Priority: subscribed helpers see jobs from subscribed posters first (Basic+)
-      // This doesn't change content, just prioritization — subscribed posters' jobs float up
-      if (helprTier) {
-        const aPosterSub = a.posterSubscriptionTier;
-        const bPosterSub = b.posterSubscriptionTier;
-        if (aPosterSub && !bPosterSub) return -1;
-        if (!aPosterSub && bPosterSub) return 1;
-      }
+      // The poster-tier lift lives in `smartScore` now, NOT here.
+      //
+      // This slot used to hold a hard priority stratum: if the VIEWER held any
+      // tier, every job from a subscribed poster sorted above every job from a
+      // non-subscribed one — an unbounded override sitting above the smart
+      // rank, so it swamped freshness, budget and distance completely. It also
+      // graded any tier at all (Basic included), while `priorityPlacement` is
+      // a Pro/Elite perk, and it only applied for subscribed viewers, so the
+      // same feed ranked differently for two helpers looking at it side by
+      // side. Now the perk is a bounded additive term inside `smartScore`
+      // (POSTER_PLACEMENT_MAX_POINTS, capped below the smallest discrete
+      // signal there), applied identically for every viewer, and it reaches
+      // the order through `smartIndexByJobId` below.
       switch (sortBy) {
         case "smart": {
           // Use the pre-computed rank map so the comparator stays O(1).
@@ -304,7 +316,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
         }
         default: return compareJobsBySortMode(a, b, sortBy);
       }
-    }), [allJobs, userId, searchQuery, selectedCategory, minBudget, maxBudget, locationFilter, nearbyMiles, userLoc, expiresWithin, helprTier, earlyAccessTier, matchAvailability, helperAvailability, sortBy, boostedOnly, urgentOnly, earlyAccessExempt, profile?.parish, profile?.location, smartIndexByJobId, todayLocalDate]);
+    }), [allJobs, userId, searchQuery, selectedCategory, minBudget, maxBudget, locationFilter, nearbyMiles, userLoc, expiresWithin, earlyAccessTier, matchAvailability, helperAvailability, sortBy, boostedOnly, urgentOnly, profile?.parish, profile?.location, smartIndexByJobId, todayLocalDate]);
 
   // The same filter state, shaped for the Browse map. The map runs its own
   // (unpaginated) fetch against a narrow PII-safe row, so it can't reuse
@@ -326,11 +338,11 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
       userLoc: userLoc.status === "ready" ? { lat: userLoc.lat, lng: userLoc.lng } : null,
       // Mirrors the list's early-access gate. Without it the map leaked
       // exactly the brand-new jobs the subscription perk exists to hold back.
-      earlyAccessDelayMs: earlyAccessExempt ? 0 : earlyAccessDelayMs(earlyAccessTier),
+      earlyAccessDelayMs: earlyAccessDelayMs(earlyAccessTier),
     }),
     [
       selectedCategory, searchQuery, minBudget, maxBudget, urgentOnly, boostedOnly,
-      expiresWithin, matchAvailability, nearbyMiles, userLoc, earlyAccessExempt, earlyAccessTier,
+      expiresWithin, matchAvailability, nearbyMiles, userLoc, earlyAccessTier,
     ],
   );
 
@@ -349,7 +361,6 @@ export function useDashboardFilters({ allJobs, userId, profile, helprTier, helpe
     boostedOnly,
     expiresWithin,
     earlyAccessTier,
-    earlyAccessExempt,
   });
 
   const nearbyJobs = useMemo(() => {

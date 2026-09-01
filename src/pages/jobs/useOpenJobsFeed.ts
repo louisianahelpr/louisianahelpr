@@ -37,6 +37,23 @@ export const useOpenJobsFeed = ({
   // (1000) + parish match (500) + urgent (100) + recency (0-50) and coarsens
   // the address to "City, ST" via mask_job_location server-side. Anon callers
   // work (EXECUTE granted) — they just don't get the parish-match boost.
+  //
+  // EARLY ACCESS IS ENFORCED IN THE RPC, and there is deliberately no gate in
+  // this file. Until migration 20260901022522 there was no gate anywhere on
+  // this route: `/jobs` is the public, anon-callable board, so a member paying
+  // $5–$20/mo for a 5-to-20-minute head start could be undercut by anyone
+  // opening a private window — the perk was given away on the one surface that
+  // required no account at all. It is now a predicate inside
+  // get_ranked_open_jobs, compared against `public.early_access_cutoff()`, the
+  // same authority the dashboard view and the map RPC use.
+  //
+  // For a caller with no session `auth.uid()` is NULL, which resolves to the
+  // free 20-minute delay — so this feed shows a guest the free experience, by
+  // design, and a filter added here could only ever take MORE away. Do not add
+  // one: this is a paid entitlement, and the place to change it is the SQL.
+  // (No PGRST202 window either — the function signature is unchanged, so both
+  // the 2- and 3-argument call forms below keep resolving throughout the
+  // db-deploy lag; they simply gain the gate the moment it lands.)
   const {
     data: pagesData,
     isLoading: jobsLoading,

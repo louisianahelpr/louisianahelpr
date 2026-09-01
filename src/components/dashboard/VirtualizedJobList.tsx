@@ -161,5 +161,3 @@ export function VirtualizedJobList<T>({
     </div>
   );
 }
-
-export default VirtualizedJobList;

@@ -324,6 +324,136 @@ describe("create-payment edge function", () => {
         "txcd_20030000",
       );
     });
+
+    // ── Poster fee fallback when the poster's PROFILE READ FAILS ──────────
+    //
+    // The charge-side twin of release-payout's "fee fallback on a failed tier
+    // read". `create-payment` resolves the poster's service fee from their own
+    // tier; when that profile read errors it has to fall back to SOMETHING, and
+    // the number it picks is the number a real card is charged — there is no
+    // later re-resolution to correct it the way there is on the payout side.
+    //
+    // It must be `DEFAULT_TIER_FEE_PERCENT` (the advertised free rate, 12), not
+    // `platform_settings.customer_fee_percent`. The stored global is 10, so the
+    // old fallback under-charged every free-tier poster by two points of budget
+    // and the shortfall is not clawable after the fact — whereas over-charging
+    // a discounted poster is refundable. Same principle the helper side now
+    // follows: an unexpected value must never under-charge the platform.
+    describe("poster fee fallback on a failed tier read", () => {
+      /** Error ONLY the tier read; leave any other `profiles` read healthy. */
+      function failPosterTierRead() {
+        const healthy = scenario.reads.profiles;
+        scenario.reads.profiles = {
+          ...healthy,
+          selectOverrides: [
+            {
+              includes: "subscription_tier",
+              result: { error: { message: "poster tier read boom" } },
+            },
+          ],
+        };
+      }
+
+      function seedEscrowJob() {
+        seedAuth(scenario, POSTER);
+        scenario.reads.jobs = {
+          rows: [
+            {
+              id: "job-fb",
+              customer_id: POSTER.id,
+              budget: 200,
+              category: "cleaning",
+              title: "Fallback job",
+              payment_status: "unpaid",
+            },
+          ],
+        };
+        // The global is deliberately left at the legacy 10 so this test keeps
+        // proving the code no longer reads it, even if platform_settings is
+        // later retuned to 12 in prod.
+        scenario.reads.platform_settings = {
+          rows: [{ customer_fee_percent: 10, helper_fee_percent: 12, onboarding_fee_cents: 200 }],
+        };
+        scenario.reads.profiles = {
+          rows: [{ onboarding_fee_paid: true, subscription_tier: "free", subscription_expires_at: null }],
+        };
+        stripeMock.checkout.sessions.create.mockResolvedValue({
+          id: "cs_fb",
+          url: "https://checkout.stripe.test/cs_fb",
+        });
+      }
+
+      /** The "Service fee" line item's unit_amount, in cents. */
+      function serviceFeeCents(): number {
+        const args = stripeMock.checkout.sessions.create.mock.calls[0][0];
+        const item = args.line_items.find(
+          (li: { price_data: { product_data: { name: string } } }) =>
+            li.price_data.product_data.name === "Service fee",
+        );
+        return item.price_data.unit_amount;
+      }
+
+      it("charges the FREE rate (12), not the global 10, when the poster profile read fails", async () => {
+        seedEscrowJob();
+        failPosterTierRead();
+
+        const fn = await load();
+        const res = await fn.fetch(
+          fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-fb" } }),
+        );
+        expect(res.status).toBe(200);
+        // $200 budget: 12% = $24.00. At the old global-10 fallback it was $20.00.
+        expect(serviceFeeCents()).toBe(2400);
+        // …and the percent STAMPED on the job matches what was charged, so the
+        // admin console and every downstream display agree with the card.
+        const jobWrite = scenario.writes.find(
+          (w) => w.table === "jobs" && w.op === "update",
+        );
+        const payload = jobWrite?.payload as Record<string, unknown>;
+        expect(payload.customer_fee_amount).toBe(24);
+        expect(payload.platform_fee_percent).toBe(12);
+      });
+
+      it("still bills a readable Elite poster their own 8%, not the free rate", async () => {
+        // The fix is error-path only: the happy path must keep honouring a
+        // paid tier's discount.
+        seedEscrowJob();
+        scenario.reads.profiles = {
+          rows: [{
+            onboarding_fee_paid: true,
+            subscription_tier: "elite",
+            subscription_expires_at: new Date(Date.now() + 30 * 864e5).toISOString(),
+          }],
+        };
+
+        const fn = await load();
+        const res = await fn.fetch(
+          fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-fb" } }),
+        );
+        expect(res.status).toBe(200);
+        expect(serviceFeeCents()).toBe(1600);
+      });
+
+      it("never bills the one-time onboarding fee when the profile read failed", async () => {
+        // Unchanged guard, pinned here because the fallback edit sits on top of
+        // it: a read failure leaves `posterProfile` null, and we must not
+        // re-charge $2 to somebody who already paid it.
+        seedEscrowJob();
+        failPosterTierRead();
+
+        const fn = await load();
+        await fn.fetch(
+          fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-fb" } }),
+        );
+        const args = stripeMock.checkout.sessions.create.mock.calls[0][0];
+        expect(
+          args.line_items.some(
+            (li: { price_data: { product_data: { name: string } } }) =>
+              li.price_data.product_data.name === "One-time account setup",
+          ),
+        ).toBe(false);
+      });
+    });
   });
 
   describe("action: release", () => {

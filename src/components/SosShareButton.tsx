@@ -1,8 +1,11 @@
 import { useState } from "react";
-import { ShieldAlert, Share2 } from "lucide-react";
+import { ShieldAlert, Share2, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
 import { shareNative } from "@/lib/nativeShare";
+import { isNativePlatform } from "@/lib/nativeInit";
+import { report } from "@/lib/errorLogger";
 import { JOB_ACTION_CHIP_CLASS } from "@/components/activity/JobActionRow";
 
 /**
@@ -40,6 +43,51 @@ const SOS_TINT = {
   border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
 } as const;
 
+/**
+ * Read the device's current position ONCE, imperatively, at the moment the
+ * user asks to share it.
+ *
+ * Not `useUserLocation`: that hook is declarative (fires on mount/enable) and
+ * front-loads a "why we want location" rationale dialog which is session-gated
+ * and can defer the read. Neither is right here — the position must be the one
+ * the person is standing at when they press the button in an emergency, and
+ * there is no room for an extra modal in front of it. The branch logic
+ * (Capacitor plugin on native, `navigator.geolocation` on web) mirrors that
+ * hook deliberately; the WKWebView geolocation shim is unreliable inside the
+ * native shell, which is why native goes through the plugin.
+ *
+ * Resolves `null` rather than throwing — a denied permission is an ordinary
+ * outcome the caller has to degrade for, not an exception.
+ */
+async function readCurrentPosition(jobId: string): Promise<{ lat: number; lng: number } | null> {
+  const opts = { enableHighAccuracy: true, timeout: 10_000, maximumAge: 30_000 };
+  try {
+    if (isNativePlatform) {
+      const { Geolocation } = await import("@capacitor/geolocation");
+      const pos = await Geolocation.getCurrentPosition(opts);
+      return { lat: pos.coords.latitude, lng: pos.coords.longitude };
+    }
+    if (typeof navigator === "undefined" || !navigator.geolocation) return null;
+    return await new Promise((resolve) => {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => resolve(null),
+        opts,
+      );
+    });
+  } catch (err) {
+    // A failed SOS location read is worth knowing about per job, not just in
+    // aggregate — it is the one path where "we degraded gracefully" still
+    // means someone's contact did not get told where they are.
+    report(err, {
+      severity: "warning",
+      tags: { source: "SosShareButton.geolocation" },
+      context: { job_id: jobId },
+    });
+    return null;
+  }
+}
+
 export function SosShareButton({
   jobId,
   variant = "pill",
@@ -48,14 +96,68 @@ export function SosShareButton({
   variant?: "pill" | "chip";
 }) {
   const [open, setOpen] = useState(false);
+  const [locating, setLocating] = useState(false);
 
+  /**
+   * WHAT THIS SHARES, AND WHY IT IS NOT A HELPR LINK
+   * ------------------------------------------------
+   * This used to share `https://www.louisianahelpr.com/track/${jobId}` — as
+   * both the `url` AND inlined a second time in the `text`. **There is no
+   * `/track/:jobId` route.** It is not in `App.tsx` and never has been, so the
+   * link fell through to the `*` catch-all: following it (verified against
+   * production, signed out) returns the app's "404 — This page doesn't exist
+   * or has been moved" screen. The single control in this app that someone
+   * reaches for when they feel unsafe was sending their contact a dead link
+   * that said "You can reach me at:" above it. Nothing threw and nothing
+   * logged, because a wrong-but-well-formed URL is not an error to the OS.
+   *
+   * So it now sends the thing the button's own label promises: the sharer's
+   * ACTUAL coordinates, as a `maps.google.com/?q=lat,lng` link. That resolves
+   * for anyone — no Helpr account, no app install, no login wall — and opens
+   * in Apple Maps on iOS and Google Maps elsewhere. It is also the only
+   * payload here that is still true if Helpr is down.
+   *
+   * If the position cannot be read (permission denied, no fix, web without
+   * geolocation) the share goes out with NO `url` at all rather than a filler
+   * one, and the text says plainly that the location could not be attached.
+   * A recipient who is told "location unavailable" can act on that; a
+   * recipient handed a 404 believes they have a live link.
+   */
   const share = async () => {
+    if (locating) return;
+    setLocating(true);
+    let pos: { lat: number; lng: number } | null = null;
+    try {
+      pos = await readCurrentPosition(jobId);
+    } finally {
+      setLocating(false);
+    }
     setOpen(false);
+
+    if (!pos) {
+      // Say it BEFORE the sheet opens, so the user knows what is (and is not)
+      // in the message they are about to send. `toast.error` is the one
+      // channel `src/lib/toastPolicy.ts` leaves alive.
+      toast.error("Couldn't get your location", {
+        description: "Sharing without it — turn on location access and try again.",
+      });
+      await shareNative({
+        title: "I'm on a Helpr job",
+        text: "I'm currently on a Helpr job. My phone couldn't share my location — please check in with me.",
+        dialogTitle: "Share your status",
+      });
+      return;
+    }
+
+    const mapUrl = `https://maps.google.com/?q=${pos.lat},${pos.lng}`;
     await shareNative({
-      title: "I'm on a Helpr job — share my location",
-      text: `I'm currently on a Helpr job. You can reach me at: https://www.louisianahelpr.com/track/${jobId}`,
-      url: `https://www.louisianahelpr.com/track/${jobId}`,
+      title: "I'm on a Helpr job — here's my location",
+      // The URL is NOT repeated inside the text. It used to be, so the
+      // clipboard tier pasted the same link twice in a row.
+      text: "I'm currently on a Helpr job. This is where I am right now:",
+      url: mapUrl,
       dialogTitle: "Share your location",
+      clipboardText: `I'm currently on a Helpr job. This is where I am right now: ${mapUrl}`,
     });
   };
 
@@ -109,15 +211,26 @@ export function SosShareButton({
                 fill. Broadcasting your live location is a safety action the
                 sender cannot recall, so it takes the one destructive
                 treatment; it was a sixth inline colour. */}
+            {/* Reading a GPS fix takes up to 10s, and this button used to
+                jump straight to the share sheet because it had nothing to
+                fetch. Without a pending state the gap between tap and sheet
+                reads as the button not working — the failure mode this whole
+                control has to be free of. */}
             <Button
               variant="destructive"
               className="w-full"
+              disabled={locating}
+              aria-busy={locating}
               onClick={share}
             >
-              <Share2 className="w-4 h-4 mr-2" />
-              Share Location Link
+              {locating ? (
+                <Loader2 className="w-4 h-4 mr-2 motion-safe:animate-spin" />
+              ) : (
+                <Share2 className="w-4 h-4 mr-2" />
+              )}
+              {locating ? "Getting your location…" : "Share Location Link"}
             </Button>
-            <Button variant="ghost" className="w-full" onClick={() => setOpen(false)}>
+            <Button variant="ghost" className="w-full" onClick={() => setOpen(false)} disabled={locating}>
               Cancel
             </Button>
           </div>

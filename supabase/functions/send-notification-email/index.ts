@@ -30,6 +30,23 @@ const TYPE_MAP: Record<string, { prefCol: string; category: string }> = {
 }
 
 /**
+ * `lexilombas05@gmail.com` -> `lexi…@gmail.com`.
+ *
+ * The caller (create-notification, and through it the "Send a Test" button)
+ * needs to tell the user WHICH inbox to check — "Sent a test email to
+ * lexi…@gmail.com" is actionable where a bare "Sent" is not. Masked rather
+ * than verbatim because this string travels back out through an edge-function
+ * response body that an admin caller can request for another user.
+ */
+function maskEmail(email: string): string {
+  const at = email.lastIndexOf('@')
+  if (at <= 0) return '…'
+  const local = email.slice(0, at)
+  const domain = email.slice(at)
+  return `${local.slice(0, Math.min(4, local.length))}…${domain}`
+}
+
+/**
  * Render the notification email.
  *
  * Both parts come from ONE react-email component: `renderEmail` produces the
@@ -134,9 +151,13 @@ Deno.serve(async (req) => {
 
     if (!prefs || !(prefs as any)[prefColumn]) {
       await logSkip('skipped', 'preference_off')
-      return new Response(JSON.stringify({ skipped: true, reason: 'email_disabled' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      // `pref_column` / `category` travel back so the caller can name the exact
+      // switch the user has to flip. "Email is off for Work Status" is a fix
+      // the user can act on; "email_disabled" is not.
+      return new Response(
+        JSON.stringify({ skipped: true, reason: 'email_disabled', pref_column: prefColumn, category }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
     }
 
     const { data: profile } = await supabase
@@ -172,9 +193,10 @@ Deno.serve(async (req) => {
 
     if (suppressed) {
       await logSkip('suppressed', 'on_suppression_list')
-      return new Response(JSON.stringify({ skipped: true, reason: 'suppressed' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      return new Response(
+        JSON.stringify({ skipped: true, reason: 'suppressed', to: maskEmail(profile.email) }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
     }
 
     // `promotion` is the one COMMERCIAL entry in TYPE_MAP. Every other
@@ -227,6 +249,15 @@ Deno.serve(async (req) => {
       })
     }
 
+    // How the mail actually left (or didn't). The old code returned a blanket
+    // `{ success: true }` from BOTH the happy path and the catch below where
+    // the queue AND the direct Resend send had both failed — so a caller (and
+    // the "Send a Test" button behind it) was told the email was on its way
+    // when recordLog had just written status='failed'. The outcome now travels
+    // in the response body.
+    let delivery: 'queued' | 'direct' | null = null
+    let deliveryError: string | null = null
+
     try {
       // supabase-js `.rpc()` RESOLVES with { data, error } — it does not throw on a
       // Postgres-side failure. Without this destructure a missing queue / PGRST202 /
@@ -239,6 +270,7 @@ Deno.serve(async (req) => {
       })
       if (enqueueError) throw new Error(`enqueue_email failed: ${enqueueError.message}`)
       await recordLog('sent')
+      delivery = 'queued'
       console.log(`Notification email enqueued for ${profile.email}: ${title}`)
     } catch (enqueueErr) {
       const errMsg = enqueueErr instanceof Error ? enqueueErr.message : String(enqueueErr)
@@ -259,6 +291,7 @@ Deno.serve(async (req) => {
         })
         await supabase.from('email_send_log').update({ status: 'sent' }).eq('message_id', messageId)
         await recordLog('sent', 'fallback_direct')
+        delivery = 'direct'
         console.log(`Notification email sent directly to ${profile.email}: ${title}`)
       } catch (sendErr) {
         const sendErrMsg = sendErr instanceof Error ? sendErr.message : String(sendErr)
@@ -268,12 +301,27 @@ Deno.serve(async (req) => {
           error_message: sendErrMsg,
         }).eq('message_id', messageId)
         await recordLog('failed', sendErrMsg)
+        deliveryError = sendErrMsg
       }
     }
 
-    return new Response(JSON.stringify({ success: true }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    if (delivery === null) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          reason: 'send_failed',
+          error: deliveryError ?? 'Email delivery failed',
+          to: maskEmail(profile.email),
+          message_id: messageId,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
+
+    return new Response(
+      JSON.stringify({ success: true, delivery, to: maskEmail(profile.email), message_id: messageId }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    )
   } catch (err) {
     console.error('Error:', err)
     return new Response(JSON.stringify({ error: 'Internal server error' }), {

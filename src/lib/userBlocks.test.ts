@@ -23,7 +23,10 @@ const selectOrMock = vi.fn(() => ({ in: selectOrInMock }));
 const selectMock = vi.fn(() => ({ or: selectOrMock }));
 const blocksOrMock = vi.fn();
 const blocksSelectMock = vi.fn(() => ({ or: blocksOrMock }));
-const deleteEqEqMock = vi.fn();
+const deleteSelectMock = vi.fn();
+// The delete chain now ends in `.select("id")` — a DELETE that matches zero
+// rows is `{ data: [], error: null }`, so the row count has to come back.
+const deleteEqEqMock = vi.fn(() => ({ select: deleteSelectMock }));
 const deleteEqMock = vi.fn(() => ({ eq: deleteEqEqMock }));
 const deleteMock = vi.fn(() => ({ eq: deleteEqMock }));
 const fromMock = vi.fn();
@@ -57,7 +60,8 @@ beforeEach(() => {
   selectMock.mockClear();
   blocksOrMock.mockReset();
   blocksSelectMock.mockClear();
-  deleteEqEqMock.mockReset();
+  deleteSelectMock.mockReset();
+  deleteEqEqMock.mockClear();
   deleteEqMock.mockClear();
   deleteMock.mockClear();
   rpcMock.mockReset();
@@ -203,18 +207,30 @@ describe("blockUser", () => {
 describe("unblockUser", () => {
   it("deletes the block row and returns true on success", async () => {
     fromMock.mockReturnValue({ delete: deleteMock });
-    deleteEqEqMock.mockResolvedValue({ error: null });
+    deleteSelectMock.mockResolvedValue({ data: [{ id: "block-1" }], error: null });
 
     const result = await unblockUser("blocker", "blocked");
     expect(result).toBe(true);
     expect(fromMock).toHaveBeenCalledWith("user_blocks");
     expect(deleteEqMock).toHaveBeenCalledWith("blocker_id", "blocker");
     expect(deleteEqEqMock).toHaveBeenCalledWith("blocked_id", "blocked");
+    // Without this the row count is invisible and a zero-row delete reads as success.
+    expect(deleteSelectMock).toHaveBeenCalledWith("id");
   });
 
   it("returns false on delete error", async () => {
     fromMock.mockReturnValue({ delete: deleteMock });
-    deleteEqEqMock.mockResolvedValue({ error: new Error("RLS denied") });
+    deleteSelectMock.mockResolvedValue({ data: null, error: new Error("RLS denied") });
+
+    expect(await unblockUser("blocker", "blocked")).toBe(false);
+  });
+
+  // The whole point of the .select("id"): PostgREST answers a DELETE that
+  // matched nothing with `{ data: [], error: null }`. This used to return true
+  // — "unblocked!" over a block that is still in force.
+  it("returns false when the delete matched zero rows", async () => {
+    fromMock.mockReturnValue({ delete: deleteMock });
+    deleteSelectMock.mockResolvedValue({ data: [], error: null });
 
     expect(await unblockUser("blocker", "blocked")).toBe(false);
   });

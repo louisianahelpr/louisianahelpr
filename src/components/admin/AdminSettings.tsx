@@ -327,15 +327,27 @@ const AdminSettings = () => {
     }
 
     setRemoving(admin.role_id);
-    const { error } = await supabase
-      .from("user_roles")
-      .delete()
-      .eq("id", admin.role_id);
-
-    if (error) toast.error(error.message);
-    else {
+    try {
+      // `.select("id")` because a DELETE that matches zero rows is
+      // `{ data: [], error: null }` — indistinguishable from one that stripped
+      // the role. This is the lock-everyone-out half of a privilege primitive:
+      // an RLS denial or a stale role_id would otherwise have written a
+      // "remove_admin" audit entry and reloaded the list over an account that
+      // still holds the console.
+      unwrapMutation(
+        await supabase.from("user_roles").delete().eq("id", admin.role_id).select("id"),
+        {
+          action: "remove this admin",
+          rejectedMessage:
+            "That admin role wasn't removed — it may already be gone, or you may not have " +
+            "permission. Refresh and check before assuming it's revoked.",
+          context: { role_id: admin.role_id },
+        },
+      );
       await logAdminAction("remove_admin", "user", admin.user_id, { name: admin.name });
       await loadAdmins();
+    } catch (err) {
+      toast.error(mutationErrorMessage(err, "Couldn't remove the admin — try again."));
     }
     setRemoving(null);
     setConfirmRemove(null);

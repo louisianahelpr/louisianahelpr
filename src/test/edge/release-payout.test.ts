@@ -611,6 +611,87 @@ describe("release-payout edge function", () => {
       expect(stripeMock.paymentIntents.retrieve).not.toHaveBeenCalled();
     });
 
+    // ── Fee fallback when the helper's PROFILE READ FAILS ──────────────────
+    //
+    // Not the same thing as the "untiered helper" case above: that one reads a
+    // real profile row with no tier and resolves 12 through the ladder. THIS
+    // one never gets a row at all, so `getHelperFeePercent` returns whatever
+    // fallback the caller passed — the number under test.
+    //
+    // It fires on every Pay-It-Forward job, because create-payment's PIF
+    // branch short-circuits before the escrow stamp, so a PIF job carries no
+    // frozen `helper_fee_percent` to prefer.
+    describe("fee fallback on a failed tier read", () => {
+      /** Error ONLY the `subscription_tier` read; leave the Connect-account read healthy. */
+      function failTierRead() {
+        const healthy = scenario.reads.profiles;
+        scenario.reads.profiles = {
+          ...healthy,
+          selectOverrides: [
+            {
+              includes: "subscription_tier",
+              result: { error: { message: "tier read boom" } },
+            },
+          ],
+        };
+      }
+
+      it("falls back to the FREE rate (12), not the global 10, on a PIF job with no frozen percent", async () => {
+        seedPayableJob(scenario, {
+          stripe_payment_intent_id: null,
+          stripe_session_id: null,
+        });
+        scenario.reads.pif_credits = { rows: [{ id: "pif-1" }] };
+        // The global is deliberately left at the legacy 10 so this test still
+        // proves the code no longer reads it, even after platform_settings is
+        // retuned to 12 in prod.
+        scenario.reads.platform_settings = {
+          rows: [{ helper_fee_percent: 10, onboarding_fee_cents: 200 }],
+        };
+        failTierRead();
+
+        const fn = await load();
+        const res = await fn.fetch(
+          fn.request({
+            headers: { Authorization: `Bearer ${CRON_SECRET}` },
+            body: { job_id: "job-1" },
+          }),
+        );
+        const out = await json(res);
+        expect(res.status).toBe(200);
+        // $100 budget: 12% = $12.00 platform cut, $88.00 to the helper.
+        // At the old global-10 fallback these were 1000 / 9000.
+        expect(out.platform_fee_cents).toBe(1200);
+        expect(out.amount_cents).toBe(8800);
+
+        // …and the percent COMMITTED to the job row is 12, so the ledger and
+        // every downstream display agree with what was actually transferred.
+        const jobWrite = scenario.writes.find(
+          (w) => w.table === "jobs" && w.op === "update",
+        );
+        expect((jobWrite?.payload as Record<string, unknown>).helper_fee_percent).toBe(12);
+      });
+
+      it("still prefers the rate FROZEN on the job over the free rate", async () => {
+        // An Elite helper's job funded at 8% must not be re-priced to 12 just
+        // because their profile happened to be unreadable at payout time.
+        seedPayableJob(scenario, { helper_fee_percent: 8 });
+        failTierRead();
+
+        const fn = await load();
+        const res = await fn.fetch(
+          fn.request({
+            headers: { Authorization: `Bearer ${CRON_SECRET}` },
+            body: { job_id: "job-1" },
+          }),
+        );
+        const out = await json(res);
+        expect(res.status).toBe(200);
+        expect(out.platform_fee_cents).toBe(800);
+        expect(out.amount_cents).toBe(9200);
+      });
+    });
+
     it("a failed ledger write means NO transfer was attempted", async () => {
       // This test used to assert the opposite shape — "the transfer succeeded
       // but the ledger write failed", 500 with a transfer id to reconcile by

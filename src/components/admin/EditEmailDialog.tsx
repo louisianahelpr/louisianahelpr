@@ -9,8 +9,9 @@ import {
   DialogContent,
   DialogHero,
   DialogFooter,
+  DialogSecondaryAction,
+  DialogPrimaryAction,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
@@ -135,12 +136,12 @@ export function EditEmailDialog({ profile, onClose, onSuccess }: EditEmailDialog
           </div>
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={handleClose} disabled={updating}>
+          <DialogSecondaryAction onClick={handleClose} disabled={updating}>
             Cancel
-          </Button>
-          <Button onClick={submit} disabled={updating || !email1 || email1 !== email2}>
+          </DialogSecondaryAction>
+          <DialogPrimaryAction onClick={submit} disabled={updating || !email1 || email1 !== email2}>
             {updating ? "Updating…" : "Update Email"}
-          </Button>
+          </DialogPrimaryAction>
         </DialogFooter>
       </DialogContent>
     </Dialog>

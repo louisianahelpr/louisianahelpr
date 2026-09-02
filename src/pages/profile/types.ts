@@ -2,7 +2,7 @@ import type { Database } from "@/integrations/supabase/types";
 
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
-export type Tab = "landing" | "profile" | "earnings" | "schedule" | "availability" | "payment" | "security" | "legal" | "reviews" | "referral" | "subscription" | "support" | "notifications" | "warnings" | "credentials" | "saved_helpers" | "accessibility";
+export type Tab = "landing" | "profile" | "earnings" | "schedule" | "availability" | "payment" | "security" | "legal" | "reviews" | "referral" | "subscription" | "support" | "notifications" | "warnings" | "credentials" | "saved_helpers" | "accessibility" | "pets";
 
 /**
  * Human name for each Profile tab, used to build a distinct `document.title`
@@ -39,6 +39,8 @@ export const TAB_TITLES: Record<Exclude<Tab, "landing">, string> = {
   credentials: "Licensed & Insured",
   saved_helpers: "Saved Helprs",
   accessibility: "Accessibility",
+  // Was the standalone route /pets until 2026-09-02.
+  pets: "My Pets",
 };
 
 /**

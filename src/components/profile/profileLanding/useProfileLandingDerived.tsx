@@ -253,7 +253,7 @@ export function useProfileLandingDerived({
           icon: <PawPrint className="w-5 h-5" />,
           desc: "Pet profiles & vet notes",
           tint: SECTION_TINT.account,
-          href: "/pets",
+          href: "/profile?tab=pets",
         },
         {
           key: "home-history",

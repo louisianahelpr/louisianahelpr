@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import AppPage from "@/components/AppPage";
+import { ProfileTabHeader } from "@/components/profile/ProfileTabHeader";
 import { Button } from "@/components/ui/button";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -23,7 +23,20 @@ import { PetDetail } from "./petProfiles/PetDetail";
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-const PetProfiles = () => {
+/**
+ * PetsTab — the Profile "Pets" tab.
+ *
+ * Was the standalone route `/pets` until 2026-09-02. It was only ever reached
+ * FROM Profile (the landing rows, the nav quick-menu and the desktop nav all
+ * pointed at it), so it was a Profile tab wearing a route's clothes — which is
+ * the whole reason it looked like a different screen from its siblings. Owner:
+ * "anything in profile tab should not be a stand alone tab."
+ *
+ * Renders the canonical tab body — `space-y-4` under a ProfileTabHeader — and
+ * NOT AppPage. AppPage is AppShell + that header, and Profile.tsx already owns
+ * the AppShell; keeping it here would nest two 100dvh viewport locks.
+ */
+const PetProfiles = ({ onBack }: { onBack?: () => void }) => {
   usePageTitle("My Pets — Helpr");
   const { user } = useCurrentUser();
   const userId = user?.id ?? null;
@@ -146,28 +159,32 @@ const PetProfiles = () => {
   };
 
   return (
-    // AppPage — the shared signed-in sub-screen shell (AppShell + the Profile
-    // tab header + the centered content column). Title-row "Add" restored
+    // The canonical Profile tab body: `space-y-4` under a ProfileTabHeader,
+    // matching every other tab. NOT AppPage — that is AppShell + this header,
+    // and Profile.tsx already owns the AppShell.
+    //
+    // Title-row "Add" restored
     // (2026-08-30 fix): the empty-state CTA only exists before the first pet
     // is added — once pets are in the list, desktop had NO way to add
     // another (the aside deliberately dropped its own header, and neither
     // the rail rows nor the detail pane carry an add action). `hidden lg:*`
     // because mobile already has its own "Add a Pet" affordances below the
     // list and inside the empty state.
-    <AppPage
-      title="My Pets"
-      backTo="/profile"
-      titleActions={
-        <Button
-          variant="primary"
-          size="sm"
-          className="hidden lg:inline-flex"
-          onClick={openAddDesktop}
-        >
-          <Plus className="w-4 h-4 mr-1" /> Add a Pet
-        </Button>
-      }
-    >
+    <div className="space-y-4">
+      <ProfileTabHeader
+        title="My Pets"
+        onBack={onBack}
+        rightSlot={
+          <Button
+            variant="primary"
+            size="sm"
+            className="hidden lg:inline-flex"
+            onClick={openAddDesktop}
+          >
+            <Plus className="w-4 h-4 mr-1" /> Add a Pet
+          </Button>
+        }
+      />
         {/* ─── Mobile (default): stacked list ─────────────────────────── */}
         <div className="lg:hidden space-y-3">
           {isLoading && (
@@ -374,7 +391,7 @@ const PetProfiles = () => {
         }}
         secondaryLabel="Keep"
       />
-    </AppPage>
+    </div>
   );
 };
 

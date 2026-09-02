@@ -74,7 +74,7 @@ const ROUTES: Route[] = [
   { path: "/post-job", auth: "authed" },
 
   // Standalone features
-  { path: "/pets", auth: "authed" },
+  { path: "/profile?tab=pets", auth: "authed" },
   { path: "/pay-it-forward", auth: "authed" },
   { path: "/family", auth: "authed" },
   { path: "/analytics", auth: "authed" },

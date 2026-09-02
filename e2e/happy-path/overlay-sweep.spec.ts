@@ -102,7 +102,7 @@ const ROUTES = [
   "/profile?tab=accessibility",
   "/settings",
   "/schedule",
-  "/pets",
+  "/profile?tab=pets",
   "/family",
   "/subscription",
   "/analytics",

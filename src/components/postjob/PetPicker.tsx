@@ -69,7 +69,7 @@ export function PetPicker({
           Which pet is this for?
         </p>
         <Link
-          to="/pets"
+          to="/profile?tab=pets"
           className="text-ds-11 font-medium inline-flex items-center gap-1 btn-press"
           style={{ color: "hsl(var(--bark))" }}
         >

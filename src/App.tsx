@@ -399,7 +399,6 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           so it falls through to the `path="*"` NotFound below. If an external
           citation ever appears, add a real <Route>, not a comment. */}
       {/* Pet care — manage pet profiles and vet notes */}
-      <Route path="/pets" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PetProfiles /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* /evacuation was removed; its redirect to /pets went with it in
           2352466e. The path now 404s. */}
       {/* Legacy paths surfaced by 404s in error_logs (external links, old

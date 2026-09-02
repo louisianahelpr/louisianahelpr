@@ -107,7 +107,6 @@ const OWNERS = {
   "/settings": ["lh-onboarding-auth"],
   "/settings/profile": ["lh-input-boundary"],
   "/user/:userId": ["lh-trust-safety"],
-  "/pets": ["lh-long-tail-features"],
   "/home-history": ["lh-long-tail-features"],
   "/work-record": ["lh-long-tail-features"],
   "/wrapped": ["lh-long-tail-features"],
@@ -134,6 +133,7 @@ const OWNERS = {
   // lh-input-boundary owns the tab as a form. A structural lane may co-own a
   // surface; it may never be the only owner (see the rule below).
   "?tab=accessibility": ["lh-input-boundary", "lh-a11y-sensory"],
+  "?tab=pets": ["lh-long-tail-features"],
 
   // ── post-a-job entry paths ───────────────────────────────────────────────
   // Six ship; EntryChoice's own docblock still describes three. Every one of

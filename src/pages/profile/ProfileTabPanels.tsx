@@ -36,6 +36,7 @@ const AvailabilityTab = lazy(() => import("@/components/profile/AvailabilityTab"
 const ReviewsTab = lazy(() => import("@/components/profile/ReviewsTab").then(m => ({ default: m.ReviewsTab })));
 const WarningsTab = lazy(() => import("@/components/profile/WarningsTab").then(m => ({ default: m.WarningsTab })));
 const CredentialsTab = lazy(() => import("@/components/profile/CredentialsTab").then(m => ({ default: m.CredentialsTab })));
+const PetsTab = lazy(() => import("@/pages/PetProfiles"));
 const NotificationPreferences = lazy(() => import("@/components/NotificationPreferences"));
 const AccessibilityTab = lazy(() => import("@/components/profile/AccessibilityTab").then(m => ({ default: m.AccessibilityTab })));
 const ReferralSection = lazy(() => import("@/components/ReferralSection"));
@@ -270,6 +271,12 @@ export const ProfileTabPanels = ({
       {tab === "saved_helpers" && (
         <Suspense fallback={<TabFallback />}>
           <SavedHelpersTab onBack={onBackFromTab} />
+        </Suspense>
+      )}
+
+      {tab === "pets" && (
+        <Suspense fallback={<TabFallback />}>
+          <PetsTab onBack={onBackFromTab} />
         </Suspense>
       )}
 

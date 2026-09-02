@@ -52,7 +52,11 @@ export const authPages = ["/dashboard", "/activity", "/my-posts", "/my-jobs", "/
   // same chrome as the Profile-tab settings (Notifications, Earnings, etc.).
   // "/benefits" left this list 2026-08-31 with the page itself — the route is
   // gone, so listing it would only give the 404 screen a bottom dock.
-  "/pets", "/home-history", "/work-record", "/gift-card", "/wrapped", "/str-settings", "/help", "/data-rights",
+  // "/pets" left this list 2026-09-02 with its route — it is now the Profile
+  // `?tab=pets` tab, and /profile is already covered above. A stale entry here
+  // would only give the 404 screen a bottom dock, exactly as the note about
+  // "/benefits" above says.
+  "/home-history", "/work-record", "/gift-card", "/wrapped", "/str-settings", "/help", "/data-rights",
   // /auto-tip ("After a Job") was the ONE settings sub-page on that list of
   // siblings that never reached this one — measured 2026-08-31 at 320/375/768:
   // no bottom dock rendered at all, on a screen whose only other way out is the

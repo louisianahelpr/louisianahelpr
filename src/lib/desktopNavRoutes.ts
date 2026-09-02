@@ -25,7 +25,9 @@ const AUTH_PREFIXES = [
   // its route; an allow-list entry for a path that now renders NotFound would
   // dress the 404 in the signed-in rail.
   "/gift-card", "/str-settings", "/home-history", "/work-record",
-  "/pets",
+  // "/pets" removed 2026-09-02 with its route (now the Profile `?tab=pets`
+  // tab); an allow-list entry for a path that renders NotFound would dress the
+  // 404 in the signed-in rail.
   // /analytics — Advanced Analytics. Strictly authed, document-scroll, reached
   // from the Earnings tab. Absent from this allow-list it would render with no
   // rail and no top bar, and the `#root` inset keyed off it would never apply —

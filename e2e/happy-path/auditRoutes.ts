@@ -290,7 +290,7 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   { name: "gift-card", url: "/gift-card" },
   // "benefits" (/benefits) removed 2026-08-31 with the page and its route —
   // the path now renders NotFound, which `not-found` already covers once.
-  { name: "pets", url: "/pets" },
+  { name: "pets", url: "/profile?tab=pets" },
   { name: "saved-helpers", url: "/saved-helpers" },
   { name: "schedule", url: "/schedule" },
   { name: "settings", url: "/settings" },

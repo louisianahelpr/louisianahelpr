@@ -296,7 +296,7 @@ const AdminIDVReview = () => {
                       disabled={bulkRunning}
                       aria-label={`Select ${r.full_name || r.email || "this Helpr"} for bulk approval`}
                     />
-                    <div className="w-10 h-10 rounded-full bg-accent/20 text-accent flex items-center justify-center text-ds-13 font-bold shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-accent/20 text-[hsl(var(--accent-ink))] flex items-center justify-center text-ds-13 font-bold shrink-0">
                       {(r.full_name || r.email || "?").slice(0, 2).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">

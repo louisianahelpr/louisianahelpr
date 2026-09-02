@@ -33,9 +33,18 @@ on a payment screen costs more trust than a slow query.
 
 ## Scope
 
-Every string a user can read, across all 148 addressable surfaces in
-`docs/audit/launch-2026-09/SURFACE.md` — **including inside all 85 overlays**, which is
-where copy audits usually stop short.
+Every string a user can read, across all **802** addressable surfaces in
+`docs/audit/launch-2026-09/SURFACE.md`.
+
+**Your single biggest surface is the 517 toast messages across 134 files** — that is
+the largest body of user-facing copy in the app, and no previous audit counted it at
+all. Toasts are where error copy is worst, because each one is written inline at the
+call site by whoever was fixing that bug. Grade every one: does it say what happened,
+what to do, and does it avoid blaming the user for a server failure? Also check for
+leaked internals (raw error text, ids, table names) and inconsistent tone.
+
+Then the **139 overlay instances** and **40 forms** — copy audits usually stop at the
+page level and never open these.
 
 ## What you check
 

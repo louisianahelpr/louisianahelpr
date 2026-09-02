@@ -10,12 +10,30 @@ app-switcher snapshot redaction, clipboard hygiene, consent capture.
 
 ## What I fixed
 
-**Nothing.** I remained in `permissionMode: plan` for the whole sweep and did
-not edit a single file. Every finding in this lane touches auth, and the lane
-brief's standing constraint is that auth changes are queued for owner review
-rather than shipped. Three fixes are proposed, scoped and ranked in
-[Proposed fixes](#proposed-fixes); the orchestrator holds them pending
-`VERDICT.md`.
+**One, released by the orchestrator: OA-003's copy half** (`ffbb94f49`).
+Signup showed the raw backend string *"email rate limit exceeded"* on its
+primary CTA. `authErrors.ts` now exposes `matchAuthError(raw): string | null`
+and `friendlyAuthError` is a thin wrapper over it — behaviour-identical for
+Login, ResetPassword and socialAuth, proven with a runtime table over six
+inputs including the unmatched and null cases. Signup takes the recognised
+sentence when there is one and keeps its own fallback otherwise.
+
+I did **not** implement this as the approved one-liner. Routing straight
+through `friendlyAuthError` would have swapped one wrong message for another:
+it must return a string, so it conflates "here is something to show" with "I
+recognised this", and its fallback says *"sign you in"* — wrong on a screen
+creating an account. `socialAuth.ts:90-95` hit the same wall and worked around
+it by comparing against the fallback **literal**, which breaks silently the day
+that copy is reworded; it should adopt `matchAuthError`, and is left alone only
+because the social flow was outside the approved scope.
+
+Verified by re-running the original reproduction against prod: identical 429,
+identical backend body, toast now reads *"Too many attempts just now. Give it a
+moment and try again."*
+
+**Everything else is unfixed and deliberately so** — see
+[Proposed fixes](#proposed-fixes). The remaining items are auth, and the lane
+brief queues auth for owner review.
 
 ---
 
@@ -78,7 +96,7 @@ Full claim, reproduction and evidence are in the bus
 
 | ID | Sev | Surface | One line |
 |---|---|---|---|
-| **OA-001** | HIGH · blocker | `/signup` → `complete-signup` | Root cause of RW-004: the edge function was **never invoked**. Account left unapproved with **zero legal consent recorded**, silently. |
+| **OA-001** | HIGH · blocker | `/signup` → `complete-signup` | Root cause of RW-004: the edge function was **never invoked**. Account left unapproved with **zero legal consent recorded**, silently. Mechanism confirmed (CC-006, re-verified): `fileToBase64` never settles on an aborted read. |
 | **OA-002** | HIGH | `/signup` Create Account | Button not disabled during the awaited validator → one gesture fires **two concurrent `auth.signUp` calls** (measured 29 ms apart); the loser silently `navigate("/login")`s. |
 | **OA-003** | HIGH · blocker | `/signup` Create Account | Raw `"email rate limit exceeded"` shown as the user-facing toast; the correct copy already exists in `authErrors.ts` and signup can't reach it. Underlying quota unanswered. |
 | **OA-004** | MEDIUM | native session storage | `keychainStorageAdapter` is **NSUserDefaults, not Keychain**. Full production session observed in plaintext on disk. |
@@ -103,6 +121,45 @@ count, but it means the `legal_acceptances` audit trail is **not** complete
 evidence for the existing user base.
 
 ---
+
+### OA-001 — the mechanism (confirmed, and it raises the severity)
+
+`lh-concurrency-cache` found the trigger (CC-006) and I re-verified it
+independently. `fileToBase64` (`signupHelpers.ts:70-78`) wraps a `FileReader`
+and attaches only `onload` and `onerror`. FileReader has **three** terminal
+events; an aborted read fires `onabort`, which nothing listens for, so the
+promise neither resolves nor rejects. `grep -rn onabort src/` returns **zero**
+hits app-wide.
+
+That await is the first statement of `completeProfile` (`Signup.tsx:241`),
+which runs *after* `auth.signUp` has already created the account. Every symptom
+documented from prod falls out of it: the auth user exists; `invoke` is never
+reached, so the handler is never entered and **no `edge_rate_limit_log` row is
+written** — the exact absent artifact used as dispositive proof; the `catch`
+never runs, so no `report()` and no toast; the `finally` never runs, so the
+button spins forever; and the profile holds only what `handle_new_user`
+inserted, which is precisely the four fields RW-004 named, because they are the
+*payload* of the call that never fired.
+
+**This raises OA-001's severity rather than lowering it.** Not a rare race — a
+deterministic hang on a path every user walks, since the avatar is a hard
+requirement of the form (`Signup.tsx:131-134`), whose probability depends only
+on the file and the device.
+
+**Two unguarded instances, not one.** `supabase.functions.invoke` carries no
+`AbortSignal` and no timeout at `Signup.tsx:252` **and** at
+`CompleteProfile.tsx:400`. A stalled mobile connection hangs identically — and
+CompleteProfile is the *recovery* path for this very failure, so the recovery
+can hang the same way. Close all three or the intermittency merely moves.
+
+**The finding behind the finding:** this codebase already learned this lesson
+and did not apply it here. `keychainStorageAdapter.ts:21-26` states verbatim
+that a try/catch *"catches a REJECTION; it does nothing for a Capacitor bridge
+call that never settles at all"*, and adds a hard cap for exactly this shape —
+while zero `onabort` handlers and two untimed invokes sit on the highest-traffic
+path in the funnel.
+
+The compliance half is unchanged and remains the part that needs the owner.
 
 ## 3. UNVERIFIED — could not reach, and why
 

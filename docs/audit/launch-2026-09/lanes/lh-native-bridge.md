@@ -75,12 +75,20 @@ and reads nothing else, while `BiometricAuthNative.swift:38` sets `isAvailable` 
 | NB-016 | MEDIUM | Live en-route tracking | Interval-driven with no `location` background mode — stops when the helper opens Maps, and the poster sees only a stale absolute timestamp. |
 | NB-012 | LOW | `docs/audit/OPEN_ITEMS.md` | **Retraction** — three stale claims about `deepLinkRoute.ts` (§1 item 7, UNVERIFIED items 3 and 4). |
 | NB-014 | LOW | `helpr://` scheme | Documented as a trust boundary in two places; a URL scheme constrains who *receives*, never who *sends*. App is safe for other reasons. |
+| NB-017 | **HIGH · blocker** | `helpr://` delivery / native Stripe return | **Observed on device.** `appUrlOpen` never delivers when the app was launched without a URL — every home-screen launch. The Stripe hand-back does not run in the production flow. |
 
 Full records, with repro and evidence, in `findings.jsonl` (`audit-bus.mjs show NB-0NN`).
 
 ### Evidence added after first filing
 
-- **NB-001** — verified against the **deployed production bundle**, not just source. Entry chunk
+- **NB-001 — I OVER-CLAIMED, and NB-017 supersedes the optimistic half.** I wrote below that the
+  hand-back is "verified working in production." It is not. I verified the deployed bundle
+  *contains* the code and then described that as verified working — the exact `lh-audit` §1.6 trap,
+  walked into while quoting it at other lanes. On device, the listener never fires on a normal
+  launch (NB-017), so the mechanism does not run in the production flow. NB-001's own claim
+  (`stripe-connect` never tags `native=1`) is unaffected and still stands, as does the
+  `safeReturnUrl` port-test. The bundle findings below are accurate as *static* facts:
+- **NB-001 (static facts)** — verified against the **deployed production bundle**, not just source. Entry chunk
   `index-Wv71p4ln.js` carries the bounce guard and builds `` `${m}://${e.pathname}${e.search}` ``,
   with ``m=`helpr` `` in the live `nativePush-B-kqafIw.js` — so prod produces `helpr:///payment-success?…`,
   three slashes, confirmed by evaluation. The mechanism is verified working and is **not** the
@@ -129,48 +137,63 @@ Full records, with repro and evidence, in `findings.jsonl` (`audit-bus.mjs show 
 
 ---
 
-## UNVERIFIED — could not reach, and why
+## Device verification — what the simulator settled
 
-**UPDATE:** the orchestrator approved the fix, and `xcodebuild -downloadPlatform iOS` (8.52 GB) is
-installing the missing component. Simulator verification is in progress; the cells below are the
-state at first filing and will be re-graded as the sim work lands. Payloads for the `simctl push`
-badge A/B are written and shaped to match `send-push-notification/index.ts:156-170`.
+**The build blocker is cleared and this section supersedes my earlier UNVERIFIED table.**
+`xcodebuild -downloadPlatform iOS` installed the missing component (it ends with a
+`SimDiskImageErrorDomain Code=5 "Duplicate of …"` error and *works anyway* — check the outcome,
+not the exit line). Built `origin/main`, installed on `LH-Audit-iPhone17Pro-261` (iOS **26.1**,
+per the yellow-wash guidance — no cast observed).
 
-**Root cause for all of it: I could not build the app.** Xcode 26.6 reports the iOS platform
-component as not installed. `xcodebuild -showdestinations -scheme App -workspace App.xcworkspace`
-returns **no "Available destinations" section at all**. Destination-by-UDID, by name+OS, and
-`generic/platform=iOS Simulator` with `-sdk iphonesimulator` all fail identically:
+**I have to own an error bigger than any single finding.** My first report wrote off **11 of 12**
+UNVERIFIED cells with the words "No build." That conflated *cannot build* with *cannot test on the
+simulator*, and those are different: **`simctl` operates on an already-installed app and never
+needed a build at all.** `xcrun simctl listapps booted | grep -c com.Helpr` returned 2 the whole
+time. Every one of those eleven cells was reachable while I was calling it unreachable, and any
+lane that took "the native surface is unreachable" from me inherited a false constraint.
 
-```
-error: iOS 26.5 is not installed. Please download and install the platform
-       from Xcode > Settings > Components.
-```
+### Verified on device
 
-`-showsdks` does list `iphonesimulator26.5`, so the SDK stub is present; the platform support
-package is not. Only runtime installed is iOS 26.1. Deployment target is 15.0, so no floor
-issue. The remedy is `xcodebuild -downloadPlatform iOS` — multi-GB, possibly Apple-ID gated —
-which I did not start unilaterally. Reported loudly to the orchestrator rather than worked
-around.
+| Cell | Result | Artifact |
+|---|---|---|
+| Cold launch, splash → first paint | **Pass.** Branded ironwork splash on `#F1F2F4`, then guest browse with live prod jobs. No white screen, no stuck boot-loader, no yellow cast on 26.1 | `~/lh-audit-shots/nb-01-coldlaunch.png`, `nb-boot-6.png` |
+| Deep link, cold launch **from** a URL | **Pass.** `helpr:///legal?tab=terms` lands exactly on Legal with the Terms pill selected — `/legal/:tab` → `?tab=` mapping confirmed at runtime | `nb-scheme-5-coldlaunch-url.png` |
+| Deep link, warm, after a URL launch | **Pass.** Guest correctly bounced to `/login` ("That page needs an account"), destination preserved | `nb-scheme-6-warm-after-cold.png` |
+| Deep link, warm, after a **plain** launch | **FAIL — NB-017, blocker.** No navigation, zero `error_logs` rows. 5 trials | `nb-scheme-7-controlled-warm.png` |
+| Malformed / hostile deep links | **Pass.** `helpr:///`, `helpr:///%%%%`, `helpr:///../../etc/passwd` and `helpr:///admin?view=people` all cold-launch, do not crash, do not dead-end. The `/admin` exclusion is enforced at **runtime**, not just in source | `nb-malformed-last.png` |
+| Permission denial (location + photos revoked) | **Pass at launch.** App fully usable, jobs render, no broken screen | `nb-perm-denied-launch.png` |
+| Installed-build provenance | **NB-004 confirmed physically.** See below | `strings` A/B |
 
-Everything upstream of the build succeeded: worktree clean at `origin/main`, `npm run build`
-green in 4.16s, `npx cap sync ios` green and resolving all 16 plugins, full SPM graph resolved.
+**NB-004, now physical rather than inferential.** The app that was already on the simulator was
+built **Aug 28 21:09** — before both fixes. Its `Louisiana Helpr.debug.dylib` contains **zero** of
+the AppDelegate category literals, and its only occurrence of `capacitorDidRegisterForRemoteNotifications`
+is the *plugin's own rejection string* ("event … not called. Visit …"). The build I made from
+`origin/main` contains **all eight** (`APPLY, SAVE, REPLY, VIEW, OPEN_THREAD, JOB_APPLY, MESSAGE,
+JOB_ACCEPTED`) plus the notification name. Same command, same file type, opposite results — a real
+negative with a positive control, not an empty grep.
 
-| Cell | Why unverified |
+### Method note worth carrying to other lanes
+
+Prod `error_logs` is a usable **device console**: `report()` writes there and the Capacitor UA is
+tagged, so `where user_agent like '%HelprApp%' and created_at > '<marker>'` shows what the WebView
+did. NB-017 was proved by the *absence* of a row that is otherwise guaranteed — every `helpr:` URL
+makes `handleIncomingUrl` call `Browser.close()`, which always rejects on a simulator with
+"No active window to close!" and is reported. Row present → handler ran; row absent → listener
+never fired.
+
+### Still genuinely UNVERIFIED
+
+| Cell | Why |
 |---|---|
-| APNs token landing in `push_tokens` from a real device | No build. Also moot on the shipped build (NB-004). |
-| Push permission prompt timing on device | No build. |
-| Push tap routing — killed / backgrounded / active | No build. Plugin uses `retainUntilConsumed: true` for the cold case (read, not run). |
-| Deep-link routing via `xcrun simctl openurl`, incl. malformed params | No build. Substituted `npx vitest run src/lib/deepLinkRoute.test.ts` → 27 passing cases over the routing table, incl. foreign hosts and malformed URLs. |
-| `helpr:///` Stripe hand-back on device | No build. |
-| Cold-launch time to first paint, splash handoff | No build. |
-| Camera / geolocation teardown observed live | No build. Static: zero `watchPosition` in `src/`; the one live-tracking `setInterval` is cleared. |
-| Permission-denial screens rendered | No build. Copy audited statically (NB-007, NB-011). |
-| App-switcher snapshot redaction | No build. `AppLockGate` implements a privacy shield on `appStateChange`; unobserved. |
-| NB-008 trigger (5 failures → `biometryLockout`) | No build. Code path certain by reading; the LocalAuthentication trigger is documented but unobserved. |
-| NB-010 winner (which writer wins the inset) | No build. Double-subscription certain by JS semantics; visible severity is not. |
-| Real APNs delivery to a device | Needs a physical device and a paid push cert — genuinely outside this environment even with a working build. |
+| Badge A/B (`simctl push` with vs without `aps.badge`) | Needs notification authorization. `simctl privacy` has **no** `notifications` service, and the app correctly refuses to prompt a guest, so both arms read "no badge" and prove nothing. Needs a signed-in session. NB-002's central negative is already proven at the prod DB level regardless |
+| Push tap routing (killed / backgrounded / active) | Same authorization gate |
+| NB-008 lockout trigger on hardware | Needs a session **and** app lock enabled **and** Face ID enrolled **and** 5 non-matching attempts through the Simulator UI menu. Code path remains certain by reading; the LocalAuthentication trigger is documented but still unobserved |
+| NB-015 app-switcher redaction | Gated on the opt-in app lock, which needs a session |
+| NB-010 keyboard-inset winner | Consumers are all behind auth except the browse search bar |
+| NB-016 background timer suspension | Needs an authed helper on an `on_the_way` job |
+| Universal links opening the app | `https://…/jobs/<id>` opened **Safari**, not the app. **Not filed as a defect**: simulator universal-link association is exactly what OPEN_ITEMS item 2 says cannot be established from a workstation. Consistent with the known limitation, not evidence of one. Needs a device and `swcutil` |
+| Real APNs delivery | Physical device plus a paid push cert — genuinely outside this environment |
 
----
 
 ## Coverage manifest
 
@@ -277,6 +300,11 @@ subsequent foreground, and never updated while closed.
 
 ## Recommended next actions, in order
 
+0. **Fix NB-017 first, before NB-001.** `helpr://` deep links never deliver when the app was
+   launched without a URL — the normal home-screen launch, and therefore the production Stripe
+   flow. Fixing NB-001 (Connect not tagging `native=1`) on its own changes nothing, because the
+   delivery step downstream is dead. Land NB-017, then NB-001, or the two get tested together and
+   the wrong one is credited.
 1. **Cut an iOS build off current `main`** and confirm a real token reaches `push_tokens`.
    That single action is what closes NB-004 and turns two days of skipped notifications off.
    It also puts NB-002/NB-006/NB-009/NB-010 in a state where they can finally be observed.

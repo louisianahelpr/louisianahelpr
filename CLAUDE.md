@@ -140,8 +140,11 @@ this list tight; project-specific trivia belongs in code comments, not here.
 - **You CAN execute a migration locally without Docker — use PGlite.**
   "No local Postgres" has repeatedly meant migrations shipped reviewed-by-eye
   only. `@electric-sql/pglite` is real Postgres compiled to WASM: install it
-  **outside the repo** (a scratch dir — do not add it to `package.json`),
-  build a prod-shaped schema, and run the migration verbatim. This is how the
+  **outside the repo** (a scratch dir — do not add it to `package.json`), or
+  `npm i --no-save @electric-sql/pglite` when the probe has to live in the
+  repo to resolve its imports — verify `git status package.json
+  package-lock.json` comes back clean afterwards either way.
+  Build a prod-shaped schema, and run the migration verbatim. This is how the
   PIF-restore migration got 22 assertions including a proven-idempotent
   second run and a unique-violation race, none of which a read could have
   established. Apply the file 3× consecutively to prove replay-safety.

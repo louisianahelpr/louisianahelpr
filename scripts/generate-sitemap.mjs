@@ -122,6 +122,18 @@ function classify(routes) {
     if (r.path === "*") { reject("catch-all (NotFound)"); continue; }
     if (r.path.includes(":")) { reject("parameterised — no canonical URL"); continue; }
     if (/<Navigate\b/.test(r.element)) { reject("redirect-only route"); continue; }
+    // Custom redirect components. `<Navigate>` alone missed `/activity`
+    // (ActivityLegacyRedirect) and `/pay-it-forward` (PreserveQueryRedirect),
+    // which returned nothing but a <Navigate> and were being advertised to
+    // search engines as real pages.
+    //
+    // SELF-CLOSING IS THE LOAD-BEARING HALF OF THIS TEST, not tidiness.
+    // Matching the name alone would also reject
+    //   <Route path="/" element={<...><MarketingRedirect>{routeEl(<Index/>)}...
+    // — MarketingRedirect WRAPS the homepage's real content rather than
+    // replacing it, so a name-only rule silently drops `/` from the sitemap.
+    // A redirect-only element renders no children; a wrapper has them.
+    if (/<[A-Z]\w*Redirect\b[^>]*\/>/.test(r.element)) { reject("redirect-only route"); continue; }
     if (/\bProtectedRoute\b/.test(r.element)) { reject("behind ProtectedRoute (auth)"); continue; }
     if (/\bAdminRoute\b/.test(r.element)) { reject("admin-only"); continue; }
     if (NOINDEX[r.path]) { reject(`noindex — ${NOINDEX[r.path]}`); continue; }

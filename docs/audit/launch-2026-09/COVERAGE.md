@@ -4,11 +4,11 @@
      Every number here is derived from the lane roster, WAVES.md, lanes/*.md
      and the append-only bus. Re-run after every wave: npm run audit:coverage -->
 
-Generated: 2026-09-02T17:23:36.139Z
+Generated: 2026-09-02T17:51:01.795Z
 
-- **Lanes:** 35 total — **3 reported**, 4 ran without filing a report, **28 not started**
-- **Findings:** 49 live (3 launch blockers), 6 marked fixed, 60 filed all time
-- **Surface:** 806 addressable surfaces
+- **Lanes:** 36 total — **3 reported**, 5 ran without filing a report, **28 not started**
+- **Findings:** 50 live (3 launch blockers), 7 marked fixed, 62 filed all time
+- **Surface:** unknown — run `node scripts/audit-surface.mjs`
 
 **A lane that filed nothing either found nothing or never ran, and those are
 very different.** `RAN — no report` means findings exist in the bus with no
@@ -21,6 +21,7 @@ lane report on disk — treat it as incomplete, not as covered.
 | 1 | `lh-schema-integrity` | REPORTED | 8 | **1** | 3 |
 | 1 | `lh-silent-failure` | REPORTED | 8 | **1** | – |
 | 2 | `lh-authz-rls` | REPORTED | 4 | – | 1 |
+| 2 | `lh-design-holes` | NOT STARTED | – | – | – |
 | 2 | `lh-edge-functions` | NOT STARTED | – | – | – |
 | 2 | `lh-webkit-differ` | NOT STARTED | – | – | – |
 | 3 | `lh-cron-jobs` | RAN — no report | 6 | **1** | – |
@@ -42,7 +43,7 @@ lane report on disk — treat it as incomplete, not as covered.
 | 8 | `lh-a11y-sensory` | NOT STARTED | – | – | – |
 | 8 | `lh-browse-discovery` | NOT STARTED | – | – | – |
 | 8 | `lh-visual-critic` | NOT STARTED | – | – | – |
-| 9 | `lh-copy-content` | NOT STARTED | – | – | – |
+| 9 | `lh-copy-content` | RAN — no report | 1 | – | 1 |
 | 9 | `lh-email-delivery` | NOT STARTED | – | – | – |
 | 9 | `lh-long-tail-features` | NOT STARTED | – | – | – |
 | 10 | `lh-compliance-store` | NOT STARTED | – | – | – |
@@ -59,23 +60,23 @@ each naming the lane accountable for it.
 
 | Surface class | Count | Owning lane(s) | Status |
 |---|---:|---|---|
-| Routes (non-redirect) | 34 | `lh-route-walker` | PARTIAL |
+| Routes (non-redirect) | ? | `lh-route-walker` | PARTIAL |
 | Redirect-only routes | 20 | `lh-route-walker` | PARTIAL |
-| `?tab=` variants | 23 | `lh-route-walker` · `lh-state-matrix` | PARTIAL |
-| `?view=` variants | 24 | `lh-route-walker` · `lh-state-matrix` | PARTIAL |
-| Overlay surfaces (instances, not files) | 139 | `lh-state-matrix` · `lh-visual-critic` | UNTOUCHED |
-| Toast messages (each is distinct copy) | 521 | `lh-copy-content` | UNTOUCHED |
-| Multi-step flows — confirmed | 12 | `lh-e2e-journeys` | UNTOUCHED |
-| Multi-step flows — probable | 18 | `lh-e2e-journeys` | UNTOUCHED |
-| Back/next navigation only (eyeball these) | 33 | `lh-e2e-journeys` · `lh-state-matrix` | UNTOUCHED |
-| Forms (submittable) | 40 | `lh-input-boundary` | UNTOUCHED |
-| Admin component files (24 top-level views is NOT the surface) | 93 | `lh-admin-moderation` | UNTOUCHED |
-| Email templates | 20 | `lh-email-delivery` | UNTOUCHED |
-| Notification types (copy + destination) | 5 | `lh-notifications` | UNTOUCHED |
+| `?tab=` variants | ? | `lh-route-walker` · `lh-state-matrix` | PARTIAL |
+| `?view=` variants | ? | `lh-route-walker` · `lh-state-matrix` | PARTIAL |
+| Overlay surfaces (instances, not files) | ? | `lh-state-matrix` · `lh-visual-critic` | UNTOUCHED |
+| Toast messages (each is distinct copy) | ? | `lh-copy-content` | PARTIAL |
+| Multi-step flows — confirmed | ? | `lh-e2e-journeys` | UNTOUCHED |
+| Multi-step flows — probable | ? | `lh-e2e-journeys` | UNTOUCHED |
+| Back/next navigation only (eyeball these) | ? | `lh-e2e-journeys` · `lh-state-matrix` | UNTOUCHED |
+| Forms (submittable) | ? | `lh-input-boundary` | UNTOUCHED |
+| Admin component files (24 top-level views is NOT the surface) | ? | `lh-admin-moderation` | UNTOUCHED |
+| Email templates | ? | `lh-email-delivery` | UNTOUCHED |
+| Notification types (copy + destination) | ? | `lh-notifications` | UNTOUCHED |
 
-**9 of 13 surface classes are UNTOUCHED** — no owning lane has started. 4 more are partially reached.
+**8 of 13 surface classes are UNTOUCHED** — no owning lane has started. 5 more are partially reached.
 
-Largest untouched classes: 521 toast messages · 139 overlay surfaces · 93 admin component files.
+Largest untouched classes: .
 
 These class counts deliberately are NOT summed. SURFACE.md excludes cross-cutting
 multi-step flows from its 806 total to avoid double-counting them against the routes
@@ -87,6 +88,7 @@ Read each class on its own terms.
 Not started:
 
 - wave 1 — `lh-generated-drift`
+- wave 2 — `lh-design-holes`
 - wave 2 — `lh-edge-functions`
 - wave 2 — `lh-webkit-differ`
 - wave 3 — `lh-native-bridge`
@@ -106,7 +108,6 @@ Not started:
 - wave 8 — `lh-a11y-sensory`
 - wave 8 — `lh-browse-discovery`
 - wave 8 — `lh-visual-critic`
-- wave 9 — `lh-copy-content`
 - wave 9 — `lh-email-delivery`
 - wave 9 — `lh-long-tail-features`
 - wave 10 — `lh-compliance-store`
@@ -120,4 +121,5 @@ Ran but never filed a lane report (re-dispatch or chase):
 - wave 1 — `lh-route-walker`
 - wave 3 — `lh-cron-jobs`
 - wave 3 — `lh-money-escrow`
+- wave 9 — `lh-copy-content`
 - wave 12 — `lh-verifier`

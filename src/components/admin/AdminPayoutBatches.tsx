@@ -16,6 +16,7 @@ import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
+import { formatPriceExact } from "@/lib/format";
 import {
   Dialog,
   DialogContent,
@@ -346,7 +347,7 @@ const AdminPayoutBatches = () => {
           </div>
           <div className="rounded-ds-md border border-border bg-primary/5 p-4 col-span-2 md:col-span-1">
             <p className="text-ds-11 uppercase tracking-wider text-muted-foreground">Total queued</p>
-            <p className="text-ds-24 font-bold text-primary mt-1">${grandTotal.toFixed(2)}</p>
+            <p className="text-ds-24 font-bold text-primary mt-1">${formatPriceExact(grandTotal)}</p>
           </div>
         </div>
       )}

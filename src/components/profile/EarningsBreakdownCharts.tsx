@@ -15,7 +15,7 @@
 // stays compact for brand-new helpers.
 
 import { useMemo } from "react";
-import { formatCategory } from "@/lib/format";
+import { formatCategory, formatPriceExact } from "@/lib/format";
 import { helperTakeHomeDollars } from "@/lib/helperEarnings";
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
@@ -165,7 +165,7 @@ export function EarningsBreakdownCharts({ earningsJobs, feeFallbackPercent }: Ea
                   ))}
                 </Pie>
                 <Tooltip
-                  formatter={(value) => [`$${Number(value).toFixed(2)}`, "Take-home"]}
+                  formatter={(value) => [`$${formatPriceExact(Number(value))}`, "Take-home"]}
                   contentStyle={{
                     background: "hsl(var(--ivory-sand) / 0.95)",
                     border: "0.5px solid hsl(var(--olivewood) / 0.18)",
@@ -221,7 +221,7 @@ export function EarningsBreakdownCharts({ earningsJobs, feeFallbackPercent }: Ea
                   tickFormatter={(v: number) => `$${v >= 1000 ? Math.round(v / 100) / 10 + "k" : v}`}
                 />
                 <Tooltip
-                  formatter={(value, name) => [`$${Number(value).toFixed(2)}`, String(name) === "ytd" ? String(ytdYear) : String(priorYtdYear)]}
+                  formatter={(value, name) => [`$${formatPriceExact(Number(value))}`, String(name) === "ytd" ? String(ytdYear) : String(priorYtdYear)]}
                   contentStyle={{
                     background: "hsl(var(--ivory-sand) / 0.95)",
                     border: "0.5px solid hsl(var(--olivewood) / 0.18)",

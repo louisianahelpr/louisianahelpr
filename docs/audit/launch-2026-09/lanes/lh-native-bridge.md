@@ -70,8 +70,37 @@ and reads nothing else, while `BiometricAuthNative.swift:38` sets `isAvailable` 
 | NB-005 | LOW | Universal Links | `/warnings` is a real route with live notifications and is unclaimed in AASA — the only unmatched shape in the census. |
 | NB-009 | LOW | Cold launch | Splash safety net is armed *downstream* of the 2s top-level `await hydratePromise` it exists to protect against. |
 | NB-011 | POLISH | Permission-denied copy | One OS event described three ways; only one tells the user how to recover. |
+| NB-013 | **HIGH** | `/reset-password`, `/account-pending` | Cannot be claimed as Universal Links: `detectSessionInUrl` has already run, so the form renders with no session and `updateUser` fails *after* the password is typed. |
+| NB-015 | MEDIUM | App-switcher snapshot | Redaction is gated on the opt-in app lock, so chat, payouts and ID uploads are captured unredacted by default. |
+| NB-016 | MEDIUM | Live en-route tracking | Interval-driven with no `location` background mode — stops when the helper opens Maps, and the poster sees only a stale absolute timestamp. |
+| NB-012 | LOW | `docs/audit/OPEN_ITEMS.md` | **Retraction** — three stale claims about `deepLinkRoute.ts` (§1 item 7, UNVERIFIED items 3 and 4). |
+| NB-014 | LOW | `helpr://` scheme | Documented as a trust boundary in two places; a URL scheme constrains who *receives*, never who *sends*. App is safe for other reasons. |
 
-Full records, with repro and evidence, in `findings.jsonl` (`audit-bus.mjs show NB-00N`).
+Full records, with repro and evidence, in `findings.jsonl` (`audit-bus.mjs show NB-0NN`).
+
+### Evidence added after first filing
+
+- **NB-001** — verified against the **deployed production bundle**, not just source. Entry chunk
+  `index-Wv71p4ln.js` carries the bounce guard and builds `` `${m}://${e.pathname}${e.search}` ``,
+  with ``m=`helpr` `` in the live `nativePush-B-kqafIw.js` — so prod produces `helpr:///payment-success?…`,
+  three slashes, confirmed by evaluation. The mechanism is verified working and is **not** the
+  defect; only `stripe-connect` fails to tag its `return_url`. A verbatim port of `safeReturnUrl`
+  over 5 inputs **keeps** `native=1` on our own origin while still falling back for a hostile
+  origin and a custom scheme, so the proposed one-line fix is sufficient and weakens nothing.
+  *Re-checker note: grepping bundles for `"native"` finds nothing — the minifier emits backticks.*
+- **NB-002** — the central negative is now proven against **live prod**. `pg_proc` holds exactly
+  one function referencing `send-push-notification` (the trigger `fan_out_push_on_notification`),
+  `position('badge' in prosrc) > 0` is false for it, and its payload is
+  `jsonb_build_object('user_id','title','body','link','thread_id')` — five keys, no badge.
+- **NB-003 — self-correction.** My original repro grepped `node_modules/@capacitor/ios/Sources/`,
+  **which does not exist**; a grep over a missing path returns zero trivially and proved nothing.
+  Capacitor's Swift is at `node_modules/@capacitor/ios/Capacitor/Capacitor/`. Re-run there: still
+  zero matches, and the same directory *does* return `CAPNotifications.swift` for
+  `capacitorDidRegisterForRemoteNotifications`, proving the negative is real. Finding stands.
+- **Cold-launch push tap — read end to end, no gap found.** `PushNotificationsHandler.swift:80`
+  retains → `CAPPlugin.m:82-94` queues when no listener exists → `CAPPlugin.m:42-52` drains on the
+  **first** listener → `:54-66` re-delivers. `nativePush.ts` attaches exactly one, and the queue has
+  no TTL. Still a source read, not a device run — but a complete one. (OPEN_ITEMS item 3.)
 
 ---
 
@@ -101,6 +130,11 @@ Full records, with repro and evidence, in `findings.jsonl` (`audit-bus.mjs show 
 ---
 
 ## UNVERIFIED — could not reach, and why
+
+**UPDATE:** the orchestrator approved the fix, and `xcodebuild -downloadPlatform iOS` (8.52 GB) is
+installing the missing component. Simulator verification is in progress; the cells below are the
+state at first filing and will be re-graded as the sim work lands. Payloads for the `simctl push`
+badge A/B are written and shaped to match `send-push-notification/index.ts:156-170`.
 
 **Root cause for all of it: I could not build the app.** Xcode 26.6 reports the iOS platform
 component as not installed. `xcodebuild -showdestinations -scheme App -workspace App.xcworkspace`

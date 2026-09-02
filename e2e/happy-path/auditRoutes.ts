@@ -267,7 +267,6 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   { name: "job-detail-missing", url: "/jobs/10000000-0000-4000-8000-00000000dead" },
   { name: "user-profile-customer", url: `/user/${FAKE_CUSTOMER.id}` },
   { name: "user-profile-missing", url: "/user/10000000-0000-4000-8000-00000000dead" },
-  { name: "pay-it-forward", url: "/pay-it-forward" },
   // Both were listed as ANON until 2026-08-22, where ProtectedRoute meant they
   // rendered the login screen and the sweep filed it under their name.
   { name: "gift-card", url: "/gift-card" },

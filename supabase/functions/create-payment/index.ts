@@ -180,7 +180,7 @@ serve(async (req) => {
               tax_behavior: TAX_BEHAVIOR,
               product_data: {
                 name: `Helpr Job: ${job.title}`,
-                description: "Remaining balance after applying your Pay It Forward gift. Funds release once both parties confirm completion.",
+                description: "Remaining balance after applying your gift card. Funds release once both parties confirm completion.",
                 tax_code: "txcd_00000000",
               },
               unit_amount: differenceCents,

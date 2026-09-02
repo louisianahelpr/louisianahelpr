@@ -65,7 +65,6 @@ const OWNERS = {
   "/help": ["lh-copy-content"],
   "/data-rights": ["lh-compliance-store", "lh-account-lifecycle"],
   "/gift-card": ["lh-compliance-store", "lh-subscriptions-credits"],
-  "/pay-it-forward": ["lh-subscriptions-credits"],
 
   // ── auth / account state ─────────────────────────────────────────────────
   "/login": ["lh-onboarding-auth"],

@@ -75,7 +75,6 @@ const ROUTES: Route[] = [
 
   // Standalone features
   { path: "/profile?tab=pets", auth: "authed" },
-  { path: "/pay-it-forward", auth: "authed" },
   { path: "/family", auth: "authed" },
   { path: "/profile?tab=analytics", auth: "authed" },
   { path: "/profile?tab=home_history", auth: "authed" },

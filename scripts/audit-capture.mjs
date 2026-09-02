@@ -76,7 +76,7 @@ const AUTHED_ROUTES = [
   // /profile?tab=subscription, already covered by PROFILE_TABS.
   '/my-posts?filter=done', '/messages', '/post-job', '/jobs', '/settings',
   '/settings/profile', '/availability', '/schedule', '/earnings', '/analytics', '/pets',
-  '/pay-it-forward', '/home-history', '/work-record', '/saved-helpers', '/auto-tip',
+  '/home-history', '/work-record', '/saved-helpers', '/auto-tip',
   '/str-settings', '/data-rights', '/gift-card', '/wrapped', '/payment-success', '/help', '/support',
   '/legal', '/privacy', '/terms', '/rules',
   '/user/e977a30f-7065-4e75-8498-dba435ac2044',

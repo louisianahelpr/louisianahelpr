@@ -8,11 +8,12 @@
  * meant the file you had to open to change gift-card behaviour was not the one
  * named after it.
  *
- * `/pay-it-forward` stays as a query-preserving redirect and MUST NOT be
- * deleted: it is the claim URL baked into gift emails already sent
- * (supabase/functions/_shared/pifGiftEmail.ts). New emails point at
- * /gift-card?claim=…; the old route is what keeps money already spent
- * claimable.
+ * `/pay-it-forward` is GONE, route and all. It was kept briefly on the theory
+ * that it was the claim URL in gift emails already sent — then checked against
+ * prod rather than assumed: `pif_credits` holds 3 rows, all seed, 0 with a
+ * claim_token. The feature has never been used for real, so there was no live
+ * link to protect. Claim URLs are /gift-card?claim=<token> now
+ * (supabase/functions/_shared/pifGiftEmail.ts).
  *
  * Document-scroll page (PageHeader + min-h-screen).
  *

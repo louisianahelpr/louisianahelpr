@@ -31,7 +31,6 @@
           "/post-job/*",
           "/browse",
           "/gift-card",
-          "/pay-it-forward",
           "/payment-success",
           "/signup",
           "/login",
@@ -86,11 +85,7 @@
           { "/": "/post-job", "comment": "Post a job entry point (70 rows)." },
           { "/": "/post-job/*", "comment": "Post-job sub-paths — mapped to /post-job, query preserved." },
           { "/": "/browse", "comment": "Guest browse surface — linked from marketing and re-engagement email." },
-          { "/": "/gift-card", "comment": "Gift Card (the renamed Pay It Forward surface)." },
-          {
-            "/": "/pay-it-forward",
-            "comment": "The gift-card CLAIM link. _shared/pifGiftEmail.ts:49 mails <app>/pay-it-forward?claim=<token> — a direct www.louisianahelpr.com URL tapped straight out of an email, so it is a genuine universal-link target, and the token rides in the query where deepLinkRoute preserves it. In-app it hits App.tsx's PreserveQueryRedirect to /gift-card?claim=<token>."
-          },
+          { "/": "/gift-card", "comment": "Gift Card — the buy-and-send surface AND the claim link: pifGiftEmail.ts mails <app>/gift-card?claim=<token>, a direct www.louisianahelpr.com URL tapped straight out of an email, so it is a genuine universal-link target and the token rides in the query where deepLinkRoute preserves it." },
           { "/": "/payment-success", "comment": "Stripe return landing, also linked from receipt email. (An in-app Stripe return uses the helpr:// scheme instead — iOS will not re-enter an app from a universal link opened inside that app's own SFSafariViewController; see src/lib/nativeReturnBounce.ts.)" },
           { "/": "/signup", "comment": "Referral growth link — /signup?ref=<code>. The one path here whose whole purpose is being tapped by someone who may not have the app; if they do have it, it should open there." },
           { "/": "/login", "comment": "Sign-in, including the ?redirect= form ProtectedRoute builds when it bounces a signed-out deep link." },

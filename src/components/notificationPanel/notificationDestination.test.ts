@@ -84,7 +84,7 @@ describe("notificationDestination", () => {
       ["/profile?tab=earnings"],
       ["/admin"],
       ["/admin?view=disputes"],
-      ["/pay-it-forward"],
+      ["/gift-card"],
       [`/messages?jobId=${JOB}&userId=u1`],
       [`/dashboard?quickApply=${JOB}`],
       [`/jobs/${JOB}`],

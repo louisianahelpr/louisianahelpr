@@ -123,7 +123,7 @@ function classify(routes) {
     if (r.path.includes(":")) { reject("parameterised — no canonical URL"); continue; }
     if (/<Navigate\b/.test(r.element)) { reject("redirect-only route"); continue; }
     // Custom redirect components. `<Navigate>` alone missed `/activity`
-    // (ActivityLegacyRedirect) and `/pay-it-forward` (PreserveQueryRedirect),
+    // (ActivityLegacyRedirect); `/pay-it-forward` was removed entirely 2026-09-02,
     // which returned nothing but a <Navigate> and were being advertised to
     // search engines as real pages.
     //

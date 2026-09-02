@@ -205,8 +205,12 @@ serve(async (req) => {
       mode: "payment",
       automatic_tax: { enabled: true },
       payment_intent_data: { metadata: sharedMeta },
-      success_url: buildRedirectUrl(`/pay-it-forward?gift=success`, isNative),
-      cancel_url: buildRedirectUrl(`/pay-it-forward?gift=cancelled`, isNative),
+      // `/gift-card`, NOT `/pay-it-forward`. This is where Stripe sends the
+      // buyer the instant they finish paying, so a stale path here is a 404 at
+      // the end of a successful purchase — the worst possible place for one.
+      // The old route was deleted 2026-09-02 with the rename.
+      success_url: buildRedirectUrl(`/gift-card?gift=success`, isNative),
+      cancel_url: buildRedirectUrl(`/gift-card?gift=cancelled`, isNative),
       metadata: sharedMeta,
     }, {
       // Same donor + recipient + amount collapses to ONE charge on a double-tap

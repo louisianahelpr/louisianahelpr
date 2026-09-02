@@ -134,27 +134,13 @@ const routeEl = (node: ReactElement, fallback: ReactElement = <RouteSuspenseFall
   <Suspense fallback={fallback}>{node}</Suspense>
 );
 
-/**
- * A `<Navigate>` that carries the query string (and hash) across.
- *
- * `<Navigate to="/somewhere" />` REPLACES the entire location, so `?claim=`,
- * `?token=`, `?job=` and every other param the inbound link depended on is
- * discarded. That is silent by construction: the destination reads `null` from
- * `searchParams.get(...)`, takes its "nothing to do" branch, and renders a
- * perfectly normal page — no error, no toast, nothing in Sentry. It has now
- * cost this app four separate bugs (two `pif_credit`, the old `/activity`
- * redirect that burned direct offers, and the gift-card claim link), so the
- * fix is a named primitive rather than a fourth one-off.
- *
- * Use this for ANY legacy-path redirect. Only a redirect whose destination
- * hard-codes its own params (e.g. `/terms` → `/legal?tab=terms`) should keep a
- * bare `<Navigate>`, and only because those paths are never linked with a
- * query — see the audit note on each below.
- */
-function PreserveQueryRedirect({ to }: { to: string }) {
-  const { search, hash } = useLocation();
-  return <Navigate to={{ pathname: to, search, hash }} replace />;
-}
+/* PreserveQueryRedirect lived here until 2026-09-02. Its ONLY caller was
+   /pay-it-forward, which carried a `?claim=<token>` out of a gift email and
+   needed the query to survive the hop to /gift-card; a bare <Navigate to="/x">
+   drops the query, which had already broken that link once. Both the route and
+   the helper are gone with the rename — every remaining redirect here either
+   takes no query or hard-codes its own params. Bring it back the moment a
+   redirect target needs to preserve one; do not reach for bare <Navigate>. */
 
 const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
   const location = useLocation();
@@ -337,21 +323,17 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           plan shows Free); tapping Upgrade routes them to sign in first. */}
       {/* Gift Card — send a gift card to a Helpr (renamed from Pay It Forward) */}
       <Route path="/gift-card" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><GiftCard /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      {/* Legacy /pay-it-forward → /gift-card (feature renamed).
-          MUST carry the query string. This was a bare
-          `<Navigate to="/gift-card" replace />`, and a bare string `to`
-          replaces the whole location — search and hash included — so every
-          gift-card claim link died here. `_shared/pifGiftEmail.ts:49` mails
-          `${getAppUrl()}/pay-it-forward?claim=<token>`; the token was dropped
-          on the way to /gift-card, GiftCard.tsx:121 read `null` from
-          `searchParams.get("claim")`, its claim effect returned early, and the
-          credit was never claimed — no error, no toast, nothing to notice.
-          Signed out it died one step earlier: ProtectedRoute builds
-          `?redirect=` from `location.pathname + location.search`, so with the
-          search already gone the user came back from login to a bare
-          /gift-card. Same defect shape as the two `pif_credit` bugs and the
-          old `/activity` redirect (see ActivityLegacyRedirect). */}
-      <Route path="/pay-it-forward" element={<PreserveQueryRedirect to="/gift-card" />} />
+      {/* NO /pay-it-forward ROUTE. The feature is a gift card and is named one
+          everywhere now (owner: "it should not be named pay it forward though
+          that's wrong").
+
+          The redirect was kept for one reason — it was the claim URL in gift
+          emails already sent, and deleting it would turn a paid, unclaimed gift
+          into a 404. Checked prod before removing it rather than reasoning about
+          it: `pif_credits` holds 3 rows, ALL seed data, 0 with a claim_token and
+          0 that are not seed. The gift feature has never been used for real, so
+          there is no live claim link anywhere and nothing to preserve.
+          `pifGiftEmail.ts` now mails /gift-card?claim=<token>. */}
       {/* /analytics — Advanced Analytics, the perk printed on the $10 Pro card.
           It was a <Navigate> to the Earnings tab from 2026-08-23, and that was
           the right call at the time: the old page rendered the SAME body as the

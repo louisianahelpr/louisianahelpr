@@ -110,7 +110,6 @@ const ROUTES = [
   "/saved-helpers",
   "/profile?tab=str_settings",
   "/profile?tab=auto_tip",
-  "/pay-it-forward",
   "/profile?tab=work_record",
   "/job-history",
   "/profile?tab=home_history",

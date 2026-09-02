@@ -123,7 +123,7 @@ serve(async (req) => {
             title: "Your gift is back",
             message: `"${job.title}" was cancelled, so the $${formatPayoutDollars(dollars)} gift you used on it is available again.`,
             type: "payment",
-            link: "/pay-it-forward",
+            link: "/gift-card",
           });
           if (noteErr) {
             console.error(

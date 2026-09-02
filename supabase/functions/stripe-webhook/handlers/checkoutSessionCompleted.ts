@@ -455,7 +455,7 @@ export async function handleCheckoutSessionCompleted(
       await postSlackOpsAlert({
         kind: "custom",
         severity: "critical",
-        title: "Pay It Forward donation — unmintable (bad metadata)",
+        title: "Gift card donation — unmintable (bad metadata)",
         message: "A donor's gift charge captured but the session metadata was missing/invalid, so no credit could be minted. Reconcile manually.",
         fields: {
           session_id: session.id,
@@ -484,7 +484,7 @@ export async function handleCheckoutSessionCompleted(
         await postSlackOpsAlert({
           kind: "custom",
           severity: "critical",
-          title: "Pay It Forward mint — idempotency check failed",
+          title: "Gift card mint — idempotency check failed",
           message: "Couldn't verify whether this gift was already minted, so the mint was skipped to avoid a double-credit. Returning 500 so Stripe retries; if it keeps failing, reconcile manually.",
           fields: { session_id: session.id, donor_id: donorId, recipient_email: recipientEmail, db_error: existErr.message },
         });
@@ -569,7 +569,7 @@ export async function handleCheckoutSessionCompleted(
           await postSlackOpsAlert({
             kind: "custom",
             severity: "critical",
-            title: "Pay It Forward gift mint failed — Stripe will retry",
+            title: "Gift card mint failed — Stripe will retry",
             message: "A donor's gift charge captured but the pif_credits row was not written. Returning 500 so Stripe retries; if retries exhaust, reconcile manually.",
             fields: {
               session_id: session.id,
@@ -581,7 +581,7 @@ export async function handleCheckoutSessionCompleted(
           });
           throw new Error(`pif_credits insert failed for session ${session.id}: ${mintErr.message}`);
         } else {
-          logStep("Pay It Forward gift minted", { sessionId: session.id, recipientEmail, amountCents });
+          logStep("Gift card minted", { sessionId: session.id, recipientEmail, amountCents });
 
           // In-app notify an already-registered recipient right away.
           if (recipientId) {
@@ -590,7 +590,7 @@ export async function handleCheckoutSessionCompleted(
               title: "You received a Helpr credit!",
               message: `${donorName} sent you a $${(amountCents / 100).toFixed(0)} credit to use toward any job. Tap to redeem it.`,
               type: "payment",
-              link: "/pay-it-forward",
+              link: "/gift-card",
             });
           }
 
@@ -636,7 +636,7 @@ export async function handleCheckoutSessionCompleted(
       await postSlackOpsAlert({
         kind: "custom",
         severity: "critical",
-        title: "Pay It Forward difference payment — credit not consumed",
+        title: "Gift card difference payment — credit not consumed",
         message: "A recipient paid the shortfall on a reserved gift but pif_credits was not flipped to redeemed. Stripe will retry; if it persists, reconcile manually.",
         fields: { session_id: session.id, pif_credit_id: pifCreditId, db_error: consumeErr.message },
       });

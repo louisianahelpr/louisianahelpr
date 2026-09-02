@@ -72,6 +72,32 @@ function fold() {
   const findings = new Map();
   for (const r of readAll()) {
     if (r.kind === "finding") {
+      // A SECOND finding under an existing id must never DELETE the first.
+      //
+      // nextId() above stops new collisions; this stops the ones already on
+      // disk from staying invisible. Twelve findings were shadowed before that
+      // fix landed — all 8 of lh-verification-credentials' (VC-001..VC-008,
+      // overwritten by lh-visual-critic), 3 of lh-copy-content's
+      // (CC-001..CC-003, overwritten by lh-concurrency-cache) and main's
+      // TC-001 (overwritten by lh-test-ci) — including two HIGH findings about
+      // a credential tier any signed-in user can self-grant and a license that
+      // never expires. The ledger is append-only, so every one of those rows is
+      // still in the file; only this fold dropped them.
+      //
+      // The incumbent keeps the id, because any status rows filed against that
+      // id were filed against IT. The newcomer is kept under `<id>#<agent>` so
+      // it stays readable instead of vanishing.
+      const incumbent = findings.get(r.id);
+      if (incumbent && incumbent.agent !== r.agent) {
+        findings.set(`${r.id}#${r.agent}`, {
+          ...r,
+          id: `${r.id}#${r.agent}`,
+          collided_with: r.id,
+          status: "filed",
+          history: [],
+        });
+        continue;
+      }
       findings.set(r.id, { ...r, status: "filed", history: [] });
     } else if (r.kind === "status") {
       const f = findings.get(r.id);

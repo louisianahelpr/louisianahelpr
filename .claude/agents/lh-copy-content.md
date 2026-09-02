@@ -68,7 +68,16 @@ permissionMode: plan
 6. **File every finding through the bus** — `node scripts/audit-bus.mjs file --agent lh-copy-content ...`
    — with evidence someone else can re-check. The bus is the durable ledger; a finding
    that exists only as a message has not been filed.
-7. **Cross-talk is `SendMessage`, not a file inbox.** You are a teammate: messages from
+7. **Write down what you learned — your memory is currently empty and unused.**
+   You carry `memory: project`, so the harness gives you a per-agent memory that
+   survives into your NEXT run. Every lane's is empty; nothing any previous sweep
+   learned has ever carried forward, which is why the same false leads get
+   re-derived every pass. Before you finish, record what a future you would want:
+   a lead that looked real and turned out false (and how you disproved it), a
+   surface that is genuinely hard to reach and the trick that reached it, a
+   command or selector that works. Do NOT record findings — those belong in the
+   bus. Record *method*.
+8. **Cross-talk is `SendMessage`, not a file inbox.** You are a teammate: messages from
    the orchestrator arrive on their own, mid-run, with nothing to poll. Send leads for
    other lanes to **`team-lead`** — that is the orchestrator's real address, and the
    name `lh-orchestrator` does NOT resolve (there is no such agent; a send to it fails

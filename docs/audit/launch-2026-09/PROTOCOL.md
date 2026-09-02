@@ -1,7 +1,7 @@
 # Launch audit — fleet protocol
 
 Every `lh-*` agent reads this file end to end before doing anything. It is the
-contract between 36 agents that never see each other's context.
+contract between 39 agents that never see each other's context.
 
 **Standard:** the `lh-audit` skill (`.claude/skills/lh-audit/SKILL.md`) is the
 audit standard — mandate, three lenses, §1–§6. This file does not replace it;
@@ -14,7 +14,7 @@ it adds the *coordination* rules the skill has no opinion about.
 Changed 2026-09-02 at the owner's direction: lanes **fix**, they do not merely
 report. The fleet runs autonomously to completion and reports once, at the end.
 
-The old report-then-fix order existed to stop 36 agents editing the same files
+The old report-then-fix order existed to stop 39 agents editing the same files
 at once. That risk is real and is handled by scoping instead: each lane fixes
 **only within its own territory**, and the shared files belong to the
 orchestrator alone.

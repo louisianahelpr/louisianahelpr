@@ -23,9 +23,22 @@ that notification is *declared* by the framework but **posted from nowhere**,
 and the host app must post it from
 `didRegisterForRemoteNotificationsWithDeviceToken`. Stock boilerplate does
 not, so iOS handed the app a valid APNs token on every launch and it was
-dropped on the floor — unfillable `push_tokens`, no error, no log. If a
-native capability appears dead in a way no amount of TypeScript explains,
-read the AppDelegate.
+dropped on the floor — unfillable `push_tokens`, no error, no log.
+
+**That specific bug is FIXED — verified 2026-09-02, do not go looking for it
+again.** `AppDelegate.swift:127-140` posts both
+`.capacitorDidRegisterForRemoteNotifications` and
+`.capacitorDidFailToRegisterForRemoteNotifications`, confirmed against the
+plugin's own source
+(`node_modules/@capacitor/push-notifications/ios/Sources/PushNotificationsPlugin/PushNotificationsPlugin.swift:38-46`)
+as the exact two names it observes, with `appDelegateRegistrationCalled`
+gating the delivered-notification APIs. `UNNotificationCategory` registration
+is present and matches `category.ts`. The history stays here because the
+LESSON generalises and the bug does not: a framework can declare a
+notification, observe it, and post it from nowhere — leaving the host app
+silently responsible for a link nothing warns you about. **If a native
+capability appears dead in a way no amount of TypeScript explains, read the
+AppDelegate.**
 
 - **Backend:** Supabase — Postgres, RPCs, edge functions in `supabase/functions/`.
 - **Payments:** Stripe Connect (escrow).

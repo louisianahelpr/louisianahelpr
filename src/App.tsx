@@ -406,7 +406,15 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           bookmarks, search-engine indexes) — redirect to their modern
           equivalents instead of dumping users on the NotFound page. */}
       <Route path="/dashboard/post-login" element={<Navigate to="/dashboard" replace />} />
-      <Route path="/settings/profile" element={<Navigate to="/profile" replace />} />
+      {/* `?tab=profile` — the EDIT screen, not the Profile landing. Both legacy
+          settings paths used to land on bare `/profile`, which threw away the
+          one thing that made this path more specific than `/settings`: someone
+          following an old link or bookmark to their profile EDITOR arrived at
+          the menu instead and had to find it again. Every other legacy
+          redirect here already targets its own tab (`/saved-helpers` ->
+          `?tab=saved_helpers`, `/schedule` -> `?tab=schedule`); this one was
+          the exception. */}
+      <Route path="/settings/profile" element={<Navigate to="/profile?tab=profile" replace />} />
       <Route path="/settings" element={<Navigate to="/profile" replace />} />
       <Route path="*" element={<RouteErrorBoundary>{routeEl(<NotFound />)}</RouteErrorBoundary>} />
     </Routes>

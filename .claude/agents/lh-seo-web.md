@@ -96,6 +96,23 @@ person reads; nobody owned the markup a crawler reads.
 That matters more at launch than later: the first impression of Louisiana Helpr
 for most people will be a shared link or a search result, not the app.
 
+
+### OUT OF SCOPE — decided by the owner 2026-09-02
+
+**`/user/:userId` is NOT a public page and will not become one.** Do not audit
+its meta tags, Open Graph card, structured data or canonical URL, and do not
+file findings about them. The route is wrapped in a bare `<ProtectedRoute>`, so
+a crawler and a signed-out visitor both get the login page; every in-app link
+to it comes from an authed surface. The owner was asked directly whether to
+open it up and chose to keep helper names, photos, reviews and stats behind
+login. Anything you optimise here is markup no crawler will ever fetch.
+
+This is worth stating rather than leaving to inference, because the page LOOKS
+like a public profile — it is a person's shareable-looking identity page, it
+has a short-link route (`/u/:id`), and this lane was already treating it as
+crawlable. Nothing in the file itself says otherwise.
+
+
 ## What you check
 
 **1. Does a shared link render?** For every public route — landing, `/jobs`, a

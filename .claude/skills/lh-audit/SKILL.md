@@ -1774,9 +1774,8 @@ addition, especially before opening or merging a PR:
     realtime channels. Run on anything near escrow or payments, where a dropped
     error must never be silent.
   - `lh-authz-rls` — RLS policies, IDOR, SECURITY DEFINER `search_path`, and any
-    view or policy change. This is the closest thing to the old
-    `security-auditor`. Run before anything touching Stripe, Supabase, auth or
-    data handling.
+    view or policy change. Run before anything touching Stripe, Supabase, auth
+    or data handling. (This replaces the old `security-auditor`.)
   - `lh-money-escrow` — escrow, payouts, commission, price application. Run on
     any money-touching diff.
   - `lh-test-ci` — whether the change is actually covered and whether CI runs

@@ -24,7 +24,7 @@
     "typecheck:edge": "node scripts/typecheck-edge.mjs",
     "check:edge": "node scripts/check-edge-syntax.cjs",
     "check:audit-evidence": "node scripts/check-audit-evidence.mjs",
-    "db:types": "npx supabase gen types typescript --project-id fncmgoasalhdgfwzhsqa --schema public > src/integrations/supabase/types.ts && echo '✓ Regenerated src/integrations/supabase/types.ts (needs SUPABASE_ACCESS_TOKEN env var or supabase login)'",
+    "db:types": "npx supabase gen types typescript --project-id fncmgoasalhdgfwzhsqa --schema public > src/integrations/supabase/types.ts && echo '\u2713 Regenerated src/integrations/supabase/types.ts (needs SUPABASE_ACCESS_TOKEN env var or supabase login)'",
     "db:diff": "npx supabase db diff --linked --schema public",
     "prepare": "husky || true",
     "check:launch": "HELPR_LAUNCH=1 bash scripts/check-launch-flags.sh",
@@ -33,11 +33,15 @@
     "db:staging:push": "npx supabase db push",
     "deadcode": "knip",
     "deadcode:functions": "node scripts/check-dead-edge-functions.mjs",
-    "strip:ios-sourcemaps": "node scripts/strip-ios-sourcemaps.mjs"
+    "strip:ios-sourcemaps": "node scripts/strip-ios-sourcemaps.mjs",
+    "check:agent-refs": "node scripts/check-agent-refs.mjs"
   },
   "lint-staged": {
     "*.{ts,tsx}": "eslint --fix",
-    "vercel.json": "node scripts/check-vercel-config.mjs"
+    "vercel.json": "node scripts/check-vercel-config.mjs",
+    ".claude/**/*.md": "node scripts/check-agent-refs.mjs",
+    "CLAUDE.md": "node scripts/check-agent-refs.mjs",
+    "docs/audit/launch-2026-09/*.md": "node scripts/check-agent-refs.mjs"
   },
   "dependencies": {
     "@aparajita/capacitor-biometric-auth": "^10.0.0",

@@ -117,6 +117,45 @@ Deno.serve(async (req) => {
         throw new Error('Freed auth email, but failed to sync denied profile email')
       }
 
+      // A third party's LOGIN IDENTITY just changed. Until 2026-09-01 the only
+      // trace of that was the console.log below: the audit insert and the
+      // notification further down are both scoped to `userId`, never to
+      // `deniedUserId`, so the person who could no longer sign in was never
+      // told and no admin_audit_log row named the admin who did it. Both are
+      // written HERE, against the denied account, for exactly that reason.
+      const { error: deniedAuditErr } = await supabaseAdmin.from('admin_audit_log').insert({
+        admin_id: adminId,
+        action: 'free_denied_account_email',
+        target_id: deniedUserId,
+        target_type: 'user',
+        details: {
+          old_email: sourceEmail,
+          new_email: freedEmail,
+          freed_for_user_id: userId,
+          reason: 'email reassigned to another account by an admin',
+        },
+      })
+      if (deniedAuditErr) {
+        console.error('[admin-update-email] denied-account audit log failed:', deniedAuditErr.message)
+      }
+
+      // In-app only, deliberately: the mailbox at `sourceEmail` is about to
+      // belong to a DIFFERENT account, so a security email sent there would be
+      // read by the new owner and would name the denied account. The in-app
+      // notification reaches the right session and nobody else.
+      const { error: deniedNotifyErr } = await supabaseAdmin.from('notifications').insert({
+        user_id: deniedUserId,
+        title: 'Your sign-in email was changed',
+        message:
+          `An administrator reassigned ${sourceEmail} to another account. Your login email is now ${freedEmail}. ` +
+          `Contact ${SUPPORT_EMAIL} if you did not expect this.`,
+        type: 'warning',
+        link: '/support',
+      })
+      if (deniedNotifyErr) {
+        console.error('[admin-update-email] denied-account notification failed:', deniedNotifyErr.message)
+      }
+
       console.log(`Auto-freed email ${sourceEmail} from denied account ${deniedUserId} -> ${freedEmail}`)
     }
 
@@ -239,14 +278,18 @@ Deno.serve(async (req) => {
       console.error('Profile email update failed:', profileErr)
     }
 
-    // Notify the user (in-app)
-    await supabaseAdmin.from('notifications').insert({
+    // Notify the user (in-app). Error-checked for the same reason the audit
+    // insert below is: this is the only in-product signal that the address the
+    // owner logs in with has changed, and a discarded error means they get no
+    // signal and the admin still sees success.
+    const { error: notifyError } = await supabaseAdmin.from('notifications').insert({
       user_id: userId,
       title: 'Email address updated',
       message: `Your email has been updated to ${normalizedEmail} by an administrator. Use this email to log in going forward.`,
       type: 'info',
       link: '/profile',
     })
+    if (notifyError) console.error('[admin-update-email] in-app notification failed:', notifyError.message)
 
     // Write admin audit log
     // NOTE: a PostgrestBuilder is a lazy PromiseLike implementing `then` only —

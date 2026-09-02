@@ -73,25 +73,16 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 import { signEs256Jwt, signRs256Jwt } from '../_shared/jwt.ts'
 import { postSlackOpsAlert } from '../_shared/slack-alerts.ts'
 import { logPush } from '../_shared/notificationLog.ts'
+import { inferCategoryFromLink, type PushCategory } from './category.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Action-button category identifiers. The actual UNNotificationCategory
-// + UNNotificationAction registration happens on the iOS side (typically
-// in AppDelegate or a Capacitor plugin). The strings below are the
-// contract — both sides must agree on the spelling.
-//
-//   JOB_APPLY    → Apply, Save           (browse-notifications)
-//   MESSAGE      → Reply (text input)    (incoming chat messages)
-//   JOB_ACCEPTED → Message, View         (application accepted)
-//
-// Future categories should be added here AND registered on the iOS
-// side; an unknown category falls back to a tappable notification with
-// no action buttons (no error — APNs ignores unknown identifiers).
-type PushCategory = 'JOB_APPLY' | 'MESSAGE' | 'JOB_ACCEPTED'
+// Action-button categories + the link→category inference live in
+// ./category.ts so they can be unit-tested (index.ts calls Deno.serve at
+// module load, so vitest cannot import it).
 
 interface PushPayload {
   user_id: string
@@ -107,18 +98,9 @@ interface PushPayload {
   time_sensitive?: boolean
 }
 
-// Infer a category from the payload's link when the caller didn't set
-// one explicitly. Keeps existing callers (DB triggers, edge functions)
-// working without a code change while still picking up sensible action
-// buttons. Returns undefined when no inference applies — callers can
-// always override by passing `category` explicitly.
 function inferCategory(payload: PushPayload): PushCategory | undefined {
   if (payload.category) return payload.category
-  const link = payload.link?.toLowerCase() ?? ''
-  if (link.startsWith('/messages') || link.includes('/messages/')) return 'MESSAGE'
-  if (link.includes('/jobs/') && link.includes('accepted')) return 'JOB_ACCEPTED'
-  if (link.startsWith('/jobs/') || link.startsWith('/dashboard')) return 'JOB_APPLY'
-  return undefined
+  return inferCategoryFromLink(payload.link)
 }
 
 interface PushToken {

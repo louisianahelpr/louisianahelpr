@@ -6,6 +6,7 @@ import { queueEmail, SUPPORT_EMAIL } from '../_shared/resend.ts'
 import { banConfirmedMessage, banDismissedMessage, banReviewCopy } from './banReviewCopy.ts'
 import { AdminActionEmail, type AdminActionCallout } from '../_shared/email-templates/admin-action.tsx'
 import { renderEmail } from '../_shared/email-templates/render.ts'
+import { checkRateLimit, rateLimitResponse } from '../_shared/rate-limit.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -57,6 +58,18 @@ function emailStatusFields(result: { ok: boolean }) {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
 
+  // Same shape and budget as admin-delete-user. Admin-only endpoints are not
+  // exempt from this: every branch below writes a permanent, user-visible
+  // consequence (a ban, a strike, a password reset, an admin grant), so a
+  // looping client or a stolen admin session should hit a wall rather than
+  // stamp out an unbounded run of them.
+  const rl = await checkRateLimit(req, {
+    windowMs: 300_000,
+    maxRequests: 30,
+    keyPrefix: 'admin-user-actions',
+  })
+  if (!rl.allowed) return rateLimitResponse(rl.retryAfter ?? 300, corsHeaders)
+
   try {
     const authHeader = req.headers.get('Authorization')
     if (!authHeader?.startsWith('Bearer ')) {
@@ -68,6 +81,23 @@ Deno.serve(async (req) => {
     const serviceRoleKey = (Deno.env.get('SECRET_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const admin = createClient(supabaseUrl, serviceRoleKey)
+
+    // Every branch below ends by telling the user what just happened to their
+    // account. Those inserts used to be bare `await admin.from('notifications')
+    // .insert(...)` with the result thrown away — sitting directly beside an
+    // audit insert that WAS error-checked, so a permanently banned user could
+    // be told nothing at all while the admin was shown a clean success. The
+    // send stays non-fatal (the consequence has already committed and must not
+    // be reported as failed), but it is no longer silent, and the caller now
+    // learns whether it landed.
+    const notifyUser = async (row: Record<string, unknown>, label: string): Promise<boolean> => {
+      const { error } = await admin.from('notifications').insert(row)
+      if (error) {
+        console.error(`[admin-user-actions] ${label} notification NOT delivered:`, error.message)
+        return false
+      }
+      return true
+    }
 
     const token = authHeader.replace('Bearer ', '')
     const supabaseUser = createClient(supabaseUrl, (Deno.env.get('PUBLISHABLE_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY'))!)
@@ -184,13 +214,13 @@ Deno.serve(async (req) => {
       })
       if (auditErr) console.error('[admin-user-actions] audit log write FAILED — privileged action has no trail:', auditErr.message)
 
-      await admin.from('notifications').insert({
+      await notifyUser({
         user_id: targetUserId,
         title: 'Manually verified',
         message: 'An admin has manually verified your identity. You have full access to Helpr.',
         type: 'success',
         link: '/dashboard',
-      })
+      }, 'manual_verify')
 
       const { html, text } = await renderEmail(
         React.createElement(AdminActionEmail, {
@@ -247,13 +277,13 @@ Deno.serve(async (req) => {
       })
       if (auditErr) console.error('[admin-user-actions] audit log write FAILED — privileged action has no trail:', auditErr.message)
 
-      await admin.from('notifications').insert({
+      await notifyUser({
         user_id: targetUserId,
         title: 'We couldn\'t verify your ID',
         message: note || 'An admin reviewed your verification and could not approve it. Contact support if you think this is wrong.',
         type: 'warning',
         link: '/support',
-      })
+      }, 'idv_reject')
 
       return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
@@ -290,13 +320,13 @@ Deno.serve(async (req) => {
       })
       if (auditErr) console.error('[admin-user-actions] audit log write FAILED — privileged action has no trail:', auditErr.message)
 
-      await admin.from('notifications').insert({
+      await notifyUser({
         user_id: targetUserId,
         title: 'Please re-upload your ID',
         message: note || 'Your ID photo was a bit blurry. Snap a clearer one so we can get you started.',
         type: 'warning',
         link: '/profile',
-      })
+      }, 'request_id_reupload')
 
       const { html, text } = await renderEmail(
         React.createElement(AdminActionEmail, {
@@ -513,13 +543,13 @@ Deno.serve(async (req) => {
       })
       if (auditErr) console.error('[admin-user-actions] audit log write FAILED — privileged action has no trail:', auditErr.message)
 
-      await admin.from('notifications').insert({
+      await notifyUser({
         user_id: targetUserId,
         title: notifTitle,
         message: notifMsg,
         type: 'warning',
         link: '/rules',
-      })
+      }, `formal_warning(strike ${strikeNumber})`)
 
       const { html, text } = await renderEmail(
         React.createElement(AdminActionEmail, {
@@ -600,14 +630,47 @@ Deno.serve(async (req) => {
       const caseTypes: string[] = (caseRows ?? []).map((r: { violation_type: string }) => r.violation_type)
       const copy = banReviewCopy(caseTypes)
 
+      // Did this decision actually change anything? A second press of Confirm
+      // used to append a SECOND permanent `user_bans` row, a second audit row
+      // and a second "Account permanently banned" notification — `user_bans`
+      // has no unique constraint (20260311015019:28-37) and there was no
+      // pre-check. The "double-tap is harmless" note further down covers only
+      // the queue close, which is scoped by `action_taken = 'pending_ban_review'`
+      // and therefore genuinely idempotent; the ban insert was not.
+      //
+      // The guard lives here rather than in a unique index because ten other
+      // call sites write this table (six consequence-ladder RPCs, BanDialog,
+      // the reliability shield, the offer-expiry sweep) and a partial unique
+      // index would turn a legitimate escalation — temp ban already active,
+      // then a permanent one — into an unhandled 23505 in code this lane does
+      // not own. Raised for a follow-up that can change all of them together.
+      let stateChanged = true
       if (confirming) {
-        const { error: banErr } = await admin.from('user_bans').insert({
-          user_id: targetUserId,
-          ban_type: 'permanent',
-          reason: note || copy.banReason,
-          banned_by: userData.user.id,
-        })
-        if (banErr) throw new Error(`Failed to record ban: ${banErr.message}`)
+        const { data: existingBans, error: existingErr } = await admin.from('user_bans')
+          .select('id')
+          .eq('user_id', targetUserId)
+          .eq('ban_type', 'permanent')
+          .eq('is_active', true)
+          .limit(1)
+        if (existingErr) throw new Error(`Failed to check existing bans: ${existingErr.message}`)
+
+        if (existingBans && existingBans.length > 0) {
+          // Already permanently banned. Fall through to the queue close and the
+          // audit row (the admin really did press the button, and that belongs
+          // in the log) but do not duplicate the ban row or re-notify.
+          stateChanged = false
+        } else {
+          const { data: banRows, error: banErr } = await admin.from('user_bans').insert({
+            user_id: targetUserId,
+            ban_type: 'permanent',
+            reason: note || copy.banReason,
+            banned_by: userData.user.id,
+          }).select('id')
+          if (banErr) throw new Error(`Failed to record ban: ${banErr.message}`)
+          if (!banRows || banRows.length === 0) {
+            throw new Error('Failed to record ban: no row was written.')
+          }
+        }
 
         const { error: statusErr } = await admin.from('profiles')
           .update({ ban_status: 'permanently_banned', auto_suspended_until: null })
@@ -617,12 +680,17 @@ Deno.serve(async (req) => {
         // Dismissed: undo the reversible restriction the ladder applied. Only
         // lift a suspension that is still auto-managed — a manual admin ban
         // (auto_suspended_until IS NULL) must not be washed away by a dismissal.
-        const { error: liftErr } = await admin.from('profiles')
+        const { data: liftRows, error: liftErr } = await admin.from('profiles')
           .update({ ban_status: 'active', auto_suspended_until: null })
           .eq('user_id', targetUserId)
           .eq('ban_status', 'temp_banned')
           .not('auto_suspended_until', 'is', null)
+          .select('user_id')
         if (liftErr) throw new Error(`Failed to lift restriction: ${liftErr.message}`)
+        // Zero rows is legitimate here — the case may have been dismissed
+        // already, or the restriction was never a temp ban. It just means
+        // there is nothing new to tell the user about.
+        stateChanged = !!liftRows && liftRows.length > 0
       }
 
       // Close the queue item so it stops rendering. Scoped to the one row when
@@ -641,35 +709,41 @@ Deno.serve(async (req) => {
         action: confirming ? 'confirm_message_ban' : 'dismiss_message_ban_review',
         target_id: targetUserId,
         target_type: 'user',
-        details: { note, violation_id: violationId, violation_types: caseTypes },
+        details: { note, violation_id: violationId, violation_types: caseTypes, no_op: !stateChanged },
       })
       if (auditErr) console.error('[admin-user-actions] audit log write FAILED — privileged action has no trail:', auditErr.message)
 
-      await admin.from('notifications').insert(
-        confirming
-          ? {
-              user_id: targetUserId,
-              title: 'Account permanently banned',
-              // One sentence, built from the case's own violation type — see
-              // ./banReviewCopy.ts. This used to be hard-coded to "blocked
-              // messages" for every ladder feeding this queue.
-              message: banConfirmedMessage(copy, SUPPORT_EMAIL),
-              type: 'warning',
-              link: '/account-banned',
-            }
-          : {
-              user_id: targetUserId,
-              title: 'Restriction lifted',
-              // Same source of truth as the ban sentence. This used to end with
-              // "Keep chats and payments on Helpr" for every ladder — messaging
-              // advice handed to someone whose case was about no-shows.
-              message: banDismissedMessage(copy),
-              type: 'success',
-              link: '/dashboard',
-            },
-      )
+      // Only tell the user when their state actually moved. Re-notifying on a
+      // repeat press told a banned person they had just been banned again.
+      let notified = false
+      if (stateChanged) {
+        notified = await notifyUser(
+          confirming
+            ? {
+                user_id: targetUserId,
+                title: 'Account permanently banned',
+                // One sentence, built from the case's own violation type — see
+                // ./banReviewCopy.ts. This used to be hard-coded to "blocked
+                // messages" for every ladder feeding this queue.
+                message: banConfirmedMessage(copy, SUPPORT_EMAIL),
+                type: 'warning',
+                link: '/account-banned',
+              }
+            : {
+                user_id: targetUserId,
+                title: 'Restriction lifted',
+                // Same source of truth as the ban sentence. This used to end with
+                // "Keep chats and payments on Helpr" for every ladder — messaging
+                // advice handed to someone whose case was about no-shows.
+                message: banDismissedMessage(copy),
+                type: 'success',
+                link: '/dashboard',
+              },
+          confirming ? 'confirm_message_ban' : 'dismiss_message_ban_review',
+        )
+      }
 
-      return new Response(JSON.stringify({ success: true }), {
+      return new Response(JSON.stringify({ success: true, already_applied: !stateChanged, notified }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }

@@ -249,7 +249,7 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
       {/* Dispute Dialog */}
       {props.disputeJob && props.user && (
         <DisputeDialog
-          jobId={props.disputeJob.id} jobTitle={props.disputeJob.title}
+          jobId={props.disputeJob.id}
           userId={props.user.id} open={!!props.disputeJob}
           onClose={() => props.setDisputeJob(null)} onDisputed={props.onRefresh}
         />

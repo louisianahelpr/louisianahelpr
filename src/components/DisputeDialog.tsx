@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { lifecycleErrorMessage } from "@/lib/lifecycleErrors";
-import { fireSlackAlert } from "@/lib/slackAlerts";
 import {
   Dialog,
   DialogContent,
@@ -30,14 +29,17 @@ const DISPUTE_REASONS = [
 
 interface DisputeDialogProps {
   jobId: string;
-  jobTitle: string;
+  // `jobTitle` used to be here, read by exactly one thing: the Slack ops alert
+  // this component fired from the browser, which 401'd on every call. The
+  // server builds that message from `jobs.title` itself now
+  // (notify_ops_dispute_filed, 20260902035447), so the prop had no reader left.
   userId: string;
   open: boolean;
   onClose: () => void;
   onDisputed: () => void;
 }
 
-export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisputed }: DisputeDialogProps) => {
+export const DisputeDialog = ({ jobId, userId, open, onClose, onDisputed }: DisputeDialogProps) => {
   const [reason, setReason] = useState("");
   const [details, setDetails] = useState("");
   const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
@@ -199,28 +201,27 @@ export const DisputeDialog = ({ jobId, jobTitle, userId, open, onClose, onDisput
       // work either — that function allows self, admin, or a shared-job
       // counterparty, and a filer shares no job with an admin.
       //
-      // The Slack ops alert below is the channel that does work today.
-
-      // Fire Slack ops alert (non-blocking)
-      const reasonLabel = DISPUTE_REASONS.find((r) => r.value === reason)?.label || "Unknown";
-      fireSlackAlert({
-        kind: "dispute_filed",
-        severity: "critical",
-        title: "Job disputed",
-        message: `*${jobTitle}* — ${reasonLabel}. Payment is on hold pending admin review.`,
-        fields: {
-          "Job ID": jobId,
-          Reason: reasonLabel,
-          "Disputed by": userId,
-          "Evidence files": evidenceUrls.length,
-        },
-        // `?view=`, not `?tab=`. Admin.tsx reads `searchParams.get("view")`
-        // (Admin.tsx:86) and falls back to "home" for anything else, so the
-        // `?tab=disputes` this used to send dropped every responder on the
-        // admin dashboard with no idea which queue to open — on the one alert
-        // that says real money is frozen.
-        link: `https://www.louisianahelpr.com/admin?view=disputes`,
-      });
+      // That fan-out now lives in `rpc_open_dispute` (20260901032007).
+      //
+      // NO client-side Slack alert either, for exactly the same reason one
+      // layer down. There used to be a `fireSlackAlert({ kind:
+      // "dispute_filed" ... })` here; it invoked the `slack-ops-alert` edge
+      // function from the browser with the filer's user JWT, and that function
+      // accepts only `Bearer <CRON_SECRET>` or `Bearer <service-role key>`
+      // (slack-ops-alert/index.ts:122-134). So every filing since launch got a
+      // 401, inside a `.catch(report)` that kept the dialog reporting success,
+      // and the ops channel has never seen a single dispute. A browser can
+      // never hold either credential — the only way to make the call work
+      // would be to remove the gate that stops anyone on the internet posting
+      // into the ops channel.
+      //
+      // The alert is posted from `rpc_open_dispute` via pg_net instead
+      // (20260902035447), which already holds the vaulted service-role key,
+      // and it now also fires on a re-file that re-freezes escrow — a case the
+      // browser call had no way to distinguish. `src/lib/slackAlerts.ts` was
+      // deleted with this change rather than left behind: a helper that cannot
+      // authenticate by construction is a trap, and it had already produced
+      // this bug and the identical one in the cancel survey (20260831153813).
 
       hapticSuccess();
       onDisputed();

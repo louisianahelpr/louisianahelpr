@@ -22,6 +22,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders, jsonResponse, errorResponse } from '../_shared/cors.ts';
 import { cronError, cronResult, defectTracker } from '../_shared/cron-result.ts';
 import { BlockedUrlError, FeedTooLargeError, fetchIcalFeed } from './safeFetch.ts';
+import { lookAheadWindow, parseIcalDate } from './dates.ts';
 
 // SECRET_KEY first, matching every other cron-invoked function here
 // (auto-expire-jobs, cleanup-notifications, …). Reading only the legacy
@@ -62,16 +63,6 @@ function parseIcal(icalText: string): IcalEvent[] {
     }
   }
   return events;
-}
-
-/** Parse YYYYMMDD or YYYYMMDDTHHmmssZ into a local-date Date object. */
-function parseIcalDate(icalDate: string): Date {
-  const clean = icalDate.replace(/[TZ]/g, '');
-  const year  = parseInt(clean.slice(0, 4), 10);
-  const month = parseInt(clean.slice(4, 6), 10) - 1;
-  const day   = parseInt(clean.slice(6, 8), 10);
-  // Use UTC to avoid local-tz drift shifting the calendar day
-  return new Date(Date.UTC(year, month, day));
 }
 
 /**
@@ -163,8 +154,9 @@ serve(async (req) => {
     return cronError('str-ical-sync', `failed to fetch connections: ${connError?.message ?? 'no rows'}`, corsHeaders);
   }
 
-  const now        = new Date();
-  const oneWeekOut = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  // Compare DAY to DAY, not day to instant — see ./dates.ts for why today's
+  // turnover was dropped on every single run before this.
+  const { from: today, to: oneWeekOut } = lookAheadWindow(new Date());
   const results: Array<{ connection_id: string; jobs_created?: number; error?: string }> = [];
   /** Every job this run created is unfunded — see the block comment below. */
   let jobsCreatedUnfunded = 0;
@@ -185,8 +177,8 @@ serve(async (req) => {
       for (const event of events) {
         const checkoutDate = parseIcalDate(event.dtend);
 
-        // Only process checkouts in the 7-day look-ahead window
-        if (checkoutDate < now || checkoutDate > oneWeekOut) continue;
+        // Only process checkouts in the 7-day look-ahead window, TODAY included.
+        if (checkoutDate < today || checkoutDate > oneWeekOut) continue;
         // Skip Airbnb/VRBO "Blocked" / "Not available" pseudo-events
         const lc = event.summary.toLowerCase();
         if (lc.includes('blocked') || lc.includes('unavailable') || lc.includes('not available')) continue;

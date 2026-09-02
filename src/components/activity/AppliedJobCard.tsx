@@ -138,6 +138,12 @@ function AppliedJobCardInner({
     viewerFeePercent,
   );
 
+  /** The poster, or null on a job whose poster deleted their account — deletion
+   *  anonymises the job rather than removing it (20260901033011), so it stands
+   *  with no owner and no address. Narrowed HERE, into a local, because reading
+   *  `job.customer_id` again inside a callback re-widens it. */
+  const posterId = job.customer_id;
+
   /** Does the description say anything the TITLE hasn't already said? A job
    *  whose description is its own title back again is one line of duplication. */
   const showDescription =
@@ -173,7 +179,9 @@ function AppliedJobCardInner({
       <JobCardMetaRow
         dateNeeded={job.date_needed}
         startTime={job.start_time}
-        location={job.location}
+        /* An anonymised job carries no address (see `posterId` above); the
+           location chip's own normaliser already treats "" as absent. */
+        location={job.location ?? ""}
         latitude={job.latitude}
         longitude={job.longitude}
         expiresAt={isPending && !job.helper_id ? job.expires_at : null}
@@ -290,9 +298,18 @@ function AppliedJobCardInner({
                   {app.posterName[0].toUpperCase()}
                 </div>
                 <span className="text-ds-11 text-muted-foreground">Posted by</span>
-                <a href={`/user/${job.customer_id}`} onClick={(e) => e.stopPropagation()} className="text-ds-11 font-medium text-primary hover:underline truncate">
-                  {app.posterName}
-                </a>
+                {/* An ownerless job still has a name to print — "a neighbor" —
+                    but no profile behind it, and `/user/null` is not a page.
+                    Plain text rather than a link that goes nowhere. */}
+                {posterId ? (
+                  <a href={`/user/${posterId}`} onClick={(e) => e.stopPropagation()} className="text-ds-11 font-medium text-primary hover:underline truncate">
+                    {app.posterName}
+                  </a>
+                ) : (
+                  <span className="text-ds-11 font-medium text-muted-foreground truncate">
+                    {app.posterName}
+                  </span>
+                )}
               </div>
             )}
             {/* EYEBROW GONE AGAIN, and this time for good (owner, 2026-08-30:
@@ -491,7 +508,11 @@ function AppliedJobCardInner({
                   not, so the helper was locked out for a full day while the
                   poster's review sat hidden behind feedback_visible_at waiting
                   for a counter-review that could not be written. */}
-              {(job.payment_status === "released" || job.payment_status === "payout_pending") && (
+              {/* `posterId &&`: a review needs a reviewee. On an ownerless job
+                  there is no account to address one to, and the INSERT would
+                  fail on a null `reviewee_id` — so the chip doesn't render
+                  rather than offering an action that cannot complete. */}
+              {(job.payment_status === "released" || job.payment_status === "payout_pending") && posterId && (
                 <JobActionRow columns={1}>
                   {helperReviewedJobIds.has(app.job_id) ? (
                     <JobActionChip
@@ -508,7 +529,7 @@ function AppliedJobCardInner({
                       label="Review Poster"
                       ariaLabel="Leave a review for the poster"
                       tone="edit"
-                      onClick={() => onHelperReview(app.job_id, job.customer_id, app.posterName || "Poster")}
+                      onClick={() => onHelperReview(app.job_id, posterId, app.posterName || "Poster")}
                     />
                   )}
                 </JobActionRow>

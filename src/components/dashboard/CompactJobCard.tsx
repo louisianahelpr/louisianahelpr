@@ -38,7 +38,10 @@ export function CompactJobCard({
   recommended = false,
 }: CompactJobCardProps) {
   const colors = categoryColors[job.category] ?? categoryColors.other;
-  const city = getCity(job.location);
+  // No address on a job whose poster deleted their account — deletion
+  // anonymises the job rather than removing it (20260901033011). getCity
+  // already answers "" for an absent location, and the row omits an empty city.
+  const city = getCity(job.location ?? "");
   // addSuffix: true → "5 minutes ago" instead of a bare "5 minutes", so the
   // relative time reads unambiguously as how long ago the job was posted.
   const timeAgo = job.created_at

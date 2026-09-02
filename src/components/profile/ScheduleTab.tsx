@@ -210,10 +210,16 @@ const ScheduleCard = ({
             address still travels in the exported calendar event, where it is
             the point. */}
         <div className="mt-1.5 flex items-center gap-x-2 min-[360px]:gap-x-3 sm:gap-x-5 flex-nowrap min-w-0 overflow-hidden text-ds-11 text-muted-foreground">
-          <span className="flex items-center gap-1 min-[360px]:gap-1.5 min-w-0 shrink">
-            <MapPin className="w-3 h-3 shrink-0" />
-            <span className="truncate">{getCity(job.location)}</span>
-          </span>
+          {/* A job whose poster deleted their account is anonymised rather than
+              removed (20260901033011), so it stands with no address. The chip
+              drops out entirely rather than printing a pin with nothing beside
+              it — the date and time hold the row on their own. */}
+          {job.location && (
+            <span className="flex items-center gap-1 min-[360px]:gap-1.5 min-w-0 shrink">
+              <MapPin className="w-3 h-3 shrink-0" />
+              <span className="truncate">{getCity(job.location)}</span>
+            </span>
+          )}
           <span className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
             <Calendar className="w-3 h-3 shrink-0" />
             {formatJobDate(job.date_needed)}

@@ -393,6 +393,15 @@ export async function fetchAppliedActivity(userId: string): Promise<AppliedActiv
       status: "pending",
       message: null,
       offer_message: null,
+      // A direct offer has NO `applications` row behind it — this literal is
+      // the synthetic stand-in for one, and `get_my_pending_direct_offers()`
+      // returns `jobs` rows, which carry no decline reason to copy. The offer
+      // is pending by construction (that RPC returns only pending offers), so
+      // it has never been declined and the column's own default, null, is the
+      // truthful value — same as `message` / `offer_message` above. A real
+      // decline goes through `useOfferHandlers`, which writes the reason onto
+      // a real row.
+      decline_reason: null,
       attachment_urls: null,
       poster_viewed_at: null,
       stake_amount: null,
@@ -760,9 +769,17 @@ export function useActivityData(user: SupaUser | null, tab: "posted" | "applied"
   const posterNames = appliedD.posterNames;
   const appliedAppsWithNames = useMemo(() => {
     if (Object.keys(posterNames).length === 0) return appliedAppsList;
-    return appliedAppsList.map((a) =>
-      a.job ? { ...a, posterName: posterNames[a.job.customer_id] ?? "a neighbor" } : a,
-    );
+    return appliedAppsList.map((a) => {
+      if (!a.job) return a;
+      // `customer_id` is nullable since 20260901033011 — a poster who deleted
+      // their account leaves the job standing with no owner. Null is not a
+      // key: `posterNames` is only ever built from the non-null ids collected
+      // at line 438, so an ownerless job simply falls through to the existing
+      // "a neighbor" fallback rather than indexing the record with null.
+      const posterId = a.job.customer_id;
+      const name = posterId ? posterNames[posterId] : undefined;
+      return { ...a, posterName: name ?? "a neighbor" };
+    });
   }, [appliedAppsList, posterNames]);
 
   const activeCore = isPosted ? postedCore : appliedCore;

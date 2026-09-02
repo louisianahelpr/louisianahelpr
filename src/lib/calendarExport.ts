@@ -78,7 +78,10 @@ function foldLine(line: string): string {
 export interface CalendarEventInput {
   id: string;
   title: string;
-  location: string;
+  /** Null once the poster deletes their account and the job is anonymised
+   *  (20260901033011). The LOCATION property is then OMITTED from the .ics
+   *  rather than written empty — see `buildJobICS`. */
+  location: string | null;
   description: string;
   /** ISO date, "YYYY-MM-DD". */
   dateNeeded: string;
@@ -122,7 +125,12 @@ export function buildJobICS(job: CalendarEventInput): string {
     `DTSTAMP:${toICalUtc(new Date())}`,
     ...dtLines,
     `SUMMARY:${escapeICalText(job.title)}`,
-    `LOCATION:${escapeICalText(job.location)}`,
+    // A missing address OMITS the property. This file leaves the app and
+    // lands in someone's real calendar, where a `LOCATION:` line reading
+    // "" or "null" outlives every bit of context that would explain it.
+    // An absent property is what iCalendar means by "unknown"; an empty
+    // one asserts the event has no location, which is a different claim.
+    ...(job.location ? [`LOCATION:${escapeICalText(job.location)}`] : []),
     `DESCRIPTION:${escapeICalText(job.description)}`,
     "END:VEVENT",
     "END:VCALENDAR",

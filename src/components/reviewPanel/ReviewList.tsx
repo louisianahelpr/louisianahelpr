@@ -55,7 +55,14 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
         return;
       }
       if (data && data.length > 0) {
-        const reviewerIds = [...new Set(data.map((r) => r.reviewer_id))];
+        // A null `reviewer_id` is an author who DELETED their account:
+        // deletion anonymises rather than removes (20260901033011), so the
+        // review stands with no author. Null is not an id to look up, and
+        // handing one to a uuid[] RPC parameter is a malformed filter rather
+        // than a no-match — so it is dropped here. The row still renders; the
+        // lookup misses and it falls through to the existing "a neighbor"
+        // fallback, which is what an unresolved reviewer already got.
+        const reviewerIds = [...new Set(data.map((r) => r.reviewer_id).filter((id): id is string => !!id))];
         const { data: profiles, error: profErr } = await supabase
           .rpc("get_safe_profiles", { user_ids: reviewerIds });
         // Non-fatal: reviews still render, reviewer names just fall back to

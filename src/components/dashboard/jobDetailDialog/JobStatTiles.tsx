@@ -61,7 +61,9 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
             dateNeeded.toISOString(),
             dateEnd.toISOString(),
             job.description.slice(0, 200),
-            job.location,
+            // An anonymised job (deleted poster, 20260901033011) has no
+            // address; the event still exports, with an empty location.
+            job.location ?? "",
           );
         }
         // Distance estimate when both helpr coords + parish centroid
@@ -86,11 +88,17 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
           {
             Icon: MapPin,
             label: "Where",
-            value: getCity(job.location).replace(/,\s*LA\s*$/i, ""),
+            // A job whose poster deleted their account is anonymised, not
+            // removed (20260901033011), so it stands with no address. The tile
+            // cannot be dropped the way Time/Closes are — the compact row is
+            // laid out on 3 or 4 cells and losing one strands a dead column —
+            // so it prints the same em dash the Date tile uses for a value it
+            // hasn't got, and stops being a control: there is no pin to reveal.
+            value: job.location ? getCity(job.location).replace(/,\s*LA\s*$/i, "") : "—",
             sub: distLabel,
             href: null,
-            onClick: () => setShowMap((v) => !v),
-            expanded: showMap,
+            onClick: job.location ? () => setShowMap((v) => !v) : undefined,
+            expanded: job.location ? showMap : undefined,
             urgent: false,
           },
           {
@@ -303,7 +311,7 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
             {compactRow}
             {/* Replaces the old external-maps link — tapping "Where" reveals
                 the pin IN this sheet instead of leaving the page. */}
-            {showMap && <JobLocationPreview address={job.location} />}
+            {showMap && job.location ? <JobLocationPreview address={job.location} /> : null}
             {tileGrid}
           </>
         );

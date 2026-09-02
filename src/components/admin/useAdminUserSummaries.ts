@@ -158,7 +158,13 @@ export function useAdminUserSummaries() {
       const cur = summary[uid];
       if (!cur || new Date(at) > new Date(cur.at)) summary[uid] = { label, at };
     };
-    (jobsRes.data)?.forEach((j) => consider(j.customer_id, "Posted Job", j.created_at));
+    // `customer_id` is nullable since 20260901033011 (deleting an account
+    // anonymises the job rather than removing it). The `.in("customer_id",
+    // userIds)` above can never match a null, so this narrowing drops nothing
+    // in practice — but null is not a key and must not index `summary`.
+    (jobsRes.data)?.forEach((j) => {
+      if (j.customer_id) consider(j.customer_id, "Posted Job", j.created_at);
+    });
     (appsRes.data)?.forEach((a) => consider(a.helper_id, "Applied to Job", a.created_at));
     (loginRes.data)?.forEach((l) => consider(l.user_id, "Logged In", l.created_at));
     // Track most-recent login separately for the user list row

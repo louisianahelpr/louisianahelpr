@@ -135,7 +135,10 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
   // chip drops exactly when every helper can see the job.
   const isJustIn = Date.now() - new Date(job.created_at).getTime() < earlyAccessDelayMs(null);
 
-  const cityState = getCity(job.location);
+  // No address on a job whose poster deleted their account — deletion
+  // anonymises the job rather than removing it (20260901033011). getCity
+  // answers "" for an absent location, which every reader here already guards.
+  const cityState = getCity(job.location ?? "");
 
   // Distance pill — uses the viewer's cached session location (lifted in
   // from Dashboard via useUserLocation, which caches at the module level
@@ -223,8 +226,11 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
   // RLS, PostgREST plan) is already hot. Hook is no-op'd for guests:
   // their tap goes to /signup, not the dialog. Mouse/keyboard users
   // get the same warm-up via the hook's onMouseEnter handler.
+  // An ownerless job (deleted poster — see the `cityState` note) has no
+  // customer to warm the repeat-customer query for, and prefetchJobDialog
+  // bails on a falsy id anyway; skipping keeps null out of its string param.
   const prefetchHandlers = usePrefetchOnTouch(() =>
-    prefetchJobDialog(job.id, job.customer_id),
+    job.customer_id ? prefetchJobDialog(job.id, job.customer_id) : undefined,
   );
 
   // In the guest variant the card is wrapped in an outer interactive

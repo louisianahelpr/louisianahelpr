@@ -157,10 +157,14 @@ export function useJobDetailData({ job, guest, userLat, userLng }: UseJobDetailD
   // cancelled job. Mirrors the math in UserProfile so the inline
   // number matches the profile page if the helpr taps through.
   useEffect(() => {
-    if (guest || !job?.customer_id) return;
+    // Narrowed HERE, not inside the async body: the existing guard already
+    // covered the null case, but reading `job.customer_id` again inside the
+    // closure re-widens it. A null customer_id means the poster deleted their
+    // account and the job was anonymised (20260901033011).
+    const customerId = job?.customer_id;
+    if (guest || !customerId) return;
     let cancelled = false;
     (async () => {
-      const customerId = job.customer_id;
       const [postedTotalRes, postedCancelRes, workedTotalRes, workedCancelRes] = await Promise.all([
         supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", customerId),
         supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", customerId).eq("status", "cancelled"),
@@ -198,11 +202,13 @@ export function useJobDetailData({ job, guest, userLat, userLng }: UseJobDetailD
     (async () => {
       const { data: userRes } = await supabase.auth.getUser();
       const helperId = userRes?.user?.id;
-      if (!helperId || cancelled) return;
+      const posterId = job?.customer_id;
+      // No poster means no repeat-work relationship to count.
+      if (!helperId || !posterId || cancelled) return;
       const { count, error } = await supabase
         .from("jobs")
         .select("id", { count: "exact", head: true })
-        .eq("customer_id", job.customer_id)
+        .eq("customer_id", posterId)
         .eq("helper_id", helperId)
         .eq("status", "completed");
       if (error) report(error, { tags: { source: "JobDetailDialog.repeatJobs" } });

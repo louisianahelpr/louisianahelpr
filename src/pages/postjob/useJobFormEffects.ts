@@ -249,7 +249,12 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
           setAddrState(parsedLoc.addrState ?? "");
           setZipCode(parsedLoc.zipCode ?? "");
         } else {
-          setStreetAddress(data.location);
+          // `location` is nullable since 20260901033011 — an anonymised job
+          // (poster deleted their account) keeps its financial record but
+          // loses its address. Seed the field empty rather than with the
+          // string "null"; the rebooking poster fills it in as they would on
+          // a fresh post. `parseLocationIntoFields` above already takes null.
+          setStreetAddress(data.location ?? "");
         }
         setBudget(data.budget.toString());
         setEstimatedHours(data.estimated_hours?.toString() || "");

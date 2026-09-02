@@ -873,6 +873,24 @@ test("AASA is served as application/json", async () => {
  * Apple's CDN does not follow redirects when fetching AASA, so a claimed
  * domain that 307s cannot associate and its universal links open Safari.
  *
+ * WHERE THE APEX RULE LIVES, and why the explanation is here and not there.
+ * `vercel.json` carries a redirect that sends apex -> www for every path EXCEPT
+ * `/.well-known/apple-app-site-association`, so Apple can read the association
+ * at the apex while www stays canonical for humans and SEO. That rule is INERT
+ * until the apex's project-domain redirect is cleared in the Vercel dashboard
+ * (Project > Settings > Domains > louisianahelpr.com): the redirect is stored on
+ * the domain record as `redirect` + `redirectStatusCode: 307` and applied at the
+ * edge BEFORE config routing, so nothing in `vercel.json` is reached while it
+ * exists. It uses 307 rather than 308 deliberately, matching the status the
+ * domain redirect already returns so the move is a no-op for every client and
+ * nobody gets a permanent redirect pinned in cache.
+ *
+ * That paragraph was originally `//`-prefixed keys inside the redirect entry
+ * itself. Vercel's schema sets `additionalProperties: false` on redirect
+ * entries, so it broke the config and blocked production deploys — the same
+ * failure d3ffb269 had already fixed once. `vercel.json` is schema-validated and
+ * cannot hold prose; this file can, and is where the requirement is enforced.
+ *
  * Today the apex is not claimed, so it is not checked — and the apex 307 is
  * therefore NOT what breaks apex links; the missing entitlement is. The moment
  * anyone adds `applinks:louisianahelpr.com` back, this test starts requiring

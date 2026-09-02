@@ -2,12 +2,13 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "redirects": [
     {
-      "//": "APEX -> WWW, with ONE exception: the AASA path.",
-      "//why": "Apple's CDN does not follow redirects when fetching /.well-known/apple-app-site-association, so a claimed domain that redirects that path cannot associate and its universal links open Safari instead of the app. www is the canonical host for humans and SEO, so the redirect stays for every other path and only AASA is served at the apex.",
-      "//requires": "This rule is INERT until the apex's project-domain redirect is cleared in the Vercel dashboard (Project > Settings > Domains > louisianahelpr.com). That redirect is stored on the domain record (redirect + redirectStatusCode: 307) and is applied at the edge BEFORE vercel.json routing, so while it exists nothing here is reached.",
-      "//status": "307, not 308, deliberately: it matches the status the domain-level redirect already returns, so moving the rule from the domain into config is a no-op for every client and nothing gets a permanent redirect pinned in its cache.",
       "source": "/:path((?!\\.well-known/apple-app-site-association$).*)",
-      "has": [{ "type": "host", "value": "louisianahelpr.com" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "louisianahelpr.com"
+        }
+      ],
       "destination": "https://www.louisianahelpr.com/:path",
       "permanent": false
     }

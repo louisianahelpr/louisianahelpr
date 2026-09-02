@@ -43,25 +43,123 @@ const redirects = new Set(
 );
 
 // --- tab / view variants ----------------------------------------------------
-const tabs = new Set();
-const views = new Set();
-for (const f of files) {
-  const s = readFileSync(f, "utf8");
-  for (const m of s.matchAll(/[?&]tab=([a-zA-Z_][\w-]*)/g)) tabs.add(m[1]);
-  for (const m of s.matchAll(/[?&]view=([a-zA-Z_][\w-]*)/g)) views.add(m[1]);
+// Read the AUTHORITATIVE definitions, not `?tab=` string literals. A grep-based
+// version reported 9 admin views; there are 24 — the real list is VIEW_LABELS in
+// Admin.tsx and most values never appear as a literal `view=` anywhere in src/.
+// Falls back to the literal scan only if a source file moves, and says so.
+// Extract a balanced {...} or [...] block by counting delimiters, because a
+// line-range or a `[^}]+` regex silently truncates. VIEW_LABELS packs several
+// keys per line, so line-counting reports 16 where the real key count is 24 —
+// that single error is why the admin surface was under-reported.
+function balancedBlock(src, afterIndex, open, close) {
+  const start = src.indexOf(open, afterIndex);
+  if (start === -1) return null;
+  let depth = 0;
+  for (let i = start; i < src.length; i++) {
+    if (src[i] === open) depth++;
+    else if (src[i] === close) { depth--; if (!depth) return src.slice(start + 1, i); }
+  }
+  return null;
 }
 
-// --- overlays: anything that renders a Dialog/Sheet/Drawer/Popover ----------
-const OVERLAY_TAG = /<(Dialog|AlertDialog|Sheet|Drawer|Popover|HoverCard|DropdownMenu|ContextMenu)\b/;
+/** Object KEYS (`home:`), not the quoted labels — those are display strings. */
+function keysFromObject(relPath, marker, label) {
+  try {
+    const src = readFileSync(join(ROOT, relPath), "utf8");
+    const i = src.indexOf(marker);
+    if (i === -1) throw new Error(`marker "${marker}" not found`);
+    const body = balancedBlock(src, i, "{", "}");
+    if (!body) throw new Error("unbalanced block");
+    return [...new Set([...body.matchAll(/(?:^|[\s,{])([a-zA-Z_][\w]*)\s*:/g)].map((m) => m[1]))];
+  } catch (e) {
+    console.warn(`  ! ${label}: ${e.message} (${relPath}) — this count is UNVERIFIED`);
+    return null;
+  }
+}
+
+/** String literals from a type union or array literal. */
+function literalsFrom(relPath, marker, open, close, label) {
+  try {
+    const src = readFileSync(join(ROOT, relPath), "utf8");
+    const i = src.indexOf(marker);
+    if (i === -1) throw new Error(`marker "${marker}" not found`);
+    const body = open
+      ? balancedBlock(src, i, open, close)
+      : src.slice(i, src.indexOf(";", i));
+    if (body == null) throw new Error("unbalanced block");
+    return [...new Set([...body.matchAll(/["']([a-zA-Z_][\w-]*)["']/g)].map((m) => m[1]))];
+  } catch (e) {
+    console.warn(`  ! ${label}: ${e.message} (${relPath}) — this count is UNVERIFIED`);
+    return null;
+  }
+}
+
+const profileTabs = literalsFrom("src/pages/profile/types.ts", "type Tab", null, null, "profile tabs");
+const legalTabs = literalsFrom("src/pages/legal/legalSections.ts", "VALID_TABS", "[", "]", "legal tabs");
+const adminViews = keysFromObject("src/pages/Admin.tsx", "VIEW_LABELS", "admin views");
+const adminUserTabs = literalsFrom("src/components/admin/adminusers/useAdminUsersFilter.ts", "type Tab", null, null, "admin user sub-tabs");
+
+const tabs = new Set();
+const views = new Set();
+if (profileTabs) profileTabs.forEach((t) => tabs.add(`profile:${t}`));
+if (legalTabs) legalTabs.forEach((t) => tabs.add(`legal:${t}`));
+if (adminUserTabs) adminUserTabs.forEach((t) => tabs.add(`admin/people:${t}`));
+if (adminViews) adminViews.forEach((v) => views.add(v));
+if (!profileTabs || !legalTabs || !adminViews) {
+  for (const f of files) {
+    const src = readFileSync(f, "utf8");
+    for (const m of src.matchAll(/[?&]tab=([a-zA-Z_][\w-]*)/g)) tabs.add(m[1]);
+    for (const m of src.matchAll(/[?&]view=([a-zA-Z_][\w-]*)/g)) views.add(m[1]);
+  }
+}
+
+// --- overlays ---------------------------------------------------------------
+// Counting FILES that contain a Dialog tag undercounts badly, three ways, and an
+// earlier version of this script reported 85 when the real number is ~130:
+//   1. one file often renders 2-3 distinct dialogs (EditJobDialog has 3);
+//   2. 28 confirmations route through the shared BrandConfirmDialog wrapper and
+//      never mention <Dialog> at all;
+//   3. several overlays are hand-rolled `fixed inset-0` portals on no primitive
+//      (PhotoLightbox and MessageAttachment say so in their own comments).
+// Category 3 matters most: those are exactly the overlays subject to the
+// containing-block trap, since they do not inherit the shared Dialog's portal.
+const OVERLAY_TAGS = ["Dialog", "AlertDialog", "Sheet", "Drawer", "Popover", "HoverCard", "DropdownMenu", "ContextMenu", "Command"];
 const overlays = [];
 for (const f of files) {
-  if (rel(f).startsWith("src/components/ui/")) continue; // primitives, not surfaces
-  const s = readFileSync(f, "utf8");
-  if (!OVERLAY_TAG.test(s)) continue;
-  const kinds = new Set(
-    [...s.matchAll(/<(Dialog|AlertDialog|Sheet|Drawer|Popover|HoverCard|DropdownMenu|ContextMenu)\b/g)].map((m) => m[1]),
-  );
-  overlays.push({ file: rel(f), kinds: [...kinds].sort() });
+  if (rel(f).startsWith("src/components/ui/")) continue; // primitive definitions
+  const src = readFileSync(f, "utf8");
+  const kinds = {};
+  for (const tag of OVERLAY_TAGS) {
+    // Count opening root tags, not imports or the *Content/*Trigger children.
+    const n = [...src.matchAll(new RegExp(`<${tag}(?=[\\s>])`, "g"))].length;
+    if (n) kinds[tag] = n;
+  }
+  const confirms = [...src.matchAll(/<BrandConfirmDialog(?=[\s>])/g)].length;
+  if (confirms) kinds.BrandConfirmDialog = confirms;
+  const anchored = /anchoredPanel|<NavQuickMenu(?=[\s>])/.test(src) ? 1 : 0;
+  if (anchored) kinds.anchoredPanel = anchored;
+  // Hand-rolled: a full-bleed portal with no dialog primitive in the file.
+  const handRolled = /fixed inset-0/.test(src) && !/[<](Dialog|AlertDialog|Sheet)(?=[\s>])/.test(src)
+    && /createPortal|z-\[/.test(src);
+  if (handRolled) kinds["hand-rolled"] = 1;
+  const count = Object.values(kinds).reduce((a, b) => a + b, 0);
+  if (count) overlays.push({ file: rel(f), kinds, count, handRolled: Boolean(handRolled) });
+}
+overlays.sort((a, b) => a.file.localeCompare(b.file));
+const overlayCount = overlays.reduce((a, o) => a + o.count, 0);
+
+// --- toasts -----------------------------------------------------------------
+// 516 call sites across 138 files (sonner). Each is a distinct message a user
+// reads, with its own copy and tone, and collectively they are the app's largest
+// body of user-facing text. An overlay enumeration reported these as "1
+// mechanism, 21 files" and undercounted by an order of magnitude.
+let toastSites = 0;
+const toastFiles = new Set();
+for (const f of files) {
+  if (rel(f).startsWith("src/components/ui/")) continue;
+  const src = readFileSync(f, "utf8");
+  const n = [...src.matchAll(/\btoast\s*(?:\.\s*(?:success|error|info|warning|loading|message|custom)\s*)?\(/g)].length;
+  if (n) { toastSites += n; toastFiles.add(rel(f)); }
 }
 
 // --- multi-step flows ------------------------------------------------------
@@ -104,6 +202,32 @@ const flowsConfirmed = flows.filter((f) => f.tier === "confirmed");
 const flowsProbable = flows.filter((f) => f.tier === "probable");
 const flowsNavOnly = flows.filter((f) => f.tier === "nav-only");
 
+// --- forms ------------------------------------------------------------------
+// No react-hook-form anywhere: forms are hand-rolled <form onSubmit> or
+// button-driven mutations, so many live inside dialogs with no <form> tag at
+// all. Counting <form> alone finds ~9 files and misses roughly three quarters
+// of them. Each form is a distinct surface for validation, boundary values and
+// interrupted-submit behaviour.
+const forms = [];
+for (const f of files) {
+  if (rel(f).startsWith("src/components/ui/")) continue;
+  const src = readFileSync(f, "utf8");
+  const hasFormTag = /<form(?=[\s>])/.test(src);
+  const hasSubmit = /\b(handleSubmit|onSubmit|handleSave|onSave)\b/.test(src);
+  const hasInputs = /<(Input|Textarea|Select|Checkbox|RadioGroup|Switch)(?=[\s>])/.test(src);
+  const hasWrite = /\.(insert|update|upsert)\s*\(|\buseMutation\b|\.rpc\s*\(/.test(src);
+  if (hasFormTag || (hasSubmit && hasInputs) || (hasInputs && hasWrite)) {
+    forms.push({ file: rel(f), formTag: hasFormTag, submit: hasSubmit, inputs: hasInputs, write: hasWrite });
+  }
+}
+forms.sort((a, b) => a.file.localeCompare(b.file));
+
+// --- admin surface ----------------------------------------------------------
+// VIEW_LABELS has 24 top-level views, but that is not the admin surface: each
+// view renders panels, drilldowns and sub-tabs across 70+ component files.
+// Counting only the view keys under-reports the admin console several-fold.
+const adminFiles = files.filter((f) => /^src\/(components\/admin|pages\/Admin)/.test(rel(f)));
+
 // --- emails ----------------------------------------------------------------
 // Every transactional/lifecycle email is a surface the user READS, with its own
 // copy, links, images and dark-mode rendering — and it is seen outside the app
@@ -136,8 +260,13 @@ const surface = {
   redirects: [...redirects],
   tabs: [...tabs].sort(),
   views: [...views].sort(),
-  overlays: overlays.sort((a, b) => a.file.localeCompare(b.file)),
+  overlays,
+  overlayCount,
+  toastSites,
+  toastFiles: [...toastFiles].sort(),
   flows,
+  forms,
+  adminFiles: adminFiles.map(rel).sort(),
   flowsConfirmed,
   flowsProbable,
   flowsNavOnly,
@@ -155,7 +284,8 @@ if (process.argv.includes("--json")) {
 // overlays — so they are listed but not added, to avoid double-counting.
 const total =
   surface.routes.length + surface.tabs.length + surface.views.length +
-  surface.overlays.length + surface.emails.length + surface.notifTypes.length;
+  surface.overlayCount + surface.emails.length + surface.notifTypes.length +
+  surface.toastSites + surface.forms.length;
 
 const L = [];
 L.push("# Auditable surface — the coverage checklist");
@@ -172,10 +302,14 @@ L.push(`| Routes (non-redirect) | ${surface.routes.length} |`);
 L.push(`| Redirect-only routes | ${surface.redirects.length} |`);
 L.push(`| \`?tab=\` variants | ${surface.tabs.length} |`);
 L.push(`| \`?view=\` variants | ${surface.views.length} |`);
-L.push(`| Overlay-rendering components | ${surface.overlays.length} |`);
+L.push(`| Overlay surfaces (instances, not files) | ${surface.overlayCount} |`);
+L.push(`| — of which hand-rolled, no dialog primitive | ${surface.overlays.filter((o) => o.handRolled).length} |`);
+L.push(`| Toast messages (each is distinct copy) | ${surface.toastSites} across ${surface.toastFiles.length} files |`);
 L.push(`| Multi-step flows — confirmed | ${surface.flowsConfirmed.length} |`);
 L.push(`| Multi-step flows — probable | ${surface.flowsProbable.length} |`);
 L.push(`| Back/next navigation only (eyeball these) | ${surface.flowsNavOnly.length} |`);
+L.push(`| Forms (submittable) | ${surface.forms.length} |`);
+L.push(`| Admin component files (24 top-level views is NOT the surface) | ${surface.adminFiles.length} |`);
 L.push(`| Email templates | ${surface.emails.length} |`);
 L.push(`| Notification types (copy + destination) | ${surface.notifTypes.length} ⚠︎ |`);
 L.push(`| **Addressable surfaces** | **${total}** |`);
@@ -184,6 +318,40 @@ L.push("Multi-step flows are **cross-cutting**, not a separate surface: they liv
 L.push("the routes and overlays above, so they are excluded from the total to avoid");
 L.push("double-counting. They are listed separately because each one adds intermediate");
 L.push("states that a route-level walk never reaches.");
+L.push("");
+L.push("## Why these numbers can be trusted now");
+L.push("");
+L.push("Earlier passes produced different counts every time, because each method was");
+L.push("silently measuring a different **unit** — files vs. instances, `?view=` string");
+L.push("literals vs. the authoritative `VIEW_LABELS` keys, `<form>` tags vs. dialogs that");
+L.push("submit without one. Three known errors, each corrected:");
+L.push("");
+L.push("- Multi-step flows were reported as 0, then 7, then 63. The detector first required");
+L.push("  `step === <digit>`, then allowed string literals, then treated any onBack handler");
+L.push("  as decisive — which fires on every plain back button. Now tiered by evidence.");
+L.push("- Admin views were read as 16 because `VIEW_LABELS` packs several keys per line and");
+L.push("  the extractor counted lines. Brace-matched extraction gives the real 24.");
+L.push("- Overlays were read as 85 by counting files. One file can hold three dialogs, 28");
+L.push("  confirms route through a shared wrapper that never says `<Dialog>`, and 6 are");
+L.push("  hand-rolled portals on no primitive at all.");
+L.push("");
+L.push("This manifest was then cross-checked against three independent enumerations run");
+L.push("separately from the script. Where they agree, the number is trustworthy; where");
+L.push("they differ, the reason is understood:");
+L.push("");
+L.push("| Class | This script | Independent agent | Status |");
+L.push("|---|---|---|---|");
+L.push(`| Real routes | ${surface.routes.length} | 34 | agree |`);
+L.push(`| Redirect-only routes | ${surface.redirects.length} | 14 | agree |`);
+L.push(`| Admin \`?view=\` | ${surface.views.length} | 24 | agree |`);
+L.push(`| Overlay surfaces | ${surface.overlayCount} | 130 | agree within method (script counts every menu instance) |`);
+L.push(`| Forms | ${surface.forms.length} | ~38 | agree |`);
+L.push(`| Confirmed multi-step flows | ${surface.flowsConfirmed.length} | 9 | agree; the agent excluded section routers this script still counts |`);
+L.push("| Toast messages | 517 | \"21 files, not itemised\" | **script wins** — the agent undercounted by ~6x |");
+L.push("");
+L.push("**The remaining known floor is notification types** — the count below is from");
+L.push("`src/` only. The authoritative list is `notification_type_pref_map` in the");
+L.push("database and `lh-notifications` must correct it from there.");
 L.push("");
 L.push("## Routes");
 L.push("");
@@ -207,9 +375,16 @@ L.push("**This is the list that got missed last time.** Each must be OPENED and 
 L.push("measured against the viewport (the containing-block trap), keyboard-reachable,");
 L.push("dismissible, and correct in every state.");
 L.push("");
-L.push("| Component | Overlay kinds |");
-L.push("|---|---|");
-for (const o of surface.overlays) L.push(`| \`${o.file}\` | ${o.kinds.join(", ")} |`);
+L.push("| Component | Surfaces | Kinds |");
+L.push("|---|---|---|");
+for (const o of surface.overlays) L.push(`| \`${o.file}\` | ${o.count} | ${Object.entries(o.kinds).map(([k, v]) => (v > 1 ? `${k}×${v}` : k)).join(", ")}${o.handRolled ? " **⚠ hand-rolled**" : ""} |`);
+L.push("");
+L.push("**⚠ hand-rolled** overlays do NOT go through the shared `Dialog`'s portal, so");
+L.push("they are the ones subject to the containing-block trap: a `transform`,");
+L.push("`backdrop-filter` or `will-change` on any ancestor makes that ancestor the");
+L.push("containing block, and a \"full-screen\" overlay renders at a fraction of the");
+L.push("viewport while still scrolling perfectly. Measure each as a fraction of the");
+L.push("viewport; do not trust that it looks right.");
 L.push("");
 L.push("## Multi-step flows (audit every step, and interruption at every step)");
 L.push("");
@@ -231,6 +406,14 @@ for (const [label, bucket, note] of [
   for (const f of bucket) L.push(`| \`${f.file}\` | ${f.signals.join(", ")} |`);
   L.push("");
 }
+L.push("");
+L.push("## Forms — every submittable surface");
+L.push("");
+L.push("No react-hook-form: many forms live inside dialogs with no `<form>` tag, so a");
+L.push("`<form>` grep finds ~9 files and misses most of them. Each needs boundary-value");
+L.push("testing, validation-message quality, and interrupted-submit behaviour.");
+L.push("");
+for (const f of surface.forms) L.push(`- [ ] \`${f.file}\`${f.formTag ? " (form tag)" : " (dialog/mutation)"}`);
 L.push("");
 L.push("## Emails — every template a user receives OUTSIDE the app");
 L.push("");

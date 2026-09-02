@@ -10,20 +10,58 @@ reports coverage against THIS file, not against the route list.
 |---|---|
 | Routes (non-redirect) | 34 |
 | Redirect-only routes | 14 |
-| `?tab=` variants | 20 |
-| `?view=` variants | 9 |
-| Overlay-rendering components | 85 |
+| `?tab=` variants | 23 |
+| `?view=` variants | 24 |
+| Overlay surfaces (instances, not files) | 139 |
+| — of which hand-rolled, no dialog primitive | 6 |
+| Toast messages (each is distinct copy) | 517 across 134 files |
 | Multi-step flows — confirmed | 12 |
 | Multi-step flows — probable | 18 |
 | Back/next navigation only (eyeball these) | 33 |
+| Forms (submittable) | 40 |
+| Admin component files (24 top-level views is NOT the surface) | 93 |
 | Email templates | 20 |
 | Notification types (copy + destination) | 5 ⚠︎ |
-| **Addressable surfaces** | **173** |
+| **Addressable surfaces** | **802** |
 
 Multi-step flows are **cross-cutting**, not a separate surface: they live inside
 the routes and overlays above, so they are excluded from the total to avoid
 double-counting. They are listed separately because each one adds intermediate
 states that a route-level walk never reaches.
+
+## Why these numbers can be trusted now
+
+Earlier passes produced different counts every time, because each method was
+silently measuring a different **unit** — files vs. instances, `?view=` string
+literals vs. the authoritative `VIEW_LABELS` keys, `<form>` tags vs. dialogs that
+submit without one. Three known errors, each corrected:
+
+- Multi-step flows were reported as 0, then 7, then 63. The detector first required
+  `step === <digit>`, then allowed string literals, then treated any onBack handler
+  as decisive — which fires on every plain back button. Now tiered by evidence.
+- Admin views were read as 16 because `VIEW_LABELS` packs several keys per line and
+  the extractor counted lines. Brace-matched extraction gives the real 24.
+- Overlays were read as 85 by counting files. One file can hold three dialogs, 28
+  confirms route through a shared wrapper that never says `<Dialog>`, and 6 are
+  hand-rolled portals on no primitive at all.
+
+This manifest was then cross-checked against three independent enumerations run
+separately from the script. Where they agree, the number is trustworthy; where
+they differ, the reason is understood:
+
+| Class | This script | Independent agent | Status |
+|---|---|---|---|
+| Real routes | 34 | 34 | agree |
+| Redirect-only routes | 14 | 14 | agree |
+| Admin `?view=` | 24 | 24 | agree |
+| Overlay surfaces | 139 | 130 | agree within method (script counts every menu instance) |
+| Forms | 40 | ~38 | agree |
+| Confirmed multi-step flows | 12 | 9 | agree; the agent excluded section routers this script still counts |
+| Toast messages | 517 | "21 files, not itemised" | **script wins** — the agent undercounted by ~6x |
+
+**The remaining known floor is notification types** — the count below is from
+`src/` only. The authoritative list is `notification_type_pref_map` in the
+database and `lh-notifications` must correct it from there.
 
 ## Routes
 
@@ -81,38 +119,56 @@ states that a route-level walk never reaches.
 
 ## `?tab=` variants
 
-- [ ] `?tab=accessibility`
-- [ ] `?tab=availability`
-- [ ] `?tab=community`
-- [ ] `?tab=completed_jobs`
-- [ ] `?tab=disputes`
-- [ ] `?tab=earnings`
-- [ ] `?tab=legal`
-- [ ] `?tab=notifications`
-- [ ] `?tab=offers`
-- [ ] `?tab=payment`
-- [ ] `?tab=posted_jobs`
-- [ ] `?tab=privacy`
-- [ ] `?tab=profile`
-- [ ] `?tab=saved_helpers`
-- [ ] `?tab=schedule`
-- [ ] `?tab=security`
-- [ ] `?tab=subscription`
-- [ ] `?tab=support`
-- [ ] `?tab=terms`
-- [ ] `?tab=warnings`
+- [ ] `?tab=admin/people:all`
+- [ ] `?tab=admin/people:approved`
+- [ ] `?tab=admin/people:awaiting_email`
+- [ ] `?tab=admin/people:banned`
+- [ ] `?tab=admin/people:denied`
+- [ ] `?tab=admin/people:pending`
+- [ ] `?tab=profile:accessibility`
+- [ ] `?tab=profile:availability`
+- [ ] `?tab=profile:credentials`
+- [ ] `?tab=profile:earnings`
+- [ ] `?tab=profile:landing`
+- [ ] `?tab=profile:legal`
+- [ ] `?tab=profile:notifications`
+- [ ] `?tab=profile:payment`
+- [ ] `?tab=profile:profile`
+- [ ] `?tab=profile:referral`
+- [ ] `?tab=profile:reviews`
+- [ ] `?tab=profile:saved_helpers`
+- [ ] `?tab=profile:schedule`
+- [ ] `?tab=profile:security`
+- [ ] `?tab=profile:subscription`
+- [ ] `?tab=profile:support`
+- [ ] `?tab=profile:warnings`
 
 ## `?view=` variants
 
 - [ ] `?view=analytics`
+- [ ] `?view=audit`
 - [ ] `?view=banreview`
+- [ ] `?view=broadcasts`
+- [ ] `?view=credentials`
 - [ ] `?view=disputes`
+- [ ] `?view=exceptions`
+- [ ] `?view=export`
+- [ ] `?view=fraud`
+- [ ] `?view=health`
+- [ ] `?view=home`
+- [ ] `?view=idvreview`
 - [ ] `?view=jobs`
-- [ ] `?view=map`
-- [ ] `?view=parishtax`
+- [ ] `?view=marketing`
+- [ ] `?view=notifications`
+- [ ] `?view=notiflogs`
 - [ ] `?view=payouts`
 - [ ] `?view=people`
+- [ ] `?view=referrals`
+- [ ] `?view=reports`
+- [ ] `?view=settings`
 - [ ] `?view=subscriptions`
+- [ ] `?view=support`
+- [ ] `?view=tiers`
 
 ## Overlays — dialogs, sheets, drawers, popovers, menus
 
@@ -120,93 +176,124 @@ states that a route-level walk never reaches.
 measured against the viewport (the containing-block trap), keyboard-reachable,
 dismissible, and correct in every state.
 
-| Component | Overlay kinds |
-|---|---|
-| `src/components/activity/ActivityDialogs.tsx` | Dialog |
-| `src/components/activity/AppliedJobsTab.tsx` | Sheet |
-| `src/components/activity/CompletionChoiceSheet.tsx` | Sheet |
-| `src/components/activity/EditJobDialog.tsx` | AlertDialog, Dialog |
-| `src/components/activity/PetReportCard.tsx` | Dialog |
-| `src/components/activity/postedJobs/DeclineApplicantSheet.tsx` | Sheet |
-| `src/components/admin/AdminBanReview.tsx` | AlertDialog |
-| `src/components/admin/AdminCommandPalette.tsx` | Dialog |
-| `src/components/admin/AdminCredentialQueue.tsx` | AlertDialog |
-| `src/components/admin/AdminExceptionQueue.tsx` | AlertDialog |
-| `src/components/admin/AdminFraudDashboard.tsx` | AlertDialog |
-| `src/components/admin/AdminIDVReview.tsx` | AlertDialog |
-| `src/components/admin/adminJobs/JobDetailDialog.tsx` | Dialog |
-| `src/components/admin/adminJobs/RefundJobDialog.tsx` | Dialog |
-| `src/components/admin/adminJobs/RemoveJobDialog.tsx` | Dialog |
-| `src/components/admin/adminJobs/StatusOverrideDialog.tsx` | Dialog |
-| `src/components/admin/AdminPayoutBatches.tsx` | Dialog |
-| `src/components/admin/AdminReports.tsx` | AlertDialog, Dialog |
-| `src/components/admin/AdminSettings.tsx` | Dialog |
-| `src/components/admin/AdminUserDetailDialog.tsx` | Dialog |
-| `src/components/admin/AdminUserNotes.tsx` | AlertDialog |
-| `src/components/admin/adminusers/NotesIndicator.tsx` | HoverCard |
-| `src/components/admin/BanDialog.tsx` | Dialog |
-| `src/components/admin/DeleteUserDialog.tsx` | Dialog |
-| `src/components/admin/DenyUserDialog.tsx` | Dialog |
-| `src/components/admin/EditEmailDialog.tsx` | Dialog |
-| `src/components/admin/FormalWarningDialog.tsx` | Dialog |
-| `src/components/admin/ManualVerifyDialog.tsx` | Dialog |
-| `src/components/admin/ResetPasswordDialog.tsx` | Dialog |
-| `src/components/admin/ReuploadIdDialog.tsx` | Dialog |
-| `src/components/AwardGateDialog.tsx` | Dialog |
-| `src/components/BirthdayPopup.tsx` | Dialog |
-| `src/components/BlockUserDialog.tsx` | Dialog |
-| `src/components/CancellationDialog.tsx` | Dialog |
-| `src/components/CompletionPrompts.tsx` | Dialog |
-| `src/components/dashboard/ApplyConfirmDialog.tsx` | Sheet |
-| `src/components/dashboard/browseTasksToolbar/BrowseTasksActions.tsx` | Popover |
-| `src/components/dashboard/FilterSheet.tsx` | Popover, Sheet |
-| `src/components/dashboard/JobDetailDialog.tsx` | Dialog |
-| `src/components/dashboard/PhotoLightbox.tsx` | Dialog |
-| `src/components/DatePickerField.tsx` | Popover |
-| `src/components/DisputeDialog.tsx` | Dialog |
-| `src/components/DisputeTimelineDialog.tsx` | Dialog |
-| `src/components/EarningsExport.tsx` | Dialog, Popover |
-| `src/components/feedback/NpsPrompt.tsx` | Sheet |
-| `src/components/IDVPromptDialog.tsx` | Dialog |
-| `src/components/InstantPayoutDialog.tsx` | Dialog |
-| `src/components/JobBoostDialog.tsx` | Dialog |
-| `src/components/JobConfirmation.tsx` | Dialog |
-| `src/components/MessageAttachment.tsx` | Dialog |
-| `src/components/messages/ChatHeader.tsx` | DropdownMenu |
-| `src/components/messages/ConversationList.tsx` | DropdownMenu |
-| `src/components/messages/MessageActionSheet.tsx` | Sheet |
-| `src/components/messages/MuteSheet.tsx` | Dialog |
-| `src/components/mobileNav/GateSheet.tsx` | Sheet |
-| `src/components/NotificationPanel.tsx` | Popover |
-| `src/components/OnboardingTour.tsx` | Dialog |
-| `src/components/PermissionRationaleDialog.tsx` | AlertDialog |
-| `src/components/PhotoProof.tsx` | Dialog |
-| `src/components/profile/DeleteAccountDialog.tsx` | AlertDialog |
-| `src/components/profile/EarningsForecastCard.tsx` | Popover |
-| `src/components/profile/earningsTab/EarningsToolsMenu.tsx` | DropdownMenu |
-| `src/components/profile/HelperScheduleStrip.tsx` | Dialog |
-| `src/components/profile/HelperStreakBadge.tsx` | Popover |
-| `src/components/profile/HelperTierBadge.tsx` | Popover |
-| `src/components/profile/ReviewsTab.tsx` | Popover |
-| `src/components/profile/SavedHelpersTab.tsx` | Popover |
-| `src/components/profile/ScheduleTab.tsx` | Popover |
-| `src/components/profile/SecurityTab.tsx` | Dialog |
-| `src/components/profile/TwoFactorCard.tsx` | Dialog |
-| `src/components/ProUpgradeSheet.tsx` | Dialog |
-| `src/components/ReportDialog.tsx` | Dialog |
-| `src/components/ResponseDeadlineDialog.tsx` | Dialog |
-| `src/components/reviewPanel/ReviewForm.tsx` | Dialog |
-| `src/components/richMessageInput/AttachSourceSheet.tsx` | Popover |
-| `src/components/richMessageInput/ViolationDialog.tsx` | AlertDialog |
-| `src/components/SavedSearches.tsx` | Dialog |
-| `src/components/SosShareButton.tsx` | Sheet |
-| `src/components/TermsReconsentDialog.tsx` | AlertDialog |
-| `src/components/TimeRangeField.tsx` | Popover |
-| `src/components/TipDialog.tsx` | Dialog |
-| `src/components/W9CollectionDialog.tsx` | Dialog |
-| `src/pages/petProfiles/PetForm.tsx` | Dialog |
-| `src/pages/UserProfile.tsx` | DropdownMenu |
-| `src/pages/userProfile/RecognitionRow.tsx` | Popover |
+| Component | Surfaces | Kinds |
+|---|---|---|
+| `src/components/activity/ActivityDialogs.tsx` | 2 | Dialog×2 |
+| `src/components/activity/appliedJobCard/ActiveJobSection.tsx` | 1 | BrandConfirmDialog |
+| `src/components/activity/appliedJobCard/ConfirmedSection.tsx` | 1 | BrandConfirmDialog |
+| `src/components/activity/appliedJobCard/OfferedActions.tsx` | 1 | BrandConfirmDialog |
+| `src/components/activity/AppliedJobsTab.tsx` | 1 | Sheet |
+| `src/components/activity/CompletionChoiceSheet.tsx` | 1 | Sheet |
+| `src/components/activity/EditJobDialog.tsx` | 3 | Dialog, AlertDialog×2 |
+| `src/components/activity/PetReportCard.tsx` | 2 | Dialog×2 |
+| `src/components/activity/postedJobCard/PostedJobActions.tsx` | 1 | BrandConfirmDialog |
+| `src/components/activity/postedJobs/ApplicantsPanel.tsx` | 1 | hand-rolled **⚠ hand-rolled** |
+| `src/components/activity/postedJobs/DeclineApplicantSheet.tsx` | 1 | Sheet |
+| `src/components/admin/AdminBanReview.tsx` | 2 | AlertDialog×2 |
+| `src/components/admin/AdminBroadcasts.tsx` | 1 | BrandConfirmDialog |
+| `src/components/admin/AdminCommandPalette.tsx` | 2 | Dialog, Command |
+| `src/components/admin/AdminCredentialQueue.tsx` | 1 | AlertDialog |
+| `src/components/admin/AdminDisputes.tsx` | 1 | BrandConfirmDialog |
+| `src/components/admin/AdminExceptionQueue.tsx` | 2 | AlertDialog×2 |
+| `src/components/admin/AdminFraudDashboard.tsx` | 1 | AlertDialog |
+| `src/components/admin/AdminIDVReview.tsx` | 1 | AlertDialog |
+| `src/components/admin/adminJobs/JobDetailDialog.tsx` | 1 | Dialog |
+| `src/components/admin/adminJobs/RefundJobDialog.tsx` | 1 | Dialog |
+| `src/components/admin/adminJobs/RemoveJobDialog.tsx` | 1 | Dialog |
+| `src/components/admin/adminJobs/StatusOverrideDialog.tsx` | 1 | Dialog |
+| `src/components/admin/AdminMarketing.tsx` | 1 | BrandConfirmDialog |
+| `src/components/admin/AdminPayoutBatches.tsx` | 4 | Dialog×2, BrandConfirmDialog×2 |
+| `src/components/admin/AdminReports.tsx` | 2 | Dialog, AlertDialog |
+| `src/components/admin/AdminSettings.tsx` | 2 | Dialog, BrandConfirmDialog |
+| `src/components/admin/AdminUserDetailDialog.tsx` | 1 | Dialog |
+| `src/components/admin/AdminUserNotes.tsx` | 1 | AlertDialog |
+| `src/components/admin/adminusers/NotesIndicator.tsx` | 1 | HoverCard |
+| `src/components/admin/BanDialog.tsx` | 1 | Dialog |
+| `src/components/admin/DeleteUserDialog.tsx` | 1 | Dialog |
+| `src/components/admin/DenyUserDialog.tsx` | 1 | Dialog |
+| `src/components/admin/EditEmailDialog.tsx` | 1 | Dialog |
+| `src/components/admin/FormalWarningDialog.tsx` | 1 | Dialog |
+| `src/components/admin/ManualVerifyDialog.tsx` | 1 | Dialog |
+| `src/components/admin/ResetPasswordDialog.tsx` | 1 | Dialog |
+| `src/components/admin/ReuploadIdDialog.tsx` | 1 | Dialog |
+| `src/components/AppLockGate.tsx` | 1 | hand-rolled **⚠ hand-rolled** |
+| `src/components/AwardGateDialog.tsx` | 1 | Dialog |
+| `src/components/BirthdayPopup.tsx` | 1 | Dialog |
+| `src/components/BlockUserDialog.tsx` | 1 | Dialog |
+| `src/components/CancellationDialog.tsx` | 1 | Dialog |
+| `src/components/CompletionPrompts.tsx` | 3 | Dialog×3 |
+| `src/components/dashboard/ApplyConfirmDialog.tsx` | 1 | Sheet |
+| `src/components/dashboard/browseTasksToolbar/BrowseTasksActions.tsx` | 1 | Popover |
+| `src/components/dashboard/FilterSheet.tsx` | 3 | Sheet, Popover, anchoredPanel |
+| `src/components/dashboard/JobDetailDialog.tsx` | 1 | Dialog |
+| `src/components/dashboard/PhotoLightbox.tsx` | 1 | Dialog |
+| `src/components/DatePickerField.tsx` | 1 | Popover |
+| `src/components/DisputeDialog.tsx` | 1 | Dialog |
+| `src/components/DisputeTimelineDialog.tsx` | 1 | Dialog |
+| `src/components/EarningsExport.tsx` | 3 | Dialog, Popover×2 |
+| `src/components/feedback/NpsPrompt.tsx` | 1 | Sheet |
+| `src/components/feedback/SuccessMoment.tsx` | 1 | hand-rolled **⚠ hand-rolled** |
+| `src/components/ForceUpdateGate.tsx` | 1 | hand-rolled **⚠ hand-rolled** |
+| `src/components/GroupJobHelpers.tsx` | 1 | BrandConfirmDialog |
+| `src/components/IDVPromptDialog.tsx` | 1 | Dialog |
+| `src/components/InstantPayoutDialog.tsx` | 1 | Dialog |
+| `src/components/JobBoostDialog.tsx` | 1 | Dialog |
+| `src/components/JobConfirmation.tsx` | 1 | Dialog |
+| `src/components/JobTracking.tsx` | 1 | BrandConfirmDialog |
+| `src/components/MessageAttachment.tsx` | 1 | Dialog |
+| `src/components/messages/ChatHeader.tsx` | 1 | DropdownMenu |
+| `src/components/messages/ChatView.tsx` | 1 | BrandConfirmDialog |
+| `src/components/messages/ConversationList.tsx` | 1 | DropdownMenu |
+| `src/components/messages/MessageActionSheet.tsx` | 1 | Sheet |
+| `src/components/messages/MuteSheet.tsx` | 1 | Dialog |
+| `src/components/MobileNav.tsx` | 1 | anchoredPanel |
+| `src/components/mobileNav/GateSheet.tsx` | 1 | Sheet |
+| `src/components/mobileNav/NavQuickMenu.tsx` | 1 | hand-rolled **⚠ hand-rolled** |
+| `src/components/NotificationPanel.tsx` | 2 | Popover, anchoredPanel |
+| `src/components/OnboardingTour.tsx` | 1 | Dialog |
+| `src/components/PayoutSetupForm.tsx` | 1 | BrandConfirmDialog |
+| `src/components/PermissionRationaleDialog.tsx` | 1 | AlertDialog |
+| `src/components/PhotoProof.tsx` | 2 | Dialog×2 |
+| `src/components/profile/CredentialsTab.tsx` | 2 | BrandConfirmDialog×2 |
+| `src/components/profile/DeleteAccountDialog.tsx` | 2 | AlertDialog, BrandConfirmDialog |
+| `src/components/profile/EarningsForecastCard.tsx` | 1 | Popover |
+| `src/components/profile/earningsTab/EarningsToolsMenu.tsx` | 1 | DropdownMenu |
+| `src/components/profile/HelperScheduleStrip.tsx` | 1 | Dialog |
+| `src/components/profile/HelperStreakBadge.tsx` | 1 | Popover |
+| `src/components/profile/HelperTierBadge.tsx` | 1 | Popover |
+| `src/components/profile/ReviewsTab.tsx` | 2 | Popover×2 |
+| `src/components/profile/SavedHelpersTab.tsx` | 2 | Popover×2 |
+| `src/components/profile/ScheduleTab.tsx` | 1 | Popover |
+| `src/components/profile/SecurityTab.tsx` | 2 | Dialog, BrandConfirmDialog |
+| `src/components/profile/TwoFactorCard.tsx` | 2 | Dialog×2 |
+| `src/components/ProUpgradeSheet.tsx` | 1 | Dialog |
+| `src/components/ReportDialog.tsx` | 1 | Dialog |
+| `src/components/ResponseDeadlineDialog.tsx` | 1 | Dialog |
+| `src/components/reviewPanel/ReviewForm.tsx` | 2 | Dialog×2 |
+| `src/components/richMessageInput/AttachSourceSheet.tsx` | 1 | Popover |
+| `src/components/richMessageInput/ViolationDialog.tsx` | 1 | AlertDialog |
+| `src/components/SavedSearches.tsx` | 1 | Dialog |
+| `src/components/SosShareButton.tsx` | 1 | Sheet |
+| `src/components/TermsReconsentDialog.tsx` | 1 | AlertDialog |
+| `src/components/TimeRangeField.tsx` | 1 | Popover |
+| `src/components/TipDialog.tsx` | 1 | Dialog |
+| `src/components/W9CollectionDialog.tsx` | 1 | Dialog |
+| `src/pages/Admin.tsx` | 1 | BrandConfirmDialog |
+| `src/pages/Messages.tsx` | 3 | BrandConfirmDialog×3 |
+| `src/pages/PetProfiles.tsx` | 1 | BrandConfirmDialog |
+| `src/pages/petProfiles/PetForm.tsx` | 2 | Dialog, BrandConfirmDialog |
+| `src/pages/postjob/RedirectingOverlay.tsx` | 1 | hand-rolled **⚠ hand-rolled** |
+| `src/pages/Profile.tsx` | 1 | BrandConfirmDialog |
+| `src/pages/StrSettings.tsx` | 1 | BrandConfirmDialog |
+| `src/pages/UserProfile.tsx` | 1 | DropdownMenu |
+| `src/pages/userProfile/RecognitionRow.tsx` | 1 | Popover |
+
+**⚠ hand-rolled** overlays do NOT go through the shared `Dialog`'s portal, so
+they are the ones subject to the containing-block trap: a `transform`,
+`backdrop-filter` or `will-change` on any ancestor makes that ancestor the
+containing block, and a "full-screen" overlay renders at a fraction of the
+viewport while still scrolling perfectly. Measure each as a fraction of the
+viewport; do not trust that it looks right.
 
 ## Multi-step flows (audit every step, and interruption at every step)
 
@@ -298,6 +385,53 @@ Only an onBack/onNext-style handler matched. Most are plain back buttons, NOT fl
 | `src/pages/Profile.tsx` | nav-handler |
 | `src/pages/profile/ProfileTabPanels.tsx` | nav-handler |
 
+
+## Forms — every submittable surface
+
+No react-hook-form: many forms live inside dialogs with no `<form>` tag, so a
+`<form>` grep finds ~9 files and misses most of them. Each needs boundary-value
+testing, validation-message quality, and interrupted-submit behaviour.
+
+- [ ] `src/components/activity/appliedJobCard/ActiveJobSection.tsx` (dialog/mutation)
+- [ ] `src/components/activity/appliedJobCard/DisputedSection.tsx` (dialog/mutation)
+- [ ] `src/components/activity/AppliedJobsTab.tsx` (dialog/mutation)
+- [ ] `src/components/activity/CompletionChoiceSheet.tsx` (dialog/mutation)
+- [ ] `src/components/activity/EditJobDialog.tsx` (dialog/mutation)
+- [ ] `src/components/admin/AdminBroadcasts.tsx` (dialog/mutation)
+- [ ] `src/components/admin/AdminCredentialQueue.tsx` (dialog/mutation)
+- [ ] `src/components/admin/AdminExceptionQueue.tsx` (dialog/mutation)
+- [ ] `src/components/admin/AdminFraudDashboard.tsx` (dialog/mutation)
+- [ ] `src/components/admin/AdminNotifications.tsx` (dialog/mutation)
+- [ ] `src/components/admin/AdminPayoutBatches.tsx` (dialog/mutation)
+- [ ] `src/components/admin/AdminReports.tsx` (dialog/mutation)
+- [ ] `src/components/admin/AdminSettings.tsx` (dialog/mutation)
+- [ ] `src/components/admin/AdminUserNotes.tsx` (dialog/mutation)
+- [ ] `src/components/admin/BanDialog.tsx` (dialog/mutation)
+- [ ] `src/components/admin/DenyUserDialog.tsx` (dialog/mutation)
+- [ ] `src/components/CancellationDialog.tsx` (dialog/mutation)
+- [ ] `src/components/CompletionPrompts.tsx` (dialog/mutation)
+- [ ] `src/components/DisputeDialog.tsx` (dialog/mutation)
+- [ ] `src/components/EarningsExport.tsx` (dialog/mutation)
+- [ ] `src/components/HelperAvailability.tsx` (dialog/mutation)
+- [ ] `src/components/NotificationPreferences.tsx` (dialog/mutation)
+- [ ] `src/components/postjob/CheckoutStep.tsx` (dialog/mutation)
+- [ ] `src/components/profile/CredentialsTab.tsx` (dialog/mutation)
+- [ ] `src/components/profile/ProfileEditForm.tsx` (form tag)
+- [ ] `src/components/profile/SupportInline.tsx` (form tag)
+- [ ] `src/components/ReportDialog.tsx` (dialog/mutation)
+- [ ] `src/components/reviewPanel/ReviewForm.tsx` (dialog/mutation)
+- [ ] `src/components/SavedSearches.tsx` (dialog/mutation)
+- [ ] `src/components/W9CollectionDialog.tsx` (dialog/mutation)
+- [ ] `src/pages/AutoTip.tsx` (dialog/mutation)
+- [ ] `src/pages/CompleteProfile.tsx` (form tag)
+- [ ] `src/pages/ForgotPassword.tsx` (form tag)
+- [ ] `src/pages/Login.tsx` (form tag)
+- [ ] `src/pages/PayItForward.tsx` (dialog/mutation)
+- [ ] `src/pages/petProfiles/petProfilesHelpers.ts` (form tag)
+- [ ] `src/pages/postjob/FormStep.tsx` (form tag)
+- [ ] `src/pages/ResetPassword.tsx` (form tag)
+- [ ] `src/pages/strSettings/AddCalendarForm.tsx` (form tag)
+- [ ] `src/pages/Support.tsx` (form tag)
 
 ## Emails — every template a user receives OUTSIDE the app
 

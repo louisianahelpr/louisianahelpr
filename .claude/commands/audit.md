@@ -9,8 +9,19 @@ You are auditing **Louisiana Helpr** for ship-readiness. This is a **Capacitor a
 the entire UI/logic is **React 18 + TS + Vite in `src/`**, built to `dist/` and shipped
 inside an iOS/Android shell; the same code runs as the web app at louisianahelpr.com.
 Backend is **Supabase** (Postgres, RPCs, edge functions in `supabase/functions/`);
-payments are **Stripe Connect (escrow)**. There is **no meaningful native code** — do not
-audit for SwiftUI. Build target: App Store Connect v1.0.x, `appId: com.Helpr`.
+payments are **Stripe Connect (escrow)**. Do not audit for SwiftUI patterns — there are
+none. Build target: App Store Connect v1.0.x, `appId: com.Helpr`.
+
+**But `ios/App/App/AppDelegate.swift` is NOT out of scope, and "it's stock boilerplate"
+is not a reason to skip it.** This file used to say there was no meaningful native code,
+and that sentence is why push notifications were broken for the entire life of the
+project without anyone looking: Capacitor's `PushNotificationsPlugin` observes
+`.capacitorDidRegisterForRemoteNotifications`, that notification is *declared* by the
+framework but **posted from nowhere**, and the host app must post it from
+`didRegisterForRemoteNotificationsWithDeviceToken`. Stock boilerplate does not, so iOS
+handed the app a valid APNs token on every launch and it was dropped on the floor —
+unfillable `push_tokens`, no error, no log. If a native capability appears dead in a way
+no amount of TypeScript explains, read the AppDelegate.
 
 **Mission:** find anything that is a launch risk — broken, insecure, money-unsafe,
 privacy-leaking, half-finished, or App-Store-gating — and **grade each finding by severity**.

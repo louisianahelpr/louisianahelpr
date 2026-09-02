@@ -162,6 +162,88 @@ genuinely applies, file it as `LOW` with evidence and say why — don't assume.
   *formatting* and *timezones* are in scope and important; extracting every
   string to a catalog is a product decision, not an audit finding.
 
+## 6b. CI already covers part of this — read it before you sweep
+
+24 workflows already run in `.github/workflows/`. **Auditing what CI already
+proves is wasted budget, and "CI checks this" is not the same as "CI checks this
+well."** Your job is the gap, and any workflow that is disabled, path-filtered
+into irrelevance, or asserting something weak is itself a finding.
+
+| Already automated | Owning lane must read it first |
+|---|---|
+| `a11y-axe.yml` — seeded axe sweep, all variants | `lh-a11y-sensory` |
+| `lighthouse.yml` — weekly + PR | `lh-perf-deps` |
+| `bundle-size.yml` | `lh-build-release`, `lh-perf-deps` |
+| `broken-links.yml` — weekly | `lh-copy-content` |
+| `security-audit.yml` — weekly | `lh-authz-rls`, `lh-build-release` |
+| `edge-function-smoke.yml` — daily | `lh-edge-functions` |
+| `db-drift-detect.yml` — daily · `migration-guard` · `migration-lint` · `db-smoke` | `lh-schema-integrity` |
+| `prod-freshness.yml` — daily | `lh-build-release` |
+| `e2e-happy-path.yml` · `mobile-viewports.yml` · `ui-sweep.yml` | `lh-e2e-journeys`, `lh-route-walker` |
+| `test.yml` · `vitest.yml` | `lh-test-ci` |
+| `sentry-release.yml` | `lh-observability` |
+| `sitemap-drift.yml` | `lh-copy-content` |
+
+**Check `gh workflow list --all` for `disabled_manually` before trusting any of
+them.** Guards in this repo have previously been PR-only and dormant in a
+direct-to-main workflow, so they never ran at all.
+
+## 6c. Scale — know what you are auditing
+
+Measured, not estimated: **66 edge functions · 108 tables · 254 database
+functions of which 218 are `SECURITY DEFINER` · 16 Capacitor plugins ·
+~509 components, ~250 lib files, ~135 pages.**
+
+Third-party services in play: **Stripe** (payments, Connect, subscriptions,
+payouts, tax, Identity), **Sentry**, **PostHog** (product analytics),
+**Apple MapKit JS**, **Resend** (transactional + marketing email), **Slack**
+(ops alerting), **APNs**, social login (Apple/Google), biometric auth.
+
+If your lane's scope implies "read every one of these," say so in your coverage
+manifest and sample deliberately — a stated sampling strategy is honest; an
+unstated one is a false clean.
+
+## 6d. REMOVED FEATURES — confirmed dead by the product owner
+
+Confirmed dead on 2026-09-01. **Do not audit these as product.** Their database
+objects, RPCs, edge functions and any surviving UI are **removal findings** owned
+by `lh-schema-integrity` (schema) and `lh-edge-functions` (functions) — a
+`SECURITY DEFINER` function outliving its product is live attack surface with no
+owner, and dead tables still carry RLS policies that must be reasoned about.
+
+| Removed | Objects to sweep for |
+|---|---|
+| **Entire B2B / business tier** | `businesses`, `business_members`, `business_api_keys`, `business_webhooks`, `business_job_templates`, and every `business_*` RPC — **especially `create_business_api_key`** (customer-facing API keys for a deleted product). **No public API, no outbound webhooks.** |
+| **Time banking** | `time_credits`, and its handling inside `money-reconciliation` |
+| **Pet evacuation** | `evacuation_pets` only. **Pet profiles stay** — `pet_profiles`, `job_pets`, `pet_report_cards`, `care_relationships` are live |
+| **Community posts** | `community_posts`, `community_post_likes` |
+| **Broadcast messages** | `broadcast_messages`, `broadcast_dismissals`, `fan_out_broadcast_to_notifications`, `set_broadcast_pending_fan_out`, `send-marketing-blast` |
+| **Retainer agreements** | `retainer_agreements` |
+| **Helper circles** | `helper_circles`, `helper_circle_members` — zero references in `src/` and in edge functions. Owner did not recognise the feature and approved deletion (2026-09-01). `favorite_helpers` + `?tab=saved_helpers` is the live equivalent |
+
+**The one B2B carve-out:** licensed-and-insured credentialing **stays live** —
+`helper_credentials`, `helper_verifications`, `verification_checks`,
+`verification_exceptions`, `review_credential`, and the Stripe IDV / background-check
+path. Audit those fully.
+
+### Confirmed LIVE (do not treat as dead just because they look quiet)
+
+`pif_credits` (Pay It Forward, `/gift-card`) · **`worker_protection_credits`** ·
+`referral_credits` / `referrals` · STR iCal sync (`/str-settings`) · pet profiles
+(`/pets`) · Helpr Wrapped (`/wrapped`) · Home History (`/home-history`) · group jobs.
+
+**`worker_protection_credits` being live makes finding SI-001 a priority**: it is
+referenced by one file and zero edge functions, yet has a
+`pending → issued → applied → expired` status machine. If nothing advances it past
+`pending`, helpers are promised compensation that never pays out.
+
+### Status UNCONFIRMED — treat as live, but confirm before deep work
+
+Pro subscriptions (`create-pro-checkout`, `pro-customer-portal`,
+`check-pro-subscription`, `expire-subscriptions`, `subscription-reconciliation`),
+job boosts, auto-tip (`/auto-tip`), instant payout. The owner was asked and did not
+answer this group. `lh-subscriptions-credits` opens by confirming which of these ship.
+
 ## 7. Cross-talk
 
 Hub and spoke. You message the orchestrator; the orchestrator fans out. Peer

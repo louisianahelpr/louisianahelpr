@@ -54,6 +54,12 @@ supabase/.temp/
 # repo or the pointer is a dead link for CI, other developers, and the
 # cloud routines).
 !.claude/skills/
+# The launch-audit agent fleet. Same reasoning as skills: 33 lane definitions
+# encode hard-won, project-specific traps (the AppDelegate/APNs bug, the
+# zero-row-write class, the WebKit -apple-system-body bug, the containing-block
+# overlay trap). Untracked they are lost on a fresh clone or a usage-limit kill,
+# and WAVES.md / PROTOCOL.md would point at nothing.
+!.claude/agents/
 
 # Environment variables (never commit secrets)
 .env

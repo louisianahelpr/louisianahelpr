@@ -35,7 +35,8 @@ interface ReviewRow {
   rating: number;
   feedback: string | null;
   created_at: string;
-  reviewer_id: string;
+  /** Null once the author deletes their account (20260901033011). */
+  reviewer_id: string | null;
   job_id: string;
 }
 
@@ -282,7 +283,15 @@ export function PublicReviewWall({
 
       if (!rows || rows.length === 0) return [];
 
-      const reviewerIds = Array.from(new Set(rows.map((r) => r.reviewer_id)));
+      // A null `reviewer_id` is an author who deleted their account —
+      // 20260901033011 anonymises rather than removes, so the review stands
+      // with no author. `get_safe_profiles` takes a uuid[], where a null is a
+      // MALFORMED argument rather than a no-match. Typecheck cannot see this:
+      // the rows are cast to ReviewRow[] above and `reviewer_id` is declared
+      // `string`. The review still renders; its author falls back below.
+      const reviewerIds = Array.from(
+        new Set(rows.map((r) => r.reviewer_id).filter((id): id is string => !!id)),
+      );
       const profilesRes = await supabase.rpc("get_safe_profiles", { user_ids: reviewerIds });
 
       // We deliberately do NOT `unwrap()` this secondary fetch — if it fails
@@ -302,7 +311,11 @@ export function PublicReviewWall({
         rating: r.rating,
         feedback: r.feedback,
         createdAt: r.created_at,
-        reviewerName: nameMap.get(r.reviewer_id) ?? "a neighbor",
+        // Narrow before the lookup: an authorless review has no id to key on,
+        // and `Map.get(null)` would land on the fallback by accident rather
+        // than by intent. Same "a neighbor" either way — an unresolved author
+        // and a deleted one read identically to the person looking at it.
+        reviewerName: (r.reviewer_id ? nameMap.get(r.reviewer_id) : null) ?? "a neighbor",
         jobCategory: null,
       }));
     },

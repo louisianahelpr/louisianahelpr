@@ -135,7 +135,13 @@ export function useProfileReviews(userId: string | undefined, enabled: boolean) 
         communication: r.communication ?? null,
         feedback: r.feedback,
         created_at: r.created_at,
-        reviewerName: nameMap.get(r.reviewer_id) || "User",
+        // "a neighbor", not "User": every other consumer surface for this exact
+        // state says "a neighbor" (ReviewList, PublicReviewWall, useActivityData,
+        // DashboardGuest). "User" read like an unfilled placeholder rather than
+        // a person who left, and it disagreed with the review panel about the
+        // same review. Admin surfaces keep "Deleted user" — an admin should see
+        // the truth.
+        reviewerName: (r.reviewer_id ? nameMap.get(r.reviewer_id) : null) || "a neighbor",
         jobTitle: jobMap.get(r.job_id) || "a task",
       }));
     },

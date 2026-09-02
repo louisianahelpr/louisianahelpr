@@ -5,7 +5,15 @@ export interface PublicJob {
   title: string;
   description: string | null;
   category: string;
-  location: string;
+  /**
+   * NULL once the poster deletes their account: deletion anonymises the job
+   * rather than removing it (20260901033011) and `mask_job_location(NULL)`
+   * returns NULL, so this RPC really can hand back a null here. It was typed
+   * `string`, which is why `tsc` could not see the unguarded
+   * `job.location.toLowerCase()` in `useOpenJobsFeed` that would have emptied
+   * the whole public board for a guest.
+   */
+  location: string | null;
   budget: number;
   date_needed: string;
   start_time: string | null;

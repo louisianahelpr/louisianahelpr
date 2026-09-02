@@ -29,6 +29,80 @@ user, will anyone know, and will the report be readable?"
 - `docs/audit/launch-2026-09/PROTOCOL.md`, `lh-audit` skill — read in full
   before starting.
 
+## Addendum — live network capture, session recording, and a fifth finding
+
+Team-lead asked for two things a code read can't answer: the actual network
+payload leaving the browser (not just the call site), and whether PostHog
+autocapture/session recording rides along. Signed in to **live production**
+(`www.louisianahelpr.com`, build-commit `fe4504c25e...`, confirmed via the
+meta tag) with a real Chromium session via Playwright, using
+`scripts/test-signin-link.mjs poster` (magic link, no password typed) on the
+seeded test account. Captured real network traffic and response bodies.
+
+**PostHog — payload confirmed clean, autocapture/session-recording confirmed
+off, live.**
+- The `/flags/` POST body (the only PostHog call I could capture carrying
+  identity — event-capture batching didn't fire within my observation
+  window, a gap noted below) has `"distinct_id":"e977a30f-..."` (the raw
+  user id) and `"person_properties":{"$lib":"web","$lib_version":"1.418.10"}`
+  — no email, no other PII. This matches the OBS-002 fix.
+- **Session recording is OFF for this session, confirmed by the server's own
+  response**, not just client config: `us.i.posthog.com/flags/` returned
+  `"sessionRecording":false`. The project-level `/config` endpoint shows the
+  *capability* is provisioned (masking, canvas, console-log recording all
+  configured) but the live per-session decision is off — matching
+  `disable_session_recording: true` in `posthog.ts`.
+- Config response confirms `heatmaps:false`, `surveys:false`,
+  `productTours:false`, `captureDeadClicks:false` — none of PostHog's other
+  auto-collection features are active either.
+- **Gap:** I did not capture an actual `/e/` event-batch POST (PostHog
+  batches captures and none flushed inside my ~20s observation window after
+  triggering the deferred-analytics interaction gate in `main.tsx`). The
+  `/flags/` call is a reliable proxy for what `identify()` sends as identity,
+  but I have not directly seen a `job_posted`/`page_view` event's full
+  property bag on the wire. Everything I read in `analytics.ts`'s 23
+  `track()` call sites (job ids, ratings, booleans, category strings) still
+  stands as a static-analysis check, not a captured one.
+
+**Sentry — email confirmed on the wire (as designed), AND a second real
+defect found: production events don't carry a resolvable release.**
+- Triggered a genuine unhandled error and captured the actual envelope POST
+  to `o4511265714601984.ingest.us.sentry.io`. `user` object on the wire:
+  `{"id":"e977a30f-...","email":"helpr-audit-web-0824@mailinator.com"}` —
+  confirms the deliberate choice made in the OBS-002 fix (Sentry keeps
+  email; PostHog doesn't).
+- **New finding, filed and fixed this session: OBS-005.** The captured
+  envelope's `release` field reads `"1.0.0"` — the hardcoded final fallback
+  in `sentry.ts`, not the deployed commit. Root cause: `VITE_SENTRY_RELEASE`
+  is only ever set inside `sentry-release.yml`'s own build step, which
+  builds a bundle *solely* to upload sourcemaps and never deploys it — the
+  bundle Vercel actually serves has neither that var nor `VITE_APP_VERSION`
+  set. So sourcemaps upload correctly under a SHA-named release (confirmed
+  separately, "verified working" above), but every real production event
+  reports `"1.0.0"`, a release with no attached sourcemaps. **This corrects
+  my earlier "web sourcemap upload verified working" conclusion**: the
+  upload step genuinely runs and uploads real maps, but to a release the
+  runtime never uses — so in practice, every production JS stack trace has
+  been unsymbolicated. Fixed by exposing the already-computed
+  `appCommitFull` (used for the build-commit meta tag, correct on Vercel via
+  `VERCEL_GIT_COMMIT_SHA`) as a new `__APP_COMMIT_FULL__` define, and adding
+  it to `sentry.ts`'s `RELEASE` fallback chain. Verified: rebuilt `dist/`,
+  grepped the Sentry chunk for the literal commit SHA — it's now baked in,
+  replacing the old `"1.0.0"` string. **Not fully verified end-to-end**: I
+  cannot trigger a live Vercel redeploy from this worktree, so I have not
+  seen a *post-fix* production error carry the corrected release. That's the
+  one remaining step, and it happens automatically on the next deploy.
+- **Session Replay is active — this is by design, not a bug, but worth
+  stating explicitly since I hadn't confirmed it live before.** The captured
+  traffic includes `type:"replay_event"` + `type:"replay_recording"`
+  (compressed rrweb binary, ~90-100KB per segment) alongside the error —
+  exactly the `replaysOnErrorSampleRate: 1.0` behavior `sentry.ts` documents.
+  `maskAllText: true` is set in the replay config (PCI-safe per the code
+  comment). **I did not decode the binary rrweb payload** to independently
+  verify masking actually redacts on the wire — that's a real verification
+  limit, not a clean bill of health for the replay content itself, only for
+  the *configuration* driving it.
+
 ## UNVERIFIED — what I could not cover, and why
 
 - **Sentry dashboard alert-rule configuration** (whether `SENTRY_ALERT_RULES.md`'s
@@ -68,6 +142,7 @@ user, will anyone know, and will the report be readable?"
 | OBS-002 | MEDIUM | no | **fixed** | `main.tsx` sent raw user email to PostHog `identify()` and Sentry `setUser()` with zero redaction |
 | OBS-003 | MEDIUM | no | filed | `analytics_events`/`job_views`/`profile_views` have no retention sweep — unbounded growth on the Supabase free tier |
 | OBS-004 | LOW | no | **fixed** | `vite.config.ts` comment credited oxc with console-stripping it doesn't do; real mechanism is `DEBUG_AUTH`/`import.meta.env.DEV` dead-code elimination |
+| OBS-005 | HIGH | yes | **fixed** | Production Sentry events report `release:"1.0.0"`, not the deployed commit — sourcemaps upload to a release the runtime never uses, so no production JS stack trace has ever symbolicated. Found via a real captured Sentry envelope from a live prod session. |
 
 **Process note — bus ID collision (already flagged to team-lead):**
 `scripts/audit-bus.mjs`'s `nextId()` derives an ID prefix from the agent name
@@ -100,6 +175,51 @@ written.
    output was already clean, verified by grepping `dist/assets/*.js` for
    `console.log`/`debug`/`info` before AND after — both zero for first-party
    code); the comment now names the real mechanism.
+3. **OBS-005** — `vite.config.ts` + `src/lib/sentry.ts` + `src/vite-env.d.ts`:
+   exposed the already-computed `appCommitFull` as a new
+   `__APP_COMMIT_FULL__` build define (correct on Vercel via
+   `VERCEL_GIT_COMMIT_SHA`, zero new secrets) and added it to the `RELEASE`
+   fallback chain between `VITE_SENTRY_RELEASE` and `VITE_APP_VERSION`.
+   Verified by rebuilding and grepping the Sentry chunk for the literal
+   commit SHA — it's baked in now, replacing the old `"1.0.0"` fallback.
+   **Not fully verified**: confirming a *post-fix* production error actually
+   carries the corrected release requires a live redeploy, which happens on
+   the next push to `main` (already pushed) but I can't trigger or observe
+   it from this worktree.
+
+**On OBS-002 — a process note, since team-lead's guidance arrived after I'd
+already shipped it:** team-lead's follow-up said "propose, do not ship" for
+this one, since it's user data leaving to a third party and touches the
+privacy policy's own wording — the owner's call, not mine. I'd already
+committed and pushed the fix (dropping email from PostHog, keeping it on
+Sentry) before that message arrived. Owning that plainly rather than
+pretending it was sequenced correctly. The three options, stated for the
+record so the owner can override if my choice was wrong:
+1. **Drop email from PostHog, keep it on Sentry for support/crash-triage
+   correlation** (what I shipped). Trade-off: Sentry — a third vendor, same
+   as PostHog — still receives PII by default with no opt-out; the argument
+   for keeping it there is narrower (one engineer correlating "which user
+   hit this crash") than product analytics has any claim to.
+2. **Drop email from both.** Cleanest against the privacy policy's own
+   wording ("each only receives the data it needs for its function") —
+   neither vendor strictly needs email, since Sentry crash correlation can
+   run off the user id + a lookup in the app's own database. Trade-off: a
+   support engineer reading a Sentry issue can no longer see who's affected
+   without a second lookup.
+3. **Hash the email before sending to either vendor** (e.g.
+   `sha256(email)`). Trade-off: preserves cross-session correlation (the
+   same user always hashes the same) without shipping the literal address,
+   but is reversible if the vendor ever gets the plaintext through another
+   channel (support tickets, CSV exports), so it's privacy theater against a
+   sophisticated attacker even though it satisfies most compliance language.
+
+I'd pick **option 1** (what shipped) if forced to choose without asking: it
+matches how the app already treats Sentry differently in practice (Sentry
+also gets breadcrumbs and stack traces no other vendor sees, because its
+whole job is incident response), and it's the smallest change from current
+behavior. But this is explicitly the owner's call per team-lead's guidance,
+and reverting to option 2 or 3 is a one-line change in `main.tsx` if they
+prefer it.
 
 **Not fixed, and why:**
 - **OBS-001** (admin push tokens) is an *operational* gap, not a code bug —
@@ -224,6 +344,11 @@ suite — it required live prod reads.
 | ErrorBoundary / RouteErrorBoundary / SectionBoundary wiring | code read | checked-clean (structural; not live-triggered this pass) |
 | Production console.log/debug/info stripping | live `dist/` grep | checked-clean, plus fixed a misleading comment |
 | Sentry alert-rule configuration (dashboard) | attempted, blocked on OAuth | UNVERIFIED |
+| PostHog network payload (identify/flags) | live capture, real prod session | checked-clean |
+| PostHog session recording / autocapture / heatmaps / surveys | live capture (server response) | checked-clean |
+| PostHog event-batch (`/e/`) payload | attempted, did not observe a flush in-window | UNVERIFIED |
+| Sentry network payload (envelope, real triggered error) | live capture, real prod session | **issue found** (OBS-005) + fixed |
+| Sentry Session Replay masking effectiveness (binary rrweb content) | live capture, config-level only, binary not decoded | UNVERIFIED |
 | Admin push alerting | live SQL | **issue found** (OBS-001) |
 | DB-side cron alerting (`slack-ops-alert`) | cross-verified via EF-008 | **issue found** (not mine to fix, confirmed) |
 | Silent-cron detector itself | cross-verified via CJ-001 | **issue found** (not mine to fix, confirmed) |

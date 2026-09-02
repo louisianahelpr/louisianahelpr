@@ -154,13 +154,44 @@ export const makeAdminUserActions = ({
     // the `user_bans` row without clearing `profiles.ban_status` leaves the
     // account in a half-banned state, so a failure on the second must be as
     // loud as a failure on the first.
-    const { error: banErr } = await supabase
+    const { data: clearedBans, error: banErr } = await supabase
       .from("user_bans").update({ is_active: false })
-      .eq("user_id", profile.user_id).eq("is_active", true);
+      .eq("user_id", profile.user_id).eq("is_active", true)
+      .select("id");
     if (banErr) {
       report(banErr, { tags: { source: "AdminUsers.unbanUser.userBans" } });
       toast.error(banErr.message || "Couldn't lift the ban — try again");
       return;
+    }
+    // Zero rows here is genuinely ambiguous, which is why this write could not
+    // simply use `unwrapMutation`: `.eq("is_active", true)` legitimately
+    // matches nothing when there is no active ban. But an RLS refusal produces
+    // EXACTLY the same `{ data: [], error: null }` — verbatim the
+    // AdminExceptionQueue bug, where the only non-owner policy was
+    // `auth.role() = 'service_role'`, which never matches an admin JWT, so
+    // writes affected zero rows while the queue reported success.
+    //
+    // That mattered more here than there, because the very next write IS
+    // guarded and WOULD have succeeded: `profiles.ban_status` flips to
+    // 'active' while the `user_bans` row stays `is_active = true`. A
+    // HALF-LIFTED BAN — the app treats the account as active, the ban ledger
+    // says it is banned, and the moderator was told it worked.
+    //
+    // So the ambiguity is resolved rather than assumed: if nothing was
+    // updated, re-read for an active ban. A row still there means the update
+    // was refused; nothing there means there was genuinely nothing to lift.
+    if ((clearedBans ?? []).length === 0) {
+      const { data: stillBanned, error: recheckErr } = await supabase
+        .from("user_bans").select("id")
+        .eq("user_id", profile.user_id).eq("is_active", true).limit(1);
+      if (recheckErr || (stillBanned ?? []).length > 0) {
+        report(recheckErr ?? new Error("user_bans update affected zero rows while an active ban remains"), {
+          tags: { source: "AdminUsers.unbanUser.userBansRejected" },
+          context: { targetUserId: profile.user_id },
+        });
+        toast.error("The ban wasn't lifted — the update was refused. Check your admin permissions and try again.");
+        return;
+      }
     }
 
     // .select("user_id"): `profiles.ban_status` is the flag the app actually

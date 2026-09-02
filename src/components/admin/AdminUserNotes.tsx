@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
+import { unwrapMutation, mutationErrorMessage, isWriteRejected } from "@/lib/mutationResult";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -148,11 +149,32 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
       toast.error("Note can't be empty.");
       return;
     }
-    const { error } = await supabase.from("admin_user_notes")
-      .update({ note: trimmed, category: editingCategory })
-      .eq("id", id);
-    if (error) {
-      toast.error(error.message || "Couldn't update that note — try again");
+    // A moderation record. Zero rows is NOT a legitimate outcome — the note is
+    // on screen, so it exists; zero rows means RLS refused the write. Without
+    // the guard `cancelEdit()` closed the editor and `loadNotes()` refetched,
+    // so the old text reappeared and a REFUSED write read as a UI glitch the
+    // admin would shrug at and retype.
+    try {
+      unwrapMutation(
+        await supabase.from("admin_user_notes")
+          .update({ note: trimmed, category: editingCategory })
+          .eq("id", id)
+          .select("id"),
+        {
+          action: "update this note",
+          rejectedMessage: "That note wasn't updated — the change was refused. Your edit is still here; check your admin permissions.",
+          context: { noteId: id },
+        },
+      );
+    } catch (err) {
+      if (!isWriteRejected(err)) {
+        report(err instanceof Error ? err : new Error(String(err)), {
+          tags: { source: "AdminUserNotes.saveEdit" },
+        });
+      }
+      // Deliberately does NOT call cancelEdit(): the editor stays open with the
+      // text the admin wrote, so a refused save can be retried rather than lost.
+      toast.error(mutationErrorMessage(err, "Couldn't update that note — try again"));
       return;
     }
     cancelEdit();
@@ -162,12 +184,29 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
   const removeNote = async () => {
     if (!deleteNote) return;
     setDeleting(true);
-    const { error } = await supabase.from("admin_user_notes").delete().eq("id", deleteNote.id);
-    setDeleting(false);
-    if (error) {
-      toast.error(error.message || "Couldn't delete that note — try again");
+    // Same reasoning as saveEdit: a DELETE matching zero rows returns
+    // `{ data: [], error: null }`, and the note visibly reappearing after
+    // `loadNotes()` looked like a refresh quirk rather than a refused delete.
+    try {
+      unwrapMutation(
+        await supabase.from("admin_user_notes").delete().eq("id", deleteNote.id).select("id"),
+        {
+          action: "delete this note",
+          rejectedMessage: "That note wasn't deleted — the delete was refused. Check your admin permissions.",
+          context: { noteId: deleteNote.id },
+        },
+      );
+    } catch (err) {
+      setDeleting(false);
+      if (!isWriteRejected(err)) {
+        report(err instanceof Error ? err : new Error(String(err)), {
+          tags: { source: "AdminUserNotes.removeNote" },
+        });
+      }
+      toast.error(mutationErrorMessage(err, "Couldn't delete that note — try again"));
       return;
     }
+    setDeleting(false);
     setDeleteNote(null);
     loadNotes();
   };

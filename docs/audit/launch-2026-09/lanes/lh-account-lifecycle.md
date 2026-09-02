@@ -10,9 +10,16 @@
 
 **Nothing.** Not a scope decision — the harness blocks `src/`, `supabase/` and `ios/`
 edits during the sweep, and PROTOCOL §1 holds a fix plan until `VERDICT.md` exists.
-The plan is with the orchestrator; priority order is AL-001, AL-009, AL-012/AL-010,
-AL-003. AL-002 and AL-011 are other lanes' territory and I will not touch them.
-AL-004 and AL-008 need an owner decision, not a patch.
+The plan is with the orchestrator; priority order is AL-001, AL-009, AL-011/AL-012,
+AL-003. AL-002 (money lane) and AL-010 (silent-failure lane) are other lanes'
+territory and I will not touch them. AL-004 and AL-008 need an owner decision, not a
+patch.
+
+`npm run check:audit-evidence` was run on this file as PROTOCOL §8.4 requires. It
+reports 4 of 6 "claims" as unevidenced; I read each and they are heuristic false
+positives — three are coverage-manifest rows whose artifact sits in the adjacent
+table column, and one is the UNVERIFIED row itself, which is *supposed* to carry no
+artifact. I did not reword them to satisfy the checker.
 
 ---
 
@@ -62,9 +69,9 @@ to a live job *or* holds money. Live prod: zero jobs with `customer_id IS NULL` 
 | AL-007 | MEDIUM | | dispute lockout — `opener_id` NULL makes the row un-updatable by RLS |
 | AL-008 | MEDIUM | | **RW-005 resolved** — the approval gate does not gate; the copy claims a review that never happens |
 | AL-009 | MEDIUM | | 4 dead Message links / dead Review action, each with a guarded sibling |
-| AL-010 | LOW | | `'[removed at account deletion]'` is user-visible copy |
-| AL-011 | MEDIUM | | cron notification inserts on ownerless jobs retry forever / silently drop |
-| AL-012 | LOW | | 16 fallback strings for one state; gift card reads "from A"; raw UUID as a name |
+| AL-010 | MEDIUM | | cron notification inserts on ownerless jobs retry forever / silently drop |
+| AL-011 | LOW | | 16 fallback strings for one state; gift card reads "from A"; raw UUID as a name |
+| AL-012 | LOW | | `'[removed at account deletion]'` is user-visible copy |
 
 Full claim / repro / evidence for each is in `findings.jsonl` — not restated here.
 

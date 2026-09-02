@@ -550,22 +550,30 @@ describe("Popup grammar — footer", () => {
     const sheet = read("src/components/ui/sheet.tsx");
     const footer = read("src/components/ui/popupFooter.ts");
 
-    // Small: size="sm" is 44px — the HIG floor, a step down from the commit's 56px.
-    expect(dlg).toMatch(/variant="ghost" size="sm" className=\{POPUP_SECONDARY_CLS\}/);
-    expect(sheet).toMatch(/variant="ghost" size="sm" className=\{POPUP_SECONDARY_CLS\}/);
-    expect(alert).toMatch(/buttonVariants\(\{ variant: "ghost", size: "sm" \}\)/);
+    // SAME HEIGHT as the commit, not a step down. The footer became a ROW on
+    // 2026-09-02 (owner, from rendered comparisons), so WIDTH carries the
+    // hierarchy — a quarter against three quarters — and a shorter dismiss read
+    // as mismatched rather than ranked. `size="sm"` was right only while the two
+    // were stacked full-width, where height was the sole available signal.
+    expect(dlg).toMatch(/variant="ghost" className=\{POPUP_SECONDARY_CLS\}/);
+    expect(dlg).not.toMatch(/variant="ghost" size="sm" className=\{POPUP_SECONDARY_CLS\}/);
 
-    // Left AND small on a phone: `self-start` is load-bearing — a flex column
-    // stretches its children, so without it the dismiss is a full-width slab
-    // again, which is the exact treatment being replaced.
-    expect(footer).toMatch(/POPUP_SECONDARY_CLS = "self-start [^"]*"/);
-    // Right from `sm` up, including when the commit is the only action.
-    expect(footer).toMatch(/POPUP_COMMIT_CLS = "[^"]*sm:ml-auto"/);
-    // Full-bleed commit on a phone, so no label ever wraps or truncates.
-    expect(footer).toMatch(/POPUP_COMMIT_CLS = "w-full /);
+    // ONE QUARTER / THREE QUARTERS, at every width. `flex-1` against `flex-[3]`
+    // is the whole hierarchy: the dismiss is present and reachable, the commit
+    // is unmistakably the main action, and there is no breakpoint at which the
+    // two rearrange — a popup that reorders its own buttons at `sm` is two
+    // designs, and the person who meets both is the one testing on a phone and
+    // a laptop.
+    expect(footer).toMatch(/POPUP_SECONDARY_CLS =\n\s*"flex-1 /);
+    expect(footer).toMatch(/POPUP_COMMIT_CLS = "flex-\[3\][^"]*"/);
+    // `min-w-0` on BOTH: without it a flex item refuses to shrink below its
+    // content, so a long label would blow the ratio out instead of fitting.
+    expect(footer).toMatch(/POPUP_SECONDARY_CLS =\n\s*"flex-1 min-w-0 /);
+    expect(footer).toMatch(/POPUP_COMMIT_CLS = "flex-\[3\] min-w-0"/);
     // Column on a phone, row from sm — measured: a one-row footer cannot hold
     // a third of the app's commit labels at 375 (see popupFooter.ts).
-    expect(footer).toContain('POPUP_FOOTER_ROW = "flex flex-col-reverse gap-3 sm:flex-row sm:items-center"');
+    // One row, at every width — no `sm:` reflow. See the note above.
+    expect(footer).toContain('POPUP_FOOTER_ROW = "flex items-center gap-3 pt-2"');
   });
 
   /**

@@ -150,9 +150,17 @@ export function NpsPrompt({ userId, onClose }: NpsPromptProps) {
           <div
             className="flex w-full gap-1"
             role="radiogroup"
-            aria-label="Likelihood to recommend, 0 to 10"
+            aria-label="Rate your experience, 1 to 5"
           >
-            {Array.from({ length: 11 }, (_, i) => i).map((n) => {
+            {/* 1-5, not the NPS standard 0-10 (owner, 2026-09-02). Eleven targets
+                on a phone row were 30px each; five are wide enough to hit, and a
+                5-point scale is the one people already know from every other
+                rating in the app — this product's own reviews are 5-star, so
+                asking 0-10 here taught users a second scale for no benefit.
+                The nps_responses.score CHECK is (0..10), so 1..5 still writes
+                cleanly and no migration gates this change; the constraint is
+                now looser than the UI and worth tightening separately. */}
+            {Array.from({ length: 5 }, (_, i) => i + 1).map((n) => {
               const selected = score === n;
               return (
                 <button

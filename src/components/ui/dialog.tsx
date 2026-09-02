@@ -19,6 +19,29 @@ const DialogPortal = DialogPrimitive.Portal;
 const DialogClose = DialogPrimitive.Close;
 
 /**
+ * A DIALOG THAT OFFERS "CANCEL" DOES NOT ALSO NEED AN X.
+ *
+ * Both platforms this app lives beside agree on this and neither draws one:
+ * Apple's UIAlertController has no close control at all — you dismiss by
+ * choosing an action — and Material 3's basic dialog is the same, actions only.
+ * The X belongs to full-screen and sheet surfaces (Apple puts Cancel top-left
+ * and Done top-right; Material puts an X top-left), not to a confirmation.
+ *
+ * Ours had both, and the owner kept reporting the X as looking wrong without
+ * being able to name why. It was not misaligned — though it was, by 6px, and
+ * that is fixed too. It was REDUNDANT: a small glyph floating at the end of the
+ * title line with nothing to do that Cancel was not already doing.
+ *
+ * Registration rather than a prop, deliberately. A `hideClose` prop would have
+ * meant editing ~30 call sites and trusting each to pass it, which is how the
+ * close button came to have three different sizes in the first place. Here the
+ * rule enforces itself: render a DialogSecondaryAction and the X goes away.
+ * Nothing to remember, nothing to pass, and a dialog cannot drift out of the
+ * convention by omission.
+ */
+const DialogDismissCtx = React.createContext<((present: boolean) => void) | null>(null);
+
+/**
  * How much horizontal room the top-right chrome occupies, by icon count, as a
  * Tailwind padding class a caller can put on whatever sits under it.
  *
@@ -93,7 +116,10 @@ const DialogContent = React.forwardRef<
      */
     topRightSlot?: React.ReactNode;
   }
->(({ className, children, onOpenAutoFocus, topRightSlot, ...props }, ref) => (
+>(({ className, children, onOpenAutoFocus, topRightSlot, ...props }, ref) => {
+  // See DialogDismissCtx: a dialog whose footer offers Cancel drops the X.
+  const [hasDismiss, setHasDismiss] = React.useState(false);
+  return (
   <DialogPortal>
     <DialogOverlay />
     <DialogPrimitive.Content
@@ -115,9 +141,34 @@ const DialogContent = React.forwardRef<
         onOpenAutoFocus?.(event);
         if (event.defaultPrevented) {
           (event.currentTarget as HTMLElement | null)?.focus({ preventScroll: true });
+          return;
         }
+        // FOCUS THE DIALOG, NOT ITS FIRST BUTTON.
+        //
+        // Radix focuses the first tabbable child on open, which since the
+        // footer rework is Cancel — so every confirm dialog opened with a
+        // visible focus ring drawn around Cancel. The owner read that as a
+        // stray border on the button and asked for it removed. It was not a
+        // border; it was a real focus indicator, and deleting it would have
+        // left keyboard and switch users with no way to see where they are.
+        //
+        // The fix is to stop putting focus on a BUTTON at all. Focus moves to
+        // the dialog itself, which is what a screen reader should land on
+        // anyway — it announces the title and body before the actions, instead
+        // of announcing "Cancel button" as though that were the point of the
+        // screen. Tab then moves to the actions and draws the ring properly,
+        // for the people the ring exists for.
+        //
+        // It also removes a small hazard: with Cancel pre-focused, a stray
+        // Enter or Space dismissed the dialog before it had been read.
+        event.preventDefault();
+        (event.currentTarget as HTMLElement | null)?.focus({ preventScroll: true });
       }}
       className={cn(
+        // The X gets its OWN ROW now, so the card reserves that row ONLY when
+        // the X is actually there. A confirm dialog offers Cancel, drops the X,
+        // and keeps its normal p-4 — no dead band above the title.
+        !hasDismiss && "pt-11 sm:pt-11",
         // WHY THE FOUR slide-* CLASSES ARE LOAD-BEARING (they are not decoration)
         //
         // tailwindcss-animate's `enter` keyframe writes a whole `transform`:
@@ -219,7 +270,7 @@ const DialogContent = React.forwardRef<
       aria-describedby={undefined}
       {...props}
     >
-      {children}
+      <DialogDismissCtx.Provider value={setHasDismiss}>{children}</DialogDismissCtx.Provider>
       {/* `topRightSlot` (Share/Save/Report, when a caller passes them) sits to
           the left of the close X in its own absolute container, while keeping
           the close X independently absolute (required — see next comment).
@@ -337,6 +388,7 @@ const DialogContent = React.forwardRef<
           `getComputedStyle(btn).position === "absolute"` and exempts them from
           the content-box edge assertion — the X intentionally spans the padding
           gutter, so it needs that exemption. */}
+      {!hasDismiss && (
       <DialogPrimitive.Close
         // `group` + the icon's own hover transform match the small lift every
         // other chrome icon (Share/Save/Flag) gets on hover (owner,
@@ -347,7 +399,22 @@ const DialogContent = React.forwardRef<
         // `focus:` fires the ring on every mouse click, not just keyboard
         // navigation. Matches the shared `Button` component's own
         // convention (button.tsx uses `focus-visible:` throughout).
-        className={`absolute right-1.5 z-10 ${topRightSlot ? "top-2" : "top-3"} group p-0 box-border rounded-md btn-press flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none`}
+        // `top-[7px]` when alone — CENTRED ON THE TITLE, not eyeballed. Measured at
+        // 393x852: the card's p-4 plus its 1px border puts the title's top at 17px
+        // and its box is 24px tall, so the title's centre is 29px down. A 44px X
+        // centred there starts at 7px. It was `top-3` (12px), which put the X's
+        // centre at 36px — SIX PIXELS BELOW the title's. Small enough that no
+        // measurement caught it and large enough that the owner did, from a
+        // screenshot: "the x is not positioned right".
+        // `right-1` — aligns the GLYPH, not the box. The box is 44px wide with an
+        // 18px glyph centred in it, so the glyph's edge sits 13px inside the box.
+        // At `right-1.5` (6px) the glyph landed 19px from the card's edge while
+        // the title's text starts 17px from the other edge — the X read as
+        // further in than the title, which is what the owner kept seeing. 4 + 13
+        // = 17px, so glyph and title are now inset by the same amount and the
+        // header row is symmetric. The 44px hit box still spans the padding
+        // gutter, which is deliberate.
+        className={`absolute right-1 z-10 ${topRightSlot ? "top-2" : "top-[7px]"} group p-0 box-border rounded-md btn-press flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none`}
         style={{ width: "44px", height: "44px", minWidth: "44px", minHeight: "44px" }}
       >
         {/* 16px BESIDE OTHER ICONS, 18px ALONE. The chrome icons a caller puts
@@ -363,9 +430,12 @@ const DialogContent = React.forwardRef<
         />
         <span className="sr-only">Close</span>
       </DialogPrimitive.Close>
+      )}
     </DialogPrimitive.Content>
   </DialogPortal>
-));
+  );
+});
+
 DialogContent.displayName = DialogPrimitive.Content.displayName;
 
 // `pr-10` (40px) reserves a lane for the close (X) button. The numbers this
@@ -617,11 +687,27 @@ const stripOverrides = (props: Record<string, unknown>) => {
  * 56px commit beside it.
  */
 const DialogSecondaryAction = React.forwardRef<HTMLButtonElement, DialogActionProps>(
-  ({ children, ...props }, ref) => (
-    <Button ref={ref} variant="ghost" size="sm" className={POPUP_SECONDARY_CLS} {...stripOverrides(props)}>
-      {children}
-    </Button>
-  ),
+  ({ children, ...props }, ref) => {
+    // Tell the surrounding DialogContent that this dialog has a Cancel, so it
+    // can drop its redundant X. Cleared on unmount so a dialog that swaps its
+    // footer (a multi-step flow losing its back action) gets the X back.
+    const register = React.useContext(DialogDismissCtx);
+    React.useEffect(() => {
+      register?.(true);
+      return () => register?.(false);
+    }, [register]);
+    return (
+      // No `size="sm"`. The dismiss matches the commit's height (h-14, 56px) rather
+    // than stepping down to 44: in a ROW the WIDTH already carries the hierarchy
+    // (a quarter against three quarters), so a shorter box read as mismatched
+    // rather than ranked. `size="sm"` was right when the two were stacked full
+    // width, where height was the only signal available. Owner, 2026-09-02, from
+    // the rendered row.
+    <Button ref={ref} variant="ghost" className={POPUP_SECONDARY_CLS} {...stripOverrides(props)}>
+        {children}
+      </Button>
+    );
+  },
 );
 DialogSecondaryAction.displayName = "DialogSecondaryAction";
 

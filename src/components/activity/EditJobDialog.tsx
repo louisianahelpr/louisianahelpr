@@ -266,7 +266,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
           title="Discard Your Changes?"
         />
         <AlertDialogFooter>
-          <AlertDialogCancel>Keep Editing</AlertDialogCancel>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction onClick={confirmDiscard}>Discard Changes</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

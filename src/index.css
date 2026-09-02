@@ -254,7 +254,14 @@
      were 1° away and meant the same thing. All four deleted (A2) — three
      near-identical reds is not a colour language, it's three chances to pick
      the wrong one. */
-  --destructive: 6 64% 46%;
+  /* BURNT SIENNA, not a generic red (owner, 2026-09-02, chosen from rendered
+     comparisons rather than described). --burnt-sienna is 19 75% 35%; this is
+     the same hue, lifted for a filled button's contrast the way --primary is.
+     A generic red is louder but foreign to a parchment-and-olive palette; the
+     sienna reads as SERIOUS in the app's own voice, which is what a confirm
+     needs. Destructive dialogs differ from every other confirm in COLOUR ONLY
+     — same layout, same spacing, same buttons. */
+  --destructive: 19 74% 40%;
   --destructive-foreground: 0 0% 100%;
   --sidebar-background:         var(--parchment);
   --sidebar-foreground:         var(--olivewood);
@@ -534,8 +541,16 @@
      screen carrying a solid destructive button (the "Cancel" action on the
      My Posts cards is where it was caught). 51% (#cd4637) measures 4.64:1,
      clearing the 4.5:1 floor with margin at a shade difference no eye can
-     see. Do not raise it back without re-measuring. */
-  --destructive:          6 60% 51%;
+     see. Do not raise it back without re-measuring.
+
+     RE-MEASURED 2026-09-02 when destructive moved to burnt sienna. Sienna
+     (h=19) is intrinsically brighter than the old red (h=6) at the same
+     lightness, so keeping 51% would have DROPPED this to 3.80:1 — a fail the
+     hue change would have introduced silently, on the one control whose whole
+     job is being noticed. The lightness had to come DOWN, not up: 44% measures
+     4.62:1, the highest value that still clears the 4.5:1 floor. Computed
+     against white foreground before the change, not after. */
+  --destructive:          19 74% 44%;
   --destructive-foreground: 0 0% 100%;
   --sidebar-background:   var(--parchment);
   --sidebar-foreground:   var(--olivewood);

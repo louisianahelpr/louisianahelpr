@@ -313,7 +313,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
           </div>
           {/* Lone footer control -> `outline`, not a bare ghost label. */}
           <DialogFooter>
-            <DialogSecondaryAction onClick={() => setStep("share")}>No Thanks</DialogSecondaryAction>
+            <DialogSecondaryAction onClick={() => setStep("share")}>Skip</DialogSecondaryAction>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -379,7 +379,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
           </div>
           {/* Lone footer control -> `outline`, not a bare ghost label. */}
           <DialogFooter>
-            <DialogSecondaryAction onClick={() => setStep("nps")}>Maybe Later</DialogSecondaryAction>
+            <DialogSecondaryAction onClick={() => setStep("nps")}>Skip</DialogSecondaryAction>
           </DialogFooter>
         </DialogContent>
       </Dialog>

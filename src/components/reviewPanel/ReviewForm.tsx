@@ -215,7 +215,8 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
       // feels worth doing again. After the limit it fades to silent.
       void maybeCelebrate("first_review");
       // Aha-moment analytics + native review prompt. A 5-star review is the
-      // strongest signal that this user would also rate us 5 stars on the App Store.
+      // strongest signal of satisfaction we have. It no longer decides who is
+      // offered the App Store prompt — see the note further down.
       track(AhaEvent.ReviewLeft, { job_id: jobId, rating: scores.rating });
       // True first-review (any rating) — count this user's prior reviews
       // before treating this submission as the first.
@@ -228,19 +229,31 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
           track(AhaEvent.FirstReviewLeft, { job_id: jobId, rating: scores.rating });
         }
       } catch { /* analytics must never break the flow */ }
-      if (scores.rating === 5 && canTip) {
+      // ASK EVERYONE, WHATEVER THEY RATED (owner, 2026-09-02: "anyone can rate it").
+      //
+      // This used to fire ONLY when scores.rating === 5, so the App Store
+      // prompt was shown exclusively to people who had just said they were
+      // delighted and never to anyone who rated 1-4. That reliably produces a
+      // high public rating, which is exactly why it is not allowed: Apple's
+      // guidelines prohibit pre-qualifying who is offered the rating prompt or
+      // otherwise engineering the rating you receive. It was live on a shipped
+      // build.
+      //
+      // Fire-and-forget and internally rate-limited to once per 90 days, so
+      // calling it unconditionally does not nag: submitting a review is a
+      // sensible moment to ask, and now it is the SAME moment for every user.
+      void maybeRequestInAppReview();
+      if (scores.rating === 5) {
+        // Analytics only. The event still measures five-star reviews; what it
+        // no longer does is decide who gets asked to rate the app.
         track(AhaEvent.FirstFiveStarReview, { job_id: jobId, rating: 5 });
-        // Fire-and-forget — internally rate-limited to once per 90 days.
-        void maybeRequestInAppReview();
-        // 5-star moment — show the tip prompt instead of closing
-        // immediately so the poster can tip while still satisfied.
+      }
+      if (scores.rating === 5 && canTip) {
+        // 5-star moment — show the tip prompt instead of closing immediately
+        // so the poster can tip while still satisfied.
         setTipPromptOpen(true);
         setSubmitting(false);
         return;
-      }
-      if (scores.rating === 5) {
-        track(AhaEvent.FirstFiveStarReview, { job_id: jobId, rating: 5 });
-        void maybeRequestInAppReview();
       }
       // Say what happens next. This form is DOUBLE-BLIND: the review is held
       // until the other side posts theirs or the 14-day window lapses

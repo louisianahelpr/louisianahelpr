@@ -280,7 +280,7 @@ export function JobConfirmation({
     ? "Job date has passed"
     : hoursUntilJob < 24
     ? "less than 24 hours"
-    : `${Math.round(hoursUntilJob)} hours`;
+    : (() => { const h = Math.round(hoursUntilJob); return `${h} hour${h !== 1 ? "s" : ""}`; })();
 
   /* The commit popup, hoisted out of the card's return so BOTH variants
      render the identical flow — the "Scheduled for" date, the no-show warning,

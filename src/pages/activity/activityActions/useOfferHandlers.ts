@@ -131,6 +131,8 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
       toast.error("Couldn't decline that applicant — please try again.");
       return;
     }
+    hapticSuccess();
+    toast("Applicant declined");
     // Optimistically update the in-memory applications list so the card
     // flips to "Declined" without waiting on a full refresh.
     setApplications((prev) =>
@@ -689,6 +691,10 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
         // down all cached authed state rather than leaving a banned session
         // live in memory behind the screen.
         window.location.assign("/account-banned");
+      }
+      if (actionTaken === "none") {
+        hapticMedium();
+        toast("Offer declined");
       }
       if (actionTaken !== "none") {
         // Admin fan-out — a silent drop here means no admin sees the

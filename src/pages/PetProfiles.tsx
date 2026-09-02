@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { unwrap } from "@/lib/supabaseResult";
 import { toast } from "sonner";
-import { hapticError } from "@/lib/haptics";
+import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { report } from "@/lib/errorLogger";
 import { Plus, PawPrint } from "lucide-react";
 import type { PetProfile } from "./petProfiles/types";
@@ -82,6 +82,8 @@ const PetProfiles = () => {
       unwrap(await supabase.from("pet_profiles").delete().eq("id", petId));
     },
     onSuccess: (_data, petId) => {
+      hapticSuccess();
+      toast("Pet removed");
       queryClient.invalidateQueries({ queryKey: ["pet_profiles", userId] });
       // If we just deleted the active desktop pet, clear the URL param.
       if (petId === activePetId) {

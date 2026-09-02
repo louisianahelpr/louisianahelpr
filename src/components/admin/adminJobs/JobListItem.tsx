@@ -4,7 +4,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { paymentStatusLabel } from "@/lib/statusLabels";
 import { categoryLabels, paymentColors, type Job } from "./types";
 import { formatJobDate } from "@/lib/dateUtils";
-import { formatPrice } from "@/lib/format";
+import { formatPrice, formatCategory } from "@/lib/format";
 import { STALE_DATE_FLAG, moderationFlags } from "./adminJobsHelpers";
 
 interface JobListItemProps {
@@ -64,7 +64,7 @@ export const JobListItem = ({ job, flags, isResolved, onOpen }: JobListItemProps
         <span className={`text-ds-11 px-2 py-0.5 rounded-full font-medium ${paymentColors[job.payment_status || "unpaid"] || ""}`}>
           {paymentStatusLabel(job.payment_status ?? "unpaid")}
         </span>
-        <Badge variant="sienna" className="text-ds-11 capitalize">{categoryLabels[job.category] || job.category}</Badge>
+        <Badge variant="sienna" className="text-ds-11">{categoryLabels[job.category] || formatCategory(job.category)}</Badge>
         {isRemoved && <Badge variant="destructive" className="text-ds-11">Removed</Badge>}
         {modFlags.length > 0 && isResolved && (
           <Badge variant="outline" className="text-ds-11 gap-1"><CheckCircle2 className="w-3 h-3" />Resolved</Badge>

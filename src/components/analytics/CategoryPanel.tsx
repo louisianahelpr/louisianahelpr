@@ -69,7 +69,7 @@ export function CategoryPanel({
               >
                 {r.label}
               </span>
-              <span className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.55)" }}>
+              <span className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
                 {r.jobs} {r.jobs === 1 ? "job" : "jobs"}
               </span>
               <span
@@ -98,7 +98,7 @@ export function CategoryPanel({
 
             <div
               className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-0.5 text-ds-11"
-              style={{ color: "hsl(var(--olivewood) / 0.68)" }}
+              style={{ color: "hsl(var(--olivewood) / 0.7)" }}
             >
               {r.medianTakeHome !== null ? (
                 <span className="tabular-nums">

@@ -1,6 +1,7 @@
 import { useContext, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { ListChecks } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { PolicySearchContext } from "@/components/policy/CollapsedPolicy";
 
 // While a policy search is active, editorial chrome (the TLDR summary,
@@ -64,28 +65,62 @@ export const TldrCard = ({ items }: { items: string[] }) => {
 // Also used by the Help Center (src/pages/HelpCenter.tsx), which closes its FAQ
 // with the same "here is who to ask" card — owner: "help center contact support
 // should be more similar to legals". Shared rather than restyled to match,
-// because two copies of one card is exactly how they drift apart again. The
-// right-hand slot takes either a revision date (`updated`, the legal tabs) or a
-// plain `note` (the Help Center's "No account needed").
-export const PolicyFooter = ({ updated }: { updated?: string }) => (
+// because two copies of one card is exactly how they drift apart again.
+//
+// TWO MODES, ONE CARD:
+//
+//   * default — a text link. Right for a POLICY tab, where reaching a human is
+//     a footnote under the thing the reader came for, and where the right-hand
+//     slot carries the revision date (`updated`).
+//   * `cta` — the shared glossy `Button variant="primary"`. Right for the HELP
+//     CENTER, where reaching a human is the page's one primary action and there
+//     is no revision date to balance it against. /help shipped with
+//     `grep -c btn-grad-primary` = 0 in its body: the only route to a person on
+//     the whole screen was an inline link inside a flat card, which is not what
+//     this app's primary actions look like anywhere else.
+//
+// It is a prop rather than a second component precisely so the two cannot drift
+// — same surface, same border, same destination, one decision about emphasis.
+export const PolicyFooter = ({ updated, cta = false }: { updated?: string; cta?: boolean }) => (
   <div
     data-print-hide
-    className="rounded-2xl px-4 py-3 flex items-center justify-between gap-3"
+    className={
+      cta
+        ? "rounded-2xl px-4 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+        : "rounded-2xl px-4 py-3 flex items-center justify-between gap-3"
+    }
     style={{
       background: "hsl(var(--bark) / 0.05)",
       border: "1px solid hsl(var(--bark) / 0.16)",
     }}
   >
     <p className="text-ds-13 font-sans" style={{ color: "hsl(var(--ink-deep))" }}>
-      Questions?{" "}
-      {/* /support, not /profile?tab=support: the legal pages are public, so
-          this link is followed by logged-OUT visitors far more often than by
-          signed-in ones, and the Profile tab forces a sign-in they may not
-          have. /support renders the same form for both. */}
-      <Link to="/support" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
-        Contact support
-      </Link>
+      {cta ? (
+        <>
+          <span className="font-semibold">Still stuck?</span> A real person reads every message.
+        </>
+      ) : (
+        <>
+          Questions?{" "}
+          {/* /support, not /profile?tab=support: the legal pages are public, so
+              this link is followed by logged-OUT visitors far more often than by
+              signed-in ones, and the Profile tab forces a sign-in they may not
+              have. /support renders the same form for both. */}
+          <Link to="/support" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
+            Contact support
+          </Link>
+        </>
+      )}
     </p>
+    {cta && (
+      // `asChild` so the glossy Button IS the Link — one control, one tap
+      // target, real routing. The gloss comes from `variant="primary"`
+      // (btn-grad-primary in index.css); never hand-paint a `background`
+      // shorthand over it, which silently resets the gradient (CLAUDE.md).
+      <Button variant="primary" size="lg" className="shrink-0 rounded-ds-md w-full sm:w-auto" asChild>
+        <Link to="/support">Contact support</Link>
+      </Button>
+    )}
     {updated && (
       <span
         className="shrink-0 text-ds-11 font-sans tabular-nums"

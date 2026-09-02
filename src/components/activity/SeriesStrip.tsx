@@ -14,9 +14,35 @@ import { formatJobDate } from "@/lib/dateUtils";
  * Three facts, one line each:
  *   - the shape:   Mon, Wed, Fri × 6 weeks (18 visits)
  *   - progress:    3 of 18 visits created
- *   - what's next: Next visit Wed, Aug 27 — funds automatically 3 days ahead,
- *                  or the honest paused state when no Helpr is committed.
+ *   - what's next: the next date MONEY MOVES, or the honest paused state when
+ *                  no Helpr is committed.
+ *
+ * "next funds <date>" printed the VISIT date, which is not when the card is
+ * charged. `charge-recurring-visits` funds every visit inside a
+ * FUND_LEAD_DAYS = 3 horizon (index.ts:97, :251), so a Wednesday visit is
+ * charged the preceding Sunday. The strip was naming a date three days after
+ * the money actually left the poster's account — on the one line of this card
+ * that is about money. The lead is mirrored in FUND_LEAD_DAYS below.
  */
+/**
+ * How many days BEFORE a visit its escrow is charged.
+ *
+ * Mirrors `FUND_LEAD_DAYS` in `supabase/functions/charge-recurring-visits/
+ * index.ts:97` — the cron takes `horizon = today + FUND_LEAD_DAYS` and funds
+ * every unfunded visit on or before it. Keep the two in step: this constant is
+ * what turns a visit date into the date the poster's card is actually charged.
+ */
+const FUND_LEAD_DAYS = 3;
+
+/** `ymd` shifted by `days`, in the same UTC calendar the cron uses. */
+function shiftYmd(ymd: string, days: number): string {
+  // Noon UTC for the same reason `recurringSchedule.parseYmd` uses it: a
+  // date-only string parsed at midnight and shifted lands a day early.
+  const d = new Date(`${ymd}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
 export function SeriesStrip({
   jobId,
   recurrenceDays,
@@ -51,9 +77,18 @@ export function SeriesStrip({
   const total = visitCount(dateNeeded, recurrenceDays!, recurrenceWeeks!);
   // +1: the parent row IS the first visit; children are the rest.
   const created = Math.min(total, (createdCount ?? 0) + 1);
+  // UTC, deliberately — `charge-recurring-visits` compares against `todayUtc()`,
+  // so the client has to answer "is this visit inside the funding horizon?" on
+  // the same calendar the cron does.
   const today = new Date().toISOString().slice(0, 10);
   const upcoming = upcomingVisitDates(dateNeeded, recurrenceDays!, recurrenceWeeks!).filter((d) => d >= today);
   const next = upcoming.length > 0 ? upcoming[0] : null;
+  // The next visit whose charge has NOT already been attempted. Everything
+  // inside the horizon was funded on an earlier run, so its money has already
+  // moved and naming its date would point the poster at the past.
+  const nextFundDate = upcoming
+    .map((visit) => shiftYmd(visit, -FUND_LEAD_DAYS))
+    .find((fundsOn) => fundsOn > today) ?? null;
   const dayList = recurrenceDays!.map((d) => WEEKDAY_LABELS[d]).join(", ");
 
   // ONE line (owner, 2026-08-24: "kind of busy, make less hectic" — the
@@ -75,7 +110,12 @@ export function SeriesStrip({
           {" · "}{created}/{total} visits
           {next
             ? seriesHelperCommitted
-              ? ` · next funds ${formatJobDate(next)}`
+              ? nextFundDate
+                ? ` · next funds ${formatJobDate(nextFundDate)}`
+                : // Every remaining visit is already inside the funding window,
+                  // so there is no future charge to name. Fall back to the fact
+                  // that IS still ahead of the poster: the visit itself.
+                  ` · next visit ${formatJobDate(next)}`
               : " · paused until a Helpr books"
             : " · complete"}
         </span>

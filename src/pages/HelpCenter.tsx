@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import FaqRow from "@/components/marketing/FaqRow";
@@ -38,10 +38,35 @@ import {
  * SECTION_ACCENTS) verbatim.
  */
 
-// ─── Topic anchor slugs — same order as TOPICS ────────────────────────────────
-// Slugs let the topic grid deep-link into the FAQ list's per-section anchors.
+// ─── Topic anchor slugs ───────────────────────────────────────────────────────
+//
+// Each section carries `id="faq-<slug>"`, which is what makes
+// `/help#faq-payments-escrow` a real destination — the shape a support reply, a
+// push deep link or a search result uses to send someone to ONE answer instead
+// of to the top of a seven-section page.
+//
+// The ids were being stamped and nothing honoured them. The topic grid that
+// once linked to them was deleted (owner, 2026-08-30: the grid and the
+// accordion were the same list twice), and grepping `src/` for `href="#faq-`
+// returns zero hits, so every one of these anchors pointed at a section that
+// stayed collapsed even when the browser scrolled to it: the reader landed on
+// a closed row with the answer still hidden. `useHashTarget` below is what
+// makes the anchor do what the id promises.
 const topicSlug = (label: string) =>
   label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+/** The `faq-…` slug currently addressed by `location.hash`, live. */
+function useHashTarget(): string | null {
+  const read = () =>
+    typeof window === "undefined" ? null : decodeURIComponent(window.location.hash.replace(/^#/, "")) || null;
+  const [hash, setHash] = useState<string | null>(read);
+  useEffect(() => {
+    const onChange = () => setHash(read());
+    window.addEventListener("hashchange", onChange);
+    return () => window.removeEventListener("hashchange", onChange);
+  }, []);
+  return hash;
+}
 
 
 // Blurb lookup for the merged topic list — TOPICS still owns the copy even
@@ -53,9 +78,12 @@ const topicDesc = (topic: string): string | undefined =>
 const TopicSection = ({
   section,
   accent,
+  targeted,
 }: {
   section: { topic: string; items: Array<{ q: string; a: string }> };
   accent: string;
+  /** True when `location.hash` addresses THIS section. */
+  targeted: boolean;
 }) => {
   // Collapsed by default at EVERY width (owner, 2026-08-25: "the tabs in help
   // center also should open as expanded. They should be collapsed").
@@ -65,22 +93,57 @@ const TopicSection = ({
   // sections open at once: expanded-by-default made the page a wall of text
   // you had to scroll past to find the one question you came for, and it is
   // what pushed the real content so far below the title.
+  //
+  // The ONE exception is the section the URL asked for. `/help#faq-payments-escrow`
+  // is a request for that topic, not for the page, so it opens and scrolls
+  // itself into view — the browser's own anchor jump fires before React has
+  // painted the section's contents, so `scroll-mt-24` alone lands the reader on
+  // a closed row. `targeted` is a floor, never a lock: tapping the header still
+  // closes it.
   const [manualOpen, setManualOpen] = useState<boolean>(false);
-  const open = manualOpen;
+  const [dismissed, setDismissed] = useState(false);
+  const open = manualOpen || (targeted && !dismissed);
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!targeted) {
+      // Re-arm: navigating away and back to this anchor should open it again.
+      setDismissed(false);
+      return;
+    }
+    // rAF so the section's rows exist before we measure where to scroll to.
+    const id = requestAnimationFrame(() => {
+      ref.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [targeted]);
+
   return (
     <div
+      ref={ref}
       id={`faq-${topicSlug(section.topic)}`}
-      className="scroll-mt-24 rounded-2xl"
+      className="scroll-mt-24 rounded-2xl transition-colors duration-200"
       style={{
-        background: "hsl(var(--burnt-sienna) / 0.04)",
-        border: "1.5px solid hsl(var(--burnt-sienna) / 0.15)",
-        boxShadow: "var(--elev-inset-hairline)",
+        // OPEN AND CLOSED HAVE TO LOOK DIFFERENT. Both states used to paint the
+        // identical 0.04 wash and 0.15 hairline, so the only signal that a
+        // section had opened was the chevron's rotation and whatever content
+        // happened to be below the fold — on a seven-row list where every row
+        // is the same height, that is not a state, it is a guess. Open leans on
+        // the section's own accent (each topic already owns one) rather than a
+        // new colour, so the page gains a state without gaining a palette.
+        background: open ? "hsl(var(--burnt-sienna) / 0.09)" : "hsl(var(--burnt-sienna) / 0.04)",
+        border: `1.5px solid hsl(var(--burnt-sienna) / ${open ? "0.34" : "0.15"})`,
+        boxShadow: open ? "var(--elev-rest)" : "var(--elev-inset-hairline)",
       }}
     >
       <button
         type="button"
         aria-expanded={open}
-        onClick={() => setManualOpen((v) => !v)}
+        aria-controls={`faq-panel-${topicSlug(section.topic)}`}
+        onClick={() => {
+          setManualOpen((v) => !(v || (targeted && !dismissed)));
+          if (targeted) setDismissed(true);
+        }}
         className="w-full flex items-center justify-between gap-6 py-4 sm:py-5 px-5 sm:px-6 text-left transition-opacity hover:opacity-80"
       >
         <span
@@ -127,7 +190,7 @@ const TopicSection = ({
         />
       </button>
       {open && (
-        <div className="px-5 sm:px-6 pb-2">
+        <div id={`faq-panel-${topicSlug(section.topic)}`} className="px-5 sm:px-6 pb-2">
           {section.items.map((item) => (
             <FaqRow key={item.q} q={item.q} a={item.a} />
           ))}
@@ -140,6 +203,7 @@ const TopicSection = ({
 // ─── HelpCenter ───────────────────────────────────────────────────────────────
 
 const HelpCenter = () => {
+  const hash = useHashTarget();
   // No search on this page (owner, 2026-08-22). It was a client-side filter
   // over FAQ_SECTIONS — a static array of seven topics — reached through a
   // control that had already been moved three times looking for a place where
@@ -186,6 +250,7 @@ const HelpCenter = () => {
               <TopicSection
                 key={section.topic}
                 section={section}
+                targeted={hash === `faq-${topicSlug(section.topic)}`}
                 accent={
                   SECTION_ACCENTS[section.topic] ??
                   "hsl(var(--burnt-sienna))"
@@ -205,7 +270,7 @@ const HelpCenter = () => {
               similar to legals". No right-hand slot here (owner): the policy
               tabs use it for their revision date, and the Help Center has no
               equivalent fact to put there. */}
-          <PolicyFooter />
+          <PolicyFooter cta />
         </div>
       </section>
     </PublicHeaderPage>

@@ -31,6 +31,21 @@ const ResetPassword = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [ready, setReady] = useState(false);
+  // The success state is RENDERED, not implied.
+  //
+  // This screen used to do nothing at all on success: no toast, no copy, no
+  // state change — just `setTimeout(navigate("/dashboard"), 800)`. The comment
+  // beside it claimed that was "confirmation without making the user stare at a
+  // toast", but nothing was ever drawn, so the only feedback a person got for
+  // changing their password was the screen vanishing. Measured 2026-09-01: 400 ms
+  // after submit the form still read "Update Password" with both fields filled,
+  // and the URL was already /dashboard. Changing a password is a security
+  // action — the one class of action that must leave visible evidence it worked.
+  //
+  // Shape is lifted from the canonical sibling, ForgotPassword's `sent` state
+  // (tinted 64px disc → `text-page-title` h2 → ds-13 body → primary button), so
+  // the two halves of the reset flow confirm themselves the same way.
+  const [done, setDone] = useState(false);
   // When a link is invalid/expired/used, Supabase forwards `error=`,
   // `error_description=` in the URL hash and we surface the specific
   // case below. Null = no explicit error → treat as "no token / bare visit".
@@ -102,9 +117,12 @@ const ResetPassword = () => {
     } else {
       // updateUser leaves the recovery session live, which is effectively
       // already signed in — so route straight to /dashboard instead of
-      // bouncing through /login. Shorter delay (800ms) reads as
-      // confirmation without making the user stare at a toast.
-      redirectTidRef.current = window.setTimeout(() => navigate("/dashboard", { replace: true }), 800);
+      // bouncing through /login. The confirmation panel below renders FIRST and
+      // is announced (role="status"), and the hand-off is long enough to read
+      // rather than the old 800ms flicker. The panel's own button goes to the
+      // same place, so nobody has to wait out the timer.
+      setDone(true);
+      redirectTidRef.current = window.setTimeout(() => navigate("/dashboard", { replace: true }), 2200);
     }
   };
 
@@ -132,7 +150,43 @@ const ResetPassword = () => {
           (p-5 sm:p-6 lg:p-10). It was p-6 sm:p-8 — a fourth padding scale on
           the one card component all four auth screens share. */}
       <div className="liquid-glass p-5 sm:p-6 lg:p-10 space-y-6">
-        {!ready ? (
+        {done ? (
+          /* role="status" + aria-live: a screen-reader user gets the same
+             evidence a sighted one does. Without it the panel is silent
+             exactly the way the old no-op was. */
+          <div className="text-center space-y-4" role="status" aria-live="polite">
+            <div
+              className="w-16 h-16 rounded-full flex items-center justify-center mx-auto"
+              style={{ background: "hsl(var(--primary) / 0.12)" }}
+            >
+              <Check className="w-7 h-7" style={{ color: "hsl(var(--primary))" }} strokeWidth={2} />
+            </div>
+            {/* h2, not h1 — AuthShell's `title` row is already the page h1
+                ("Set New Password"), same as ForgotPassword's confirmation. */}
+            <h2 className="text-page-title leading-tight text-balance">
+              Password updated.
+            </h2>
+            <p className="font-sans text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              Your new password is active. You&rsquo;re still signed in on this device
+              &mdash; taking you to your dashboard.
+            </p>
+            <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              Anywhere else you were signed in will ask for the new password next time.
+            </p>
+            <Button
+              variant="primary"
+              type="button"
+              size="lg"
+              className="w-full rounded-ds-md"
+              onClick={() => {
+                if (redirectTidRef.current !== null) window.clearTimeout(redirectTidRef.current);
+                navigate("/dashboard", { replace: true });
+              }}
+            >
+              Go to Dashboard
+            </Button>
+          </div>
+        ) : !ready ? (
           <div className="text-center space-y-4">
             <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               {linkError === "expired"

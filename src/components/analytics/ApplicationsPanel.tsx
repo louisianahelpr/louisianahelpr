@@ -102,7 +102,7 @@ export function ApplicationsPanel({
       </div>
 
       {f.undecided > 0 && (
-        <p className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.6)" }}>
+        <p className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
           {f.undecided} still open or cancelled before anyone was hired — not counted either way.
         </p>
       )}

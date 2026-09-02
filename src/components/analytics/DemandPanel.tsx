@@ -72,7 +72,7 @@ export function DemandPanel({ market, floors }: DemandPanelProps) {
             <span
               key={d}
               className="text-ds-11 text-center"
-              style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+              style={{ color: "hsl(var(--olivewood) / 0.7)" }}
             >
               {d}
             </span>
@@ -82,7 +82,7 @@ export function DemandPanel({ market, floors }: DemandPanelProps) {
           <div key={blockLabel} className="grid grid-cols-[30px_repeat(7,minmax(0,1fr))] gap-1">
             <span
               className="text-ds-11 leading-5 tabular-nums"
-              style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+              style={{ color: "hsl(var(--olivewood) / 0.7)" }}
             >
               {blockLabel}
             </span>

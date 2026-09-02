@@ -23,9 +23,21 @@
  * which follows the file-share idiom `calendarExport.ts` already established:
  * write a real file, share the `file://` URI, and pass NO sibling text/url item.
  */
-import type jsPDFType from "jspdf";
 import { formatPriceFloor } from "./format";
-import { HELPR_MARK_PNG, HELPR_MARK_PX } from "./helprMarkPng";
+// The letterhead, palette and page geometry are SHARED with every other Helpr
+// document (see pdfDocument.ts). They used to be locals in this file; /home-history
+// needed the same masthead, and a second copy is how two records end up with
+// two letterheads.
+import {
+  CONTENT_W,
+  INK,
+  MARGIN,
+  MUTED,
+  VERIFICATION_EMAIL,
+  createLetterheadPdf,
+  finishPdf,
+  type PdfFile,
+} from "./pdfDocument";
 
 export interface WorkRecordDocumentInput {
   /** `profiles.full_name`. */
@@ -54,7 +66,6 @@ export interface WorkRecordDocumentInput {
   generatedAt: Date;
 }
 
-const VERIFICATION_EMAIL = "admin@louisianahelpr.com";
 
 /**
  * EVERY DATE ON THIS RECORD IS RESOLVED IN THE PLATFORM'S ZONE.
@@ -322,166 +333,24 @@ function workRecordFooterText(input: WorkRecordDocumentInput): string {
   return `${identity} Helpr is a Louisiana-based labor marketplace. For verification inquiries: ${VERIFICATION_EMAIL}`;
 }
 
-export interface WorkRecordFile {
-  fileName: string;
-  /** Base64 WITHOUT a `data:` prefix — what Filesystem.writeFile wants. */
-  base64: string;
-  /** The same bytes, for the web `<a download>` branch. */
-  blob: Blob;
-}
+/** Kept as a named export because /work-record imports it; the shape is the
+ *  shared {@link PdfFile}, so a second document cannot drift from it. */
+export type WorkRecordFile = PdfFile;
 
-/** ASCII only below this line. jsPDF's built-in Helvetica is Latin-1, so a
- *  smart quote, an en dash or a star glyph renders as mojibake on the one
- *  document that has to look official. */
-
-/**
- * THE DOCUMENT'S PALETTE — the app's tokens, resolved to RGB.
- *
- * These were `INK = 26` / `MUTED = 110` / `RULE = 205`: three neutral greys,
- * no logo, and a Helvetica "Helpr" typed as literal text. Owner, 2026-08-31:
- * "work record pdf is missing branding." A helper was handing a landlord a
- * plain grey office printout of a page that, in the app, is the most branded
- * surface they own.
- *
- * jsPDF has no CSS, so the tokens are inlined here with the token they came
- * from named beside them. All four are the LIGHT-mode values on purpose: a PDF
- * has one appearance, and it is printed on white paper.
- */
-const INK: RGB = [35, 35, 26]; // --ink-deep   hsl(64 16% 12%)
-const MUTED: RGB = [100, 102, 84]; // --olivewood, lightened to ~5.9:1 on white
-const RULE: RGB = [214, 211, 200]; // warm hairline, not a neutral grey
-const BARK: RGB = [94, 101, 68]; // --bark       #5E6544
-const SIENNA: RGB = [152, 66, 22]; // --burnt-sienna #984216
-const BAND: RGB = [240, 241, 235]; // --bark at ~8% over white
-
-type RGB = readonly [number, number, number];
-
-const PAGE_W = 612;
-const MARGIN = 54;
-const CONTENT_W = PAGE_W - MARGIN * 2;
-
-function toBase64(bytes: Uint8Array): string {
-  let binary = "";
-  const CHUNK = 0x8000;
-  for (let i = 0; i < bytes.length; i += CHUNK) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
-  }
-  return btoa(binary);
-}
+/** ASCII only below this line — see the note in pdfDocument.ts. */
 
 /**
  * Render the record as a real PDF.
  *
- * jsPDF is ~450KB and is already a dependency (the tax export uses it); the
- * dynamic import keeps it off this page's critical path. It is imported inside
- * this function rather than at module scope so opening /work-record does not
- * pay for a document nobody has asked to share yet.
+ * The letterhead, palette and page geometry come from `createLetterheadPdf`
+ * (pdfDocument.ts) so this record and /home-history's cannot drift into two
+ * house styles. Everything below the masthead rule is this document's own.
  */
 export async function buildWorkRecordPdf(input: WorkRecordDocumentInput): Promise<WorkRecordFile> {
-  const { default: jsPDF } = await import("jspdf");
-  const doc: jsPDFType = new jsPDF({ orientation: "portrait", unit: "pt", format: "letter" });
-
-  /** `setTextColor` and friends take three channels; the palette is tuples. */
-  const ink = (c: RGB) => doc.setTextColor(c[0], c[1], c[2]);
-
-  const rule = (y: number) => {
-    doc.setDrawColor(RULE[0], RULE[1], RULE[2]);
-    doc.setLineWidth(0.75);
-    doc.line(MARGIN, y, PAGE_W - MARGIN, y);
-  };
-  const label = (text: string, x: number, y: number) => {
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7.5);
-    ink(MUTED);
-    doc.text(text.toUpperCase(), x, y, { charSpace: 0.6 });
-  };
-  /**
-   * Fit `text` into `maxW`: shrink from `start` to `min`, then wrap.
-   *
-   * The measuring MUST happen with the font already set. jsPDF's
-   * `getTextWidth`/`splitTextToSize` read the document's CURRENT font state,
-   * and an earlier draft split at the 7.5pt label size and then drew at 11pt —
-   * so "Maximiliana Guillory-Thibodeaux III" was measured as fitting and
-   * rendered straight through the "ID verified by Stripe" column next to it.
-   * Caught by rendering the PDF, not by reading the code.
-   */
-  const fitLines = (text: string, maxW: number, start: number, min: number) => {
-    doc.setFont("helvetica", "bold");
-    for (let size = start; size >= min; size -= 0.5) {
-      doc.setFontSize(size);
-      if (doc.getTextWidth(text) <= maxW) return { lines: [text], size };
-    }
-    doc.setFontSize(min);
-    return { lines: doc.splitTextToSize(text, maxW) as string[], size: min };
-  };
-
-  // ==========================================================================
-  // LETTERHEAD — the crest, the wordmark, the title.
-  //
-  // This was `setFont("helvetica","bold")` + `text("Helpr")`: the brand name
-  // as literal type, in the same face as the field labels, on a page with no
-  // logo and no colour anywhere. Owner: "work record pdf is missing branding."
-  //
-  // Three changes, in the order they matter:
-  //
-  //  1. THE CREST IS THE MARK. `HELPR_MARK_PNG` is the wrought-iron H — the
-  //     one the owner has twice asked for by name ("Emails should use the h
-  //     logo") and the one on the app-lock screen. Drawn at its true aspect
-  //     ratio from `HELPR_MARK_PX`, never a guessed box, so it cannot squash.
-  //  2. THE WORDMARK IS SET IN A SERIF ITALIC. In the app "Helpr" is italic EB
-  //     Garamond with a Burnt-Sienna "- LA" tail (see HelprMark.tsx). jsPDF
-  //     ships only the standard 14 faces, and embedding EB Garamond would mean
-  //     `addFileToVFS` + `addFont` and a ~200KB base64 font subset in the
-  //     chunk, for one export, on a path that must also work offline. Times
-  //     BoldItalic is a real serif italic, costs ZERO bytes because every PDF
-  //     reader has it, and cannot fall back to tofu in whatever ancient
-  //     Acrobat a leasing office runs. So the masthead is branded and the body
-  //     stays in a neutral face — which is what a financial document should
-  //     look like anyway. Deliberate trade, not an oversight.
-  //  3. COLOUR. Bark on the section band, Burnt Sienna on the LA tail, warm
-  //     hairlines. Enough to read as Helpr, not so much that a landlord thinks
-  //     he is holding an advert.
-  // ==========================================================================
-  const MARK_H = 30;
-  const MARK_W = (HELPR_MARK_PX.width / HELPR_MARK_PX.height) * MARK_H;
-  doc.addImage(HELPR_MARK_PNG, "PNG", MARGIN, 52, MARK_W, MARK_H);
-
-  const wordmarkX = MARGIN + MARK_W + 10;
-  doc.setFont("times", "bolditalic");
-  doc.setFontSize(25);
-  ink(INK);
-  doc.text("Helpr", wordmarkX, 78);
-  // MEASURE WHILE THE WORDMARK'S FONT IS STILL SET. `getTextWidth` reads the
-  // document's CURRENT font and size — the same trap `fitLines` below
-  // documents — so measuring after the switch to 12pt italic would place the
-  // tail on top of the "r".
-  const wordmarkW = doc.getTextWidth("Helpr");
-
-  // The "\u00B7 LA" tail, on the wordmark's baseline — the same Burnt-Sienna
-  // suffix HelprMark.tsx renders in the app.
-  //
-  // The interpunct is the ONE non-ASCII character on this page, and it is safe
-  // where a smart quote or an en dash is not: jsPDF's built-in faces encode
-  // through WinAnsi/Latin-1, which has U+00B7 at 0xB7. An en dash (U+2013) has
-  // no Latin-1 slot at all, which is why `activePeriod` prints a hyphen. If a
-  // future edit adds another non-ASCII glyph here, RENDER THE PDF and look —
-  // the failure is a silently wrong glyph, not an exception.
-  doc.setFont("times", "italic");
-  doc.setFontSize(12);
-  ink(SIENNA);
-  doc.text("\u00B7 LA", wordmarkX + wordmarkW + 7, 78, { charSpace: 1.6 });
-
-  doc.setFont("times", "bolditalic");
-  doc.setFontSize(18);
-  ink(INK);
-  doc.text("Employment & Earnings Record", MARGIN, 112);
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  ink(MUTED);
-  doc.text(`Generated ${formatLongDate(input.generatedAt)}`, MARGIN, 128);
-
-  rule(146);
+  const { doc, ink, rule, label, band, fitLines } = await createLetterheadPdf(
+    "Employment & Earnings Record",
+    `Generated ${formatLongDate(input.generatedAt)}`,
+  );
 
   // Identity row - three even columns, same three facts as the sheet.
   const colW = CONTENT_W / 3;
@@ -514,14 +383,9 @@ export async function buildWorkRecordPdf(input: WorkRecordDocumentInput): Promis
   rule(214);
 
   // Work summary band - the section header, in bark on a bark tint rather
-  // than grey type on a neutral wash.
-  doc.setFillColor(BAND[0], BAND[1], BAND[2]);
-  doc.rect(MARGIN, 214, CONTENT_W, 22, "F");
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
-  ink(BARK);
-  doc.text("WORK SUMMARY", MARGIN + 10, 229, { charSpace: 1.2 });
-  rule(236);
+  // than grey type on a neutral wash. Same primitive /home-history's sections
+  // use, so the two documents band identically.
+  band("Work summary", 214);
 
   /**
    * Row pitch for the 2x2 stat grid.
@@ -558,10 +422,5 @@ export async function buildWorkRecordPdf(input: WorkRecordDocumentInput): Promis
   const footerLines = doc.splitTextToSize(workRecordFooterText(input), CONTENT_W) as string[];
   doc.text(footerLines, MARGIN, footerTop + 20);
 
-  const bytes = new Uint8Array(doc.output("arraybuffer"));
-  return {
-    fileName: workRecordFileName(input),
-    base64: toBase64(bytes),
-    blob: new Blob([bytes], { type: "application/pdf" }),
-  };
+  return finishPdf(doc, workRecordFileName(input));
 }

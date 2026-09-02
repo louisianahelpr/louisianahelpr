@@ -1,7 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Gift, Share2 } from "lucide-react";
+import { Gift, Loader2, Share2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import AppPage from "@/components/AppPage";
 import { Button } from "@/components/ui/button";
@@ -19,8 +19,15 @@ const YEAR = new Date().getFullYear();
 // "Wrapped" in December, "so far" the rest of the year (see LH-39).
 const SEASON = wrappedSeasonLabel();
 
-// $15/hr proxy for converting earnings → approximate hours worked
-const HOURLY_PROXY = 15;
+// NO HOURS TILE. The "earned" card used to carry a "~26 hrs" sublabel computed
+// as `totalEarned / 15` — an undisclosed $15/hr assumption rendered in the same
+// grid, at the same weight, as the figures that are actually measured. Nothing
+// in this app records hours: not the job row, not the tracker, not the payout.
+// So the number was a guess wearing a measurement's clothes, on the ONE screen
+// built to be screenshotted and posted publicly, where a caption cannot travel
+// with it. Disclosing the rate in the sublabel was the alternative and it is
+// not enough — "~26 hrs (at $15/hr)" still leaves "26 hrs" as the thing a
+// reader repeats. It is gone rather than annotated.
 
 interface WrappedStats {
   jobsPosted: number;
@@ -29,10 +36,9 @@ interface WrappedStats {
   totalEarned: number;
   uniquePeople: number;
   topCategory: string | null;
-  bestRating: number | null;
+  avgRating: number | null;
   reviewsGiven: number;
   reviewsReceived: number;
-  approxHours: number;
   /** True when at least one (but not every) stat query failed, so the
    *  numbers below are an undercount rather than the whole year. */
   incomplete: boolean;
@@ -174,15 +180,21 @@ async function fetchWrappedStats(userId: string): Promise<WrappedStats> {
   const topCategory =
     Object.keys(categoryCount).sort((a, b) => (categoryCount[b] ?? 0) - (categoryCount[a] ?? 0))[0] ?? null;
 
-  // Best rating received
+  // AVERAGE rating received, not the best one.
+  //
+  // This was `Math.max(...receivedRatings)`, labelled "best rating". A helper
+  // with 5, 3 and 4 read "5.0" — the same 5.0 their /profile prints only when
+  // every review is a five. A max over a rating set is not a fact about the
+  // year, it is a fact about the single kindest reviewer, and on a card built
+  // to be shared it is the number a stranger reads as the person's standing.
+  // The mean is what /profile, the applicant list and every other rating
+  // surface show (`get_public_profile_stats` / `reviewStats.ts`), so this now
+  // agrees with them instead of quietly out-ranking them.
   const receivedRatings = reviewsReceived.map((r) => r.rating).filter((r): r is number => typeof r === "number");
-  const bestRating = receivedRatings.length > 0 ? Math.max(...receivedRatings) : null;
-
-  // Approximate hours WORKED — derived from earnings only ÷ $15/hr. This
-  // sublabel sits on the "earned" card, so it must reflect the helper's own
-  // labor; folding in `totalSpent` (money they paid OTHERS to do jobs) inflated
-  // the figure into implausible territory (Cowork audit: "~194 hrs").
-  const approxHours = Math.round(totalEarned / HOURLY_PROXY);
+  const avgRating =
+    receivedRatings.length > 0
+      ? receivedRatings.reduce((acc, r) => acc + r, 0) / receivedRatings.length
+      : null;
 
   return {
     jobsPosted: posted.length,
@@ -191,10 +203,9 @@ async function fetchWrappedStats(userId: string): Promise<WrappedStats> {
     totalEarned,
     uniquePeople: peopleWorkedWith.size,
     topCategory,
-    bestRating,
+    avgRating,
     reviewsGiven: reviewsGiven.length,
     reviewsReceived: reviewsReceived.length,
-    approxHours,
     incomplete: coreErrors.length > 0,
   };
 }
@@ -202,10 +213,9 @@ async function fetchWrappedStats(userId: string): Promise<WrappedStats> {
 interface StatCardProps {
   label: string;
   value: string;
-  sublabel?: string;
 }
 
-const StatCard = ({ label, value, sublabel }: StatCardProps) => (
+const StatCard = ({ label, value }: StatCardProps) => (
   <div
     className="rounded-ds-md p-4 text-center space-y-1 flex flex-col items-center justify-center"
     style={{
@@ -226,11 +236,6 @@ const StatCard = ({ label, value, sublabel }: StatCardProps) => (
     <p className="text-ds-11 font-sans font-semibold uppercase tracking-wider leading-tight" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
       {label}
     </p>
-    {sublabel && (
-      <p className="text-ds-11 font-serif italic" style={{ color: "hsl(var(--burnt-sienna) / 0.65)" }}>
-        {sublabel}
-      </p>
-    )}
   </div>
 );
 
@@ -243,6 +248,7 @@ const HelprWrapped = () => {
   usePageTitle(`Your ${SEASON.title} — Helpr`);
   const navigate = useNavigate();
   const { user, isReady } = useAuthReady();
+  const [isSharing, setIsSharing] = useState(false);
 
   // Guard: redirect to /login once auth resolves with no user.
   // Must be an effect — can't call navigate() before all hooks.
@@ -261,6 +267,21 @@ const HelprWrapped = () => {
   });
 
   const handleShare = async () => {
+    // A double tap opened TWO share sheets: `shareNative` is async and nothing
+    // guarded re-entry, so the second tap ran the whole ladder again while the
+    // first sheet was still resolving. Same guard, same shape, as
+    // /work-record's `isSharing` (WorkRecord.tsx) — one implementation of "a
+    // share is in flight" across the two screens that share.
+    if (isSharing) return;
+    setIsSharing(true);
+    try {
+      await shareWrapped();
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
+  const shareWrapped = async () => {
     // Posting a job isn't helping a neighbor — only completed jobs count as
     // "helped"; posts get their own clause so the share text stays honest.
     const helped = stats?.jobsCompleted ?? 0;
@@ -269,7 +290,12 @@ const HelprWrapped = () => {
     const parts: string[] = [];
     if (helped > 0) parts.push(`helped ${helped} neighbor${helped !== 1 ? "s" : ""}`);
     if (posted > 0) parts.push(`posted ${posted} job${posted !== 1 ? "s" : ""}`);
-    if (earned > 0) parts.push(`earned $${earned.toLocaleString()}`);
+    // `formatPriceFloor`, the SAME formatter the "earned" tile uses. This was
+    // `earned.toLocaleString()`, which prints the raw take-home: a $382.50 year
+    // read "$382" in the tile and "$382.5" in the message sent about the tile.
+    // Two numbers for one figure, on the screen whose entire output is a
+    // sentence about that figure.
+    if (earned > 0) parts.push(`earned $${formatPriceFloor(earned)}`);
     const summary =
       parts.length === 0
         ? "was part of the community"
@@ -285,11 +311,23 @@ const HelprWrapped = () => {
     // `ShareContent.url` there is nothing real to link to and the field is
     // omitted. The summary is the whole point of this share, and without a
     // URL competing for the preview it is what actually gets sent.
-    await shareNative({
+    // The OUTCOME is read, not discarded. `shareNative` already speaks for the
+    // clipboard and last-ditch tiers and toasts its own hard failure, so the
+    // only rung with nothing to say is `failed` — where a second toast would
+    // stack on the one it just showed. What this must NOT do is report success
+    // it did not get, which is what ignoring the return value amounts to.
+    const outcome = await shareNative({
       title: `My ${YEAR} on Helpr`,
       text: `I ${summary} on @LouisianaHelpr this year! 🎉`,
       dialogTitle: SEASON.isYearEnd ? "Share your Helpr Wrapped" : "Share your Helpr year",
     });
+    if (outcome === "failed") {
+      report(new Error("wrapped share failed on every tier"), {
+        severity: "warning",
+        tags: { area: "helpr_wrapped.share" },
+        context: { user_id: user?.id ?? null },
+      });
+    }
   };
 
   // Stat cards to render — only show if value > 0
@@ -318,10 +356,16 @@ const HelprWrapped = () => {
         // to anyone, so ordinary rounding is right for it.
         value: `$${formatPriceFloor(stats.totalEarned)}`,
         label: "earned",
-        sublabel: stats.approxHours > 0 ? `~${stats.approxHours} hrs` : undefined,
       });
     }
-    if (stats.totalSpent > 0 && stats.totalEarned === 0) {
+    // Spend and earnings are INDEPENDENT facts. This used to read
+    // `stats.totalSpent > 0 && stats.totalEarned === 0`, so the moment a poster
+    // also helped once, the money they had spent hiring their neighbours
+    // vanished from their own year — and it vanished silently, which made the
+    // card look complete. Anyone who works both sides of this marketplace, the
+    // exact person the "Louisiana Helpr Community" framing is about, never saw
+    // this tile. Both sides show; the tile below already names which is which.
+    if (stats.totalSpent > 0) {
       statCards.push({
         value: `$${formatPrice(stats.totalSpent)}`,
         label: "invested in community",
@@ -339,16 +383,30 @@ const HelprWrapped = () => {
         label: "top category",
       });
     }
-    if (stats.bestRating !== null && stats.bestRating > 0) {
+    if (stats.avgRating !== null && stats.avgRating > 0) {
       statCards.push({
-        value: stats.bestRating.toFixed(1),
-        label: "best rating",
+        // One decimal, the same shape /profile prints ("5.0 · 1 review").
+        value: stats.avgRating.toFixed(1),
+        label: "average rating",
       });
     }
     if (stats.reviewsReceived > 0) {
       statCards.push({
         value: String(stats.reviewsReceived),
         label: stats.reviewsReceived === 1 ? "review received" : "reviews received",
+      });
+    }
+    // Reviews WRITTEN. `reviewsGiven` was queried on every load of this page
+    // and then dropped on the floor — fetched, counted, returned, never
+    // rendered. Leaving a review is the one contribution here that costs the
+    // member something and earns them nothing, and this card's whole subject is
+    // what a person put into the community, so it belongs on it. (The other
+    // option was deleting the query; it is cheaper to show a true number than
+    // to keep paying for one nobody sees.)
+    if (stats.reviewsGiven > 0) {
+      statCards.push({
+        value: String(stats.reviewsGiven),
+        label: stats.reviewsGiven === 1 ? "review written" : "reviews written",
       });
     }
   }
@@ -480,10 +538,20 @@ const HelprWrapped = () => {
                 variant="primary" shimmer
                 size="lg"
                 className="w-full squircle"
-                onClick={handleShare}
+                onClick={() => { void handleShare(); }}
+                disabled={isSharing}
+                aria-busy={isSharing}
               >
-                <Share2 className="w-4 h-4 mr-2" />
-                {SEASON.isYearEnd ? "Share Your Wrapped" : "Share Your Year"}
+                {isSharing ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Share2 className="w-4 h-4 mr-2" />
+                )}
+                {isSharing
+                  ? "Opening\u2026"
+                  : SEASON.isYearEnd
+                    ? "Share Your Wrapped"
+                    : "Share Your Year"}
               </Button>
               {/* The "See yours" anchor that sat here preventDefault-ed into
                   nothing — a dead link directly under the real Share button.

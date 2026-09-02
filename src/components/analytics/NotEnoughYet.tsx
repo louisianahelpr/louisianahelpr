@@ -24,7 +24,7 @@ export function NotEnoughYet({ what, have, need, unit }: NotEnoughYetProps) {
   return (
     <p
       className="text-ds-11 leading-snug"
-      style={{ color: "hsl(var(--olivewood) / 0.62)" }}
+      style={{ color: "hsl(var(--olivewood) / 0.7)" }}
       data-testid="not-enough-yet"
     >
       Not enough history to show {what} yet — {have} of {need} {unit}.

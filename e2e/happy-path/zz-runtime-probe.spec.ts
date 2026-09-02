@@ -107,7 +107,19 @@ function enumerateChannelSites(): ChannelSite[] {
     const text = readFileSync(file, "utf8");
     const rel = relative(REPO_ROOT, file);
     // `.channel(` occurrences that are real calls (not prose inside a comment).
-    const callRe = /\.channel\(\s*(`[^`]*`|"[^"]*"|'[^']*')/g;
+    //
+    // TWO SHAPES, and missing the second is what made this probe blind.
+    // Originally every site inlined its own name:
+    //     .channel(`notif-${userId}-${channelNonce()}`)
+    // The realtime-recovery refactor hoisted naming into a factory:
+    //     subscribeWithRecovery((name) => supabase.channel(name).on(...), ...)
+    // so the argument is now an IDENTIFIER. A literal-only regex silently
+    // stopped matching 12 of the 17 live sites — and because `hasNonce` is a
+    // substring test on the matched argument, the few it still found would
+    // have reported `nonced: false` for channels that ARE nonced. The
+    // `>= 12` sanity assertion below is the only reason this surfaced as a
+    // failure instead of a guard quietly passing while checking nothing.
+    const callRe = /\.channel\(\s*(`[^`]*`|"[^"]*"|'[^']*'|[A-Za-z_$][\w$]*)/g;
     let m: RegExpExecArray | null;
     while ((m = callRe.exec(text))) {
       const idx = m.index;
@@ -138,11 +150,25 @@ function enumerateChannelSites(): ChannelSite[] {
         });
       }
 
+      // Is this the factory form? Look back a short way for the
+      // `subscribeWithRecovery(` that owns this callback.
+      const back = text.slice(Math.max(0, idx - 800), idx);
+      const viaRecovery = /subscribeWithRecovery\s*\(\s*(?:\/\/[^\n]*\n|\s)*?\(?\s*[A-Za-z_$][\w$]*\s*\)?\s*=>\s*$|subscribeWithRecovery\s*\(/.test(back);
+
+      // `subscribeWithRecovery` appends a fresh `channelNonce()` per attempt
+      // (src/lib/realtimeRecovery.ts) UNLESS the caller opts out with
+      // `stableName: true` — which `useChatPresence` legitimately does,
+      // because presence only works when both participants join one topic.
+      // So the opt-out, not the call site, is what has to be inspected.
+      const fwd = text.slice(idx, Math.min(text.length, idx + 4000));
+      const optsOutOfNonce = /\bstableName\s*:\s*true\b/.test(fwd);
+
       sites.push({
         file: rel,
         line: lineOf(text, idx),
         name,
-        hasNonce: name.includes("channelNonce()"),
+        hasNonce:
+          name.includes("channelNonce()") || (viaRecovery && !optsOutOfNonce),
         bindings,
       });
     }
@@ -203,6 +229,21 @@ test("1a · static: every postgres_changes binding is nonced and user-filtered",
   console.log("[realtime/static] presence/broadcast-only channels (nonce rule N/A): " + JSON.stringify(presenceOnly));
   const missingNonce = pgSites.filter((s) => !s.hasNonce).map((s) => `${s.file}:${s.line} → ${s.name}`);
   expect(missingNonce, "postgres_changes channel names missing channelNonce()").toEqual([]);
+
+  // (b-ii) The nonce guarantee is now CENTRAL, so guard the centre. Most sites
+  //        are trusted above purely because they route through
+  //        `subscribeWithRecovery`. If that helper ever stopped appending a
+  //        nonce, every one of those trust decisions would silently become
+  //        wrong and this probe would keep reporting green. Assert the source.
+  const recoverySrc = readFileSync(join(REPO_ROOT, "src/lib/realtimeRecovery.ts"), "utf8");
+  expect(
+    /channelNonce\(\)/.test(recoverySrc),
+    "subscribeWithRecovery must mint a channelNonce() — the per-site nonce checks above trust it",
+  ).toBe(true);
+  expect(
+    /stableName\s*\?\s*opts\.name\s*:\s*`\$\{opts\.name\}-\$\{channelNonce\(\)\}`/.test(recoverySrc),
+    "subscribeWithRecovery must append the nonce to the channel name on every attempt unless stableName is set",
+  ).toBe(true);
 
   // (a) server-side filter, except the documented platform-wide exceptions
   const unfiltered = allBindings

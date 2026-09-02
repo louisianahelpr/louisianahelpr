@@ -52,6 +52,20 @@ const EVIDENCE_PATTERNS = [
   ["code-fence", /^\s*```/],
   ["workflow-run", /\brun\s+#?\d{3,}\b|\bconclusion\s*[:=]\s*\w+/i],
   ["log-line", /\b\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}\b/],
+  // `file.ts:44` — the evidence form PROTOCOL §3 names for a STATIC finding,
+  // and the one this list forgot. Without it every lane whose findings are
+  // read from source rather than driven at runtime scores near-zero:
+  // lh-native-bridge measured 72% of its claims "unevidenced" while nearly
+  // every flagged line carried a `biometricGate.ts:44`-style citation.
+  //
+  // That is worse than a missing check. A checker that reports a well-evidenced
+  // report as unevidenced teaches lanes to ignore it — and the next lane with a
+  // genuinely thin report gets the same 72% and nobody looks twice. A gate
+  // people have learned to disregard protects nothing.
+  //
+  // Deliberately narrow: a real extension plus a line number. A bare filename
+  // is not evidence, and `1.5:30` or a time is not a citation.
+  ["file-line", /\b[\w./-]+\.(?:ts|tsx|js|jsx|mjs|cjs|sql|css|swift|kt|java|yml|yaml|json|html)\s*:\s*\d+\b/i],
 ];
 
 /** Lines that look like a claim but are structural noise, not assertions. */
@@ -62,7 +76,14 @@ const IGNORE_PATTERNS = [
   /^\s*>/,              // blockquotes (usually quoted guidance)
 ];
 
-const UNVERIFIED_HEADING = /^\s*#{1,6}?\s*\**\s*(?:\d+\.\s*)?UNVERIFIED\b/im;
+// UNVERIFIED anywhere in the heading, not only at its start.
+//
+// This anchored the word to the beginning, so a lane that titled its section
+// "Still genuinely UNVERIFIED" — a better heading than the bare word — was told
+// the section was MISSING and that it had failed the standard's completeness
+// bar. The checker was grading the wording of the heading, not the presence of
+// the section.
+const UNVERIFIED_HEADING = /^\s*#{1,6}\s*\**[^\n]*?\bUNVERIFIED\b/im;
 
 export function analyzeReport(text) {
   const lines = text.split(/\r?\n/);

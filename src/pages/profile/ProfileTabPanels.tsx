@@ -37,6 +37,12 @@ const ReviewsTab = lazy(() => import("@/components/profile/ReviewsTab").then(m =
 const WarningsTab = lazy(() => import("@/components/profile/WarningsTab").then(m => ({ default: m.WarningsTab })));
 const CredentialsTab = lazy(() => import("@/components/profile/CredentialsTab").then(m => ({ default: m.CredentialsTab })));
 const PetsTab = lazy(() => import("@/pages/PetProfiles"));
+const WorkRecordTab = lazy(() => import("@/pages/WorkRecord"));
+const HomeHistoryTab = lazy(() => import("@/pages/HomeHistory"));
+const StrSettingsTab = lazy(() => import("@/pages/StrSettings"));
+const AutoTipTab = lazy(() => import("@/pages/AutoTip"));
+const WrappedTab = lazy(() => import("@/pages/HelprWrapped"));
+const AnalyticsTab = lazy(() => import("@/pages/HelperAnalytics"));
 const NotificationPreferences = lazy(() => import("@/components/NotificationPreferences"));
 const AccessibilityTab = lazy(() => import("@/components/profile/AccessibilityTab").then(m => ({ default: m.AccessibilityTab })));
 const ReferralSection = lazy(() => import("@/components/ReferralSection"));
@@ -271,6 +277,42 @@ export const ProfileTabPanels = ({
       {tab === "saved_helpers" && (
         <Suspense fallback={<TabFallback />}>
           <SavedHelpersTab onBack={onBackFromTab} />
+        </Suspense>
+      )}
+
+      {tab === "work_record" && (
+        <Suspense fallback={<TabFallback />}>
+          <WorkRecordTab onBack={onBackFromTab} />
+        </Suspense>
+      )}
+
+      {tab === "home_history" && (
+        <Suspense fallback={<TabFallback />}>
+          <HomeHistoryTab onBack={onBackFromTab} />
+        </Suspense>
+      )}
+
+      {tab === "str_settings" && (
+        <Suspense fallback={<TabFallback />}>
+          <StrSettingsTab onBack={onBackFromTab} />
+        </Suspense>
+      )}
+
+      {tab === "auto_tip" && (
+        <Suspense fallback={<TabFallback />}>
+          <AutoTipTab onBack={onBackFromTab} />
+        </Suspense>
+      )}
+
+      {tab === "wrapped" && (
+        <Suspense fallback={<TabFallback />}>
+          <WrappedTab onBack={onBackFromTab} />
+        </Suspense>
+      )}
+
+      {tab === "analytics" && (
+        <Suspense fallback={<TabFallback />}>
+          <AnalyticsTab onBack={onBackFromTab} />
         </Suspense>
       )}
 

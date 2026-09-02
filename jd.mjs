@@ -1,0 +1,10 @@
+import { chromium } from "playwright";
+const b = await chromium.launch();
+const p = await b.newContext().then(c=>c.newPage());
+await p.setViewportSize({width:393,height:852});
+await p.goto("http://localhost:8090/jobs/891a13fc-2152-47d2-87ca-ff3068c6c7c8", { waitUntil:"networkidle" }).catch(()=>{});
+await p.waitForTimeout(2500);
+console.log("final URL :", p.url());
+const t = await p.evaluate(()=>document.body.innerText.replace(/\s+/g," ").slice(0,320));
+console.log("body text :", t);
+await b.close();

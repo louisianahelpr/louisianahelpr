@@ -68,7 +68,7 @@ function renderWrapped() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
   return render(
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={["/wrapped"]}>
+      <MemoryRouter initialEntries={["/profile?tab=wrapped"]}>
         <HelprWrapped />
       </MemoryRouter>
     </QueryClientProvider>,

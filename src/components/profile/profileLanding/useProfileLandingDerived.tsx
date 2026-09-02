@@ -150,7 +150,7 @@ export function useProfileLandingDerived({
           icon: <Home className="w-5 h-5" />,
           desc: "Auto-post cleanings on Airbnb / VRBO checkout",
           tint: SECTION_TINT.work,
-          href: "/str-settings",
+          href: "/profile?tab=str_settings",
         },
         {
           key: "gift-card",
@@ -184,7 +184,7 @@ export function useProfileLandingDerived({
           icon: <Coins className="w-5 h-5" />,
           desc: "Automatic tips & instant payment release",
           tint: SECTION_TINT.money,
-          href: "/auto-tip",
+          href: "/profile?tab=auto_tip",
         },
         // ONE row, not three. "Earnings", "Analytics" (→ /analytics) and
         // "Payout & Payments" were three entry points onto three screens
@@ -218,7 +218,7 @@ export function useProfileLandingDerived({
           icon: <FileText className="w-5 h-5" />,
           desc: "Shareable verified earnings document",
           tint: SECTION_TINT.money,
-          href: "/work-record",
+          href: "/profile?tab=work_record",
         },
       ],
     },
@@ -261,7 +261,7 @@ export function useProfileLandingDerived({
           icon: <ClipboardList className="w-5 h-5" />,
           desc: "Your home's permanent maintenance record",
           tint: SECTION_TINT.account,
-          href: "/home-history",
+          href: "/profile?tab=home_history",
         },
         // "Posted Jobs" (→ /my-posts) and "Completed Jobs"
         // (→ /my-posts?filter=done) were the last two rows here until

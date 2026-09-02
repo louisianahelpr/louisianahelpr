@@ -56,14 +56,13 @@ export const authPages = ["/dashboard", "/activity", "/my-posts", "/my-jobs", "/
   // `?tab=pets` tab, and /profile is already covered above. A stale entry here
   // would only give the 404 screen a bottom dock, exactly as the note about
   // "/benefits" above says.
-  "/home-history", "/work-record", "/gift-card", "/wrapped", "/str-settings", "/help", "/data-rights",
+  "/gift-card", "/help", "/data-rights",
   // /auto-tip ("After a Job") was the ONE settings sub-page on that list of
   // siblings that never reached this one — measured 2026-08-31 at 320/375/768:
   // no bottom dock rendered at all, on a screen whose only other way out is the
   // back chevron. It is already in `AUTH_PREFIXES` (desktopNavRoutes.ts), so
   // the same screen HAD the desktop rail at 1440 and no nav on a phone — the
   // exact asymmetry that list's own comment was added to close for /wrapped.
-  "/auto-tip",
   // /legal joins /help here (owner, 2026-08-30: "there should be a public and
   // signed in version of help and legal"). Both are reachable from the
   // marketing footer AND from inside the app (Profile → Legal & Policies), and
@@ -71,7 +70,15 @@ export const authPages = ["/dashboard", "/activity", "/my-posts", "/my-jobs", "/
   // signed-in visitor gets the app shell on both. Without /legal in this list
   // it got the shell but none of the app's own navigation, stranding the user
   // on a page with no way back into the app except the browser's Back button.
-  "/legal"];
+  "/legal"  // The six standalone settings sub-pages that used to be listed here left
+  // with their routes on 2026-09-02 — they are Profile tabs now
+  // (?tab=work_record, home_history, str_settings, auto_tip, wrapped,
+  // analytics), and "/profile" above already covers every one of them.
+  // These entries are PREFIX matches against a pathname, so a
+  // "/profile?tab=x" entry would never match anything and an entry for a
+  // deleted path would only dress the 404 screen in signed-in chrome —
+  // the "/benefits" lesson recorded above.
+];
 
 // /admin is a distinct console shell (its own full-height layout, header,
 // back button, and logout) — the consumer Posts/Jobs/Messages/Profile bar

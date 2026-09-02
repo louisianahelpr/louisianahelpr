@@ -1,4 +1,5 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,6 +37,19 @@ export const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
   // `cancelled` now means what it was meant to mean — the component went away —
   // because the only remaining deps are the two primitives that genuinely
   // define the work.
+  const navigate = useNavigate();
+  /**
+   * Send the poster to their own post instead of refusing them (DH-001).
+   * `highlight` is the param Activity's posted tab already reads to scroll to
+   * and flash a single card, so this answers the question they actually asked
+   * — "what does the link I just shared look like?" — rather than telling them
+   * they cannot apply to something they never tried to apply to.
+   */
+  const goToOwnPost = useCallback(
+    (id: string) => navigate(`/my-posts?highlight=${encodeURIComponent(id)}`, { replace: true }),
+    [navigate],
+  );
+
   const handledRef = useRef(false);
   const allJobsRef = useRef(allJobs);
   allJobsRef.current = allJobs;
@@ -74,7 +88,10 @@ export const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
     const feedJob = allJobsRef.current.find((j) => j.id === quickApplyId);
     if (feedJob) {
       if (feedJob.customer_id === userId) {
-        toast.error("You can't apply to your own post.");
+        // Same as the fetched branch below (DH-001) — this is the path that
+        // fires when the job is already in the loaded feed, and it is the one
+        // an owner tapping their own Share link hits most often.
+        goToOwnPost(quickApplyId);
       } else if (feedJob.status && feedJob.status !== "open") {
         toast.error("This task isn't accepting applications anymore.");
       } else {
@@ -138,7 +155,23 @@ export const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
         return;
       }
       if (data.customer_id === userId) {
-        toast.error("You can't apply to your own post.");
+        // THE POSTER OPENING THEIR OWN SHARE LINK IS NOT AN ERROR (DH-001).
+        // The Share chip on a posted job manufactures
+        // https://www.louisianahelpr.com/jobs/<id>, and Share is the PRIMARY
+        // empty-state CTA when a job has no applicants yet — so the single most
+        // likely person to tap that link is the person who posted it, checking
+        // what they just sent out. Every signed-in visitor to /jobs/:id is
+        // bounced here, so they arrived asking "what does my job look like?"
+        // and were told "You can't apply to your own post" — an answer to a
+        // question they did not ask, about an action they did not take.
+        //
+        // Now certain rather than occasional: /jobs/:id requires an account as
+        // of 2026-09-02, so the owner CANNOT reach that page signed-out any
+        // more, and this branch is the only thing they will ever hit.
+        //
+        // `highlight` is what Activity's posted tab already reads to scroll to
+        // and flash one card, so this lands them on their own job.
+        goToOwnPost(quickApplyId);
         return;
       }
       if (data.status && data.status !== "open") {
@@ -153,7 +186,10 @@ export const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
     })();
 
     return () => { cancelled = true; };
-  }, [quickApplyId, userId]);
+    // `goToOwnPost` is stable (useCallback over router `navigate`), so listing
+    // it does not widen when this effect re-fires — it only keeps
+    // exhaustive-deps honest.
+  }, [quickApplyId, userId, goToOwnPost]);
 
   return null;
 };

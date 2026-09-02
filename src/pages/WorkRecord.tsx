@@ -13,7 +13,7 @@ import {
   Award,
   Loader2,
 } from "lucide-react";
-import AppPage from "@/components/AppPage";
+import { ProfileTabHeader } from "@/components/profile/ProfileTabHeader";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { unwrap } from "@/lib/supabaseResult";
@@ -83,7 +83,18 @@ const canPrintDocument =
   typeof window.print === "function";
 
 
-const WorkRecord = () => {
+/**
+ * WorkRecord — the Profile "Work Record" tab body.
+ *
+ * Was the standalone route `/work-record` until 2026-09-02. It was only ever
+ * reached from Profile's own chrome, so it was a Profile tab implemented as a
+ * route.
+ *
+ * Renders the canonical tab body — `space-y-4` under a ProfileTabHeader — and
+ * NOT AppPage. AppPage is AppShell + that header, and Profile.tsx already owns
+ * the AppShell; keeping it here would nest two 100dvh viewport locks.
+ */
+const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
   usePageTitle("Work Record — Helpr");
   const navigate = useNavigate();
   const { user } = useAuthReady();
@@ -285,11 +296,13 @@ const WorkRecord = () => {
   }
 
   return (
-    // AppPage — the shared signed-in sub-screen shell (AppShell + the Profile
-    // tab header + the centered content column). The old "Employment &
+    // The canonical Profile tab body: `space-y-4` under a ProfileTabHeader,
+    // matching every other tab. NOT AppPage — that is AppShell + this header,
+    // and Profile.tsx already owns the AppShell. The old "Employment &
     // Earnings" eyebrow has no equivalent on this header; the document card
     // below already prints "Employment & Earnings Record" as its own heading.
-    <AppPage title="Work Record" backTo="/profile">
+    <div className="space-y-4">
+      <ProfileTabHeader title="Work Record" onBack={onBack} />
       {/* `space-y-5` preserved from the old body wrapper — it spaces the
           document card from the share/print controls under it. */}
       <div className="space-y-5">
@@ -650,7 +663,7 @@ const WorkRecord = () => {
           </>
         )}
       </div>
-    </AppPage>
+    </div>
   );
 };
 

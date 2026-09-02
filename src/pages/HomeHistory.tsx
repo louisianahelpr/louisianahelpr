@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { MapPin, Calendar, Home, Loader2, Share2 } from "lucide-react";
-import AppPage from "@/components/AppPage";
+import { ProfileTabHeader } from "@/components/profile/ProfileTabHeader";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { unwrap } from "@/lib/supabaseResult";
@@ -100,7 +100,18 @@ function groupByYear(jobs: CompletedJobWithHelper[]): { year: number; jobs: Comp
     .map(([year, jobs]) => ({ year, jobs }));
 }
 
-const HomeHistory = () => {
+/**
+ * HomeHistory — the Profile "Home History" tab.
+ *
+ * Was the standalone route `/home-history` until 2026-09-02. It was only ever
+ * reached FROM Profile's own chrome, so it was a Profile tab implemented as a
+ * route. It now renders the canonical tab body — `space-y-4` under a
+ * ProfileTabHeader — and NOT AppPage: AppPage is AppShell + that header, and
+ * Profile.tsx already owns the AppShell, so keeping it would nest two 100dvh
+ * viewport locks. The record grows without bound (every completed job, for the
+ * life of the house) and scrolls in the AppShell container Profile owns.
+ */
+const HomeHistory = ({ onBack }: { onBack?: () => void }) => {
   usePageTitle("Home History — Helpr");
   const navigate = useNavigate();
   const { user } = useAuthReady();
@@ -281,13 +292,11 @@ const HomeHistory = () => {
   }
 
   return (
-    // AppPage — the shared signed-in sub-screen shell (AppShell + the Profile
-    // tab header + the centered content column), the same component the
-    // Profile tabs use. The record grows without bound (every completed job,
-    // for the life of the house), so it scrolls in AppShell's internal
-    // container; `/home-history` must therefore NOT be in
-    // DOCUMENT_SCROLL_ROUTES, or a second scroll lock stacks on top of it.
-    <AppPage title="Home History" backTo="/profile">
+    // The canonical Profile tab body: `space-y-4` under a ProfileTabHeader,
+    // matching every other tab. Profile.tsx owns the AppShell and the centered
+    // content column that used to come from AppPage.
+    <div className="space-y-4">
+      <ProfileTabHeader title="Home History" onBack={onBack} />
       {/* `space-y-5` preserved from the old body wrapper — it separates the
           per-year timeline sections. */}
       <div className="space-y-5">
@@ -526,7 +535,7 @@ const HomeHistory = () => {
           </section>
         ))}
       </div>
-    </AppPage>
+    </div>
   );
 };
 

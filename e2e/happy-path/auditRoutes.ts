@@ -76,35 +76,8 @@ export async function toggleDashboardMap(page: Page): Promise<boolean> {
  * it must be "YYYY-MM-DD": a full ISO timestamp makes the dialog's date math
  * throw and the page falls into its error boundary.
  */
-const GUEST_PREVIEW_JOB = {
-  id: "10000000-0000-4000-8000-000000000001",
-  title: "Help me move a couch up one flight",
-  description: "Sofa and two chairs from the truck into a second-floor apartment. Should take about an hour.",
-  category: "moving",
-  budget: 120,
-  date_needed: new Date(Date.now() + 2 * 86_400_000).toISOString().slice(0, 10),
-  start_time: "14:00",
-  location: "New Orleans, LA",
-  customer_id: "33333333-3333-4333-8333-333333333333",
-  status: "open",
-  created_at: new Date(Date.now() - 30 * 60_000).toISOString(),
-  updated_at: new Date(Date.now() - 30 * 60_000).toISOString(),
-  is_urgent: false,
-  urgent_fee: 0,
-  is_recurring: false,
-  is_group_job: false,
-  helpers_needed: 1,
-  estimated_hours: 1,
-  special_requirements: null,
-  photos: [],
-  boost_expires_at: null,
-  // Must be in the future: JobDetail treats an elapsed `expires_at` as "no
-  // longer browsable" and renders the not-found branch instead.
-  expires_at: new Date(Date.now() + 7 * 86_400_000).toISOString(),
-  recurrence_interval: null,
-  pricing_mode: "fixed",
-};
-
+// GUEST_PREVIEW_JOB removed with the `job-detail-guest` row above — it mocked
+// `open_jobs_browse` for an anonymous JobDetail render that can no longer happen.
 // Public / unauthenticated surfaces. Every non-redirect anon route in
 // src/App.tsx, plus the catch-all NotFound.
 export const ANON_SCREENS: ScreenSpec[] = [
@@ -169,13 +142,21 @@ export const ANON_SCREENS: ScreenSpec[] = [
   // shared link actually opens, was measured zero times. The rule below gives
   // the first id a real row so `job-detail-guest` audits the job, while
   // `…-dead` keeps its unmocked miss and stays the not-found case.
-  {
-    name: "job-detail-guest",
-    url: "/jobs/10000000-0000-4000-8000-000000000001",
-    // A single object, not an array: the page reads it with `.maybeSingle()`.
-    rules: [mockTable("open_jobs_browse", GUEST_PREVIEW_JOB)],
-  },
-  { name: "job-detail-guest-missing", url: "/jobs/10000000-0000-4000-8000-00000000dead" },
+  // NO `job-detail-guest` ROW ANY MORE, and the reason is worth stating because
+  // it is a real change in what this app shows the public.
+  //
+  // `/jobs/:id` became signed-in-only on 2026-09-02 (owner's call, after we
+  // measured that the browse card already sent guests to /signup while the same
+  // URL opened the full job to anyone arriving by link). A guest now gets the
+  // login screen here, so a row claiming this URL renders JobDetail for an
+  // anonymous visitor is simply false — and `auditCatalogRoutes.test.ts` caught
+  // exactly that the moment the route changed, which is what that guard is for.
+  //
+  // Note this leaves JobDetail's own populated branch rendered by NOBODY: a
+  // guest never reaches it, and JobDetail.tsx:105 redirects every signed-in
+  // visitor to /dashboard?quickApply=<id>. The page is now a redirect shim
+  // wearing a page's clothes. Flagged to the owner rather than quietly deleted
+  // — the share-link landing experience it contains was built deliberately.
   { name: "not-found", url: "/this-route-does-not-exist" },
 ];
 
@@ -243,8 +224,8 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   // that what it renders depends on the account's tier: an entitled helper gets
   // the dashboard, everyone else gets the upgrade offer. Both are real states
   // and both want auditing; the seeded audit helper is Elite.
-  { name: "analytics", url: "/analytics" },
-  { name: "auto-tip", url: "/auto-tip" },
+  { name: "analytics", url: "/profile?tab=analytics" },
+  { name: "auto-tip", url: "/profile?tab=auto_tip" },
   { name: "availability", url: "/availability" },
   { name: "earnings", url: "/earnings" },
   // REMOVED 2026-08-23: Family & Care is behind FAMILY_ENABLED, which is off
@@ -258,7 +239,7 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   // bad-token branch. Verified in a browser. The branch it meant to reach is
   // already covered by the row above — `test-invite-token` is not a real
   // invite either, so it takes the same "invalid token" path.
-  { name: "home-history", url: "/home-history" },
+  { name: "home-history", url: "/profile?tab=home_history" },
   // REMOVED 2026-08-22: /job-history's redirect stub was deleted in 2352466e,
   // so this row rendered the 404 page while reporting as the job-history
   // screen. The completed-work screen it meant to reach is `/work-record`
@@ -272,7 +253,9 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   // never actually happened. They are kept because the redirect itself is a
   // contract worth regressing on, and because they cost nothing under
   // `seededOnly`; the page they were meant to cover is now audited as
-  // `job-detail-guest` in ANON_SCREENS, which is the only role that renders it.
+  // `job-detail-guest` in ANON_SCREENS — which, since /jobs/:id went
+  // signed-in-only on 2026-09-02, no longer exists either. Nothing renders
+  // JobDetail's body now; see the note in ANON_SCREENS.
   { name: "job-detail-1", url: "/jobs/10000000-0000-4000-8000-000000000001" },
   { name: "job-detail-2", url: "/jobs/10000000-0000-4000-8000-000000000002", seededOnly: true },
   { name: "job-detail-3", url: "/jobs/10000000-0000-4000-8000-000000000003", seededOnly: true },
@@ -295,9 +278,9 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   { name: "schedule", url: "/schedule" },
   { name: "settings", url: "/settings" },
   { name: "settings-profile", url: "/settings/profile" },
-  { name: "str-settings", url: "/str-settings" },
-  { name: "work-record", url: "/work-record" },
-  { name: "wrapped", url: "/wrapped" },
+  { name: "str-settings", url: "/profile?tab=str_settings" },
+  { name: "work-record", url: "/profile?tab=work_record" },
+  { name: "wrapped", url: "/profile?tab=wrapped" },
   { name: "post-login", url: "/dashboard/post-login" },
 ];
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import AppPage from "@/components/AppPage";
+import { ProfileTabHeader } from "@/components/profile/ProfileTabHeader";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -65,8 +65,14 @@ const FIELD_BASE =
  * adjusted it down, and Stripe keeps the processing fee on refunds. A separate
  * post-completion charge costs less overall and only ever charges for work that
  * actually happened.
+ *
+ * A Profile tab, not a route. Was the standalone `/auto-tip` until 2026-09-02,
+ * reached only from Profile's own chrome. It renders the canonical tab body —
+ * `space-y-4` under a ProfileTabHeader — and NOT AppPage: AppPage is AppShell
+ * + that header, and Profile.tsx already owns the AppShell, so keeping it here
+ * would nest two 100dvh viewport locks.
  */
-const AutoTip = () => {
+const AutoTip = ({ onBack }: { onBack?: () => void }) => {
   usePageTitle("After a Job — Helpr");
   const { user, profile, refresh } = useCurrentUser();
 
@@ -196,11 +202,12 @@ const AutoTip = () => {
   const captionStyle = { color: "hsl(var(--olivewood) / 0.8)" } as const;
 
   return (
-    <AppPage title="After a Job" backTo="/profile">
-      {/* AppPage owns the shell — AppShell + ProfileTabHeader + the single
-          centered content column. This page contributes nothing but its own
-          vertical rhythm; re-adding a `page-measure`/gutter wrapper here would
-          be a second max-width inside AppPage's own. */}
+    <div className="space-y-4">
+      <ProfileTabHeader title="After a Job" onBack={onBack} />
+      {/* Profile.tsx owns the shell — AppShell plus the single centered content
+          column. This tab contributes nothing but its own vertical rhythm;
+          adding a `page-measure`/gutter wrapper here would be a second
+          max-width inside Profile's own. */}
       <div className="space-y-5">
         <section className="liquid-glass rounded-ds-md p-5 space-y-4">
           <h2 className="font-display font-bold text-ds-14" style={{ color: "hsl(var(--ink-deep))" }}>
@@ -467,7 +474,7 @@ const AutoTip = () => {
             means we confirm the tip rather than auto-charge it — was folded
             into the opening paragraph rather than lost. */}
       </div>
-    </AppPage>
+    </div>
   );
 };
 

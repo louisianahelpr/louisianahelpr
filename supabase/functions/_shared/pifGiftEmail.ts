@@ -46,7 +46,11 @@ async function renderPifGiftEmail(
   const donorSafe = sanitizeHeaderValue(opts.donorName, 80) || "Someone";
   // Claim link carries only an opaque token — no email in the query string, so
   // the link isn't a PII-leaking, guessable-by-address URL.
-  const claimUrl = `${getAppUrl()}/pay-it-forward?claim=${encodeURIComponent(opts.claimToken)}`;
+  // `/gift-card`, not `/pay-it-forward` — the feature was renamed 2026-09-02 and
+  // this is the link a recipient actually clicks. The OLD path stays alive as a
+  // query-preserving redirect precisely because emails sent before today carry
+  // it; deleting that route would turn a paid, unclaimed gift into a 404.
+  const claimUrl = `${getAppUrl()}/gift-card?claim=${encodeURIComponent(opts.claimToken)}`;
   const note = opts.message?.trim();
 
   const { html, text } = await renderEmail(

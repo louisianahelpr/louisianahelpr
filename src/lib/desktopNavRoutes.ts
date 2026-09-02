@@ -24,25 +24,21 @@ const AUTH_PREFIXES = [
   // "/benefits" was removed from this list 2026-08-31 along with the page and
   // its route; an allow-list entry for a path that now renders NotFound would
   // dress the 404 in the signed-in rail.
-  "/gift-card", "/str-settings", "/home-history", "/work-record",
-  // "/pets" removed 2026-09-02 with its route (now the Profile `?tab=pets`
+  "/gift-card", // "/pets" removed 2026-09-02 with its route (now the Profile `?tab=pets`
   // tab); an allow-list entry for a path that renders NotFound would dress the
   // 404 in the signed-in rail.
   // /analytics — Advanced Analytics. Strictly authed, document-scroll, reached
   // from the Earnings tab. Absent from this allow-list it would render with no
   // rail and no top bar, and the `#root` inset keyed off it would never apply —
   // the exact failure the /auto-tip and /wrapped entries below were added for.
-  "/analytics",
   // /auto-tip was the one strictly-authed settings page missing from this
   // list — the 2026-08-24 visual audit caught it rendering with no rail and
   // no top bar at desktop widths (the exact failure mode the comment above
   // describes), while every sibling linked from the same profile rows has it.
-  "/auto-tip",
   // /wrapped — same failure mode as /auto-tip above: strictly-authed
   // document-scroll page linked from the app, but absent here meant it
   // rendered with no rail and no top bar (caught by the 2026-08-24 B-lane
   // overnight audit at 1440).
-  "/wrapped",
   // /data-rights is NOT a page any more — since 2026-08-18 it is a
   // <Navigate> into /profile?tab=legal. It stays listed for the same reason
   // /schedule, /availability and /saved-helpers do (they are also redirects
@@ -71,6 +67,14 @@ const AUTH_PREFIXES = [
   // visitors are unaffected: the rail is additionally gated on `!!user` in
   // useAppShellViewport, so it still never shows on the public surface.
   "/help", "/legal", "/support", "/subscription",
+  // The six standalone settings sub-pages that used to be listed here left
+  // with their routes on 2026-09-02 — they are Profile tabs now
+  // (?tab=work_record, home_history, str_settings, auto_tip, wrapped,
+  // analytics), and "/profile" above already covers every one of them.
+  // These entries are PREFIX matches against a pathname, so a
+  // "/profile?tab=x" entry would never match anything and an entry for a
+  // deleted path would only dress the 404 screen in signed-in chrome —
+  // the "/benefits" lesson recorded above.
 ];
 
 // Path prefixes that MUST NOT get the rail even though they'd otherwise

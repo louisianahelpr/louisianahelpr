@@ -1,13 +1,16 @@
 /**
- * StrSettings — /str-settings
+ * StrSettings — the Profile "Host Automation" tab.
  *
- * "Rental Host Automation" settings page. Lets users connect Airbnb / VRBO
- * iCal feeds so Helpr auto-posts a cleaning job each time a guest checks out.
+ * "Rental Host Automation" settings. Lets users connect Airbnb / VRBO iCal
+ * feeds so Helpr auto-posts a cleaning job each time a guest checks out.
  *
- * AppShell page (owner, 2026-08-30: "app shell globally"). Chrome stays
- * pinned; content scrolls in AppShell's internal container. Deliberately NOT
- * in DOCUMENT_SCROLL_ROUTES — an AppShell page on that list gets a second
- * scroll lock stacked on its own (iOS double-rubber-band).
+ * Was the standalone route `/str-settings` until 2026-09-02. It was only ever
+ * reached FROM Profile's own chrome, so it was a Profile tab wearing a route's
+ * clothes. It renders the canonical tab body — `space-y-4` under a
+ * ProfileTabHeader — and NOT AppPage: AppPage is AppShell + that header, and
+ * Profile.tsx already owns the AppShell, so keeping it would nest two 100dvh
+ * viewport locks. No longer a route, so the DOCUMENT_SCROLL_ROUTES question
+ * no longer applies to it at all.
  */
 
 import { useState } from "react";
@@ -17,7 +20,7 @@ import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { toast } from "sonner";
 import { hapticSuccess } from "@/lib/haptics";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import AppPage from "@/components/AppPage";
+import { ProfileTabHeader } from "@/components/profile/ProfileTabHeader";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
@@ -34,7 +37,7 @@ import { userFacingError } from "@/lib/userFacingError";
 // ---------------------------------------------------------------------------
 // Main page
 // ---------------------------------------------------------------------------
-export default function StrSettings() {
+export default function StrSettings({ onBack }: { onBack?: () => void }) {
   usePageTitle("Host Automation — Helpr");
   const [addOpen, setAddOpen] = useState(false);
   const [syncingId, setSyncingId] = useState<string | null>(null);
@@ -220,7 +223,8 @@ export default function StrSettings() {
     "affected.";
 
   return (
-    <AppPage title="Host Automation" backTo="/profile">
+    <div className="space-y-4">
+      <ProfileTabHeader title="Host Automation" onBack={onBack} />
 
         {/* ONE card, every breakpoint (owner, 2026-08-29: "merge into 1"). This
             used to stack a desktop-only "How it works" rail ABOVE the
@@ -407,6 +411,6 @@ export default function StrSettings() {
         }}
         secondaryLabel="Keep Calendar"
       />
-    </AppPage>
+    </div>
   );
 }

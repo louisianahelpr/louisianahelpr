@@ -590,7 +590,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           hidden link would leave the pricing bullet undiscoverable. */}
       <button
         type="button"
-        onClick={() => navigate("/analytics")}
+        onClick={() => navigate("/profile?tab=analytics")}
         className="w-full rounded-2xl liquid-glass px-4 py-3 flex items-center gap-3 text-left active:scale-[0.99] transition-transform"
       >
         <span className="min-w-0 flex-1">

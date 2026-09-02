@@ -62,7 +62,6 @@ const DOCUMENT_SCROLL_ROUTES = [
   // routinely exceeds the fold. It renders NO AppShell/AppPage, so it belongs
   // here; off this list, `html.app-shell { overflow: hidden }` would clip the
   // lower panels with no way to scroll to them.
-  "/analytics",
   // /str-settings, /gift-card, /auto-tip and /wrapped moved OFF
   // this list (owner, 2026-08-30: "app shell globally"). They are
   // strictly-authed app screens reached from the Profile landing, so unlike
@@ -81,6 +80,14 @@ const DOCUMENT_SCROLL_ROUTES = [
 
   // Public marketing / informational pages (document-scroll)
   "/help",         // Help Center — static FAQ / support page
+  // The six standalone settings sub-pages that used to be listed here left
+  // with their routes on 2026-09-02 — they are Profile tabs now
+  // (?tab=work_record, home_history, str_settings, auto_tip, wrapped,
+  // analytics), and "/profile" above already covers every one of them.
+  // These entries are PREFIX matches against a pathname, so a
+  // "/profile?tab=x" entry would never match anything and an entry for a
+  // deleted path would only dress the 404 screen in signed-in chrome —
+  // the "/benefits" lesson recorded above.
 ];
 
 // On NATIVE only, the Legal page renders via AppShell (internal scroll) to

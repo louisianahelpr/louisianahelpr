@@ -103,16 +103,12 @@ const Jobs = lazy(() => import("./pages/Jobs"));
 const JobDetail = lazy(() => import("./pages/JobDetail"));
 const DashboardGuest = lazy(() => import("./pages/DashboardGuest"));
 
-const HelprWrapped = lazy(() => import("./pages/HelprWrapped"));
-const StrSettings = lazy(() => import("./pages/StrSettings"));
-const AutoTip = lazy(() => import("./pages/AutoTip"));
-const PayItForward = lazy(() => import("./pages/PayItForward"));
+// The seven pages that used to be lazy-imported here are now Profile tabs and
+// are lazy-imported by ProfileTabPanels instead: PetProfiles, WorkRecord,
+// HomeHistory, HelprWrapped, StrSettings, HelperAnalytics, AutoTip.
+const GiftCard = lazy(() => import("./pages/GiftCard"));
 const HelpCenter = lazy(() => import("./pages/HelpCenter"));
 const Support = lazy(() => import("./pages/Support"));
-const HomeHistory = lazy(() => import("./pages/HomeHistory"));
-const WorkRecord = lazy(() => import("./pages/WorkRecord"));
-const HelperAnalytics = lazy(() => import("./pages/HelperAnalytics"));
-const PetProfiles = lazy(() => import("./pages/PetProfiles"));
 
 // Lazy load less-critical global components
 
@@ -288,7 +284,19 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       {/* Public, deep-linkable job preview. Shared links (ShareJobButton →
           /jobs/{id}?ref=share) land here: guests get a read-only preview,
           signed-in users are redirected into the dashboard apply flow. */}
-      <Route path="/jobs/:id" element={<RouteErrorBoundary>{routeEl(<PageTransition><JobDetail /></PageTransition>)}</RouteErrorBoundary>} />
+      {/* SIGNED-IN ONLY (owner, 2026-09-02). The browse feed already sent a
+          guest tapping a job card to `/signup?redirect=/jobs/<id>`, while this
+          same URL opened the full job to anyone who arrived by link — measured
+          both ways before changing either. The owner chose the card's
+          behaviour as the correct one, so the two now agree.
+
+          The share link still converts: `<ProtectedRoute>` bounces to
+          `/signup?redirect=…`, and the visitor lands on the job once they have
+          an account. And the LINK PREVIEW is untouched — vercel.json rewrites
+          `/jobs/:id` to `/api/share`, which server-renders the OG tags for
+          crawlers and hands humans the same SPA, so a shared job still shows a
+          real card in Messages and on social. */}
+      <Route path="/jobs/:id" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PageTransition><JobDetail /></PageTransition></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* SHORT / ALTERNATE LINK SHAPES — the web half of the AASA contract.
           All five are claimed in public/.well-known/apple-app-site-association
           and mapped by normalizeDeepLinkUrl, but only INSIDE the app. On the
@@ -327,17 +335,15 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       {/* Public so the footer "Plans" link and marketing CTAs resolve for
           logged-out visitors. The page renders read-only for guests (current
           plan shows Free); tapping Upgrade routes them to sign in first. */}
-      <Route path="/str-settings" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><StrSettings /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* Gift Card — send a gift card to a Helpr (renamed from Pay It Forward) */}
-      <Route path="/auto-tip" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><AutoTip /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      <Route path="/gift-card" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PayItForward /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/gift-card" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><GiftCard /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* Legacy /pay-it-forward → /gift-card (feature renamed).
           MUST carry the query string. This was a bare
           `<Navigate to="/gift-card" replace />`, and a bare string `to`
           replaces the whole location — search and hash included — so every
           gift-card claim link died here. `_shared/pifGiftEmail.ts:49` mails
           `${getAppUrl()}/pay-it-forward?claim=<token>`; the token was dropped
-          on the way to /gift-card, PayItForward.tsx:121 read `null` from
+          on the way to /gift-card, GiftCard.tsx:121 read `null` from
           `searchParams.get("claim")`, its claim effect returned early, and the
           credit was never claimed — no error, no toast, nothing to notice.
           Signed out it died one step earlier: ProtectedRoute builds
@@ -361,11 +367,8 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           Gated in SQL: get_helper_analytics() returns entitled:false to
           non-subscribers and the page renders an upgrade offer, not a locked
           copy of the dashboard. */}
-      <Route path="/analytics" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><HelperAnalytics /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* Public vertical landing pages */}
 
-      <Route path="/home-history" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><HomeHistory /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      <Route path="/work-record" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><WorkRecord /></ProtectedRoute>)}</RouteErrorBoundary>} />
 
       {/* /become-a-partner, /enterprise and /how-it-works were retired, and
           their redirect stubs deleted in 2352466e. These comments used to say
@@ -387,7 +390,6 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       {/* Helpr Wrapped — auth-gated at the route level so a logged-out
           visitor never sees a flash of authed chrome (HelprWrapped's own
           useEffect redirect used to fire only after the first paint). */}
-      <Route path="/wrapped" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><HelprWrapped /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* /benefits (BenefitsPage) was removed 2026-08-31 (owner): there were
           no partner agreements behind it — every row was a plain link to a
           public third-party site, so the screen made a promise the product

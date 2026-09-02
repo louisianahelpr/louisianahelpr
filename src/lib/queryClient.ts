@@ -51,7 +51,7 @@ export const queryClient = new QueryClient({
       // mean "error when offline" — it means the mutation is PAUSED. It
       // never calls `mutationFn`, never fires `onError`, and never rolls
       // back. `useSaveJob`'s `onMutate` had already flipped the heart and
-      // `PayItForward`'s donate had already spun its button, so the user
+      // `GiftCard`'s donate had already spun its button, so the user
       // sees a completed action while ZERO requests leave the device.
       //
       // Driven against prod (offline tap on Save/Unsave):
@@ -81,7 +81,7 @@ export const queryClient = new QueryClient({
       // is ever dehydrated.
       //
       // Audited every `useMutation` in src/ before flipping this (all 6:
-      // PayItForward donate, PetProfiles delete, StrSettings add/remove,
+      // GiftCard donate, PetProfiles delete, StrSettings add/remove,
       // useSaveJob, useApplyFlow). None sets its own `networkMode`, none
       // reads `isPaused`/`resumePausedMutations`/`mutationCache`, and none
       // depends on the pause. The app's real offline defence is the set of

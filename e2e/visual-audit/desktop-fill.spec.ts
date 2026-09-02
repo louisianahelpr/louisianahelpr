@@ -77,11 +77,11 @@ const ROUTES: Route[] = [
   { path: "/profile?tab=pets", auth: "authed" },
   { path: "/pay-it-forward", auth: "authed" },
   { path: "/family", auth: "authed" },
-  { path: "/analytics", auth: "authed" },
-  { path: "/home-history", auth: "authed" },
-  { path: "/work-record", auth: "authed" },
-  { path: "/str-settings", auth: "authed" },
-  { path: "/wrapped", auth: "authed" },
+  { path: "/profile?tab=analytics", auth: "authed" },
+  { path: "/profile?tab=home_history", auth: "authed" },
+  { path: "/profile?tab=work_record", auth: "authed" },
+  { path: "/profile?tab=str_settings", auth: "authed" },
+  { path: "/profile?tab=wrapped", auth: "authed" },
 
 ];
 

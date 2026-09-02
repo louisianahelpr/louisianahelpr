@@ -2,7 +2,7 @@ import type { Database } from "@/integrations/supabase/types";
 
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
-export type Tab = "landing" | "profile" | "earnings" | "schedule" | "availability" | "payment" | "security" | "legal" | "reviews" | "referral" | "subscription" | "support" | "notifications" | "warnings" | "credentials" | "saved_helpers" | "accessibility" | "pets";
+export type Tab = "landing" | "profile" | "earnings" | "schedule" | "availability" | "payment" | "security" | "legal" | "reviews" | "referral" | "subscription" | "support" | "notifications" | "warnings" | "credentials" | "saved_helpers" | "accessibility" | "pets" | "work_record" | "home_history" | "str_settings" | "auto_tip" | "wrapped" | "analytics";
 
 /**
  * Human name for each Profile tab, used to build a distinct `document.title`
@@ -41,6 +41,15 @@ export const TAB_TITLES: Record<Exclude<Tab, "landing">, string> = {
   accessibility: "Accessibility",
   // Was the standalone route /pets until 2026-09-02.
   pets: "My Pets",
+  // Six more standalone routes folded in 2026-09-02 — each was reached only
+  // from Profile, so each was a tab already (owner: "anything in profile tab
+  // should not be a stand alone tab").
+  work_record: "Work Record",
+  home_history: "Home History",
+  str_settings: "Host Automation",
+  auto_tip: "After a Job",
+  wrapped: "Helpr Wrapped",
+  analytics: "Analytics",
 };
 
 /**

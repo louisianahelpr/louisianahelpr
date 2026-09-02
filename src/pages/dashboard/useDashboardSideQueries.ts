@@ -53,7 +53,7 @@ export function useDashboardSideQueries({ userId, userEmail, allJobs }: UseDashb
       if (!userId) return 0;
       try {
         // Quote the email so a reserved char in the local part can't break
-        // the .or() grammar — same guard PayItForward's received-gifts query
+        // the .or() grammar — same guard GiftCard's received-gifts query
         // uses. RLS constrains the rows regardless.
         const orClause = userEmail
           ? `recipient_id.eq.${userId},recipient_email.eq."${userEmail.replace(/(["\\])/g, "\\$1")}"`

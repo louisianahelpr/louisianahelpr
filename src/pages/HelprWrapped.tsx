@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Gift, Loader2, Share2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import AppPage from "@/components/AppPage";
+import { ProfileTabHeader } from "@/components/profile/ProfileTabHeader";
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -239,7 +239,17 @@ const StatCard = ({ label, value }: StatCardProps) => (
   </div>
 );
 
-const HelprWrapped = () => {
+/**
+ * HelprWrapped — the Profile "Wrapped" tab.
+ *
+ * Was the standalone route `/wrapped` until 2026-09-02. It was only ever
+ * reached FROM Profile's own chrome, so it was a Profile tab wearing a route's
+ * clothes. Renders the canonical tab body — `space-y-4` under a
+ * ProfileTabHeader — and NOT AppPage: AppPage is AppShell + that header, and
+ * Profile.tsx already owns the AppShell, so keeping it here would nest two
+ * 100dvh viewport locks.
+ */
+const HelprWrapped = ({ onBack }: { onBack?: () => void }) => {
   // Both branches say what the h1 says (`Your ${SEASON.title}`) and both keep
   // the "— Helpr" suffix every other title carries. The December branch used
   // to drop the suffix AND reorder the words ("Helpr Wrapped 2026"), so the
@@ -420,11 +430,12 @@ const HelprWrapped = () => {
   const loadFailed = isError || (!!stats?.incomplete && !hasActivity);
 
   return (
-    <AppPage title={`Your ${SEASON.title}`} backTo="/profile">
-      {/* AppPage owns the shell (AppShell + title + the one centered content
-          column), so this page adds only the card's own centering. No
+    <div className="space-y-4">
+      <ProfileTabHeader title={`Your ${SEASON.title}`} onBack={onBack} />
+      {/* Profile.tsx owns the shell (AppShell + the one centered content
+          column), so this tab adds only the card's own centering. No
           `page-measure`/gutter wrapper here — that would be a second
-          max-width inside AppPage's. */}
+          max-width inside Profile's. */}
       <div className="py-2 flex flex-col items-center">
         <div
           className="w-full max-w-[420px] rounded-ds-lg overflow-hidden"
@@ -449,7 +460,7 @@ const HelprWrapped = () => {
               className="w-10 h-10 mx-auto mb-3"
               style={{ color: "hsl(var(--burnt-sienna) / 0.75)" }}
             />
-            {/* The canonical PageHeader above already names the year — it
+            {/* The ProfileTabHeader above already names the year — it
                 renders the page's <h1> ("Your {SEASON.title}"). This card used
                 to repeat it ("Your {YEAR} on Helpr."), so two headings restated
                 each other on screen at once. It now leads INTO the stats grid
@@ -567,7 +578,7 @@ const HelprWrapped = () => {
           )}
         </div>
       </div>
-    </AppPage>
+    </div>
   );
 };
 

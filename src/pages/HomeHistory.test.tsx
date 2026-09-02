@@ -104,7 +104,7 @@ function renderPage() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
   return render(
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={["/home-history"]}>
+      <MemoryRouter initialEntries={["/profile?tab=home_history"]}>
         <HomeHistory />
       </MemoryRouter>
     </QueryClientProvider>,

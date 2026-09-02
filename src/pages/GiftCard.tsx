@@ -1,5 +1,18 @@
 /**
- * Pay It Forward — /pay-it-forward
+ * GiftCard — /gift-card
+ *
+ * Renamed from "Pay It Forward" 2026-09-02 (owner: "gift card should be named
+ * gift card not pay it forward"). The FEATURE is a gift card — you buy one and
+ * a recipient claims it by email — and every user-facing string already said
+ * so; only the code and the legacy route still said "pay it forward", which
+ * meant the file you had to open to change gift-card behaviour was not the one
+ * named after it.
+ *
+ * `/pay-it-forward` stays as a query-preserving redirect and MUST NOT be
+ * deleted: it is the claim URL baked into gift emails already sent
+ * (supabase/functions/_shared/pifGiftEmail.ts). New emails point at
+ * /gift-card?claim=…; the old route is what keeps money already spent
+ * claimable.
  *
  * Document-scroll page (PageHeader + min-h-screen).
  *
@@ -52,7 +65,7 @@ const MIN_GIFT = 10; // matches MIN_GIFT_CENTS (1000) in create-pif-donation
 const MAX_GIFT = 500; // matches MAX_GIFT_CENTS (50000) in create-pif-donation
 
 // ─── Main page ────────────────────────────────────────────────────────────────
-export default function PayItForward() {
+export default function GiftCard() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   usePageTitle("Gift Card — Helpr");
@@ -143,7 +156,7 @@ export default function PayItForward() {
         // Surface the freshly-attached credit in the received list.
         await queryClient.invalidateQueries({ queryKey: ["pif-received"] });
       } catch (e) {
-        report(e, { tags: { source: "PayItForward.claim" } });
+        report(e, { tags: { source: "GiftCard.claim" } });
         errorToast("Couldn't claim gift card", {
           description: e instanceof Error ? e.message : "Please try again.",
         });
@@ -182,7 +195,7 @@ export default function PayItForward() {
         return rows;
       } catch (e: unknown) {
         if (e instanceof Error && e.message.includes("PGRST202")) return [];
-        report(e, { severity: "warning", tags: { source: "PayItForward.donated" } });
+        report(e, { severity: "warning", tags: { source: "GiftCard.donated" } });
         throw e;
       }
     },
@@ -246,7 +259,7 @@ export default function PayItForward() {
         return rows;
       } catch (e: unknown) {
         if (e instanceof Error && e.message.includes("PGRST202")) return [];
-        report(e, { severity: "warning", tags: { source: "PayItForward.received" } });
+        report(e, { severity: "warning", tags: { source: "GiftCard.received" } });
         throw e;
       }
     },
@@ -288,7 +301,7 @@ export default function PayItForward() {
       await openExternalUrl(data.url);
     },
     onError: (e) => {
-      report(e, { tags: { source: "PayItForward.donate" } });
+      report(e, { tags: { source: "GiftCard.donate" } });
       errorToast("Couldn't send gift card", {
         description: e instanceof Error ? e.message : "Please try again.",
       });

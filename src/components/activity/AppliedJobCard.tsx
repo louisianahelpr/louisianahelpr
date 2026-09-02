@@ -1,4 +1,4 @@
-import { memo, useRef, useState } from "react";
+import { memo, useRef } from "react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
 import { useNavigate } from "react-router-dom";

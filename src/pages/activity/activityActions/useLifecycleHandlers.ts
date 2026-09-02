@@ -246,7 +246,7 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
                 description:
                   "Turn on Instant Release and payment goes out the moment your Helpr marks done with photo proof — no 24-hour wait.",
                 duration: 10_000,
-                action: { label: "Turn It On", onClick: () => { window.location.href = "/auto-tip"; } },
+                action: { label: "Turn It On", onClick: () => { window.location.href = "/profile?tab=auto_tip"; } },
               });
             }
           }

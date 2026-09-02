@@ -143,7 +143,7 @@ const WIDTH_CLASS: Record<NonNullable<PageHeaderProps["width"]>, WidthSpec> = {
     outer: "max-w-lg md:page-measure px-4 md:px-6 lg:px-4",
   },
 
-  // Wide-reading body that grows to 7xl on large desktops. Body: PayItForward.
+  // Wide-reading body that grows to 7xl on large desktops. Body: GiftCard.
   "2xl-5xl-7xl": { outer: "max-w-2xl lg:max-w-5xl xl:max-w-7xl px-5 lg:px-8" },
 
   // The PUBLIC / marketing gutter ladder — `px-5 sm:px-8 lg:px-12`, the same

@@ -1,28 +1,30 @@
-// /analytics — Advanced Analytics, the Pro/Elite perk.
+// Advanced Analytics, the Pro/Elite perk — a Profile tab body.
 //
-// WHY THIS ROUTE IS A PAGE AGAIN. It used to be one, was merged into the
+// WHY IT IS ITS OWN THING AND NOT THE EARNINGS TAB. It was merged into the
 // Earnings tab on 2026-08-19 ("there is one Earnings & Analytics, not two"),
-// and the merge was right: the old /analytics rendered the SAME body as the
-// Earnings tab under a different title. This is not that page coming back.
-// The Earnings tab answers "what did I make and where is the money"; this one
-// answers "how do I make more", and half of its content — market rates and the
-// posting clock — is data the Earnings tab structurally cannot show, because a
-// helper cannot read other people's jobs at all. The perk bullet on the $10
-// card now points at something.
+// and that merge was right at the time: the old /analytics rendered the SAME
+// body as the Earnings tab under a different title. This is not that page
+// coming back. The Earnings tab answers "what did I make and where is the
+// money"; this one answers "how do I make more", and half of its content —
+// market rates and the posting clock — is data the Earnings tab structurally
+// cannot show, because a helper cannot read other people's jobs at all. The
+// perk bullet on the $10 card now points at something.
 //
-// SHELL: document-scroll (`min-h-screen bg-premium-page pb-safe-nav` +
-// PageHeader), because the content is a tall stack of panels that grows with
-// history. `/analytics` is registered in DOCUMENT_SCROLL_ROUTES to match, and
-// in `desktopNavRoutes`'s AUTH_PREFIXES so the desktop rail owns its nav.
+// SHELL: none of its own. Until 2026-09-02 this was the standalone route
+// `/analytics`, reached only from Profile's Earnings tab — a Profile tab
+// wearing a route's clothes, and the odd one out among its siblings because it
+// was the document-scroll kind (`min-h-screen bg-premium-page pb-safe-nav` +
+// PageHeader) rather than an AppPage. It now renders the canonical tab body:
+// `space-y-4` under a ProfileTabHeader. Profile.tsx owns the AppShell, the
+// viewport lock, the scroll container and the safe-area inset, so a
+// `min-h-screen` / `pb-safe-nav` / page background here would fight it.
 //
-// NO PER-PAGE RAIL INSET. The single global
-// `html.web-desktop.desktop-rail:not(.app-shell) #root { padding-left }` rule
-// already clears the desktop rail; a second `lg:pl-*` here would shove the
-// column right by a whole extra rail width (the PostJob bug in CLAUDE.md).
+// NO SECOND MEASURE OR GUTTER either: Profile.tsx already wraps every tab in
+// `container mx-auto px-5 lg:px-8 xl:px-12` > `page-measure mx-auto`, which is
+// why `Body` below carries only the column's gap.
 
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import PageHeader from "@/components/PageHeader";
+import { ProfileTabHeader } from "@/components/profile/ProfileTabHeader";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -44,13 +46,11 @@ import { CategoryPanel } from "@/components/analytics/CategoryPanel";
 import { DemandPanel } from "@/components/analytics/DemandPanel";
 import { EarningsFeePanel } from "@/components/analytics/EarningsFeePanel";
 
-/** The one body wrapper, shared by every state so the column never resizes. */
+/** The one body wrapper, shared by every state so the column never resizes.
+ *  Gap only — the measure and the gutters belong to Profile.tsx's tab
+ *  container (see the SHELL note at the top of this file). */
 function Body({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="page-measure mx-auto px-5 lg:px-8 xl:px-12 pb-8">
-      <div className="flex flex-col gap-4 items-stretch">{children}</div>
-    </div>
-  );
+  return <div className="flex flex-col gap-4 items-stretch">{children}</div>;
 }
 
 function RangeToggle({
@@ -100,9 +100,8 @@ function RangeToggle({
   );
 }
 
-export default function HelperAnalytics() {
+export default function HelperAnalytics({ onBack }: { onBack?: () => void }) {
   usePageTitle("Analytics");
-  const navigate = useNavigate();
   const { user, profile, isLoading: userLoading } = useCurrentUser();
   const [range, setRange] = useState<AnalyticsRange>(DEFAULT_ANALYTICS_RANGE);
   const { data, isLoading, isError, refetch, isFetching } = useHelperAnalytics(user?.id, range);
@@ -115,16 +114,12 @@ export default function HelperAnalytics() {
     profile?.subscription_expires_at ?? null,
   );
 
-  const header = (
-    <PageHeader
-      title="Analytics"
-      width="default"
-      onBack={() => navigate("/profile?tab=earnings")}
-    />
-  );
+  // Every state — loading, error, pending-deploy, upgrade, loaded — returns
+  // through `wrap`, so the tab shell is written once and no early return can
+  // ship its own competing wrapper.
   const wrap = (inner: React.ReactNode) => (
-    <div className="min-h-screen bg-premium-page pb-safe-nav">
-      {header}
+    <div className="space-y-4">
+      <ProfileTabHeader title="Analytics" onBack={onBack} />
       <Body>{inner}</Body>
     </div>
   );

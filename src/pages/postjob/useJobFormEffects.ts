@@ -270,7 +270,7 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
    * `?budget=<dollars>` is DELIBERATELY NOT CONSUMED. It is not dead code we
    * forgot to wire — not wiring it is the decision.
    *
-   * PayItForward's "Use This Gift" navigates to
+   * GiftCard's "Use This Gift" navigates to
    * `/post-job?budget=75&pif_credit=…`, where 75 is the GIFT's value. Seeding
    * the budget box with it makes the gift look like the budget: the poster
    * lands on a form that has already decided they are spending exactly $75,

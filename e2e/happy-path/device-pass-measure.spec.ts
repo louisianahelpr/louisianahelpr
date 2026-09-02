@@ -644,7 +644,7 @@ test.describe("device pass — measured", () => {
    * `pt-safe-top` resolved to 0 inside <PageTransition>. Measure that the first
    * painted text starts BELOW the simulated notch.
    */
-  for (const route of ["/my-posts?filter=all", "/analytics", "/profile"]) {
+  for (const route of ["/my-posts?filter=all", "/profile?tab=analytics", "/profile"]) {
     test(`top safe-area inset @ 375 — ${route}`, async ({ page, context, baseURL }, testInfo) => {
       const record = recorder(slugify(testInfo.title));
       await seedAuthedSession(context, FAKE_HELPER, baseURL ?? "");

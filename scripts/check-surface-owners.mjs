@@ -66,7 +66,6 @@ const OWNERS = {
   "/data-rights": ["lh-compliance-store", "lh-account-lifecycle"],
   "/gift-card": ["lh-compliance-store", "lh-subscriptions-credits"],
   "/pay-it-forward": ["lh-subscriptions-credits"],
-  "/analytics": ["lh-long-tail-features"],
 
   // ── auth / account state ─────────────────────────────────────────────────
   "/login": ["lh-onboarding-auth"],
@@ -96,7 +95,6 @@ const OWNERS = {
   // covers the native handoff and not what this page asserts about the money.
   "/payment-success": ["lh-money-escrow", "lh-native-bridge"],
   "/earnings": ["lh-money-escrow"],
-  "/auto-tip": ["lh-subscriptions-credits", "lh-money-escrow"],
   "/saved-helpers": ["lh-trust-safety"],
   "/schedule": ["lh-scheduling-time"],
   "/availability": ["lh-scheduling-time"],
@@ -107,10 +105,6 @@ const OWNERS = {
   "/settings": ["lh-onboarding-auth"],
   "/settings/profile": ["lh-input-boundary"],
   "/user/:userId": ["lh-trust-safety"],
-  "/home-history": ["lh-long-tail-features"],
-  "/work-record": ["lh-long-tail-features"],
-  "/wrapped": ["lh-long-tail-features"],
-  "/str-settings": ["lh-long-tail-features"],
   "/admin": ["lh-admin-moderation"],
 
   // ── profile tabs (?tab=) ─────────────────────────────────────────────────
@@ -134,6 +128,12 @@ const OWNERS = {
   // surface; it may never be the only owner (see the rule below).
   "?tab=accessibility": ["lh-input-boundary", "lh-a11y-sensory"],
   "?tab=pets": ["lh-long-tail-features"],
+  "?tab=work_record": ["lh-long-tail-features"],
+  "?tab=home_history": ["lh-long-tail-features"],
+  "?tab=wrapped": ["lh-long-tail-features"],
+  "?tab=str_settings": ["lh-long-tail-features"],
+  "?tab=analytics": ["lh-long-tail-features"],
+  "?tab=auto_tip": ["lh-subscriptions-credits", "lh-money-escrow"],
 
   // ── post-a-job entry paths ───────────────────────────────────────────────
   // Six ship; EntryChoice's own docblock still describes three. Every one of

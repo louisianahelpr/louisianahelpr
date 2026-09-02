@@ -83,20 +83,37 @@ the available area, no horizontal overflow, and **no empty rail-width gutter**
 on the desktop website. This is a hard requirement, not a nicety — a page that
 floats in a lopsided column with blank bands has failed the audit.
 
-- **The desktop left-rail inset is applied in exactly ONE layer, globally.**
-  Fixed-shell pages clear the rail via `.app-shell-frame { left: var(--desktop-sidebar-w) }`;
-  non-app-shell **document-scroll pages** are inset by the global
-  `html.web-desktop.desktop-rail:not(.app-shell) #root { padding-left: var(--desktop-sidebar-w) }`
-  rule in `index.css`. A page must **never** re-inset itself (no per-page
-  `paddingLeft: var(--desktop-sidebar-w)`, no `lg:pl-[248px]`, no extra flex
-  spacer) — doing so pushes content right by a *second* rail width and knocks
-  the centered column off-center (this was the PostJob bug: `#root` padded 248px
-  AND the page padded 248px → form shoved to x≈496 with a dead 250px gutter).
-  Rail clearance lives in the shared shell layer, period.
+- **The desktop rail is on the RIGHT, and its inset is applied in exactly ONE
+  layer.** This entry said LEFT until 2026-09-02, and named two rules that do
+  not exist: `.app-shell-frame { left: … }` and `#root { padding-left: … }`.
+  Grep the stylesheet — the only two rail insets in the entire file are
+  `right: var(--desktop-sidebar-w)` on `.app-shell-frame` (`src/index.css:918`)
+  and `padding-right: var(--desktop-sidebar-w)` on `#root`
+  (`src/index.css:1111`). There is no `left:` or `padding-left:` rail inset
+  anywhere. `--desktop-sidebar-w` is 248px. Both rules are additionally gated on
+  `.side-panel-open`, so the inset exists only while the panel is open — a
+  closed panel is not a narrower rail, it is no rail.
+
+  Two things to know before trusting this paragraph OR the code around it.
+  `index.css`'s own comment above the `#root` rule still describes the rail as
+  "pinned at the viewport's left edge" while the declaration under it pads
+  RIGHT; the comment is stale, the declaration is authoritative. And `.desktop-rail`
+  is not present for a guest at all — measured at 1440 on `/`, `/legal` and
+  `/browse`, `<html>` carries only `web-desktop side-panel-open`, so none of
+  this fires until you are signed in.
+
+  A page must **never** re-inset itself (no per-page `paddingRight`/`paddingLeft`
+  of the rail width, no `lg:pr-[248px]`, no extra flex spacer) — doing so insets
+  by a *second* rail width and knocks the centered column off-center. That was
+  the PostJob bug, in its original left-rail form: `#root` padded 248px AND the
+  page padded 248px → form shoved to x≈496 with a dead 250px gutter. Rail
+  clearance lives in the shared shell layer, period.
 - After the single inset, the inner content column centers in the *post-rail*
-  area (`mx-auto`), so its visual center is `(rail_width + viewport) / 2`, not
-  the raw viewport center. Verify this: measure the column and confirm it's
-  centered in the space to the right of the rail, not the whole window.
+  area (`mx-auto`), so its visual center is offset from the raw viewport center
+  by half the rail. Verify by measuring the column against the space beside the
+  rail, not against the whole window — and measure `.app-shell-frame`, NOT
+  `<main>`: `<main>` is a full-width scroll wrapper, and reading it instead is
+  how a lane first "measured" the rail on the wrong edge.
 - **Proof of "fits" is mandatory and measured, not eyeballed.** For any page you
   touch, in Chrome at 1440 (rail present) AND 375 (no rail): assert
   `documentElement.scrollWidth <= clientWidth` (zero horizontal overflow), assert

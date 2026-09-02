@@ -1115,9 +1115,17 @@ html.web-desktop {
      over their header (hiding the back button + brand) and knocked the
      centered column off-center. When the rail is present (`desktop-rail`) and
      the page is NOT an app-shell page (those inset via .app-shell-frame), pad
-     #root by the rail width so the whole page sits to the right of the rail
-     and re-centers in the remaining space. The fixed rail ignores this
-     padding, so it stays pinned at the viewport's left edge. */
+     #root by the rail width so the whole page sits BESIDE the rail and
+     re-centers in the remaining space. The fixed rail ignores this padding, so
+     it stays pinned at the viewport edge.
+
+     THE EDGE IS THE RIGHT ONE. This comment said "pinned at the viewport's
+     left edge" while the declaration below it pads RIGHT — it was left behind
+     when the rail moved and then outlived the change long enough to mislead:
+     CLAUDE.md repeated the left-rail story verbatim, and a lane went looking
+     for the rail on the wrong edge because of it. A comment that contradicts
+     the declaration under it is worse than no comment, because it is the half
+     a reader trusts. */
   html.web-desktop.desktop-rail.side-panel-open:not(.app-shell) #root {
     padding-right: var(--desktop-sidebar-w);
   }

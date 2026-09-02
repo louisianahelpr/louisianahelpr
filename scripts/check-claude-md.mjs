@@ -161,6 +161,38 @@ for (const m of text.matchAll(/`(lh-[a-z0-9-]+)`/g)) {
   if (!known.has(name)) problems.push(`names \`${name}\` — no such agent, skill or command`);
 }
 
+// ── 4b. CSS declarations quoted from the stylesheet ────────────────────────
+// The failure this catches, verbatim: CLAUDE.md told every agent that the
+// desktop rail inset was `.app-shell-frame { left: var(--desktop-sidebar-w) }`
+// and `#root { padding-left: var(--desktop-sidebar-w) }`. NEITHER DECLARATION
+// EXISTED. The rail had moved to the right edge and the only two insets in the
+// whole stylesheet were `right:` and `padding-right:`. The paragraph read as a
+// precise, quotable fact — it quoted CSS — which is exactly what made it
+// dangerous: a lane measured the rail on the wrong edge because the document
+// told it which edge to look at.
+//
+// Only declarations naming a CSS CUSTOM PROPERTY are checked. A bare
+// `display: grid` is prose; `padding-left: var(--desktop-sidebar-w)` is a
+// quotation from a specific file and either appears there or does not.
+const cssFiles = ["src/index.css"].filter(existsSync);
+if (cssFiles.length) {
+  const css = cssFiles.map((f) => readFileSync(f, "utf8")).join("\n");
+  const norm = (s) => s.replace(/\s+/g, " ").trim();
+  const haystack = norm(css);
+  for (const m of text.matchAll(/`([a-z-]+:\s*var\(--[a-z0-9-]+\))[^`]*`/gi)) {
+    const decl = norm(m[1]);
+    // A leading `no ` / `not ` marks a declaration the document is BANNING, not
+    // quoting — "no per-page `paddingLeft: var(--desktop-sidebar-w)`" must not
+    // require that the banned thing exist.
+    const before = text.slice(Math.max(0, m.index - 24), m.index).toLowerCase();
+    if (/\b(no|not|never|without)\b[^.]*$/.test(before)) continue;
+    checked++;
+    if (!haystack.includes(decl)) {
+      problems.push(`quotes CSS \`${decl}\` — that declaration is not in ${cssFiles.join(", ")}`);
+    }
+  }
+}
+
 // ── 5. The Supabase project refs ───────────────────────────────────────────
 // CLAUDE.md states which ref is prod and which is staging, and that the linked
 // CLI points at staging. That last claim has been true all day and is exactly

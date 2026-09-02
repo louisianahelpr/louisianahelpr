@@ -16,12 +16,25 @@ import { getAppUrl } from "../_shared/appUrl.ts";
 // rendered from that one component — see the note above `renderCampaign`.
 import { MarketingBlastEmail } from "../_shared/email-templates/marketing-blast.tsx";
 import { renderEmail } from "../_shared/email-templates/render.ts";
+// EVERY list this function reads to decide who gets mail is capped by
+// PostgREST's `db-max-rows` (1000) unless it is paged. Five reads here were
+// not, and each one fails in the same direction: a short list means MORE mail
+// goes out, not less. `engagement-automations` is the reference implementation
+// for the fail-closed pattern used below.
+import { scanAll, scanAllIn } from "../_shared/paginate.ts";
+import type { CountOption } from "../_shared/paginate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
+
+/**
+ * Per-blast recipient ceiling. Was an undocumented `.limit(5000)` that silently
+ * dropped everyone past it; it is now an explicit refusal — see the check.
+ */
+const MAX_BLAST_RECIPIENTS = 5000;
 
 interface BlastBody {
   subject: string;
@@ -153,21 +166,40 @@ Deno.serve(async (req) => {
     // Fail CLOSED, and BEFORE the segment branches so the `test_email` preview
     // is covered too. A dropped error would produce an empty set, which looks
     // exactly like "nobody is suppressed".
-    const { data: suppressedList, error: suppressedError } = await supabase
-      .from("suppressed_emails")
-      .select("email");
-    if (suppressedError) {
-      console.error("[send-marketing-blast] suppression list unavailable:", suppressedError.message);
+    //
+    // PAGED, and a short read aborts exactly as a failed one does. The
+    // unpaged version returned the first 1000 suppressed addresses with a
+    // clean 200; every hard-bounced or complained address past that row was
+    // simply absent from `suppressedSet`, which at the filter below is
+    // indistinguishable from never having bounced. This list only ever grows,
+    // and it is the one whose truncation costs the sending domain.
+    const suppressedScan = await scanAll<{ email: string | null }>(
+      "suppressed_emails",
+      (countOpt) =>
+        supabase.from("suppressed_emails").select("email", countOpt).order("id", { ascending: true }),
+    );
+    if (suppressedScan.error) {
+      console.error("[send-marketing-blast] suppression list unavailable:", suppressedScan.error.message);
       return new Response(
         JSON.stringify({
           error:
-            `Could not load the bounce/complaint suppression list (${suppressedError.message}). Blast aborted — no email was sent.`,
+            `Could not load the bounce/complaint suppression list (${suppressedScan.error.message}). Blast aborted — no email was sent.`,
+        }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    if (!suppressedScan.complete) {
+      console.error("[send-marketing-blast] suppression list incomplete:", suppressedScan.shortfall);
+      return new Response(
+        JSON.stringify({
+          error:
+            `The bounce/complaint suppression list came back incomplete (${suppressedScan.shortfall}). Blast aborted — no email was sent.`,
         }),
         { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
     const suppressedSet = new Set(
-      (suppressedList || []).map((s) => (s.email || "").toLowerCase()),
+      suppressedScan.rows.map((r) => (r.email ?? "").toLowerCase()).filter((e) => e.length > 0),
     );
 
     // Resolve recipient list
@@ -188,43 +220,126 @@ Deno.serve(async (req) => {
       // column existed and has the DB default of `false`) is never sent
       // promotional mail. Transactional mail (auth, receipts, disputes)
       // uses different send paths and is not gated by this column.
-      let q = supabase
-        .from("profiles")
-        .select("user_id, email, full_name, parish")
-        .not("email", "is", null)
-        .eq("email_verified", true)
-        .eq("approval_status", "approved")
-        .eq("marketing_consent", true);
+      // Rebuilt once per page — `scanAll` calls this for every 500-row window
+      // and a PostgREST builder is single-use. `.order("user_id")` is required:
+      // offset paging over an unordered result is sampling, not paging.
+      const baseRecipients = (countOpt: CountOption) => {
+        let b = supabase
+          .from("profiles")
+          .select("user_id, email, full_name, parish", countOpt)
+          .not("email", "is", null)
+          .eq("email_verified", true)
+          .eq("approval_status", "approved")
+          .eq("marketing_consent", true);
+        if (body.segment === "by_parish" && body.parish) b = b.eq("parish", body.parish);
+        return b.order("user_id", { ascending: true });
+      };
 
+      // The two behavioural segments read a table that is far LARGER than the
+      // user base — one row per application, one per posted job — so they cross
+      // `db-max-rows` long before `profiles` does. Both reads also dropped
+      // their error outright (`const { data: applicants } =`), and the failure
+      // was silent in the worst possible way: on error the list came back
+      // empty, `helperIds.length === 0` matched, and the function answered
+      // `200 {sent: 0, message: "No users have applied to a job yet"}` — a
+      // truthful-sounding sentence about a read that never happened. Both are
+      // now paged and both fail closed.
+      let segmentIds: string[] | null = null;
       if (body.segment === "helpers") {
-        const { data: applicants } = await supabase
-          .from("applications")
-          .select("helper_id");
-        const helperIds = [...new Set((applicants ?? []).map((a) => a.helper_id))];
-        if (helperIds.length === 0) {
+        const applicantScan = await scanAll<{ helper_id: string | null }>(
+          "applications (helper segment)",
+          (countOpt) =>
+            supabase.from("applications").select("helper_id", countOpt).order("id", { ascending: true }),
+        );
+        if (applicantScan.error || !applicantScan.complete) {
+          const why = applicantScan.error?.message ?? applicantScan.shortfall;
+          console.error("[send-marketing-blast] helper segment read failed:", why);
+          return new Response(
+            JSON.stringify({
+              error: `Could not resolve the helper segment (${why}). Blast aborted — no email was sent.`,
+            }),
+            { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+        segmentIds = [...new Set(applicantScan.rows.map((a) => a.helper_id).filter((id): id is string => !!id))];
+        if (segmentIds.length === 0) {
           return new Response(JSON.stringify({ sent: 0, message: "No users have applied to a job yet" }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-        q = q.in("user_id", helperIds);
       }
       if (body.segment === "posters") {
-        const { data: postedJobs } = await supabase
-          .from("jobs")
-          .select("customer_id")
-          .not("customer_id", "is", null);
-        const posterIds = [...new Set((postedJobs ?? []).map((j) => j.customer_id))];
-        if (posterIds.length === 0) {
+        const posterScan = await scanAll<{ customer_id: string | null }>(
+          "jobs (poster segment)",
+          (countOpt) =>
+            supabase
+              .from("jobs")
+              .select("customer_id", countOpt)
+              .not("customer_id", "is", null)
+              .order("id", { ascending: true }),
+        );
+        if (posterScan.error || !posterScan.complete) {
+          const why = posterScan.error?.message ?? posterScan.shortfall;
+          console.error("[send-marketing-blast] poster segment read failed:", why);
+          return new Response(
+            JSON.stringify({
+              error: `Could not resolve the poster segment (${why}). Blast aborted — no email was sent.`,
+            }),
+            { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+        segmentIds = [...new Set(posterScan.rows.map((j) => j.customer_id).filter((id): id is string => !!id))];
+        if (segmentIds.length === 0) {
           return new Response(JSON.stringify({ sent: 0, message: "No users have posted a job yet" }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-        q = q.in("user_id", posterIds as string[]);
       }
-      if (body.segment === "by_parish" && body.parish) q = q.eq("parish", body.parish);
 
-      const { data, error } = await q.limit(5000);
-      if (error) throw error;
+      // `.in()` is capped like any other read AND blows the URL length on a
+      // long id list, so a segmented scan goes through `scanAllIn`, which
+      // chunks the filter and pages each chunk.
+      type RecipientRow = {
+        user_id: string | null;
+        email: string | null;
+        full_name: string | null;
+        parish: string | null;
+      };
+      const recipientScan = segmentIds === null
+        ? await scanAll<RecipientRow>("profiles (blast recipients)", baseRecipients)
+        : await scanAllIn<RecipientRow>(
+          "profiles (blast recipients)",
+          segmentIds,
+          (chunk, countOpt) => baseRecipients(countOpt).in("user_id", chunk),
+        );
+      if (recipientScan.error || !recipientScan.complete) {
+        const why = recipientScan.error?.message ?? recipientScan.shortfall;
+        console.error("[send-marketing-blast] recipient read failed:", why);
+        return new Response(
+          JSON.stringify({
+            error: `Could not resolve the recipient list (${why}). Blast aborted — no email was sent.`,
+          }),
+          { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      const data = recipientScan.rows;
+
+      // The old `.limit(5000)` was a SILENT truncation: a campaign aimed at
+      // 6000 people mailed 5000 and reported success, and nothing anywhere
+      // named the 1000 who were dropped. The cap is kept — a blast is
+      // irreversible and a runaway one is worse than a refused one — but it now
+      // refuses and says how many it saw, so narrowing the segment is a choice
+      // the admin makes rather than one the function makes for them.
+      if (data.length > MAX_BLAST_RECIPIENTS) {
+        return new Response(
+          JSON.stringify({
+            error:
+              `This segment resolves to ${data.length} recipients, above the ${MAX_BLAST_RECIPIENTS} per-blast cap. ` +
+              `Blast aborted — no email was sent. Narrow the segment (by parish) and send in batches.`,
+          }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
 
       // Honor email opt-out: drop anyone with email_promotions=false.
       //
@@ -236,22 +351,35 @@ Deno.serve(async (req) => {
       // honoring an opt-out and a CAN-SPAM violation across up to 5000
       // recipients, with no error surfaced. Abort the blast instead — an
       // unsent campaign is retryable, an unwanted one is not.
-      const { data: prefs, error: prefsError } = await supabase
-        .from("notification_preferences")
-        .select("user_id, email_promotions");
-      if (prefsError) {
+      //
+      // Paged for the same reason and with the same abort. This table holds one
+      // row per user, so it crosses `db-max-rows` before anything else here
+      // does; the first person past that boundary who switched Promotions off
+      // was simply absent from `optedOut` and got the campaign. That is the
+      // CAN-SPAM half of this function failing open on a read that returned a
+      // clean 200.
+      const prefsScan = await scanAll<{ user_id: string; email_promotions: boolean | null }>(
+        "notification_preferences",
+        (countOpt) =>
+          supabase
+            .from("notification_preferences")
+            .select("user_id, email_promotions", countOpt)
+            .order("id", { ascending: true }),
+      );
+      if (prefsScan.error || !prefsScan.complete) {
+        const why = prefsScan.error?.message ?? prefsScan.shortfall;
         throw new Error(
-          `Could not load email opt-out preferences (${prefsError.message}). Blast aborted — no email was sent.`,
+          `Could not load email opt-out preferences (${why}). Blast aborted — no email was sent.`,
         );
       }
       const optedOut = new Set(
-        (prefs || []).filter((p) => p.email_promotions === false).map((p) => p.user_id),
+        prefsScan.rows.filter((p) => p.email_promotions === false).map((p) => p.user_id),
       );
 
       // The query above already includes the segment filter (in() on
       // helper-applicants or poster-customers, or .eq parish). No need
       // to refetch + cross-check; just drop opted-out users.
-      recipients = (data || [])
+      recipients = data
         .filter((p) => p.user_id && !optedOut.has(p.user_id) && !!p.email)
         .map((p) => ({ email: p.email!, full_name: p.full_name }));
     }

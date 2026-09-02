@@ -88,23 +88,143 @@ Three notes on reading that table:
   refuses before any function body runs. Defence in depth, verified against prod
   `information_schema.routine_privileges` — grants are `postgres, service_role` only.
 
-`admin_audit_log` RLS is also correct and stronger than I expected: INSERT and
-SELECT both require `has_role(auth.uid(),'admin')`, and there is **no UPDATE and
-no DELETE policy at all**, so the log is append-only to every non-owner role.
+**The table reads needed a second step to mean anything, and the orchestrator
+supplied it.** All ten returned `200 []`, which alone is ambiguous — RLS working,
+or an empty table. Row counts as `service_role` settle it:
+
+| table | rows | non-admin saw |
+|---|---|---|
+| `admin_audit_log` | 202 | `[]` — RLS enforcing |
+| `user_violations` | 13 | its **own 1 row** — RLS *scoping*, not blocking |
+| `reports` | 5 | `[]` — RLS enforcing |
+| `user_strikes` | 3 | `[]` — RLS enforcing |
+| `disputes` | 2 | `[]` — RLS enforcing |
+| `user_bans` | 1 | `[]` — RLS enforcing |
+| `helper_credentials`, `helper_shadowbans`, `payment_refunds`, `verification_exceptions` | **0** | `[]` — **UNTESTED, not a pass** |
+
+`user_violations` is the strongest cell: the caller saw exactly its own row out
+of 13, which proves the policy scopes per-user rather than merely denying. The
+four empty tables prove nothing and are recorded as untested.
+
+The same caveat retro-actively demotes one RPC result. **`admin_support_queue`
+returning `200 []` is a VACUOUS pass** — prod holds zero rows with
+`reported_type='support'`, so an admin would get `[]` too. Its embedded
+`AND has_role(auth.uid(),'admin')` is correct by construction but has not been
+shown to bite at runtime. Filed as AM-010, correcting my own earlier evidence.
+
+`admin_audit_log` RLS is otherwise correct and stronger than I expected: INSERT
+and SELECT both require `has_role(auth.uid(),'admin')`, and there is **no UPDATE
+and no DELETE policy at all**, so the log is append-only to every non-owner role.
+
+Two further notes the run surfaced:
+
+- **One probe target mutated.** `apply_message_violation_consequence` returned
+  `200 {"action":"warning","prior_count":0}` and wrote a real `user_violations`
+  row. It is a *user*-facing RPC and my including it in an "admin endpoints"
+  list was a miscategorisation. It cannot be aimed at anyone else — the
+  signature is `(p_description text, p_content text)` with no user id and the
+  body binds `v_user := auth.uid()` — so the blast radius is the caller only.
+  It is also where AM-003 and AM-009 came from.
+- **`apply_cancellation_violation_consequence` authorizes AFTER the lookup.** It
+  does `SELECT ... FROM jobs WHERE id = p_job_id`, raises `job_not_found` if
+  absent, and only then checks `customer_id = auth.uid()`. A real job belonging
+  to someone else still returns `not_authorized`, so it is not an authorization
+  hole — but the two distinct errors are a job-existence oracle for an arbitrary
+  uuid. Noted, not filed: `jobs` ids are not secrets and the browse feed
+  enumerates them anyway.
+
+## 1a. A correction to my own probe — I got the safety argument wrong
+
+I told the orchestrator the probe was safe because "every target id in it is the
+sentinel UUID, so if an authz check DOES fail open the call lands on 'not found'
+and mutates nothing." **That was false for two of the entries, and the
+orchestrator caught it before running.**
+
+`sweep_expired_auto_bans` **takes no arguments.** There is no id to make a
+sentinel of. It is SECURITY DEFINER and its body does
+`UPDATE profiles SET ban_status='active', auto_suspended_until=NULL` for up to
+200 rows. Had it been reachable, my "harmless" probe would have **lifted real
+suspensions off real accounts.** The blast radius was not "not found" — it was
+the entire currently-suspended population.
+
+It was in fact refused (`403 42501`), and the reason is a grant, not my design:
+it is granted to `postgres, service_role` only. **But I had already run the
+probe myself before that was checked, so I got the right answer by luck.** The
+correct order is: establish reachability from
+`information_schema.routine_privileges` FIRST, and only then call anything.
+
+`auto_restrict_repeat_violators` was dropped for a different reason — it
+`RETURNS trigger` and is not meaningfully callable over PostgREST.
+
+The general lesson, written down because it generalises past this lane: **a
+sentinel id only bounds a function that takes an id.** A zero-argument
+SECURITY DEFINER function has no sentinel and no natural bound, and those are
+exactly the ones that sweep tables. Recorded in this lane's memory so the next
+run does not repeat it.
 
 ## 2. Findings
 
 | id | sev | one line |
 |---|---|---|
+| **AM-008** | **HIGH · proposed blocker** | The off-platform-contact scanner's auto-suspension is a complete no-op — the user is told they are suspended for 7 days and is not restricted at all |
 | AM-001 | HIGH | A past-deadline dispute the auto-resolver cannot settle is silently abandoned with escrow held — no admin reminder, no defect record, no queue surfacing |
 | AM-002 | MEDIUM | Chargeback evidence is never collected or submitted; the evidence due-date is stored nowhere and there is no chargeback surface in `/admin` |
 | AM-003 | MEDIUM | Moderation records survive account deletion carrying the user's verbatim message text; `purge_user_data()` covers 27 tables but none of the four ladder tables |
 | AM-006 | MEDIUM | `auto_restrict_repeat_violators()` swallows every error — a suspension that fails to apply leaves the violator active with no trace |
+| AM-009 | MEDIUM | One blocked message runs through TWO disagreeing consequence ladders — different counters, different windows, different ceilings, neither aware of the other |
 | AM-004 | LOW | `/admin?view=audit` is 44% non-admin noise (89 of 202 rows are signup role grants) |
 | AM-005 | LOW | A removed feature (`broadcasts`) still has a live admin view, and it holds the console's only unguarded zero-row delete |
 | AM-007 | LOW | `enforce_audit_log_self_attribution()` is a no-op on the service-role path — every admin edge function's audit write bypasses it |
+| AM-010 | LOW | The `admin_support_queue` authorization test was VACUOUS (zero support rows exist) — corrects my own earlier evidence; plus the support queue has never received a row |
 
-### AM-001 is the one worth acting on
+### AM-008 is the one that should hold the launch
+
+Two writers punish the same offence and only one of them actually restricts
+anybody.
+
+`scan_message_content()` is a genuine `BEFORE INSERT` trigger on `messages`. On
+the third flag in 24h it does:
+
+```sql
+UPDATE profiles SET auto_suspended_until = now() + interval '7 days' ...
+INSERT INTO notifications (... '🚫 Account temporarily suspended',
+  'Your account has been auto-suspended for 7 days ...')
+```
+
+It never sets `ban_status`. And `is_caller_banned()` — the only thing
+`enforce_ban_gate` consults, which gates messages, jobs, applications and every
+other write — reads:
+
+```sql
+WHERE ban_status IN ('banned','temp_banned','permanently_banned')
+  AND (ban_status <> 'temp_banned' OR auto_suspended_until IS NULL
+       OR auto_suspended_until > now())
+```
+
+`auto_suspended_until` is only a *modifier* on an already-`temp_banned` row. So
+`ban_status` stays `active`, the gate returns false, and the user keeps
+messaging, posting and bidding for the entire 7 days they were told they were
+suspended. `sweep_expired_auto_bans()` then never clears the stale column
+either, because it also requires `ban_status='temp_banned'`.
+
+Proven by evaluating the real predicates against the exact end state of each
+writer — no mutation, prod:
+
+| state left by | `is_caller_banned()` predicate | result |
+|---|---|---|
+| `scan_message_content` → `('active', now()+7d)` | gate | **false — does not block** |
+| `BanDialog.tsx:213` → `('temp_banned', now()+7d)` | gate | true — blocks correctly |
+| `scan_message_content` → `('active', now()-1d)` | sweep | **false — never lifted** |
+
+This is the platform's primary anti-disintermediation control and it does not
+control anything. It has barely fired in prod so far (`fraud_flags` of type
+`off_platform_contact` = 1, `messages.flagged_hidden` = 0), so no real user has
+been burned yet — but the branch is live and fires on the third flag.
+
+**I am proposing this as a blocker rather than asserting it**, because whether a
+non-enforcing safety control blocks a launch is the owner's call, not mine.
+
+### AM-001 is the other one worth acting on
 
 `auto-resolve-disputes/index.ts` handles three outcomes for a dispute past its
 72h deadline. Two of them notify an admin. One does not:
@@ -133,10 +253,13 @@ is frozen today.** I say that explicitly because the same query without that
 check reads like a launch blocker and is not one. The defect is the branch, not
 these two rows.
 
-## 3. Retracted before filing — four leads that did not survive contact
+## 3. Retracted before filing — six leads that did not survive contact
 
-Recorded in full because the protocol asks for it and because three came from
-my own brief.
+**Three of these came from my lane brief, and the brief was simply wrong on all
+of them.** It is recorded that way, at the orchestrator's request, so the next
+reader does not spend a run chasing the same three RPCs. The other three were my
+own hypotheses. All six are written up with the single query or file that killed
+each, because a retraction nobody records gets re-derived next sweep.
 
 1. **"`approve_pending_job` / `reject_pending_job` are in scope."** They do not
    exist in prod. `pg_proc` has no function by either name. Neither does
@@ -168,6 +291,22 @@ my own brief.
    old. Every one is a test filing by the owner's own account with gibberish
    description text (`"fghjkl.kkmmn"`, `"Ghihjkhnjhnj"`) against seed users. It
    is not a neglected real-user queue.
+
+5. **"The off-platform-contact scanner is client-side only, so a user calling
+   the messages API directly bypasses both the block and the strike."** This is
+   the HIGH finding the `lh-audit` standard explicitly names, and
+   `sendHandlers.ts:186` really does run `scanMessage(content)` in the browser
+   and volunteer the strike from the client. It is still wrong:
+   `pg_get_triggerdef` on `public.messages` shows `messages_scan_content BEFORE
+   INSERT` (and `scan_message_on_edit BEFORE UPDATE OF content`) executing
+   `scan_message_content()`. The server re-scans. A direct API caller is still
+   flagged and hidden. What they escape is only the *second* ladder — which is
+   AM-009, a much smaller finding than the one I nearly filed.
+
+6. **"`apply_message_violation_consequence` is an admin-namespaced function
+   callable by any authenticated user, so it can be aimed at a stranger."** It
+   takes no user id. Signature `(p_description text, p_content text)`, body binds
+   `v_user := auth.uid()`. Self-report only, by design.
 
 ## 4. Proposed fixes, held pending the FIX phase
 

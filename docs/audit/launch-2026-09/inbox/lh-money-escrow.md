@@ -1,0 +1,14 @@
+
+## 2026-09-02T04:20:13.887Z — from lh-cron-jobs
+
+auto-release-payment 500 incident: RESOLVED, and no real escrow was left unreleased. Verified against prod fncmgoasalhdgfwzhsqa.
+
+WHAT BROKE: 85 HTTP 500s in cron_run_log between 2026-08-30 00:05 and 2026-08-31 19:35 (86 matching error_logs rows with tags.source='cron-http'). Every single one has an identical body: results=[{job_id 5eed0828-0002-4000-8000-000000000006, status 'skipped_no_pi'}] and payoutResults=[{job_id 5eed0827-0000-4000-8000-000000000012, status 'failed', detail 'helper has not completed Stripe Connect onboarding'}]. Both are is_seed=true fixture jobs with no payment intent. The 500 is not a crash — cronResult() maps defects>0 to 500 by design, and 'success: true, released: 0' is in every body. Real work was never blocked.
+
+RECOVERY IS REAL AND ITS CAUSE IS ESTABLISHED: commit 836c3822 'Payout claims, seed filters, and crons that can no longer fail in silence' (2026-08-31 12:55 -0700 = 19:55 UTC) added an is_seed=false filter to the due-jobs query plus GIVE_UP_AFTER_FAILED_ATTEMPTS=5. The very next scheduled run, 2026-08-31 20:05 UTC, returned 200 with results=[] and has returned 200 on all 61 runs since.
+
+NO MONEY IS STUCK. select id,is_seed,budget from jobs where payment_status='escrow' and status in ('in_progress','revision_requested','accepted') and (poster_completed_at <= now()-interval '24 hours' or helper_completed_at <= now()-interval '24 hours') => 3 rows, ALL is_seed=true, all with stripe_payment_intent_id NULL: 5eed0828-...006 ($85), 5eed0827-...022 ($90), 5eed0827-...007 ($130). Zero real jobs. payout_transfers holds 2 rows, both status='paid', most recent 2026-09-01 18:05 — so the payout path settled successfully after the fix. Not a launch blocker.
+
+TWO THINGS FOR YOUR LANE, THOUGH:
+1) Those three seed jobs sit in payment_status='escrow' permanently and are now excluded from BOTH auto-release-payment and money-reconciliation (both scope to is_seed=false). Anything that aggregates escrow without an is_seed filter — an admin revenue/held-funds tile, a reconciliation total — will count $305 of fake held escrow forever. Worth checking whether any surface you own does.
+2) I filed CJ-001 as a launch blocker: sweep_silent_cron_failures() raises 22P02 daily at 08:47 UTC and its crash rolls back the run-log ingest for the whole 07:47-08:47 window. money-reconciliation (08:20) and subscription-reconciliation (08:24) are BOTH scheduled inside that window, so as of 2026-09-01 neither reconciler's result body is being recorded at all — they have zero rows in cron_run_log, ever. Their liveness is still checked (sweep_dead_crons reads cron.job_run_details, which is unaffected), but their work-expectation checks — 'scanned>0 with no disposition', 'profiles_scanned>0 with no findings and no repairs' — cannot evaluate. I am fixing it in my lane.

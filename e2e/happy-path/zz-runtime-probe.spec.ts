@@ -727,7 +727,6 @@ test("2d · offline: OfflineBanner appears and the app degrades honestly", async
 // ───────────────────────────────────────────────────────────────────────────
 
 const AASA_URL = "https://www.louisianahelpr.com/.well-known/apple-app-site-association";
-const AASA_APEX_URL = "https://louisianahelpr.com/.well-known/apple-app-site-association";
 
 /**
  * The claims and exclusions that must NOT quietly disappear.
@@ -851,23 +850,73 @@ test("AASA is served as application/json", async () => {
   expect(res.headers.get("content-type") ?? "").toContain("application/json");
 });
 
-test("3a-defect · apex louisianahelpr.com serves AASA without a redirect", async () => {
-  // KNOWN DEFECT, still open — App.entitlements declares BOTH
-  // `applinks:louisianahelpr.com` and `applinks:www.louisianahelpr.com`, but
-  // the apex 307-redirects the AASA path to www. Apple's CDN does not follow
-  // redirects when fetching an apple-app-site-association file, so the apex
-  // association cannot resolve and an apex universal link opens Safari.
-  //
-  // NOT fixable from this repo: the apex -> www redirect is a Vercel DOMAIN
-  // setting, not a vercel.json route. The owner must either serve the apex
-  // directly or drop `applinks:louisianahelpr.com` from App.entitlements.
-  // test.fail() keeps this documented and flips to a hard failure the moment
-  // it is fixed, so the annotation gets removed rather than rotting.
-  test.fail();
+/**
+ * Every domain the app CLAIMS must actually serve AASA, with no redirect.
+ *
+ * This replaces a hardcoded apex assertion whose premise had gone stale. That
+ * test asserted `louisianahelpr.com` must serve AASA, and justified itself with
+ * "App.entitlements declares BOTH applinks:louisianahelpr.com and
+ * applinks:www.louisianahelpr.com". It does not, and did not by the time this
+ * was written — both entitlement files declare www ONLY. The apex claim had
+ * already been removed, so the test was demanding a fix for a domain nothing
+ * claims, and its `test.fail()` annotation quietly hid that the reasoning
+ * underneath had stopped being true.
+ *
+ * That is the failure mode this whole file exists to catch, so the fix is not
+ * to correct the prose — prose rots the same way twice. The requirement is
+ * DERIVED from the entitlements instead:
+ *
+ *   for each `applinks:<domain>` the app claims
+ *     → https://<domain>/.well-known/apple-app-site-association
+ *       must answer 200 with content-type application/json, NO redirect.
+ *
+ * Apple's CDN does not follow redirects when fetching AASA, so a claimed
+ * domain that 307s cannot associate and its universal links open Safari.
+ *
+ * Today the apex is not claimed, so it is not checked — and the apex 307 is
+ * therefore NOT what breaks apex links; the missing entitlement is. The moment
+ * anyone adds `applinks:louisianahelpr.com` back, this test starts requiring
+ * the apex to serve AASA directly, which is a Vercel DOMAIN setting (the apex
+ * currently 307s to www) and not something vercel.json can override. It will
+ * fail until that is changed, which is exactly the coupling that was missing.
+ */
+function claimedApplinkDomains(): string[] {
+  const files = ["ios/App.entitlements", "ios/App/App/App.entitlements"];
+  const domains = new Set<string>();
+  for (const rel of files) {
+    const text = readFileSync(join(REPO_ROOT, rel), "utf8");
+    for (const m of text.matchAll(/applinks:([A-Za-z0-9.-]+)/g)) domains.add(m[1]);
+  }
+  return [...domains].sort();
+}
+
+test("3a · every applinks: domain serves AASA directly, with no redirect", async () => {
   test.slow();
-  const res = await fetch(AASA_APEX_URL, { redirect: "manual" });
-  console.log(`[aasa] apex → ${res.status} location=${res.headers.get("location") ?? "(none)"}`);
-  expect(res.status).toBe(200);
+  const domains = claimedApplinkDomains();
+  // If this is ever empty the app claims nothing and universal links are dead
+  // app-wide — a silent pass here would be the worst possible outcome.
+  expect(domains.length, "App.entitlements declares no applinks: domain").toBeGreaterThan(0);
+  console.log("[aasa] claimed applinks domains: " + JSON.stringify(domains));
+
+  const failures: string[] = [];
+  for (const domain of domains) {
+    const url = `https://${domain}/.well-known/apple-app-site-association`;
+    const res = await fetch(url, { redirect: "manual" });
+    const location = res.headers.get("location");
+    const contentType = res.headers.get("content-type") ?? "";
+    console.log(`[aasa] ${domain} → ${res.status} type=${contentType} location=${location ?? "(none)"}`);
+    if (res.status !== 200) {
+      failures.push(
+        `${domain}: expected 200, got ${res.status}` +
+          (location ? ` → ${location} (Apple does not follow redirects when fetching AASA)` : ""),
+      );
+      continue;
+    }
+    if (!contentType.includes("application/json")) {
+      failures.push(`${domain}: expected application/json, got "${contentType}"`);
+    }
+  }
+  expect(failures, "claimed applinks domains that cannot serve AASA to Apple").toEqual([]);
 });
 
 /** Transpile src/lib/deepLinkRoute.ts and expose it on window as __deepLink. */

@@ -1,11 +1,11 @@
 ---
-description: Orchestrate the 36-lane launch audit fleet — pre-flight, wave dispatch, cross-talk routing, verification
+description: Orchestrate the 39-lane launch audit fleet — pre-flight, wave dispatch, cross-talk routing, verification
 argument-hint: "[wave N | critical | status | verify | fix]"
 ---
 
 # Launch audit — orchestrator
 
-You are the **hub** of a 36-lane audit fleet. You do not audit; you dispatch, route
+You are the **hub** of a 39-lane audit fleet. You do not audit; you dispatch, route
 messages between lanes, hold the gates, and enforce the phase discipline.
 
 Read first, every time:
@@ -51,7 +51,7 @@ finding downstream is noise until the baseline is clean.
 **Why step 6 outranks the rest.** A stale ledger does not merely waste a wave — it makes
 the audit produce the exact outcome it exists to prevent. Measured 2026-09-02: a session
 working the then-current list found that **three of its first four findings were already
-fixed**, a 1-in-4 hit rate. Dispatch 36 lanes against a list in that state and most of them
+fixed**, a 1-in-4 hit rate. Dispatch 39 lanes against a list in that state and most of them
 re-derive closed work and file it again, which reads as "the audit found 200 things" and
 means nothing. That is the "no audit ever fixes anything" complaint, manufactured. Refresh
 first — it is cheaper than one wave and it is the difference between a report and noise.
@@ -107,7 +107,7 @@ After each wave: `node scripts/audit-bus.mjs rollup`, commit
 
 **SWEEP → VERIFY → FIX, strictly ordered.** During the sweep, no lane edits `src/`,
 `supabase/` or `ios/` — and as of the teams wiring this is **enforced, not requested**:
-all 32 read-only lanes carry `permissionMode: plan` in their frontmatter, so the harness
+all 35 read-only lanes carry `permissionMode: plan` in their frontmatter, so the harness
 refuses their edits outright.
 
 That makes you the release valve. A gated lane that wants to fix something sends you a
@@ -122,7 +122,7 @@ That makes you the release valve. A gated lane that wants to fix something sends
 
 **Two kinds of request arrive, and conflating them deadlocks the entire fleet.** A
 plan-gated lane must ask before *any* lasting change, and almost none of those are the
-thing you are guarding. All 32 gated lanes drive a browser or run a build — every one of
+thing you are guarding. All 35 gated lanes drive a browser or run a build — every one of
 them will ask you for things like:
 
 - `git worktree add ~/.lh-audit/<lane>` (step 3 — the isolation the sweep depends on)
@@ -132,7 +132,7 @@ them will ask you for things like:
 - read-only SQL through the Supabase MCP, `gh` reads
 
 **Approve all of that on sight.** It is how the lane audits anything at all. "Reject every
-plan" applied literally stalls 32 lanes at setup and is not phase discipline, it is a
+plan" applied literally stalls 35 lanes at setup and is not phase discipline, it is a
 deadlock you caused.
 
 **What you are guarding is exactly one thing: edits to `src/`, `supabase/` or `ios/`** —

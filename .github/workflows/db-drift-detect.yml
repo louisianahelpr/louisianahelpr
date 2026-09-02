@@ -94,6 +94,31 @@ jobs:
         run: |
           supabase link --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}"
 
+
+      - name: types.ts matches the live schema
+        # GD-002. Every other mirrored artifact here has a guard — sitemap
+        # (--check), iOS metadata, iOS icons, the migration ledger, the
+        # legalVersions parity test, the Stripe shim via typecheck-edge.
+        # types.ts, the one file gating type safety for all of src/, had none.
+        #
+        # This job cannot be the guard by itself: it compares migration VERSION
+        # LISTS, so a migration present on both sides reports clean while the
+        # generated types drift arbitrarily. That is exactly the SI-012 shape —
+        # the migration shipped, the regeneration did not, and when it finally
+        # ran it landed 25 type errors across 17 files. It recurred within hours
+        # of being fixed (20260902051631 -> legal_acceptances.user_id,
+        # reports.reporter_id), which is why this is a gate and not a note.
+        #
+        # Compares the column -> nullability MAP, never the file text: the
+        # committed file carries a graphql_public block and CLI-version
+        # parenthesisation worth ~40 lines of spurious diff (GD-005), and a gate
+        # that cries wolf on formatting is a gate someone disables.
+        if: steps.precheck.outputs.skip != 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: node scripts/check-types-fresh.mjs
+
       - name: Compute drift
         id: drift
         if: steps.precheck.outputs.skip != 'true'

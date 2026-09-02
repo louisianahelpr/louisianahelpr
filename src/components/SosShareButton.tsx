@@ -126,12 +126,10 @@ export function SosShareButton({
   const share = async () => {
     if (locating) return;
     setLocating(true);
-    let pos: { lat: number; lng: number } | null = null;
-    try {
-      pos = await readCurrentPosition(jobId);
-    } finally {
-      setLocating(false);
-    }
+    // `readCurrentPosition` never rejects — it try/catches and resolves null on
+    // every failure path — so `.finally` is exactly the old try/finally, minus
+    // the `= null` initializer that was never read.
+    const pos = await readCurrentPosition(jobId).finally(() => setLocating(false));
     setOpen(false);
 
     if (!pos) {

@@ -31,6 +31,11 @@ const TOOLTIP_STYLE = {
   background: "hsl(var(--ivory-sand) / 0.97)",
   border: "0.5px solid hsl(var(--olivewood) / 0.18)",
   borderRadius: 8,
+  // recharts' `contentStyle` takes a React style OBJECT and renders it on an
+  // element this file never gets a ref or className to. There is no ds-*
+  // className to reach for here, so the rule's remedy does not exist on this
+  // prop. Value left byte-identical on purpose: a lint exemption, not a restyle.
+  // eslint-disable-next-line no-restricted-syntax
   fontSize: "0.78rem",
 } as const;
 
@@ -62,6 +67,10 @@ export function EarningsFeeChart({ data }: { data: EarningsMonth[] }) {
           formatter={(value, name) => [money(value as number), name as string]}
         />
         <Legend
+          // `wrapperStyle` is a recharts style-object prop, same as
+          // TOOLTIP_STYLE above: no className reaches the legend wrapper.
+          // Value unchanged.
+          // eslint-disable-next-line no-restricted-syntax
           wrapperStyle={{ fontSize: "0.7rem", color: "hsl(var(--olivewood))" }}
           iconType="circle"
           iconSize={8}

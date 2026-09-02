@@ -123,6 +123,9 @@ function escapeText(value: string): string {
  */
 function clean(value: string | null | undefined, max: number): string {
   if (!value) return "";
+  // Stripping control characters IS this function's job (see the block comment
+  // above); the rule fires on the very range we intend to match.
+  // eslint-disable-next-line no-control-regex
   const stripped = String(value).replace(/[\u0000-\u001F\u007F]+/g, " ");
   const collapsed = stripped.replace(/\s+/g, " ").trim();
   if (collapsed.length <= max) return collapsed;

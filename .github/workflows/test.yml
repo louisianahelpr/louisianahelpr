@@ -53,15 +53,25 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
-    env:
-      # Where `deno check` caches the remote type declarations it downloads for
-      # the edge-function type check. Pinned so actions/cache below has a
-      # deterministic path to save and restore.
-      DENO_DIR: ${{ runner.temp }}/deno_cache
-
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+
+      # Where `deno check` caches the remote type declarations it downloads for
+      # the edge-function type check. Pinned so actions/cache below has a
+      # deterministic path to save and restore.
+      #
+      # Set here via $GITHUB_ENV rather than in a job-level `env:` block: the
+      # `runner` context is NOT available at job level (only `github`, `inputs`,
+      # `matrix`, `needs`, `secrets`, `strategy`, `vars`), so `${{ runner.temp }}`
+      # there is a workflow-file validation error. GitHub then rejects the whole
+      # file before creating a single job — the run fails in 0s with no steps and
+      # no annotation, which looks identical to a workflow that is merely absent.
+      # That is exactly what happened: this gate ran NOTHING from 2026-09-01
+      # (ad315368) until it was caught on 2026-09-02. $RUNNER_TEMP is the plain
+      # environment variable and is always available inside `run:`.
+      - name: Pin the Deno cache directory
+        run: echo "DENO_DIR=$RUNNER_TEMP/deno_cache" >> "$GITHUB_ENV"
 
       - name: Setup Node
         uses: actions/setup-node@v7

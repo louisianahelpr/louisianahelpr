@@ -3,7 +3,6 @@ import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
   DialogHero,
   DialogBody,
   DialogFooter,

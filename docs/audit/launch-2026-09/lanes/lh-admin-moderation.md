@@ -41,8 +41,9 @@ non-admin needs a non-admin token, not an admin one.
 
 I created a throwaway account (`helpr-audit-adminlane@mailinator.com`), minted a
 real JWT for it, and called every admin RPC and edge function with it. Every
-target id was the sentinel `00000000-0000-4000-8000-000000000000`, so a check
-that failed open would have landed on "not found" rather than damage.
+target id was the sentinel `00000000-0000-4000-8000-000000000000` — **which
+bounds the blast radius only for the functions that take an id, and I wrongly
+claimed it bounded all of them; see §1a before reusing this probe.**
 
 Probe `scratchpad/lane-admin-authz-probe.mjs`, output `~/.lh-audit/admin-authz-probe.txt`, verbatim:
 
@@ -76,9 +77,12 @@ Probe `scratchpad/lane-admin-authz-probe.mjs`, output `~/.lh-audit/admin-authz-p
 
 Three notes on reading that table:
 
-- `admin_support_queue` returning `200 []` (probe line 2) is correct and deliberate — the
-  function embeds `AND public.has_role(auth.uid(),'admin')` in its WHERE clause
-  so a non-admin gets no rows rather than an error.
+- `admin_support_queue` returning `200 []` (probe line 2) is **not a pass** — I
+  first read it as "correct and deliberate", because the function does embed
+  `AND public.has_role(auth.uid(),'admin')` in its WHERE clause so a non-admin
+  gets no rows rather than an error. But prod holds zero `reported_type='support'`
+  rows, so an admin would see `[]` too and the test distinguishes nothing.
+  Corrected below and filed as AM-010.
 - `apply_cancellation_violation_consequence` returning `job_not_found` is
   correct — it is a *user*-facing RPC that authorizes on job ownership, not an
   admin one. My brief listed it under the admin consequence ladder; that was a
@@ -331,8 +335,46 @@ each, because a retraction nobody records gets re-derived next sweep.
   `lane-account-lifecycle` — relayed to the orchestrator rather than claimed.**
 - **AM-005** (`src/components/admin/AdminBroadcasts.tsx:165`) — removal work owned by `lh-schema-integrity` (table) and the
   orchestrator (the `Admin.tsx` view entry). Not mine to edit.
+- **AM-008** — set `ban_status='temp_banned'` alongside `auto_suspended_until`
+  in `scan_message_content()`, so `is_caller_banned()` actually sees it and
+  `sweep_expired_auto_bans()` can later lift it. One-line-ish migration, but it
+  turns a currently-inert control into a real one that will start restricting
+  accounts, so it is **not** a low-risk fix: it needs the owner's sign-off on
+  the policy (is a 3rd flag in 24h really worth 7 days?) before the code change.
+  `lh-trust-safety` should own or co-sign it.
+- **AM-009** — decide which ladder is canonical and delete the other. My
+  recommendation is to keep the server trigger (it cannot be bypassed) and drop
+  the client's `logViolation()` call, folding the 3-rung escalation into
+  `scan_message_content()`. That is a product decision about consequence policy,
+  not a lane call.
+- **AM-010** — no code change. Two cheap actions close it: seed one
+  `reported_type='support'` row and re-run the probe, and submit one message
+  through the live `/help` form.
 - **AM-004, AM-007** — documentation/severity corrections, no code change
   proposed.
+
+## 4a. A dependency on lane-onboarding-auth I could not resolve
+
+The orchestrator relayed that `complete-signup` can silently never run, leaving
+`approval_status` at its `'pending'` default with no legal consent recorded.
+**That would change how retraction #2 above should be read**, so I am flagging
+it rather than concluding.
+
+What I established independently: `complete-signup/index.ts:470` sets
+`approval_status: "approved"`, and prod holds 37 approved profiles with **zero**
+`approve_user` audit rows — which I read as "signup auto-approves, so the admin
+queue was never used." If `complete-signup` sometimes does not run, then prod's
+3 `approval_status='pending'` profiles may not be people awaiting review at all;
+they may be accounts stranded mid-signup, and the admin approval queue is
+receiving them in a state nobody designed. An admin approving one of those would
+be approving an account with no recorded consent.
+
+I cannot tell the two apart from the admin side: both look like a pending row.
+The distinguishing evidence lives in whatever `complete-signup` writes *besides*
+`approval_status` — a consent row, a profile completeness flag — which is
+`lane-account-lifecycle` and `lane-verification` territory. **Not filed as a
+finding by me; handed back to the orchestrator to route.** The 3 pending
+profiles in prod are 1 day old, so whichever it is, it is current.
 
 ## 5. Two corrections the fleet needs
 
@@ -382,8 +424,15 @@ banreview.
 
 ### UNVERIFIED — could not reach
 
-1. **The 24 admin views were never RENDERED.** No screenshots, no measured
-   layout, no interactive verification of a single admin control. Reason:
+**The reason for every gap below is a permission boundary or a standing
+constraint, not an absence of effort.** Nothing here was skipped for budget.
+
+1. **All 24 admin views: 0 of 24 rendered.** Not one screenshot, no measured
+   layout, no interactive verification of a single admin control — home,
+   analytics, people, jobs, settings, disputes, broadcasts, notifications,
+   notiflogs, reports, support, referrals, subscriptions, fraud, audit, health,
+   export, payouts, tiers, marketing, idvreview, credentials, exceptions,
+   banreview. **None of these may be counted as covered.** Reason:
    `prevent_admin_role_self_grant()` admits `admin` role writes only from
    `service_role`, and granting myself the role in prod is outside this lane's
    standing constraints ("TEST ACCOUNTS ONLY", and elevating a test row to admin
@@ -395,7 +444,20 @@ banreview.
    permit. Either unblocks the whole visual and interactive half of this lane in
    one step. `lh-route-walker` was blocked on exactly this, so the two lanes
    unblock together.
-2. **No dispute was driven end to end in test mode.** Standing constraint: no
+2. **RPC authorization: 11 of 13 proven at runtime, 2 not.**
+   Proven refused: `admin_delete_review`, `rpc_decide_dispute`,
+   `review_credential`, `check_dispute_velocity`, `settle_dispute_record`,
+   `apply_job_denial_consequence`, `is_helper_shadowbanned`,
+   `sweep_expired_auto_bans`, plus all 6 edge functions.
+   **NOT proven:** `admin_support_queue` — the `200 []` is vacuous, see AM-010.
+   **Not applicable:** `auto_restrict_repeat_violators` (`RETURNS trigger`, not
+   callable over PostgREST) and `redact_audit_snapshot` (a pure function
+   deliberately granted to PUBLIC; it reads nothing and takes its input as an
+   argument). `apply_cancellation_violation_consequence` and
+   `apply_message_violation_consequence` are user-facing, not admin, and were in
+   my list by miscategorisation.
+
+3. **No dispute was driven end to end in test mode.** Standing constraint: no
    live Stripe. There is no test-mode escrow fixture I could reach without
    creating one, and creating one needs the money lane's fixtures. So
    "does the split execute for the exact amounts decided, does escrow move once
@@ -403,10 +465,18 @@ banreview.
    (`WHERE status='open'`, `execution_status='executed'` as terminal), **not by
    execution.** I did not find a double-settle path; I also did not prove there
    isn't one.
-3. **`admin-test-push` delivery.** Refusal to a non-admin is proven; actual push
+4. **`admin-test-push` delivery.** Refusal to a non-admin is proven; actual push
    delivery needs a device.
-4. **`?tab=warnings`** (co-owned with `lh-trust-safety`) — the server-side
+5. **`?tab=warnings`** (co-owned with `lh-trust-safety`) — the server-side
    ladder behind it is covered; the rendered tab is not, same reason as (1).
+6. **The four empty tables** — `helper_credentials`, `helper_shadowbans`,
+   `payment_refunds`, `verification_exceptions` all returned `[]` to a non-admin
+   but hold zero rows, so the read is untested rather than passed. Seeding a row
+   in each would close this and needs no admin role — it is the cheapest
+   remaining cell and I did not reach it.
+7. **The public support form was never submitted.** AM-010's second half — zero
+   `reported_type='support'` rows have ever existed. One submission through the
+   live `/help` form would settle whether the queue receives anything.
 
 ## 7. Out-of-scope conclusions (PROTOCOL §6)
 

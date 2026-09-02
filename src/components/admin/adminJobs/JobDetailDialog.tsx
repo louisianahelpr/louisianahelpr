@@ -6,6 +6,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { paymentStatusLabel } from "@/lib/statusLabels";
 import { categoryLabels, paymentColors, type Job } from "./types";
 import { formatJobDate } from "@/lib/dateUtils";
+import { formatTimestamp, formatCategory, formatPrice } from "@/lib/format";
 
 interface JobDetailDialogProps {
   detailJob: Job | null;
@@ -82,7 +83,7 @@ export const JobDetailDialog = ({
                 <p className="text-ds-13 text-foreground mt-1">{detailJob.removal_reason}</p>
                 {detailJob.removed_at && (
                   <p className="text-ds-11 text-muted-foreground mt-1">
-                    Removed on {new Date(detailJob.removed_at).toLocaleString()}
+                    Removed on {formatTimestamp(detailJob.removed_at)}
                   </p>
                 )}
               </div>
@@ -99,7 +100,7 @@ export const JobDetailDialog = ({
             )}
 
             <div className="flex items-center gap-2 flex-wrap">
-              <Badge variant="sienna" className="capitalize">{categoryLabels[detailJob.category] || detailJob.category}</Badge>
+              <Badge variant="sienna">{categoryLabels[detailJob.category] || formatCategory(detailJob.category)}</Badge>
               <StatusBadge status={detailJob.status} className="text-ds-11" />
               <span className={`text-ds-11 px-2 py-0.5 rounded-full font-medium ${paymentColors[detailJob.payment_status || "unpaid"]}`}>
                 {paymentStatusLabel(detailJob.payment_status ?? "unpaid")}
@@ -111,7 +112,7 @@ export const JobDetailDialog = ({
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-ds-sm bg-secondary/30 p-3">
                 <p className="text-ds-11 text-muted-foreground flex items-center gap-1"><DollarSign className="w-3 h-3" /> Budget</p>
-                <p className="font-semibold text-foreground">${detailJob.budget}</p>
+                <p className="font-semibold text-foreground">${formatPrice(Number(detailJob.budget))}</p>
               </div>
               <div className="rounded-ds-sm bg-secondary/30 p-3">
                 <p className="text-ds-11 text-muted-foreground flex items-center gap-1"><MapPin className="w-3 h-3" /> Location</p>
@@ -169,7 +170,7 @@ export const JobDetailDialog = ({
                 </div>
               )}
               <p className="text-ds-11 text-muted-foreground">
-                Created {new Date(detailJob.created_at).toLocaleString()}
+                Created {formatTimestamp(detailJob.created_at)}
               </p>
             </div>
 

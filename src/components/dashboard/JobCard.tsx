@@ -9,7 +9,7 @@ import { categoryLabels, categoryColors } from "@/components/activity/activityCo
 import { JobHelprsChip } from "@/components/activity/JobCardMetaRow";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { formatJobDate, formatTimeLeft } from "@/lib/dateUtils";
-import { formatPrice, formatPriceFloor } from "@/lib/format";
+import { formatPrice, formatPriceFloor, formatCategory } from "@/lib/format";
 import { earlyAccessDelayMs } from "@/lib/earlyAccess";
 import { formatTime12 } from "@/components/TimePickerSelect";
 import { getCity } from "@/lib/locationUtils";
@@ -348,7 +348,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               className="w-2.5 h-2.5 shrink-0"
               strokeWidth={2.25}
             />
-            <span className="font-serif italic truncate">{categoryLabels[job.category] || job.category}</span>
+            <span className="font-serif italic truncate">{categoryLabels[job.category] || formatCategory(job.category)}</span>
           </span>
           {/* 2. Secondary slot — EXACTLY ONE chip, never both.
                  "Just in" outranks "Recommended" because freshness is

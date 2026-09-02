@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
-import { hapticWarning } from "@/lib/haptics";
+import { hapticWarning, hapticSuccess } from "@/lib/haptics";
 import { formatName } from "@/lib/utils";
 import { toast } from "sonner";
 import { JOB_CATEGORY_LABELS, type JobCategory } from "@/lib/jobCategories";
@@ -144,6 +144,8 @@ export function useSavedHelpers({ user }: UseSavedHelpersArgs) {
       toast.error(msg);
       return;
     }
+    hapticSuccess();
+    toast("Note saved");
     setEditingNoteFor(null);
     setNoteDraft("");
   };

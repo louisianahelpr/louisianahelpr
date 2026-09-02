@@ -149,7 +149,7 @@ export const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
       // rows this same expression reads on the hit path), so this resolves to
       // the Quick Apply copy. Kept as an optional read rather than dropped so
       // the two branches stay identical if the view ever adds the column.
-      promptToApply(data.title, data.budget ?? null, !!(data as { instant_book?: boolean }).instant_book);
+      promptToApply(data.title ?? "", data.budget ?? null, !!(data as { instant_book?: boolean }).instant_book);
     })();
 
     return () => { cancelled = true; };

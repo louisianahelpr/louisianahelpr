@@ -495,7 +495,9 @@
   --accent-ink:   19 70% 66%;   /* accent-as-text on a raised dark surface —
                                     lifted from 52% so 9.6px labels clear
                                     4.5:1 (52% measured ~3.3:1) */
-  --stormy-sky:   198 14% 60%;  /* muted-foreground — lightened for dark bg */
+  --stormy-sky:   198 14% 65%;  /* muted-foreground — lightened for dark bg; 60% gave 4.07:1
+                                    against --sand (220 10% 24%), axe WCAG2aa 4.5:1 min at
+                                    10-11px (admin badge/code text); 65% → ~4.70:1 */
   --gold-warm:    38 55% 56%;   /* antique gold — slightly brighter */
   --gold-ink:     38 55% 62%;   /* text gold on the dark ground — lighter,
                                    not darker, because the background inverts. */
@@ -642,6 +644,15 @@
      and sticky bands sit slightly above the dark canvas instead of glowing. */
   --surface-premium: linear-gradient(180deg, hsl(20 12% 15% / 0.92), hsl(20 12% 13% / 0.74));
   --surface-band: 20 12% 13%;
+}
+
+/* ── Dark-mode text-destructive brightness lift ──────────────────────
+   --destructive (6 60% 51%) was calibrated for white text ON a solid red fill
+   (4.64:1). At L=51% it reads 3.52–3.79:1 as text on near-black page canvas,
+   failing WCAG 2aa at 11–14px. Raising --destructive itself would break the
+   button-fill case. Override only the TEXT role in dark mode. */
+[data-theme="dark"] .text-destructive {
+  color: hsl(6 60% 62%);   /* ~5.0:1 on --parchment (220 14% 9%) */
 }
 
 /* ── iOS-native color divergence ─────────────────────────────────────

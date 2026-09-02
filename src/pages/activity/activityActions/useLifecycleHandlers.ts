@@ -268,6 +268,7 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       hapticSuccess();
+      toast("Revision marked as fixed");
       refresh();
     } catch (err) { hapticError(); toast.error(err instanceof Error ? err.message : "We couldn't resolve that revision — please try again."); }
   };

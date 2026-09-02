@@ -44,7 +44,10 @@ of findings is not the score; the count of *true* findings is.
 
 ### Territory
 
-Fix inside your lane. If the fix belongs to another lane, file it and `msg` them.
+Fix inside your lane. If the fix belongs to another lane, file it through the bus
+and send the lead to the **orchestrator** via `SendMessage` — never to the lane
+directly (§7). `audit-bus.mjs msg` is retired: it only delivered if the recipient
+thought to poll, so a hand-off usually landed after that lane had finished.
 
 **Orchestrator-only files — never edit these, file and message instead:**
 `src/index.css` · `src/components/AppShell.tsx` · `src/App.tsx` ·
@@ -60,8 +63,8 @@ tested code, plus a re-run of your original reproduction showing it now passes.
 never proves a missing import.
 
 Anything touching **money, auth or the data model** goes through
-`code-reviewer`, `silent-failure-hunter` and `security-auditor` over your working
-diff before you commit — there is no PR gate here to catch it.
+`lh-silent-failure`, `lh-authz-rls` and `lh-money-escrow` (dispatched REVIEW-ONLY) over your working diff before you commit — there is no PR gate here to
+catch it. The agents this line used to name — `code-reviewer`, `silent-failure-hunter`, `security-auditor` — DO NOT EXIST; the spawn fails, so the guard silently never ran.
 
 Commit **directly to `main`**, early and often, one commit per fix. A
 usage-limit kill loses uncommitted work.

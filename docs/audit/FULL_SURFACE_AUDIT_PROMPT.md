@@ -868,9 +868,8 @@ concurrently with another lane). Commit **direct to `main`**, push, and
 **confirm CI actually goes green** — the local gate does not cover Playwright,
 and a prior change broke 6 E2E tests while typecheck/lint/vitest were all green.
 
-Run the review agents (`code-reviewer`, `silent-failure-hunter`,
-`security-auditor`) against the working diff before committing anything touching
-money, auth, or the data model — there is no PR gate to catch it.
+Run `lh-silent-failure`, `lh-authz-rls` and `lh-money-escrow` (dispatched REVIEW-ONLY) against the working diff before committing anything touching
+money, auth, or the data model — there is no PR gate to catch it. The agents this line used to name — `code-reviewer`, `silent-failure-hunter`, `security-auditor` — DO NOT EXIST; the spawn fails, so the guard silently never ran.
 
 **Never update `COVERAGE_LEDGER.md` in the same commit as the change you are
 claiming to have verified.** Separate commits, always.

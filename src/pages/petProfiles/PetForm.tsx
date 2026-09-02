@@ -610,7 +610,7 @@ export function PetForm({
             "grid-cols-1",
             // Centring inherited from DialogContent — this line used to opt
             // out with `top-[7vh] bottom-auto [translate:-50%_0]`. Removed
-            // with JobDetailDialog's and PetReportCard's; all three were
+            // with JobDetailDialog's and PetReportCard's (since deleted); all three
             // copies of the same override of the shared shell.
             "max-h-[86dvh]",
             "content-start",

@@ -236,7 +236,7 @@ export function PostedJobActions({
     // One wrapper rather than a stopPropagation on each of a dozen handlers:
     // this subtree is nothing but controls, so there is no click in it that
     // was ever meant to reach the shell. Same pattern the JobTracking and
-    // IncomingReportCard blocks in PostedJobCard already use, and the same one
+    // status-gated blocks in PostedJobCard already use, and the same one
     // PostedJobApplicants uses on its own root.
     //
     // It cannot swallow anything a child needs: this is the OUTERMOST node of

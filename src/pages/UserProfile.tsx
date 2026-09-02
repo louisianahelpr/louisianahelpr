@@ -89,7 +89,6 @@ const UserProfile = () => {
     isError,
     refetch,
     hasSubmittedCredentials,
-    petCareSignal,
     reviewsFromQuery,
     setLocalReviews,
     reviews,
@@ -582,7 +581,6 @@ const UserProfile = () => {
                 revisionFrequency={revisionFrequency}
                 cancellationRate={cancellationRate}
                 posterReputation={posterReputation}
-                petCareSignal={petCareSignal}
                 repeatHirePercent={data?.repeatHirePercent ?? null}
                 statSamples={statSamples}
                 showReviews={showReviews}

@@ -12,7 +12,6 @@ import { JobCardShell } from "./JobCardShell";
 import { JobCardTitleBar } from "./JobCardTitleBar";
 import { JobCardMetaRow } from "./JobCardMetaRow";
 import { JobCardPhotoStrip } from "./JobCardPhotoStrip";
-import { IncomingReportCard } from "./PetReportCard";
 import { formatPrice, formatPriceExact, formatRecurrenceInterval } from "@/lib/format";
 import { type PostedJobCardProps } from "./postedJobCard/types";
 import { PostedJobApplicants } from "./postedJobCard/PostedJobApplicants";
@@ -533,13 +532,6 @@ function PostedJobCardInner({
                     </p>
                   </div>
                 )}
-
-              {/* Pet care report card — show incoming daily reports from helper */}
-              {job.category === "pet_care" && (job.status === "accepted" || job.status === "in_progress" || job.status === "completed") && (
-                <div onClick={(e) => e.stopPropagation()}>
-                  <IncomingReportCard jobId={job.id} />
-                </div>
-              )}
 
               {/* Revision notice */}
               {job.status === "revision_requested" && (

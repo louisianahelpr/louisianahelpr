@@ -15,7 +15,6 @@ import { JobCardTitleBar } from "./JobCardTitleBar";
 import { JobActionRow, JobActionChip } from "./JobActionRow";
 import { JobCardMetaRow } from "./JobCardMetaRow";
 import { JobCardPhotoStrip } from "./JobCardPhotoStrip";
-import { SendReportCard } from "./PetReportCard";
 import { formatPrice, formatPriceFloor, formatShortDate, formatRecurrenceInterval } from "@/lib/format";
 import type { AppliedJobCardProps, ApplicationViewFields } from "./appliedJobCard/types";
 import { useHighlightPulse } from "./useHighlightPulse";
@@ -82,7 +81,6 @@ function AppliedJobCardInner({
     viewerProfile?.subscription_expires_at ?? null,
   );
 
-  const [showReportCard, setShowReportCard] = useState(false);
 
   useHighlightPulse(highlight, cardRef);
 
@@ -465,7 +463,6 @@ function AppliedJobCardInner({
               onComplete={onComplete}
               onResolveRevision={onResolveRevision}
               navigate={navigate}
-              setShowReportCard={setShowReportCard}
             />
           )}
 
@@ -617,17 +614,6 @@ function AppliedJobCardInner({
           )}
         </JobCardShell>
         </div>
-
-      {/* Pet report card sheet — mounted outside JobCardShell to avoid
-          z-index clipping inside the card's overflow:hidden container */}
-      {showReportCard && job.customer_id && (
-        <SendReportCard
-          jobId={app.job_id}
-          helperId={userId}
-          ownerId={job.customer_id}
-          onClose={() => setShowReportCard(false)}
-        />
-      )}
     </>
   );
 }

@@ -152,7 +152,7 @@ for (const f of files) {
   //      files the comment above names as the examples. The counter's prose
   //      and its code disagreed, and the code won silently.
   //   3. It matched the string anywhere, including in COMMENTS. Four files
-  //      (AppShell, PetReportCard, PetForm, offlineBannerLayout) only mention
+  //      (AppShell, PetForm, offlineBannerLayout, popupShellInventory) only mention
   //      `fixed inset-0` in a note explaining that they no longer do it, and
   //      RedirectingOverlay's own docblock double-counted it.
   //

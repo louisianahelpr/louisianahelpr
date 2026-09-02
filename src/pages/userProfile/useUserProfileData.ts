@@ -941,56 +941,6 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
   const hasSubmittedCredentials =
     data?.hasPendingCredentials ?? (submittedCredentialsData?.count ?? 0) > 0;
 
-  // Pet care trust signal — count of distinct pets cared for + report cards
-  // sent by this user. PGRST202-safe: silently hides badge if tables aren't
-  // deployed yet.
-  const { data: petCareSignal } = useQuery({
-    queryKey: ["user_pet_care_signal", userId],
-    enabled: !!userId && !!data?.profile,
-    staleTime: 5 * 60_000,
-    queryFn: async () => {
-      try {
-        const [petsRes, reportsRes] = await Promise.all([
-          supabase
-            .from("pet_report_cards")
-            .select("pet_id", { count: "exact" })
-            .eq("helper_id", userId!),
-          supabase
-            .from("pet_report_cards")
-            .select("id", { count: "exact", head: true })
-            .eq("helper_id", userId!),
-        ]);
-        // Undeployed pet_report_cards = hide the badge quietly. Any other
-        // error (RLS, timeout) is reported before we degrade, so an outage
-        // isn't indistinguishable from "never cared for a pet".
-        // Check each leg on its own: a genuine failure on one must not be
-        // excused by an undeployed code on the other.
-        for (const [leg, err] of [
-          ["pets", petsRes.error],
-          ["reports", reportsRes.error],
-        ] as const) {
-          if (err && !isNotDeployed(err)) {
-            report(err, {
-              severity: "warning",
-              tags: { area: `user_profile.pet_care_signal.${leg}` },
-              context: { viewed_user_id: userId },
-            });
-          }
-        }
-        if (petsRes.error || reportsRes.error) return null;
-        const distinctPets = new Set((petsRes.data ?? []).map((r: any) => r.pet_id)).size;
-        return { distinctPets, reportCount: reportsRes.count ?? 0 };
-      } catch (e) {
-        report(e, {
-          severity: "warning",
-          tags: { area: "user_profile.pet_care_signal" },
-          context: { viewed_user_id: userId },
-        });
-        return null;
-      }
-    },
-  });
-
   const reviewsFromQuery = (data?.reviews ?? []) as ProfileReview[];
   // Local reviews state for optimistic updates after saving a response.
   const [localReviews, setLocalReviews] = useState<any[] | null>(null);
@@ -1134,7 +1084,6 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
     isError,
     refetch,
     hasSubmittedCredentials,
-    petCareSignal,
     reviewsFromQuery,
     setLocalReviews,
     reviews,

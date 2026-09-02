@@ -81,7 +81,6 @@ export type LastActiveLabel = { text: string; isLive: boolean };
 
 export type PosterReputation = { reviewCount: number; avgRating: number };
 
-export type PetCareSignal = { distinctPets: number; reportCount: number };
 
 /**
  * How much history each gated stat was computed from.

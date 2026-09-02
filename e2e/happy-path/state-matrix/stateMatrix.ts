@@ -1180,35 +1180,6 @@ function posterCells(): StateCell[] {
       describe: "is_group_job — the helpers-needed chip and the GroupJobHelpers roster",
       job: { status: "open", is_group_job: true },
     },
-    {
-      key: "pet-care-with-report",
-      describe:
-        "category = pet_care, in_progress — the IncomingReportCard with all six nullable fields populated",
-      job: {
-        status: "in_progress",
-        category: "pet_care",
-        helper_id: HELPER_ID,
-        helper_confirmed_at: ISO(-DAYS(1)),
-        helper_arrived_at: ISO(-HOURS(2)),
-        helper_arrival_verified_at: ISO(-HOURS(2)),
-        poster_confirmed_arrival_at: ISO(-HOURS(2)),
-        date_needed: DATE_ONLY(0),
-      },
-    },
-    {
-      key: "pet-care-empty-report",
-      describe:
-        "category = pet_care, in_progress, NO report card rows — the self-hiding branch; check no empty band is left behind",
-      job: {
-        status: "in_progress",
-        category: "pet_care",
-        helper_id: HELPER_ID,
-        helper_confirmed_at: ISO(-DAYS(1)),
-        helper_arrived_at: ISO(-HOURS(2)),
-        helper_arrival_verified_at: ISO(-HOURS(2)),
-        date_needed: DATE_ONLY(0),
-      },
-    },
   ];
   for (const c of contentCases) {
     cells.push({

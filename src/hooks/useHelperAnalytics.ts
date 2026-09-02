@@ -67,7 +67,7 @@ export function useHelperAnalytics(
     queryFn: async () => {
       // `as never` because the RPC is not in the generated Functions map until
       // types are regenerated post-deploy — the same cast JobPetCareSheet and
-      // PetReportCard use for their new RPCs.
+      // the pet-care surfaces used for their new RPCs.
       const res = await supabase.rpc("get_helper_analytics" as never, {
         p_days: days,
       } as never);

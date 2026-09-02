@@ -15,7 +15,6 @@ import type {
   ReplyLatency,
   CancellationRate,
   PosterReputation,
-  PetCareSignal,
   StatSamples,
 } from "./types";
 
@@ -161,7 +160,6 @@ type Props = {
   revisionFrequency: number | null;
   cancellationRate: CancellationRate;
   posterReputation: PosterReputation | null;
-  petCareSignal: PetCareSignal | null | undefined;
   /**
    * % of this helper's clients who hired them again. NULL below three
    * distinct clients — ungated, one returning customer published a boldfaced
@@ -191,7 +189,6 @@ export const AtAGlanceCard = ({
   revisionFrequency,
   cancellationRate,
   posterReputation,
-  petCareSignal,
   repeatHirePercent,
   statSamples,
   showReviews,
@@ -354,15 +351,6 @@ export const AtAGlanceCard = ({
           : revisionFrequency <= 25
           ? "hsl(var(--gold-warm))"
           : "hsl(var(--burnt-sienna))",
-    });
-  }
-
-  if (petCareSignal && petCareSignal.distinctPets > 0) {
-    cells.push({
-      key: "pets",
-      icon: ClipboardList,
-      value: String(petCareSignal.distinctPets),
-      label: `${petCareSignal.distinctPets === 1 ? "Pet" : "Pets"} cared for · ${petCareSignal.reportCount} ${petCareSignal.reportCount === 1 ? "report" : "reports"}`,
     });
   }
 

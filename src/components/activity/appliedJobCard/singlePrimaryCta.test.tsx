@@ -128,7 +128,6 @@ function renderSection(job: Job & { revision_note?: string | null }) {
           onComplete={vi.fn()}
           onResolveRevision={vi.fn()}
           navigate={vi.fn()}
-          setShowReportCard={vi.fn()}
         />
       </MemoryRouter>
     </QueryClientProvider>,

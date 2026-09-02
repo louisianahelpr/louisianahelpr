@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { JobActionRow, JobActionChip } from "@/components/activity/JobActionRow";
 import { Button } from "@/components/ui/button";
 import { AUTO_COMPLETE_HOURS, hoursToMs } from "../../../../supabase/functions/_shared/escrowTiming";
-import { CheckCircle2, MessageSquare, RefreshCw, Check, ClipboardList, CalendarX2 } from "lucide-react";
+import { CheckCircle2, MessageSquare, RefreshCw, Check, CalendarX2 } from "lucide-react";
 import { toast } from "sonner";
 import { hapticError } from "@/lib/haptics";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
@@ -34,7 +34,6 @@ interface ActiveJobSectionProps {
   onComplete: (jobId: string) => void;
   onResolveRevision: (jobId: string) => void;
   navigate: (to: string) => void;
-  setShowReportCard: (show: boolean) => void;
 }
 
 /** In Progress / Revision */
@@ -48,7 +47,6 @@ export function ActiveJobSection({
   onComplete,
   onResolveRevision,
   navigate,
-  setShowReportCard,
 }: ActiveJobSectionProps) {
   const [resolving, setResolving] = useState(false);
 
@@ -227,19 +225,6 @@ export function ActiveJobSection({
           next-step control is live; what this buys is that the two cards draw
           one tracker rather than two. */}
       <HelperTrackerPanel app={app} job={job} userId={userId} initialTracking={initialTracking} />
-
-      {/* Pet care report card — only for pet_care jobs */}
-      {job.category === "pet_care" && (
-        <Button
-          size="sm"
-          variant="outline"
-          className="w-full"
-          onClick={() => setShowReportCard(true)}
-        >
-          <ClipboardList className="w-4 h-4 mr-1.5" />
-          Send Report Card
-        </Button>
-      )}
 
       {/* Completion status — right after tracker */}
       {job.helper_completed_at && !job.poster_completed_at && !job.revision_requested_at && (

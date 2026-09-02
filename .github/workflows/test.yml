@@ -130,6 +130,18 @@ jobs:
         # agent names, the project ref. Prose is not checkable and it says so.
         run: npm run check:claude-md
 
+      - name: Every product surface has a domain owner
+        # The audit coverage table maps surface CLASSES to lanes ("?tab=
+        # variants -> route-walker"), which is true and answers the wrong
+        # question: it certifies all 23 tabs get WALKED while nothing asks who
+        # checks what the earnings tab COMPUTES. Class owned, instances
+        # orphaned. Measured when this was written: the six post-a-job entry
+        # paths and ?tab=saved_helpers were named by ZERO lane, and
+        # /payment-success -- the Stripe checkout return -- was not in the money
+        # lane's scope. Adding a route or a post-job entry option now fails the
+        # build until someone owns it.
+        run: npm run check:surface-owners
+
       - name: Agent references resolve
         # Instructions that name a non-existent agent fail SILENTLY — the spawn
         # happens inside an agent's context, so the run continues and the guard

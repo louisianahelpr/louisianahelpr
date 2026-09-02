@@ -35,7 +35,8 @@
     "deadcode:functions": "node scripts/check-dead-edge-functions.mjs",
     "strip:ios-sourcemaps": "node scripts/strip-ios-sourcemaps.mjs",
     "check:agent-refs": "node scripts/check-agent-refs.mjs",
-    "check:claude-md": "node scripts/check-claude-md.mjs"
+    "check:claude-md": "node scripts/check-claude-md.mjs",
+    "check:surface-owners": "node scripts/check-surface-owners.mjs"
   },
   "lint-staged": {
     "*.{ts,tsx}": "eslint --fix",
@@ -45,7 +46,16 @@
       "node scripts/check-agent-refs.mjs",
       "node scripts/check-claude-md.mjs"
     ],
-    "docs/audit/launch-2026-09/*.md": "node scripts/check-agent-refs.mjs"
+    "docs/audit/launch-2026-09/*.md": "node scripts/check-agent-refs.mjs",
+    "src/App.tsx": [
+      "node scripts/check-surface-owners.mjs"
+    ],
+    "src/pages/postjob/EntryChoice.tsx": [
+      "node scripts/check-surface-owners.mjs"
+    ],
+    "src/pages/profile/types.ts": [
+      "node scripts/check-surface-owners.mjs"
+    ]
   },
   "dependencies": {
     "@aparajita/capacitor-biometric-auth": "^10.0.0",

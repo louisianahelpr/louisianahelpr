@@ -84,6 +84,28 @@ budget, address, date/time, recurrence), profile fields, bid amount and message,
 composer, search and filter inputs, admin forms, gift-card amount and recipient, tip
 amount, review text and rating.
 
+
+### The six post-a-job ENTRY paths — all six, not the form alone
+
+`src/pages/postjob/EntryChoice.tsx` ships six ways into the job form and its own
+docblock still describes three (and numbers two different sections "5"). Not one
+was named by any lane, while every one of them PRE-FILLS the form that takes the
+poster's money.
+
+1. **Start fresh** — the empty form.
+2. **Pick Up Your Draft** — restores a saved draft. Boundary case that matters:
+   a draft written under an older schema, a draft for a category that no longer
+   exists, and two tabs racing the same draft (`lh-concurrency-cache` co-owns).
+3. **Repost a Recent Job** — `?rebook=<id>`. Money co-owned by `lh-money-escrow`.
+4. **Use a Template** — pre-fills from `sampleJobs`.
+5. **AI Job Builder** — free-text goes to a model and comes back as form fields.
+   This is an untrusted-input path INTO a priced form; `lh-appsec` co-owns
+   whether the output is sanitised before it is rendered or submitted.
+6. **Offer to a Saved Helpr** — `lh-trust-safety` co-owns.
+
+Run the full value set against whichever fields each path pre-fills. A field
+that a human never typed is exactly where a boundary bug survives.
+
 ## The value set -- run all of these against every field
 
 | Class | Values |

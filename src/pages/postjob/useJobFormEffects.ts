@@ -22,6 +22,8 @@ import { parseLocationIntoFields } from "./postJobFormHelpers";
 export interface UseJobFormEffectsParams {
   searchParams: URLSearchParams;
   profile: { location?: string | null } | null | undefined;
+  /** Writes whatever saveDraft has been told, synchronously. See the teardown effect. */
+  flushDraft: () => void;
   saveDraft: (draft: {
     title: string;
     description: string;
@@ -98,6 +100,7 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
     searchParams,
     profile,
     saveDraft,
+    flushDraft,
     setPlatformFee,
     setCustomerFee,
     setOnboardingFeeCents,
@@ -353,4 +356,31 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
     const timer = setTimeout(autoSave, 2000);
     return () => clearTimeout(timer);
   }, [autoSave]);
+
+  // Teardown: push the pending 2s debounce through IMMEDIATELY, then write.
+  //
+  // useDraftJob already listens for beforeunload / visibilitychange:hidden and
+  // says why: "without these, the last few seconds of typing inside the
+  // debounce window are lost." But its flush can only write what `saveDraft`
+  // has told it, and the debounce directly above delays that by a further 2s —
+  // so for the first ~2 seconds of typing the flush ran with an empty pending
+  // draft and saved nothing. The safety net had a hole exactly where the outer
+  // debounce sat. Measured 2026-09-02 by typing and then hard-reloading after
+  // N ms: 300ms and 1000ms lost the draft entirely, 2000ms and beyond kept it.
+  //
+  // autoSave() populates the pending draft synchronously; flushDraft() then
+  // writes it. Both are needed here, and in that order: useDraftJob's own
+  // beforeunload listener is registered BEFORE this one (the hook runs higher
+  // up in usePostJobForm), so by the time it fires the pending draft is still
+  // stale — this handler cannot rely on it and must do the write itself.
+  useEffect(() => {
+    const flushNow = () => { autoSave(); flushDraft(); };
+    const onHide = () => { if (document.visibilityState === "hidden") flushNow(); };
+    window.addEventListener("beforeunload", flushNow);
+    document.addEventListener("visibilitychange", onHide);
+    return () => {
+      window.removeEventListener("beforeunload", flushNow);
+      document.removeEventListener("visibilitychange", onHide);
+    };
+  }, [autoSave, flushDraft]);
 }

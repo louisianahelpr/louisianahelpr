@@ -1,0 +1,1 @@
+{"kind":"finding","id":"V-001","ts":"2026-09-02T02:55:39.001Z","agent":"lh-verifier","lane":null,"severity":"LOW","launch_blocker":false,"surface":"self-test","claim":"bus smoke test","repro":null,"evidence":["n/a"],"unevidenced":false}

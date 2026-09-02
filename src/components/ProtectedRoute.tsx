@@ -5,6 +5,7 @@ import { RouteSuspenseFallback } from "@/components/RouteSuspenseFallback";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { report } from "@/lib/errorLogger";
 import { track, AhaEvent } from "@/lib/analytics";
+import { rememberJobIntent } from "@/lib/jobIntent";
 
 // Auth debug logging is dev-only by default. In dev it's still noisy —
 // a single tab hop can print ~15 lines and drown real errors. Devs who
@@ -181,6 +182,35 @@ const ProtectedRoute = ({
   // The brief flash visible to a banned/denied user before the redirect is
   // acceptable: all mutation endpoints enforce server-side RLS, so they
   // cannot *act* on the page in that window — only see it.
+  /**
+   * A GUEST BOUNCED OFF A JOB LINK MUST NOT LOSE THE JOB.
+   *
+   * `/jobs/:id` became signed-in-only on 2026-09-02, and the bounce below sends
+   * the visitor to /login. That is correct, but on its own it ends the journey:
+   * sign-in deliberately lands on the home dashboard ("log in → home", Login's
+   * `postLoginDest`), so a guest who tapped a SHARED job link created an account
+   * and arrived at a bare dashboard with no trace of the job that brought them.
+   * Measured live before this fix: /login with no job context, and nothing
+   * carried the destination through signup.
+   *
+   * The mechanism to fix it already existed and simply was not wired to this
+   * path. `rememberJobIntent` stores the id in tracked safeStorage, mirrored
+   * into Capacitor Preferences, so it survives a reload AND the email
+   * verification round-trip that can kill the app on native. Login and Signup
+   * both already consume it via `postAuthDestination`, landing on
+   * /dashboard?quickApply=<id> — the same screen a signed-in visitor opening
+   * the same link reaches, so guest and member converge. The two guest browse
+   * feeds already fed it via `?job=`; only the bounce did not.
+   *
+   * Written in an effect, not during render: this is a side effect, and the
+   * <Navigate> below unmounts this component on the same tick.
+   */
+  useEffect(() => {
+    if (isLoading || user) return;
+    const m = location.pathname.match(/^\/jobs\/([^/]+)$/);
+    if (m?.[1]) rememberJobIntent(m[1]);
+  }, [isLoading, user, location.pathname]);
+
   if (isLoading && !user) {
     // Cold-start moment only: no session known yet. Use the calm, static
     // brand-mark + skeleton fallback (same one the per-route Suspense

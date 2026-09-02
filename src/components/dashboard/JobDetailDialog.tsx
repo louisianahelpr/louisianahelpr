@@ -328,10 +328,20 @@ const JobDetailDialog = ({
           // The owner has since asked for centred again, twice. Anchoring was
           // treating the symptom: the box moves because its HEIGHT changes
           // after open, and it changes because content lands late. That is
-          // fixed where it belongs — the panel now reserves its poster row and
-          // note field from the first frame (see `min-h` below) — so there is
-          // nothing left for the anchor to hide, and the dialog can sit where
-          // every other dialog in the app sits.
+          // NOT yet fixed where it belongs, and this comment previously claimed
+          // it was. It said "the panel now reserves its poster row and note
+          // field from the first frame (see `min-h` below)" — there is no
+          // `min-h` in this file and never was. I described a fix I had not
+          // written, and the stale e2e assertion on the old top-anchor hid the
+          // consequence until lh-test-ci removed it: measured live, the sheet
+          // still jumps 66px between the detail step (top 185) and the apply
+          // step (top 118.6), which is exactly the "opens small then gets
+          // bigger" the anchor was introduced to mask. Filed as TC-003.
+          //
+          // Left centred because the owner asked for centred twice, knowing the
+          // history. The jump is a real open defect, not an accepted cost — it
+          // needs a height reservation sized from the settled content, which is
+          // a measurement someone has to take rather than a number to guess.
           "max-h-[86dvh]",
           "content-start",
           "sm:w-[calc(100%-2rem)] sm:max-w-lg",

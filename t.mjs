@@ -1,0 +1,12 @@
+import { chromium } from "playwright";
+const b = await chromium.launch();
+const p = await b.newContext().then(c=>c.newPage());
+await p.setViewportSize({width:393,height:852});
+const JOB = "891a13fc-2152-47d2-87ca-ff3068c6c7c8";
+await p.goto(`http://localhost:8110/jobs/${JOB}`, { waitUntil:"domcontentloaded" }).catch(()=>{});
+await p.waitForTimeout(3000);
+console.log("landed on   :", new URL(p.url()).pathname + new URL(p.url()).search);
+const stored = await p.evaluate(()=>{ try { return localStorage.getItem("helpr.jobIntent"); } catch { return "THREW"; } });
+console.log("jobIntent   :", stored);
+console.log("MATCHES JOB :", stored === JOB);
+await b.close();

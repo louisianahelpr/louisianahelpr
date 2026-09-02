@@ -143,6 +143,13 @@ const Login = () => {
   // following a deep link was dumped here with no idea why. It explains the
   // bounce now; sign-in still lands on the dashboard, unchanged.
   const bouncedFromGatedRoute = Boolean(searchParams.get("redirect"));
+  // The job a bounced guest was trying to reach, if any — /jobs/<uuid> is the
+  // only gated route whose destination is a single object worth carrying.
+  const signupHref = (() => {
+    const r = searchParams.get("redirect");
+    const m = r?.match(/^\/jobs\/([^/?#]+)$/);
+    return m?.[1] ? `/signup?job=${encodeURIComponent(m[1])}` : "/signup";
+  })();
   // ONE notice slot, highest-priority reason first — three independent banners
   // could otherwise stack into a wall of yellow above the form.
   const notice =
@@ -613,8 +620,16 @@ const Login = () => {
             both columns; back here, closing the social column. */}
         <p className="text-center text-ds-12 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
           New to Helpr?{" "}
+          {/* Carries the job forward. `rememberJobIntent` (called by
+              ProtectedRoute when it bounced this visitor) already stores the id
+              durably, so this param is a FALLBACK — but a real one: if storage
+              is blocked (Safari "Block All Cookies", a locked-down WebView,
+              kiosk policy) safeStorage silently keeps nothing, and the URL is
+              then the only thing carrying the job through signup. A guest who
+              tapped a shared job link and lost it at the account step is the
+              exact failure this whole path exists to prevent. */}
           <Link
-            to="/signup"
+            to={signupHref}
             className="font-semibold hover:underline whitespace-nowrap"
             style={{ color: "hsl(var(--bark))" }}
           >

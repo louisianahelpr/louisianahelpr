@@ -34,13 +34,17 @@
     "deadcode": "knip",
     "deadcode:functions": "node scripts/check-dead-edge-functions.mjs",
     "strip:ios-sourcemaps": "node scripts/strip-ios-sourcemaps.mjs",
-    "check:agent-refs": "node scripts/check-agent-refs.mjs"
+    "check:agent-refs": "node scripts/check-agent-refs.mjs",
+    "check:claude-md": "node scripts/check-claude-md.mjs"
   },
   "lint-staged": {
     "*.{ts,tsx}": "eslint --fix",
     "vercel.json": "node scripts/check-vercel-config.mjs",
     ".claude/**/*.md": "node scripts/check-agent-refs.mjs",
-    "CLAUDE.md": "node scripts/check-agent-refs.mjs",
+    "CLAUDE.md": [
+      "node scripts/check-agent-refs.mjs",
+      "node scripts/check-claude-md.mjs"
+    ],
     "docs/audit/launch-2026-09/*.md": "node scripts/check-agent-refs.mjs"
   },
   "dependencies": {

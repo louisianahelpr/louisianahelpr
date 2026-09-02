@@ -1,4 +1,13 @@
-// Rate limiting for the seventeen user-facing edge functions that import it.
+// Rate limiting for the eighteen user-facing edge functions that import it.
+//
+// (EIGHTEEN, counted rather than repeated. The figure carried around this
+// project is seventeen; `grep -l checkRateLimit supabase/functions/*/index.ts`
+// returns admin-delete-user, admin-user-actions, ai-job-builder, cash-out-credits,
+// claim-pif-credit, complete-signup, contact-support, create-bgc-payment,
+// create-boost-payment, create-payment, create-pif-donation, delete-own-account,
+// helpr-pass-wallet, instant-job-match, instant-payout, notify-email-change,
+// pay-onboarding-fee and stripe-idv-start. `admin-user-actions` is the one the
+// older count misses.)
 //
 // ═══════════════════════════════════════════════════════════════════════════
 // WHAT THIS USED TO BE, AND WHY IT LIMITED NOTHING

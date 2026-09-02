@@ -20,7 +20,8 @@
 --      who did not touch the header, the ceiling was "per isolate, until the
 --      next cold start" — which is not a ceiling.
 --
--- Seventeen user-facing endpoints import it, including `create-payment`,
+-- Eighteen user-facing endpoints import it (the figure usually quoted is
+-- seventeen; `admin-user-actions` is the one it misses), including `create-payment`,
 -- `instant-payout`, `cash-out-credits`, `create-bgc-payment` and
 -- `stripe-idv-start` — every one of which spends money, or Stripe quota, or
 -- Gemini quota per call.
@@ -183,7 +184,7 @@ BEGIN
   -- makes this table a complete abuse trail rather than a record of only the
   -- requests that got through.
   --
-  -- This is safe here only because no client of any of the seventeen importers
+  -- This is safe here only because no client of any of the eighteen importers
   -- auto-retries a 429: react-query's `retry` predicate returns false for any
   -- 4xx (src/lib/queryClient.ts) and mutations are configured with no retries
   -- at all, so nothing in the app can drive itself into the penalty box. If a

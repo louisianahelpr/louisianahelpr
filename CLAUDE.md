@@ -45,11 +45,15 @@ bottom-nav clearance. Never re-implement those — build on `AppShell`.
 
 - **Fixed-shell pages** — the page locks to 100dvh, the bottom nav stays
   pinned, and scrolling happens in an internal container. Use `AppShell`
-  directly (Profile, AccountPending), or `PageScaffold`
+  directly (Profile), or `PageScaffold`
   (`src/components/ui/PageScaffold.tsx`) when you want its two-card layout
   (Dashboard, Activity, Messages list, guest dashboard). `PageScaffold` is a
   *thin wrapper over `AppShell`* — it adds only the title-card + bleeding
-  panel, never its own viewport lock.
+  panel, never its own viewport lock. The four account-state screens
+  (SignupPending, AccountPending, AccountDenied, AccountBanned) are the
+  exception: they use `AuthShell`'s centered-card treatment, not `AppShell`
+  (`AccountPending.tsx:9`, `:212`, and the comment at `:208` explaining the
+  unification). This line used to name AccountPending as an `AppShell` page.
 - **Document-scroll pages** — long-form / tall content that scrolls the
   document (legal, marketing, multi-step forms, Profile/Activity tab pages).
   Use a plain `min-h-screen bg-premium-page pb-safe-nav` wrapper (with

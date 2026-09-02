@@ -488,11 +488,13 @@ d15c9a5f (now):        exit 1 · Unused files (16) · Unused exports (147)
 3. **The coverage ledger was structurally incomplete**, not merely stale: it
    tracked no overlays (78 of them) and no admin views (24). "All routes walked"
    was technically true and substantively misleading. Fixed in `aea0b7bb`.
-4. **`docs/audit/WALK_EVERY_SCREEN_PROMPT.md` tells you to run
-   `node scripts/test-signin-link.mjs`, which does not exist.** Anyone following
-   that prompt stalls at sign-in, which is the exact excuse the ledger says is
-   never acceptable. The working path is admin `generate_link` (as
-   `scripts/audit-capture.mjs` already does) — now documented in the new prompt.
+4. **`docs/audit/WALK_EVERY_SCREEN_PROMPT.md` points at
+   `node scripts/test-signin-link.mjs`.** ~~Which does not exist.~~ **CORRECTED
+   2026-09-02: it does exist** — 12,177 bytes, executable, and documented as
+   verified end to end. The original claim here was wrong, and left standing it
+   sends the next agent hunting for a replacement for a script that works. The
+   admin `generate_link` path (as `scripts/audit-capture.mjs` uses) remains the
+   documented alternative, not a required substitute.
 5. **Five contradictions between your own audit documents**, each of which will
    stall or mislead a future run. I ruled on all five in
    `docs/audit/FULL_SURFACE_AUDIT_PROMPT.md` §0, but they are worth settling at

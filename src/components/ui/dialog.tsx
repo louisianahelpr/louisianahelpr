@@ -66,21 +66,8 @@ const DialogContent = React.forwardRef<
      * the single row they all share.
      */
     topRightSlot?: React.ReactNode;
-    /**
-     * Shrinks the close X to 32x32, matching `topRightSlot`'s own compact
-     * icons (owner, 2026-08-30: "should be same size and spacing").
-     *
-     * NOTHING PASSES THIS as of 2026-09-02 (`grep -rn compactClose src` finds
-     * only this file). JobDetailDialog — the one dialog with a `topRightSlot`
-     * — does not opt in, so the row it describes has never actually been
-     * compact. Kept rather than deleted because it is an exported part of
-     * this primitive's API, but be aware that opting in takes the target
-     * BELOW the 44x44 HIG floor: it is the one documented exception, not a
-     * neutral size choice.
-     */
-    compactClose?: boolean;
   }
->(({ className, children, onOpenAutoFocus, topRightSlot, compactClose = false, ...props }, ref) => (
+>(({ className, children, onOpenAutoFocus, topRightSlot, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
     <DialogPrimitive.Content
@@ -227,7 +214,7 @@ const DialogContent = React.forwardRef<
           corners of every icon in the row. */}
       {topRightSlot && (
         <div
-          className={`absolute ${compactClose ? "right-[46px]" : "right-[52px]"} top-2 z-10 flex items-center gap-0.5`}
+          className="absolute right-[52px] top-2 z-10 flex items-center gap-0.5"
         >
           {topRightSlot}
         </div>
@@ -283,8 +270,11 @@ const DialogContent = React.forwardRef<
           change, it does not need widening. If the X grows again, this is the
           number that runs out first.)
 
-          `compactClose` opts a dialog OUT, to 32x32 at the old `right-3`;
-          nothing passes it today. See the prop's doc comment.
+          There is no opt-out. A `compactClose` prop used to shrink this to
+          32x32 at `right-3`; it was removed on 2026-09-02 having never
+          been passed by anything — its own doc comment recorded that.
+          32x32 is below the 44x44 HIG floor, so the prop's only possible
+          effect was to make the one control every dialog shares harder to hit.
 
           MUST BE `position: absolute` (not a flex child): the apply-dialog-fit
           e2e spec detects frame-chrome buttons via
@@ -301,12 +291,8 @@ const DialogContent = React.forwardRef<
         // `focus:` fires the ring on every mouse click, not just keyboard
         // navigation. Matches the shared `Button` component's own
         // convention (button.tsx uses `focus-visible:` throughout).
-        className={`absolute ${compactClose ? "right-3" : "right-1.5"} z-10 ${topRightSlot ? "top-2" : "top-3"} group p-0 box-border rounded-md btn-press flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none`}
-        style={
-          compactClose
-            ? { width: "32px", height: "32px", minWidth: "32px", minHeight: "32px" }
-            : { width: "44px", height: "44px", minWidth: "44px", minHeight: "44px" }
-        }
+        className={`absolute right-1.5 z-10 ${topRightSlot ? "top-2" : "top-3"} group p-0 box-border rounded-md btn-press flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none`}
+        style={{ width: "44px", height: "44px", minWidth: "44px", minHeight: "44px" }}
       >
         <X className="h-[18px] w-[18px] transition-transform duration-300 group-hover:-translate-y-0.5" strokeWidth={2} />
         <span className="sr-only">Close</span>

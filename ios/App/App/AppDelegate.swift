@@ -1,5 +1,6 @@
 import UIKit
 import Capacitor
+import UserNotifications
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -7,8 +8,81 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        // Registered at launch, not at permission-grant time: a notification
+        // can be rendered by the system before any JS has run (a cold launch
+        // from a push), and the category set must already be in place.
+        registerNotificationCategories()
         return true
     }
+
+    // MARK: - APNs action-button categories
+    //
+    // The server has been sending `aps.category` since the push function was
+    // written, and until now NOTHING on this side registered a matching
+    // UNNotificationCategory — so iOS dropped every identifier and not one
+    // action button has ever rendered on a Louisiana Helpr push.
+    //
+    // The failure is silent by construction: APNs treats an unknown category
+    // as "no category" and still delivers a plain tappable notification, so
+    // there is no error, no log line, and nothing to see on the server. The
+    // send looks perfect. `send-push-notification/category.ts` already carries
+    // the note that this registration "does not exist anywhere in the iOS
+    // project" and that its inference is "a precondition for that
+    // registration, not a substitute for it". This is that registration.
+    //
+    // The identifiers below are a CONTRACT with category.ts — both sides must
+    // agree on the spelling, and the categories there are the whole set:
+    //   JOB_APPLY    → a job you could take   (/dashboard, /activity)
+    //   MESSAGE      → an incoming chat       (/messages)
+    //   JOB_ACCEPTED → a job you are on       (/my-posts, /my-jobs, /jobs/:id)
+    //
+    // ── WHY EVERY ACTION IS `.foreground`, AND WHY THERE IS NO TEXT INPUT ────
+    //
+    // Capacitor forwards the tapped action to JS as `pushNotificationActionPerformed`
+    // with `actionId` (PushNotificationsHandler.swift:63), and
+    // `src/lib/nativePush.ts` routes on it. Every action below therefore
+    // resolves to a real destination or a real write in the web layer.
+    //
+    // A `UNTextInputNotificationAction` for MESSAGE — the "Reply" box the
+    // contract describes — is DELIBERATELY NOT REGISTERED. Capacitor does
+    // deliver the typed string (`inputValue`, handler:74), but nothing in the
+    // app sends it: there is no background message-send path, and a reply box
+    // whose text is silently discarded is worse than no reply box at all.
+    // "Reply" is a foreground action that opens the thread instead, which is
+    // honest about what happens. Registering the text input is safe only once
+    // a send path exists on the JS side.
+    private func registerNotificationCategories() {
+        let apply = UNNotificationAction(identifier: "APPLY", title: "Apply", options: [.foreground])
+        let save = UNNotificationAction(identifier: "SAVE", title: "Save", options: [.foreground])
+        let reply = UNNotificationAction(identifier: "REPLY", title: "Reply", options: [.foreground])
+        let openThread = UNNotificationAction(identifier: "OPEN_THREAD", title: "Message", options: [.foreground])
+        let view = UNNotificationAction(identifier: "VIEW", title: "View", options: [.foreground])
+
+        let jobApply = UNNotificationCategory(
+            identifier: "JOB_APPLY",
+            actions: [apply, save],
+            intentIdentifiers: [],
+            options: []
+        )
+        let message = UNNotificationCategory(
+            identifier: "MESSAGE",
+            actions: [reply],
+            intentIdentifiers: [],
+            options: []
+        )
+        let jobAccepted = UNNotificationCategory(
+            identifier: "JOB_ACCEPTED",
+            actions: [openThread, view],
+            intentIdentifiers: [],
+            options: []
+        )
+
+        // setNotificationCategories REPLACES the whole set, so this must be
+        // the only call in the app. It is safe to run before permission is
+        // granted — the set is consulted at render time, not at registration.
+        UNUserNotificationCenter.current().setNotificationCategories([jobApply, message, jobAccepted])
+    }
+
 
     func applicationWillResignActive(_ application: UIApplication) {
         // Sent when the application is about to move from active to inactive state. This can occur for certain types of temporary interruptions (such as an incoming phone call or SMS message) or when the user quits the application and it begins the transition to the background state.

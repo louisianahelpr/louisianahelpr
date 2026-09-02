@@ -66,8 +66,8 @@ files under `docs/audit/`. **All 15 phases complete.** Verdict: **CONDITIONAL GO
 coarsened/absent everywhere). Ship once the 3 must-fix Highs are closed.
 
 **Must-fix before the next build (all quick, low-risk):**
-- [ ] **F-MONEY-01** — retire the `process-scheduled-payouts` cron (double-pay hazard vs `release-payout`; the `auto-release-payment → release-payout` path already covers payouts idempotently). **Highest priority — real money.**
-- [ ] **F-DISC-01** — close the legacy street-address leak: `DROP VIEW public.open_jobs_safe` (`open_jobs_safe` is unused in src/), but `get_ranked_open_jobs` is actively called in `src/pages/jobs/useOpenJobsFeed.ts:57` so the DROP FUNCTION path is not safe — only viable fix is revoke anon + wrap `location` in `mask_job_location`. Add a regression test asserting no anon open-jobs surface returns a street number. (Live post path writes full street to `jobs.location` at `src/pages/postjob/jobSubmitHelpers.ts:156`; latent — current data has no street numbers.)
+- [x] **F-MONEY-01** — retire the `process-scheduled-payouts` cron. **Done in the database, which is where the double-pay hazard lived.** `20260618130000_unschedule_legacy_payout_cron.sql:15-17` unschedules it (guarded, idempotent), and `20260831190419_schedule_http_crons_missing_from_migrations.sql:62` records the deliberate refusal to re-create it while scheduling its siblings — so the racing cron cannot come back by accident. What remains is only the function *directory* `supabase/functions/process-scheduled-payouts/`, which is invoked by nothing scheduled; deleting it is an owner call, not a money risk. Verified 2026-09-02.
+- [ ] **F-DISC-01** — close the legacy street-address leak. **Both shipped fixes are in; only the regression test is still open.** The leaky view is gone (`20260618120000_mask_open_jobs_rpc_drop_leaky_view.sql:64` — `DROP VIEW IF EXISTS public.open_jobs_safe`) and `get_ranked_open_jobs` masks `location` (`:53`, preserved through `20260901031421:171`), so the surface described below no longer exists. **Remaining work, and the only reason this stays unchecked:** no test asserts that an anon open-jobs surface never returns a street number. Until one exists, nothing stops a future migration un-masking the column — the live post path still writes the full street to `jobs.location` (`src/pages/postjob/jobSubmitHelpers.ts:156`), so the data is there to leak; it is latent only because current rows carry no street numbers. Re-verified 2026-09-02.
 - [x] **F-SEC-01** — `git rm --cached .env && git commit` (file stays on disk; already gitignore'd). Key rotation NOT required (publishable-only keys).
 
 **Other quick wins:**
@@ -80,7 +80,7 @@ coarsened/absent everywhere). Ship once the 3 must-fix Highs are closed.
 - [ ] **F-MONEY-03** — route `admin_release_dispute` through `release-payout` or rethrow on transfer failure (`create-payment/index.ts:537-540,801`).
 - [ ] **F-SEC-04** — `open_jobs_browse` SECURITY DEFINER view: document + narrow, or recreate `security_invoker`.
 - [ ] **F-SEC-05** — rate-limit the public `partner_applications` insert.
-- [ ] **F-DISC-02** — tighten over-broad default grants on `open_jobs_safe` (folds into F-DISC-01 DROP).
+- [x] **F-DISC-02** — tighten over-broad default grants on `open_jobs_safe`. Moot: the view itself was dropped by `20260618120000:64`, so there are no grants left to tighten. Verified 2026-09-02.
 - [ ] **F-TRUST-01** — give the dual off-platform message-scan regex (client `messageScanner.ts` + server `scan_message_content()`) a shared source of truth or an equivalence test.
 - [ ] **F-TRUST-02 / F-TRUST-03** — spelled-number evasion heuristic; soften the fixed 2-flag/24h auto-suspend (warn-first) and confirm `cash` tokens aren't over-firing.
 - [ ] **F-SEC-06 / F-SEC-07** — pin `search_path` on 18 fns; `REVOKE EXECUTE … FROM anon` on mutation RPCs.

@@ -30,6 +30,31 @@ import { Browser } from "@capacitor/browser";
 import { normalizeDeepLinkUrl, NATIVE_RETURN_SCHEME } from "@/lib/deepLinkRoute";
 import { claimDeepLinkLaunch } from "@/lib/nativeLaunchMutex";
 import { captureJobRef } from "@/lib/jobLinkRef";
+import { rememberPendingSave } from "@/lib/jobIntent";
+
+/**
+ * The job id a notification is about, or null.
+ *
+ * Reads the three shapes the product actually emits, in precedence order:
+ * `?quickApply=<id>` (the most common notification link there is — see
+ * QuickApplyHandler.tsx:31), `?job=<id>` (the guest browse walls), and the
+ * `/jobs/<id>` detail route. Anything else — `/messages`, `/earnings`,
+ * `/admin` — has no job and returns null, which every caller treats as
+ * "fall back to plain navigation".
+ */
+function jobIdFromLink(link: string): string | null {
+  // A relative link needs a base to parse; the origin is thrown away.
+  let url: URL;
+  try {
+    url = new URL(link, "https://app.invalid");
+  } catch {
+    return null;
+  }
+  const param = url.searchParams.get("quickApply") || url.searchParams.get("job");
+  if (param) return param;
+  const match = url.pathname.match(/^\/jobs\/([^/]+)$/);
+  return match ? match[1] : null;
+}
 
 let listenersAttached = false;
 
@@ -204,6 +229,16 @@ export function useNativePushSetup() {
         await PushNotifications.addListener("pushNotificationActionPerformed", (action) => {
           track(AhaEvent.AppOpenedFromPush, { action: action.actionId });
           const link = action.notification?.data?.link;
+          // `actionId` is "tap" for the notification body, "dismiss" for a
+          // swipe-away, or one of the identifiers AppDelegate.swift registers
+          // on the JOB_APPLY / MESSAGE / JOB_ACCEPTED categories. Those
+          // buttons only started existing when that registration landed — iOS
+          // had been dropping every unregistered category silently — so every
+          // branch below is reachable only on a build that carries it. An
+          // unknown id falls through to plain navigation, which is what a
+          // server-side category added ahead of an app release should do.
+          const actionId = action.actionId;
+          if (actionId === "dismiss") return;
           if (typeof link === "string" && link.startsWith("/")) {
             // Tag the navigation with ?ref=notif so the receiving page can
             // capture the attribution source via useJobRef().
@@ -223,6 +258,48 @@ export function useNativePushSetup() {
             // NativeLaunchRouter only ever acts once, on its own mount, and
             // only when the initial path is "/".
             claimDeepLinkLaunch();
+
+            const jobId = jobIdFromLink(link);
+
+            // "Save" — the bookmark, not the application. Reuses the guest
+            // save hook rather than writing here: rememberPendingSave stashes
+            // the id in a tracked key and usePendingSaveConsumer upserts it
+            // and toasts "Job saved" on the next Dashboard or JobDetail mount.
+            // That matters because this handler can run during a COLD launch,
+            // before a session exists — a write issued here would race
+            // supabase-js's session hydration and fail as an anonymous
+            // insert, which is the same class of loss the pending-token
+            // buffer above exists to prevent. The consumer is gated on a real
+            // user id, so the save lands once the session does. Navigating to
+            // the job detail route both shows what was saved and guarantees a
+            // consumer is mounted; without an id there is nothing to save, so
+            // fall through to the link.
+            if (actionId === "SAVE" && jobId) {
+              rememberPendingSave(jobId);
+              navigate(appendRef(`/jobs/${jobId}`, "notif"));
+              return;
+            }
+
+            // "Apply" — open the apply sheet directly rather than dropping the
+            // user on a feed to find the job again. `?quickApply=` is the
+            // established param (jobIntent.postAuthDestination builds the same
+            // URL for a guest returning from signup).
+            if (actionId === "APPLY" && jobId) {
+              navigate(appendRef(`/dashboard?quickApply=${encodeURIComponent(jobId)}`, "notif"));
+              return;
+            }
+
+            // "Reply" (MESSAGE) and "Message" (JOB_ACCEPTED) both mean: take
+            // me to the conversation. When the notification is already a
+            // message push its own link is the thread, so prefer it and only
+            // fall back to the inbox.
+            if (actionId === "REPLY" || actionId === "OPEN_THREAD") {
+              const dest = link.startsWith("/messages") ? link : "/messages";
+              navigate(appendRef(dest, "notif"));
+              return;
+            }
+
+            // "View", "tap", and anything unrecognised.
             navigate(appendRef(link, "notif"));
           }
         });

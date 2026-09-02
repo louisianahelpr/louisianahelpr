@@ -24,6 +24,7 @@ import { SignupStep1 } from "./signup/SignupStep1";
 import { SignupStep2 } from "./signup/SignupStep2";
 import { getPublicOrigin } from "@/lib/authRedirects";
 import { userFacingError } from "@/lib/userFacingError";
+import { recognizedAuthError } from "@/lib/authErrors";
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -397,7 +398,21 @@ const Signup = () => {
       // strand a HALF-CREATED account (auth user exists, profile incomplete)
       // with a 4-second toast as the only evidence. Observed live 2026-08-24.
       report(err, { tags: { source: "Signup.createAccountAndFinish" } });
-      toast.error(userFacingError(err, "Couldn't create your account — try again?"));
+      // Ask the auth vocabulary FIRST. userFacingError suppresses
+      // machine-shaped strings, but GoTrue's are short lowercase prose
+      // ("email rate limit exceeded", "user already registered") matching none
+      // of its INTERNAL_PATTERNS — so they passed through verbatim and the
+      // signup wall told people their EMAIL was rate limited, with no next
+      // step. Observed live 2026-09-02, on the failure a launch-day queue makes
+      // most likely. recognizedAuthError returns null when it has nothing to
+      // say, so anything non-auth still gets the normal treatment below.
+      //
+      // userFacingError guarantees the raw text still reaches the console; on
+      // the auth branch it is never called, so log it here rather than lose
+      // the breadcrumb a bug report depends on.
+      const authCopy = recognizedAuthError(err?.message);
+      if (authCopy) console.error("[signup:auth]", err);
+      toast.error(authCopy ?? userFacingError(err, "Couldn't create your account — try again?"));
     } finally {
       setLoading(false);
     }

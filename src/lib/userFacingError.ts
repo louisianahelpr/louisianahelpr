@@ -51,6 +51,18 @@ const INTERNAL_PATTERNS: RegExp[] = [
   /Failed to fetch|NetworkError|ERR_[A-Z_]+/,
   /supabase|postgres|pgrst/i,
   /\bat \w+ \(.*:\d+:\d+\)/, // a stack frame
+  // supabase-js's own transport wrapper. It reads as prose and contains none
+  // of the words above, so it sailed through: a user who tipped, boosted a
+  // job, or opened a dispute was told "Edge Function returned a non-2xx status
+  // code" — an implementation detail with no next step. Observed live on
+  // /signup 2026-09-02, and reachable from TipDialog, JobBoostDialog,
+  // ReferralSection, AdminDisputes and SecurityTab, because this is what
+  // supabase-js throws for ANY non-2xx from ANY functions.invoke call.
+  // The deliberate edge-function copy this filter exists to PRESERVE
+  // ("This task isn't accepting applications anymore.") is read out of the
+  // response body by the callers, not carried on this wrapper — so
+  // suppressing the wrapper costs none of it.
+  /Edge Function returned a non-2xx status code/i,
 ];
 
 /** A sentence a person can read: starts like prose and is not enormous. */

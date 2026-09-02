@@ -55,6 +55,24 @@ describe("userFacingError", () => {
     expect(userFacingError("You must be logged in.", FALLBACK)).toBe("You must be logged in.");
   });
 
+  it("suppresses supabase-js's edge-function transport wrapper", () => {
+    // Regression: this string reads as prose and names none of the words the
+    // other patterns look for, so it was trusted and shown verbatim on
+    // /signup (observed live 2026-09-02). It is what supabase-js throws for
+    // ANY non-2xx from ANY functions.invoke, so it was reachable from
+    // TipDialog, JobBoostDialog, ReferralSection, AdminDisputes, SecurityTab.
+    expect(
+      userFacingError(new Error("Edge Function returned a non-2xx status code"), FALLBACK),
+    ).toBe(FALLBACK);
+  });
+
+  it("still shows deliberate edge-function copy, which is what the filter is FOR", () => {
+    expect(userFacingError(new Error("This task isn't accepting applications anymore."), FALLBACK))
+      .toBe("This task isn't accepting applications anymore.");
+    expect(userFacingError(new Error("Too many requests — try again in a minute."), FALLBACK))
+      .toBe("Too many requests — try again in a minute.");
+  });
+
   it("ALWAYS logs the raw error, including when the fallback is shown", () => {
     // This is the half that makes suppression safe: a developer reading a bug
     // report must still be able to see what actually failed.

@@ -228,6 +228,49 @@ compensating for it — and it bears on GD-002's design: **a freshness guard tha
 asserts `tsc` is green would not have caught SI-012's real reach, and would not catch
 this.** The guard has to diff the generated file, not just compile against it.
 
+## GD-006 — MEDIUM — validating the GD-002 guard against ground truth
+
+The orchestrator built `scripts/check-types-fresh.mjs` for GD-002. This lane holds the
+only known-correct drift set, so it is the one place that guard can be checked against
+truth rather than against itself — and a guard that reports OK when it is not is this
+repo's signature failure (db-drift-detect's 18 green runs; the Sentry upload that skipped
+and reported success). Read-and-run only; the file is the orchestrator's.
+
+**Five tests pass.**
+
+| Test | Result |
+|---|---|
+| real drift | catches both GD-001 columns **and** GD-004's 6 `edge_rate_limit_log` columns, exit 1 |
+| removed column (`reports.reason` doctored out) | "gone from prod (1)", exit 1 |
+| empty file | refuses to report success, exit 1 |
+| garbage file | same, exit 1 |
+| matching pair | `✔ types.ts matches the live schema (958 columns checked)`, exit 0 |
+
+**Parse coverage is exactly 100%, measured.** The parser sees 958 columns across 82
+objects; prod `information_schema` reports 865 table columns + 93 view columns = **958**,
+across 80 tables + 2 views = **82**. No blind spots. (The orchestrator's count of 952 was
+against the *committed* file — 958 minus the 6 `edge_rate_limit_log` columns it lacks.
+The two numbers corroborate each other.)
+
+**Three gaps, two proven by execution.**
+
+1. **A column TYPE change slips through, with the green message.** Doctoring
+   `reports.reason` from `string` to `number` and leaving nullability alone yields
+   `✔ types.ts matches the live schema (958 columns checked)`, exit 0.
+   `map.set(key, /\bnull\b/.test(type))` (`check-types-fresh.mjs:66`) stores a boolean and
+   discards the rest, so `text`→`uuid` reports clean. *Fix: store the normalised type
+   string; nullability then falls out for free.*
+2. **Functions/RPCs are not covered.** Against the real drift set, zero of GD-004's five
+   new RPCs appear in the output — it caught the new table and missed every function.
+   This closes the GD-003 loop: a missing RPC is what makes someone write `as never`.
+   *Fix: a second map over the `Functions:` block, keys only.*
+3. **The project ref is unvalidated** (`check-types-fresh.mjs:73`). `SUPABASE_PROJECT_REF`
+   is trusted as given, so a wrong ref silently compares against **staging** — the trap
+   CLAUDE.md and PROTOCOL §4 both name, and `.temp/project-ref` points there today. The
+   secret exists (dated 2026-05-11) and is prod today, since `db-deploy` reaches prod
+   through it, so this is hardening rather than a live defect. *Fix: assert the ref is
+   `fncmgoasalhdgfwzhsqa`.*
+
 ## Evidence index
 
 Saved artifacts, all re-checkable:

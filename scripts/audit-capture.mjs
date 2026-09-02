@@ -74,22 +74,45 @@ const AUTHED_ROUTES = [
   // any more, so both render the 404 page. Sweeping them graded NotFound twice
   // under names that read like real screens. The membership screen is
   // /profile?tab=subscription, already covered by PROFILE_TABS.
+  // Seven more left this list on 2026-09-02 for the SAME reason as
+  // /subscription and /family above: /pets, /analytics, /home-history,
+  // /work-record, /auto-tip, /str-settings and /wrapped are no longer routes.
+  // They are Profile tabs now and are covered by PROFILE_ROUTES below, derived
+  // from the Tab union itself so they cannot be missed.
   '/my-posts?filter=done', '/messages', '/post-job', '/jobs', '/settings',
-  '/settings/profile', '/availability', '/schedule', '/earnings', '/analytics', '/pets',
-  '/home-history', '/work-record', '/saved-helpers', '/auto-tip',
-  '/str-settings', '/data-rights', '/gift-card', '/wrapped', '/payment-success', '/help', '/support',
+  '/settings/profile', '/availability', '/schedule', '/earnings',
+  '/saved-helpers', '/data-rights', '/gift-card', '/payment-success', '/help', '/support',
   '/legal', '/privacy', '/terms', '/rules',
   '/user/e977a30f-7065-4e75-8498-dba435ac2044',
 ];
 
-// Mirror of the `Tab` union in src/pages/profile/types.ts (minus 'landing',
-// which is plain /profile). posted_jobs and completed_jobs are NOT tabs any
-// more; 'accessibility' is and was missing.
-const PROFILE_TABS = [
-  'profile', 'earnings', 'schedule', 'availability', 'payment', 'security', 'legal', 'reviews',
-  'referral', 'subscription', 'support', 'notifications',
-  'warnings', 'credentials', 'saved_helpers', 'accessibility',
-];
+// DERIVED from src/pages/profile/types.ts, not mirrored by hand.
+//
+// This was a hand-kept copy of the `Tab` union, and its own comment records it
+// having drifted twice already — posted_jobs and completed_jobs lingered after
+// they stopped being tabs, and 'accessibility' was simply missing. A list that
+// has to be remembered is a list that goes stale, and a stale one here is
+// invisible: it does not error, it just quietly stops capturing a screen.
+// Seven new tabs landed on 2026-09-02 and would have been missed a third time.
+//
+// Parsed from TAB_TITLES, which is the constant the app itself renders and
+// routes on, so a tab cannot exist without appearing here. Throws rather than
+// falling back to a partial list — a capture sweep that silently covers less
+// than it claims is worse than one that fails.
+const TAB_TITLES_SRC = fs.readFileSync(
+  new URL('../src/pages/profile/types.ts', import.meta.url), 'utf8',
+);
+const TAB_BLOCK = TAB_TITLES_SRC.slice(
+  TAB_TITLES_SRC.indexOf('TAB_TITLES'),
+  TAB_TITLES_SRC.indexOf('};', TAB_TITLES_SRC.indexOf('TAB_TITLES')),
+);
+const PROFILE_TABS = [...TAB_BLOCK.matchAll(/^\s*(\w+):\s*"/gm)].map((m) => m[1]);
+if (PROFILE_TABS.length < 10) {
+  throw new Error(
+    `audit-capture: parsed only ${PROFILE_TABS.length} Profile tabs from types.ts — ` +
+    'the TAB_TITLES shape must have changed. Fix the parse; do not hand-list them again.',
+  );
+}
 const PROFILE_ROUTES = ['/profile', ...PROFILE_TABS.map((t) => `/profile?tab=${t}`)];
 
 // Mirror of `type View` in src/pages/Admin.tsx — re-derive from that union when
@@ -106,7 +129,9 @@ const ADMIN_ROUTES = ['/admin', ...ADMIN_VIEWS.map((v) => `/admin?view=${v}`)];
 
 const GUEST_ROUTES = [
   '/', '/login', '/signup', '/forgot-password', '/help', '/legal', '/privacy', '/terms', '/rules',
-  '/wrapped', '/nonexistent-audit-404',
+  // '/wrapped' removed 2026-09-02 — it is a Profile tab now, and as a guest
+  // route it graded the 404 screen under a name that reads like a real one.
+  '/nonexistent-audit-404',
 ];
 
 // ---------- helpers ----------

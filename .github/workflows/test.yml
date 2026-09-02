@@ -130,6 +130,15 @@ jobs:
         # agent names, the project ref. Prose is not checkable and it says so.
         run: npm run check:claude-md
 
+      - name: No internal link points at a deleted route
+        # Deleting a route is the easy half. When seven routes became Profile
+        # tabs on 2026-09-02, the leftovers were not in the pages — they were in
+        # a Stripe success_url (a 404 at the end of a COMPLETED purchase), two
+        # notification link fields, and a screenshot script that would have
+        # captured the 404 page under names that read like real screens. None of
+        # that is visible from the route table and none of it breaks a build.
+        run: npm run check:dead-links
+
       - name: Every product surface has a domain owner
         # The audit coverage table maps surface CLASSES to lanes ("?tab=
         # variants -> route-walker"), which is true and answers the wrong

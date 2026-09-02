@@ -36,7 +36,8 @@
     "strip:ios-sourcemaps": "node scripts/strip-ios-sourcemaps.mjs",
     "check:agent-refs": "node scripts/check-agent-refs.mjs",
     "check:claude-md": "node scripts/check-claude-md.mjs",
-    "check:surface-owners": "node scripts/check-surface-owners.mjs"
+    "check:surface-owners": "node scripts/check-surface-owners.mjs",
+    "check:dead-links": "node scripts/check-dead-links.mjs"
   },
   "lint-staged": {
     "*.{ts,tsx}": "eslint --fix",
@@ -48,7 +49,8 @@
     ],
     "docs/audit/launch-2026-09/*.md": "node scripts/check-agent-refs.mjs",
     "src/App.tsx": [
-      "node scripts/check-surface-owners.mjs"
+      "node scripts/check-surface-owners.mjs",
+      "node scripts/check-dead-links.mjs"
     ],
     "src/pages/postjob/EntryChoice.tsx": [
       "node scripts/check-surface-owners.mjs"

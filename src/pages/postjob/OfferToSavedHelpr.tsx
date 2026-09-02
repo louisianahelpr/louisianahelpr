@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ChevronDown, UserCheck } from "lucide-react";
@@ -55,7 +54,6 @@ export function OfferToSavedHelpr({
   // saved Helpr" quietly threw the gift away and billed them in full.
   const [searchParams] = useSearchParams();
   const { user } = useCurrentUser();
-  const [expandedOnce, setExpandedOnce] = useState(false);
 
   const { data: helpers, isError, error } = useQuery({
     queryKey: queryKeys.savedHelpers.byUser(user?.id),
@@ -64,23 +62,29 @@ export function OfferToSavedHelpr({
       if (rpcError) throw rpcError;
       return (data ?? []) as SavedHelperLite[];
     },
-    // Only fetched once the poster actually opens the card — the entry screen
-    // should not pay for a round trip nobody asked for.
-    enabled: !!user && expandedOnce,
+    // Fetched on MOUNT, not on open. Deferring it until the card was opened
+    // meant the self-hiding below could only fire AFTER a tap, so a poster
+    // with no saved helprs saw the card, tapped it, and watched it vanish
+    // under their finger — no empty state, nothing in its place (measured
+    // 2026-09-02: present before the tap, gone by +300ms, still gone at +3s).
+    // That is the opposite of the "sees nothing" this component documents, and
+    // worse than the empty picker it was written to avoid.
+    //
+    // The round trip this used to save is one RPC on a screen that already
+    // fetches the poster's recent jobs on mount for the Repost card — and
+    // Repost is the sibling that gets this right.
+    enabled: !!user,
     staleTime: 5 * 60 * 1000,
   });
 
   if (isError) report(error, { tags: { source: "OfferToSavedHelpr.get_my_saved_helpers" } });
 
-  // Hidden until we know there is somebody to offer to. `undefined` means the
-  // query has not run yet (card never opened), which must NOT hide the card —
-  // that is the state every first render is in.
-  if (expandedOnce && helpers && helpers.length === 0) return null;
+  // Hidden once we know there is nobody to offer to. `undefined` means the
+  // query is still in flight, which must NOT hide the card — see the skeleton
+  // note on Repost for why a row that appears late is its own defect.
+  if (helpers && helpers.length === 0) return null;
 
-  const toggle = () => {
-    setExpandedOnce(true);
-    onOpenChange(!open);
-  };
+  const toggle = () => onOpenChange(!open);
 
   const pick = (helperId: string) => {
     track("post_job_entry_choice", { choice: "direct_offer" });

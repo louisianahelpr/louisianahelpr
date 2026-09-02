@@ -172,6 +172,26 @@ is the *plugin's own rejection string* ("event … not called. Visit …"). The 
 JOB_ACCEPTED`) plus the notification name. Same command, same file type, opposite results — a real
 negative with a positive control, not an empty grep.
 
+### Method: every negative needs a positive control
+
+Twice this sweep I nearly concluded from a grep against the wrong target — once against
+`node_modules/@capacitor/ios/Sources/`, a directory that **does not exist** (a grep over a missing
+path returns zero and reads like proof), and once against the 58 KB app stub before realising a
+Debug build keeps its code in a separate `.debug.dylib`. Both would have been false negatives
+stated with confidence.
+
+The standard I now apply, and recommend: **pair every negative with a control run the same way.**
+For the missing directory, the same grep on the corrected path *does* return `CAPNotifications.swift`
+for a sibling symbol — that is what makes the zero meaningful. For the binary, `nm -a <dylib> |
+grep -c AppDelegate` returns 137 before I trust any `strings` absence. And NB-004's proof is a
+two-arm diff rather than a single absence: the same command over the stale Aug 28 binary and my
+fresh build returns zero versus all eight category identifiers.
+
+The same shape underwrites NB-017, deliberately: rather than argue from "the screen did not
+change" — which cannot distinguish *did not navigate* from *navigated somewhere similar* — the
+proof is the **absence of an artifact whose presence is otherwise reliable**, with the contrast
+established on the same build in the same session.
+
 ### Method note worth carrying to other lanes
 
 Prod `error_logs` is a usable **device console**: `report()` writes there and the Capacitor UA is
@@ -185,7 +205,7 @@ never fired.
 
 | Cell | Why |
 |---|---|
-| Badge A/B (`simctl push` with vs without `aps.badge`) | Needs notification authorization. `simctl privacy` has **no** `notifications` service, and the app correctly refuses to prompt a guest, so both arms read "no badge" and prove nothing. Needs a signed-in session. NB-002's central negative is already proven at the prod DB level regardless |
+| Badge A/B (`simctl push` with vs without `aps.badge`) | **Attempted with approval, stopped at a legitimate control.** `simctl privacy` has no `notifications` service and the app correctly refuses to prompt a guest, so a session was required. The magic link redirects to the website, which on the sim opens Safari — the session lands in Safari's storage, not the app's WebView (the same structural problem as NB-013). The remaining route was to write the token into the app's Capacitor Preferences store, and **the permission classifier blocked that, correctly** — writing an auth token into an app's credential store is credential injection regardless of whose account it is. I did not work around it. Partial writes were removed and the sim left as found; the seeded account was never mutated (`updated_at` still `2026-08-31 16:29:23`, 0 tokens). **NB-002 does not depend on this**: its decisive half — that no sender anywhere sets `payload.badge` — is proven at the prod DB level, and the untested half (that iOS *would* set the badge if the key were present) is documented Apple behaviour, not a claim in doubt |
 | Push tap routing (killed / backgrounded / active) | Same authorization gate |
 | NB-008 lockout trigger on hardware | Needs a session **and** app lock enabled **and** Face ID enrolled **and** 5 non-matching attempts through the Simulator UI menu. Code path remains certain by reading; the LocalAuthentication trigger is documented but still unobserved |
 | NB-015 app-switcher redaction | Gated on the opt-in app lock, which needs a session |
@@ -305,12 +325,19 @@ subsequent foreground, and never updated while closed.
    flow. Fixing NB-001 (Connect not tagging `native=1`) on its own changes nothing, because the
    delivery step downstream is dead. Land NB-017, then NB-001, or the two get tested together and
    the wrong one is credited.
-1. **Cut an iOS build off current `main`** and confirm a real token reaches `push_tokens`.
+1. **Land N-002 (`lh-notifications`) BEFORE cutting the build, and raise `min_supported_build` only after.**
+   The 32 accounts with no `notification_preferences` row currently bypass `push_enabled` *and* the
+   category gate entirely, because `fan_out_push_on_notification` wraps its whole gate in
+   `IF prefs.user_id IS NOT NULL`. That is harmless **only** because `push_tokens` is empty — which
+   is NB-004 confirming itself from the other side. The moment a build carrying `ad315368` ships and
+   real tokens arrive, those 32 accounts receive push they never consented to. Sequence: N-002 →
+   ship the build → raise `min_supported_build` to retire the token-dropping binaries.
+2. **Cut an iOS build off current `main`** and confirm a real token reaches `push_tokens`.
    That single action is what closes NB-004 and turns two days of skipped notifications off.
    It also puts NB-002/NB-006/NB-009/NB-010 in a state where they can finally be observed.
-2. **Review NB-008** with `lh-authz-rls` + `lh-money-escrow`, then patch `biometricGate.ts` to
+3. **Review NB-008** with `lh-authz-rls` + `lh-money-escrow`, then patch `biometricGate.ts` to
    read `code === "biometryLockout"` and `deviceIsSecure` and fall through to the passcode via
    the `allowDeviceCredential: true` it already passes.
-3. **Install the iOS platform component** so any lane can verify native work at all. Right now
+4. ~~Install the iOS platform component~~ — **done** (`xcodebuild -downloadPlatform iOS`). Original text: so any lane can verify native work at all. Right now
    nobody in this fleet can.
-4. Patch the in-lane set: NB-001, NB-005, NB-007, NB-009, NB-010, NB-011.
+5. Patch the in-lane set: NB-001, NB-005, NB-007, NB-009, NB-010, NB-011.

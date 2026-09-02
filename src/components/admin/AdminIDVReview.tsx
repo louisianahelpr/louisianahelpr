@@ -222,7 +222,7 @@ const AdminIDVReview = () => {
         subtitle="Helprs Stripe billed and could not verify. Approving grants access as an Admin Verified account — it does not claim Stripe passed them."
         action={
           waiting > 0 ? (
-            <Badge className="bg-accent/20 text-accent border-accent/30 text-ds-11">
+            <Badge className="bg-accent/20 text-[hsl(var(--accent-ink))] border-accent/30 text-ds-11">
               {waiting} waiting
             </Badge>
           ) : undefined
@@ -309,7 +309,7 @@ const AdminIDVReview = () => {
                       className={
                         isFailed
                           ? "bg-destructive/10 text-destructive border-destructive/20 text-ds-10 gap-0.5 shrink-0"
-                          : "bg-accent/20 text-accent border-accent/30 text-ds-10 gap-0.5 shrink-0"
+                          : "bg-accent/20 text-[hsl(var(--accent-ink))] border-accent/30 text-ds-10 gap-0.5 shrink-0"
                       }
                     >
                       <ShieldAlert className="w-2.5 h-2.5" />

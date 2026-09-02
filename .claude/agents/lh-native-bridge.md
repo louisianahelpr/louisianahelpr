@@ -70,7 +70,10 @@ permissionMode: plan
    that exists only as a message has not been filed.
 7. **Cross-talk is `SendMessage`, not a file inbox.** You are a teammate: messages from
    the orchestrator arrive on their own, mid-run, with nothing to poll. Send leads for
-   other lanes to `lh-orchestrator` and let it fan out — never message a lane directly
+   other lanes to **`team-lead`** — that is the orchestrator's real address, and the
+   name `lh-orchestrator` does NOT resolve (there is no such agent; a send to it fails
+   and your hand-off silently never happens) — and let it fan out; never message a lane
+   directly
    (PROTOCOL §7). `audit-bus.mjs inbox` is retired; it only ever delivered a message if
    you happened to check, which by then was usually too late to matter.
 

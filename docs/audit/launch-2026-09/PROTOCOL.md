@@ -1,7 +1,7 @@
 # Launch audit — fleet protocol
 
 Every `lh-*` agent reads this file end to end before doing anything. It is the
-contract between 20 agents that never see each other's context.
+contract between 35 agents that never see each other's context.
 
 **Standard:** the `lh-audit` skill (`.claude/skills/lh-audit/SKILL.md`) is the
 audit standard — mandate, three lenses, §1–§6. This file does not replace it;
@@ -14,7 +14,7 @@ it adds the *coordination* rules the skill has no opinion about.
 Changed 2026-09-02 at the owner's direction: lanes **fix**, they do not merely
 report. The fleet runs autonomously to completion and reports once, at the end.
 
-The old report-then-fix order existed to stop 33 agents editing the same files
+The old report-then-fix order existed to stop 35 agents editing the same files
 at once. That risk is real and is handled by scoping instead: each lane fixes
 **only within its own territory**, and the shared files belong to the
 orchestrator alone.
@@ -45,8 +45,8 @@ of findings is not the score; the count of *true* findings is.
 ### Territory
 
 Fix inside your lane. If the fix belongs to another lane, file it through the bus
-and send the lead to the **orchestrator** via `SendMessage` — never to the lane
-directly (§7). `audit-bus.mjs msg` is retired: it only delivered if the recipient
+and send the lead to the orchestrator (`SendMessage` to **`team-lead`**) — never to
+the lane directly (§7). `audit-bus.mjs msg` is retired: it only delivered if the recipient
 thought to poll, so a hand-off usually landed after that lane had finished.
 
 **Orchestrator-only files — never edit these, file and message instead:**
@@ -357,7 +357,9 @@ manifest, say which unit you counted before concluding the manifest is wrong.
 ## 7. Cross-talk
 
 Hub and spoke — unchanged as a rule, changed as a mechanism. You message the
-orchestrator with `SendMessage({to: "lh-orchestrator", message: "..."})`; the
+orchestrator with `SendMessage({to: "team-lead", message: "..."})` — **`team-lead` is
+the orchestrator's address; `lh-orchestrator` is NOT an agent and a send to it fails
+silently** — and the
 orchestrator fans out. You do **not** message another lane directly, and you do not
 negotiate scope with one. A relayed message hands another lane a lead; it never
 reassigns work.

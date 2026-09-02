@@ -22,11 +22,26 @@
 --   * non-negativity, which is never a product judgement, or
 --   * an identity that holds BY CONSTRUCTION in the code that does the write.
 --
--- What is NOT constrained here, on purpose: whether `referral_credits.amount`
--- may be negative as a clawback/reversal, and whether any fee has a sensible
--- upper bound. Both are product decisions, not arithmetic, and guessing at
--- them is exactly the failure mode above. `> 0` is therefore avoided
--- everywhere in favour of `>= 0`; zero is not the hazard, negative is.
+-- A NEGATIVE amount is never wanted anywhere here, and every column below
+-- rejects one. There is no ledger in this product that records a reversal as
+-- a negative row: a refund is `payment_refunds`, a dispute split is its own
+-- pair of columns, and a cancelled job is voided rather than negated. So the
+-- sign is not an open question and is not treated as one.
+--
+-- ZERO is the only place judgement was needed, and it splits by column:
+--
+--   `referral_credits.amount` is `> 0`, matching the house style for credit
+--   ledgers exactly (`pif_credits.amount CHECK (> 0)`, `tips.amount CHECK
+--   (> 0 AND <= 1000)`). A zero-value referral credit is not a credit; prod
+--   holds two rows, 5 and 10, and none at zero.
+--
+--   Everything else is `>= 0`, because zero is genuinely meaningful there: a
+--   job with no urgent fee, no cancellation fee and no protection fee is the
+--   ordinary case, and an application with a zero stake is not a defect.
+--
+-- What is still NOT constrained, on purpose: any UPPER bound on a fee. That
+-- is a product decision, not arithmetic, and a ceiling guessed wrong rejects
+-- a legitimate write in prod — the failure mode described above.
 --
 -- ── EVERY CONSTRAINT VERIFIED AGAINST LIVE PROD BEFORE BEING WRITTEN ────────
 --
@@ -62,8 +77,8 @@ BEGIN
        'gross_amount >= 0 AND fee_amount >= 0 AND net_amount >= 0'),
       ('instant_payouts', 'ck_instant_payouts_net_is_gross_minus_fee',
        'round(net_amount, 2) = round(gross_amount - fee_amount, 2)'),
-      ('referral_credits', 'ck_referral_credits_amount_nonneg',
-       'amount >= 0'),
+      ('referral_credits', 'ck_referral_credits_amount_positive',
+       'amount > 0'),
       ('applications', 'ck_applications_stake_amount_nonneg',
        'stake_amount IS NULL OR stake_amount >= 0'),
       ('jobs', 'ck_jobs_fee_amounts_nonneg',
@@ -106,7 +121,7 @@ BEGIN
     SELECT * FROM (VALUES
       ('instant_payouts', 'ck_instant_payouts_amounts_nonneg'),
       ('instant_payouts', 'ck_instant_payouts_net_is_gross_minus_fee'),
-      ('referral_credits', 'ck_referral_credits_amount_nonneg'),
+      ('referral_credits', 'ck_referral_credits_amount_positive'),
       ('applications',    'ck_applications_stake_amount_nonneg'),
       ('jobs',            'ck_jobs_fee_amounts_nonneg'),
       ('jobs',            'ck_jobs_sales_tax_rate_range'),

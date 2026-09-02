@@ -49,6 +49,7 @@ silent-work detector has not produced one verdict about anything since it was cr
 | CJ-003 | LOW | no | verified (self) | `job_views`, `profile_views`, `notification_logs`, `login_history` have no retention sweep at all |
 | CJ-005 | LOW | no | verified (self) | `extend-boosts-hourly` is the one job with no `cron_work_expectations` row, so it cannot be flagged dead |
 | CJ-006 | LOW | no | verified (self) | The email dead-letter queues record but never drain; the only monitor is a passive admin tile |
+| CJ-011 | MEDIUM | no | filed | The four cron detectors don't duplicate — but `sweep_dead_crons` watches the other three and nothing watches it |
 | CJ-010 | LOW | no | filed | The busiest cron in the product (every 60s, 171,495 runs) serves a feature the owner confirmed dead |
 
 `verified (self)` means *I* reproduced it against live prod on this pass. `lh-verifier`'s
@@ -234,6 +235,53 @@ decision for the owner, not something I should choose.
 
 ---
 
+## The two additions routed from `lh-generated-drift`
+
+**`prune_edge_rate_limit_log` — scheduled, correct, no exposure. Not a finding.**
+It is `cron.job` jobid 62, `56 4 * * *`, active, created ~13:52 today; the function deletes
+`edge_rate_limit_log` rows older than one day. Zero runs so far only because its first fire is due
+2026-09-03 04:56. `edge_rate_limit_log` holds **0 rows / 40 kB**, so there is no unbounded-growth
+risk to confirm. The write path is healthy too, and my first pass nearly got this wrong: grepping
+`supabase/functions` for `edge_rate_limit_log` returns nothing, because the write goes through an
+RPC rather than a table reference. `rate_limit_hit(p_bucket text, p_subject text, p_ip text,
+p_window_seconds integer, p_max integer, p_ip_max integer, p_forwarded_for text)` exists in prod
+with exactly the signature `_shared/rate-limit.ts` POSTs to, and its body does
+`INSERT INTO public.edge_rate_limit_log`. Edge functions were redeployed 2026-09-02 13:51:53,
+after the 03:57 migration, and `function_edge_logs` contains **zero** `[rate-limit]` lines — so it
+has not silently degraded to `inMemoryFallback` either. The zero rows are simply no traffic on a
+pre-launch app. Its absence from committed `types.ts` is real but is a generated-drift finding,
+not a cron defect.
+
+**`sweep_cron_blackouts` vs `sweep_silent_cron_failures` — no overlap whatsoever. CJ-011.**
+
+| detector | cadence | input | catches | `error_logs` source | rows ever |
+|---|---|---|---|---|---|
+| `sweep_cron_http_failures` | `*/15` | `net._http_response` status codes | an edge function answering non-2xx | `cron-http` | 126 |
+| `sweep_silent_cron_failures` | `:47` | `cron_run_log` bodies × `candidate_key` | a **2xx that did nothing** | `cron-silent` | **0** |
+| `sweep_dead_crons` | `:53` | `cron.job_run_details` × `expected_max_gap` | unscheduled / inactive / never-ran / dead / erroring | `cron-dead` | 1 |
+| `sweep_cron_blackouts` | `:57` | **aggregate** dispatch-stream gap differencing | pg_cron dispatching *nothing* for >15 min | `cron-blackout` | 0 |
+
+Four distinct inputs, four distinct verdicts, disjoint sources, deliberately staggered. There is
+no redundancy to remove.
+
+**But your instinct was right in a different place.** All four detectors are themselves crons, and
+only one thing can notice a detector failing: `sweep_dead_crons` is the only *actor* in the entire
+254-function catalog that reads `expected_max_gap` (the only other reader,
+`cron_dispatch_health()`, is a read-only reporter that raises no alarm). So `sweep_dead_crons`
+watches the other three, **and nothing watches `sweep_dead_crons`.** If it stops or starts raising,
+the database emits no signal, and every other detector's failure becomes unobservable at the same
+instant. That is structurally identical to CJ-009 in the CI half — `schedule-heartbeat.yml` also
+watches everything except itself — so the same gap exists independently on both sides of the stack.
+
+One nuance that softens CJ-004 and that I had missed on the first pass: `cron_dispatch_health()`
+*does* expose per-job `recent_failures`, and it correctly reports `sweep-silent-cron-failures` at
+**2** — the only non-zero row in the whole 44-job fleet. So the intermittent failure is not
+literally invisible. It reaches exactly one consumer, `useCronHealth.ts`, i.e. a passive tile on
+`/admin?view=health`. No Slack, no `error_logs` row, no push; a human must open the page and read
+the number. CJ-004's corrected claim is *"alerts nobody"*, not *"is recorded nowhere"*.
+
+---
+
 ## Answers to the lane's core questions
 
 **Is every job actually scheduled?** Yes — all 44 in `cron.job`, all `active`. Two DB functions
@@ -276,14 +324,44 @@ two have one that is never called (CJ-002).
 
 ## Proposed fixes — all queued, none applied
 
-1. **CJ-001 (blocker).** Guard the cast in `sweep_silent_cron_failures`: replace
-   `COALESCE((r0.body ->> r0.candidate_key)::numeric, 0)` with a form that yields 0 for a
-   non-numeric value — either `CASE WHEN jsonb_typeof(r0.body -> r0.candidate_key) = 'number'
-   THEN (r0.body ->> r0.candidate_key)::numeric ELSE 0 END`, or add the same guard to the
-   `runs` CTE's `WHERE`. Then correct `money-reconciliation`'s `cron_work_expectations` row,
-   whose `note` asserts the opposite of the code's behaviour, and consider pointing its
-   `candidate_key` at `scanned->>'jobs'`-equivalent scalar so the job gains real work detection
-   instead of liveness-only. Replay-safe DDL, proven with PGlite over three consecutive applies.
+1. **CJ-001 (blocker).** Exact change, for the orchestrator to hold. **No schedule change is
+   involved** — `47 * * * *` is correct and stays. This is a function body plus one data row.
+
+   `npm run migration:new -- guard_the_silent_cron_cast` (never a hand-typed timestamp), then:
+
+   ```sql
+   -- (a) The crash. A candidate_key naming a JSON object must score 0, not raise.
+   --     Two sites, and BOTH must change: the value is computed once for
+   --     `candidates` and again inside the `suspicious` predicate.
+   CREATE OR REPLACE FUNCTION public.sweep_silent_cron_failures() ...
+   --   replace   COALESCE((r0.body ->> r0.candidate_key)::numeric, 0)
+   --   with      CASE WHEN jsonb_typeof(r0.body -> r0.candidate_key) = 'number'
+   --                  THEN (r0.body ->> r0.candidate_key)::numeric ELSE 0 END
+   --   and apply the identical guard to the disposition_keys sum, which has the
+   --   same shape and the same latent failure for any future object-valued key.
+
+   -- (b) The lie in the data. This note asserts the opposite of what the code does.
+   UPDATE public.cron_work_expectations
+      SET note = 'Liveness only. candidate_key names an object, so the guarded cast '
+                 'scores it 0 and the silent-work rule cannot fire for this job.'
+    WHERE jobname = 'money-reconciliation';
+   ```
+
+   **Guard (a) is what unblocks the launch; (b) is bookkeeping.** Ship both together — the note
+   is what sent the first reader to the wrong conclusion.
+
+   Verification I will run before marking it fixed, in this order: apply the migration **3×
+   consecutively under PGlite** (installed outside the repo, `git status package.json
+   package-lock.json` clean afterwards) to prove replay-safety; then re-run the exact reproduction
+   — the `select ...::numeric` on the real literal — and show it returns `0` instead of raising;
+   then, after deploy, confirm the 08:47 UTC run succeeds and that `money-reconciliation` finally
+   commits its first-ever `cron_run_log` row. That last one is the real proof and it takes until
+   the next morning; I would not claim the fix without it.
+
+   **Consider separately, not in this migration:** whether `money-reconciliation` should keep a
+   liveness-only expectation at all, or point `candidate_key` at a scalar (`scanned->'jobs'`) so
+   it gains genuine silent-work detection. That changes what the alarm means and is a judgment
+   call for the owner, not a bug fix.
 2. **CJ-007.** Give SQL crons a work channel. The cheapest correct shape is a wrapper that
    records `(jobname, returned_value, occurred_at)` into `cron_run_log` so the existing
    `candidate_key` machinery applies unchanged — the functions already return the counts, they

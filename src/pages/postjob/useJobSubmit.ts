@@ -508,15 +508,34 @@ export function useJobSubmit(params: UseJobSubmitParams) {
       });
       const coords = await geocodeAddress(composed);
       if (coords) {
-        const { data: rows } = await supabase
+        // `error` is checked FIRST, and that is the whole fix. This used to
+        // read `const { data: rows } = …` and then test
+        // `rows && rows.length === 0` — which reports the BENIGN half and
+        // swallows the real one. When the write genuinely fails (RLS denial,
+        // network, PGRST202) supabase-js returns `{ data: null, error }`, so
+        // `rows` is null, `rows && …` is false, and nothing was reported at
+        // all. The one case it was written to catch was the one it missed.
+        //
+        // Still non-fatal — a job without coords is worse than a job that
+        // failed to post — but no longer silent. This is the same class that
+        // already shipped once, when the CSP blocked nominatim and both
+        // geocode call sites swallowed it with `catch { return null }`; the
+        // symptom is a job that simply never appears on /browse?view=map,
+        // with nothing anywhere saying why.
+        const { data: rows, error: geocodeWriteErr } = await supabase
           .from("jobs")
           .update({ latitude: coords.latitude, longitude: coords.longitude })
           .eq("id", jobData.id)
           .select("id");
-        if (rows && rows.length === 0) {
+        if (geocodeWriteErr) {
+          report(geocodeWriteErr, {
+            tags: { source: "PostJob.geocodeAttach" },
+            context: { job_id: jobData.id, failure: "write_failed" },
+          });
+        } else if ((rows ?? []).length === 0) {
           report(new Error("job geocode update affected 0 rows"), {
             tags: { source: "PostJob.geocodeAttach" },
-            context: { job_id: jobData.id },
+            context: { job_id: jobData.id, failure: "zero_rows" },
           });
         }
       }

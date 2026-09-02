@@ -216,15 +216,28 @@ export function useJobMediaUpload() {
     if (upErr) return; // non-fatal — video is a nice-to-have
     const { data } = supabase.storage.from("job-photos").getPublicUrl(path);
     if (!data?.publicUrl) return;
-    // Non-fatal — the column may not exist on prod yet; ignore any error,
-    // but still surface a silent zero-row rejection so it's visible in logs.
-    const { data: rows } = await supabase
+    // Non-fatal — the column may not exist on prod yet — but BOTH failures are
+    // now surfaced. The intent of the old comment was right and its code was
+    // backwards: `const { data: rows } = …` followed by
+    // `rows && rows.length === 0` reports only the zero-row case, and on a real
+    // failure supabase-js returns `{ data: null, error }`, so `rows` is null,
+    // the condition is false, and the error it meant to "ignore" was ignored so
+    // thoroughly it never even reached the log it was supposed to be visible in.
+    const { data: rows, error: attachErr } = await supabase
       .from("jobs")
       .update({ scope_video_url: data.publicUrl })
       .eq("id", jobId)
       .select("id");
-    if (rows && rows.length === 0) {
-      report(new Error("scope video attach affected 0 rows"), { tags: { source: "PostJob.uploadAndAttachScopeVideo" }, context: { jobId } });
+    if (attachErr) {
+      report(attachErr, {
+        tags: { source: "PostJob.uploadAndAttachScopeVideo" },
+        context: { jobId, failure: "write_failed" },
+      });
+    } else if ((rows ?? []).length === 0) {
+      report(new Error("scope video attach affected 0 rows"), {
+        tags: { source: "PostJob.uploadAndAttachScopeVideo" },
+        context: { jobId, failure: "zero_rows" },
+      });
     }
   };
 

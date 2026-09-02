@@ -28,7 +28,7 @@
  * not emit, plus parenthesisation that shifts between CLI versions — about 40
  * lines of spurious diff (GD-005). A gate that cries wolf on formatting is a
  * gate someone disables. So this extracts the one thing that actually breaks
- * consumers — **which columns can be null** — and diffs that.
+ * consumers — **every column's TYPE, and the set of RPC names** — and diffs that.\n *\n * The first version stored only a nullability boolean and therefore reported a\n * cheerful green on a `string` -> `number` change. lh-generated-drift proved it\n * by doctoring `reports.reason`. A guard that can report OK when it is not is\n * this repo's signature failure mode, so the fix is in the comparison, not the\n * message.
  *
  * USAGE
  *   node scripts/check-types-fresh.mjs                 # compare against a fresh generation
@@ -63,17 +63,75 @@ function nullabilityMap(source) {
       const m = line.match(/^\s*(\w+)\??:\s*(.+?);?\s*$/);
       if (!m) continue;
       const [, col, type] = m;
-      map.set(`${table}.${col}`, /\bnull\b/.test(type));
+      // Store the normalised TYPE STRING, not a nullability boolean.
+      //
+      // The first version of this stored `/\bnull\b/.test(type)` and therefore
+      // discarded everything except nullability — so a `text` -> `uuid` or
+      // `string` -> `number` migration reported a cheerful green. lh-generated-drift
+      // proved it by doctoring `reports.reason` from string to number: exit 0,
+      // "✔ types.ts matches the live schema". A false green on real drift, in the
+      // guard built to prevent exactly that. Nullability still falls out for free
+      // by testing the two strings for `null`.
+      map.set(`${table}.${col}`, type.replace(/\s+/g, " ").trim());
     }
   }
   return map;
 }
+
+/**
+ * Names in the generated `Functions:` block.
+ *
+ * Keys only, deliberately: a signature diff would be noisy and this exists to
+ * answer one question — does the app know about every RPC that exists, and does
+ * it still believe in ones that are gone? A missing RPC is precisely what makes
+ * someone reach for `(supabase.rpc as any)`, and those casts then outlive the
+ * staleness that justified them (GD-003 — four of them, three saying verbatim
+ * "drop the cast once types.ts is regenerated").
+ */
+function functionNames(source) {
+  const names = new Set();
+  // EVERY `Functions:` block, not the first. A generated file contains several
+  // (one per schema), and the first is an empty `[_ in never]: never`
+  // placeholder — matching only that reported "1 functions checked" against a
+  // file holding 151, which is a guard that looks like it is working.
+  const blockRe = /^ {4}Functions: \{$/gm;
+  let b;
+  while ((b = blockRe.exec(source)) !== null) {
+    const rest = source.slice(b.index + b[0].length);
+    const end = rest.search(/^ {4}\}$/m);
+    for (const line of (end === -1 ? rest : rest.slice(0, end)).split("\n")) {
+      // No end-of-line anchor: 51 of 151 functions carry content after the
+      // brace, and requiring `{$` silently parsed two thirds of them away while
+      // still reporting a confident count.
+      const f = line.match(/^ {6}(\w+): \{/);
+      if (f) names.add(f[1]);
+    }
+  }
+  return names;
+}
+
+const PROD_REF = "fncmgoasalhdgfwzhsqa";
+const STAGING_REF = "okpxtpfvwtmbuxugqsws";
 
 function generateFresh() {
   const ref = process.env.SUPABASE_PROJECT_REF || process.env.SUPABASE_PROJECT_ID;
   if (!ref) {
     console.error("✖ No project ref. Set SUPABASE_PROJECT_REF, or pass --fresh <file>.");
     console.error("  NOTE: supabase/.temp/project-ref points at STAGING — never rely on the linked ref here.");
+    process.exit(1);
+  }
+  // Assert the ref rather than trusting it. A guard pointed at the wrong
+  // database is confidently wrong in BOTH directions — it green-lights real
+  // drift and invents drift that does not exist. This is the trap CLAUDE.md and
+  // PROTOCOL §4 both name: `supabase/.temp/project-ref` points at staging, and a
+  // secrets listing through the linked CLI once nearly produced a false "APNs is
+  // unconfigured" conclusion for exactly this reason.
+  if (ref !== PROD_REF) {
+    console.error(`✖ Refusing to run against project ref "${ref}".`);
+    console.error(`  Expected PROD (${PROD_REF}).`);
+    if (ref === STAGING_REF) console.error("  That is the STAGING ref — types.ts mirrors PROD.");
+    console.error("  A freshness check against the wrong database is worse than none:");
+    console.error("  it reports green on real drift and red on none.");
     process.exit(1);
   }
   const out = join(mkdtempSync(join(tmpdir(), "lh-types-")), "fresh.ts");
@@ -107,8 +165,11 @@ if (freshFlag !== -1) {
   freshText = generateFresh().text;
 }
 
-const committed = nullabilityMap(readFileSync(COMMITTED, "utf8"));
+const committedText = readFileSync(COMMITTED, "utf8");
+const committed = nullabilityMap(committedText);
 const fresh = nullabilityMap(freshText);
+const committedFns = functionNames(committedText);
+const freshFns = functionNames(freshText);
 
 if (fresh.size === 0) {
   // A generation that parsed to nothing would pass vacuously — the exact bug
@@ -120,21 +181,37 @@ if (fresh.size === 0) {
 
 const nowNullable = [];
 const noLongerNullable = [];
+const typeChanged = [];
 const added = [];
 const removed = [];
 
-for (const [key, isNull] of fresh) {
+const isNullable = (type) => /\bnull\b/.test(type);
+
+for (const [key, freshType] of fresh) {
   if (!committed.has(key)) { added.push(key); continue; }
-  const was = committed.get(key);
-  if (was === isNull) continue;
-  (isNull ? nowNullable : noLongerNullable).push(key);
+  const wasType = committed.get(key);
+  if (wasType === freshType) continue;
+  const wasNull = isNullable(wasType);
+  const isNull = isNullable(freshType);
+  if (wasNull === isNull) {
+    // Same nullability, different type — the case the first version of this
+    // guard reported as GREEN.
+    typeChanged.push(`${key}: ${wasType} -> ${freshType}`);
+  } else {
+    (isNull ? nowNullable : noLongerNullable).push(key);
+  }
 }
 for (const key of committed.keys()) if (!fresh.has(key)) removed.push(key);
 
-const drifted = nowNullable.length + noLongerNullable.length + added.length + removed.length;
+const fnAdded = [...freshFns].filter((f) => !committedFns.has(f));
+const fnRemoved = [...committedFns].filter((f) => !freshFns.has(f));
+
+const drifted =
+  nowNullable.length + noLongerNullable.length + typeChanged.length +
+  added.length + removed.length + fnAdded.length + fnRemoved.length;
 
 if (drifted === 0) {
-  console.log(`✔ types.ts matches the live schema (${fresh.size} columns checked)`);
+  console.log(`✔ types.ts matches the live schema (${fresh.size} columns, ${freshFns.size} functions checked)`);
   process.exit(0);
 }
 
@@ -145,6 +222,23 @@ if (nowNullable.length) {
   console.error("  These are the dangerous ones. The compiler is asserting a guarantee the");
   console.error("  database has withdrawn, so every consumer is a latent throw.\n");
   for (const k of nowNullable) console.error(`    ${k}`);
+  console.error("");
+}
+if (typeChanged.length) {
+  console.error("  TYPE CHANGED (nullability unchanged) — the case that used to report green:");
+  for (const k of typeChanged) console.error(`    ${k}`);
+  console.error("");
+}
+if (fnAdded.length) {
+  console.error(`  RPCs live in prod, absent from the types (${fnAdded.length}):`);
+  console.error("  A missing RPC is what makes someone write `(supabase.rpc as any)`,");
+  console.error("  and those casts outlive the staleness that justified them.\n");
+  for (const k of fnAdded) console.error(`    ${k}()`);
+  console.error("");
+}
+if (fnRemoved.length) {
+  console.error(`  RPCs in the types, gone from prod (${fnRemoved.length}) — callers are already failing:`);
+  for (const k of fnRemoved) console.error(`    ${k}()`);
   console.error("");
 }
 if (noLongerNullable.length) {

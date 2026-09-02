@@ -173,6 +173,22 @@ BEGIN
   -- inserting would let `p_max` concurrent requests each see `p_max - 1` and
   -- all pass. Insert-then-count makes the row we are grading part of the
   -- count, so the Nth caller sees N.
+  --
+  -- A REFUSED REQUEST IS STILL RECORDED, and that is a deliberate change from
+  -- the module this replaces. The old in-memory version returned before
+  -- pushing its timestamp, so hammering was free: a caller could sit exactly at
+  -- the cap forever and every rejected attempt cost them nothing. Counting the
+  -- refusals makes the window a penalty box — keep hammering and you stay
+  -- blocked, back off for one window and you are clear — and it is also what
+  -- makes this table a complete abuse trail rather than a record of only the
+  -- requests that got through.
+  --
+  -- This is safe here only because no client of any of the seventeen importers
+  -- auto-retries a 429: react-query's `retry` predicate returns false for any
+  -- 4xx (src/lib/queryClient.ts) and mutations are configured with no retries
+  -- at all, so nothing in the app can drive itself into the penalty box. If a
+  -- future caller ever adds blind retry-on-429, it will hold itself out, and
+  -- this comment is where to start reading.
   INSERT INTO public.edge_rate_limit_log (bucket, subject, ip, forwarded_for)
   VALUES (p_bucket, nullif(btrim(coalesce(p_subject, '')), ''),
                     nullif(btrim(coalesce(p_ip, '')), ''),

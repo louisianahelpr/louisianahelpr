@@ -88,5 +88,13 @@ export const SEED_GATED_SURFACES = [
   { surface: "/jobs", object: "public.get_ranked_open_jobs" },
   { surface: "dashboard browse list", object: "public.open_jobs_browse" },
   { surface: "map", object: "public.get_open_jobs_for_map" },
+  // MISSING UNTIL 2026-09-02, and the omission was the whole bug. The parity
+  // test below asserts the seed gate on every surface in THIS list, so a
+  // surface absent from it is not merely unchecked — it makes the suite pass
+  // vacuously for the one place that is broken. `get_public_open_jobs` never
+  // referenced `is_seed`, so flipping the flag at launch would have silenced
+  // the three surfaces above while the anon landing teaser kept advertising
+  // fixture jobs to the public. Gate added in 20260902163216.
+  { surface: "landing teaser", object: "public.get_public_open_jobs" },
   { surface: "saved-search alerts", object: "public.notify_saved_searches_on_new_job" },
 ] as const;

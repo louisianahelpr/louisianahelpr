@@ -106,6 +106,61 @@ describe("fixture-job visibility — one switch, every surface", () => {
     },
   );
 
+  /**
+   * THE LIST ITSELF IS THE WEAK POINT, and this is the test that says so.
+   *
+   * The `it.each` above proves every surface IN `SEED_GATED_SURFACES` consults
+   * the authority. It cannot prove the list is COMPLETE — and on 2026-09-02 it
+   * was not. `public.get_public_open_jobs`, the anon landing teaser, was absent,
+   * so the suite passed while that one surface had no `is_seed` reference at
+   * all. Flipping the flag at launch would have silenced /jobs, the dashboard
+   * and the map while the public marketing page kept advertising fixture jobs,
+   * which reads as a content problem and is actually a missing `AND`.
+   *
+   * A registry guarded by a test that only checks what the registry names is a
+   * guard with a hole exactly the shape of whatever you forgot to register. So:
+   * discover the surfaces from the migrations instead of from the list, and
+   * fail if the migrations know about one the list does not.
+   */
+  it("every open-jobs feed in the migrations is registered as a gated surface", () => {
+    const registered = new Set<string>(SEED_GATED_SURFACES.map((s) => s.object));
+
+    // Replay the migrations in order: a CREATE registers a surface, a later
+    // DROP retires it. Without the DROP half this flags every predecessor the
+    // history ever contained — `public.open_jobs_safe` was dropped in
+    // 20260618120000 for leaking raw locations to anon, and demanding a seed
+    // gate on an object that no longer exists is noise that gets the whole
+    // test deleted.
+    const discovered = new Set<string>();
+    for (const { sql } of FILES) {
+      for (const m of sql.matchAll(
+        /CREATE (?:OR REPLACE )?(?:FUNCTION|VIEW)\s+(public\.\w*open_jobs\w*)/gi,
+      )) {
+        discovered.add(m[1].toLowerCase());
+      }
+      for (const m of sql.matchAll(
+        /DROP\s+(?:FUNCTION|VIEW)\s+(?:IF EXISTS\s+)?(public\.\w*open_jobs\w*)/gi,
+      )) {
+        discovered.delete(m[1].toLowerCase());
+      }
+    }
+
+    // Sanity: the discovery must actually find things, or this test passes for
+    // the wrong reason — the exact failure it exists to prevent.
+    expect(discovered.size).toBeGreaterThan(0);
+
+    const unregistered = [...discovered].filter(
+      (o) => ![...registered].some((r) => r.toLowerCase() === o),
+    );
+
+    expect(
+      unregistered,
+      `These browse feeds select open jobs but are NOT in SEED_GATED_SURFACES, so ` +
+        `nothing asserts they honour ${SEED_VISIBILITY_AUTHORITY}(). Add them to the ` +
+        `list in showSeedJobs.ts — and give them the gate — before the flag is flipped.`,
+    ).toEqual([]);
+  });
+
   it("keeps `p_include_seed` narrowing-only — a caller can hide fixtures, never re-admit them", () => {
     const { body } = latestDefinition("public.get_ranked_open_jobs");
     // `NOT is_seed OR (p_include_seed AND NOT <flag>)`: the argument is

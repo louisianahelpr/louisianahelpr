@@ -9,24 +9,62 @@ it adds the *coordination* rules the skill has no opinion about.
 
 ---
 
-## 1. Phase discipline — REPORT, then verify, then fix
+## 1. Fix what you find — after you have proved it
 
-The fleet runs in three strictly ordered phases. This is `lh-audit` §1
-non-negotiable #5, and it is also the only thing that keeps 20 agents from
-editing `index.css`, `AppShell.tsx` and `App.tsx` at the same time.
+Changed 2026-09-02 at the owner's direction: lanes **fix**, they do not merely
+report. The fleet runs autonomously to completion and reports once, at the end.
 
-| Phase | Who | Rule |
-|---|---|---|
-| **SWEEP** (waves 1–6) | every lane agent | File findings. **Do not edit `src/`, `supabase/`, or any shipped file.** Not one line. |
-| **VERIFY** (wave 7) | `lh-verifier` | Independently reproduce every finding. Confirm, retract, or mark duplicate. |
-| **FIX** (after) | orchestrator + targeted agents | Only verified findings get fixed, in severity order, on a serialized gate. |
+The old report-then-fix order existed to stop 33 agents editing the same files
+at once. That risk is real and is handled by scoping instead: each lane fixes
+**only within its own territory**, and the shared files belong to the
+orchestrator alone.
 
-A lane agent that "just fixed a small one while it was there" has broken the
-audit: it destroys the baseline, hides the defect *pattern*, and makes coverage
-unprovable. Write it down and keep going.
+**The sequence for every finding is: file → reproduce → fix → verify → mark fixed.**
+Filing first is not ceremony; it records the baseline so a later reader can see
+what the app did before you touched it.
 
-**Writing to `docs/audit/launch-2026-09/` and your own scratch dir is always allowed.**
-That is not "editing the app."
+### The one gate that matters: never fix from a lead
+
+On 2026-09-02 three launch blockers were filed from a read of
+`supabase/migrations/`. All three were false — every object had been dropped
+months earlier, and one of them (`worker_protection_credits`) had been written
+into this very file as "confirmed live". Fixing any of them would have been
+damage, not repair.
+
+| A LEAD (never fix from it) | A FACT (fix from this) |
+|---|---|
+| A grep of `src/` | A query against the live database |
+| A migration file | `pg_proc` / `pg_policies` / `to_regprocedure` |
+| Another lane's note, or this file | An HTTP request and its response |
+| "The code looks like it would…" | A test you ran that failed, then passed |
+| A screenshot you did not take | A screenshot you took |
+
+**If you cannot reproduce it, retract it.** A retraction is a success. The count
+of findings is not the score; the count of *true* findings is.
+
+### Territory
+
+Fix inside your lane. If the fix belongs to another lane, file it and `msg` them.
+
+**Orchestrator-only files — never edit these, file and message instead:**
+`src/index.css` · `src/components/AppShell.tsx` · `src/App.tsx` ·
+`src/components/ui/*` · `tailwind.config.ts` · `package.json` · CI workflows.
+Concurrent lanes collide there and silently lose each other's work.
+
+### Proving a fix
+
+`npm run typecheck` — **ask the orchestrator for the gate**, never run it while
+another lane is. Plus `npx vitest run` on the relevant tests when you touch
+tested code, plus a re-run of your original reproduction showing it now passes.
+`node scripts/parsecheck.mjs <file>` is the fast syntax check; a clean parse
+never proves a missing import.
+
+Anything touching **money, auth or the data model** goes through
+`code-reviewer`, `silent-failure-hunter` and `security-auditor` over your working
+diff before you commit — there is no PR gate here to catch it.
+
+Commit **directly to `main`**, early and often, one commit per fix. A
+usage-limit kill loses uncommitted work.
 
 ## 2. The bus — append-only, never rewritten
 
@@ -228,14 +266,29 @@ path. Audit those fully.
 
 ### Confirmed LIVE (do not treat as dead just because they look quiet)
 
-`pif_credits` (Pay It Forward, `/gift-card`) · **`worker_protection_credits`** ·
-`referral_credits` / `referrals` · STR iCal sync (`/str-settings`) · pet profiles
-(`/pets`) · Helpr Wrapped (`/wrapped`) · Home History (`/home-history`) · group jobs.
+`pif_credits` (Pay It Forward, `/gift-card`) · `referral_credits` / `referrals` ·
+STR iCal sync (`/str-settings`) · pet profiles (`/pets`) · Helpr Wrapped
+(`/wrapped`) · Home History (`/home-history`) · group jobs.
 
-**`worker_protection_credits` being live makes finding SI-001 a priority**: it is
-referenced by one file and zero edge functions, yet has a
-`pending → issued → applied → expired` status machine. If nothing advances it past
-`pending`, helpers are promised compensation that never pays out.
+> **CORRECTION, 2026-09-02 — `worker_protection_credits` is NOT live.** This
+> section previously listed it as live and made SI-001 a launch blocker. That was
+> **wrong**, and it is worth understanding why, because it is the exact mistake
+> this protocol tells every lane not to make: the finding was built by reading
+> migration files, and migration history is an upper bound that includes objects
+> since dropped. `lh-schema-integrity` checked live prod: the table was **dropped
+> on 2026-08-30** and does not exist. The single `src/` "reference" is a *comment*
+> at `CancellationDialog.tsx:412` documenting the removal. SI-001 is retracted;
+> there is no unpaid compensation promise.
+>
+> Two more of the same shape were retracted with it: **SI-003 / SI-005** (zero
+> `business_*` tables or functions survive in prod —
+> `to_regprocedure('create_business_api_key')` is NULL, so there is no orphaned
+> API-key minter) and **SI-004** (`helper_circles` is already gone from prod; the
+> owner approved deleting something that had already shipped — **the fix phase
+> must NOT write that DROP migration**). All three survive only on staging.
+>
+> If you are reading this file for scope, treat any claim here that you did not
+> personally verify against live state as a lead, not a fact.
 
 ### Also CONFIRMED LIVE (owner, 2026-09-01) — audit these fully
 

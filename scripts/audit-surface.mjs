@@ -64,16 +64,72 @@ for (const f of files) {
   overlays.push({ file: rel(f), kinds: [...kinds].sort() });
 }
 
-// --- multi-step flows: components with a step/stage state machine -----------
-const flows = files
-  .filter((f) => {
-    const s = readFileSync(f, "utf8");
-    // Steps are compared against BOTH numbers and string literals in this repo
-    // (step === 1, but also step === "checkout" / "form" / "entry" / "confirmation").
-    // An earlier version only matched digits and reported 0 flows, which was wrong.
-    return /\b(step|stage|currentStep|activeStep|phase)\s*===?\s*(\d+|["'][a-z_-]+["'])/i.test(s);
-  })
-  .map(rel);
+// --- multi-step flows ------------------------------------------------------
+// A flow is any surface a user moves THROUGH, so every intermediate state can
+// strand them and every one can be interrupted. Detection is deliberately
+// multi-signal: an earlier version required `step === <digit>` and reported 0,
+// then `step === "string"` and reported 7. Both were wrong because this repo
+// expresses flows at least five different ways. Each file records WHICH signal
+// fired so the count can be audited rather than trusted.
+const FLOW_SIGNALS = [
+  ["switch", /switch\s*\(\s*(step|stage|phase|mode|view|screen|currentStep|activeStep)\b/],
+  ["compare", /\b(step|stage|phase|currentStep|activeStep)\s*===?\s*(\d+|["'][a-zA-Z_-]+["'])/],
+  ["nav-handler", /\b(onNext|handleNext|goToStep|nextStep|prevStep|previousStep|handleBack|onBack|setStep|setStage|setPhase|setCurrentStep|setActiveStep)\b/],
+  ["step-array", /\b(STEPS|steps|STAGES|stages)\s*[:=]\s*\[/],
+  ["stepper-name", /\b(Stepper|Wizard|MultiStep|StepIndicator)\b/],
+  ["union-state", /useState<[^>]*["'][a-zA-Z_-]+["']\s*\|\s*["'][a-zA-Z_-]+["']/],
+];
+// Signals are NOT equal. `nav-handler` alone fires on any plain back button
+// (PageHeader, UserAvatar, a types.ts exporting an onBack prop) and is weak
+// evidence on its own; the first version of this script over-corrected from 7
+// to 63 by treating it as decisive. Tier by strength instead of guessing at a
+// single number, so the count can be audited rather than believed.
+const STRONG = new Set(["switch", "compare", "step-array", "stepper-name"]);
+const flows = [];
+for (const f of files) {
+  if (rel(f).startsWith("src/components/ui/")) continue; // primitives
+  const s = readFileSync(f, "utf8");
+  const hit = FLOW_SIGNALS.filter(([, re]) => re.test(s)).map(([n]) => n);
+  if (!hit.length) continue;
+  const strong = hit.some((h) => STRONG.has(h));
+  const tier = strong || (hit.includes("union-state") && hit.includes("nav-handler"))
+    ? "confirmed"
+    : hit.includes("union-state")
+      ? "probable"
+      : "nav-only";
+  flows.push({ file: rel(f), signals: hit, tier });
+}
+flows.sort((a, b) => a.file.localeCompare(b.file));
+const flowsConfirmed = flows.filter((f) => f.tier === "confirmed");
+const flowsProbable = flows.filter((f) => f.tier === "probable");
+const flowsNavOnly = flows.filter((f) => f.tier === "nav-only");
+
+// --- emails ----------------------------------------------------------------
+// Every transactional/lifecycle email is a surface the user READS, with its own
+// copy, links, images and dark-mode rendering — and it is seen outside the app
+// where nothing can be fixed after send. Enumerated from the exported *Email
+// components, not from file count (one file exports several).
+const EMAIL_DIR = join(ROOT, "supabase/functions/_shared/email-templates");
+let emails = [];
+try {
+  for (const f of readdirSync(EMAIL_DIR)) {
+    if (!/\.tsx?$/.test(f)) continue;
+    const src = readFileSync(join(EMAIL_DIR, f), "utf8");
+    for (const m of src.matchAll(/export\s+(?:const|function)\s+([A-Z][A-Za-z0-9_]*Email)\b/g)) {
+      emails.push({ name: m[1], file: `supabase/functions/_shared/email-templates/${f}` });
+    }
+  }
+} catch { /* directory absent */ }
+emails.sort((a, b) => a.name.localeCompare(b.name));
+
+// --- push / in-app notification types ---------------------------------------
+// Each type is distinct user-facing copy plus a tap destination.
+const notifTypes = new Set();
+for (const f of files) {
+  const src = readFileSync(f, "utf8");
+  for (const m of src.matchAll(/notification_?[Tt]ype\s*[:=]\s*["']([a-z0-9_]+)["']/g)) notifTypes.add(m[1]);
+  for (const m of src.matchAll(/\btype:\s*["']([a-z0-9_]+)["'][^}]*\blink:/g)) notifTypes.add(m[1]);
+}
 
 const surface = {
   routes: routes.filter((r) => !redirects.has(r)),
@@ -81,7 +137,12 @@ const surface = {
   tabs: [...tabs].sort(),
   views: [...views].sort(),
   overlays: overlays.sort((a, b) => a.file.localeCompare(b.file)),
-  flows: flows.sort(),
+  flows,
+  flowsConfirmed,
+  flowsProbable,
+  flowsNavOnly,
+  emails,
+  notifTypes: [...notifTypes].sort(),
 };
 
 if (process.argv.includes("--json")) {
@@ -89,8 +150,12 @@ if (process.argv.includes("--json")) {
   process.exit(0);
 }
 
+// Emails and notification types ARE separate surfaces (a user reads them outside
+// the app), so they count. Flows are cross-cutting — they live inside routes and
+// overlays — so they are listed but not added, to avoid double-counting.
 const total =
-  surface.routes.length + surface.tabs.length + surface.views.length + surface.overlays.length;
+  surface.routes.length + surface.tabs.length + surface.views.length +
+  surface.overlays.length + surface.emails.length + surface.notifTypes.length;
 
 const L = [];
 L.push("# Auditable surface — the coverage checklist");
@@ -108,8 +173,17 @@ L.push(`| Redirect-only routes | ${surface.redirects.length} |`);
 L.push(`| \`?tab=\` variants | ${surface.tabs.length} |`);
 L.push(`| \`?view=\` variants | ${surface.views.length} |`);
 L.push(`| Overlay-rendering components | ${surface.overlays.length} |`);
-L.push(`| Multi-step flows | ${surface.flows.length} |`);
+L.push(`| Multi-step flows — confirmed | ${surface.flowsConfirmed.length} |`);
+L.push(`| Multi-step flows — probable | ${surface.flowsProbable.length} |`);
+L.push(`| Back/next navigation only (eyeball these) | ${surface.flowsNavOnly.length} |`);
+L.push(`| Email templates | ${surface.emails.length} |`);
+L.push(`| Notification types (copy + destination) | ${surface.notifTypes.length} ⚠︎ |`);
 L.push(`| **Addressable surfaces** | **${total}** |`);
+L.push("");
+L.push("Multi-step flows are **cross-cutting**, not a separate surface: they live inside");
+L.push("the routes and overlays above, so they are excluded from the total to avoid");
+L.push("double-counting. They are listed separately because each one adds intermediate");
+L.push("states that a route-level walk never reaches.");
 L.push("");
 L.push("## Routes");
 L.push("");
@@ -139,7 +213,39 @@ for (const o of surface.overlays) L.push(`| \`${o.file}\` | ${o.kinds.join(", ")
 L.push("");
 L.push("## Multi-step flows (audit every step, and interruption at every step)");
 L.push("");
-for (const f of surface.flows) L.push(`- [ ] \`${f}\``);
+L.push("Detected by multiple signals; the signal is shown so the list can be audited");
+L.push("rather than trusted. A flow strands users at intermediate states and can be");
+L.push("interrupted at every one of them.");
+L.push("");
+for (const [label, bucket, note] of [
+  ["Confirmed flows — audit every step and every interruption point", surface.flowsConfirmed, "A strong signal fired (switch on a step variable, an explicit step comparison, a steps array, or a Stepper/Wizard component)."],
+  ["Probable flows — a union state machine, confirm by opening it", surface.flowsProbable, "A useState string-union of 2+ states. Some are real flows, some are display-status enums. Open each and decide."],
+  ["Back/next navigation only — weakest signal, verify by eye", surface.flowsNavOnly, "Only an onBack/onNext-style handler matched. Most are plain back buttons, NOT flows. Listed so the count is auditable, not because each is a flow."],
+]) {
+  L.push(`### ${label}`);
+  L.push("");
+  L.push(note);
+  L.push("");
+  L.push("| Component | Signals |");
+  L.push("|---|---|");
+  for (const f of bucket) L.push(`| \`${f.file}\` | ${f.signals.join(", ")} |`);
+  L.push("");
+}
+L.push("");
+L.push("## Emails — every template a user receives OUTSIDE the app");
+L.push("");
+L.push("These cannot be fixed after send. Each needs: renders in real clients, images");
+L.push("load (must use the `brand-asset` edge function — the marketing host serves a 429");
+L.push("challenge to the Gmail/Apple Mail image proxies), links resolve, dark mode,");
+L.push("long/missing fields, and a working unsubscribe where required.");
+L.push("");
+L.push("| Email | Source |");
+L.push("|---|---|");
+for (const e of surface.emails) L.push(`| \`${e.name}\` | \`${e.file}\` |`);
+L.push("");
+L.push("## Notification types (each is distinct copy + a tap destination)");
+L.push("");
+L.push(surface.notifTypes.length ? surface.notifTypes.map((t) => `\`${t}\``).join(" · ") : "_none detected in src/ — enumerate from notification_type_pref_map in the database._");
 L.push("");
 mkdirSync(OUT_DIR, { recursive: true });
 writeFileSync(join(OUT_DIR, "SURFACE.md"), L.join("\n"));

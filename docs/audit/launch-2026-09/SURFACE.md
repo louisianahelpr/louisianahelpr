@@ -13,8 +13,17 @@ reports coverage against THIS file, not against the route list.
 | `?tab=` variants | 20 |
 | `?view=` variants | 9 |
 | Overlay-rendering components | 85 |
-| Multi-step flows | 7 |
-| **Addressable surfaces** | **148** |
+| Multi-step flows — confirmed | 12 |
+| Multi-step flows — probable | 18 |
+| Back/next navigation only (eyeball these) | 33 |
+| Email templates | 20 |
+| Notification types (copy + destination) | 5 ⚠︎ |
+| **Addressable surfaces** | **173** |
+
+Multi-step flows are **cross-cutting**, not a separate surface: they live inside
+the routes and overlays above, so they are excluded from the total to avoid
+double-counting. They are listed separately because each one adds intermediate
+states that a route-level walk never reaches.
 
 ## Routes
 
@@ -201,10 +210,125 @@ dismissible, and correct in every state.
 
 ## Multi-step flows (audit every step, and interruption at every step)
 
-- [ ] `src/components/CompletionPrompts.tsx`
-- [ ] `src/components/ReportDialog.tsx`
-- [ ] `src/components/dashboard/JobDetailDialog.tsx`
-- [ ] `src/pages/PostJob.tsx`
-- [ ] `src/pages/Signup.tsx`
-- [ ] `src/pages/postjob/usePostJobForm.ts`
-- [ ] `src/pages/signup/SignupStep1.tsx`
+Detected by multiple signals; the signal is shown so the list can be audited
+rather than trusted. A flow strands users at intermediate states and can be
+interrupted at every one of them.
+
+### Confirmed flows — audit every step and every interruption point
+
+A strong signal fired (switch on a step variable, an explicit step comparison, a steps array, or a Stepper/Wizard component).
+
+| Component | Signals |
+|---|---|
+| `src/components/activity/postedJobs/applicantsPanel/ApplicantsStates.tsx` | switch |
+| `src/components/analytics/ApplicationsPanel.tsx` | step-array |
+| `src/components/CompletionPrompts.tsx` | compare, nav-handler, union-state |
+| `src/components/dashboard/JobDetailDialog.tsx` | compare, nav-handler, union-state |
+| `src/components/profile/SubscriptionTab.tsx` | nav-handler, union-state |
+| `src/components/ReportDialog.tsx` | compare, nav-handler |
+| `src/pages/Admin.tsx` | switch, nav-handler |
+| `src/pages/PostJob.tsx` | compare, nav-handler |
+| `src/pages/postjob/EntryChoice.tsx` | nav-handler, union-state |
+| `src/pages/postjob/usePostJobForm.ts` | compare, nav-handler |
+| `src/pages/Signup.tsx` | compare, nav-handler |
+| `src/pages/signup/SignupStep1.tsx` | compare |
+
+### Probable flows — a union state machine, confirm by opening it
+
+A useState string-union of 2+ states. Some are real flows, some are display-status enums. Open each and decide.
+
+| Component | Signals |
+|---|---|
+| `src/components/activity/appliedJobCard/ActiveJobSection.tsx` | union-state |
+| `src/components/activity/CompletionChoiceSheet.tsx` | union-state |
+| `src/components/admin/AdminAnalyticsDrilldowns.tsx` | union-state |
+| `src/components/admin/AdminCredentialQueue.tsx` | union-state |
+| `src/components/admin/AdminDisputes.tsx` | union-state |
+| `src/components/admin/AdminJobs.tsx` | union-state |
+| `src/components/admin/AdminPayoutBatches.tsx` | union-state |
+| `src/components/admin/AdminReferrals.tsx` | union-state |
+| `src/components/admin/AdminSubscriptions.tsx` | union-state |
+| `src/components/admin/userDetail/JobsTab.tsx` | union-state |
+| `src/components/MobileNav.tsx` | union-state |
+| `src/components/PaymentTab.tsx` | union-state |
+| `src/components/TimeRangeField.tsx` | union-state |
+| `src/components/UserAvatar.tsx` | union-state |
+| `src/pages/Messages.tsx` | union-state |
+| `src/pages/PayItForward.tsx` | union-state |
+| `src/pages/ResetPassword.tsx` | union-state |
+| `src/pages/UserProfile.tsx` | union-state |
+
+### Back/next navigation only — weakest signal, verify by eye
+
+Only an onBack/onNext-style handler matched. Most are plain back buttons, NOT flows. Listed so the count is auditable, not because each is a flow.
+
+| Component | Signals |
+|---|---|
+| `src/components/activity/postedJobs/ApplicantsPanel.tsx` | nav-handler |
+| `src/components/admin/AdminSectionHeader.tsx` | nav-handler |
+| `src/components/AppPage.tsx` | nav-handler |
+| `src/components/dashboard/applyConfirmDialog/ApplyBody.tsx` | nav-handler |
+| `src/components/messages/ChatHeader.tsx` | nav-handler |
+| `src/components/messages/ChatView.tsx` | nav-handler |
+| `src/components/PageHeader.tsx` | nav-handler |
+| `src/components/profile/AccessibilityTab.tsx` | nav-handler |
+| `src/components/profile/AvailabilityTab.tsx` | nav-handler |
+| `src/components/profile/CredentialsTab.tsx` | nav-handler |
+| `src/components/profile/EarningsTab.tsx` | nav-handler |
+| `src/components/profile/earningsTab/types.ts` | nav-handler |
+| `src/components/profile/LegalTab.tsx` | nav-handler |
+| `src/components/profile/ProfileEditForm.tsx` | nav-handler |
+| `src/components/profile/profileEditForm/SaveBar.tsx` | nav-handler |
+| `src/components/profile/profileEditForm/types.ts` | nav-handler |
+| `src/components/profile/ProfileTabHeader.tsx` | nav-handler |
+| `src/components/profile/ReviewsTab.tsx` | nav-handler |
+| `src/components/profile/SavedHelpersTab.tsx` | nav-handler |
+| `src/components/profile/savedHelpersTab/types.ts` | nav-handler |
+| `src/components/profile/ScheduleTab.tsx` | nav-handler |
+| `src/components/profile/SecurityTab.tsx` | nav-handler |
+| `src/components/profile/SupportInline.tsx` | nav-handler |
+| `src/components/profile/WarningsTab.tsx` | nav-handler |
+| `src/pages/Dashboard.tsx` | nav-handler |
+| `src/pages/HelperAnalytics.tsx` | nav-handler |
+| `src/pages/Legal.tsx` | nav-handler |
+| `src/pages/postjob/CheckoutStepIndicator.tsx` | nav-handler |
+| `src/pages/postjob/CheckoutStepView.tsx` | nav-handler |
+| `src/pages/postjob/useJobEntry.ts` | nav-handler |
+| `src/pages/postjob/useJobSubmit.ts` | nav-handler |
+| `src/pages/Profile.tsx` | nav-handler |
+| `src/pages/profile/ProfileTabPanels.tsx` | nav-handler |
+
+
+## Emails — every template a user receives OUTSIDE the app
+
+These cannot be fixed after send. Each needs: renders in real clients, images
+load (must use the `brand-asset` edge function — the marketing host serves a 429
+challenge to the Gmail/Apple Mail image proxies), links resolve, dark mode,
+long/missing fields, and a working unsubscribe where required.
+
+| Email | Source |
+|---|---|
+| `AccountStatusEmail` | `supabase/functions/_shared/email-templates/account-status.tsx` |
+| `AdminActionEmail` | `supabase/functions/_shared/email-templates/admin-action.tsx` |
+| `AdminDigestEmail` | `supabase/functions/_shared/email-templates/lifecycle.tsx` |
+| `AdminEmailChangedEmail` | `supabase/functions/_shared/email-templates/email-changed.tsx` |
+| `ApprovalReminderEmail` | `supabase/functions/_shared/email-templates/lifecycle.tsx` |
+| `EmailChangeEmail` | `supabase/functions/_shared/email-templates/email-change.tsx` |
+| `InviteEmail` | `supabase/functions/_shared/email-templates/invite.tsx` |
+| `MagicLinkEmail` | `supabase/functions/_shared/email-templates/magic-link.tsx` |
+| `MarketingBlastEmail` | `supabase/functions/_shared/email-templates/marketing-blast.tsx` |
+| `NotificationEmail` | `supabase/functions/_shared/email-templates/notification.tsx` |
+| `PifGiftEmail` | `supabase/functions/_shared/email-templates/pif-gift.tsx` |
+| `ReauthenticationEmail` | `supabase/functions/_shared/email-templates/reauthentication.tsx` |
+| `RecoveryEmail` | `supabase/functions/_shared/email-templates/recovery.tsx` |
+| `ReEngagementEmail` | `supabase/functions/_shared/email-templates/drip.tsx` |
+| `SelfEmailChangeNoticeEmail` | `supabase/functions/_shared/email-templates/email-changed.tsx` |
+| `SignupEmail` | `supabase/functions/_shared/email-templates/signup.tsx` |
+| `SupportRequestEmail` | `supabase/functions/_shared/email-templates/support-request.tsx` |
+| `WelcomeDripStep1Email` | `supabase/functions/_shared/email-templates/drip.tsx` |
+| `WelcomeDripStep2Email` | `supabase/functions/_shared/email-templates/drip.tsx` |
+| `WelcomeDripStep3Email` | `supabase/functions/_shared/email-templates/drip.tsx` |
+
+## Notification types (each is distinct copy + a tap destination)
+
+`info` · `job_updates` · `payment` · `success` · `warning`

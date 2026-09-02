@@ -24,6 +24,7 @@ import { SignupStep1 } from "./signup/SignupStep1";
 import { SignupStep2 } from "./signup/SignupStep2";
 import { getPublicOrigin } from "@/lib/authRedirects";
 import { userFacingError } from "@/lib/userFacingError";
+import { matchAuthError } from "@/lib/authErrors";
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -397,7 +398,26 @@ const Signup = () => {
       // strand a HALF-CREATED account (auth user exists, profile incomplete)
       // with a 4-second toast as the only evidence. Observed live 2026-08-24.
       report(err, { tags: { source: "Signup.createAccountAndFinish" } });
-      toast.error(userFacingError(err, "Couldn't create your account — try again?"));
+      // Recognised AUTH failures get their own warm copy before the generic
+      // handler sees them. `userFacingError` suppresses text that LOOKS
+      // machine-generated, and Supabase's auth errors do not: when the
+      // project's auth email quota is spent, `auth.signUp` returns 429
+      // {code: "over_email_send_rate_limit", message: "email rate limit
+      // exceeded"} — a short lowercase sentence matching none of
+      // INTERNAL_PATTERNS and well under the 160-char cap, so it was trusted
+      // as human copy and shown verbatim. The person tapping Create Account
+      // was told "email rate limit exceeded": it names an internal quota,
+      // never says the failure is temporary, and offers no next step.
+      // Captured from the rendered toast against prod on 2026-09-02.
+      //
+      // `matchAuthError` returns null when nothing matched, so an unrecognised
+      // error still falls through to the signup-specific fallback below rather
+      // than borrowing friendlyAuthError's "Couldn't sign you in" default —
+      // wrong copy on a screen that is creating an account, not entering one.
+      toast.error(
+        matchAuthError(err?.message) ??
+          userFacingError(err, "Couldn't create your account — try again?"),
+      );
     } finally {
       setLoading(false);
     }

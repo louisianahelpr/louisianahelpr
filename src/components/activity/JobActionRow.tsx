@@ -331,6 +331,14 @@ export function JobActionChip({
       className={JOB_ACTION_CHIP_CLASS}
       style={jobActionChipStyle(tone)}
       disabled={disabled}
+      // Test hook, same shape as `data-status-stripe`. The 320px "no action
+      // label truncates" gate in activity-card-density.spec.ts had no way to
+      // say "the chips in this row" and swept every `button span` on the page
+      // — which caught JobCardMetaRow's location chip, a control that is
+      // SUPPOSED to ellipsis (it is the one `shrink` item in a row of
+      // `shrink-0` date/time chips, so it is what gives way at narrow widths).
+      // A chip label is different: it has nowhere to go and must fit.
+      data-job-action-chip=""
       aria-label={composeAccessibleName(label, ariaLabel)}
       onClick={onClick}
     >

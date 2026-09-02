@@ -1,6 +1,15 @@
 import { jobLocalMidnightMs } from "../../supabase/functions/_shared/cancellationFee";
 
 /**
+ * A bare `YYYY-MM-DD`, which is the only shape `jobs.date_needed` (a Postgres
+ * `date`) can arrive in. Anchored at both ends on purpose: an ISO TIMESTAMP
+ * must NOT slip through by prefix match, because its first ten characters are
+ * the UTC day, and the whole point of this module is that the UTC day and the
+ * platform-zone day are not the same day.
+ */
+const BARE_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
  * ONE way to read `jobs.date_needed`.
  *
  * It is a bare `YYYY-MM-DD` with no zone, so `new Date(d)` lands on UTC
@@ -60,6 +69,23 @@ import { jobLocalMidnightMs } from "../../supabase/functions/_shared/cancellatio
  */
 export function jobDateMs(dateNeeded: string | null | undefined): number | null {
   if (!dateNeeded) return null;
+  // `jobLocalMidnightMs` splits on "-" and feeds the parts to `Date.UTC`, so
+  // anything that is not a bare date yields NaN, and `Intl.DateTimeFormat`
+  // THROWS `RangeError: Invalid time value` on `new Date(NaN)` rather than
+  // returning a bad answer. That throw escapes whatever is calling — and the
+  // busiest caller is the `useMemo` in `activityFilters` that buckets the
+  // Activity list, so one malformed row took /my-posts and /my-jobs to the
+  // error boundary ("This page hit a problem.") with every job on them gone.
+  // An unreadable date is not a reason to lose the page: return null, which
+  // every consumer here already handles as "no opinion" (`isPastDue` → false,
+  // `daysPastDue` → 0), i.e. the card renders without the overdue treatment
+  // instead of not rendering at all.
+  //
+  // This guards the CLIENT read only. `jobLocalMidnightMs` itself still throws,
+  // deliberately — its other callers are the cancellation-fee money paths,
+  // where a silently-null date would mis-price a refund and failing loudly is
+  // the correct behaviour.
+  if (!BARE_DATE.test(dateNeeded)) return null;
   return jobLocalMidnightMs(dateNeeded);
 }
 

@@ -1,4 +1,5 @@
 import { test, expect, FAKE_CUSTOMER, mockTable, mockRpc, installSupabaseMocks, checkA11y } from "./fixtures";
+import { DATE } from "./seedData";
 
 // Customer happy path: landing → signup CTA → (with a pre-seeded authed
 // session) post-job page renders → activity list surfaces a posted job.
@@ -102,7 +103,18 @@ test.describe("customer post-job happy path", () => {
       description: "Twenty character description so the card renders normally.",
       category: "yard_work",
       budget: 75,
-      date_needed: new Date(Date.now() + 86_400_000).toISOString(),
+      // BARE "YYYY-MM-DD", not an ISO timestamp — `jobs.date_needed` is a
+      // Postgres `date` (see the column-type note in seedData.ts), so
+      // PostgREST never returns a time component and every consumer parses it
+      // with `split("-").map(Number)`. Handing it a full ISO string makes the
+      // day parse as "03T04:12:34.567Z" → NaN, and since 0f806174 that NaN
+      // reaches `jobLocalMidnightMs` → `Intl.DateTimeFormat.formatToParts(new
+      // Date(NaN))`, which THROWS `RangeError: Invalid time value` out of the
+      // `useMemo` that buckets the list. /my-posts rendered the error boundary
+      // ("This page hit a problem.") and this assertion timed out looking for a
+      // title on a page that had crashed. The fixture was lying about the wire
+      // format; the app is right to trust its own column type.
+      date_needed: DATE(1),
       start_time: "10:00",
       location: "New Orleans, LA",
       status: "open",

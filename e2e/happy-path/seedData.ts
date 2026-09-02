@@ -95,7 +95,7 @@ const AGO = (d: number) =>
  * testing the populated layout they exist to cover — the same shape as the
  * `open_jobs_browse` hole described below. Keep this relative to real time.
  */
-const DATE = (d: number) =>
+export const DATE = (d: number) =>
   new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10);
 
 type JobSeed = {

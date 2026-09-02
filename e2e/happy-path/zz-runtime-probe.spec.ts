@@ -688,10 +688,39 @@ test("2d · offline: OfflineBanner appears and the app degrades honestly", async
 const AASA_URL = "https://www.louisianahelpr.com/.well-known/apple-app-site-association";
 const AASA_APEX_URL = "https://louisianahelpr.com/.well-known/apple-app-site-association";
 
-const CLAIMED_PATHS = [
-  "/jobs", "/jobs/*", "/j/*", "/user/*", "/u/*", "/messages", "/messages/*",
-  "/m/*", "/legal", "/legal/*", "/post-job", "/post-job/*",
-  "NOT /admin/*", "NOT /api/*", "NOT /.well-known/*", "NOT /auth/*",
+/**
+ * The claims and exclusions that must NOT quietly disappear.
+ *
+ * This is deliberately a SUBSET, not the whole list. It used to be a
+ * hand-maintained copy of the file's entire `paths` array, asserted with
+ * `toEqual` — and 08ed41e5 grew that array from 16 entries to 33 (`/dashboard`,
+ * `/my-posts`, `/browse`, `NOT /reset-password`, …) without touching the copy.
+ * The served file and the committed file agreed with each other perfectly; only
+ * this duplicate disagreed, and it failed every CI run for two days while
+ * describing the deployment as broken. A copy of data is not an assertion about
+ * it — the exact-shape check now compares the SERVED file against the COMMITTED
+ * one (below), which is the property actually worth pinning, and this list
+ * covers the individual entries whose loss would be a real defect:
+ *
+ *   - the deep-link surfaces the app routes on (`normalizeDeepLinkUrl` in
+ *     src/lib/deepLinkRoute.ts maps exactly these prefixes), and
+ *   - the exclusions that exist for a security or auth reason — admin must
+ *     open in the browser, and the Supabase OAuth callback must stay there or
+ *     the PKCE verifier is unreachable.
+ *
+ * `NOT /reset-password` and `NOT /account-pending` are deliberately absent. The
+ * AASA file's own comments describe both as exclusions held open pending work
+ * on fragment-carried auth sessions — i.e. entries that are EXPECTED to flip to
+ * claims one day. Pinning them here would make the fix that removes them look
+ * like a regression.
+ */
+const REQUIRED_CLAIMS = [
+  "/jobs", "/jobs/*", "/j/*", "/user/*", "/u/*",
+  "/messages", "/messages/*", "/m/*",
+  "/legal", "/legal/*", "/post-job", "/post-job/*",
+];
+const REQUIRED_EXCLUSIONS = [
+  "NOT /admin", "NOT /admin/*", "NOT /api/*", "NOT /.well-known/*", "NOT /auth/*",
 ];
 
 test("3a · AASA is served over HTTPS with the claimed paths", async () => {
@@ -715,15 +744,53 @@ test("3a · AASA is served over HTTPS with the claimed paths", async () => {
   const json = JSON.parse(body);
   const detail = json.applinks.details[0];
   expect(detail.appID).toBe("P85MCK558V.com.Helpr");
-  expect(detail.paths).toEqual(CLAIMED_PATHS);
+  for (const p of [...REQUIRED_CLAIMS, ...REQUIRED_EXCLUSIONS]) {
+    expect(detail.paths, `AASA no longer claims ${p}`).toContain(p);
+  }
+  // Apple stops at the FIRST matching entry, so an exclusion is only an
+  // exclusion while it precedes the broader claims. `NOT /admin/*` listed after
+  // `/dashboard`-style claims would still be honoured (nothing claims /admin),
+  // but the moment a wildcard claim is added above it the exclusion is dead —
+  // which is exactly the failure mode the file's own `NOT /admin` comment
+  // describes. Pin the ordering, not just the membership.
+  const firstClaim = detail.paths.findIndex((p: string) => !p.startsWith("NOT "));
+  const lastExclusion = detail.paths.reduce(
+    (acc: number, p: string, i: number) => (p.startsWith("NOT ") ? i : acc),
+    -1,
+  );
+  expect(lastExclusion, "every NOT rule must precede every claim").toBeLessThan(firstClaim);
   expect(json.webcredentials.apps).toContain("P85MCK558V.com.Helpr");
 
-  // The committed file and the served file must agree.
+  // The committed file and the served file must agree — on everything APPLE
+  // READS. THIS is the exact-shape assertion: it compares the deployment
+  // against the source of truth in the repo, so a stale deploy or a hand-edit
+  // on the CDN fails here rather than against a third copy of the path list
+  // that has to be maintained by hand.
+  //
+  // `comment` is stripped from both sides first. It is not part of the AASA
+  // format — Apple ignores unknown keys in a `components` entry — and this file
+  // uses it as long-form documentation of WHY each exclusion exists. Comparing
+  // prose meant that editing a comment turned this test red and made it accuse
+  // the DEPLOYMENT of being wrong, when nothing about the association had
+  // changed and there was nothing to deploy. Caught exactly that way while
+  // fixing this spec: a concurrent lane rewrote the /reset-password and
+  // /account-pending notes, and the first thing to complain was a universal-link
+  // probe. Compare the contract, not the commentary.
+  const stripComments = (v: unknown): unknown =>
+    Array.isArray(v)
+      ? v.map(stripComments)
+      : v && typeof v === "object"
+        ? Object.fromEntries(
+            Object.entries(v as Record<string, unknown>)
+              .filter(([k]) => k !== "comment")
+              .map(([k, val]) => [k, stripComments(val)]),
+          )
+        : v;
   const committed = readFileSync(
     join(REPO_ROOT, "public/.well-known/apple-app-site-association"),
     "utf8",
   );
-  expect(JSON.parse(committed)).toEqual(json);
+  expect(stripComments(JSON.parse(committed))).toEqual(stripComments(json));
 
   writeArtifact("aasa-www.json", { status: res.status, contentType, body: json });
 });

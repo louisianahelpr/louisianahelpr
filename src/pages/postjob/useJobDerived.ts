@@ -1,6 +1,7 @@
 import { categoryPricing } from "@/lib/pricingGuide";
 import { categories } from "@/components/postjob/DetailsSection";
 import { hasUnfilledPlaceholders } from "@/lib/postingTemplates";
+import { TITLE_MAX } from "@/components/postjob/detailsSection/detailsSectionConstants";
 import { posterServiceFeeCents } from "@/lib/posterFees";
 import { MIN_JOB_BUDGET_DOLLARS } from "@/lib/moneyLimits";
 import { useCategoryPriceStats } from "@/hooks/useCategoryPriceStats";
@@ -131,7 +132,19 @@ export function useJobDerived(params: UseJobDerivedParams) {
   // Section completion for the 3-step progress bar. Photos are optional
   // (strongly nudged, never required), so the Details chapter is "done"
   // once title, description, and category are set.
-  const detailsComplete = !!(title.trim() && description.trim() && category && !hasUnfilledPlaceholders(description));
+  // `title.length <= TITLE_MAX` is part of COMPLETE, not just of valid. A
+  // Repost prefill can hand this form a title longer than the field allows
+  // (prod holds titles up to 45 chars from before TITLE_MAX existed), and
+  // without this the Details header showed a green tick and the word DONE
+  // above a counter reading "45/32" in red — the section asserting finished
+  // while the field it contains says otherwise.
+  const detailsComplete = !!(
+    title.trim() &&
+    title.length <= TITLE_MAX &&
+    description.trim() &&
+    category &&
+    !hasUnfilledPlaceholders(description)
+  );
   const logisticsComplete = !!(streetAddress.trim() && city.trim() && addrState.trim() && zipCode.trim() && dateNeeded && startTime);
   // The budget is always required now. It used to be optional in "Accept bids"
   // mode, where helpers named the price — that mode is gone

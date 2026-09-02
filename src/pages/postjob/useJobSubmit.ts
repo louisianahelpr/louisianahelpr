@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { track, AhaEvent } from "@/lib/analytics";
 import { safeStorage } from "@/lib/safeStorage";
+import { TITLE_MAX } from "@/components/postjob/detailsSection/detailsSectionConstants";
 import { report } from "@/lib/errorLogger";
 import { requireOnline } from "@/lib/requireOnline";
 import { assertWritable } from "@/hooks/useImpersonation";
@@ -181,6 +182,16 @@ export function useJobSubmit(params: UseJobSubmitParams) {
   const handleReview = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) { toast.error("Give your job a title."); scrollToField("title"); return; }
+    // Upper bound too, not just presence. `maxLength` on the input guards
+    // typing but not a prefill, and Repost (`?rebook=`) hands this form the
+    // previous job's title verbatim — prod still holds titles up to 45 chars
+    // from before TITLE_MAX existed. Without this the form happily carried an
+    // over-length title to checkout while the field counter read "45/32".
+    if (title.length > TITLE_MAX) {
+      toast.error(`Shorten your title to ${TITLE_MAX} characters — it's ${title.length - TITLE_MAX} too long.`);
+      scrollToField("title");
+      return;
+    }
     if (!description.trim()) { toast.error("Add a description."); scrollToField("description"); return; }
     if (hasUnfilledPlaceholders(description)) { toast.error("Replace the [bracketed] placeholders with your own details before posting."); scrollToField("description"); return; }
     if (!category) { toast.error("Pick a category."); scrollToField("category-picker"); return; }

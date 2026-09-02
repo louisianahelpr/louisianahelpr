@@ -111,6 +111,24 @@ jobs:
         # here so it cannot reach main.
         run: sh scripts/check-migration-versions.sh
 
+      - name: vercel.json schema shape
+        # Same argument as the migration check above: the pre-commit hook is
+        # skippable, and this failure is UNUSUALLY expensive to let through.
+        # Vercel validates vercel.json on its own side before the build, so an
+        # invalid file gives a fully green Actions tab, no build log, and a
+        # production deploy that never ran while prod serves the old bundle.
+        # It has done exactly that three times. Offline, milliseconds.
+        run: node scripts/check-vercel-config.mjs
+
+      - name: Agent references resolve
+        # Instructions that name a non-existent agent fail SILENTLY — the spawn
+        # happens inside an agent's context, so the run continues and the guard
+        # the instruction protects simply never runs. Two separate cases shipped
+        # on 2026-09-02: three review agents that had been deleted, and an
+        # `lh-orchestrator` address that never existed. Neither surfaced as an
+        # error anywhere.
+        run: npm run check:agent-refs
+
       - name: ESLint
         run: npm run lint
 

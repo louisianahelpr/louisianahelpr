@@ -1300,8 +1300,8 @@ html.web-desktop {
 /* Component Styles */
 .glass {
   background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
 }
 
 
@@ -1751,8 +1751,8 @@ button,
      the bar — the olive CTA and the emblem cast a green tint into the strip
      that moved as the page scrolled. A nav should not restate the colours
      underneath it. */
-  backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
 }
 
 /* Subtle scroll-state — only kicks in once the user scrolls past the hero,
@@ -1767,8 +1767,8 @@ button,
      unreliably, so a translucent nav let page text ghost through above any
      sticky sub-header. An opaque fill masks it cleanly on every platform. */
   background: hsl(38 18% 97%);
-  backdrop-filter: blur(12px) saturate(140%);
   -webkit-backdrop-filter: blur(12px) saturate(140%);
+  backdrop-filter: blur(12px) saturate(140%);
   border-bottom: 1px solid hsl(var(--heritage-gold));
   box-shadow: 0 1px 0 0 hsl(var(--heritage-gold) / 0.18);
 }
@@ -1893,8 +1893,8 @@ button,
      the cool-neutral palette. The defined `--border` hairline + drop
      shadow finish the separation. Dark mode overrides this below. */
   background-color: hsl(0 0% 100%);
-  backdrop-filter: blur(20px) saturate(170%);
   -webkit-backdrop-filter: blur(20px) saturate(170%);
+  backdrop-filter: blur(20px) saturate(170%);
   /* Solid, fully-opaque warm hairline. A translucent border let the
      backdrop blur wash the edge out to nothing — the card lost its
      outline against the champagne canvas. A defined 1px line at full
@@ -1936,8 +1936,8 @@ button,
   border: 0;
   border-radius: 0;
   box-shadow: none;
-  backdrop-filter: none;
   -webkit-backdrop-filter: none;
+  backdrop-filter: none;
   padding: 0;
 }
 
@@ -1958,8 +1958,8 @@ button,
      which made every authed page's header look colder than the
      landing page's nav even though they should be identical. */
   background-color: hsl(var(--background) / 0.72);
-  backdrop-filter: blur(12px) saturate(140%);
   -webkit-backdrop-filter: blur(12px) saturate(140%);
+  backdrop-filter: blur(12px) saturate(140%);
   /* var() resolved at :root — see --safe-area-top. Direct env() here returns 0
      inside the transformed AppShell containing block (WebKit fixed-descendant
      bug), which let the header collide with the status bar / Dynamic Island. */
@@ -1976,8 +1976,8 @@ button,
 .glass-dock {
   border-top: 1px solid hsla(0, 0%, 100%, 0.2);
   background-color: hsla(0, 0%, 100%, 0.6);
-  backdrop-filter: blur(12px) saturate(1.5);
   -webkit-backdrop-filter: blur(12px) saturate(1.5);
+  backdrop-filter: blur(12px) saturate(1.5);
   box-shadow: 0 -4px 20px -8px hsl(0 0% 0% / 0.08);
 }
 
@@ -1995,8 +1995,8 @@ button,
      feed card's fully-opaque surface). Global — every dialog uses this
      class — so every dialog gets the same closer-to-solid card now. */
   background-color: hsl(var(--background) / 0.95);
-  backdrop-filter: blur(40px);
   -webkit-backdrop-filter: blur(40px);
+  backdrop-filter: blur(40px);
   box-shadow: 0 30px 80px -20px hsl(160 10% 12% / 0.35);
   border-radius: 28px;
   /* The body's `overscroll-behavior-y: none` (set globally to kill the
@@ -2016,8 +2016,8 @@ button,
    ring. */
 .glass-field {
   background-color: hsl(var(--background) / 0.7);
-  backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
 }
 
 /* A field with anything overlaid on it must NOT blur its backdrop.
@@ -2033,8 +2033,8 @@ button,
    stop working the first time someone indented a field differently. */
 .relative:has(> .absolute) > .glass-field,
 .relative:has(> .absolute) .glass-field {
-  backdrop-filter: none;
   -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 /* ─────────────────────────────────────────────────────────────────
@@ -2354,8 +2354,8 @@ button,
 .skeleton-glass {
   background-color: hsla(0, 0%, 100%, 0.42);
   border: 0.5px solid hsla(0, 0%, 100%, 0.55);
-  backdrop-filter: blur(20px) saturate(170%);
   -webkit-backdrop-filter: blur(20px) saturate(170%);
+  backdrop-filter: blur(20px) saturate(170%);
 }
 
 /* Ambient sparkle — single drifting Burnt-Sienna pinpoint moves slowly

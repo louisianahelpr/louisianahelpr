@@ -34,9 +34,27 @@ Do this yourself, and **stop the audit if it fails**:
 3. `gh workflow list --all` — note anything `disabled_manually`.
 4. `gh run list --branch main --limit 10` — is `main` actually green right now?
 5. `npm run check:launch`.
+6. **Reconcile `docs/audit/OPEN_ITEMS.md` against `main` before dispatching anything.**
+   Compare its last stamp to what has actually shipped:
 
-If prod deploys are red or migrations have drifted, **stop**. Every finding downstream is
-noise until the baseline is clean.
+   ```sh
+   LAST=$(git log -1 --format=%H -- docs/audit/OPEN_ITEMS.md)
+   git log --oneline $LAST..origin/main -- src/ supabase/
+   ```
+
+   Every commit that prints is work the ledger does not know about. Walk them, close what
+   they closed, and re-stamp. **A non-empty list is a STOP.**
+
+If prod deploys are red, migrations have drifted, or the ledger is stale, **stop**. Every
+finding downstream is noise until the baseline is clean.
+
+**Why step 6 outranks the rest.** A stale ledger does not merely waste a wave — it makes
+the audit produce the exact outcome it exists to prevent. Measured 2026-09-02: a session
+working the then-current list found that **three of its first four findings were already
+fixed**, a 1-in-4 hit rate. Dispatch 33 lanes against a list in that state and most of them
+re-derive closed work and file it again, which reads as "the audit found 200 things" and
+means nothing. That is the "no audit ever fixes anything" complaint, manufactured. Refresh
+first — it is cheaper than one wave and it is the difference between a report and noise.
 
 ## Dispatching a wave
 

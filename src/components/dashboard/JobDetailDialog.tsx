@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { Dialog, DialogContent, DialogHero, DialogBody } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHero, DialogBody, DIALOG_TOP_RIGHT_RESERVE } from "@/components/ui/dialog";
 import {
   Repeat, Rocket, Zap, Bookmark, Flag, Star,
 } from "lucide-react";
@@ -168,29 +168,23 @@ const JobDetailDialog = ({
 
   /* How much of the sheet's top-right corner the icon cluster occupies, so the
      badge row below can reserve it instead of running underneath it (owner,
-     2026-08-31: "Covering buttons"). DERIVED FROM THE SAME CONDITIONS as
-     `cornerActions` above, deliberately — a reserve keyed on anything else
-     goes stale the moment an icon is added or hidden, which is how the row
-     came to depend on the badges happening to be short.
-     Geometry is DialogContent's (dialog.tsx), re-derived 2026-09-02 when the
-     shared close X went from 32×44 to a HIG-compliant 44×44: the X is now
-     `right-1.5` (6px) + 44px wide = 50px, and when a `topRightSlot` is present
-     its container starts at `right-[52px]` and is n×32px + (n−1)×2px of
-     `gap-0.5`. Values below are that extent + ~4px of breathing room — each
-     6px wider than before, exactly the amount the X grew. Tailwind needs the
-     class as a literal, so these are spelled out rather than computed into a
-     template; if dialog.tsx's X moves again, these move with it. */
+     2026-08-31: "Covering buttons"). The COUNT is derived from the same
+     conditions as `cornerActions` above, deliberately — a reserve keyed on
+     anything else goes stale the moment an icon is added or hidden, which is
+     how the row came to depend on the badges happening to be short.
+
+     The WIDTHS now come from dialog.tsx (DIALOG_TOP_RIGHT_RESERVE) rather than
+     being restated here. They were literals in this file, computed by hand from
+     dialog.tsx's `right-[52px]`, its 44px X and its row gap — three numbers in
+     another file. Evening up that row's pitch on 2026-09-02 changed the gap and
+     left these 12px short with nothing to catch it. */
   const cornerIconCount = guest
     ? 0
     : (viewerUserId !== job.customer_id ? 1 : 0) + (onToggleSave ? 1 : 0) + 1;
   const iconLaneReserve =
-    cornerIconCount >= 3
-      ? "pr-[9.75rem]" // 156px — Share + Save + Report + X
-      : cornerIconCount === 2
-        ? "pr-[7.625rem]" // 122px — two of the three + X
-        : cornerIconCount === 1
-          ? "pr-[5.5rem]" // 88px — one + X
-          : "pr-[3.375rem]"; // 54px — the shared close X on its own (guest)
+    DIALOG_TOP_RIGHT_RESERVE[
+      Math.min(cornerIconCount, 3) as keyof typeof DIALOG_TOP_RIGHT_RESERVE
+    ];
 
   return (
     <Dialog open={!!job} onOpenChange={() => onClose()}>
@@ -321,7 +315,23 @@ const JobDetailDialog = ({
         // group, so ordering here is the whole mechanism.
         className={[
           "grid-cols-1",
-          "left-[50%] top-[7vh] bottom-auto [translate:-50%_0]",
+          // CENTRED — inherited from DialogContent, not restated here.
+          //
+          // This line used to read `left-[50%] top-[7vh] bottom-auto
+          // [translate:-50%_0]`, i.e. the caller opting OUT of the shared
+          // shell's centring. It was added to cure a real symptom the owner
+          // reported ("opens small then gets bigger?"): a vertically-centred
+          // box re-centres as its content arrives, so the panel appeared to
+          // grow in both directions while you read it. Top-anchoring hid that
+          // by pinning one edge.
+          //
+          // The owner has since asked for centred again, twice. Anchoring was
+          // treating the symptom: the box moves because its HEIGHT changes
+          // after open, and it changes because content lands late. That is
+          // fixed where it belongs — the panel now reserves its poster row and
+          // note field from the first frame (see `min-h` below) — so there is
+          // nothing left for the anchor to hide, and the dialog can sit where
+          // every other dialog in the app sits.
           "max-h-[86dvh]",
           "content-start",
           "sm:w-[calc(100%-2rem)] sm:max-w-lg",

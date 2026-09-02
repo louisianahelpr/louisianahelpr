@@ -608,7 +608,10 @@ export function PetForm({
           onOpenAutoFocus={(e) => e.preventDefault()}
           className={[
             "grid-cols-1",
-            "top-[7vh] bottom-auto [translate:-50%_0]",
+            // Centring inherited from DialogContent — this line used to opt
+            // out with `top-[7vh] bottom-auto [translate:-50%_0]`. Removed
+            // with JobDetailDialog's and PetReportCard's; all three were
+            // copies of the same override of the shared shell.
             "max-h-[86dvh]",
             "content-start",
           ].join(" ")}

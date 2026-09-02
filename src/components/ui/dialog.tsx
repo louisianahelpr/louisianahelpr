@@ -18,6 +18,32 @@ const DialogPortal = DialogPrimitive.Portal;
 
 const DialogClose = DialogPrimitive.Close;
 
+/**
+ * How much horizontal room the top-right chrome occupies, by icon count, as a
+ * Tailwind padding class a caller can put on whatever sits under it.
+ *
+ * IT LIVES HERE BECAUSE THE GEOMETRY LIVES HERE. This table used to be a
+ * hand-computed literal inside JobDetailDialog, in a different file from the
+ * `right-[52px]`, the 44px X and the row `gap` it is derived from — so widening
+ * the gap in THIS file silently left that reserve 12px short, and the badge row
+ * would have run under the icons again (owner, 2026-08-31: "Covering buttons").
+ * A number derived from another file's layout has to sit beside that layout, or
+ * it is only correct until someone touches the layout.
+ *
+ * The arithmetic, so the next change can redo it:
+ *   X alone      right-1.5 (6px) + 44px                        = 50
+ *   with n icons right-[52px] + n×32px + (n−1)×8px (`gap-2`)   = 52 + 40n − 8
+ *   plus ~4px of breathing room in every case.
+ * Tailwind needs the class as a literal, so these are spelled out rather than
+ * computed into a template string — a `pr-[${x}rem]` compiles to nothing.
+ */
+export const DIALOG_TOP_RIGHT_RESERVE = {
+  0: "pr-[3.375rem]", //  54px — the shared close X on its own
+  1: "pr-[5.5rem]",   //  88px — one icon + X
+  2: "pr-[8rem]",     // 128px — two icons + X
+  3: "pr-[10.5rem]",  // 168px — three icons + X
+} as const;
+
 const DialogOverlay = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Overlay>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
@@ -214,7 +240,37 @@ const DialogContent = React.forwardRef<
           corners of every icon in the row. */}
       {topRightSlot && (
         <div
-          className="absolute right-[52px] top-2 z-10 flex items-center gap-0.5"
+          // `h-11` — THE ROW IS THE SAME HEIGHT AS THE X, WHICH IS WHY IT LINES
+          // UP. The icons a caller passes are `compact` (32x32); the shared X
+          // is 44x44 and cannot shrink (HIG floor, and the `compactClose` prop
+          // that used to allow it was removed for that reason). Two boxes of
+          // different heights both pinned at `top-2` do not share an optical
+          // row: the 32px icons centred at 8+16=24px and the X at 8+22=30px, so
+          // the X sat SIX PIXELS BELOW its three neighbours. The owner has
+          // reported this twice as the X looking "oddly placed" and "not
+          // blending in" — it is not placement, it is two components in one row
+          // agreeing on their top edge instead of their centre.
+          //
+          // Giving this container the X's height and centring inside it makes
+          // both centres 30px by construction. Nothing here depends on the
+          // icons staying 32px: a caller passing full-size 44px icons still
+          // centres, because the row centres its children rather than stacking
+          // them from the top.
+          // `gap-2` (8px) — CHOSEN SO THE WHOLE ROW HAS ONE PITCH, INCLUDING THE
+          // X. Measured at 393x852 with the previous `gap-0.5`: icon centres
+          // 34px apart, but the last icon to the X 40px, because the X's box is
+          // 44 wide against the icons' 32 and its outer edge has to clear them.
+          // An evenly-drawn row with one wider gap at the end reads as "three
+          // icons, and then a separate X" — which is what the owner has been
+          // describing. 32 + 8 = 40 makes every centre-to-centre distance in the
+          // row identical, so the four read as one set.
+          //
+          // Widening the gaps, NOT narrowing the one to the X: pulling this
+          // container right to 46px would put its edge inside the X's 44px
+          // transparent hit area, and elementFromPoint on the last icon would
+          // return the CLOSE button — the dialog closing when the user meant to
+          // Share. That trap is documented above and was verified once already.
+          className="absolute right-[52px] top-2 z-10 flex h-11 items-center gap-2"
         >
           {topRightSlot}
         </div>
@@ -294,7 +350,17 @@ const DialogContent = React.forwardRef<
         className={`absolute right-1.5 z-10 ${topRightSlot ? "top-2" : "top-3"} group p-0 box-border rounded-md btn-press flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none`}
         style={{ width: "44px", height: "44px", minWidth: "44px", minHeight: "44px" }}
       >
-        <X className="h-[18px] w-[18px] transition-transform duration-300 group-hover:-translate-y-0.5" strokeWidth={2} />
+        {/* 16px BESIDE OTHER ICONS, 18px ALONE. The chrome icons a caller puts
+            in `topRightSlot` draw at `w-4 h-4` (16px) with the same
+            strokeWidth, so an 18px X next to them reads 12.5% heavier — the
+            other half of "it doesn't blend in with the other icons". On a
+            dialog with no icon cluster there is nothing to match and the X
+            keeps the size it was measured at. The BOX is 44x44 either way;
+            only the glyph inside it changes. */}
+        <X
+          className={`${topRightSlot ? "h-4 w-4" : "h-[18px] w-[18px]"} transition-transform duration-300 group-hover:-translate-y-0.5`}
+          strokeWidth={2}
+        />
         <span className="sr-only">Close</span>
       </DialogPrimitive.Close>
     </DialogPrimitive.Content>

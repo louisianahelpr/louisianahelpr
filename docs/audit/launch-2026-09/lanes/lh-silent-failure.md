@@ -35,7 +35,7 @@ lane's brief assumes.** Measured, not estimated:
 | Invariant | Result |
 |---|---|
 | Zero-row-write guard on money/trust/safety | 75 of 112 client writes guarded; 21 legitimately-zero; **16 unguarded, of which only 4 touch trust and 0 touch money** |
-| Client-side writes to any money ledger | **0** — every `pif_credits` / `referral_credits` / `worker_protection_credits` / instant-payout / subscription reference in `src/` is a `.select()`. All mutation is behind edge functions / RPCs. |
+| Client-side writes to any money ledger | **0** — every `pif_credits` / `referral_credits` / `instant_payouts` / `payout_transfers` / `tips` / `payment_refunds` / subscription reference in `src/` is a `.select()`. All mutation is behind edge functions / RPCs. Table existence re-verified live (`to_regclass`) after the lh-schema-integrity correction. |
 | Dropped Supabase `error` | 100 `unwrap()` + 133 `unwrapMutation()` call sites; **2** genuine dropped-error sites remain (SF-006) |
 | Awaited Capacitor plugin object | **0 across all 16 plugins / 26 dynamic import sites** — the rule holds at 100% |
 | Realtime channels missing `channelNonce()` | 1 of 14, and it is a *correct* exception (presence requires a shared topic) |
@@ -111,7 +111,7 @@ trust writes are filed, the 12 non-money/trust/safety ones are listed below
 under "acknowledged gaps".
 Money verified separately by table — `rg -n '(update|delete|upsert)\(' src/` cross-checked
 against every ledger table name: `pif_credits`, `referral_credits`,
-`worker_protection_credits`, `instant_payouts`, `payout_transfers`, `tips`,
+`instant_payouts`, `payout_transfers`, `tips`,
 `payment_refunds`, subscription tables — **zero client mutations**, read-only at
 `usePifCredit.ts:71`, `PayItForward.tsx:177/214`, `useReferralData.ts:32`,
 `useEarningsData.ts:44`, `AdminPayoutBatches.tsx:162`, `AdminAnalytics.tsx:95/104`,
@@ -229,6 +229,18 @@ a targeted `tags->>'source'` query. `function_edge_logs` via `query_logs` for
   `retainer_agreements` and the `business_*` surface produced no findings in
   this lane. Licensed-and-insured credentialing was audited **fully** as live —
   SF-004 is on that surface.
+- **`worker_protection_credits` — retired, and it retires SI-001.** PROTOCOL §6d
+  listed it as confirmed LIVE and called SI-001 ("helpers are promised
+  compensation that never pays out") a priority on that basis. It is not live:
+  `select to_regclass('public.worker_protection_credits')` returns NULL on prod,
+  and its single reference in `src/` is a *comment* at
+  `src/components/CancellationDialog.tsx:412` which already records the whole
+  story — the ledger was never built, was dropped on 2026-08-30 by
+  `20260830072801_drop_unused_scaffold_tables`, the dialog's old "$10 Helpr
+  credit within 24 hours" copy was removed because of it, and what actually
+  compensates the helper is `poster_cancel_job`'s notification plus
+  `void-cancelled-payments` → `payHelperCancellationFee`. Zero live reads, zero
+  writes, nothing promised. Messaged to the orchestrator.
 - **Certificate pinning / RASP / i18n extraction** — not this lane's scope; no
   opinion offered rather than a padded one.
 - **`auto-release-payment` — checked and explicitly NOT filed.** `error_logs`

@@ -39,14 +39,14 @@ brief queues auth for owner review.
 
 ## Headline
 
-Eight findings filed (OA-001 … OA-008), one existing finding verified (NB-008),
+Ten findings filed (OA-001 … OA-010), one existing finding verified (NB-008),
 one existing finding resolved (RW-005), and one existing finding **root-caused
 into a materially different and more serious bug** (RW-004 → OA-001).
 
 | Severity | Count | Blockers |
 |---|---|---|
-| HIGH | 3 | OA-001, OA-003 |
-| MEDIUM | 5 | — |
+| HIGH | 4 | OA-001, OA-003, OA-009 |
+| MEDIUM | 6 | — |
 
 The two things the owner should read first:
 
@@ -97,13 +97,15 @@ Full claim, reproduction and evidence are in the bus
 | ID | Sev | Surface | One line |
 |---|---|---|---|
 | **OA-001** | HIGH · blocker | `/signup` → `complete-signup` | Root cause of RW-004: the edge function was **never invoked**. Account left unapproved with **zero legal consent recorded**, silently. Mechanism confirmed (CC-006, re-verified): `fileToBase64` never settles on an aborted read. |
-| **OA-002** | HIGH | `/signup` Create Account | Button not disabled during the awaited validator → one gesture fires **two concurrent `auth.signUp` calls** (measured 29 ms apart); the loser silently `navigate("/login")`s. |
+| **OA-002** | HIGH | `/signup` Create Account | Button not disabled during the awaited validator → one gesture fires **two concurrent `auth.signUp` calls**. **Partially retracted:** the winner *does* invoke `complete-signup`, so this is NOT OA-001's cause. Real harm: the loser lands a just-registered user on `/login` told their email is already taken. |
 | **OA-003** | HIGH · blocker | `/signup` Create Account | Raw `"email rate limit exceeded"` shown as the user-facing toast; the correct copy already exists in `authErrors.ts` and signup can't reach it. Underlying quota unanswered. |
 | **OA-004** | MEDIUM | native session storage | `keychainStorageAdapter` is **NSUserDefaults, not Keychain**. Full production session observed in plaintext on disk. |
 | **OA-005** | MEDIUM | `/reset-password` | Validates **3 of the 5** password rules signup enforces; hint copy understates the policy; rejection falls through to *"Couldn't sign you in"*. |
 | **OA-006** | MEDIUM | `/reset-password` success | Promises *"Anywhere else you were signed in will ask for the new password next time"* — nothing in this codebase does that. Recovery token never stripped from the URL. |
 | **OA-007** | MEDIUM | `approval_status` + `/account-pending` | Resolves RW-005 (auto-approve is by design) and shows the pair with OA-001: **approval is a side effect of an edge function that can silently not run**. `/account-pending` then tells the stranded user a staffed review is coming that does not exist. |
+| **OA-009** | HIGH · blocker | `/signup` → consent record | The compliance half of OA-001, split out because it has a different owner and remedy: an 18+ and Terms attestation the user ticked, **never persisted**. |
 | **OA-008** | MEDIUM | iOS app-switcher snapshot | Snapshot redaction is gated on the **opt-in, default-off** App Lock flag, so the default user's task-switcher preview captures chat, checkout and profile screens. |
+| **OA-010** | MEDIUM | `socialAuth.ts:87-96` | Recognition inferred by comparing a returned string against a **copy literal** — rewording one sentence silently breaks the social error path. `matchAuthError` now makes the fix one line. |
 
 **NB-008** (`lh-native-bridge`) → set **verified**, with the fix proposed in its
 status note and a correction: its stated blocker ("the iOS platform component is
@@ -161,13 +163,35 @@ path in the funnel.
 
 The compliance half is unchanged and remains the part that needs the owner.
 
+### Retraction — OA-002 was not OA-001's cause
+
+Recording this prominently because a partial retraction that only lives in the
+bus is a retraction nobody reads. When OA-002 was filed I said the double-submit
+race was *"a plausible mechanism for OA-001, though I have NOT closed the last
+link"*. That link has since been closed, and it went the other way.
+
+Driven with a fetch-layer stub so the winner/loser split could be observed
+without spending the auth email budget: two `POST /auth/v1/signup` fire 46 ms
+apart from one gesture, the button is confirmed still enabled 40 ms after the
+first click — **and the winner invokes `complete-signup` normally** (POST issued
+3 ms after its 200). A double submit therefore does **not** produce OA-001's
+"never ran" state. **That causal claim is retracted.** OA-001's cause is the
+`fileToBase64` hang above.
+
+Two things survive. The race is real and still worth fixing: the loser takes the
+already-registered branch and lands on `/login` — so a user whose account was
+just created *and fully completed* is bounced to a login screen. And my
+"silently" was too strong: `/login` renders *"If that email already has an
+account, log in below…"*, captured verbatim. It is **misleading rather than
+silent** — the user is told their email is already registered at the exact
+moment the app registered it for them.
+
 ## 3. UNVERIFIED — could not reach, and why
 
 Honest gaps. None of these is "assumed fine".
 
 | Item | Why not verified |
 |---|---|
-| **Downstream half of OA-002** | Proved two concurrent `signUp` POSTs; both returned 429 (OA-003), so I never observed an unthrottled winner/loser split. The silent `navigate("/login")` branch is read from source, not driven. This is the one link between OA-002 and OA-001 that is still open. |
 | **The configured auth-email quota (OA-003)** | GoTrue project config; not exposed by any Supabase MCP tool I hold. I deliberately state no number: prod history shows no clock hour above 2 confirmation-sending signups, yet one rolling hour carried 4 — so it is not a flat 2/hour. |
 | **Live GoTrue password policy (OA-005)** | Attempted an empirical probe (`POST /auth/v1/signup` with weak passwords, which creates nothing on rejection); **refused by the environment's safety classifier** as credential-shaped traffic. The screen-to-screen divergence is proven from source regardless; the severity of the consequence is inherited from `Signup.tsx`'s comment. |
 | **Whether other sessions actually survive a password reset (OA-006)** | Needs a real recovery link in a mailbox plus two browser contexts. The auth email budget was exhausted. Filed as "the app does not implement this", **not** as "the copy is proven false". |

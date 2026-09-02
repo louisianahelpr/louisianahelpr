@@ -188,8 +188,18 @@ const AlertDialogContent = React.forwardRef<
           both. */}
       <AlertDialogPrimitive.Cancel
         disabled={closeDisabled}
-        className="absolute right-3 top-3 z-10 group w-8 p-0 box-border rounded-md btn-press flex items-center justify-center bg-transparent border-transparent shadow-none text-muted-foreground hover:text-foreground hover:bg-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none mt-0"
-        style={{ minHeight: "44px", minWidth: "32px" }}
+        className="absolute right-1.5 top-3 z-10 group p-0 box-border rounded-md btn-press flex items-center justify-center bg-transparent border-transparent shadow-none text-muted-foreground hover:text-foreground hover:bg-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none mt-0"
+        // 44x44, MATCHING DialogContent. This was `w-8` + minWidth 32 —
+        // a 32x44 box, under the HIG floor in WIDTH, on the primitive behind
+        // ~33 confirmations in the app. dialog.tsx fixed exactly this on
+        // 2026-09-02 and its own comment names this file's `right-3 w-8`
+        // geometry as the CONTROL it measured the fix against; the fix then
+        // landed on one twin and not the other. Same shape as the
+        // MessageAttachment/PhotoLightbox split lh-a11y-sensory found — half a
+        // fix ported, half not, between two files doing the same job.
+        // `right-1.5` not `right-3`: growing 32->44 is symmetric, so giving
+        // 6px back keeps the GLYPH where it was rather than moving it 6px in.
+        style={{ width: "44px", height: "44px", minWidth: "44px", minHeight: "44px" }}
       >
         <X className="h-[18px] w-[18px] transition-transform duration-300 group-hover:-translate-y-0.5" strokeWidth={2} />
         <span className="sr-only">Close</span>

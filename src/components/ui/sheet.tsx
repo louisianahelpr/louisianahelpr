@@ -144,7 +144,17 @@ SheetContent.displayName = SheetPrimitive.Content.displayName;
  */
 const SheetCloseButton = ({ top, right }: { top: string; right: string }) => (
   <SheetPrimitive.Close
-    className="absolute inline-flex h-10 w-10 items-center justify-center rounded-md ring-offset-background transition-colors hover:text-foreground active:scale-[0.94] focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
+    // `focus-visible:`, NOT `focus:` — this was the only close button in the
+    // app still on plain `focus:`, which fires the ring on every MOUSE CLICK,
+    // not just keyboard navigation. The owner asked for exactly that ring to
+    // stop appearing on click (2026-08-31); dialog.tsx and alert-dialog.tsx
+    // were changed and this one was missed, so the behaviour he reported as
+    // fixed still happened on every sheet.
+    //
+    // h-11 w-11 (44x44), matching DialogContent and AlertDialogContent. It was
+    // h-10 w-10 with a 20px glyph — a third size and a third glyph in a set of
+    // three controls that do one job.
+    className="absolute inline-flex h-11 w-11 items-center justify-center rounded-md ring-offset-background transition-colors hover:text-foreground active:scale-[0.94] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none"
     style={{
       top,
       right,
@@ -153,7 +163,7 @@ const SheetCloseButton = ({ top, right }: { top: string; right: string }) => (
       color: "hsl(var(--olivewood))",
     }}
   >
-    <X className="h-5 w-5" strokeWidth={2} />
+    <X className="h-[18px] w-[18px]" strokeWidth={2} />
     <span className="sr-only">Close</span>
   </SheetPrimitive.Close>
 );

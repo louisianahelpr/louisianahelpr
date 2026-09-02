@@ -15,6 +15,7 @@ import { useState } from "react";
 import { CalendarDays, Plus, ChevronDown, X } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { toast } from "sonner";
+import { hapticSuccess } from "@/lib/haptics";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AppPage from "@/components/AppPage";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -120,6 +121,8 @@ export default function StrSettings() {
       return data;
     },
     onSuccess: () => {
+      hapticSuccess();
+      toast("Calendar connected");
       setAddOpen(false);
       queryClient.invalidateQueries({ queryKey: ["str-calendar-connections"] });
     },
@@ -190,6 +193,8 @@ export default function StrSettings() {
       }
     },
     onSuccess: () => {
+      hapticSuccess();
+      toast("Calendar removed");
       setRemovingId(null);
       queryClient.invalidateQueries({ queryKey: ["str-calendar-connections"] });
     },

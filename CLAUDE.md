@@ -91,6 +91,23 @@ floats in a lopsided column with blank bands has failed the audit.
 Each of these is a real, non-obvious gotcha that has cost real time — keep
 this list tight; project-specific trivia belongs in code comments, not here.
 
+- **`vitest run` is NOT trustworthy while several agents share this tree —
+  gate against a clean worktree.** Under parallel-lane load the full suite
+  fails a VARYING set of 1–22 tests that every one of them passes in
+  isolation; observed 2026-09-02 with 7–8 lanes running. The tell is the
+  shape, not the count: the failing set changes between consecutive runs,
+  the failures are `findBy*` timeouts rather than assertion mismatches, and
+  slow I/O-bound specs are hit hardest (`popupShellInventory` took 23.6s to
+  time out while scanning ~1200 files). Two separate lanes independently
+  reported `adminJobsNotifications.test.tsx` as broken; it passes 5/5 alone.
+  Chasing one of these as a real regression costs an hour and finds nothing.
+
+  Before believing a suite failure: `git worktree add --detach <path>
+  origin/main`, symlink `node_modules`, and run it there. That also removes
+  the other half of the problem — a dirty shared tree means you are testing
+  everyone's half-finished work, not yours. This is how the E2E lane got a
+  trustworthy 101/101 when the shared tree was red.
+
 - **Chromium cannot see WebKit-only bugs — `npx playwright install webkit`
   and A/B there.** The app ships in a WKWebView, and the classes of defect
   that only appear in WebKit are invisible to every Chromium-based check we

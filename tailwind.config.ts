@@ -1,7 +1,25 @@
 import type { Config } from "tailwindcss";
 
 export default {
-  content: ["./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
+  // `!./src/test/edge/**` is load-bearing, not tidiness. `src/test/edge/harness.ts`
+  // writes temporary `.gen.ts` modules INTO that directory while edge tests run
+  // and deletes them afterwards. Tailwind's content scan enumerates the glob and
+  // then reads each file, so a build overlapping a test run globs a fixture that
+  // no longer exists by the time it is read:
+  //   [postcss] ENOENT: no such file or directory, open
+  //   '.../src/test/edge/stripe-webhook.<hash>.0_index.gen.ts'
+  // PostCSS fails on index.css -> `npm run build` fails -> `vite preview` never
+  // starts -> EVERY Playwright happy-path spec fails at page.goto with
+  // ERR_CONNECTION_REFUSED. That reads as "the app is broken" and is why the E2E
+  // suite has been red for a long run of commits while the app itself was fine.
+  // These are rewritten edge-function modules; they contain no Tailwind classes.
+  content: [
+    "./pages/**/*.{ts,tsx}",
+    "./components/**/*.{ts,tsx}",
+    "./app/**/*.{ts,tsx}",
+    "./src/**/*.{ts,tsx}",
+    "!./src/test/edge/**",
+  ],
   prefix: "",
   // Key `dark:` utilities off the `[data-theme="dark"]` attribute that
   // useDarkMode sets on <html>, NOT the default `prefers-color-scheme`

@@ -2,6 +2,12 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { LEGAL_TERMS_VERSION, LEGAL_PRIVACY_VERSION } from "../_shared/legalVersions.ts";
+import {
+  avatarObjectKey,
+  resolveAvatarContentType,
+  safeDocumentExt,
+  sweepSupersededAvatars,
+} from "../_shared/storageKeys.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -202,6 +208,10 @@ serve(async (req) => {
     }
 
     let avatarUrl: string | null = null;
+    // Superseded avatar objects the sweep could NOT confirm are gone. Returned
+    // to the caller rather than only logged, so a still-public previous photo
+    // is something the app can surface to the person whose photo it is.
+    let staleAvatarObjects: string[] = [];
     let idDocumentUrl: string | null = null;
     let licenseUrl: string | null = null;
     let insuranceUrl: string | null = null;
@@ -210,13 +220,34 @@ serve(async (req) => {
     // 1. Upload avatar to the dedicated public `avatars` bucket
     // (was incorrectly using job-photos before — bucket got created
     // 2026-05-05 alongside making user-documents private).
-    if (avatarBase64 && avatarExt) {
-      const avatarPath = `${userId}/avatar.${avatarExt}`;
+    //
+    // The key is DERIVED from the content type by `../_shared/avatarKey.ts`;
+    // `avatarExt` is no longer interpolated into it. It used to be, and because
+    // this function holds the SERVICE ROLE key there was no storage RLS to
+    // catch it: `avatarExt: "png/../../<victim>/avatar.png"` overwrote another
+    // account's public profile photo, verified against prod. Every detail and
+    // the three reproductions are in that file's header.
+    if (avatarBase64) {
+      const resolvedType = resolveAvatarContentType(avatarContentType, avatarExt);
+      if (!resolvedType) {
+        // A permanent property of the file, not a transient failure — so it
+        // must NOT fall through to the "couldn't save it, try again" 502
+        // below, which would send the user round a loop that cannot succeed.
+        return new Response(
+          JSON.stringify({
+            error:
+              "That file type isn't supported for a profile photo — use JPG, PNG, WebP or GIF.",
+          }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const avatarPath = avatarObjectKey(userId, resolvedType);
       const avatarBytes = Uint8Array.from(atob(avatarBase64), (c) => c.charCodeAt(0));
       const { error: avatarErr } = await supabase.storage
         .from("avatars")
         .upload(avatarPath, avatarBytes, {
-          contentType: avatarContentType || "image/jpeg",
+          contentType: resolvedType,
           upsert: true,
         });
 
@@ -225,12 +256,36 @@ serve(async (req) => {
       } else {
         const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(avatarPath);
         avatarUrl = urlData.publicUrl;
+
+        // Delete any `avatar.*` sibling left by a different format (or by the
+        // old client-controlled key scheme) and PROVE it by re-listing. Never
+        // throws: the new photo is already live, and failing here would leave
+        // the profile pointing at the object being replaced.
+        const { staleRemaining } = await sweepSupersededAvatars(
+          supabase,
+          userId,
+          avatarPath.slice(userId.length + 1),
+        );
+        if (staleRemaining.length > 0) {
+          staleAvatarObjects = staleRemaining;
+          console.error(
+            `[complete-signup] ${staleRemaining.length} superseded avatar object(s) still public for ${userId}: ${staleRemaining.join(", ")}`,
+          );
+        }
       }
     }
 
     // 2. Upload ID document
-    if (idBase64 && idExt) {
-      const idPath = `${userId}/id-document.${idExt}`;
+    //
+    // `idExt` is no longer interpolated into the key — see
+    // `../_shared/storageKeys.ts`. Being a PRIVATE bucket was never the
+    // mitigation it looks like: `idExt: "png/../../<victim>/id-document.png"`
+    // planted a file under another member's folder, and that is precisely the
+    // object an admin reviewer opens as that member's government ID. The bucket
+    // also declares no allowed_mime_types and no size limit, so nothing below
+    // this line was checking either.
+    if (idBase64) {
+      const idPath = `${userId}/id-document.${safeDocumentExt(idContentType, idExt)}`;
       const idBytes = Uint8Array.from(atob(idBase64), (c) => c.charCodeAt(0));
       const { error: idErr } = await supabase.storage
         .from("id-documents")
@@ -250,8 +305,8 @@ serve(async (req) => {
     // user-documents bucket is private — store the PATH (not full URL) so
     // we can generate signed URLs at display time. Admin/owner read access
     // is enforced by the bucket's owner-or-admin RLS policy.
-    if (licenseBase64 && licenseExt) {
-      const licensePath = `${userId}/credentials/license-${Date.now()}.${licenseExt}`;
+    if (licenseBase64) {
+      const licensePath = `${userId}/credentials/license-${Date.now()}.${safeDocumentExt(licenseContentType, licenseExt)}`;
       const licenseBytes = Uint8Array.from(atob(licenseBase64), (c) => c.charCodeAt(0));
       const { error: licErr } = await supabase.storage
         .from("user-documents")
@@ -267,8 +322,8 @@ serve(async (req) => {
     }
 
     // 2c. Upload insurance document (if provided)
-    if (insuranceBase64 && insuranceExt) {
-      const insurancePath = `${userId}/credentials/insurance-${Date.now()}.${insuranceExt}`;
+    if (insuranceBase64) {
+      const insurancePath = `${userId}/credentials/insurance-${Date.now()}.${safeDocumentExt(insuranceContentType, insuranceExt)}`;
       const insuranceBytes = Uint8Array.from(atob(insuranceBase64), (c) => c.charCodeAt(0));
       const { error: insErr } = await supabase.storage
         .from("user-documents")
@@ -291,7 +346,10 @@ serve(async (req) => {
     // portfolio + admins still get fresh signed URLs at display time too.
     if (portfolioFiles && Array.isArray(portfolioFiles)) {
       for (const file of portfolioFiles) {
-        const path = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${file.ext}`;
+        // A FIFTH site of the same defect, not in the original report: `file.ext`
+        // is an element of a client-supplied array, interpolated straight into
+        // the key. Same treatment as the three above.
+        const path = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${safeDocumentExt(file.contentType, file.ext)}`;
         const bytes = Uint8Array.from(atob(file.base64), (c) => c.charCodeAt(0));
         const { error: pErr } = await supabase.storage
           .from("user-documents")
@@ -313,10 +371,13 @@ serve(async (req) => {
     // the storage write fail, and still land "approved" with the doc missing.
     // Detect provided-but-unstored files and make the caller retry instead.
     const uploadFailures: string[] = [];
-    if (avatarBase64 && avatarExt && !avatarUrl) uploadFailures.push("profile picture");
-    if (idBase64 && idExt && !idDocumentUrl) uploadFailures.push("ID document");
-    if (licenseBase64 && licenseExt && !licenseUrl) uploadFailures.push("license");
-    if (insuranceBase64 && insuranceExt && !insuranceUrl) uploadFailures.push("insurance document");
+    // `avatarExt` is no longer part of the condition: it is not required to
+    // store the file any more, so keeping it here would have let a client that
+    // omits it upload nothing and still be told the signup succeeded.
+    if (avatarBase64 && !avatarUrl) uploadFailures.push("profile picture");
+    if (idBase64 && !idDocumentUrl) uploadFailures.push("ID document");
+    if (licenseBase64 && !licenseUrl) uploadFailures.push("license");
+    if (insuranceBase64 && !insuranceUrl) uploadFailures.push("insurance document");
     if (uploadFailures.length > 0) {
       return new Response(
         JSON.stringify({ error: `We couldn't save your ${uploadFailures.join(", ")}. Please try again.` }),
@@ -663,7 +724,16 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, avatarUrl, idDocumentUrl, portfolioUrls, referralRecorded }),
+      JSON.stringify({
+        success: true,
+        avatarUrl,
+        idDocumentUrl,
+        portfolioUrls,
+        referralRecorded,
+        // Empty on the normal path. Non-empty means a previous profile photo is
+        // STILL publicly fetchable — see `../_shared/avatarKey.ts`.
+        staleAvatarObjects,
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {

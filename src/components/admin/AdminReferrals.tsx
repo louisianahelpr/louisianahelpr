@@ -12,17 +12,30 @@ import { formatShortDate } from "@/lib/format";
 import { AdminViewShell, AdminCard, AdminFilterStrip } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 
+/**
+ * NOTE ON THE NULLABLE OWNER COLUMNS BELOW.
+ *
+ * `referral_codes.user_id` and `referrals.referrer_id` are nullable as of
+ * 20260901033011 / 20260902014651. Account deletion ANONYMISES these rows
+ * rather than removing them — the referral itself is real history and the
+ * referee's credit depends on it surviving, so the row stays and the owner
+ * link is nulled.
+ *
+ * They were typed non-null here, which is how `user_id.slice(0, 8)` below
+ * survived review: it reads as a safe fallback and is in fact the crash. The
+ * first account deletion would have thrown on this page.
+ */
 interface ReferralCode {
   id: string;
   code: string;
-  user_id: string;
+  user_id: string | null;
   created_at: string;
   userName?: string;
 }
 
 interface Referral {
   id: string;
-  referrer_id: string;
+  referrer_id: string | null;
   referred_id: string;
   referral_code_id: string;
   created_at: string;
@@ -89,9 +102,10 @@ const AdminReferrals = () => {
       ].filter(Boolean) as string[];
 
       const userIds = new Set<string>();
-      allCodes.forEach(c => userIds.add(c.user_id));
-      allReferrals.forEach(r => { userIds.add(r.referrer_id); userIds.add(r.referred_id); });
-      allCredits.forEach(c => { userIds.add(c.user_id); if (c.referred_user_id) userIds.add(c.referred_user_id); });
+      const addId = (id: string | null | undefined) => { if (id) userIds.add(id); };
+      allCodes.forEach(c => addId(c.user_id));
+      allReferrals.forEach(r => { addId(r.referrer_id); addId(r.referred_id); });
+      allCredits.forEach(c => { addId(c.user_id); addId(c.referred_user_id); });
 
       const idsArray = Array.from(userIds);
       const nameMap: Record<string, string> = {};
@@ -108,17 +122,25 @@ const AdminReferrals = () => {
         });
       }
 
+      // A null owner is a DEPARTED account, not missing data — say so rather
+      // than showing a blank cell an admin would read as a bug. A non-null id
+      // with no profile row is a different thing (orphan), and still shows its
+      // truncated id so it stays traceable.
+      const DEPARTED = "Deleted account";
+      const nameFor = (id: string | null | undefined) =>
+        !id ? DEPARTED : nameMap[id] || id.slice(0, 8);
+
       return {
         truncated,
-        codes: allCodes.slice(0, PAGE).map(c => ({ ...c, userName: nameMap[c.user_id] || c.user_id.slice(0, 8) })),
+        codes: allCodes.slice(0, PAGE).map(c => ({ ...c, userName: nameFor(c.user_id) })),
         referrals: allReferrals.slice(0, PAGE).map(r => ({
           ...r,
-          referrerName: nameMap[r.referrer_id] || r.referrer_id.slice(0, 8),
-          referredName: nameMap[r.referred_id] || r.referred_id.slice(0, 8),
+          referrerName: nameFor(r.referrer_id),
+          referredName: nameFor(r.referred_id),
         })),
         credits: allCredits.slice(0, PAGE).map(c => ({
           ...c,
-          userName: nameMap[c.user_id] || c.user_id.slice(0, 8),
+          userName: nameFor(c.user_id),
         })),
       };
     },

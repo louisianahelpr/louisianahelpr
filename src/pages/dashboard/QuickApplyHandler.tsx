@@ -54,9 +54,16 @@ export const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
     handledRef.current = true;
     let cancelled = false;
 
-    const promptToApply = (title: string, budget: number | null, isInstantBook = false) => {
+    // `title` is nullable on the miss path: `open_jobs_browse` projects it as
+    // nullable, and the branch below reads the view rather than the feed. A
+    // null one is dropped from the label rather than interpolated — the toast
+    // otherwise reads `Quick Apply: "null"`, and the action button is what
+    // matters here, not the name.
+    const promptToApply = (title: string | null, budget: number | null, isInstantBook = false) => {
+      const lead = isInstantBook ? "Instant Book" : "Quick Apply";
+      const named = title ? `${lead}: "${title}"` : lead;
       toast(
-        `${isInstantBook ? "Instant Book" : "Quick Apply"}: "${title}"${budget != null ? ` ($${formatPrice(budget)})` : ""}`,
+        `${named}${budget != null ? ` ($${formatPrice(budget)})` : ""}`,
         {
           action: { label: isInstantBook ? "Book now" : "Apply now", onClick: () => onApplyRef.current(quickApplyId) },
           duration: 10000,

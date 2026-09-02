@@ -417,18 +417,6 @@ export function ApplicantsPanel({
                                   renders nothing unless a credential is
                                   admin-verified or pending. */}
                               <CredentialBadge credentials={app.profiles ?? {}} size="sm" />
-                              {/* Verification status — the same two facts the
-                                  server gate enforces before this helper can be
-                                  awarded the job (migration 20260827191647).
-                                  Shown BEFORE the poster taps Hire for two
-                                  reasons: it is a safety signal on a decision
-                                  about letting a stranger into your home, and
-                                  it stops the card offering a Hire the database
-                                  will refuse. */}
-                              <ApplicantVerificationChip
-                                idVerified={app.profiles?.is_id_verified === true}
-                                payoutReady={app.profiles?.is_payout_ready === true}
-                              />
                               {/* Inline rating — compact ★ 4.9 (23) */}
                               {(app.reviewCount ?? 0) > 0 && (
                                 <span className="flex items-center gap-0.5 shrink-0">
@@ -545,6 +533,37 @@ export function ApplicantsPanel({
                               Declined
                             </span>
                           )}
+                        </div>
+
+                        {/* Row 1b: verification status — the same two facts the
+                            server gate enforces before this helper can be
+                            awarded the job (migration 20260827191647). Shown
+                            BEFORE the poster taps Hire for two reasons: it is a
+                            safety signal on a decision about letting a stranger
+                            into your home, and it stops the card offering a
+                            Hire the database will refuse.
+
+                            It gets its OWN full-width line rather than sitting
+                            in the name row. In that row it shared a `flex-1
+                            min-w-0` column with the shrink-0 Hire/decline
+                            cluster, and since the chip is itself shrink-0 the
+                            two simply painted over each other — measured
+                            2026-09-02: the Hire button was the topmost element
+                            over the chip's right edge at 375px (20px overlap),
+                            360px (35px), 344px (51px) and 320px (62px), so the
+                            pill read "No payout accoun". There was no
+                            horizontal overflow to catch it — scrollWidth ==
+                            clientWidth throughout — and at 393px the overlap is
+                            only 2px, which is why it looked fine on a default
+                            phone viewport. A warning the CTA covers cannot be
+                            the thing that justifies leaving that CTA enabled.
+                            `pl-14` matches the message and attachment rows
+                            below, so it lines up under the name. */}
+                        <div className="pl-14">
+                          <ApplicantVerificationChip
+                            idVerified={app.profiles?.is_id_verified === true}
+                            payoutReady={app.profiles?.is_payout_ready === true}
+                          />
                         </div>
 
                         {/* Row 2: applicant message — compact quote style */}

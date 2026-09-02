@@ -76,6 +76,16 @@ and the plan gate below.
 
 While a wave runs:
 - Do not start the next wave until every lane in this one reports.
+- **`idle` in `ListAgents` does NOT mean the lane reported.** Measured 2026-09-02:
+  four agents were dispatched, three went idle without their report ever arriving,
+  and a follow-up `SendMessage` to an idle agent produced no reply either. If you
+  treat idle as done you will silently lose entire lanes' findings and never know
+  which ones — the fleet will look like it ran.
+  **So: the bus is the source of truth, not the report.** Before closing a wave, run
+  `node scripts/audit-bus.mjs list --agent <lane>` for each lane in it. A lane that
+  filed nothing either found nothing or never ran, and those are very different — ask
+  it, and if it stays silent, **re-dispatch it and say so in the final report**. Never
+  record an un-reporting lane as covered.
 - Hold the gate: if a lane asks to run `typecheck`/`vitest`/`lint`, serialize it.
 - **Route cross-talk over `SendMessage`.** When a lane reports something actionable for
   another, relay it yourself: `SendMessage({to: "lh-silent-failure", message: "..."})`.
@@ -148,6 +158,40 @@ Only after `VERDICT.md` exists:
 4. Removals of dead features are **migrations** — `npm run migration:new -- <slug>`,
    never a hand-typed timestamp, guarded for replay-safety, applied 3× in PGlite to prove it.
 5. After each batch, `node scripts/audit-bus.mjs status <id> --set fixed --by lh-orchestrator`.
+
+## Definition of done — a report is NOT a finished audit
+
+**The run is not over when `VERDICT.md` is written. That is the halfway point.**
+
+The owner's standing complaint about every previous audit is that *"no audit ever
+fixes anything"* — passes that enumerated problems beautifully and changed nothing.
+An audit that ends at a findings list has failed, no matter how good the list is.
+
+**The run ends when, for every verified finding:**
+
+1. Every **launch blocker** is FIXED, verified by re-running the original
+   reproduction, and marked `status --set fixed`. Not triaged. Not documented. Fixed.
+2. Every **HIGH** is fixed, or escalated to the user by name with the specific reason
+   it cannot be — "needs a product decision", "needs an Apple/Stripe dashboard action",
+   "would require a schema change we should not make mid-launch". A HIGH that is merely
+   *listed* is an unfinished job, not a delivered finding.
+3. Every **MEDIUM** is fixed or explicitly deferred with a reason. Silence is not
+   deferral.
+4. `LOW`/`POLISH` may be left, but say so and say how many.
+
+**Do not stop and ask whether to start fixing.** The FIX phase is not optional and it
+does not need permission — `permissionMode: plan` exists to order the work (sweep the
+baseline before you disturb it, verify before you spend effort on a finding that turns
+out to be false), **not to prevent it**. A lane in plan mode is waiting for you, and a
+lane left waiting is a fix that never happened. Release them.
+
+**Do not hand the user a list of things they could do.** If you found it, verified it,
+and it is in your fleet's territory, fix it. Hand them the things only they can do —
+a dashboard click, a product call, a paid-plan decision — and hand them those
+*specifically*, not buried in a report.
+
+Report once, at the end: what was found, **what was fixed**, what is left and why.
+"What was fixed" is the section that matters, and if it is empty the run failed.
 
 ## Ping the user
 

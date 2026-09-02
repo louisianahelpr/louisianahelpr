@@ -73,12 +73,24 @@ const ENV =
 /**
  * Release tag. Preferred source is `VITE_SENTRY_RELEASE`, which CI sets to
  * the GitHub SHA at build time (see `.github/workflows/sentry-release.yml`)
- * so every deploy gets a unique, source-mapped release in Sentry and
- * crash dedup actually works across versions. Falls back to the app
- * version string for local/dev builds where the CI var isn't set.
+ * so the sourcemap-upload build and the runtime release tag agree.
+ *
+ * CORRECTED 2026-09-02 (lh-observability audit, OBS-005): that CI var is
+ * ONLY set inside sentry-release.yml's own build — a bundle built solely to
+ * upload sourcemaps, never deployed anywhere. The bundle Vercel actually
+ * serves has neither VITE_SENTRY_RELEASE nor VITE_APP_VERSION, so every real
+ * production event fell straight through to the hardcoded "1.0.0" fallback —
+ * a release Sentry never received sourcemaps for, so no production stack
+ * trace could ever symbolicate, confirmed by capturing a real envelope from
+ * the live site. `__APP_COMMIT_FULL__` (vite.config.ts) is correct on Vercel
+ * too (`VERCEL_GIT_COMMIT_SHA`), so it closes the gap as a second fallback
+ * before the version-string/hardcoded tail.
  */
 const RELEASE =
   (import.meta.env.VITE_SENTRY_RELEASE as string | undefined) ||
+  (typeof __APP_COMMIT_FULL__ !== "undefined" && __APP_COMMIT_FULL__ !== "dev"
+    ? __APP_COMMIT_FULL__
+    : undefined) ||
   (import.meta.env.VITE_APP_VERSION as string | undefined) ||
   "1.0.0";
 

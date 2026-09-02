@@ -55,6 +55,17 @@ export default defineConfig(({ mode }) => ({
   define: {
     __APP_COMMIT__: JSON.stringify(appCommit),
     __APP_BUILT_AT__: JSON.stringify(appBuiltAt),
+    // Full commit SHA, reused as the Sentry release tag when VITE_SENTRY_RELEASE
+    // isn't set (lh-observability audit, OBS-005). VITE_SENTRY_RELEASE is only
+    // ever set inside sentry-release.yml's build — a bundle built solely to
+    // upload sourcemaps, never deployed. The bundle Vercel actually serves has
+    // no VITE_SENTRY_RELEASE and no VITE_APP_VERSION, so every real production
+    // Sentry event fell back to the hardcoded "1.0.0" string — a release
+    // Sentry never received sourcemaps for, so no production stack trace could
+    // ever symbolicate. `appCommitFull` already exists for the build-commit
+    // meta tag and is correct on Vercel via VERCEL_GIT_COMMIT_SHA; exposing it
+    // here closes the gap with zero new secrets.
+    __APP_COMMIT_FULL__: JSON.stringify(appCommitFull),
   },
   server: {
     host: "::",

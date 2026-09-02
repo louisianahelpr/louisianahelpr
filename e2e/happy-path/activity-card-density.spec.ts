@@ -336,7 +336,22 @@ test.describe("My Posts — card density + header", () => {
     // JobCardShell is the keyboard/screen-reader affordance — it is intentionally
     // not visually interactive, so { force: true } bypasses Playwright's
     // "element is on top" check, which sr-only elements always fail.
-    const toggle = page.getByRole("button", { name: "Expand Job Details" }).first();
+    //
+    // Target the specific Deep clean card by heading rather than .first(): the
+    // overdue-sort lifts the revision_requested card (Touch-up paint, date
+    // yesterday) above this open job, so position-based selectors expand the
+    // wrong card and then cannot find Deep clean's description text.
+    // Find the card div that is the direct parent of the sr-only expand button
+    // AND an ancestor of the heading. Double-filter ensures we get the exact card
+    // (not an inner wrapper that has the heading but not the button, and not an
+    // outer ancestor of multiple cards). .last() picks the deepest matching div —
+    // inner wrappers don't contain the sibling button, so this is the card div.
+    const deepCleanCard = page.locator("div").filter({
+      has: page.getByRole("heading", { name: "Deep clean a two-bedroom before move-out" }),
+    }).filter({
+      has: page.getByRole("button", { name: "Expand Job Details" }),
+    }).last();
+    const toggle = deepCleanCard.getByRole("button", { name: "Expand Job Details" });
     await expect(toggle).toBeAttached();
     await expect(toggle).toHaveAttribute("aria-expanded", "false");
 
@@ -349,7 +364,7 @@ test.describe("My Posts — card density + header", () => {
     await expect(page).toHaveURL(/\/my-posts/);
     await page.screenshot({ path: `${SHOTS}/card-expanded-375.png`, fullPage: true });
 
-    const collapse = page.getByRole("button", { name: "Collapse Job Details" }).first();
+    const collapse = deepCleanCard.getByRole("button", { name: "Collapse Job Details" });
     await expect(collapse).toHaveAttribute("aria-expanded", "true");
     await collapse.click({ force: true });
     await expect(description).toHaveCount(0);
@@ -642,7 +657,10 @@ test.describe("My Posts — card density + header", () => {
   // the card is still open afterwards.
   test("an action in the bottom row does not toggle the card", async ({ page, context, baseURL }) => {
     await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
-    await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true });
+    // Provide only the open job so expandCard()'s .first() is unambiguous — the
+    // default seed includes an overdue revision_requested card that sorts first
+    // and does not render Edit (only "open" status cards do).
+    await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true, rules: [jobsRule([SEED_JOBS[0] as Row])] });
     await page.goto("/my-posts?filter=all");
     await page.waitForSelector("h1");
     await settle(page);

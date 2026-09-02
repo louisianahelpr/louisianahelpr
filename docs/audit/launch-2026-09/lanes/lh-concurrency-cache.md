@@ -15,13 +15,27 @@ posted, no Stripe key of any kind was touched.
 
 ## What I fixed
 
-**Nothing yet — awaiting plan approval.** Three launch blockers are reproduced
-and root-caused to specific lines. CC-001 and CC-003 have validated fixes
-waiting in files this lane owns (`src/main.tsx`,
-`src/integrations/supabase/client.ts`); the orchestrator has confirmed both are
-mine and will approve the plan on submission. CC-006 is `lh-onboarding-auth`'s
-territory to fix — filed and relayed, not touched. This is the "not yet
-released" reason from PROTOCOL §8, not a deferral on my part.
+**CC-001 and CC-003 — both launch blockers — are fixed and verified against the
+production bundle.** Awaiting `lh-silent-failure`'s REVIEW-ONLY pass and the
+orchestrator's typecheck gate before committing.
+
+| file | change |
+|---|---|
+| `index.html` (+93) | Inline pre-module script that probes `localStorage` and installs a `Map`-backed `Storage` when the browser refuses it. Closes **CC-001**. |
+| `src/main.tsx` (+79/−29) | Register the `SIGNED_OUT` cache purge **before**, and independently of, the analytics load; analytics is now strictly additive. Closes **CC-003**. |
+
+Two files, no new source files, and nothing touching
+`src/integrations/supabase/client.ts` — so the `lane-onboarding-auth` collision
+is avoided outright rather than deferred.
+
+**The build caught the first fix being wrong.** The originally-approved shape —
+a first import in `main.tsx` — measured clean on the dev server and changed
+*nothing* in the bundle. Details under CC-001. Without a `dist/` check this lane
+would have marked a blocker fixed while it was fully intact.
+
+**Not fixed, deliberately:** CC-006 is `lh-onboarding-auth`'s territory — filed
+and relayed, not touched. CC-002, CC-004 and CC-005 are real but non-blocking
+and are proposed separately, so a blocker fix is not held behind polish.
 
 ---
 
@@ -146,6 +160,16 @@ So two sites are fatal and guarding both is *sufficient* — everything downstre
 is already defended. Screenshots: `boot-blocked.png`, `boot-wk-blocked.png`,
 `boot-clean.png`. The narrowing method is written up in **Method** above.
 
+**The dev server and the bundle have DIFFERENT fatal sets — building corrected
+this finding AND caught the first fix being wrong.** In `dist/`,
+`@capgo/capacitor-social-login` is **not** on the eager path: Rollup splits it
+into a lazy chunk, so `shouldAutoFinishOAuthRedirect` never runs at boot. It was
+the first offender in dev only because the dev server serves unbundled modules
+eagerly. The single fatal site in the bundle is the bare `localStorage`
+identifier reaching `assets/client-*.js`. A root cause derived from dev module
+order can name the wrong module; both are recorded above because both are true
+of their own surface, and the *fix* has to cover the union.
+
 **Confirmed against `dist/`, not only the dev server.** `npm run build` in the
 worktree (`BUILD_EXIT=0`), served on `:5232` via `vite preview`, probe re-run:
 Chromium `MOUNTED=false`, boot-loader visible, `pageerror: The operation is
@@ -161,13 +185,37 @@ session, quota-full `setItem`, IndexedDB blocked. The corrupt-session recovery
 this lane was specifically sent to test is **working correctly**; the hole is
 storage being *blocked*, not *corrupt*.
 
-**Validated fix** — `node .audit-scratch/fix-probe.mjs`, run without editing `src/`:
-probe `localStorage` once at the very top of boot and, if unusable, install a
-memory-backed `Storage` in its place. Result: `{usedFallback:true, children:3, textLen:658, bootLoader:false, MOUNTED:true, errs:[]}` — **zero page
-errors** — then `/login` returned `{emailField:true, textLen:110}` — a
-user with blocked storage gets a fully usable app whose session lives in memory
-for the session's lifetime. That is the correct degradation, and it fixes both
-sites plus any future one in a single place.
+**The fix, and the dead end that preceded it.** The first attempt was
+`import "./lib/storageFallback"` as the first import in `main.tsx` — correct by
+ES semantics, validated against the dev server, and it left the production
+bundle **completely unchanged** at `MOUNTED=false`. Rollup inlines a small
+side-effect module into the **entry chunk body**, and an entry chunk body runs
+only after every chunk it imports has been evaluated; the offending reads live
+in those vendor chunks, so they ran first regardless of import position. **No
+import position fixes this.**
+
+The shipped fix is therefore an inline `<script>` in `index.html`, above the
+existing pre-paint theme resolver — which, it turns out, is inline for exactly
+this reason, a fact the file did not record until now. It probes `localStorage`
+with a real round-trip and, if unusable, installs a `Map`-backed `Storage` in
+its place. One place, covering both the dev-eager and bundle-eager offenders and
+any future one, and touching no file that collides with `lh-onboarding-auth`.
+
+**Verified against a fresh `dist/` (`BUILD_EXIT=0`), before → after:**
+
+| case | engine | before | after |
+|---|---|---|---|
+| blocked | Chromium | MOUNTED=false, textLen 0, boot-loader visible | **MOUNTED=true, textLen 658, boot-loader gone** |
+| blocked | WebKit | MOUNTED=false, textLen 0, boot-loader visible | **MOUNTED=true, textLen 658, boot-loader gone** |
+| clean · quota-full · idb-blocked · corrupt-nonjson · corrupt-expired | Chromium | MOUNTED=true | MOUNTED=true — no regressions |
+
+The user gets a working app whose session lives in memory for the lifetime of
+the tab: they can sign in and use everything, and are signed out again on
+reload. That is the right degradation for someone who asked their browser not to
+persist anything, and it is strictly *more* private than the normal path,
+because nothing is written to disk. Free side effect: the shim sits above the
+theme script, so a dark-mode user with blocked storage now gets their theme
+instead of the hardcoded light fallback.
 
 ### CC-006 — HIGH · **LAUNCH BLOCKER** — signup's second half can never run, silently
 
@@ -262,6 +310,26 @@ large fraction of real browsers; this is not a contrived failure injected to
 make a point, it is the median privacy-conscious user. The two facts compose
 badly: the people most likely to trip this are exactly the people who would care
 most that it happened.
+
+**Fix, and verification against `dist/`.** The `onAuthStateChange` registration
+now happens **first**, in its own `try`, loading only the three modules the wipe
+itself needs. Analytics loads afterwards in a separate `try` and attaches
+identity to that listener through a nullable `analytics` holder — so it is
+strictly additive and its absence can no longer disarm anything. The privacy
+control's own catch is no longer empty: it `report()`s to Sentry, because a
+catch that silently swallows a privacy control failing is the exact defect this
+finding is about. The analytics block keeps its empty catch, which is correct
+there.
+
+Verified on the production bundle, signing out through the **real logout UI**
+rather than a scripted `signOut()`:
+
+| run | before | after (pre-fix) | after (post-fix) |
+|---|---|---|---|
+| CONTROL | 73,743 B · 13 queries · uid present | 88 B · 0 · uid absent | 88 B · 0 · uid absent |
+| POSTHOG BLOCKED | 73,743 B · 13 queries · uid present | **73,743 B · 13 · uid present** | **88 B · 0 · uid absent** |
+
+Both arms now match. Harness `.audit-scratch/signout-dist.mjs`.
 
 ### CC-002 — MEDIUM — the post-job draft has no cross-tab coordination
 

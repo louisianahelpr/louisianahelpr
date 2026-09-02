@@ -164,8 +164,16 @@ const Jobs = () => {
   // back to the job they were actually interested in.
   //
   // The preview dialog is NOT dead code: a direct link (/jobs?job=<id>, shared
-  // or from search) still restores it below, and /jobs/:id remains a public,
-  // indexable route. Only the in-feed tap changed.
+  // or from search) still restores it below. Verified by loading that URL
+  // signed-out on 2026-09-02 — the dialog opens with the full job and a "Sign
+  // up to apply" CTA, which is what satisfies Apple's preview-before-signup
+  // requirement.
+  //
+  // `?job=` ON THIS ROUTE IS NOW THE ONLY GUEST PREVIEW. This comment used to
+  // add "and /jobs/:id remains a public, indexable route"; that stopped being
+  // true the same day, when /jobs/:id went signed-in-only so it would agree
+  // with the card tap. If this query-param path is ever removed too, the guest
+  // preview goes with it — check that before touching it.
   const openDetailJob = useCallback((job: EnrichedJob) => {
     navigate(`/signup?job=${job.id}`);
   }, [navigate]);

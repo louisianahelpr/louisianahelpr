@@ -7,6 +7,42 @@
 
 ---
 
+## ST-001 — the poster is charged a harsher cancellation tier than the one they were shown, on almost every job
+
+`public.job_hours_until_start(date, timestamptz)` decides which cancellation tier
+applies. It computes `(p_date_needed::timestamp AT TIME ZONE 'America/Chicago') - p_at`
+— **midnight of the job's day. It never adds `start_time`.** The TypeScript twin,
+`hoursUntilJob()` in `supabase/functions/_shared/cancellationFee.ts`, does exactly the
+same thing, and `CancellationDialog.tsx:98` computes the estimate the poster sees from
+that same midnight anchor.
+
+**That agreement is why this survived every previous audit.** The two things a
+developer would naturally diff — the client estimate and the server charge — match
+perfectly. The only thing either of them disagrees with is the sentence the user is
+reading three lines further down the same dialog: *"24+ hours before: 0% (free)"*
+(`:301-303`) and *"Free cancellation — more than 24 hours until the job starts"*
+(`:338`).
+
+Because `start_time` is always `>= 00:00`, the computed hours are always **shorter**
+than the real time to start, so the tier is always **harsher**, and the error is never
+once in the poster's favour. Reproduced against the live functions on prod:
+
+| Scenario | Real hours to start | `job_hours_until_start` | Charged | Policy says |
+|---|---|---|---|---|
+| Job today 18:00, cancel today 10:00 CT | 8.00 | −10.00 | **50%** | 25% |
+| Job tomorrow 08:00, cancel today 23:00 CT | 9.00 | 1.00 | **50%** | 25% |
+| Job tomorrow 18:00, cancel today 01:00 CT | 41.00 | 23.00 | **25%** | **0% — free** |
+
+The third row is the one to look at: a job **41 hours away**, which the disclosed
+policy calls free, is charged 25% of budget. **61 of 64 live jobs carry a
+`start_time`**, up to 18:00, so this is not an edge case — it is the normal path.
+
+This is money charged that does not match money disclosed, which makes it a trust and
+chargeback question as much as a correctness one. It is filed HIGH and left unfixed
+deliberately: the fix changes what real people are billed and belongs to the owner.
+
+---
+
 ## What I fixed
 
 **Nothing, and that is not "ran out of time."** Every one of the eleven findings falls
@@ -15,14 +51,40 @@ into a category my standing constraints reserve for the owner or another lane:
 | Finding | Why I did not fix it |
 |---|---|
 | ST-001 | Money. Changes what a poster is charged on cancellation. Owner review. |
-| ST-002, ST-008 | Needs a CHECK constraint → a migration → data-model change. Queued. |
+| ST-002, ST-008 | Needs a CHECK constraint → a migration → data-model change. Queued. **ST-002 additionally needs a data repair first — see below.** |
 | ST-003 | Fix is a new transactional RPC → migration. Queued. |
-| ST-004, ST-006 | Product decisions, explicitly. Enforce availability or change the copy; fund STR jobs or stop auto-creating them. Only the owner can pick. |
+| ST-004, ST-006 | Product decisions, explicitly — both options costed below. Only the owner can pick. |
 | ST-005 | Fix changes which timezone the whole client resolves job starts in — touches shared `src/lib/dateUtils.ts` used by other lanes' surfaces. Needs coordination. |
 | ST-007, ST-009, ST-010, ST-011 | All live in `SECURITY DEFINER` database functions → migrations. Queued. |
 
 I remained in `permissionMode: plan` for the whole sweep and was not released to a
 fix phase. No plan was submitted because none of the above is a low-risk in-lane edit.
+
+### ST-002 — can the CHECK actually be added? (asked by the orchestrator)
+
+**No, not on its own — a bare `ADD CONSTRAINT` would fail on live data:** `select count(*) filter (where start_time >= end_time) from public.helper_availability` returns 1 of 14 rows. Measured on
+prod, so the migration can be written without guessing:
+
+| Check | Result |
+|---|---|
+| `helper_availability` rows | 14 |
+| Violate `start_time < end_time` | **1** — id `036f02c0-0d5e-438c-9277-d36e686e16b6`, day 0, `21:00:00 → 17:00:00`, `is_available = true` |
+| Duplicate `(helper_id, day_of_week, specific_date)` groups | 0 — so a UNIQUE **would** apply cleanly today |
+| `day_of_week` outside 0..6 | 0 |
+| NULL `start_time` / `end_time` | 0 |
+| Rows with `specific_date` set | 0 — the date-override path is entirely unexercised |
+
+Recommended order, one replay-safe migration: **(1)** repair the single row — swapping
+to `17:00 → 21:00` is the only repair that preserves both endpoints the user actually
+chose, where resetting to the `09:00–17:00` default silently discards them and setting
+`is_available = false` silently removes a day; **(2)** `ADD CONSTRAINT … CHECK
+(start_time < end_time) NOT VALID` then `VALIDATE`, so a future violation surfaces
+rather than aborting; **(3)** optionally the UNIQUE, which would make the "7 rows per
+helper" invariant real — it is currently unenforced, and the delete-then-insert in
+ST-003 is exactly what used to duplicate rows.
+
+**The row belongs to the owner's own account**, so whether `17:00 → 21:00` is what he
+meant is his call, not a lane's.
 
 ---
 
@@ -88,15 +150,14 @@ itself is a lead, not a fact:
    *Artifact:* `information_schema.columns` scan, `data_type='timestamp without time zone'`
    → 2 rows, both in `profile_views`.
 
-2. **DST is correct on the server.** `job_expires_at_for_schedule('2026-01-15','09:00')`
-   → `15:00Z` (CST) and `('2026-07-15','09:00')` → `14:00Z` (CDT). The offset is
+2. **DST is correct on the server** — `select public.job_expires_at_for_schedule('2026-01-15','09:00')` returned `2026-01-15 15:00:00+00` (CST) and the same call for `'2026-07-15'` returned `2026-07-15 14:00:00+00` (CDT), 6 rows total. The offset is
    derived, not hardcoded. Non-existent local times (02:30 on spring-forward) and
    ambiguous ones (01:30 on fall-back) both resolve deterministically without error.
    *Artifact:* prod `fncmgoasalhdgfwzhsqa`, 6-case `job_expires_at_for_schedule`
    comparison returning `expires_at_utc` and its `AT TIME ZONE` read-back —
    `2026-01-15 15:00:00+00` vs `2026-07-15 14:00:00+00` for the same `09:00`.
 
-3. **DST is correct on the client.** `jobLocalMidnightMs` resolved true local
+3. **DST is correct on the client** — `$ node scratchpad/dst.mjs` printed `non-midnight results: 0` over 10 rows. `jobLocalMidnightMs` resolved true local
    midnight on **10/10** dates spanning both 2026 transitions, both 2027 transitions
    and ordinary winter/summer days. The 23-hour day (03-08→03-09) and the 25-hour day
    (11-01→11-02) come out as exactly 23h and 25h, and `daysPastDue`'s `Math.round`
@@ -112,8 +173,7 @@ itself is a lead, not a fact:
    construction: every operation is `setUTCDate` at UTC noon, so local time is never
    consulted.
 
-5. **All six scheduled sweeps in my scope are alive and doing work, not just
-   firing.** `auto-start-due-jobs`, `sweep-job-start-reminders`,
+5. **All six scheduled sweeps in my scope are alive and doing work, not just firing** — `select jobid, status, count(*) from cron.job_run_details where jobid in (16,42,45,29,44,57) group by 1,2` returned only `succeeded` rows. `auto-start-due-jobs`, `sweep-job-start-reminders`,
    `sweep-dayof-confirm-reminders`, `auto-expire-jobs`, `charge-recurring-visits`,
    `str-ical-sync`: 0 failures in `cron.job_run_details` over 3 days, and
    `cron_run_log` carries real `200` responses with `ok:true, defects:0` bodies —
@@ -140,6 +200,71 @@ itself is a lead, not a fact:
    `helper_availability` rows on `eli.test.helper@louisianahelpr.com` are
    `is_available = true`, 09:00–17:00. My brief's warning that a previous sweep had
    flipped them false is **stale**.
+
+---
+
+## The two product decisions, with the cost of each
+
+The owner decides these; framing them so the decision is one read, not a
+re-investigation.
+
+### ST-004 — `helper_availability` is promised but never enforced
+
+`HelperAvailabilityDisplay.tsx:62` tells the helper *"Posters match jobs to your
+weekly hours."* Nothing on the booking path consults the table: the only prod function
+referencing it is `purge_user_data`, none of the 31 triggers on `public.jobs` checks a
+schedule, and `instant_book_claim` has no availability term. The single real consumer
+is an opt-in filter on the helper's **own** browse feed.
+
+| Option | What it costs | What it buys |
+|---|---|---|
+| **A. Change the copy** (e.g. "Helprs use this to filter the jobs they see") | One string. Zero risk. Ships today. | Honest immediately. But the feature stays decorative, and a helper still gets instant-booked at 6am on a day they marked off. |
+| **B. Enforce it** — check availability in `instant_book_claim` and the accept path | A migration touching a `SECURITY DEFINER` money-adjacent RPC, plus a product answer to "what happens when a poster wants a helper outside their hours — hard block, or warn-and-allow?" Hard-blocking shrinks liquidity in a marketplace that needs it. | The promise becomes true, and double-booking becomes structurally harder. |
+
+**My recommendation: A now, B later.** The copy is making a specific factual claim
+that is false today, and that is fixable in one line without a migration. B is a real
+feature with a real liquidity trade-off and should not be smuggled in under a bug fix.
+
+### ST-006 — STR auto-created jobs are unfunded and therefore invisible
+
+`str-ical-sync` inserts jobs with no `payment_status`, which defaults to `'unpaid'`.
+All three browse surfaces gate on `payment_status IN ('escrow','payout_pending','released')` — `select pg_get_viewdef('public.open_jobs_browse') ilike '%payment_status%'` and the same probe over `get_ranked_open_jobs` / `get_open_jobs_for_map` all returned true, 3 rows — so no helper can see them, while the host can, and
+the sync reports success. There is no UI path to fund one afterwards.
+
+| Option | What it costs | What it buys |
+|---|---|---|
+| **A. Stop auto-creating** — sync the calendar, notify the host, let them post normally | Small. The feature becomes "your turnovers, one tap to post" instead of "posts for you". | Nothing is ever silently broken. The host keeps consent over every charge. |
+| **B. Funding prompt** — create as a draft, notify the host to fund it | A draft state the browse surfaces already exclude, plus a fund-an-existing-job path that does not exist today (`stripe-webhook`'s `repay` branch has no caller in `src/`). | Keeps the automation while keeping consent. |
+| **C. Charge the host unattended** | Needs a stored card and explicit up-front consent this feature never collected. | Fully automatic — and the highest-risk of the three. |
+
+**My recommendation: A for launch, B after.** Prod has **0** STR connections, so
+nothing is lost by shipping the honest version first; C should not be considered
+without a separate consent flow.
+
+---
+
+## Retracted before filing — two false leads, and how they were disproved
+
+Kept in the report deliberately. Both are true-but-misleading observations of exactly
+the shape that becomes a false blocker.
+
+1. **"`expire_pending_direct_offers` and `expire_unanswered_offers` are not
+   scheduled."** True that neither appears in any `cron.job` row — and wrong. Both are
+   invoked hourly via `supabase.rpc(...)` from
+   `supabase/functions/auto-expire-jobs/index.ts:209,230`, and that edge function is
+   cron jobid 16, `0 * * * *`, active.
+   *Disproof:* prod `cron_run_log` body for `auto-expire-jobs`, verbatim —
+   `{"fn":"auto-expire-jobs","ok":true,"defects":0,"message":"Expired 0 accepted jobs, cancelled 0 past-time open jobs, expired 0 unanswered offers, expired 0 direct offers"}`.
+   A function's absence from `cron.job` proves nothing; an edge function can hold the
+   schedule on its behalf.
+
+2. **"A previous sweep flipped the seeded helper's 7 `helper_availability` rows to
+   `false`."** This warning is repeated in my own dispatch brief. It is **stale**: all
+   7 rows on `eli.test.helper@louisianahelpr.com` are `is_available = true`,
+   09:00–17:00.
+   *Disproof:* a single join of `helper_availability` to `profiles` on `user_id`
+   (not `id`), output captured. My briefs are written from prior sweeps' notes, which
+   are an upper bound on what is still true.
 
 ---
 
@@ -182,6 +307,11 @@ Recording these so a future pass does not re-derive them.
    options and did not receive a ruling before finishing. The lock-and-recheck
    structure is correct (see Verified #6) but per PROTOCOL that is a lead, not a fact,
    so I am **not** marking it clean.
+   **Resolved as ownership, 2026-09-02:** the orchestrator assigned this proof to
+   **`lh-concurrency-cache`**, on the reasoning that two lanes writing competing test
+   jobs to prod to exercise the same lock produces a result neither can trust. It stays
+   UNVERIFIED *here* and is tracked there. If that lane does not reach it, this line is
+   the reason it is unverified — not an oversight.
 
 2. **The STR iCal path end to end.** Prod has **0** rows in
    `str_calendar_connections` and **0** jobs with `is_auto_created = true`. There is

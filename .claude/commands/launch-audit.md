@@ -87,11 +87,23 @@ That makes you the release valve. A gated lane that wants to fix something sends
              "feedback": "sweep phase — file it through the bus; VERDICT.md does not exist yet"}}
 ```
 
-**Two kinds of request arrive, and you must not conflate them.** Every lane's step 3 is
-`git worktree add ~/.lh-audit/<lane>` — a lasting change, so a gated lane will ask you to
-approve it at wave start. **Approve those immediately**; the worktree is the isolation the
-sweep depends on, and 29 lanes stalled at setup is not phase discipline, it is a deadlock
-you caused. What you are actually guarding is edits to `src/`, `supabase/` and `ios/`.
+**Two kinds of request arrive, and conflating them deadlocks the entire fleet.** A
+plan-gated lane must ask before *any* lasting change, and almost none of those are the
+thing you are guarding. All 29 gated lanes drive a browser or run a build — every one of
+them will ask you for things like:
+
+- `git worktree add ~/.lh-audit/<lane>` (step 3 — the isolation the sweep depends on)
+- launching a dev/preview server, `npm run build`, `npx playwright install webkit`
+- Chrome/WebKit navigation, clicks and screenshots
+- `xcrun simctl` for the iOS simulator
+- read-only SQL through the Supabase MCP, `gh` reads
+
+**Approve all of that on sight.** It is how the lane audits anything at all. "Reject every
+plan" applied literally stalls 29 lanes at setup and is not phase discipline, it is a
+deadlock you caused.
+
+**What you are guarding is exactly one thing: edits to `src/`, `supabase/` or `ios/`** —
+the repo files whose baseline `lh-verifier` needs intact. Gate those and nothing else.
 
 **Reject every plan that touches those until `VERDICT.md` exists.** Approving one drops that lane out of plan
 mode and into edit access, which is precisely the phase boundary you are guarding. Three

@@ -8,7 +8,7 @@ import { Search, Gift, Users, DollarSign, Banknote, Copy } from "lucide-react";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { formatShortDate } from "@/lib/format";
+import { formatShortDate, formatPriceExact } from "@/lib/format";
 import { AdminViewShell, AdminCard, AdminFilterStrip } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 
@@ -214,8 +214,8 @@ const AdminReferrals = () => {
         {[
           { label: "Total Codes", value: codes.length, icon: Gift },
           { label: "Successful Referrals", value: referrals.length, icon: Users },
-          { label: "Total Earned", value: `$${totalEarned.toFixed(2)}`, icon: DollarSign },
-          { label: "Cashed Out", value: `$${totalCashedOut.toFixed(2)}`, icon: Banknote },
+          { label: "Total Earned", value: `$${formatPriceExact(totalEarned)}`, icon: DollarSign },
+          { label: "Cashed Out", value: `$${formatPriceExact(totalCashedOut)}`, icon: Banknote },
         ].map(stat => (
           <div key={stat.label} className="rounded-2xl border border-border/60 bg-card shadow-[var(--card-shadow)] p-4">
             <div className="flex items-center justify-between mb-1">

@@ -182,6 +182,52 @@ drop.
 
 ---
 
+## Regeneration sizing — measured, 1 error in 1 file
+
+Run under an exclusive gate from the orchestrator, in the isolated worktree.
+
+```
+src/components/admin/AdminSupport.tsx(320,31): error TS2345
+  Types of property 'reporter_id' are incompatible.
+    Type 'string | null' is not assignable to type 'string'.
+```
+
+`npm run typecheck:edge` → exit 0, 143 files, 0 errors (edge functions do not import
+`types.ts`). Root cause is the hand-written local type at `AdminSupport.tsx:21`; the
+runtime code on that path already handles null at `:321`, so the fix is type-level with
+**zero behaviour change**.
+
+**Method, because the first answer was wrong.** `tsc -b` is incremental and the first
+pair of runs disagreed — the baseline's error vanished on the second run because it
+reused build state. Deleting `tsconfig.app.tsbuildinfo` / `tsconfig.node.tsbuildinfo`
+and running a matched cold pair gives a stable result:
+
+| Run (cold) | Errors |
+|---|---|
+| control — original `types.ts` | 1, and it is only `anchoredPanel.tsx` TS2742 `csstype`, an artifact of the `node_modules` **symlink** (its message names the symlink target path). Cancels out. |
+| regenerated `types.ts` | 1 — the `AdminSupport` error above |
+
+### The number is good news and also the problem
+
+**1 error is a muffled signal, not a safety proof.** The count is low because the
+codebase largely does not consume `types.ts` for these rows: `AdminReports.tsx:44` and
+`AdminSupport.tsx:21,199` each declare their *own* local row interfaces, which the
+compiler never cross-checks against the schema.
+
+Concrete proof, and a second defect the regeneration does **not** surface:
+`QueueRow.reporter_id: string` (`AdminSupport.tsx:199`) types the **primary** RPC path.
+Prod reports `admin_support_queue` as
+`TABLE(id uuid, reporter_id uuid, …)` — nullable by construction, reading a column that
+is now nullable. That declaration is already wrong, and it raises no error because
+`AdminSupport.tsx:255` casts the result hard (`as { data: QueueRow[] | null … }`). Every
+downstream use of `reporter_id` in that file (lines 268, 302, 321 only — never rendered
+or dereferenced) is null-safe, so there is **no runtime defect**; it is a latent trap.
+
+This is GD-003's defect class from the other side — a cast *hiding* drift rather than
+compensating for it — and it bears on GD-002's design: **a freshness guard that only
+asserts `tsc` is green would not have caught SI-012's real reach, and would not catch
+this.** The guard has to diff the generated file, not just compile against it.
+
 ## Evidence index
 
 Saved artifacts, all re-checkable:
@@ -194,6 +240,11 @@ Saved artifacts, all re-checkable:
 | `~/.lh-audit/lh-generated-drift/evidence/gh-workflow-list.out` | all 27 workflows `active` — GD-002's absence is real, not a disabled guard |
 | `~/.lh-audit/lh-generated-drift/evidence/sitemap-check.out` | `generate-sitemap.mjs --check` → "up to date (6 public URLs)" |
 | `~/.lh-audit/lh-generated-drift/evidence/verify-ios-metadata.out` | `verify-ios-metadata.sh` → exit 0, 16/16 ✓ |
+| `~/.lh-audit/lh-generated-drift/evidence/typecheck-baseline-clean.out` | cold control run, original types — csstype symlink artifact only |
+| `~/.lh-audit/lh-generated-drift/evidence/typecheck-after-regen-clean.out` | cold run, regenerated types — the 1 real error |
+| `~/.lh-audit/lh-generated-drift/evidence/typecheck-single-project.out` | same error untruncated, non-composite |
+| `~/.lh-audit/lh-generated-drift/evidence/typecheck-edge.out` | `typecheck:edge` → exit 0, 143 files |
+| `~/.lh-audit/lh-generated-drift/evidence/types-regenerated.ts` | the regenerated file the fix phase should land |
 
 Live-database claims were made through read-only `execute_sql` against
 `fncmgoasalhdgfwzhsqa` and the queries are quoted inline at each finding, so each is
@@ -239,10 +290,8 @@ Files opened: `package.json`, `.husky/pre-commit`, all 24 `.github/workflows/*.y
 
 ## UNVERIFIED — could not reach, and why
 
-- **Error count a regeneration would produce.** The sizing number the orchestrator needs
-  (SI-012's was 25 across 17 files). Requires `npm run typecheck` in my worktree; the
-  orchestrator owns the gate and I asked for it rather than running it under parallel-lane
-  load. Requested, not yet granted.
+- ~~Error count a regeneration would produce.~~ **RESOLVED** — gate granted, measured:
+  1 error in 1 file. See "Regeneration sizing" above.
 - **iOS app icons byte-level currency.** `ios-icon-sync.yml` is active and the metadata
   sibling verified clean, but I did not run `generate-ios-icons.mjs` and diff the PNGs.
   Low value relative to cost; stating it rather than implying coverage.

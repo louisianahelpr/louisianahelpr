@@ -138,10 +138,31 @@ for (const f of files) {
   if (confirms) kinds.BrandConfirmDialog = confirms;
   const anchored = /anchoredPanel|<NavQuickMenu(?=[\s>])/.test(src) ? 1 : 0;
   if (anchored) kinds.anchoredPanel = anchored;
-  // Hand-rolled: a full-bleed portal with no dialog primitive in the file.
-  const handRolled = /fixed inset-0/.test(src) && !/[<](Dialog|AlertDialog|Sheet)(?=[\s>])/.test(src)
-    && /createPortal|z-\[/.test(src);
-  if (handRolled) kinds["hand-rolled"] = 1;
+  // Hand-rolled: a full-bleed `fixed inset-0` overlay riding on no dialog
+  // primitive. Three bugs lived in the previous version of these four lines,
+  // and together they under-reported the one category the comment above calls
+  // the most important:
+  //
+  //   1. It scored 1 PER FILE while this table's header promises INSTANCES.
+  //      AppLockGate renders two distinct full-screen overlays and counted as
+  //      one.
+  //   2. The "no primitive" test was FILE-level, so a file containing both a
+  //      proper <Dialog> and a hand-rolled overlay scored as having neither.
+  //      That excluded PhotoLightbox and MessageAttachment -- the exact two
+  //      files the comment above names as the examples. The counter's prose
+  //      and its code disagreed, and the code won silently.
+  //   3. It matched the string anywhere, including in COMMENTS. Four files
+  //      (AppShell, PetReportCard, PetForm, offlineBannerLayout) only mention
+  //      `fixed inset-0` in a note explaining that they no longer do it, and
+  //      RedirectingOverlay's own docblock double-counted it.
+  //
+  // So: strip comments first, then count occurrences inside a real className.
+  const code = src
+    .replace(/\/\*[^]*?\*\//g, "")   // block comments and JSX {/* ... *\/} bodies
+    .replace(/^\s*\/\/.*$/gm, "");   // line comments
+  const handRolledN = [...code.matchAll(/className=(?:"|'|\{`|\{cn\()[^"'`)]*fixed inset-0/g)].length;
+  const handRolled = handRolledN > 0 && /createPortal|z-\[|zIndex/.test(code);
+  if (handRolled) kinds["hand-rolled"] = handRolledN;
   const count = Object.values(kinds).reduce((a, b) => a + b, 0);
   if (count) overlays.push({ file: rel(f), kinds, count, handRolled: Boolean(handRolled) });
 }
@@ -248,11 +269,27 @@ emails.sort((a, b) => a.name.localeCompare(b.name));
 
 // --- push / in-app notification types ---------------------------------------
 // Each type is distinct user-facing copy plus a tap destination.
+// Notification types are DEFINED IN THE DATABASE, not in src/.
+//
+// This used to grep src/ for `type: "..."` sitting near a `link:` key and
+// reported 5, with a `⚠︎` marker and a fallback string that literally read
+// "enumerate from notification_type_pref_map in the database". The doc knew it
+// was reading the wrong source and shipped the number anyway. The live map
+// holds 14 and prod has sent 16 distinct types — the inventory under-reported
+// by 3x, which is worse than an empty row because it reads as covered.
+//
+// Notifications are written by edge functions and DB triggers, so the only
+// source that contains them is the migration that owns the lookup table.
+// Derived here so a new type cannot be added without this count moving, and
+// cross-checked against prod by lh-notifications (see NT-001, NT-002).
+const MIGRATIONS = join(ROOT, "supabase/migrations");
 const notifTypes = new Set();
-for (const f of files) {
-  const src = readFileSync(f, "utf8");
-  for (const m of src.matchAll(/notification_?[Tt]ype\s*[:=]\s*["']([a-z0-9_]+)["']/g)) notifTypes.add(m[1]);
-  for (const m of src.matchAll(/\btype:\s*["']([a-z0-9_]+)["'][^}]*\blink:/g)) notifTypes.add(m[1]);
+for (const f of readdirSync(MIGRATIONS).filter((n) => n.endsWith(".sql"))) {
+  const sql = readFileSync(join(MIGRATIONS, f), "utf8");
+  // Rows inserted into the lookup table: ('type', 'pref_column', 'desc')
+  const i = sql.indexOf("notification_type_pref_map");
+  if (i === -1) continue;
+  for (const m of sql.slice(i).matchAll(/\(\s*'([a-z0-9_]+)'\s*,\s*(?:'[a-z0-9_]*'|NULL)\s*,/gi)) notifTypes.add(m[1]);
 }
 
 const surface = {
@@ -324,7 +361,14 @@ L.push(`| Redirect-only routes | route | ${surface.redirects.length} |`);
 L.push(`| \`?tab=\` variants | variant | ${surface.tabs.length} |`);
 L.push(`| \`?view=\` variants | variant | ${surface.views.length} |`);
 L.push(`| Overlay surfaces | **instance** | ${surface.overlayCount} |`);
-L.push(`| — of which hand-rolled, no dialog primitive | instance | ${surface.overlays.filter((o) => o.handRolled).length} |`);
+// INSTANCES, matching this row's stated unit and every other overlay row.
+// This line used to be `.filter((o) => o.handRolled).length`, i.e. FILES, under
+// a column that says "instance" -- so AppLockGate's two distinct full-screen
+// overlays counted as one. The header of this very document warns that every
+// earlier disagreement about the total came from comparing one unit against
+// another; the generator was doing it too.
+const handRolledInstances = surface.overlays.reduce((n, o) => n + (o.kinds["hand-rolled"] ?? 0), 0);
+L.push(`| — of which hand-rolled, no dialog primitive | instance | ${handRolledInstances} (across ${surface.overlays.filter((o) => o.handRolled).length} files) |`);
 L.push(`| Toast messages | **call site** | ${surface.toastSites} (across ${surface.toastFiles.length} files) |`);
 L.push(`| Multi-step flows — confirmed | flow | ${surface.flowsConfirmed.length} |`);
 L.push(`| Multi-step flows — probable | flow | ${surface.flowsProbable.length} |`);
@@ -332,7 +376,11 @@ L.push(`| Back/next navigation only | flow | ${surface.flowsNavOnly.length} |`);
 L.push(`| Forms (submittable) | form | ${surface.forms.length} |`);
 L.push(`| Admin components (components/admin + pages/Admin*) | **file** | ${surface.adminFiles.length} |`);
 L.push(`| Email templates | **exported template** | ${surface.emails.length} |`);
-L.push(`| Notification types | type | ${surface.notifTypes.length} ⚠︎ |`);
+// The ⚠︎ is kept but now means something specific and checkable: this count is
+// the types the lookup table DEFINES, and prod has sent MORE than that. The
+// three extra ('info', 'success', 'warning') have no map row, which is exactly
+// how they bypass every per-category notification preference — see NT-001.
+L.push(`| Notification types (defined in notification_type_pref_map) | type | ${surface.notifTypes.length} ⚠︎ prod has sent 3 more with no map row — NT-001 |`);
 L.push(`| **Navigable surfaces** (places a person can stand) | mixed | **${navigable}** |`);
 L.push(`| **Copy surfaces** (strings a person may read) | mixed | **${copy}** |`);
 L.push(`| **Total auditable surface** | mixed | **${total}** |`);

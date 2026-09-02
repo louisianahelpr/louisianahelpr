@@ -18,19 +18,19 @@ reports coverage against THIS file, not against the route list.
 | Redirect-only routes | route | 20 |
 | `?tab=` variants | variant | 23 |
 | `?view=` variants | variant | 24 |
-| Overlay surfaces | **instance** | 139 |
-| — of which hand-rolled, no dialog primitive | instance | 9 |
-| Toast messages | **call site** | 521 (across 135 files) |
+| Overlay surfaces | **instance** | 142 |
+| — of which hand-rolled, no dialog primitive | instance | 9 (across 8 files) |
+| Toast messages | **call site** | 524 (across 136 files) |
 | Multi-step flows — confirmed | flow | 12 |
 | Multi-step flows — probable | flow | 18 |
 | Back/next navigation only | flow | 33 |
 | Forms (submittable) | form | 40 |
 | Admin components (components/admin + pages/Admin*) | **file** | 93 |
 | Email templates | **exported template** | 20 |
-| Notification types | type | 5 ⚠︎ |
-| **Navigable surfaces** (places a person can stand) | mixed | **436** |
-| **Copy surfaces** (strings a person may read) | mixed | **546** |
-| **Total auditable surface** | mixed | **982** |
+| Notification types (defined in notification_type_pref_map) | type | 14 ⚠︎ prod has sent 3 more with no map row — NT-001 |
+| **Navigable surfaces** (places a person can stand) | mixed | **439** |
+| **Copy surfaces** (strings a person may read) | mixed | **558** |
+| **Total auditable surface** | mixed | **997** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -70,7 +70,7 @@ they differ, the reason is understood:
 | Real routes | 34 | 34 | agree |
 | Redirect-only routes | 20 | 14 | agree |
 | Admin `?view=` | 24 | 24 | agree |
-| Overlay surfaces | 139 | 130 | agree within method (script counts every menu instance) |
+| Overlay surfaces | 142 | 130 | agree within method (script counts every menu instance) |
 | Forms | 40 | ~38 | agree |
 | Confirmed multi-step flows | 12 | 9 | agree; the agent excluded section routers this script still counts |
 | Toast messages | 517 | "21 files, not itemised" | **script wins** — the agent undercounted by ~6x |
@@ -238,7 +238,7 @@ dismissible, and correct in every state.
 | `src/components/admin/ManualVerifyDialog.tsx` | 1 | Dialog |
 | `src/components/admin/ResetPasswordDialog.tsx` | 1 | Dialog |
 | `src/components/admin/ReuploadIdDialog.tsx` | 1 | Dialog |
-| `src/components/AppLockGate.tsx` | 1 | hand-rolled **⚠ hand-rolled** |
+| `src/components/AppLockGate.tsx` | 2 | hand-rolled×2 **⚠ hand-rolled** |
 | `src/components/AwardGateDialog.tsx` | 1 | Dialog |
 | `src/components/BirthdayPopup.tsx` | 1 | Dialog |
 | `src/components/BlockUserDialog.tsx` | 1 | Dialog |
@@ -248,7 +248,7 @@ dismissible, and correct in every state.
 | `src/components/dashboard/browseTasksToolbar/BrowseTasksActions.tsx` | 1 | Popover |
 | `src/components/dashboard/FilterSheet.tsx` | 3 | Sheet, Popover, anchoredPanel |
 | `src/components/dashboard/JobDetailDialog.tsx` | 1 | Dialog |
-| `src/components/dashboard/PhotoLightbox.tsx` | 1 | Dialog |
+| `src/components/dashboard/PhotoLightbox.tsx` | 2 | Dialog, hand-rolled **⚠ hand-rolled** |
 | `src/components/DatePickerField.tsx` | 1 | Popover |
 | `src/components/DisputeDialog.tsx` | 1 | Dialog |
 | `src/components/DisputeTimelineDialog.tsx` | 1 | Dialog |
@@ -262,7 +262,7 @@ dismissible, and correct in every state.
 | `src/components/JobBoostDialog.tsx` | 1 | Dialog |
 | `src/components/JobConfirmation.tsx` | 1 | Dialog |
 | `src/components/JobTracking.tsx` | 1 | BrandConfirmDialog |
-| `src/components/MessageAttachment.tsx` | 1 | Dialog |
+| `src/components/MessageAttachment.tsx` | 2 | Dialog, hand-rolled **⚠ hand-rolled** |
 | `src/components/messages/ChatHeader.tsx` | 1 | DropdownMenu |
 | `src/components/messages/ChatView.tsx` | 1 | BrandConfirmDialog |
 | `src/components/messages/ConversationList.tsx` | 1 | DropdownMenu |
@@ -487,4 +487,4 @@ long/missing fields, and a working unsubscribe where required.
 
 ## Notification types (each is distinct copy + a tap destination)
 
-`info` · `job_updates` · `payment` · `success` · `warning`
+`application` · `expired` · `financial_alerts` · `job_match` · `job_update` · `job_updates` · `message` · `new_offers` · `payment` · `review` · `system_alert` · `transit_updates` · `verified` · `work_status`

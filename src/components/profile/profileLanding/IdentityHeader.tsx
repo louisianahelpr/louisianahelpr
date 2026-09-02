@@ -53,10 +53,10 @@ export function IdentityHeader({
   //
   // It used to ask `hasPhoto && !isPlaceholderAvatarUrl(...)`, which could
   // answer yes for a photo that is not one:
-  //   • `hasPhoto` (`useProfileLandingDerived`) is `!!avatar_url && !avatarBroken`,
-  //     and `avatarBroken` has been a DEAD prop chain since the `<img onError>`
-  //     handlers came out — nothing sets it true any more, so `hasPhoto` lost
-  //     its load-error term and now means only "the column is non-null";
+  //   • `hasPhoto` (`useProfileLandingDerived`) means only "the column is
+  //     non-null". It used to also AND in `!avatarBroken`, but nothing had set
+  //     that flag since the `<img onError>` handlers came out, so the term was
+  //     constant `true`; the whole dead state pair is gone (2026-09-01);
   //   • the URL test catches DiceBear / ui-avatars / `?d=mp` gravatar
   //     generators, but nothing catches the failure that actually shipped —
   //     a 200 that DECODES to a flat colour or a smooth gradient. A comment

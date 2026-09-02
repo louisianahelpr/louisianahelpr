@@ -227,7 +227,13 @@ serve(async (req) => {
     return json(
       {
         error:
-          "group jobs cannot be settled with a partial split yet — a split across a multi-helper roster needs per-helper shares. Resolve this one with the full release or full refund action.",
+          // NOT "the full release": as of 2026-09-01 `admin_release_dispute`
+          // refuses a multi-member roster too (create-payment, the group guard
+          // in that action), because it can only transfer to jobs.helper_id
+          // and would strand the rest of the roster. Full refund is the only
+          // automated close for a group dispute until the roster fan-out
+          // exists; naming the release here would send an admin at a 409.
+          "group jobs cannot be settled with a partial split yet — a split across a multi-helper roster needs per-helper shares. Resolve this one with the full refund action, or pay the roster manually.",
         is_group_job: true,
         helpers_needed: job.helpers_needed ?? null,
       },

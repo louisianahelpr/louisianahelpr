@@ -8,9 +8,22 @@ import { report } from "@/lib/errorLogger";
 import { unwrapMutation, mutationErrorMessage, isWriteRejected } from "@/lib/mutationResult";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 
+/** Label for a roster slot whose helper has deleted their account.
+ *
+ * NOT "Helpr". `helper_id` went nullable in 20260902014651: account deletion
+ * severs the identity but KEEPS the row, because the roster is the poster's
+ * record of who worked a completed job. So a null here is a real, permanent
+ * state, not a failed lookup — and the previous `|| "Helpr"` fallback rendered
+ * it identically to a member whose profile read merely errored, which is the
+ * one thing the poster must not confuse it with: one of those people can still
+ * be messaged and paid, and the other cannot. */
+const DEPARTED_HELPER_LABEL = "Former Helpr";
+
 type GroupHelper = {
   id: string;
-  helper_id: string;
+  /** NULL once this member deletes their account — the slot is retained, the
+      identity is severed. See DEPARTED_HELPER_LABEL. */
+  helper_id: string | null;
   status: string;
   helperName?: string;
 };
@@ -78,11 +91,16 @@ export function GroupJobHelpers({
     }
     const rows = (data ?? []) as unknown as GroupHelper[];
     if (rows.length > 0) {
-      const helperIds = rows.map((h) => h.helper_id);
-      const { data: profiles, error: profilesError } = await supabase
-        .from("profiles")
-        .select("user_id, full_name")
-        .in("user_id", helperIds);
+      // Drop the departed members before building the `.in()` list — a null in
+      // a PostgREST `in.(...)` list is not "match nothing", it is a malformed
+      // filter, and there is no profile to find for them anyway.
+      const helperIds = rows.map((h) => h.helper_id).filter((id): id is string => !!id);
+      const { data: profiles, error: profilesError } = helperIds.length
+        ? await supabase
+            .from("profiles")
+            .select("user_id, full_name")
+            .in("user_id", helperIds)
+        : { data: [], error: null };
       if (profilesError) {
         console.error("[GroupJobHelpers] failed to load helper profiles:", profilesError);
         report(profilesError, { severity: "warning", tags: { source: "GroupJobHelpers.profiles" } });
@@ -91,7 +109,9 @@ export function GroupJobHelpers({
       setHelpers(
         rows.map((h) => ({
           ...h,
-          helperName: nameMap.get(h.helper_id) || "Helpr",
+          helperName: h.helper_id
+            ? nameMap.get(h.helper_id) || "Helpr"
+            : DEPARTED_HELPER_LABEL,
         }))
       );
     } else {
@@ -169,7 +189,11 @@ export function GroupJobHelpers({
     // Helpr's Activity tab would simply stop listing a job they had planned
     // their day around. Best-effort: the removal itself has already succeeded,
     // so a failed notify must not roll it back or claim the removal failed.
-    if (removed) {
+    // `removed.helper_id` is null when the slot's helper has deleted their
+    // account. There is nobody to tell, and `notifications.user_id` is NOT
+    // NULL, so inserting anyway is a guaranteed 23502 reported as a warning on
+    // a removal that actually succeeded.
+    if (removed?.helper_id) {
       const { error: notifyError } = await supabase.from("notifications").insert({
         user_id: removed.helper_id,
         title: "You're no longer on this group job",

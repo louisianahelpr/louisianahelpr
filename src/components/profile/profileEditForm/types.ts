@@ -17,8 +17,6 @@ export interface ProfileEditFormProps {
   skills: string;
   setSkills: (v: string) => void;
   initials: string;
-  avatarBroken: boolean;
-  setAvatarBroken: (v: boolean) => void;
   avatarUploading: boolean;
   idUploading: boolean;
   saving: boolean;

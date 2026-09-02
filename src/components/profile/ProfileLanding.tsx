@@ -10,12 +10,6 @@ export function ProfileLanding({
   userId,
   displayName,
   initials,
-  avatarBroken,
-  // `setAvatarBroken` is still in `ProfileLandingProps` because the same
-  // state pair feeds `ProfileEditForm` → `PhotoNameSection`, which owns it.
-  // Nothing on the LANDING side calls it any more: `IdentityHeader` gets its
-  // photo verdict from `<UserAvatar onPhotoRejected>` instead, which covers
-  // load-error AND the two failures an `onError` handler never could.
   avgRating,
   reviewCount,
   completedCount,
@@ -35,10 +29,7 @@ export function ProfileLanding({
     memberSinceLabel,
     earnedBadges,
     menuGroups,
-  } = useProfileLandingDerived({
-    profile,
-    avatarBroken,
-  });
+  } = useProfileLandingDerived({ profile });
 
   return (
     <>

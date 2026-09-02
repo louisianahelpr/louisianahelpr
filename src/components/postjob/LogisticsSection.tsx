@@ -17,6 +17,7 @@ import { formatPriceExact } from "@/lib/format";
 import { AppleMapPreview } from "@/components/postjob/AppleMapPreview";
 import { CurrentLocationPill } from "@/components/postjob/CurrentLocationPill";
 import { FieldError } from "@/components/ui/FieldError";
+import { GROUP_JOBS_ENABLED } from "@/lib/groupJobs";
 
 /**
  * Repeats is ON as of 2026-08-23 (owner approved).
@@ -38,6 +39,16 @@ import { FieldError } from "@/components/ui/FieldError";
  * unfunded visit cannot exist for a helpr to walk into.
  */
 const RECURRING_ENABLED = true;
+
+
+// Tailwind needs the whole class name as a literal to emit it, so these are
+// spelled out rather than built as `grid-cols-${n}`.
+const JOB_TYPE_COLS =
+  1 + (RECURRING_ENABLED ? 1 : 0) + (GROUP_JOBS_ENABLED ? 1 : 0) === 3
+    ? "grid-cols-3"
+    : 1 + (RECURRING_ENABLED ? 1 : 0) + (GROUP_JOBS_ENABLED ? 1 : 0) === 2
+      ? "grid-cols-2"
+      : "grid-cols-1";
 
 // Normalize a reverse-geocoder's state value (full name or abbreviation)
 // to the canonical 2-letter code the form stores. We special-case the only
@@ -277,18 +288,24 @@ export function LogisticsSection({
           single one they can't make. */}
       <div className="space-y-3">
         <Label id="job-type-label">Job type</Label>
-        <div role="group" aria-labelledby="job-type-label" className={`grid ${RECURRING_ENABLED ? "grid-cols-3" : "grid-cols-2"} gap-1 p-1 rounded-2xl border border-input bg-background/70`}>
+        <div role="group" aria-labelledby="job-type-label" className={`grid ${JOB_TYPE_COLS} gap-1 p-1 rounded-2xl border border-input bg-background/70`}>
           {([
             { key: "once", label: "One-Time" },
             // "Repeats", not "Recurring" — it names what the poster is doing
             // rather than the billing category.
             ...(RECURRING_ENABLED ? [{ key: "recurring", label: "Repeats" } as const] : []),
-            { key: "group", label: "Group" },
+            ...(GROUP_JOBS_ENABLED ? [{ key: "group", label: "Group" } as const] : []),
           ] as const).map((opt) => {
+            // With Group withdrawn, a restored draft carrying
+            // `isGroupJob: true` (useJobEntry:123 rehydrates it) must not
+            // leave the whole control unselected — One-Time is what that
+            // draft now IS, and `jobSubmitHelpers` forces the same coercion
+            // on the way into the insert.
+            const groupActive = GROUP_JOBS_ENABLED && isGroupJob;
             const active =
-              (opt.key === "once" && !isRecurring && !isGroupJob) ||
+              (opt.key === "once" && !isRecurring && !groupActive) ||
               (opt.key === "recurring" && isRecurring) ||
-              (opt.key === "group" && isGroupJob);
+              (opt.key === "group" && groupActive);
             return (
               <button
                 key={opt.key}
@@ -330,7 +347,7 @@ export function LogisticsSection({
           />
         )}
 
-        {isGroupJob && (
+        {GROUP_JOBS_ENABLED && isGroupJob && (
           <div className="rounded-ds-md border border-border p-4 space-y-2">
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4 text-primary" />

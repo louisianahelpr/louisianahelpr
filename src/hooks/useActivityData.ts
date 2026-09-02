@@ -1,7 +1,7 @@
 import { useEffect, useCallback, useMemo } from "react";
 import { useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { channelNonce } from "@/lib/realtimeChannel";
+import { subscribeWithRecovery } from "@/lib/realtimeRecovery";
 import { formatName } from "@/lib/utils";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import type { Job, AppliedApp } from "@/components/activity/activityConstants";
@@ -47,7 +47,12 @@ import { report } from "@/lib/errorLogger";
 export interface GroupHelperLite {
   id: string;
   job_id: string;
-  helper_id: string;
+  /** NULL once this roster member deletes their account — 20260902014651 kept
+      the row and severed the identity, because the roster is the poster's
+      record of who worked the job. Rendered as "Former Helpr", never as the
+      generic "Helpr" fallback, which would be indistinguishable from a member
+      whose profile lookup merely failed. */
+  helper_id: string | null;
   status: string;
   /** Nullable per the generated DB types (has a server default but the
       column accepts NULL). Forwarded as-is to the legacy GroupJobHelpers
@@ -264,19 +269,33 @@ export async function fetchPostedActivityDetail(
   const groupHelpersByJob: Record<string, GroupHelperLite[]> = {};
   const groupRows = groupHelpersRes.error ? [] : (groupHelpersRes.data ?? []);
   if (groupRows.length > 0) {
-    const groupHelperIds = [...new Set(groupRows.map((r) => r.helper_id))];
+    // Departed members (null helper_id) are filtered out before the `.in()`
+    // list is built: a null inside a PostgREST `in.(...)` is a malformed
+    // filter, not a no-match, and there is no profile to fetch for them.
+    const groupHelperIds = [
+      ...new Set(groupRows.map((r) => r.helper_id).filter((id): id is string => !!id)),
+    ];
     // Batch the profile lookup for every group helper across every job —
-    // one round-trip, regardless of how many group-job cards are open.
-    const { data: profiles, error: groupHelperProfilesError } = await supabase
-      .from("profiles")
-      .select("user_id, full_name")
-      .in("user_id", groupHelperIds);
+    // one round-trip, regardless of how many group-job cards are open. Skipped
+    // entirely when every member of every roster has departed, so we never
+    // send `user_id=in.()`.
+    const { data: profiles, error: groupHelperProfilesError } = groupHelperIds.length
+      ? await supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .in("user_id", groupHelperIds)
+      : { data: [], error: null };
     if (groupHelperProfilesError) {
       report(groupHelperProfilesError, { severity: "warning", tags: { source: "useActivityData.groupHelperNames" } });
     }
     const nameMap = new Map(profiles?.map((p) => [p.user_id, formatName(p.full_name, "Helpr")]) ?? []);
     for (const row of groupRows) {
-      (groupHelpersByJob[row.job_id] ??= []).push({ ...row, helperName: nameMap.get(row.helper_id) || "Helpr" });
+      (groupHelpersByJob[row.job_id] ??= []).push({
+        ...row,
+        helperName: row.helper_id
+          ? nameMap.get(row.helper_id) || "Helpr"
+          : "Former Helpr",
+      });
     }
   }
 
@@ -453,7 +472,8 @@ type SafeProfileRow = { user_id: string; full_name: string | null };
 type GroupHelperRow = {
   id: string;
   job_id: string;
-  helper_id: string;
+  /** Nullable — see GroupHelperLite.helper_id. */
+  helper_id: string | null;
   status: string;
   joined_at: string | null;
 };
@@ -640,16 +660,14 @@ export function useActivityData(user: SupaUser | null, tab: "posted" | "applied"
       }, 800);
     };
     // A failed channel is a SILENT failure — the app renders fine, it just
-    // never hears about anyone else's writes. Surface it so the next dead
-    // channel is a logged error, not a night of live debugging.
-    const observeStatus = (label: string) => (status: string, err?: Error) => {
-      if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
-        report(err ?? new Error(`activity realtime channel ${status}`), {
-          severity: "warning",
-          tags: { source: "useActivityData.realtime", channel: label, status },
-        });
-      }
-    };
+    // never hears about anyone else's writes.
+    //
+    // This was a local `observeStatus` that reported to Sentry and stopped
+    // there: useful to us, invisible to the person holding a screen that had
+    // quietly stopped updating, and it never reconnected. It is now
+    // subscribeWithRecovery, which keeps the Sentry report, adds backoff,
+    // publishes the outage to the global banner, and invalidates on the way
+    // back so the writes made during the gap are actually read.
     // CORE channel — jobs / notifications / job_tracking / applications.
     // Every binding here MUST be on a table in the `supabase_realtime`
     // publication: Realtime rejects a channel containing ANY binding on an
@@ -659,8 +677,9 @@ export function useActivityData(user: SupaUser | null, tab: "posted" | "applied"
     // while `reviews` was unpublished, killing the jobs bindings with it).
     // src/test/realtimePublication.test.ts now cross-checks every binding
     // against the migrations' publication set.
-    const coreChannel = supabase
-      .channel(`activity-realtime-${channelNonce()}`)
+    const coreSub = subscribeWithRecovery(
+      (name) => supabase
+      .channel(name)
       // jobs: scope to rows that can appear in this user's activity feed via
       // server-side filters, so platform-wide job churn never reaches this
       // client. postgres_changes filters are single-column — hence three.
@@ -678,21 +697,24 @@ export function useActivityData(user: SupaUser | null, tab: "posted" | "applied"
       // platform-wide write churn on these high-volume tables never fans out
       // to every connected client.
       .on("postgres_changes", { event: "*", schema: "public", table: "job_tracking", filter: `helper_id=eq.${userId}` }, invalidate)
-      .on("postgres_changes", { event: "*", schema: "public", table: "applications", filter: `helper_id=eq.${userId}` }, invalidate)
-      .subscribe(observeStatus("activity-core"));
+      .on("postgres_changes", { event: "*", schema: "public", table: "applications", filter: `helper_id=eq.${userId}` }, invalidate),
+      { name: "activity-realtime", onRecovered: invalidate },
+    );
     // reviews rides on its OWN channel: it was added to the publication by
     // migration 20260829061737, but isolating it means that if publication
     // membership ever regresses (or the deploy lags the code), only the
     // review-received invalidation dies — the jobs/applications/tracking
     // bindings above keep delivering.
-    const reviewsChannel = supabase
-      .channel(`activity-reviews-${channelNonce()}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "reviews", filter: `reviewee_id=eq.${userId}` }, invalidate)
-      .subscribe(observeStatus("activity-reviews"));
+    const reviewsSub = subscribeWithRecovery(
+      (name) => supabase
+      .channel(name)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "reviews", filter: `reviewee_id=eq.${userId}` }, invalidate),
+      { name: "activity-reviews", onRecovered: invalidate },
+    );
     return () => {
       if (debounce) clearTimeout(debounce);
-      supabase.removeChannel(coreChannel);
-      supabase.removeChannel(reviewsChannel);
+      coreSub.close();
+      reviewsSub.close();
     };
   }, [userId, queryClient]);
 

@@ -86,8 +86,6 @@ export interface ProfileTabPanelsProps {
   skills: string;
   setSkills: (v: string) => void;
   initials: string;
-  avatarBroken: boolean;
-  setAvatarBroken: (v: boolean) => void;
   avatarUploading: boolean;
   idUploading: boolean;
   saving: boolean;
@@ -141,8 +139,6 @@ export const ProfileTabPanels = ({
   skills,
   setSkills,
   initials,
-  avatarBroken,
-  setAvatarBroken,
   avatarUploading,
   idUploading,
   saving,
@@ -189,8 +185,6 @@ export const ProfileTabPanels = ({
             skills={skills}
             setSkills={setSkills}
             initials={initials}
-            avatarBroken={avatarBroken}
-            setAvatarBroken={setAvatarBroken}
             avatarUploading={avatarUploading}
             idUploading={idUploading}
             saving={saving}

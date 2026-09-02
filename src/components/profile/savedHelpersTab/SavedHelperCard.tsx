@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Heart, Send, Star, StickyNote, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import UserAvatar from "@/components/UserAvatar";
@@ -41,26 +41,49 @@ export function SavedHelperCard({
   const hasNote = !!h.private_note?.trim();
   const isEditingNote = editingNoteFor === h.helper_id;
   return (
-    // Whole card opens the helpr's profile (item 26) — the separate
-    // "Profile" button was redundant with this. `role="button"` + tabIndex
-    // since the card holds real interactive children (note editor, Offer a
-    // Job, Remove) that must NOT double-fire the card's own navigation —
-    // each stops propagation instead of the card being wrapped in a <Link>,
-    // which would otherwise nest interactive elements inside an anchor.
+    // ── THE CARD IS NOT A BUTTON ──────────────────────────────────────────
+    //
+    // The whole card still opens the helpr's profile (item 26 — the separate
+    // "Profile" button was removed as redundant), but it does it with a
+    // STRETCHED LINK sibling rather than `role="button"` on the card itself.
+    //
+    // It used to be `<div role="button" tabIndex={0} onClick=…>` wrapping the
+    // note textarea and three `<Button>`s, and stopped propagation on each so
+    // they wouldn't double-fire. That fixes the CLICK and leaves the defect:
+    // axe `nested-interactive`, SERIOUS, one node per card (reproduced at 375
+    // on /profile?tab=saved_helpers, two seeded cards → two nodes). A
+    // `button` role's subtree is flattened into its own accessible name for
+    // assistive tech, so "Offer a Job", "Add a private note", "Remove from
+    // saved" and the note textarea were swallowed into the card's label and
+    // could not be reached or operated by name. `stopPropagation` cannot
+    // touch that — the NESTING is the defect.
+    //
+    // So: the card is a plain positioned <div>; one real <Link> is absolutely
+    // positioned over it to carry the whole-card tap, keyboard focus and the
+    // focus ring; and the interactive row + note editor are raised above that
+    // overlay with `relative z-10` so they receive their own clicks. Nothing
+    // interactive is nested inside anything interactive any more, and the
+    // controls are ordinary siblings in the tab order.
+    //
+    // Two knock-on effects, both improvements: the destination is a real
+    // anchor (cmd-click / open-in-new-tab now work), and Enter activates it
+    // the way every other link in the app does. Space no longer activates —
+    // that is correct link behaviour, not a regression.
     <div
       key={h.helper_id}
-      role="button"
-      tabIndex={0}
-      onClick={() => navigate(`/user/${h.helper_id}`)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          navigate(`/user/${h.helper_id}`);
-        }
-      }}
-      aria-label={`View ${formatName(h.full_name)}'s profile`}
-      className="rounded-2xl liquid-glass p-4 space-y-2.5 transition-all hover:-translate-y-0.5 hover:shadow-md cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="relative rounded-2xl liquid-glass p-4 space-y-2.5 transition-all hover:-translate-y-0.5 hover:shadow-md"
     >
+      {/* The stretched link. `inset-0` + the card's own `rounded-2xl` so the
+          hit area and the focus ring both match the card exactly. It has no
+          visible text (the name is rendered as content below, unchanged), so
+          `aria-label` carries its name — there is no visible label to
+          contradict, so WCAG 2.5.3 is not in play. `z-0`, with the note block
+          and the action row at `z-10`, is what keeps the controls clickable. */}
+      <Link
+        to={`/user/${h.helper_id}`}
+        aria-label={`View ${formatName(h.full_name)}'s profile`}
+        className="absolute inset-0 z-0 rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      />
       {/* `items-center`, not `items-start`. The avatar is a 48px block and the
           name is a 20px line, so top-aligning a single-line text column parked
           28px of dead space directly under the name — the "empty band" the
@@ -68,7 +91,12 @@ export function SavedHelperCard({
           instead of below it. When the column is taller than the avatar (name +
           history + skills) the two are identical, so nothing moves on a full
           card. */}
-      <div className="flex items-center gap-3">
+      {/* `!mt-0` because the stretched link above is now the card's FIRST
+          child, so `space-y-2.5` would otherwise start putting 10px on this
+          row (it used to be first and got none). The link is out of flow, so
+          that margin would be pure regression — the card gets 10px taller and
+          everything under the avatar drops. Measured before/after: identical. */}
+      <div className="flex items-center gap-3 !mt-0">
         {/* Migrated onto the shared `UserAvatar` (2026-08-31). This card used
             to hand-roll both halves and got both wrong: a bare `<img>` with no
             error path at all — so a deleted storage object rendered an empty
@@ -135,9 +163,12 @@ export function SavedHelperCard({
           Closed by default, tap to expand into a small
           textarea. Never shown to the helpr (RLS scopes
           reads/writes to customer_id). */}
-      {/* stopPropagation on this whole block — it's nested inside the
-          card's own click-to-profile handler above, and none of the note
-          editor's clicks (open, cancel, save, or typing) should navigate. */}
+      {/* `relative z-10` so this sits ABOVE the stretched link that covers the
+          card — that, not a stopPropagation handler, is what keeps typing and
+          the Cancel/Save presses from landing on the profile link. The old
+          `onClick={e => e.stopPropagation()}` wrapper is gone with the card's
+          own click handler; the link is a sibling now, so nothing bubbles to
+          it in the first place. */}
       {/* Rendered ONLY when there is a note to show or one being written.
           There used to be a third branch here — an "Add a Private Note" text
           button — which meant every note-less card still paid for a whole
@@ -146,7 +177,7 @@ export function SavedHelperCard({
           17px line of tertiary text. That affordance now lives in the action
           row below, where a 44px row already exists and it costs nothing. */}
       {(isEditingNote || hasNote) && (
-      <div onClick={(e) => e.stopPropagation()}>
+      <div className="relative z-10">
         {isEditingNote ? (
           <div
             className="rounded-ds-md p-2.5 space-y-2"
@@ -223,7 +254,9 @@ export function SavedHelperCard({
           (three columns). Re-check it after ANY change to this row's padding,
           labels or icons — `whitespace-nowrap` means the CTA silently
           overflows its own box instead of wrapping or erroring. */}
-      <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+      {/* `relative z-10` — same reason as the note block above: these three
+          controls have to sit over the stretched link, not under it. */}
+      <div className="relative z-10 flex items-center gap-2">
         <Button
           variant="primary"
           size="sm"

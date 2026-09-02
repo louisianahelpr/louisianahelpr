@@ -1374,6 +1374,84 @@ describe("create-payment edge function", () => {
         expect(typeof payload.dispute_resolved_at).toBe("string");
       });
 
+      // ── Group jobs: the last money path that paid 1-of-N ─────────────────
+      //
+      // A group job holds ONE escrow split across the roster. This action
+      // transfers to `jobs.helper_id`, which accept_group_application sets to
+      // the FIRST accepted helper and never updates, and then flips the job to
+      // completed/released. On a 3-person crew that paid the lead their 1/N,
+      // paid the other two nothing, and marked the job settled — after which
+      // release-payout refuses a released job and process-scheduled-payouts
+      // only sweeps payout_pending, so there is no retry anywhere.
+      function seedReleasableGroup(roster: { helper_id: string }[] | { error: { message: string } }) {
+        seedReleasable();
+        scenario.reads.jobs = {
+          rows: [
+            {
+              id: "job-1",
+              customer_id: POSTER.id,
+              helper_id: HELPER.id,
+              status: "disputed",
+              budget: 300,
+              urgent_fee: 0,
+              platform_fee_amount: 30,
+              helper_fee_percent: 10,
+              title: "Disputed group job",
+              stripe_payment_intent_id: "pi_d",
+              is_group_job: true,
+              helpers_needed: 3,
+            },
+          ],
+        };
+        scenario.reads.group_job_helpers = Array.isArray(roster) ? { rows: roster } : roster;
+      }
+
+      it("REFUSES a multi-member group roster and moves no money", async () => {
+        seedReleasableGroup([{ helper_id: "helper-1" }, { helper_id: "helper-2" }]);
+        const fn = await load();
+        const res = await fn.fetch(
+          fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }),
+        );
+        expect(res.status).toBe(409);
+        const out = await json(res);
+        expect(out.roster_size).toBe(2);
+        // The whole point.
+        expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+        // And the job must NOT be flipped to settled — a released job is
+        // unreachable by every remaining payout path.
+        expect(jobUpdate()).toBeUndefined();
+      });
+
+      it("fails CLOSED when the group roster cannot be read", async () => {
+        // A guard that disappears when its own lookup fails is not a guard:
+        // roster === null → length 0 → the `> 1` test is false → we would pay
+        // the lead off a roster we could not read.
+        seedReleasableGroup({ error: { message: "connection reset by peer" } });
+        const fn = await load();
+        const res = await fn.fetch(
+          fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }),
+        );
+        expect(res.status).toBe(503);
+        expect((await json(res)).error).toMatch(/roster/i);
+        expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+        expect(jobUpdate()).toBeUndefined();
+      });
+
+      it("still pays a group job whose roster holds a single member", async () => {
+        // helpers_needed says 3 but only one Helpr ever joined. The per-helper
+        // math already divides by helpers_needed, so the lead gets exactly the
+        // 1/N share they accepted and nobody else is owed anything — refusing
+        // here would strand a payable job for no reason.
+        seedReleasableGroup([{ helper_id: HELPER.id }]);
+        const fn = await load();
+        const res = await fn.fetch(
+          fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }),
+        );
+        expect(res.status).toBe(200);
+        expect(stripeMock.transfers.create).toHaveBeenCalled();
+        expect(jobUpdate()!.payment_status).toBe("released");
+      });
+
       it("Quick Release closes the dispute record with the real transfer id and amount", async () => {
         seedReleasable();
         const fn = await load();

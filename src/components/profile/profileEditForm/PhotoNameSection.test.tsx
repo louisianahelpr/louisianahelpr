@@ -29,8 +29,6 @@ function renderRow() {
       firstName="Lexi"
       lastName="Lombas"
       initials="LL"
-      avatarBroken={false}
-      setAvatarBroken={vi.fn()}
       avatarUploading={false}
       onAvatarUpload={vi.fn()}
     />,

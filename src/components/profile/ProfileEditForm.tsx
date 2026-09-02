@@ -45,8 +45,6 @@ export function ProfileEditForm({
   skills,
   setSkills,
   initials,
-  avatarBroken,
-  setAvatarBroken,
   avatarUploading,
   // Unused since the manual ID-upload card was removed (Stripe Identity owns
   // verification). Kept in the signature so the shared props type and the ~3
@@ -177,8 +175,6 @@ export function ProfileEditForm({
           firstName={firstName}
           lastName={lastName}
           initials={initials}
-          avatarBroken={avatarBroken}
-          setAvatarBroken={setAvatarBroken}
           avatarUploading={avatarUploading}
           onAvatarUpload={onAvatarUpload}
         />

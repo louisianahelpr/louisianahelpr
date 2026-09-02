@@ -1,5 +1,6 @@
 import type { Database } from "@/integrations/supabase/types";
 
+import { GROUP_JOBS_ENABLED } from "@/lib/groupJobs";
 import { computeJobExpiresAt } from "@/lib/jobExpiry";
 import { DEFAULT_OFFER_RESPONSE_HOURS } from "@/lib/offerResponseWindow";
 import { recurringVisitDates } from "@/lib/recurringSchedule";
@@ -179,8 +180,16 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
           recurrence_weeks: seriesWeeks,
         } as Record<string, unknown>)
       : {}),
-    is_group_job: isGroupJob,
-    helpers_needed: isGroupJob ? parseInt(helpersNeeded) || 2 : 1,
+    // Group jobs are WITHDRAWN (see GROUP_JOBS_ENABLED in
+    // components/postjob/LogisticsSection.tsx for the five breakages and why
+    // the control came out). The segmented control is gone, but `isGroupJob`
+    // is also rehydrated from a saved draft (useJobEntry:123) and from an
+    // AI-builder payload (useJobEntry:96), so the control's absence is not by
+    // itself enough to keep a group job out of the table. Coerce here — this
+    // is the single place the insert payload is built, so it is the one place
+    // the withdrawal can actually be enforced client-side.
+    is_group_job: GROUP_JOBS_ENABLED && isGroupJob,
+    helpers_needed: GROUP_JOBS_ENABLED && isGroupJob ? parseInt(helpersNeeded) || 2 : 1,
     expires_at: expiresAt,
     is_urgent: isUrgent,
     urgent_fee: isUrgent ? parseFloat(urgentFee) || 0 : 0,

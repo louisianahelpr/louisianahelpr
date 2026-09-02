@@ -43,15 +43,6 @@ interface PhotoNameSectionProps {
   firstName: string;
   lastName: string;
   initials: string;
-  /**
-   * Both retained for the caller's prop shape (ProfileEditForm still threads
-   * them) but no longer read here. They implemented an `onError`-only photo
-   * guard, which is unreachable for the defect that actually ships — an
-   * avatar that returns HTTP 200 and decodes to a flat block. `<UserAvatar>`
-   * owns every guard now; see `src/lib/avatarImage.ts`.
-   */
-  avatarBroken: boolean;
-  setAvatarBroken: (v: boolean) => void;
   avatarUploading: boolean;
   onAvatarUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }

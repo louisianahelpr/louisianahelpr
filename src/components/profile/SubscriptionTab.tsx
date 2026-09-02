@@ -462,12 +462,20 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                     features without scrolling. */}
                 <div className="min-w-0 flex-1 self-start">
                   <div className="flex items-baseline gap-2 flex-wrap">
-                    <h3
+                    {/* h2, not h3: the only heading above the tier cards is
+                        the page h1 ("Membership", via ProfileTabHeader →
+                        PageHeader), so an h3 here skipped a level — axe
+                        `heading-order`, moderate. Each tier card is a
+                        top-level section of this screen, so h2 is also the
+                        right level, not just the compliant one. The TAG moved;
+                        every style class is unchanged (`text-ds-16` sets the
+                        size, not the browser's h-default) so nothing shifts. */}
+                    <h2
                       className="font-display italic font-bold leading-none text-ds-16"
                       style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.018em" }}
                     >
                       {tier.name}
-                    </h3>
+                    </h2>
                     {/* The "Current" chip used to sit here beside the title.
                         It now renders as a button in the CTA column on the
                         right, in the same slot every other card puts

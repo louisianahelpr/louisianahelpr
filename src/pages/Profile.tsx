@@ -87,7 +87,6 @@ const ProfilePage = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
-  const [avatarBroken, setAvatarBroken] = useState(false);
   const initialTab = resolveTab(searchParams.get("tab"));
   const [tab, setTab] = useState<Tab>(initialTab);
 
@@ -492,7 +491,6 @@ const ProfilePage = () => {
       toast.error("Photo uploaded, but couldn't pin it to your profile. Try again?");
     } else {
       setProfile(prev => prev ? { ...prev, avatar_url: avatarUrl } : prev);
-      setAvatarBroken(false);
     }
     setAvatarUploading(false);
   };
@@ -643,8 +641,6 @@ const ProfilePage = () => {
               userId={userId}
               displayName={displayName}
               initials={initials}
-              avatarBroken={avatarBroken}
-              setAvatarBroken={setAvatarBroken}
               avgRating={avgRating}
               reviewCount={reviewCount}
               postedCount={postedCount}
@@ -716,8 +712,6 @@ const ProfilePage = () => {
             skills={skills}
             setSkills={setSkills}
             initials={initials}
-            avatarBroken={avatarBroken}
-            setAvatarBroken={setAvatarBroken}
             avatarUploading={avatarUploading}
             idUploading={idUploading}
             saving={saving}

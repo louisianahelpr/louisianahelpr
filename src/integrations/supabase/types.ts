@@ -615,21 +615,21 @@ export type Database = {
       }
       group_job_helpers: {
         Row: {
-          helper_id: string
+          helper_id: string | null
           id: string
           job_id: string
           joined_at: string | null
           status: string
         }
         Insert: {
-          helper_id: string
+          helper_id?: string | null
           id?: string
           job_id: string
           joined_at?: string | null
           status?: string
         }
         Update: {
-          helper_id?: string
+          helper_id?: string | null
           id?: string
           job_id?: string
           joined_at?: string | null
@@ -2256,7 +2256,7 @@ export type Database = {
           currency: string
           failed_at: string | null
           failure_reason: string | null
-          helper_id: string
+          helper_id: string | null
           id: string
           initiated_by: string
           initiated_by_user_id: string | null
@@ -2275,7 +2275,7 @@ export type Database = {
           currency?: string
           failed_at?: string | null
           failure_reason?: string | null
-          helper_id: string
+          helper_id: string | null
           id?: string
           initiated_by?: string
           initiated_by_user_id?: string | null
@@ -2294,7 +2294,7 @@ export type Database = {
           currency?: string
           failed_at?: string | null
           failure_reason?: string | null
-          helper_id?: string
+          helper_id?: string | null
           id?: string
           initiated_by?: string
           initiated_by_user_id?: string | null
@@ -3031,19 +3031,19 @@ export type Database = {
           code: string
           created_at: string
           id: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           code: string
           created_at?: string
           id?: string
-          user_id: string
+          user_id: string | null
         }
         Update: {
           code?: string
           created_at?: string
           id?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -3094,21 +3094,21 @@ export type Database = {
           id: string
           referral_code_id: string
           referred_id: string
-          referrer_id: string
+          referrer_id: string | null
         }
         Insert: {
           created_at?: string
           id?: string
           referral_code_id: string
           referred_id: string
-          referrer_id: string
+          referrer_id: string | null
         }
         Update: {
           created_at?: string
           id?: string
           referral_code_id?: string
           referred_id?: string
-          referrer_id?: string
+          referrer_id?: string | null
         }
         Relationships: [
           {

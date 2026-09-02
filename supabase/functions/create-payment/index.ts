@@ -1069,6 +1069,84 @@ serve(async (req) => {
         throw new Error(`Job is not under dispute (status: ${job.status}). Cannot resolve a dispute that doesn't exist.`);
       }
 
+      // ─── Group jobs: refuse. This path can only pay ONE helper. ───────────
+      //
+      // A group job holds ONE escrow for the whole budget and splits it across
+      // the roster (20260804122000). This action transfers to `job.helper_id`
+      // — which `accept_group_application` sets to the FIRST accepted helper
+      // and never updates — and then flips the job to completed/released. On a
+      // 3-person crew that paid the lead their correct 1/N, paid the other two
+      // NOTHING, and marked the job settled: `release-payout` refuses a
+      // released job, `process-scheduled-payouts` only sweeps
+      // `payout_pending`, and there is no retry anywhere. The other two shares
+      // stay on the platform balance permanently, and the people owed them
+      // have a job that says it was paid.
+      //
+      // This is the same refusal `release-payout:160` and
+      // `execute-dispute-split:226` already make, for the same reason, and it
+      // is the LAST money path that did not. It cannot route to the fan-out
+      // path the way release-payout does: `process-scheduled-payouts` filters
+      // `.is("disputed_at", null)` as defense-in-depth (index.ts:87), so a job
+      // that has ever been disputed is invisible to it. So the honest options
+      // here are "pay everyone" (needs a fan-out this function does not have)
+      // or "move no money" — and an under-paid roster is unrecoverable while a
+      // job left `disputed` is not. `admin_refund_dispute` (full refund to the
+      // poster) is unaffected and remains available to close this dispute.
+      if (job.is_group_job && (job.helpers_needed ?? 1) > 1) {
+        const { data: dpRoster, error: dpRosterError } = await supabaseAdmin
+          .from("group_job_helpers")
+          .select("helper_id")
+          .eq("job_id", job.id);
+
+        // Fail CLOSED on a failed lookup. Dropping this error would make the
+        // guard vanish exactly when it is needed: roster === null → length 0 →
+        // the `> 1` test is false → we pay the lead off a roster we could not
+        // read. We already know from the job row that this is a multi-helper
+        // group job; the roster read is a detail check, not the thing that
+        // decides group-ness.
+        if (dpRosterError) {
+          console.error(
+            `[create-payment] admin_release_dispute: roster read failed for group job ${job.id}:`,
+            dpRosterError.message,
+          );
+          return new Response(
+            JSON.stringify({
+              error: "Could not verify the helper roster for this group job. No money was moved.",
+            }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 503 },
+          );
+        }
+
+        const dpRosterSize = (dpRoster ?? []).length;
+        if (dpRosterSize > 1) {
+          console.error(
+            `[create-payment] admin_release_dispute: refusing group job ${job.id} — ${dpRosterSize} roster members cannot be paid by a single-helper release.`,
+          );
+          await postSlackOpsAlert({
+            kind: "payout_failed",
+            severity: "critical",
+            title: "Group job sent to the single-helper dispute release",
+            message:
+              "admin_release_dispute was invoked for a multi-helper group job. It can only transfer to jobs.helper_id, which would have paid the lead their 1/N share and flipped the job to released while the rest of the roster went unpaid with no retry. The release was REFUSED — no money moved. Resolve this dispute with the full refund action, or pay the roster manually.",
+            fields: {
+              "Job ID": job.id,
+              "Roster size": String(dpRosterSize),
+              "Helpers needed": String(job.helpers_needed ?? 1),
+            },
+            link: "https://www.louisianahelpr.com/admin?tab=disputes",
+          });
+          return new Response(
+            JSON.stringify({
+              error:
+                "This is a group job with more than one Helpr on the roster. Releasing here would pay only the lead Helpr and mark the job settled, stranding everyone else's share. No money was moved — use the full refund action, or pay the roster manually.",
+              is_group_job: true,
+              roster_size: dpRosterSize,
+            }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 },
+          );
+        }
+      }
+
       // Verify payment is captured (immediate capture — should already be succeeded)
       let paymentIntentId = job.stripe_payment_intent_id;
       if (!paymentIntentId && job.stripe_session_id) {

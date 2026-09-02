@@ -28,8 +28,6 @@ export interface ProfileLandingProps {
   userId?: string | null;
   displayName: string;
   initials: string;
-  avatarBroken: boolean;
-  setAvatarBroken: (v: boolean) => void;
   avgRating: number | null;
   reviewCount: number;
   postedCount: number;

@@ -10,7 +10,6 @@ import { TIER_PERKS } from "@/lib/subscriptionTiers";
 
 interface UseProfileLandingDerivedArgs {
   profile: Profile | null;
-  avatarBroken: boolean;
 }
 
 /**
@@ -46,7 +45,6 @@ const SECTION_TINT = {
 
 export function useProfileLandingDerived({
   profile,
-  avatarBroken,
 }: UseProfileLandingDerivedArgs) {
   const { isAdmin } = useCurrentUser();
   // The admin-panel shortcut used to be a Shield icon button in the Dashboard
@@ -56,7 +54,15 @@ export function useProfileLandingDerived({
   // user sees blockers at a glance without having to navigate into each
   // tab to discover them.
   const tier = (profile?.subscription_tier ?? "free") as string;
-  const hasPhoto = !!profile?.avatar_url && !avatarBroken;
+  // Just "is the column non-null". It used to also AND in `!avatarBroken`,
+  // a page-level flag that only an `<img onError>` handler could ever set —
+  // and those came out when every avatar moved onto `<UserAvatar>`, whose
+  // guards catch the failures `onError` never could (a 200 that decodes to a
+  // flat block). Nothing set the flag after that, so the term was constant
+  // `true` and the whole state pair was dead weight threaded through five
+  // files. Whether a photo can actually be RENDERED is `<UserAvatar>`'s
+  // verdict, reported via `onPhotoRejected` — see `IdentityHeader`.
+  const hasPhoto = !!profile?.avatar_url;
 
   // Tenure label — "New member" for accounts under 30 days old (so a
   // brand-new account doesn't read the slightly-odd "Since May 2026"),

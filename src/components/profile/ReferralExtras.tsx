@@ -65,12 +65,18 @@ export function ReferralExtras({ referralCount, totalEarned }: ReferralExtrasPro
       <div className="rounded-2xl liquid-glass p-4">
         <div className="flex items-baseline justify-between gap-2 mb-3">
           <div>
-            <h3
+            {/* h2, not h3: the only heading above this on the Referrals tab
+                is the page h1 ("Referrals", via ProfileTabHeader → PageHeader),
+                so an h3 here skipped a level — axe `heading-order`, moderate,
+                and a screen-reader user hears a missing section. The TAG moved;
+                every style class is unchanged, so nothing shifts on screen
+                (`text-ds-16` sets the size, not the browser's h-default). */}
+            <h2
               className="font-display italic font-bold leading-tight text-ds-16"
               style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
             >
               Your referral rank
-            </h3>
+            </h2>
           </div>
           <div className="text-right shrink-0">
             <p

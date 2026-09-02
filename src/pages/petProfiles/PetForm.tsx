@@ -11,7 +11,7 @@ import {
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { unwrap } from "@/lib/supabaseResult";
 import { toast } from "sonner";
-import { hapticError } from "@/lib/haptics";
+import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { report } from "@/lib/errorLogger";
 import { X } from "lucide-react";
 import type { PetProfile } from "./types";
@@ -152,6 +152,8 @@ export function PetForm({
       } else {
         unwrap(await supabase.from("pet_profiles").insert(payload));
       }
+      hapticSuccess();
+      toast(initialValues ? "Pet updated" : "Pet added");
       onSaved();
       onClose();
     } catch (err) {

@@ -25,6 +25,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
+import { userFacingError } from "@/lib/userFacingError";
 
 // Maps DB exception_type values to human-readable labels
 const EXCEPTION_TYPE_LABELS: Record<string, string> = {
@@ -202,7 +203,7 @@ const ExceptionQueueInner = () => {
       .select("id");
     setBusy(null);
     if (error) {
-      toast.error(error.message);
+      toast.error(userFacingError(error, "Couldn't action that exception — try again"));
       return;
     }
     if (!updated || updated.length === 0) {

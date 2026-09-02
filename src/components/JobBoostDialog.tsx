@@ -18,6 +18,7 @@ import { BOOST_DISCOUNT_PCT, BOOST_DURATION_HOURS, boostPriceForTier, formatFeeU
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
+import { userFacingError } from "@/lib/userFacingError";
 
 interface JobBoostDialogProps {
   jobId: string;
@@ -80,7 +81,7 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
       await openExternalUrl(data.url, () => { setBoosting(false); onBoosted?.(); onClose(); });
     } catch (err: any) {
       hapticError();
-      toast.error(err.message || "Couldn't start your boost — try again?");
+      toast.error(userFacingError(err, "Couldn't start your boost — try again?"));
       setBoosting(false);
     }
   };

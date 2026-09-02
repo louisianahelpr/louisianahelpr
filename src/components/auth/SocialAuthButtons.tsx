@@ -26,6 +26,7 @@ import {
   type SocialProvider,
   type SocialSignInResult,
 } from "@/lib/socialAuth";
+import { userFacingError } from "@/lib/userFacingError";
 
 type SocialAuthLabelMode = "signin" | "signup";
 
@@ -125,7 +126,7 @@ function SocialAuthButton({ provider, mode, redirectTo }: SocialAuthButtonProps)
         return;
       case "error":
         hapticError();
-        toast.error(result.message, { id: `social-auth-${provider}` });
+        toast.error(userFacingError(result, `Couldn't sign in with ${provider} — try again?`), { id: `social-auth-${provider}` });
         setLoading(false);
         return;
     }

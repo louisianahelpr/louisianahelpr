@@ -20,6 +20,7 @@ import { toneTextClasses } from "@/components/admin/tones";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { cn } from "@/lib/utils";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
+import { userFacingError } from "@/lib/userFacingError";
 
 interface Broadcast {
   id: string;
@@ -147,7 +148,7 @@ const AdminBroadcasts = () => {
       // Rate-limit error from the BEFORE INSERT trigger has a clear
       // human message; surface it directly.
       report(error, { tags: { source: "AdminBroadcasts.create" } });
-      toast.error(error.message);
+      toast.error(userFacingError(error, "Couldn't send that broadcast — try again"));
       return;
     }
 

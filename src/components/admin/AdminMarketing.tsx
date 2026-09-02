@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Send, Users, AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { userFacingError } from "@/lib/userFacingError";
 
 type Segment = "all" | "helpers" | "posters" | "by_parish";
 
@@ -76,7 +77,7 @@ const AdminMarketing = () => {
       if (error) throw error;
       setLastResult({ sent: data?.sent ?? 0, failed: data?.failed ?? 0, total: data?.total ?? 0 });
     } catch (e: any) {
-      toast.error(e.message || "Send failed");
+      toast.error(userFacingError(e, "Send failed"));
     } finally {
       setSending(false);
     }

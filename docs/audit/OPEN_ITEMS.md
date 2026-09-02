@@ -30,6 +30,46 @@ job card) would move to the top of §1 if it holds; settle it first.
 > places. It is the largest coherent block of work in this document.
 
 
+## STATUS STAMP — 2026-09-02 16:45, pre-flight reconcile before the 35-lane fleet
+
+**Read this stamp before the one below it; this is the current state.**
+
+Reconciled against `git log 25c19faf..origin/main -- src/ supabase/` — **14
+commits** the previous stamp did not know about. None of them REOPENS anything
+in the tables below. They divide into two groups, and the second group is the
+reason this reconcile exists at all.
+
+**A. Work that closed things not on any list — DO NOT RE-DERIVE THESE.**
+Every one was found, fixed, gated and deployed today, and none appears in §1–§4.
+A lane that files any of them is re-deriving closed work, which is exactly the
+failure mode that makes an audit look productive and change nothing:
+
+| Landed | What it closed |
+|---|---|
+| `27ead0dd` | **SI-012.** Account deletion anonymises rather than deletes (`20260901033011`), so `jobs.customer_id`, `jobs.location`, `latitude`, `longitude`, `reviews.reviewer_id` and `disputes.opener_id` are all nullable in prod while `status` is deliberately preserved. 25 type errors across 17 surfaces, all fixed. |
+| `b9ac21f8` | Onboarding tour reappeared on every relaunch — it read completion state before Capacitor Preferences hydrated. Rescued from an abandoned worktree; had been unmerged since 08-30. |
+| `d6461931` | **A guest keystroke emptied the public `/jobs` board.** Unguarded `.location.toLowerCase()` inside a `.filter()` predicate on the only unauthenticated surface. Also an empty location chip rendering `href="" target="_blank"` (opens a new window at the current URL), a fourth unfiltered review surface, and the `"User"`/`"a neighbor"` fallback split. |
+| `9982f028` | Ownership predicate added to `get_ranked_open_jobs`, `get_open_jobs_for_map`, `get_public_open_jobs`. `20260902152714` had patched only the `open_jobs_browse` VIEW and its comment falsely claimed the feed and map inherited the rule — they are SECURITY DEFINER RPCs reading `public.jobs` directly and mention the view only in comments. |
+| `61b9f2f7` | Landing teaser was missing BOTH the funding gate and the seed switch. It never referenced `is_seed`, so flipping `seed_jobs_hidden_publicly()` at launch would have silenced every other surface while the marketing page kept advertising fixture jobs. |
+| `ed8ebbad` | Root cause of the above: `SEED_GATED_SURFACES` omitted the teaser, and the parity test only checks surfaces IN that list — so it passed vacuously. Surfaces are now discovered from the migrations and diffed against the registry. |
+| `614d4a1d` | Money columns reject negative amounts — CHECK constraints validated rather than `NOT VALID`. |
+
+**B. Work from other lanes/PRs, already gated and green:**
+`28b09dfe` ux-friction toasts + haptics (#1526) · `a583c00b` money-formatting and
+pluralization consistency (#1507) · `3de4022b` signup avatar dual-label (#1503) ·
+`4e36b209` WCAG 2AA dark-mode contrast across badge/index.css/QuickApply ·
+`f201bd3d` user-documents policy made replay-safe · `51f57500` merge.
+
+**Standing facts for every lane, verified live at reconcile time:**
+- Prod has **0 real (non-seed) open jobs** and **0 anonymised jobs** —
+  `customer_id IS NULL` count is zero. SI-012 is armed, not fired.
+- `seed_jobs_hidden_publicly()` is **false**, so fixture jobs are visible on
+  purpose. That is not a defect; it is the pre-launch position of the switch.
+- `supabase/.temp/project-ref` points at **staging**. Pass the prod ref
+  (`fncmgoasalhdgfwzhsqa`) explicitly or you will audit the wrong database.
+- Stripe keys are LIVE. **No lane transacts.** Reaching a real-money path is a
+  finding to file, not an action to take.
+
 ## STATUS STAMP — 2026-09-02, after the ten-lane fix pass
 
 **This document is a snapshot of what was open when it was compiled, and most of

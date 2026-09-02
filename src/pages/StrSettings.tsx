@@ -29,6 +29,7 @@ import type { AddFormState, StrConnection } from "./strSettings/types";
 import { cardStyle } from "./strSettings/strSettingsHelpers";
 import { ConnectionCard } from "./strSettings/ConnectionCard";
 import { AddCalendarForm, validateCleaningBudget } from "./strSettings/AddCalendarForm";
+import { userFacingError } from "@/lib/userFacingError";
 
 // ---------------------------------------------------------------------------
 // Main page
@@ -127,7 +128,7 @@ export default function StrSettings() {
       queryClient.invalidateQueries({ queryKey: ["str-calendar-connections"] });
     },
     onError: (err: Error) => {
-      toast.error(err.message ?? "Couldn't connect your calendar — try again?");
+      toast.error(userFacingError(err, "Couldn't connect your calendar — try again?"));
     },
   });
 

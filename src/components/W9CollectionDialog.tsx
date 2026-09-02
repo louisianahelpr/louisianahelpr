@@ -13,6 +13,7 @@ import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { toast } from "sonner";
+import { userFacingError } from "@/lib/userFacingError";
 
 interface Props {
   open: boolean;
@@ -77,7 +78,7 @@ const W9CollectionDialog = ({ open, onOpenChange, jobId, helperId, businessId, o
       if (err?.code === "42P01" || err?.code === "PGRST204") {
         toast.error("W-9 records table not yet deployed — your acceptance is recorded but the signature wasn't.");
       } else {
-        toast.error(err.message || "We couldn't record that signature — try again.");
+        toast.error(userFacingError(err, "We couldn't record that signature — try again."));
       }
     } finally {
       setSubmitting(false);

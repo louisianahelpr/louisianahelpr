@@ -23,6 +23,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
+import { userFacingError } from "@/lib/userFacingError";
 
 interface PendingRow {
   user_id: string;
@@ -87,7 +88,7 @@ const AdminCredentialQueue = () => {
     setBusy(null);
     if (error) {
       report(error, { tags: { source: "AdminCredentialQueue.decide", decision, credential } });
-      toast.error(error.message);
+      toast.error(userFacingError(error, "Couldn't update that credential — try again"));
       return;
     }
     qc.invalidateQueries({ queryKey });

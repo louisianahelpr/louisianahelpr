@@ -23,6 +23,7 @@ import {
 import { SignupStep1 } from "./signup/SignupStep1";
 import { SignupStep2 } from "./signup/SignupStep2";
 import { getPublicOrigin } from "@/lib/authRedirects";
+import { userFacingError } from "@/lib/userFacingError";
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -396,7 +397,7 @@ const Signup = () => {
       // strand a HALF-CREATED account (auth user exists, profile incomplete)
       // with a 4-second toast as the only evidence. Observed live 2026-08-24.
       report(err, { tags: { source: "Signup.createAccountAndFinish" } });
-      toast.error(err.message || "Couldn't create your account — try again?");
+      toast.error(userFacingError(err, "Couldn't create your account — try again?"));
     } finally {
       setLoading(false);
     }

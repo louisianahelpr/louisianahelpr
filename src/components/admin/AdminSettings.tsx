@@ -586,7 +586,7 @@ const AdminSettings = () => {
                 screen also carries the support address. Stated here, next to
                 the control, because this is the moment an operator can still
                 decide not to. */}
-            <span className="text-ds-11" style={{ color: "hsl(var(--destructive))" }}>
+            <span className="text-ds-11 text-destructive">
               Before setting this above 0, confirm the App Store listing actually
               loads — as of 2026-09-01 the link the block screen sends people to
               returns a 404, which would make the block a dead end. The screen also

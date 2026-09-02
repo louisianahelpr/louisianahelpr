@@ -81,10 +81,16 @@ for (const [section, allowed] of Object.entries(ALLOWED)) {
 }
 
 if (problems.length > 0) {
-  console.error(`\n✖ ${FILE} would be REJECTED by Vercel before the build starts.\n`);
+  console.error(
+    `\n✖ ${FILE} PARSES AS VALID JSON BUT IS INVALID CONFIG.\n` +
+      "  Vercel will reject it before the build starts.\n",
+  );
   for (const p of problems) console.error(`    at ${p}`);
   console.error(
-    "\n  Vercel validates this file on its own side, so this failure does NOT show up\n" +
+    "\n  If you checked this file by parsing it, or by confirming the other blocks\n" +
+      "  survived, that is the check that failed all three times. A file can parse\n" +
+      "  perfectly and still be rejected — parsing is not validation.\n" +
+      "\n  Vercel validates this file on its own side, so this failure does NOT show up\n" +
       "  as a red check on GitHub — the deploy just never runs and production keeps\n" +
       "  serving the previous build. This has happened three times.\n\n" +
       "  JSON has no comments and Vercel allows no stand-in key. Put the explanation\n" +

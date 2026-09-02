@@ -236,7 +236,17 @@ export function JobCardMetaRow({
       <div className="job-meta-row flex items-center gap-x-2 min-[360px]:gap-x-3 sm:gap-x-5 flex-nowrap min-w-0 flex-1 overflow-hidden">
       {/* Location → date → time, matching the home feed ("Browse Tasks")
           card order so the two surfaces read consistently. */}
-      {locationPressToMap ? (
+      {/* NO ADDRESS → NO CHIP. `location` is "" for a job whose poster deleted
+          their account (20260901033011 nulls it, and the callers coalesce).
+          Neither branch below tolerated that: `getCity("")` is "", so the chip
+          rendered as a bare pin with no text, its `aria-label` read
+          " — tap to expand this job", and — worse — `mapsSearchUrl("")` is "",
+          so the link branch shipped `href="" target="_blank"`, which opens a
+          NEW WINDOW AT THE CURRENT URL. In the native shell that is a second
+          WKWebView reloading the whole app. Two sibling surfaces
+          (ScheduleTab, CompactJobCard) already drop the chip in this state;
+          this makes the third agree. */}
+      {city && (locationPressToMap ? (
         /* PRESS-TO-MAP. See `locationPressToMap` on the props for why.
 
            A <button>, not an <a>: the primary action of this control is now
@@ -347,7 +357,7 @@ export function JobCardMetaRow({
           <MapPin className="w-3 h-3 shrink-0" />
           <span className="truncate">{city}</span>
         </a>
-      )}
+      ))}
       <span className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
         <Calendar className="w-3 h-3 shrink-0" />
         {formatJobDate(dateNeeded)}

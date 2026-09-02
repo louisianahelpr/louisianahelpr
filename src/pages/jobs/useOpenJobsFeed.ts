@@ -121,10 +121,17 @@ export const useOpenJobsFeed = ({
     const list = jobs.filter((job) => {
       // Hide jobs that have expired in real-time (between fetches)
       if (job.expires_at && new Date(job.expires_at) <= now) return false;
+      // `location` is null once the poster deletes their account and the job is
+      // anonymised (20260901033011) — and `pages/jobs/types.ts` declares it
+      // `string`, so the compiler cannot see this. THIS surface is the public,
+      // unauthenticated /jobs board fed by `get_ranked_open_jobs`, so an
+      // unguarded null here is not a bad card: it throws inside a filter
+      // predicate and the entire public job board disappears behind the error
+      // boundary, for a guest, after one keystroke in the search box.
       const matchesSearch =
         !search ||
         job.title.toLowerCase().includes(search.toLowerCase()) ||
-        job.location.toLowerCase().includes(search.toLowerCase());
+        (job.location?.toLowerCase().includes(search.toLowerCase()) ?? false);
       if (!matchesSearch) return false;
       if (selectedCategory && job.category !== selectedCategory) return false;
       // No pricing-style filter any more: bidding was removed after zero

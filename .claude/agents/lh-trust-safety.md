@@ -103,6 +103,21 @@ that keep people safe from each other -- and keep the platform from being routed
 - Can a review be edited or deleted after the fact, and by whom? Can rating be gamed by
   repeated post-and-cancel cycles between two colluding accounts?
 
+
+### Saved Helprs — the surface no lane named
+
+`?tab=saved_helpers`, `/saved-helpers`, and `entry:offer-saved-helpr` were named
+by ZERO lane definition. Saving a helper is a trust relationship and it feeds a
+money path (the direct offer starts a job for exactly one person), so it belongs
+here. Verify: who may save whom; whether a saved helper who was later BANNED,
+suspended or deleted still appears and is still offerable; whether the offer
+respects blocks in either direction; and whether the list leaks anything about
+a helper the viewer could not otherwise see.
+
+Also yours, and previously owned only incidentally: **`/user/:userId`**, the
+public profile. `lh-seo-web` covers its meta tags. Nobody covered what it
+discloses.
+
 ## Messaging safety and disintermediation
 
 This is a direct revenue and safety risk and it is easy to miss.

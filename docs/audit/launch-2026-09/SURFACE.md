@@ -19,7 +19,7 @@ reports coverage against THIS file, not against the route list.
 | `?tab=` variants | variant | 23 |
 | `?view=` variants | variant | 24 |
 | Overlay surfaces | **instance** | 139 |
-| — of which hand-rolled, no dialog primitive | instance | 6 |
+| — of which hand-rolled, no dialog primitive | instance | 9 |
 | Toast messages | **call site** | 521 (across 135 files) |
 | Multi-step flows — confirmed | flow | 12 |
 | Multi-step flows — probable | flow | 18 |

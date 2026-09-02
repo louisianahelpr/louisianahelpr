@@ -129,6 +129,31 @@ Stripe API call, webhook, connected-account payout -- rather than pattern-matchi
 - Refund, partial refund, chargeback evidence collection -- coordinate with
   `lh-admin-moderation`, who owns the admin-side workflow.
 
+
+### Surfaces that were nobody's until 2026-09-02 — these are YOURS
+
+The coverage table was green on both of these because it maps surface CLASSES
+to lanes; no lane's scope actually contained them.
+
+- **`/payment-success` — the Stripe checkout RETURN page.** `lh-native-bridge`
+  named it, but it owns the native handoff (the `helpr:///` bounce), not what
+  this page ASSERTS about the money. Verify: what it claims when the webhook
+  has not landed yet; what it claims on a duplicate/replayed return; whether a
+  poster can reach it without a real payment; whether it can ever report
+  success for a charge that failed.
+- **`?tab=earnings` / `?tab=payment` (Earnings & Payouts).** The screen a helper
+  reads to learn what they are owed. Only `lh-subscriptions-credits` brushed it.
+  Verify every figure against the ledger, not against another view of itself:
+  pending vs available vs paid, escrow still held, platform fee already taken,
+  refunded and disputed jobs, and what it shows before any payout account
+  exists.
+- **`entry:repost` and `entry:offer-saved-helpr`** on the post-a-job screen.
+  Repost reuses the `?rebook=<id>` deep link and the file's own comment warns a
+  prior version "spent no gift and charged full price" — confirm what price,
+  gift-card balance and PIF credit a repost actually applies today. The direct
+  offer is a job created for one named helper; confirm it prices and escrows
+  identically to an open post.
+
 ## The write-safety rule -- most likely single source of a money bug here
 
 **A null `error` does NOT mean the write happened.** An UPDATE or DELETE matching zero

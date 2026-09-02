@@ -252,9 +252,18 @@ serve(async (req) => {
         return (count ?? 0) > 0;
       };
 
+      // `surface` is the page that can actually WRITE the review this nag is
+      // asking for, and the two sides are different pages:
+      //   * the poster reviews their helper from a My Posts card
+      //     (PostedJobsTab -> onReview -> ActivityDialogs' "Poster reviewing
+      //     helper" ReviewForm), and
+      //   * the helper reviews the poster from a My Jobs card
+      //     (AppliedJobsTab -> onHelperReview -> the sibling ReviewForm).
+      // Both routes parse `?job=` (src/pages/Activity.tsx) and open on the
+      // right bucket for that job.
       for (const party of [
-        { user_id: job.customer_id, reviewing: "your helper" },
-        { user_id: job.helper_id, reviewing: "the customer" },
+        { user_id: job.customer_id, reviewing: "your helper", surface: "/my-posts" },
+        { user_id: job.helper_id, reviewing: "the customer", surface: "/my-jobs" },
       ]) {
         if (!party.user_id) continue;
         if (reviewedBy.has(party.user_id)) continue;
@@ -266,7 +275,19 @@ serve(async (req) => {
         const message = `Take 30 seconds to rate ${party.reviewing} for "${job.title}". Reviews help the next ${
           party.reviewing.includes("helper") ? "helper" : "customer"
         } feel safe choosing.`;
-        const link = `/profile?tab=reviews&job=${job.id}`;
+        // Every nag used to point at `/profile?tab=reviews&job=<id>`. That page
+        // is READ-ONLY — it lists reviews RECEIVED — and Profile.tsx never
+        // reads `?job=` at all, so the id was inert. So a notification whose
+        // entire ask is "take 30 seconds to rate your helper" landed the reader
+        // on a screen with no way to rate anyone, twice per job, and the
+        // clearer the copy got the more it lied.
+        //
+        // The `job=` param SHAPE is load-bearing and deliberately unchanged:
+        // the dedupe count below matches on `%job=<id>%`, and
+        // notification_job_id_from_link() (20260901035600) fills
+        // notifications.job_id off the same `[?&]job=` anchor — from which
+        // notificationDestination() re-derives the live bucket at tap time.
+        const link = `${party.surface}?job=${job.id}`;
 
         // `.select("id")` + a zero-row branch. A null `error` does NOT mean the
         // row exists, and `nags_sent++` below asserts that it does — the same

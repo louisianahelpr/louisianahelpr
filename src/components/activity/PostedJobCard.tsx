@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, RotateCcw, RefreshCw, Clock, Check, MapPinOff } from "lucide-react";
@@ -18,6 +18,7 @@ import { type PostedJobCardProps } from "./postedJobCard/types";
 import { PostedJobApplicants } from "./postedJobCard/PostedJobApplicants";
 import { PostedJobActions } from "./postedJobCard/PostedJobActions";
 import { JOB_ACTION_FULL_CLASS, jobActionChipStyle } from "./JobActionRow";
+import { useHighlightPulse } from "./useHighlightPulse";
 
 /**
  * PostedJobCard — one card in the poster's "my posts" feed: the job
@@ -30,6 +31,7 @@ import { JOB_ACTION_FULL_CLASS, jobActionChipStyle } from "./JobActionRow";
  */
 function PostedJobCardInner({
   job,
+  highlight = false,
   applicantCounts,
   expandedJobIds,
   toggleExpandedJobId,
@@ -68,6 +70,10 @@ function PostedJobCardInner({
 
 }: PostedJobCardProps) {
   const navigate = useNavigate();
+  const cardRef = useRef<HTMLDivElement>(null);
+  // Deep-link target: scroll here and pulse once. Same hook the applied card
+  // uses — see src/components/activity/useHighlightPulse.ts.
+  useHighlightPulse(highlight, cardRef);
 
   // `isFullyCompleted` used to live here and gated two things: whether the
   // card was expandable at all, and whether the collapsed-only Re-Post button
@@ -200,6 +206,7 @@ function PostedJobCardInner({
   );
 
   return (
+        <div ref={cardRef}>
           <JobCardShell
             // EVERY card expands now, not just the ones with a description or
             // an archived-completed summary. A posted card opens collapsed
@@ -693,6 +700,7 @@ function PostedJobCardInner({
             </div>
             )}
           </JobCardShell>
+        </div>
   );
 }
 

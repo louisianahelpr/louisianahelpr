@@ -230,6 +230,15 @@ const Messages = () => {
     setMessages,
     scrollToBottom,
     patchConversationForMessage,
+    // Backfill the outage. The realtime channel is the only thing that
+    // delivers an inbound message, so anything sent while it was down exists
+    // only in the database — reconnecting alone would leave a silent hole in
+    // the middle of the thread. Refresh both surfaces: the open thread, and
+    // the inbox whose previews and unread counts are just as stale.
+    onRecovered: () => {
+      if (userId) void loadConversations(userId);
+      void refreshActiveThread();
+    },
   });
 
   // Hide a conversation from this user's inbox.

@@ -4,7 +4,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { signOutWithPushCleanup } from "@/lib/authSignOut";
-import { channelNonce } from "@/lib/realtimeChannel";
+import { subscribeWithRecovery } from "@/lib/realtimeRecovery";
 import { lazy, Suspense } from "react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import AdminSidebar from "@/components/admin/AdminSidebar";
@@ -370,13 +370,15 @@ const Admin = () => {
     // user-scoped per the realtime rule), the admin dashboard's whole job is
     // to reflect platform-wide activity, so it watches every write to these
     // tables. The debounce above keeps the resulting reload burst sane.
-    const channel = supabase
-      .channel(`admin-realtime-${channelNonce()}`)
+    const sub = subscribeWithRecovery(
+      (name) => supabase
+      .channel(name)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, debouncedReload)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, debouncedReload)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, debouncedReload)
-      .subscribe();
-    return () => { if (debounce) clearTimeout(debounce); supabase.removeChannel(channel); };
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, debouncedReload),
+      { name: "admin-realtime", onRecovered: debouncedReload },
+    );
+    return () => { if (debounce) clearTimeout(debounce); sub.close(); };
   }, [loading, activeWindowDays]);
 
   useEffect(() => {

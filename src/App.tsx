@@ -4,6 +4,8 @@ import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-route
 // Static, not lazy: it renders a <Navigate> and nothing else, so a code-split
 // chunk (and a Suspense frame) would cost more than the component.
 import ActivityLegacyRedirect from "./pages/ActivityLegacyRedirect";
+// Same rationale: a <Navigate> wrapper, statically imported.
+import ShortLinkRedirect from "./pages/ShortLinkRedirect";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { Analytics } from "@vercel/analytics/react";
 
@@ -287,6 +289,23 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           /jobs/{id}?ref=share) land here: guests get a read-only preview,
           signed-in users are redirected into the dashboard apply flow. */}
       <Route path="/jobs/:id" element={<RouteErrorBoundary>{routeEl(<PageTransition><JobDetail /></PageTransition>)}</RouteErrorBoundary>} />
+      {/* SHORT / ALTERNATE LINK SHAPES — the web half of the AASA contract.
+          All five are claimed in public/.well-known/apple-app-site-association
+          and mapped by normalizeDeepLinkUrl, but only INSIDE the app. On the
+          web they fell through to `path="*"` and rendered NotFound — i.e. the
+          one visitor a short link exists for (someone without the app) got a
+          404. ShortLinkRedirect replays the same normalizer, so the two halves
+          cannot drift; src/test/aasaRouteParity.test.ts pins that. */}
+      <Route path="/j/:id" element={<ShortLinkRedirect />} />
+      <Route path="/u/:id" element={<ShortLinkRedirect />} />
+      <Route path="/m/:id" element={<ShortLinkRedirect />} />
+      <Route path="/messages/:id" element={<ShortLinkRedirect />} />
+      <Route path="/post-job/*" element={<ShortLinkRedirect />} />
+      {/* `/legal/*` is the same defect and was not in the original count: it is
+          claimed, it is normalized to /legal?tab=:tab, and there was no
+          /legal/:tab route — so a shared …/legal/terms 404'd on the web while
+          /terms and /privacy (which ARE routes) worked. */}
+      <Route path="/legal/:tab" element={<ShortLinkRedirect />} />
       {/* Guest "home dashboard" — what iOS native users see before signing up.
           Mirrors /dashboard's chrome and JobCard rendering, but every action
           routes to /signup. Public web visitors can hit it too if they want

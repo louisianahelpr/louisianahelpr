@@ -5,7 +5,7 @@ import {
   registerServiceWorker,
   getPushPermission,
 } from "@/lib/pushNotifications";
-import { channelNonce } from "@/lib/realtimeChannel";
+import { subscribeWithRecovery } from "@/lib/realtimeRecovery";
 
 /**
  * Listens for new notifications via Supabase Realtime and triggers
@@ -23,8 +23,13 @@ export function useRealtimePush(userId: string | null) {
       swRegistered.current = true;
     }
 
-    const channel = supabase
-      .channel(`push-notifications-${userId}-${channelNonce()}`)
+    // No onRecovered: this hook only RAISES a browser notification for a row
+    // as it arrives. Replaying the outage's rows as notifications would fire a
+    // burst of alerts for things the user has since seen in the panel, which is
+    // worse than the gap. NotificationPanel's own channel backfills the list.
+    const sub = subscribeWithRecovery(
+      (name) => supabase
+      .channel(name)
       .on(
         "postgres_changes",
         {
@@ -58,11 +63,12 @@ export function useRealtimePush(userId: string | null) {
             );
           }
         }
-      )
-      .subscribe();
+      ),
+      { name: `push-notifications-${userId}` },
+    );
 
     return () => {
-      supabase.removeChannel(channel);
+      sub.close();
     };
   }, [userId]);
 }

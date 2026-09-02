@@ -3,7 +3,7 @@ import type { MouseEvent as ReactMouseEvent, CSSProperties } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { unwrapMutation, isWriteRejected, mutationErrorMessage } from "@/lib/mutationResult";
-import { channelNonce } from "@/lib/realtimeChannel";
+import { subscribeWithRecovery } from "@/lib/realtimeRecovery";
 import { Button } from "@/components/ui/button";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { COPY_AUTO_RELEASE_HOURS } from "../../supabase/functions/_shared/escrowTiming";
@@ -571,8 +571,9 @@ export function JobTracking({
     // the realtime channel below still patches live updates after mount.
     if (initialTracking === undefined) loadTracking();
 
-    const channel = supabase
-      .channel(`tracking-${jobId}-${channelNonce()}`)
+    const sub = subscribeWithRecovery(
+      (name) => supabase
+      .channel(name)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "job_tracking", filter: `job_id=eq.${jobId}` },
@@ -600,10 +601,15 @@ export function JobTracking({
             }));
           }
         }
-      )
-      .subscribe();
+      ),
+      // The tracker is a progress bar driven ENTIRELY by other people's writes.
+      // A dead channel freezes it mid-job on a step that has already been
+      // passed, which reads as "the helper has stopped" rather than "we lost
+      // the socket" — so re-read the row the moment we are back.
+      { name: `tracking-${jobId}`, onRecovered: () => void loadTracking() },
+    );
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { sub.close(); };
     // `initialTracking` is read once when the effect runs to decide whether
     // to skip the fallback fetch. Subsequent prop changes flow through the
     // sync-effect above, not here — so it intentionally stays out of deps.

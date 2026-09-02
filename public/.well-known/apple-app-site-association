@@ -35,10 +35,12 @@
           "/payment-success",
           "/signup",
           "/login",
+          "/forgot-password",
           "/support",
           "/help",
           "/legal",
-          "/legal/*"
+          "/legal/*",
+          "/rules"
         ],
         "components": [
           {
@@ -92,10 +94,12 @@
           { "/": "/payment-success", "comment": "Stripe return landing, also linked from receipt email. (An in-app Stripe return uses the helpr:// scheme instead — iOS will not re-enter an app from a universal link opened inside that app's own SFSafariViewController; see src/lib/nativeReturnBounce.ts.)" },
           { "/": "/signup", "comment": "Referral growth link — /signup?ref=<code>. The one path here whose whole purpose is being tapped by someone who may not have the app; if they do have it, it should open there." },
           { "/": "/login", "comment": "Sign-in, including the ?redirect= form ProtectedRoute builds when it bounces a signed-out deep link." },
+          { "/": "/forgot-password", "comment": "A real route (App.tsx) that was never claimed. It is the SAFE half of the password-reset pair: /reset-password is excluded above because its session rides in the fragment and nothing on the native path calls setSession(), but /forgot-password carries no session at all — it is a bare email form. Someone who has the app and taps 'forgot password' from a support reply or a bookmarked link should land in the app, not bounce to Safari and then have to sign in twice." },
           { "/": "/support", "comment": "Contact form — reachable signed-out, and the only route to a human for a pending/denied/banned account." },
           { "/": "/help", "comment": "Help Center — linked from transactional email footers." },
           { "/": "/legal", "comment": "Legal — terms/privacy/community." },
-          { "/": "/legal/*", "comment": "Legal sub-tabs — mapped to /legal?tab=:tab." }
+          { "/": "/legal/*", "comment": "Legal sub-tabs — mapped to /legal?tab=:tab." },
+          { "/": "/rules", "comment": "Community rules. Claimed for the same reason /legal is: it is a policy document we link from moderation email, warnings and the report flow, and App.tsx redirects it to /legal?tab=community. Unclaimed it was the one policy link of the set that opened Safari while its siblings opened the app." }
         ]
       }
     ]

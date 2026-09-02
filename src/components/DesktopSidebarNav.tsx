@@ -14,7 +14,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { channelNonce } from "@/lib/realtimeChannel";
+import { subscribeWithRecovery } from "@/lib/realtimeRecovery";
 import { getBlockedUserIds } from "@/lib/userBlocks";
 import { isArchived, ARCHIVE_CHANGED_EVENT } from "@/lib/archivedConversations";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -149,18 +149,20 @@ const DesktopSidebarNav = () => {
       setUnreadCount(next);
     };
     loadCounts();
-    const channel = supabase
-      .channel(`unread-sidebar-${user.id}-${channelNonce()}`)
+    const sub = subscribeWithRecovery(
+      (name) => supabase
+      .channel(name)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "messages", filter: `receiver_id=eq.${user.id}` },
         () => loadCounts(),
-      )
-      .subscribe();
+      ),
+      { name: `unread-sidebar-${user.id}`, onRecovered: () => void loadCounts() },
+    );
     const onArchiveChanged = () => loadCounts();
     window.addEventListener(ARCHIVE_CHANGED_EVENT, onArchiveChanged);
     return () => {
-      supabase.removeChannel(channel);
+      sub.close();
       window.removeEventListener(ARCHIVE_CHANGED_EVENT, onArchiveChanged);
     };
   }, [user?.id, isWebDesktop]);

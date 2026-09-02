@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
-import { channelNonce } from "@/lib/realtimeChannel";
+import { subscribeWithRecovery } from "@/lib/realtimeRecovery";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -196,18 +196,23 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
     // MUST carry a user-scoped server-side `filter` per the realtime rule — this
     // is the admin notification-log viewer, whose whole purpose is to reflect
     // EVERY notification the platform sends. Scoping it to one user would defeat
-    // the feature. The `channelNonce()` still gives it a unique channel name so
+    // the feature. subscribeWithRecovery still gives it a unique channel name so
     // Supabase doesn't dedupe it against another admin channel, and the
     // `page === 0` guard keeps the invalidation burst sane.
-    const ch = supabase
-      .channel(`admin-notification-logs-${channelNonce()}`)
+    const sub = subscribeWithRecovery(
+      (name) => supabase
+      .channel(name)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "notification_logs" }, () => {
         // Prefix invalidate — matches every (adminId, filters) variant
         // currently cached for this admin's session.
         if (page === 0) qc.invalidateQueries({ queryKey: queryKeys.admin.notificationLogsAll });
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
+      }),
+      {
+        name: "admin-notification-logs",
+        onRecovered: () => qc.invalidateQueries({ queryKey: queryKeys.admin.notificationLogsAll }),
+      },
+    );
+    return () => { sub.close(); };
   }, [page, qc]);
 
   const filtered = useMemo(() => {

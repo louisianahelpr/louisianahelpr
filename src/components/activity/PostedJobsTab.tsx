@@ -21,6 +21,12 @@ import { ApplicantsPanel } from "./postedJobs/ApplicantsPanel";
 
 interface PostedJobsTabProps {
   jobs: Job[];
+  /**
+   * Job id a `?job=` deep link resolved to, or null. Mirrors
+   * AppliedJobsTab's `highlightAppId` — the poster side had no equivalent, so
+   * the notification that says "your job X" landed on an unmarked list.
+   */
+  highlightJobId?: string | null;
   applicantCounts: Record<string, number>;
   expandedJobIds: Set<string>;
   toggleExpandedJobId: (id: string) => void;
@@ -248,7 +254,7 @@ function ListTail({
 }
 
 export const PostedJobsTab = ({
-  jobs, applicantCounts, expandedJobIds, toggleExpandedJobId,
+  jobs, highlightJobId, applicantCounts, expandedJobIds, toggleExpandedJobId,
   helperNames, completedJobMeta,
   latestTracking, groupHelpersByJob, userId,
   onBoost, onEdit, onCancel, onComplete, completingJobId,
@@ -316,6 +322,7 @@ export const PostedJobsTab = ({
     const card = (
       <PostedJobCard
         job={job}
+        highlight={!!highlightJobId && highlightJobId === job.id}
         applicantCounts={applicantCounts}
         expandedJobIds={expandedJobIds}
         toggleExpandedJobId={toggleExpandedJobId}

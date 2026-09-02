@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { channelNonce } from "@/lib/realtimeChannel";
+import { subscribeWithRecovery } from "@/lib/realtimeRecovery";
 import { safeStorage } from "@/lib/safeStorage";
 
 /**
@@ -128,8 +128,9 @@ export function useActivityBadgeCounts(userId: string | undefined): ActivityBadg
 
     loadCounts();
 
-    const channel = supabase
-      .channel(`nav-activity-badges-${userId}-${channelNonce()}`)
+    const sub = subscribeWithRecovery(
+      (name) => supabase
+      .channel(name)
       // postgres_changes filters are single-column and scoped per project
       // rule (no unfiltered `event: "*"`). The Jobs badge (direct offers to
       // me) updates live via the notifications INSERT below. The Posts
@@ -158,11 +159,12 @@ export function useActivityBadgeCounts(userId: string | undefined): ActivityBadg
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
         () => loadCounts(),
-      )
-      .subscribe();
+      ),
+      { name: `nav-activity-badges-${userId}`, onRecovered: loadCounts },
+    );
 
     return () => {
-      supabase.removeChannel(channel);
+      sub.close();
     };
   }, [userId]);
 

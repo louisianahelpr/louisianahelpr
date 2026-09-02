@@ -1,7 +1,8 @@
-import { useLayoutEffect, useRef } from "react";
-import { WifiOff } from "lucide-react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { WifiOff, RefreshCw } from "lucide-react";
 import { useOnlineStatus } from "@/lib/useOnlineStatus";
 import { useSetOfflineBannerOffset } from "@/lib/offlineBannerLayout";
+import { useRealtimeDegraded } from "@/lib/realtimeRecovery";
 
 /**
  * Global connectivity indicator. Reads from the shared `useOnlineStatus`
@@ -15,6 +16,21 @@ import { useSetOfflineBannerOffset } from "@/lib/offlineBannerLayout";
  *      copy. We do NOT promise an automatic retry because the app has
  *      no offline mutation queue — promising one is worse than saying
  *      nothing.
+ *   3. online, but every realtime channel is down → the same banner with
+ *      "live updates paused" copy. This one DOES promise a retry, because
+ *      unlike mutations there really is one: subscribeWithRecovery backs off
+ *      and reconnects, and refetches the gap when it lands.
+ *
+ * WHY STATE 3 EXISTS. A dropped realtime socket is the only failure in this
+ * app with no symptom at all — the page renders perfectly and just stops
+ * hearing about anyone else's writes, so a frozen unread badge and a quiet
+ * afternoon are indistinguishable. Being online is the assumed default, but
+ * "connected" is not the same claim as "up to date", and the screen was
+ * implying the second one. See src/lib/realtimeRecovery.ts.
+ *
+ * The grace period is deliberate: channels blip, and a banner that flashes on
+ * a two-second reconnect is worse than no banner, because it teaches people to
+ * ignore the one that matters.
  *
  * Layout: the banner is `position: fixed; top: 0` so it can paint over the
  * device notch. To stop it OVERLAYING / slicing the page header, it
@@ -29,12 +45,30 @@ import { useSetOfflineBannerOffset } from "@/lib/offlineBannerLayout";
  * `bg-[hsl(var(--burnt-sienna)/0.95)]` form so the variable resolves
  * at runtime.
  */
+/** How long a channel must stay down before we say anything. */
+const REALTIME_GRACE_MS = 6_000;
+
 const OfflineBanner = () => {
   const { online } = useOnlineStatus();
+  const realtimeDegraded = useRealtimeDegraded();
   const setOffset = useSetOfflineBannerOffset();
   const contentRef = useRef<HTMLDivElement | null>(null);
 
-  const visible = !online;
+  // Only surface realtime trouble once it has outlasted a normal blip.
+  const [staleForAWhile, setStaleForAWhile] = useState(false);
+  useEffect(() => {
+    if (!realtimeDegraded) {
+      setStaleForAWhile(false);
+      return;
+    }
+    const t = setTimeout(() => setStaleForAWhile(true), REALTIME_GRACE_MS);
+    return () => clearTimeout(t);
+  }, [realtimeDegraded]);
+
+  // Offline wins: it is the broader failure, and stacking two banners would
+  // double the reserved offset for one underlying cause.
+  const showStale = online && staleForAWhile;
+  const visible = !online || showStale;
 
   // Publish the content-row height so the shells reserve space for it.
   // Measured (not hard-coded) so a font-size / line-wrap change can't drift
@@ -80,8 +114,17 @@ const OfflineBanner = () => {
         ref={contentRef}
         className="text-ds-11 font-normal py-2 px-4 flex items-center justify-center gap-2"
       >
-        <WifiOff className="w-3.5 h-3.5" />
-        You're offline. Showing the last data we have.
+        {showStale ? (
+          <>
+            <RefreshCw className="w-3.5 h-3.5" />
+            Live updates paused. Reconnecting…
+          </>
+        ) : (
+          <>
+            <WifiOff className="w-3.5 h-3.5" />
+            You're offline. Showing the last data we have.
+          </>
+        )}
       </div>
     </div>
   );

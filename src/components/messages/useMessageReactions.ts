@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { channelNonce } from "@/lib/realtimeChannel";
+import { subscribeWithRecovery } from "@/lib/realtimeRecovery";
 import { report } from "@/lib/errorLogger";
 import { hapticLight } from "@/lib/haptics";
 
@@ -103,8 +103,9 @@ export function useMessageReactions(jobId: string | null, viewerId: string | nul
     if (!jobId) return;
     // channelNonce: Supabase dedupes channels BY NAME, so a reused name
     // silently drops the second subscription (see CLAUDE.md).
-    const channel = supabase
-      .channel(`message_reactions:${jobId}:${channelNonce()}`)
+    const sub = subscribeWithRecovery(
+      (name) => supabase
+      .channel(name)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "message_reactions", filter: `job_id=eq.${jobId}` },
@@ -129,9 +130,12 @@ export function useMessageReactions(jobId: string | null, viewerId: string | nul
             { messageId: next.message_id, userId: next.user_id, emoji: next.emoji },
           ]);
         },
-      )
-      .subscribe();
-    return () => { void supabase.removeChannel(channel); };
+      ),
+      // Reactions are pure server state with no local echo, so a missed INSERT
+      // is a reaction that never appears. Re-read the set on recovery.
+      { name: `message_reactions:${jobId}`, onRecovered: () => void load() },
+    );
+    return () => { sub.close(); };
   }, [jobId]);
 
   /**

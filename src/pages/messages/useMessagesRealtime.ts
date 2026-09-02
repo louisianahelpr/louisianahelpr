@@ -1,7 +1,7 @@
 import { report } from "@/lib/errorLogger";
 import { useEffect, type MutableRefObject } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { channelNonce } from "@/lib/realtimeChannel";
+import { subscribeWithRecovery } from "@/lib/realtimeRecovery";
 import type { Conversation, Message } from "@/components/messages/types";
 
 /**
@@ -12,7 +12,7 @@ import type { Conversation, Message } from "@/components/messages/types";
  * scale that broadcast firehose would dwarf actual relevant traffic.
  *
  * Extracted verbatim from Messages.tsx: the channel-name nonce
- * (`channelNonce()`), the per-listener server-side `filter`, and the
+ * (now minted per attempt by subscribeWithRecovery), the per-listener server-side `filter`, and the
  * userId-only dependency are all preserved exactly. The handlers read the
  * live `activeConvo` via `activeConvoRef` and call back into the page's
  * state setters so the channel stays mounted for the page's lifetime.
@@ -23,17 +23,30 @@ export function useMessagesRealtime({
   setMessages,
   scrollToBottom,
   patchConversationForMessage,
+  onRecovered,
 }: {
   userId: string | null;
   activeConvoRef: MutableRefObject<Conversation | null>;
   setMessages: (updater: (prev: Message[]) => Message[]) => void;
   scrollToBottom: (behavior?: ScrollBehavior) => void;
   patchConversationForMessage: (msg: Message) => void;
+  /**
+   * Re-read the inbox and the open thread after the channel comes back.
+   *
+   * REQUIRED, not optional. This channel is the ONLY delivery path for an
+   * inbound message — there is no poll behind it — so every message written
+   * during an outage is invisible until something refetches, and a reconnect
+   * on its own only restores messages sent from that second onward. A silent
+   * hole in a conversation is the worst version of this bug in the app, and an
+   * optional prop is a hole a future caller can reopen by omission.
+   */
+  onRecovered: () => void;
 }) {
   useEffect(() => {
     if (!userId) return;
-    const channel = supabase
-      .channel(`messages-realtime-${userId}-${channelNonce()}`)
+    const sub = subscribeWithRecovery(
+      (name) => supabase
+      .channel(name)
       .on(
         "postgres_changes",
         {
@@ -187,10 +200,11 @@ export function useMessagesRealtime({
           // open thread instead of lingering until the next refetch.
           setMessages((prev) => prev.filter((m) => m.id !== deletedId));
         },
-      )
-      .subscribe();
+      ),
+      { name: `messages-realtime-${userId}`, onRecovered },
+    );
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { sub.close(); };
     // Depends only on the stable `userId`: the channel is created once and
     // stays subscribed for the page's lifetime. The handlers read the live
     // `activeConvo` via `activeConvoRef` rather than a closed-over value,

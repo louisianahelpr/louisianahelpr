@@ -5,6 +5,14 @@ import { type Job, type EnrichedApplication } from "../activityConstants";
 export interface PostedJobCardProps {
   /** The job + its embedded data — one row of the posted feed. */
   job: Job;
+  /**
+   * True when a `?job=` deep link named THIS card. Scrolls it into view and
+   * pulses its ring once (useHighlightPulse) — the same treatment the helper's
+   * applied cards have always had. Without it a "someone applied to your job"
+   * notification dropped the poster on a list with the target card unmarked
+   * and, at five cards, usually off-screen.
+   */
+  highlight?: boolean;
   applicantCounts: Record<string, number>;
   expandedJobIds: Set<string>;
   toggleExpandedJobId: (id: string) => void;

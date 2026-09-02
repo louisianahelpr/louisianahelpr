@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { channelNonce } from "@/lib/realtimeChannel";
+import { subscribeWithRecovery } from "@/lib/realtimeRecovery";
 import { getBlockedUserIds } from "@/lib/userBlocks";
 import { isArchived, ARCHIVE_CHANGED_EVENT } from "@/lib/archivedConversations";
 import { setAppIconBadge } from "@/lib/appBadge";
@@ -15,7 +15,7 @@ import { readCachedUnread, writeCachedUnread } from "./mobileNavHelpers";
  * local archive-changed listener that recompute it, the native app-icon badge
  * mirror, and the best-effort mark-all-read action. Extracted verbatim from
  * MobileNav — hook call order, `useEffect` dep arrays, the realtime channel's
- * `filter` + `channelNonce()`, and the query's error handling are unchanged.
+ * `filter` + the per-attempt nonce, and the query's error handling are unchanged.
  */
 export function useNavUnreadCount(user: User | null | undefined) {
   // Seed the badge from the durable cache so a navigation/cold-start
@@ -77,16 +77,22 @@ export function useNavUnreadCount(user: User | null | undefined) {
 
     loadCounts();
 
-    const channel = supabase
-      // Nonce so a quick remount doesn't collide with the prior channel —
-      // Supabase dedupes by name and would silently drop the new sub.
-      .channel(`unread-nav-${user.id}-${channelNonce()}`)
+    const sub = subscribeWithRecovery(
+      // The nonce now comes from subscribeWithRecovery, which re-mints one on
+      // every reconnect attempt — same collision guarantee, plus a fresh name
+      // for the rebuilt channel.
+      (name) => supabase
+      .channel(name)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "messages", filter: `receiver_id=eq.${user.id}` },
         () => loadCounts()
-      )
-      .subscribe();
+      ),
+      // A frozen unread badge is the single most misleading stale surface in
+      // the app — it is the thing people check INSTEAD of opening Messages —
+      // so recount the moment the channel is back.
+      { name: `unread-nav-${user.id}`, onRecovered: () => void loadCounts() },
+    );
 
     // Archiving/unarchiving a thread changes which unread messages the badge
     // should count, but it's a local action with no `messages` write — so the
@@ -96,7 +102,7 @@ export function useNavUnreadCount(user: User | null | undefined) {
     window.addEventListener(ARCHIVE_CHANGED_EVENT, onArchiveChanged);
 
     return () => {
-      supabase.removeChannel(channel);
+      sub.close();
       window.removeEventListener(ARCHIVE_CHANGED_EVENT, onArchiveChanged);
     };
   }, [user?.id]);

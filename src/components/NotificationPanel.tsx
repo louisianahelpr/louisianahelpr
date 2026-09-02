@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState, useMemo, type KeyboardEvent as Reac
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
-import { channelNonce } from "@/lib/realtimeChannel";
+import { subscribeWithRecovery, type RecoveringSubscription } from "@/lib/realtimeRecovery";
 import { useReducedMotion } from "@/lib/accessibility";
 import { AlertTriangle, BellRing, CheckCheck } from "lucide-react";
 import {
@@ -147,18 +147,21 @@ const NotificationPanel = () => {
     // We resolve the userId upfront so we can pass a server-side filter,
     // scoping the postgres_changes subscription to only this user's rows
     // (avoids receiving every platform-wide notification INSERT).
-    let channel: ReturnType<typeof supabase.channel> | null = null;
+    let sub: RecoveringSubscription | null = null;
     // The session read is async — if the component unmounts before it
-    // resolves, the cleanup below has already run against a null `channel`
+    // resolves, the cleanup below has already run against a null `sub`
     // and the subscription would leak. The flag closes that race.
     let cancelled = false;
     supabase.auth.getSession().then(({ data: { session } }) => {
       const userId = session?.user?.id;
       if (!userId || cancelled) return;
-      channel = supabase
-        // Unique per mount — NotificationPanel renders in both the header
-        // and the admin shell, and a shared channel name would collide.
-        .channel(`notifications-realtime-${channelNonce()}`)
+      sub = subscribeWithRecovery(
+        // Still unique per mount — the nonce now comes from
+        // subscribeWithRecovery, which re-mints one per attempt.
+        // NotificationPanel renders in both the header and the admin shell,
+        // and a shared channel name would collide.
+        (name) => supabase
+        .channel(name)
         .on(
           "postgres_changes",
           { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
@@ -194,19 +197,26 @@ const NotificationPanel = () => {
               showLocalNotification(n.title, n.message, notificationDestination(n) ?? undefined);
             }
           },
-        )
-        .subscribe();
+        ),
+        {
+          name: "notifications-realtime",
+          // This channel is the bell's only live feed. A drop leaves the badge
+          // frozen on a count that is no longer true, so re-read the list
+          // rather than resuming from whatever arrives next.
+          onRecovered: () => void loadNotifications(),
+        },
+      );
       // Unmounted while subscribe was in flight — tear it down right away.
       if (cancelled) {
-        supabase.removeChannel(channel);
-        channel = null;
+        sub.close();
+        sub = null;
       }
     });
 
     return () => {
       clearTimeout(timer);
       cancelled = true;
-      if (channel) supabase.removeChannel(channel);
+      sub?.close();
     };
   }, []);
 

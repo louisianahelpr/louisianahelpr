@@ -100,6 +100,23 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     defaultTab === "applied" ? (searchParams.get("highlight") ?? null) : null,
   );
 
+  // The POSTER-side twin of `highlightAppId`.
+  //
+  // Both tabs get the same `?job=` link out of notificationDestination(), and
+  // only the applied branch below did anything visual with it: it resolved the
+  // bucket AND set `highlightAppId`, so the card scrolled into view and
+  // pulsed. The posted branch resolved the bucket and stopped — so "3 people
+  // applied to your job" dropped the poster on a list where the named job sat
+  // 4th of 5, unmarked and usually below the fold, and the reader had to
+  // re-find by title the job the notification had just named.
+  //
+  // Keyed by JOB id, not application id: on the posted tab the deep link's
+  // subject IS the job, and PostedJobCard is rendered one-per-job. Seeded from
+  // `?highlight=` too, so a posted-side link may name its target either way.
+  const [highlightJobId, setHighlightJobId] = useState<string | null>(() =>
+    defaultTab === "posted" ? (searchParams.get("highlight") ?? null) : null,
+  );
+
   // Deep-link to ONE JOB — `?job=<jobId>`.
   //
   // This is the param nearly every notification wants to send, and until now
@@ -165,11 +182,12 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   // and reads it; by the time the Effect fires the card scroll has
   // already been requested.
   useEffect(() => {
-    if (!highlightAppId) return;
+    if (!highlightAppId && !highlightJobId) return;
     const next = new URLSearchParams(searchParams);
     next.delete("highlight");
     setSearchParams(next, { replace: true });
-    // Run once on mount — highlightAppId is stable (useState initial value).
+    // Run once on mount — both ids are stable here (useState initial values;
+    // the posted branch's later setHighlightJobId cannot fire before this).
   }, []);
 
   // Mirror filter + search into the URL through the SHARED hook.
@@ -257,7 +275,10 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     // application; either identifies one card. Resolving is idempotent per
     // key, so a re-run for the SAME link is a no-op while a genuinely new one
     // (a second notification tapped without leaving the page) still resolves.
-    const deepLinkKey = deepLinkJobId ?? (highlightAppId ? `app:${highlightAppId}` : null);
+    const deepLinkKey =
+      deepLinkJobId ??
+      (highlightAppId ? `app:${highlightAppId}` : null) ??
+      (highlightJobId ? `job:${highlightJobId}` : null);
     if (!deepLinkKey) return;
     if (deepLinkResolvedFor.current === deepLinkKey) return;
     if (loading) return;
@@ -265,8 +286,15 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
 
     let bucket: string | null = null;
     if (tab === "posted") {
-      const job = deepLinkJobId ? postedJobs.find((j) => j.id === deepLinkJobId) : undefined;
-      if (job) bucket = postedActivityBucket(job, pendingApplicantCounts?.[job.id] ?? 0);
+      const job = deepLinkJobId
+        ? postedJobs.find((j) => j.id === deepLinkJobId)
+        : (highlightJobId ? postedJobs.find((j) => j.id === highlightJobId) : undefined);
+      if (job) {
+        bucket = postedActivityBucket(job, pendingApplicantCounts?.[job.id] ?? 0);
+        // Parity with the applied branch below: name the card, don't just pick
+        // the bucket it lives in.
+        if (!highlightJobId) setHighlightJobId(job.id);
+      }
     } else {
       // `?job=` names the JOB; `?highlight=` names the APPLICATION. Either one
       // identifies the same card on this tab.
@@ -545,6 +573,7 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
             <PostedJobsTab
               groupByStatus={statusFilter === "all"}
               jobs={filteredPostedJobs}
+              highlightJobId={highlightJobId}
               applicantCounts={applicantCounts}
               expandedJobIds={actions.expandedJobIds}
               toggleExpandedJobId={actions.toggleExpandedJobId}

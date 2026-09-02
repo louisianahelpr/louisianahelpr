@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { useAuthReady } from "@/hooks/useAuthReady";
-import { channelNonce } from "@/lib/realtimeChannel";
+import { subscribeWithRecovery, type RecoveringSubscription } from "@/lib/realtimeRecovery";
 import { queryKeys } from "@/lib/queryKeys";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
@@ -136,7 +136,7 @@ const fetchCurrentUser = async (
  */
 const ownProfileChannels = new Map<
   string,
-  { channel: ReturnType<typeof supabase.channel>; listeners: Set<() => void> }
+  { sub: RecoveringSubscription; listeners: Set<() => void> }
 >();
 
 function subscribeToOwnProfile(userId: string, onChange: () => void): () => void {
@@ -144,11 +144,13 @@ function subscribeToOwnProfile(userId: string, onChange: () => void): () => void
 
   if (!entry) {
     const listeners = new Set<() => void>();
-    // channelNonce() keeps this in lockstep with the rest of the codebase —
-    // a divergent inline impl would drift if the helper later picks up extra
-    // guarantees (monotonic suffix, instance counter) we'd want everywhere.
-    const channel = supabase
-      .channel(`profile-self-${userId}-${channelNonce()}`)
+    // subscribeWithRecovery keeps this in lockstep with the rest of the
+    // codebase — it owns the nonce (re-minted per reconnect attempt), the
+    // backoff, and the health reporting, so this registry can't drift from the
+    // hook-shaped call sites.
+    const sub = subscribeWithRecovery(
+      (name) => supabase
+      .channel(name)
       .on(
         "postgres_changes",
         {
@@ -161,9 +163,18 @@ function subscribeToOwnProfile(userId: string, onChange: () => void): () => void
           // Copy before iterating: a listener may unsubscribe on invalidation.
           for (const fn of [...listeners]) fn();
         },
-      )
-      .subscribe();
-    entry = { channel, listeners };
+      ),
+      {
+        name: `profile-self-${userId}`,
+        // The listeners are cache invalidations, so re-firing them all after an
+        // outage IS the backfill: whatever changed on the profile while the
+        // socket was down gets re-read on the next render.
+        onRecovered: () => {
+          for (const fn of [...listeners]) fn();
+        },
+      },
+    );
+    entry = { sub, listeners };
     ownProfileChannels.set(userId, entry);
   }
 
@@ -175,7 +186,7 @@ function subscribeToOwnProfile(userId: string, onChange: () => void): () => void
     current.listeners.delete(onChange);
     if (current.listeners.size === 0) {
       ownProfileChannels.delete(userId);
-      supabase.removeChannel(current.channel);
+      current.sub.close();
     }
   };
 }
@@ -206,7 +217,7 @@ export const useCurrentUser = (): CurrentUser => {
   // every mounted instance opened its own websocket channel against the SAME
   // profiles row with the SAME filter. A runtime capture on 2026-08-31 found
   // 13 channels open on /dashboard, 7 of them identical `profile-self-*`
-  // subscriptions (9 on /profile). channelNonce() made them all distinct, so
+  // subscriptions (9 on /profile). The per-subscription nonce made them all distinct, so
   // the "unique channel name" house rule technically held while the app quietly
   // burned 7-9x its share of Supabase's per-project concurrent-subscription
   // budget on every page load.

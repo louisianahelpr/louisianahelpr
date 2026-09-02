@@ -18,7 +18,7 @@ import { JobCardPhotoStrip } from "./JobCardPhotoStrip";
 import { SendReportCard } from "./PetReportCard";
 import { formatPrice, formatPriceFloor, formatShortDate, formatRecurrenceInterval } from "@/lib/format";
 import type { AppliedJobCardProps, ApplicationViewFields } from "./appliedJobCard/types";
-import { useHighlightPulse } from "./appliedJobCard/useHighlightPulse";
+import { useHighlightPulse } from "./useHighlightPulse";
 import { deriveAppliedJobCardState } from "./appliedJobCard/appliedJobCardHelpers";
 import { CancellationFeePill } from "./appliedJobCard/CancellationFeePill";
 import { PendingApplicationSection } from "./appliedJobCard/PendingApplicationSection";

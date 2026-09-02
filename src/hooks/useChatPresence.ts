@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
+import { subscribeWithRecovery } from "@/lib/realtimeRecovery";
 
 interface ChatPresenceProps {
   channelName: string;
@@ -29,36 +30,57 @@ export function useChatPresence({ channelName, userId, otherUserId }: ChatPresen
   useEffect(() => {
     if (!userId || !otherUserId) return;
 
-    const channel = supabase.channel(`presence-${channelName}`, {
-      config: { presence: { key: userId } },
-    });
-
-    channel
-      .on("presence", { event: "sync" }, () => {
-        const state = channel.presenceState();
-        setIsOtherOnline(!!state[otherUserId]);
-      })
-      .on("broadcast", { event: "typing" }, (payload) => {
-        if (payload.payload?.userId === otherUserId) {
-          setIsOtherTyping(true);
-          if (typingHideTimerRef.current) clearTimeout(typingHideTimerRef.current);
-          typingHideTimerRef.current = setTimeout(
-            () => setIsOtherTyping(false),
-            TYPING_HIDE_AFTER_MS,
-          );
-        }
-      })
-      .subscribe(async (status) => {
-        if (status === "SUBSCRIBED") {
-          channelRef.current = channel;
-          await channel.track({ online_at: new Date().toISOString() });
-        }
-      });
+    const sub = subscribeWithRecovery(
+      (name) => {
+        // `ch` is captured rather than read back off the subscription, because
+        // presenceState() is called from inside this channel's own handler —
+        // at which point the subscription object does not exist yet.
+        const ch = supabase.channel(name, {
+          config: { presence: { key: userId } },
+        });
+        return ch
+          .on("presence", { event: "sync" }, () => {
+            const state = ch.presenceState();
+            setIsOtherOnline(!!state[otherUserId]);
+          })
+          .on("broadcast", { event: "typing" }, (payload) => {
+            if (payload.payload?.userId === otherUserId) {
+              setIsOtherTyping(true);
+              if (typingHideTimerRef.current) clearTimeout(typingHideTimerRef.current);
+              typingHideTimerRef.current = setTimeout(
+                () => setIsOtherTyping(false),
+                TYPING_HIDE_AFTER_MS,
+              );
+            }
+          });
+      },
+      {
+        name: `presence-${channelName}`,
+        // Presence is a RENDEZVOUS: both people must open the same channel
+        // name or they are in different rooms and neither ever sees the other.
+        // This is the one channel in the app that must not carry a nonce.
+        stableName: true,
+        onStatus: (status, _err, ch) => {
+          if (status === "SUBSCRIBED") {
+            channelRef.current = ch;
+            // Re-announce on every (re)subscribe: the server drops our presence
+            // entry when the socket goes, so a reconnect that skipped this
+            // would leave us subscribed and invisible to the other side.
+            void ch.track({ online_at: new Date().toISOString() });
+            return;
+          }
+          // The ref used to be cleared only on unmount, so after a drop
+          // broadcastTyping() kept sending into a dead channel and returning
+          // as if it had worked.
+          channelRef.current = null;
+        },
+      },
+    );
 
     return () => {
       if (typingHideTimerRef.current) clearTimeout(typingHideTimerRef.current);
       channelRef.current = null;
-      supabase.removeChannel(channel);
+      sub.close();
     };
   }, [channelName, userId, otherUserId]);
 

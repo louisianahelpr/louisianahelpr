@@ -181,13 +181,48 @@ async function mintSession(supabaseUrl, serviceKey) {
     throw new Error(`missing tokens in hash fragment: ${location}`);
   }
 
+  // THE REAL USER OBJECT, FETCHED — not `{ id }`.
+  //
+  // This used to fabricate `user: { id: TEST_USER_ID }`, and that one shortcut
+  // made this harness screenshot THE WRONG SCREEN, silently, under every other
+  // screen's name. supabase-js hands back whatever is in localStorage from
+  // getSession() without re-fetching, so `user.email_confirmed_at` came back
+  // undefined; ProtectedRoute.tsx's email-unconfirmed gate then bounced to
+  // /account-pending, which (profile IS approved) immediately re-navigated to
+  // /dashboard. Every non-`allowPending` protected route therefore rendered the
+  // DASHBOARD, and the sweep filed that PNG under the route's own name.
+  // Measured: /post-job and /gift-card both produced byte-comparable dashboard
+  // captures. It reproduced on cold load, on reload and on pushState nav, so it
+  // was not a first-paint race.
+  //
+  // Nothing about it looked wrong. The run succeeded, the files were written,
+  // the names were right — so any lane grading /post-job or /gift-card from
+  // ~/lh-audit-shots was grading the dashboard and had no way to know.
+  // Found by lh-visual-critic. NOT a product defect: the same account reads
+  // approval_status 'approved' and a real email_confirmed_at in prod.
+  //
+  // The assert is the point. Restoring the fetch fixes it today; asserting the
+  // field is what stops it silently regressing to the same shape tomorrow.
+  const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
+    headers: { apikey: serviceKey, Authorization: `Bearer ${access_token}` },
+  });
+  if (!userRes.ok) {
+    throw new Error(`could not fetch the authenticated user (${userRes.status}) — refusing to mint a session with a fabricated user object`);
+  }
+  const user = await userRes.json();
+  if (!user?.email_confirmed_at) {
+    throw new Error(
+      'minted session has no email_confirmed_at — ProtectedRoute will bounce every protected route to /account-pending and this sweep would capture the dashboard under every screen name',
+    );
+  }
+
   return {
     access_token,
     refresh_token,
     token_type: 'bearer',
     expires_in: 3600,
     expires_at,
-    user: { id: TEST_USER_ID },
+    user,
   };
 }
 

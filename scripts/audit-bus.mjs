@@ -86,7 +86,27 @@ function fold() {
 
 function nextId(agent) {
   const prefix = agent.replace(/^lh-/, "").split("-").map((s) => s[0]).join("").toUpperCase();
-  const n = readAll().filter((r) => r.kind === "finding" && r.agent === agent).length + 1;
+  // COUNT BY PREFIX, ACROSS ALL AGENTS — never by agent.
+  //
+  // This counted findings by the SAME AGENT, which silently assumed one agent
+  // per prefix. Single-word lane names collapse to a single letter, so
+  // `lh-orchestrator` and `lh-observability` both produce "O" — and because the
+  // count was per-agent, lh-observability's FIRST finding was numbered O-001,
+  // an id lh-orchestrator had already used. `fold()` replaces the map entry for
+  // an id on every finding line (last one wins), so the later filing SHADOWS
+  // the earlier one: `list` and `show O-001` return the wrong content and a
+  // real finding disappears from every view while still sitting in the file.
+  //
+  // Nothing is lost on disk — this ledger is append-only — but a report built
+  // from the folded view would silently omit findings, which is the one failure
+  // this ledger exists to prevent. Caught by lh-observability the moment it
+  // filed, before its records reached the shared file.
+  //
+  // Counting every id that already carries this prefix makes the number unique
+  // regardless of how many agents share one, and keeps ids readable.
+  const n = readAll().filter(
+    (r) => r.kind === "finding" && typeof r.id === "string" && r.id.startsWith(`${prefix}-`),
+  ).length + 1;
   return `${prefix}-${String(n).padStart(3, "0")}`;
 }
 

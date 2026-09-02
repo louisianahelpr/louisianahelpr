@@ -272,9 +272,42 @@ owner, and dead tables still carry RLS policies that must be reasoned about.
 | **Time banking** | `time_credits`, and its handling inside `money-reconciliation` |
 | **Pet evacuation** | `evacuation_pets` only. **Pet profiles stay** — `pet_profiles`, `job_pets`, `pet_report_cards`, `care_relationships` are live |
 | **Community posts** | `community_posts`, `community_post_likes` |
-| **Broadcast messages** | `broadcast_messages`, `broadcast_dismissals`, `fan_out_broadcast_to_notifications`, `set_broadcast_pending_fan_out`, `send-marketing-blast` |
+| ~~**Broadcast messages**~~ | **THIS ROW WAS WRONG — the feature is LIVE. See the correction below.** |
 | **Retainer agreements** | `retainer_agreements` |
 | **Helper circles** | `helper_circles`, `helper_circle_members` — zero references in `src/` and in edge functions. Owner did not recognise the feature and approved deletion (2026-09-01). `favorite_helpers` + `?tab=saved_helpers` is the live equivalent |
+
+### CORRECTION 2026-09-02 — broadcast/marketing-blast is LIVE, not removed
+
+This table listed broadcast messaging as removed and therefore as a source of
+**removal findings**. It is not removed. Verified against live prod
+(`fncmgoasalhdgfwzhsqa`) by object existence, not by reading a migration:
+
+    broadcast_messages             -> exists
+    broadcast_dismissals           -> exists
+    set_broadcast_pending_fan_out  -> exists
+    send-marketing-blast           -> 571 live lines
+    src/components/admin/AdminMarketing.tsx:68 -> supabase.functions.invoke("send-marketing-blast")
+
+`fan_out_broadcast_to_notifications` is the only object in that row that really
+is gone, which is likely how the whole row came to be written.
+
+Why this matters more than a stale line usually would: this section does not
+merely describe, it **instructs** — it tells lanes that surviving objects are
+removal findings owned by `lh-schema-integrity` and `lh-edge-functions`. A lane
+trusting it would have filed false removal findings against a working admin
+feature, or proposed deleting one. Caught by `lh-compliance-store`, which
+checked prod instead of believing the brief.
+
+This is the second correction of this kind to this file (the
+`worker_protection_credits` row was the first), and the lesson generalises:
+a "removed features" list is a claim about the LIVE database and has to be
+re-verified against it, not maintained by memory. Check with `to_regclass` /
+`to_regprocedure` before treating any row here as fact.
+
+Also corrected in the Pet evacuation row above: `pet_report_cards` still exists
+as a TABLE in prod but the feature was deleted from the client on 2026-09-02, so
+it is now an orphaned table with zero client references (filed as LTF-003). It
+is no longer "live" in the sense that row implied.
 
 **The one B2B carve-out:** licensed-and-insured credentialing **stays live** —
 `helper_credentials`, `helper_verifications`, `verification_checks`,

@@ -159,6 +159,21 @@ this list tight; project-specific trivia belongs in code comments, not here.
   immediately (e.g. commit direct to `main` per this file) and move on. If
   truly stuck after a couple of attempts, stop the run cleanly and let the
   next scheduled run pick it up — do not leave the session open and idle.
+- **A green Actions tab does NOT mean the deploy ran. `vercel.json` has taken
+  production down three times.** Vercel validates that file against its schema
+  **on its own side, before the build**, independently of GitHub Actions. An
+  invalid file therefore produces a fully green CI run, no build log to look
+  at, and production silently continuing to serve the previous bundle. Every
+  entry in `redirects`/`headers`/`rewrites` is `additionalProperties: false`,
+  and all three outages were the same instinct: JSON has no comments, so
+  someone explained a rule with an extra key (`comment` in `headers[1]` →
+  cea0055f; `//`, `//why`, `//requires`, `//status` in `redirects[0]` →
+  e926b307). **The trap is that `JSON.parse` succeeding feels like
+  validation** — every author had "checked" the file and it passed while
+  invalid. `scripts/check-vercel-config.mjs` now blocks this pre-commit via
+  lint-staged (offline by design; a hook that needs the network is a hook
+  people bypass). Put rule explanations in the commit message or beside the
+  code that depends on them, never in that file.
 - **Migrations auto-deploy on merge to main** via `.github/workflows/db-deploy.yml`
   (`supabase db push`, also manually runnable via `gh workflow run db-deploy.yml`).
   No manual pushes, no side channels. Ship a graceful fallback for PGRST202
@@ -247,6 +262,21 @@ this list tight; project-specific trivia belongs in code comments, not here.
   rejections.
 - **Never drop the Supabase `error`.** In a React Query `queryFn` use
   `unwrap()` (`src/lib/supabaseResult.ts`); elsewhere check `error` explicitly.
+- **A job can outlive the person who posted it.** Account deletion ANONYMISES
+  rather than deletes (`20260901033011`): `jobs.customer_id`, `jobs.location`,
+  `latitude`, `longitude`, `reviews.reviewer_id` and `disputes.opener_id` are
+  all nullable in prod, `description` becomes `'[removed at account deletion]'`,
+  and **`status` is deliberately preserved** — so an `open` job stays `open`
+  with no owner. Never assume those are populated; `regenerate types → 25 type
+  errors in 17 files` was one afternoon (SI-012). Two traps worth keeping:
+  coalescing a null to `""` is NOT neutral in a two-way comparison
+  (`userLocation.includes("")` is true for every string, so an address-less job
+  matched *every* nearby search), and a null inside a `.filter()` predicate
+  throws and empties the WHOLE list rather than dropping one row. Ownerless
+  jobs are excluded from discovery in the `open_jobs_browse` view — that view,
+  not the client, is where browse visibility belongs, because the feed and the
+  count both read it. Apple REQUIRES in-app account deletion, so this path
+  will be exercised.
 - **A null `error` does NOT mean the write happened.** UPDATE/DELETE matching
   zero rows returns `{ data: [], error: null }` — the most common serious bug
   class here (escrow, bans, invites, admin actions). On any write touching
@@ -268,6 +298,25 @@ this list tight; project-specific trivia belongs in code comments, not here.
   `typecheck`/`vitest`/`eslint` simultaneously — serialize them. Worktrees
   belong under `$HOME` (e.g. `~/.lh-b-ws/tree`), never `/tmp`; commit
   uncommitted work early.
+  **There is no fixed agent count** (the old "≤2–3" cap was lifted 2026-09-02).
+  Fan out as wide as the work is genuinely *disjoint by file* — the binding
+  limit is the shared gate, not a number, and everyone queues behind one
+  compile anyway. The lead owns the gate and runs it once, alone; give agents
+  `node scripts/parsecheck.mjs` instead and say so explicitly in their brief.
+- **Agent teams is ON** (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` in
+  `~/.claude/settings.json`). Three things are easy to get wrong: a spawn
+  becomes an addressable **teammate** only if you pass `name:` — without it
+  there is no `ListAgents` row and no way to message or plan-approve it; the
+  **model comes from the agent definition silently** unless you pass `model:`,
+  and you can only see what it actually got by reading
+  `~/.claude/teams/session-*/config.json` afterwards (a research agent
+  defaulted to haiku and returned a self-contradictory answer); and a teammate
+  on `permissionMode: plan` is released by the **lead approving its plan** over
+  the team inbox. Fleet cross-talk is `SendMessage` to the orchestrator, which
+  fans out — lanes never message each other (`PROTOCOL.md` §7). The
+  `audit-bus.mjs` `msg`/`inbox` file channel is retired; `file`/`status`/
+  `dupe`/`list`/`rollup` remain the findings ledger. **Findings go in the bus,
+  conversation goes over `SendMessage`.**
 - **Commit directly to `main`** — no branch/PR ceremony needed. Locally, just
   run `npm run typecheck` (plus `npx vitest run` when touching tested code);
   lint/build/full-suite already run in CI (`husky pre-commit` +
@@ -275,9 +324,20 @@ this list tight; project-specific trivia belongs in code comments, not here.
   have specific reason to distrust CI (e.g. you changed build config itself).
   If commits ever start reaching prod red, check `gh workflow list --all` for
   `disabled_manually` before assuming the local gate is the only option.
-  Still run the review agents (`code-reviewer`, `silent-failure-hunter`,
-  `security-auditor`) against the working diff before committing money/auth/
-  data-model changes, since there's no PR gate to catch it otherwise.
+  Still review the working diff before committing money/auth/data-model
+  changes, since there's no PR gate to catch it otherwise. **The agents this
+  line used to name — `code-reviewer`, `silent-failure-hunter`,
+  `security-auditor` — DO NOT EXIST**, and haven't for long enough that the
+  rule was quietly unfollowable: the instruction reads as satisfiable, the
+  spawn fails, and the review gets skipped. Use what is actually installed:
+  `lh-silent-failure` (dropped errors, zero-row writes, fail-open catches),
+  `lh-authz-rls` (RLS, IDOR, SECURITY DEFINER, view/policy changes) and
+  `lh-money-escrow` (anything touching escrow, payouts or price). Tell them
+  **REVIEW ONLY — do not fix, do not edit, report findings** and to ignore
+  their own worktree/audit-bus/PROTOCOL preamble, which is written for a fleet
+  sweep, not a targeted diff review. The `/code-review` and `/security-review`
+  skills are the other option. `/code-review ultra` is user-triggered and
+  billed — you cannot launch it; recommend it, don't attempt it.
 - End every commit message with:
   `Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>`
 

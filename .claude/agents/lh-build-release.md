@@ -1,7 +1,7 @@
 ---
 name: "lh-build-release"
 description: "Audits build and release integrity: environment isolation, secrets in the client bundle, staging-vs-prod routing, code signing, fastlane, sourcemaps and symbolication, bundle and asset size. Launch-audit fleet, sweep phase."
-model: sonnet
+model: opus
 memory: project
 permissionMode: plan
 ---

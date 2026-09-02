@@ -1,7 +1,7 @@
 ---
 name: "lh-compliance-store"
 description: "Audits App Store and Play readiness plus legal compliance: privacy labels versus real SDK behavior, in-app account deletion, permission rationale, GDPR and CCPA, legal pages, and the gift-card IAP risk. Launch-audit fleet, sweep phase."
-model: sonnet
+model: opus
 memory: project
 permissionMode: plan
 ---

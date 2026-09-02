@@ -15,6 +15,7 @@ import { shareNative, copyToClipboard } from "@/lib/nativeShare";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { hapticLight, hapticSuccess } from "@/lib/haptics";
 import { formatPriceExact } from "@/lib/format";
+import { userFacingError } from "@/lib/userFacingError";
 
 /**
  * Single-screen referral dashboard. Backed by React Query (60s staleTime)
@@ -128,7 +129,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
         await queryClient.invalidateQueries({ queryKey: queryKeys.referral.byUser(userId) });
       }
     } catch (err: any) {
-      toast.error(err.message || "Couldn't cash out — try again?");
+      toast.error(userFacingError(err, "Couldn't cash out — try again?"));
     } finally {
       setCashingOut(false);
     }

@@ -31,6 +31,7 @@ import { getPublicResetPasswordUrl, getPublicSiteUrl } from "@/lib/authRedirects
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { TwoFactorCard } from "@/components/profile/TwoFactorCard";
 import { report } from "@/lib/errorLogger";
+import { userFacingError } from "@/lib/userFacingError";
 
 interface LoginHistoryRow {
   id: string;
@@ -229,7 +230,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
     );
     if (error) {
       setSubmitting(false);
-      toast.error(error.message);
+      toast.error(userFacingError(error, "Couldn't update your security settings — try again?"));
       return;
     }
     // Notify the OLD address so the account owner hears about the change

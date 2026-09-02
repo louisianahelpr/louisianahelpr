@@ -13,6 +13,7 @@ import { logAdminAction } from "@/lib/adminAudit";
 import { report } from "@/lib/errorLogger";
 import { toast } from "sonner";
 import type { Profile } from "../adminUserHelpers";
+import { userFacingError } from "@/lib/userFacingError";
 
 interface ActionDeps {
   loadProfiles: () => void;
@@ -137,7 +138,7 @@ export const makeAdminUserActions = ({
       if (data?.error) throw new Error(data.error);
       loadProfiles();
     } catch (err: any) {
-      toast.error(err.message || "Couldn't resend the verification email — try again");
+      toast.error(userFacingError(err, "Couldn't resend the verification email — try again"));
       report(err, { tags: { source: "AdminUsers.resendVerificationEmail" } });
     } finally {
       setResending(null);
@@ -160,7 +161,7 @@ export const makeAdminUserActions = ({
       .select("id");
     if (banErr) {
       report(banErr, { tags: { source: "AdminUsers.unbanUser.userBans" } });
-      toast.error(banErr.message || "Couldn't lift the ban — try again");
+      toast.error(userFacingError(banErr, "Couldn't lift the ban — try again"));
       return;
     }
     // Zero rows here is genuinely ambiguous, which is why this write could not

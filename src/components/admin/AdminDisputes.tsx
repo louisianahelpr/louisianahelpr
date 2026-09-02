@@ -23,6 +23,7 @@ import type {
 import { EmptyState } from "@/components/ui/EmptyState";
 import { AdminViewShell, AdminCard } from "./AdminViewShell";
 import { requireBiometric } from "@/lib/biometricGate";
+import { userFacingError } from "@/lib/userFacingError";
 
 const AdminDisputes = () => {
   const [disputes, setDisputes] = useState<DisputedJob[]>([]);
@@ -212,7 +213,7 @@ const AdminDisputes = () => {
       }
       loadDisputes();
     } catch (err: any) {
-      toast.error(err.message || "Couldn't resolve that dispute — try again");
+      toast.error(userFacingError(err, "Couldn't resolve that dispute — try again"));
     } finally {
       setResolving(null);
     }
@@ -381,7 +382,7 @@ const AdminDisputes = () => {
       setHelperShare(50);
       loadDisputes();
     } catch (err: any) {
-      toast.error(err.message || "Couldn't record that decision — try again");
+      toast.error(userFacingError(err, "Couldn't record that decision — try again"));
     } finally {
       setSubmittingDecision(false);
     }

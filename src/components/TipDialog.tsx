@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { isNativePlatform } from "@/lib/nativeInit";
+import { userFacingError } from "@/lib/userFacingError";
 
 interface TipDialogProps {
   jobId: string;
@@ -49,7 +50,7 @@ export function TipDialog({ jobId, helperName, open, onClose }: TipDialogProps) 
       else throw new Error("Couldn't start checkout. Please try again.");
     } catch (err: any) {
       hapticError();
-      toast.error(err.message || "Couldn't send your tip — try again?");
+      toast.error(userFacingError(err, "Couldn't send your tip — try again?"));
     } finally {
       setSending(false);
     }

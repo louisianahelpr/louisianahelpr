@@ -19,6 +19,7 @@ import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { formatName } from "@/lib/utils";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
+import { userFacingError } from "@/lib/userFacingError";
 
 interface AdminUserNotesProps {
   userId: string;
@@ -123,7 +124,7 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
     });
     setSaving(false);
     if (error) {
-      toast.error(error.message || "Couldn't save that note — try again");
+      toast.error(userFacingError(error, "Couldn't save that note — try again"));
       return;
     }
     setNewNote("");

@@ -14,6 +14,7 @@ import { requireOnline } from "@/lib/requireOnline";
 import { checkApplicationRate, recordApplicationAttempt } from "@/lib/applyRateLimit";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import type { ApplyVars, ApplySnapshot, DashboardContextSlice } from "./dashboardTypes";
+import { userFacingError } from "@/lib/userFacingError";
 
 // The apply_to_job RPC RAISEs these exact strings for the states a helper can
 // actually hit (see 20260612450000_apply_to_job_rate_limit.sql). Map each to a
@@ -280,7 +281,7 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
       } else if (code === "RATE_LIMITED") {
         // Use the warm, window-specific message from applyRateLimit.
         // No retry — by definition the user has to wait the window out.
-        toast.error(err.message);
+        toast.error(userFacingError(err, "Couldn't send your application — try again?"));
       } else if (APPLY_RPC_MESSAGES[(err as { message?: string } | null)?.message ?? ""]) {
         // The apply_to_job RPC RAISEs a specific human reason (empty bid price,
         // already applied, own job, job closed, not found). Surface THAT reason

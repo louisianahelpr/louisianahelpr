@@ -36,6 +36,7 @@ import { cn } from "@/lib/utils";
 import { report } from "@/lib/errorLogger";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { userFacingError } from "@/lib/userFacingError";
 
 type Report = {
   id: string;
@@ -193,7 +194,7 @@ const AdminReports = () => {
           toast.error(mutationErrorMessage(fallbackErr, "Couldn't assign that report — try again."));
         }
       } else {
-        toast.error(error.message);
+        toast.error(userFacingError(error, "Couldn't update that report — try again"));
       }
     } else if (!rows || rows.length === 0) {
       // Zero rows on the primary path — same treatment as the fallback: report
@@ -231,7 +232,7 @@ const AdminReports = () => {
     } as never);
     setDeletingReview(false);
     if (error) {
-      toast.error(error.message || "Couldn't remove that review — try again.");
+      toast.error(userFacingError(error, "Couldn't remove that review — try again."));
       return;
     }
     toast.success("Review removed.");

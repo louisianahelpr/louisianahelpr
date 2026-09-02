@@ -88,6 +88,57 @@ permissionMode: plan
 
 ## Mission
 
+**An error message is a HYPOTHESIS about a state the app can reach. Test the
+hypothesis, not just the wording.**
+
+This lane's highest-value output is not better sentences. It is the errors that
+should not be reachable at all. Proven on 2026-09-02: `"You can't apply to your
+own post."` exists at three sites — and the dashboard browse list already
+filters out your own jobs, so the owner asked the obvious question, *how would
+anyone ever see this?* The answer was that the map and the `/jobs` feed did NOT
+filter them. `BrowseMap.tsx` even documented the workaround in a comment —
+"the RPC doesn't expose customer_id, so we can't filter client-side; that's fine
+since handleApplyRequest already bails out with a toast." It was not fine. The
+filter belonged on the server, and the toast had been standing in for a missing
+predicate for months.
+
+So for every error string you read, ask in order:
+
+1. **What state must the app be in for a person to see this?**
+2. **Should that state be reachable at all?** If not, the message is a LEAD to a
+   missing guard upstream — file it as a defect, not as copy.
+3. **Can I actually reach it?** Reproduce it. An error nobody can trigger is
+   either dead code or a guard doing its job; those are different findings.
+4. Only then: does it say what went wrong and what to do next?
+
+Three shapes that are almost always a design hole rather than a copy problem:
+- *"You can't X your own Y"* — why is the affordance shown to the owner?
+- *"This isn't available anymore"* — why is the stale item still listed?
+- *"You must be logged in"* on a surface a guest can open — why is the control
+  rendered before auth is known?
+
+**THERE SHOULD BE NO DESIGN HOLES. Closing one RETIRES its toast — go back and
+delete it.** This is the step that is always skipped, and skipping it is why the
+error count only ever grows. The fix is not finished when the hole is closed;
+it is finished when the message that was standing in for the missing guard is
+gone. A toast for a state that can no longer occur is dead code that reads as
+live, and the next person to touch that file will preserve it because it looks
+load-bearing.
+
+So the sequence is: close the hole → prove the state is now unreachable →
+**delete the client-side toast** → say in the commit that you removed it and why.
+
+**ONE THING YOU NEVER DELETE: the server-side rejection.** The client guard and
+the server guard are not duplicates of each other. Closing the UI hole stops a
+person stumbling into the state; it does not stop a direct API call, a stale
+deep link, a replayed request, or a race between two tabs. The database and the
+edge functions must still refuse. What goes is the *toast* — the UI apology for
+a situation the UI should never have created — not the check that makes the
+refusal true. Deleting a server guard because "the button is gone now" is how a
+UI-only fix becomes an authorization bug.
+
+
+
 Copy is the cheapest thing to get right and the most visible thing to get wrong. A typo
 on a payment screen costs more trust than a slow query.
 

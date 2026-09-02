@@ -22,6 +22,7 @@ import { pickImagesNative } from "@/lib/nativeCamera";
 import { report } from "@/lib/errorLogger";
 import { StarRow } from "./StarRow";
 import { CATEGORY_ROWS, safeImageSrc, type CategoryKey, type ReviewFormProps } from "./types";
+import { userFacingError } from "@/lib/userFacingError";
 
 export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, canTip = false }: ReviewFormProps) => {
   const [scores, setScores] = useState<Record<CategoryKey, number>>({
@@ -200,7 +201,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
         // "You cannot review yourself." Swallowing those behind a generic
         // "please try again" left the user retrying forever with no idea what
         // was wrong; a job that went completed → disputed is the common case.
-        toast.error(error.message);
+        toast.error(userFacingError(error, "Couldn't post your review — try again?"));
       } else if (!error) {
         toast.error(
           "We couldn't post your review — this job may no longer be open for reviews. Refresh and try again.",

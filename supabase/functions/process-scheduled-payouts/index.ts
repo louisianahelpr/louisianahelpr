@@ -169,6 +169,18 @@ serve(async (req) => {
           if (job.helper_id) {
             payoutTargets.push({ job, helperId: job.helper_id });
             rosterSizeByJob.set(job.id, 1);
+          } else {
+            // Empty roster AND no lead helper. `jobs.helper_id` is nullable and
+            // is actively NULLed by the account-deletion purge (migration
+            // 20260901033011 re-points the FK to ON DELETE SET NULL), so this
+            // is reachable, not defensive. Refuse to pay — there is nobody to
+            // pay — but SAY SO: this used to be a bare `continue`, which left
+            // the job in payout_pending forever with no log, no `results`
+            // entry, and therefore invisible to sweep_silent_cron_failures.
+            console.error(
+              `[process-scheduled-payouts] group job ${job.id} has an empty roster AND no lead helper_id (helper account deleted?) — nobody can be paid; escrow is held.`,
+            );
+            results.push({ job_id: job.id, status: "no_payable_helper", skipped: true });
           }
           continue;
         }
@@ -202,6 +214,13 @@ serve(async (req) => {
         for (const helperId of distinctRoster) payoutTargets.push({ job, helperId });
       } else if (job.helper_id) {
         payoutTargets.push({ job, helperId: job.helper_id });
+      } else {
+        // Same reachable NULL, same rule: refuse rather than guess a recipient.
+        // Also previously a silent fall-through with no `results` entry.
+        console.error(
+          `[process-scheduled-payouts] job ${job.id} is payout_pending with a NULL helper_id (helper account deleted?) — refusing to pay; escrow is held.`,
+        );
+        results.push({ job_id: job.id, status: "no_payable_helper", skipped: true });
       }
     }
 
@@ -630,7 +649,35 @@ serve(async (req) => {
             console.error(`[process-scheduled-payouts] roster payout count failed for job ${job.id}:`, paidCountErr);
             allRosterPaid = false;
           } else {
-            const distinctPaid = new Set((paidRows ?? []).map((r) => r.helper_id)).size;
+            // SYMMETRY WITH THE ROSTER READ ABOVE, which does
+            // `.map(r => r.helper_id).filter(Boolean)`. That one drops a NULL
+            // `helper_id`; this one did not, and the two numbers are compared
+            // to each other on the very next line.
+            //
+            // `payout_transfers.helper_id` is nullable and is actively NULLed
+            // by the account-deletion purge (20260901033011 step 4d sets it to
+            // NULL and stamps `helper_redacted_at`; 20260902014651 does the
+            // same to the matching `group_job_helpers` row). So after one
+            // roster member deletes their account, a group job's denominator
+            // EXCLUDES them while the numerator COUNTED them: on a 3-slot job
+            // with roster {A,B,C} where A is redacted, rosterSize becomes 2
+            // while `new Set([null, "C"]).size` is also 2 — so paying C alone
+            // trips `allRosterPaid`, flips the job to 'released', and drops it
+            // out of a cron that selects on payment_status='payout_pending'.
+            // B is then never retried, and their budget/helpers_needed share
+            // rests on the platform balance with no alert. That is precisely
+            // the failure the comment above says this block exists to prevent.
+            //
+            // A redacted row is not a roster member this run can pay, so it
+            // must not count as one. Excluding it fails CLOSED: the job stays
+            // payout_pending and is retried next run (Stripe dedupes on the
+            // same idempotency key), which is recoverable — wrongly releasing
+            // is not.
+            const distinctPaid = new Set(
+              (paidRows ?? [])
+                .map((r) => r.helper_id)
+                .filter((id): id is string => typeof id === "string" && id.length > 0),
+            ).size;
             // Against the ROSTER, not `helpers_needed` — see rosterSizeByJob
             // above. `helpers_needed` is a threshold an under-filled roster can
             // never reach, which left the job cycling through this cron forever

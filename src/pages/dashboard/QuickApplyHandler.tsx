@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { report } from "@/lib/errorLogger";
 import { formatPrice } from "@/lib/format";
 import type { EnrichedJob } from "@/components/dashboard/types";
 
@@ -77,15 +78,56 @@ export const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
 
     // Feed miss — fetch the single job so a deep-linked apply still surfaces a
     // prompt (or an explanation) rather than doing nothing.
+    //
+    // `open_jobs_browse`, NOT the raw `jobs` table. This read used to be
+    // `.from("jobs")`, and against today's RLS that could never succeed for the
+    // case the fallback exists for: the broad "Authenticated users can view open
+    // jobs" policy was dropped in 20260418045555 and never recreated, and the
+    // SELECT policies left on `public.jobs` are all party-scoped — own post,
+    // `user_may_see_job_address()`, targeted direct offer, admin
+    // (20260901033219). A helper tapping a job-match notification for an
+    // open-pool job is none of those, so PostgREST returned zero rows, and
+    // `maybeSingle()` renders zero rows as `{ data: null, error: null }` — the
+    // read-side twin of the write-side trap in CLAUDE.md. The handler then told
+    // the user "This task is no longer available", which was false: the job
+    // exists, is open, and is very often one they can apply to. Every
+    // out-of-feed job-match deep link hit that path.
+    //
+    // The browse view is the same authority the feed itself reads, so a job the
+    // helper is allowed to see but which merely wasn't on the loaded page (or
+    // was filtered out) now resolves.
     (async () => {
       const { data, error } = await supabase
-        .from("jobs")
-        .select("id, title, budget, customer_id, status, instant_book")
+        .from("open_jobs_browse")
+        .select("id, title, budget, customer_id, status")
         .eq("id", quickApplyId)
         .maybeSingle();
       if (cancelled) return;
-      if (error || !data) {
-        toast.error("This task is no longer available.");
+      if (error) {
+        // Never swallow the Supabase error into the same toast as "no row" —
+        // they are different failures and only one of them is worth alerting on.
+        report(error, {
+          severity: "warning",
+          tags: { source: "QuickApplyHandler.openJobsBrowseLookup" },
+          context: { job_id: quickApplyId },
+        });
+        toast.error("Couldn't load this task. Check your connection and try again.");
+        return;
+      }
+      if (!data) {
+        // Zero rows from the browse view means "not visible TO YOU RIGHT NOW",
+        // which covers three quite different situations and cannot distinguish
+        // them from the client: the job was deleted or is no longer open; its
+        // escrow hasn't funded; or Early Access still has it held back — the
+        // browse view gates on `created_at <= early_access_cutoff()`, a delay of
+        // 20/15/10/0 minutes for free/basic/pro/elite (20260901022522), while
+        // every job-match producer fires at the moment escrow funds and filters
+        // by no tier at all. A free-tier helper can therefore be alerted up to
+        // ~20 minutes before this view will hand them the row.
+        //
+        // So the copy must not assert deletion, and it should name the one cause
+        // the user can actually act on.
+        toast.error("This task isn't available to open yet — if you just got the alert, try again in a few minutes.");
         return;
       }
       if (data.customer_id === userId) {
@@ -96,6 +138,10 @@ export const QuickApplyHandler = ({ searchParams, user, allJobs, onApply }: {
         toast.error("This task isn't accepting applications anymore.");
         return;
       }
+      // `open_jobs_browse` does not project `instant_book` (nor did the feed
+      // rows this same expression reads on the hit path), so this resolves to
+      // the Quick Apply copy. Kept as an optional read rather than dropped so
+      // the two branches stay identical if the view ever adds the column.
       promptToApply(data.title, data.budget ?? null, !!(data as { instant_book?: boolean }).instant_book);
     })();
 

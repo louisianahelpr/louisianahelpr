@@ -62,6 +62,7 @@ const ALLOWED_DEEP_LINK_HOSTS = new Set<string>([
  *   /legal        → /legal
  *   /legal/terms  → /legal?tab=terms
  *   /post-job     → /post-job
+ *   /legal#refunds → /legal#refunds   (the fragment is preserved — see below)
  *   /             → null  (cold-launch sentinel, handled elsewhere)
  *   /auth/...    → null  (Supabase OAuth callback must stay in browser)
  */
@@ -89,6 +90,26 @@ export function normalizeDeepLinkUrl(rawUrl: string): string | null {
   const path = url.pathname.replace(/\/+$/, "") || "/";
   const search = url.search; // includes leading "?" or empty
 
+  // The FRAGMENT has to survive. This function used to rebuild every result as
+  // `${path}${search}` and silently drop `url.hash`, which is not cosmetic:
+  //
+  //   * Supabase auth puts its tokens in the fragment. The recovery mail is
+  //     <project>.supabase.co/auth/v1/verify?...&redirect_to=.../reset-password
+  //     (supabase/functions/auth-email-hook/index.ts) and the redirect lands as
+  //     /reset-password#access_token=…&type=recovery. ResetPassword.tsx reads
+  //     `window.location.hash` directly (line ~64). Dropping the hash would
+  //     hand it an empty fragment.
+  //   * In-page anchors. /legal IS claimed in AASA, and
+  //     src/components/policy/CollapsedPolicy.tsx expands + scrolls to a
+  //     section purely off `window.location.hash`. A shared
+  //     …/legal#cancellations link opened on device landed at the top of the
+  //     page with the anchor thrown away — the only LIVE symptom of this bug,
+  //     since the auth paths are excluded in AASA precisely because of it.
+  //
+  // `URL.hash` includes the leading "#", or is "" when absent — so appending
+  // it unconditionally is a no-op for the overwhelmingly common hash-less link.
+  const hash = url.hash;
+
   // Root deep links collapse to "no deep link" — cold launch already
   // computes the right home destination via resolveNativeLaunchRoute.
   if (path === "/" || path === "") return null;
@@ -99,14 +120,14 @@ export function normalizeDeepLinkUrl(rawUrl: string): string | null {
 
   // Short user link → canonical /user/:id route.
   const uMatch = /^\/u\/([^/]+)$/.exec(path);
-  if (uMatch) return `/user/${uMatch[1]}${search}`;
+  if (uMatch) return `/user/${uMatch[1]}${search}${hash}`;
 
   // Short job link → /jobs/:id, which is a real route (JobDetail, App.tsx).
   // The previous comment here said the route did not exist yet and the user
   // would land on the in-app 404 — that stopped being true once JobDetail
   // shipped, and it misled anyone reasoning about short-link behaviour.
   const jMatch = /^\/j\/([^/]+)$/.exec(path);
-  if (jMatch) return `/jobs/${jMatch[1]}${search}`;
+  if (jMatch) return `/jobs/${jMatch[1]}${search}${hash}`;
 
   // Short message-thread link → /messages?jobId=:id (the existing
   // Messages page reads `jobId` + `userId` query params to auto-open a
@@ -122,7 +143,7 @@ export function normalizeDeepLinkUrl(rawUrl: string): string | null {
   if (mMatch) {
     const params = new URLSearchParams(search);
     params.set("jobId", mMatch[1]);
-    return `/messages?${params.toString()}`;
+    return `/messages?${params.toString()}${hash}`;
   }
 
   // /legal/:tab → /legal?tab=:tab (mirrors the in-app /terms, /privacy,
@@ -132,18 +153,18 @@ export function normalizeDeepLinkUrl(rawUrl: string): string | null {
     const params = new URLSearchParams(search);
     if (!params.has("tab")) params.set("tab", legalMatch[1]);
     const qs = params.toString();
-    return qs ? `/legal?${qs}` : "/legal";
+    return qs ? `/legal?${qs}${hash}` : `/legal${hash}`;
   }
 
   // /post-job/* sub-paths (e.g. draft restore) → just /post-job for now.
   // PostJob owns its own internal step state; the sub-path is reserved
   // for future deep-restore behavior.
   if (path === "/post-job" || path.startsWith("/post-job/")) {
-    return `/post-job${search}`;
+    return `/post-job${search}${hash}`;
   }
 
   // Everything else: pass through verbatim. React Router will match it
   // (e.g. /jobs/:id, /user/:userId, /messages, /legal) or fall through
   // to the NotFound boundary.
-  return `${path}${search}`;
+  return `${path}${search}${hash}`;
 }

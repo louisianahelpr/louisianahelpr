@@ -14,9 +14,12 @@ import { test, expect, FAKE_HELPER, installSupabaseMocks, mockTable, mockRpc } f
 //
 //   1. No second dialog is created — the same element stays mounted.
 //   2. The surface never moves between steps — same anchor, both steps.
-//      (It anchors near the TOP, at 7vh: owner, 2026-08-31, "why is it pinned
-//      to the bottom? this is not correct." The property this spec pins is
-//      that the anchor does not CHANGE mid-act, not which edge it is.)
+//      (It anchored near the TOP, at 7vh, from 2026-08-31 until commit
+//      a46d6bdc on 2026-09-02 re-centred it — along with PetReportCard and
+//      PetForm — per the owner: "yes it was my call but I don't like it."
+//      This spec does NOT pin which edge the anchor is on; it pins that the
+//      anchor does not CHANGE mid-act, so it must not assert a specific
+//      top-of-viewport position, only that step 2's top equals step 1's.)
 //   3. Back returns to the job, rather than out of the sheet entirely.
 
 const BASE_JOB = {
@@ -98,9 +101,10 @@ test("applying stays on ONE top-anchored sheet", async ({ helperPage: page }) =>
     return { top: +r.top.toFixed(1), bottom: +r.bottom.toFixed(1), vh: window.innerHeight };
   });
 
-  // DETAIL STEP — the sheet is anchored near the top, at 7vh.
+  // DETAIL STEP — record wherever the shared shell anchors it (centred as of
+  // a46d6bdc, 2026-09-02). This spec does not pin that value; step 2 below
+  // pins that it does not move.
   const detailRect = await rectOf();
-  expect(detailRect.top).toBeCloseTo(detailRect.vh * 0.07, 0);
   // The apply step's own back button is not on screen yet.
   await expect(sheet.getByRole("button", { name: /^back$/i })).toHaveCount(0);
 

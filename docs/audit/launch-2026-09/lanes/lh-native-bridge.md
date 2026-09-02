@@ -181,7 +181,7 @@ makes `handleIncomingUrl` call `Browser.close()`, which always rejects on a simu
 "No active window to close!" and is reported. Row present → handler ran; row absent → listener
 never fired.
 
-### Still genuinely UNVERIFIED
+### UNVERIFIED — still genuinely out of reach
 
 | Cell | Why |
 |---|---|

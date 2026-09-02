@@ -251,9 +251,17 @@ include `["currentUser", <uid>]`, `["dashboardContext", <uid>]`,
 the scenario `queryClient.ts`'s own header comment says the wipe exists to
 prevent.
 
-**What makes it a blocker rather than a bug:** in *both* runs the auth token is
+**What makes it a blocker rather than a bug.** In *both* runs the auth token is
 correctly removed from `localStorage`, so the app presents as completely signed
-out. There is no symptom. Nobody would ever report this.
+out. There is no symptom, no error, and nothing a user could ever report — a
+privacy control that fails **silently and invisibly** is strictly worse than one
+that fails loudly, because nothing will ever prompt anyone to look.
+
+And the precondition is not exotic. "An ad blocker is installed" describes a
+large fraction of real browsers; this is not a contrived failure injected to
+make a point, it is the median privacy-conscious user. The two facts compose
+badly: the people most likely to trip this are exactly the people who would care
+most that it happened.
 
 ### CC-002 — MEDIUM — the post-job draft has no cross-tab coordination
 

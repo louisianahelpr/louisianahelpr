@@ -235,7 +235,7 @@ this list tight; project-specific trivia belongs in code comments, not here.
   `security-auditor`) against the working diff before committing money/auth/
   data-model changes, since there's no PR gate to catch it otherwise.
 - End every commit message with:
-  `Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>`
+  `Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>`
 
 ## Audit standard — invoke the `lh-audit` skill
 

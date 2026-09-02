@@ -237,12 +237,24 @@ referenced by one file and zero edge functions, yet has a
 `pending → issued → applied → expired` status machine. If nothing advances it past
 `pending`, helpers are promised compensation that never pays out.
 
-### Status UNCONFIRMED — treat as live, but confirm before deep work
+### Also CONFIRMED LIVE (owner, 2026-09-01) — audit these fully
 
-Pro subscriptions (`create-pro-checkout`, `pro-customer-portal`,
-`check-pro-subscription`, `expire-subscriptions`, `subscription-reconciliation`),
-job boosts, auto-tip (`/auto-tip`), instant payout. The owner was asked and did not
-answer this group. `lh-subscriptions-credits` opens by confirming which of these ship.
+**Pro subscriptions** (`create-pro-checkout`, `pro-customer-portal`,
+`check-pro-subscription`, `expire-subscriptions`, `subscription-reconciliation`,
+`?tab=subscription`, `/admin?view=subscriptions`) · **job boosts** · **auto-tip**
+(`/auto-tip`) · **instant payout**.
+
+That makes **four money systems live at once** — escrow, subscriptions, the credit
+ledgers, and instant payout — so `lh-money-escrow` and `lh-subscriptions-credits`
+must agree on their boundary rather than both assuming the other has a path.
+Two consequences worth carrying into those lanes:
+
+- **Pro subscriptions are an App Review risk.** If the subscription unlocks
+  digital-only functionality inside the iOS app, Apple may require IAP rather than
+  Stripe. `lh-compliance-store` owns the conclusion; `lh-subscriptions-credits`
+  owns establishing what it actually unlocks.
+- **`reap_stranded_instant_payouts` exists**, which means instant payout has
+  stranded money before. Find out how, and whether it still can.
 
 ## 6e. The surface is 802, and routes are 4% of it
 

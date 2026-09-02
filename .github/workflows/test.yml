@@ -120,6 +120,16 @@ jobs:
         # It has done exactly that three times. Offline, milliseconds.
         run: node scripts/check-vercel-config.mjs
 
+      - name: CLAUDE.md claims are still true
+        # CLAUDE.md is a mirror of reality with no freshness guard — the same
+        # shape as types.ts, and it drifted the same way. Two of its statements
+        # were stale on 2026-09-02, both stated as settled fact in the file every
+        # agent reads first: that push was broken (fixed), and that three named
+        # review agents existed (they did not, so the guard silently never ran).
+        # Checks the mechanical claims only — paths, line numbers, npm scripts,
+        # agent names, the project ref. Prose is not checkable and it says so.
+        run: npm run check:claude-md
+
       - name: Agent references resolve
         # Instructions that name a non-existent agent fail SILENTLY — the spawn
         # happens inside an agent's context, so the run continues and the guard

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   MapPin,
   Award, BadgeCheck, Camera, Crown,
@@ -5,7 +6,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import UserAvatar from "@/components/UserAvatar";
-import { isPlaceholderAvatarUrl } from "@/lib/avatarImage";
+import type { AvatarPhotoRejection } from "@/lib/avatarImage";
 import HelperTierBadge from "@/components/profile/HelperTierBadge";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import { hapticLight } from "@/lib/haptics";
@@ -17,16 +18,6 @@ interface IdentityHeaderProps {
   userId?: string | null;
   displayName: string;
   initials: string;
-  /**
-   * Retained for the caller's prop shape (Profile.tsx → ProfileLanding still
-   * threads it) but deliberately NOT read here any more. The `<img onError>`
-   * that used to call it was the whole of this header's photo guard, and an
-   * `onError`-only guard is unreachable for the defect that actually ships:
-   * an avatar that returns 200 and decodes to a blank block. `<UserAvatar>`
-   * owns load failure, placeholder-URL rejection and blank-bitmap rejection
-   * internally now — see `src/lib/avatarImage.ts`.
-   */
-  setAvatarBroken: (v: boolean) => void;
   avgRating: number | null;
   reviewCount: number;
   completedCount: number;
@@ -53,19 +44,44 @@ export function IdentityHeader({
 }: IdentityHeaderProps) {
   const navigate = useNavigate();
 
-  // `hasPhoto` upstream means only "the column is non-null and the <img> did
-  // not fire onError". A DiceBear / ui-avatars / `?d=mp` gravatar URL is a
-  // monogram GENERATOR, not a photograph — it loads fine, so it satisfied
-  // `hasPhoto`, which suppressed the "Add a profile photo" affordance and put
-  // an "ID verified" badge on the corner of a generated block. The check is
-  // free and synchronous (no network), so it is applied here as well as inside
-  // `<UserAvatar>`, which is what actually decides whether to paint it.
+  // ── IS THERE ACTUALLY A FACE HERE? ────────────────────────────────────
   //
-  // The bitmap-level verdict (a 200 that decodes to a flat colour) is NOT
-  // reachable from here — it lives inside `<UserAvatar>` and has no callback —
-  // so a blank upload still reads as `showsPhoto`. The monogram renders
-  // correctly either way; only the corner badge is affected.
-  const showsPhoto = hasPhoto && !isPlaceholderAvatarUrl(profile?.avatar_url);
+  // This is the member's own profile hero — the surface the owner
+  // screenshotted as "a solid red square with no letters on it" — and it
+  // paints an ID-verified shield on the avatar's corner. Getting this wrong
+  // decorates a generated block with a trust signal.
+  //
+  // It used to ask `hasPhoto && !isPlaceholderAvatarUrl(...)`, which could
+  // answer yes for a photo that is not one:
+  //   • `hasPhoto` (`useProfileLandingDerived`) is `!!avatar_url && !avatarBroken`,
+  //     and `avatarBroken` has been a DEAD prop chain since the `<img onError>`
+  //     handlers came out — nothing sets it true any more, so `hasPhoto` lost
+  //     its load-error term and now means only "the column is non-null";
+  //   • the URL test catches DiceBear / ui-avatars / `?d=mp` gravatar
+  //     generators, but nothing catches the failure that actually shipped —
+  //     a 200 that DECODES to a flat colour or a smooth gradient. A comment
+  //     here used to say that verdict "is NOT reachable from here". It is now.
+  //
+  // `<UserAvatar onPhotoRejected>` reports the one verdict it renders from, so
+  // the badge cannot disagree with the pixels beside it. All four rejection
+  // reasons — `no-photo`, `placeholder-url`, `blank-bitmap`, `load-error` —
+  // land here, which is a superset of everything the two old terms covered;
+  // they are therefore gone rather than kept alongside.
+  //
+  // SEEDED FROM THE COLUMN, not from `null`, and the callback is never cleared
+  // on mount. The child reports from a passive effect, i.e. AFTER paint, so a
+  // member with no avatar at all would otherwise get one painted frame of
+  // shield-over-monogram — the exact artefact this gate exists to prevent. A
+  // member who DOES have a URL still starts at `null` ("assume a photo"), so a
+  // real trust signal is never hidden while the bitmap is in flight. Same
+  // seeding rule as `ProfileHeaderCard`; do not "simplify" it to `useState(null)`
+  // and do not add an effect that clears it when `avatar_url` changes — refs
+  // resolve before passive effects, and a mount-time clear reintroduces a
+  // spurious `null` after a confirmed rejection.
+  const [photoRejection, setPhotoRejection] = useState<AvatarPhotoRejection | null>(
+    profile?.avatar_url ? null : "no-photo",
+  );
+  const showsPhoto = hasPhoto && photoRejection === null;
 
   return (
     <>
@@ -144,6 +160,10 @@ export function IdentityHeader({
                 aria-hidden
                 className="w-full h-full rounded-ds-avatar squircle"
                 fallbackClassName="text-ds-24 ring-0 drop-shadow-sm"
+                // The verdict that gates the shield below. Inline arrow is
+                // fine — the child holds this in a ref, so re-creating it does
+                // not re-fire the effect (see the prop's contract).
+                onPhotoRejected={setPhotoRejection}
               />
             </button>
             {/* role="img" on the badge below is load-bearing, not decoration:

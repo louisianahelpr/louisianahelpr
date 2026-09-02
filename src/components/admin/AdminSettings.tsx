@@ -539,7 +539,7 @@ const AdminSettings = () => {
         title={<span className="flex items-center gap-2"><Smartphone className="w-4 h-4 text-primary" /> Minimum Supported Build</span>}
         subtitle={
           <>
-            {/* ENFORCED as of 2026-08-31. This copy said "nothing enforces it
+            {/* ENFORCED as of 2026-09-01. This copy said "nothing enforces it
                 yet" for as long as that was true, which was the right call —
                 an operator would otherwise have set it during an incident and
                 believed old builds were being turned away. It is no longer
@@ -566,7 +566,7 @@ const AdminSettings = () => {
                     and lands on a backgrounded install when it next comes to
                     the foreground — not only on a cold start. */}
             Blocks native installs older than this build with an{" "}
-            <strong className="text-foreground">"Update Helpr to continue"</strong> screen —
+            <strong className="text-foreground">“Update Helpr to continue”</strong> screen —
             the one lever that works while a bad build is stuck in App Review. Takes
             effect within a minute on running apps.{" "}
             <code className="text-foreground">0</code> is the off value.
@@ -576,6 +576,21 @@ const AdminSettings = () => {
               The gate fails open, so a settings-read failure never locks anyone out.
               Use the build number from App Store Connect (CFBundleVersion), and set it{" "}
               <em>above</em> the build you are turning away, not equal to it.
+            </span>
+            <br />
+            {/* Not a hypothetical caveat. Probed 2026-09-01: the store URL the
+                block screen links to (lib/appStore.ts) returns 404 and the
+                iTunes lookup API reports resultCount 0 for its id in four
+                storefronts — the listing is not public. Arming the gate today
+                would send every blocked user to a dead page, which is why the
+                screen also carries the support address. Stated here, next to
+                the control, because this is the moment an operator can still
+                decide not to. */}
+            <span className="text-ds-11" style={{ color: "hsl(var(--destructive))" }}>
+              Before setting this above 0, confirm the App Store listing actually
+              loads — as of 2026-09-01 the link the block screen sends people to
+              returns a 404, which would make the block a dead end. The screen also
+              shows the support address, but the store link is the way out.
             </span>
           </>
         }

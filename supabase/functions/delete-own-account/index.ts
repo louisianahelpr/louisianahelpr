@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
-import { describeDeleteError, purgeAccount } from "../_shared/accountPurge.ts";
+import { describeDeleteError, findActiveWork, purgeAccount } from "../_shared/accountPurge.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -58,45 +58,23 @@ serve(async (req) => {
     // (their helper/poster vanishes) and orphan escrowed funds with no party
     // left to release or refund them. The job must reach a terminal state
     // (completed/cancelled) and escrow must be settled first.
-    // `.or(...).or(...)` ANDs the two clauses: (I'm a party) AND (it's live).
     //
-    // ⚠️ Every value below MUST be a real member of the `job_status` enum:
-    //   open | accepted | in_progress | completed | cancelled |
-    //   revision_requested | disputed | pending_approval
-    // (see supabase/migrations/20260311000404_*.sql plus the three ADD VALUE
-    // migrations). Postgres rejects the whole query with 22P02 "invalid input
-    // value for enum job_status" if ANY listed value is not a member — and
-    // because the block below fails closed on `activeErr`, one bad value makes
-    // account deletion return 500 for EVERY user, not just users with jobs.
-    // That is exactly what happened: this list previously contained `arrived`
-    // and `awaiting`, neither of which is a job_status. `arrived` is a
-    // `job_tracking.status` value; `awaiting` exists nowhere. Result: 100% of
-    // in-app account deletions failed with 500 — an App Store compliance gate.
-    // Verified against prod 2026-08-31: the query 400s with 22P02 regardless of
-    // user id, and delete-own-account answered 500 for a fresh test account
-    // that had no live jobs at all.
-    //
-    // `disputed` and `payout_pending` are included deliberately: both mean the
-    // counterparty still has money or a claim in flight, which is the stated
-    // reason this guard exists.
-    const { data: activeJobs, error: activeErr } = await supabaseAdmin
-      .from("jobs")
-      .select("id")
-      .or(`customer_id.eq.${user.id},helper_id.eq.${user.id}`)
-      .or(
-        "status.in.(accepted,in_progress,revision_requested,disputed)," +
-          "payment_status.in.(escrow,payout_pending)",
-      )
-      .limit(1);
+    // One implementation, in _shared/accountPurge.ts, shared with
+    // admin-delete-user. This used to be a hand-copied block in each function
+    // with a comment promising they were kept byte-identical; they were not,
+    // and the drift (a dead `arrived`/`awaiting` enum list left in the admin
+    // twin) broke admin deletion completely for a day. It also missed group
+    // jobs entirely — see findActiveWork for that half.
+    const active = await findActiveWork(supabaseAdmin, user.id);
 
-    if (activeErr) {
+    if (!active.ok) {
       // Fail closed — if we can't verify the account is safe to delete, don't.
       return new Response(
         JSON.stringify({ error: "Couldn't verify account state. Please try again." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
-    if (activeJobs && activeJobs.length > 0) {
+    if (active.active) {
       return new Response(
         JSON.stringify({
           error:

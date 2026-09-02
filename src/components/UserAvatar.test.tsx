@@ -22,10 +22,21 @@ import { render, fireEvent, act } from "@testing-library/react";
 /** Flipped per-test to stand in for the decoded-bitmap verdict, which cannot
  *  run for real in jsdom (no canvas implementation). */
 let blankVerdict = false;
+/** Every element the component handed to the detector. Asserted on, so that a
+ *  refactor which sampled a DETACHED clone — always tainted, or `complete`
+ *  false, so the detector could only ever answer "cannot judge" — would fail
+ *  here instead of silently disabling the guard in production. */
+let sampled: (HTMLImageElement | null)[] = [];
 
 vi.mock("@/lib/avatarImage", async () => {
   const actual = await vi.importActual<typeof import("@/lib/avatarImage")>("@/lib/avatarImage");
-  return { ...actual, isBlankAvatarBitmap: () => blankVerdict };
+  return {
+    ...actual,
+    isBlankAvatarBitmap: (img: HTMLImageElement) => {
+      sampled.push(img);
+      return blankVerdict;
+    },
+  };
 });
 
 const { UserAvatar } = await import("./UserAvatar");
@@ -36,6 +47,7 @@ const GENERATOR = "https://api.dicebear.com/7.x/initials/svg?seed=AH";
 
 beforeEach(() => {
   blankVerdict = false;
+  sampled = [];
 });
 afterEach(() => {
   vi.restoreAllMocks();
@@ -77,21 +89,53 @@ describe("UserAvatar — onPhotoRejected", () => {
   it("reports 'blank-bitmap' for a 200 that decodes to nothing", () => {
     blankVerdict = true;
     const { seen, img } = setup(PHOTO);
-    expect(seen[seen.length - 1]).toBe("blank-bitmap");
+    // FULL SEQUENCE, not just the last emission. Asserting only the tail hid a
+    // real defect: the mount run of the reset effect clobbered the verdict the
+    // ref callback had already reached, so this emitted
+    // [null, "blank-bitmap", null, "blank-bitmap"] — a `null` AFTER a
+    // confirmed rejection, which un-hides a caller's badge for a frame and
+    // makes the aria-live caption announce the wrong verdict.
+    expect(seen).toEqual([null, "blank-bitmap"]);
     // The photo is pulled and the always-mounted monogram is what remains.
     expect(img()).toBeNull();
   });
 
-  it("keeps a photo it could not judge — 'cannot judge → show it'", () => {
-    // A tainted canvas makes the real detector return false; the mock stands
-    // in for that same false. The assertion is that a non-verdict is not
-    // treated as a rejection.
-    blankVerdict = false;
+  it("samples the LIVE <img> element, not a detached copy", () => {
+    // The detector's four "cannot judge" paths all key off the element it is
+    // given (`complete`, `naturalWidth`, canvas taint). Hand it a detached
+    // clone and it can only ever answer "cannot judge", which silently
+    // disables the guard while every other assertion here still passes.
+    const { img } = setup(PHOTO);
+    expect(sampled.length).toBeGreaterThan(0);
+    expect(sampled[0]).toBe(img());
+  });
+
+  it("keeps a photo it could not judge — 'cannot judge → show it'", async () => {
+    // Drives the REAL `isBlankAvatarBitmap` against a TAINTED canvas, which is
+    // what a host sending no `access-control-allow-origin` produces. The
+    // mocked version cannot test this: it ignores its argument, so asserting
+    // on it only restates the mock. This is the single most damaging possible
+    // regression — a real photograph replaced by a monogram because the check
+    // could not run — so it is driven end-to-end through the component.
+    const real = await vi.importActual<typeof import("@/lib/avatarImage")>("@/lib/avatarImage");
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+      drawImage: vi.fn(),
+      getImageData: () => {
+        throw new DOMException("Tainted canvases may not be read", "SecurityError");
+      },
+    } as unknown as CanvasRenderingContext2D);
+
     const { seen, img } = setup(PHOTO);
+    const el = img()!;
+    Object.defineProperty(el, "complete", { value: true, configurable: true });
+    Object.defineProperty(el, "naturalWidth", { value: 240, configurable: true });
+    // The real detector, on the real element, through the real canvas path.
+    expect(real.isBlankAvatarBitmap(el)).toBe(false);
+
     act(() => {
-      fireEvent.load(img()!);
+      fireEvent.load(el);
     });
-    expect(seen.every((r) => r === null)).toBe(true);
+    expect(seen).toEqual([null]);
     expect(img()).toBeTruthy();
   });
 });
@@ -99,18 +143,25 @@ describe("UserAvatar — onPhotoRejected", () => {
 describe("UserAvatar — the CORS retry is not a verdict", () => {
   it("retries once WITHOUT crossOrigin before calling a load failure real", () => {
     const { seen, img } = setup(PHOTO);
-    expect(img()).toHaveAttribute("crossorigin", "anonymous");
+    const first = img();
+    expect(first).toHaveAttribute("crossorigin", "anonymous");
 
     act(() => {
-      fireEvent.error(img()!);
+      fireEvent.error(first!);
     });
 
     // First failure: no rejection reported, and the same URL is re-requested
     // as an ordinary image. A real photograph on a non-CORS host lives here.
-    expect(seen.every((r) => r === null)).toBe(true);
+    expect(seen).toEqual([null]);
     expect(img()).toBeTruthy();
     expect(img()).not.toHaveAttribute("crossorigin");
     expect(img()).toHaveAttribute("src", PHOTO);
+    // A NEW element — this is what `key={corsMode}` buys, and the whole point
+    // of the retry. Without the key React patches `crossOrigin` off the
+    // element that is ALREADY in its error state and nothing re-requests, so
+    // the photo is silently lost. Every other assertion above still passes in
+    // that broken state; only element identity detects it.
+    expect(img()).not.toBe(first);
   });
 
   it("reports 'load-error' only on the SECOND failure", () => {
@@ -121,7 +172,7 @@ describe("UserAvatar — the CORS retry is not a verdict", () => {
     act(() => {
       fireEvent.error(img()!);
     });
-    expect(seen[seen.length - 1]).toBe("load-error");
+    expect(seen).toEqual([null, "load-error"]);
     expect(img()).toBeNull();
   });
 });

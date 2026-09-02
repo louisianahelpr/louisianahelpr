@@ -47,35 +47,82 @@ function tsxFiles(): string[] {
 
 /** Strip block and line comments — prose ABOUT a rule is not a violation of it. */
 /**
- * Blank out comments using the TypeScript scanner, not a regex.
+ * Blank out comments using the TypeScript PARSER.
  *
- * The regex version of this (`/\/\*[\s\S]*?\*\//g`) silently ate real code.
- * TSX is not a regular language: a `/*` appearing inside a string, a regex
- * literal, or a JSX text node opens a "comment" the scanner never intended,
- * and the non-greedy match then runs to the next `*\/` anywhere in the file —
- * swallowing whatever sits between. Measured: it deleted the entire
- * `<DialogFooter>` block from DisputeTimelineDialog.tsx and DisputeDialog.tsx,
- * so both were reported as having no footer when both plainly have one.
+ * ── ATTEMPT 1: a regex. It ate real code. ───────────────────────────────────
+ * `/\/\*[\s\S]*?\*\//g` — TSX is not a regular language: a `/*` appearing
+ * inside a string, a regex literal, or a JSX text node opens a "comment" the
+ * author never intended, and the non-greedy match then runs to the next `*\/`
+ * anywhere in the file. Measured: it deleted the entire `<DialogFooter>` block
+ * from DisputeTimelineDialog.tsx and DisputeDialog.tsx, so both were reported
+ * as having no footer when both plainly have one. (`accept="image/*"` is the
+ * same trap and bit again later the same day.)
  *
- * That is the worst kind of test failure — it accuses correct code, and the
- * obvious "fix" is to change the code to satisfy it. Comments are lexical, so
- * the lexer is the thing that knows where they are.
+ * ── ATTEMPT 2: a raw `ts.createScanner`. It went blind halfway down a file. ──
+ * A scanner is a LEXER, and a lexer for TSX is not context-free: inside JSX
+ * *children* the correct call is `scanJsxToken()`, not `scan()`. Driven
+ * linearly with `scan()`, the first apostrophe in ordinary JSX prose — this
+ * repo has `matching SheetContent's close`, and hundreds like it — is read as
+ * the start of a STRING LITERAL, which then runs to the next apostrophe
+ * somewhere further down. Everything swallowed inside that phantom string,
+ * including every comment in it, is never emitted as trivia and so is never
+ * blanked.
+ *
+ * MEASURED 2026-09-02 on src/components/ui/dialog.tsx: the scanner emitted
+ * comment trivia for the first three block comments and then stopped seeing
+ * them, leaving a pre-existing line of PROSE —
+ *     `* Measured across all 51 <DialogContent> blocks in \`src/\`:`
+ * — in the "stripped" text. That prose is the ONLY thing in dialog.tsx that
+ * matches `/<DialogContent\b/`: the file DEFINES DialogContent and never
+ * renders one, so its true surface count is 0. The footer check read 2 and
+ * failed the file for having "2 popup surface(s), 1 shared footer(s)" — an
+ * accusation with no tag behind either number.
+ *
+ * ── ATTEMPT 3 (this one): ask the parser, which is the thing that knows. ────
+ * Comments in TypeScript are ALWAYS trivia and NEVER tokens. So parse the file
+ * properly (ScriptKind.TSX, so JSX is structured rather than guessed at), walk
+ * to the leaf tokens, and keep only the characters a token actually covers —
+ * `node.getStart()` skips leading trivia by definition, so comments cannot
+ * survive and code cannot be eaten. There is no lexical state to desynchronise
+ * because there is no lexing being done by hand.
+ *
+ * JsxText is itself a leaf token, so prose inside JSX children is preserved
+ * (it cannot contain a `<` anyway, which is what every check here looks for).
+ * Newlines are preserved everywhere so reported line numbers still line up.
  */
+const strippedCache = new Map<string, string>();
 const stripComments = (t: string): string => {
-  const scanner = ts.createScanner(ts.ScriptTarget.Latest, /* skipTrivia */ false, ts.LanguageVariant.JSX, t);
-  const out = t.split("");
-  for (;;) {
-    const kind = scanner.scan();
-    if (kind === ts.SyntaxKind.EndOfFileToken) break;
-    if (kind === ts.SyntaxKind.SingleLineCommentTrivia || kind === ts.SyntaxKind.MultiLineCommentTrivia) {
-      // Blank the comment but keep newlines, so line numbers still line up
-      // with the file for any message that reports one.
-      for (let i = scanner.getTokenStart(); i < scanner.getTokenEnd(); i++) {
-        if (out[i] !== "\n") out[i] = " ";
-      }
+  const hit = strippedCache.get(t);
+  if (hit !== undefined) return hit;
+
+  const sf = ts.createSourceFile("f.tsx", t, ts.ScriptTarget.Latest, /* setParentNodes */ true, ts.ScriptKind.TSX);
+  const out: string[] = new Array(t.length);
+  for (let i = 0; i < t.length; i++) out[i] = t[i] === "\n" ? "\n" : " ";
+
+  const keepLeaves = (node: ts.Node): void => {
+    // JSDoc IS PARSED INTO REAL NODES, and `getChildren()` hands them back as
+    // children of whatever they document. Their text leaves are therefore
+    // ordinary leaves, and a walker that only asks "is this a leaf?" copies a
+    // `/** … */` block out verbatim — comment prose straight back into the
+    // matcher, i.e. the bug this function exists to fix, reintroduced one
+    // level down. Caught by dialog.tsx line 423, a JSDoc line reading
+    // "Measured across all 51 <DialogContent> blocks", which survived the
+    // first version of this walker while the `{/* … */}` comment 176 lines
+    // above it was correctly blanked.
+    if (node.kind >= ts.SyntaxKind.FirstJSDocNode && node.kind <= ts.SyntaxKind.LastJSDocNode) return;
+
+    const kids = node.getChildren(sf);
+    if (kids.length === 0) {
+      for (let i = node.getStart(sf), end = node.getEnd(); i < end; i++) out[i] = t[i];
+      return;
     }
-  }
-  return out.join("");
+    for (const k of kids) keepLeaves(k);
+  };
+  keepLeaves(sf);
+
+  const res = out.join("");
+  strippedCache.set(t, res);
+  return res;
 };
 
 const POPUP_CONTENT = /<(DialogContent|AlertDialogContent|SheetContent)\b/;
@@ -188,6 +235,16 @@ const HAND_ROLLED_BY_DESIGN: Record<string, string> = {
     "The lock screen is the whole viewport, deliberately. It must cover the app " +
     "completely and leave the middle clear for the OS biometric sheet to land " +
     "in — a dismissible card is the opposite of what a lock is.",
+  "src/components/ForceUpdateGate.tsx":
+    "Same class as AppLockGate: a full-viewport block, not a popup. It renders " +
+    "OUTSIDE BrowserRouter and above AppLockGate, because the whole point is to " +
+    "stop a build whose bundle may be the thing that is broken — so it cannot " +
+    "depend on the router, and it must not be dismissible. The shared shell " +
+    "portals into the app tree and gives every surface an X; both are wrong " +
+    "here. Note this exemption covers the SHELL only. The gate still fails " +
+    "OPEN on any read failure (see minSupportedBuild.ts) — a version gate that " +
+    "blocks when it cannot reach the server is an outage nobody can fix " +
+    "remotely, which is the exact situation it exists to prevent.",
 };
 
   it("no file hand-rolls a modal surface instead of using the shared shell", () => {

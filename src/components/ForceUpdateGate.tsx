@@ -50,10 +50,10 @@ export function ForceUpdateGate({ children }: { children: React.ReactNode }) {
 
   const supportSubject = encodeURIComponent("Helpr update required");
   const supportBody = encodeURIComponent(
-    `I'm being asked to update Louisiana Helpr and need help.\n\n` +
+    `I’m being asked to update Louisiana Helpr and need help.\n\n` +
       `Installed build: ${installedBuild}\n` +
       `Required build: ${requiredBuild}\n\n` +
-      `What's happening:\n`,
+      `What’s happening:\n`,
   );
 
   return (
@@ -102,7 +102,7 @@ export function ForceUpdateGate({ children }: { children: React.ReactNode }) {
             style={{ color: "hsl(var(--olivewood) / 0.85)" }}
           >
             This version of Louisiana Helpr is no longer supported. Install the
-            latest update from the App Store and you'll pick up right where you
+            latest update from the App Store and you’ll pick up right where you
             left off.
           </p>
         </div>
@@ -122,7 +122,7 @@ export function ForceUpdateGate({ children }: { children: React.ReactNode }) {
             className="text-center font-sans text-ds-12"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
-            Can't update?{" "}
+            Can’t update?{" "}
             <a
               href={`mailto:admin@louisianahelpr.com?subject=${supportSubject}&body=${supportBody}`}
               className="underline underline-offset-2 transition-colors hover:opacity-80"

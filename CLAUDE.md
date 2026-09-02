@@ -91,6 +91,21 @@ floats in a lopsided column with blank bands has failed the audit.
 Each of these is a real, non-obvious gotcha that has cost real time — keep
 this list tight; project-specific trivia belongs in code comments, not here.
 
+- **Chromium cannot see WebKit-only bugs — `npx playwright install webkit`
+  and A/B there.** The app ships in a WKWebView, and the classes of defect
+  that only appear in WebKit are invisible to every Chromium-based check we
+  run (Playwright default, the Chrome extension, jsdom). Found this way on
+  2026-09-01: `font: -apple-system-body` — the one CSS hook that reports the
+  OS text size — resolves to **13px** in real WebKit, because that is macOS's
+  system body size and macOS has no Dynamic Type. Divided by the iOS default
+  of 17 that is 0.765, so `--user-text-scale` clamped to 0.85 and every
+  desktop Safari user got the whole app ~15% smaller than designed. A/B'd
+  against the running dev server: `0.85` without the fix, `1` with it.
+  Chromium drops the declaration entirely and reports a clean `1` either way,
+  which is exactly why it survived a full audit. Playwright's `webkit` build
+  costs one 77MB download and runs headless — use it before declaring a
+  rendering or platform-API finding clean.
+
 - **Never idle on a blocked git operation — resolve or abort within the run.**
   A scheduled routine that hits a blocked merge/push and just sits there
   produces zero signal: it never reports, never notifies, and the user does
@@ -170,6 +185,19 @@ this list tight; project-specific trivia belongs in code comments, not here.
   **Therefore: when asserting gloss in a test, read the computed
   `background-image` and check it is a real gradient.** Asserting the class
   name passes on a flat control, which is why this kept coming back.
+- **Never `await` a Capacitor plugin object — assimilation makes it a silent
+  no-op.** `registerPlugin()` returns a Proxy whose `get` trap manufactures a
+  method for ANY property, which is how it forwards unknown calls to native.
+  So resolving a promise *with the plugin itself* triggers thenable
+  assimilation: the runtime probes `.then`, the Proxy invents one, the runtime
+  calls it, and the bridge rejects with `"App.then()" is not implemented`
+  (`code: 'UNIMPLEMENTED'`). The difference is one word — `return App` breaks,
+  `return { App }` works — and the broken version reads perfectly. Behind a
+  fail-open `catch` it produces a feature that never fires and never says why.
+  Destructure at the import: `const { App } = await import("@capacitor/app")`,
+  which is what `AppLockGate.tsx`, `nativePush.ts` and `appLifecycle.ts`
+  already do. It surfaced only because the test runner reports unhandled
+  rejections.
 - **Never drop the Supabase `error`.** In a React Query `queryFn` use
   `unwrap()` (`src/lib/supabaseResult.ts`); elsewhere check `error` explicitly.
 - **A null `error` does NOT mean the write happened.** UPDATE/DELETE matching

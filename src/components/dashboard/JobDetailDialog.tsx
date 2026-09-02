@@ -169,22 +169,25 @@ const JobDetailDialog = ({
      `cornerActions` above, deliberately — a reserve keyed on anything else
      goes stale the moment an icon is added or hidden, which is how the row
      came to depend on the badges happening to be short.
-     Geometry is DialogContent's (dialog.tsx): the close X is `right-3` (12px)
-     + 32px wide = 44px; when a `topRightSlot` is present its container starts
-     at `right-[46px]` and is n×32px + (n−1)×2px of `gap-0.5`. Values below are
-     that width + ~4px of breathing room. Tailwind needs the class as a
-     literal, so these are spelled out rather than computed into a template. */
+     Geometry is DialogContent's (dialog.tsx), re-derived 2026-09-02 when the
+     shared close X went from 32×44 to a HIG-compliant 44×44: the X is now
+     `right-1.5` (6px) + 44px wide = 50px, and when a `topRightSlot` is present
+     its container starts at `right-[52px]` and is n×32px + (n−1)×2px of
+     `gap-0.5`. Values below are that extent + ~4px of breathing room — each
+     6px wider than before, exactly the amount the X grew. Tailwind needs the
+     class as a literal, so these are spelled out rather than computed into a
+     template; if dialog.tsx's X moves again, these move with it. */
   const cornerIconCount = guest
     ? 0
     : (viewerUserId !== job.customer_id ? 1 : 0) + (onToggleSave ? 1 : 0) + 1;
   const iconLaneReserve =
     cornerIconCount >= 3
-      ? "pr-[9.375rem]" // 150px — Share + Save + Report + X
+      ? "pr-[9.75rem]" // 156px — Share + Save + Report + X
       : cornerIconCount === 2
-        ? "pr-[7.25rem]" // 116px — two of the three + X
+        ? "pr-[7.625rem]" // 122px — two of the three + X
         : cornerIconCount === 1
-          ? "pr-[5.125rem]" // 82px — one + X
-          : "pr-[3rem]"; // 48px — the shared close X on its own (guest)
+          ? "pr-[5.5rem]" // 88px — one + X
+          : "pr-[3.375rem]"; // 54px — the shared close X on its own (guest)
 
   return (
     <Dialog open={!!job} onOpenChange={() => onClose()}>

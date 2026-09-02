@@ -100,16 +100,16 @@ class CappedTable {
 
   query(countOpt: { count: "exact" } | undefined) {
     this.countedRequests.push(countOpt !== undefined);
-    const table = this;
     return {
-      range(from: number, to: number) {
-        table.windows.push({ from, to });
+      // Arrow, so `this` is the fake table lexically — no alias to smuggle it in.
+      range: (from: number, to: number) => {
+        this.windows.push({ from, to });
         const requested = Math.max(0, to - from + 1);
         // THE CAP. The server hands back at most `cap` rows no matter how wide
         // the window is — this single line is the entire production bug.
-        const width = Math.min(requested, table.cap);
+        const width = Math.min(requested, this.cap);
         const rows: Row[] = [];
-        for (let i = from; i < Math.min(from + width, table.total); i++) {
+        for (let i = from; i < Math.min(from + width, this.total); i++) {
           rows.push({ id: i });
         }
         return Promise.resolve({
@@ -118,7 +118,7 @@ class CappedTable {
           // The exact count is NOT subject to the cap — that asymmetry is what
           // makes it usable as proof, and it is real: the header on a capped
           // read reads `0-999/1619`.
-          count: countOpt && table.reportsCount ? table.total : null,
+          count: countOpt && this.reportsCount ? this.total : null,
         });
       },
     };
@@ -233,18 +233,109 @@ describe("_shared/paginate — reading past PostgREST's db-max-rows", () => {
     expect(scanDefect("t", res)).toContain("countOpt");
   });
 
-  it("NEVER drops a read error, and returns no rows with it", async () => {
+  it("NEVER drops a read error — and on a FIRST-page failure there is nothing to keep", async () => {
     const res = await scanAll<Row>("t", () => ({
       range: () =>
         Promise.resolve({ data: null, error: { message: "permission denied" }, count: null }),
     }));
 
     expect(res.error).toEqual({ message: "permission denied" });
+    // Empty here because page ONE failed, not because errors empty the array —
+    // see the next test, which is the case that used to lose real rows.
     expect(res.rows).toEqual([]);
+    expect(res.pages).toBe(0);
     expect(res.complete).toBe(false);
     expect(scanDefect("suppressed_emails", res)).toBe(
       "suppressed_emails read failed: permission denied",
     );
+  });
+
+  /**
+   * THE REGRESSION THIS MODULE SHIPPED WITH.
+   *
+   * A fault on page 3 used to return `rows: []` — discarding pages 1 and 2,
+   * which the server had already handed over intact. At
+   * `charge-recurring-visits` that turned a two-thirds-good read into a run
+   * that funded zero visits, so every helper on the ~1000 series it HAD read
+   * turned up unpaid. The rows are kept now; `complete`/`error` are what a
+   * caller inspects.
+   */
+  it("keeps the pages it already read when a LATER page fails", async () => {
+    let call = 0;
+    const res = await scanAll<Row>("recurring series", (countOpt) => ({
+      range: (from: number, to: number) => {
+        call++;
+        if (call === 3) {
+          return Promise.resolve({
+            data: null,
+            error: { message: "canceling statement due to statement timeout" },
+            count: null,
+          });
+        }
+        const rows: Row[] = [];
+        for (let i = from; i <= to; i++) rows.push({ id: i });
+        return Promise.resolve({ data: rows, error: null, count: countOpt ? 2500 : null });
+      },
+    }));
+
+    // Pages 1 and 2 came back whole. They are still here.
+    expect(res.pages).toBe(2);
+    expect(res.rows).toHaveLength(2 * PAGE_SIZE);
+    expect(res.rows[0]).toEqual({ id: 0 });
+    expect(res.rows[res.rows.length - 1]).toEqual({ id: 2 * PAGE_SIZE - 1 });
+
+    // And the read is still unambiguously reported as a failure.
+    expect(res.error).toEqual({ message: "canceling statement due to statement timeout" });
+    expect(res.complete).toBe(false);
+    expect(res.total).toBe(2500);
+    expect(res.shortfall).toContain("page 3 failed");
+    expect(res.shortfall).toContain(`${2 * PAGE_SIZE} row(s) already read`);
+    expect(scanDefect("recurring series", res)).toContain("read failed");
+  });
+
+  /**
+   * The other half of the same change: a caller that MUST NOT act on a partial
+   * set still refuses to. This is the `engagement-automations` suppression /
+   * opt-out guard shape verbatim — abort on `error`, then abort again on
+   * `!complete` — and it is the one that mails people who unsubscribed if it
+   * ever stops working. Non-empty `rows` must not be enough to get past it.
+   */
+  it("an abort-on-incompleteness caller still aborts, now that rows survive", async () => {
+    /** Returns the 503 body an aborting caller would send, or null to proceed. */
+    const suppressionGuard = (res: ScanResult<Row>): string | null => {
+      if (res.error) return "Suppression list unavailable — aborted before sending.";
+      if (!res.complete) return "Suppression list incomplete — aborted before sending.";
+      return null;
+    };
+
+    // (a) A late-page fault now carries 1000 real rows. It must STILL abort.
+    let call = 0;
+    const faulted = await scanAll<Row>("suppressed_emails", (countOpt) => ({
+      range: (from: number, to: number) => {
+        call++;
+        if (call === 3) {
+          return Promise.resolve({ data: null, error: { message: "504" }, count: null });
+        }
+        const rows: Row[] = [];
+        for (let i = from; i <= to; i++) rows.push({ id: i });
+        return Promise.resolve({ data: rows, error: null, count: countOpt ? 2500 : null });
+      },
+    }));
+    expect(faulted.rows.length).toBeGreaterThan(0);
+    expect(suppressionGuard(faulted)).toBe("Suppression list unavailable — aborted before sending.");
+
+    // (b) A truncated-but-errorless read has always had rows, and must abort on
+    //     the `!complete` branch alone — `if (res.error)` was never the guard.
+    const truncated = await scanAll<Row>("suppressed_emails", (c) =>
+      new CappedTable(1619, /* cap */ 400).query(c),
+    );
+    expect(truncated.error).toBeNull();
+    expect(truncated.rows.length).toBeGreaterThan(0);
+    expect(suppressionGuard(truncated)).toBe("Suppression list incomplete — aborted before sending.");
+
+    // (c) Control: a clean, complete read is the ONLY thing that proceeds.
+    const clean = await scanAll<Row>("suppressed_emails", (c) => new CappedTable(1619).query(c));
+    expect(suppressionGuard(clean)).toBeNull();
   });
 
   it("stops at the page ceiling and reports it rather than spinning forever", async () => {
@@ -331,6 +422,39 @@ describe("_shared/paginate — chunked IN lists", () => {
     expect(res.rows).toHaveLength(1);
     expect(res.complete).toBe(false);
     expect(res.shortfall).toContain("read 1 of 2 rows");
+  });
+
+  it("keeps the chunks it already read when a LATER chunk fails", async () => {
+    // Same rule as `scanAll`: chunk 1 succeeding is a fact chunk 2 cannot undo.
+    let chunk = 0;
+    const res = await scanAllIn<{ user_id: string }>(
+      "profiles",
+      ["a", "b", "c", "d"],
+      (ids, countOpt) => {
+        chunk++;
+        const mine = chunk;
+        return {
+          range: () =>
+            mine === 2
+              ? Promise.resolve({ data: null, error: { message: "504" }, count: null })
+              : Promise.resolve({
+                  data: ids.map((id) => ({ user_id: id })),
+                  error: null,
+                  count: countOpt ? ids.length : null,
+                }),
+        };
+      },
+      { chunkSize: 2 },
+    );
+
+    expect(res.rows).toEqual([{ user_id: "a" }, { user_id: "b" }]);
+    expect(res.error).toEqual({ message: "504" });
+    expect(res.complete).toBe(false);
+    // `total` stays null rather than the 2 chunk 1 reported: a partial sum a
+    // caller could compare `rows.length` against would read as "complete".
+    expect(res.total).toBeNull();
+    expect(res.shortfall).toContain("failed");
+    expect(scanDefect("profiles", res)).toContain("read failed");
   });
 
   it("an empty id list makes no request at all", async () => {

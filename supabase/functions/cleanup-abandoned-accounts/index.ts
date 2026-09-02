@@ -175,12 +175,19 @@ Deno.serve(async (req) => {
         // user_roles, on the reasoning that a missed cleanup run is free and a
         // deleted admin is not. That applies with more force here: the roles
         // guard protects admins, this one protects everybody.
-        const [jobsRes, appsRes, msgsRes] = await Promise.all([
+        //
+        // `group_job_helpers` is in this list for the same reason
+        // `findActiveWork` reads it: only the LEAD helper of a group job is
+        // ever written to `jobs.helper_id`, so a second or third helper on a
+        // group job has no row this check would otherwise see and reads as an
+        // account that has never touched the platform.
+        const [jobsRes, appsRes, msgsRes, rosterRes] = await Promise.all([
           supabase.from("jobs").select("id", { count: "exact", head: true }).or(`customer_id.eq.${u.id},helper_id.eq.${u.id}`),
           supabase.from("applications").select("id", { count: "exact", head: true }).eq("helper_id", u.id),
           supabase.from("messages").select("id", { count: "exact", head: true }).eq("sender_id", u.id),
+          supabase.from("group_job_helpers").select("id", { count: "exact", head: true }).eq("helper_id", u.id),
         ]);
-        const activityErr = jobsRes.error ?? appsRes.error ?? msgsRes.error;
+        const activityErr = jobsRes.error ?? appsRes.error ?? msgsRes.error ?? rosterRes.error;
         if (activityErr) {
           console.error(
             `[cleanup-abandoned-accounts] activity check failed for ${u.id}; skipping rather than deleting on an unverified account`,
@@ -190,7 +197,10 @@ Deno.serve(async (req) => {
           defects.record(`activity check ${u.id}: ${activityErr.message}`);
           continue;
         }
-        if ((jobsRes.count ?? 0) > 0 || (appsRes.count ?? 0) > 0 || (msgsRes.count ?? 0) > 0) {
+        if (
+          (jobsRes.count ?? 0) > 0 || (appsRes.count ?? 0) > 0 ||
+          (msgsRes.count ?? 0) > 0 || (rosterRes.count ?? 0) > 0
+        ) {
           skipped.push(u.id);
           continue;
         }

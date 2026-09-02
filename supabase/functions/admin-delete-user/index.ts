@@ -1,7 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
-import { describeDeleteError, purgeAccount } from "../_shared/accountPurge.ts";
+import { describeDeleteError, findActiveWork, purgeAccount } from "../_shared/accountPurge.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -130,50 +130,26 @@ Deno.serve(async (req) => {
     }
 
     // Refuse to delete a user who is party to an in-flight job or holds money
-    // in escrow — same guard as the user-initiated delete-own-account path.
-    // An admin delete has no such check today, so deleting mid-job strands
-    // the counterparty and orphans the escrowed funds with no party left to
-    // release or refund them.
+    // in escrow — the same guard as the user-initiated delete-own-account
+    // path, from the SAME implementation in _shared/accountPurge.ts.
     //
-    // ⚠️ Every value below MUST be a real member of the `job_status` enum:
-    //   open | accepted | in_progress | completed | cancelled |
-    //   revision_requested | disputed | pending_approval
-    // Postgres rejects the WHOLE query with 22P02 if any listed value is not a
-    // member, and because the block below fails closed on `activeErr`, one bad
-    // value makes admin deletion return 500 for EVERY target — including users
-    // with no jobs at all.
-    //
-    // That is exactly the state this was in: the list read
-    // `(accepted,arrived,in_progress,awaiting)`. `arrived` is a
-    // `job_tracking.status` value, `awaiting` exists nowhere. delete-own-account
-    // hit the identical bug and was fixed on 2026-08-31; the fix was never
-    // carried across to this admin twin, so admin user-deletion has been 100%
-    // broken since. Verified against prod 2026-08-31 by replaying both filters
-    // through PostgREST: the old list answers
-    //   400 {"code":"22P02","message":"invalid input value for enum job_status: \"arrived\""}
-    // and the corrected list below answers 200.
-    //
-    // Kept byte-identical to delete-own-account:81-86 so the two guards cannot
-    // drift again. `disputed` and `payout_pending` are in deliberately: both
-    // mean the counterparty still has money or a claim in flight.
-    const { data: activeJobs, error: activeErr } = await supabaseAdmin
-      .from("jobs")
-      .select("id")
-      .or(`customer_id.eq.${userId},helper_id.eq.${userId}`)
-      .or(
-        "status.in.(accepted,in_progress,revision_requested,disputed)," +
-          "payment_status.in.(escrow,payout_pending)",
-      )
-      .limit(1);
+    // These were two hand-copied blocks, with a comment in this one claiming
+    // it was "kept byte-identical to delete-own-account so the two guards
+    // cannot drift again". They had already drifted: a dead `arrived` /
+    // `awaiting` enum list survived here for a day after the twin was fixed,
+    // and because the check fails closed, admin deletion answered 500 for
+    // every target in that window — including users with no jobs at all. A
+    // comment is not a mechanism; a shared function is.
+    const active = await findActiveWork(supabaseAdmin, userId);
 
-    if (activeErr) {
+    if (!active.ok) {
       // Fail closed — if we can't verify the account is safe to delete, don't.
       return new Response(
         JSON.stringify({ error: "Couldn't verify account state. Please try again." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
-    if (activeJobs && activeJobs.length > 0) {
+    if (active.active) {
       return new Response(
         JSON.stringify({
           error:

@@ -2638,10 +2638,22 @@ button,
    reasons documented there) and the motion damping. This block keeps only
    what it alone provided: the tap-target floor. The 110% root font-size is
    gone — the px rung overrides ignore root sizing, so it only double-scaled
-   the rem-based text around them. */
-.senior-mode button, .senior-mode a {
-  min-height: 48px;
-}
+   the rem-based text around them.
+
+   The tap-target floor itself USED TO LIVE HERE, as a second, unguarded
+   `.senior-mode button, .senior-mode a { min-height: 48px }`. It has moved
+   down to the guarded rule near the bottom of this file (search
+   `html.senior-mode button:not(`); do not restore a copy here. Measured
+   2026-09-01, the two-rule arrangement is what made Senior Mode inflate every
+   control it was supposed to leave alone: this rule matched `button` with no
+   `:not([role=…])` chain, so the exclusions on the rule below — whose own
+   comment says they exist to stop exactly this — never got the chance to
+   apply. Exclusion is not subtraction: skipping a selector does not undo a
+   floor another selector already set. Synthetic bench, class off → on:
+   switch 31 → 48 (thumb still 27), checkbox 16 → 48, plain radio 16 → 48, and
+   a `[role=radio].min-h-[52px]` 52 → **48**, i.e. Senior Mode made a target
+   SMALLER — `.senior-mode button` is (0,1,1) and outranks Tailwind's
+   `.min-h-\[52px\]` at (0,1,0). One rule now, and it carries the guards. */
 
 /* ── Landing hero motion ────────────────────────────────────────────────────
    Brings the marketing hero "to life": a staggered entrance for the copy +
@@ -2693,6 +2705,53 @@ html.senior-mode .text-ds-15 { font-size: 18px !important; line-height: 1.45 !im
    that hierarchy back for contrast. */
 html.senior-mode .text-muted-foreground { color: hsl(var(--ink-deep) / 0.78) !important; }
 
+/* ── A larger type scale must never HIDE more text than the default ─────────
+   The rungs above are the whole feature, and they have a side effect nobody
+   had measured: a line clamp counts LINES, so the same two-line box holds
+   ~27% fewer characters at 14px than it did at 11px. Senior Mode was therefore
+   showing MORE of each word and LESS of each sentence — which is the opposite
+   of the deal, and worse than the default for anyone who needs the mode.
+
+   Measured 2026-09-01, `/profile` and `/settings` at 320, `.line-clamp-2`
+   description rows: content height 42px both ways (the clamp is doing its
+   job), but hidden overflow went 16px → 42px, i.e. a full extra line of copy
+   disappeared behind the ellipsis in the mode built for people who cannot
+   read the small copy in the first place.
+
+   Giving each clamp one more line restores the amount of text, in the larger
+   size, at the cost of a taller row — which is the trade this whole mode
+   already makes everywhere else. Not `-webkit-line-clamp: none`: unclamping
+   turns a tidy card list into a wall and loses the scannability the clamp was
+   bought for. Only the clamps the app actually uses are restated. */
+html.senior-mode .line-clamp-1 { -webkit-line-clamp: 2; }
+html.senior-mode .line-clamp-2 { -webkit-line-clamp: 3; }
+html.senior-mode .line-clamp-3 { -webkit-line-clamp: 4; }
+html.senior-mode .line-clamp-4 { -webkit-line-clamp: 5; }
+
+/* The horizontal twin of that defect — `truncate` eating words at 14px that
+   were fully visible at 11px — is NOT fixed here, and the attempt is recorded
+   so nobody spends the day rediscovering it.
+
+   Tried, measured, reverted (2026-09-01): turning every `.truncate` in this
+   mode into a two-line `-webkit-line-clamp`. On the numbers it looked like a
+   clear win — across 188 clamped elements the count of ones showing FEWER
+   characters in Senior Mode than at base fell 35 → 10, with 45 newly showing
+   more, and the Messages preview went from one clipped line to two full ones.
+   The screenshots said otherwise, for a reason the character count cannot see:
+   `-webkit-line-clamp` only draws its ellipsis when the LINE limit is hit, so
+   a single word too wide for its column overflows sideways and is hard-cut
+   with no ellipsis at all. At 320 the Messages header rendered "Messages"
+   sliced mid-word where it had read "Messa…", the conversation name broke to
+   "A / ne", and the membership taglines went from "No co…" to "No / commi".
+   Trading a legible ellipsis for a silent amputation is the same defect this
+   block exists to fix, pointed the other way.
+
+   The honest fix is per-component — give the label its column back (the
+   Messages name is `basis-[9rem]` against a 320px screen; the plan tagline
+   shares a row with a price) — which belongs in those files, not in a global
+   override that cannot tell prose from a proper noun. Sites and numbers are in
+   the audit report. Do NOT re-add a blanket `.truncate` rule here. */
+
 /* ── The OS asks; the app answers ─────────────────────────────────────────
    iOS exposes three accessibility settings this app already had the CSS for
    and simply never listened to. Every accommodation below is the SAME
@@ -2712,21 +2771,75 @@ html.senior-mode .text-muted-foreground { color: hsl(var(--ink-deep) / 0.78) !im
 }
 
 /* Settings > Accessibility > Display & Text Size > Reduce Transparency.
-   31 surfaces in this stylesheet blur what is behind them, and until now not
-   one of them responded to this setting. `backdrop-filter: none` alone would
-   leave a translucent panel with the page showing straight through it — the
-   blur was doing the separating — so each surface also needs an opaque fill.
+   Surfaces all over this app blur what is behind them; until now four of them
+   responded to this setting. `backdrop-filter: none` alone would leave a
+   translucent panel with the page showing straight through it — the blur was
+   doing the separating — so each surface also needs an opaque fill.
 
-   Scoped to the tokens rather than a blanket `* { backdrop-filter: none }`:
-   the latter would also strip the effect from decorative washes that have no
-   legibility cost, and would fight the theme's own dark-mode overrides. */
+   TWO layers, because the surfaces come from two places and only one of them
+   is reachable by a selector.
+
+   1. The blanket. This used to be four class names, deliberately, on the
+      reasoning that `*` would "also strip the effect from decorative washes
+      that have no legibility cost, and would fight the theme's own dark-mode
+      overrides." The second half is about `background-color`, which the
+      blanket does not touch; the first half is a matter of taste that Reduce
+      Transparency has already settled — a user who asks the OS for less
+      transparency is asking for the decorative wash to go too. And scoping it
+      to class names could never have worked here anyway: measured 2026-09-01
+      with the media feature emulated, 18 elements across dashboard / messages
+      / browse / activity / job-detail were STILL blurring, and the three
+      biggest offenders (the nav dock pill at blur(40px), a 32px hero wash, an
+      88px avatar disc) carry their blur in an INLINE style. No class selector
+      can reach an inline declaration — but an `!important` author rule can,
+      because important-author outranks inline-normal in the cascade. That is
+      the only reason this is a blanket, and it is why it must keep the
+      `!important`. */
 @media (prefers-reduced-transparency: reduce) {
+  *,
+  *::before,
+  *::after {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  /* And again, at class-level specificity — because `!important` does not
+     settle a fight between two `!important` author declarations; specificity
+     does, and `*` has none. The toast in ui/sonner.tsx styles itself with
+     Tailwind's important variant (`!backdrop-blur-[18px]`), which compiles to
+     `.\!backdrop-blur-\[18px\] { … !important }` at (0,1,0) and beat the
+     blanket above outright: with the media feature emulated it was the single
+     surface still frosting after every other one had gone quiet. `[class]`
+     twice is (0,2,0), which clears any one-class utility, and the two rules
+     together cover both halves of the DOM — elements with a class attribute
+     and elements without. This is the one place a doubled attribute selector
+     earns its keep; do not "simplify" it back to a single `*`. */
+  [class][class],
+  [class][class]::before,
+  [class][class]::after {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  /* 2. The fills. Killing the blur is not enough on its own — a 40%-opaque
+        pill with nothing behind it is less legible than a frosted one, not
+        more. Each named surface gets the opaque token its material implies.
+        `.glass-nav.is-scrolled` keeps its own opaque fill and needs nothing.
+
+        This list is the stylesheet's frosted surfaces, which is all a
+        stylesheet can speak for. The inline-styled ones above lose their blur
+        to the blanket but keep their inline translucent background, because
+        the right fill for each is a per-component decision (a token or a
+        class), not something this rule can guess. Those sites are called out
+        in the audit report rather than papered over here. */
+  .glass,
+  .glass-nav,
+  .glass-header,
+  .glass-dock,
   .glass-modal,
   .glass-field,
   .liquid-glass,
   .skeleton-glass {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
     background-color: hsl(var(--background)) !important;
   }
 }
@@ -2743,9 +2856,22 @@ html.senior-mode .text-muted-foreground { color: hsl(var(--ink-deep) / 0.78) !im
       like it worked while doing nothing.
    2. Correctness. It excludes switches/checkboxes/radios because those have
       designed dimensions — our Switch is h-[31px]. Without the same
-      exclusions, Simple Mode stretched the toggle into a 48px-tall pill. */
+      exclusions, Simple Mode stretched the toggle into a 48px-tall pill.
+
+   That second reason was true and the rule was still defeated, because an
+   UNGUARDED duplicate sat ~105 lines above and set the same floor on bare
+   `button`. It is gone (see the note up there); this is now the only 48px
+   floor in the file, which is why the guards finally bite. `a` is folded in
+   here rather than left behind in that duplicate: a bare `min-height` is inert
+   on a non-replaced inline anchor, so this only reaches the block/flex,
+   button-like links it was always meant for — and every role-bearing control
+   Radix renders is a `<button>`, so the anchor branch needs no guards of its
+   own. Verified 2026-09-01 on a synthetic bench of all eight shapes: switch
+   31→31, checkbox 16→16, `[role=radio].min-h-[52px]` 52→52, plain radio 16→16
+   (all four untouched, as designed), while button 44→48, `a[role=button]`
+   44→48, block `a` 24→48 and `[role=tab]` 24→48 still take the floor. */
 html.senior-mode button:not([role="checkbox"]):not([role="radio"]):not([role="switch"]),
-html.senior-mode a[role="button"],
+html.senior-mode a,
 html.senior-mode [role="tab"] { min-height: 48px; }
 
 /* Decorative motion is noise when reading is already effortful. This is the

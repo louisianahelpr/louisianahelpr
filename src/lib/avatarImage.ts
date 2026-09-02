@@ -239,12 +239,19 @@ export function avatarInitials(name: string | null | undefined, fallback = "?"):
   // spread walks code points instead. (Combining sequences and ZWJ emoji
   // still yield only their first code point, which is a legible glyph — the
   // failure being fixed is the un-renderable half-character.)
-  const firstOf = (s: string) => [...s][0] ?? "";
+  // `codePointAt(0)` + `fromCodePoint` is O(1); `[...s][0]` materialised the
+  // whole word's code-point array just to read index 0.
+  const firstOf = (s: string) => (s ? String.fromCodePoint(s.codePointAt(0)!) : "");
   const letters =
     parts.length === 1
       ? firstOf(parts[0])
       : firstOf(parts[0]) + firstOf(parts[parts.length - 1]);
   // A name of "…" or "🙂" yields characters that are not letters but ARE ink,
   // so they are kept; only a genuinely empty result falls through.
-  return letters.toUpperCase().trim() || fallback;
+  //
+  // `.slice(0, 2)` enforces the 1-3 char budget this function promises AFTER
+  // the case fold, because uppercasing can LENGTHEN a string: "ß".toUpperCase()
+  // is "SS", so "ßeta ßeta" produced a four-character "SSSS" that overflows the
+  // monogram circle. Same for the ﬁ/ﬀ ligatures.
+  return letters.toUpperCase().trim().slice(0, 2) || fallback;
 }

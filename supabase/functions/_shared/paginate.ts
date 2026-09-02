@@ -59,6 +59,45 @@
 // shapes: `0-4/5`, `0-30/31`, `0-1/2`, `*/0`, …), so this costs nothing in
 // production and catches the one way a caller can silently opt out.
 //
+// ═══════════════════════════════════════════════════════════════════════════
+// A FAILED PAGE DOES NOT ERASE THE PAGES BEFORE IT
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// When a LATER page errors, this returns the rows it already read, with
+// `complete: false` and the `error` set. It used to return `rows: []`, on the
+// theory that an empty result is the safe answer to a failed read. It is not:
+// it is the same string of characters as "nothing matched", and no caller can
+// tell the two apart from the array alone.
+//
+// The cost of that was measured, not theoretical. `charge-recurring-visits`
+// scans the recurring series and funds each due visit. A fault on page 3 of
+// that scan discarded the ~1000 series pages 1-2 had read perfectly, so the
+// run funded ZERO visits — every helper on every one of those series still
+// showed up, unpaid, and the poster was never charged. The read was 2/3 good;
+// the outcome was 0/3. Loud, but with the blast radius of the wrong failure.
+//
+// So the contract is: `rows` is whatever was actually read, always; `complete`
+// and `error` are what a caller inspects to decide whether that is enough.
+// Two shapes of caller exist here, and both are correct:
+//
+//   MAY PROCEED on a prefix — the work is per-row, idempotent, and re-run
+//   tomorrow. `charge-recurring-visits` (fund the series it read, record the
+//   shortfall as a 500-with-a-number), `engagement-automations`' three
+//   RECIPIENT scans (mailing fewer people is fixed by the next run).
+//
+//   MUST ABORT on any incompleteness — the rows are a SUPPRESSION or CONSENT
+//   set, where a missing row is indistinguishable from a permission that was
+//   never withheld. `engagement-automations`' `suppressed_emails` and
+//   `notification_preferences` reads are the live example: a short list mails
+//   someone who bounced, complained, or unsubscribed, and that cannot be
+//   recalled. Those two abort on `error` AND on `!complete`, as separate
+//   branches, and MUST keep doing so — `if (res.error)` alone was never the
+//   guard there, and is now demonstrably not one.
+//
+// If you add a scan, decide which of those two it is before you write the
+// consumption. `scanDefect()` collapses both failures into one string when
+// the answer is "abort on either".
+//
 // PAGE_SIZE is deliberately BELOW the observed cap. At 500 a full page proves
 // the server was not the thing that ended the page, which keeps "short page"
 // meaning "end of data" under the cap we actually have; and if the cap is ever
@@ -114,7 +153,23 @@ export type CountOption = { count: "exact" } | undefined;
 export type PageQueryFactory = (countOpt: CountOption) => PageQuery;
 
 export interface ScanResult<T> {
-  /** Every row read. Empty when `error` is set. */
+  /**
+   * Every row read — INCLUDING when `error` is set.
+   *
+   * This used to be forced to `[]` on any error, and that was the wrong
+   * trade. A page-3 failure does not un-read pages 1 and 2: those rows came
+   * back from the server, whole, before anything went wrong. Discarding them
+   * turns a partial read into a total outage at the caller, and the blast
+   * radius of that is worse than the shortfall it was hiding —
+   * `charge-recurring-visits` funded ZERO visits on a late-page fault instead
+   * of the ~1000-series prefix it had correctly read, and every one of those
+   * helpers still turned up on a doorstep.
+   *
+   * The completeness signal is what protects a caller, not an emptied array:
+   * `complete` is false and `error` is non-null on exactly the same runs it
+   * always was. A caller that must not act on a partial set aborts on
+   * `!complete` (or on `scanDefect(...) !== null`) — see the note on `error`.
+   */
   rows: T[];
   /** The server's own exact count for these filters, or null if it withheld one. */
   total: number | null;
@@ -124,7 +179,18 @@ export interface ScanResult<T> {
   shortfall: string | null;
   /** Requests issued. Useful in a run body when a scan gets expensive. */
   pages: number;
-  /** NEVER dropped. A caller that ignores this is asserting an empty table. */
+  /**
+   * NEVER dropped. A caller that ignores this is asserting an empty table.
+   *
+   * `error !== null` ALWAYS implies `complete === false`, and `rows` may be a
+   * non-empty PREFIX of the result set. So `if (res.error) …` is a valid
+   * abort, but it is not a valid *completeness* test on its own, and it is no
+   * longer the thing that stops a partial set from reaching a send/charge
+   * loop. The single check that covers both failures is `scanDefect()`; the
+   * two-branch form (`error` → one message, `!complete` → another) is also
+   * correct, and is what `engagement-automations` uses for its suppression
+   * and opt-out reads, which must never mail from a short list.
+   */
   error: { message: string } | null;
 }
 
@@ -155,7 +221,21 @@ export async function scanAll<T>(
     const { data, error, count } = await build(countOpt).range(offset, offset + pageSize - 1);
 
     if (error) {
-      return { rows: [], total, complete: false, shortfall: null, pages, error };
+      // Keep what already came back. `pages` counts SUCCESSFUL pages, so the
+      // failing request is not counted — the shortfall names the page that
+      // faulted separately, because "read 1000 rows over 2 pages, page 3
+      // failed" is the sentence an operator needs and "0 rows" is not.
+      return {
+        rows,
+        total,
+        complete: false,
+        shortfall:
+          `${label}: page ${pages + 1} failed after ${pages} page(s) — ` +
+          `${rows.length} row(s) already read are returned, the rest were not` +
+          (total === null ? "" : `; the server reports ${total} matching rows`),
+        pages,
+        error,
+      };
     }
 
     pages++;
@@ -250,7 +330,24 @@ export async function scanAllIn<T>(
     const res = await scanAll<T>(`${label}[${i}..${i + chunk.length - 1}]`, (c) => build(chunk, c), opts);
     pages += res.pages;
     if (res.error) {
-      return { rows: [], total: null, complete: false, shortfall: null, pages, error: res.error };
+      // Same rule as `scanAll`: a chunk that faulted does not un-read the
+      // chunks before it, nor the pages inside itself that came back whole.
+      // Return the prefix with the error rather than an empty array that
+      // reads, at every call site, exactly like "nothing matched".
+      rows.push(...res.rows);
+      shortfalls.push(res.shortfall ?? `${label} chunk ${i} read failed: ${res.error.message}`);
+      return {
+        rows,
+        // Deliberately null, not the running sum: a partial sum of chunk
+        // counts is not "the server's exact count for these filters", and
+        // publishing it would let a caller compare rows against a total that
+        // is itself short and conclude the read was complete.
+        total: null,
+        complete: false,
+        shortfall: shortfalls.join("; "),
+        pages,
+        error: res.error,
+      };
     }
     rows.push(...res.rows);
     if (res.total !== null) total = (total ?? 0) + res.total;

@@ -191,15 +191,35 @@
 --
 -- `seed_jobs_hidden_publicly()` is SECURITY DEFINER with a pinned search_path
 -- and reads exactly one table, the `platform_settings` singleton, with no
--- reference to `auth.uid()` and no per-caller behaviour. It cannot recurse:
--- `platform_settings`' only SELECT policy is `USING (true)` and reads nothing.
+-- reference to `auth.uid()` and no per-caller behaviour.
+--
+-- SECURITY DEFINER IS LOAD-BEARING, NOT DECORATION. `platform_settings` is
+-- ADMIN-READ-ONLY under RLS (the public policy was dropped in 20260403200046;
+-- see also 20260826070000 and 20260901035235, which exist because a non-admin
+-- gets `200 []` from `/rest/v1/platform_settings`). An INVOKER function would
+-- therefore read NO ROW for every guest and every ordinary helper — the exact
+-- callers this gate exists for — and the `COALESCE(…, false)` would resolve to
+-- "fixtures visible" forever. The switch would look wired and do nothing, with
+-- no error anywhere: the silent-no-op class this whole migration is about.
+-- `is_idv_requirement_paused()` (20260829031930) is SECURITY DEFINER for the
+-- identical reason, and says so.
+--
+-- It cannot recurse: `platform_settings`' surviving policies are a plain
+-- admin-role check and a service_role grant, neither of which reads back into
+-- a function that reads `platform_settings`.
+--
 -- EXECUTE goes to `anon` and `authenticated` by name because
 -- `open_jobs_browse` is `security_invoker = false` — table access is checked
 -- as the view owner, but a FUNCTION referenced by the view is still checked
 -- against the CALLING role (same note as `early_access_cutoff()`).
 --
--- `miles_between()` is IMMUTABLE arithmetic over four numerics; it touches no
--- table and needs no grant beyond the default.
+-- `miles_between()` is IMMUTABLE arithmetic over four numerics and touches no
+-- table, but it still ships with an explicit REVOKE rather than riding the
+-- default PUBLIC EXECUTE — `scripts/check-migration-grants.mjs` fails the
+-- build otherwise, because the Supabase advisor pass keeps stripping implicit
+-- grants and silently breaking whatever depended on them (#355/#358/#364).
+-- Its only caller is the SECURITY DEFINER trigger below, which runs as the
+-- owner, so nothing else needs to reach it.
 --
 -- `notify_saved_searches_on_new_job()` keeps its name (20260505190000 revokes
 -- EXECUTE on it by name and that revoke is re-asserted below), stays SECURITY
@@ -567,6 +587,11 @@ $function$;
 
 COMMENT ON FUNCTION public.miles_between(numeric, numeric, numeric, numeric) IS
   'Great-circle distance in miles. Mirrors haversineMiles() in src/lib/geo.ts (R = 3958.8) so the saved-search radius and the browse-feed radius agree on the boundary. NULL if any coordinate is NULL.';
+
+-- Locked: the only caller is notify_saved_searches_on_new_job(), which is
+-- SECURITY DEFINER and therefore executes as the owner. Explicit rather than
+-- implicit, per scripts/check-migration-grants.mjs.
+REVOKE ALL ON FUNCTION public.miles_between(numeric, numeric, numeric, numeric) FROM PUBLIC, anon, authenticated;
 
 -- ═══════════════════════════════════════════════════════════════════════════
 -- 7. The alert itself

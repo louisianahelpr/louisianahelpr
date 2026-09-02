@@ -171,10 +171,41 @@ const UserAvatar = React.forwardRef<
   // different person's photo. Without this reset, one blank avatar earlier in
   // the list would keep every subsequent occupant of that slot on the
   // monogram path.
-  React.useEffect(() => {
+  //
+  // ── WHY THIS IS A RENDER-PHASE RESET AND NOT `useEffect(…, [imageSrc])` ──
+  //
+  // Because an effect keyed on `imageSrc` ALSO RUNS ON MOUNT, where there is
+  // nothing to reset — and by the time it runs it has something to destroy.
+  // The ref callback (`inspect`) fires during the COMMIT phase, before passive
+  // effects, and for an image already in the memory cache it reaches a verdict
+  // right there. The mount run of the effect then cleared it.
+  //
+  // Measured before the fix, mounting on a cached blank bitmap:
+  //
+  //   seen = [null, "blank-bitmap", null, "blank-bitmap"]   ← a `null` AFTER
+  //                                                            a rejection
+  //   isBlankAvatarBitmap called 2×, and the <img> was destroyed and rebuilt
+  //
+  // That breaks this component's own documented contract (`null` means "a
+  // photo is showing"), and both callers act on it: `ProfileHeaderCard`'s
+  // shield goes true→false→true→false, repainting the ID-verified badge over
+  // the blank block it exists to suppress, and `PhotoNameSection`'s
+  // `aria-live` caption announces the wrong verdict on the way past. It was
+  // invisible for a GOOD photo — `setFailure(null)` hits React's eager bailout
+  // when the state is already null — so only the rejected path, the one that
+  // matters, was affected.
+  //
+  // Adjusting state during render, guarded by a ref, is React's documented
+  // pattern for exactly this ("You Might Not Need an Effect" → resetting state
+  // when a prop changes). The guard is what makes it terminate: the second
+  // pass sees `prevSrc.current === imageSrc` and does nothing. It also drops
+  // the wasted extra request and halves the canvas sampling.
+  const prevSrc = React.useRef(imageSrc);
+  if (prevSrc.current !== imageSrc) {
+    prevSrc.current = imageSrc;
     setFailure(null);
     setCorsMode("anonymous");
-  }, [imageSrc]);
+  }
 
   const handleError = React.useCallback(() => {
     if (corsMode === "anonymous") {

@@ -19,6 +19,7 @@ import { Star, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import { fetchReferralData } from "@/hooks/useReferralData";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
+import { getPublicSiteUrl } from "@/lib/authRedirects";
 import { report } from "@/lib/errorLogger";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { isNativePlatform } from "@/lib/nativeInit";
@@ -90,8 +91,20 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
       .catch(() => { /* referral link unavailable — skip */ });
   }, [step, referralCode, userId]);
 
+  // `/signup?ref=`, NOT `/?ref=`. The landing page has no referral-code reader:
+  // the only two things in the app that read `?ref=` are `useJobRef` (which
+  // validates against a fixed token registry — msg/notif/share/email — and
+  // silently drops anything else, including a referral code) and Signup.tsx,
+  // which never mounts on `/`. So every code shared from this prompt was
+  // discarded before the recipient reached the form, and the referrer was
+  // never credited. `ReferralSection.tsx:74` already builds the correct
+  // `/signup?ref=` URL; this is the same link, built from the same helper —
+  // the domain was hardcoded here, so the two builders could drift apart on
+  // environment as well as on path.
+  // `encodeURIComponent` matches it too — codes are alphanumeric today, but
+  // the two builders should not disagree about escaping.
   const referralLink = referralCode
-    ? `https://www.louisianahelpr.com/?ref=${referralCode}`
+    ? `${getPublicSiteUrl()}/signup?ref=${encodeURIComponent(referralCode)}`
     : "";
 
   const copyReferral = async () => {

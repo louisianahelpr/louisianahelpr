@@ -4,6 +4,7 @@ import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
+import { assertUploadableAvatar, replaceAvatarObject } from "@/lib/avatarStorage";
 import { signOutWithPushCleanup } from "@/lib/authSignOut";
 import { ProfilePageSkeleton } from "@/components/SkeletonLoaders";
 import AppShell from "@/components/AppShell";
@@ -441,28 +442,46 @@ const ProfilePage = () => {
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
-    if (!file.type.startsWith("image/")) { toast.error("That doesn't look like an image — try JPG or PNG."); return; }
-    if (file.size > 5 * 1024 * 1024) { toast.error("That image is over 5 MB — try a smaller one."); return; }
 
+    // ── THIS IS THE "I UPLOADED THE WRONG THING" PATH ────────────────────
+    //
+    // The member who uploads a photo of their driver's licence by mistake,
+    // notices, and comes back to swap in a selfie arrives HERE. So this call
+    // has to actually retract the old object, not just add a new one beside
+    // it — which is what it did until 2026-09-01: the key embedded the picked
+    // file's own extension (`avatar.${file.name.split(".").pop()}`, so also
+    // `avatar.undefined` for a file with no dot), a `.png` over a `.jpg` was a
+    // second public object, and the licence stayed anonymously fetchable at
+    // 200 forever. `replaceAvatarObject` derives the key from the CONTENT TYPE
+    // and deletes every other `avatar.*` in the folder, verifying the delete
+    // by re-listing. See `@/lib/avatarStorage`.
+    //
+    // Type + size are checked in there too, against the bucket's OWN limits,
+    // rather than the looser `startsWith("image/")` this used (which accepted
+    // image/heic and image/svg+xml — neither is in the bucket's
+    // allowed_mime_types, so both failed at the server with an opaque message).
     setAvatarUploading(true);
-    const ext = file.name.split(".").pop();
-    const path = `${user.id}/avatar.${ext}`;
 
-    // Avatars go in the public `avatars` bucket (user-documents is now
-    // private as of 2026-05-05; mixing public avatars with private docs
-    // forced a wrong choice on bucket-level public flag).
-    const { error: uploadError } = await supabase.storage
-      .from("avatars")
-      .upload(path, file, { upsert: true });
-
-    if (uploadError) {
-      toast.error("Couldn't upload your photo — " + uploadError.message);
+    let replaced;
+    try {
+      assertUploadableAvatar(file);
+      replaced = await replaceAvatarObject(supabase, user.id, file, file.type);
+    } catch (err) {
+      toast.error(mutationErrorMessage(err, "Couldn't upload your photo — please try again."));
       setAvatarUploading(false);
       return;
     }
 
-    const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
-    const avatarUrl = urlData.publicUrl + "?t=" + Date.now();
+    const avatarUrl = replaced.publicUrl;
+
+    // The new photo is live but the OLD one survived the sweep, so it is still
+    // being served publicly. Say so — this is the case where staying quiet
+    // means telling someone their document is gone when it is not.
+    if (replaced.staleRemaining.length > 0) {
+      toast.error(
+        "Your new photo is saved, but we couldn't remove the previous one — it may still be visible. Please try changing your photo again.",
+      );
+    }
 
     const { error: updateError } = await supabase
       .from("profiles")

@@ -241,6 +241,16 @@ describe("avatarInitials", () => {
   });
 
   it("keeps non-letter ink rather than falling through", () => {
+    // `charAt(0)` returned a lone high surrogate here, which renders as the
+    // replacement glyph — a coloured circle with a meaningless mark in it,
+    // i.e. the exact artefact this module exists to eliminate.
     expect(avatarInitials("🙂")).toBe("🙂");
+  });
+
+  it("stays within the 1-3 char budget even when uppercasing LENGTHENS", () => {
+    // "ß".toUpperCase() is "SS", so first+last initials produced "SSSS" and
+    // overflowed the monogram circle.
+    expect(avatarInitials("ßeta ßeta")).toBe("SS");
+    expect(avatarInitials("ßeta")).toBe("SS");
   });
 });

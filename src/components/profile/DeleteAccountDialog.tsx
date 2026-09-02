@@ -57,9 +57,13 @@ function RetentionSummary() {
   const erased = [
     "Your name, photo, phone, email and address",
     "Your ID document and verification files",
-    "Messages you sent, plus notifications and saved devices",
+    "Messages you sent, your notifications, saved jobs and devices",
     "Reviews other people left about you",
     "Jobs you posted that nobody applied to and that took no payment",
+    // Referral credit is real spendable value and it does not survive the
+    // account, so the person deciding deserves to know before they decide —
+    // same reason the callout above names the forfeited payouts.
+    "Any referral credit you haven't spent",
   ];
   const kept = [
     "Payment records — the law requires we keep them",

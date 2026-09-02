@@ -318,6 +318,34 @@ function rewriteExternalImports(src: string): string {
     `import * as React from "react";`,
   );
 
+  // Recurring calendar: `_shared/recurringSchedule.ts` has ZERO imports and is
+  // the single definition of which dates a series runs. The Post-a-Task screen
+  // quotes "9 visits · $450 total" from it and `charge-recurring-visits` bills
+  // a saved card from it, so a stub here would mean the calendar every one of
+  // those charges is derived from is the one thing not under test — and the
+  // failure mode is a poster billed for a visit the app never showed them.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/recurringSchedule\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/recurringSchedule.ts";`,
+  );
+
+  // Cron authorization: `_shared/cron-auth.ts` is the ONLY thing standing
+  // between a public HTTPS endpoint and a function that charges saved cards
+  // off-session, so it points at the REAL module rather than a permissive
+  // stub — a mocked gate is a gate nobody tested. It is otherwise pure: its
+  // sole dependency is `Deno.env.get`, which the global installed in
+  // `loadEdgeFunction` below satisfies (a `_shared` module is imported from
+  // disk, so it cannot receive the per-function preamble the entry gets).
+  //
+  // Without this rule any function importing it — charge-recurring-visits,
+  // cleanup-abandoned-accounts, process-email-queue — could not be loaded by
+  // the harness at all: the emitted `.gen.ts` kept a `../_shared/cron-auth.ts`
+  // specifier that does not resolve from this directory.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/cron-auth\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/cron-auth.ts";`,
+  );
+
   // Escrow clock: `_shared/escrowTiming.ts` has ZERO imports and is the single
   // source of the 24-hour auto-release cutoff that user copy, the payout cron
   // and `payment-confirm-reminder`'s window all have to agree on.
@@ -456,6 +484,18 @@ export async function loadEdgeFunction(fnName: string): Promise<EdgeHarness> {
   // Reset the captured handler before importing so each load is isolated.
   const deno = await import("./mocks/deno-runtime.ts");
   deno.__clearHandler();
+
+  // A `Deno` GLOBAL, in addition to the per-function preamble binding.
+  //
+  // The preamble gives the function's own modules a local `Deno`, but a
+  // `_shared` helper pointed at its real path is imported from disk and never
+  // rewritten, so it can only see a global. `_shared/cron-auth.ts` is exactly
+  // that: real source, under test, reading `Deno.env.get`. The stub is backed
+  // by the same map `setEnv()` writes, so a test configures both the same way.
+  //
+  // The preamble's local binding SHADOWS this inside every rewritten module, so
+  // nothing that worked before changes behaviour.
+  (globalThis as { Deno?: unknown }).Deno = deno.__denoStub;
 
   const entryGenPath = join(HERE, entry.genName);
   try {

@@ -136,8 +136,16 @@ export const ProfileHeaderCard = ({
   const idVerified =
     isIdVerified || (profile as unknown as { is_id_verified?: boolean }).is_id_verified === true;
 
-  // `null` while a photo is (or may still turn out to be) showing.
-  const [photoRejection, setPhotoRejection] = useState<AvatarPhotoRejection | null>(null);
+  // Seeded from the column rather than starting at `null`, because the child
+  // reports "no-photo" from a passive effect — i.e. AFTER paint. Starting at
+  // `null` therefore painted one frame with the ID-verified shield sitting on
+  // a monogram for every member who has no avatar at all, which is the exact
+  // artefact the gate below exists to prevent. A member who DOES have a photo
+  // still starts at `null` ("assume a photo"), so a real trust signal is never
+  // hidden while the bitmap is in flight.
+  const [photoRejection, setPhotoRejection] = useState<AvatarPhotoRejection | null>(
+    profile.avatar_url ? null : "no-photo",
+  );
   const showsPhoto = photoRejection === null;
 
   const location = profile.location ?? null;

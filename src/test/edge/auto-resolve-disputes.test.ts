@@ -36,6 +36,9 @@ const CRON_SECRET = "cron-secret-xyz";
 const JOB_ID = "job-1";
 const DISPUTE_ID = "dispute-1";
 const ADMIN_A = "admin-a";
+/** The two reminder titles. Both are part of the dedupe key, not just the link. */
+const ESCALATED = "Escalated dispute overdue";
+const STUCK = "Dispute split did not settle";
 const ADMIN_B = "admin-b";
 
 async function load(): Promise<EdgeHarness> {
@@ -266,7 +269,7 @@ describe("auto-resolve-disputes", () => {
 
     it("does NOT re-notify an admin already reminded about that job today", async () => {
       seedEscalated(scenario, [
-        { user_id: ADMIN_A, link: `/admin?view=disputes&job=${JOB_ID}` },
+        { user_id: ADMIN_A, title: ESCALATED, link: `/admin?view=disputes&job=${JOB_ID}` },
       ]);
       const h = await load();
       await h.fetch(cronReq());
@@ -275,10 +278,26 @@ describe("auto-resolve-disputes", () => {
       expect(payload.map((p) => p.user_id)).toEqual([ADMIN_B]);
     });
 
+    it("a reminder of a DIFFERENT kind never suppresses this one", async () => {
+      // The two reminder kinds share a job-scoped link, so a key of
+      // user|link alone would let the escalation reminder (sent first) swallow
+      // the "money may be half-moved" alarm for 24 hours — suppressing the
+      // more urgent of the two. `title` is in the key for exactly this.
+      seedEscalated(scenario, [
+        { user_id: ADMIN_A, title: STUCK, link: `/admin?view=disputes&job=${JOB_ID}` },
+        { user_id: ADMIN_B, title: STUCK, link: `/admin?view=disputes&job=${JOB_ID}` },
+      ]);
+      const h = await load();
+      await h.fetch(cronReq());
+      const payload = writesTo("notifications", "insert")[0].payload as Array<Record<string, unknown>>;
+      expect(payload.map((p) => p.user_id).sort()).toEqual([ADMIN_A, ADMIN_B]);
+      expect(payload[0].title).toBe(ESCALATED);
+    });
+
     it("sends nothing at all when every admin was already reminded", async () => {
       seedEscalated(scenario, [
-        { user_id: ADMIN_A, link: `/admin?view=disputes&job=${JOB_ID}` },
-        { user_id: ADMIN_B, link: `/admin?view=disputes&job=${JOB_ID}` },
+        { user_id: ADMIN_A, title: ESCALATED, link: `/admin?view=disputes&job=${JOB_ID}` },
+        { user_id: ADMIN_B, title: ESCALATED, link: `/admin?view=disputes&job=${JOB_ID}` },
       ]);
       const h = await load();
       const res = await h.fetch(cronReq());
@@ -303,7 +322,7 @@ describe("auto-resolve-disputes", () => {
       // as "never reminded" — which is exactly how the flood restarts.
       seedEscalated(
         scenario,
-        Array.from({ length: 500 }, (_, i) => ({ user_id: `admin-${i}`, link: "/x" })),
+        Array.from({ length: 500 }, (_, i) => ({ user_id: `admin-${i}`, title: ESCALATED, link: "/x" })),
       );
       const h = await load();
       const res = await h.fetch(cronReq());
@@ -353,6 +372,7 @@ describe("auto-resolve-disputes", () => {
       seedOrphan(scenario, {
         id: "job-9",
         status: "completed",
+        payment_status: "payout_pending",
         dispute_status: "auto_resolved",
         dispute_resolved_at: "2026-08-30T00:00:00Z",
       });
@@ -367,6 +387,7 @@ describe("auto-resolve-disputes", () => {
       seedOrphan(scenario, {
         id: "job-9",
         status: "disputed",
+        payment_status: "escrow",
         dispute_status: "open",
         dispute_resolved_at: null,
       });
@@ -378,10 +399,71 @@ describe("auto-resolve-disputes", () => {
       expect(res.status).toBe(200);
     });
 
+    it("closes a REFUNDED job's record as poster — never as helper", async () => {
+      // settle_dispute_record writes payout_split and is terminal. A sweep that
+      // assumed "helper" would stamp "poster 0% · Helpr 100%" onto every job an
+      // admin had REFUNDED to the poster, permanently, in the surface both
+      // parties read to see what was decided.
+      seedOrphan(scenario, {
+        id: "job-9",
+        status: "cancelled",
+        payment_status: "refunded",
+        dispute_status: "resolved",
+        dispute_resolved_at: "2026-08-30T00:00:00Z",
+      });
+      const h = await load();
+      const body = await json(await h.fetch(cronReq()));
+      expect(body.dispute_records_swept).toBe(1);
+      expect(rpcCalls("settle_dispute_record")[0].args).toMatchObject({
+        _job_id: "job-9",
+        _outcome: "poster",
+      });
+    });
+
+    it("refuses to close a record when the job's MONEY state does not say which way it went", async () => {
+      // payment_status is the only column here no party can write. Everything
+      // else that looks settled is party-writable, so an unsettled payment
+      // state means "leave it open", never "guess".
+      seedOrphan(scenario, {
+        id: "job-9",
+        status: "completed",
+        payment_status: "escrow",
+        dispute_status: "resolved",
+        dispute_resolved_at: "2026-08-30T00:00:00Z",
+      });
+      const h = await load();
+      const res = await h.fetch(cronReq());
+      expect((await json(res)).dispute_records_swept).toBe(0);
+      expect(rpcCalls("settle_dispute_record")).toHaveLength(0);
+      expect(res.status).toBe(200);
+    });
+
+    it("a party cannot forge a settled-looking job to close their own live dispute", async () => {
+      // The denial-of-service this gate exists for. jobs.status and
+      // dispute_status are on the assigned helper's allow-list
+      // (20260828020000:446,458) and dispute_resolved_at is deliberately absent
+      // from locked_everyone (20260826040000:369), so the side LOSING a dispute
+      // can PATCH all three. If the sweep trusted them, one request would close
+      // their own open dispute as decided + executed — after which
+      // rpc_decide_dispute raises "already decided" and execute-dispute-split
+      // returns 409, with no recovery short of manual SQL.
+      seedOrphan(scenario, {
+        id: "job-9",
+        status: "completed",          // forged
+        payment_status: "escrow",     // NOT forgeable — escrow is still held
+        dispute_status: "resolved",   // forged
+        dispute_resolved_at: "2026-08-30T00:00:00Z", // forged
+      });
+      const h = await load();
+      await h.fetch(cronReq());
+      expect(rpcCalls("settle_dispute_record")).toHaveLength(0);
+    });
+
     it("reports a defect when the sweep's own close fails", async () => {
       seedOrphan(scenario, {
         id: "job-9",
         status: "cancelled",
+        payment_status: "refunded",
         dispute_status: "resolved",
         dispute_resolved_at: "2026-08-30T00:00:00Z",
       });
@@ -460,7 +542,7 @@ describe("auto-resolve-disputes", () => {
         },
       ]);
       scenario.reads.notifications = {
-        rows: [{ user_id: ADMIN_A, link: "/admin?view=disputes&job=job-7" }],
+        rows: [{ user_id: ADMIN_A, title: STUCK, link: "/admin?view=disputes&job=job-7" }],
       };
       const h = await load();
       const res = await h.fetch(cronReq());

@@ -272,7 +272,19 @@ const CompleteProfile = () => {
       // Government ID upload was removed from this page — Stripe Identity
       // (triggered from the first job post) collects the real ID now, so
       // idFile is always null here.
-      const { avatarUrl, idDocumentPath } = await uploadProfileFiles(user.id, avatarFile, null);
+      const { avatarUrl, idDocumentPath, staleAvatarObjects } =
+        await uploadProfileFiles(user.id, avatarFile, null);
+
+      // A superseded photo that survived the replace is STILL PUBLIC. Do not
+      // fail the submit over it — the new photo is live and the profile is
+      // about to point at it — but never let it pass silently either: if the
+      // member was replacing a photo they wanted retracted (the licence /
+      // passport case this bucket has already seen), silence is the failure.
+      if (staleAvatarObjects.length > 0) {
+        toast.error(
+          "Your new photo is saved, but we couldn't remove the previous one — it may still be visible. Please try changing your photo again.",
+        );
+      }
 
       // Single, lightweight DB update — no large JSON over the wire
       const updates: ProfileCompletionUpdates = {
@@ -583,6 +595,20 @@ const CompleteProfile = () => {
                   ? "Tap to change · JPG, PNG, WebP (5MB max)"
                   : <>Profile photo <span className="text-destructive">*</span> · tap to add</>}
               </p>
+              {/* WHERE THIS FILE GOES, said at the moment the file is chosen.
+                  The `avatars` bucket is PUBLIC — anonymously fetchable at a
+                  guessable URL — and identity documents have twice been
+                  uploaded into it from a picker that looked exactly like this
+                  one and said nothing. "Photo of a document" cannot be
+                  detected client-side (the licence found in prod was
+                  2502×1407, the passport 1093×1491 — no dimension or
+                  aspect-ratio test separates either from a selfie), so making
+                  the CONSEQUENCE legible is the entire defence. One quiet
+                  line, in the muted token, next to the control it describes —
+                  not a warning banner, which people learn to skip. */}
+              <p className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+                Public — shown on your profile to anyone on Helpr.
+              </p>
             </div>
 
             {/* Same as above: pre-filled and editable, never hidden — Google
@@ -776,6 +802,18 @@ const CompleteProfile = () => {
               size="lg"
               className={cn(
                 "w-full rounded-ds-md",
+                // The label is clipped at 320px without this. `size="lg"` is
+                // `h-[60px] px-8` and `Button`'s base class is
+                // `whitespace-nowrap`, so at a 320px viewport the button box is
+                // 230px, 64px of that is padding, and "Complete Required
+                // Fields" needs 226px in 166px of room — measured
+                // scrollWidth 245 vs clientWidth 230, i.e. the primary action
+                // on the one screen a blocked user cannot leave was running off
+                // its own button. Narrow padding plus a permitted wrap fixes it
+                // without touching the shared `Button` variants: the label
+                // wraps to two lines under `sm`, and `h-auto`/`min-h-[60px]`
+                // keeps the tap target at its full size instead of clipping.
+                "h-auto min-h-[60px] whitespace-normal text-balance px-4 py-3 sm:px-8 sm:py-0",
                 allComplete && !submitting && "btn-grad-primary",
               )}
               disabled={submitting || !allComplete}

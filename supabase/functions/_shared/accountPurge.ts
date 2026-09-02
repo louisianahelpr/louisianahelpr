@@ -130,6 +130,141 @@ export interface PurgeOutcome {
 }
 
 /**
+ * The job states that mean a counterparty still has work, money or a claim in
+ * flight. Deleting either party here strands the other one.
+ *
+ * ⚠️ Every value MUST be a real member of the `job_status` enum:
+ *   open | accepted | in_progress | completed | cancelled |
+ *   revision_requested | disputed | pending_approval
+ * Postgres rejects the WHOLE query with 22P02 "invalid input value for enum
+ * job_status" if any listed value is not a member — and because every caller
+ * fails closed on that error, ONE bad value makes deletion return 500 for
+ * EVERY user, including users with no jobs at all. That is exactly what
+ * happened: the list carried `arrived` (a `job_tracking.status` value) and
+ * `awaiting` (which exists nowhere).
+ */
+const LIVE_STATUS_FILTER =
+  "status.in.(accepted,in_progress,revision_requested,disputed)," +
+  "payment_status.in.(escrow,payout_pending)";
+
+export interface ActiveWorkResult {
+  /** False means we could not determine it — the caller must fail closed. */
+  ok: boolean;
+  /** True when the account is party to live work and must not be deleted. */
+  active: boolean;
+  detail?: string;
+}
+
+/**
+ * Is this account party to an in-flight job or holding money in escrow?
+ *
+ * ── Why this lives here rather than in each caller ──────────────────────────
+ * `delete-own-account` and `admin-delete-user` each carried their own copy of
+ * this guard, with a comment in one of them promising they were "kept
+ * byte-identical so the two guards cannot drift again". They had already
+ * drifted: the enum bug above was fixed in one and left in the other for a
+ * day, during which admin deletion returned 500 for every target. A comment is
+ * not a mechanism. One implementation is.
+ *
+ * ── Why it takes two queries ────────────────────────────────────────────────
+ * A GROUP job's roster lives in `group_job_helpers`, not in `jobs.helper_id` —
+ * only the lead helper is ever written to the job row. So a second, third or
+ * fourth helper on a live, escrow-funded group job looked completely job-free
+ * to the single-table version of this check and could delete their account
+ * mid-job, leaving the poster short-handed with the money still held and no
+ * party left to release it to. The roster is read first, then its job ids are
+ * tested against the same live-status filter, so the two paths cannot disagree
+ * about what "live" means.
+ */
+/**
+ * The id reaches a PostgREST `.or()` filter STRING, a storage list prefix and an
+ * RPC argument. Only `admin-delete-user` took its id from a request body, and
+ * only `admin-delete-user` validated it — which put the check in one caller
+ * rather than in the module that builds the filter. Nothing is exploitable
+ * today; this is so it stays that way when a fourth caller appears.
+ */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export async function findActiveWork(
+  admin: PurgeCapableClient,
+  userId: string,
+): Promise<ActiveWorkResult> {
+  if (!UUID_RE.test(userId)) {
+    console.error("[accountPurge] findActiveWork called with a non-UUID id");
+    return { ok: false, active: false, detail: "userId is not a UUID" };
+  }
+  // 1. Jobs where this user is the poster or the (lead) helper.
+  //    `.or(...).or(...)` ANDs the two clauses: (I'm a party) AND (it's live).
+  const direct: PostgrestLike<{ id: string }[]> = await admin
+    .from("jobs")
+    .select("id")
+    .or(`customer_id.eq.${userId},helper_id.eq.${userId}`)
+    .or(LIVE_STATUS_FILTER)
+    .limit(1);
+
+  if (direct.error) {
+    console.error(`[accountPurge] active-job check failed for ${userId}:`, direct.error.message);
+    return { ok: false, active: false, detail: direct.error.message };
+  }
+  if (direct.data && direct.data.length > 0) {
+    return { ok: true, active: true, detail: `job ${direct.data[0].id}` };
+  }
+
+  // 2. Group-job rosters. Read the memberships, then test THOSE jobs.
+  // 201, not 200: a page that comes back FULL is indistinguishable from a page
+  // that was truncated, and silently truncating this read would hand back
+  // "no live work" for a helper whose live group job happened to fall off the
+  // end. Reading one more than the cap makes truncation detectable, and the
+  // branch below fails closed on it rather than guessing.
+  const ROSTER_CAP = 200;
+  const roster: PostgrestLike<{ job_id: string }[]> = await admin
+    .from("group_job_helpers")
+    .select("job_id")
+    .eq("helper_id", userId)
+    .limit(ROSTER_CAP + 1);
+
+  if (roster.error) {
+    // A missing table is not a reason to refuse a deletion forever, but any
+    // other failure is — we cannot prove the account is safe to remove.
+    if (/does not exist|42P01|PGRST205/i.test(`${roster.error.code ?? ""} ${roster.error.message}`)) {
+      return { ok: true, active: false, detail: "group_job_helpers absent" };
+    }
+    console.error(`[accountPurge] roster check failed for ${userId}:`, roster.error.message);
+    return { ok: false, active: false, detail: roster.error.message };
+  }
+
+  const rosterRows = roster.data ?? [];
+  if (rosterRows.length > ROSTER_CAP) {
+    console.error(`[accountPurge] roster read for ${userId} hit the ${ROSTER_CAP}-row cap`);
+    return {
+      ok: false,
+      active: false,
+      detail: `group roster exceeded ${ROSTER_CAP} rows — cannot prove the account is free of live work`,
+    };
+  }
+
+  const jobIds = [...new Set(rosterRows.map((r) => r.job_id).filter(Boolean))];
+  if (jobIds.length === 0) return { ok: true, active: false };
+
+  const grouped: PostgrestLike<{ id: string }[]> = await admin
+    .from("jobs")
+    .select("id")
+    .in("id", jobIds)
+    .or(LIVE_STATUS_FILTER)
+    .limit(1);
+
+  if (grouped.error) {
+    console.error(`[accountPurge] group-job check failed for ${userId}:`, grouped.error.message);
+    return { ok: false, active: false, detail: grouped.error.message };
+  }
+  if (grouped.data && grouped.data.length > 0) {
+    return { ok: true, active: true, detail: `group job ${grouped.data[0].id}` };
+  }
+
+  return { ok: true, active: false };
+}
+
+/**
  * Cancel any live Stripe subscription so a deleted account stops billing.
  *
  * Best-effort by design, and that is a deliberate trade-off rather than a
@@ -425,19 +560,54 @@ async function collectMessageAttachments(
   }
 
   const paths: string[] = [];
+  let rejected = 0;
   for (const row of res.data ?? []) {
     const url = row.attachment_url;
     if (!url) continue;
     // Stored either as a bare object path or as a full public/signed URL.
     const marker = "/message-attachments/";
     const idx = url.indexOf(marker);
-    const path = idx >= 0 ? url.slice(idx + marker.length).split("?")[0] : url;
-    if (path) paths.push(decodeURIComponent(path));
+    const raw = idx >= 0 ? url.slice(idx + marker.length).split("?")[0] : url;
+    if (!raw) continue;
+
+    // `decodeURIComponent` throws URIError on a malformed `%` escape, and
+    // `attachment_url` is client-supplied text. Uncaught, one bad row threw out
+    // of this function, out of purgeAccount, and permanently 500'd that user's
+    // own account deletion with no way for them to proceed.
+    let path: string;
+    try {
+      path = decodeURIComponent(raw);
+    } catch {
+      path = raw;
+    }
+
+    // The path MUST be `<job_id>/<this user's id>/<file>`.
+    //
+    // Without this check the removal list was whatever a client had written
+    // into `attachment_url`, handed to `storage.remove()` under the
+    // SERVICE-ROLE key — which bypasses the storage RLS that otherwise confines
+    // a user to their own folder. The `messages` INSERT policy validates
+    // `sender_id` and job participation but never the URL, so a user could
+    // plant `<other_job>/<other_user>/<file>` in a message they legitimately
+    // sent and destroy another party's dispute evidence on the way out.
+    // Deleting your account must not be a primitive for deleting someone
+    // else's files.
+    const segments = path.split("/");
+    if (segments.length < 3 || segments[1] !== userId) {
+      console.error(
+        `[accountPurge] refusing out-of-scope attachment path for ${userId}: ${path.slice(0, 120)}`,
+      );
+      rejected++;
+      continue;
+    }
+    paths.push(path);
   }
   steps.push({
     step: "message_attachments",
     ok: true,
-    detail: `${paths.length} attachment path(s) queued for removal`,
+    detail: rejected > 0
+      ? `${paths.length} attachment path(s) queued, ${rejected} rejected as out-of-scope`
+      : `${paths.length} attachment path(s) queued for removal`,
   });
   return paths;
 }
@@ -452,6 +622,17 @@ export async function purgeAccount(
   userId: string,
 ): Promise<PurgeOutcome> {
   const steps: PurgeStep[] = [];
+
+  if (!UUID_RE.test(userId)) {
+    return {
+      ok: false,
+      steps: [{ step: "input", ok: false, detail: "userId is not a UUID" }],
+      reason: "database_failed",
+      userMessage:
+        "We couldn't finish removing your data. Please try again, and contact " +
+        "admin@louisianahelpr.com if it keeps failing.",
+    };
+  }
 
   await cancelStripeSubscription(admin, userId, steps);
   // Read the chat-attachment paths BEFORE the RPC deletes the rows that name

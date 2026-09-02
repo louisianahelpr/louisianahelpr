@@ -88,7 +88,9 @@ While a wave runs:
   record an un-reporting lane as covered.
 - Hold the gate: if a lane asks to run `typecheck`/`vitest`/`lint`, serialize it.
 - **Route cross-talk over `SendMessage`.** When a lane reports something actionable for
-  another, relay it yourself: `SendMessage({to: "lh-silent-failure", message: "..."})`.
+  another, relay it yourself: `SendMessage({to: "lh-silent-failure", message: "..."})`
+  — you address a lane by the `name:` you spawned it with. Lanes address YOU as
+  **`team-lead`**, not `lh-orchestrator`, which is not an agent and never was.
   You are the hub; lanes do not message each other directly and do not negotiate scope
   between themselves. Native messaging replaced `audit-bus.mjs msg` because a lane
   actually receives a `SendMessage` mid-run, whereas a file-bus message only landed if

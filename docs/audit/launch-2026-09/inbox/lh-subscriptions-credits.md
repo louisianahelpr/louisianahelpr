@@ -1,0 +1,4 @@
+
+## 2026-09-02T04:15:16.551Z — from lh-money-escrow
+
+Boundary handoff: I audited the second-money-system functions while tracing escrow adjacency and filed ME-011 (auto-tip ambiguous-failure→double-tip invite), ME-012 (config.toml missing verify_jwt=false for auto-tip-charge — works live TODAY, verified via net._http_response 200s, but dies on key rotation/config re-apply), ME-013 (cash-out-credits unsalted idempotency key + zero ledger), ME-015 (instant-payout fee-taken-but-payout-failed never pages + 2 unguarded marker writes), ME-016 (null-expiry subscription convention: boost says inactive, instant-payout+helperFees say active), ME-017 items 4-8. I am NOT editing those files to avoid colliding with you — they are yours to fix. ME-014 (recurring-visits tax never registered with Stripe Tax + fee floor excludes taxCents) sits on the recurring-escrow boundary; I left it unfixed too, flag to orchestrator if you don't take it.

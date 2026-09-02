@@ -4,10 +4,10 @@
      Every number here is derived from the lane roster, WAVES.md, lanes/*.md
      and the append-only bus. Re-run after every wave: npm run audit:coverage -->
 
-Generated: 2026-09-02T17:51:01.795Z
+Generated: 2026-09-02T18:14:16.490Z
 
-- **Lanes:** 36 total — **3 reported**, 5 ran without filing a report, **28 not started**
-- **Findings:** 50 live (3 launch blockers), 7 marked fixed, 62 filed all time
+- **Lanes:** 39 total — **5 reported**, 5 ran without filing a report, **29 not started**
+- **Findings:** 65 live (4 launch blockers), 7 marked fixed, 78 filed all time
 - **Surface:** unknown — run `node scripts/audit-surface.mjs`
 
 **A lane that filed nothing either found nothing or never ran, and those are
@@ -16,17 +16,18 @@ lane report on disk — treat it as incomplete, not as covered.
 
 | Wave | Lane | State | Live | Blockers | Fixed |
 |---|---|---|---:|---:|---:|
-| 1 | `lh-generated-drift` | NOT STARTED | – | – | – |
+| 1 | `lh-generated-drift` | REPORTED | 5 | – | – |
 | 1 | `lh-route-walker` | RAN — no report | 3 | – | – |
 | 1 | `lh-schema-integrity` | REPORTED | 8 | **1** | 3 |
 | 1 | `lh-silent-failure` | REPORTED | 8 | **1** | – |
+| 2 | `lh-appsec` | NOT STARTED | – | – | – |
 | 2 | `lh-authz-rls` | REPORTED | 4 | – | 1 |
 | 2 | `lh-design-holes` | NOT STARTED | – | – | – |
 | 2 | `lh-edge-functions` | NOT STARTED | – | – | – |
 | 2 | `lh-webkit-differ` | NOT STARTED | – | – | – |
-| 3 | `lh-cron-jobs` | RAN — no report | 6 | **1** | – |
-| 3 | `lh-money-escrow` | RAN — no report | 17 | – | – |
-| 3 | `lh-native-bridge` | NOT STARTED | – | – | – |
+| 3 | `lh-cron-jobs` | RAN — no report | 10 | **1** | – |
+| 3 | `lh-money-escrow` | REPORTED | 17 | – | – |
+| 3 | `lh-native-bridge` | RAN — no report | 6 | **1** | – |
 | 4 | `lh-build-release` | NOT STARTED | – | – | – |
 | 4 | `lh-onboarding-auth` | NOT STARTED | – | – | – |
 | 4 | `lh-state-matrix` | NOT STARTED | – | – | – |
@@ -49,6 +50,8 @@ lane report on disk — treat it as incomplete, not as covered.
 | 10 | `lh-compliance-store` | NOT STARTED | – | – | – |
 | 10 | `lh-observability` | NOT STARTED | – | – | – |
 | 10 | `lh-perf-deps` | NOT STARTED | – | – | – |
+| 10 | `lh-seo-web` | NOT STARTED | – | – | – |
+| 11 | `lh-data-recovery` | NOT STARTED | – | – | – |
 | 11 | `lh-suggester` | NOT STARTED | – | – | – |
 | 11 | `lh-test-ci` | NOT STARTED | – | – | – |
 | 12 | `lh-verifier` | RAN — no report | 0 | – | – |
@@ -87,11 +90,10 @@ Read each class on its own terms.
 
 Not started:
 
-- wave 1 — `lh-generated-drift`
+- wave 2 — `lh-appsec`
 - wave 2 — `lh-design-holes`
 - wave 2 — `lh-edge-functions`
 - wave 2 — `lh-webkit-differ`
-- wave 3 — `lh-native-bridge`
 - wave 4 — `lh-build-release`
 - wave 4 — `lh-onboarding-auth`
 - wave 4 — `lh-state-matrix`
@@ -113,6 +115,8 @@ Not started:
 - wave 10 — `lh-compliance-store`
 - wave 10 — `lh-observability`
 - wave 10 — `lh-perf-deps`
+- wave 10 — `lh-seo-web`
+- wave 11 — `lh-data-recovery`
 - wave 11 — `lh-suggester`
 - wave 11 — `lh-test-ci`
 
@@ -120,6 +124,6 @@ Ran but never filed a lane report (re-dispatch or chase):
 
 - wave 1 — `lh-route-walker`
 - wave 3 — `lh-cron-jobs`
-- wave 3 — `lh-money-escrow`
+- wave 3 — `lh-native-bridge`
 - wave 9 — `lh-copy-content`
 - wave 12 — `lh-verifier`

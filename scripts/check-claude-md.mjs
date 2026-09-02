@@ -134,17 +134,31 @@ try { for (const f of readdirSync(".claude/agents")) if (f.endsWith(".md")) know
 try { for (const d of readdirSync(".claude/skills", { withFileTypes: true })) if (d.isDirectory()) known.add(d.name); } catch { /* none */ }
 try { for (const f of readdirSync(".claude/commands")) if (f.endsWith(".md")) known.add(f.replace(/\.md$/, "")); } catch { /* none */ }
 
-// Only names used IMPERATIVELY. CLAUDE.md also recounts history — "(`lh-deps-and-drift`
-// hung 19 hours on a blocked merge)" is a past SESSION, not an instruction to run
-// anything, and flagging it would train the reader to ignore this checker.
-const IMPERATIVE = /\b(run|dispatch|spawn|invoke|use|ask|via|through)\b/i;
-for (const line of text.split("\n")) {
-  if (!IMPERATIVE.test(line)) continue;
-  for (const m of line.matchAll(/`(lh-[a-z0-9-]+)`/g)) {
-    const name = m[1];
-    checked++;
-    if (!known.has(name)) problems.push(`names \`${name}\` imperatively — no such agent, skill or command`);
-  }
+// Every backticked `lh-*` name must resolve — no verb heuristic.
+//
+// This started as "only flag names used imperatively", matching run/dispatch/
+// spawn/invoke on the same line. That guess failed in BOTH directions and I
+// only found out by testing the checker against injected drift:
+//   - False negative: CLAUDE.md wraps its bullets, so `lh-silent-failure` sits
+//     on line 346 while the verb that governs it is on 345. The single most
+//     important name in the document — one of the three review agents whose
+//     absence silently disabled the money/auth review — was UNCHECKED.
+//   - False positive: "`lh-deps-and-drift` hung 19 hours on a blocked merge" is
+//     a past session, but its bullet opens "resolve or abort within the run",
+//     so any block-level version of the same heuristic flags it too.
+// A name is either a real address or it is not; that is decidable, so decide it
+// instead of inferring intent from nearby words. PROSE_ONLY is the escape
+// hatch, and it is deliberately explicit: adding a name here is a conscious
+// statement that it is history, not an address.
+const PROSE_ONLY = new Map([
+  ["lh-deps-and-drift", "a past session recounted in the git-idling rule, not an agent"],
+]);
+
+for (const m of text.matchAll(/`(lh-[a-z0-9-]+)`/g)) {
+  const name = m[1];
+  if (PROSE_ONLY.has(name)) continue;
+  checked++;
+  if (!known.has(name)) problems.push(`names \`${name}\` — no such agent, skill or command`);
 }
 
 // ── 5. The Supabase project refs ───────────────────────────────────────────

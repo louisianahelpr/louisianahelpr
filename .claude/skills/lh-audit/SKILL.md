@@ -91,8 +91,8 @@ apply concurrently — none substitutes for another:
 4. **Fan out parallel graders — never serial per-page.** Every audit dispatches
    multiple read-only agents on non-conflicting scopes at once (source-vs-config
    sweep, canonical-sibling parity sweep, per-screen dimension pass, plus the
-   §6 review agents: `code-reviewer`, `silent-failure-hunter`, `pr-test-analyzer`,
-   `security-auditor`). Cost is not the constraint; missing findings is. A
+   §6 review agents: `lh-silent-failure`, `lh-authz-rls`, `lh-test-ci`,
+   `lh-money-escrow` — dispatched REVIEW-ONLY). Cost is not the constraint; missing findings is. A
    sequential one-page-at-a-time pass is itself a method defect — it re-litigates
    the same defect classes screen-by-screen and misses the cross-page pattern.
 5. **Report ALL findings FIRST, then fix — never silent-patch as you go.**
@@ -1755,26 +1755,49 @@ addition, especially before opening or merging a PR:
   when a review would add value, recommend the user run it rather than
   attempting to start it.
 - **On-demand review agents** — Claude CAN dispatch these directly (via the
-  Agent tool) to scrutinize a specific change set. Always-run before any PR:
-  - `code-reviewer` — bugs, logic errors, security, convention adherence.
-  - `pr-test-analyzer` — test coverage quality/completeness for new logic.
-  - `silent-failure-hunter` — swallowed errors, inadequate error handling,
-    inappropriate fallbacks (especially around escrow/payments where a dropped
-    error must never be silent).
-  - `comment-analyzer` — comment accuracy vs the code they describe. This repo
-    is comment-dense (long "why" blocks in button.tsx, Footer.tsx, Legal.tsx,
-    etc.), so comment rot is a live risk — run whenever a change touches
-    heavily-commented code.
-  - `security-auditor` (code-modernization) — adversarial OWASP/CWE pass,
-    dependency CVEs, secrets, injection. Run before any PR touching Stripe,
-    Supabase, auth, or data handling.
-  Situational (run when the trigger applies):
-  - `type-design-analyzer` — when a change introduces or reshapes TypeScript
-    types (encapsulation, invariants, enforcement).
-  - `code-simplifier` — on recently-modified code, to satisfy the audit's
-    "always suggest improvements" mandate without hand-rolling refactors.
-  Always run the always-run set before a PR that touches money/escrow, auth, or
-  data-model logic; add the situational ones when their trigger is met.
+  Agent tool) to scrutinize a specific change set.
+
+  **CORRECTED 2026-09-02.** This list previously named `code-reviewer`,
+  `pr-test-analyzer`, `silent-failure-hunter`, `comment-analyzer`,
+  `security-auditor` and `type-design-analyzer`. **None of those six exist.**
+  Every spawn failed, so for an unknown period the "always-run before any PR"
+  set silently never ran — the worst failure shape for a guard, because the
+  instruction reads as satisfiable. Verify an agent name against
+  `.claude/agents/` before relying on it.
+
+  Use the lanes, dispatched **REVIEW-ONLY** — tell them explicitly *do not fix,
+  do not edit, report findings*, and to ignore their own
+  worktree/audit-bus/PROTOCOL preamble, which is written for a fleet sweep and
+  will otherwise send them off to build a worktree and file through the bus:
+  - `lh-silent-failure` — swallowed errors, dropped Supabase `error`, zero-row
+    writes, fail-open catches, awaited Capacitor plugin objects, unfiltered
+    realtime channels. Run on anything near escrow or payments, where a dropped
+    error must never be silent.
+  - `lh-authz-rls` — RLS policies, IDOR, SECURITY DEFINER `search_path`, and any
+    view or policy change. This is the closest thing to the old
+    `security-auditor`. Run before anything touching Stripe, Supabase, auth or
+    data handling.
+  - `lh-money-escrow` — escrow, payouts, commission, price application. Run on
+    any money-touching diff.
+  - `lh-test-ci` — whether the change is actually covered and whether CI runs
+    that cover. Replaces `pr-test-analyzer`.
+  - `lh-schema-integrity` — when a change reshapes the data model, adds a
+    migration, or alters a view.
+  - `code-simplifier:code-simplifier` (plugin agent — note the `plugin:agent`
+    form; the bare name `code-simplifier` does NOT resolve) — recently-modified
+    code, to satisfy the "always suggest improvements" mandate without
+    hand-rolling refactors.
+
+  **Skills, as an alternative to agents:** `/code-review` (correctness plus
+  reuse/simplification, takes an effort level), `/security-review` (security
+  pass over the pending diff), `/simplify` (quality-only cleanup).
+  `/code-review ultra` is a deep multi-agent cloud review — it is
+  **user-triggered and billed, and Claude cannot launch it**. Recommend it for
+  a high-stakes diff (money, auth, a production view, or one written by several
+  agents at once); never attempt to start it.
+
+  Run the money/auth/data-model set before committing anything in those areas —
+  there is no PR gate in this repo to catch it afterwards.
 - **Discovery (audit setup, not review)** — at the START of an audit, dispatch
   the `Explore` agent to enumerate every route/page/component in scope so the
   coverage manifest has no blind spots (supports "no page skipped, no blank

@@ -93,9 +93,9 @@ These two used to say the opposite of `CLAUDE.md`. `CLAUDE.md` wins — correcte
 
 - **Commit directly to `main`.** No branch/PR ceremony. Run `npm run typecheck` locally (plus
   `npx vitest run` when touching tested code); lint/build/full-suite run in CI (`husky
-  pre-commit` + `.github/workflows/test.yml`). Still run the review agents (`code-reviewer`,
-  `silent-failure-hunter`, `security-auditor`) against the working diff before committing
-  money/auth/data-model changes — there is no PR gate to catch it otherwise.
+  pre-commit` + `.github/workflows/test.yml`). Still run `lh-silent-failure`, `lh-authz-rls` and `lh-money-escrow` (dispatched REVIEW-ONLY) against the working
+  diff before committing money/auth/data-model changes — there is no PR gate to catch it
+  otherwise. The agents this line used to name — `code-reviewer`, `silent-failure-hunter`, `security-auditor` — DO NOT EXIST; the spawn fails, so the guard silently never ran.
 - **NEVER apply a migration to prod via MCP `apply_migration`.** It records the current time as
   `schema_migrations.version` instead of the file's prefix, which poisons the ledger and breaks
   automated deploys (it cost a full ledger repair once already). If a finding's fix needs a

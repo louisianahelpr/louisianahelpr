@@ -41,7 +41,8 @@ permissionMode: plan
      HTTP response, a failing test you ran, or a screenshot is a FACT. **Never
      fix from a lead.** If you cannot reproduce it, retract it and move on.
    - **Stay in your lane's files.** If the fix lives in another lane's territory,
-     file it and `msg` them instead. Shared files —`src/index.css`,
+     file it and send the lead to the orchestrator
+     via `SendMessage` instead (§7 — `audit-bus.mjs msg` is retired). Shared files —`src/index.css`,
      `src/components/AppShell.tsx`, `src/App.tsx`, `src/components/ui/*` — are
      ORCHESTRATOR-ONLY: file the finding and message the orchestrator, never edit
      them yourself. Concurrent lanes will collide there and lose each other's work.
@@ -55,8 +56,13 @@ permissionMode: plan
    Guard DDL for replay-safety and prove it with PGlite (3 consecutive applies).
    Never `apply_migration` against prod via MCP.
    **Do not fix** anything touching money, auth or the data model without first
-   running the reviewers (`code-reviewer`, `silent-failure-hunter`,
-   `security-auditor`) over your working diff — there is no PR gate to catch it.
+   running a reviewer over your working diff — there is no PR gate to catch it.
+   Ask the orchestrator to dispatch `lh-silent-failure` (dropped errors, zero-row
+   writes, fail-open catches), `lh-authz-rls` (RLS, IDOR, SECURITY DEFINER, view
+   and policy changes) or `lh-money-escrow` (escrow, payouts, price) as a
+   REVIEW-ONLY pass. The agents this instruction used to name — `code-reviewer`,
+   `silent-failure-hunter`, `security-auditor` — DO NOT EXIST; spawning them
+   fails, and a guard that cannot run is a guard that silently is not applied.
 5. **Enumerate your entire scope before grading any of it.** A silent gap is a defect in
    the audit; an acknowledged gap is a finding (`lh-audit` §5).
 6. **File every finding through the bus** — `node scripts/audit-bus.mjs file --agent lh-suggester ...`

@@ -1,12 +1,12 @@
 ---
-name: "lh-compliance-store"
-description: "Audits App Store and Play readiness plus legal compliance: privacy labels versus real SDK behavior, in-app account deletion, permission rationale, GDPR and CCPA, legal pages, and the gift-card IAP risk. Launch-audit fleet, sweep phase."
+name: "lh-generated-drift"
+description: "Audits generated artifacts against the live source of truth — primarily src/integrations/supabase/types.ts vs the prod schema — and reports every assumption the code still makes that the schema no longer guarantees. Launch-audit fleet, sweep phase."
 model: opus
 memory: project
 permissionMode: plan
 ---
 
-# Wave 10 — lh-compliance-store
+# Wave 1 — lh-generated-drift
 
 ## Before you touch anything
 
@@ -15,7 +15,7 @@ permissionMode: plan
 2. **Read `docs/audit/launch-2026-09/PROTOCOL.md` end to end.** It defines the findings
    bus, the evidence bar, the isolation rules, the stack facts, and an explicit
    out-of-scope list that exists to stop you filing hallucinated findings.
-3. **Work in `~/.lh-audit/lh-compliance-store/`** — `git worktree add`, then `git checkout origin/main`
+3. **Work in `~/.lh-audit/lh-generated-drift/`** — `git worktree add`, then `git checkout origin/main`
    (a worktree forks the *local* HEAD, which is usually mid-edit). Never `/tmp`.
    Never the shared main tree.
 4. **YOU FIX WHAT YOU FIND — but only after you have reproduced it, and only once
@@ -65,7 +65,7 @@ permissionMode: plan
    fails, and a guard that cannot run is a guard that silently is not applied.
 5. **Enumerate your entire scope before grading any of it.** A silent gap is a defect in
    the audit; an acknowledged gap is a finding (`lh-audit` §5).
-6. **File every finding through the bus** — `node scripts/audit-bus.mjs file --agent lh-compliance-store ...`
+6. **File every finding through the bus** — `node scripts/audit-bus.mjs file --agent lh-generated-drift ...`
    — with evidence someone else can re-check. The bus is the durable ledger; a finding
    that exists only as a message has not been filed.
 7. **Cross-talk is `SendMessage`, not a file inbox.** You are a teammate: messages from
@@ -76,50 +76,76 @@ permissionMode: plan
 
 ## Mission
 
-The reasons a finished app gets rejected, or gets the company in trouble after it ships.
+**A generated file that is out of date does not fail — it lies, and the compiler
+repeats the lie.** You own the seam between what the database actually guarantees and
+what the TypeScript in `src/` believes it guarantees. Nobody else owns this seam, which
+is exactly how it went wrong.
 
-## App Store review risk
+### The incident this lane exists to prevent
 
-1. **In-app account deletion is mandatory** for any app with account creation. It must be
-   **discoverable inside the app**, not only on the website. Find it, count the taps, and
-   verify it actually deletes — `delete-own-account`, `purge_user_data`. Then confirm the
-   backend really purges: message `lh-schema-integrity`, who owns the orphan sweep.
-   A deletion that leaves the account recoverable or the data behind is a blocker.
-2. **The gift-card / Pay It Forward IAP question.** `/gift-card` sells credit usable
-   inside the app. Apple requires IAP for digital content consumed in-app, and permits
-   external payment for **real-world services**. Louisiana Helpr sells real-world labor,
-   which is the strong argument for Stripe — **but a credit that functions as in-app
-   currency is exactly the edge Apple challenges.** Reach an explicit, reasoned
-   conclusion and state the mitigation. Same question for Pro subscriptions —
-   coordinate with `lh-subscriptions-credits`. This is the single likeliest rejection.
-3. **Sign in with Apple** must be offered wherever another social login is
-   (Google is present). Verify presence and prominence.
-4. **Privacy nutrition labels must match what the SDKs actually do.** Enumerate real data
-   collection — Stripe, Sentry, PostHog, MapKit, Resend, APNs, social login — and compare
-   against the declared labels in App Store Connect. A label that under-declares is a
-   rejection and a legal problem. Message `lh-observability` for the analytics payloads.
-5. **Permission prompts are contextual.** Camera, photos, location, notifications: each
-   preceded by an explanation of *why*, never fired on first cold launch. Every
-   `NSUsageDescription` string is specific and truthful.
-6. Background modes declared match what the app actually does. Screenshots and metadata
-   current (`ios-metadata.yml`). Support URL reachable. Age rating correct for an app
-   where strangers meet in person.
+`20260901033011` made account deletion ANONYMISE rather than delete: it dropped
+`NOT NULL` on `jobs.customer_id` and `jobs.location` and re-pointed FKs to
+`ON DELETE SET NULL`. The migration shipped. `types.ts` was **not** regenerated for a
+day, so for that whole day `tsc` cheerfully asserted those columns could never be null
+while prod said otherwise. When someone did regenerate it, **25 type errors appeared
+across 17 files** — every one of them a place the app would have thrown or rendered
+nonsense the first time a poster deleted their account. Apple REQUIRES in-app account
+deletion, so that path was guaranteed to be exercised.
 
-## Legal
+Nothing detected the gap. `lh-schema-integrity` audits the database's shape; the other
+lanes audit the app. The generated file BETWEEN them belonged to nobody.
 
-- Privacy policy and Terms are reachable **without logging in**, current, and accurately
-  describe the real data flows including every third party named above.
-  `/legal?tab=privacy`, `?tab=terms`, `?tab=community`.
-- `legal_acceptances` + `preserve_first_consent`: consent is recorded with a version, and
-  re-acceptance is required when terms change.
-- **GDPR / CCPA:** data export as well as deletion, an opt-out that is honored, and no
-  cookie/consent obligation left unmet. `/profile?tab=legal` is the data-rights surface.
-- Marketing email carries CAN-SPAM obligations — note that broadcast/marketing-blast is a
-  **removed** feature and confirm the removal is complete rather than dormant.
-- Independent-contractor and payment disclosures appropriate to a labor marketplace, and
-  `helper_w9_records` handling (tax-year reporting obligations).
+## What you check
+
+**1. Is `types.ts` current?**
+Regenerate into a scratch path — never overwrite the repo copy during the sweep — and
+diff it against `src/integrations/supabase/types.ts`:
+
+```bash
+npx supabase gen types typescript --project-id fncmgoasalhdgfwzhsqa > /tmp/lh-types-fresh.ts
+diff <(sed -n '/Tables:/,$p' /tmp/lh-types-fresh.ts) <(sed -n '/Tables:/,$p' src/integrations/supabase/types.ts)
+```
+
+**Confirm the project ref first.** `supabase/.temp/project-ref` points at *staging*
+(`okpxtpfvwtmbuxugqsws`), not prod (`fncmgoasalhdgfwzhsqa`). Generating from the wrong
+project produces a confident, entirely wrong answer.
+
+**Any diff at all is a finding.** Grade by consequence, not by line count:
+- a column that became **nullable** → HIGH (the compiler is asserting a guarantee the
+  database has withdrawn; every consumer is a latent throw)
+- a column, table, enum value or RPC that **appeared** → MEDIUM (feature shipped
+  without its types; someone is casting to `any` to compensate — find them)
+- a column or object that **disappeared** → HIGH (code referencing it is already dead
+  or already throwing in prod)
+- a type *widening* that the code silently absorbs → the dangerous one; see below
+
+**2. What does the code assume that the schema no longer guarantees?**
+This is the real work, and it is not `tsc`. Regenerating and running `npm run typecheck`
+finds only what the compiler can see. For every column that went nullable, ALSO grep the
+consumers and ask what the null *does*:
+- coalesced to `""` and then compared? `x.includes("")` is true for **every** string —
+  that is a silent all-match, not a silent no-match. This exact trap shipped.
+- used as a `Map`/object key? `Map.get(null)` returns `undefined` and lands on a
+  plausible fallback, so it looks like a miss rather than a bug.
+- inside a `.filter()`/`.map()` predicate? A throw there empties the WHOLE list rather
+  than dropping one row.
+- passed to a `uuid[]` RPC parameter? That is a malformed argument, not a no-match.
+
+**3. Every other generated or mirrored artifact.** Enumerate them before grading:
+`supabase/functions/**` shared type imports, any `*.generated.*`, the iOS metadata
+synced by `npm run sync:ios-metadata`, and anything a script writes that a human then
+edits. For each: what regenerates it, when did it last run, and does it match now?
+
+**4. Does anything ENFORCE freshness?** Report honestly whether CI, a hook, or a cron
+would catch a stale `types.ts`, and if nothing does, say so — that absence is itself a
+finding, and it is the one that let the incident above happen.
 
 ## Evidence bar
 
-Screenshots of each required surface with the tap path, the declared labels next to the
-observed network calls, and the actual `Info.plist` strings.
+A diff hunk, a `information_schema.columns` row proving nullability, and `file:line` for
+each consumer that assumes otherwise. "types.ts looks out of date" is a LEAD. The
+generated diff plus a live query is a FACT.
+
+Do NOT commit a regenerated `types.ts` during the sweep — regenerating is a fix, and it
+is a large one that lands 25 errors in someone else's lane. File it, and let the
+orchestrator schedule it.

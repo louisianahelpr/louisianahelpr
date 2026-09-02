@@ -1,11 +1,11 @@
 ---
-description: Orchestrate the 33-lane launch audit fleet — pre-flight, wave dispatch, cross-talk routing, verification
+description: Orchestrate the 35-lane launch audit fleet — pre-flight, wave dispatch, cross-talk routing, verification
 argument-hint: "[wave N | critical | status | verify | fix]"
 ---
 
 # Launch audit — orchestrator
 
-You are the **hub** of a 33-lane audit fleet. You do not audit; you dispatch, route
+You are the **hub** of a 35-lane audit fleet. You do not audit; you dispatch, route
 messages between lanes, hold the gates, and enforce the phase discipline.
 
 Read first, every time:
@@ -51,7 +51,7 @@ finding downstream is noise until the baseline is clean.
 **Why step 6 outranks the rest.** A stale ledger does not merely waste a wave — it makes
 the audit produce the exact outcome it exists to prevent. Measured 2026-09-02: a session
 working the then-current list found that **three of its first four findings were already
-fixed**, a 1-in-4 hit rate. Dispatch 33 lanes against a list in that state and most of them
+fixed**, a 1-in-4 hit rate. Dispatch 35 lanes against a list in that state and most of them
 re-derive closed work and file it again, which reads as "the audit found 200 things" and
 means nothing. That is the "no audit ever fixes anything" complaint, manufactured. Refresh
 first — it is cheaper than one wave and it is the difference between a report and noise.
@@ -59,9 +59,12 @@ first — it is cheaper than one wave and it is the difference between a report 
 ## Dispatching a wave
 
 Launch the wave's lanes **in a single message, as parallel `Agent` calls** so they run
-concurrently. Never more than 3. Each lane's own definition carries its brief — do not
-restate it; pass only wave-specific context (what earlier waves found that this lane
-should know).
+concurrently. **There is no fixed cap** — the old "never more than 3" was lifted by the
+owner on 2026-09-02. Launch the whole wave at once; the waves are already grouped so
+their lanes do not contend. What you must NOT do is merge two waves, or let two lanes
+run a gate at the same time (see below) — the real ceiling is the serialized gate, not
+an agent count. Each lane's own definition carries its brief — do not restate it; pass
+only wave-specific context (what earlier waves found that this lane should know).
 
 **Always pass `name:` set to the lane's own id** (`name: "lh-money-escrow"`,
 `subagent_type: "lh-money-escrow"`). The `name` is what promotes a spawn from an
@@ -72,7 +75,7 @@ is unreachable — you can read its final report and nothing else, which breaks 
 and the plan gate below.
 
 While a wave runs:
-- Do not start the next wave until all three report.
+- Do not start the next wave until every lane in this one reports.
 - Hold the gate: if a lane asks to run `typecheck`/`vitest`/`lint`, serialize it.
 - **Route cross-talk over `SendMessage`.** When a lane reports something actionable for
   another, relay it yourself: `SendMessage({to: "lh-silent-failure", message: "..."})`.
@@ -92,7 +95,7 @@ After each wave: `node scripts/audit-bus.mjs rollup`, commit
 
 **SWEEP → VERIFY → FIX, strictly ordered.** During the sweep, no lane edits `src/`,
 `supabase/` or `ios/` — and as of the teams wiring this is **enforced, not requested**:
-all 29 read-only lanes carry `permissionMode: plan` in their frontmatter, so the harness
+all 31 read-only lanes carry `permissionMode: plan` in their frontmatter, so the harness
 refuses their edits outright.
 
 That makes you the release valve. A gated lane that wants to fix something sends you a
@@ -107,7 +110,7 @@ That makes you the release valve. A gated lane that wants to fix something sends
 
 **Two kinds of request arrive, and conflating them deadlocks the entire fleet.** A
 plan-gated lane must ask before *any* lasting change, and almost none of those are the
-thing you are guarding. All 29 gated lanes drive a browser or run a build — every one of
+thing you are guarding. All 31 gated lanes drive a browser or run a build — every one of
 them will ask you for things like:
 
 - `git worktree add ~/.lh-audit/<lane>` (step 3 — the isolation the sweep depends on)
@@ -117,7 +120,7 @@ them will ask you for things like:
 - read-only SQL through the Supabase MCP, `gh` reads
 
 **Approve all of that on sight.** It is how the lane audits anything at all. "Reject every
-plan" applied literally stalls 29 lanes at setup and is not phase discipline, it is a
+plan" applied literally stalls 31 lanes at setup and is not phase discipline, it is a
 deadlock you caused.
 
 **What you are guarding is exactly one thing: edits to `src/`, `supabase/` or `ios/`** —
@@ -140,9 +143,8 @@ Only after `VERDICT.md` exists:
 1. Blockers first, then HIGH, then MEDIUM, in the verifier's order.
 2. Serialize edits to shared files — `index.css`, `AppShell.tsx`, `App.tsx`, `PageScaffold.tsx`.
 3. Commit **directly to `main`**; run `npm run typecheck` (plus `npx vitest run` when
-   touching tested code) locally. Run the review agents (`code-reviewer`,
-   `silent-failure-hunter`, `security-auditor`) against the working diff before committing
-   anything touching money, auth or the data model.
+   touching tested code) locally. Run `lh-silent-failure`, `lh-authz-rls` and `lh-money-escrow` (dispatched REVIEW-ONLY) against the working diff before
+   committing anything touching money, auth or the data model. The agents this line used to name — `code-reviewer`, `silent-failure-hunter`, `security-auditor` — DO NOT EXIST; the spawn fails, so the guard silently never ran.
 4. Removals of dead features are **migrations** — `npm run migration:new -- <slug>`,
    never a hand-typed timestamp, guarded for replay-safety, applied 3× in PGlite to prove it.
 5. After each batch, `node scripts/audit-bus.mjs status <id> --set fixed --by lh-orchestrator`.

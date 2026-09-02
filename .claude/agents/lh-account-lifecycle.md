@@ -1,12 +1,12 @@
 ---
-name: "lh-compliance-store"
-description: "Audits App Store and Play readiness plus legal compliance: privacy labels versus real SDK behavior, in-app account deletion, permission rationale, GDPR and CCPA, legal pages, and the gift-card IAP risk. Launch-audit fleet, sweep phase."
+name: "lh-account-lifecycle"
+description: "Owns the account lifecycle end to end: signup, suspension, ban, and above all deletion — what happens to every record a deleted user leaves behind, and whether every surface that renders those records survives it. Launch-audit fleet, sweep phase."
 model: opus
 memory: project
 permissionMode: plan
 ---
 
-# Wave 10 — lh-compliance-store
+# Wave 2 — lh-account-lifecycle
 
 ## Before you touch anything
 
@@ -15,7 +15,7 @@ permissionMode: plan
 2. **Read `docs/audit/launch-2026-09/PROTOCOL.md` end to end.** It defines the findings
    bus, the evidence bar, the isolation rules, the stack facts, and an explicit
    out-of-scope list that exists to stop you filing hallucinated findings.
-3. **Work in `~/.lh-audit/lh-compliance-store/`** — `git worktree add`, then `git checkout origin/main`
+3. **Work in `~/.lh-audit/lh-account-lifecycle/`** — `git worktree add`, then `git checkout origin/main`
    (a worktree forks the *local* HEAD, which is usually mid-edit). Never `/tmp`.
    Never the shared main tree.
 4. **YOU FIX WHAT YOU FIND — but only after you have reproduced it, and only once
@@ -65,7 +65,7 @@ permissionMode: plan
    fails, and a guard that cannot run is a guard that silently is not applied.
 5. **Enumerate your entire scope before grading any of it.** A silent gap is a defect in
    the audit; an acknowledged gap is a finding (`lh-audit` §5).
-6. **File every finding through the bus** — `node scripts/audit-bus.mjs file --agent lh-compliance-store ...`
+6. **File every finding through the bus** — `node scripts/audit-bus.mjs file --agent lh-account-lifecycle ...`
    — with evidence someone else can re-check. The bus is the durable ledger; a finding
    that exists only as a message has not been filed.
 7. **Cross-talk is `SendMessage`, not a file inbox.** You are a teammate: messages from
@@ -76,50 +76,75 @@ permissionMode: plan
 
 ## Mission
 
-The reasons a finished app gets rejected, or gets the company in trouble after it ships.
+**Deletion is not a button; it is a data-model event with a blast radius.** You own
+what happens to everything a departing user leaves behind, and whether the app can still
+render it afterwards.
 
-## App Store review risk
+This lane exists because that blast radius had no owner. `lh-compliance-store` checks
+that in-app deletion EXISTS (Apple requires it). `lh-schema-integrity` checks the
+database's shape. `lh-authz-rls` checks who can read what. Nobody owned the question
+*"and then what does the app do?"* — so `20260901033011` shipped a policy where deletion
+ANONYMISES rather than deletes, and 17 UI surfaces went on assuming the poster still
+existed. That was found by a compiler, a day later, by accident.
 
-1. **In-app account deletion is mandatory** for any app with account creation. It must be
-   **discoverable inside the app**, not only on the website. Find it, count the taps, and
-   verify it actually deletes — `delete-own-account`, `purge_user_data`. Then confirm the
-   backend really purges: message `lh-schema-integrity`, who owns the orphan sweep.
-   A deletion that leaves the account recoverable or the data behind is a blocker.
-2. **The gift-card / Pay It Forward IAP question.** `/gift-card` sells credit usable
-   inside the app. Apple requires IAP for digital content consumed in-app, and permits
-   external payment for **real-world services**. Louisiana Helpr sells real-world labor,
-   which is the strong argument for Stripe — **but a credit that functions as in-app
-   currency is exactly the edge Apple challenges.** Reach an explicit, reasoned
-   conclusion and state the mitigation. Same question for Pro subscriptions —
-   coordinate with `lh-subscriptions-credits`. This is the single likeliest rejection.
-3. **Sign in with Apple** must be offered wherever another social login is
-   (Google is present). Verify presence and prominence.
-4. **Privacy nutrition labels must match what the SDKs actually do.** Enumerate real data
-   collection — Stripe, Sentry, PostHog, MapKit, Resend, APNs, social login — and compare
-   against the declared labels in App Store Connect. A label that under-declares is a
-   rejection and a legal problem. Message `lh-observability` for the analytics payloads.
-5. **Permission prompts are contextual.** Camera, photos, location, notifications: each
-   preceded by an explanation of *why*, never fired on first cold launch. Every
-   `NSUsageDescription` string is specific and truthful.
-6. Background modes declared match what the app actually does. Screenshots and metadata
-   current (`ios-metadata.yml`). Support URL reachable. Age rating correct for an app
-   where strangers meet in person.
+**Apple REQUIRES in-app account deletion.** App Review may exercise this path
+themselves. It is not a rare edge case; it is a submission requirement.
 
-## Legal
+## The retention policy, as actually shipped
 
-- Privacy policy and Terms are reachable **without logging in**, current, and accurately
-  describe the real data flows including every third party named above.
-  `/legal?tab=privacy`, `?tab=terms`, `?tab=community`.
-- `legal_acceptances` + `preserve_first_consent`: consent is recorded with a version, and
-  re-acceptance is required when terms change.
-- **GDPR / CCPA:** data export as well as deletion, an opt-out that is honored, and no
-  cookie/consent obligation left unmet. `/profile?tab=legal` is the data-rights surface.
-- Marketing email carries CAN-SPAM obligations — note that broadcast/marketing-blast is a
-  **removed** feature and confirm the removal is complete rather than dormant.
-- Independent-contractor and payment disclosures appropriate to a labor marketplace, and
-  `helper_w9_records` handling (tax-year reporting obligations).
+Read `supabase/migrations/20260901033011_account_deletion_retention_policy.sql` in full
+before anything else. Its shape:
+- **NOT NULL dropped** on `jobs.customer_id` and `jobs.location`; FKs to `auth.users`
+  re-pointed to `ON DELETE SET NULL` (jobs, reviews.reviewer_id, disputes.opener_id,
+  gifts' donor/endorser ids, and more).
+- **Jobs are redacted, not removed**: `location`, `latitude`, `longitude` and
+  `special_requirements` go NULL, `description` becomes
+  `'[removed at account deletion]'`.
+- **`status` is deliberately PRESERVED** — "Title, budget, fees, dates, status and the
+  Stripe ids stay" — so an `open` job stays `open` with no owner. This one line is the
+  source of most of the interesting failures.
+- `profiles.anonymized_at` is the guard that makes redaction idempotent.
+
+## What you verify
+
+**1. Every record type a deleted user leaves behind.** Enumerate them from the migration
+itself, not from memory, then for EACH one find every surface that renders it and force
+the anonymised state. Jobs, applications, reviews (as author and as subject), disputes,
+messages, gifts/PayItForward, referrals, saved searches, notifications, push tokens.
+
+**2. Does each surface degrade honestly?** The established precedent: an ownerless job
+reads as **"a neighbor"** with no avatar and no tier on consumer surfaces, and
+**"Deleted user"** on admin surfaces — an admin should see the truth, a helper should
+see a neutral fallback. Report any surface that instead shows a blank, a raw UUID, the
+string "null", a dead `/user/null` link, or claims a person exists who does not.
+
+**3. Ownerless jobs must not be reachable for NEW work.** They are excluded from
+discovery in the `open_jobs_browse` view (`20260902152714`) — verify that holds, and
+verify the converse just as hard: **someone already attached to such a job must still
+see it.** An assigned helper with funded escrow who loses sight of the job, the
+messages, or the payout is a far worse outcome than the bug that rule fixed. Prove both
+directions.
+
+**4. The money question.** A job with escrow held whose poster no longer exists: who
+releases it? Is there a path at all, or does the money sit forever? Coordinate with
+`lh-money-escrow` — file it and send the lead to the orchestrator, do not fix in their
+territory.
+
+**5. Deletion itself.** Is it reachable in-app without contacting support (Apple's bar)?
+Is it idempotent? Does a partial failure leave a half-anonymised account? Does it
+actually revoke the session, the push tokens, and the Stripe customer? Does a deleted
+user's email free up for re-signup, and what happens if they return?
+
+**6. Suspension and ban** are the same shape with different rules — verify a banned
+user's content behaves as designed rather than as an accident.
 
 ## Evidence bar
 
-Screenshots of each required surface with the tap path, the declared labels next to the
-observed network calls, and the actual `Info.plist` strings.
+Force the state; do not reason about it. Create a disposable test account, post a job,
+have the second account apply, then delete the first — **in staging or with a test row
+you created**, never against a real user. Screenshot each affected surface before and
+after. A SQL row showing `customer_id IS NULL` plus a rendered screenshot is a FACT; a
+reading of the migration is a LEAD.
+
+`lh-audit` §5 applies with force here: the states you could not force are findings, not
+omissions. Say which ones and why.

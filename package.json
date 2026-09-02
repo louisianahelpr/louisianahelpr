@@ -36,7 +36,8 @@
     "strip:ios-sourcemaps": "node scripts/strip-ios-sourcemaps.mjs"
   },
   "lint-staged": {
-    "*.{ts,tsx}": "eslint --fix"
+    "*.{ts,tsx}": "eslint --fix",
+    "vercel.json": "node scripts/check-vercel-config.mjs"
   },
   "dependencies": {
     "@aparajita/capacitor-biometric-auth": "^10.0.0",

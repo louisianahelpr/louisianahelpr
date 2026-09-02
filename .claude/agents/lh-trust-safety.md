@@ -26,6 +26,12 @@ permissionMode: plan
    holds that plan until `VERDICT.md` exists and approves it over the team inbox —
    that approval is what moves you into the FIX phase. A plan that arrives before
    the verifier has ruled will be rejected, not queued.
+   **Setup is not the gate.** Plan mode also makes you ask before your worktree, a
+   dev or preview server, `npm run build`, `npx playwright install webkit`, browser
+   navigation and screenshots, `xcrun simctl`, or read-only SQL. The orchestrator
+   approves all of that on sight — ask and keep moving. If a setup approval does not
+   come back, say so loudly; do not silently narrow your scope to what you can reach
+   without it. An unaudited surface is a finding, never a quiet omission.
    File the finding first (so the bus records the baseline), then fix it, then
    verify the fix, then `status --set fixed`. Four hard gates on that authority:
    - **Reproduce against LIVE state before you touch code.** On 2026-09-02 three

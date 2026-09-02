@@ -903,19 +903,30 @@ test("3b · deepLinkRoute normalizer mapping + host allowlist", async ({ page })
  * either match a route in src/App.tsx or normalize to one — otherwise a shared
  * link opened on a device without the app lands on the in-app 404.
  */
-const NATIVE_ONLY_PATHS = [
+// AASA-claimed short-link paths. These were "native only" — claimed for the
+// app, no web route — so a link shared to someone WITHOUT the app installed
+// dead-ended on the in-app 404. `ShortLinkRedirect` now serves all of them on
+// the web by replaying the same normalizer `deepLinkRoute.ts` uses natively,
+// so the two can't drift.
+//
+// `/legal/terms` is here because it had the identical defect and was NOT
+// enumerated when this list was written: `/legal/*` is claimed and normalizes
+// to `/legal?tab=`, while `/terms` and `/privacy` worked — so the short form
+// was the one that broke.
+const AASA_SHORT_LINK_PATHS = [
   "/j/abc123",
   "/u/user-1",
   "/m/job-1",
   "/messages/thread-1",
   "/post-job/draft/7",
+  "/legal/terms",
 ];
 
-test("3c · what the AASA-claimed native-only paths actually do in a browser", async ({ page }) => {
+test("3c · every AASA-claimed short link resolves on the web, not the in-app 404", async ({ page }) => {
   test.slow();
   const findings: { path: string; httpStatus: number; renders: string; isNotFound: boolean }[] = [];
 
-  for (const path of NATIVE_ONLY_PATHS) {
+  for (const path of AASA_SHORT_LINK_PATHS) {
     const resp = await page.goto(path, { waitUntil: "domcontentloaded" });
     await page.waitForTimeout(1200);
     const heading = (await page.locator("h1, h2").first().innerText().catch(() => "")).trim();
@@ -940,13 +951,19 @@ test("3c · what the AASA-claimed native-only paths actually do in a browser", a
   }
   const notFound = findings.filter((f) => f.isNotFound).map((f) => f.path);
   test.info().annotations.push({
-    type: "native-only paths that render the in-app 404 on the web",
+    type: "AASA-claimed paths still rendering the in-app 404 on the web",
     description: notFound.join(", ") || "(none)",
   });
-  // /post-job/draft/7 is claimed by AASA and has NO web route; /messages/* is
-  // claimed by AASA, has no web route AND no normalizer branch. Both land on
-  // NotFound. Documented here so a future fix flips this assertion.
-  expect(new Set(notFound)).toEqual(new Set(NATIVE_ONLY_PATHS));
+  // THIS ASSERTION IS INVERTED FROM WHAT IT USED TO SAY, deliberately.
+  //
+  // It previously asserted that every path in this list DID render the in-app
+  // 404 — pinning the defect, with a note that a future fix should flip it.
+  // That fix has landed, so the list is now the set that must resolve. Left
+  // as a set comparison rather than a bare emptiness check so that a path
+  // regressing to NotFound names itself in the failure.
+  expect(new Set(notFound), "an AASA-claimed link dead-ends for anyone without the app").toEqual(
+    new Set<string>(),
+  );
 });
 
 // ───────────────────────────────────────────────────────────────────────────

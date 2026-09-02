@@ -95,6 +95,29 @@ floats in a lopsided column with blank bands has failed the audit.
 Each of these is a real, non-obvious gotcha that has cost real time — keep
 this list tight; project-specific trivia belongs in code comments, not here.
 
+- **A CSS result measured on the dev server is not a result — the minifier
+  can delete half your rule.** Vite's CSS minifier treats `backdrop-filter`
+  and `-webkit-backdrop-filter` as one property declared twice and keeps only
+  the LAST. A `prefers-reduced-transparency` rule that killed the blur
+  everywhere in dev shipped as the `-webkit-` half alone, which means
+  **Chromium `blur(40px)`, WebKit `none`** — so Reduce Transparency users got
+  the full 40px frost on the web, and it measured clean on device because
+  WebKit aliases the two. A lane reported "18 frosted elements → 0"; that
+  number came from a dev server and was false in the bundle.
+
+  This is the mirror of the WebKit rule below: there, Chromium cannot see a
+  WebKit bug; here, the dev server cannot see a Chromium one. Fix is an
+  `@supports` block the minifier cannot collapse. **Verify any CSS claim
+  against `dist/assets/*.css` after `npm run build`, not against the dev
+  server** — `grep -c "backdrop-filter:none" dist/assets/*.css` is the whole
+  check, and it distinguishes the two states in one command.
+
+  Related, same lane: setting every glass class to `hsl(var(--background))`
+  does not remove transparency, it removes the MATERIAL. `.liquid-glass` is
+  already opaque white in light mode, so the blanket repainted every card
+  canvas-coloured and a user asking for less transparency lost the boundary
+  between card and page. Opaque form of each surface's OWN colour, per theme.
+
 - **`vitest run` is NOT trustworthy while several agents share this tree —
   gate against a clean worktree.** Under parallel-lane load the full suite
   fails a VARYING set of 1–22 tests that every one of them passes in

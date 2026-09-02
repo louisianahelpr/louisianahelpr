@@ -192,6 +192,18 @@ genuinely applies, file it as `LOW` with evidence and say why — don't assume.
 | Role-gating: "prevent clients reaching provider-only dashboards" | **There is no role system.** Every account both posts and does jobs; the UI shows all features to everyone | Per-*record* authorization: can user B read/modify user A's job, bid, message, payout? That is `lh-authz-rls`, and it is a real risk |
 | Dual-app / dual-mode interface switching | Same reason — one account, one mode | Whether the single surface stays coherent when a user is simultaneously poster and helper on different jobs |
 
+**Deliberately staged — DO NOT "complete" these. Landing them early breaks CI by design.**
+
+- **Apex universal links (`louisianahelpr.com` without `www`).** The `vercel.json` half is
+  landed and **intentionally inert**: the apex redirect rule cannot take effect until the
+  project-domain redirect is cleared by hand in the Vercel dashboard
+  (Project → Settings → Domains), because a domain-record redirect is applied at the edge
+  *before* `vercel.json` routing. The remaining step is that one click, and only then do
+  `applinks:` / `webcredentials:` entries for the apex go into **both** entitlement files.
+  A lane that "helpfully" adds those entitlements first turns CI red on purpose — the guard
+  in `e2e/happy-path/zz-runtime-probe.spec.ts` enforces the coupling. Leave it alone; it is
+  tracked outside this ledger and is owned by the user, not by a lane.
+
 **Assess-then-justify (likely "wontfix", but say so with reasoning, don't skip):**
 - **Certificate pinning** — a WKWebView app on ATS-enforced HTTPS to Supabase/Stripe;
   pinning breaks on routine cert rotation and Apple discourages it. Reach a

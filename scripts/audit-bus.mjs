@@ -72,6 +72,23 @@ function fold() {
   const findings = new Map();
   for (const r of readAll()) {
     if (r.kind === "finding") {
+      // A SECOND finding under an existing id must never delete the first.
+      // `nextId` now makes this unreachable for new rows, but the ledger is
+      // append-only, so the 12 findings already shadowed on 2026-09-02 exist on
+      // disk and have to stay readable. The incumbent keeps the id (it owns any
+      // status rows filed against it); the newcomer is kept under a distinct
+      // key so it is visible rather than silently dropped.
+      const incumbent = findings.get(r.id);
+      if (incumbent && incumbent.agent !== r.agent) {
+        findings.set(`${r.id}#${r.agent}`, {
+          ...r,
+          id: `${r.id}#${r.agent}`,
+          collided_with: r.id,
+          status: "filed",
+          history: [],
+        });
+        continue;
+      }
       findings.set(r.id, { ...r, status: "filed", history: [] });
     } else if (r.kind === "status") {
       const f = findings.get(r.id);
@@ -84,9 +101,31 @@ function fold() {
   return [...findings.values()];
 }
 
+/**
+ * Allocate the next free id.
+ *
+ * THE COUNTER IS SCOPED TO THE PREFIX, NOT TO THE AGENT — and that is the whole
+ * point. Word initials are NOT unique across the fleet: `lh-visual-critic` and
+ * `lh-verification-credentials` both reduce to "VC", `lh-copy-content` and
+ * `lh-concurrency-cache` both reduce to "CC", and `lh-test-ci` collides with
+ * `main`. Counting per AGENT made every one of those pairs start at 001 and
+ * march in lockstep, so the collision was not occasional — it was TOTAL. On
+ * 2026-09-02 that silently hid 12 filed findings (all 8 of
+ * lh-verification-credentials', 3 of lh-copy-content's, 1 of main's) because
+ * `fold()` is last-write-wins by id. Counting per PREFIX means a lane simply
+ * takes the next free number in a shared sequence and two lanes can never be
+ * handed the same id.
+ *
+ * This does NOT renumber anything already filed: it only ever returns an id
+ * above the highest one that exists for the prefix.
+ */
 function nextId(agent) {
   const prefix = agent.replace(/^lh-/, "").split("-").map((s) => s[0]).join("").toUpperCase();
-  const n = readAll().filter((r) => r.kind === "finding" && r.agent === agent).length + 1;
+  const used = readAll()
+    .filter((r) => r.kind === "finding" && typeof r.id === "string" && r.id.startsWith(`${prefix}-`))
+    .map((r) => Number(r.id.slice(prefix.length + 1)))
+    .filter((n) => Number.isFinite(n));
+  const n = (used.length ? Math.max(...used) : 0) + 1;
   return `${prefix}-${String(n).padStart(3, "0")}`;
 }
 

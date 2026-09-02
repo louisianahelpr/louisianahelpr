@@ -1,7 +1,7 @@
 ---
 name: "lh-money-escrow"
 description: "The money lane: Stripe Connect escrow hold and release, split payment, platform commission, tax, price application, refunds, chargebacks, mid-checkout failure and double-charge. Highest-stakes lane. Launch-audit fleet, sweep phase."
-model: fable
+model: opus
 memory: project
 permissionMode: plan
 ---

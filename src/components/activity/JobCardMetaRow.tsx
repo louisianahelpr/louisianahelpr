@@ -222,7 +222,18 @@ export function JobCardMetaRow({
           ellipsized to a useless "L..". Buying those pixels back from the
           inter-chip gap keeps the place name readable on the narrowest phone
           without changing anything from 360 up. */}
-      <div className="flex items-center gap-x-2 min-[360px]:gap-x-3 sm:gap-x-5 flex-nowrap min-w-0 flex-1 overflow-hidden">
+      {/* `job-meta-row` is the hook for ONE rule in index.css: this row wraps
+          in Senior Mode. It stays `flex-nowrap` at the default scale, which is
+          the owner's call above and is unaffected.
+
+          The reason it cannot stay nowrap at the larger rung: date and time are
+          `shrink-0 whitespace-nowrap` and grow ~27%, so the whole increase
+          comes out of the location, which is the only chip that gives.
+          Measured at 320, the city's content box went 22px → 18px and
+          "Metairie" rendered as a single visible character beside its pin. The
+          rule that says the location ellipsizes assumes an ellipsis a reader
+          can act on; one character is not that. */}
+      <div className="job-meta-row flex items-center gap-x-2 min-[360px]:gap-x-3 sm:gap-x-5 flex-nowrap min-w-0 flex-1 overflow-hidden">
       {/* Location → date → time, matching the home feed ("Browse Tasks")
           card order so the two surfaces read consistently. */}
       {locationPressToMap ? (

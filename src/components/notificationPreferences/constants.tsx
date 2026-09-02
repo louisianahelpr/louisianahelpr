@@ -32,6 +32,15 @@ export const trimTime = (v: string | null | undefined): string | null => {
 // measure under that at 14px/600. "Transit (On the Way / Arrived)" was 213px
 // and truncated; every other label is a short Title Case pair well inside the
 // budget ("Payments & Tips", the widest survivor, is 119px).
+//
+// That budget is for 375 at the default scale, and it is not the tight case.
+// At 320 the same arithmetic leaves 50px, and in Senior Mode these labels
+// render at 17px (113–125px), so neither fits on one line however short the
+// label is. The rows no longer truncate: under 360px they drop the glyph and
+// tighten their gaps to roughly triple the column, and the label wraps to a
+// second line if it still needs one. Keep labels to a short Title Case pair
+// anyway — the budget above is what keeps them to ONE line at 375, and a
+// label long enough to wrap there would push the whole list taller.
 export const rows: Row[] = [
   { key: "new_offers", emailKey: "email_new_offers", label: "Job Offers", icon: <Briefcase className="w-3.5 h-3.5" /> },
   { key: "messages", emailKey: "email_messages", label: "Messages", icon: <MessageSquare className="w-3.5 h-3.5" /> },

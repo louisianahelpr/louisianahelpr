@@ -116,7 +116,13 @@ export function EmptyState({
   // visual anchor while the inner cream highlight keeps it from looking
   // heavy. The subtle outer halo connects it to the liquid-glass surface.
   const iconBubbleStyle: CSSProperties = {
-    backgroundColor: "hsl(var(--parchment) / 0.72)",
+    // Tokenised (index.css) rather than written out here, so that
+    // `prefers-reduced-transparency: reduce` can swap this 72% fill for an
+    // opaque disc. A media query cannot reach an inline style; it can redefine
+    // the custom property the inline style reads. The blur below is stripped by
+    // the same media query's blanket rule, and without a fill to go with it the
+    // disc would just become a see-through hole where the icon sits.
+    backgroundColor: "var(--empty-bubble-bg)",
     backdropFilter: "blur(20px) saturate(160%)",
     WebkitBackdropFilter: "blur(20px) saturate(160%)",
     border: "1px solid hsl(var(--olivewood) / 0.09)",

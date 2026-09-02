@@ -334,9 +334,31 @@ const ConversationRowBase = ({
                 tracking, and canonical `jobStatusColor` palette). `ml-auto`
                 lives on the time cluster here rather than on the pill, because
                 the top-right corner is the timestamp's. */}
-            <div className="flex items-center gap-1.5">
+            {/* `flex-wrap` + a real basis on the NAME, because the name is the
+                row's identity and it was losing the line to its own
+                annotations. Measured at 320: the line is 176px, and the status
+                chip alone took 68.7px of it ("Accepted" at ds-9) against 45.4px
+                left for the name — so the name read "A ne…". At the Senior rung
+                the chip and the timestamp grow ~27% and the name's box fell to
+                20px: "A..", two characters of a ten-character name.
+
+                A basis of 5.5rem says "the name gets 88px before anything else
+                is considered". Wrapping is decided on hypothetical main sizes
+                (i.e. the basis), before shrinking, so when 88 + chip + time no
+                longer fit, the chip and time drop to a second line together and
+                the name grows into the full width — `ml-auto` still pins the
+                timestamp right, so the second line reads chip-left/time-right.
+                `min-w-0` is kept so `truncate` still works if the row is ever
+                narrower than the basis itself.
+
+                Chosen so the DEFAULT 375 rendering is unchanged: 88 + 68.7 +
+                49.9 + 12 of gaps = 218.6 against 231px available, so it stays on
+                one line exactly as before. It wraps at 320 (where it was already
+                cutting the name at the default scale) and at both widths in
+                Senior Mode. */}
+            <div className="flex flex-wrap items-center gap-x-1.5">
               <p
-                className="font-sans font-semibold truncate min-w-0 text-ds-15"
+                className="font-sans font-semibold truncate min-w-0 basis-[5.5rem] grow text-ds-15"
                 style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}
               >
                 {c.otherUserName}
@@ -390,8 +412,15 @@ const ConversationRowBase = ({
                 moved up to the name line — so in practice this row now wraps
                 far less often than it did. */}
             <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mt-0.5">
+              {/* `senior-clamp-2` (index.css): a job title is a sentence, and
+                  its column is the same 176px at 320 in both modes — there is
+                  no space to hand back, so the only way to show more of it at
+                  the larger rung is a second line. Safe to clamp because the
+                  utility also sets `overflow-wrap: anywhere`; see the note in
+                  index.css for why that declaration is the difference between
+                  an ellipsis and a word sliced in half. */}
               <p
-                className="flex-1 min-w-0 basis-[9rem] text-ds-11 truncate font-serif italic"
+                className="flex-1 min-w-0 basis-[9rem] text-ds-11 truncate senior-clamp-2 font-serif italic"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 {c.jobTitle}
@@ -447,15 +476,24 @@ const ConversationRowBase = ({
                 is muted/italic so it doesn't compete with the actual
                 content. Bold-ish weight when there's an unread inbound
                 message, regular otherwise. */}
-            <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
+            {/* `items-start`, not `items-center`: the preview becomes two lines
+                at the Senior rung (see `senior-clamp-2` below), and a centred
+                44px thumbnail against a two-line block floats away from the
+                first line it belongs to. Top-aligned it reads the same at
+                either height. */}
+            <div className="flex items-start gap-1.5 mt-0.5 min-w-0">
               {lastIsImage && c.lastMessageAttachmentPath && (
                 <LastMessageImageThumb
                   path={c.lastMessageAttachmentPath}
                   preResolvedUrl={c.lastMessageAttachmentSignedUrl}
                 />
               )}
+              {/* Same reasoning as the job title above — a message preview is
+                  prose in a fixed-width column, so the Senior rung buys it a
+                  second line rather than showing less of the sentence. iOS
+                  Messages shows two lines here as well. */}
               <p
-                className="text-ds-12 truncate min-w-0 flex-1"
+                className="text-ds-12 truncate senior-clamp-2 min-w-0 flex-1"
                 style={{
                   color: hasUnreadFromOther ? "hsl(var(--ink-deep))" : "hsl(var(--olivewood) / 0.8)",
                   fontWeight: hasUnreadFromOther ? 600 : 400,

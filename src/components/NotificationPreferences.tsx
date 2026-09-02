@@ -392,8 +392,35 @@ const NotificationPreferences = () => {
       {/* Push + Email master toggles — gate every row below them, so
           they're the lead control. Bark-tinted backdrop signals "this
           is the master switch" without shouting. */}
+      {/* ── Why every row below drops its glyph and tightens up under 360px ──
+          The label column here is whatever is left after fixed furniture, and
+          at 320 there is almost nothing left. Measured 2026-09-01: the panel is
+          254px inside, and the row spends 32 on `px-4`, 28+10 on the category
+          glyph, 51+24+51 on the two switch slots and the gap between them, and
+          8 on `ml-2` — 204px of furniture, leaving the label and its
+          description a 50px column.
+
+          Everything in that column was already failing at the DEFAULT scale, not
+          just the Senior one: "Master Switch" rendered "Mast…", "Promotions"
+          rendered "Promo…", and the descriptions stacked one word per line. The
+          `constants.tsx` note that sizes these labels assumed a ~131px column,
+          which is what they get at 375 — it never accounted for 320.
+
+          Senior Mode then made it worse rather than better, which is the defect
+          this change exists to fix: at 17px the same labels needed 113–125px in
+          a column that had not moved.
+
+          So, below 360px only: hide the decorative glyph (38px — it is
+          duplicated by the label's own words and carries no information the
+          label does not), `px-3` instead of `px-4` (8px), and `gap-3`/`ml-1.5`
+          between the switch slots (16px). That returns 62px, tripling the label
+          column to ~112px — enough for "Promotions" on one line and for the
+          two-word labels to WRAP onto two, which is why `truncate` comes off
+          them as well. They are short, bounded, Title Case pairs (see
+          `constants.tsx`), so wrapping them is bounded too; this is not the
+          unbounded prose case that wants a clamp. From 360 up nothing changes. */}
       <div
-        className="flex items-center justify-between px-4 py-2.5 shrink-0 relative"
+        className="flex items-center justify-between px-3 min-[360px]:px-4 py-2.5 shrink-0 relative"
         style={{
           background: "hsl(var(--bark) / 0.06)",
           borderBottom: "0.5px solid hsl(var(--bark) / 0.18)",
@@ -401,14 +428,14 @@ const NotificationPreferences = () => {
       >
         <div className="flex items-center gap-2.5 min-w-0 flex-1">
           <span
-            className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center"
+            className="shrink-0 w-7 h-7 rounded-full hidden min-[360px]:flex items-center justify-center"
             style={{ background: "hsl(var(--bark) / 0.12)", color: "hsl(var(--bark))" }}
           >
             <Bell className="w-3.5 h-3.5" />
           </span>
           <div className="min-w-0">
             <Label
-              className="font-sans font-semibold block truncate text-ds-14 mb-0"
+              className="font-sans font-semibold block text-ds-14 mb-0"
               style={{ color: "hsl(var(--ink-deep))" }}
             >
               Master Switch
@@ -419,7 +446,7 @@ const NotificationPreferences = () => {
             by its own DB column) and Email (derived from the per-category
             email_* fields — see toggleEmailMaster). Aligned with the App /
             Email column headers directly below. */}
-        <div className="flex items-center gap-6 shrink-0 ml-2">
+        <div className="flex items-center gap-3 min-[360px]:gap-6 shrink-0 ml-1.5 min-[360px]:ml-2">
           <SwitchSlot
             checked={prefs.push_enabled}
             onCheckedChange={() => toggle("push_enabled")}
@@ -453,14 +480,14 @@ const NotificationPreferences = () => {
           Sits between the master and the per-category rows so it reads
           as a delivery preference, not a category. */}
       <div
-        className={`flex items-center justify-between px-4 py-2.5 shrink-0 transition-opacity ${prefs.push_enabled ? "" : "opacity-85"} ${saving ? "opacity-80 cursor-wait" : ""}`}
+        className={`flex items-center justify-between px-3 min-[360px]:px-4 py-2.5 shrink-0 transition-opacity ${prefs.push_enabled ? "" : "opacity-85"} ${saving ? "opacity-80 cursor-wait" : ""}`}
         style={{
           borderBottom: "0.5px solid hsl(var(--olivewood) / 0.08)",
         }}
       >
         <div className="flex items-center gap-2.5 min-w-0 flex-1">
           <span
-            className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center"
+            className="shrink-0 w-7 h-7 rounded-full hidden min-[360px]:flex items-center justify-center"
             style={{
               background: "hsl(var(--burnt-sienna) / 0.14)",
               color: "hsl(var(--burnt-sienna))",
@@ -470,7 +497,7 @@ const NotificationPreferences = () => {
           </span>
           <div className="min-w-0">
             <Label
-              className="font-sans font-semibold block truncate text-ds-14 mb-0"
+              className="font-sans font-semibold block text-ds-14 mb-0"
               style={{ color: "hsl(var(--ink-deep))" }}
             >
               Daily Match Digest
@@ -480,7 +507,7 @@ const NotificationPreferences = () => {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-6 shrink-0 ml-2">
+        <div className="flex items-center gap-3 min-[360px]:gap-6 shrink-0 ml-1.5 min-[360px]:ml-2">
           <SwitchSlot
             checked={prefs.match_digest_mode}
             onCheckedChange={() => toggle("match_digest_mode")}
@@ -509,7 +536,7 @@ const NotificationPreferences = () => {
           between the digest toggle and the per-category rows so it
           reads as a delivery preference, not a category. */}
       <div
-        className={`px-4 py-2.5 shrink-0 transition-opacity ${prefs.push_enabled ? "" : "opacity-85"} ${saving ? "opacity-80 cursor-wait" : ""}`}
+        className={`px-3 min-[360px]:px-4 py-2.5 shrink-0 transition-opacity ${prefs.push_enabled ? "" : "opacity-85"} ${saving ? "opacity-80 cursor-wait" : ""}`}
         style={{
           borderBottom: "0.5px solid hsl(var(--olivewood) / 0.08)",
         }}
@@ -517,7 +544,7 @@ const NotificationPreferences = () => {
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2.5 min-w-0 flex-1">
             <span
-              className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center"
+              className="shrink-0 w-7 h-7 rounded-full hidden min-[360px]:flex items-center justify-center"
               style={{
                 background: "hsl(var(--bark) / 0.10)",
                 color: "hsl(var(--bark))",
@@ -527,7 +554,7 @@ const NotificationPreferences = () => {
             </span>
             <div className="min-w-0">
               <Label
-                className="font-sans font-semibold block truncate text-ds-14 mb-0"
+                className="font-sans font-semibold block text-ds-14 mb-0"
                 style={{ color: "hsl(var(--ink-deep))" }}
               >
                 Quiet Hours
@@ -537,7 +564,7 @@ const NotificationPreferences = () => {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-6 shrink-0 ml-2">
+          <div className="flex items-center gap-3 min-[360px]:gap-6 shrink-0 ml-1.5 min-[360px]:ml-2">
             <SwitchSlot
               checked={quietEnabled}
               onCheckedChange={toggleQuiet}
@@ -598,7 +625,7 @@ const NotificationPreferences = () => {
       {rows.map((item) => (
         <div
           key={item.key}
-          className={`flex items-center justify-between px-4 py-2.5 shrink-0 transition-opacity ${
+          className={`flex items-center justify-between px-3 min-[360px]:px-4 py-2.5 shrink-0 transition-opacity ${
             prefs.push_enabled || prefs[item.emailKey] ? "" : "opacity-85"
           } ${saving ? "opacity-80 cursor-wait" : ""}`}
           style={{
@@ -607,7 +634,7 @@ const NotificationPreferences = () => {
         >
           <div className="flex items-center gap-2.5 min-w-0 flex-1">
             <span
-              className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center"
+              className="shrink-0 w-7 h-7 rounded-full hidden min-[360px]:flex items-center justify-center"
               style={{
                 background: "hsl(var(--burnt-sienna) / 0.10)",
                 color: "hsl(var(--burnt-sienna))",
@@ -616,13 +643,13 @@ const NotificationPreferences = () => {
               {item.icon}
             </span>
             <Label
-              className="font-sans font-semibold truncate text-ds-14 mb-0"
+              className="font-sans font-semibold text-ds-14 mb-0"
               style={{ color: "hsl(var(--ink-deep))" }}
             >
               {item.label}
             </Label>
           </div>
-          <div className="flex items-center gap-6 shrink-0 ml-2">
+          <div className="flex items-center gap-3 min-[360px]:gap-6 shrink-0 ml-1.5 min-[360px]:ml-2">
             <SwitchSlot
               checked={prefs[item.key] && prefs.push_enabled}
               onCheckedChange={() => toggle(item.key)}
@@ -649,14 +676,14 @@ const NotificationPreferences = () => {
           preference, so it shouldn't compete with the settings above it
           for the user's first glance. */}
       <div
-        className="flex items-center justify-between px-4 py-2.5 shrink-0"
+        className="flex items-center justify-between px-3 min-[360px]:px-4 py-2.5 shrink-0"
         style={{
           borderTop: "0.5px solid hsl(var(--olivewood) / 0.08)",
         }}
       >
         <div className="flex items-center gap-2.5 min-w-0 flex-1">
           <span
-            className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center"
+            className="shrink-0 w-7 h-7 rounded-full hidden min-[360px]:flex items-center justify-center"
             style={{
               background: "hsl(var(--burnt-sienna) / 0.10)",
               color: "hsl(var(--burnt-sienna))",
@@ -666,7 +693,7 @@ const NotificationPreferences = () => {
           </span>
           <div className="min-w-0">
             <Label
-              className="font-sans font-semibold block truncate text-ds-14 mb-0"
+              className="font-sans font-semibold block text-ds-14 mb-0"
               style={{ color: "hsl(var(--ink-deep))" }}
             >
               Send a Test

@@ -354,6 +354,14 @@
   --nav-curtain-top:   hsla(40, 28%, 99%, 0.6);
   --nav-curtain-fade:  hsla(40, 28%, 99%, 0);
 
+  /* EmptyState's 88px icon disc, for the same reason as the nav tokens above:
+     it is painted from an inline style in EmptyState.tsx, and an inline style
+     is unreachable from a media query. Tokenising the fill (and only the fill —
+     the blur, border and shadow stay in the component) is what lets
+     `prefers-reduced-transparency` swap it for an opaque parchment disc.
+     `--parchment` is itself themed, so this needs no dark sibling. */
+  --empty-bubble-bg:   hsl(var(--parchment) / 0.72);
+
   /* Pay It Forward — donation "mint" identity palette. Tokenised so the page
      (built with inline-style colors) renders correctly in dark mode instead of
      painting glaring light-green blocks on the dark canvas. */
@@ -2752,6 +2760,76 @@ html.senior-mode .line-clamp-4 { -webkit-line-clamp: 5; }
    override that cannot tell prose from a proper noun. Sites and numbers are in
    the audit report. Do NOT re-add a blanket `.truncate` rule here. */
 
+/* ── Two opt-in hooks the per-component fix needed, and the one declaration
+      that makes clamping safe ────────────────────────────────────────────
+   Follow-up to the note above (2026-09-01). Enumerating the 27 survivors with
+   the same visible-character harness put them in five buckets, and only two of
+   them wanted a clamp at all:
+
+     prose in a fixed column   Messages job title + last-message preview.
+                               The column is the same width in both modes
+                               (176px at 320, 231px at 375, measured) — nothing
+                               layout can hand back, so the only way to show
+                               more of a sentence is more lines.
+     a name beside a chip      the conversation name. Fixed in the component
+                               by letting the name line wrap: layout, not
+                               clamping.
+     short bounded labels      the notification category labels. Fixed by
+                               reclaiming the column (the label column was
+                               50px at 320) and letting two-word labels wrap.
+     a chip in a nowrap row    the job-card location. Fixed by `.job-meta-row`
+                               below.
+     another lane's files      SubscriptionTab / SecurityTab. Reported, not
+                               touched.
+
+   `.senior-clamp-2` is opt-in, applied to exactly the two prose elements. It
+   is NOT the blanket rule the note above rejects, and the difference is not
+   only the scope — it is `overflow-wrap: anywhere`.
+
+   That declaration is what the reverted attempt was missing, and it is the
+   whole reason "Messages" got sliced mid-word with no ellipsis. A word wider
+   than its column has nowhere to go under the default `overflow-wrap: normal`:
+   it overflows the box on one line, so the LINE limit is never reached, so
+   `-webkit-line-clamp` never draws its ellipsis and `overflow: hidden` just
+   cuts the glyphs off. With `anywhere` the word breaks and continues on the
+   next line, the line limit is reached like any other text, and the ellipsis
+   comes back. Verified 2026-09-01 in Chromium AND WebKit on a synthetic word
+   far wider than its column: without it, a hard cut and no ellipsis; with it,
+   the word wraps and the clamp ellipsis renders. `anywhere` rather than
+   `break-word` because it also lets the element's min-content size shrink,
+   which is what keeps it from forcing its flex row wider.
+
+   Opt in only for real prose. A proper noun or a one-word heading is still
+   better served by `truncate` — "Messa…" says "there is more"; "Messa/ges"
+   just looks broken. That judgement is exactly what a blanket rule cannot
+   make, and it is why this is a class you have to ask for. */
+html.senior-mode .senior-clamp-2 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: normal;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+/* The job-card meta row (location · date · time) is deliberately `flex-nowrap`
+   at the default scale — owner's call, so the three chips read as one line and
+   the location is the single chip that ellipsizes. At the Senior rung the date
+   and time chips are `shrink-0 whitespace-nowrap` and grow ~27%, and they take
+   it out of the only thing that can give: measured at 320, the city's content
+   box went 22px → 18px and "Metairie" rendered as one visible character next
+   to its pin. A location chip showing no location is not "the location giving
+   a little", it is the chip failing.
+
+   So the row wraps in this mode only. Same trade the clamps above make — a
+   taller row, all of the text — and unlike a clamp it hides nothing. The
+   default scale is untouched, so the owner's one-line rule still holds
+   everywhere it was made. */
+html.senior-mode .job-meta-row {
+  flex-wrap: wrap;
+  row-gap: 0.25rem;
+}
+
 /* ── The OS asks; the app answers ─────────────────────────────────────────
    iOS exposes three accessibility settings this app already had the CSS for
    and simply never listened to. Every accommodation below is the SAME
@@ -2796,11 +2874,51 @@ html.senior-mode .line-clamp-4 { -webkit-line-clamp: 5; }
       the only reason this is a blanket, and it is why it must keep the
       `!important`. */
 @media (prefers-reduced-transparency: reduce) {
+  /* ── Why the unprefixed twin lives in an `@supports` ──────────────────
+     Because without it, it does not survive `npm run build`, and this whole
+     block was inert in the shipped bundle on every Chromium browser.
+
+     The CSS minifier treats `backdrop-filter` and `-webkit-backdrop-filter` as
+     one property written twice and keeps only the last — so the source pair
+     `backdrop-filter: none !important; -webkit-backdrop-filter: none !important;`
+     ships as the `-webkit-` half alone. (It does this to every pair in this
+     file; everywhere else it is harmless, because both engines honour the
+     prefixed form.) Here it is not harmless, because the surfaces this rule
+     exists to reach — the nav dock pill, the nav curtain, the 88px EmptyState
+     disc — set BOTH properties in an inline style, and Chromium does not treat
+     the two as aliases when they disagree.
+
+     Measured 2026-09-01 on a three-case bench, inline `backdrop-filter:
+     blur(40px)` + `-webkit-backdrop-filter: blur(40px)` on every case:
+
+       author `-webkit-` only, !important   Chromium blur(40px)   WebKit none
+       author both, !important              Chromium none         WebKit none
+       author `-webkit-` + @supports twin   Chromium none         WebKit none
+
+     So the built stylesheet was asking Chromium to stop blurring in the one
+     syntax Chromium ignores in that position, and a Reduce Transparency user on
+     the web got the full 40px frost on the dock. It measured clean on device
+     for the same reason it went unnoticed: WebKit DOES alias the two, so iOS
+     was always fine — the exact mirror of the WebKit-only-bug rule in
+     CLAUDE.md, and a reminder that "verified on the device" is not "verified".
+
+     An `@supports` block is the minimum that stops the collapse: nothing can be
+     merged across an at-rule boundary. It also degrades correctly — a WebKit
+     old enough to lack the unprefixed property fails the query and keeps
+     obeying the prefixed rule above it. Verify after any change here by
+     grepping the BUILT css for `backdrop-filter:none!important`; if the only
+     hit is the `-webkit-` one, this regressed. */
   *,
   *::before,
   *::after {
-    backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
+  }
+  @supports (backdrop-filter: none) {
+    *,
+    *::before,
+    *::after {
+      backdrop-filter: none !important;
+    }
   }
 
   /* And again, at class-level specificity — because `!important` does not
@@ -2817,30 +2935,133 @@ html.senior-mode .line-clamp-4 { -webkit-line-clamp: 5; }
   [class][class],
   [class][class]::before,
   [class][class]::after {
-    backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
+  }
+  /* Same split, same reason as above — see the minifier note. */
+  @supports (backdrop-filter: none) {
+    [class][class],
+    [class][class]::before,
+    [class][class]::after {
+      backdrop-filter: none !important;
+    }
   }
 
   /* 2. The fills. Killing the blur is not enough on its own — a 40%-opaque
         pill with nothing behind it is less legible than a frosted one, not
-        more. Each named surface gets the opaque token its material implies.
-        `.glass-nav.is-scrolled` keeps its own opaque fill and needs nothing.
+        more.
 
-        This list is the stylesheet's frosted surfaces, which is all a
-        stylesheet can speak for. The inline-styled ones above lose their blur
-        to the blanket but keep their inline translucent background, because
-        the right fill for each is a per-component decision (a token or a
-        class), not something this rule can guess. Those sites are called out
-        in the audit report rather than papered over here. */
+        ONE FILL FOR EVERY SURFACE WAS THE WRONG ANSWER, and it is worth saying
+        why because it looked so reasonable. This was a single rule setting all
+        eight classes to `hsl(var(--background))`, i.e. the page canvas. But
+        these surfaces are not all made of the canvas — they are made of white,
+        of canvas, and of near-black, and flattening them to one value does not
+        remove transparency, it removes the MATERIAL. Two measured casualties:
+
+          `.liquid-glass` is already `hsl(0 0% 100%)` in light mode — fully
+          opaque, deliberately, and its own comment calls the ~5% luminance gap
+          above the 95% canvas load-bearing. The blanket repainted every card in
+          the app canvas-coloured, so a user who asked for LESS transparency got
+          cards that no longer separated from the page behind them. It had no
+          transparency to remove in the first place.
+
+          `.glass-nav.is-scrolled` is `hsl(38 18% 97%)`, also already opaque —
+          and the note this replaces claimed it "keeps its own opaque fill and
+          needs nothing". It does not keep it: `!important` on `.glass-nav`
+          beats a non-important declaration whatever its specificity, so the
+          scrolled nav was being repainted too.
+
+        So each surface below gets the opaque form of ITS OWN colour — the
+        value it already composites to, minus the see-through — and the two
+        that were opaque to begin with are restated so the cascade leaves them
+        alone. Dark mode is listed separately for the same reason: the surfaces
+        that are white in light mode are near-black in dark, and `--background`
+        was never the right answer in either.
+
+        `.skeleton-glass` is the one exception to "use your own colour": a
+        loading placeholder has no content to make legible, and an opaque white
+        skeleton on an opaque white card is an invisible skeleton. It takes
+        `--muted`, the token that already means "inert surface". */
   .glass,
+  .glass-dock {
+    background-color: hsl(0 0% 100%) !important;
+  }
+  .liquid-glass {
+    background-color: hsl(0 0% 100%) !important;
+  }
   .glass-nav,
   .glass-header,
-  .glass-dock,
   .glass-modal,
-  .glass-field,
-  .liquid-glass,
-  .skeleton-glass {
+  .glass-field {
     background-color: hsl(var(--background)) !important;
+  }
+  .glass-nav.is-scrolled {
+    background-color: hsl(38 18% 97%) !important;
+  }
+  .skeleton-glass {
+    background-color: hsl(var(--muted)) !important;
+  }
+
+  [data-theme="dark"] .glass {
+    background-color: rgb(8 9 11) !important;
+  }
+  [data-theme="dark"] .glass-nav,
+  [data-theme="dark"] .glass-header,
+  [data-theme="dark"] .glass-dock {
+    background-color: hsl(var(--parchment)) !important;
+  }
+  [data-theme="dark"] .glass-nav.is-scrolled {
+    background-color: hsl(220 14% 11%) !important;
+  }
+  [data-theme="dark"] .glass-modal {
+    background-color: hsl(20 12% 13%) !important;
+  }
+  [data-theme="dark"] .liquid-glass {
+    background-color: hsl(0 0% 7%) !important;
+  }
+  [data-theme="dark"] .skeleton-glass {
+    background-color: hsl(0 0% 8%) !important;
+  }
+
+  /* 3. The fills a stylesheet cannot reach by class — done as TOKENS instead.
+        The note this replaces stopped here, on the grounds that "the right fill
+        for each is a per-component decision, not something this rule can
+        guess". That is true of the VALUE and it is why these two are decided
+        below rather than swept into the list above; it is not true of the
+        mechanism. Both surfaces paint from a custom property, so the component
+        keeps owning its material and this block only says what that material
+        does when the OS asks for it to stop being see-through.
+
+        The nav dock pill — `--nav-pill-bg`, 40% white over the page at
+        blur(40px). It is the app's most legibility-critical surface: five
+        labelled tabs, permanently over live scrolling content. Its fill goes
+        to FULL WHITE, not to `--background`: the pill is deliberately lighter
+        than the page it floats on, and painting it canvas-coloured would erase
+        the boundary the blur was drawing. Dark mode takes its own hue at
+        alpha 1 (`220 14% 12%`), a rung darker than the dark canvas, so the
+        pill still reads as a raised object rather than a hole.
+
+        The nav curtain behind it keeps its mask — the mask is what makes it
+        fade upward into the page instead of ending on a hard line — but its
+        top stop goes opaque, so the strip directly under the dock becomes
+        solid ground rather than a 60% wash over scrolling text. It takes
+        `--parchment`, not its own `hsla(40, 28%, 99%, …)`: that warm hue-40
+        cream predates the palette's move to a cool-neutral canvas and only got
+        away with it because 60% alpha diluted it into the page. Painted solid
+        it read as a warm band across the bottom of a cool page. Solid ground
+        should be the ground's own colour.
+
+        The EmptyState icon bubble — `--empty-bubble-bg`, 72% parchment at
+        blur(20px), an 88px disc. It sits on a `.liquid-glass` card, so opaque
+        parchment against that card's white keeps exactly the tonal step it has
+        today. No dark variant is needed: `--parchment` is already a themed
+        token, so the same declaration follows the theme. */
+  :root {
+    --nav-pill-bg:      hsl(0 0% 100%);
+    --nav-curtain-top:  hsl(var(--parchment));
+    --empty-bubble-bg:  hsl(var(--parchment));
+  }
+  [data-theme="dark"] {
+    --nav-pill-bg:      hsl(220 14% 12%);
   }
 }
 

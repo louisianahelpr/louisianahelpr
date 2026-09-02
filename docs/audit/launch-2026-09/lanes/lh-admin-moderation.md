@@ -179,6 +179,8 @@ run does not repeat it.
 | AM-004 | LOW | `/admin?view=audit` is 44% non-admin noise (89 of 202 rows are signup role grants) |
 | AM-005 | LOW | A removed feature (`broadcasts`) still has a live admin view, and it holds the console's only unguarded zero-row delete |
 | AM-007 | LOW | `enforce_audit_log_self_attribution()` is a no-op on the service-role path — every admin edge function's audit write bypasses it |
+| AM-011 | MEDIUM | Admin queue badges never render on the desktop website — the only at-a-glance signal that a queue has work is gone for the way admins actually work |
+| AM-012 | MEDIUM | The admin console disagrees with itself about seed rows: dashboard says 0 pending disputes, the badge says 2, the queue lists 2 with live money buttons |
 | AM-010 | LOW | The `admin_support_queue` authorization test was VACUOUS (zero support rows exist) — corrects my own earlier evidence; plus the support queue has never received a row |
 
 ### AM-008 is the one that should hold the launch
@@ -353,6 +355,60 @@ each, because a retraction nobody records gets re-derived next sweep.
 - **AM-004, AM-007** — documentation/severity corrections, no code change
   proposed.
 
+## 3a. All 24 views rendered — what the screens actually do
+
+The permission boundary was lifted mid-run: the owner granted `admin` to
+`helpr-audit-routewalker2@mailinator.com` (`00b316d7-…`), verified by me against
+prod before use (`has_role(...,'admin')` → true, 14 admins, and the grant itself
+wrote 2 `admin_audit_log` rows — the audit trail working). **0-of-24 is now
+24-of-24.** Split with `lh-route-walker` at the orchestrator's direction: I took
+function and state, they take fit and overflow, and I filed nothing about
+layout.
+
+Driven against a vite dev server on `origin/main` pointed at prod Supabase,
+1440×900, session and `helpr_onboarding` seeded before first paint.
+Screenshots: `~/.lh-audit/admin-shots/` (24 + 5 deep-dives). Raw probe data:
+`~/.lh-audit/admin-walk.json`.
+
+**Verified working across all 24:**
+
+| check | result |
+|---|---|
+| Renders without crashing | 24/24 |
+| Exactly one `<h1>` | 24/24 — the `isRealView` coercion holds |
+| Console / page errors | 0, on 23 of 24 |
+| Failing Supabase requests | 0 |
+| `NaN` / `undefined` / `[object Object]` in the DOM | 0 |
+| Error boundaries tripped | 0 |
+| Stuck spinners after settle | 0 |
+
+**Empty states are designed, not blank.** Sampled the eight lowest-content
+views and every one has purposeful copy with a next action: broadcasts
+"Nothing scheduled — Tap New Broadcast to send one."; credentials "No pending
+credentials — Uploads land here as Helprs submit them."; exceptions "No open
+exceptions — Nothing is waiting on a…"; support "No pending tickets". (Support
+stacks that with "Nothing matches this filter — try All." — two empty-state
+messages at once. A nit, not filed.)
+
+**Destructive controls confirm, and the money ones confirm well.** The two I
+was most concerned about — `Quick: Release to Helpr` and `Quick: Refund Poster`
+on the disputes queue — route through `BrandConfirmDialog` with the exact
+amount interpolated and the sentence *"This moves real money and can't be
+undone here."* (`AdminDisputes.tsx:560-574`). I did not click either: both live
+disputes are seed rows and the standing constraint is no destructive action on
+a row I did not create.
+
+**The one console error, retracted.** `/admin?view=tiers` logs a 400 on
+`/storage/v1/object/public/user-documents/…/avatar.png`. Not a defect and not a
+leak: `user-documents` is a private bucket (`storage.buckets.public = false`),
+so a public URL for it correctly fails, and `src/lib/avatarImage.ts:26` already
+documents this exact row as the one case the `onError` fallback catches. It is
+one stale `profiles.avatar_url` value, not code.
+
+**Two findings came out of it** — AM-011 (queue badges absent on the desktop
+website) and AM-012 (the console disagrees with itself about seed rows, three
+counts for one queue). Both are in the table above.
+
 ## 4a. A dependency on lane-onboarding-auth I could not resolve
 
 The orchestrator relayed that `complete-signup` can silently never run, leaving
@@ -427,23 +483,13 @@ banreview.
 **The reason for every gap below is a permission boundary or a standing
 constraint, not an absence of effort.** Nothing here was skipped for budget.
 
-1. **All 24 admin views: 0 of 24 rendered.** Not one screenshot, no measured
-   layout, no interactive verification of a single admin control — home,
-   analytics, people, jobs, settings, disputes, broadcasts, notifications,
-   notiflogs, reports, support, referrals, subscriptions, fraud, audit, health,
-   export, payouts, tiers, marketing, idvreview, credentials, exceptions,
-   banreview. **None of these may be counted as covered.** Reason:
-   `prevent_admin_role_self_grant()` admits `admin` role writes only from
-   `service_role`, and granting myself the role in prod is outside this lane's
-   standing constraints ("TEST ACCOUNTS ONLY", and elevating a test row to admin
-   in the live project is a decision for the owner, not for me).
-   **What I need to finish it:** either (a) the owner grants `admin` to one
-   clearly-marked test account for the duration of the audit, or (b) approval to
-   `INSERT INTO user_roles (user_id, role) VALUES ('<test uuid>','admin')` in
-   prod via the service-role key I already hold locally, which the trigger does
-   permit. Either unblocks the whole visual and interactive half of this lane in
-   one step. `lh-route-walker` was blocked on exactly this, so the two lanes
-   unblock together.
+1. ~~All 24 admin views~~ — **RESOLVED mid-run.** The owner granted an admin
+   role to a marked audit account and all 24 were rendered and probed; see §3a.
+   The gap that remains is narrower: I audited **function and state only**, at
+   1440 on the desktop web surface. Not covered by me and not by anyone unless
+   `lh-route-walker` reaches them: fit/overflow at other breakpoints, the iOS
+   WKWebView surface, and the 6 `?tab=admin/people:*` variants.
+
 2. **RPC authorization: 11 of 13 proven at runtime, 2 not.**
    Proven refused: `admin_delete_review`, `rpc_decide_dispute`,
    `review_credential`, `check_dispute_velocity`, `settle_dispute_record`,
@@ -474,6 +520,13 @@ constraint, not an absence of effort.** Nothing here was skipped for budget.
    but hold zero rows, so the read is untested rather than passed. Seeding a row
    in each would close this and needs no admin role — it is the cheapest
    remaining cell and I did not reach it.
+6b. **No admin write was executed.** I rendered every view and read every
+   control, but I did not ban, delete, refund, deny, resolve or decide anything
+   — the standing constraint is no destructive action on a row I did not create,
+   and every candidate row in prod is a seed row or a real user. So "does every
+   admin write actually land" is answered by static analysis (all 41 call sites,
+   §6) and by reading the confirm dialogs, **not by execution**. The one known
+   zero-row write, AdminBroadcasts.tsx:165, was not driven.
 7. **The public support form was never submitted.** AM-010's second half — zero
    `reported_type='support'` rows have ever existed. One submission through the
    live `/help` form would settle whether the queue receives anything.

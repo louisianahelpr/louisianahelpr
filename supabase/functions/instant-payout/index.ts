@@ -15,9 +15,22 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // 10/min, raised from 3 when the limiter became real. It used to be a
+  // per-isolate Map keyed on a header the caller controlled, so the number was
+  // never enforced against anyone; now that it is, 3 locks a helper out of
+  // their own money on ordinary use. `InstantPayoutDialog` spends one on OPEN —
+  // it fires `{action:"quote"}` from a mount effect — so open/close/reopen
+  // three times in a minute and the confirm tap 429s.
+  //
+  // Nothing about payout safety rests on this number. The durable controls are
+  // `instant_payouts_one_pending_per_helper` (20260823010000), the partial
+  // unique index that makes a second concurrent payout impossible, and the fact
+  // that the amount is derived from the LIVE Stripe balance rather than
+  // anything stored — so a retry can only move what genuinely remains. This is
+  // a burst damper in front of Stripe, and 10 is still far below any human rate.
   const rl = await checkRateLimit(req, {
     windowMs: 60_000,
-    maxRequests: 3,
+    maxRequests: 10,
     keyPrefix: "instant-payout",
   });
   if (!rl.allowed) return rateLimitResponse(rl.retryAfter ?? 60, corsHeaders);

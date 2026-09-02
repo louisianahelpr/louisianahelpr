@@ -220,6 +220,16 @@ function client(apiKey: string): Resend {
 }
 
 /**
+ * Hard ceiling on a single Resend call, in milliseconds.
+ *
+ * Exported because `process-email-queue` derives its pgmq visibility timeout
+ * from it: the queue's `vt` must exceed the worst case a worker can hold a
+ * batch, and that worst case is bounded by this number. If the two ever drift
+ * apart, a slow send becomes a duplicate email.
+ */
+export const SEND_TIMEOUT_MS = 10_000
+
+/**
  * Send one email through Resend.
  *
  * Returns the Resend message id (use it as the `email_send_log.message_id`
@@ -252,15 +262,44 @@ export async function sendWithResend(
   // The SDK RESOLVES `{ data, error, headers }` — like supabase-js, it does not
   // throw on a provider-side failure. Dropping `error` here would report every
   // rejected send as delivered.
-  const { data, error, headers } = await client(apiKey).emails.send({
-    from: params.from,
-    to: [params.to],
-    subject: params.subject,
-    html: params.html,
-    text: params.text,
-    ...(params.replyTo ? { replyTo: params.replyTo } : {}),
-    ...(params.headers ? { headers: params.headers } : {}),
-  })
+  //
+  // BOUNDED, because an unbounded one is a double-send.
+  // ─────────────────────────────────────────────────────────────────────────
+  // This call had no timeout and no AbortSignal, so a slow Resend response
+  // could hold the caller indefinitely. `process-email-queue` reads its batch
+  // out of pgmq with a visibility timeout that starts ticking at READ time: if
+  // one send outlives that timeout, the message becomes visible again while
+  // this call is still in flight, the next tick reads it, and the recipient
+  // gets the email twice. The only thing standing in the way is the
+  // `email_send_log.status = 'sent'` lookup — which cannot help, because the
+  // 'sent' row is written AFTER this returns.
+  //
+  // A timeout does not cancel the request Resend is already processing, so a
+  // timed-out send may still be delivered. That is the correct trade anyway:
+  // it converts "hangs past the visibility timeout and is silently re-read"
+  // into "fails loudly, is recorded as failed, and the caller decides" — and
+  // the caller now sizes its visibility timeout off this bound (see
+  // `SEND_TIMEOUT_MS` there) so the re-read cannot happen at all.
+  const { data, error, headers } = await Promise.race([
+    client(apiKey).emails.send({
+      from: params.from,
+      to: [params.to],
+      subject: params.subject,
+      html: params.html,
+      text: params.text,
+      ...(params.replyTo ? { replyTo: params.replyTo } : {}),
+      ...(params.headers ? { headers: params.headers } : {}),
+    }),
+    new Promise<never>((_, reject) =>
+      setTimeout(() => {
+        const err: ResendSendError = new Error(
+          `Resend send timed out after ${SEND_TIMEOUT_MS}ms`,
+        )
+        err.status = 504
+        reject(err)
+      }, SEND_TIMEOUT_MS)
+    ),
+  ])
 
   if (error) {
     const status = error.statusCode ?? 0

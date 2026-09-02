@@ -138,9 +138,21 @@ describe("payment-confirm-reminder edge function", () => {
     expect(res.status).toBe(500);
     expect(b.missed).toBe(7);
     expect(String(b.defectReasons)).toContain("auto-release cutoff with no confirm reminder");
-    // And it names the fix, so whoever reads the alert does not have to derive
-    // the arithmetic from scratch at 3am.
-    expect(String(b.defectReasons)).toContain("15 */6 * * *");
+    // It NO LONGER names a reschedule, and that is the assertion now.
+    //
+    // The suffix "Reschedule to '15 */6 * * *'" is emitted only while
+    // `SCHEDULE_LEAVES_A_HOLE` is true, i.e. while the deployed cron period
+    // cannot cover the 12-hour eligibility window. 20260902035753 moved the
+    // schedule to every six hours and `CRON_PERIOD_HOURS` was set to 6 to
+    // match, so the flag is false and the advice is spent. An alarm that keeps
+    // recommending a fix that has already shipped is how people learn to stop
+    // reading the alarm.
+    //
+    // This assertion is therefore the regression guard on the pair staying in
+    // step: widen the schedule back out (or bump CRON_PERIOD_HOURS above 12
+    // without moving the cron) and the recommendation reappears and this fails.
+    expect(String(b.defectReasons)).not.toContain("Reschedule to");
+    expect(String(b.defectReasons)).not.toContain("15 */6 * * *");
   });
 
   it("stays clean when nothing is due and nothing was missed", async () => {

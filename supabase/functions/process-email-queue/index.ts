@@ -1,7 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { verifyCronSecret } from '../_shared/cron-auth.ts'
 import { cronError, cronResult, defectTracker } from '../_shared/cron-result.ts'
-import { FROM_DEFAULT, htmlToPlainText, sendWithResend } from '../_shared/resend.ts'
+import { FROM_DEFAULT, htmlToPlainText, SEND_TIMEOUT_MS, sendWithResend } from '../_shared/resend.ts'
 
 // Email delivery is via Resend exclusively. Helpr's auth-email-hook
 // renders templates locally with @react-email/components and enqueues
@@ -101,14 +101,47 @@ Deno.serve(async (req) => {
   // 2. Process auth_emails first, then transactional_emails — both via Resend
   for (const queue of ['auth_emails', 'transactional_emails']) {
     const dlq = `${queue}_dlq`
+
+    // ── The visibility timeout has to cover the WHOLE batch ─────────────────
+    //
+    // `vt` was a hard-coded 30 and it is a per-READ deadline, not a per-message
+    // one: pgmq starts it when the batch is handed over and hides every message
+    // in that batch for exactly that long. The worker then walks the batch
+    // serially — up to `batchSize` sends with `sendDelayMs` between them — so
+    // with the defaults (10 messages, 200ms apart) 30 seconds allows about
+    // 2.8 seconds per send before the LAST messages in the batch become visible
+    // again while this worker is still working through them. The next tick
+    // (5 minutes later, or another isolate sooner) then reads them and sends
+    // them a second time.
+    //
+    // The `email_send_log.status = 'sent'` lookup cannot save it: the ordering
+    // is send → mark → delete, so a message being re-read mid-batch has no
+    // 'sent' row yet and the guard waves it through. That guard protects
+    // against a redelivery AFTER a completed send; it cannot protect against a
+    // redelivery DURING one.
+    //
+    // So derive `vt` from the work instead of guessing it. `SEND_TIMEOUT_MS`
+    // (_shared/resend.ts) is now a hard per-send ceiling, so the worst case a
+    // worker can hold this batch is bounded and computable. ×2 headroom covers
+    // the per-message database round trips (the duplicate check, the send-log
+    // write, the delete) that sit between sends.
+    const vtSeconds = Math.ceil(
+      (batchSize * (SEND_TIMEOUT_MS + sendDelayMs) * 2) / 1000,
+    )
     const { data: messages, error: readError } = await supabase.rpc('read_email_batch', {
       queue_name: queue,
       batch_size: batchSize,
-      vt: 30,
+      vt: vtSeconds,
     })
 
     if (readError) {
+      // A queue this run never even looked at is not a quiet queue, and
+      // `continue` alone made the two indistinguishable: the run went on to
+      // answer 200 `{ processed: 0 }`, which reads as "no mail to send". If
+      // `auth_emails` cannot be read, password resets and confirmations are
+      // sitting undelivered.
       console.error('Failed to read email batch', { queue, error: readError })
+      defects.record(`read ${queue}: ${readError.message}`)
       continue
     }
 
@@ -143,7 +176,11 @@ Deno.serve(async (req) => {
             payload,
           })
           if (ttlDlqError) {
+            // The message stays on the queue, expired, and every future tick
+            // re-reads it, re-logs a `dlq` row and re-fails the same move until
+            // read_ct exhausts it. Silent before; a defect now.
             console.error('Failed to move expired message to DLQ', { queue, msg_id: msg.msg_id, error: ttlDlqError })
+            defects.record(`ttl move-to-dlq ${msg.msg_id}: ${ttlDlqError.message}`)
           }
           continue
         }
@@ -166,6 +203,7 @@ Deno.serve(async (req) => {
         })
         if (retryDlqError) {
           console.error('Failed to move max-retry message to DLQ', { queue, msg_id: msg.msg_id, error: retryDlqError })
+          defects.record(`max-retry move-to-dlq ${msg.msg_id}: ${retryDlqError.message}`)
         }
         continue
       }
@@ -208,7 +246,11 @@ Deno.serve(async (req) => {
             message_id: msg.msg_id,
           })
           if (dupDelError) {
+            // Doubly bad: the message is a KNOWN duplicate of a completed send
+            // and it is still on the queue, so it comes back every tick until
+            // read_ct exhausts it into the DLQ.
             console.error('Failed to delete duplicate message from queue', { queue, msg_id: msg.msg_id, error: dupDelError })
+            defects.record(`dequeue duplicate ${msg.msg_id}: ${dupDelError.message}`)
           }
           continue
         }
@@ -246,28 +288,57 @@ Deno.serve(async (req) => {
         // (single canonical entry per message). Fall through to INSERT only
         // if no pending row exists (transactional_emails path that doesn't
         // pre-log).
-        const { data: updatedSent } = await supabase
+        //
+        // BOTH WRITES BELOW USED TO DROP THEIR ERROR, AND THE 'sent' MARKER IS
+        // THE ONLY DUPLICATE-SEND GUARD THIS WORKER HAS. The UPDATE destructured
+        // `data` and not `error`, and the INSERT discarded its result entirely —
+        // so a rejected write left no 'sent' row, no log line and no defect, and
+        // the next redelivery of that message read `alreadySent = null` and sent
+        // the email again. A guard that fails silently is not a guard.
+        const { data: updatedSent, error: updateSentError } = await supabase
           .from('email_send_log')
           .update({ status: 'sent', error_message: null })
           .eq('message_id', payload.message_id)
           .in('status', ['pending', 'failed'])
           .select('id')
-        if (!updatedSent || updatedSent.length === 0) {
-          await supabase.from('email_send_log').insert({
+
+        if (updateSentError) {
+          console.error('Failed to mark email sent', { queue, msg_id: msg.msg_id, error: updateSentError.message })
+          defects.record(`send-log update ${msg.msg_id}: ${updateSentError.message}`)
+        } else if (!updatedSent || updatedSent.length === 0) {
+          // Zero rows is the NORMAL transactional path (no pre-logged pending
+          // row), not a failure — hence the insert rather than an alarm. But it
+          // is only reached when the update itself succeeded, because a failed
+          // update tells us nothing about whether a row exists and blindly
+          // inserting on top of one would double-log.
+          const { error: insertSentError } = await supabase.from('email_send_log').insert({
             message_id: payload.message_id,
             template_name: payload.label || queue,
             recipient_email: payload.to,
             status: 'sent',
           })
+          if (insertSentError) {
+            console.error('Failed to log email send', { queue, msg_id: msg.msg_id, error: insertSentError.message })
+            defects.record(`send-log insert ${msg.msg_id}: ${insertSentError.message}`)
+          }
         }
 
-        // Delete from queue
+        // Delete from queue.
+        //
+        // A FAILED DELETE IS THE DOUBLE-SEND. The email has gone out; if the
+        // message stays on the queue it becomes visible again and is sent a
+        // second time. This was `console.error` only, so it never reached
+        // `cronResult` and a run that emailed someone twice still answered
+        // 200 `ok: true` — the exact "green while broken" shape
+        // 20260829020000 exists to catch. It is a defect: work the run
+        // intended to do that did not happen because something is broken.
         const { error: delError } = await supabase.rpc('delete_email', {
           queue_name: queue,
           message_id: msg.msg_id,
         })
         if (delError) {
           console.error('Failed to delete sent message from queue', { queue, msg_id: msg.msg_id, error: delError })
+          defects.record(`dequeue after send ${msg.msg_id}: ${delError.message} — this message will be redelivered and re-sent`)
         }
         totalProcessed++
       } catch (error) {
@@ -281,25 +352,38 @@ Deno.serve(async (req) => {
 
         // Same UPDATE-first pattern as success path: collapse the pre-logged
         // pending row into the terminal failed state instead of orphaning it.
-        const { data: updatedFailed } = await supabase
+        const { data: updatedFailed, error: updateFailedError } = await supabase
           .from('email_send_log')
           .update({ status: 'failed', error_message: errorMsg.slice(0, 1000) })
           .eq('message_id', payload.message_id)
           .eq('status', 'pending')
           .select('id')
-        if (!updatedFailed || updatedFailed.length === 0) {
-          await supabase.from('email_send_log').insert({
+
+        if (updateFailedError) {
+          console.error('Failed to record send failure', { queue, msg_id: msg.msg_id, error: updateFailedError.message })
+          defects.record(`failure-log update ${msg.msg_id}: ${updateFailedError.message}`)
+        } else if (!updatedFailed || updatedFailed.length === 0) {
+          const { error: insertFailedError } = await supabase.from('email_send_log').insert({
             message_id: payload.message_id,
             template_name: payload.label || queue,
             recipient_email: payload.to,
             status: 'failed',
             error_message: errorMsg.slice(0, 1000),
           })
+          if (insertFailedError) {
+            console.error('Failed to log send failure', { queue, msg_id: msg.msg_id, error: insertFailedError.message })
+            defects.record(`failure-log insert ${msg.msg_id}: ${insertFailedError.message}`)
+          }
         }
 
         if (isRateLimited(error)) {
           const retryAfterSecs = getRetryAfterSeconds(error)
-          await supabase
+          // The cooldown Resend just told us to observe. If this write is lost,
+          // the guard at the top of the next run reads no cooldown and the
+          // worker resumes hammering a provider that is actively rate-limiting
+          // us — the one moment when ignoring the backoff risks the sending
+          // domain. It dropped its error, so that was silent.
+          const { error: cooldownError } = await supabase
             .from('email_send_state')
             .update({
               retry_after_until: new Date(
@@ -308,6 +392,10 @@ Deno.serve(async (req) => {
               updated_at: new Date().toISOString(),
             })
             .eq('id', 1)
+          if (cooldownError) {
+            console.error('Failed to persist Resend cooldown', { error: cooldownError.message })
+            defects.record(`rate-limit cooldown write: ${cooldownError.message}`)
+          }
 
           return cronResult(
             'process-email-queue',

@@ -20,25 +20,27 @@
 // the cron fires twice inside the same 24h window.
 //
 // Auth: cron secret (CRON_SECRET) or service_role key.  Not user-callable.
-// Schedule: `15 15 * * *` — once daily at 15:15 UTC (10:15 AM Central), per
-//   migrations 20260612440000 + 20260829010000.
+// Schedule: `15 */6 * * *` — 00:15, 06:15, 12:15 and 18:15 UTC, per migrations
+//   20260612440000 → 20260829010000 → 20260902035753.
 //
 // ═══════════════════════════════════════════════════════════════════════════
-// THE WINDOW IS NARROWER THAN THE SCHEDULE, AND IT CANNOT BE WIDENED
+// THE WINDOW WAS NARROWER THAN THE SCHEDULE. THE SCHEDULE IS WHAT CHANGED.
 // ═══════════════════════════════════════════════════════════════════════════
 //
-// This cron samples once every 24 hours and tests a 12-hour window, so roughly
-// half of all submissions can never land in it. Let t₀ be the gap between the
-// helper marking complete and the next tick, t₀ ∈ [0,24). The job is graded at
-// t₀, t₀+24, … and `helper_completed_at ∈ [now-24h, now-12h]` means
-// `t₀+24k ∈ [12,24]`, which has a solution only for t₀ ∈ [12,24]. Every job
-// completed in the twelve hours AFTER a tick is looked at at t₀ (< 12h, too
-// early) and then at t₀+24 (> 24h, past auto-release) and is never reminded.
-// The poster is not nudged, `payment_confirm_notif_sent` stays NULL, escrow
-// auto-releases, and the run reports 200 with a plausible `sent` count.
+// The cron used to sample once every 24 hours against a 12-hour window, so
+// roughly half of all submissions could never land in it. Let t₀ be the gap
+// between the helper marking complete and the next tick, t₀ ∈ [0,24). The job
+// is graded at t₀, t₀+24, … and `helper_completed_at ∈ [now-24h, now-12h]`
+// means `t₀+24k ∈ [12,24]`, which has a solution only for t₀ ∈ [12,24]. Every
+// job completed in the twelve hours AFTER a tick was looked at at t₀ (< 12h,
+// too early) and then at t₀+24 (> 24h, past auto-release) and was never
+// reminded. The poster was not nudged, `payment_confirm_notif_sent` stayed
+// NULL, escrow auto-released, and the run reported 200 with a plausible `sent`
+// count. Measured on prod 2026-09-02: `payment_confirm_notif_sent = true` on
+// ZERO rows, ever.
 //
-// Widening the window is NOT available here, and that is the difference between
-// this function and `review-nag-cron`, where widening was the fix. This
+// Widening the window was NOT available here, and that is the difference
+// between this function and `review-nag-cron`, where widening was the fix. This
 // deadline is HARD: `auto-release-payment` moves the money at
 // AUTO_COMPLETE_HOURS (24h). A window wide enough for a daily cron would have
 // to start at 0h — nudging a poster minutes after the helper's own "job
@@ -46,20 +48,25 @@
 // to say to the job that is already 23h old. There is no 24-hour-wide window
 // inside a 24-hour deadline that is also a USEFUL reminder.
 //
-// So the correct fix is the schedule, and it needs a migration this function
-// cannot write: **`15 */6 * * *`** (every six hours). With a 6-hour period and
-// a 12-hour window the sample grid is half the window width, so every job is
-// graded inside it — twice, in fact, which `payment_confirm_notif_sent` makes
-// harmless — and one skipped tick still leaves full coverage. Every 12 hours
-// would also close the hole, but with the grid exactly equal to the window and
-// therefore zero margin against a single pg_net timeout, which this project
-// logs routinely.
+// So the fix was the schedule, and it needed a migration this function could
+// not write. That migration is **20260902035753** and it sets **`15 */6 * * *`**
+// (every six hours). With a 6-hour period and a 12-hour window the sample grid
+// is half the window width, so every job is graded inside it — twice, in fact,
+// which `payment_confirm_notif_sent` makes harmless — and one skipped tick
+// still leaves full coverage. Every 12 hours would also have closed the hole,
+// but with the grid exactly equal to the window and therefore zero margin
+// against a single pg_net timeout, which this project logs routinely.
 //
-// Until that lands, the run now MEASURES its own hole: `missed` counts jobs
-// that reached the auto-release cutoff having never been reminded, and reports
-// them as DEFECTS. An alarm that cannot fire is worse than no alarm — so this
-// one is wired to the condition that actually exists rather than to a limit
-// nothing enforces.
+// `CRON_PERIOD_HOURS` below is the assertion that keeps the two in step. It is
+// the deployed period, and `SCHEDULE_LEAVES_A_HOLE` is derived from it rather
+// than asserted — so if anyone ever widens the schedule back out, the alarm
+// text below starts naming the fix again on its own.
+//
+// The run also MEASURES its own coverage: `missed` counts jobs that reached the
+// auto-release cutoff having never been reminded, and reports them as DEFECTS.
+// That check stays now that the hole is closed, because it is what proves the
+// close held — it is wired to the condition that actually exists rather than to
+// a limit nothing enforces.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
@@ -73,11 +80,16 @@ import { scanAll, scanDefect } from "../_shared/paginate.ts";
 const REMIND_AFTER_HOURS = 12;
 
 /**
- * The cron period this window is sized against. Coverage requires
- * `CRON_PERIOD_HOURS <= AUTO_COMPLETE_HOURS - REMIND_AFTER_HOURS` (i.e. <= 12).
- * The deployed schedule is currently 24, which is why `missed` exists.
+ * The cron period this window is sized against, in hours. MUST match the
+ * deployed `cron.job.schedule`, which 20260902035753 sets to every six hours at
+ * quarter past. (Spelled out rather than pasted: the cron expression contains
+ * a star-slash, which would close this comment block.)
+ *
+ * Coverage requires `CRON_PERIOD_HOURS <= AUTO_COMPLETE_HOURS -
+ * REMIND_AFTER_HOURS` (i.e. <= 12). It was 24, which is why no reminder was
+ * ever sent and why `missed` exists.
  */
-const CRON_PERIOD_HOURS = 24;
+const CRON_PERIOD_HOURS = 6;
 /** True when the deployed schedule cannot cover the window. Drives the alarm. */
 const SCHEDULE_LEAVES_A_HOLE = CRON_PERIOD_HOURS > AUTO_COMPLETE_HOURS - REMIND_AFTER_HOURS;
 

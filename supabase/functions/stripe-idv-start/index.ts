@@ -10,13 +10,24 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // First of two guards, and the weaker one. This helper is an in-process,
-  // IP-keyed Map that resets on cold start — a spam damper, not a billing cap.
-  // The real cost cap is `claim_idv_attempt` below, which is durable and keyed
-  // to the user; this just keeps a burst from reaching it.
+  // First of two guards, and the broader one. It is now durable and keyed to
+  // the caller's JWT subject (20260902035752) rather than the in-process,
+  // header-keyed Map it used to be — that Map reset on every cold start and let
+  // a caller pick its own bucket, so this comment used to describe a cap that
+  // was never applied to anybody.
+  //
+  // 10/min, raised from 3 for the same reason: the number is enforced now, and
+  // 3 is inside normal use. `IDVPromptDialog` chains
+  // `start → 402 needsOnboardingFee → pay the fee → start again`, which spends
+  // two legitimately, and one user retry after a Stripe hiccup spends the third.
+  //
+  // The BILLING cap is unchanged and is the one that matters: `claim_idv_attempt`
+  // below (20260827193414 / 20260829031405), which is durable, keyed to the
+  // user, and allows exactly one paid attempt before manual review. This just
+  // keeps a burst from reaching it.
   const rl = await checkRateLimit(req, {
     windowMs: 60_000,
-    maxRequests: 3,
+    maxRequests: 10,
     keyPrefix: "stripe-idv-start",
   });
   if (!rl.allowed) return rateLimitResponse(rl.retryAfter ?? 60, corsHeaders);

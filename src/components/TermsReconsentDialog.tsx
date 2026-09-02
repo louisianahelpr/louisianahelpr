@@ -15,6 +15,7 @@ import { AlertDialog, AlertDialogContent, AlertDialogHero, AlertDialogFooter, Al
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { LATEST_TERMS_VERSION } from "@/lib/consent";
 import { report } from "@/lib/errorLogger";
+import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -79,19 +80,44 @@ export function TermsReconsentDialog() {
     setSubmitting(true);
     try {
       const nowIso = new Date().toISOString();
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          terms_version_accepted: LATEST_TERMS_VERSION,
-          terms_accepted_at: nowIso,
-        })
-        .eq("user_id", userId);
-      if (error) throw error;
-      // Also append to legal_acceptances so the auditable log captures the
-      // re-consent event (not just the version-pin on profiles). Non-fatal
-      // if this insert fails — the version pin above is what actually
-      // silences the dialog, so a legal_acceptances hiccup shouldn't strand
-      // the user in a loop of the same modal.
+      // `.select("user_id")` + `unwrapMutation`, and the ORDER below is now
+      // load-bearing. This write used to stop at `if (error) throw error`,
+      // which cannot see the failure that actually matters here: an UPDATE
+      // matching zero rows returns `{ data: [], error: null }`, so an RLS
+      // refusal or a wrong `user_id` fell straight through as success.
+      //
+      // What the user saw: hapticSuccess(), the non-dismissible gate closing,
+      // and no error — then the same modal again on the next cold launch, with
+      // no explanation, forever. And because the audit insert below ran
+      // REGARDLESS, `legal_acceptances` recorded a consent event for a version
+      // `profiles` never pinned: two systems permanently disagreeing about
+      // whether this person accepted. On an age-restricted platform that
+      // handles money, an unrecorded — or falsely recorded — consent is a
+      // compliance exposure, not a UI nit.
+      //
+      // So the version pin must PROVE it landed before the audit row claims it
+      // did. A throw here skips the insert and lands in the catch below.
+      unwrapMutation(
+        await supabase
+          .from("profiles")
+          .update({
+            terms_version_accepted: LATEST_TERMS_VERSION,
+            terms_accepted_at: nowIso,
+          })
+          .eq("user_id", userId)
+          .select("user_id"),
+        {
+          action: "record your acceptance of the updated terms",
+          rejectedMessage:
+            "We couldn't record your acceptance. Please try again, or contact support if it keeps happening.",
+          context: { userId, termsVersion: LATEST_TERMS_VERSION },
+        },
+      );
+      // Append the re-consent EVENT to the auditable log. Still non-fatal, and
+      // now that is a defensible position rather than an accidental one: the
+      // pin above is confirmed, so a failure here loses the timestamped trail
+      // of this event but cannot make the two systems contradict each other.
+      // Reported, never swallowed.
       const { error: legalErr } = await supabase.from("legal_acceptances").insert({
         user_id: userId,
         terms_version: LATEST_TERMS_VERSION,
@@ -110,7 +136,13 @@ export function TermsReconsentDialog() {
       report(err instanceof Error ? err : new Error(String(err)), {
         tags: { source: "TermsReconsentDialog.accept" },
       });
-      toast.error("Couldn't record your acceptance. Please try again.");
+      // `mutationErrorMessage` returns the `rejectedMessage` above for a
+      // silent zero-row rejection and the generic line for anything else, so
+      // the user is not told "please try again" about a write that will keep
+      // being refused.
+      toast.error(
+        mutationErrorMessage(err, "Couldn't record your acceptance. Please try again."),
+      );
     } finally {
       setSubmitting(false);
     }

@@ -207,15 +207,21 @@ void hydrateStorage();
         // Tie analytics + error identity to Supabase auth so events attribute
         // correctly. Runs after first paint — pre-auth events still get
         // captured anonymously and stitched on identify().
+        //
+        // PostHog gets the user id ONLY — no email. A stable id is all
+        // product analytics needs to stitch events; email is PII this
+        // vendor has no reason to hold (lh-observability audit, OBS-002).
+        // Sentry keeps email: it's the one vendor where a human actually
+        // needs to find "which user hit this crash" for support triage.
         supabase.auth.getSession().then(({ data }) => {
           if (data.session?.user) {
-            identifyUser(data.session.user.id, { email: data.session.user.email });
+            identifyUser(data.session.user.id);
             setSentryUser({ id: data.session.user.id, email: data.session.user.email });
           }
         });
         supabase.auth.onAuthStateChange((event, session) => {
           if (event === "SIGNED_IN" && session?.user) {
-            identifyUser(session.user.id, { email: session.user.email });
+            identifyUser(session.user.id);
             setSentryUser({ id: session.user.id, email: session.user.email });
           } else if (event === "SIGNED_OUT") {
             resetUser();

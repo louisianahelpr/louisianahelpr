@@ -398,8 +398,19 @@ export default defineConfig(({ mode }) => ({
     sourcemap: "hidden",
     // oxc is Vite 8's built-in minifier — 10–20× faster than Terser with
     // comparable output size. Terser with passes:3 was the dominant build
-    // bottleneck (≈46 of 60 s). Console stripping is handled by oxc
-    // automatically in production mode.
+    // bottleneck (≈46 of 60 s).
+    //
+    // CORRECTED 2026-09-02 (lh-observability audit, OBS-004): oxc does NOT
+    // strip console.* calls — no drop_console/pure_funcs equivalent is
+    // configured here, and console.error/console.warn calls are verifiably
+    // present throughout dist/ (e.g. AdminUsers-*.js). Production stays free
+    // of verbose console.log/debug/info noise for a different, real reason:
+    // every first-party call site is gated behind `DEBUG_AUTH =
+    // import.meta.env.DEV` (useAuthReady.ts, ProtectedRoute.tsx,
+    // useCurrentUser.ts, jobsConstants.ts), which Vite's dead-code
+    // elimination removes at build time. That is developer discipline, not
+    // minifier config — any future unguarded console.log ships straight to
+    // production with nothing here to catch it.
     minify: "oxc",
     rollupOptions: {
       // Native-only Capacitor plugins that aren't installed in the web build.

@@ -113,12 +113,23 @@ actually agreed, and a remediation that depends on the same fragile second call.
 - **Biometry lockout on a real device** (OA-012). The Simulator cannot enter a
   genuine `biometryLockout`; established from `biometricGate.ts` plus the plugin's
   own iOS source, which are the two things that determine the behaviour.
-- **An actual iOS task-switcher snapshot** (OA-013). iOS platform tooling is not
-  installed on this machine. The guard and the default are proven from source;
-  handed to `lh-native-bridge` for the device-side capture.
-- **The session token at rest on device** (OA-004). Same reason — no device plist
-  or backup dump. Storage location established from `@capacitor/preferences`'
-  own `Preferences.swift`.
+- **A snapshot of a *sensitive signed-in* screen** (OA-013). I *did* prove the
+  mechanism on the simulator — backgrounding writes two unredacted 342 KB `.ktx`
+  captures into `Library/SplashBoard/Snapshots/` — but the live screen was the
+  signed-out guest feed, so no private content was captured. Signing the sim
+  build in and backgrounding a chat thread remains undone.
+- **The session token at rest on device** (OA-004). The plist path works
+  (`plutil -p <DataContainer>/Library/Preferences/com.Helpr.plist`) but this
+  install holds no session — only `GID_*` keys, no `CapacitorStorage.sb-…-auth-token`
+  — so there was nothing at rest to observe. Storage location remains established
+  from `@capacitor/preferences`' own `Preferences.swift`.
+
+> **I had both of these wrong.** I first filed them as unreachable because "the
+> iOS platform tooling is not installed on this machine" — a claim I inherited
+> from another lane rather than checking. It is installed: the simulator is
+> booted with the app on it. PROTOCOL §1 is explicit that another lane's note is
+> a lead, not a fact, and I treated one as a fact. OA-013 has been re-filed with
+> the disk artifact.
 - **Refresh-token rotation and expiry behaviour across a real expiry boundary.**
   Not driven this run; the reset-token and signup work consumed the budget.
   Nothing here contradicts it — it is simply not evidenced, so it is not claimed.

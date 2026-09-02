@@ -27,24 +27,13 @@ const louisianaCities = [
 // LocalBusiness + Organization schema is served statically from
 // index.html so non-JS crawlers see it — see that file's <head>.
 
-const breadcrumbSchema = {
-  "@context": "https://schema.org",
-  "@type": "BreadcrumbList",
-  itemListElement: [
-    {
-      "@type": "ListItem",
-      position: 1,
-      name: "Home",
-      item: SITE_URL,
-    },
-    {
-      "@type": "ListItem",
-      position: 2,
-      name: "Legal",
-      item: `${SITE_URL}/legal`,
-    },
-  ],
-};
+// A BreadcrumbList used to be injected here claiming Home -> Legal. The
+// homepage has no breadcrumb trail to /legal — nothing on this page links
+// there in a breadcrumb sense — so the schema was simply fabricated
+// (lh-seo-web audit finding SW-004, 2026-09-02). Removed rather than
+// "fixed": the homepage doesn't have a breadcrumb trail at all (it's the
+// root), so there is no true BreadcrumbList to give it. If /legal ever wants
+// one, it belongs on that page, describing that page's own trail.
 
 const webAppSchema = {
   "@context": "https://schema.org",
@@ -147,10 +136,6 @@ const Index = () => {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(webAppSchema) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
       />
       <script
         type="application/ld+json"

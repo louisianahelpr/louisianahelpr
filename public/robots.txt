@@ -1,4 +1,39 @@
 User-agent: *
 Allow: /
 
+# Authenticated-only and account-state surfaces. None of these has a server-
+# side noindex or a real redirect for a crawler that doesn't run JS — the
+# ProtectedRoute bounce and NotFound's noindex tag are both client-side
+# (React Router / useEffect) — so without this list every one of them was
+# crawlable and indexable as a real 200 page, byte-identical to the homepage.
+# lh-seo-web audit finding SW-003, 2026-09-02. Individual job pages
+# (/jobs/:id) went signed-in-only the same day; the index at /jobs stays
+# public and crawlable, so it is deliberately NOT in this list.
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /profile
+Disallow: /messages
+Disallow: /post-job
+Disallow: /my-jobs
+Disallow: /my-posts
+Disallow: /payment-success
+Disallow: /gift-card
+Disallow: /settings
+Disallow: /availability
+Disallow: /earnings
+Disallow: /schedule
+Disallow: /saved-helpers
+Disallow: /complete-profile
+Disallow: /warnings
+Disallow: /activity
+Disallow: /data-rights
+Disallow: /account-pending
+Disallow: /account-denied
+Disallow: /account-banned
+Disallow: /signup-pending
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /user/
+Disallow: /jobs/
+
 Sitemap: https://www.louisianahelpr.com/sitemap.xml

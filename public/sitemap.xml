@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- GENERATED FILE — do not hand-edit.
+     Regenerate with: node scripts/generate-sitemap.mjs
+     Source of truth: the <Route> table in src/App.tsx (public, non-redirect,
+     non-parameterised routes, minus the documented NOINDEX list in that script).
+     Hand edits are reverted by the next run and flagged by
+     `node scripts/generate-sitemap.mjs --check` in CI. -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://www.louisianahelpr.com/</loc>
@@ -30,7 +36,14 @@
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>
   </url>
-  <!-- /data-rights is intentionally NOT listed: since 2026-08-18 it is a
-       redirect into /profile?tab=legal, which is behind <ProtectedRoute>, so
-       advertising it to crawlers only yields a login redirect. -->
+  <url>
+    <loc>https://www.louisianahelpr.com/legal?tab=community</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://www.louisianahelpr.com/legal?tab=privacy</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
+  </url>
 </urlset>

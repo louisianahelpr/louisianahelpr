@@ -47,6 +47,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..");
 const APP_TSX = path.join(repoRoot, "src", "App.tsx");
 const SITEMAP = path.join(repoRoot, "public", "sitemap.xml");
+const LEGAL_SECTIONS = path.join(repoRoot, "src", "pages", "legal", "legalSections.ts");
 
 /** Canonical origin — must match src/lib/sitemap.test.ts. */
 const ORIGIN = "https://www.louisianahelpr.com";
@@ -88,6 +89,8 @@ const WEIGHTS = {
   "/help": { changefreq: "monthly", priority: "0.6" },
   "/support": { changefreq: "monthly", priority: "0.5" },
   "/legal": { changefreq: "monthly", priority: "0.4" },
+  "/legal?tab=community": { changefreq: "monthly", priority: "0.4" },
+  "/legal?tab=privacy": { changefreq: "monthly", priority: "0.4" },
   "/login": { changefreq: "monthly", priority: "0.3" },
   "/signup": { changefreq: "monthly", priority: "0.3" },
 };
@@ -112,6 +115,32 @@ function parseRoutes(source) {
     routes.push({ path: m[1], element: m[2], line: rawLine });
   }
   return routes;
+}
+
+/**
+ * /legal is one <Route>, but its three tabs (terms / community / privacy)
+ * each carry their own real, distinct canonical (`PAGE_CANONICALS` in
+ * legalSections.ts) — three separate indexable pages, not one. The route
+ * parser above can only see `<Route path>` declarations, so it has no way to
+ * discover a query-string variant, and the sitemap advertised only the bare
+ * `/legal` (= terms) while community and privacy were undiscoverable except
+ * by crawl (lh-seo-web audit finding SW-005, 2026-09-02).
+ *
+ * Read PAGE_CANONICALS directly rather than hand-typing the two extra URLs,
+ * so this can't drift from the canonicals Legal.tsx actually sets.
+ */
+function parseExtraLegalTabPaths() {
+  const source = fs.readFileSync(LEGAL_SECTIONS, "utf8");
+  const block = source.match(/PAGE_CANONICALS[^{]*\{([\s\S]*?)\n\};/);
+  if (!block) {
+    console.error("WARNING: could not find PAGE_CANONICALS in legalSections.ts — /legal tab canonicals not added to sitemap.");
+    return [];
+  }
+  const urls = [...block[1].matchAll(/:\s*"([^"]+)"/g)].map((m) => m[1]);
+  const paths = urls
+    .map((u) => new URL(u).pathname + new URL(u).search)
+    .filter((p) => p !== "/legal"); // terms === the bare route, already included
+  return [...new Set(paths)];
 }
 
 function classify(routes) {
@@ -182,8 +211,11 @@ function normalize(xml) {
   return [...xml.matchAll(/<url>([\s\S]*?)<\/url>/g)].map((m) => {
     const block = m[1];
     const loc = block.match(/<loc>([^<]+)<\/loc>/)?.[1] ?? "";
+    // pathname + search, not pathname alone — /legal and /legal?tab=community
+    // are two distinct sitemap entries and must not collide under --check.
+    const u = loc ? new URL(loc) : null;
     return {
-      path: loc ? new URL(loc).pathname : "",
+      path: u ? u.pathname + u.search : "",
       changefreq: block.match(/<changefreq>([^<]+)<\/changefreq>/)?.[1] ?? "",
       priority: block.match(/<priority>([^<]+)<\/priority>/)?.[1] ?? "",
     };
@@ -205,11 +237,13 @@ function main() {
     process.exit(1);
   }
 
-  const { included, excluded } = classify(routes);
-  if (included.length === 0) {
+  const { included: routeIncluded, excluded } = classify(routes);
+  if (routeIncluded.length === 0) {
     console.error("ERROR: classified 0 public routes — refusing to write an empty sitemap.");
     process.exit(1);
   }
+  const extraLegalTabs = parseExtraLegalTabPaths();
+  const included = [...new Set([...routeIncluded, ...extraLegalTabs])];
 
   // Deterministic order: highest priority first, then alphabetical. A stable
   // order keeps the diff empty when nothing actually changed.

@@ -177,7 +177,8 @@ run does not repeat it.
 | AM-006 | MEDIUM | `auto_restrict_repeat_violators()` swallows every error — a suspension that fails to apply leaves the violator active with no trace |
 | AM-009 | MEDIUM | One blocked message runs through TWO disagreeing consequence ladders — different counters, different windows, different ceilings, neither aware of the other |
 | AM-004 | LOW | `/admin?view=audit` is 44% non-admin noise (89 of 202 rows are signup role grants) |
-| AM-005 | LOW | A removed feature (`broadcasts`) still has a live admin view, and it holds the console's only unguarded zero-row delete |
+| AM-013 | MEDIUM | `AdminBroadcasts.tsx:165` — the console's ONLY unguarded zero-row delete, on a live surface; the UI confirms a delete that may not have happened |
+| ~~AM-005~~ | ~~LOW~~ | **RETRACTED and split** — it claimed broadcasts was a removed feature. It is live. The zero-row half is re-filed as AM-013 |
 | AM-007 | LOW | `enforce_audit_log_self_attribution()` is a no-op on the service-role path — every admin edge function's audit write bypasses it |
 | AM-011 | MEDIUM | Admin queue badges never render on the desktop website — the only at-a-glance signal that a queue has work is gone for the way admins actually work |
 | AM-012 | MEDIUM | The admin console disagrees with itself about seed rows: dashboard says 0 pending disputes, the badge says 2, the queue lists 2 with live money buttons |
@@ -408,6 +409,58 @@ one stale `profiles.avatar_url` value, not code.
 **Two findings came out of it** — AM-011 (queue badges absent on the desktop
 website) and AM-012 (the console disagrees with itself about seed rows, three
 counts for one queue). Both are in the table above.
+
+## 3b. Broadcasts is LIVE — I filed against a protocol that was wrong
+
+**AM-005 is retracted.** It claimed `?view=broadcasts` was a live admin view for
+a *removed* feature, citing PROTOCOL.md §6d. §6d was wrong, and I took it as
+fact — the exact mistake the protocol's own §1 warns about, made by trusting the
+protocol. `lh-compliance-store` found the same independently and the orchestrator
+has corrected §6d.
+
+Broadcasts is a real product surface, verified in prod: `broadcast_messages`
+exists with RLS on, `set_broadcast_pending_fan_out_tg` fires `BEFORE INSERT`
+(and enforces a 3-per-24h rate limit), a per-minute cron
+`sweep-pending-broadcast-fan-outs` is active, and `BroadcastBanner.tsx` is
+mounted on the dashboard at `Dashboard.tsx:389`. **No removal migration should
+be written for it.**
+
+One correction inside the correction: I first reported
+`fan_out_broadcast_to_notifications` as ABSENT. That was my error — I passed the
+zero-argument signature to `to_regprocedure` and the function takes `(uuid)`. It
+exists. Two further hypotheses about this surface also died on inspection: a
+broadcast cannot be created without an expiry (`expires_at` is derived from a
+required duration and is `NOT NULL`), and `starts_at` defaults to `now()` `NOT
+NULL`, so `BroadcastBanner`'s `.lte("starts_at", now)` filter cannot silently
+exclude a new broadcast.
+
+The half that survives is re-filed as **AM-013**, and it matters more now that
+the surface is live rather than a corpse.
+
+## 3c. The zero-row sweep: exactly one unguarded write in the console
+
+The orchestrator asked me to check every destructive admin control for the shape
+`AdminBroadcasts.tsx:165` has. I swept every `.update()` / `.delete()` call site
+under `src/components/admin/**` and `src/pages/Admin.tsx` for a missing
+`.select()`, independently of the delegated sweep that first found it.
+
+Three candidates came back. **Two are not database writes at all** —
+`AdminExceptionQueue.tsx:150` is `next.delete(id)` on a JavaScript `Set` (its
+real write at `:162` carries `.select("id")` plus a hand-rolled
+`!updated || updated.length === 0` guard), and `AdminJobs.tsx:163/:177` are
+`URLSearchParams.delete` and `Set.delete`.
+
+That leaves **`AdminBroadcasts.tsx:165` as the only one**, which is a good
+result for the console: every admin write touching money, trust or safety —
+bans, denials, dispute decisions, fraud-flag resolution, exception resolution,
+report status, platform settings, role revocation, payout holds — already
+carries `.select("id")` through `unwrapMutation()`, and two of them
+(`useAdminUserActions.ts:159`, `AdminExceptionQueue.tsx:162`) deliberately
+hand-roll the check because zero rows is ambiguous there rather than wrong.
+
+**Caveat, stated because it is the whole point of the check:** this is static
+analysis. I executed no admin write, so "the guard is present" is proven and
+"the write lands" is not. See UNVERIFIED 6b.
 
 ## 4a. A dependency on lane-onboarding-auth I could not resolve
 

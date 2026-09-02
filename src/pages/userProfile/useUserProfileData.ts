@@ -304,12 +304,30 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         // their 20 most recent. This query is deliberately unlimited (same
         // as the avgRating path it already feeds). Degrades gracefully to
         // empty on error.
+        //
+        // NO `jobs!inner(...)`. That join is why this profile said "New to
+        // Helpr" for a member with five published, revealed 5-star reviews:
+        // `jobs` is hidden from any non-party by RLS, so an INNER join through
+        // it matches nothing and every stat computed from this query lands at
+        // zero. Measured in the running app on 2026-08-31 against a real
+        // production profile — `get_public_profile_stats` answered 404 (not
+        // deployed yet), this fallback returned 0 rows, `stats.reviewCount`
+        // came out 0, and the page rendered "hasn't built a public record
+        // yet" beside a helper who has one. Silent: 200 OK, empty array.
+        //
+        // The poster/helper split the join was there to decide is recovered
+        // below from `postedJobs`/`workedJobs`, which this hook already loads.
+        // The cancelled-job exclusion is NOT expressible here at all — that is
+        // precisely what `get_public_profile_stats` exists to do — so this
+        // fallback can over-count a review left on a job that later went
+        // completed → disputed → cancelled. Over-counting a rare transition is
+        // a far smaller lie than reporting every helper as unrated.
         supabase
           .from("reviews")
-          .select("rating, job_id, jobs!inner(status, customer_id)")
+          .select("rating, job_id")
           .eq("reviewee_id", userId!)
-          .lte("feedback_visible_at", new Date().toISOString())
-          .neq("jobs.status", "cancelled"),
+          .eq("status", "published")
+          .lte("feedback_visible_at", new Date().toISOString()),
         // Repeat-hire % (#milestones) — % of unique customers who hired
         // this helper more than once. PGRST202-safe: function may not be
         // deployed on production yet; falls back to null (milestone hidden).
@@ -710,6 +728,16 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
       // Only show when there are 3+ poster reviews (same minimum as the
       // helper-side chart) to avoid noisy stats on fresh accounts.
       const allReviewRows = (posterReviewsRes.data ?? []) as any[];
+      // With the `jobs!inner` embed removed from that query (see the comment
+      // on it — the join silently zeroed EVERY stat on this page), `r.jobs` is
+      // absent and this filter yields []. That is not a regression: `jobs` is
+      // unreadable to a non-party, so the embed returned nothing for any
+      // visitor anyway and the poster/helper split was already empty in
+      // production. The split is `get_public_profile_stats`' job
+      // (`poster_avg_rating` / `poster_review_count`, used below whenever the
+      // RPC resolves); this fallback simply reports no poster-side split
+      // rather than a fabricated one, while the OVERALL rating above now
+      // reflects real reviews instead of zero.
       const posterReviewRows = allReviewRows.filter((r) => {
         const job = Array.isArray(r?.jobs) ? r.jobs[0] : r?.jobs;
         return job?.customer_id === userId;

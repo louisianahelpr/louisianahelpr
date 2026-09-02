@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,6 +22,9 @@ import { queryKeys } from "@/lib/queryKeys";
 import { unwrapMutationRow, isWriteRejected, mutationErrorMessage } from "@/lib/mutationResult";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
 import AuthShell from "@/components/auth/AuthShell";
+import { safeInternalRedirect } from "@/lib/authRedirects";
+import { LATEST_TERMS_VERSION } from "@/lib/consent";
+import { report } from "@/lib/errorLogger";
 import { uploadProfileFiles } from "./completeProfile/uploadProfileFiles";
 import type { ProfileCompletionUpdates } from "./completeProfile/types";
 import {
@@ -36,6 +39,18 @@ const CompleteProfile = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user, profile, isLoading, refresh } = useCurrentUser();
+  const [searchParams] = useSearchParams();
+  // Where the user was actually headed when the completeness gate
+  // intercepted them (ProtectedRoute passes it as `?next=`). Before this,
+  // the redirect dropped the destination entirely — a push deep link, a
+  // shared job URL or an email link all ended on /dashboard once the form
+  // was done, with nothing left pointing at what they had opened.
+  //
+  // Re-validated here rather than trusted: `?next=` is attacker-supplied,
+  // and `safeInternalRedirect` rejects protocol-relative, scheme-bearing,
+  // control-character and auth-screen targets. Anything it refuses falls
+  // back to the dashboard.
+  const nextDestination = safeInternalRedirect(searchParams.get("next")) ?? "/dashboard";
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -88,7 +103,14 @@ const CompleteProfile = () => {
     // as present. The dedicated effect below keeps them in sync instead.
     // Persisted terms acceptance — read straight from the row so refresh / re-entry
     // doesn't reset the user's previous "yes I agree".
-    if (profile.accepted_terms_at) setAcceptedPolicies(true);
+    //
+    // BOTH columns are consulted. `accepted_terms_at` was written only by this
+    // screen and `terms_accepted_at` only by `complete-signup` / the re-consent
+    // modal, so a user who ticked the box during signup (which every signup
+    // forces) and later landed here was asked to agree a second time to
+    // policies they had already accepted — the row said so, in the column this
+    // screen wasn't reading.
+    if (profile.accepted_terms_at || profile.terms_accepted_at) setAcceptedPolicies(true);
   // Intentionally scoped to user_id so a stable user never re-triggers this.
   // The hydratedRef is the real guard; user_id is included to correctly reset
   // the gate when the logged-in user changes (e.g. in a shared-device test).
@@ -213,7 +235,7 @@ const CompleteProfile = () => {
         profile: data,
         isAdmin: current?.isAdmin ?? false,
       }));
-      navigate("/dashboard", { replace: true });
+      navigate(nextDestination, { replace: true });
       return true;
     } catch {
       return false;
@@ -239,6 +261,7 @@ const CompleteProfile = () => {
     setSubmitting(true);
     try {
       const fullName = `${firstName.trim()} ${lastName.trim()}`;
+      const nowIso = new Date().toISOString();
 
       // Note: full_name is persisted to the profiles table below. We intentionally
       // skip supabase.auth.updateUser() here because it grabs the auth lock and can
@@ -270,7 +293,20 @@ const CompleteProfile = () => {
         // belong in this caller's payload.
         // Stamp the moment the user accepted the rules / terms / privacy.
         // Persisting this means the checklist won't ask again on refresh.
-        accepted_terms_at: new Date().toISOString(),
+        //
+        // Written into the SAME three places the signup path uses, so consent
+        // has one shape no matter which screen collected it:
+        //   accepted_terms_at      — first-ever consent (immutable server-side)
+        //   terms_accepted_at      — acceptance of the version below
+        //   terms_version_accepted — which version that was
+        // plus an append-only `legal_acceptances` row after the save.
+        // Before this, `accepted_terms_at` was the only one this screen wrote
+        // and `terms_version_accepted` stayed '' — which meant a user who
+        // completed their profile here was left permanently "stale" to
+        // TermsReconsentDialog's version check.
+        accepted_terms_at: nowIso,
+        terms_accepted_at: nowIso,
+        terms_version_accepted: LATEST_TERMS_VERSION,
       };
       if (avatarUrl) updates.avatar_url = avatarUrl;
       if (idDocumentPath) updates.id_document_url = idDocumentPath;
@@ -303,11 +339,81 @@ const CompleteProfile = () => {
         },
       );
 
+      // Append the acceptance EVENT to the audit trail. `legal_acceptances` is
+      // append-only (INSERT + SELECT policies only, no UPDATE/DELETE), so a
+      // version bump adds a record instead of replacing one — which is the
+      // whole point of having it alongside the two profile columns. This
+      // screen never wrote to it before, so a consent collected here left no
+      // audit row at all; only the signup path did.
+      //
+      // Non-fatal and explicitly checked: a missed audit row must not strand a
+      // user on the one screen they cannot leave, but the error is never
+      // dropped — a consent trail that silently stops being written is exactly
+      // the failure this table exists to prevent.
+      const { error: legalErr } = await supabase.from("legal_acceptances").insert({
+        user_id: user.id,
+        terms_version: LATEST_TERMS_VERSION,
+        privacy_version: LATEST_TERMS_VERSION,
+      });
+      if (legalErr) {
+        report(legalErr, {
+          severity: "warning",
+          tags: { source: "CompleteProfile.legalAcceptances" },
+          context: { userId: user.id },
+        });
+      }
+
+      // Clear a stale `pending` so finishing this form actually finishes
+      // onboarding.
+      //
+      // `approval_status` is pinned to OLD by `tr_prevent_self_escalation` for
+      // every non-admin, so the update above cannot move it and this screen
+      // must not pretend otherwise. Without this call the gate reorder in
+      // ProtectedRoute would only relocate the trap: a pending user would be
+      // routed here (correctly), fill the form, and be bounced straight back
+      // to /account-pending because nothing had changed the column.
+      //
+      // `complete-signup` is the ONE authority that already owns this
+      // transition — it is what approves every email signup — and it accepts a
+      // JWT for exactly this "resubmission from a logged-in user" case. Reusing
+      // it beats adding a second writer with its own idea of when an account
+      // is cleared. Only fired when actually needed, so the normal (already
+      // approved) completion keeps its single-round-trip shape.
+      //
+      // `denied` is deliberately excluded: that path requires a re-uploaded ID
+      // this screen no longer collects, and a denied user is routed to
+      // /account-denied rather than here.
+      let approvalRow: Record<string, unknown> | null = null;
+      if (savedRow?.approval_status === "pending") {
+        const { data: fnData, error: fnError } = await supabase.functions.invoke("complete-signup", {
+          body: { ageAttested: true, termsAccepted: true },
+        });
+        const fnMessage = fnError?.message || (fnData as { error?: string } | null)?.error;
+        if (fnMessage) {
+          // Surfaced, not swallowed: the profile is saved but the account is
+          // still gated, and telling the user "done" here would drop them back
+          // on /account-pending with no explanation.
+          throw new Error(
+            "Your profile is saved, but we couldn't finish activating your account. Tap Save again in a moment.",
+          );
+        }
+        // Re-read rather than assume: the edge function wrote the row, so the
+        // cache must hold what the DATABASE has, not an optimistic merge. This
+        // is the same rule the update above follows.
+        const { data: refreshed, error: refreshErr } = await withTimeout(
+          Promise.resolve(supabase.from("profiles").select("*").eq("user_id", user.id).maybeSingle()),
+          "Profile refresh",
+          12000,
+        );
+        if (refreshErr) throw refreshErr;
+        approvalRow = refreshed as Record<string, unknown> | null;
+      }
+
       queryClient.setQueryData(queryKeys.currentUser.byId(user.id), (current: any) => ({
         ...(current ?? {}),
         // The row Postgres actually persisted — guaranteed non-null by the
         // guard above.
-        profile: savedRow,
+        profile: approvalRow ?? savedRow,
         isAdmin: current?.isAdmin ?? false,
       }));
       // No invalidate + sleep here: that triggered a background refetch that
@@ -316,7 +422,7 @@ const CompleteProfile = () => {
       // back to /complete-profile (LH-29). The authoritative row above is the
       // single source of truth; staleTime keeps it from refetching on arrival.
       hapticSuccess();
-      navigate("/dashboard", { replace: true });
+      navigate(nextDestination, { replace: true });
     } catch (err: any) {
       const recovered = await recoverCompletedProfile();
       if (!recovered) {

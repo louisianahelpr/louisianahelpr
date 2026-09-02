@@ -214,9 +214,22 @@ const Signup = () => {
   // Validates the "Account credentials + agreements" content (UI step 1).
   const validateAccountStep = async () => {
     if (!email.trim()) { toast.error("Add your email address."); return false; }
+    // These four must match the Supabase project's password policy exactly.
+    // They did not: the project requires a lowercase letter, an uppercase
+    // letter, a digit AND a symbol, while this validator asked for only the
+    // middle two. A password like "Password1" therefore sailed past the form,
+    // reached `auth.signUp`, and came back as a 422 whose raw body — "Password
+    // should contain at least one character of each:
+    // abcdefghijklmnopqrstuvwxyz, ABCDEFGHIJKLMNOPQRSTUVWXYZ, 0123456789,
+    // !@#$%^&*()_+-=[]{};':\"|<>?,./`~." — was thrown straight into
+    // `toast.error(err.message)` at the bottom of createAccountAndFinish.
+    // Verified against prod 2026-09-01. Each rule now fails locally, in
+    // English, before the round-trip.
     if (password.length < 8) { toast.error("Password needs at least 8 characters."); return false; }
+    if (!/[a-z]/.test(password)) { toast.error("Add at least one lowercase letter to your password."); return false; }
     if (!/[A-Z]/.test(password)) { toast.error("Add at least one uppercase letter to your password."); return false; }
     if (!/[0-9]/.test(password)) { toast.error("Add at least one number to your password."); return false; }
+    if (!/[^A-Za-z0-9]/.test(password)) { toast.error("Add at least one symbol to your password — for example ! ? # or $."); return false; }
     if (!acceptedPolicies) { toast.error("Check the box to agree to the terms and platform rules."); return false; }
     if (!ageConfirmed) { toast.error("Check the box to confirm you're 18 or older."); return false; }
     return true;
@@ -252,6 +265,17 @@ const Signup = () => {
         // 18+ attestation. DOB is deferred, so this is what satisfies the
         // server's legal age gate on the initial completion path.
         ageAttested: ageConfirmed,
+        // Affirmative acceptance of the Terms / Privacy / Platform Rules.
+        // The tick is a hard client gate (validateAccountStep refuses to
+        // advance without it), but until now the server only INFERRED consent
+        // from the fact that a completion arrived. Sending the assertion means
+        // the recorded consent is something the user actually stated, not
+        // something we deduced — which is the difference that matters when the
+        // legal_acceptances row is the evidence.
+        termsAccepted: acceptedPolicies,
+        // `?ref=<code>` from a referral share link. Recorded SERVER-side now —
+        // see the comment where the old client-side RPC used to live, below.
+        referralCode: referralCode.trim() || null,
       },
     });
 
@@ -325,22 +349,44 @@ const Signup = () => {
       const userId = authData.user?.id;
       if (!userId) throw new Error("Account creation failed");
 
-      // Complete profile with uploads (no ID — Stripe handles identity)
-      await completeProfile(userId);
+      // Complete profile with uploads (no ID — Stripe handles identity).
+      // This call also records the referral and the legal consent — see the
+      // body it sends above.
+      const result = await completeProfile(userId);
 
-      // Process referral code if provided. supabase-js resolves errors into
-      // `{ error }` rather than throwing, so a try/catch never sees them —
-      // read the error explicitly (referral credit is best-effort, log only).
-      if (referralCode.trim()) {
-        const { error: referralErr } = await supabase.rpc("process_referral", {
-          p_referral_code: referralCode.trim().toUpperCase(),
-          p_new_user_id: userId,
-        });
-        if (referralErr) report(referralErr, { tags: { source: "Signup.referral" } });
-      }
+      // WHY THERE IS NO `supabase.rpc("process_referral", …)` HERE ANY MORE.
+      //
+      // There used to be, and it could never have worked. `process_referral`
+      // was hardened on 2026-08-19 to require `auth.uid() = p_new_user_id`,
+      // and it is GRANTed to `authenticated` only. This runs immediately after
+      // `supabase.auth.signUp`, which — with email confirmation on, as it is in
+      // prod — returns NO session. So the RPC went out as `anon` and came back
+      // 401 `42501 permission denied for function process_referral`, every
+      // single time. The client only `report()`ed it, so the failure was
+      // invisible to the user and to the funnel: prod holds 29 rows in
+      // `referral_codes`, 0 rows in `referrals`, and the only 2
+      // `referral_credits` were hand-seeded. Not one referral has ever been
+      // credited. (Both statuses re-verified against prod on 2026-09-01.)
+      //
+      // The code now travels in the `complete-signup` body instead. That
+      // function already establishes that the caller owns this account — a
+      // 30-minute window from account creation, never-signed-in, and an empty
+      // profile — and it runs service-role, so it does not need the session
+      // that does not exist yet. It records the referral through
+      // `record_referral_signup`, a service-role-only entry point that shares
+      // one body with `process_referral` (migration 20260901035252), so the
+      // two paths cannot drift apart.
+      //
+      // `process_referral` itself is unchanged and still granted to
+      // `authenticated`: it remains the correct call from any surface that
+      // DOES hold a session.
+      const referralRecorded = (result as { referralRecorded?: boolean } | null)?.referralRecorded === true;
 
-
-      track(AhaEvent.SignupCompleted, { has_referral: !!referralCode.trim(), ...ppoTrackingProps() });
+      track(AhaEvent.SignupCompleted, {
+        has_referral: !!referralCode.trim(),
+        referral_recorded: referralRecorded,
+        ...ppoTrackingProps(),
+      });
       hapticSuccess();
       navigate("/signup-pending", { state: { email } });
     } catch (err: any) {

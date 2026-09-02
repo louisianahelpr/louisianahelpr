@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
+import { mutationErrorMessage, unwrapMutation } from "@/lib/mutationResult";
+import { parseNearbyFilter } from "@/lib/geo";
 import { report } from "@/lib/errorLogger";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,8 +29,38 @@ interface SavedSearch {
   max_budget: number | null;
   min_budget: number | null;
   location_keyword: string | null;
+  /**
+   * The words the helper typed into the browse search box. There was no column
+   * for this until migration 20260901035245, so "Lawn care under $200" saved
+   * the budget, saved the category and dropped the words — re-applying the
+   * search silently widened it, and no alert could ever match on it.
+   */
+  query: string | null;
+  /**
+   * The "Nearby" radius, as a NUMBER OF MILES. It used to be stored as the
+   * machine token `nearby:25` in `location_keyword`, where the alert trigger
+   * matched it with `location ILIKE '%nearby:25%'` — a test no street address
+   * can ever pass, AND-ed with everything else, so a saved search with a
+   * radius matched nothing at all, forever. It is a real geographic test now
+   * (see the migration): haversine from the searcher's own profile
+   * coordinates, falling back to parish equality when coordinates are absent.
+   */
+  radius_miles: number | null;
   notify_enabled: boolean;
   created_at: string;
+}
+
+/** "$50 – $150" / "$300+" / "Up to $150" — one wording, both places it shows. */
+function describeBudget(min: number | null, max: number | null): string | null {
+  if (min && max) return `$${min} – $${max}`;
+  if (min) return `$${min}+`;
+  if (max) return `Up to $${max}`;
+  return null;
+}
+
+/** "Within 25 mi" — never the `nearby:25` token the filter state carries. */
+function describeRadius(miles: number | null): string | null {
+  return miles ? `Within ${miles} mi` : null;
 }
 
 interface Props {
@@ -42,7 +74,10 @@ interface Props {
     // wider than what was saved, with no indication it had changed.
     minBudget: string;
     maxBudget: string;
+    /** `""` or the `nearby:<miles>` token the radius chips emit. */
     locationFilter: string;
+    /** The browse search box (`?q=`), matched against title + description. */
+    searchQuery: string;
   };
   userId: string;
   /** Called when the user clicks an existing saved search to apply it */
@@ -119,7 +154,12 @@ export function SavedSearches({
           .from("saved_searches")
           .select("*")
           .eq("user_id", userId)
-          .order("created_at", { ascending: false }),
+          .order("created_at", { ascending: false })
+          // PostgREST caps any read at 1000 rows here (measured), applied
+          // AFTER the ORDER BY. `enforce_saved_search_limit` already caps a
+          // user at 10, so this can never truncate — it is stated explicitly
+          // so the bound is the query's, not an invariant two files away.
+          .limit(50),
       );
       setSearches((data ?? []) as SavedSearch[]);
     } catch (err) {
@@ -143,7 +183,8 @@ export function SavedSearches({
       !currentFilters.selectedCategory &&
       !currentFilters.minBudget &&
       !currentFilters.maxBudget &&
-      !currentFilters.locationFilter
+      !currentFilters.locationFilter &&
+      !currentFilters.searchQuery.trim()
     ) {
       hapticError();
       toast.error("Set at least one filter so the search has something to match on.");
@@ -151,22 +192,50 @@ export function SavedSearches({
     }
     hapticMedium();
     setSaving(true);
-    const { error } = await supabase.from("saved_searches").insert({
-      user_id: userId,
-      name: trimmed,
-      category: currentFilters.selectedCategory,
-      min_budget: currentFilters.minBudget ? Number(currentFilters.minBudget) : null,
-      max_budget: currentFilters.maxBudget ? Number(currentFilters.maxBudget) : null,
-      location_keyword: currentFilters.locationFilter || null,
-      notify_enabled: true,
-    });
-    setSaving(false);
-    if (error) {
-      report(error, { tags: { source: "SavedSearches.handleSave" } });
+    try {
+      unwrapMutation(
+        // `query` / `radius_miles` arrive with migration 20260901035245, and
+        // migrations deploy on merge — so between this bundle shipping and
+        // db-deploy finishing, PostgREST answers 42703. That window is handled
+        // explicitly below rather than shown as a generic "try again".
+        await supabase
+          .from("saved_searches")
+          .insert({
+            user_id: userId,
+            name: trimmed,
+            category: currentFilters.selectedCategory,
+            min_budget: currentFilters.minBudget ? Number(currentFilters.minBudget) : null,
+            max_budget: currentFilters.maxBudget ? Number(currentFilters.maxBudget) : null,
+            // The radius is a NUMBER now, not the `nearby:25` token that used
+            // to be parked in this text column where nothing could match it.
+            radius_miles: parseNearbyFilter(currentFilters.locationFilter),
+            // `location_keyword` is a genuine free-text place name. Nothing in
+            // the app produces one today (the location control is radius-only),
+            // so it stays null rather than being handed a machine token.
+            location_keyword: null,
+            query: currentFilters.searchQuery.trim() || null,
+            notify_enabled: true,
+          })
+          // Required by unwrapMutation: without it the affected-row count is
+          // invisible and a silently-rejected insert reads as a success.
+          .select("id"),
+        { action: "save this search" },
+      );
+    } catch (err: any) {
+      setSaving(false);
+      report(err, { tags: { source: "SavedSearches.handleSave" } });
       hapticError();
-      toast.error("We couldn't save your search — please try again.");
+      if (err?.code === "42703") {
+        // The columns land with the migration, which deploys on merge. During
+        // that window say something the user can act on rather than "try
+        // again" for a thing that cannot yet work.
+        toast.error("Saved searches are being upgraded right now — try again in a few minutes.");
+      } else {
+        toast.error(mutationErrorMessage(err, "We couldn't save your search — please try again."));
+      }
       return;
     }
+    setSaving(false);
     hapticSuccess();
     setName("");
     load();
@@ -178,17 +247,33 @@ export function SavedSearches({
     if (togglingId === s.id) return;
     setTogglingId(s.id);
     hapticLight();
-    const { error } = await supabase
-      .from("saved_searches")
-      .update({ notify_enabled: !s.notify_enabled })
-      .eq("id", s.id);
-    setTogglingId(null);
-    if (error) {
-      report(error, { tags: { source: "SavedSearches.toggleNotify" } });
+    try {
+      // A null `error` does NOT mean the row changed: an UPDATE filtered out
+      // by RLS or aimed at a stale id returns `{ data: [], error: null }`, and
+      // the optimistic flip below would then show alerts as muted while the
+      // row still notifies. `.select("id")` makes the row count observable.
+      unwrapMutation(
+        await supabase
+          .from("saved_searches")
+          .update({ notify_enabled: !s.notify_enabled })
+          .eq("id", s.id)
+          .eq("user_id", userId)
+          .select("id"),
+        {
+          action: "update this alert",
+          rejectedMessage: "That saved search is no longer there — refreshing the list.",
+        },
+      );
+    } catch (err) {
+      setTogglingId(null);
+      report(err, { tags: { source: "SavedSearches.toggleNotify" } });
       hapticError();
-      toast.error("We couldn't update that alert — please try again.");
+      toast.error(mutationErrorMessage(err, "We couldn't update that alert — please try again."));
+      // Re-read rather than leave the row showing a state the server rejected.
+      load();
       return;
     }
+    setTogglingId(null);
     setSearches((prev) =>
       prev.map((x) => (x.id === s.id ? { ...x, notify_enabled: !x.notify_enabled } : x))
     );
@@ -198,14 +283,32 @@ export function SavedSearches({
     if (removingId === id) return;
     setRemovingId(id);
     hapticMedium();
-    const { error } = await supabase.from("saved_searches").delete().eq("id", id);
-    setRemovingId(null);
-    if (error) {
-      report(error, { tags: { source: "SavedSearches.remove" } });
+    try {
+      // Same trap as toggleNotify, and it was live here: a DELETE that matches
+      // ZERO rows is not an error. Without the guard the row vanished from the
+      // list, the success haptic fired, and it came straight back on the next
+      // open — the user's alert kept notifying after they deleted it.
+      unwrapMutation(
+        await supabase
+          .from("saved_searches")
+          .delete()
+          .eq("id", id)
+          .eq("user_id", userId)
+          .select("id"),
+        {
+          action: "delete this search",
+          rejectedMessage: "That saved search was already gone — refreshing the list.",
+        },
+      );
+    } catch (err) {
+      setRemovingId(null);
+      report(err, { tags: { source: "SavedSearches.remove" } });
       hapticError();
-      toast.error("We couldn't delete that search — please try again.");
+      toast.error(mutationErrorMessage(err, "We couldn't delete that search — please try again."));
+      load();
       return;
     }
+    setRemovingId(null);
     setSearches((prev) => prev.filter((x) => x.id !== id));
     hapticSuccess();
   };
@@ -270,9 +373,19 @@ export function SavedSearches({
           >
             Active filters:{" "}
             {[
-              currentFilters.selectedCategory && `Category: ${currentFilters.selectedCategory}`,
-              currentFilters.maxBudget && `Max $${currentFilters.maxBudget}`,
-              currentFilters.locationFilter && `Location: ${currentFilters.locationFilter}`,
+              currentFilters.searchQuery.trim() && `“${currentFilters.searchQuery.trim()}”`,
+              currentFilters.selectedCategory &&
+                `Category: ${categoryLabels[currentFilters.selectedCategory] ?? currentFilters.selectedCategory}`,
+              // The whole band, in the same words the saved rows use below.
+              // This printed only the max, so a "$50 – $150" band previewed as
+              // "Max $150" — wider than what was about to be saved.
+              describeBudget(
+                currentFilters.minBudget ? Number(currentFilters.minBudget) : null,
+                currentFilters.maxBudget ? Number(currentFilters.maxBudget) : null,
+              ),
+              // Never print the raw `nearby:25` token at a person. It is a
+              // machine value; the human reading of it is a radius.
+              describeRadius(parseNearbyFilter(currentFilters.locationFilter)),
             ]
               .filter(Boolean)
               .join(" · ") || "None — set filters first"}
@@ -387,16 +500,13 @@ export function SavedSearches({
                     style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                   >
                     {[
+                      s.query && `“${s.query}”`,
                       s.category && `Category: ${categoryLabels[s.category] ?? s.category}`,
                       // Describes the real range. Was `Max $X`, which printed
                       // nothing at all for a min-only search ("$300+") and
                       // understated a banded one.
-                      (s.min_budget || s.max_budget) &&
-                        (s.min_budget && s.max_budget
-                          ? `$${s.min_budget} – $${s.max_budget}`
-                          : s.min_budget
-                            ? `$${s.min_budget}+`
-                            : `Up to $${s.max_budget}`),
+                      describeBudget(s.min_budget, s.max_budget),
+                      describeRadius(s.radius_miles),
                       s.location_keyword && `Loc: ${s.location_keyword}`,
                     ]
                       .filter(Boolean)

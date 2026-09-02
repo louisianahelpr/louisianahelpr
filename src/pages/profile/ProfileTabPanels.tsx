@@ -65,7 +65,7 @@ export interface ProfileTabPanelsProps {
    * from a tab always went to the Profile landing even when you had arrived
    * from somewhere else entirely — a notification, `/earnings`, `/schedule`.
    * That is the one back button in the app that ignored where you came from:
-   * every other sub-page (/work-record, /benefits, /pets) returns you to the
+   * every other sub-page (/work-record, /pets) returns you to the
    * previous screen. The parent decides which of the two this is; the tabs
    * just call it. See `backFromTab` in Profile.tsx.
    */

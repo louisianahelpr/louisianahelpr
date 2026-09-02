@@ -51,7 +51,7 @@ clean while broken.
 
 | Axis | Unit | Total | Source of truth |
 | --- | --- | ---: | --- |
-| Places (sections 1–7) | route / tab / view / function / overlay root | 232 | `src/App.tsx`, `TAB_TITLES`, `type View`, `ls supabase/functions`, the overlay grep |
+| Places (sections 1–7) | route / tab / view / function / overlay root | 231 | `src/App.tsx`, `TAB_TITLES`, `type View`, `ls supabase/functions`, the overlay grep |
 | **States (section 8)** | status × role × data-presence × expansion × step | **195** | `e2e/happy-path/state-matrix/stateMatrix.ts`, derived from the `job_status` enum, `application_status`, `deriveAppliedJobCardState` and the nullable columns each card branches on |
 
 ---
@@ -60,16 +60,16 @@ clean while broken.
 
 | Status | Count | Share |
 | --- | ---: | ---: |
-| **WALKED** — operated against real data, with a durable artifact | **155** | 67% |
+| **WALKED** — operated against real data, with a durable artifact | **154** | 67% |
 | **PARTIAL** — touched only by an E2E spec (Chromium against a *mocked* Supabase) | **0** | 0% |
 | **NEVER WALKED** | **77** | 33% |
-| **Total tracked units** | **232** | |
+| **Total tracked units** | **231** | |
 
-Breakdown of the 232, each figure derived from source, not asserted:
+Breakdown of the 231, each figure derived from source, not asserted:
 
 | Group | Total | Walked | Never |
 | --- | ---: | ---: | ---: |
-| Real routes | 34 | 32 | 2 |
+| Real routes | 33 | 31 | 2 |
 | Redirect routes | 14 | 14 | 0 |
 | Profile tabs | 17 | 17 | 0 |
 | Activity tabs | 2 | 2 | 0 |
@@ -90,8 +90,10 @@ promoted on the strength of that run.
 **The unit count changed on 2026-08-31 and the old 134 is not comparable.**
 Three corrections, all verified against source rather than assumed:
 
-- **37 -> 34 real routes.** `/subscription` and both `/family` routes were
-  still listed here; none is registered in `src/App.tsx` any more.
+- **37 -> 34 -> 33 real routes.** `/subscription` and both `/family` routes
+  were still listed here; none is registered in `src/App.tsx` any more.
+  `/benefits` (BenefitsPage) then left too — page and route deleted
+  2026-08-31, no partner agreements behind it.
   `/subscription` was additionally advertised in `public/sitemap.xml` and
   served the 404 page to crawlers (fixed, commit af77c0e3).
 - **18 -> 17 Profile tabs.** `posted_jobs` and `completed_jobs` left the `Tab`
@@ -182,7 +184,7 @@ Methods, spelled: `browser` (Chrome, real session), `iOS sim`, `device`,
 
 ---
 
-## 1. Routes — screens (34)
+## 1. Routes — screens (33)
 
 Source of truth: the `<Route>` table in `src/App.tsx`. Enumerated, not guessed.
 
@@ -217,7 +219,6 @@ Source of truth: the `<Route>` table in `src/App.tsx`. Enumerated, not guessed.
 | `/work-record` | WorkRecord | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
 | `/help` | HelpCenter | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
 | `/wrapped` | HelprWrapped | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
-| `/benefits` | BenefitsPage | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
 | `/pets` | PetProfiles | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
 | `*` | NotFound | WALKED | 2026-08-31 · browser | driven as /nonexistent-audit-404; 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
 | `/jobs/:id` | JobDetail | NEVER WALKED | never | needs a live job id — not driven this pass |
@@ -349,6 +350,23 @@ prod: `create-payment` (real $86.00 test-mode checkout, PI succeeded),
 > re-derived from `ls supabase/functions` whenever it is touched, so a function
 > added in a migration-era PR cannot quietly go untracked.
 
+### 2026-09-01 — dispute settlement lane (auto-resolve-disputes + admin Quick actions)
+
+| Cell | Status | Evidence |
+| --- | --- | --- |
+| `auto-resolve-disputes` — full branch matrix | WALKED | Executed against the real function source in the edge harness. `src/test/edge/auto-resolve-disputes.test.ts`, 20 tests: auth, resolve, chargeback-race loss, unsucceeded PI, escalated skip, reminder dedupe, both sweeps. |
+| `settle_dispute_record` (new RPC, 20260901034758) | WALKED | Real Postgres via PGlite: `~/.lh-dispute-pglite/run.mjs`, migration applied verbatim 3×, 47 assertions, ALL PASS. Grants, SECURITY DEFINER, idempotency, live-dispute refusal, negative-cents clamp, no-clobber of a real split ledger. |
+| `create-payment` `admin_release_dispute` / `admin_refund_dispute` | WALKED | `src/test/edge/create-payment.test.ts` (51 tests, +7 new): reviewability fields, dispute-record close reconciled against the actual Stripe transfer amount, audit row with `.select("id")`, fail-closed on a failed transfer, Slack alert on a failed close / zero-row audit write. |
+| `can_review_job` after an admin Quick Release | WALKED | `~/.lh-dispute-pglite/review.mjs` — verbatim `can_review_job` from 20260823200000. Pre-fix: poster=false, helper=false (permanently). Post-fix: both true. |
+| Prod dispute state | WALKED | Read-only service-role queries 2026-09-01. `public.disputes` = 2 rows, both `status='open'`, both `execution_status IS NULL`. Both jobs `is_seed=true`, `payment_status='escrow'` with NO `stripe_payment_intent_id`/`stripe_session_id` and no `payout_transfers` / `payment_refunds` rows — no real money is held. Deadlines 8 and 9 days past. |
+| Escalated-reminder spam | WALKED | Prod count: 168 `Escalated dispute overdue` notifications for ONE seed job across 13 admins, first at 2026-08-29T00:21Z, latest 2026-09-01T00:21Z — 52/day, unbounded. Now capped at one per admin per job per 24h. |
+| `execute-dispute-split` stuck-state sweep | WALKED (read) + UNVERIFIED (drive) | No prod row has ever had a non-null `execution_status` (verified: `execution_status=not.is.null` → `[]`), so the stuck-split branch could only be driven in the harness, not against real data. |
+
+**UNVERIFIED in this lane:** the deployed behaviour of `settle_dispute_record`
+in production — it is confirmed ABSENT today (`PGRST202`, verified live) and
+ships on merge via `db-deploy.yml`. The `PGRST202` deploy-lag path in both
+callers is covered by a harness test but not by a real deploy-window run.
+
 ---
 
 ## 6. Admin views (24)
@@ -435,7 +453,7 @@ class is the whole reason this bar exists.
 | Dashboard / Browse / Jobs | 12 | NEVER WALKED |
 | Activity (largest family: boost, tip, cancel, dispute, review, completion, W9, applicants) | 25 | NEVER WALKED |
 | Messages | 10 | NEVER WALKED |
-| Profile (incl. delete account, 2FA, instant payout, ProUpgradeSheet paywall) | 14 | NEVER WALKED |
+| Profile (incl. delete account, 2FA, instant payout, ProUpgradeSheet paywall) | 14 | 2 of 14 WALKED — DeleteAccountDialog steps 1 and 2, driven at 375 and 1440 (2026-08-31, see §Account deletion below). Remaining 12 NEVER WALKED |
 | Post Job (IDV gate, redirect overlay, pickers) | 10 | NEVER WALKED |
 | Nav / shell (GateSheet guest paywall, quick menu, sidebar) | 5 | NEVER WALKED |
 | Admin (command palette, ban, refund, remove, status override, user detail) | 18 | NEVER WALKED |
@@ -706,3 +724,82 @@ but it was derived by a person reading that source. A branch nobody found is a
 cell nobody wrote. The nine collapsing rules in `STATE_MATRIX.md` exist so that
 what was deliberately left out is written down and falsifiable — but they say
 nothing about what was missed by accident.
+
+---
+
+## Account deletion & data retention — 2026-08-31 (privacy/compliance lane)
+
+**Unit walked:** the whole `delete-own-account` path, end to end, against prod
+(`fncmgoasalhdgfwzhsqa`) with purpose-built test accounts, plus the
+`DeleteAccountDialog` overlay in Chrome. Four reported defects were re-verified
+before any of them was touched; two of the four turned out to be broader than
+reported.
+
+### OPERATED — with the artifact
+
+| Claim | Artifact |
+| --- | --- |
+| Client-side active-job pre-check throws `22P02` for every user | `GET /rest/v1/jobs?status=in.(accepted,arrived,in_progress,awaiting)` → `400 {"code":"22P02","message":"invalid input value for enum job_status: \"arrived\""}` |
+| `auth.admin.deleteUser` refuses with a raw `23503` | `DELETE /auth/v1/admin/users/<uid>` → `500 {"code":"23503","message":"update or delete on table \"users\" violates foreign key constraint \"jobs_helper_id_fkey\""}` |
+| The FIRST blocker is `jobs.helper_id`, not `payout_transfers` | Peeling constraints one at a time on a test account: `jobs_helper_id_fkey`, then `payout_transfers_helper_id_fkey`, then the delete succeeded |
+| Deleting a review's AUTHOR erases the review | Counterparty's reviews went 1 → 0 on the author's deletion (rating 5, prod row) |
+| Government ID survives a "successful" deletion | `id-documents/<uid>/licence.jpg` → HTTP 200 with the service key, after `deleteUser` returned 200 |
+| Avatar survives, anonymously | `GET /storage/v1/object/public/avatars/<uid>/avatar.png` → HTTP 200 with NO auth header |
+| PII messages survive with a dangling `sender_id` | `messages` row `"my address is 123 Elm St, call 555-0142"` still queryable post-delete (`messages` has no FK) |
+| **10 of 31 prod accounts (32%) cannot be deleted today** | Census across all 12 live blocking FK columns + the transitive `payout_transfers.job_id` path |
+| Storage purge works and is verified, not assumed | Fresh account, 3 objects across `avatars`/`id-documents`/`user-documents` → all removed, re-listed to confirm 0 left, ID doc then 400 |
+| Migration is replay-safe | PGlite (real Postgres, WASM), applied 3× consecutively; FK snapshot byte-identical after each; 54 assertions pass |
+| Delete dialog fits both breakpoints | `documentElement.scrollWidth === clientWidth` at 375 and 1440, steps 1 and 2; both actions above the fold at 375×812 after copy tightening (dialog scroll overflow 103px → 19px) |
+
+### NOT OPERATED — and why
+
+| Cell | Why |
+| --- | --- |
+| Post-migration deletion against **prod** | The migration cannot reach prod without a merge (`db-deploy.yml`), and this lane was told not to commit. The FK/retention half is proven in PGlite instead; the storage/auth half IS proven against prod. |
+| Stripe subscription cancellation on a real subscription | `profiles.stripe_subscription_id` ships in an undeployed migration (`20260901011254`), so no prod row carries a subscription id yet. The code path degrades explicitly and records it in `steps`; the degradation was read, not driven. |
+| `admin-delete-user` and `cleanup-abandoned-accounts` invoked live | Both now share the same `purgeAccount()` implementation that was driven through `delete-own-account`, but neither endpoint was itself called in this pass. |
+| iOS / WKWebView surface | Chrome only this pass. |
+| Cloudflare cache behaviour over time | See the finding below — observed once, not observed expiring. |
+
+### Finding this lane could NOT fix in its own scope
+
+**Deleting a public-bucket object does not stop anonymous access at its
+canonical URL.** After the origin object was verifiably removed
+(cache-busted URL → HTTP 400), the plain URL still answered **HTTP 200** with
+`cf-cache-status: HIT`. Given at least one prod `avatar_url` is a photograph of
+a driver's licence in the public `avatars` bucket, purging on deletion is
+necessary but not sufficient — the fix is to stop serving identity-bearing
+media from a public bucket at all (signed URLs or a transform endpoint). That
+is the avatar/storage lane's call, not this one's.
+
+### Second pass — what an adversarial review caught that 56 green assertions did not
+
+The first cut of this change passed a 56-assertion PGlite suite, a 3× replay
+check, both typecheckers and a rendered browser pass. A `silent-failure-hunter`
+sweep then found four HIGH defects in it, two of which would have made account
+deletion **permanently impossible** — the exact failure the change was written
+to remove, relocated to a different population. Both were verified against prod
+before being fixed:
+
+| Defect | How it was confirmed | Why the harness missed it |
+| --- | --- | --- |
+| `purge_user_data()` set `jobs.location = NULL`, but the column is `NOT NULL` → `23502` aborts the whole transaction → deterministic 503 forever for every user with a retained job | PostgREST OpenAPI `definitions.jobs.required` on prod lists `location` | **The PGlite schema declared it nullable.** A harness that is not prod-shaped in the one dimension under test proves nothing, however many assertions it runs. |
+| Storage purge was non-recursive: `remove("<uid>/portfolio")` is a no-op on a prefix, and the verification re-list then failed forever — while the flat avatar/ID objects had already been deleted, so every retry left the account further half-purged | Nested prefixes read from the upload call sites: `avatars/<uid>/portfolio/`, `user-documents/<uid>/credentials/`, `user-documents/<uid>/support/`, `application-attachments/<uid>/<jobId>/` | Storage is not in PGlite at all, and the prod storage test used a fixture with only flat objects. |
+| `disputes.opener_id` was still `ON DELETE CASCADE` — the opener leaving destroyed the whole settlement: both parties' `evidence_urls`, `decision_text`, `payout_split` | `20260609140000_disputes_table.sql:37` | The FK list was assembled from the *deletion-blocking* set (NO ACTION / RESTRICT). A CASCADE is not a blocker, so it never appeared. |
+| `messages` deleted on `receiver_id` too, destroying the counterparty's own messages — and `messages.attachment_url` is the only pointer to `message-attachments/<job_id>/<sender_id>/`, so those files were stranded permanently | `messages` columns read from prod | Policy error, not a harness gap: the same mistake as the review cascade, pointed the other way. |
+
+Also fixed from that review: step 4a deleted `refunded`/`paid`/`failed` jobs
+because its money test was a denylist (now an allowlist, and it will not delete
+a job a helper was assigned to or applied to); the profile-redaction guard
+tested 7 of the 20 columns it nulled and reported "already clean" over the
+other 13 (now a dedicated `profiles.anonymized_at` stamp); a Stripe cancel
+failure was never consulted by the success gate, so a deleted account could
+bill forever while the dialog promised otherwise (now gates); `admin-delete-user`
+dropped its profile-read error and reported transient failures as 404
+(now `maybeSingle` + explicit error, and an orphan auth row with no profile is
+deletable rather than stuck).
+
+**The harness is now prod-shaped and provably catches the defect it missed.**
+Re-running the suite with the `jobs.location` fix reverted reproduces
+`23502 null value in column "location" of relation "jobs"`; with it restored,
+**68 assertions pass, migration applied 3× with a byte-identical FK snapshot.**

@@ -21,8 +21,11 @@ const AUTH_PREFIXES = [
   // desktop left rail must own their navigation too — otherwise the page
   // renders with no rail and the #root inset never applies, floating the
   // content full-bleed instead of to the right of the rail.
+  // "/benefits" was removed from this list 2026-08-31 along with the page and
+  // its route; an allow-list entry for a path that now renders NotFound would
+  // dress the 404 in the signed-in rail.
   "/gift-card", "/str-settings", "/home-history", "/work-record",
-  "/benefits", "/pets",
+  "/pets",
   // /analytics — Advanced Analytics. Strictly authed, document-scroll, reached
   // from the Earnings tab. Absent from this allow-list it would render with no
   // rail and no top bar, and the `#root` inset keyed off it would never apply —

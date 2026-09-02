@@ -122,11 +122,40 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   // hiding, because a pending application buckets to `waiting`, not
   // `needs_you`.
   //
-  // Deliberately NOT applied when the link carries its own `?filter=` — an
-  // explicit bucket in the URL is the caller being specific, and it wins.
-  const [deepLinkJobId] = useState<string | null>(() => searchParams.get("job"));
-  const [deepLinkHadFilter] = useState<boolean>(() => searchParams.get("filter") !== null);
-  const deepLinkResolved = useRef(false);
+  // `?job=` BEATS `?filter=` when a link carries both.
+  //
+  // This is a reversal, and the reason it reversed is the whole point of
+  // 20260901035600. The old rule was "an explicit bucket in the URL is the
+  // caller being specific, and it wins" — reasonable when the URL was the only
+  // thing a producer could say anything with. It turned out to be the rule
+  // that DEFEATED the two sweeps before it: a producer writing a stale
+  // `?filter=` alongside a perfectly good `?job=` got the stale bucket, so
+  // passing both was strictly worse than passing neither, and the 66 chip-less
+  // prod rows are what that cost.
+  //
+  // Being specific about a BUCKET is a claim about the job's live state frozen
+  // at write time, and it goes stale while the row sits unread. Being specific
+  // about a JOB is a fact that stays true. So the job wins, and a `?filter=`
+  // on its own still works untouched — which is what keeps every pre-job_id
+  // row landing where it always did.
+  //
+  // NotificationPanel already strips `filter` whenever it resolves from a
+  // job_id (notificationDestination.ts), so in practice both params only
+  // arrive together from a link minted before this change — an old email or a
+  // push notification already sitting on someone's phone. Those are exactly
+  // the ones that should now resolve properly rather than honour a dead chip.
+  const deepLinkJobId = searchParams.get("job");
+  const deepLinkHadFilter = searchParams.get("filter") !== null;
+  // Keyed on WHICH deep link was resolved, not a bare "have we resolved once".
+  //
+  // A boolean meant the resolution was one-shot for the LIFETIME of the
+  // component, so tapping a second notification while already sitting on
+  // Activity stripped its `?job=` and resolved nothing — the reader stayed on
+  // whatever bucket they were already looking at. Every other entry point
+  // (cold open, push, email) remounts the page and hid it. Keying on the id
+  // makes a genuinely new deep link re-resolve while still making re-runs for
+  // the same one a no-op, which is what the ref was there for.
+  const deepLinkResolvedFor = useRef<string | null>(null);
 
   // "Report" on a Done-tab My Posts card — same dialog Browse uses.
   const [reportJobId, setReportJobId] = useState<string | null>(null);
@@ -224,10 +253,15 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   // `?job=` just means a refresh re-lands on the same bucket, which is what
   // the link asked for.)
   useEffect(() => {
-    if (deepLinkResolved.current) return;
-    if (!deepLinkJobId && !highlightAppId) return;
+    // Which deep link is this? `?job=` names the job, `?highlight=` names an
+    // application; either identifies one card. Resolving is idempotent per
+    // key, so a re-run for the SAME link is a no-op while a genuinely new one
+    // (a second notification tapped without leaving the page) still resolves.
+    const deepLinkKey = deepLinkJobId ?? (highlightAppId ? `app:${highlightAppId}` : null);
+    if (!deepLinkKey) return;
+    if (deepLinkResolvedFor.current === deepLinkKey) return;
     if (loading) return;
-    deepLinkResolved.current = true;
+    deepLinkResolvedFor.current = deepLinkKey;
 
     let bucket: string | null = null;
     if (tab === "posted") {
@@ -247,9 +281,10 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
       }
     }
 
-    // An explicit `?filter=` in the link wins — see the note on
-    // `deepLinkHadFilter`.
-    if (deepLinkHadFilter) bucket = null;
+    // A `?filter=` only wins when the link named NO job — see the note on
+    // `deepLinkHadFilter`. With a job in hand the live bucket is the better
+    // answer, and honouring a frozen one is what defeated the last two sweeps.
+    if (deepLinkHadFilter && !deepLinkJobId) bucket = null;
 
     const next = new URLSearchParams(searchParams);
     const hadJobParam = next.has("job");
@@ -262,10 +297,13 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
       else next.set("filter", bucket);
     }
     if (hadJobParam || bucket) setSearchParams(next, { replace: true });
-    // One-shot: guarded by deepLinkResolved, so the churn of `searchParams`
-    // and the two lists can't re-run it. Deps are only what has to LAND before
-    // the bucket can be computed; everything else is read through the closure.
-  }, [loading, postedJobs, appliedApps, pendingApplicantCounts]);
+    // Guarded by `deepLinkResolvedFor`, so the churn of `searchParams` and the
+    // two lists can't re-run the same resolution. `deepLinkJobId` IS a dep —
+    // without it a notification tapped while Activity is already mounted never
+    // reaches this effect at all, because none of the data deps change. It
+    // cannot loop: the branch above deletes `job` from the URL, which sets
+    // `deepLinkJobId` to null and the next run returns on the null key.
+  }, [loading, postedJobs, appliedApps, pendingApplicantCounts, deepLinkJobId]);
 
   // Data-loading + action handlers + dialog/UI state (extracted hook).
   const actions = useActivityActions({

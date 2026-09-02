@@ -1,6 +1,6 @@
 import {
   Shield, ShieldAlert, Bell, PawPrint, ClipboardList,
-  CalendarDays, Heart, ShieldCheck, Home, Star, Gift, Coins, UserPlus,
+  CalendarDays, Heart, ShieldCheck, Home, Gift, Coins, UserPlus,
   TrendingUp, Crown, FileText, Gavel, HelpCircle,
   AlertTriangle, Type, Clock,
 } from "lucide-react";
@@ -111,7 +111,7 @@ export function useProfileLandingDerived({
   // architecture grouping — every row keeps the exact tab `key` / `href`
   // it had before, so nothing is dropped or re-targeted. Surfaces that
   // don't map cleanly to a bucket are folded into their nearest one
-  // (family/pets/home record → Account; insights/host/community/benefits
+  // (family/pets/home record → Account; insights/host/community
   // → Work; credits/referrals/earnings docs → Money; warnings/support →
   // Legal).
   const menuGroups: { title: string; items: MenuItem[] }[] = [
@@ -157,14 +157,11 @@ export function useProfileLandingDerived({
           tint: SECTION_TINT.work,
           href: "/gift-card",
         },
-        {
-          key: "benefits",
-          label: "Benefits & Perks",
-          icon: <Star className="w-5 h-5" />,
-          desc: "Health coverage, financial tools & supply discounts",
-          tint: SECTION_TINT.work,
-          href: "/benefits",
-        },
+        // "Benefits & Perks" (/benefits) removed 2026-08-31 (owner): the page
+        // it opened had no partner agreements behind it, so the row promised
+        // "health coverage, financial tools & supply discounts" that Helpr
+        // never actually offered. Page and route deleted; the row goes with
+        // them rather than becoming a dead entry point.
       ],
     },
     {

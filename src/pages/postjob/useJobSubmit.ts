@@ -569,14 +569,21 @@ export function useJobSubmit(params: UseJobSubmitParams) {
       }
 
       clearDraft();
-      // Notify matching helprs now that escrow is set up — done here, not
-      // before create-payment, so a failed payment setup (which deletes the
-      // job above) never fires ghost notifications for a job that no longer
-      // exists. Awaited so it lands before the redirect unloads the page;
-      // best-effort — the job is still discoverable via browse if it fails.
-      try {
-        await supabase.functions.invoke("instant-job-match", { body: { jobId: jobData.id } });
-      } catch { /* best-effort */ }
+      // The instant-job-match fan-out USED to happen here. It has moved to
+      // stripe-webhook's checkoutSessionCompleted, because "escrow is set up"
+      // was never true at this point: create-payment only mints a Checkout
+      // Session URL, and payment_status stays 'unpaid' until the poster
+      // actually completes checkout and the webhook flips it to 'escrow'.
+      //
+      // Since migration 20260831010000 the browse RPCs only return jobs whose
+      // payment_status is one of ('escrow','payout_pending','released'), so
+      // every notification sent from here advertised a job no helper could
+      // open — and if the poster abandoned the Stripe page, a job that never
+      // became real at all. Firing it post-funding is the only placement where
+      // the push and the browse result agree.
+      //
+      // This also removes a network round-trip that was being AWAITED on the
+      // path to the checkout redirect.
       // Land the geocode write before the redirect unloads the page. It's
       // been running concurrently since job insert, so it's usually already
       // done; cap the wait at 2.5s so a slow/blocked Nominatim never stalls

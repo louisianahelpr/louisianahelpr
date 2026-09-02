@@ -248,12 +248,28 @@ export function BrowseTasksToolbar({
             minBudget: filters.minBudget,
             maxBudget: filters.maxBudget,
             locationFilter: filters.locationFilter,
+            // The text query is part of the search. It had no column until
+            // 20260901035245, so saving "Lawn care under $200" kept the budget
+            // and dropped the words — and re-applying it silently widened the
+            // feed to every category of job under $200.
+            searchQuery: filters.searchQuery,
           }}
           onApplySearch={(saved) => {
+            // Restore EVERY dimension the search was saved with. Anything left
+            // out here comes back wider than the user saved it, with nothing
+            // on screen to say so.
+            filters.setSearchQuery(saved.query ?? "");
+            // Open the search field when a query comes back, for the same
+            // reason useDashboardFilters opens it for `?q=`: a restored query
+            // that is applied but invisible reads as a broken feed.
+            if (saved.query) filters.setSearchOpen(true);
             filters.setSelectedCategory(saved.category);
             filters.setMinBudget(saved.min_budget ? String(saved.min_budget) : "");
             filters.setMaxBudget(saved.max_budget ? String(saved.max_budget) : "");
-            filters.setLocationFilter(saved.location_keyword || "");
+            // The radius round-trips through the same `nearby:<miles>` token
+            // the filter state uses; it is stored as a number now, because a
+            // token in a text column is what made the alert unmatchable.
+            filters.setLocationFilter(saved.radius_miles ? `nearby:${saved.radius_miles}` : "");
           }}
         />
       )}

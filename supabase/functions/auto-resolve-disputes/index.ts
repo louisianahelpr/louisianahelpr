@@ -8,6 +8,67 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+/**
+ * Notification titles this cron sends to admins. Both are REMINDERS about a
+ * condition that persists between ticks, so both are deduped through
+ * `recentlyRemindedKeys` below — see the comment there for why.
+ */
+const ESCALATED_TITLE = "Escalated dispute overdue";
+const STUCK_SPLIT_TITLE = "Dispute split did not settle";
+
+/** One reminder per admin per job per day, not one per cron tick. */
+const REMINDER_WINDOW_HOURS = 24;
+
+/**
+ * A half-executed split older than this needs a person, not another retry.
+ * `execute-dispute-split` claims 'executing' before its first Stripe call and
+ * writes 'failed' on any leg failure; both states are re-claimable by design,
+ * so a row still sitting in one an hour later means nobody came back to it.
+ */
+const STUCK_SPLIT_MINUTES = 60;
+
+/** Bound every sweep read — a runaway page is a silent partial sweep. */
+const SWEEP_LIMIT = 500;
+
+/**
+ * `<admin id>|<title>|<link>` — the dedupe key for an admin reminder.
+ *
+ * `title` is in the key because the two reminder kinds share a job-scoped link.
+ * Without it, a job that is BOTH an overdue escalation and a stuck split would
+ * send the escalation reminder (which runs first) and silently swallow the
+ * "money may be half-moved" one for 24 hours — suppressing the more urgent of
+ * the two.
+ */
+const reminderKey = (userId: string, title: string, link: string) => `${userId}|${title}|${link}`;
+
+/**
+ * Which side kept the money, derived from the job the record is being closed
+ * against. Returns null when the job's own state does not say — in which case
+ * the record is LEFT OPEN and reported, never guessed.
+ *
+ * Guessing here is not a cosmetic risk. `settle_dispute_record` writes
+ * `payout_split` and is terminal — nothing can correct the row afterwards, and
+ * the admin cannot re-run the action because create-payment refuses a job that
+ * is no longer `disputed`. A sweep that assumed "helper" would have stamped
+ * "poster 0% · Helpr 100%" onto every job an admin had REFUNDED to the poster,
+ * permanently, in the surface the parties read to see what was decided.
+ */
+function outcomeFromPaymentStatus(paymentStatus: unknown): "helper" | "poster" | null {
+  switch (paymentStatus) {
+    // The money went to the helper (or is scheduled to).
+    case "released":
+    case "payout_pending":
+      return "helper";
+    // The money went back to the poster.
+    case "refunded":
+    case "partially_refunded":
+    case "chargeback":
+      return "poster";
+    default:
+      return null;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -49,30 +110,150 @@ Deno.serve(async (req) => {
     const resolved: string[] = [];
     const defects = defectTracker();
 
+    // ── Which admin reminders already went out in the last day? ─────────────
+    // This cron runs every 6 hours (`21 */6 * * *`, 20260829010000). The
+    // escalated-dispute reminder had no dedupe at all, so ONE overdue escalated
+    // dispute mailed every admin four times a day, forever: production held 168
+    // "Escalated dispute overdue" rows across 13 admins for a single seed job,
+    // growing 52/day since 2026-08-29. A reminder nobody can clear is a
+    // reminder everybody learns to ignore — and it buries the real ones.
+    //
+    // Fails CLOSED: if the read fails we cannot tell what was already sent, and
+    // re-sending is the exact defect being fixed. The run still goes non-2xx via
+    // the defect, so the condition is not silent — it just doesn't spam.
+    const remindersReadable = { ok: true };
+    const recentlyRemindedKeys = new Set<string>();
+    {
+      const cutoff = new Date(Date.now() - REMINDER_WINDOW_HOURS * 60 * 60 * 1000).toISOString();
+      const { data: recent, error: recentErr } = await supabase
+        .from("notifications")
+        .select("user_id, title, link")
+        .in("title", [ESCALATED_TITLE, STUCK_SPLIT_TITLE])
+        .gte("created_at", cutoff)
+        .order("created_at", { ascending: false })
+        .limit(SWEEP_LIMIT);
+      if (recentErr) {
+        console.error("[auto-resolve-disputes] recent-reminder read failed; suppressing reminders this run:", recentErr);
+        defects.record(`recent reminder read: ${recentErr.message}`);
+        remindersReadable.ok = false;
+      } else if ((recent ?? []).length >= SWEEP_LIMIT) {
+        // A TRUNCATED read is worse than a failed one: it looks like a complete
+        // answer and its missing rows read as "never reminded", which is
+        // precisely how the duplicate flood restarts. Treated exactly like a
+        // read failure — suppress and say so.
+        console.error(`[auto-resolve-disputes] recent-reminder read hit the ${SWEEP_LIMIT}-row cap; suppressing reminders this run`);
+        defects.record(`recent reminder read hit the ${SWEEP_LIMIT}-row cap — dedupe set is incomplete`);
+        remindersReadable.ok = false;
+      } else {
+        for (const n of recent ?? []) {
+          if (n.user_id && n.title && n.link) {
+            recentlyRemindedKeys.add(reminderKey(n.user_id as string, n.title as string, n.link as string));
+          }
+        }
+      }
+    }
+
+    /**
+     * Send one admin reminder per admin per link per REMINDER_WINDOW_HOURS.
+     * Returns how many actually went out.
+     */
+    async function remindAdmins(
+      adminIds: string[],
+      title: string,
+      message: string,
+      link: string,
+      defectLabel: string,
+    ): Promise<number> {
+      if (!remindersReadable.ok) return 0;
+      const pending = adminIds
+        .filter((adminId) => !recentlyRemindedKeys.has(reminderKey(adminId, title, link)))
+        .map((adminId) => ({ user_id: adminId, title, message, type: "warning", link }));
+      if (pending.length === 0) return 0;
+      // `.select("id")`: notifications has an `id` column, and a null error on a
+      // policy-refused insert would otherwise read as "the admins were told".
+      const { data: inserted, error: notifErr } = await supabase
+        .from("notifications")
+        .insert(pending)
+        .select("id");
+      if (notifErr) {
+        console.error(`[auto-resolve-disputes] ${defectLabel} insert failed:`, notifErr);
+        defects.record(`${defectLabel}: ${notifErr.message}`);
+        return 0;
+      }
+      if (!inserted || inserted.length === 0) {
+        console.error(`[auto-resolve-disputes] ${defectLabel} matched 0 rows — nobody was told`);
+        defects.record(`${defectLabel}: insert returned 0 rows`);
+        return 0;
+      }
+      // Mark them sent so a second job in this same run can't re-notify the
+      // same admin on the same link.
+      for (const p of pending) recentlyRemindedKeys.add(reminderKey(p.user_id, title, link));
+      return inserted.length;
+    }
+
+    /**
+     * Close the `public.disputes` record for a job whose escrow has just been
+     * settled. This function used to write `jobs` and NOTHING else, so every
+     * auto-resolved dispute left its record `status='open'` forever — and
+     * `disputes_one_open_per_job_idx` then made that stale row the only dispute
+     * the job could ever have, with `rpc_open_dispute`'s existing-dispute branch
+     * re-freezing a settled job off the back of it.
+     *
+     * A NULL return is legitimate (a dispute filed before `public.disputes`
+     * existed has no record to close); an ERROR is not, and is never dropped.
+     */
+    async function closeDisputeRecord(jobId: string, decisionText: string): Promise<void> {
+      const { data: disputeId, error: settleErr } = await supabase.rpc("settle_dispute_record", {
+        _job_id: jobId,
+        _outcome: "helper",
+        _decided_by: null,
+        _decision_text: decisionText,
+        // The transfer happens later, in release-payout / process-scheduled-payouts.
+        // This cron has no transfer id or settled amount to record, and a
+        // fabricated $0 would be a claim about money that is simply false.
+        _helper_cents: null,
+        _refund_cents: null,
+        _transfer_id: null,
+        _refund_id: null,
+      });
+      if (settleErr) {
+        // PGRST202 = the RPC isn't deployed yet (migration lag window). The job
+        // is already settled and correct; the orphan sweep below closes the
+        // record on the next tick once the function lands.
+        const code = (settleErr as { code?: string }).code;
+        console.error(`[auto-resolve-disputes] settle_dispute_record failed for job ${jobId}:`, settleErr);
+        defects.record(`settle dispute record ${jobId}: ${settleErr.message}${code ? ` (${code})` : ""}`);
+        return;
+      }
+      console.log(
+        disputeId
+          ? `[auto-resolve-disputes] closed dispute record ${disputeId} for job ${jobId}`
+          : `[auto-resolve-disputes] job ${jobId} had no disputes row to close (pre-table dispute)`,
+      );
+    }
+
     for (const job of expiredDisputes || []) {
       const disputeStatus = job.dispute_status || "open";
 
       // If escalated to admin, don't auto-resolve — admin must handle it
       if (disputeStatus === "escalated") {
-        // Just send a reminder to admins
-        const { ids: escalatedAdminIds } = await loadAdminIds(supabase, "auto-resolve-disputes.escalated");
-        {
-          for (const adminId of escalatedAdminIds) {
-            const { error: notifErr } = await supabase.from("notifications").insert({
-              user_id: adminId,
-              title: "Escalated dispute overdue",
-              message: `"${job.title}" dispute was escalated and is past its 72h deadline. Please resolve ASAP.`,
-              type: "warning",
-              link: "/admin",
-            });
-            if (notifErr) {
-              console.error(`[auto-resolve-disputes] escalation reminder insert failed for admin ${adminId}, job ${job.id}:`, notifErr);
-              // An overdue dispute whose reminder never lands is a dispute
-              // nobody is watching.
-              defects.record(`escalation reminder admin ${adminId} job ${job.id}: ${notifErr.message}`);
-            }
-          }
-        }
+        // Just send a reminder to admins — at most one per admin per day.
+        // The link is job-scoped so two overdue escalations still produce two
+        // reminders; `?view=` is the only param Admin.tsx reads, and the extra
+        // `job=` is both inert there and the dedupe key here.
+        const { ok: escalatedAdminsOk, ids: escalatedAdminIds } = await loadAdminIds(supabase, "auto-resolve-disputes.escalated");
+        // loadAdminIds exists to make this failure LOUD — its whole contract is
+        // the `ok` flag. Dropping it turns "the user_roles read failed" into an
+        // empty list, which remindAdmins treats as "nobody to tell" and the run
+        // reports 2xx with the overdue dispute unwatched.
+        if (!escalatedAdminsOk) defects.record(`admin lookup failed for escalation reminder job ${job.id}`);
+        await remindAdmins(
+          escalatedAdminIds,
+          ESCALATED_TITLE,
+          `"${job.title}" dispute was escalated and is past its 72h deadline. Please resolve ASAP.`,
+          `/admin?view=disputes&job=${job.id}`,
+          `escalation reminder job ${job.id}`,
+        );
         continue;
       }
 
@@ -145,6 +326,14 @@ Deno.serve(async (req) => {
         continue;
       }
 
+      // The job is settled — now close the RECORD, in the same tick, so the two
+      // sources of truth agree. Runs only after the claim succeeded, so a job
+      // this run did not actually resolve never has its dispute closed.
+      await closeDisputeRecord(
+        job.id,
+        "Auto-resolved by platform policy: the dispute passed its 72-hour deadline without the poster resolving or escalating it, so the escrow was released to the helpr.",
+      );
+
       // Notify both parties
       const notifications = [];
 
@@ -169,7 +358,8 @@ Deno.serve(async (req) => {
       });
 
       // Notify admins
-      const { ids: autoResolvedAdminIds } = await loadAdminIds(supabase, "auto-resolve-disputes.autoResolved");
+      const { ok: autoResolvedAdminsOk, ids: autoResolvedAdminIds } = await loadAdminIds(supabase, "auto-resolve-disputes.autoResolved");
+      if (!autoResolvedAdminsOk) defects.record(`admin lookup failed for auto-resolution notice job ${job.id}`);
 
       {
         for (const adminId of autoResolvedAdminIds) {
@@ -193,11 +383,166 @@ Deno.serve(async (req) => {
       resolved.push(job.id);
     }
 
+    // ── Sweep 1: dispute RECORDS orphaned open on a settled job ─────────────
+    // The direct close above covers this tick. This covers everything else:
+    // the rows auto-resolution left open before this fix shipped, a crash
+    // between the `jobs` claim and the `settle_dispute_record` call, and any
+    // future path that settles a dispute's money and forgets its record. It is
+    // the reason the fix does not need a trigger on `public.jobs` (which could
+    // not be written safely — see the migration's header).
+    //
+    // The predicate is deliberately narrow: the JOB must already say the
+    // dispute is over. `settle_dispute_record` re-checks that itself and RAISEs
+    // otherwise, so a live dispute can never be swept closed.
+    const sweptRecords: string[] = [];
+    {
+      const { data: openRecords, error: openRecordsErr } = await supabase
+        .from("disputes")
+        .select("id, job_id")
+        .eq("status", "open")
+        .limit(SWEEP_LIMIT);
+      if (openRecordsErr) {
+        console.error("[auto-resolve-disputes] open-dispute-record read failed:", openRecordsErr);
+        defects.record(`open dispute record read: ${openRecordsErr.message}`);
+      } else if ((openRecords ?? []).length > 0) {
+        if ((openRecords ?? []).length === SWEEP_LIMIT) {
+          // A truncated sweep silently leaves rows behind. Say so rather than
+          // reporting a clean pass over a partial set.
+          defects.record(`open dispute record read hit the ${SWEEP_LIMIT}-row cap — sweep is partial`);
+        }
+        const jobIds = [...new Set((openRecords ?? []).map((d) => d.job_id as string))];
+        const { data: recordJobs, error: recordJobsErr } = await supabase
+          .from("jobs")
+          .select("id, status, payment_status, dispute_status, dispute_resolved_at")
+          .in("id", jobIds);
+        if (recordJobsErr) {
+          console.error("[auto-resolve-disputes] orphan-sweep job read failed:", recordJobsErr);
+          defects.record(`orphan sweep job read: ${recordJobsErr.message}`);
+        } else {
+          // Keyed on `payment_status` — see settle_dispute_record's own gate for
+          // why. `status` / `dispute_status` / `dispute_resolved_at` are all
+          // writable by a party to the job, so trusting them here would let the
+          // side LOSING a dispute forge a settled-looking job and have this
+          // sweep permanently close their own live dispute. They are still
+          // checked, as a second condition, never as the only one.
+          const settledJobs = new Map<string, "helper" | "poster">();
+          for (const j of recordJobs ?? []) {
+            const outcome = outcomeFromPaymentStatus(j.payment_status);
+            if (!outcome) continue;
+            if (j.status === "disputed") continue;
+            if (j.dispute_status === "open" || j.dispute_status === "escalated") continue;
+            settledJobs.set(j.id as string, outcome);
+          }
+          for (const record of openRecords ?? []) {
+            const outcome = settledJobs.get(record.job_id as string);
+            // No outcome = the job's own money state does not say which way it
+            // went. LEAVE IT OPEN. `settle_dispute_record` is terminal and
+            // writes `payout_split`, so a guess here would stamp a settlement
+            // direction that contradicts Stripe onto a row nothing can correct,
+            // in the surface both parties read to see what was decided.
+            if (!outcome) continue;
+            const { error: sweepErr } = await supabase.rpc("settle_dispute_record", {
+              _job_id: record.job_id,
+              _outcome: outcome,
+              _decided_by: null,
+              _decision_text:
+                "Record closed to match the job: this dispute's escrow was already settled by another path, leaving the record open. Closed by the auto-resolve sweep.",
+              _helper_cents: null,
+              _refund_cents: null,
+              _transfer_id: null,
+              _refund_id: null,
+            });
+            if (sweepErr) {
+              console.error(`[auto-resolve-disputes] orphan sweep failed for dispute ${record.id}:`, sweepErr);
+              defects.record(`orphan sweep ${record.id}: ${sweepErr.message}`);
+              continue;
+            }
+            sweptRecords.push(record.id as string);
+          }
+        }
+      }
+    }
+
+    // ── Sweep 2: splits that claimed the money and never finished ───────────
+    // `execute-dispute-split` writes 'executing' before its first Stripe call
+    // and 'failed' on a leg failure — a transfer may already have left with the
+    // refund leg still owed. Both are re-claimable, so the design intent is
+    // that someone comes back; nothing ever looked, and the partial index
+    // 20260824230000 created for exactly this question ("which decided splits
+    // have not settled yet?") had no reader anywhere in the repo.
+    //
+    // This does NOT auto-retry: `execute-dispute-split` requires an admin USER
+    // jwt (index.ts:126-153), which a cron does not hold, and half-moved money
+    // deserves a person regardless. It raises the alarm two ways — a defect, so
+    // the run answers non-2xx and the silent-cron watcher fires every tick
+    // until a human clears it, and one deduped admin notification per day.
+    const stuckSplits: Array<{ id: string; job_id: string; execution_status: string }> = [];
+    {
+      const stuckCutoff = Date.now() - STUCK_SPLIT_MINUTES * 60 * 1000;
+      const { data: claimed, error: stuckErr } = await supabase
+        .from("disputes")
+        .select("id, job_id, execution_status, execution_started_at, execution_error")
+        // 'pending' is in here even though nothing writes it today: the CHECK
+        // and the partial index both admit it, and "decided, queued, never
+        // claimed" is exactly as unsettled as the other two.
+        .in("execution_status", ["pending", "executing", "failed"])
+        .limit(SWEEP_LIMIT);
+      if (stuckErr) {
+        console.error("[auto-resolve-disputes] stuck-split read failed:", stuckErr);
+        defects.record(`stuck split read: ${stuckErr.message}`);
+      } else {
+        if ((claimed ?? []).length === SWEEP_LIMIT) {
+          defects.record(`stuck split read hit the ${SWEEP_LIMIT}-row cap — sweep is partial`);
+        }
+        // The age test is done HERE, not as a `.lt("execution_started_at", …)`
+        // server-side filter, because SQL comparisons against NULL are false —
+        // a row claimed without a timestamp would have slipped past the filter
+        // and been silently excluded from the one sweep that watches it. A NULL
+        // stamp on a claimed row is MORE alarming than an old one, so it counts
+        // as stuck rather than being skipped.
+        const stuck = (claimed ?? []).filter((row) => {
+          const startedAt = row.execution_started_at as string | null;
+          if (!startedAt) return true;
+          const t = Date.parse(startedAt);
+          return Number.isNaN(t) || t < stuckCutoff;
+        });
+        const { ok: splitAdminsOk, ids: splitAdminIds } = stuck.length > 0
+          ? await loadAdminIds(supabase, "auto-resolve-disputes.stuckSplit")
+          : { ok: true, ids: [] as string[] };
+        if (!splitAdminsOk) defects.record("admin lookup failed for stuck-split reminders");
+        for (const row of stuck) {
+          stuckSplits.push({
+            id: row.id as string,
+            job_id: row.job_id as string,
+            execution_status: row.execution_status as string,
+          });
+          defects.record(
+            `stuck dispute split ${row.id} (job ${row.job_id}) has been "${row.execution_status}" since ` +
+              `${row.execution_started_at ?? "unknown"}${row.execution_error ? `: ${row.execution_error}` : ""}`,
+          );
+          await remindAdmins(
+            splitAdminIds,
+            STUCK_SPLIT_TITLE,
+            `A dispute split has been stuck in "${row.execution_status}" since ${row.execution_started_at ?? "an unknown time"}. ` +
+              `Money may be half-moved — open the dispute and retry the settlement.`,
+            `/admin?view=disputes&job=${row.job_id}`,
+            `stuck split reminder dispute ${row.id}`,
+          );
+        }
+      }
+    }
+
     // "No payment intent" and "PI not succeeded" are deliberately NOT defects —
     // both leave the dispute for an admin, which is the designed behaviour.
     return cronResult(
       "auto-resolve-disputes",
-      { resolved: resolved.length, ids: resolved },
+      {
+        resolved: resolved.length,
+        ids: resolved,
+        dispute_records_swept: sweptRecords.length,
+        swept_dispute_ids: sweptRecords,
+        stuck_splits: stuckSplits,
+      },
       defects.defects,
       corsHeaders,
     );

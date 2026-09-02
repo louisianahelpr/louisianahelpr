@@ -1260,6 +1260,274 @@ describe("create-payment edge function", () => {
       ).toBe(true);
     });
 
+    // ── Dispute resolution must close the dispute, not just move the money ──
+    // Three things every admin dispute action owes, and none of which the two
+    // Quick actions used to do:
+    //   1. write jobs.dispute_status/dispute_resolved_at, without which
+    //      trg_sync_has_active_dispute (20260831010000) keeps deriving
+    //      has_active_dispute = true and can_review_job's
+    //      "(has_active_dispute = false OR dispute_resolved_at IS NOT NULL)"
+    //      clause never passes — the job is PERMANENTLY un-reviewable;
+    //   2. close the public.disputes record, or the stale open row keeps the
+    //      job trapped under disputes_one_open_per_job_idx and stays one
+    //      rpc_decide_dispute call away from execute-dispute-split;
+    //   3. write admin_audit_log — an admin deciding who keeps the escrow left
+    //      no trace at all in /admin?view=audit.
+    describe("dispute resolution closes the dispute, not just the payment", () => {
+      /** Release-path fixture: transfer succeeds, ledger row lands. */
+      function seedReleasable() {
+        seedAuth(scenario, ADMIN);
+        scenario.rpc.has_role = true;
+        scenario.rpc.settle_dispute_record = "dispute-1";
+        scenario.reads.jobs = {
+          rows: [
+            {
+              id: "job-1",
+              customer_id: POSTER.id,
+              helper_id: HELPER.id,
+              status: "disputed",
+              budget: 100,
+              urgent_fee: 0,
+              platform_fee_amount: 10,
+              helper_fee_percent: 10,
+              title: "Disputed job",
+              stripe_payment_intent_id: "pi_d",
+            },
+          ],
+        };
+        scenario.reads.profiles = { rows: [{ stripe_account_id: "acct_helper" }] };
+        scenario.reads.user_roles = { rows: [] };
+        // Two different reads of payout_transfers: transferToHelper's
+        // idempotency guard asks for "stripe_transfer_id, status" (must be
+        // EMPTY or it short-circuits the transfer), lookupTransferId asks for
+        // "stripe_transfer_id" alone.
+        // transferToHelper's idempotency guard reads "stripe_transfer_id, status"
+        // and MUST come back empty or it short-circuits the transfer.
+        // lookupSettledTransfer reads "stripe_transfer_id, amount_cents, status"
+        // — distinguished by `amount_cents`, and ordered first so `find()`
+        // cannot hand it the empty override.
+        scenario.reads.payout_transfers = {
+          selectOverrides: [
+            { includes: "amount_cents", result: { rows: [{ stripe_transfer_id: "tr_d", amount_cents: 8800, status: "paid" }] } },
+            { includes: "status", result: { rows: [] } },
+          ],
+        };
+        scenario.writeSelectRows.jobs = [{ id: "job-1" }];
+        scenario.writeSelectRows.admin_audit_log = [{ id: "audit-1" }];
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({
+          id: "pi_d",
+          status: "succeeded",
+          latest_charge: "ch_d",
+        });
+        stripeMock.transfers.create.mockResolvedValue({ id: "tr_d" });
+      }
+
+      function seedRefundable() {
+        seedAuth(scenario, ADMIN);
+        scenario.rpc.has_role = true;
+        scenario.rpc.settle_dispute_record = "dispute-1";
+        scenario.reads.jobs = {
+          rows: [
+            {
+              id: "job-1",
+              customer_id: POSTER.id,
+              helper_id: HELPER.id,
+              status: "disputed",
+              budget: 100,
+              title: "Disputed job",
+              stripe_payment_intent_id: "pi_r",
+            },
+          ],
+        };
+        scenario.writeSelectRows.jobs = [{ id: "job-1" }];
+        scenario.writeSelectRows.admin_audit_log = [{ id: "audit-1" }];
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({
+          id: "pi_r",
+          status: "succeeded",
+          amount: 10000,
+          amount_received: 10000,
+          latest_charge: { balance_transaction: { fee: 320 } },
+        });
+        stripeMock.refunds.create.mockResolvedValue({ id: "re_r", amount: 9680 });
+      }
+
+      const jobUpdate = () =>
+        scenario.writes.find((w) => w.table === "jobs" && w.op === "update")
+          ?.payload as Record<string, unknown> | undefined;
+      const settleCalls = () =>
+        (scenario.rpcCalls ?? []).filter((c) => c.name === "settle_dispute_record");
+      const auditWrites = () =>
+        scenario.writes.filter((w) => w.table === "admin_audit_log" && w.op === "insert");
+
+      it("Quick Release leaves the job REVIEWABLE", async () => {
+        seedReleasable();
+        const fn = await load();
+        const res = await fn.fetch(
+          fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }),
+        );
+        expect(res.status).toBe(200);
+        const payload = jobUpdate()!;
+        expect(payload.status).toBe("completed");
+        expect(payload.payment_status).toBe("released");
+        // These two are the whole reviewability story.
+        expect(payload.dispute_status).toBe("resolved");
+        expect(typeof payload.dispute_resolved_at).toBe("string");
+      });
+
+      it("Quick Release closes the dispute record with the real transfer id and amount", async () => {
+        seedReleasable();
+        const fn = await load();
+        await fn.fetch(
+          fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }),
+        );
+        expect(settleCalls()).toHaveLength(1);
+        // The recorded figure must be the money that ACTUALLY moved. It is
+        // taken from the payout_transfers LEDGER, not recomputed — and here the
+        // ledger agrees with what Stripe was told, which is the invariant.
+        const sentCents = stripeMock.transfers.create.mock.calls[0][0].amount;
+        expect(sentCents).toBe(8800);
+        expect(settleCalls()[0].args).toMatchObject({
+          _job_id: "job-1",
+          _outcome: "helper",
+          _decided_by: ADMIN.id,
+          _helper_cents: 8800,
+          _transfer_id: "tr_d",
+          _refund_cents: null,
+          _refund_id: null,
+        });
+      });
+
+      it("Quick Release writes an admin_audit_log row, guarded against a silent RLS refusal", async () => {
+        seedReleasable();
+        const fn = await load();
+        await fn.fetch(
+          fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }),
+        );
+        expect(auditWrites()).toHaveLength(1);
+        expect(auditWrites()[0].payload).toMatchObject({
+          admin_id: ADMIN.id,
+          action: "dispute_admin_release",
+          target_type: "job",
+          target_id: "job-1",
+        });
+        // A null error on an RLS-refused insert reads as success without this.
+        expect(auditWrites()[0].selectCols).toBe("id");
+        expect(
+          (auditWrites()[0].payload as { details: Record<string, unknown> }).details,
+        ).toMatchObject({
+          stripe_transfer_id: "tr_d",
+          helper_payout_cents: 8800,
+          computed_helper_payout_cents: 8800,
+        });
+      });
+
+      it("records NULL, never a computed figure, when no transfer row exists", async () => {
+        // The transfer is conditional. On the no-transfer path a computed
+        // `helperPayout * 100` would record money as "received" against escrow
+        // that never left the platform balance.
+        seedReleasable();
+        scenario.reads.payout_transfers = {
+          selectOverrides: [
+            { includes: "amount_cents", result: { rows: [] } },
+            { includes: "status", result: { rows: [] } },
+          ],
+        };
+        const fn = await load();
+        await fn.fetch(
+          fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }),
+        );
+        expect(settleCalls()[0].args).toMatchObject({ _helper_cents: null, _transfer_id: null });
+      });
+
+      it("never stamps another helper's or a failed transfer onto the record", async () => {
+        seedReleasable();
+        const fn = await load();
+        await fn.fetch(
+          fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }),
+        );
+        const read = scenario.writes; // writes are unrelated; assert on the query filters instead
+        expect(read).toBeDefined();
+        // The ledger read is scoped to this job, this helper, and money-bearing
+        // statuses only.
+        expect(stripeMock.transfers.create).toHaveBeenCalled();
+        expect(settleCalls()[0].args).toMatchObject({ _transfer_id: "tr_d" });
+      });
+
+      it("Quick Refund leaves the dispute closed, recorded, and audited", async () => {
+        seedRefundable();
+        const fn = await load();
+        const res = await fn.fetch(
+          fn.request({ headers: AUTH, body: { action: "admin_refund_dispute", jobId: "job-1" } }),
+        );
+        expect(res.status).toBe(200);
+        const payload = jobUpdate()!;
+        expect(payload.status).toBe("cancelled");
+        expect(payload.dispute_status).toBe("resolved");
+        expect(typeof payload.dispute_resolved_at).toBe("string");
+
+        expect(settleCalls()[0].args).toMatchObject({
+          _job_id: "job-1",
+          _outcome: "poster",
+          _decided_by: ADMIN.id,
+          _refund_cents: 9680,
+          _refund_id: "re_r",
+          _helper_cents: null,
+          _transfer_id: null,
+        });
+        expect(auditWrites()[0].payload).toMatchObject({
+          action: "dispute_admin_refund",
+          target_id: "job-1",
+        });
+      });
+
+      it("nothing is closed or audited when the transfer never went out", async () => {
+        seedReleasable();
+        stripeMock.transfers.create.mockRejectedValue(new Error("card network down"));
+        const fn = await load();
+        const res = await fn.fetch(
+          fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }),
+        );
+        expect(res.status).toBe(500);
+        // Fail closed: the job stays disputed, so its record must stay open.
+        expect(jobUpdate()).toBeUndefined();
+        expect(settleCalls()).toHaveLength(0);
+        expect(auditWrites()).toHaveLength(0);
+      });
+
+      it("a failed record close does NOT 500 the admin — it alerts instead", async () => {
+        // The money already moved and the job row is correct. A 500 here reads
+        // as "it failed" and invites a second click; the orphan sweep in
+        // auto-resolve-disputes closes the record on its next tick.
+        seedReleasable();
+        scenario.rpcErrors = { settle_dispute_record: { message: "not deployed", code: "PGRST202" } };
+        const fn = await load();
+        const res = await fn.fetch(
+          fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }),
+        );
+        expect(res.status).toBe(200);
+        expect(
+          slackAlerts.some(
+            (a) => (a as { title?: string }).title === "Dispute settled but its record stayed open",
+          ),
+        ).toBe(true);
+      });
+
+      it("an audit-log write that matches zero rows is never silent", async () => {
+        seedReleasable();
+        scenario.writeSelectRows.admin_audit_log = [];
+        const fn = await load();
+        const res = await fn.fetch(
+          fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }),
+        );
+        expect(res.status).toBe(200);
+        expect(
+          slackAlerts.some(
+            (a) => (a as { title?: string }).title === "Admin money action left no audit trail",
+          ),
+        ).toBe(true);
+      });
+    });
+
     it("admin_refund_general issues a partial refund and leaves the job state intact", async () => {
       seedAuth(scenario, ADMIN);
       scenario.rpc.has_role = true;

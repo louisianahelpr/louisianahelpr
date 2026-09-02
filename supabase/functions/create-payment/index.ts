@@ -1103,11 +1103,23 @@ serve(async (req) => {
       // Transfer already sent — a failed flip would leave the job "disputed"
       // (permanently blocked by release-payout's dispute guard) while the
       // notifications below assert it was resolved. Fail loudly instead.
+      //
+      // dispute_status + dispute_resolved_at are written HERE, not left behind.
+      // Without them `trg_sync_has_active_dispute` (20260831010000) keeps
+      // deriving has_active_dispute = true — its predicate is
+      // "dispute_status is neither 'resolved' nor 'auto_resolved'" — and
+      // can_review_job's `(has_active_dispute = false OR dispute_resolved_at IS
+      // NOT NULL)` clause then never passes. A Quick Release used to leave the
+      // job PERMANENTLY un-reviewable by both parties: the one job in the whole
+      // app where a review matters most, and neither side could ever leave one.
+      const disputeResolvedAt = new Date().toISOString();
       const { data: releaseUpdated, error: releaseUpdateErr } = await supabaseAdmin.from("jobs").update({
         status: "completed",
         payment_status: "released",
         helper_fee_percent: disputeFeePercent,
         platform_fee_amount: feeAmt,
+        dispute_status: "resolved",
+        dispute_resolved_at: disputeResolvedAt,
       }).eq("id", jobId).select("id");
       if (releaseUpdateErr || !releaseUpdated || releaseUpdated.length === 0) {
         console.error(`CRITICAL: dispute transfer sent for job ${jobId} but jobs.update to released failed — manual reconciliation needed:`, releaseUpdateErr ?? "matched 0 rows");
@@ -1115,6 +1127,59 @@ serve(async (req) => {
           error: "transfer sent but job status update failed — manual reconciliation needed",
         }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 });
       }
+
+      // Close the formal dispute record too, with the real Stripe transfer id
+      // and the real amount. Left open — as it was — the row keeps the job
+      // trapped under `disputes_one_open_per_job_idx` (every future filing
+      // merges into a settled dispute, and rpc_open_dispute's existing-dispute
+      // branch re-freezes an already-paid job), and it stays one
+      // `rpc_decide_dispute` call away from being handed to
+      // execute-dispute-split. Marking it executed is what makes that executor
+      // refuse instead of trying to move money that has already gone.
+      //
+      // The recorded amount comes from the LEDGER, not from `helperPayout`.
+      // The transfer above is conditional (`job.helper_id && helperPayout > 0`),
+      // so on the no-transfer path nothing moved — and writing a computed
+      // `Math.round(helperPayout * 100)` there would record a "received" figure
+      // against escrow that never left. `null` means "not recorded here", which
+      // is the truth; a number would be a claim.
+      const settledTransfer = await lookupSettledTransfer(supabaseAdmin, jobId, job.helper_id);
+      await closeDisputeRecordForJob(supabaseAdmin, {
+        jobId,
+        outcome: "helper",
+        decidedBy: user.id,
+        decisionText: "Resolved by admin Quick Release: the full escrow was released to the helpr.",
+        helperCents: settledTransfer.amountCents,
+        transferId: settledTransfer.transferId,
+      });
+
+      // An admin moving money leaves a trail. `admin_refund_general` already
+      // writes one for its (less consequential) refunds; the two dispute
+      // actions — the ones that decide who keeps the escrow — wrote nothing at
+      // all, so /admin?view=audit showed no record of a resolved dispute.
+      await logAdminMoneyAction(supabaseAdmin, {
+        adminId: user.id,
+        action: "dispute_admin_release",
+        jobId,
+        details: {
+          job_title: job.title,
+          customer_id: job.customer_id,
+          helper_id: job.helper_id,
+          budget: job.budget,
+          // Both figures: what this call computed, and what the ledger says
+          // actually moved. They agree on the normal path; when they don't
+          // (a re-run hitting transferToHelper's idempotency guard after the
+          // helper's tier changed) the audit trail shows the discrepancy
+          // instead of quietly picking one.
+          helper_payout_cents: settledTransfer.amountCents,
+          computed_helper_payout_cents: Math.round(helperPayout * 100),
+          platform_fee_cents: Math.round((feeAmt / dpHelpersCount) * 100),
+          helper_fee_percent: disputeFeePercent,
+          payment_intent_id: captureResult.paymentIntentId,
+          stripe_transfer_id: settledTransfer.transferId,
+          dispute_resolved_at: disputeResolvedAt,
+        },
+      });
 
       // Notify both parties
       if (job.helper_id) {
@@ -1169,6 +1234,11 @@ serve(async (req) => {
       // receives a "Refund issued" notification — data corruption with $0 returned.
       // admin_release_dispute has this same guard (line ~816); keep them in sync.
       if (!paymentIntentId) throw new Error("No payment intent found for this job — cannot issue refund");
+      // Hoisted so the dispute-record close below can record what actually went
+      // back to the poster. 0 with a null id is the legitimate "the Stripe fee
+      // consumed the whole capture" outcome, which the branch below alerts on.
+      let disputeRefundId: string | null = null;
+      let disputeRefundCents = 0;
       try {
         const pi = await stripe.paymentIntents.retrieve(paymentIntentId, {
           expand: ["latest_charge.balance_transaction"],
@@ -1218,6 +1288,8 @@ serve(async (req) => {
                 { payment_intent: paymentIntentId, amount: refundAmount },
                 { idempotencyKey: `refund-dispute-${jobId}` },
               );
+              disputeRefundId = refund.id;
+              disputeRefundCents = Math.round(Number(refund.amount ?? refundAmount));
               await recordRefund(supabaseAdmin, {
                 refund,
                 jobId,
@@ -1281,9 +1353,16 @@ serve(async (req) => {
         }
 
       // Refund is out — same fail-loud rule as admin_release_dispute above.
+      // dispute_status/dispute_resolved_at for the same reason: without them
+      // trg_sync_has_active_dispute keeps has_active_dispute = true on a job
+      // whose dispute is over, which is a permanently-live dispute as far as
+      // money-reconciliation's dispute checks and can_review_job are concerned.
+      const refundResolvedAt = new Date().toISOString();
       const { data: refundUpdated, error: refundUpdateErr } = await supabaseAdmin.from("jobs").update({
         status: "cancelled",
         payment_status: "refunded",
+        dispute_status: "resolved",
+        dispute_resolved_at: refundResolvedAt,
       }).eq("id", jobId).select("id");
       if (refundUpdateErr || !refundUpdated || refundUpdated.length === 0) {
         console.error(`CRITICAL: refund issued for disputed job ${jobId} but jobs.update to refunded failed — manual reconciliation needed:`, refundUpdateErr ?? "matched 0 rows");
@@ -1291,6 +1370,33 @@ serve(async (req) => {
           error: "refund issued but job status update failed — manual reconciliation needed",
         }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 });
       }
+
+      // Same two closing writes as the release path: the formal dispute record,
+      // and the audit trail.
+      await closeDisputeRecordForJob(supabaseAdmin, {
+        jobId,
+        outcome: "poster",
+        decidedBy: user.id,
+        decisionText: "Resolved by admin Quick Refund: the escrow was refunded to the poster, less the non-refundable Stripe processing fee.",
+        refundCents: disputeRefundCents,
+        refundId: disputeRefundId,
+      });
+
+      await logAdminMoneyAction(supabaseAdmin, {
+        adminId: user.id,
+        action: "dispute_admin_refund",
+        jobId,
+        details: {
+          job_title: job.title,
+          customer_id: job.customer_id,
+          helper_id: job.helper_id,
+          budget: job.budget,
+          refund_cents: disputeRefundCents,
+          payment_intent_id: paymentIntentId,
+          stripe_refund_id: disputeRefundId,
+          dispute_resolved_at: refundResolvedAt,
+        },
+      });
 
       // Notify both parties
       await supabaseAdmin.from("notifications").insert({
@@ -1535,6 +1641,170 @@ serve(async (req) => {
 /**
  * Transfer funds to the helper's connected Stripe account.
  */
+/**
+ * Read back the settled payout for a job from the `payout_transfers` ledger —
+ * the transfer id AND the amount that actually moved.
+ *
+ * Both halves matter. `transferToHelper` returns nothing, and it has two
+ * success paths: a fresh `stripe.transfers.create`, and an early return when a
+ * `payout_transfers` row already exists (its DB-level idempotency guard). On
+ * that second path the caller's freshly-recomputed `helperPayout` is NOT what
+ * moved — the fee is resolved from the helper's LIVE subscription tier, which
+ * may have changed since the original transfer. Recording the computed figure
+ * beside the real transfer id would put two disagreeing numbers on one row, so
+ * the ledger's `amount_cents` wins whenever there is a row to read.
+ *
+ * Scoped to this helper and to transfers that are actually money: a `failed` or
+ * `reversed` row, or another roster member's transfer on a group job, must
+ * never be stamped onto the dispute record as its settlement.
+ *
+ * Best-effort: nulls cost the dispute record two reference fields and must
+ * never turn a completed release into an error. The error is logged, not
+ * dropped.
+ */
+async function lookupSettledTransfer(
+  supabaseAdmin: any,
+  jobId: string,
+  helperId: string | null,
+): Promise<{ transferId: string | null; amountCents: number | null }> {
+  const empty = { transferId: null, amountCents: null };
+  if (!helperId) return empty;
+  const { data, error } = await supabaseAdmin
+    .from("payout_transfers")
+    .select("stripe_transfer_id, amount_cents, status")
+    .eq("job_id", jobId)
+    .eq("helper_id", helperId)
+    .in("status", ["pending", "paid"])
+    .order("created_at", { ascending: false })
+    .limit(1);
+  if (error) {
+    console.error(`[create-payment] lookupSettledTransfer — payout_transfers read failed for job ${jobId}:`, error);
+    return empty;
+  }
+  const row = data?.[0];
+  if (!row) return empty;
+  const cents = Number(row.amount_cents);
+  return {
+    transferId: (row.stripe_transfer_id as string | undefined) ?? null,
+    amountCents: Number.isFinite(cents) && cents >= 0 ? Math.round(cents) : null,
+  };
+}
+
+/**
+ * Close the `public.disputes` record for a job whose escrow an admin has just
+ * settled by hand, via the single writer `settle_dispute_record`
+ * (20260901034758).
+ *
+ * Deliberately NON-FATAL. Every caller reaches this only AFTER the money has
+ * moved and the job row is correct, so throwing here would turn a completed,
+ * correct settlement into a 500 the admin reads as "it failed" — and they would
+ * click again. The failure is loud instead (console + Slack), and
+ * auto-resolve-disputes' orphan sweep closes the record on its next tick.
+ */
+async function closeDisputeRecordForJob(
+  supabaseAdmin: any,
+  args: {
+    jobId: string;
+    outcome: "helper" | "poster";
+    decidedBy: string;
+    decisionText: string;
+    helperCents?: number | null;
+    refundCents?: number | null;
+    transferId?: string | null;
+    refundId?: string | null;
+  },
+): Promise<void> {
+  try {
+    const { data: disputeId, error } = await supabaseAdmin.rpc("settle_dispute_record", {
+      _job_id: args.jobId,
+      _outcome: args.outcome,
+      _decided_by: args.decidedBy,
+      _decision_text: args.decisionText,
+      _helper_cents: args.helperCents ?? null,
+      _refund_cents: args.refundCents ?? null,
+      _transfer_id: args.transferId ?? null,
+      _refund_id: args.refundId ?? null,
+    });
+    if (error) {
+      console.error(`[create-payment] settle_dispute_record failed for job ${args.jobId}:`, error);
+      await postSlackOpsAlert({
+        kind: "custom",
+        severity: "warning",
+        title: "Dispute settled but its record stayed open",
+        message:
+          "An admin resolved a dispute and the money moved, but the public.disputes row could not be closed. " +
+          "The auto-resolve sweep will retry; until it does, the job cannot take a genuinely new dispute.",
+        fields: {
+          job_id: args.jobId,
+          outcome: args.outcome,
+          admin_id: args.decidedBy,
+          db_error: error.message,
+          db_error_code: (error as { code?: string }).code ?? "",
+        },
+      });
+      return;
+    }
+    // A NULL id is legitimate: a dispute filed before `public.disputes` existed
+    // has no record to close. It is not an error and not a silent no-op — it is
+    // logged so a reader of the logs can tell the two apart.
+    console.log(
+      disputeId
+        ? `[create-payment] closed dispute record ${disputeId} for job ${args.jobId} (${args.outcome})`
+        : `[create-payment] job ${args.jobId} had no open disputes row to close`,
+    );
+  } catch (e) {
+    console.error(`[create-payment] settle_dispute_record threw for job ${args.jobId}:`, e);
+  }
+}
+
+/**
+ * Write the `admin_audit_log` row for an admin action that moved escrow.
+ *
+ * Non-fatal for the same reason as above — the money is already gone, and a
+ * 500 here would invite a second click — but never silent: a money movement
+ * with no audit trail is exactly what an audit log exists to prevent, so a
+ * failed write goes to Slack.
+ */
+async function logAdminMoneyAction(
+  supabaseAdmin: any,
+  args: { adminId: string; action: string; jobId: string; details: Record<string, unknown> },
+): Promise<void> {
+  try {
+    // `.select("id")`: admin_audit_log HAS an id column, and an RLS refusal
+    // returns `{ data: [], error: null }` — indistinguishable from success.
+    const { data, error } = await supabaseAdmin
+      .from("admin_audit_log")
+      .insert({
+        admin_id: args.adminId,
+        action: args.action,
+        target_type: "job",
+        target_id: args.jobId,
+        details: args.details,
+      })
+      .select("id");
+    if (error || !data || data.length === 0) {
+      console.error(
+        `CRITICAL: admin_audit_log write failed for ${args.action} on job ${args.jobId}:`,
+        error ?? "matched 0 rows",
+      );
+      await postSlackOpsAlert({
+        kind: "custom",
+        severity: "warning",
+        title: "Admin money action left no audit trail",
+        message: `An admin moved escrow (${args.action}) but the admin_audit_log row was not written.`,
+        fields: {
+          job_id: args.jobId,
+          action: args.action,
+          admin_id: args.adminId,
+          db_error: error?.message ?? "insert matched 0 rows",
+        },
+      });
+    }
+  } catch (e) {
+    console.error(`[create-payment] logAdminMoneyAction threw for job ${args.jobId}:`, e);
+  }
+}
+
 async function transferToHelper(
   stripe: any,
   supabaseAdmin: any,

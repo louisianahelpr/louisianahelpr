@@ -46,6 +46,31 @@
  */
 
 /**
+ * Why an avatar surface is showing a monogram instead of a photograph.
+ *
+ * `null` — reported alongside these by `<UserAvatar onPhotoRejected>` — means
+ * a real photograph IS on screen. The verdict lives here rather than in
+ * `UserAvatar` because three of the four values are decided by the detectors
+ * in this file, and because callers import it to type their own state.
+ *
+ * The distinction the callers actually need is "is there a face here?", and
+ * every value except `null` answers no. They are kept apart anyway because
+ * the right REMEDY differs: `no-photo` and `blank-bitmap` are fixed by the
+ * member uploading something, `placeholder-url` by them replacing a generator
+ * URL, and `load-error` is a fault on our side or the host's that no prompt
+ * to the member can fix.
+ */
+export type AvatarPhotoRejection =
+  /** No `src` at all — `avatar_url` is null/empty. */
+  | "no-photo"
+  /** A monogram GENERATOR URL (DiceBear, ui-avatars, a `?d=` gravatar default). */
+  | "placeholder-url"
+  /** Loaded with HTTP 200 and decoded, but carries no information. */
+  | "blank-bitmap"
+  /** Failed to load even after the retry without `crossOrigin`. */
+  | "load-error";
+
+/**
  * Is this `avatar_url` a monogram GENERATOR rather than a photograph?
  *
  * Gravatar is a deliberate special case: a real Gravatar upload IS a real
@@ -203,10 +228,22 @@ export function isBlankAvatarBitmap(img: HTMLImageElement): boolean {
 export function avatarInitials(name: string | null | undefined, fallback = "?"): string {
   const parts = (name ?? "").trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return fallback;
+  // FIRST CODE POINT, not `charAt(0)`.
+  //
+  // `charAt` returns one UTF-16 code UNIT, so on any name whose first
+  // character is outside the BMP — an emoji, and every emoji-flag or
+  // skin-tone name people actually use — it returns a lone high surrogate.
+  // That is not a character: it renders as the replacement glyph "" and
+  // produces precisely the artefact this module exists to eliminate, a
+  // coloured circle with a meaningless mark in it. Taking `[0]` of the
+  // spread walks code points instead. (Combining sequences and ZWJ emoji
+  // still yield only their first code point, which is a legible glyph — the
+  // failure being fixed is the un-renderable half-character.)
+  const firstOf = (s: string) => [...s][0] ?? "";
   const letters =
     parts.length === 1
-      ? parts[0].charAt(0)
-      : parts[0].charAt(0) + parts[parts.length - 1].charAt(0);
+      ? firstOf(parts[0])
+      : firstOf(parts[0]) + firstOf(parts[parts.length - 1]);
   // A name of "…" or "🙂" yields characters that are not letters but ARE ink,
   // so they are kept; only a genuinely empty result falls through.
   return letters.toUpperCase().trim() || fallback;

@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { user_id, title, message, type = "info", link = null } = await req.json();
+    const { user_id, title, message, type = "info", link = null, job_id = null } = await req.json();
 
     // Validate required fields
     if (!user_id || !title || !message) {
@@ -164,6 +164,25 @@ Deno.serve(async (req) => {
       });
     }
 
+    // job_id is caller-supplied, so pin it to a UUID before it goes anywhere
+    // near the insert. A bad shape is rejected rather than dropped: silently
+    // nulling it would produce exactly the failure this column exists to end —
+    // a notification that looks fine and has lost the job it is about.
+    // Referential truth is the FK's job, not this function's: a well-formed id
+    // naming a job that does not exist is refused by
+    // notifications_job_id_fkey, and the insert-error branch below reports it.
+    let sanitizedJobId: string | null = null;
+    if (job_id != null) {
+      const JOB_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (typeof job_id !== "string" || !JOB_UUID_RE.test(job_id)) {
+        return new Response(JSON.stringify({ error: "Invalid job_id: must be a uuid" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      sanitizedJobId = job_id;
+    }
+
     // Sanitize link to a same-origin path. If a non-null link was provided
     // and failed the check, reject the request rather than silently dropping
     // it — silent drops produce a confusing notification with no destination.
@@ -189,6 +208,11 @@ Deno.serve(async (req) => {
         message,
         type,
         link: sanitizedLink,
+        // NULL here is not "no job" — it is "this caller did not say". The
+        // trg_notifications_fill_job_id trigger then recovers the job from the
+        // link when the link carries one, so a job-shaped link still lands
+        // with a reference even from a producer that has not been updated.
+        job_id: sanitizedJobId,
       })
       .select("id")
       .single();

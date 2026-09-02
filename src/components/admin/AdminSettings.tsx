@@ -17,6 +17,7 @@ import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
 import { Switch } from "@/components/ui/switch";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { requireBiometric } from "@/lib/biometricGate";
+import { resetMinSupportedBuildCache } from "@/lib/minSupportedBuild";
 
 // The fee-ladder rungs an admin is shown, DERIVED from the tier config rather
 // than restated. `TIER_PERKS` is the same table `tierFeePercent()` resolves a
@@ -151,6 +152,22 @@ const AdminSettings = () => {
       return;
     }
     setSavingMinBuild(false);
+    // Drop this tab's own cached threshold so a second save inside the 60s
+    // window is not read back stale. (The gate itself is native-only, so this
+    // admin session is never the thing being blocked — this is hygiene, not
+    // the mechanism by which the change reaches phones: those re-read on their
+    // own TTL and on foreground.)
+    resetMinSupportedBuildCache();
+    // Say what the save DID, not just that it saved. This control was silent
+    // on success while it was inert, which was survivable; now that it turns
+    // people away, an operator changing it during an incident needs to see the
+    // resulting behaviour confirmed back — and needs "0" to read unmistakably
+    // as off, because that is the undo.
+    toast.success(
+      n === 0
+        ? "Force-update gate turned OFF — no device is blocked."
+        : `Force-update gate live — native builds below ${n} will be blocked within a minute.`,
+    );
     await logAdminAction("update_settings", "platform_settings", settingsId, {
       min_supported_build: n,
     });
@@ -522,18 +539,44 @@ const AdminSettings = () => {
         title={<span className="flex items-center gap-2"><Smartphone className="w-4 h-4 text-primary" /> Minimum Supported Build</span>}
         subtitle={
           <>
-            {/* NOT ENFORCED YET — and saying otherwise is the dangerous kind of
-                wrong, because an operator would set this during an incident and
-                believe old builds were being turned away. `min_supported_build`
-                is written and read ONLY by this screen: an exhaustive grep of
-                src/** and supabase/functions/** finds no gate, hook, or route
-                that reads the column, and the force-update component its
-                migration references does not exist in the repo. The control is
-                left in place because the column is the intended home for the
-                value; the copy now states what actually happens. */}
-            Stored for the launch gate. <strong className="text-foreground">Nothing enforces it yet</strong> — no
-            build currently reads this column, so setting it does not block any device.{" "}
+            {/* ENFORCED as of 2026-08-31. This copy said "nothing enforces it
+                yet" for as long as that was true, which was the right call —
+                an operator would otherwise have set it during an incident and
+                believed old builds were being turned away. It is no longer
+                true, and a stale reassurance is worse than the original lie:
+                it would now talk an operator OUT of using the one lever that
+                works while a bad build sits in App Review.
+
+                What reads it: src/hooks/useVersionCheck.ts, via
+                get_public_platform_settings() (migration 20260901035235 — the
+                table itself is admin-only under RLS, so the column had to
+                travel through the RPC to reach a normal user's app).
+                src/components/ForceUpdateGate.tsx renders the block.
+
+                The three qualifications below are not hedging, they are the
+                actual behaviour, and an operator who does not know them will
+                misread what this control did:
+                  · NATIVE ONLY. The web app has no build number and updates on
+                    reload, so it is never blocked — including /admin, which is
+                    where this number gets lowered again.
+                  · FAILS OPEN. A failed settings read, an unparseable build, a
+                    missing column: all let the user in. A gate that blocks on
+                    its own failure is an outage that needs App Review to fix.
+                  · Takes about a minute to reach a running app (60s cache),
+                    and lands on a backgrounded install when it next comes to
+                    the foreground — not only on a cold start. */}
+            Blocks native installs older than this build with an{" "}
+            <strong className="text-foreground">"Update Helpr to continue"</strong> screen —
+            the one lever that works while a bad build is stuck in App Review. Takes
+            effect within a minute on running apps.{" "}
             <code className="text-foreground">0</code> is the off value.
+            <br />
+            <span className="text-ds-11">
+              iOS/Android only — the website has no build number and is never blocked.
+              The gate fails open, so a settings-read failure never locks anyone out.
+              Use the build number from App Store Connect (CFBundleVersion), and set it{" "}
+              <em>above</em> the build you are turning away, not equal to it.
+            </span>
           </>
         }
       >

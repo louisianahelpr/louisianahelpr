@@ -492,26 +492,28 @@ const ProfilePage = () => {
     if (deleteConfirmText !== "DELETE") return;
     setDeletingAccount(true);
     try {
-      // Block deletion while the user is mid-transaction: an active job or
-      // escrowed funds would be orphaned. The edge function enforces this too
-      // (409), but pre-checking here lets us show a clear, human message
-      // instead of a generic "Failed to delete" from a non-2xx response.
-      if (user?.id) {
-        const { data: activeJobs, error: activeErr } = await supabase
-          .from("jobs")
-          .select("id")
-          .or(`customer_id.eq.${user.id},helper_id.eq.${user.id}`)
-          .or("status.in.(accepted,arrived,in_progress,awaiting),payment_status.eq.escrow")
-          .limit(1);
-        if (activeErr) throw activeErr;
-        if (activeJobs && activeJobs.length > 0) {
-          toast.error(
-            "You have an active job or a payment in progress. Wrap up your open jobs and let any payments settle first.",
-          );
-          setDeletingAccount(false);
-          return;
-        }
-      }
+      // There is NO client-side pre-check for active jobs here, on purpose.
+      //
+      // There used to be one, duplicating the guard inside delete-own-account.
+      // It carried its own copy of the `job_status` list, that copy contained
+      // `arrived` and `awaiting` — neither of which is a member of the enum
+      // (`arrived` belongs to `job_tracking.status`; `awaiting` exists
+      // nowhere) — and Postgres rejects the WHOLE query with 22P02 when any
+      // listed value is not a member. Verified against prod 2026-08-31:
+      //   GET /rest/v1/jobs?status=in.(accepted,arrived,in_progress,awaiting)
+      //   -> 400 {"code":"22P02","message":"invalid input value for enum
+      //           job_status: \"arrived\""}
+      // Because `if (activeErr) throw activeErr` ran before the invoke, this
+      // threw for EVERY user regardless of whether they had any jobs, so
+      // in-app account deletion was 100% broken — an App Store compliance
+      // gate. The edge function's identical list was fixed a day earlier and
+      // the fix was never carried across, which is the whole argument against
+      // keeping a second copy.
+      //
+      // The server already enforces this and answers 409 with a human message
+      // that `functionErrorMessage` surfaces verbatim, so the pre-check bought
+      // nothing but a drift hazard. One guard, server-side, where it has to
+      // live anyway.
       const { error } = await supabase.functions.invoke("delete-own-account", {
         body: { confirmation: "DELETE MY ACCOUNT" },
       });

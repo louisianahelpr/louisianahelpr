@@ -7,6 +7,19 @@ interface NotificationPayload {
   message: string;
   type?: string;
   link?: string | null;
+  /**
+   * The job this notification is about. PASS IT whenever one is in scope —
+   * including when `link` points somewhere that is not a job (`/earnings` for
+   * a payout, `/admin` for an operator alert). It is the reference the reader
+   * resolves their destination from (notificationDestination.ts), and it is
+   * the only way a notification whose link carries no id can name its job.
+   *
+   * Omitting it is safe but lossy: a `trg_notifications_fill_job_id` trigger
+   * recovers the job from a link that already carries one (`?job=`,
+   * `?jobId=`, `?quickApply=`, `/jobs/<id>`), so a job-shaped link still ends
+   * up with a job_id. A link with no id in it cannot be recovered at all.
+   */
+  job_id?: string | null;
 }
 
 /**
@@ -19,10 +32,10 @@ interface NotificationPayload {
  * "Email delivery failed" notification out to every admin.
  */
 export async function createNotification(payload: NotificationPayload) {
-  const { user_id, title, message, type = "info", link = null } = payload;
+  const { user_id, title, message, type = "info", link = null, job_id = null } = payload;
 
   const { error: fnError } = await supabase.functions.invoke("create-notification", {
-    body: { user_id, title, message, type, link },
+    body: { user_id, title, message, type, link, job_id },
   });
 
   if (fnError) {

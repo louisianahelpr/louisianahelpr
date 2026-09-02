@@ -418,6 +418,10 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
         // Warnings & Strikes, not the Profile landing tab — this notification
         // IS a strike, and `?tab=warnings` is the screen that lists it.
         link: "/profile?tab=warnings",
+        // The destination is correct and carries no job id, so the job can
+        // only travel as the reference. Without it "which job was I struck
+        // over?" is answerable from the message text alone.
+        job_id: job.id,
       });
       // Admin fan-out — a silent drop here means no admin gets the
       // no-show alert. Warn-report but continue (the poster's toast still
@@ -427,7 +431,7 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
         report(adminRolesErr, { severity: "warning", tags: { source: "useLifecycleHandlers.noShowAdminFanout" } });
       }
       for (const admin of adminRoles ?? []) {
-        await createNotification({ user_id: admin.user_id, title: "🚫 No-show reported", message: `Helpr no-show for "${job.title}". ${legacyBanned ? "Auto-banned." : restricted ? "Restricted 7 days — ban review pending." : "Warning issued."}`, type: "warning", link: "/admin" });
+        await createNotification({ user_id: admin.user_id, title: "🚫 No-show reported", message: `Helpr no-show for "${job.title}". ${legacyBanned ? "Auto-banned." : restricted ? "Restricted 7 days — ban review pending." : "Warning issued."}`, type: "warning", link: "/admin", job_id: job.id });
       }
       // Success feedback, in the same shape confirmArrival/confirmWorking use.
       // This handler pulls the consequence ladder — a final warning, or a

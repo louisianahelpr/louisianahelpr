@@ -36,6 +36,7 @@ import { useAppShellViewport } from "@/hooks/useAppShellViewport";
 import { useStatusBarStyle } from "@/hooks/useStatusBarStyle";
 import { useAppLifecycle } from "@/lib/appLifecycle";
 import { AppLockGate } from "@/components/AppLockGate";
+import { ForceUpdateGate } from "@/components/ForceUpdateGate";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useDarkMode } from "@/hooks/useDarkMode";
 
@@ -109,7 +110,6 @@ const HomeHistory = lazy(() => import("./pages/HomeHistory"));
 const WorkRecord = lazy(() => import("./pages/WorkRecord"));
 const HelperAnalytics = lazy(() => import("./pages/HelperAnalytics"));
 const PetProfiles = lazy(() => import("./pages/PetProfiles"));
-const BenefitsPage = lazy(() => import("./pages/BenefitsPage"));
 
 // Lazy load less-critical global components
 
@@ -134,6 +134,28 @@ const AdminRoute = lazy(() => import("./components/AdminRoute"));
 const routeEl = (node: ReactElement, fallback: ReactElement = <RouteSuspenseFallback />) => (
   <Suspense fallback={fallback}>{node}</Suspense>
 );
+
+/**
+ * A `<Navigate>` that carries the query string (and hash) across.
+ *
+ * `<Navigate to="/somewhere" />` REPLACES the entire location, so `?claim=`,
+ * `?token=`, `?job=` and every other param the inbound link depended on is
+ * discarded. That is silent by construction: the destination reads `null` from
+ * `searchParams.get(...)`, takes its "nothing to do" branch, and renders a
+ * perfectly normal page — no error, no toast, nothing in Sentry. It has now
+ * cost this app four separate bugs (two `pif_credit`, the old `/activity`
+ * redirect that burned direct offers, and the gift-card claim link), so the
+ * fix is a named primitive rather than a fourth one-off.
+ *
+ * Use this for ANY legacy-path redirect. Only a redirect whose destination
+ * hard-codes its own params (e.g. `/terms` → `/legal?tab=terms`) should keep a
+ * bare `<Navigate>`, and only because those paths are never linked with a
+ * query — see the audit note on each below.
+ */
+function PreserveQueryRedirect({ to }: { to: string }) {
+  const { search, hash } = useLocation();
+  return <Navigate to={{ pathname: to, search, hash }} replace />;
+}
 
 const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
   const location = useLocation();
@@ -280,8 +302,21 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       {/* Gift Card — send a gift card to a Helpr (renamed from Pay It Forward) */}
       <Route path="/auto-tip" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><AutoTip /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/gift-card" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PayItForward /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      {/* Legacy /pay-it-forward → /gift-card (feature renamed). */}
-      <Route path="/pay-it-forward" element={<Navigate to="/gift-card" replace />} />
+      {/* Legacy /pay-it-forward → /gift-card (feature renamed).
+          MUST carry the query string. This was a bare
+          `<Navigate to="/gift-card" replace />`, and a bare string `to`
+          replaces the whole location — search and hash included — so every
+          gift-card claim link died here. `_shared/pifGiftEmail.ts:49` mails
+          `${getAppUrl()}/pay-it-forward?claim=<token>`; the token was dropped
+          on the way to /gift-card, PayItForward.tsx:121 read `null` from
+          `searchParams.get("claim")`, its claim effect returned early, and the
+          credit was never claimed — no error, no toast, nothing to notice.
+          Signed out it died one step earlier: ProtectedRoute builds
+          `?redirect=` from `location.pathname + location.search`, so with the
+          search already gone the user came back from login to a bare
+          /gift-card. Same defect shape as the two `pif_credit` bugs and the
+          old `/activity` redirect (see ActivityLegacyRedirect). */}
+      <Route path="/pay-it-forward" element={<PreserveQueryRedirect to="/gift-card" />} />
       {/* /analytics — Advanced Analytics, the perk printed on the $10 Pro card.
           It was a <Navigate> to the Earnings tab from 2026-08-23, and that was
           the right call at the time: the old page rendered the SAME body as the
@@ -324,8 +359,16 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           visitor never sees a flash of authed chrome (HelprWrapped's own
           useEffect redirect used to fire only after the first paint). */}
       <Route path="/wrapped" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><HelprWrapped /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      {/* Benefits marketplace — partner perks for helpers */}
-      <Route path="/benefits" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BenefitsPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      {/* /benefits (BenefitsPage) was removed 2026-08-31 (owner): there were
+          no partner agreements behind it — every row was a plain link to a
+          public third-party site, so the screen made a promise the product
+          could not honour. Deleted outright rather than retitled. NO redirect,
+          for the same reason as the retired routes above: nothing outside the
+          app cites the URL (it is absent from sitemap.xml, robots.txt, the App
+          Store metadata, every email/push template and every legal page — it
+          was a ProtectedRoute reachable only from the Profile → Work group),
+          so it falls through to the `path="*"` NotFound below. If an external
+          citation ever appears, add a real <Route>, not a comment. */}
       {/* Pet care — manage pet profiles and vet notes */}
       <Route path="/pets" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PetProfiles /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* /evacuation was removed; its redirect to /pets went with it in
@@ -552,6 +595,19 @@ const App = () => (
       <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md">
         Skip to content
       </a>
+      {/* ForceUpdateGate sits OUTSIDE the router, above AppLockGate, and is
+          the outermost thing in the tree that can replace the app.
+          · Outside the router because it is not a route and has none: its only
+            navigation is an external App Store link, so it must not depend on
+            the router — or on any of the app it is refusing to run — to work.
+          · Above AppLockGate because when both apply (an out-of-date install
+            with Face ID enabled) this one must win. Demanding a biometric
+            before telling someone their app is dead is the wrong first screen,
+            and there is no account data on this one to protect.
+          It renders children untouched on the web and on any native install
+          that is up to date, gate-off, or unable to answer the question — see
+          hooks/useVersionCheck.ts for why every uncertainty lets the user in. */}
+      <ForceUpdateGate>
       <BrowserRouter>
         {/* Provider wraps the banner (publisher of its measured height) and
             the page content (AppShell reads the offset to reserve space).
@@ -593,6 +649,7 @@ const App = () => (
         </OfflineBannerLayoutProvider>
         </AppLockGate>
       </BrowserRouter>
+      </ForceUpdateGate>
       <Analytics />
     </QueryClientProvider>
   </ErrorBoundary>

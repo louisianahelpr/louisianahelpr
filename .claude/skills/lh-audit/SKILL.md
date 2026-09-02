@@ -1389,9 +1389,8 @@ on the way to their first success.
   `App.tsx`: `/pets` (PetProfiles), `/evacuation` (EvacuationMode, public),
   `/family` (FamilyDashboard) + `/family/accept/:token` (invite accept),
   `/home-history` + `/work-record` (job history, poster vs helper), `/pay-it-forward`
-  (community credit donation/redemption), `/analytics` (HelperAnalytics),
-  `/benefits` (partner perks; `submit-partner-application`), plus STR iCal sync
-  (`str-ical-sync`, StrSettings), AI job builder (`ai-job-builder`), and **Helpr
+  (community credit donation/redemption), `/analytics` (HelperAnalytics), plus
+  STR iCal sync (`str-ical-sync`, StrSettings), AI job builder (`ai-job-builder`), and **Helpr
   Pass wallet** (`helpr-pass-wallet` — the Apple/Google Wallet pass: verify the
   add-to-wallet affordance appears where offered, the pass generates without error,
   and its fields — name, member tier, QR/barcode — match the account; native-only,

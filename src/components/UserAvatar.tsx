@@ -2,7 +2,12 @@ import * as React from "react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { avatarGradientFor } from "@/lib/avatarGradient";
-import { avatarInitials, isBlankAvatarBitmap, isPlaceholderAvatarUrl } from "@/lib/avatarImage";
+import {
+  avatarInitials,
+  isBlankAvatarBitmap,
+  isPlaceholderAvatarUrl,
+  type AvatarPhotoRejection,
+} from "@/lib/avatarImage";
 import { transformedImageUrl } from "@/lib/imageUrl";
 import { cn } from "@/lib/utils";
 
@@ -73,6 +78,40 @@ interface UserAvatarProps
   alt?: string;
   /** Extra classes for the inner fallback (gradient sits inside this). */
   fallbackClassName?: string;
+  /**
+   * Reports whether a real photograph is on screen, and when it is not, why.
+   * `null` means a photo IS showing; any other value means the monogram is
+   * the final render.
+   *
+   * ── WHY THIS EXISTS ───────────────────────────────────────────────────
+   * Before this, the bitmap-level verdict was reachable only from INSIDE
+   * this component, so a caller could not tell a genuine photograph from a
+   * flat block that had been rejected — both left `avatar_url` non-null and
+   * neither fired `onError`. Two surfaces got that wrong in the same way:
+   * `ProfileHeaderCard` painted the "ID verified" shield over a monogram,
+   * and `PhotoNameSection` suppressed the "add a photo" prompt for exactly
+   * the member who most needed it. Both call sites documented the gap and
+   * named this prop as the fix.
+   *
+   * ── CONTRACT ──────────────────────────────────────────────────────────
+   * Fired on every CHANGE of verdict, including back to `null`, and that
+   * totality is load-bearing rather than tidiness: without the `null` edge a
+   * caller's `rejected` state would survive a re-upload (the cache-busted
+   * `?t=` src that lands after every upload) and survive row recycling in a
+   * list, leaving a stale "no photo" verdict painted over a good photo.
+   *
+   * It is NOT fired while the image is still in flight — the verdict during
+   * that window is `null`, i.e. "not rejected yet". A caller must therefore
+   * treat `null` as "assume a photo" and not as "confirmed photo", which is
+   * the right default: hiding a real trust signal on every load would be a
+   * worse regression than a badge that resolves a frame late. For an image
+   * already in the memory cache — the list-scroll case — the ref callback
+   * samples it before paint, so there is no window at all.
+   *
+   * Identity is not part of the contract: an inline arrow is fine, the
+   * callback is held in a ref so re-creating it does not re-fire.
+   */
+  onPhotoRejected?: (reason: AvatarPhotoRejection | null) => void;
 }
 
 const UserAvatar = React.forwardRef<
@@ -88,6 +127,7 @@ const UserAvatar = React.forwardRef<
     alt = "",
     className,
     fallbackClassName,
+    onPhotoRejected,
     ...rest
   },
   ref,
@@ -95,7 +135,11 @@ const UserAvatar = React.forwardRef<
   // A truthy-but-broken `src` (stale storage path, deleted bucket, 404) would
   // otherwise fail to load and paint the alt text over a transparent box.
   // Treat a load error as "no photo" and fall through to the monogram.
-  const [avatarFailed, setAvatarFailed] = React.useState(false);
+  //
+  // This holds the REASON rather than a boolean so `onPhotoRejected` can tell
+  // a blank upload (the member can fix it) from a load failure (they cannot).
+  // `null` is "not rejected" and covers both "still loading" and "it's fine".
+  const [failure, setFailure] = React.useState<"blank-bitmap" | "load-error" | null>(null);
 
   // `crossOrigin="anonymous"` is what makes the blank-bitmap sample possible:
   // without it the canvas is tainted and `getImageData` throws. Measured
@@ -128,7 +172,7 @@ const UserAvatar = React.forwardRef<
   // the list would keep every subsequent occupant of that slot on the
   // monogram path.
   React.useEffect(() => {
-    setAvatarFailed(false);
+    setFailure(null);
     setCorsMode("anonymous");
   }, [imageSrc]);
 
@@ -138,7 +182,7 @@ const UserAvatar = React.forwardRef<
       setCorsMode("plain");
       return;
     }
-    setAvatarFailed(true);
+    setFailure("load-error");
   }, [corsMode]);
 
   // Sampling runs from BOTH the ref callback and `onLoad`. The ref fires first
@@ -148,7 +192,7 @@ const UserAvatar = React.forwardRef<
   // `isBlankAvatarBitmap` is a no-op when the bitmap isn't decoded yet.
   const inspect = React.useCallback((img: HTMLImageElement | null) => {
     if (!img) return;
-    if (isBlankAvatarBitmap(img)) setAvatarFailed(true);
+    if (isBlankAvatarBitmap(img)) setFailure("blank-bitmap");
   }, []);
 
   const handleLoad = React.useCallback(
@@ -159,7 +203,28 @@ const UserAvatar = React.forwardRef<
   // A monogram GENERATOR URL is not a photo — see `isPlaceholderAvatarUrl`.
   // Checked against the raw `src`, not the transformed one, since the
   // transform only ever touches Supabase URLs.
-  const showPhoto = !!imageSrc && !avatarFailed && !isPlaceholderAvatarUrl(src);
+  //
+  // `rejection` is the single expression BOTH the render and the callback
+  // read, so a caller's badge can never disagree with the pixels beside it —
+  // the two cannot drift because there is only one decision.
+  const rejection: AvatarPhotoRejection | null = !imageSrc
+    ? "no-photo"
+    : isPlaceholderAvatarUrl(src)
+      ? "placeholder-url"
+      : failure;
+  const showPhoto = rejection === null;
+
+  // Held in a ref so an inline `onPhotoRejected={(r) => …}` — which every
+  // call site writes — does not make the effect below re-fire on every
+  // render of the parent. The effect depends on the VERDICT only, which is
+  // what "fired on every change of verdict" in the prop docs means.
+  const onPhotoRejectedRef = React.useRef(onPhotoRejected);
+  React.useEffect(() => {
+    onPhotoRejectedRef.current = onPhotoRejected;
+  });
+  React.useEffect(() => {
+    onPhotoRejectedRef.current?.(rejection);
+  }, [rejection]);
 
   return (
     <Avatar ref={ref} className={className} {...rest}>

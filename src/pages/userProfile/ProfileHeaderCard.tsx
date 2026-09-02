@@ -1,8 +1,9 @@
-import { type ComponentProps, type ReactNode } from "react";
+import { useState, type ComponentProps, type ReactNode } from "react";
 import { Briefcase, Clock, MapPin, ShieldCheck, Users } from "lucide-react";
 import CredentialBadge from "@/components/CredentialBadge";
 import HelperTierBadge from "@/components/profile/HelperTierBadge";
 import UserAvatar from "@/components/UserAvatar";
+import type { AvatarPhotoRejection } from "@/lib/avatarImage";
 import type { Database } from "@/integrations/supabase/types";
 import type { ProfileStatsShape, LastActiveLabel } from "./types";
 
@@ -125,15 +126,19 @@ export const ProfileHeaderCard = ({
      `monogram` derivation this file used to keep, including its
      never-render-an-empty-block guarantee.
 
-     KNOWN GAP, NOT FIXED HERE: `<UserAvatar>` has no callback when it rejects
-     a blank bitmap, so a member whose upload is a flat block still gets the
-     "ID verified" badge over their monogram. Closing that needs an
-     `onPhotoRejected` prop on `<UserAvatar>`, which is outside this file. */
+     THAT GAP IS NOW CLOSED (2026-08-31). `<UserAvatar>` reports its verdict
+     through `onPhotoRejected`, so this card can tell a photograph from a
+     rejected block and stops painting the "ID verified" shield over a
+     monogram. See `photoRejection` below. */
 
   // See (5) above: the private, own-row-only flag OR the public column that
   // `get_safe_profiles` exposes precisely so visitors can see this.
   const idVerified =
     isIdVerified || (profile as unknown as { is_id_verified?: boolean }).is_id_verified === true;
+
+  // `null` while a photo is (or may still turn out to be) showing.
+  const [photoRejection, setPhotoRejection] = useState<AvatarPhotoRejection | null>(null);
+  const showsPhoto = photoRejection === null;
 
   const location = profile.location ?? null;
   const memberSinceLabel = profile.created_at
@@ -186,8 +191,23 @@ export const ProfileHeaderCard = ({
               // migrations pass `rounded-ds-md` here.
               fallbackClassName="rounded-ds-avatar squircle text-ds-24 ring-0 drop-shadow-sm"
               style={{ boxShadow: "0 0 0 2px hsl(var(--bark) / 0.18)" }}
+              onPhotoRejected={setPhotoRejection}
             />
-            {idVerified && (
+            {/* `showsPhoto` gates the CORNER badge only, and deliberately not
+                the "Stripe verified" pill in the trust row below.
+
+                The two are not the same claim. This badge is an overlay on a
+                PORTRAIT — a checkmark on the corner of a face, asserting that
+                THAT face was identity-checked. Over a monogram it has no
+                referent: it decorates a generated block, which is precisely
+                how a flat upload came to look more trustworthy than a member
+                with no photo at all. The pill in the trust row states the same
+                fact in words, about the person rather than the picture, so
+                suppressing the overlay costs the profile nothing — a verified
+                member with a blank avatar still reads "Stripe verified" one
+                line down. Verify that pill is still there before ever
+                extending this gate to it. */}
+            {idVerified && showsPhoto && (
               <div
                 // role="img" is required for the label to survive: aria-label is
                 // PROHIBITED on a bare <div> (implicit role=generic), so without

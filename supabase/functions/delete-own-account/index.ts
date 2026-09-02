@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
+import { describeDeleteError, purgeAccount } from "../_shared/accountPurge.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -105,17 +106,46 @@ serve(async (req) => {
       );
     }
 
-    // Delete the user from auth (cascade removes profile and related data)
+    // Erase what must be erased and anonymise what must be retained, BEFORE
+    // touching the auth row. See _shared/accountPurge.ts for the ordering
+    // argument — the short version is that if anything below fails, the
+    // account is already stripped of its PII and its stored documents rather
+    // than left fully intact behind an error message.
+    //
+    // This is the step that was missing entirely. `auth.admin.deleteUser`
+    // alone left the user's government ID scan in `id-documents/<uid>/`, their
+    // avatar anonymously fetchable from the public `avatars` bucket, their
+    // messages (no FK on that table, so nothing cascades) and their Stripe
+    // subscription still billing.
+    const purge = await purgeAccount(supabaseAdmin, user.id);
+    if (!purge.ok) {
+      console.error("[delete-own-account] purge incomplete:", JSON.stringify(purge.steps));
+      return new Response(JSON.stringify({ error: purge.userMessage }), {
+        status: 503,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    console.log(`[delete-own-account] purge for ${user.id}:`, JSON.stringify(purge.steps));
+
+    // Now the auth row. Remaining FK rules finish the job: CASCADE erases the
+    // profile and the reviews written ABOUT this user; SET NULL anonymises the
+    // reviews they WROTE (a third party's reputation), the payout ledger, and
+    // the jobs retained as financial records.
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(user.id);
 
     if (deleteError) {
-      return new Response(JSON.stringify({ error: deleteError.message }), {
+      // Never pass a raw Postgres constraint violation to the user. Before
+      // this, a 23503 surfaced verbatim in the delete dialog as
+      // `violates foreign key constraint "jobs_helper_id_fkey"` — a permanent,
+      // unexplained refusal with no way forward.
+      console.error("[delete-own-account] deleteUser failed:", deleteError.message);
+      return new Response(JSON.stringify({ error: describeDeleteError(deleteError.message) }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    return new Response(JSON.stringify({ success: true }), {
+    return new Response(JSON.stringify({ success: true, steps: purge.steps }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {

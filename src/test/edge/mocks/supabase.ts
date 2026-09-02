@@ -36,6 +36,22 @@ export interface TableResult {
    * Additive: a scenario that does not set this behaves exactly as before.
    */
   selectOverrides?: Array<{ includes: string; result: TableResult }>;
+  /**
+   * The exact row count PostgREST reports for `.select(cols, { count: "exact" })`.
+   *
+   * OPT-IN ON PURPOSE. Real PostgREST answers the count from a `COUNT(*)` that
+   * is NOT subject to `db-max-rows`, which is why `_shared/paginate.ts` uses it
+   * as its independent proof that a paged read saw everything: the header on a
+   * capped read literally reads `0-999/1619`. Leaving it unset makes the mock
+   * return `count: null`, which is how every pre-existing scenario behaved and
+   * is what `scanAll` reads as "the server withheld a count" — so those tests
+   * are untouched.
+   *
+   * Set it ABOVE `rows.length` to simulate the truncation this project's cap
+   * actually produces: the store hands back the seeded rows while the server
+   * insists more exist, which is precisely the shape of a silently short read.
+   */
+  count?: number;
 }
 
 /**
@@ -140,14 +156,24 @@ class QueryBuilder implements PromiseLike<{ data: unknown; error: unknown }> {
   /** Column list passed to a WRITE's trailing `.select(...)`. */
   private writeSelectCols: string | null = null;
   private filters: Array<{ op: "eq" | "neq" | "in"; column: string; value: unknown }> = [];
+  /** Set by `.select(cols, { count: "exact" })`. */
+  private wantsCount = false;
+  /** Set by `.select(cols, { head: true })` — a count with no rows. */
+  private headOnly = false;
+  /** Set by `.range(from, to)`. Null means "no window requested". */
+  private window: { from: number; to: number } | null = null;
 
   constructor(private table: string) {}
 
-  select(_cols?: string) {
+  select(_cols?: string, _opts?: { count?: "exact" | "planned" | "estimated"; head?: boolean }) {
     if (this.op === "select") {
       // Remembered so `selectOverrides` can tell two reads of the same table
       // apart by the columns they asked for.
       this.cols = _cols ?? "";
+      // `{ count: "exact" }` asks PostgREST for the true total alongside the
+      // (possibly capped) page. `head: true` asks for the count and NO rows.
+      if (_opts?.count) this.wantsCount = true;
+      if (_opts?.head) this.headOnly = true;
     } else {
       this.endsWithSelect = true;
       // Remembered so a test can assert the PROJECTION, not merely that some
@@ -201,6 +227,21 @@ class QueryBuilder implements PromiseLike<{ data: unknown; error: unknown }> {
     return this;
   }
   /**
+   * `.ilike(column, pattern)` — case-insensitive LIKE. Chainable no-op like its
+   * siblings; the scenario decides the result.
+   *
+   * It was MISSING, and the omission was not inert — it is the same trap
+   * `.not()` was. `review-nag-cron`'s duplicate-nag guard is
+   * `.eq().eq().ilike("link", "%job=…%").gte()`, so the chain threw
+   * `TypeError: … .ilike is not a function` inside the function's own
+   * try/catch and the whole run took the error path. The function simply could
+   * not be loaded by this harness at all.
+   */
+  ilike(column?: string, value?: unknown) {
+    this.filters.push({ op: "eq", column: column ?? "", value });
+    return this;
+  }
+  /**
    * `.not(column, operator, value)` — PostgREST's negation. Chainable no-op
    * like its siblings; the scenario decides the result.
    *
@@ -232,14 +273,46 @@ class QueryBuilder implements PromiseLike<{ data: unknown; error: unknown }> {
   order() {
     return this;
   }
+  /**
+   * `.range(from, to)` — PostgREST's inclusive row window, and the ONLY way to
+   * read past `db-max-rows`. Implemented as a real slice rather than a
+   * chainable no-op: `_shared/paginate.ts` decides it has reached the end of a
+   * table when a page comes back SHORTER than it asked for, so a no-op `range`
+   * would hand every page the full seeded set and spin the loop to its page
+   * ceiling. Slicing makes a paged read terminate here the same way it does
+   * against the real server.
+   */
+  range(from: number, to: number) {
+    this.window = { from, to };
+    return this;
+  }
 
-  private resolveValue(): { data: unknown; error: unknown } {
+  private resolveValue(): { data: unknown; error: unknown; count?: number | null } {
     if (this.op === "select") {
       const base = scenario.reads[this.table] ?? {};
       const override = base.selectOverrides?.find((o) => this.cols.includes(o.includes));
       const t = override ? override.result : base;
-      if (t.error) return { data: null, error: t.error };
-      return { data: t.rows ?? [], error: null };
+      if (t.error) return { data: null, error: t.error, count: null };
+      const all = t.rows ?? [];
+      // Two different count behaviours, and the split is deliberate.
+      //
+      // A `head: true` count returns no rows, and several already-tested
+      // functions (`auto-release-payment`, `review-nag-cron`) branch on it. Its
+      // count stays strictly OPT-IN — unset means null, exactly how this mock
+      // has always behaved — so those tests are untouched.
+      //
+      // A PAGED read (`.select(cols, {count:"exact"})` + `.range()`) is
+      // different: real PostgREST ALWAYS answers such a request with a total,
+      // and `_shared/paginate.ts` now treats a MISSING total as unverifiable
+      // rather than complete. Defaulting to the seeded row count models the
+      // real server; a test simulating truncation sets `count` ABOVE
+      // `rows.length` to say "more exist than I handed you".
+      const count = this.wantsCount
+        ? (t.count ?? (this.headOnly ? null : all.length))
+        : undefined;
+      if (this.headOnly) return { data: null, error: null, count };
+      const rows = this.window ? all.slice(this.window.from, this.window.to + 1) : all;
+      return { data: rows, error: null, count };
     }
     // write
     scenario.writes.push({

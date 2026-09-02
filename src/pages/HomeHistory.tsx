@@ -252,7 +252,7 @@ const HomeHistory = () => {
                           timeline entries read as app cards floating over the
                           page rather than as entries on a single record
                           sheet. Uses `.doc-card`, the SAME document-surface
-                          material /work-record and /benefits use (the
+                          material /work-record uses (the
                           document surface ladder in index.css) — this used
                           to hand-roll a `parchment/0.70` fill that measured
                           2-6/255 from the page canvas (a card that did not

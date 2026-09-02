@@ -120,7 +120,7 @@ const WIDTH_CLASS: Record<NonNullable<PageHeaderProps["width"]>, WidthSpec> = {
   "5xl": { outer: "max-w-5xl px-5 lg:px-8" },
 
   // Fixed max-w-5xl body on the wider document gutter ladder.
-  // Bodies: HomeHistory, WorkRecord, BenefitsPage.
+  // Bodies: HomeHistory, WorkRecord.
   "5xl-p4": { outer: "max-w-5xl px-4 lg:px-8 xl:px-12" },
 
   // Single mobile column that opens into a two-column desktop layout.
@@ -248,7 +248,7 @@ const PageHeader = ({ title, meta, onBack, backTo, rightSlot, titleActions, hide
              `pt-4` should own the bottom gap. That is what most bodies had, so
              it looked right on UserProfile — but it is not universal, and the
              pages without it collapsed to 24 above / 8 below (measured on
-             /help, /legal, /benefits and /pets). A gap whose size depends on
+             /help, /legal and /pets). A gap whose size depends on
              what the page underneath happens to declare cannot be global.
 
           So: the header owns both sides, bodies own neither. If a page needs

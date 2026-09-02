@@ -138,8 +138,9 @@ export const ANON_SCREENS: ScreenSpec[] = [
   // "covered" ticks. `not-found` below already covers that screen once, on
   // purpose. The zz-catalog-routes-resolve test keeps this from recurring.
   //
-  // /benefits and /gift-card moved to AUTHED_SCREENS: both sit behind
-  // ProtectedRoute, so on an ANON pass they render /login, not themselves.
+  // /gift-card moved to AUTHED_SCREENS: it sits behind ProtectedRoute, so on
+  // an ANON pass it renders /login, not itself. /benefits moved with it and was
+  // then deleted outright on 2026-08-31 when the page was removed.
   { name: "privacy", url: "/privacy" },
   { name: "terms", url: "/terms" },
   { name: "rules", url: "/rules" },
@@ -287,7 +288,8 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   // Both were listed as ANON until 2026-08-22, where ProtectedRoute meant they
   // rendered the login screen and the sweep filed it under their name.
   { name: "gift-card", url: "/gift-card" },
-  { name: "benefits", url: "/benefits" },
+  // "benefits" (/benefits) removed 2026-08-31 with the page and its route —
+  // the path now renders NotFound, which `not-found` already covers once.
   { name: "pets", url: "/pets" },
   { name: "saved-helpers", url: "/saved-helpers" },
   { name: "schedule", url: "/schedule" },

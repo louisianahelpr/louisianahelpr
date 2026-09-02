@@ -22,14 +22,55 @@
     <string>production</string>
 
     <!--
-      Universal Links — lets https://louisianahelpr.com/* deep-link
-      into the app instead of opening Safari.
+      Associated Domains: Universal Links + Shared Web Credentials.
       Pairs with public/.well-known/apple-app-site-association.
+
+      `applinks:` — lets https://www.louisianahelpr.com/* deep-link into
+      the app instead of opening Safari.
+
+      `webcredentials:` — lets iOS Password AutoFill (iCloud Keychain)
+      share saved credentials between Safari on www.louisianahelpr.com
+      and the in-app login/signup forms. Without it iOS treats the app
+      and the site as unrelated identities and refuses both "Save
+      Password" and auto-suggest in the app's password fields. The
+      `autoComplete` tokens on Login.tsx / Signup.tsx are necessary but
+      NOT sufficient — iOS also requires this entry AND the matching
+      `webcredentials` block in the AASA file (which is present).
+
+      WWW ONLY — the apex is deliberately NOT claimed.
+
+      `louisianahelpr.com` 307-redirects every path (including
+      /.well-known/apple-app-site-association) to `www`, and Apple's CDN
+      does NOT follow redirects when fetching an AASA file. An apex claim
+      can therefore never resolve: it is not a working association, it is
+      a claim that silently fails. Re-verified 2026-08-31:
+
+        curl -sI https://louisianahelpr.com/.well-known/apple-app-site-association
+        -> HTTP/2 307, location: https://www.louisianahelpr.com/...
+        curl -sI https://www.louisianahelpr.com/.well-known/apple-app-site-association
+        -> HTTP/2 200
+
+      Nothing is lost by dropping it: every link the app generates is
+      already www (authRedirects' getPublicSiteUrl, ShareJobButton,
+      pifGiftEmail, IdentityHeader, SosShareButton, CompletionPrompts),
+      as are the og:url / twitter:url tags. A hand-typed apex URL opens
+      Safari, which is what already happened.
+
+      To claim the apex properly it must SERVE the AASA rather than
+      redirect — a Vercel domain setting, not a vercel.json route. If
+      that changes, re-add both apex entries here.
+
+      THIS FILE IS THE MIRROR, NOT THE ACTIVE ONE. The App target signs
+      against ios/App/App/App.entitlements (CODE_SIGN_ENTITLEMENTS =
+      App/App.entitlements). This copy had drifted: it still claimed the
+      apex and was missing `webcredentials:` entirely — so anyone reading
+      or reusing it would have reintroduced both the dead apex
+      association and the AutoFill bug. Keep the two files identical.
     -->
     <key>com.apple.developer.associated-domains</key>
     <array>
-        <string>applinks:louisianahelpr.com</string>
         <string>applinks:www.louisianahelpr.com</string>
+        <string>webcredentials:www.louisianahelpr.com</string>
     </array>
 
     <!--

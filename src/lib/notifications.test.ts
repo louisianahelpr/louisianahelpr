@@ -53,6 +53,7 @@ describe("createNotification — happy path", () => {
         message: "M",
         type: "info",
         link: null,
+        job_id: null,
       },
     });
   });
@@ -75,6 +76,38 @@ describe("createNotification — happy path", () => {
         message: "M",
         type: "warning",
         link: "/admin",
+        // Explicitly null, not absent: /admin names no job. The
+        // trg_notifications_fill_job_id trigger recovers an id from a
+        // job-shaped link, but a link with no id in it is unrecoverable —
+        // which is the whole reason job_id exists as a column.
+        job_id: null,
+      },
+    });
+  });
+
+  it("forwards an explicit job_id, so a link that names no job still resolves", async () => {
+    // The reason the column exists. Notification destinations used to be URL
+    // strings only, which is why ~40 producers wrote links that opened on the
+    // wrong bucket and 66 prod rows ended up pointing at filters with no chip.
+    // A caller that knows the job must be able to say so directly.
+    invokeMock.mockResolvedValue({ data: {}, error: null });
+
+    await createNotification({
+      user_id: "user-1",
+      title: "T",
+      message: "M",
+      link: "/earnings",
+      job_id: "job-42",
+    });
+
+    expect(invokeMock).toHaveBeenCalledWith("create-notification", {
+      body: {
+        user_id: "user-1",
+        title: "T",
+        message: "M",
+        type: "info",
+        link: "/earnings",
+        job_id: "job-42",
       },
     });
   });

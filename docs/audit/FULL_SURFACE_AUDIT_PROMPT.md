@@ -57,22 +57,22 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
 **Mission:** operate every surface of this app until the coverage manifest is
 100% filled, fix everything you find, and leave durable artifacts proving it.
 
-### The real surface count — ~178, not 48
+### The real surface count — ~177, not 47
 
 Previous audits undercounted badly by conflating "routes" with "screens." The
 honest tally, each figure derived from source, not asserted:
 
 | Group | Count | Derivation |
 |---|---:|---|
-| Rendering routes | 34 | `grep -oE 'path="[^"]+"' src/App.tsx` = 48 total, minus 14 redirects |
+| Rendering routes | 33 | `grep -oE 'path="[^"]+"' src/App.tsx` = 47 total, minus 14 redirects |
 | Redirect-only routes | 14 | `grep -c "Navigate to=" src/App.tsx` |
 | Profile tabs | 17 | `Tab` union, `src/pages/profile/types.ts:5` |
 | Admin views | 24 | `type View`, `src/pages/Admin.tsx:45` |
 | Activity tabs | 2 | `activityConstants.ts` (× 4 status filters each = 8 more states) |
-| **Navigable subtotal** | **91** | |
+| **Navigable subtotal** | **90** | |
 | Overlay roots (dialog / sheet / drawer / popover / dropdown / hovercard) | **78** | `grep -roE "<(Dialog\|AlertDialog\|Sheet\|Drawer\|Popover\|DropdownMenu\|HoverCard)\s+open=" src --exclude-dir=ui` |
 | Native OS prompt classes | 9 | §6 B10 |
-| **Total auditable surfaces** | **~178** | |
+| **Total auditable surfaces** | **~177** | |
 | Edge functions (separate axis) | 63 | `ls supabase/functions \| grep -v _shared` |
 | Transactional + marketing emails (separate axis) | see §6.5 | `supabase/functions/*email*`, `*digest*`, `*report*`, `*nag*`, `*blast*` |
 
@@ -83,7 +83,7 @@ never been opened is exactly the substitution this ledger exists to prevent.
 
 **You are done when — and only when — all of the following are true:**
 
-- Every one of the **91 navigable surfaces** in §5 is `WALKED` in
+- Every one of the **90 navigable surfaces** in §5 is `WALKED` in
   `docs/audit/COVERAGE_LEDGER.md`, with real evidence.
 - Every one of the **78 overlay roots** in §6 has been *opened and operated*,
   and each has a ledger row.
@@ -327,13 +327,13 @@ runtime via `Capacitor.isNativePlatform()`:
 
 ---
 
-## 5. Manifest A — the 91 navigable surfaces
-### (34 routes + 14 redirects + 17 profile tabs + 24 admin views + 2 activity tabs)
+## 5. Manifest A — the 90 navigable surfaces
+### (33 routes + 14 redirects + 17 profile tabs + 24 admin views + 2 activity tabs)
 
 Source of truth is the `<Routes>` table in `src/App.tsx` (lines ~153-323); there
 are no nested route files. **Re-derive before starting.**
 
-### A1 — Rendering routes (34)
+### A1 — Rendering routes (33)
 
 | # | Route | Component | Auth | Guard | Notes |
 |---|---|---|---|---|---|
@@ -368,9 +368,8 @@ are no nested route files. **Re-derive before starting.**
 | 29 | `/work-record` | `WorkRecord` | approved | `ProtectedRoute` | |
 | 30 | `/help` | `HelpCenter` | public | | |
 | 31 | `/wrapped` | `HelprWrapped` | approved | `ProtectedRoute` | |
-| 32 | `/benefits` | `BenefitsPage` | approved | `ProtectedRoute` | |
-| 33 | `/pets` | `PetProfiles` | approved | `ProtectedRoute` | |
-| 34 | `*` | `NotFound` | public | `RouteErrorBoundary` only (no `PageTransition`) | drops the `app-shell` lock via `setNotFoundPathname()` |
+| 32 | `/pets` | `PetProfiles` | approved | `ProtectedRoute` | |
+| 33 | `*` | `NotFound` | public | `RouteErrorBoundary` only (no `PageTransition`) | drops the `app-shell` lock via `setNotFoundPathname()` |
 
 ### A2 — Redirect-only routes (14)
 

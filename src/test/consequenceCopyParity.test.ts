@@ -51,8 +51,46 @@ function sourceFiles(): string[] {
     .filter((f) => existsSync(resolve(ROOT, f)));
 }
 
+/**
+ * Comment stripper.
+ *
+ * The block half was `/\/\*[\s\S]*?\*\//g`, which is wrong on TSX and wrong in
+ * the dangerous direction: `accept="image/*"` (DisputeDialog.tsx:302) is a JSX
+ * attribute, not a comment opener, and that regex treated its `/*` as one and
+ * deleted everything up to the next genuine block-comment terminator — thirty
+ * lines of real, user-facing policy copy — from every scan that used this helper.
+ * A stripper
+ * that eats copy makes each scan below quietly narrower than it reads, which is
+ * the exact failure class this file was written to catch.
+ *
+ * Only two unambiguous openers now count: a JSX comment (brace, then slash-star)
+ * and a block
+ * comment that begins a line. Neither can occur inside a JSX attribute string.
+ * Newlines are preserved so line numbers in the reports below stay true.
+ */
 const stripComments = (t: string) =>
-  t.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+  t
+    .replace(/\{\s*\/\*[\s\S]*?\*\/\s*\}/g, (m) => m.replace(/[^\n]/g, ""))
+    .replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, (m) => m.replace(/[^\n]/g, ""))
+    .replace(/(^|[^:])\/\/.*$/gm, "$1");
+
+/**
+ * SQL comment stripper — for grading a migration's BODY, never its prose.
+ *
+ * Migrations here are heavily commented, and the comments quote the very
+ * expressions the assertions look for. Two guards in this file were reading
+ * those quotes and calling it evidence:
+ *   - the DISTINCT-reporter guard matched `GUARD 3b, escalation on DISTINCT
+ *     reporters;` in a header comment (line 43), not the aggregate;
+ *   - the auto-ban guard matched `p_permanent_requires_review => true` in a
+ *     header comment (20260831183302:21), so flipping the REAL call at :195 to
+ *     `false` — a ladder that starts permanently banning people with no admin
+ *     review — left both suites green. Confirmed by mutation, 2026-08-31.
+ * A file's description of itself is the one thing that cannot go stale in step
+ * with the file.
+ */
+const sqlBody = (sql: string) =>
+  sql.replace(/--[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "");
 
 // ===========================================================================
 // 1 — NO_SHOW_LADDER_SENTENCE ↔ report_helper_no_show (SQL)
@@ -79,7 +117,7 @@ describe("no-show ladder — NO_SHOW_LADDER_SENTENCE ↔ report_helper_no_show (
         "back to hand-writing its own rungs, which is how it ended up auto-banning",
     ).toContain("apply_consequence_ladder");
     expect(
-      SQL.match(/p_permanent_requires_review\s*=>\s*true/),
+      sqlBody(SQL).match(/p_permanent_requires_review\s*=>\s*true/),
       "the no-show ladder would now permanently ban a Helpr with NO admin review, off " +
         "one counterparty tapping a button on an event the platform never verifies. " +
         "NO_SHOW_LADDER_SENTENCE promises 'an admin decides' — that promise would be false.",
@@ -123,12 +161,23 @@ describe("no-show ladder — NO_SHOW_LADDER_SENTENCE ↔ report_helper_no_show (
   it("the distinct-reporter guard the sentence leans on is still in the SQL", () => {
     // If GUARD 3b goes, "a second one from a different poster" becomes false and
     // one poster can restrict a Helpr alone.
+    //
+    // BLIND AS WRITTEN. The old matcher was `/DISTINCT[\s\S]{0,400}report/i`
+    // against the RAW migration, and what it actually matched was line 43 —
+    // `--   * GUARD 3a, one report per job; GUARD 3b, escalation on DISTINCT
+    // reporters;` — a line in the file's header COMMENT. Delete the aggregate
+    // from the function body and leave the header describing it, which is the
+    // realistic way this regresses, and the guard still passed. It was
+    // certifying a promise by reading a sentence about the promise.
+    //
+    // Strip SQL comments, then match the aggregate itself.
+    const body = sqlBody(SQL);
     expect(
-      SQL,
-      "GUARD 3b (escalate on DISTINCT reporters) is gone — NO_SHOW_LADDER_SENTENCE's " +
-        "'from a different poster' clause is now a lie, and one poster can drive a " +
-        "Helpr to the top rung by themselves",
-    ).toMatch(/DISTINCT[\s\S]{0,400}report/i);
+      body,
+      "GUARD 3b (escalate on DISTINCT reporters) is gone from the FUNCTION BODY — " +
+        "NO_SHOW_LADDER_SENTENCE's 'from a different poster' clause is now a lie, and " +
+        "one poster can drive a Helpr to the top rung by themselves",
+    ).toMatch(/count\s*\(\s*DISTINCT\s+reported_by\s*\)/i);
   });
 
   it("the 7 in the sentence is the 7 in the SQL", () => {
@@ -245,6 +294,69 @@ describe("the strike ladder is stated ONCE", () => {
         offenders.join("\n  "),
     ).toEqual([]);
   });
+  it("no surface claims a ban lands automatically at a fixed strike count", () => {
+    // THE RESTATEMENT GUARD ABOVE HAS A SHAPE IT CANNOT SEE, and a live defect
+    // walked through it.
+    //
+    // `CommunitySection.tsx` opened with the TL;DR bullet "Three strikes =
+    // ban." — the first sentence a restricted user reads, in a binding
+    // document, and false. No ladder in the app bans anyone: all four call
+    // `apply_consequence_ladder` with `p_permanent_requires_review => true`
+    // (20260829030000:298,373,466; 20260831183302), which turns the 'permanent'
+    // effect into a 7-day restriction plus a `pending_ban_review` row an admin
+    // resolves. The rung lists three screens further down said so correctly.
+    //
+    // The guard above missed it because its detector needs an ordinal token
+    // ("1st strike", "third strike") and a consequence WITHIN THE SAME LINE.
+    // "Three strikes = ban" is a cardinal, in a summary, and names the
+    // consequence with a bare noun. Every condition failed, so the sentence was
+    // invisible — a restatement guard that only sees restatements written in
+    // one particular grammar.
+    //
+    // This assertion grades the CLAIM rather than the grammar: nowhere in
+    // user-facing copy may a strike count be equated with a ban, in any
+    // phrasing, while the SQL requires a human.
+    const requiresReview = sqlBody(
+      repoFile("supabase/migrations/20260829030000_consolidate_consequence_ladders.sql"),
+    ).match(/p_permanent_requires_review\s*=>\s*(true|false)/g) ?? [];
+    expect(
+      requiresReview.length,
+      "apply_consequence_ladder's callers no longer pass p_permanent_requires_review — " +
+        "re-derive every ban claim in the app before trusting this assertion",
+    ).toBeGreaterThan(0);
+    const noShowReview = sqlBody(
+      repoFile(
+        "supabase/migrations/20260831183302_no_show_ladder_uses_shared_review_rung.sql",
+      ),
+    ).match(/p_permanent_requires_review\s*=>\s*(true|false)/g) ?? [];
+    expect(
+      [...requiresReview, ...noShowReview].every((m) => /true/.test(m)),
+      "a ladder now bans WITHOUT admin review (" + requiresReview.join(", ") + "). Every " +
+        "surface promising 'a permanent ban is never automatic' is now false — fix the " +
+        "copy, or the ladder.",
+    ).toBe(true);
+
+    // `\d|one..five|a` strikes → ban/banned/suspended-forever, in any order.
+    const ABSOLUTE_BAN =
+      /\b(?:\d+|one|two|three|four|five)\s+strikes?\b[^.!?\n]{0,40}\b(?:=|means?|is|→|->|and\s+you(?:'re| are))?\s*[^.!?\n]{0,30}\bbann?(?:ed|ing)?\b/i;
+    const offenders: string[] = [];
+    for (const file of sourceFiles()) {
+      stripComments(repoFile(file))
+        .split("\n")
+        .forEach((line, i) => {
+          if (/RELIABILITY_LADDER_|CANCELLATION_LADDER_|NO_SHOW_LADDER_/.test(line)) return;
+          const m = line.match(ABSOLUTE_BAN);
+          if (m) offenders.push(`${file}:${i + 1} — "${m[0].trim().slice(0, 90)}"`);
+        });
+    }
+    expect(
+      offenders,
+      "these lines equate a strike count with a ban, but every ladder passes " +
+        "p_permanent_requires_review => true — the top rung is a 7-day restriction and " +
+        "an admin decision, never an automatic ban:\n  " + offenders.join("\n  "),
+    ).toEqual([]);
+  });
+
   it("the ladder's reassurance survives the move into the constant", () => {
     // This used to grep CancellationDialog for "a permanent ban is never
     // automatic". That sentence now lives in CANCELLATION_LADDER_RUNGS, which
@@ -313,11 +425,14 @@ describe("review-turnaround promises come from reviewSla", () => {
    *   "manually within 24 hours"       src/pages/legal/TermsSection.tsx   (manual ID review)
    *   "we review within one business day"
    *                                    src/components/profile/CredentialsTab.tsx
-   *   "reviews all reports within 24 hours"
-   *                                    src/pages/helpCenter/helpCenterContent.ts
-   *
-   * against REVIEW_SLA = "under 2 hours". Four numbers for "how long until a
-   * human looks at this". FINDING, not fixed here.
+   * against REVIEW_SLA = "under 2 hours". FIXED SINCE: a fourth,
+   * "reviews all reports within 24 hours" in
+   * src/pages/helpCenter/helpCenterContent.ts, was removed outright rather than
+   * renumbered — nothing in the product measured, tracked or escalated an
+   * unread report, so no number would have been true (see the "delivered by
+   * nothing" test below, now inverted to hold that removal in place). Three
+   * numbers remain for "how long until a human looks at this". FINDING, not
+   * fixed here.
    */
   const CLAIM =
     /(?:with)in\s+(?:about\s+)?(?:one|two|\d+(?:\s*[–-]\s*\d+)?)\s*(?:business\s+)?(?:hour|day)s?/gi;
@@ -337,8 +452,12 @@ describe("review-turnaround promises come from reviewSla", () => {
         "and this one is binding copy in a legal document",
       "src/components/profile/CredentialsTab.tsx":
         "credential re-upload — 'within one business day'; a third, different number",
-      "src/pages/helpCenter/helpCenterContent.ts":
-        "'reviews all reports within 24 hours' — see the 'delivered by nothing' test below",
+      // src/pages/helpCenter/helpCenterContent.ts was the fourth entry. Its
+      // "reviews all reports within 24 hours" is GONE, not renumbered, so the
+      // file correctly dropped out of `hits` and the `stale` assertion below
+      // started failing — which is the inventory doing its job. Shrinking KNOWN
+      // is the documented response; the removal is pinned by the inverted
+      // "delivered by nothing" test below so it cannot creep back.
     };
 
     const hits = new Map<string, string[]>();
@@ -527,8 +646,26 @@ describe("money the UI names is the money the backend moves", () => {
   it("the boost duration the toast quotes is the constant the dialog uses", () => {
     // JobBoostDialog imports BOOST_DURATION_HOURS. Dashboard.tsx states the same
     // fact in a success toast as a literal "24 hours".
+    // WAS wrapped in `if (boostLine) { … }`, which is a guard that disarms
+    // itself. Reword the toast to "for the next day", or move it to another
+    // file, and `find` returns undefined — the body never runs, the test still
+    // reports green, and the assertion that Dashboard's number tracks
+    // BOOST_DURATION_HOURS silently stops existing. Nothing tells anyone.
+    //
+    // A conditional guard is only honest if the condition itself is asserted.
+    // Either Dashboard states the duration (and it must equal the constant), or
+    // it derives it (and there is nothing left to compare) — a third state,
+    // "states it in a shape this test cannot read", must fail loudly.
     const dash = stripComments(repoFile("src/pages/Dashboard.tsx"));
     const boostLine = dash.split("\n").find((l) => /boost/i.test(l) && /\d+ hours/.test(l));
+    const derives = /BOOST_DURATION_HOURS/.test(dash);
+    expect(
+      Boolean(boostLine) || derives,
+      "Dashboard.tsx no longer states the boost duration in a form this test can read: " +
+        "no `N hours` literal on a boost line, and no BOOST_DURATION_HOURS import. Either " +
+        "it stopped mentioning the duration (delete this assertion) or it now phrases it " +
+        "some other way (re-point the matcher) — but this guard was passing on absence.",
+    ).toBe(true);
     if (boostLine) {
       expect(
         Number(boostLine.match(/(\d+) hours/)![1]),
@@ -592,33 +729,53 @@ describe("consequences the app states must be delivered by something", () => {
     ).toMatch(/3\+ disputes in 30 days/);
   });
 
-  it("FINDING — 'we review all reports within 24 hours' is delivered by nothing", () => {
-    // COPY: src/pages/helpCenter/helpCenterContent.ts:189 —
+  it("no report-review SLA is promised, because nothing delivers one", () => {
+    // WAS: a FINDING that pinned the presence of the sentence
     //   'Our team reviews all reports within 24 hours.'
+    // in helpCenterContent.ts, so the finding could be re-located later.
     //
-    // BACKEND CHECKED: the `reports` table has no deadline column, no trigger,
-    // no cron. There is no edge function for report SLA (the full list in
-    // supabase/functions/ contains review-nag-cron for REVIEWS, not reports),
-    // and no scheduled job escalates an unread report. The claim is a human
-    // process promise with nothing measuring it — the same shape as the
-    // "handled within 24 hours" the owner found.
+    // BACKEND CHECKED (unchanged, re-verified here): the `reports` table has no
+    // deadline column, no trigger and no cron; `supabase/functions/` contains
+    // `review-nag-cron` for REVIEWS, not reports; nothing escalates an unread
+    // report. No number was ever true, so the sentence was deleted rather than
+    // corrected — a turnaround with no instrument behind it is a promise we can
+    // only break, and picking a different figure would just have moved the lie.
     //
-    // STATUS: unverifiable from code; nothing in the product enforces or
-    // measures it. Reported, not changed. This assertion pins the fact that no
-    // mechanism appeared — if one does, the number should be derived from it.
+    // The test is INVERTED, not deleted. Pinning the presence of a sentence
+    // that has been fixed is a guard that fails on the fix and passes on the
+    // regression — precisely backwards. It now holds the removal in place: any
+    // report-review turnaround coming back fails here and has to justify itself
+    // against a mechanism that still does not exist.
     const fns = execFileSync("bash", ["-c", "ls supabase/functions"], {
       cwd: ROOT,
       encoding: "utf8",
     });
+    const hasSlaFn = /report.*(sla|escalat|nag|deadline)/i.test(fns);
     expect(
-      /report.*(sla|escalat|nag|deadline)/i.test(fns),
-      "a report-SLA function now exists — derive the Help Center's '24 hours' from its " +
-        "schedule instead of leaving it hand-typed",
+      hasSlaFn,
+      "a report-SLA function now exists — a report-review turnaround may finally be " +
+        "stated, but DERIVE it from that function's schedule rather than hand-typing it, " +
+        "and drop this guard's second half",
     ).toBe(false);
+
+    // Report-review turnaround claims, anywhere in user-facing copy.
+    const PROMISE =
+      /reports?\b[^.!?\n]{0,60}\bwithin\s+(?:about\s+)?(?:one|two|a\s+few|\d+)\s*(?:business\s+)?(?:hour|day)s?/i;
+    const offenders: string[] = [];
+    for (const file of sourceFiles()) {
+      stripComments(repoFile(file))
+        .split("\n")
+        .forEach((line, i) => {
+          const m = line.match(PROMISE);
+          if (m) offenders.push(`${file}:${i + 1} — "${m[0].trim().slice(0, 90)}"`);
+        });
+    }
     expect(
-      repoFile("src/pages/helpCenter/helpCenterContent.ts"),
-      "the 24-hour report promise moved — re-locate this finding",
-    ).toMatch(/reviews all reports within 24 hours/);
+      offenders,
+      "a report-review turnaround is being promised again, and there is still no " +
+        "deadline column, trigger, cron or edge function that measures or escalates an " +
+        "unread report. Nothing can make this number true:\n  " + offenders.join("\n  "),
+    ).toEqual([]);
   });
 
   it("the GPS proximity radius the legal page states is the radius mark_helper_arrival enforces", () => {

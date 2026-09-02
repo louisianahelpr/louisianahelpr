@@ -742,6 +742,41 @@ export async function handleCheckoutSessionCompleted(
       throw new Error(`Escrow update failed for job ${jobId} (PI ${piId}): ${jobError.message}`);
     } else {
       logStep("Stored payment_intent and escrow status on job", { jobId, pi: piId, repay: isRepay });
+
+      // Fan out the helper match — HERE, and only here, because this is the
+      // first moment the job is actually funded.
+      //
+      // It used to run in the browser (PostJob's useJobSubmit) the instant
+      // create-payment handed back a Checkout URL — i.e. BEFORE the poster had
+      // even opened Stripe. Since migration 20260831010000 all three browse
+      // surfaces require payment_status IN ('escrow','payout_pending',
+      // 'released'), so those pushes advertised a job every one of those
+      // surfaces refused to return: up to 20 helpers told about work they could
+      // not see, and nothing at all if the poster then abandoned checkout.
+      // instant-job-match now enforces that same funded predicate itself, so
+      // the pre-funding call could only ever no-op — the trigger had to move to
+      // the point where the predicate becomes true.
+      //
+      // Skipped for `repay`: that path settles an EXISTING job that already has
+      // its helper, so there is nobody to match.
+      //
+      // Best-effort by design. A match fan-out must never fail a captured
+      // payment — the job is funded and discoverable through browse regardless,
+      // so a failure here costs reach, not correctness. Logged, never thrown.
+      if (!isRepay) {
+        try {
+          const { error: matchError } = await supabase.functions.invoke("instant-job-match", {
+            body: { jobId },
+          });
+          if (matchError) {
+            logStep("WARN: instant-job-match failed after funding", { jobId, error: matchError.message });
+          } else {
+            logStep("Triggered instant-job-match after funding", { jobId });
+          }
+        } catch (matchErr) {
+          logStep("WARN: instant-job-match threw after funding", { jobId, error: String(matchErr) });
+        }
+      }
     }
 
     // Collect the one-time setup fee this session carried, exactly once.

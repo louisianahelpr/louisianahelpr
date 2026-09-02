@@ -46,6 +46,7 @@ const MOCK = {
   supabase: "./mocks/supabase.ts",
   shared: "./mocks/shared.ts",
   deno: "./mocks/deno-runtime.ts",
+  email: "./mocks/email.ts",
 };
 
 /**
@@ -254,6 +255,76 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/adminIds.ts";`,
   );
 
+  // PostgREST paging: `_shared/paginate.ts` has ZERO imports (it drives a
+  // query factory the caller supplies), so the generated file points at the
+  // REAL module. This is the code that reads past `db-max-rows = 1000` and
+  // decides whether a scan saw everything — the previous generation of that
+  // logic was `.limit(5000)` plus an alarm on `rows.length >= 5000`, which the
+  // 1000-row cap made unsatisfiable, so several crons certified completeness
+  // over a fifth of the data. Mocking it away would leave exactly the
+  // mechanism that failed as the one thing not under test.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/paginate\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/paginate.ts";`,
+  );
+
+  // Helper take-home: `_shared/helperEarnings.ts` is pure TypeScript (its only
+  // import is a sibling `_shared` constant module, which vitest resolves from
+  // disk once this specifier points at the real file). It is the arithmetic
+  // behind the dollar figure `weekly-helper-report` emails a helper about
+  // their own week — including the group-job roster split that used to mail a
+  // 3-person job's FULL budget to each of them — so it stays under test.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/helperEarnings\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/helperEarnings.ts";`,
+  );
+
+  // Cancellation ladder: `_shared/cancellationFee.ts` has ZERO imports and is
+  // the module `money-reconciliation` re-derives every stored cancellation fee
+  // from. Mocking it would mean the reconciler's central comparison — stored
+  // column vs. what settlement would compute — is asserted against a stub.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/cancellationFee\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/cancellationFee.ts";`,
+  );
+
+  // ── The transactional-email layer ────────────────────────────────────────
+  //
+  // `_shared/resend.ts` constructs a Resend client at module scope,
+  // `_shared/unsubscribe.ts` signs links with a Deno-provided secret, and the
+  // templates pull in `@react-email/components`. None of that is what a
+  // lifecycle cron's tests are about — the decisions under test (who is
+  // eligible, whose consent was read, when the run refuses to send at all) are
+  // all made before a template is touched. The whole layer points at one
+  // double; see `./mocks/email.ts`.
+  //
+  // Without these rules `engagement-automations` could not be loaded by this
+  // harness at all, which is why the one function in the repo that mails
+  // marketing to real people had no tests.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/(resend|unsubscribe)\.ts["'];?/g,
+    `import {$1} from "${MOCK.email}";`,
+  );
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/email-templates\/[A-Za-z0-9_-]+\.tsx?["'];?/g,
+    `import {$1} from "${MOCK.email}";`,
+  );
+  // `import * as React from 'npm:react@18.3.1'` — this repo already depends on
+  // React 18, so the real library serves. `React.createElement` on an inert
+  // template component is exactly what the function does in production; only
+  // the rendering is stubbed out.
+  out = out.replace(
+    /import\s+\*\s+as\s+React\s+from\s+["']npm:react@[^"']+["'];?/g,
+    `import * as React from "react";`,
+  );
+
+  // Escrow clock: `_shared/escrowTiming.ts` has ZERO imports and is the single
+  // source of the 24-hour auto-release cutoff that user copy, the payout cron
+  // and `payment-confirm-reminder`'s window all have to agree on.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/escrowTiming\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/escrowTiming.ts";`,
+  );
 
   return out;
 }

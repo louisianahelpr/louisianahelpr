@@ -66,6 +66,18 @@ serve(async (req) => {
       // deferred at signup, so this checkbox is what satisfies the legal age
       // gate on the initial path (see the 18+ gate below).
       ageAttested,
+      // Explicit "I agree to the Terms, Privacy Policy and Platform Rules"
+      // attestation. The tick is a hard client gate, but recording the
+      // assertion the user actually made beats inferring consent from the
+      // arrival of a request. Optional on the wire so an already-shipped iOS
+      // build (whose JS is bundled into the .ipa and cannot be updated from
+      // here) does not start failing signup — `null` means "this client is
+      // older than the field", not "the user declined".
+      termsAccepted,
+      // `?ref=<code>` from a referral share link, forwarded by Signup.tsx.
+      // See the referral block near the bottom of this function for why it is
+      // recorded here rather than by the client.
+      referralCode,
     } = body;
 
     let userId: string | null = null;
@@ -435,8 +447,24 @@ serve(async (req) => {
     // policy triggers the re-consent modal (see TermsReconsentDialog). The
     // policies checkbox in SignupStep1 is a hard requirement to reach this
     // path, so recording it here IS the affirmative acceptance.
+    //
+    // THREE columns, three different questions, and they used to be answered
+    // by three unrelated writers:
+    //   terms_version_accepted — which version they are on (drives re-consent)
+    //   terms_accepted_at      — when they accepted THAT version (re-stamped)
+    //   accepted_terms_at      — the FIRST time they ever accepted (immutable)
+    // `accepted_terms_at` was written only by CompleteProfile.tsx and this
+    // function only wrote the other two, so prod ended up with 12/30 profiles
+    // missing one and 22/30 missing the other. Both are written here now, and
+    // `tr_preserve_first_consent` (migration 20260901035252) pins
+    // `accepted_terms_at` to its existing value, so re-running this function
+    // on a resubmission re-stamps the version timestamp without destroying the
+    // original consent. Sending it unconditionally is deliberate: the database
+    // owns "first wins", so no caller has to read-then-write and race.
+    const consentAt = new Date().toISOString();
     updateData.terms_version_accepted = LEGAL_TERMS_VERSION;
-    updateData.terms_accepted_at = new Date().toISOString();
+    updateData.terms_accepted_at = consentAt;
+    updateData.accepted_terms_at = consentAt;
     if (availability) updateData.availability = availability;
     if (transportation) updateData.transportation = transportation;
     if (hearAboutUs) updateData.hear_about_us = hearAboutUs;
@@ -483,15 +511,84 @@ serve(async (req) => {
     // the LAST_UPDATED stamps in src/pages/legal/legalSections.ts; bump
     // both places together on a material policy change. Non-fatal: a failed
     // consent write is logged loudly but must not strand a finished signup.
+    //
+    // `marketing_opted_in` is now populated. The column has existed since the
+    // table was created and was never written, so every row in the audit trail
+    // said the user had NOT opted into marketing — including the rows for
+    // users who ticked the box. The value the sender actually filters on lives
+    // in `profiles.marketing_consent` (written above), so nothing mis-mailed;
+    // but the record that is supposed to EVIDENCE the opt-in disagreed with
+    // it, which is worse than leaving the column out of the schema.
     const { error: legalErr } = await supabase.from("legal_acceptances").insert({
       user_id: userId,
       terms_version: LEGAL_TERMS_VERSION,
       privacy_version: LEGAL_PRIVACY_VERSION,
+      marketing_opted_in: marketingConsent === true,
       ip_address: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
       user_agent: req.headers.get("user-agent") ?? null,
     });
     if (legalErr) {
       console.error(`[complete-signup] legal_acceptances insert failed for ${userId}:`, legalErr);
+    }
+    // An older shipped client that does not send the field yields `null`, which
+    // is "unknown", not "declined" — the tick is still a hard gate in the form.
+    // Logged so the tail of pre-update builds is visible rather than assumed.
+    if (termsAccepted !== true) {
+      console.warn(
+        `[complete-signup] no explicit termsAccepted from client for ${userId} (got ${JSON.stringify(termsAccepted)}); consent recorded from completion`,
+      );
+    }
+
+    // Record the referral, if this signup came in through a `?ref=` link.
+    //
+    // THIS IS THE ONLY PLACE IT CAN HAPPEN. `process_referral` requires
+    // `auth.uid() = p_new_user_id` (hardened 2026-08-19) and is granted to
+    // `authenticated` only, but the client calls it moments after
+    // `auth.signUp` — which returns no session while email confirmation is on.
+    // So the client call was 401 `42501 permission denied` 100% of the time,
+    // and prod has 29 referral codes against 0 referrals to show for it.
+    //
+    // This function is the right home: it has already proved the caller owns
+    // `userId` (a 30-minute window from account creation + never-signed-in +
+    // an empty profile, or a valid JWT), and it runs service-role, so it needs
+    // no session. It deliberately does NOT call `process_referral` — under
+    // service-role `auth.uid()` is NULL, which that function correctly rejects
+    // as `not_authorized`. It calls `record_referral_signup`, the shared body
+    // behind both entry points, granted to service_role only.
+    //
+    // Best-effort by design: a referral is a bonus, and failing a completed
+    // signup over one would trade a $5 credit for an orphaned account. But the
+    // error is never dropped — a silently-failing referral path is the exact
+    // bug being fixed here, and it stayed invisible for months.
+    let referralRecorded = false;
+    if (typeof referralCode === "string" && referralCode.trim()) {
+      const { data: referralOk, error: referralErr } = await supabase.rpc("record_referral_signup", {
+        p_referral_code: referralCode.trim().toUpperCase(),
+        p_new_user_id: userId,
+      });
+      if (referralErr) {
+        // PGRST202 means the RPC is not in the schema cache yet — this
+        // function deploys on push while the migration deploys on merge, so
+        // there is a window where the code is live and the function is not.
+        // Distinguished in the log so the deploy-lag case is not investigated
+        // as a permissions or data bug.
+        const code = (referralErr as { code?: string }).code;
+        console.error(
+          `[complete-signup] referral not recorded for ${userId} (code ${referralCode.trim().toUpperCase()})${
+            code === "PGRST202" ? " — record_referral_signup not deployed yet (migration lag)" : ""
+          }:`,
+          referralErr.message ?? referralErr,
+        );
+      } else {
+        // The RPC returns FALSE for an unknown code, a self-referral, or a
+        // user who was already referred — all legitimate no-ops, not errors.
+        referralRecorded = referralOk === true;
+        if (!referralRecorded) {
+          console.log(
+            `[complete-signup] referral code ${referralCode.trim().toUpperCase()} did not apply to ${userId} (unknown code, self-referral, or already referred)`,
+          );
+        }
+      }
     }
 
     // Notify all admins about the new signup (deduped: skip if we already sent one for this user in the last 24h)
@@ -566,7 +663,7 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, avatarUrl, idDocumentUrl, portfolioUrls }),
+      JSON.stringify({ success: true, avatarUrl, idDocumentUrl, portfolioUrls, referralRecorded }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {

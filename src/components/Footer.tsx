@@ -1,6 +1,7 @@
 import { Apple, Heart } from "lucide-react";
 import { Link } from "react-router-dom";
 import HelprMark from "@/components/HelprMark";
+import { APP_STORE_URL } from "@/lib/appStore";
 
 // Inline Facebook glyph — lucide-react v1.x removed brand icons including
 // `Facebook`. Inlining the standard "f" mark keeps the social link working
@@ -38,7 +39,9 @@ const Instagram = ({ className }: { className?: string }) => (
   </svg>
 );
 
-const APP_STORE_URL = "https://apps.apple.com/us/app/helpr/id6754470134";
+// Moved to lib/appStore.ts when ForceUpdateGate needed the same URL: on that
+// screen it is the ONLY way out of a blocked app, so the two copies must not
+// be allowed to drift.
 const FACEBOOK_URL = "https://www.facebook.com/louisianahelpr";
 const INSTAGRAM_URL = "https://www.instagram.com/louisianahelpr";
 

@@ -32,6 +32,7 @@ import { unwrapMutation } from "@/lib/mutationResult";
 import type { Notification, Filter } from "@/components/notificationPanel/types";
 import { typeIcons, groupByDay, timeAgo } from "@/components/notificationPanel/notificationPanelHelpers";
 import { NotificationTrigger } from "@/components/notificationPanel/NotificationTrigger";
+import { notificationDestination } from "@/components/notificationPanel/notificationDestination";
 
 const NotificationPanel = () => {
   const navigate = useNavigate();
@@ -188,7 +189,9 @@ const NotificationPanel = () => {
             } catch {}
             if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
             if (document.hidden && getPushPermission() === "granted") {
-              showLocalNotification(n.title, n.message, n.link || undefined);
+              // Same resolution as a tap in the panel — a realtime row must
+              // not open somewhere different from the row it just inserted.
+              showLocalNotification(n.title, n.message, notificationDestination(n) ?? undefined);
             }
           },
         )
@@ -312,12 +315,15 @@ const NotificationPanel = () => {
     hapticLight();
   };
 
-  /* Does this row have somewhere to go?
-     Only a root-relative path is navigable in-app; a null link, an absolute
-     URL and a `javascript:` string are all equally un-followable. 6 rows in
-     prod today carry `link: null` ("Test from Helpr", "Application declined"). */
-  const hasDestination = (n: Notification): n is Notification & { link: string } =>
-    typeof n.link === "string" && n.link.startsWith("/");
+  /* Does this row have somewhere to go, and WHERE?
+     Resolved through notificationDestination(), which prefers the `job_id`
+     REFERENCE over parsing `link` — see that file for why the string was never
+     trustworthy. Rows with no job_id (everything written before
+     20260901035600, and anything whose job was later deleted) fall back to the
+     link exactly as before. A null result is a real state: 6 rows in prod
+     carry `link: null` ("Test from Helpr", "Application declined"). */
+  const destinationOf = (n: Notification): string | null => notificationDestination(n);
+  const hasDestination = (n: Notification): boolean => destinationOf(n) !== null;
 
   /* Is there anything a tap on this row can DO?
      Two things can happen on tap: navigate, and mark read. A row with no link
@@ -332,14 +338,15 @@ const NotificationPanel = () => {
 
   const handleClick = (n: Notification) => {
     void markAsRead(n.id);
-    // A notification exists to take you somewhere — follow its link when it
-    // has one. Only in-app (root-relative) links are navigable; anything
-    // absent or malformed just marks read and keeps the panel open.
-    if (hasDestination(n)) {
+    // A notification exists to take you somewhere — follow its destination
+    // when it has one. Anything absent or malformed just marks read and keeps
+    // the panel open.
+    const to = destinationOf(n);
+    if (to) {
       // Navigate first, close a frame later — closing synchronously in the
       // same tick as the route change reads as one jarring instant unmount
       // stacked on top of the page transition.
-      navigate(n.link);
+      navigate(to);
       requestAnimationFrame(() => setOpen(false));
     }
   };
@@ -651,9 +658,9 @@ const NotificationPanel = () => {
                               } else if (
                                 n.type === "job_update" &&
                                 n.message.toLowerCase().includes("cancelled") &&
-                                n.link
+                                destinationOf(n)
                               ) {
-                                actions.push({ label: "View", href: n.link });
+                                actions.push({ label: "View", href: destinationOf(n)! });
                               }
                               if (actions.length === 0) return null;
                               return (

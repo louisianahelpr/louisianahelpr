@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import { SHOW_SEED_JOBS_PUBLICLY } from "@/config/showSeedJobs";
 
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -70,20 +69,26 @@ export const useOpenJobsFeed = ({
       // unwrap surfaces a failed fetch as the query's error state (drives
       // <ErrorState/>) instead of silently degrading to a blank feed.
       const rows = unwrap(
+        // FIXTURE (`is_seed`) ROWS ARE THE SERVER'S DECISION, and there is
+        // deliberately no argument for them here. `p_include_seed` still
+        // exists on the RPC and still NARROWS, but the switch that matters —
+        // "are fixtures visible on the public marketplace?" — is
+        // `public.seed_jobs_hidden_publicly()`, read inside the function
+        // (migration 20260901035245).
+        //
+        // It used to be a client constant passed from this one call site, and
+        // that reached exactly one of the three browse surfaces: the map RPC
+        // takes no arguments and `open_jobs_browse` has no `is_seed` column,
+        // so flipping it here would have emptied /jobs while leaving every
+        // fixture on the map and the dashboard. See src/config/showSeedJobs.ts
+        // for the whole story and the one-line flip.
+        //
+        // Filtering after the fetch is not an option either way: this feed
+        // paginates, so dropping rows client-side would return short pages and
+        // break the "was that a full page?" check below.
         await supabase.rpc("get_ranked_open_jobs", {
           p_limit: PAGE_SIZE,
           p_offset: offset,
-          // Fixture rows are filtered in the RPC, not here: this feed
-          // paginates, so dropping rows after the fetch would return short
-          // pages and break the "was that a full page?" check below.
-          //
-          // The argument is passed ONLY when we actually need the filter.
-          // Migrations deploy on merge, so between this commit landing and
-          // db-deploy finishing, the 3-argument signature does not exist yet
-          // and sending it would 404 the whole guest feed (PGRST202). Omitting
-          // it uses the 2-arg form that has always existed, and the new
-          // parameter defaults to true server-side — identical behaviour.
-          ...(SHOW_SEED_JOBS_PUBLICLY ? {} : { p_include_seed: false }),
         }),
       );
       const jobs = (rows ?? []) as unknown as PublicJob[];

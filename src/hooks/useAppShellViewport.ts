@@ -63,7 +63,7 @@ const DOCUMENT_SCROLL_ROUTES = [
   // here; off this list, `html.app-shell { overflow: hidden }` would clip the
   // lower panels with no way to scroll to them.
   "/analytics",
-  // /str-settings, /gift-card, /benefits, /auto-tip and /wrapped moved OFF
+  // /str-settings, /gift-card, /auto-tip and /wrapped moved OFF
   // this list (owner, 2026-08-30: "app shell globally"). They are
   // strictly-authed app screens reached from the Profile landing, so unlike
   // their public siblings (/help, /legal, /jobs) they have no SEO or

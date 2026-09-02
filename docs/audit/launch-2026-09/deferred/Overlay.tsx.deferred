@@ -1,0 +1,139 @@
+import { useEffect, useRef, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+
+/**
+ * THE full-screen overlay. There is exactly one of these; do not hand-roll another.
+ *
+ * WHY THIS EXISTS
+ * Six components independently implemented the same idea — `fixed inset-0` plus
+ * a z-index — and arrived at six different answers. Three portalled to
+ * `document.body`, three did not. The three that did not were correct ONLY
+ * because of where they happened to be mounted: `AppLockGate` and
+ * `ForceUpdateGate` sit above `AppPage` in `App.tsx`, so no transformed ancestor
+ * sat between them and the viewport. That correctness lived in a code comment,
+ * not in the code. Move one of them inside `AppPage` and it breaks silently,
+ * looking perfect the whole time.
+ *
+ * THE TRAP THIS PREVENTS
+ * `position: fixed` is NOT viewport-relative if any ancestor has a `transform`,
+ * `filter`, `backdrop-filter`, `perspective`, `contain` or `will-change`. This
+ * app has two app-wide sources of exactly that: `AppPage` wraps every child in
+ * `animate-ds-page-in`, whose keyframe ends on `transform: translateY(0)` with
+ * `animation-fill-mode: forwards` so a non-`none` transform stays applied
+ * forever; and every frosted surface carries `backdrop-filter`. Measured
+ * consequences from before: a "full-screen" dialog at 329×433 in a 393×852
+ * viewport, a photo lightbox at 10.2% of viewport height, and a nav scrim at
+ * 6.6% so tapping above the dock did nothing. Every one stayed perfectly
+ * scrollable, which is why `overflow-y-auto` "fixes" nothing and a code read
+ * cannot see it.
+ *
+ * Portalling to `document.body` makes the layering a property of the component
+ * rather than of the caller's position in the tree.
+ */
+
+/**
+ * The layer ladder, in one place, named.
+ *
+ * It used to live in comments — `ForceUpdateGate` literally said "z-[110], one
+ * step above AppLockGate's z-[100]". A ladder maintained by prose drifts the
+ * first time someone adds a rung without reading every other file.
+ *
+ * Ordering rationale, deliberately spelled out so a future rung goes in the
+ * right place: a celebration must not be buried by a lock; an out-of-date build
+ * must win over the lock, because unlocking into a stale app is worse than
+ * being asked to update; and both must sit above ordinary panels and menus.
+ */
+export const OVERLAY_LAYERS = {
+  /** Nav quick-menu scrim. Below the nav bar itself. */
+  menu: 40,
+  /** Slide-in panels and sheets over page content. */
+  panel: 50,
+  /** Short-lived, non-interactive status (redirecting, hand-off). */
+  transient: 50,
+  /** App lock. Covers the whole authed app. */
+  lock: 100,
+  /** Forced update. Above the lock — a stale build must not be unlockable. */
+  update: 110,
+  /** Celebration moments. Above everything so they are never half-buried. */
+  celebration: 120,
+} as const;
+
+export type OverlayLayer = keyof typeof OVERLAY_LAYERS;
+
+interface OverlayProps {
+  /** Which rung of the ladder. Never pass a raw z-index. */
+  layer: OverlayLayer;
+  children: ReactNode;
+  className?: string;
+  /**
+   * Pass-through for the overlay's accessible role. Omit for decorative
+   * overlays; pass "dialog" only alongside a label.
+   */
+  role?: string;
+  "aria-label"?: string;
+  "aria-modal"?: boolean;
+  /**
+   * `true` when the overlay must not intercept taps — a purely visual layer
+   * such as a celebration. Children can still opt back in with
+   * `pointer-events-auto`.
+   */
+  transparentToPointer?: boolean;
+  onClick?: () => void;
+}
+
+export function Overlay({
+  layer,
+  children,
+  className = "",
+  role,
+  transparentToPointer = false,
+  onClick,
+  ...aria
+}: OverlayProps) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  /**
+   * Two Radix side-effects that make a correct portal render inert or invisible
+   * to assistive tech. Both have bitten this codebase, and both are silent.
+   *
+   * 1. An open Radix modal sets `body { pointer-events: none }`, and that
+   *    INHERITS. A portaled sibling then renders at full size and is completely
+   *    dead to input unless it sets `pointer-events: auto` on itself.
+   * 2. Radix's `hideOthers()` stamps `aria-hidden="true"` on late-added `<body>`
+   *    children. An overlay can therefore end up
+   *    `role="dialog" aria-modal="true" aria-hidden="true"` — announced to
+   *    nobody, while looking correct on screen.
+   *
+   * Owning both here is the point of having one component: every caller gets
+   * the fix, and nobody has to know these exist.
+   */
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (el.getAttribute("aria-hidden") === "true") el.removeAttribute("aria-hidden");
+
+    const obs = new MutationObserver(() => {
+      if (el.getAttribute("aria-hidden") === "true") el.removeAttribute("aria-hidden");
+    });
+    obs.observe(el, { attributes: true, attributeFilter: ["aria-hidden"] });
+    return () => obs.disconnect();
+  }, []);
+
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
+    <div
+      ref={ref}
+      role={role}
+      onClick={onClick}
+      // `pointer-events-auto` is not cosmetic — see the note above. It is what
+      // keeps this overlay alive when a Radix modal has switched the body off.
+      className={`fixed inset-0 ${transparentToPointer ? "pointer-events-none" : "pointer-events-auto"} ${className}`}
+      style={{ zIndex: OVERLAY_LAYERS[layer] }}
+      {...aria}
+    >
+      {children}
+    </div>,
+    document.body,
+  );
+}

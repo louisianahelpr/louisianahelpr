@@ -294,7 +294,14 @@ const AdminSupport = () => {
       if (filter === "resolved") query = query.neq("status", "pending");
       const data = unwrap(await query) ?? [];
 
-      const userIds = [...new Set(data.map(r => r.reporter_id))];
+      // `reporter_id` is nullable since 20260902051631 (purge_user_data() nulls
+      // it when the reporter deletes their account, keeping the report because
+      // it is a record about the person reported ON). A null must not reach
+      // `.in("user_id", ...)`, which would send `in.(null,...)` to PostgREST;
+      // it falls through to the "Unknown" name below, which is correct.
+      const userIds = [...new Set(data.map(r => r.reporter_id))].filter(
+        (id): id is string => !!id,
+      );
       let profileMap = new Map<string, { full_name: string | null; email: string | null; subscription_tier: string | null; subscription_expires_at: string | null }>();
       if (userIds.length > 0) {
         // Secondary hydration read. Don't drop the error: on failure every row
@@ -311,7 +318,7 @@ const AdminSupport = () => {
       }
 
       return sortSupportQueue(data.map(r => {
-        const p = profileMap.get(r.reporter_id);
+        const p = r.reporter_id ? profileMap.get(r.reporter_id) : undefined;
         return {
           ...r,
           reporter_name: formatName(p?.full_name, "Unknown"),

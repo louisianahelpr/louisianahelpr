@@ -39,7 +39,8 @@ import { ErrorState } from "@/components/ui/ErrorState";
 
 type Report = {
   id: string;
-  reporter_id: string;
+  // Nullable since 20260902051631 — the reporter may have deleted their account.
+  reporter_id: string | null;
   reported_id: string;
   reported_type: string;
   reason: string;
@@ -136,8 +137,12 @@ const AdminReports = () => {
         //
         // So: if the read errored, every miss is "unavailable" — we genuinely
         // do not know. If it succeeded, a miss means the row is not there.
-        const nameFor = (id: string) =>
-          nameMap.get(id) ?? (profilesError ? "Name unavailable" : "Deleted user");
+        // Accepts null: `reporter_id` is nulled by purge_user_data() when the
+        // reporter deletes their account, and a null owner is the same thing to
+        // an admin as an id with no profile behind it — "Deleted user".
+        const nameFor = (id: string | null) =>
+          (id ? nameMap.get(id) : undefined) ??
+          (profilesError && id ? "Name unavailable" : "Deleted user");
 
         return reportRows.map(r => ({
           ...r,
@@ -145,7 +150,7 @@ const AdminReports = () => {
           reported_name: nameFor(r.reported_id),
           // Deleted actors cannot receive a message — the notification would
           // be written against a user_id with nothing behind it.
-          reporter_exists: nameMap.has(r.reporter_id),
+          reporter_exists: r.reporter_id !== null && nameMap.has(r.reporter_id),
           reported_exists: nameMap.has(r.reported_id),
           assigned_to_name: r.assigned_to ? nameMap.get(r.assigned_to) : undefined,
         }));
@@ -400,12 +405,23 @@ const AdminReports = () => {
                     </p>
                     <p className="text-ds-11 text-muted-foreground">
                       Reported by{" "}
-                      <button
-                        onClick={() => navigate(`/user/${report.reporter_id}`)}
-                        className="hover:text-primary underline-offset-2 hover:underline transition-colors"
-                      >
-                        {report.reporter_name}
-                      </button>
+                      {/* `reporter_id` is nullable: purge_user_data() nulls it
+                          when the reporter deletes their account, keeping the
+                          report itself because it protects the person named in
+                          `reported_id`. Without this branch the link built a
+                          `/user/null` href that renders a not-found profile.
+                          `reporter_name` already resolves to "Deleted user" via
+                          nameFor(), so the label needs no special case. */}
+                      {report.reporter_id ? (
+                        <button
+                          onClick={() => navigate(`/user/${report.reporter_id}`)}
+                          className="hover:text-primary underline-offset-2 hover:underline transition-colors"
+                        >
+                          {report.reporter_name}
+                        </button>
+                      ) : (
+                        <span className="italic">{report.reporter_name}</span>
+                      )}
                       {" · "}{formatShortDate(report.created_at)}
                     </p>
                   </div>
@@ -494,9 +510,22 @@ const AdminReports = () => {
                     <Button
                       size="sm"
                       variant="outline"
-                      disabled={report.reporter_exists === false}
-                      title={report.reporter_exists === false ? "This account no longer exists" : undefined}
-                      onClick={() => { setMessageTarget({ userId: report.reporter_id, name: report.reporter_name || "User" }); setMessageText(""); }}
+                      disabled={!report.reporter_id || report.reporter_exists === false}
+                      title={
+                        !report.reporter_id || report.reporter_exists === false
+                          ? "This account no longer exists"
+                          : undefined
+                      }
+                      onClick={() => {
+                        // Narrowed rather than asserted: `reporter_id` is null
+                        // once the reporter deletes their account, and there is
+                        // nobody to message. The `disabled` above already
+                        // covers it — this keeps the two in step instead of
+                        // leaning on that to hold forever.
+                        if (!report.reporter_id) return;
+                        setMessageTarget({ userId: report.reporter_id, name: report.reporter_name || "User" });
+                        setMessageText("");
+                      }}
                     >
                       <Send className="w-3.5 h-3.5 mr-1" /> Message {report.reporter_exists === false ? "Reporter" : (report.reporter_name?.split(" ")[0] || "Reporter")}
                     </Button>

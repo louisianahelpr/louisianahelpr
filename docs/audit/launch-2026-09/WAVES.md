@@ -1,4 +1,4 @@
-# Wave schedule — 35 lanes
+# Wave schedule — 36 lanes
 
 Grouping is contention-aware, not arbitrary. Three rules drive it:
 
@@ -21,7 +21,7 @@ Grouping is contention-aware, not arbitrary. Three rules drive it:
 |---|---|---|
 | **0** | *orchestrator only* | Pre-flight: migration drift, `gh workflow list --all`, `npm run check:launch`. **If prod deploys are red, stop** — everything downstream is moot. |
 | **1** | `lh-schema-integrity` · `lh-generated-drift` · `lh-silent-failure` · `lh-route-walker` `S` | Static + live-DB + read-only route walk. Establishes the baseline everything else references. **`lh-generated-drift` belongs here and nowhere later**: if `types.ts` is stale, every downstream lane is auditing code the compiler is lying about — that is exactly how SI-012 reached 17 files unnoticed. |
-| **2** | `lh-authz-rls` · `lh-edge-functions` · `lh-webkit-differ` | Two backend read-only lanes + the WebKit A/B. |
+| **2** | `lh-authz-rls` · `lh-edge-functions` · `lh-webkit-differ` · `lh-design-holes` | Two backend read-only lanes + the WebKit A/B. **`lh-design-holes` belongs early**: it asks whether a state should be reachable at all, and every later lane that audits a surface is cheaper once the surfaces that should not exist are named. It reads the same RLS and RPC ground as `lh-authz-rls`, so they pair. |
 | **3** | `lh-money-escrow` `M` · `lh-cron-jobs` · `lh-native-bridge` `D` | The money lane gets its own accounts and Stripe **test mode**. |
 | **4** | `lh-state-matrix` `M` `S` · `lh-onboarding-auth` `M` · `lh-build-release` | State matrix owns the seeded account this wave; onboarding creates fresh accounts by definition. |
 | **5** | `lh-e2e-journeys` `M` · `lh-trust-safety` `M` · `lh-verification-credentials` `M` · `lh-account-lifecycle` `M` | Own-account lanes; E2E needs two of its own. **`lh-account-lifecycle` DELETES accounts** — it must self-provision throwaway ones and must never touch the canonical seeded account or a real user. It belongs with the other own-account lanes for exactly that reason. |

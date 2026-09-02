@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
 import { Gift, Loader2, Share2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ProfileTabHeader } from "@/components/profile/ProfileTabHeader";
@@ -256,17 +255,16 @@ const HelprWrapped = ({ onBack }: { onBack?: () => void }) => {
   // one month the feature is at its most shareable was the one month its tab
   // stopped looking like the rest of the app.
   usePageTitle(`Your ${SEASON.title} — Helpr`);
-  const navigate = useNavigate();
+  // `isReady` is still read below to tell "auth is resolving" apart from
+  // "resolved, no user" in the query gate — but the redirect that used to live
+  // here is gone. It bounced to /login once auth resolved with no user, which
+  // was correct for a standalone /wrapped route and is now BOTH dead and wrong:
+  // this renders inside Profile, which is already behind <ProtectedRoute>, so
+  // the branch can never fire — and if it somehow did, it would yank a signed-in
+  // person off the Profile screen they are standing on. Route-shaped logic does
+  // not belong in a tab body.
   const { user, isReady } = useAuthReady();
   const [isSharing, setIsSharing] = useState(false);
-
-  // Guard: redirect to /login once auth resolves with no user.
-  // Must be an effect — can't call navigate() before all hooks.
-  useEffect(() => {
-    if (isReady && !user) {
-      navigate("/login", { replace: true });
-    }
-  }, [isReady, user, navigate]);
 
   const { data: stats, isLoading, isError, isFetching, refetch } = useQuery({
     queryKey: ["helpr-wrapped", user?.id, YEAR],

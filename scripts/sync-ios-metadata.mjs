@@ -102,14 +102,34 @@ const PERMISSION_KEYS = [
   "NSContactsUsageDescription",
   "NSFaceIDUsageDescription",
   "NSLocationWhenInUseUsageDescription",
+  "NSLocationAlwaysAndWhenInUseUsageDescription",
   "NSMicrophoneUsageDescription",
   "NSSpeechRecognitionUsageDescription",
   "NSPhotoLibraryAddUsageDescription",
   "NSPhotoLibraryUsageDescription",
 ];
+const missingPermission = [];
 for (const key of PERMISSION_KEYS) {
   const value = pickPermission(key);
   if (value) upsertPlistString(key, value);
+  else if (!plist.includes(`<key>${key}</key>`)) missingPermission.push(key);
+}
+
+// FAIL, do not warn. This block used to upsert and move on, so a key absent
+// from both the YAML and the plist simply never appeared -- and the first thing
+// to notice was App Store Connect, AFTER the upload succeeded. Build 7101
+// (v1.0.4) shipped without NSLocationAlwaysAndWhenInUseUsageDescription and
+// came back as ITMS-90683. Apple's check is static and reads the binary: a
+// purpose string is required for any API the LINKED CODE references, which
+// includes plugin code paths the app never calls. So the list cannot be derived
+// from what this app does; it has to be asserted, and asserted before upload
+// rather than discovered after it.
+if (missingPermission.length) {
+  console.error(`\n✖ Info.plist is missing ${missingPermission.length} required purpose string(s):\n`);
+  for (const k of missingPermission) console.error(`    ${k}`);
+  console.error("\n  Add it to permission_strings in fastlane/ios_app_metadata.yml.");
+  console.error("  Apple rejects the BUILD for this (ITMS-90683), after the upload reports success.\n");
+  process.exit(1);
 }
 
 write(plistPath, plist);

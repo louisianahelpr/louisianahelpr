@@ -75,6 +75,20 @@
 	<string>Helpr uses Face ID to confirm it's you before cashing out your earnings.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Helpr uses your location to show nearby jobs and confirm helpr arrival.</string>
+	<!--
+	  REQUIRED EVEN THOUGH THE APP NEVER REQUESTS "ALWAYS".
+	  App Store Connect rejected build 7101 (v1.0.4) with ITMS-90683 for the
+	  absence of this key. Helpr asks only for when-in-use and declares no
+	  `location` UIBackgroundMode — but Apple's static analysis reads the
+	  BINARY, and @capacitor/geolocation's CLLocationManager wrapper references
+	  requestAlwaysAuthorization. A referenced API needs a purpose string
+	  whether or not the app calls it, so the fix is the string, not a code
+	  change. The copy says plainly that background tracking does not happen,
+	  because a purpose string the app cannot honour is worse than none: this
+	  one is only ever shown if a future change actually requests Always.
+	-->
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Helpr uses your location only while you're using the app — to show nearby jobs and confirm helpr arrival. Helpr does not track your location in the background.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Helpr can save downloaded receipts and shared images to your photo library.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

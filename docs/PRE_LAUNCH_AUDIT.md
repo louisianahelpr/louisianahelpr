@@ -100,7 +100,7 @@ Everything else is 🟡 Medium / 🟢 Low hardening.
 
 **Public / guest:** `/`, `/login`, `/signup`, `/jobs`, `/jobs/:id`, `/browse`, `/help`, `/legal`, `/subscription`, `/for-business`, `/discharge`, `/insurance-claim`, `/evacuation`, `/data-rights`, `/community`, marketing verticals.
 
-**Protected (`ProtectedRoute`, variants `allowUnapproved`/`allowPending`):** `/dashboard`, `/profile` (18 tabs), `/post-job` (3-step wizard), `/messages`, `/my-jobs`, `/my-posts`, `/payment-success`, `/user/:userId`, `/pay-it-forward`, `/family` + `/family/accept/:token`, `/analytics`, `/business/*` (team/billing/api/contracts/exports/onboarding/reports), `/home-history`, `/work-record`, `/benefits`, `/pets`, `/str-settings`.
+**Protected (`ProtectedRoute`, variants `allowUnapproved`/`allowPending`):** `/dashboard`, `/profile` (18 tabs), `/post-job` (3-step wizard), `/messages`, `/my-jobs`, `/my-posts`, `/payment-success`, `/user/:userId`, `/pay-it-forward`, `/family` + `/family/accept/:token`, `/analytics`, `/business/*` (team/billing/api/contracts/exports/onboarding/reports), `/home-history`, `/work-record`, `/pets`, `/str-settings`.
 
 **Admin (`AdminRoute`):** `/admin` (27 `?view=` sub-views).
 

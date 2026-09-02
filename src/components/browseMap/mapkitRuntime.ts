@@ -7,12 +7,12 @@
 // CDN at runtime (no npm package), so nothing would keep the two in sync.
 // We describe only the members we actually touch.
 
-export interface MKCoordinate {
+interface MKCoordinate {
   latitude: number;
   longitude: number;
 }
 
-export interface MKCoordinateSpan {
+interface MKCoordinateSpan {
   latitudeDelta: number;
   longitudeDelta: number;
 }
@@ -32,7 +32,7 @@ export interface MKAnnotation {
   addEventListener?: (type: string, fn: (e: unknown) => void) => void;
 }
 
-export interface MKOverlay {
+interface MKOverlay {
   radius?: number;
   addEventListener?: (type: string, fn: (e: unknown) => void) => void;
 }

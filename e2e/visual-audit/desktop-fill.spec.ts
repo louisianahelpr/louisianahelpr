@@ -78,7 +78,6 @@ const ROUTES: Route[] = [
   { path: "/pay-it-forward", auth: "authed" },
   { path: "/family", auth: "authed" },
   { path: "/analytics", auth: "authed" },
-  { path: "/benefits", auth: "authed" },
   { path: "/home-history", auth: "authed" },
   { path: "/work-record", auth: "authed" },
   { path: "/str-settings", auth: "authed" },

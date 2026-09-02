@@ -159,15 +159,45 @@ describe("R18 — money duplications that had no guard", () => {
       // bad roster values must degrade to "one helper", never divide by zero
       { budget: 100, is_group_job: true, helpers_needed: 0, helper_fee_percent: 10 },
       { budget: 100, is_group_job: true, helpers_needed: null, helper_fee_percent: 10 },
+      // ── the isSettledForDisplay guard ──────────────────────────────────
+      // The edge copy shipped WITHOUT this guard, so weekly-helper-report
+      // emailed a helper the escrow-time global stamp (10%) for a job still
+      // inside the 24-hour payout window instead of their real tier rate — an
+      // Elite helper's $120 job read $108.00 against a $110.40 transfer. These
+      // rows only distinguish the two modules if BOTH honour the guard, which
+      // is exactly what makes them worth pinning here.
+      { budget: 120, platform_fee_amount: 12, helper_fee_percent: 10, payment_status: "payout_pending" },
+      { budget: 120, platform_fee_amount: 12, helper_fee_percent: 10, payment_status: "released" },
+      { budget: 120, platform_fee_amount: 12, helper_fee_percent: 10, payment_status: "escrow" },
+      // group + unsettled: the roster split and the guard must compose
+      { budget: 300, is_group_job: true, helpers_needed: 3, helper_fee_percent: 10, payment_status: "payout_pending" },
     ];
 
     for (const job of cases) {
       expect(edge.helperShareCount(job)).toBe(client.helperShareCount(job));
+      expect(edge.isSettledForDisplay(job)).toBe(client.isSettledForDisplay(job));
+      expect(edge.helperDisplayFeePercent(job, 8)).toBe(
+        client.helperDisplayFeePercent(job, 8),
+      );
+      expect(edge.helperPlatformFeeDollars(job, 8)).toBeCloseTo(
+        client.helperPlatformFeeDollars(job, 8),
+        10,
+      );
       expect(edge.helperTakeHomeDollars(job, 12)).toBeCloseTo(
         client.helperTakeHomeDollars(job, 12),
         10,
       );
     }
+
+    // The guard must actually BITE on these rows, or the assertions above pass
+    // vacuously on two modules that both ignore payment_status.
+    const unsettled = { budget: 120, platform_fee_amount: 12, helper_fee_percent: 10, payment_status: "payout_pending" };
+    const settled = { ...unsettled, payment_status: "released" };
+    // Elite helper (8%): unsettled follows the live tier, settled honours the stamp.
+    expect(edge.helperTakeHomeDollars(unsettled, 8)).toBeCloseTo(110.4, 10);
+    expect(edge.helperTakeHomeDollars(settled, 8)).toBeCloseTo(108, 10);
+    // An omitted payment_status still means "already paid out" on BOTH sides.
+    expect(edge.isSettledForDisplay({ budget: 120 })).toBe(true);
     expect(edge.sumHelperTakeHomeDollars(cases, 12)).toBeCloseTo(
       client.sumHelperTakeHomeDollars(cases, 12),
       10,

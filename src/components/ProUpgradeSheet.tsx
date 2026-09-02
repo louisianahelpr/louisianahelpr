@@ -1,7 +1,14 @@
 import { useNavigate } from "react-router-dom";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
-import { Dialog, DialogContent, DialogHeader, DialogHero, DialogFooter } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHero,
+  DialogBody,
+  DialogFooter,
+  DialogSecondaryAction,
+  DialogPrimaryAction,
+} from "@/components/ui/dialog";
 import { Sparkles, Crown, Star, Check, type LucideIcon } from "lucide-react";
 
 interface ProUpgradeSheetProps {
@@ -31,7 +38,8 @@ interface ProUpgradeSheetProps {
 export function ProUpgradeSheet({
   open,
   onClose,
-  icon: Icon,
+  // `icon` is still accepted so no caller breaks, and deliberately NOT
+  // destructured: the header tile it fed is gone (see the Hero below).
   title,
   body,
   perks,
@@ -48,54 +56,28 @@ export function ProUpgradeSheet({
     : TIER_PERKS.pro.name;
   const TierIcon =
     requiredTier === "elite" ? Crown : requiredTier === "basic" ? Star : Sparkles;
-  // Gold is Elite's alone (it is what the Featured Crown Badge is made of)
-  // and bark is Basic's; Pro keeps sienna.
-  // Basic's accent is bark — the same treatment its badge preview and the
-  // in-app tier card use.
-  const accent =
-    requiredTier === "elite"
-      ? "hsl(var(--gold-warm))"
-      : requiredTier === "basic"
-        ? "hsl(var(--bark))"
-        : "hsl(var(--burnt-sienna))";
-  const accentSoft =
-    requiredTier === "elite"
-      ? "hsl(var(--gold-warm) / 0.14)"
-      : requiredTier === "basic"
-        ? "hsl(var(--bark) / 0.10)"
-        : "hsl(var(--burnt-sienna) / 0.12)";
+  // `accent` / `accentSoft` are gone with the header icon tile they painted.
+  // Nothing else in this sheet was tinted per tier — the tier reads from the
+  // title and the CTA label.
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent>
-        <DialogHeader className="!text-left space-y-0">
-          {/* Tier chip + DialogHero title. The chip is a Pro/Elite-tier
-              decoration (accent-tinted rounded square with the tier's Lucide
-              icon) — sits BESIDE the shared header text so this dialog reads
-              as a sibling of every other DialogHero popup. */}
-          <div className="flex items-center gap-3 mb-2">
-            <div
-              className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
-              style={{
-                background: accentSoft,
-                color: accent,
-                border: `0.5px solid ${accent.replace(")", " / 0.36)")}`,
-                boxShadow: "inset 0 1px 1px 0 rgba(255,255,255,0.55)",
-              }}
-            >
-              <Icon className="w-5 h-5" strokeWidth={1.75} />
-            </div>
-            {/* No `titleStyle` size override. This was the last popup title in
-                the app on its own scale — clamp(1.25rem, 2vw + 0.4rem, 1.55rem)
-                against the shared clamp(1.2rem, 1.6vw + 0.4rem, 1.45rem) — so
-                the upgrade sheet's heading ran ~7% larger than every dialog and
-                sheet beside it. The inert `eyebrow`/`eyebrowStyle` props went
-                with the ones stripped from the sheet call sites. */}
-            <div className="flex-1 min-w-0">
-              <DialogHero title={title} />
-            </div>
-          </div>
-        </DialogHeader>
+        {/* NO ICON TILE, and no second DialogHeader around the Hero.
+            This was the app's LAST popup header with a decoration in it: a
+            48px accent-tinted rounded square holding the tier's Lucide icon,
+            sitting in a hand-rolled `<DialogHeader>` that wrapped the Hero
+            (which renders its own DialogHeader — so the header was nested
+            inside a header).
+            PermissionRationaleDialog's 56px tile was removed earlier the same
+            day for the same reason: the canonical popup header is the Hero's
+            single title line with the X beside it, and a tile beside or above
+            the title stops the X being aligned to a heading. If popup headers
+            are ever to have icons, they belong in the Hero as ONE slot every
+            popup uses — not rebuilt per dialog. The tier is still named in the
+            title and on the CTA ("See Helpr Pro Plans"), so nothing is lost
+            but the ornament. */}
+        <DialogHero title={title} />
 
         {/* `body` was accepted, documented, and passed by its caller — and
             never rendered. The one sentence explaining what the paywall
@@ -103,12 +85,9 @@ export function ProUpgradeSheet({
             under the headline. This is where a hero subtitle's copy belongs
             under the "one main title" rule anyway: in the body, not stacked
             under the title. */}
-        <p
-          className="font-serif italic leading-relaxed text-ds-14"
-          style={{ color: "hsl(var(--olivewood) / 0.9)" }}
-        >
-          {body}
-        </p>
+        <DialogBody>
+          <p>{body}</p>
+        </DialogBody>
 
         {/* What you unlock — parchment-gold card, matches the JobDetailDialog
             take-home pill so it reads as a "this is the value" surface. */}
@@ -142,21 +121,22 @@ export function ProUpgradeSheet({
           </ul>
         </div>
 
-        <DialogFooter className="!flex-col-reverse sm:!flex-row">
-          <Button variant="ghost" onClick={onClose} className="rounded-ds-md">
+        {/* Plain DialogFooter — the className restated its own
+            `flex-col-reverse sm:flex-row`, and `flex-1` made this the only
+            dialog whose primary grew to fill the footer row. */}
+        <DialogFooter>
+          <DialogSecondaryAction onClick={onClose}>
             Maybe Later
-          </Button>
-          <Button
-            variant="primary"
+          </DialogSecondaryAction>
+          <DialogPrimaryAction
             onClick={() => {
               onClose();
               navigate("/profile?tab=subscription");
             }}
-            className="rounded-ds-md flex-1 sm:flex-initial"
           >
             <TierIcon className="w-4 h-4 mr-1.5" />
             See {tierLabel} Plans
-          </Button>
+          </DialogPrimaryAction>
         </DialogFooter>
       </DialogContent>
     </Dialog>

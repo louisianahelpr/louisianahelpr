@@ -190,5 +190,3 @@ export function TimePickerWheel({ value, onChange, disabled, className }: TimePi
     </div>
   );
 }
-
-export default TimePickerWheel;

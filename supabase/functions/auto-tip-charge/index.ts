@@ -125,6 +125,105 @@ serve(async (req) => {
         continue;
       }
 
+      // Release the claim row so the NEXT cron tick can retry this job, and
+      // PROVE the row went away.
+      //
+      // A DELETE matching zero rows returns `{ data: [], error: null }`, so
+      // discarding the result — which this used to do entirely, no error check
+      // and no returning projection — makes the worst outcome the invisible
+      // one. A surviving claim row is worse than a 23505 on the next tick:
+      // `auto_tip_candidates` excludes any job that already has a
+      // `source='auto'` tips row, so the job drops out of the candidate list
+      // ENTIRELY and no tick ever looks at it again. The poster asked for an
+      // automatic tip, the helper never receives it, and nothing in the system
+      // says so.
+      //
+      // Policy on zero rows: fail the RUN loudly, and do not try to recover
+      // here. There is no safe automatic recovery — `giveUp()` is the obvious
+      // candidate and is exactly wrong, because it sets `auto_prompt_sent_at`
+      // and marks the tip failed, permanently cementing the state we are trying
+      // to escape. Retrying the delete would only repeat the same predicate.
+      // The claim row is durable and visible (`payment_status='pending'`), so a
+      // human deleting one row restores the retry — what they need is to be
+      // told. `defects.record()` makes the run answer 500 through `cronResult`,
+      // which is the one channel `sweep_cron_http_failures()` watches. It is a
+      // true defect, not a business outcome: nothing about the poster, the
+      // helper or the card caused it.
+      const releaseClaimForRetry = async (why: string) => {
+        const { data: released, error: releaseErr } = await supabase
+          .from("tips")
+          .delete()
+          .eq("id", tipRow.id)
+          .select("id");
+        if (releaseErr) {
+          log("ERROR releasing tip claim — auto-tip for this job is now blocked", {
+            jobId, tipId: tipRow.id, error: releaseErr.message,
+          });
+          defects.record(`tip claim release ${jobId} (${why}): ${releaseErr.message}`);
+          return;
+        }
+        if (!released || released.length === 0) {
+          log("Tip claim release matched ZERO rows — auto-tip for this job is now blocked", {
+            jobId, tipId: tipRow.id,
+          });
+          defects.record(
+            `tip claim release ${jobId} (${why}): matched 0 rows — the pending claim row survives and removes this job from auto_tip_candidates forever; delete tips.id=${tipRow.id} to unblock`,
+          );
+        }
+      };
+
+      // Write a TERMINAL outcome onto the claim row, and prove it landed.
+      //
+      // `.select("id")` because `tips` genuinely has an `id` column — unlike
+      // `stripe_webhook_events`, whose primary key is `event_id` and which 400s
+      // on `select=id`. The right projection is a per-table fact, not a reflex.
+      //
+      // Zero rows is never legitimate at either call site:
+      //   • `tipRow.id` came from THIS iteration's own claim INSERT moments ago.
+      //   • The only code that removes that row is `releaseClaimForRetry()`, and
+      //     every path calling it `continue`s without reaching here.
+      //   • Nothing else in the repo updates or deletes `tips` at all (grepped
+      //     across src/ and supabase/functions/), so no concurrent writer exists.
+      //   • A concurrent tick cannot have claimed the same job — the unique
+      //     partial index on (job_id) WHERE source='auto' guarantees it.
+      //   • An UPDATE returns its matched rows even when the values are
+      //     unchanged, so a repeat write still matches 1 row rather than 0.
+      // So zero rows means the write did not happen. And because
+      // `auto_tip_candidates()` filters on `NOT EXISTS (… tips WHERE
+      // source='auto')` — the STATUS is never consulted, only the row's
+      // existence — the job leaves the candidate list either way and no tick
+      // ever revisits it. A defect, not a business outcome: nothing about the
+      // poster, the helper or the card can produce it. `defects.record()` makes
+      // the run answer 500 through `cronResult`, the one channel
+      // `sweep_cron_http_failures()` watches, and the reason names `tips.id` so
+      // clearing it is not a hunt.
+      const settleTip = async (
+        patch: Record<string, unknown>,
+        what: string,
+        consequence: string,
+      ): Promise<boolean> => {
+        const { data: settled, error: settleErr } = await supabase
+          .from("tips")
+          .update(patch)
+          .eq("id", tipRow.id)
+          .select("id");
+        if (settleErr) {
+          log(`ERROR: ${what}`, { jobId, tipId: tipRow.id, error: settleErr.message });
+          defects.record(
+            `${what} ${jobId}: ${settleErr.message} — ${consequence}; row is tips.id=${tipRow.id}`,
+          );
+          return false;
+        }
+        if (!settled || settled.length === 0) {
+          log(`${what} matched ZERO rows`, { jobId, tipId: tipRow.id });
+          defects.record(
+            `${what} ${jobId}: matched 0 rows with no error — ${consequence}; row is tips.id=${tipRow.id}`,
+          );
+          return false;
+        }
+        return true;
+      };
+
       // Mark the row failed-with-reason rather than deleting it: a poster who
       // meant to tip and couldn't should be asked, and a deleted row would
       // make the sweeper re-attempt the same doomed charge every tick.
@@ -134,15 +233,24 @@ serve(async (req) => {
       // payout account is noise they can do nothing with, and it leaks the
       // other party's account state.
       const giveUp = async (reason: string, notify: boolean) => {
-        await supabase
-          .from("tips")
-          .update({
+        // A no-op here is the more insidious half of the pair the claim-release
+        // guard fixes: it tells the system the tip is permanently resolved when
+        // it may have written nothing at all. The row stays `pending` with no
+        // `failure_reason` and no `auto_prompt_sent_at`, so the "confirm your
+        // tip" nudge that reads that column never fires — while the poster has
+        // already been told the tip failed, if `notify`.
+        await settleTip(
+          {
             payment_status: "failed",
             failure_reason: reason,
             auto_prompt_sent_at: new Date().toISOString(),
-          })
-          .eq("id", tipRow.id);
+          },
+          "tip give-up write",
+          `the row stays 'pending' with no failure_reason and no auto_prompt_sent_at, so the poster is never nudged to tip manually and no tick revisits this job (reason was "${reason}")`,
+        );
 
+        // The poster is told either way. Whether we managed to record the
+        // failure has no bearing on whether it happened to them.
         if (!notify) return;
         // The one thing this function must never do is fail silently. A
         // poster who configured an automatic tip and got nothing — no charge,
@@ -153,7 +261,10 @@ serve(async (req) => {
           title: "Your tip didn't go through",
           message:
             "We couldn't charge your automatic tip — usually because there's no saved card on file. You can send it in a tap.",
-          link: "/my-posts",
+          // Straight to the finished job the tip was for. A bare "/my-posts"
+          // opened on "Needs you", which a completed job is never in — so the
+          // "send it in a tap" was a tap into an empty list.
+          link: `/my-posts?job=${c.job_id}`,
         });
         if (notifyErr) {
           // Never swallowed: if this insert fails the poster is back to
@@ -176,7 +287,7 @@ serve(async (req) => {
           // setting auto_prompt_sent_at (which giveUp does), which would block
           // all future retry attempts for this job's auto-tip.
           log("ERROR reading helper profile — deleting claim for retry", { jobId, error: helperProfileErr.message });
-          await supabase.from("tips").delete().eq("id", tipRow.id);
+          await releaseClaimForRetry("helper profile read");
           results.failed++;
           defects.record(`helper profile read ${jobId}: ${helperProfileErr.message}`);
           continue;
@@ -196,7 +307,7 @@ serve(async (req) => {
           // Same reasoning as helperProfileErr above: don't call giveUp on a
           // transient auth read failure — delete the claim and retry next tick.
           log("ERROR reading poster auth record — deleting claim for retry", { jobId, error: authUserErr.message });
-          await supabase.from("tips").delete().eq("id", tipRow.id);
+          await releaseClaimForRetry("poster auth read");
           results.failed++;
           defects.record(`poster auth read ${jobId}: ${authUserErr.message}`);
           continue;
@@ -265,10 +376,32 @@ serve(async (req) => {
         );
 
         if (intent.status === "succeeded") {
-          await supabase
-            .from("tips")
-            .update({ payment_status: "paid", stripe_payment_intent_id: intent.id })
-            .eq("id", tipRow.id);
+          // THE MONEY HAS ALREADY MOVED. This is the one write in the function
+          // that runs after a real charge, and it was the only one with neither
+          // an error check nor a returning projection — so the worst outcome in
+          // the file was also the most invisible: the poster is debited, the
+          // helper's transfer is on its way, and `tips` still reads 'pending'
+          // with a null `stripe_payment_intent_id`.
+          //
+          // That is not merely a stale label. The intent id is the ONLY join key
+          // between this charge and the ledger, so without it the charge is
+          // unreconcilable — money-reconciliation cannot match it to anything —
+          // and `auto_tip_candidates()` still excludes the job (it tests the
+          // row's existence, not its status), so nothing revisits it to notice.
+          // The comment at the top of this file says a payment with no row is
+          // money nobody can account for; a payment with an unfinished row is
+          // the same hole one column narrower.
+          //
+          // Observation only: the success path still does exactly what it did.
+          // Charging is NOT retried on a failed settle — `results.charged` and
+          // the log stay truthful about the charge, because the charge really
+          // did succeed. What changes is that the run now reports the defect
+          // instead of returning 200 as though the tip were fully recorded.
+          await settleTip(
+            { payment_status: "paid", stripe_payment_intent_id: intent.id },
+            "tip paid-settlement write",
+            `the poster WAS charged (payment_intent ${intent.id}, ${tipCents}c) but the tips row still reads 'pending' with no stripe_payment_intent_id, leaving the charge unreconcilable`,
+          );
           results.charged++;
           log("charged", { jobId, tipCents });
         } else {

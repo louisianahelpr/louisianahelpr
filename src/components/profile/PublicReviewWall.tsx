@@ -39,9 +39,14 @@ interface ReviewRow {
   job_id: string;
 }
 
-interface JobRow {
+/** One row of `get_public_profile_reviews` (the columns this wall renders). */
+interface PublicReviewRpcRow {
   id: string;
-  category: string | null;
+  rating: number;
+  feedback: string | null;
+  created_at: string;
+  reviewer_name: string | null;
+  job_category: string | null;
 }
 
 interface ReviewerProfileRow {
@@ -218,11 +223,56 @@ export function PublicReviewWall({
     staleTime: 5 * 60_000,
     gcTime: 10 * 60_000,
     queryFn: async () => {
+      // ── Preferred path: the SQL that can actually see `jobs` ─────────────
+      // `get_public_profile_reviews` (migration 20260901002325) applies the
+      // reveal window, the `published` status, the cancelled-job exclusion
+      // and reviewer-name masking server-side, and returns the job CATEGORY
+      // rather than the title. Every one of those was either missing or
+      // structurally broken in the hand-rolled query kept below as a
+      // fallback — see the comment there.
+      const { data: rpcRows, error: rpcErr } = await supabase.rpc(
+        "get_public_profile_reviews" as never,
+        { p_user_id: helperId, p_limit: limit, p_offset: 0 } as never,
+      );
+
+      // PGRST202 = not deployed yet (migrations land on merge; CLAUDE.md).
+      if (rpcErr && (rpcErr as { code?: string }).code !== "PGRST202") throw rpcErr;
+
+      if (!rpcErr) {
+        return ((rpcRows ?? []) as PublicReviewRpcRow[]).map<ResolvedReview>((r) => ({
+          id: r.id,
+          rating: r.rating,
+          feedback: r.feedback,
+          createdAt: r.created_at,
+          // The RPC masks a banned/unapproved reviewer's name to NULL.
+          reviewerName: formatName(r.reviewer_name, "a neighbor"),
+          jobCategory: r.job_category,
+        }));
+      }
+
+      // ── Fallback: direct read, with the guards that CAN be applied here ──
+      // Two things this path cannot do, both of them the reason the RPC
+      // exists, and both accepted knowingly for the deploy-lag window:
+      //
+      //  1. The cancelled-job exclusion. `completed → disputed → cancelled`
+      //     is a legal transition, so a live review can sit on a cancelled
+      //     job — but `jobs` is unreadable to a visitor under RLS, so it
+      //     cannot be filtered from the client at all.
+      //  2. The job category. The old code resolved it with
+      //     `from("jobs").select("id, category").in("id", jobIds)` — measured
+      //     against production as an authenticated non-party, that returns
+      //     ZERO rows, so the category chip silently never rendered for any
+      //     visitor. Rather than keep a query that only ever yields nothing,
+      //     the chip is simply omitted on this path.
+      //
+      // What IS applied and was previously missing: `status = 'published'`,
+      // without which an operator takedown would keep showing on the wall.
       const rows = unwrap(
         await supabase
           .from("reviews")
           .select("id, rating, feedback, created_at, reviewer_id, job_id")
           .eq("reviewee_id", helperId)
+          .eq("status", "published")
           // feedback_visible_at = double-blind reveal window. Hidden
           // rows stay private until both sides post or 14 days pass.
           .lte("feedback_visible_at", new Date().toISOString())
@@ -232,27 +282,19 @@ export function PublicReviewWall({
 
       if (!rows || rows.length === 0) return [];
 
-      // Resolve reviewer display name + job category in two parallel
-      // RPC/table calls — avoids N+1 fetches per review row.
       const reviewerIds = Array.from(new Set(rows.map((r) => r.reviewer_id)));
-      const jobIds = Array.from(new Set(rows.map((r) => r.job_id)));
+      const profilesRes = await supabase.rpc("get_safe_profiles", { user_ids: reviewerIds });
 
-      const [profilesRes, jobsRes] = await Promise.all([
-        supabase.rpc("get_safe_profiles", { user_ids: reviewerIds }),
-        supabase.from("jobs").select("id, category").in("id", jobIds),
-      ]);
-
-      // We deliberately do NOT `unwrap()` the secondary fetches — if
-      // they fail we still want to render the reviews with fallback
-      // names ("Customer") rather than blow up the whole wall.
+      // We deliberately do NOT `unwrap()` this secondary fetch — if it fails
+      // we still want to render the reviews with a fallback name rather than
+      // blow up the whole wall. The fallback matches the RPC path's ("a
+      // neighbor"); it used to be "Customer" here and "a neighbor" one line
+      // below, two labels for one missing name on the same card.
       const nameMap = new Map<string, string>(
         ((profilesRes.data ?? []) as ReviewerProfileRow[]).map((p) => [
           p.user_id,
-          formatName(p.full_name, "Customer"),
+          formatName(p.full_name, "a neighbor"),
         ]),
-      );
-      const categoryMap = new Map<string, string | null>(
-        ((jobsRes.data ?? []) as JobRow[]).map((j) => [j.id, j.category]),
       );
 
       return rows.map<ResolvedReview>((r) => ({
@@ -261,7 +303,7 @@ export function PublicReviewWall({
         feedback: r.feedback,
         createdAt: r.created_at,
         reviewerName: nameMap.get(r.reviewer_id) ?? "a neighbor",
-        jobCategory: categoryMap.get(r.job_id) ?? null,
+        jobCategory: null,
       }));
     },
   });
@@ -359,5 +401,3 @@ export function PublicReviewWall({
     </section>
   );
 }
-
-export default PublicReviewWall;

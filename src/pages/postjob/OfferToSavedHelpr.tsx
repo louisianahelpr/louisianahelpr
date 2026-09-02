@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { ChevronDown, UserCheck } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
+import UserAvatar from "@/components/UserAvatar";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { queryKeys } from "@/lib/queryKeys";
 import { report } from "@/lib/errorLogger";
@@ -34,8 +35,11 @@ interface SavedHelperLite {
   avatar_url: string | null;
 }
 
-const initialsOf = (name: string) =>
-  name.split(/\s+/).filter(Boolean).map((w) => w[0]).join("").toUpperCase().slice(0, 2) || "?";
+// `initialsOf` used to live here. It is now `avatarInitials` inside
+// `<UserAvatar>` (`src/lib/avatarImage.ts`) — one derivation shared by every
+// avatar in the app, hardened against the whitespace-only name that turns
+// `split(" ").map(w => w[0]).join("")` into an empty string and paints a
+// coloured circle with nothing in it.
 
 export function OfferToSavedHelpr({
   open,
@@ -45,6 +49,11 @@ export function OfferToSavedHelpr({
   onOpenChange: (next: boolean) => void;
 }) {
   const navigate = useNavigate();
+  // Preserve whatever is already on /post-job — above all `pif_credit` and
+  // its `budget`. This card sits on the entry screen a gift recipient lands
+  // on, so rebuilding the query string from scratch meant "offer it to a
+  // saved Helpr" quietly threw the gift away and billed them in full.
+  const [searchParams] = useSearchParams();
   const { user } = useCurrentUser();
   const [expandedOnce, setExpandedOnce] = useState(false);
 
@@ -75,7 +84,9 @@ export function OfferToSavedHelpr({
 
   const pick = (helperId: string) => {
     track("post_job_entry_choice", { choice: "direct_offer" });
-    navigate(`/post-job?offerTo=${helperId}`);
+    const next = new URLSearchParams(searchParams);
+    next.set("offerTo", helperId);
+    navigate(`/post-job?${next.toString()}`);
   };
 
   return (
@@ -104,7 +115,7 @@ export function OfferToSavedHelpr({
             className="block font-serif italic mt-0.5 text-ds-11"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
-            They get first refusal for 24 hours before it opens to everyone.
+            They get first refusal for a window you set before it opens to everyone.
           </span>
         </span>
         <ChevronDown
@@ -128,7 +139,12 @@ export function OfferToSavedHelpr({
             </p>
           ) : (
             helpers.map((h) => {
-              const name = h.full_name || "Helpr";
+              // `.trim()` before the fallback: a whitespace-only `full_name`
+              // is truthy, so `h.full_name || "Helpr"` rendered a button with
+              // a blank label next to the avatar. Same defect class as the
+              // empty monogram this file was opened for — measured in the
+              // probe harness, 2026-08-31.
+              const name = h.full_name?.trim() || "Helpr";
               return (
                 <button
                   key={h.helper_id}
@@ -136,25 +152,24 @@ export function OfferToSavedHelpr({
                   onClick={() => pick(h.helper_id)}
                   className="flex items-center gap-2.5 px-3 py-2.5 rounded-ds-md squircle border border-border/60 bg-white/70 dark:bg-card/60 backdrop-blur text-left btn-press transition-all duration-200 hover:border-primary/50 min-h-11"
                 >
-                  {h.avatar_url ? (
-                    <img
-                      src={h.avatar_url}
-                      alt=""
-                      aria-hidden
-                      className="w-8 h-8 rounded-full object-cover shrink-0"
-                    />
-                  ) : (
-                    <span
-                      className="w-8 h-8 rounded-full shrink-0 inline-flex items-center justify-center text-ds-11 font-bold"
-                      style={{
-                        background: "hsl(var(--bark) / 0.12)",
-                        color: "hsl(var(--bark))",
-                      }}
-                      aria-hidden
-                    >
-                      {initialsOf(name)}
-                    </span>
-                  )}
+                  {/* Migrated onto the shared `<UserAvatar>` (2026-08-31).
+                      The `<img>` this replaces had no error path at ALL — not
+                      even the `onError` fallback the rest of the app carried —
+                      so a deleted storage object rendered an empty box, and a
+                      blank-but-200 upload (a flat block, a DiceBear frame)
+                      rendered a flat circle. This is the picker that starts a
+                      direct offer, so the poster is identifying one saved
+                      Helpr among several; identical blank circles make that
+                      choice guesswork. See `src/lib/avatarImage.ts`. */}
+                  <UserAvatar
+                    userId={h.helper_id}
+                    src={h.avatar_url}
+                    name={name}
+                    pixelSize={32}
+                    aria-hidden
+                    className="w-8 h-8 shrink-0"
+                    fallbackClassName="text-ds-11 ring-0"
+                  />
                   <span className="text-ds-13 font-semibold text-foreground truncate">
                     {name}
                   </span>

@@ -7,35 +7,52 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Rate limit: 20 requests per minute per IP
-  const { allowed, remaining, retryAfter } = await checkRateLimit(req, {
-    windowMs: 60_000, maxRequests: 20, keyPrefix: "instant-job-match",
-  });
-  if (!allowed) return rateLimitResponse(retryAfter!, corsHeaders);
-
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceRoleKey = (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"))!;
 
+  // Two valid callers, exactly as in str-ical-sync:
+  //   1. INTERNAL (service role / cron secret) — the post-funding trigger in
+  //      stripe-webhook's checkoutSessionCompleted. Owns no user session, so
+  //      it cannot pass the ownership check below and is exempted from it.
+  //   2. A user JWT — must own the job.
+  // Anything else is rejected. An unauthenticated caller must never be able to
+  // trigger a platform-wide notification fan-out for an arbitrary job (spam
+  // vector + leaks targeted offers into the open pool).
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const cronSecret = Deno.env.get("CRON_SECRET");
+  const isInternal =
+    (!!cronSecret && authHeader === `Bearer ${cronSecret}`) ||
+    (!!serviceRoleKey && authHeader === `Bearer ${serviceRoleKey}`);
+
+  // Rate limit: 20 requests per minute per IP. Internal callers are exempt —
+  // the webhook fans out once per funded job and must never be throttled into
+  // silently skipping a match.
+  if (!isInternal) {
+    const { allowed, retryAfter } = await checkRateLimit(req, {
+      windowMs: 60_000, maxRequests: 20, keyPrefix: "instant-job-match",
+    });
+    if (!allowed) return rateLimitResponse(retryAfter!, corsHeaders);
+  }
+
   try {
-    // Authenticate — REQUIRED. An unauthenticated caller must never be able
-    // to trigger a platform-wide notification fan-out for an arbitrary job
-    // (spam vector + leaks targeted offers into the open pool).
-    const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Authentication required" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const supabaseAuth = createClient(supabaseUrl, (Deno.env.get("PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY"))!);
-    const token = authHeader.replace("Bearer ", "");
-    const { data: userData } = await supabaseAuth.auth.getUser(token);
-    const callerId = userData?.user?.id || null;
-    if (!callerId) {
-      return new Response(JSON.stringify({ error: "Invalid or expired session" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    let callerId: string | null = null;
+    if (!isInternal) {
+      const supabaseAuth = createClient(supabaseUrl, (Deno.env.get("PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY"))!);
+      const token = authHeader.replace("Bearer ", "");
+      const { data: userData } = await supabaseAuth.auth.getUser(token);
+      callerId = userData?.user?.id || null;
+      if (!callerId) {
+        return new Response(JSON.stringify({ error: "Invalid or expired session" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     const { jobId } = await req.json();
@@ -48,17 +65,50 @@ Deno.serve(async (req) => {
     // digest (everything else, for users who opt in). Only OPEN jobs are
     // matchable, and a job with a pending direct offer is private to its
     // targeted helper — it must never be blasted to the open pool.
+    //
+    // FUNDING GATE — `payment_status` must be one of the funded states.
+    //
+    // This is the same predicate all three browse surfaces enforce since
+    // migration 20260831010000 (F-1): get_ranked_open_jobs, the
+    // open_jobs_browse view, and get_open_jobs_for_map each require
+    // `payment_status = ANY (ARRAY['escrow','payout_pending','released'])`.
+    // Without it this function notified up to 20 helpers about a job that
+    // every one of those surfaces would refuse to return — so the push landed,
+    // the helper tapped it, and browse showed them nothing. Worse, it fired
+    // BEFORE the poster had opened Stripe at all: `create-payment` only mints a
+    // Checkout Session URL, and the flip to 'escrow' happens later in
+    // stripe-webhook's checkoutSessionCompleted. An abandoned checkout meant 20
+    // people were told about work that never became real.
+    //
+    // The matching rule and the browse rule have to be the SAME rule. A helper
+    // must never be told about a job they cannot open, and the cheapest way to
+    // guarantee that is to ask the same question browse asks.
+    const FUNDED_PAYMENT_STATUSES = ["escrow", "payout_pending", "released"];
     const { data: job, error: jobError } = await supabase
       .from("jobs")
-      .select("id, title, category, location, budget, customer_id, is_urgent")
+      .select("id, title, category, location, budget, customer_id, is_urgent, payment_status")
       .eq("id", jobId)
       .eq("status", "open")
+      .in("payment_status", FUNDED_PAYMENT_STATUSES)
       // Same visibility rule as get_public_open_jobs: hidden while a direct
       // offer is pending; matchable again once it resolves (declined/expired).
       .or("offered_to_helper_id.is.null,direct_offer_status.neq.pending")
       .maybeSingle();
 
-    if (jobError || !job) throw new Error("Job not found or not eligible for matching");
+    // Never drop the Supabase error: a transport/permission failure and "this
+    // job is not fundable yet" are different outcomes and must not collapse
+    // into one opaque 500.
+    if (jobError) throw jobError;
+    if (!job) {
+      // Not an error condition. The overwhelmingly common case is the caller
+      // firing before escrow is funded, which is exactly what this gate is for
+      // — answer 200 with a zero count so the poster's submit path is not
+      // failed by a match that correctly declined to run.
+      return new Response(
+        JSON.stringify({ notified: 0, queued_for_digest: 0, matchedHelpers: [], skipped: "job_not_matchable" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
 
     // Mask the street address before it ever reaches a notification. Match
     // recipients here are pulled from the general helper pool (jobs with a
@@ -74,8 +124,11 @@ Deno.serve(async (req) => {
     const displayLocation = maskedLocation ?? "";
 
     // Verify the caller owns the job — always, not just when a token happened
-    // to be attached.
-    if (callerId !== job.customer_id) {
+    // to be attached. Internal (service-role) callers have no user identity by
+    // construction; they are trusted because holding the service-role key is
+    // itself the authorisation, and the only internal caller is the webhook
+    // acting on a job Stripe has just confirmed payment for.
+    if (!isInternal && callerId !== job.customer_id) {
       return new Response(JSON.stringify({ error: "Not authorized to trigger match for this job" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -276,7 +329,9 @@ Deno.serve(async (req) => {
     );
   } catch (error) {
     console.error("Instant match error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    // `catch` binds `unknown` — see delete-own-account for why this is not a nit.
+    const message = error instanceof Error ? error.message : String(error);
+    return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

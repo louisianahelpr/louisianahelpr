@@ -42,6 +42,16 @@ export function resetEnv() {
 
 /** The object injected as the `Deno` global into the rewritten function. */
 export const __denoStub = {
+  /**
+   * `Deno.serve(handler)` — the newer entry point. Roughly half the functions
+   * use it instead of importing `serve` from deno.land (verification-webhook
+   * and daily-match-digest do), and without it the harness threw
+   * "did not call serve() — no handler captured" for every one of them, so
+   * none of them could be tested at all.
+   */
+  serve: (h: (req: Request) => Response | Promise<Response>) => {
+    __registerHandler(h);
+  },
   env: {
     get: (key: string): string | undefined => __env[key],
     set: (key: string, value: string) => {

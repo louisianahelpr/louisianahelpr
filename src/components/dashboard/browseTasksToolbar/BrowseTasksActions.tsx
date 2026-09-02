@@ -151,5 +151,3 @@ export function BrowseTasksActions({
     </>
   );
 }
-
-export default BrowseTasksActions;

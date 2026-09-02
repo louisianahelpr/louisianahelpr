@@ -54,6 +54,9 @@ import {
   AlertDialogFooter,
   AlertDialogHero,
 } from "@/components/ui/alert-dialog";
+// DialogBody is a presentational wrapper, not a Radix Dialog part — the
+// confirm family uses it so both popup families narrate in one voice.
+import { DialogBody } from "@/components/ui/dialog";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -219,7 +222,7 @@ const AdminIDVReview = () => {
         subtitle="Helprs Stripe billed and could not verify. Approving grants access as an Admin Verified account — it does not claim Stripe passed them."
         action={
           waiting > 0 ? (
-            <Badge className="bg-accent/20 text-accent border-accent/30 text-ds-11">
+            <Badge className="bg-accent/20 text-[hsl(var(--accent-ink))] border-accent/30 text-ds-11">
               {waiting} waiting
             </Badge>
           ) : undefined
@@ -293,7 +296,7 @@ const AdminIDVReview = () => {
                       disabled={bulkRunning}
                       aria-label={`Select ${r.full_name || r.email || "this Helpr"} for bulk approval`}
                     />
-                    <div className="w-10 h-10 rounded-full bg-accent/20 text-accent flex items-center justify-center text-ds-13 font-bold shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-accent/20 text-[hsl(var(--accent-ink))] flex items-center justify-center text-ds-13 font-bold shrink-0">
                       {(r.full_name || r.email || "?").slice(0, 2).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -306,7 +309,7 @@ const AdminIDVReview = () => {
                       className={
                         isFailed
                           ? "bg-destructive/10 text-destructive border-destructive/20 text-ds-10 gap-0.5 shrink-0"
-                          : "bg-accent/20 text-accent border-accent/30 text-ds-10 gap-0.5 shrink-0"
+                          : "bg-accent/20 text-[hsl(var(--accent-ink))] border-accent/30 text-ds-10 gap-0.5 shrink-0"
                       }
                     >
                       <ShieldAlert className="w-2.5 h-2.5" />
@@ -404,8 +407,8 @@ const AdminIDVReview = () => {
               confirming?.decision === "manual_verify"
                 ? `Approve ${confirming.row.full_name || confirming.row.email || "this Helpr"}?`
                 : confirming?.decision === "request_id_reupload"
-                  ? "Give them another attempt?"
-                  : "Reject this verification?"
+                  ? "Give Them Another Attempt?"
+                  : "Reject This Verification?"
             }
             subtitle={
               confirming?.decision === "manual_verify"
@@ -430,7 +433,9 @@ const AdminIDVReview = () => {
               }
               rows={3}
             />
-            <p className="text-ds-11 text-muted-foreground">This decision is written to the admin audit log.</p>
+            {/* House voice, from the shared primitive — the same treatment
+                BrandConfirmDialog gives every confirm's description. */}
+            <DialogBody><p>This decision is written to the admin audit log.</p></DialogBody>
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -446,7 +451,7 @@ const AdminIDVReview = () => {
               {confirming?.decision === "manual_verify"
                 ? "Approve"
                 : confirming?.decision === "request_id_reupload"
-                  ? "Send request"
+                  ? "Send Request"
                   : "Reject"}
             </AlertDialogAction>
           </AlertDialogFooter>

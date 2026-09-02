@@ -8,9 +8,11 @@ import {
   Dialog,
   DialogContent,
   DialogHero,
+  DialogBody,
   DialogFooter,
+  DialogSecondaryAction,
+  DialogPrimaryAction,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -60,21 +62,23 @@ export function ResetPasswordDialog({ profile, onClose, onSuccess }: ResetPasswo
           title="Send Password Reset Link"
         />
         <div className="space-y-3">
-          <p className="text-ds-11 text-muted-foreground">
-            Email a one-time password reset link to{" "}
-            <strong className="text-foreground">
-              {(profile as { email?: string } | null)?.email || "this user"}
-            </strong>
-            . The link expires in 1 hour.
-          </p>
+          <DialogBody>
+            <p>
+              Email a one-time password reset link to{" "}
+              <strong className="text-foreground">
+                {(profile as { email?: string } | null)?.email || "this user"}
+              </strong>
+              . The link expires in 1 hour.
+            </p>
+          </DialogBody>
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={handleClose} disabled={busy}>
+          <DialogSecondaryAction onClick={handleClose} disabled={busy}>
             Cancel
-          </Button>
-          <Button onClick={submit} disabled={busy}>
+          </DialogSecondaryAction>
+          <DialogPrimaryAction onClick={submit} disabled={busy}>
             {busy ? "Sending…" : "Send Reset Link"}
-          </Button>
+          </DialogPrimaryAction>
         </DialogFooter>
       </DialogContent>
     </Dialog>

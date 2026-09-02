@@ -1,4 +1,4 @@
-import type { ReactNode, RefObject } from "react";
+import type { RefObject } from "react";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import type { useDashboardFilters } from "@/hooks/useDashboardFilters";
 
@@ -61,14 +61,3 @@ export interface BrowseTasksToolbarProps {
   titleSrOnly?: boolean;
 }
 
-// Active-filter recap chip definition. Only render when 3+ filters are
-// active simultaneously. With <3 active, the existing input controls
-// already cover the same ground and a recap row would be redundant
-// noise. Each chip's × reuses the same clear handler the existing
-// single-filter chips use further down.
-export type ChipDef = {
-  key: string;
-  label: ReactNode;
-  onClear: () => void;
-  ariaLabel: string;
-};

@@ -97,15 +97,25 @@ serve(async (req) => {
     const subActive = subExp ? subExp > new Date() : false;
     if (subActive && subTier === "elite") {
       const boostExpires = new Date(Date.now() + BOOST_DURATION_HOURS * 60 * 60 * 1000);
-      const { error: boostErr } = await supabaseAdmin
+      // `.select("id")` + a zero-row branch, per CLAUDE.md. This response is the
+      // ONLY thing that tells an Elite member their perk was applied, and an
+      // UPDATE matching zero rows returns `{ data: [], error: null }` — so
+      // without the guard a job deleted or re-keyed between the read above and
+      // this write answers `free: true` and the client shows "Job boosted" over
+      // a job that was never boosted.
+      const { data: boostedRows, error: boostErr } = await supabaseAdmin
         .from("jobs")
         .update({
           boost_expires_at: boostExpires.toISOString(),
           boosted_at: new Date().toISOString(),
         })
-        .eq("id", job_id);
-      if (boostErr) {
-        console.error("[create-boost-payment] elite boost flip failed:", boostErr);
+        .eq("id", job_id)
+        .select("id");
+      if (boostErr || (boostedRows?.length ?? 0) === 0) {
+        console.error(
+          "[create-boost-payment] elite boost flip failed:",
+          boostErr ?? `zero rows matched for job ${job_id}`,
+        );
         return fail(500, `We couldn't apply your ${TIER_DISPLAY_NAMES.elite} boost. Please try again.`);
       }
       return new Response(
@@ -121,8 +131,7 @@ serve(async (req) => {
       );
     }
 
-    // Pro perk: ONE FREE BOOST per calendar month (owner, 2026-08-24) —
-    // inherited by Plus, which sits above Pro (2026-08-27).
+    // Pro perk: ONE FREE BOOST per calendar month (owner, 2026-08-24),
     // tracked by profiles.boost_credit_used_month (YYYY-MM). After it's
     // spent, Pro falls through to its 20% discount below. The month check
     // and the stamp are one conditional UPDATE so two same-moment boosts
@@ -140,15 +149,48 @@ serve(async (req) => {
         // Fail toward the PAID path — never block a boost over the perk.
       } else if ((credited?.length ?? 0) > 0) {
         const boostExpires = new Date(Date.now() + BOOST_DURATION_HOURS * 60 * 60 * 1000);
-        const { error: boostErr } = await supabaseAdmin
+        // The credit is SPENT at this point — the conditional UPDATE above is
+        // what makes two same-moment boosts unable to both ride it, so it has
+        // to come first. That means everything after it owes the member a
+        // rollback: if the boost never lands, the month stamp must come back
+        // off, or their one free boost of the month is destroyed and they have
+        // nothing to show for it and no way to say so.
+        //
+        // Guarded with `.select("id")` + a zero-row branch for the same reason
+        // as the Elite path above: a zero-row UPDATE is `{ data: [], error:
+        // null }`, indistinguishable from success, and would answer
+        // `free: true` over a job that was never boosted — while still having
+        // burned the credit.
+        const { data: boostedRows, error: boostErr } = await supabaseAdmin
           .from("jobs")
           .update({
             boost_expires_at: boostExpires.toISOString(),
             boosted_at: new Date().toISOString(),
           })
-          .eq("id", job_id);
-        if (boostErr) {
-          console.error("[create-boost-payment] pro credit boost flip failed:", boostErr);
+          .eq("id", job_id)
+          .select("id");
+        if (boostErr || (boostedRows?.length ?? 0) === 0) {
+          console.error(
+            "[create-boost-payment] pro credit boost flip failed:",
+            boostErr ?? `zero rows matched for job ${job_id}`,
+          );
+          // Give the month back. Conditional on the exact value we stamped, so
+          // a concurrent writer that has since moved the column on is not
+          // clobbered. If the rollback itself fails the member has silently
+          // lost the perk, so that case is logged loudly rather than dropped —
+          // it is the only trace ops would have.
+          const { data: refunded, error: refundErr } = await supabaseAdmin
+            .from("profiles")
+            .update({ boost_credit_used_month: null })
+            .eq("user_id", user.id)
+            .eq("boost_credit_used_month", thisMonth)
+            .select("user_id");
+          if (refundErr || (refunded?.length ?? 0) === 0) {
+            console.error(
+              `[create-boost-payment] CRITICAL: free monthly boost credit for ${user.id} was consumed (${thisMonth}) but the boost failed AND the credit could not be returned`,
+              refundErr ?? "zero rows matched",
+            );
+          }
           return fail(500, "We couldn't apply your free monthly boost. Please try again.");
         }
         return new Response(
@@ -162,11 +204,13 @@ serve(async (req) => {
       }
     }
 
-    // Basic / Pro / Plus perk: 20% off boosts. Same Stripe Checkout flow as the
+    // Basic / Pro perk: 20% off boosts. Same Stripe Checkout flow as the
     // full-price case below, but the unit_amount is discounted and the
     // product description names the subscriber discount so the receipt is
-    // legible. Elite is already returned above (free), and Free/Business
-    // fall through to the full BOOST_FEE_CENTS price.
+    // legible. Elite is already returned above (free), and Free falls through
+    // to the full BOOST_FEE_CENTS price. There is no "Plus" or "Business" tier
+    // — TIER_DISPLAY_NAMES / PRO_PRICE_MAP define exactly free/basic/pro/elite,
+    // and this comment used to name two rungs that do not exist.
     const isBoostDiscountTier = subActive && (subTier === "basic" || subTier === "pro");
     // MIN_UNIT_AMOUNT_CENTS: an absolute floor covering Stripe's per-charge
     // cost (~30¢ fixed + 2.9% variable) plus a thin platform margin, so a

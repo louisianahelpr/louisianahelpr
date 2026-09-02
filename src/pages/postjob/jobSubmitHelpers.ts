@@ -1,5 +1,7 @@
 import type { Database } from "@/integrations/supabase/types";
 
+import { computeJobExpiresAt } from "@/lib/jobExpiry";
+import { DEFAULT_OFFER_RESPONSE_HOURS } from "@/lib/offerResponseWindow";
 import { recurringVisitDates } from "@/lib/recurringSchedule";
 import { isLaborTaxable, salesTaxCents } from "@/lib/salesTax";
 
@@ -49,14 +51,15 @@ export interface BuildJobInsertPayloadInput {
    *  helper must e-sign a W-9 before payout. See helper_w9_records. */
   requiresW9?: boolean;
   offerToHelperId: string | null;
-  /** Cost-center / department label set by business-account posters.
-      Persisted to jobs.department (migration 20260609170000). */
+  /** How long a direct offer is held for the targeted helpr, in hours.
+   *  Poster-chosen (DirectOfferBanner); defaults to 24 for older drafts. */
+  offerResponseHours?: number;
+  /** Cost-center / department label. Persisted to jobs.department (migration
+      20260609170000) and still exported by AdminExport, but no caller passes a
+      non-null value today: it was a business-account field and business
+      accounts were removed in 20260828011811. Kept because the column is live;
+      wire a source to it before assuming it does anything. */
   department?: string | null;
-  /** Initial status — defaults to undefined (= DB default 'open') so we
-      keep the historic behavior. The PostJob flow sets this to
-      'pending_approval' when the business's `require_approval_above`
-      threshold is crossed. */
-  initialStatus?: "open" | "pending_approval";
   /** When true, a helper who applies is auto-confirmed immediately without
       poster review. Stored as jobs.instant_book (migration 20260612090000).
       Only included in the INSERT when true so a pre-push prod still accepts
@@ -66,24 +69,6 @@ export interface BuildJobInsertPayloadInput {
    *  Only included in the INSERT when > 0 so a pre-push prod still accepts
    *  the payload (migration 20260612150000). */
   credentialTier?: number;
-}
-
-/**
- * Computes the listing expiry timestamp from the scheduled date/time.
- *
- * - With a start time → expire exactly at the job's start.
- * - Date only → expire at the end of the scheduled day.
- * - No date → never (null).
- */
-function computeExpiresAt(dateNeeded: string, startTime: string): string | null {
-  if (startTime && dateNeeded) {
-    return new Date(`${dateNeeded}T${startTime}`).toISOString();
-  }
-  if (dateNeeded) {
-    // If no start_time, expire at end of the scheduled day
-    return new Date(`${dateNeeded}T23:59:59`).toISOString();
-  }
-  return null;
 }
 
 /**
@@ -126,11 +111,15 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
     salesTaxRate,
     offerToHelperId,
     department,
-    initialStatus,
   } = input;
+  const offerResponseHours = input.offerResponseHours ?? DEFAULT_OFFER_RESPONSE_HOURS;
 
-  // Expire listing at the job date/time (removed when a helpr is selected or on the day of the job)
-  const expiresAt = computeExpiresAt(dateNeeded, startTime);
+  // Expire the listing at the job's start (or end of day when there's no start
+  // time), FLOORED so it is always in the future — the job INSERT happens
+  // before create-payment, and an expiry in the past would take the poster's
+  // money for a listing `expires_at > NOW()` hides from every helper. Same
+  // rule is enforced server-side by trg_job_expiry_floor (20260831201631).
+  const expiresAt = computeJobExpiresAt(dateNeeded, startTime);
 
   // The recurring series, expanded from the SAME module the charge cron reads,
   // so the end date written here and the dates that actually get billed can
@@ -213,22 +202,35 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
     // when > 0 so a pre-push prod INSERT still succeeds (DB default of 0
     // is applied automatically on the column). Retry path strips withExtras.
     ...(credentialTier > 0 ? ({ credential_tier: credentialTier } as Record<string, unknown>) : {}),
-    // jobs.department + jobs.status — both ship in migration
-    // 20260609170000. Cast through `any` because the generated Supabase
-    // types haven't picked them up yet, and don't include the keys at
-    // all when they're undefined so a pre-migration prod still accepts
-    // the insert.
+    // jobs.department ships in migration 20260609170000. Cast through a
+    // Record because the generated Supabase types haven't picked it up yet,
+    // and omit the key entirely when it's empty so a pre-migration prod
+    // still accepts the insert.
+    //
+    // NO `status` KEY IS EVER WRITTEN HERE. Every post lands on the column
+    // default, 'open'. There used to be an `initialStatus` input that could
+    // write 'pending_approval' for a business over its
+    // `businesses.require_approval_above` threshold — but the businesses /
+    // business_members tables were removed (migration 20260828011811), no
+    // call site ever set it, and the only jobs left in that status were seed
+    // rows that showed posters an "awaiting your team's approver" panel for a
+    // team that does not exist. Don't reintroduce a status override here.
     ...(department && department.trim()
       ? ({ department: department.trim() } as Record<string, unknown>)
-      : {}),
-    ...(initialStatus === "pending_approval"
-      ? ({ status: "pending_approval" } as Record<string, unknown>)
       : {}),
     ...(offerToHelperId
       ? {
           offered_to_helper_id: offerToHelperId,
           direct_offer_status: "pending",
-          direct_offer_expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+          // The window the poster actually picked. This was hardcoded to 24h
+          // while auto-expire-jobs documents the window as "whatever the
+          // poster picked in ResponseDeadlineDialog — 1/2/4/8h"; the
+          // application-accept path had the picker, the direct-offer path
+          // never did. Server-side expiry (expire_pending_direct_offers)
+          // already honours whatever is stored here.
+          direct_offer_expires_at: new Date(
+            Date.now() + offerResponseHours * 60 * 60 * 1000,
+          ).toISOString(),
         }
       : {}),
     // No pricing_mode / bid_* here. Bidding was removed

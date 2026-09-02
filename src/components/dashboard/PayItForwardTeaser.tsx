@@ -1,13 +1,20 @@
 import { Link } from "react-router-dom";
 
 interface PayItForwardTeaserProps {
-  /** Count of available gift cards in the user's parish. */
+  /** Count of funded, unspent, unexpired gift cards addressed to this user. */
   pifCount: number;
 }
 
 /**
- * Gift Card teaser — only rendered when gift cards exist in the user's
- * parish. Pure presentation lifted verbatim out of Dashboard's panel body.
+ * Gift Card teaser — rendered only when this user is actually holding a gift
+ * card they can spend.
+ *
+ * The copy used to say "in your parish", which described the retired
+ * world-readable pool model, not the directed gifts the product ships. It
+ * also could never appear: see the count's own comment in
+ * useDashboardSideQueries. Naming the gift as THEIRS is both true now and the
+ * point — the reported failure started with a recipient not realising the
+ * money was already sitting in their account.
  */
 const PayItForwardTeaser = ({ pifCount }: PayItForwardTeaserProps) => {
   if (pifCount <= 0) return null;
@@ -23,15 +30,15 @@ const PayItForwardTeaser = ({ pifCount }: PayItForwardTeaserProps) => {
         className="font-sans font-semibold text-ds-14"
         style={{ color: "hsl(var(--success-ink))" }}
       >
-        {pifCount} Helpr gift card{pifCount > 1 ? "s" : ""} in your parish
+        {pifCount} Helpr gift card{pifCount > 1 ? "s" : ""} waiting for you
       </p>
       <p
         className="font-serif italic text-ds-12 mt-0.5"
         style={{ color: "hsl(var(--gift-green-soft))" }}
       >
-        Gift cards ready to claim ·{" "}
+        Ready to spend on your next job ·{" "}
         <Link to="/gift-card" className="underline">
-          See them
+          {pifCount > 1 ? "See them" : "See it"}
         </Link>
       </p>
     </div>

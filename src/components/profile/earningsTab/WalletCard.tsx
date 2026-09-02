@@ -18,6 +18,10 @@ interface WalletCardProps {
   refreshing: boolean;
   availableTotal: number;
   pendingTotal: number;
+  /** Approved by the poster but not yet transferred to Stripe (24h hold). */
+  releasingCents: number;
+  /** When the soonest of those transfers is scheduled. */
+  releasingAt: string | null;
   canUseInstantPayout: boolean;
   onRefresh: () => void;
   onCashOut: () => void;
@@ -29,6 +33,8 @@ export function WalletCard({
   refreshing,
   availableTotal,
   pendingTotal,
+  releasingCents,
+  releasingAt,
   canUseInstantPayout,
   onRefresh,
   onCashOut,
@@ -67,11 +73,27 @@ export function WalletCard({
             <span className="sr-only">Available</span>
           </div>
           <p className="font-display italic font-bold tabular-nums leading-none text-ds-28" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>
-            {formatCents(availableTotal)}
+            {formatCents(Math.max(0, availableTotal))}
           </p>
-          <p className="font-serif italic mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            ready to pay out
-          </p>
+          {/* A NEGATIVE Stripe balance is a real state, and it used to render
+              verbatim as "-$2.07 · ready to pay out" — money the helper does
+              not have, described as money they can withdraw. It happens after
+              an Instant Payout: the payout drains the balance to zero and
+              Stripe then debits its own instant-payout fee against it, so the
+              connected account goes short by that fee and (payouts are on a
+              manual schedule) stays there until the next job pays in.
+              Show nothing available, and SAY what the shortfall is — clamping
+              it away silently would leave the next payment mysteriously light. */}
+          {availableTotal < 0 ? (
+            <p className="font-serif italic mt-1 text-ds-12" style={{ color: "hsl(var(--burnt-sienna))" }}>
+              {formatCents(Math.abs(availableTotal))} owed from your last instant
+              payout&apos;s fee — it comes out of your next payment
+            </p>
+          ) : (
+            <p className="font-serif italic mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              ready to pay out
+            </p>
+          )}
         </div>
         <div className="border-l border-border/40 pl-4">
           <div className="flex items-center gap-1.5 mb-1">
@@ -80,7 +102,7 @@ export function WalletCard({
             <span className="sr-only">Pending</span>
           </div>
           <p className="font-display italic font-bold tabular-nums leading-none text-ds-28" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}>
-            {formatCents(pendingTotal)}
+            {formatCents(Math.max(0, pendingTotal))}
           </p>
           <p className="font-serif italic mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             clearing soon
@@ -88,8 +110,32 @@ export function WalletCard({
         </div>
       </div>
 
+      {releasingCents > 0 && (
+        <div
+          className="mt-3 rounded-ds-sm px-3 py-2 flex items-baseline justify-between gap-3"
+          style={{ background: "hsl(var(--bark) / 0.07)" }}
+        >
+          <span className="font-serif italic text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.9)" }}>
+            Released, on its way
+            {releasingAt
+              ? ` — reaches Stripe ${new Date(releasingAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`
+              : ""}
+          </span>
+          <span className="font-display italic font-bold tabular-nums text-ds-15 shrink-0" style={{ color: "hsl(var(--ink-deep))" }}>
+            {formatCents(releasingCents)}
+          </span>
+        </div>
+      )}
+
       {(() => {
-        const instantAvailable = (stripeData.instant_available ?? []).reduce((s, b) => s + b.amount, 0);
+        // Same reason as Available above: Stripe reports raw cents and this
+        // bucket can go negative too. `<= 0` already hides the card, but the
+        // clamp keeps the figure from ever being rendered as negative money if
+        // that guard is ever loosened.
+        const instantAvailable = Math.max(
+          0,
+          (stripeData.instant_available ?? []).reduce((s, b) => s + b.amount, 0),
+        );
         if (instantAvailable <= 0) return null;
         // Subscribed helpers still can't cash out below the minimum — a flat 3%
         // doesn't clear Stripe's per-instant-payout cost on tiny balances. Their
@@ -104,9 +150,14 @@ export function WalletCard({
         return (
           <div className="mt-3 rounded-ds-md border border-primary/30 bg-gradient-to-br from-primary/10 to-primary/5 p-3 flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <Zap className="w-3.5 h-3.5 text-primary" />
-                <span className="text-ds-11 font-semibold text-foreground">Instant cash out</span>
+              {/* flex-wrap + nowrap on the label: at 320px "Instant cash out"
+                  was breaking across THREE lines ("Instant / cash / out") to
+                  make room for the BASIC chip beside it, which also dropped
+                  the Zap icon off the row. The words now stay intact and the
+                  chip moves to its own line instead. */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <Zap className="w-3.5 h-3.5 text-primary shrink-0" />
+                <span className="text-ds-11 font-semibold text-foreground whitespace-nowrap">Instant cash out</span>
                 {!canUseInstantPayout && (
                   <span
                     className="text-ds-9 font-bold uppercase tracking-wider px-1 py-0.5 rounded-full"

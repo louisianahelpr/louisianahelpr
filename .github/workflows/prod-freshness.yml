@@ -1,0 +1,267 @@
+name: Prod freshness
+
+permissions:
+  contents: read
+
+# =============================================================================
+# THE ONE CHECK THAT WOULD HAVE CAUGHT ALL THREE INCIDENTS.
+# =============================================================================
+#
+# This repo has shipped three production incidents of a single shape: a green
+# GitHub pipeline sitting on top of a prod that was broken or stale.
+#
+#   1. vercel.json gained an illegal key. Vercel rejected the config BEFORE
+#      building, so no deployment was produced at all — while every check on
+#      main went green. The `Vercel` commit status was red; nothing required
+#      it, so nothing noticed.
+#   2. functions-deploy.yml diffed only the tip commit of a push. A push of
+#      five commits landed the entire react-email rewrite in a non-tip commit;
+#      the workflow printed "No function code changes detected", reported
+#      SUCCESS, and deployed nothing. Prod sent the old emails for hours.
+#   3. migration-lint.yml diffed main against itself, so its lint body never
+#      executed once and every run reported success having checked nothing.
+#
+# Every one of those was invisible for the same reason: NOTHING IN CI EVER
+# ASKED THE LIVE SITE WHAT IT IS SERVING. Every check verified the repo, or
+# verified its own intent to deploy; none verified the outcome. A commit
+# status is a claim about a build, not evidence about production.
+#
+# This workflow closes that. It has two jobs, and they are deliberately
+# independent — one checks the config that gates whether a deploy can even
+# start, the other checks whether a deploy actually arrived:
+#
+#   vercel-config   Validates vercel.json against the schema the file itself
+#                   declares. Catches incident #1 at push time, before Vercel
+#                   silently refuses to build.
+#   served-commit   Reads the build stamp out of the LIVE index.html and fails
+#                   unless prod is serving this commit or something newer.
+#                   Catches incident #1's downstream effect, and any other
+#                   cause of "main moved, prod did not" — a failed Vercel
+#                   build, a paused project, a broken rewrite, a rollback
+#                   nobody re-rolled-forward.
+#
+# The stamp is emitted by the `html-build-stamp` plugin in vite.config.ts as
+# <meta name="build-commit" content="<full 40-char sha>">. Before that plugin
+# existed the build identity was defined in `define` and referenced by no
+# source file, so it reached the served output nowhere — there was literally
+# nothing to read back. If this job starts failing with "no build-commit meta
+# tag", check that plugin first: it means the stamp stopped being emitted, and
+# a missing stamp must fail rather than pass, because "cannot tell" is exactly
+# the state that produced all three incidents.
+
+on:
+  push:
+    branches: [main]
+  # Daily, so a prod that goes stale WITHOUT a push (a rollback, a paused
+  # project, an expired integration) is still caught within a day rather than
+  # waiting for whoever happens to push next.
+  schedule:
+    - cron: "45 7 * * *" # 07:45 UTC — off every other cron hour in this repo
+  workflow_dispatch:
+
+concurrency:
+  # Keyed by SHA, not by ref: two pushes in quick succession are two DIFFERENT
+  # freshness questions ("did commit A reach prod?", "did commit B reach
+  # prod?") and neither supersedes the other. Grouping by ref with
+  # cancel-in-progress would let a fast push cadence cancel this into the same
+  # blank-conclusion silence that cost a11y-axe.yml 12 of its last 24 runs.
+  group: prod-freshness-${{ github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  # ───────────────────────────────────────────────────────────────────────────
+  # vercel.json must satisfy the schema it claims to satisfy.
+  # ───────────────────────────────────────────────────────────────────────────
+  vercel-config:
+    name: Validate vercel.json against its declared schema
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install validator
+        run: pip install --quiet jsonschema requests
+
+      - name: Validate
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, sys, urllib.request
+          from jsonschema import Draft4Validator
+
+          CONFIG = "vercel.json"
+          with open(CONFIG) as fh:
+              config = json.load(fh)
+
+          # The file declares its own schema URL. Read it FROM the file rather
+          # than hard-coding one here, so this check can never drift into
+          # validating against a different contract than the one vercel.json
+          # advertises.
+          schema_url = config.get("$schema")
+          if not schema_url:
+              print("::error file=vercel.json::vercel.json has no $schema key. "
+                    "This check validates against the schema the file declares; "
+                    "without one there is nothing to validate against. "
+                    "Restore \"$schema\": \"https://openapi.vercel.sh/vercel.json\".")
+              sys.exit(1)
+          print(f"Declared schema: {schema_url}")
+
+          try:
+              with urllib.request.urlopen(schema_url, timeout=60) as resp:
+                  schema = json.load(resp)
+          except Exception as exc:
+              # A schema we cannot fetch is a BROKEN check, not a passing one.
+              print(f"::error file=vercel.json::Could not fetch {schema_url}: {exc}")
+              print("::error::Failing rather than skipping — a validation step that "
+                    "cannot reach its schema has proven nothing, and 'proved nothing' "
+                    "must never render as 'passed'.")
+              sys.exit(1)
+
+          # openapi.vercel.sh publishes draft-04.
+          validator = Draft4Validator(schema)
+          errors = sorted(validator.iter_errors(config), key=lambda e: list(e.absolute_path))
+          if errors:
+              print(f"::error file=vercel.json::vercel.json violates {schema_url} "
+                    f"({len(errors)} error(s)).")
+              for err in errors:
+                  path = "/".join(str(p) for p in err.absolute_path) or "(root)"
+                  print(f"::error file=vercel.json::  at {path}: {err.message}")
+              print("")
+              print("Vercel rejects an invalid vercel.json BEFORE it starts building, so "
+                    "the symptom is not a failed build — it is NO deployment at all, "
+                    "with every GitHub check still green. That is exactly how this "
+                    "repo shipped its first stale-prod incident.")
+              sys.exit(1)
+
+          print(f"✓ vercel.json validates against {schema_url}")
+          top = ", ".join(k for k in config if k != "$schema")
+          print(f"  top-level keys checked: {top}")
+          PY
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Prod must actually be serving this commit (or something newer).
+  # ───────────────────────────────────────────────────────────────────────────
+  served-commit:
+    name: Live site is serving this commit or newer
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          # Full history: the served SHA is compared to this one with
+          # `git merge-base --is-ancestor`, which needs both commits present.
+          fetch-depth: 0
+
+      - name: Wait for prod to serve this commit
+        env:
+          SITE: https://www.louisianahelpr.com
+          EXPECTED: ${{ github.sha }}
+          # Vercel builds this app in roughly 2-4 minutes. 20 minutes of
+          # polling is generous enough that a slow queue is not reported as a
+          # stale prod, and short enough that a genuinely failed deploy is
+          # flagged the same morning.
+          DEADLINE_SECONDS: "1200"
+          POLL_SECONDS: "20"
+        run: |
+          set -euo pipefail
+
+          echo "Expecting prod to serve $EXPECTED (or a descendant of it)."
+          START=$(date +%s)
+          ATTEMPT=0
+          SERVED=""
+          LAST_REASON="never fetched"
+
+          while :; do
+            ATTEMPT=$((ATTEMPT + 1))
+
+            # Cache-bust the query string AND send no-cache: index.html is
+            # served `max-age=0, must-revalidate` (vercel.json), but a proxy
+            # between here and the edge is not this workflow's problem to
+            # trust. If we read a cached page we would compare against a stamp
+            # that is not what users are getting, which is the same class of
+            # lie the whole workflow exists to catch.
+            if ! curl -fsSL --max-time 30 \
+                 -H 'Cache-Control: no-cache' -H 'Pragma: no-cache' \
+                 "$SITE/?_freshness=$(date +%s)-$ATTEMPT" -o /tmp/live.html; then
+              LAST_REASON="fetch failed"
+              SERVED=""
+            else
+              SERVED=$(grep -oiE '<meta[[:space:]]+name="build-commit"[[:space:]]+content="[0-9a-f]{40}"' /tmp/live.html \
+                       | grep -oE '[0-9a-f]{40}' | head -1 || true)
+              if [ -z "$SERVED" ]; then
+                LAST_REASON="page served, but no build-commit meta tag in it"
+              else
+                LAST_REASON="serving $SERVED"
+              fi
+            fi
+
+            if [ -n "$SERVED" ]; then
+              if [ "$SERVED" = "$EXPECTED" ]; then
+                echo "✓ Prod is serving exactly $EXPECTED."
+                exit 0
+              fi
+              # A DESCENDANT is fine and is the common case on a busy day:
+              # another push landed and deployed while we were polling, so prod
+              # is AHEAD of this commit. That is not stale. Only prod being
+              # behind — or on an unrelated commit — is a failure.
+              if git cat-file -e "${SERVED}^{commit}" 2>/dev/null \
+                 && git merge-base --is-ancestor "$EXPECTED" "$SERVED"; then
+                echo "✓ Prod is serving $SERVED, a descendant of $EXPECTED — prod is ahead, not stale."
+                exit 0
+              fi
+            fi
+
+            NOW=$(date +%s)
+            ELAPSED=$((NOW - START))
+            if [ "$ELAPSED" -ge "$DEADLINE_SECONDS" ]; then
+              break
+            fi
+            echo "  [${ELAPSED}s] $LAST_REASON — waiting for deploy…"
+            sleep "$POLL_SECONDS"
+          done
+
+          # ── Timed out. Say precisely which failure this is. ────────────────
+          echo ""
+          if [ -z "$SERVED" ]; then
+            if [ "$LAST_REASON" = "fetch failed" ]; then
+              echo "::error::Could not fetch $SITE for ${DEADLINE_SECONDS}s. Prod is unreachable from CI."
+            else
+              echo "::error::$SITE is up but serves NO <meta name=\"build-commit\"> tag."
+              echo "::error::That stamp is emitted by the html-build-stamp plugin in vite.config.ts. Either the deployed build predates that plugin, or the plugin stopped emitting. This fails rather than passes: a freshness check that cannot read the stamp has measured nothing, and 'measured nothing' must never report as 'fresh'."
+            fi
+          else
+            echo "::error::PROD IS STALE. Expected $EXPECTED (or a descendant); prod is serving $SERVED after ${DEADLINE_SECONDS}s."
+            if git cat-file -e "${SERVED}^{commit}" 2>/dev/null; then
+              echo "::error::Prod is on: $(git log -1 --format='%h %s (%ci)' "$SERVED")"
+              BEHIND=$(git rev-list --count "${SERVED}..${EXPECTED}" 2>/dev/null || echo "?")
+              echo "::error::Prod is $BEHIND commit(s) behind this one."
+            else
+              echo "::error::Prod is serving $SERVED, which is not a commit on this repository's main — a rollback, a preview promoted to prod, or a deploy from elsewhere."
+            fi
+            echo "::error::Most likely causes, in order: (1) the Vercel build FAILED — check the Vercel commit status and the Vercel dashboard; (2) vercel.json is invalid and Vercel refused the config before building (the vercel-config job in this workflow checks that); (3) the project is paused or the Git integration is disconnected."
+          fi
+          exit 1
+
+      - name: Report what prod is serving
+        if: always()
+        run: |
+          set -uo pipefail
+          echo "### Prod freshness" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- expected: \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
+          STAMP=$(grep -oiE '<meta[[:space:]]+name="build-(commit|time)"[[:space:]]+content="[^"]*"' /tmp/live.html 2>/dev/null || true)
+          if [ -n "$STAMP" ]; then
+            echo "- served stamp:" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            echo "$STAMP" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "- served stamp: **none found**" >> "$GITHUB_STEP_SUMMARY"
+          fi

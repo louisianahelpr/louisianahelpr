@@ -17,12 +17,13 @@
  */
 import { useState } from "react";
 import { CheckCircle2, ChevronLeft, RotateCcw, X, Upload, AlertTriangle } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Sheet,
   SheetContent,
+  SheetFooter,
   SheetHero,
+  SheetPrimaryAction,
 } from "@/components/ui/sheet";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrapMutation } from "@/lib/mutationResult";
@@ -30,6 +31,7 @@ import { toast } from "sonner";
 import { hapticSuccess, hapticError, hapticMedium } from "@/lib/haptics";
 import { createNotification } from "@/lib/notifications";
 import { report } from "@/lib/errorLogger";
+import { PhotoProofGroup } from "@/components/PhotoProof";
 
 interface CompletionChoiceSheetProps {
   open: boolean;
@@ -38,6 +40,12 @@ interface CompletionChoiceSheetProps {
   helperId: string | null;
   helperName: string;
   userId: string;
+  /** The helper's uploaded proof photos. Shown read-only on the choice
+   *  screen: this sheet IS the release-the-money decision, and it used to ask
+   *  for it with the evidence nowhere on screen — the card's PhotoProofGroup
+   *  only rendered once status was already `completed`, i.e. after approval. */
+  proofBeforeUrls?: string[];
+  proofAfterUrls?: string[];
   onClose: () => void;
   /** Called when the poster approves (path A) — parent runs the full
    *  complete-job flow (status transition + CompletionPrompts). */
@@ -52,6 +60,8 @@ export function CompletionChoiceSheet({
   helperName,
   helperId,
   userId,
+  proofBeforeUrls = [],
+  proofAfterUrls = [],
   onClose,
   onConfirm,
   onRevisionSubmitted,
@@ -90,11 +100,25 @@ export function CompletionChoiceSheet({
     try {
       // Upload photos
       const photoUrls: string[] = [];
+      let uploadFailed = false;
       for (const file of photos.slice(0, 3)) {
         const ext = file.name.split(".").pop();
-        const path = `revisions/${jobId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        // `<jobId>/revisions/…`, NOT `revisions/<jobId>/…`. The proof-photos
+        // policies key on storage.foldername(name)[1], so the FIRST segment
+        // must be either the caller's uid or a job they are party to. With
+        // "revisions" in that slot it matched neither, so every revision photo
+        // was rejected by RLS — and the bare `continue` below swallowed it, so
+        // a revision request was filed with zero evidence and the helper had
+        // nothing to work from.
+        //
+        // Fourth instance of this exact bug: DisputeDialog documented fixing
+        // it, ReviewForm and PhotoProof were fixed on 2026-08-31, and this one
+        // survived because nothing in the repo checks upload paths against the
+        // policy that governs them.
+        const path = `${jobId}/revisions/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
         const { error: upErr } = await supabase.storage.from("proof-photos").upload(path, file);
         if (upErr) {
+          uploadFailed = true;
           report(upErr, { tags: { source: "CompletionChoiceSheet.uploadPhoto" } });
           continue;
         }
@@ -106,6 +130,18 @@ export function CompletionChoiceSheet({
           continue;
         }
         if (urlData?.signedUrl) photoUrls.push(urlData.signedUrl);
+      }
+
+      // Tell the user if their evidence didn't attach. The revision request
+      // still goes through — it is better than losing their written
+      // description — but silently filing it with no photos left the helper
+      // with nothing to act on and the poster believing they had sent proof.
+      if (uploadFailed) {
+        toast.error(
+          photoUrls.length > 0
+            ? "Some photos couldn't be attached — your revision request was still sent."
+            : "Your photos couldn't be attached — your revision request was still sent.",
+        );
       }
 
       // Try the formal job_revisions table first (PGRST202 fallback below)
@@ -165,7 +201,9 @@ export function CompletionChoiceSheet({
           title: "Revision requested",
           message: `The poster wants a small fix on "${description.trim().slice(0, 80)}${description.length > 80 ? "…" : ""}". Tap to see details.`,
           type: "warning",
-          link: `/my-jobs?filter=revision_requested`,
+          // `?job=` — `revision_requested` has no chip; the live bucket is
+          // "Needs you" for the helper and moves once they resubmit.
+          link: `/my-jobs?job=${jobId}`,
         });
       }
 
@@ -186,10 +224,32 @@ export function CompletionChoiceSheet({
 
   return (
     <Sheet open={open} onOpenChange={handleClose}>
-      <SheetContent side="bottom" className="pb-safe-nav">
+      {/* No bespoke padding or ground. `side="bottom"` is a centred modal at
+          every width now, not a floor-anchored sheet, so the safe-area bottom
+          inset each sheet had written differently is dead weight — and
+          `.glass-modal` is THE popup surface. Shared `p-4 sm:p-5`, same ramp
+          DialogContent uses. */}
+      <SheetContent side="bottom">
         {mode === "choice" ? (
           <>
-            <SheetHero className="mb-4" title="How Did It Go?" />
+            <SheetHero title="How Did It Go?" />
+
+            {(proofBeforeUrls.length > 0 || proofAfterUrls.length > 0) && (
+              <div className="space-y-1.5 mb-3">
+                <p
+                  className="font-serif italic leading-snug text-ds-12"
+                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                >
+                  {helperName}'s proof photos — the work you're about to pay for.
+                </p>
+                <PhotoProofGroup
+                  jobId={jobId}
+                  beforeUrls={proofBeforeUrls}
+                  afterUrls={proofAfterUrls}
+                  canUpload={false}
+                />
+              </div>
+            )}
 
             <div className="space-y-3">
               {/* Path A — release payment */}
@@ -284,7 +344,7 @@ export function CompletionChoiceSheet({
                 <ChevronLeft className="w-5 h-5" />
               </button>
               <div className="flex-1 min-w-0">
-                <SheetHero title="What Needs to Be Fixed?" className="pt-0" />
+                <SheetHero title="What Needs to Be Fixed?" />
               </div>
             </div>
             <p
@@ -382,25 +442,21 @@ export function CompletionChoiceSheet({
                   ✕ stays (it closes the sheet, which is a different intent),
                   and the duplicate goes — which also leaves the footer as a
                   single unambiguous primary action. */}
-              <div className="flex pt-1">
-                <Button
-                  className="flex-1 rounded-ds-md"
+              {/* The SHARED footer and the SHARED glossy primary. This was a
+                  hand-rolled `flex` row holding a flat `--amber-solid` fill
+                  that explicitly set `backgroundImage: "none"` — a seventh
+                  primary colour in the app, and a flat one, against the
+                  standing "primary controls are glossy, never flat" rule.
+                  Asking for a revision is reversible, so it is the ordinary
+                  primary. */}
+              <SheetFooter className="pt-1">
+                <SheetPrimaryAction
                   onClick={handleRevisionSubmit}
                   disabled={submitting || !description.trim()}
-                  style={
-                    description.trim()
-                      ? {
-                          background: "hsl(var(--amber-solid))",
-                          backgroundImage: "none",
-                          border: "1px solid hsl(var(--amber-solid))",
-                          color: "white",
-                        }
-                      : undefined
-                  }
                 >
                   {submitting ? "Sending…" : "Send Revision Request"}
-                </Button>
-              </div>
+                </SheetPrimaryAction>
+              </SheetFooter>
             </div>
           </>
         )}

@@ -9,7 +9,12 @@
 
 import { Crosshair } from "lucide-react";
 import { LA_STATE_BOUNDS, type MapJob } from "./config";
-import { regionFromBounds, type MKMap, type MapKitRuntime } from "./mapkitRuntime";
+import {
+  regionFromBounds,
+  type MKCoordinateRegion,
+  type MKMap,
+  type MapKitRuntime,
+} from "./mapkitRuntime";
 
 /** The camera the map opens on and returns to: Louisiana, framed. */
 export function laRegion(mk: MapKitRuntime) {
@@ -25,8 +30,47 @@ export function laRegion(mk: MapKitRuntime) {
  * Leaflet's `fitBounds` took a pixel padding; MapKit takes a region, so the
  * padding is expressed as the span pad factor in `regionFromBounds`.
  */
-export function fitToPins(mk: MapKitRuntime, map: MKMap, jobs: MapJob[], animate = false) {
+/**
+ * Give a region a BOTTOM INSET, in pixels of the live pane.
+ *
+ * The map pane bleeds under the app's floating dock + FAB, so the lowest
+ * ~112px of it is covered: a pin auto-framed into that band is drawn but
+ * cannot be tapped, and a keyboard user tabbing to it gets a focus ring on
+ * something behind the dock. Verified 2026-08-31 by hit-testing every pin
+ * inside the dock's rect — two of three answered the dock, not the pin.
+ *
+ * Growing the latitude span by `paneH / (paneH - inset)` and holding the TOP
+ * edge fixed adds the extra ground at the BOTTOM, which is exactly the strip
+ * the dock hides — so everything the fit was trying to show ends up above it.
+ */
+function insetRegionBottom(
+  mk: MapKitRuntime,
+  region: MKCoordinateRegion,
+  paneHeight: number,
+  insetPx: number,
+): MKCoordinateRegion {
+  if (!(paneHeight > 0) || !(insetPx > 0) || insetPx >= paneHeight * 0.6) return region;
+  const grown = region.span.latitudeDelta * (paneHeight / (paneHeight - insetPx));
+  const topEdge = region.center.latitude + region.span.latitudeDelta / 2;
+  return new mk.CoordinateRegion(
+    new mk.Coordinate(topEdge - grown / 2, region.center.longitude),
+    new mk.CoordinateSpan(grown, region.span.longitudeDelta),
+  );
+}
+
+export function fitToPins(
+  mk: MapKitRuntime,
+  map: MKMap,
+  jobs: MapJob[],
+  animate = false,
+  /** Height of the pane strip the dock/FAB covers, in CSS px. */
+  bottomInsetPx = 0,
+) {
+  const paneHeight = map.element?.clientHeight ?? 0;
+  const inset = (r: MKCoordinateRegion) => insetRegionBottom(mk, r, paneHeight, bottomInsetPx);
   if (jobs.length === 0) {
+    // The empty/statewide frame is deliberately the whole state, uninset — it
+    // is a picture of Louisiana, not a set of targets to hit.
     map.setRegionAnimated(laRegion(mk), animate);
     return;
   }
@@ -36,7 +80,7 @@ export function fitToPins(mk: MapKitRuntime, map: MKMap, jobs: MapJob[], animate
       new mk.Coordinate(Number(jobs[0].latitude), Number(jobs[0].longitude)),
       new mk.CoordinateSpan(0.06, 0.06),
     );
-    map.setRegionAnimated(region, animate);
+    map.setRegionAnimated(inset(region), animate);
     return;
   }
   let south = 90;
@@ -56,14 +100,20 @@ export function fitToPins(mk: MapKitRuntime, map: MKMap, jobs: MapJob[], animate
   const region = regionFromBounds(mk, [[south, west], [north, east]], 1.25);
   region.span.latitudeDelta = Math.max(region.span.latitudeDelta, 0.06);
   region.span.longitudeDelta = Math.max(region.span.longitudeDelta, 0.06);
-  map.setRegionAnimated(region, animate);
+  map.setRegionAnimated(inset(region), animate);
 }
 
-// Floating "recenter" control — sits over the map, bottom-right above
-// the dock clearance. Flies back to the same Louisiana frame the map
-// opens on, so users who have panned/zoomed deep get the statewide view
-// back in one tap. Takes the handler as a prop now that there is no
-// `useMap()` to reach for.
+// "Recenter" control — flies back to the same Louisiana frame the map opens
+// on, so users who have panned/zoomed deep get the statewide view back in one
+// tap. Takes the handler as a prop now that there is no `useMap()` to reach for.
+//
+// NOT self-positioned any more (2026-08-31). It used to be `position:absolute`
+// with its own `bottom: safe-area + 96px` — the same constant the FAB and the
+// dock use — which meant it sat in the one corner most likely to be crowded,
+// and nothing could move it when the pin preview opened underneath. It is now a
+// plain button laid out by BrowseMap's bottom control stack, which owns the
+// single dock-clearance constant and lifts the whole stack above the preview
+// sheet when one is open. 44x44 (w-11 h-11) meets the project tap-target floor.
 export function RecenterControl({ onRecenter }: { onRecenter: () => void }) {
   return (
     <button
@@ -72,20 +122,23 @@ export function RecenterControl({ onRecenter }: { onRecenter: () => void }) {
       aria-label="Recenter map"
       title="Recenter map"
       data-testid="browse-map-recenter"
-      className="absolute z-[400] w-11 h-11 rounded-full flex items-center justify-center active:scale-[0.94] transition-all"
+      className="pointer-events-auto w-11 h-11 rounded-full flex items-center justify-center active:scale-[0.94] transition-all"
       style={{
-        // Sit clear of the floating dock + FAB at the bottom of the
-        // screen. The parent map div bleeds beneath the dock so the
-        // button needs to anchor above it.
-        right: "0.75rem",
-        bottom: "calc(var(--safe-area-bottom, 0px) + 96px + 0.75rem)",
-        background: "hsla(0, 0%, 100%, 0.85)",
+        // TOKENS, not a literal white (fixed 2026-08-31). This was
+        // `hsla(0,0%,100%,0.85)` with `color: hsl(var(--olivewood))`. In light
+        // mode that reads as a frosted white puck with a dark glyph — but
+        // `--olivewood` INVERTS in dark mode (36 15% 80%, a near-white warm),
+        // so on the dark map the control became a near-white glyph on a
+        // near-white puck: measured ~1.4:1, far under the 3:1 WCAG 1.4.11 floor
+        // for a UI component. `--card` flips with the theme the way
+        // `--olivewood` does, so the pair stays legible in both.
+        background: "hsl(var(--card) / 0.88)",
         border: "1px solid hsl(var(--olivewood) / 0.22)",
         color: "hsl(var(--olivewood))",
         backdropFilter: "blur(8px)",
         WebkitBackdropFilter: "blur(8px)",
         boxShadow:
-          "inset 0 1px 1px 0 rgba(255, 255, 255, 0.55), " +
+          "inset 0 1px 1px 0 hsl(var(--card) / 0.6), " +
           "0 4px 14px -4px hsl(var(--olivewood) / 0.22)",
       }}
     >

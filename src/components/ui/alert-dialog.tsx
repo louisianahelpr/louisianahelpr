@@ -3,11 +3,15 @@ import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog";
 
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
+import {
+  POPUP_FOOTER_ROW,
+  POPUP_SECONDARY_CLS,
+  POPUP_COMMIT_CLS,
+} from "@/components/ui/popupFooter";
 import { X } from "lucide-react";
 
 const AlertDialog = AlertDialogPrimitive.Root;
 
-const AlertDialogTrigger = AlertDialogPrimitive.Trigger;
 
 const AlertDialogPortal = AlertDialogPrimitive.Portal;
 
@@ -33,7 +37,18 @@ const AlertDialogOverlay = React.forwardRef<
       className,
     )}
     style={{
-      backgroundColor: "hsla(38, 22%, 22%, 0.26)",
+      // DRIFTED ONCE ALREADY, RE-SYNCED 2026-08-31. DialogOverlay was
+      // lightened three times (45% -> 26% -> 14% -> 8%) and this file kept
+      // the 26% value from the FIRST of those passes, despite the note above
+      // saying "change one, change both". The result was the exact defect the
+      // note exists to prevent: every AlertDialog in the app — which is every
+      // BrandConfirmDialog, i.e. Log Out, Delete Account, Decline Job, and 20
+      // more — dimmed the page more than 3x as hard as any regular dialog, so
+      // a confirm opening on top of a dialog visibly darkened the screen.
+      //
+      // If DialogOverlay's tint changes again, change it HERE in the same
+      // edit. These two literals are one value with two homes.
+      backgroundColor: "hsla(38, 22%, 22%, 0.08)",
       WebkitBackdropFilter: "blur(24px) saturate(1.5)",
     }}
     {...props}
@@ -81,7 +96,38 @@ const AlertDialogContent = React.forwardRef<
         // chosen to avoid exactly that. The owner asked for centred; if the
         // jump becomes a problem, the fix is to reserve the content's height,
         // not to re-anchor one dialog and split the two shells again.
-        "glass-modal fixed left-1/2 top-1/2 [translate:-50%_-50%] z-50 grid w-auto max-w-[calc(100%-2rem)] sm:max-w-lg max-h-[86vh] overflow-y-auto gap-3 p-4 sm:p-5 duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+      // WIDTH: `w-auto` cannot be used with `left-1/2` on a fixed element.
+      // A fixed box positioned at left:50% gets a shrink-to-fit available
+      // width of (viewport − 187.5px) at 375, so `max-w-[calc(100%-2rem)]`
+      // (343px) was unreachable and every dialog in the app rendered at
+      // ~188–250px on a phone — measured 219px here, 58% of the screen with
+      // 78px of dead margin each side, and long option labels bleeding
+      // outside the card ("Inapprop… conte…"). The translate-based centring
+      // from the 2026-08-30 "fit contents" change is what introduced it.
+      //
+      // Give it an explicit viewport-relative width on phones and keep
+      // shrink-to-fit only from `sm` up, where there is room for it.
+              // ONE MEASURE, NOT SHRINK-TO-FIT (2026-08-31).
+      //
+      // `sm:w-auto` made the card hug its content, which sounds tidy and is
+      // the direct cause of the complaint it was meant to help with. Measured
+      // in Chromium across the harness: at 1440 the same app rendered dialogs
+      // at 285px, 297px, 384px, 435px, 494px and 512px — six different card
+      // widths — because each one sized to whatever copy it happened to hold.
+      // Two confirms opened one after another are visibly different objects,
+      // and a multi-step dialog RESIZES between its own steps (the report
+      // dialog measured 512 -> 327.5 -> 512 walking its three steps).
+      //
+      // `sm:w-full` + `sm:max-w-lg` pins every popup to the same 512px card
+      // from `sm` up, and the phone rule is unchanged
+      // (`w-[calc(100vw-2rem)]`, a 16px inset each side).
+      //
+      // This reverses the narrow reading of "center center and fit contents"
+      // (owner, 2026-08-30) in favour of the instruction repeated five times
+      // since ("all these need to share the same shell"). Content still
+      // controls HEIGHT, which is what makes a short confirm feel short; only
+      // the measure is shared. Change one primitive, change both.
+        "glass-modal fixed left-1/2 top-1/2 [translate:-50%_-50%] z-50 grid w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] sm:w-full sm:max-w-lg max-h-[86vh] overflow-y-auto gap-3 p-4 sm:p-5 duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
         className,
       )}
       // Radix warns once per open when a Content has no `Description` and no
@@ -129,25 +175,48 @@ const AlertDialogContent = React.forwardRef<
 
           Classes are copied verbatim from DialogContent's close; change one,
           change both. */}
+      {/* RE-SYNCED 2026-08-31. "Copied verbatim from DialogContent's close"
+          had stopped being true in four ways, each visible side by side when a
+          confirm opens over a dialog: the box was `w-11 h-11` vs the Dialog
+          X's 32x44, the glyph was `h-5 w-5` (20px) vs 18px, the hover lift
+          (`group` + `group-hover:-translate-y-0.5`) was missing entirely, and
+          the ring was `focus:` rather than `focus-visible:` — so a MOUSE click
+          on an alert dialog's X drew the focus box the owner explicitly asked
+          to be rid of on 2026-08-31 ("there shouldn't be a box around it when
+          it's clicked"), while the identical-looking X one dialog over did
+          not. Below is DialogContent's close, verbatim; change one, change
+          both. */}
       <AlertDialogPrimitive.Cancel
-        aria-label="Close"
         disabled={closeDisabled}
-        className="absolute right-3 top-3 w-11 h-11 p-0 box-border rounded-md btn-press flex items-center justify-center bg-transparent border-transparent shadow-none text-muted-foreground hover:text-foreground hover:bg-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none mt-0"
+        className="absolute right-3 top-3 z-10 group w-8 p-0 box-border rounded-md btn-press flex items-center justify-center bg-transparent border-transparent shadow-none text-muted-foreground hover:text-foreground hover:bg-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none mt-0"
+        style={{ minHeight: "44px", minWidth: "32px" }}
       >
-        <X className="h-5 w-5" strokeWidth={2} />
+        <X className="h-[18px] w-[18px] transition-transform duration-300 group-hover:-translate-y-0.5" strokeWidth={2} />
+        <span className="sr-only">Close</span>
       </AlertDialogPrimitive.Cancel>
     </AlertDialogPrimitive.Content>
   </AlertDialogPortal>
 ));
 AlertDialogContent.displayName = AlertDialogPrimitive.Content.displayName;
 
+// DialogHeader's exact class list — including the `pr-10` lane that reserves
+// space for the corner X. AlertDialogs did not reserve it, because when this
+// header was written AlertDialogContent had no X. It has one now (added above
+// so confirms dismiss from the same corner as dialogs), so without the reserve
+// a long confirm title runs straight under it — the identical collision
+// DialogHeader's `pr-10` was added to prevent. `space-y-2` was also 0.5 out
+// from DialogHeader's `space-y-1.5`. Change one, change both.
 const AlertDialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn("flex flex-col space-y-2 text-center sm:text-left", className)} {...props} />
+  <div className={cn("flex flex-col space-y-1.5 text-center sm:text-left pr-10", className)} {...props} />
 );
 AlertDialogHeader.displayName = "AlertDialogHeader";
 
+// THE SHARED ROW, from popupFooter.ts — the same object DialogFooter and
+// SheetFooter render. It used to be a third copy of the literal, kept honest
+// only by a test; the owner's 2026-08-31 footer decision (small dismiss, hard
+// left) is exactly the kind of change that lands on two of the three copies.
 const AlertDialogFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn("flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:space-x-2", className)} {...props} />
+  <div className={cn(POPUP_FOOTER_ROW, className)} {...props} />
 );
 AlertDialogFooter.displayName = "AlertDialogFooter";
 
@@ -155,7 +224,8 @@ const AlertDialogTitle = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Title>,
   React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Title>
 >(({ className, ...props }, ref) => (
-  <AlertDialogPrimitive.Title ref={ref} className={cn("text-lg font-display italic font-bold leading-tight", className)} {...props} />
+  // `tracking-tight` matches DialogTitle — change one, change both.
+  <AlertDialogPrimitive.Title ref={ref} className={cn("text-lg font-display italic font-bold leading-tight tracking-tight", className)} {...props} />
 ));
 AlertDialogTitle.displayName = AlertDialogPrimitive.Title.displayName;
 
@@ -211,25 +281,63 @@ const AlertDialogHero = ({ title }: {
 );
 AlertDialogHero.displayName = "AlertDialogHero";
 
+/**
+ * The confirm box's primary action.
+ *
+ * `variant` exists because THREE call sites were trying to make this button
+ * red by hanging `className="bg-destructive text-destructive-foreground"` on
+ * it — AdminBanReview's "Ban Permanently", AdminReports' "Remove Review" and
+ * AdminUserNotes' "Delete Note". That never worked: the base variant applies
+ * `.btn-grad-primary`, which is a `background-IMAGE`, and a background-image
+ * paints OVER a background-color. So the app's three hardest-to-undo admin
+ * actions have been rendering as the GREEN primary gradient, with cream text
+ * (the variant pins `!text-[hsl(var(--parchment))]`), while reading in source
+ * as destructive-red. Routing the choice through `buttonVariants` makes the
+ * variant win, and makes "is this destructive?" a prop instead of a class
+ * fight.
+ *
+ * SIZE + RADIUS + WEIGHT are the shared Button defaults now. They were
+ * `size:"lg"` (60px tall, text-ds-17), `rounded-2xl` (16px) and
+ * `font-semibold` — against the `h-14` (56px), `rounded-ds-md` (14px),
+ * `font-bold` that every <Button> in every DialogFooter uses. Four pixels of
+ * height, two of radius and a weight step is exactly the kind of difference
+ * that reads as "a different person built this one".
+ */
 const AlertDialogAction = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Action>,
-  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Action>
->(({ className, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Action> & {
+    /** `destructive` for irreversible actions — the ONE destructive treatment
+     *  (solid `--destructive` red), identical to `<Button variant="destructive">`
+     *  in a DialogFooter. Anything else stays the glossy primary. */
+    variant?: "default" | "destructive";
+  }
+>(({ className, variant = "default", ...props }, ref) => (
   <AlertDialogPrimitive.Action
     ref={ref}
-    className={cn(buttonVariants({ size: "lg" }), "rounded-2xl w-full sm:w-auto font-semibold", className)}
+    className={cn(buttonVariants({ variant }), POPUP_COMMIT_CLS, className)}
     {...props}
   />
 ));
 AlertDialogAction.displayName = AlertDialogPrimitive.Action.displayName;
 
+/**
+ * The confirm box's dismiss.
+ *
+ * GHOST and SMALL, hard-left — DialogSecondaryAction's twin, from the same
+ * `popupFooter.ts` contract. It was `outline` (a bordered, filled, elevated
+ * button) while every Cancel in a DialogFooter was bare ghost text, so the
+ * same word was two different objects one tap apart; then it was ghost at full
+ * width. The owner settled the treatment on 2026-08-31 after being shown the
+ * three variants their own screenshots contained: "Small, I feel like left
+ * aligned makes more sense than right."
+ */
 const AlertDialogCancel = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Cancel>,
   React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Cancel>
 >(({ className, ...props }, ref) => (
   <AlertDialogPrimitive.Cancel
     ref={ref}
-    className={cn(buttonVariants({ variant: "outline", size: "lg" }), "rounded-2xl w-full sm:w-auto mt-0 font-semibold border-border/60", className)}
+    className={cn(buttonVariants({ variant: "ghost", size: "sm" }), POPUP_SECONDARY_CLS, "mt-0", className)}
     {...props}
   />
 ));
@@ -237,13 +345,8 @@ AlertDialogCancel.displayName = AlertDialogPrimitive.Cancel.displayName;
 
 export {
   AlertDialog,
-  AlertDialogPortal,
-  AlertDialogOverlay,
-  AlertDialogTrigger,
   AlertDialogContent,
-  AlertDialogHeader,
   AlertDialogFooter,
-  AlertDialogTitle,
   AlertDialogDescription,
   AlertDialogHero,
   AlertDialogAction,

@@ -27,11 +27,21 @@ const Switch = React.forwardRef<
         // gives it a hit region larger than its artwork — this reproduces
         // that. The ::after overlay is invisible, participates in hit-testing
         // on this element's behalf, and is absolutely positioned so it adds no
-        // layout: 31 + 2×7 = 45px tall, and the track is already 51px wide.
+        // layout. The track is already 51px wide, so only height needs help.
         //
-        // Measured at 31px across the app, including the Simple Mode toggle on
-        // /accessibility — a sub-minimum target on the accessibility screen.
-        "relative after:absolute after:content-[''] after:-inset-y-[7px] after:inset-x-0",
+        // STATE THE HEIGHT, DON'T DERIVE IT. This was `-inset-y-[7px]` with a
+        // comment claiming "31 + 2×7 = 45px". It measured 41px. `inset` is
+        // resolved against the *padding* box, and `border-2 border-transparent`
+        // under `box-sizing: border-box` makes that 31 − 4 = 27px, so the real
+        // sum was 27 + 2×7 = 41. Empirically a tap 6px above or below the track
+        // did not toggle — on every Switch in the app, including the Simple
+        // Mode toggle on /accessibility, i.e. a sub-minimum target on the
+        // accessibility screen itself.
+        //
+        // `h-11` + centring states 44px outright, so it stays 44px if the
+        // border, height or box-sizing ever change again.
+        "relative after:absolute after:content-[''] after:inset-x-0",
+        "after:top-1/2 after:h-11 after:-translate-y-1/2",
         // Checked → olivewood tint; unchecked → muted neutral.
         "data-[state=checked]:bg-[hsl(var(--olivewood))]",
         "data-[state=unchecked]:bg-[hsl(var(--ink-deep)/0.18)]",

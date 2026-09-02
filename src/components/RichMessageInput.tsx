@@ -432,7 +432,12 @@ export const RichMessageInput = ({
           onChange={(e) => { setText(e.target.value); notifyTyping(); }}
           onKeyDown={(e) => e.key === "Enter" && handleSend()}
           maxLength={MESSAGE_MAX_LENGTH}
-          className="flex-1"
+          // `min-w-0` is load-bearing, not tidiness: a flex item's automatic
+          // minimum size is its content size, so without it the field refuses
+          // to shrink past its intrinsic width and the row overflows to the
+          // right — pushing Send under the shell's overflow clip on a narrow
+          // phone. It must always be the field that gives, never the buttons.
+          className="flex-1 min-w-0"
           disabled={disabled || uploading || recorder.state === "recording" || recorder.state === "stopped"}
         />
         {/* Voice-to-text mic — appended just before Send so the most
@@ -480,8 +485,17 @@ export const RichMessageInput = ({
             )}
           </Button>
         )}
+        {/* Send. Sized 44x44 round to MATCH the "+" and mic either side of it
+            rather than `size="icon"`'s 56x56 rounded square, which stood 8px
+            proud of the 48px field at both top and bottom and read as a
+            control that had outgrown the bar (owner: "the send button is cut
+            off / the bar doesn't fit"). 44px is still the full Apple/Android
+            tap-target minimum — the glyph is what shrank, not the target.
+            `shrink-0` so a long draft can never squeeze the button instead of
+            the field. */}
         <Button
           size="icon"
+          className="shrink-0 h-11 w-11 rounded-full"
           onClick={handleSend}
           disabled={(!text.trim() && !stagedFile) || uploading || disabled || recorder.state === "recording" || recorder.state === "stopped"}
           aria-label="Send message"

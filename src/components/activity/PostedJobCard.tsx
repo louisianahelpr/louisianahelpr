@@ -1,7 +1,7 @@
 import { memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, RotateCcw, Users, RefreshCw, Clock, Check } from "lucide-react";
+import { CheckCircle2, RotateCcw, RefreshCw, Clock, Check, MapPinOff } from "lucide-react";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
 import { SeriesStrip } from "@/components/activity/SeriesStrip";
 import { JobCountdown } from "@/components/activity/JobCountdown";
@@ -139,9 +139,20 @@ function PostedJobCardInner({
                 startTime={job.start_time}
                 flexibleLabel="Flexible time"
                 location={job.location}
+                // Tap expands, HOLD opens the map (owner: "tapping the
+                // location here shouldn't open the map… I keep tapping it on
+                // accident"). The location sits in the middle of the card body,
+                // so a thumb aimed at the card hit a link and got thrown out to
+                // a map; now every part of the collapsed card does the same
+                // thing on tap. Opt-in per card so My Jobs is untouched — see
+                // the prop's note in JobCardMetaRow.
+                locationPressToMap
                 latitude={job.latitude}
                 longitude={job.longitude}
                 expiresAt={!job.helper_id && job.status !== "cancelled" ? job.expires_at : null}
+                // "👥 3", right after the time — the same chip and the same
+                // slot the browse feed and the applied card now use.
+                helpersNeeded={job.is_group_job ? (job.helpers_needed ?? 2) : null}
                 // "View details" costs no row of its own any more.
                 //
                 // It used to sit below the meta row as a standalone 44px
@@ -177,9 +188,13 @@ function PostedJobCardInner({
                  {job.is_recurring && !(job.recurrence_days && job.recurrence_days.length > 0) && (
                    <span className="flex items-center gap-1"><RefreshCw className="w-3 h-3 shrink-0 text-primary" /> {formatRecurrenceInterval(job.recurrence_interval)}</span>
                  )}
-                 {job.is_group_job && (
-                   <span className="flex items-center gap-1"><Users className="w-3 h-3 shrink-0 text-primary" /> {job.helpers_needed ? `${job.helpers_needed} Helpr${job.helpers_needed === 1 ? "" : "s"}` : "Group job"}</span>
-                 )}
+                 {/* The group-size chip is NOT a child any more — it is
+                     JobCardMetaRow's own `helpersNeeded` prop, which pins it
+                     directly after the TIME (owner: "3 helprs needed goes to
+                     the right of time"). As a child it landed last, after the
+                     recurring chip and the expiry countdown, and the applied
+                     card stated the same fact in a footer line at the bottom of
+                     the card. One chip, one position, both surfaces. */}
                </JobCardMetaRow>
             </>
   );
@@ -443,6 +458,72 @@ function PostedJobCardInner({
                 </div>
               )}
 
+              {/* WHY THERE IS NO MAP — the honest state for an un-geocoded job.
+                  (owner: "this should show map tracker when they're on the way")
+
+                  The live map is NOT missing as a feature: JobTracking already
+                  mounts <TrackingMap> for the poster the moment the helper is
+                  `on_the_way`, with no isHelper gate, and PostedJobCard already
+                  hands it `jobLatitude`/`jobLongitude`. Driven with a seeded
+                  en-route job it renders — one `.leaflet-container`, one helper
+                  pin — on this exact card.
+
+                  What it also requires is the job's OWN coordinates, for the
+                  destination pin. When `jobs.latitude/longitude` are null the
+                  whole block short-circuits and renders NOTHING: no map, no
+                  error, no sentence. Driven with the identical job and the
+                  identical live tracking row but null coords: zero leaflet
+                  containers, zero console errors. That is the card the owner
+                  screenshotted — a helper en route to their house and a card
+                  that says nothing about where they are.
+
+                  Null coordinates are not rare: the app's only geocoder was CSP-
+                  blocked for a period and both call sites swallow the failure
+                  with `catch { return null }`, so every job posted in that
+                  window has them.
+
+                  So: say it. The condition here is the exact INVERSE of
+                  JobTracking's map gate on the one term this card can read
+                  independently — a job with null coordinates can never be the
+                  job whose map mounted — so the two can never both render.
+
+                  Fixing the underlying geocode, and the sibling case (helper
+                  hasn't shared a position at all, which is JobTracking's own
+                  gate), are reported as follow-ups — both live in files this
+                  card does not own. */}
+              {job.status === "in_progress" &&
+                !!job.helper_id &&
+                !!job.helper_on_the_way_at &&
+                !job.helper_arrived_at &&
+                (job.latitude == null || job.longitude == null) && (
+                  <div
+                    className="rounded-ds-md px-3 py-2 flex items-start gap-2"
+                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                      background: "hsl(var(--amber-tint) / 0.10)",
+                      border: "0.5px solid hsl(var(--amber-tint) / 0.32)",
+                    }}
+                  >
+                    <MapPinOff
+                      aria-hidden
+                      className="w-3.5 h-3.5 shrink-0 mt-0.5"
+                      style={{ color: "hsl(var(--amber-ink))" }}
+                      strokeWidth={2.25}
+                    />
+                    <p
+                      className="font-serif italic leading-snug text-ds-12"
+                      style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+                    >
+                      <span className="not-italic font-display font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
+                        No live map for this job.
+                      </span>{" "}
+                      We couldn't pin this job's address on a map, so {helperName}'s
+                      position can't be shown. The steps above still update as they
+                      go — message them if you need an ETA.
+                    </p>
+                  </div>
+                )}
+
               {/* Pet care report card — show incoming daily reports from helper */}
               {job.category === "pet_care" && (job.status === "accepted" || job.status === "in_progress" || job.status === "completed") && (
                 <div onClick={(e) => e.stopPropagation()}>
@@ -562,7 +643,7 @@ function PostedJobCardInner({
               {(job.status === "in_progress" || job.status === "accepted") && (
                 <div className="px-4 pb-3 space-y-3" onClick={(e) => e.stopPropagation()}>
                   <JobConfirmation jobId={job.id} isOwner={true} isHelper={false} posterConfirmedAt={job.poster_confirmed_at} helperConfirmedAt={job.helper_confirmed_at} helperDayofConfirmedAt={job.helper_dayof_confirmed_at} dateNeeded={job.date_needed} jobStatus={job.status} helperOnTheWayAt={job.helper_on_the_way_at} onCantMakeIt={() => onCancel(job)} />
-                  {job.is_group_job && <GroupJobHelpers jobId={job.id} helpersNeeded={job.helpers_needed || 2} isOwner={true} initialHelpers={initialGroupHelpers} />}
+                  {job.is_group_job && <GroupJobHelpers jobId={job.id} helpersNeeded={job.helpers_needed || 2} isOwner={true} jobStatus={job.status} initialHelpers={initialGroupHelpers} />}
 
                 </div>
               )}

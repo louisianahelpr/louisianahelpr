@@ -9,7 +9,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { RefreshCw, Search, Mail, Smartphone, AlertCircle, Loader2, AlertTriangle, Inbox } from "lucide-react";
+import { RefreshCw, Search, Mail, Smartphone, Bell, AlertCircle, Loader2, AlertTriangle, Inbox } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
@@ -50,6 +50,46 @@ const STATUS_VARIANT: Record<string, string> = {
   failed: "bg-destructive/15 text-destructive border-destructive/30",
   suppressed: cn("bg-warning/15 border-warning/30", toneTextClasses.warning),
   skipped: "bg-muted text-muted-foreground border-border",
+  // Push only. One row per device registration APNs/FCM rejected as
+  // permanently dead (410 / BadDeviceToken / NOT_FOUND) and that
+  // send-push-notification then DELETEd. It is not a delivery failure — the
+  // send is over — it is a user quietly losing their push registration, which
+  // is the single thing in this log most worth being able to see. Warning
+  // colour, not destructive: something needs looking at, nothing is on fire.
+  token_deleted: cn("bg-warning/15 border-warning/30", toneTextClasses.warning),
+};
+
+/**
+ * Channel presentation.
+ *
+ * This screen used to be a two-way `channel === "email" ? Email : In-App`
+ * ternary, written when `push` was a value the column could hold but that
+ * nothing ever wrote — so every push row would have rendered, wrongly, as
+ * "In-App". (Prod on 2026-09-01: 137 in_app, 53 email, 0 push, for the life of
+ * the project. send-push-notification now writes the push rows; see
+ * supabase/functions/_shared/notificationLog.ts.)
+ *
+ * The icons distinguish where the notification LANDED: an envelope for mail,
+ * a phone for the one that lit up a lock screen, the app's own bell for the
+ * one that only ever existed inside the app.
+ */
+const CHANNEL_META: Record<string, { label: string; Icon: typeof Mail }> = {
+  email: { label: "Email", Icon: Mail },
+  push: { label: "Push", Icon: Smartphone },
+  in_app: { label: "In-App", Icon: Bell },
+};
+
+const channelMeta = (channel: string) =>
+  CHANNEL_META[channel] ?? { label: channel, Icon: Bell };
+
+/**
+ * Status label. The badge is `capitalize`d, which turns the raw column value
+ * into sentence case for the four single-word statuses but renders
+ * `token_deleted` as the literal "Token_deleted" — the database's spelling
+ * leaking onto an operator's screen. Named here instead.
+ */
+const STATUS_LABEL: Record<string, string> = {
+  token_deleted: "Token deleted",
 };
 
 const PAGE_SIZE = 50;
@@ -190,7 +230,7 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
           one card: subtitle, header action, then filters over content. */}
       <AdminCard
         title="Delivery Log"
-        subtitle="Every alert sent via in-app or email. Failed deliveries are red."
+        subtitle="Every alert sent in-app, by email, or as a push. Failed deliveries are red."
         action={
           <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
             <RefreshCw className={cn("w-4 h-4 mr-2", isFetching && "animate-spin")} />
@@ -247,6 +287,10 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
               <SelectItem value="failed">Failed</SelectItem>
               <SelectItem value="suppressed">Suppressed</SelectItem>
               <SelectItem value="skipped">Skipped</SelectItem>
+              {/* Push-only: a device registration APNs/FCM rejected as dead and
+                  we deleted. Filterable on its own because "who quietly lost
+                  push?" is a question worth asking directly. */}
+              <SelectItem value="token_deleted">Token deleted</SelectItem>
             </SelectContent>
           </Select>
           <Select value={channel} onValueChange={setChannel}>
@@ -255,6 +299,7 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
               <SelectItem value="all">All</SelectItem>
               <SelectItem value="in_app">In-App</SelectItem>
               <SelectItem value="email">Email</SelectItem>
+              <SelectItem value="push">Push</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -292,12 +337,15 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
                     {formatDistanceToNow(new Date(row.created_at), { addSuffix: true })}
                   </td>
                   <td className="px-4 py-2.5">
-                    <span className="inline-flex items-center gap-1.5 text-ds-11">
-                      {row.channel === "email"
-                        ? <Mail className="w-3.5 h-3.5" />
-                        : <Smartphone className="w-3.5 h-3.5" />}
-                      {row.channel === "email" ? "Email" : "In-App"}
-                    </span>
+                    {(() => {
+                      const { label, Icon } = channelMeta(row.channel);
+                      return (
+                        <span className="inline-flex items-center gap-1.5 text-ds-11">
+                          <Icon className="w-3.5 h-3.5" />
+                          {label}
+                        </span>
+                      );
+                    })()}
                   </td>
                   <td className="px-4 py-2.5 text-ds-11">
                     {CATEGORY_LABEL[row.category] ?? row.category}
@@ -313,7 +361,7 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
                   </td>
                   <td className="px-4 py-2.5">
                     <Badge variant="outline" className={cn("text-ds-11 capitalize", STATUS_VARIANT[row.status] || "")}>
-                      {row.status}
+                      {STATUS_LABEL[row.status] ?? row.status}
                     </Badge>
                   </td>
                 </tr>
@@ -342,14 +390,17 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                       <Badge variant="outline" className={cn("text-ds-11 capitalize", STATUS_VARIANT[row.status] || "")}>
-                        {row.status}
+                        {STATUS_LABEL[row.status] ?? row.status}
                       </Badge>
-                      <span className="inline-flex items-center gap-1 text-ds-11 text-muted-foreground">
-                        {row.channel === "email"
-                          ? <Mail className="w-3.5 h-3.5" />
-                          : <Smartphone className="w-3.5 h-3.5" />}
-                        {row.channel === "email" ? "Email" : "In-App"}
-                      </span>
+                      {(() => {
+                        const { label, Icon } = channelMeta(row.channel);
+                        return (
+                          <span className="inline-flex items-center gap-1 text-ds-11 text-muted-foreground">
+                            <Icon className="w-3.5 h-3.5" />
+                            {label}
+                          </span>
+                        );
+                      })()}
                     </div>
                     <span className="text-ds-11 text-muted-foreground whitespace-nowrap">
                       {formatDistanceToNow(new Date(row.created_at), { addSuffix: true })}

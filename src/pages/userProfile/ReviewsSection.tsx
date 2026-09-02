@@ -1,7 +1,9 @@
-import { Star, ChevronDown } from "lucide-react";
+import { useState } from "react";
+import { Star, ChevronDown, MoreHorizontal } from "lucide-react";
 import { getCategoryIcon } from "@/lib/categoryIcons";
 import { formatShortDate, formatCategory } from "@/lib/format";
 import type { ProfileReview } from "./types";
+import ReportDialog from "@/components/ReportDialog";
 
 type RatingFilter = "all" | "5" | "4" | "low";
 
@@ -24,8 +26,21 @@ type Props = {
   onSaveResponse: (reviewId: string) => void;
   savingResponse: boolean;
   reviewsHasMore: boolean;
-  /** Server-side total (the count query), not just the rows loaded so far. */
+  /** How many reviews this viewer can LOAD — the pagination denominator. */
   reviewsTotalCount: number;
+  /**
+   * How many reviews EXIST. Not the same number: review prose is granted to
+   * signed-in members only (the `reviews` SELECT policy has always been
+   * `TO authenticated`), so a signed-out visitor is told the true count by
+   * `get_public_profile_stats` and can load none of the text.
+   */
+  trueReviewCount: number;
+  /**
+   * FALSE only for a viewer with no session. Without it this panel printed
+   * "No reviews yet" over a profile with five — a flat untruth, and precisely
+   * the failure mode this whole change exists to end.
+   */
+  canReadReviewText: boolean;
   loadMoreReviews: () => void;
   loadingMoreReviews: boolean;
 };
@@ -50,9 +65,13 @@ export const ReviewsSection = ({
   savingResponse,
   reviewsHasMore,
   reviewsTotalCount,
+  trueReviewCount,
+  canReadReviewText,
   loadMoreReviews,
   loadingMoreReviews,
 }: Props) => {
+  // Which review the report dialog is open for (null = closed).
+  const [reportingReviewId, setReportingReviewId] = useState<string | null>(null);
   const PAGE_SIZE = 5;
   // Distinct categories that appear in this helper's reviews,
   // computed once per render. Sorted alphabetically with a
@@ -215,7 +234,23 @@ export const ReviewsSection = ({
                   </div>
                   <span className="text-ds-11 font-medium text-foreground">{r.reviewerName}</span>
                 </div>
-                <span className="text-muted-foreground text-ds-11">{formatShortDate(r.created_at)}</span>
+                <div className="flex items-center gap-1 shrink-0">
+                  <span className="text-muted-foreground text-ds-11">{formatShortDate(r.created_at)}</span>
+                  {/* Report a review — user-generated content must be
+                      reportable (App Store guideline 1.2). The only
+                      `reportedType="review"` caller in the codebase lived in
+                      ReviewList.tsx, which is never mounted anywhere, so the
+                      admin review-takedown queue could never receive anything.
+                      Placed per-review so the report names which one. */}
+                  <button
+                    type="button"
+                    aria-label="Report this review"
+                    onClick={() => setReportingReviewId(r.id)}
+                    className="h-11 w-11 -mr-2 inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <MoreHorizontal className="w-4 h-4" aria-hidden />
+                  </button>
+                </div>
               </div>
               <p className="text-muted-foreground text-ds-11">For: {r.jobTitle}</p>
               {r.feedback && <p className="text-ds-13 text-foreground leading-relaxed">{r.feedback}</p>}
@@ -326,10 +361,28 @@ export const ReviewsSection = ({
         <div className="rounded-2xl liquid-glass p-6 text-center">
           <Star className="w-5 h-5 text-muted-foreground/30 mx-auto mb-2" />
           <p className="text-ds-11 text-muted-foreground">
-            {hasActiveFilter ? "No reviews match this filter" : "No reviews yet"}
+            {hasActiveFilter
+              ? "No reviews match this filter"
+              : /* THE DISTINCTION THAT MATTERS. An empty list means one of two
+                   completely different things, and saying the wrong one is a
+                   trust claim made without knowing it is true. Reviews EXIST
+                   but their prose is members-only → say that. Nothing exists →
+                   say that. Never print "No reviews yet" over five reviews. */
+                !canReadReviewText && trueReviewCount > 0
+              ? `Sign in to read ${trueReviewCount === 1 ? "the review" : `all ${trueReviewCount} reviews`}`
+              : "No reviews yet"}
           </p>
         </div>
       )}
+
+      {/* One dialog for the whole list, keyed by which review is being
+          reported — mounting one per card would put N dialogs in the tree. */}
+      <ReportDialog
+        open={reportingReviewId !== null}
+        onClose={() => setReportingReviewId(null)}
+        reportedType="review"
+        reportedId={reportingReviewId ?? ""}
+      />
     </div>
   );
 };

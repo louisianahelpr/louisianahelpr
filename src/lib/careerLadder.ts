@@ -98,28 +98,3 @@ export function getEarnedMilestones(stats: MilestoneStats): CareerMilestone[] {
     return true;
   });
 }
-
-export function getNextMilestone(stats: MilestoneStats): CareerMilestone | null {
-  const earned = getEarnedMilestones(stats);
-  const earnedIds = new Set(earned.map((m) => m.id));
-  return CAREER_MILESTONES.find((m) => !earnedIds.has(m.id)) ?? null;
-}
-
-/**
- * Returns progress info toward the next milestone.
- * Primary metric is completedJobs (most commonly gating).
- */
-export function getMilestoneProgress(
-  next: CareerMilestone,
-  stats: MilestoneStats,
-): { current: number; target: number; label: string } | null {
-  if (!next.requirement.completedJobs) return null;
-  const target = next.requirement.completedJobs;
-  const current = Math.min(stats.completedJobs, target);
-  const remaining = target - current;
-  return {
-    current,
-    target,
-    label: `${current}/${target} job${target === 1 ? "" : "s"} (${remaining} to go)`,
-  };
-}

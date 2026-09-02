@@ -126,6 +126,16 @@ describe("useDynamicTypeSync", () => {
     document.documentElement.style.removeProperty("--user-text-scale");
   });
 
+  // Restoration must not live at the end of a test body: an assertion that
+  // throws skips it, and a leaked getComputedStyle stub then fails the NEXT
+  // test for a reason that has nothing to do with it. (Observed while checking
+  // these tests actually catch the CSS.supports bug — one real failure became
+  // two, with a misleading message on the second.)
+  afterEach(() => {
+    vi.restoreAllMocks();
+    document.documentElement.style.removeProperty("font-size");
+  });
+
   it("writes 1 (no scaling) when the computed font size is the default 16px", () => {
     // jsdom defaults to 16px font-size; no override needed
     renderHook(() => useDynamicTypeSync());
@@ -165,7 +175,7 @@ describe("useDynamicTypeSync", () => {
     cssObj.supports = (prop: string, value?: string) =>
       prop === "font" && value === "-apple-system-body";
 
-    const gcsSpy = vi
+    vi
       .spyOn(window, "getComputedStyle")
       .mockImplementation(
         (el: Element) =>
@@ -179,7 +189,59 @@ describe("useDynamicTypeSync", () => {
     const written = document.documentElement.style.getPropertyValue("--user-text-scale");
     expect(parseFloat(written)).toBeCloseTo(21 / 17, 2);
 
-    gcsSpy.mockRestore();
     if (!hadSupports) delete cssObj.supports;
+  });
+
+  it("reads Dynamic Type even when CSS.supports denies the keyword", () => {
+    // The regression. WebKit has shipped versions answering false for the
+    // system-font keywords in the `font` shorthand while still resolving them,
+    // and this hook used to gate on that query — so a Dynamic Type user got
+    // scale 1.0 forever, on the only platform the probe exists for. The
+    // discriminator is now the out-of-band sentinel the probe inherits when
+    // the declaration is genuinely dropped, not a feature query.
+    const cssObj = CSS as unknown as { supports?: (p: string, v?: string) => boolean };
+    const hadSupports = "supports" in cssObj;
+    cssObj.supports = () => false;
+
+    vi
+      .spyOn(window, "getComputedStyle")
+      .mockImplementation(
+        (el: Element) =>
+          ({
+            fontSize: el instanceof HTMLSpanElement ? "21px" : "99px",
+          }) as CSSStyleDeclaration,
+      );
+
+    renderHook(() => useDynamicTypeSync());
+    const written = document.documentElement.style.getPropertyValue("--user-text-scale");
+    expect(parseFloat(written)).toBeCloseTo(21 / 17, 2);
+
+    if (!hadSupports) delete cssObj.supports;
+  });
+
+  it("does not shrink the app on macOS, where the keyword means 13px", () => {
+    // Real WebKit resolves `-apple-system-body` to 13px — the macOS system
+    // body size, on a platform with no Dynamic Type. 13/17 = 0.765 would clamp
+    // to 0.85 and render every desktop Safari page 15% small.
+    vi.spyOn(window, "getComputedStyle").mockImplementation(
+      (el: Element) =>
+        ({
+          fontSize: el instanceof HTMLSpanElement ? "13px" : "99px",
+        }) as CSSStyleDeclaration,
+    );
+    renderHook(() => useDynamicTypeSync());
+    const written = document.documentElement.style.getPropertyValue("--user-text-scale");
+    expect(parseFloat(written)).toBe(1);
+  });
+
+  it("falls back to the root font-size when the keyword is truly unsupported", () => {
+    // Unstubbed jsdom drops the declaration, so the probe answers null and the
+    // hook must use the root size — which on non-Apple platforms does track
+    // the browser/OS text scale. 20px root = 1.25, NOT 20/17.
+    document.documentElement.style.fontSize = "20px";
+    renderHook(() => useDynamicTypeSync());
+    const written = document.documentElement.style.getPropertyValue("--user-text-scale");
+    expect(parseFloat(written)).toBeCloseTo(1.25, 2);
+    document.documentElement.style.removeProperty("font-size");
   });
 });

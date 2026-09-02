@@ -1,5 +1,12 @@
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHero,
+  DialogBody,
+  DialogFooter,
+  DialogSecondaryAction,
+  DialogDestructiveAction,
+} from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import type { Job } from "./types";
 
@@ -31,9 +38,11 @@ export const RemoveJobDialog = ({
           title="Remove Job"
         />
         <div className="space-y-3">
-          <p className="text-ds-11 text-muted-foreground">
-            This will cancel the job and notify the poster{detailJob?.helper_id ? " and assigned helper" : ""}. Please provide a reason:
-          </p>
+          <DialogBody>
+            <p>
+              This will cancel the job and notify the poster{detailJob?.helper_id ? " and assigned helper" : ""}. Please provide a reason:
+            </p>
+          </DialogBody>
           <Textarea
             aria-label="Reason for cancelling job"
             placeholder="e.g. This listing violates our community guidelines…"
@@ -49,17 +58,20 @@ export const RemoveJobDialog = ({
             </div>
           )}
         </div>
-        <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={onCancel}>
+        {/* `ghost` — a secondary sitting beside a primary is bare text in every
+            other dialog footer in the app; `outline` is reserved for a footer
+            whose only control is the dismiss. `gap-2` restated DialogFooter's
+            own gap. */}
+        <DialogFooter>
+          <DialogSecondaryAction onClick={onCancel}>
             Cancel
-          </Button>
-          <Button
-            variant="destructive"
+          </DialogSecondaryAction>
+          <DialogDestructiveAction
             onClick={onConfirm}
             disabled={!deleteReason.trim() || deleting}
           >
             {deleting ? "Removing…" : "Remove & Notify"}
-          </Button>
+          </DialogDestructiveAction>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -8,13 +8,18 @@ import { PublicReviewWall, truncateFeedback } from "./PublicReviewWall";
 /**
  * Supabase mock — mirrors the same chain shape HelperStreakBadge.test uses.
  *
- * The component's queryFn does THREE calls in sequence:
- *   1. supabase.from("reviews")...limit() → review rows
- *   2. supabase.rpc("get_safe_profiles", …) → reviewer names
- *   3. supabase.from("jobs").select(...).in(...) → job categories
+ * The component's queryFn has TWO paths:
  *
- * Each call resolves from the matching mock-state slot below; tests
- * mutate the slots before rendering.
+ *   PREFERRED — `supabase.rpc("get_public_profile_reviews", …)`, which applies
+ *   the reveal window, the `published` status, the cancelled-job exclusion and
+ *   reviewer-name masking in SQL, and returns the job category.
+ *
+ *   FALLBACK — taken only when that RPC answers PGRST202 (not deployed yet):
+ *     1. supabase.from("reviews")...limit() → review rows
+ *     2. supabase.rpc("get_safe_profiles", …) → reviewer names
+ *
+ * `publicReviewsRpcResult` defaults to PGRST202 so the bulk of the suite
+ * exercises the fallback; the RPC path has its own describe block.
  */
 const reviewQueryResult = {
   data: [] as Array<{
@@ -38,6 +43,21 @@ const jobsQueryResult = {
   error: null as { message: string } | null,
 };
 
+/** `get_public_profile_reviews`. Defaults to "migration not deployed yet". */
+const publicReviewsRpcResult = {
+  data: null as Array<{
+    id: string;
+    rating: number;
+    feedback: string | null;
+    created_at: string;
+    reviewer_name: string | null;
+    job_category: string | null;
+  }> | null,
+  error: { code: "PGRST202", message: "function not found" } as
+    | { code: string; message: string }
+    | null,
+};
+
 vi.mock("@/integrations/supabase/client", () => {
   // Per-table chain so reviews vs jobs land on distinct resolvers.
   const reviewsBuilder: Record<string, unknown> = {};
@@ -56,7 +76,13 @@ vi.mock("@/integrations/supabase/client", () => {
       from: vi.fn((table: string) =>
         table === "reviews" ? reviewsBuilder : jobsBuilder,
       ),
-      rpc: vi.fn((_name: string) => Promise.resolve(profilesRpcResult)),
+      rpc: vi.fn((name: string) =>
+        Promise.resolve(
+          name === "get_public_profile_reviews"
+            ? publicReviewsRpcResult
+            : profilesRpcResult,
+        ),
+      ),
     },
   };
 });
@@ -78,6 +104,8 @@ function resetMocks() {
   profilesRpcResult.error = null;
   jobsQueryResult.data = [];
   jobsQueryResult.error = null;
+  publicReviewsRpcResult.data = null;
+  publicReviewsRpcResult.error = { code: "PGRST202", message: "function not found" };
 }
 
 const makeReview = (
@@ -166,7 +194,6 @@ describe("PublicReviewWall", () => {
     profilesRpcResult.data = [
       { user_id: "user-1", full_name: "Maria Santos" },
     ];
-    jobsQueryResult.data = [{ id: "job-1", category: "cleaning" }];
 
     const { wrapper: Wrapper } = makeWrapper();
     render(
@@ -187,10 +214,12 @@ describe("PublicReviewWall", () => {
     // Relative time string — exact wording varies by date-fns version,
     // but "3 days ago" is stable for a 3-day-old timestamp.
     expect(screen.getByText(/3 days ago/)).toBeInTheDocument();
-    // Job category chip.
-    expect(screen.getByTestId("public-review-category")).toHaveTextContent(
-      /cleaning/i,
-    );
+    // NO category chip on the fallback path. It used to be asserted here
+    // against a mocked `from("jobs")` result the real database never
+    // produces: `jobs` is unreadable to a non-party under RLS, so that query
+    // returns zero rows for every visitor and the chip never appeared in
+    // production. The chip belongs to the RPC path, and is asserted there.
+    expect(screen.queryByTestId("public-review-category")).toBeNull();
   });
 
   it("renders multiple reviews in newest-first order, one item per row", async () => {
@@ -203,11 +232,6 @@ describe("PublicReviewWall", () => {
       { user_id: "u1", full_name: "Alice Adams" },
       { user_id: "u2", full_name: "Bob Brown" },
       { user_id: "u3", full_name: "Carol Cox" },
-    ];
-    jobsQueryResult.data = [
-      { id: "j1", category: "moving" },
-      { id: "j2", category: "yard_work" },
-      { id: "j3", category: "errands" },
     ];
 
     const { wrapper: Wrapper } = makeWrapper();
@@ -228,8 +252,92 @@ describe("PublicReviewWall", () => {
     expect(items[0]).toHaveTextContent("First review.");
     expect(items[1]).toHaveTextContent("Second review.");
     expect(items[2]).toHaveTextContent("Third review.");
-    // Underscored categories render as the human form.
-    expect(screen.getByText(/yard work/i)).toBeInTheDocument();
+  });
+
+  describe("the get_public_profile_reviews path (once the migration is live)", () => {
+    /**
+     * The hand-rolled query this component used to run could not express the
+     * cancelled-job exclusion (`jobs` is unreadable to a visitor) and did not
+     * filter `status = 'published'` at all, so an operator takedown kept
+     * showing. Both now live in SQL. These tests pin that the component
+     * PREFERS that RPC and renders what it returns.
+     */
+    it("renders straight from the RPC, category chip included, without touching the reviews table", async () => {
+      publicReviewsRpcResult.error = null;
+      publicReviewsRpcResult.data = [
+        {
+          id: "r1",
+          rating: 5,
+          feedback: "Careful and quick.",
+          created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+          reviewer_name: "Maria Santos",
+          job_category: "yard_work",
+        },
+      ];
+
+      const { wrapper: Wrapper } = makeWrapper();
+      render(
+        <Wrapper>
+          <PublicReviewWall helperId="helper-1" />
+        </Wrapper>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId("public-review-wall")).toBeInTheDocument();
+      });
+      expect(screen.getByText("Maria S.")).toBeInTheDocument();
+      expect(screen.getByText(/Careful and quick\./)).toBeInTheDocument();
+      // The category the RPC emits — and it emits the category, never the
+      // job title, which is free text that routinely carries an address.
+      expect(screen.getByTestId("public-review-category")).toHaveTextContent(
+        /yard work/i,
+      );
+    });
+
+    it("renders 'a neighbor' when the RPC masks a banned reviewer's name to null", async () => {
+      publicReviewsRpcResult.error = null;
+      publicReviewsRpcResult.data = [
+        {
+          id: "r1",
+          rating: 4,
+          feedback: "Fine.",
+          created_at: new Date().toISOString(),
+          reviewer_name: null,
+          job_category: null,
+        },
+      ];
+
+      const { wrapper: Wrapper } = makeWrapper();
+      render(
+        <Wrapper>
+          <PublicReviewWall helperId="helper-1" />
+        </Wrapper>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("a neighbor")).toBeInTheDocument();
+      });
+    });
+
+    it("hides the wall on a real RPC error instead of claiming zero reviews", async () => {
+      // Anything that is NOT PGRST202 is a genuine failure. Falling through to
+      // the fallback there would paper over it; claiming "No reviews yet" on a
+      // public profile makes a reviewed helper look unreviewed.
+      publicReviewsRpcResult.error = { code: "42501", message: "denied" };
+      publicReviewsRpcResult.data = null;
+
+      const { wrapper: Wrapper } = makeWrapper();
+      const { container } = render(
+        <Wrapper>
+          <PublicReviewWall helperId="helper-1" />
+        </Wrapper>,
+      );
+
+      await waitFor(() => {
+        expect(screen.queryByTestId("public-review-wall-loading")).toBeNull();
+      });
+      expect(container).toBeEmptyDOMElement();
+    });
   });
 
   it("truncates long feedback and expands inline when the 'more' button is tapped", async () => {

@@ -43,5 +43,3 @@ export function mapsSearchUrl(address: string): string {
   }
   return `https://maps.apple.com/?q=${q}`;
 }
-
-export default mapsSearchUrl;

@@ -20,6 +20,9 @@ export function useSavedHelpers({ user }: UseSavedHelpersArgs) {
   // the user gets a misleading "no saved helprs yet" instead of a
   // recoverable retry affordance.
   const [loadError, setLoadError] = useState(false);
+  // In-flight flag for the ErrorState's "Try again" button ONLY — deliberately
+  // NOT `loading`. See `loadSavedHelpers` below for why the two are separate.
+  const [retrying, setRetrying] = useState(false);
   // Captured at the moment of failure so the error copy can distinguish
   // "you're offline" (actionable by the user) from a server hiccup.
   const [wasOffline, setWasOffline] = useState(false);
@@ -38,21 +41,43 @@ export function useSavedHelpers({ user }: UseSavedHelpersArgs) {
   // Extracted so the ErrorState's retry button can call back in. The
   // effect below mirrors the same logic but adds a cancellation guard
   // to swallow stale results when the userId changes mid-flight.
+  //
+  // THE GUARD USED TO BE `if (!user || loading) return`, and both halves of
+  // that were wrong.
+  //
+  // `loading` is the FIRST branch of the tab's render chain
+  // (`loading ? <skeleton> : loadError ? <ErrorState> : …`), so it is false by
+  // construction whenever the "Try again" button is on screen. The half of the
+  // guard meant to stop a double-tap therefore could never fire — and in the
+  // one shape where it could (a caller invoking this while `loading` is stuck
+  // true, e.g. the effect's `if (!user) return` early-exit that never clears
+  // it) it would have swallowed the tap in silence: no disabled state, no
+  // relabel, no request. A retry control that ignores a press without saying
+  // so is worse than no control, because the user cannot tell a dead button
+  // from a slow network.
+  //
+  // So the retry's in-flight flag is its own state, and it deliberately does
+  // NOT set `loading`. Flipping `loading` would unmount the ErrorState
+  // mid-press and flash the skeleton, cutting the thread between the press and
+  // its result. `retrying` keeps the error card mounted with its button
+  // disabled and relabelled, and `loadError` is only cleared once a new result
+  // actually lands — so a second failure re-enables the button in place
+  // instead of flickering error → skeleton → error.
   const loadSavedHelpers = async () => {
-    if (!user || loading) return;
-    setLoading(true);
-    setLoadError(false);
+    if (!user || retrying) return;
+    setRetrying(true);
     const { data, error } = await supabase.rpc("get_my_saved_helpers");
     if (error) {
       report(error, { severity: "warning", tags: { source: "useSavedHelpers.retry" } });
       setWasOffline(typeof navigator !== "undefined" && navigator.onLine === false);
       setLoadError(true);
-      setLoading(false);
+      setRetrying(false);
       return;
     }
     const list = (data as SavedHelper[]) || [];
     setHelpers(list);
-    setLoading(false);
+    setLoadError(false);
+    setRetrying(false);
   };
 
   useEffect(() => {
@@ -135,12 +160,19 @@ export function useSavedHelpers({ user }: UseSavedHelpersArgs) {
     let undone = false;
     const timer = setTimeout(async () => {
       if (undone) return;
-      const { error } = await supabase
+      // `.select("id")` because a DELETE matching zero rows is
+      // `{ data: [], error: null }`. The card is already gone from the list
+      // (optimistic, with a 5s Undo), so without a row count an RLS refusal
+      // silently kept the helper saved and they reappeared on the next visit
+      // — after the toast said "Removed from saved".
+      const { data, error } = await supabase
         .from("favorite_helpers")
         .delete()
         .eq("customer_id", user.id)
-        .eq("helper_id", helperId);
-      if (error) {
+        .eq("helper_id", helperId)
+        .select("id");
+      if (error || !data || data.length === 0) {
+        if (error) report(error, { tags: { source: "useSavedHelpers.remove" } });
         toast.error("Couldn't remove — restored.");
         setHelpers((prev) =>
           prev.some((h) => h.helper_id === helperId) ? prev : [snapshot, ...prev],
@@ -223,13 +255,14 @@ export function useSavedHelpers({ user }: UseSavedHelpersArgs) {
   const activeSortLabel = sortOptions.find((o) => o.value === sortBy)?.label ?? sortOptions[0].label;
 
   const metaText = helpers.length > 0
-    ? `${helpers.length} ${helpers.length === 1 ? "Helpr" : "Helprs"} saved · send a direct offer with a 24-hour first-look window.`
+    ? `${helpers.length} ${helpers.length === 1 ? "Helpr" : "Helprs"} saved · send a direct offer with a first-look window you choose.`
     : "Save Helprs you trust so you can rebook in one tap.";
 
   return {
     helpers,
     loading,
     loadError,
+    retrying,
     wasOffline,
     search,
     setSearch,

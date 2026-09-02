@@ -151,6 +151,22 @@ export default function StrSettings() {
 
       if (result?.error) {
         toast.error(`Couldn't sync — ${result.error}`);
+      } else {
+        // `jobs_created` was computed by the edge function, returned, and
+        // never read — the one counter this feature has was dead. A sync that
+        // posted three cleaning jobs and a sync that found nothing new looked
+        // identical: the only on-screen change was the "last synced" line,
+        // and that line only moves if the function's own (unguarded)
+        // `last_synced_at` write happened to land.
+        // Bare `toast(...)` on purpose — `toast.success` is a no-op app-wide
+        // under toastPolicy, so a confirmation written that way renders
+        // nothing at all.
+        const created = result?.jobs_created ?? 0;
+        toast(
+          created > 0
+            ? `Synced — ${created} cleaning ${created === 1 ? "job" : "jobs"} posted`
+            : "Synced — no new checkouts to cover",
+        );
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Couldn't sync your calendar — try again?");

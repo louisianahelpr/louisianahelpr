@@ -3,26 +3,15 @@
 import * as React from 'npm:react@18.3.1'
 
 import {
-  Body,
-  Button,
-  Container,
-  Head,
   Heading,
-  Html,
-  Img,
-  Preview,
   Text,
 } from 'npm:@react-email/components@0.0.22'
 
 import {
-  main,
-  container,
-  logo,
   h1,
   text,
-  button,
-  footer,
 } from './styles.ts'
+import { BaseLayout, BrandButton, TransactionalFooter } from './components.tsx'
 
 interface RecoveryEmailProps {
   siteName: string
@@ -33,25 +22,16 @@ export const RecoveryEmail = ({
   siteName,
   confirmationUrl,
 }: RecoveryEmailProps) => (
-  <Html lang="en" dir="ltr">
-    <Head />
-    <Preview>Reset your Helpr password</Preview>
-    <Body style={main}>
-      <Container style={container}>
-        <Img src="https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/brand-asset" alt="Helpr" width="80" style={logo} />
-        <Heading style={h1}>Reset Your Password</Heading>
-        <Text style={text}>
-          We received a request to reset your password. Click the button below to choose a new one.
-        </Text>
-        <Button style={button} href={confirmationUrl}>
-          Reset Password
-        </Button>
-        <Text style={footer}>
-          If you didn't request a password reset, you can safely ignore this email. Your password won't be changed.
-        </Text>
-      </Container>
-    </Body>
-  </Html>
+  <BaseLayout preheader="Reset your Helpr password">
+      <Heading className="e-h1" style={h1}>Reset Your Password</Heading>
+      <Text className="e-text" style={text}>
+        We received a request to reset your password. Click the button below to choose a new one.
+      </Text>
+      <BrandButton href={confirmationUrl} label="Reset Password" />
+      <TransactionalFooter>
+        If you didn't request a password reset, you can safely ignore this email. Your password won't be changed.
+      </TransactionalFooter>
+  </BaseLayout>
 )
 
 export default RecoveryEmail

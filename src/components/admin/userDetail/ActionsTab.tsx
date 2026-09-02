@@ -141,7 +141,18 @@ export function ActionsTab({
             size="sm"
             className="h-9 justify-start"
             onClick={beginImpersonation}
-            title="Open the customer-facing app as this user — read-only, all mutations blocked"
+            /* The old title said "read-only, all mutations blocked". It is not.
+               useImpersonation's own header states the flag "is NOT a security
+               boundary", and `assertWritable()` — the opt-in guard that refuses
+               a write while impersonating — is called at exactly SIX call sites
+               in the whole app (send message ×3, apply to job, post job). Every
+               other mutation surface — cancel or complete a job, leave a review,
+               edit the profile, change payout details, delete the account — is
+               unguarded and executes for real, authenticated as the ADMIN, while
+               the tooltip promised a sandbox. Telling an operator the truth is
+               the fix that belongs in this file; hardening the guard belongs in
+               useImpersonation.ts. */
+            title="Open the customer-facing app as this user. NOT a sandbox — only messaging, applying and posting are blocked while impersonating; any other action you take here is real and is attributed to you."
           >
             <Eye className={cn("w-4 h-4 mr-1.5", toneTextClasses.warning)} /> Impersonate (RO)
           </Button>

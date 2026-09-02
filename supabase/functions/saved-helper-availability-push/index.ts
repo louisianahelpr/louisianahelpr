@@ -28,15 +28,23 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const serviceRoleKey = (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"))!;
+  const serviceRoleKey = Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const cronSecret = Deno.env.get("CRON_SECRET");
+  // With no service-role key, `createClient(url, undefined)` throws
+  // "supabaseKey is required" RIGHT HERE — before the try/catch below and
+  // before the auth check, which already tolerates a missing key. The caller
+  // got an opaque 500 with no CORS headers and no clue why. Answer instead.
+  if (!serviceRoleKey) {
+    console.error("[saved-helper-availability-push] SECRET_KEY / SUPABASE_SERVICE_ROLE_KEY is not configured");
+    return new Response("Service role key not configured", { status: 503, headers: corsHeaders });
+  }
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 
   const defects = defectTracker();
 
   try {
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader || ((!cronSecret || authHeader !== `Bearer ${cronSecret}`) && authHeader !== `Bearer ${serviceRoleKey}`)) {
+    if (!authHeader || ((!cronSecret || authHeader !== `Bearer ${cronSecret}`) && (!serviceRoleKey || authHeader !== `Bearer ${serviceRoleKey}`))) {
       return new Response("Unauthorized", { status: 401, headers: corsHeaders });
     }
 

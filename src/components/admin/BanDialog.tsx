@@ -12,8 +12,10 @@ import {
   DialogContent,
   DialogHero,
   DialogFooter,
+  DialogSecondaryAction,
+  DialogPrimaryAction,
+  DialogDestructiveAction,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -27,6 +29,7 @@ import { toast } from "sonner";
 import { createNotification } from "@/lib/notifications";
 import { logAdminAction } from "@/lib/adminAudit";
 import type { Database } from "@/integrations/supabase/types";
+import { requireBiometric } from "@/lib/biometricGate";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type BanType = "warning" | "temporary" | "permanent";
@@ -110,6 +113,15 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
       toast.error("Add a freeform note for 'Other' reason.");
       return;
     }
+    // Face ID / Touch ID gate: a permanent ban ends someone's ability to earn
+    // on this platform and there is no self-serve undo. An admin's merely
+    // unlocked phone shouldn't be enough. Runs AFTER validation so a rejected
+    // form never raises an OS prompt for nothing. No-op on web and on devices
+    // without enrolled biometrics (see requireBiometric).
+    const ok = await requireBiometric(
+      banType === "permanent" ? "Confirm this permanent ban" : "Confirm this account action",
+    );
+    if (!ok) return;
     setBanning(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -150,7 +162,10 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
             reason ||
             "You have received a warning for violating platform rules. Another violation may result in a ban.",
           type: "warning",
-          link: "/profile",
+          // The strike this notification is about is listed on Warnings &
+          // Strikes; bare "/profile" opens the landing tab, which never
+          // mentions it.
+          link: "/profile?tab=warnings",
         });
         await logAdminAction("ban_user", "user", profile.user_id, {
           type: "warning",
@@ -180,10 +195,23 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
         // the write the app actually reads to lock the account. A zero-row
         // update (RLS on profiles, stale user_id) returns error === null, and
         // the dialog used to close on a ban that never took effect.
+        // `auto_suspended_until` is NOT optional bookkeeping — it is the only
+        // column anything reads to END this suspension, and the only one that
+        // tells the user when it ends:
+        //   • sweep_expired_auto_bans (the cron that lifts a temp ban) selects
+        //     `ban_status='temp_banned' AND auto_suspended_until < NOW()`. It
+        //     never looks at user_bans.expires_at, and nothing else does either.
+        //   • StrikeBanner.tsx renders the "suspended until …" countdown from
+        //     this column and shows nothing without it.
+        // So writing only `user_bans.expires_at` (as this did) meant an admin's
+        // "Ban for 7 days" — with the dialog and the user's own notification
+        // both promising a duration — never auto-lifted and never displayed an
+        // end date. The account stayed locked until a human happened to click
+        // Lift Ban. Writing the same instant here makes the promise true.
         unwrapMutation(
           await supabase
             .from("profiles")
-            .update({ ban_status: "temp_banned" })
+            .update({ ban_status: "temp_banned", auto_suspended_until: expiresAt.toISOString() })
             .eq("user_id", profile.user_id)
             .select("user_id"),
           {
@@ -197,7 +225,10 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
           title: "🚫 Temporary Ban",
           message: `Your account has been temporarily banned for ${duration} days. Reason: ${reason}`,
           type: "warning",
-          link: "/profile",
+          // The strike this notification is about is listed on Warnings &
+          // Strikes; bare "/profile" opens the landing tab, which never
+          // mentions it.
+          link: "/profile?tab=warnings",
         });
         await logAdminAction("ban_user", "user", profile.user_id, {
           type: "temporary",
@@ -242,7 +273,10 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
           title: "⛔ Account Permanently Banned",
           message: `Your account has been permanently banned. Reason: ${reason}`,
           type: "warning",
-          link: "/profile",
+          // A permanent ban has its own screen, and it is the only one the
+          // banned user can still reach — matching the '/account-banned' the
+          // server-side ban path (auto_restrict_repeat_violators) writes.
+          link: "/account-banned",
         });
         await logAdminAction("ban_user", "user", profile.user_id, {
           type: "permanent",
@@ -366,24 +400,42 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
             </div>
           )}
         </div>
-        <DialogFooter className="gap-2 sm:gap-2 pt-2 border-t border-border/40 -mx-5 sm:-mx-6 px-5 sm:px-6">
-          <Button variant="ghost" onClick={handleClose} className="w-full sm:w-auto">
+        {/* Plain DialogFooter. This carried a full-bleed rule that no other
+              popup in the app has, and the bleed arithmetic was wrong: the
+              negative margins were written for a `p-5 sm:p-6` container, but
+              DialogContent is `p-4 sm:p-5`, so the divider overshot the card
+              edge by 4px at every breakpoint and drew across the rounded
+              corner radius. */}
+          <DialogFooter>
+          <DialogSecondaryAction onClick={handleClose}>
             Cancel
-          </Button>
-          <Button
-            variant={banType === "warning" ? "default" : "destructive"}
-            onClick={submit}
-            disabled={banning || (reasonCategory === "other" && !reasonNote.trim())}
-            className="w-full sm:w-auto"
-          >
-            {banning
-              ? "Processing…"
-              : banType === "warning"
-              ? "Issue Warning"
-              : banType === "temporary"
-              ? `Ban for ${duration} days`
-              : "Permanently Ban"}
-          </Button>
+          </DialogSecondaryAction>
+          {/* The tone is a CHOICE OF COMPONENT, not a `variant` expression.
+              A warning is reversible — it is the bottom rung of the ladder —
+              so it commits with the glossy primary; a temporary or permanent
+              ban takes something away, so it takes the one destructive red.
+              Written as two elements rather than `variant={cond ? … : …}`
+              because a runtime variant is exactly the seam a `className`
+              override slips back in through. */}
+          {banType === "warning" ? (
+            <DialogPrimaryAction
+              onClick={submit}
+              disabled={banning || (reasonCategory === "other" && !reasonNote.trim())}
+            >
+              {banning ? "Processing…" : "Issue Warning"}
+            </DialogPrimaryAction>
+          ) : (
+            <DialogDestructiveAction
+              onClick={submit}
+              disabled={banning || (reasonCategory === "other" && !reasonNote.trim())}
+            >
+              {banning
+                ? "Processing…"
+                : banType === "temporary"
+                ? `Ban for ${duration} days`
+                : "Permanently Ban"}
+            </DialogDestructiveAction>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -24,6 +24,13 @@ project_id = "fncmgoasalhdgfwzhsqa"
 
   [functions.auth-email-hook]
     verify_jwt = false
+  # Resend delivers bounce/complaint events over plain HTTPS with no Supabase
+  # JWT. Without this the gateway rejects every delivery before the handler
+  # runs, and suppressed_emails stays empty — which is the exact state that
+  # made both suppression guards no-ops. Authenticity is enforced INSIDE the
+  # function via resend.webhooks.verify() + RESEND_WEBHOOK_SECRET.
+  [functions.resend-webhook]
+    verify_jwt = false
   [functions.create-payment]
     verify_jwt = false
   [functions.process-email-queue]
@@ -41,6 +48,14 @@ project_id = "fncmgoasalhdgfwzhsqa"
   [functions.stripe-webhook]
     verify_jwt = false
   [functions.email-tracking]
+    verify_jwt = false
+  # The commercial-email opt-out. Two callers, neither of which can present a
+  # Supabase JWT: a mail client performing an RFC 8058 one-click POST from
+  # List-Unsubscribe, and a recipient who clicked the footer link and is by
+  # definition not signed in — an opt-out that demands a login is not an
+  # opt-out. Authenticity is the HMAC in the link's own token, verified inside
+  # the function; a bad signature writes nothing and answers 400.
+  [functions.email-unsubscribe]
     verify_jwt = false
   # admin-update-email deliberately has NO verify_jwt override: it is the only
   # endpoint that can change a user's login identity, and it is called from the
@@ -75,6 +90,8 @@ project_id = "fncmgoasalhdgfwzhsqa"
   [functions.expire-subscriptions]
     verify_jwt = false
   [functions.money-reconciliation]
+    verify_jwt = false
+  [functions.subscription-reconciliation]
     verify_jwt = false
   [functions.cleanup-abandoned-accounts]
     verify_jwt = false

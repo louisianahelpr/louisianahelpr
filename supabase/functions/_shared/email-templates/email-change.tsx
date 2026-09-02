@@ -3,28 +3,17 @@
 import * as React from 'npm:react@18.3.1'
 
 import {
-  Body,
-  Button,
-  Container,
-  Head,
   Heading,
-  Html,
-  Img,
-  Link,
-  Preview,
   Text,
+  Link,
 } from 'npm:@react-email/components@0.0.22'
 
 import {
-  main,
-  container,
-  logo,
   h1,
   text,
   linkStyle,
-  button,
-  footer,
 } from './styles.ts'
+import { BaseLayout, BrandButton, TransactionalFooter } from './components.tsx'
 
 interface EmailChangeEmailProps {
   siteName: string
@@ -39,33 +28,24 @@ export const EmailChangeEmail = ({
   newEmail,
   confirmationUrl,
 }: EmailChangeEmailProps) => (
-  <Html lang="en" dir="ltr">
-    <Head />
-    <Preview>Confirm Your Email Change on Helpr</Preview>
-    <Body style={main}>
-      <Container style={container}>
-        <Img src="https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/brand-asset" alt="Helpr" width="80" style={logo} />
-        <Heading style={h1}>Confirm Your Email Change</Heading>
-        <Text style={text}>
-          You requested to change your email from{' '}
-          <Link href={`mailto:${email}`} style={linkStyle}>
-            {email}
-          </Link>{' '}
-          to{' '}
-          <Link href={`mailto:${newEmail}`} style={linkStyle}>
-            {newEmail}
-          </Link>
-          .
-        </Text>
-        <Button style={button} href={confirmationUrl}>
-          Confirm Email Change
-        </Button>
-        <Text style={footer}>
-          If you didn't request this change, please secure your account immediately.
-        </Text>
-      </Container>
-    </Body>
-  </Html>
+  <BaseLayout preheader="Confirm Your Email Change on Helpr">
+      <Heading className="e-h1" style={h1}>Confirm Your Email Change</Heading>
+      <Text className="e-text" style={text}>
+        You requested to change your email from{' '}
+        <Link href={`mailto:${email}`} className="e-accent" style={linkStyle}>
+          {email}
+        </Link>{' '}
+        to{' '}
+        <Link href={`mailto:${newEmail}`} className="e-accent" style={linkStyle}>
+          {newEmail}
+        </Link>
+        .
+      </Text>
+      <BrandButton href={confirmationUrl} label="Confirm Email Change" />
+      <TransactionalFooter>
+        If you didn't request this change, please secure your account immediately.
+      </TransactionalFooter>
+  </BaseLayout>
 )
 
 export default EmailChangeEmail

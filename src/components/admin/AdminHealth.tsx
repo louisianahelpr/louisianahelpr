@@ -5,17 +5,53 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Activity, RefreshCw, Mail, ShieldAlert, Database, Bug, MapPin, Zap, Bell, Send, Loader2, TrendingUp, ChevronUp, ChevronDown } from "lucide-react";
 import { report } from "@/lib/errorLogger";
-import { toast } from "@/hooks/use-toast";
+import { functionErrorBody, functionErrorMessage } from "@/lib/supabaseResult";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { FILL_DAYS_OPTIONS } from "./adminHealth/types";
 import { formatDelay } from "./adminHealth/adminHealthHelpers";
 import { useHealthData } from "./adminHealth/useHealthData";
 import { toneBadgeClasses, toneTextClasses } from "@/components/admin/tones";
 import { useFillRate } from "./adminHealth/useFillRate";
-import { useConfigChecks, type CheckTone } from "./adminHealth/useConfigChecks";
+import { useConfigChecks, type CheckTone, type ConfigCheck } from "./adminHealth/useConfigChecks";
+import { useCronHealth } from "./adminHealth/useCronHealth";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
+
+/**
+ * One check row. Extracted so the Configuration and Scheduled-jobs cards render
+ * identically — two lists of the same kind of assertion should not be two
+ * hand-copied blocks that drift apart.
+ */
+const CheckRow = ({ check }: { check: ConfigCheck }) => {
+  const dot: Record<CheckTone, string> = {
+    ok: "bg-[hsl(var(--bark))]",
+    warn: "bg-[hsl(var(--burnt-sienna))]",
+    danger: "bg-destructive",
+    unknown: "bg-muted-foreground",
+  };
+  return (
+    <li className="flex items-start gap-3 rounded-ds-sm border border-border bg-card p-3">
+      <span className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", dot[check.tone])} aria-hidden="true" />
+      <div className="min-w-0">
+        <p className="text-ds-13 font-semibold text-foreground">
+          {check.label}
+          {/* The dot is decorative; the state has to reach a screen reader as
+              words, not as a colour. */}
+          <span className="sr-only">
+            {check.tone === "ok"
+              ? " — passing"
+              : check.tone === "unknown"
+                ? " — could not check"
+                : " — needs attention"}
+          </span>
+        </p>
+        <p className="text-ds-11 text-muted-foreground leading-tight">{check.detail}</p>
+      </div>
+    </li>
+  );
+};
 
 const AdminHealth = () => {
   const qc = useQueryClient();
@@ -23,43 +59,70 @@ const AdminHealth = () => {
 
   const { fillDays, setFillDays, fillSort, fillSortAsc, fillData, fillFetching, sortedParishes, handleFillSort } = useFillRate();
   const { data: configChecks } = useConfigChecks();
+  const { data: cronChecks } = useCronHealth();
 
   // Send a test push to the admin's own user_id. Verifies the entire
   // pipeline (push_tokens lookup → APNs/FCM auth → device delivery)
   // without needing to wait on a real notification trigger to fire.
+  //
+  // ── This used to be a guaranteed 401 ──────────────────────────────────
+  // It invoked `send-push-notification` directly. `supabase.functions.invoke`
+  // attaches the CALLER'S JWT, and that function requires the bearer to equal
+  // the service-role key exactly (`authHeader !== \`Bearer ${serviceRoleKey}\``
+  // → 401). An admin's JWT never equals a service-role key, so the button could
+  // not succeed on any system, healthy or broken — the worst possible state for
+  // a diagnostic, because it reported "push is broken" unconditionally and so
+  // reported nothing at all. Confirmed against prod on 2026-09-01: admin JWT →
+  // 401 {"error":"Unauthorized"}; service-role bearer → a real result body.
+  //
+  // The fix is NOT to hand the client a service-role key — that key can push
+  // arbitrary Helpr-branded copy to any user on the platform and must never
+  // leave the server. It goes through `admin-test-push`, an authenticated
+  // edge function that re-checks `has_role(admin)` server-side and then calls
+  // the push function with the service-role bearer. It always targets the
+  // caller's own id, read from the verified JWT — the body carries no user_id.
   const sendTestPush = async () => {
     setSendingTestPush(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast({ title: "Not signed in", variant: "destructive" });
+      const { data, error } = await supabase.functions.invoke("admin-test-push", {
+        body: {},
+      });
+      if (error) {
+        // Deploy-lag twin of the PGRST202 fallback used for brand-new RPCs:
+        // edge functions and the client bundle ship on separate deploys, so
+        // between them the gateway answers 404 for a function that does not
+        // exist yet. "Not deployed yet" is a completely different fact from
+        // "push is broken", and saying the second when the first is true is
+        // the exact failure this button already had once.
+        const ctx = (error as { context?: unknown }).context;
+        if (ctx instanceof Response && ctx.status === 404) {
+          toast("Test push not available yet", {
+            description: "The admin-test-push function hasn't finished deploying. Try again in a minute.",
+          });
+          return;
+        }
+        const body = await functionErrorBody(error);
+        const message = await functionErrorMessage(error, "Couldn't send the test push.");
+        report(error, { tags: { source: "AdminHealth.sendTestPush" }, context: { body } });
+        toast.error("Test push failed", { description: message });
         return;
       }
-      const { data, error } = await supabase.functions.invoke("send-push-notification", {
-        body: {
-          user_id: user.id,
-          title: "Helpr",
-          body: "Test push from Admin Health · " + new Date().toLocaleTimeString(),
-          thread_id: "admin_test",
-        },
-      });
-      if (error) throw error;
-      const result = data as {
+      const result = (data ?? {}) as {
         sent?: number; failed?: number; no_tokens?: boolean;
         skipped?: string; total?: number;
       };
       if (result.skipped) {
-        toast({ title: "Push backend not configured", description: result.skipped });
+        toast("Push backend not configured", { description: result.skipped });
       } else if (result.no_tokens) {
-        toast({ title: "No registered devices", description: "Open the app on your phone and grant push permission first." });
+        toast("No registered devices", { description: "Open the app on your phone and grant push permission first." });
       } else if ((result.sent ?? 0) > 0) {
-        toast({ title: `Pushed to ${result.sent}/${result.total} device${result.total === 1 ? "" : "s"}`, description: "Check your phone." });
+        toast.success(`Pushed to ${result.sent}/${result.total} device${result.total === 1 ? "" : "s"}`, { description: "Check your phone." });
       } else {
-        toast({ title: "All sends failed", description: `0 of ${result.total} succeeded`, variant: "destructive" });
+        toast.error("All sends failed", { description: `0 of ${result.total} succeeded` });
       }
     } catch (err) {
       report(err, { tags: { source: "AdminHealth.sendTestPush" } });
-      toast({ title: "Test push failed", description: err instanceof Error ? err.message : String(err), variant: "destructive" });
+      toast.error("Test push failed", { description: err instanceof Error ? err.message : String(err) });
     } finally {
       setSendingTestPush(false);
     }
@@ -117,33 +180,31 @@ const AdminHealth = () => {
           <p className="text-ds-11 text-muted-foreground">Running checks…</p>
         ) : (
           <ul className="space-y-2">
-            {configChecks.map((c) => {
-              const dot: Record<CheckTone, string> = {
-                ok: "bg-[hsl(var(--bark))]",
-                warn: "bg-[hsl(var(--burnt-sienna))]",
-                danger: "bg-destructive",
-                unknown: "bg-muted-foreground",
-              };
-              return (
-                <li key={c.id} className="flex items-start gap-3 rounded-ds-sm border border-border bg-card p-3">
-                  <span
-                    className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", dot[c.tone])}
-                    aria-hidden="true"
-                  />
-                  <div className="min-w-0">
-                    <p className="text-ds-13 font-semibold text-foreground">
-                      {c.label}
-                      {/* The dot is decorative; the state has to reach a screen
-                          reader as words, not as a colour. */}
-                      <span className="sr-only">
-                        {c.tone === "ok" ? " — passing" : c.tone === "unknown" ? " — could not check" : " — needs attention"}
-                      </span>
-                    </p>
-                    <p className="text-ds-11 text-muted-foreground leading-tight">{c.detail}</p>
-                  </div>
-                </li>
-              );
-            })}
+            {configChecks.map((c) => (
+              <CheckRow key={c.id} check={c} />
+            ))}
+          </ul>
+        )}
+      </AdminCard>
+
+      {/* Scheduled jobs. About forty pg_cron jobs run this product with no user
+          in the loop — escrow auto-release, cancellation-fee settlement,
+          subscription expiry, the email queue, every push and digest. Until
+          this card, none of it reached a screen: a dead cron surfaced only as a
+          Slack message and rows in error_logs nothing renders. The 2026-09-01
+          cron audit found money-reconciliation had not completed an observed
+          run in four days while every dashboard read green. */}
+      <AdminCard
+        title="Scheduled Jobs"
+        subtitle="Whether the automation that runs without anyone watching is actually running."
+      >
+        {!cronChecks || cronChecks.length === 0 ? (
+          <p className="text-ds-11 text-muted-foreground">Reading cron history…</p>
+        ) : (
+          <ul className="space-y-2">
+            {cronChecks.map((c) => (
+              <CheckRow key={c.id} check={c} />
+            ))}
           </ul>
         )}
       </AdminCard>
@@ -175,9 +236,16 @@ const AdminHealth = () => {
             <Mail className="w-4 h-4" /> Emails (24h)
           </span>
           <div className="flex flex-wrap gap-x-3 gap-y-1 text-ds-13">
-            <span className={cn("font-semibold", toneTextClasses.success)}>{emailStats.sent} sent</span>
-            <span className={cn("font-semibold", toneTextClasses.danger)}>{emailStats.failed} failed</span>
-            <span className={cn("font-semibold", toneTextClasses.notice)}>{emailStats.suppressed} suppressed</span>
+            {/* An alarm colour has to mean an alarm. These three were painted
+                unconditionally, so a perfectly healthy hour rendered "0 failed"
+                in red and "0 suppressed" in yellow — two warnings on a
+                dashboard whose entire job is to tell an operator at a glance
+                whether anything is wrong. Zero of a bad thing is good news and
+                now reads as ordinary muted text; the colour only appears when
+                there is genuinely something to look at. */}
+            <span className={cn("font-semibold", emailStats.sent > 0 ? toneTextClasses.success : "text-muted-foreground")}>{emailStats.sent} sent</span>
+            <span className={cn("font-semibold", emailStats.failed > 0 ? toneTextClasses.danger : "text-muted-foreground")}>{emailStats.failed} failed</span>
+            <span className={cn("font-semibold", emailStats.suppressed > 0 ? toneTextClasses.notice : "text-muted-foreground")}>{emailStats.suppressed} suppressed</span>
           </div>
         </div>
 
@@ -205,7 +273,7 @@ const AdminHealth = () => {
                   severity: "info",
                   tags: { source: "admin_smoke_test", kind: "manual" },
                 });
-                toast({ title: "Test event sent", description: "Check Sentry in ~30 seconds." });
+                toast.success("Test event sent", { description: "Check Sentry in ~30 seconds." });
               }}
             >
               Send Test Event
@@ -217,7 +285,7 @@ const AdminHealth = () => {
                 setTimeout(() => {
                   throw new Error(`Sentry uncaught test — ${new Date().toISOString()}`);
                 }, 0);
-                toast({ title: "Throwing uncaught error", description: "Check Sentry in ~30 seconds." });
+                toast("Throwing uncaught error", { description: "Check Sentry in ~30 seconds." });
               }}
             >
               Throw Uncaught
@@ -318,7 +386,7 @@ const AdminHealth = () => {
                   onClick={() => setFillDays(d)}
                   aria-pressed={fillDays === d}
                   className={cn(
-                    "px-2.5 py-1 text-ds-11 font-medium rounded-[4px] transition-colors",
+                    "px-2.5 py-1 text-ds-11 font-medium rounded-sm transition-colors",
                     fillDays === d
                       ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground hover:text-foreground",

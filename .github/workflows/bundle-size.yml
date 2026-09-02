@@ -8,22 +8,49 @@ permissions:
 # workflow fails PRs that push individual chunks over a defined budget.
 #
 # Runs:
+# - On every push to main that could move the bundle
 # - On every PR to main (catches regressions before merge)
 # - Manually via workflow_dispatch
+#
+# WHY THIS FILE WAS RESURRECTED RATHER THAN DELETED (2026-08-31)
+# --------------------------------------------------------------
+# It had ONE run in its entire history (2026-04-26) and that run was skipped.
+# Its `pull_request:` trigger had been commented out while the header kept
+# claiming "Runs: On every PR to main" — a workflow that exists, is listed,
+# reads as a gate, and has never gated anything.
+#
+# Kept, because nothing else in the repo enforces a JS budget: lighthouse.yml
+# scores perf but does not cap bytes, and its own perf assertion has only just
+# been made real. Deleting this would leave initial-load JS ungoverned
+# entirely on a mobile-first app whose measured mobile perf is 0.63-0.79.
+#
+# NOTE THE `push:` TRIGGER — it is not redundant.
+# CLAUDE.md says this repo commits STRAIGHT TO MAIN with no PR ceremony, so a
+# pull_request-only trigger is dormant by construction. That is exactly how
+# migration-lint.yml sat unrun from 2026-05 to 2026-08-20 while migrations
+# shipped daily, and restoring only the PR trigger here would have rebuilt the
+# same trap. The paths filter keeps the spend bounded to commits that can
+# actually move the bundle; docs-only and migration-only commits cost nothing.
 
 on:
-  # DISABLED automatic triggers — was burning Actions minutes on every PR.
-  # Run manually from the Actions tab before major releases.
-  # To re-enable, uncomment the pull_request block.
-  #
-  # pull_request:
-  #   branches: [main]
-  #   paths:
-  #     - "package.json"
-  #     - "package-lock.json"
-  #     - "src/**"
-  #     - "vite.config.ts"
-  #     - ".github/workflows/bundle-size.yml"
+  push:
+    branches: [main]
+    paths:
+      - "package.json"
+      - "package-lock.json"
+      - "src/**"
+      - "index.html"
+      - "vite.config.ts"
+      - ".github/workflows/bundle-size.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "package.json"
+      - "package-lock.json"
+      - "src/**"
+      - "index.html"
+      - "vite.config.ts"
+      - ".github/workflows/bundle-size.yml"
   workflow_dispatch:
 
 concurrency:
@@ -71,13 +98,47 @@ jobs:
 
           # Extract chunks referenced by index.html (entry + modulepreload).
           # These are the only files the browser fetches before user interaction.
-          INITIAL_CHUNKS=$(grep -oE 'assets/[^"]+\.js' dist/index.html | sort -u)
+          INITIAL_CHUNKS=$(grep -oE 'assets/[^"]+\.js' dist/index.html | sort -u || true)
+
+          # EMPTY-GREP GUARD. Added 2026-08-31.
+          #
+          # WHAT THIS CATCHES: this budget check measuring zero files and
+          # calling it "within budget".
+          #
+          # If the grep matches nothing — Vite changes its asset directory or
+          # emit naming, a plugin rewrites the script tags (this repo already
+          # has THREE transformIndexHtml plugins in vite.config.ts rewriting
+          # the head), the build silently produces no index.html, or the entry
+          # moves to an import map — then the loop below never executes,
+          # INITIAL_TOTAL stays 0, 0 is not greater than MAX_INITIAL_KB, and
+          # the step prints "✅ Initial-load bundle within budget" having
+          # weighed nothing at all. A budget that passes when it cannot find
+          # the thing it is budgeting is not a budget.
+          #
+          # `set -e` alone does not save us: grep's exit 1 on no-match is
+          # swallowed by the `|| true` this line needs anyway, and the
+          # arithmetic below is perfectly happy with zero.
+          if [ -z "$INITIAL_CHUNKS" ]; then
+            echo "::error::Found no initial-load JS chunks in dist/index.html."
+            echo "::error::This check measured NOTHING — it is failing rather than reporting 0 KB as 'within budget'."
+            echo "::error::Either the build produced no index.html, or the asset reference format changed and the grep pattern ('assets/…\\.js') needs updating. Head of dist/index.html:"
+            head -40 dist/index.html 2>&1 | sed 's/^/  /'
+            exit 1
+          fi
 
           echo "::group::Initial-load chunks (shipped on first paint)"
           INITIAL_TOTAL=0
           for rel in $INITIAL_CHUNKS; do
             f="dist/$rel"
-            [ -f "$f" ] || continue
+            # Same class as the empty-grep guard above: `[ -f "$f" ] || continue`
+            # used to skip a referenced-but-absent chunk in silence, so a build
+            # whose index.html points at files that do not exist would weigh 0 KB
+            # and pass. index.html referencing a missing chunk is a broken build.
+            if [ ! -f "$f" ]; then
+              echo "::error::dist/index.html references $rel but dist/$rel does not exist — broken build."
+              FAIL=1
+              continue
+            fi
             SIZE_KB=$(( $(stat -c%s "$f") / 1024 ))
             INITIAL_TOTAL=$(( INITIAL_TOTAL + SIZE_KB ))
             printf "  %6s KB  %s\n" "$SIZE_KB" "$(basename "$f")"

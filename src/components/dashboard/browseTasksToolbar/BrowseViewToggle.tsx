@@ -35,9 +35,11 @@ const OPTIONS = [
  * selected — a filter chip toggles a constraint on and off, this one answers
  * "how do you want to look at these jobs?" and always has an answer.
  *
- * `aria-pressed`, not `role="radio"`: the HIG 44px floor in index.css
- * deliberately skips role=radio/checkbox/switch, so a radio here would render
- * a 36px tap target. Same idiom as SortContent's chips.
+ * `aria-pressed`, not `role="radio"`: same idiom as SortContent's chips, so
+ * every control in this panel answers to one pattern. (The chip's 44px target
+ * is now its own `h-11`, not the global `button` floor in index.css — that
+ * floor deliberately skips role=radio/checkbox/switch, which is why a radio
+ * here used to come out undersized.)
  *
  * Omitted entirely on the desktop web (`hideViewToggle`), where the feed and
  * the map are both on screen at once and there is nothing to switch between.
@@ -68,5 +70,3 @@ export function BrowseViewToggle({ view, setView, onSelect }: BrowseViewTogglePr
     </div>
   );
 }
-
-export default BrowseViewToggle;

@@ -139,5 +139,3 @@ export function HelperStreakBadge({ helperId, className }: HelperStreakBadgeProp
     </Popover>
   );
 }
-
-export default HelperStreakBadge;

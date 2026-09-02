@@ -96,5 +96,3 @@ export function TrustRow({
     </div>
   );
 }
-
-export default TrustRow;

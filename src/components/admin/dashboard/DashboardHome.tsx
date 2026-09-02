@@ -3,6 +3,7 @@ import {
   CheckCircle2, Crown, TrendingUp, X,
 } from "lucide-react";
 import type { Stats, DateRange } from "./types";
+import { cn } from "@/lib/utils";
 import { KpiCard, computeTrend } from "./KpiCard";
 import { PriorityAlert } from "./PriorityAlert";
 import { TaxReserveCard } from "./TaxReserveCard";
@@ -31,7 +32,8 @@ export const DashboardHome = ({
   rangeLabel, prevLabel, dataError,
 }: DashboardHomeProps) => {
   const v = (val: number | string) => statsLoading ? "—" : val;
-  const hasAlerts = stats.pendingApprovals > 0 || stats.disputedJobs > 0 || stats.openReports > 0 || stats.supportTickets > 0;
+  const alertCount = [stats.pendingApprovals, stats.disputedJobs, stats.openReports, stats.supportTickets].filter((n) => n > 0).length;
+  const hasAlerts = alertCount > 0;
   // A SUM OF NULLS IS NOT ZERO PROFIT.
   // `totalFees` adds up `jobs.platform_fee_amount + customer_fee_amount` across
   // captured jobs, and both columns are nullable — `Number(null || 0)` folds an
@@ -119,8 +121,13 @@ export const DashboardHome = ({
         </div>
       )}
 
-      {/* KPI Summary cards */}
-      <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+      {/* KPI Summary cards.
+          `items-start`: the grid used to stretch every tile to its row's
+          tallest sibling, so a tile with no trend line ("Pending Disputes")
+          was blown up to the height of the one beside it and rendered as a
+          bordered box with a number adrift in empty space. Cards now take the
+          height of their own content. */}
+      <div className="grid grid-cols-2 items-start gap-2.5 sm:gap-3">
 
         <KpiCard
           label={`New Users (${rangeLabel})`}
@@ -175,7 +182,12 @@ export const DashboardHome = ({
         <AdminCard
           title={<span className="flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-accent" /> Priority Alerts</span>}
         >
-          <div className="grid sm:grid-cols-2 gap-2.5 sm:gap-3">
+          {/* Column count follows the ALERT count. A fixed 2-up grid meant one
+              open alert sat in the left half of a 1128px card with the right
+              half blank — a dead band on the one card an admin is meant to act
+              on first. `[grid-template-columns:repeat(auto-fit,minmax(...))]`
+              would over-stretch a lone row, so the count drives it directly. */}
+          <div className={cn("grid gap-2.5 sm:gap-3", alertCount > 1 && "sm:grid-cols-2")}>
             {stats.pendingApprovals > 0 && (
               <PriorityAlert label="Pending Helpr approvals" count={stats.pendingApprovals} color="accent" onClick={() => onNavigate("people")} />
             )}
@@ -196,7 +208,7 @@ export const DashboardHome = ({
       {/* Likewise no subtitle — the tiles inside carry "(all-time)" in their own
           labels, so a header line saying "All-time totals" said it twice. */}
       <AdminCard title="Financial Health">
-        <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+        <div className="grid grid-cols-2 items-start gap-2.5 sm:gap-3">
           {/* Same figure, same name as Analytics — it was "Captured Revenue
               (all-time)" here and "Collected Revenue" there. And it is gross
               volume, not revenue: budget + poster fee, most of it owed out. */}

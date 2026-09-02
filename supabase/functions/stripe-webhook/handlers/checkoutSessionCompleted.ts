@@ -4,6 +4,12 @@ import { PRODUCT_TO_TIER, ONE_TIME_PRODUCTS } from "../constants.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { sendPifGiftEmail } from "../../_shared/pifGiftEmail.ts";
 import { settleOnboardingFee } from "./settleOnboardingFee.ts";
+import { subscriptionCurrentPeriodEndISO } from "../../_shared/stripeSubscriptionPeriod.ts";
+import {
+  type SubscriptionLinkage,
+  oneTimePassLinkage,
+  subscriptionLinkage,
+} from "../../_shared/subscriptionLinkage.ts";
 
 export async function handleCheckoutSessionCompleted(
   event: Stripe.Event,
@@ -16,13 +22,59 @@ export async function handleCheckoutSessionCompleted(
   let tier: string | null = null;
   let isOneTimePass = false;
   let subscriptionEnd: string | null = null;
+  // The Stripe objects that paid for this tier. Written alongside the grant so
+  // the membership can be reconciled against Stripe afterwards — before this,
+  // the only join back was the customer's email, which is not unique in
+  // `profiles` and which one person can hold several Stripe customers on.
+  let linkage: SubscriptionLinkage | null = null;
 
   if (session.mode === "subscription") {
     const subscriptionId = session.subscription as string;
     const subscription = await stripe.subscriptions.retrieve(subscriptionId);
     const productId = subscription.items.data[0]?.price.product as string;
+    // Product map first; `create-pro-checkout` also stamps the tier onto the
+    // session metadata, and that fallback is what stops an unmapped product id
+    // from silently granting NOTHING (the `if (tier)` block below is skipped
+    // entirely when tier is null — a paid checkout with no entitlement and no
+    // alert). Test-mode Basic and Pro products were exactly in that state.
     tier = PRODUCT_TO_TIER[productId] || null;
-    subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
+    if (!tier) {
+      const metaTier = (session.metadata as Record<string, string> | null)?.tier;
+      if (metaTier && ["basic", "pro", "elite"].includes(metaTier)) tier = metaTier;
+      // Loud either way: an unmapped product means PRODUCT_TO_TIER is stale and
+      // the next product added will hit the same hole without the metadata net.
+      await postSlackOpsAlert({
+        kind: "custom",
+        severity: "critical",
+        title: "Subscription checkout — product id not in PRODUCT_TO_TIER",
+        message: tier
+          ? "Recovered the tier from session metadata, but _shared/productTiers.ts is missing this product id — add it."
+          : "No tier could be resolved. The customer was charged and received NO entitlement. Reconcile manually.",
+        fields: { product_id: productId ?? "(missing)", session_id: session.id, recovered_tier: tier ?? "(none)" },
+      });
+    }
+    // NOT `subscription.current_period_end` — that property does not exist on
+    // the pinned 2025-08-27.basil API version, and reading it threw
+    // `RangeError: Invalid time value`, 500-ing this handler on every recurring
+    // membership purchase. See _shared/stripeSubscriptionPeriod.ts.
+    subscriptionEnd = subscriptionCurrentPeriodEndISO(subscription);
+    // Cycle comes from the PRICE Stripe actually created, falling back to the
+    // cycle the checkout was asked for. `create-pro-checkout` stamps
+    // metadata.billing_cycle, but that is the request; the price is the fact.
+    linkage = subscriptionLinkage(subscription, (session.metadata as Record<string, string> | null)?.billing_cycle);
+    if (!subscriptionEnd) {
+      // Grant anyway — the customer paid, and denying access is the worse
+      // failure — but page ops, because a tier with no expiry is one the
+      // expire-subscriptions sweep can never clear (it filters on
+      // `subscription_expires_at IS NOT NULL`).
+      await postSlackOpsAlert({
+        kind: "custom",
+        severity: "critical",
+        title: "Subscription — no period end on the Stripe subscription",
+        message: "Could not read a current period end from any subscription item, so the tier is being granted with NO expiry. It will never lapse on its own. Reconcile manually.",
+        fields: { subscription_id: subscriptionId, session_id: session.id, tier: tier ?? "(none)" },
+      });
+    }
   } else if (session.mode === "payment") {
     // One-time payment — check session metadata first, then line items
     tier = (session.metadata as any)?.tier || null;
@@ -62,6 +114,12 @@ export async function handleCheckoutSessionCompleted(
     if (isOneTimePass) {
       // Set 30-day expiry for one-time passes
       subscriptionEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      // Recording the cycle is what keeps a pass out of the reconciler's
+      // "tier with no live Stripe subscription" bucket — a pass legitimately
+      // has no subscription object, and without this marker every pass buyer
+      // would look like drift. It is also what stops the Membership card
+      // telling a 30-day pass holder that their membership renews.
+      linkage = oneTimePassLinkage(session.customer);
     }
   }
 
@@ -72,6 +130,10 @@ export async function handleCheckoutSessionCompleted(
     if (subscriptionEnd) {
       updateData.subscription_expires_at = subscriptionEnd;
     }
+    // Spread whole, not field-by-field: every key is a projection of the Stripe
+    // object, so a redelivery of this event recomputes identical values and the
+    // UPDATE is a byte-identical no-op. Stripe retries; this has to tolerate it.
+    if (linkage) Object.assign(updateData, linkage);
 
     // Grant by user_id whenever we have it. `profiles.email` has NO unique
     // constraint, so `.eq("email", …)` could update several rows (case variant,
@@ -680,6 +742,41 @@ export async function handleCheckoutSessionCompleted(
       throw new Error(`Escrow update failed for job ${jobId} (PI ${piId}): ${jobError.message}`);
     } else {
       logStep("Stored payment_intent and escrow status on job", { jobId, pi: piId, repay: isRepay });
+
+      // Fan out the helper match — HERE, and only here, because this is the
+      // first moment the job is actually funded.
+      //
+      // It used to run in the browser (PostJob's useJobSubmit) the instant
+      // create-payment handed back a Checkout URL — i.e. BEFORE the poster had
+      // even opened Stripe. Since migration 20260831010000 all three browse
+      // surfaces require payment_status IN ('escrow','payout_pending',
+      // 'released'), so those pushes advertised a job every one of those
+      // surfaces refused to return: up to 20 helpers told about work they could
+      // not see, and nothing at all if the poster then abandoned checkout.
+      // instant-job-match now enforces that same funded predicate itself, so
+      // the pre-funding call could only ever no-op — the trigger had to move to
+      // the point where the predicate becomes true.
+      //
+      // Skipped for `repay`: that path settles an EXISTING job that already has
+      // its helper, so there is nobody to match.
+      //
+      // Best-effort by design. A match fan-out must never fail a captured
+      // payment — the job is funded and discoverable through browse regardless,
+      // so a failure here costs reach, not correctness. Logged, never thrown.
+      if (!isRepay) {
+        try {
+          const { error: matchError } = await supabase.functions.invoke("instant-job-match", {
+            body: { jobId },
+          });
+          if (matchError) {
+            logStep("WARN: instant-job-match failed after funding", { jobId, error: matchError.message });
+          } else {
+            logStep("Triggered instant-job-match after funding", { jobId });
+          }
+        } catch (matchErr) {
+          logStep("WARN: instant-job-match threw after funding", { jobId, error: String(matchErr) });
+        }
+      }
     }
 
     // Collect the one-time setup fee this session carried, exactly once.

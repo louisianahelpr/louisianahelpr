@@ -1,5 +1,6 @@
 import { toast } from "sonner";
 import { isNativePlatform } from "@/lib/nativeInit";
+import { report } from "@/lib/errorLogger";
 import type { Database } from "@/integrations/supabase/types";
 
 type Job = Database["public"]["Tables"]["jobs"]["Row"];
@@ -24,6 +25,24 @@ function toICalLocal(date: Date): string {
   return (
     `${date.getFullYear()}${pad2(date.getMonth() + 1)}${pad2(date.getDate())}` +
     `T${pad2(date.getHours())}${pad2(date.getMinutes())}${pad2(date.getSeconds())}`
+  );
+}
+
+/**
+ * Format a Date as a UTC iCal timestamp, `YYYYMMDDTHHMMSSZ`.
+ *
+ * Only DTSTAMP uses this. DTSTAMP is defined by RFC 5545 §3.8.7.2 as a UTC
+ * value — the trailing "Z" is not decoration, it is the assertion that the
+ * digits before it are UTC. This used to be `toICalLocal(...) + "Z"`, i.e.
+ * LOCAL wall-clock digits with a UTC marker glued on, which is a lie of up to
+ * a day either side of midnight. It never moved the event (DTSTART/DTEND are
+ * deliberately floating and are built separately) but strict parsers are
+ * entitled to reject the object over it.
+ */
+function toICalUtc(date: Date): string {
+  return (
+    `${date.getUTCFullYear()}${pad2(date.getUTCMonth() + 1)}${pad2(date.getUTCDate())}` +
+    `T${pad2(date.getUTCHours())}${pad2(date.getUTCMinutes())}${pad2(date.getUTCSeconds())}Z`
   );
 }
 
@@ -100,7 +119,7 @@ export function buildJobICS(job: CalendarEventInput): string {
     "CALSCALE:GREGORIAN",
     "BEGIN:VEVENT",
     `UID:job-${job.id}@louisianahelpr.com`,
-    `DTSTAMP:${toICalLocal(new Date())}Z`,
+    `DTSTAMP:${toICalUtc(new Date())}`,
     ...dtLines,
     `SUMMARY:${escapeICalText(job.title)}`,
     `LOCATION:${escapeICalText(job.location)}`,
@@ -118,42 +137,114 @@ function safeFileName(title: string): string {
 }
 
 /**
+ * Did the user simply dismiss the share sheet? That is a normal "no thanks",
+ * not a failure, and must not toast.
+ *
+ * @capacitor/share's iOS implementation rejects with the literal string
+ * "Share canceled" from `completionWithItemsHandler` when the sheet is
+ * dismissed without picking a target (see SharePlugin.swift); the Web Share
+ * API rejects with an `AbortError`. Everything else is a real fault.
+ */
+function isUserCancellation(err: unknown): boolean {
+  return (
+    err instanceof Error &&
+    (err.name === "AbortError" || /cancel/i.test(err.message) || /dismiss/i.test(err.message))
+  );
+}
+
+/**
  * Export a job as an .ics calendar event and hand it to the device.
  *
- * There is no Capacitor calendar plugin in this app (checked
- * package.json — @capacitor/calendar-style plugins aren't installed, and
- * adding one is out of scope: it needs an Xcode/Android project
- * regeneration this environment can't verify). This is the web-compatible
- * fallback instead:
+ * WHY THIS IS A REAL FILE ON NATIVE, AND NOT A `data:` URL
+ * -------------------------------------------------------
+ * This used to hand `Share.share({ url: "data:text/calendar;…" })` to the OS
+ * on native. On iOS that is inert for the one thing it exists to do. The
+ * plugin does `URL(string: url)` and appends the result to
+ * `UIActivityViewController`'s items (SharePlugin.swift), so what iOS receives
+ * is *a URL* — and iOS decides which share targets to offer from an item's
+ * UTI. A `data:` URL has no UTI; the Calendar app registers as a handler for
+ * the `com.apple.ical.ics` **file** type. So the sheet opened, offered Copy /
+ * Messages / Mail on an opaque percent-encoded blob, and never offered "Add to
+ * Calendar" — the tap appeared to work and produced nothing. It also passed a
+ * `text:` item alongside, which makes the share a mixed text+URL activity and
+ * suppresses document-handler extensions outright.
  *
- *  1. Native (Capacitor @capacitor/share, already a dependency, same
- *     plugin `nativeShare.ts` uses elsewhere) — hand the OS share sheet a
- *     `data:text/calendar` URI. iOS/Android both recognize the
- *     text/calendar MIME + .ics-shaped payload and offer "Add to Calendar"
- *     as a share target, with no Filesystem plugin needed to stage a real
- *     file on disk.
- *  2. Web — a plain `<a download>` anchor on an object URL, which every
- *     desktop/mobile browser turns into a normal file download that the
- *     OS calendar app can then open.
+ * The fix is the idiom iOS actually acts on: stage the .ics as a real file
+ * with @capacitor/filesystem, then share the `file://` URI (and *only* that
+ * item). iOS resolves the `.ics` extension to `com.apple.ical.ics`, and the
+ * sheet offers the Calendar app's "Add to Calendar" / "Add All" action.
+ *
+ * @capacitor/filesystem was added for this (and registered in the iOS SPM
+ * package via `npx cap update ios`). There is still no Capacitor *calendar*
+ * plugin in the project — none is installed and none is needed: EventKit
+ * plugins require a `NSCalendarsUsageDescription` prompt and write silently
+ * into a calendar the user didn't choose, whereas the share sheet lets them
+ * pick the calendar and see the event before it lands.
+ *
+ * Branches:
+ *  1. Native (`isNativePlatform`) — Filesystem.writeFile → Share.share({files}).
+ *  2. Web — an `<a download>` on an object URL. Kept exactly as it was: it
+ *     works, and a share sheet would be strictly worse on desktop.
+ *
+ * Every failure is BOTH toasted and `report`ed. The original defect was not
+ * only that the native path did nothing — it was that it did nothing
+ * *silently*, with no toast and no telemetry to notice it by.
  */
 export async function exportJobToCalendar(job: CalendarEventInput): Promise<void> {
   const ics = buildJobICS(job);
   const fileName = safeFileName(job.title);
 
-  try {
-    if (isNativePlatform) {
-      const { Share } = await import("@capacitor/share");
-      const dataUrl = `data:text/calendar;charset=utf-8,${encodeURIComponent(ics)}`;
-      await Share.share({
-        title: job.title,
-        text: `Calendar event for ${job.title}`,
-        url: dataUrl,
-        dialogTitle: "Add to Calendar",
+  if (isNativePlatform) {
+    let fileUri: string;
+    // Staging the file and presenting the sheet fail for different reasons and
+    // deserve different copy, so they get their own try/catch. A write failure
+    // is never a user cancellation; collapsing them let a disk error be
+    // swallowed by the `/cancel/i` test below.
+    try {
+      const { Filesystem, Directory, Encoding } = await import("@capacitor/filesystem");
+      const written = await Filesystem.writeFile({
+        path: fileName,
+        data: ics,
+        // Caches, not Documents: this file exists only long enough for the
+        // share sheet to read it, and Documents is user-visible + iCloud-backed
+        // on iOS, so a stray .ics per tap would accumulate in the user's Files.
+        directory: Directory.Cache,
+        encoding: Encoding.UTF8,
+        recursive: true,
+      });
+      fileUri = written.uri;
+    } catch (err) {
+      report(err, { severity: "error", tags: { source: "calendarExport.writeFile" } });
+      toast.error("Couldn't build the calendar event", {
+        description: "Your device wouldn't let the app save the file. Try again.",
       });
       return;
     }
 
-    // Web fallback: a real file download the OS calendar app can open.
+    try {
+      const { Share } = await import("@capacitor/share");
+      await Share.share({
+        // FILES ONLY. No `text`, no `url`: any extra activity item turns this
+        // into a mixed share and iOS stops offering the Calendar action — the
+        // exact thing that made this button do nothing. `title` is not an
+        // activity item (the plugin sets it as the sheet's `subject`), so it
+        // is safe to keep.
+        title: job.title,
+        files: [fileUri],
+        dialogTitle: "Add to Calendar",
+      });
+    } catch (err) {
+      if (isUserCancellation(err)) return;
+      report(err, { severity: "error", tags: { source: "calendarExport.share" } });
+      toast.error("Couldn't open your calendar", {
+        description: "The share sheet didn't open. Try again.",
+      });
+    }
+    return;
+  }
+
+  try {
+    // Web: a real file download the OS calendar app can open.
     const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
     const objectUrl = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
@@ -166,14 +257,50 @@ export async function exportJobToCalendar(job: CalendarEventInput): Promise<void
     // referenced by the click that just fired, so it's safe to free once
     // the browser has had a tick to start the download.
     setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
-    toast.success("Calendar event downloaded", { description: `${fileName} — open it to add to your calendar.` });
+    // The bare callable, NOT `toast.success`. `src/lib/toastPolicy.ts` no-ops
+    // every action-less `toast.success` app-wide, and this branch is precisely
+    // the case that cannot afford it: `<a download>` leaves the page pixel-
+    // identical, the "Add to calendar" button has no busy/done state, and the
+    // browser's download UI is silent on desktop Safari and absent on iOS
+    // Safari. Written as `toast.success` it rendered NOTHING, so the only
+    // outcome the user could ever perceive from this button was a failure.
+    toast(`${fileName} downloaded`, { description: "Open it to add the job to your calendar." });
   } catch (err) {
-    const isCancel =
-      err instanceof Error &&
-      (err.name === "AbortError" || /cancel/i.test(err.message) || /dismiss/i.test(err.message));
-    if (isCancel) return;
+    if (isUserCancellation(err)) return;
+    report(err, { severity: "error", tags: { source: "calendarExport.download" } });
     toast.error("Couldn't export to calendar — try again.");
   }
+}
+
+/**
+ * Longest job description carried into the event body.
+ *
+ * A calendar event's notes field is a glance surface, and a job description
+ * can run to several paragraphs — every one of which gets 75-octet line-folded
+ * into the .ics. Truncating keeps the file small and the event readable; the
+ * full description is one tap away in the app, which the trailing line says.
+ */
+const DESCRIPTION_MAX_CHARS = 600;
+
+/** Compose the event body from the job row. */
+function jobEventDescription(job: Job): string {
+  const parts: string[] = [];
+  const body = (job.description ?? "").trim();
+  if (body) {
+    parts.push(body.length > DESCRIPTION_MAX_CHARS ? `${body.slice(0, DESCRIPTION_MAX_CHARS).trimEnd()}…` : body);
+  }
+  // The full street address, spelled out. LOCATION is the field a calendar app
+  // hands to Maps, but several (iOS's own event list included) only show it on
+  // the detail screen — repeating it in the body means the address is legible
+  // wherever the event is read.
+  if (job.location) parts.push(`Address: ${job.location}`);
+  // Deliberately no money. This same row is exported by BOTH the poster (for
+  // whom `budget` is what they pay) and the assigned helper (for whom the real
+  // number is budget minus the platform fee — see `helperTakeHomeDollars`).
+  // One figure cannot be correct for both, and a wrong number in someone's
+  // calendar is worse than no number.
+  parts.push("Scheduled through Louisiana Helpr.");
+  return parts.join("\n\n");
 }
 
 /** Convenience wrapper that pulls the fields `exportJobToCalendar` needs
@@ -184,7 +311,7 @@ export function exportJobRowToCalendar(job: Job): Promise<void> {
     id: job.id,
     title: job.title,
     location: job.location,
-    description: job.description,
+    description: jobEventDescription(job),
     dateNeeded: job.date_needed,
     startTime: job.start_time,
     estimatedHours: job.estimated_hours,

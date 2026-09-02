@@ -13,6 +13,32 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+/**
+ * Consecutive failed payout attempts on one job before this cron gives up.
+ *
+ * WHY A GIVE-UP EXISTS AT ALL. A single unpayable job used to be retried every
+ * 30 minutes forever, and every retry answered HTTP 500, and
+ * `sweep_cron_http_failures` pages Slack once per sweep that sees a new
+ * failure. Measured 2026-08-31: 83 of this function's 257 recorded runs were
+ * 500s, all of them the SAME job — a seed fixture whose helper never completed
+ * Connect onboarding — for two solid days. The money alarm was permanently red,
+ * which means a genuine payout failure would have arrived in a channel everyone
+ * had already learned to ignore. That is precisely the alarm-fatigue outcome
+ * the watcher's own comments were written to prevent.
+ *
+ * Five attempts at a 30-minute cadence is ~2.5 hours: long enough to ride out
+ * a Stripe blip or a helper finishing onboarding, short enough that a genuinely
+ * dead payout stops shouting the same sentence 48 times a day.
+ *
+ * GIVING UP IS NOT FORGETTING. Crossing the threshold pages ops ONCE and leaves
+ * the job in `payout_pending`, where money-reconciliation's
+ * `payout_pending_stranded` check reports it daily until a human resolves it.
+ * An operator resumes it by clearing the failed `payout_transfers` rows for
+ * that (job, helper) — set them to 'canceled' — or by invoking release-payout
+ * directly, which has no give-up of its own.
+ */
+const GIVE_UP_AFTER_FAILED_ATTEMPTS = 5;
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -36,7 +62,14 @@ serve(async (req) => {
     if (!supabaseUrl) missing.push("SUPABASE_URL");
     if (!stripeSecretKey) missing.push("STRIPE_SECRET_KEY");
     if (!serviceRoleKey) missing.push("SECRET_KEY or SUPABASE_SERVICE_ROLE_KEY");
-    if (missing.length) throw new Error(`Missing required env vars: ${missing.join(", ")}`);
+    // The `||` tail is logically redundant with `missing.length` — it is spelled
+    // out so the compiler can narrow the three consts to `string` below. Without
+    // it `createClient(supabaseUrl, serviceRoleKey)` and `new Stripe(key)` are
+    // called with `string | undefined` as far as the types are concerned, which
+    // is exactly the shape that hides a real missing-config crash.
+    if (missing.length || !supabaseUrl || !stripeSecretKey || !serviceRoleKey) {
+      throw new Error(`Missing required env vars: ${missing.join(", ")}`);
+    }
 
     // Verify cron secret
     const authHeader = req.headers.get("Authorization");
@@ -52,9 +85,23 @@ serve(async (req) => {
 
     const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-    const { data: jobs, error } = await supabaseAdmin
+    // ── Seed fixtures are out of scope for the real money paths ──────────────
+    // `jobs.is_seed` marks fixture / E2E rows. They are settled by harnesses and
+    // replay scripts, so they sit in states the real settlement paths can never
+    // resolve — a helper with no Connect account, a job with no payment intent —
+    // and they fail here forever, legitimately.
+    //
+    // money-reconciliation:249 already scopes itself this way for exactly this
+    // reason ("Alerting on them would train everyone to ignore this alarm inside
+    // a week"). This function had no such filter, and the cost was measured:
+    // ONE seed job produced 83 HTTP 500s over two days and saturated the money
+    // alarm. Same escape hatch as the reconciler — `?include_seed=1` for a
+    // deliberate manual run against fixtures.
+    const includeSeed = new URL(req.url).searchParams.get("include_seed") === "1";
+
+    let dueQuery = supabaseAdmin
       .from("jobs")
-      .select("id, title, helper_id, customer_id, budget, platform_fee_amount, urgent_fee, poster_completed_at, helper_completed_at, stripe_session_id, stripe_payment_intent_id, status, is_group_job, helpers_needed")
+      .select("id, title, helper_id, customer_id, budget, platform_fee_amount, urgent_fee, helper_fee_percent, poster_completed_at, helper_completed_at, stripe_session_id, stripe_payment_intent_id, status, is_group_job, helpers_needed")
       .in("status", ["in_progress", "revision_requested", "accepted"])
       .eq("payment_status", "escrow")
       // A requested revision STOPS the payout clock. The 24h window is keyed on
@@ -75,6 +122,8 @@ serve(async (req) => {
       // pass keyed on revision_deadline — not this one.
       .is("revision_requested_at", null)
       .or(`poster_completed_at.lte.${cutoff},helper_completed_at.lte.${cutoff}`);
+    if (!includeSeed) dueQuery = dueQuery.eq("is_seed", false);
+    const { data: jobs, error } = await dueQuery;
 
     if (error) throw error;
 
@@ -86,13 +135,15 @@ serve(async (req) => {
     // 20260824235000), so instant cannot mean ungated. Revision/dispute
     // rows are excluded the same way the main set excludes them — the
     // per-job guards below run for these rows too.
-    const { data: recentDone, error: recentErr } = await supabaseAdmin
+    let recentQuery = supabaseAdmin
       .from("jobs")
-      .select("id, title, helper_id, customer_id, budget, platform_fee_amount, urgent_fee, poster_completed_at, helper_completed_at, stripe_session_id, stripe_payment_intent_id, status, is_group_job, helpers_needed")
+      .select("id, title, helper_id, customer_id, budget, platform_fee_amount, urgent_fee, helper_fee_percent, poster_completed_at, helper_completed_at, stripe_session_id, stripe_payment_intent_id, status, is_group_job, helpers_needed")
       .eq("status", "in_progress")
       .eq("payment_status", "escrow")
       .is("poster_completed_at", null)
       .gt("helper_completed_at", cutoff);
+    if (!includeSeed) recentQuery = recentQuery.eq("is_seed", false);
+    const { data: recentDone, error: recentErr } = await recentQuery;
     if (recentErr) {
       // Fail open to the normal 24h path — instant is an acceleration, never
       // a dependency.
@@ -216,7 +267,27 @@ serve(async (req) => {
       // Estimate only — the real transfer in process-scheduled-payouts resolves
       // the tier again at payout time. Keep this preview consistent with it.
       // Group jobs: budget is the total for the roster; each helper earns budget/N.
-      const helperFeePercent = await getHelperFeePercent(supabaseAdmin, job.helper_id, DEFAULT_TIER_FEE_PERCENT);
+      //
+      // The fallback chain must be IDENTICAL to the payer's, not merely land on
+      // the same number in the common case. This used to pass
+      // DEFAULT_TIER_FEE_PERCENT straight through and never selected
+      // `helper_fee_percent` at all, so the moment a tier read blipped, an Elite
+      // job frozen at 8% was previewed at 12 — the helper was told $176 on a
+      // $200 job that process-scheduled-payouts would still pay at $184,
+      // because THAT function prefers the frozen rate before the free rung.
+      //
+      // No money was ever wrong here (this path only writes a notification), and
+      // that is exactly why it was easy to leave alone. It is still a figure a
+      // helper is shown and cannot check — the same defect class as a report
+      // emailing the wrong number. Agreeing with the payer costs one column.
+      //
+      // DEFAULT_TIER_FEE_PERCENT, never a bare 12, so retuning the ladder moves
+      // this preview and the payout together.
+      const helperFeePercent = await getHelperFeePercent(
+        supabaseAdmin,
+        job.helper_id,
+        job.helper_fee_percent ?? DEFAULT_TIER_FEE_PERCENT,
+      );
       const helpersCount = (job.is_group_job && job.helpers_needed > 0) ? job.helpers_needed : 1;
       const perHelperBudget = job.budget / helpersCount;
       // Same rounding as the path that actually pays, so the preview can never
@@ -230,7 +301,10 @@ serve(async (req) => {
           message: instantIds.has(job.id)
             ? `"${job.title}" is complete — the poster releases instantly. $${formatPayoutDollars(helperPayout)} will be transferred to your account in 24 hours.`
             : `"${job.title}" was auto-completed after 24 hours. $${formatPayoutDollars(helperPayout)} will be transferred to your account in 24 hours.`,
-          type: "payment", link: "/my-jobs?filter=completed",
+          // `?job=`, not `?filter=completed`: `completed` is a legacy filter key
+          // with no chip in the five-bucket strip (the bucket is `done`), and the
+          // bucket is resolved live by Activity from the job id.
+          type: "payment", link: `/my-jobs?job=${job.id}`,
         });
       }
       if (job.customer_id) {
@@ -240,7 +314,7 @@ serve(async (req) => {
           message: instantIds.has(job.id)
             ? `"${job.title}" released instantly per your Instant Release setting. The Helpr will be paid in 24 hours.`
             : `"${job.title}" was automatically marked complete after 24 hours. The helpr will be paid in 24 hours.`,
-          type: "info", link: "/my-posts?filter=completed",
+          type: "info", link: `/my-posts?job=${job.id}`,
         });
       }
       released++;
@@ -262,16 +336,46 @@ serve(async (req) => {
     // queue up for payout, they just don't auto-fire.
     const autoPayoutEnabled = Deno.env.get("RELEASE_PAYOUT_AUTO") === "1";
     let paid = 0;
-    const payoutResults: Array<{ job_id: string; status: string; detail?: string }> = [];
+    const payoutResults: Array<{
+      job_id: string;
+      status: string;
+      detail?: string;
+      attempt?: number;
+      /** True only on the run that crossed the give-up threshold — see below. */
+      gave_up?: boolean;
+    }> = [];
 
     if (autoPayoutEnabled) {
       const supabaseFnBase = `${Deno.env.get("SUPABASE_URL")}/functions/v1`;
-      const { data: dueJobs, error: dueJobsErr } = await supabaseAdmin
+      // Same seed exclusion as Phase 1, and THIS is the query that was actually
+      // producing the 500 loop: the fixture sat in payout_pending, so it was
+      // re-selected here every 30 minutes and handed to release-payout, which
+      // refused it every time with "helper has not completed Stripe Connect
+      // onboarding".
+      let dueQuery2 = supabaseAdmin
         .from("jobs")
-        .select("id, title, helper_id, payout_scheduled_at")
+        .select("id, title, helper_id, budget, urgent_fee, is_group_job, helpers_needed, payout_scheduled_at")
         .eq("status", "completed")
         .eq("payment_status", "payout_pending")
-        .lte("payout_scheduled_at", new Date().toISOString());
+        .lte("payout_scheduled_at", new Date().toISOString())
+        // ── Group jobs belong to the fan-out path, not here ────────────────
+        // release-payout REFUSES a multi-helper roster (index.ts:160) rather
+        // than pay 1 of N, and answers 409 plus a CRITICAL Slack page every
+        // time. Handing it group jobs therefore cannot ever settle one — it
+        // only burns this job's 5-attempt give-up budget and saturates the
+        // money alarm, the exact alarm-fatigue outcome
+        // GIVE_UP_AFTER_FAILED_ATTEMPTS exists to stop.
+        // process-scheduled-payouts (re-scheduled by 20260831195609) is the
+        // only path that pays every roster member.
+        //
+        // `.or(...)`, not `.eq("is_group_job", false)`: the column is
+        // nullable and .eq drops NULL rows — which is every legacy
+        // single-helper job. This disjunction mirrors release-payout's own
+        // predicate `is_group_job && (helpers_needed ?? 1) > 1` so the two
+        // agree exactly on what "group" means.
+        .or("is_group_job.is.null,is_group_job.eq.false,helpers_needed.lte.1");
+      if (!includeSeed) dueQuery2 = dueQuery2.eq("is_seed", false);
+      const { data: dueJobs, error: dueJobsErr } = await dueQuery2;
 
       // A dropped read here silently returns paid=0 with no signal, leaving
       // matured payouts stranded until someone notices the money never moved.
@@ -287,7 +391,91 @@ serve(async (req) => {
         defects.record(`due-payouts query: ${dueJobsErr.message}`);
       }
 
+      // ── How many times has each due payout already failed? ────────────────
+      // One batched read rather than one per job. `payout_transfers` rows with
+      // status='failed' are the durable attempt record: release-payout writes
+      // one when stripe.transfers.create throws, and this function writes one
+      // below when release-payout REFUSED before ever reaching Stripe (a 409
+      // for a missing Connect account leaves no row of its own). Both are
+      // failed attempts on the same payout, and both count toward the give-up.
+      const dueJobIds = (dueJobs ?? []).map((j) => j.id);
+      const failedAttempts = new Map<string, number>();
+      if (dueJobIds.length > 0) {
+        const { data: attemptRows, error: attemptsErr } = await supabaseAdmin
+          .from("payout_transfers")
+          .select("job_id")
+          .in("job_id", dueJobIds)
+          .eq("status", "failed");
+        if (attemptsErr) {
+          // Fail OPEN on this one read: the give-up is a noise control, not a
+          // safety guard, and refusing to attempt payouts because we could not
+          // count past failures would turn a logging problem into unpaid
+          // helpers. Every real safety check still runs inside release-payout.
+          console.error("[auto-release-payment] failed-attempt count read failed:", attemptsErr);
+          defects.record(`failed-attempt count read: ${attemptsErr.message}`);
+        } else {
+          for (const r of attemptRows ?? []) {
+            const k = r.job_id as string;
+            failedAttempts.set(k, (failedAttempts.get(k) ?? 0) + 1);
+          }
+        }
+      }
+
+      /**
+       * Record one failed attempt on a job whose payout release-payout refused.
+       *
+       * `payout_transfers` requires amount_cents > 0, so the row carries this
+       * function's own estimate of the payout — the same figure it already
+       * quotes to the helper in Phase 1. `stripe_transfer_id` and
+       * `stripe_account_id` are NULL, which since migration 20260831190418 is
+       * the honest encoding of "no Stripe object was ever created, and there
+       * may not even be an account to send to".
+       */
+      const recordFailedAttempt = async (
+        job: { id: string; helper_id: string | null; budget: number | null; urgent_fee: number | null; is_group_job: boolean | null; helpers_needed: number | null },
+        detail: string,
+        attemptNumber: number,
+      ) => {
+        if (!job.helper_id) return;
+        const n = (job.is_group_job && (job.helpers_needed ?? 0) > 0) ? job.helpers_needed as number : 1;
+        const estimateCents = Math.max(
+          1,
+          Math.round(((Number(job.budget ?? 0) / n) + netUrgentFeeDollars(job.urgent_fee) / n) * 100),
+        );
+        const { error: attemptErr } = await supabaseAdmin.from("payout_transfers").insert({
+          job_id: job.id,
+          helper_id: job.helper_id,
+          stripe_transfer_id: null,
+          stripe_account_id: null,
+          amount_cents: estimateCents,
+          platform_fee_cents: 0,
+          status: "failed",
+          failed_at: new Date().toISOString(),
+          failure_reason: detail.slice(0, 500),
+          initiated_by: "auto",
+          metadata: { source: "auto-release-payment", attempt: attemptNumber, no_transfer_created: true },
+        });
+        if (attemptErr) {
+          console.error(`[auto-release-payment] could not record failed attempt for job ${job.id}:`, attemptErr);
+          defects.record(`record failed attempt ${job.id}: ${attemptErr.message}`);
+        }
+      };
+
       for (const job of dueJobs ?? []) {
+        // ── Give up rather than page 48 times a day about the same job ──────
+        const priorFailures = failedAttempts.get(job.id) ?? 0;
+        if (priorFailures >= GIVE_UP_AFTER_FAILED_ATTEMPTS) {
+          // An OUTCOME, not a defect: this is the noise control working. It
+          // must never contribute to the defect count, or giving up would
+          // itself keep the alarm red — the precise failure being fixed.
+          payoutResults.push({
+            job_id: job.id,
+            status: "given_up",
+            detail: `${priorFailures} failed attempts recorded; not retrying. Clear the failed payout_transfers rows for this job (set them to 'canceled') or invoke release-payout directly to resume.`,
+          });
+          continue;
+        }
+
         try {
           const resp = await fetch(`${supabaseFnBase}/release-payout`, {
             method: "POST",
@@ -309,7 +497,54 @@ serve(async (req) => {
             paid++;
             payoutResults.push({ job_id: job.id, status: "paid", detail: json.stripe_transfer_id });
           } else {
-            payoutResults.push({ job_id: job.id, status: "failed", detail: json.error ?? `HTTP ${resp.status}` });
+            const detail = json.error ?? `HTTP ${resp.status}`;
+            // release-payout writes its own failed row only when
+            // stripe.transfers.create THREW. A refusal before that point (no
+            // Connect account, an inactive account, an uncaptured charge)
+            // leaves no record at all, which is why this job could fail 83
+            // times and the ledger still held one row. Re-read the count and
+            // write our own row only if release-payout did not, so a single
+            // failure is never counted twice.
+            const { count: nowFailed, error: recountErr } = await supabaseAdmin
+              .from("payout_transfers")
+              .select("id", { count: "exact", head: true })
+              .eq("job_id", job.id)
+              .eq("status", "failed");
+            const alreadyRecorded = !recountErr && (nowFailed ?? 0) > priorFailures;
+            const attemptNumber = priorFailures + 1;
+            if (!alreadyRecorded) {
+              await recordFailedAttempt(job, detail, attemptNumber);
+            }
+
+            // Page ONCE, on the run that crosses the threshold — not on every
+            // one of the 48 daily retries that came before it.
+            if (attemptNumber >= GIVE_UP_AFTER_FAILED_ATTEMPTS) {
+              await postSlackOpsAlert({
+                kind: "payout_failed",
+                severity: "critical",
+                title: "Payout given up after repeated failures",
+                message:
+                  `Job ${job.id} has failed ${attemptNumber} payout attempts and will no longer be retried automatically. ` +
+                  `It stays in payout_pending and money-reconciliation will keep reporting it once a day until it is resolved. ` +
+                  `To resume: fix the underlying cause, set this job's failed payout_transfers rows to 'canceled', and the next run will retry.`,
+                fields: {
+                  "Job ID": job.id,
+                  "Job title": job.title ?? "—",
+                  "Helper ID": job.helper_id ?? "—",
+                  Attempts: String(attemptNumber),
+                  "Last error": String(detail).slice(0, 200),
+                },
+                link: "https://www.louisianahelpr.com/admin?tab=payouts",
+              });
+            }
+
+            payoutResults.push({
+              job_id: job.id,
+              status: "failed",
+              detail,
+              attempt: attemptNumber,
+              gave_up: attemptNumber >= GIVE_UP_AFTER_FAILED_ATTEMPTS,
+            });
           }
         } catch (e) {
           payoutResults.push({ job_id: job.id, status: "errored", detail: (e as Error).message });
@@ -333,8 +568,18 @@ serve(async (req) => {
         defects.record(`${r.status} ${r.job_id}${r.error ? `: ${r.error}` : ""}`);
       }
     }
+    // A matured payout that did not move is a defect and must page — for the
+    // first few attempts. Two outcomes are deliberately excluded:
+    //
+    //   given_up  — the job is no longer being attempted. It is reported once
+    //               (Slack, above) and then by money-reconciliation daily. If
+    //               it counted here, the give-up would keep the alarm red
+    //               forever, which is the exact thing it exists to stop.
+    //   gave_up   — the run that CROSSED the threshold already sent its own
+    //               explicit, actionable Slack message. Counting it too would
+    //               page twice for one event.
     for (const p of payoutResults) {
-      if (p.status === "failed" || p.status === "errored") {
+      if ((p.status === "failed" || p.status === "errored") && !p.gave_up) {
         defects.record(`payout ${p.status} ${p.job_id}: ${p.detail ?? ""}`);
       }
     }

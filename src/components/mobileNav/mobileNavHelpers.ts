@@ -50,7 +50,16 @@ export const rightItems = [
 export const authPages = ["/dashboard", "/activity", "/my-posts", "/my-jobs", "/post-job", "/profile", "/messages", "/support", "/schedule", "/availability", "/user", "/earnings", "/jobs", "/browse", "/account-pending", "/saved-helpers",
   // Standalone settings sub-pages keep the bottom tab bar so they share the
   // same chrome as the Profile-tab settings (Notifications, Earnings, etc.).
-  "/pets", "/home-history", "/work-record", "/gift-card", "/benefits", "/wrapped", "/str-settings", "/help", "/data-rights",
+  // "/benefits" left this list 2026-08-31 with the page itself — the route is
+  // gone, so listing it would only give the 404 screen a bottom dock.
+  "/pets", "/home-history", "/work-record", "/gift-card", "/wrapped", "/str-settings", "/help", "/data-rights",
+  // /auto-tip ("After a Job") was the ONE settings sub-page on that list of
+  // siblings that never reached this one — measured 2026-08-31 at 320/375/768:
+  // no bottom dock rendered at all, on a screen whose only other way out is the
+  // back chevron. It is already in `AUTH_PREFIXES` (desktopNavRoutes.ts), so
+  // the same screen HAD the desktop rail at 1440 and no nav on a phone — the
+  // exact asymmetry that list's own comment was added to close for /wrapped.
+  "/auto-tip",
   // /legal joins /help here (owner, 2026-08-30: "there should be a public and
   // signed in version of help and legal"). Both are reachable from the
   // marketing footer AND from inside the app (Profile → Legal & Policies), and

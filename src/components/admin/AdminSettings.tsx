@@ -16,6 +16,8 @@ import { logAdminAction } from "@/lib/adminAudit";
 import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
 import { Switch } from "@/components/ui/switch";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { requireBiometric } from "@/lib/biometricGate";
+import { resetMinSupportedBuildCache } from "@/lib/minSupportedBuild";
 
 // The fee-ladder rungs an admin is shown, DERIVED from the tier config rather
 // than restated. `TIER_PERKS` is the same table `tierFeePercent()` resolves a
@@ -150,6 +152,22 @@ const AdminSettings = () => {
       return;
     }
     setSavingMinBuild(false);
+    // Drop this tab's own cached threshold so a second save inside the 60s
+    // window is not read back stale. (The gate itself is native-only, so this
+    // admin session is never the thing being blocked — this is hygiene, not
+    // the mechanism by which the change reaches phones: those re-read on their
+    // own TTL and on foreground.)
+    resetMinSupportedBuildCache();
+    // Say what the save DID, not just that it saved. This control was silent
+    // on success while it was inert, which was survivable; now that it turns
+    // people away, an operator changing it during an incident needs to see the
+    // resulting behaviour confirmed back — and needs "0" to read unmistakably
+    // as off, because that is the undo.
+    toast.success(
+      n === 0
+        ? "Force-update gate turned OFF — no device is blocked."
+        : `Force-update gate live — native builds below ${n} will be blocked within a minute.`,
+    );
     await logAdminAction("update_settings", "platform_settings", settingsId, {
       min_supported_build: n,
     });
@@ -277,6 +295,13 @@ const AdminSettings = () => {
   };
 
   const addAdmin = async (profile: Profile) => {
+    // Face ID / Touch ID gate: granting admin is the privilege-escalation
+    // primitive that makes every other gate on this page moot — an attacker
+    // on a merely-unlocked admin phone would grant themselves a durable role
+    // that survives the phone being recovered. No-op on web and on devices
+    // without enrolled biometrics (see requireBiometric).
+    const ok = await requireBiometric("Confirm granting admin access");
+    if (!ok) return;
     setAdding(profile.user_id);
     // The user_roles trigger only admits service_role writes, so the old
     // direct insert here failed on EVERY tap ("Admin roles can only be
@@ -309,16 +334,37 @@ const AdminSettings = () => {
       return;
     }
 
-    setRemoving(admin.role_id);
-    const { error } = await supabase
-      .from("user_roles")
-      .delete()
-      .eq("id", admin.role_id);
+    // Face ID / Touch ID gate: stripping admin is the lock-everyone-out half
+    // of the same privilege primitive as addAdmin. Runs after the
+    // self-removal guard so a blocked action never raises an OS prompt.
+    const ok = await requireBiometric("Confirm removing this admin");
+    if (!ok) {
+      setConfirmRemove(null);
+      return;
+    }
 
-    if (error) toast.error(error.message);
-    else {
+    setRemoving(admin.role_id);
+    try {
+      // `.select("id")` because a DELETE that matches zero rows is
+      // `{ data: [], error: null }` — indistinguishable from one that stripped
+      // the role. This is the lock-everyone-out half of a privilege primitive:
+      // an RLS denial or a stale role_id would otherwise have written a
+      // "remove_admin" audit entry and reloaded the list over an account that
+      // still holds the console.
+      unwrapMutation(
+        await supabase.from("user_roles").delete().eq("id", admin.role_id).select("id"),
+        {
+          action: "remove this admin",
+          rejectedMessage:
+            "That admin role wasn't removed — it may already be gone, or you may not have " +
+            "permission. Refresh and check before assuming it's revoked.",
+          context: { role_id: admin.role_id },
+        },
+      );
       await logAdminAction("remove_admin", "user", admin.user_id, { name: admin.name });
       await loadAdmins();
+    } catch (err) {
+      toast.error(mutationErrorMessage(err, "Couldn't remove the admin — try again."));
     }
     setRemoving(null);
     setConfirmRemove(null);
@@ -328,6 +374,23 @@ const AdminSettings = () => {
 
   return (
     <AdminViewShell>
+      {/* Two columns from `lg` up, one below. Each of the five cards below is a
+          short, self-contained control panel, so they were individually capped
+          (`max-w-md` / `max-w-lg`) to stop a single form field stretching to
+          1128px. Stacked vertically that produced the exact failure CLAUDE.md's
+          "every page must FIT THE SCREEN" section names: at 1440 the whole
+          Settings screen sat in a ~448px ribbon down the left with ~680px of
+          empty page beside it. The cap belongs to the CARD's inner rhythm, not
+          to the page, so the caps are gone and the grid does the constraining —
+          repeating sibling cards laying out as a grid on wide web is the rule
+          the rest of the app already follows. `items-start` keeps a short card
+          from stretching to match a tall neighbour. */}
+      {/* `[&>*]:min-w-0` is required, not decoration: a grid track defaults to
+          `min-width:auto`, so the widest unbreakable child (the fee ladder rows
+          and the inline <code> payload string) pushed the single 320px column
+          out to 325px and clipped the card inside <main>. Zeroing the track
+          minimum lets the cards shrink to the column instead. */}
+      <div className="grid items-start gap-5 sm:gap-6 lg:grid-cols-2 [&>*]:min-w-0">
       {/* ── Fee model — READ ONLY ──
           This was two number inputs and a "Total platform take: 20%" calculator
           with a Save button, and every part of it was wrong. The platform has
@@ -347,7 +410,6 @@ const AdminSettings = () => {
           it is not a control. It is shown here as what it is: a fallback, with
           its live values, and no way to edit it by accident. */}
       <AdminCard
-        className="max-w-md"
         title={<span className="flex items-center gap-2"><Percent className="w-4 h-4 text-primary" /> Fee Model</span>}
         subtitle="Set by subscription tier, not by this screen."
         contentClassName="space-y-4"
@@ -393,7 +455,6 @@ const AdminSettings = () => {
 
       {/* Social Webhook URL */}
       <AdminCard
-        className="max-w-md"
         title="Social Webhook URL"
         subtitle={`Where the Facebook Post Generator's "Send to Social" posts go for scheduling.`}
         contentClassName="space-y-4"
@@ -418,7 +479,6 @@ const AdminSettings = () => {
 
       {/* Feature Flags */}
       <AdminCard
-        className="max-w-lg"
         title={<span className="flex items-center gap-2"><Flag className="w-4 h-4 text-primary" /> Feature Flags</span>}
         subtitle="Emergency controls. Off is the normal state — leave them off unless you are working an incident."
       >
@@ -476,12 +536,62 @@ const AdminSettings = () => {
 
       {/* Min Supported Build */}
       <AdminCard
-        className="max-w-md"
         title={<span className="flex items-center gap-2"><Smartphone className="w-4 h-4 text-primary" /> Minimum Supported Build</span>}
         subtitle={
           <>
-            Binaries below this build code are forced to update on next launch; <code className="text-foreground">0</code>{" "}
-            disables the check.
+            {/* ENFORCED as of 2026-09-01. This copy said "nothing enforces it
+                yet" for as long as that was true, which was the right call —
+                an operator would otherwise have set it during an incident and
+                believed old builds were being turned away. It is no longer
+                true, and a stale reassurance is worse than the original lie:
+                it would now talk an operator OUT of using the one lever that
+                works while a bad build sits in App Review.
+
+                What reads it: src/hooks/useVersionCheck.ts, via
+                get_public_platform_settings() (migration 20260901035235 — the
+                table itself is admin-only under RLS, so the column had to
+                travel through the RPC to reach a normal user's app).
+                src/components/ForceUpdateGate.tsx renders the block.
+
+                The three qualifications below are not hedging, they are the
+                actual behaviour, and an operator who does not know them will
+                misread what this control did:
+                  · NATIVE ONLY. The web app has no build number and updates on
+                    reload, so it is never blocked — including /admin, which is
+                    where this number gets lowered again.
+                  · FAILS OPEN. A failed settings read, an unparseable build, a
+                    missing column: all let the user in. A gate that blocks on
+                    its own failure is an outage that needs App Review to fix.
+                  · Takes about a minute to reach a running app (60s cache),
+                    and lands on a backgrounded install when it next comes to
+                    the foreground — not only on a cold start. */}
+            Blocks native installs older than this build with an{" "}
+            <strong className="text-foreground">“Update Helpr to continue”</strong> screen —
+            the one lever that works while a bad build is stuck in App Review. Takes
+            effect within a minute on running apps.{" "}
+            <code className="text-foreground">0</code> is the off value.
+            <br />
+            <span className="text-ds-11">
+              iOS/Android only — the website has no build number and is never blocked.
+              The gate fails open, so a settings-read failure never locks anyone out.
+              Use the build number from App Store Connect (CFBundleVersion), and set it{" "}
+              <em>above</em> the build you are turning away, not equal to it.
+            </span>
+            <br />
+            {/* Not a hypothetical caveat. Probed 2026-09-01: the store URL the
+                block screen links to (lib/appStore.ts) returns 404 and the
+                iTunes lookup API reports resultCount 0 for its id in four
+                storefronts — the listing is not public. Arming the gate today
+                would send every blocked user to a dead page, which is why the
+                screen also carries the support address. Stated here, next to
+                the control, because this is the moment an operator can still
+                decide not to. */}
+            <span className="text-ds-11 text-destructive">
+              Before setting this above 0, confirm the App Store listing actually
+              loads — as of 2026-09-01 the link the block screen sends people to
+              returns a 404, which would make the block a dead end. The screen also
+              shows the support address, but the store link is the way out.
+            </span>
           </>
         }
       >
@@ -507,7 +617,6 @@ const AdminSettings = () => {
 
       {/* Admin Management */}
       <AdminCard
-        className="max-w-lg"
         title={<span className="flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-primary" /> Admin Users</span>}
         subtitle={adminsLoading ? undefined : `${admins.length} ${admins.length === 1 ? "account holds" : "accounts hold"} the admin role`}
         action={
@@ -551,6 +660,8 @@ const AdminSettings = () => {
           </div>
         )}
       </AdminCard>
+
+      </div>
 
       {/* The "How the split fee model works" card that used to live here is
           gone — its three bullets moved into the Fee Model card at the top of

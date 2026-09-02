@@ -45,5 +45,3 @@ export function calendarEventUrl(
   const dateEndIso = endIso.slice(0, 10).replace(/-/g, "");
   return `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${dateStartIso}/${dateEndIso}&details=${encodeURIComponent(details)}&location=${encodeURIComponent(location)}`;
 }
-
-export default calendarEventUrl;

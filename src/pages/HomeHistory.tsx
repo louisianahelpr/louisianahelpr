@@ -8,7 +8,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { unwrap } from "@/lib/supabaseResult";
 import { getCategoryIcon } from "@/lib/categoryIcons";
-import { formatTimestamp, formatPrice } from "@/lib/format";
+import { formatPrice } from "@/lib/format";
 import { categoryColors, categoryLabels } from "@/components/activity/activityConstants";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { JobCardSkeleton } from "@/components/SkeletonLoaders";
@@ -22,14 +22,60 @@ interface CompletedJobWithHelper extends Job {
   helperName: string | null;
 }
 
+/**
+ * This page bills itself as "your home's permanent service history — who came
+ * out, what it cost, and when". Two things follow from that sentence and
+ * neither used to hold:
+ *
+ *  1. "WHEN" is the day the work was DONE, not the day the job was posted.
+ *     Every date and every year heading was read off `created_at`, so a job
+ *     posted in December and finished in January filed under the wrong year
+ *     and showed the wrong date on a record a homeowner may hand to a buyer,
+ *     an insurer or an appraiser.
+ *  2. The date must be the PLATFORM's day. `formatTimestamp` (lib/format.ts)
+ *     formats in the reader's own zone; `src/lib/workRecordDocument.ts` was
+ *     fixed for exactly this today, because a job stamped
+ *     `2026-08-01T00:00:00Z` printed as July everywhere in the United States.
+ *     Grouping had the same bug one level up — `new Date(...).getFullYear()`
+ *     is the DEVICE's year, so a job completed at 8pm Central on Dec 31 filed
+ *     under the following year.
+ */
+const PLATFORM_TIME_ZONE = "America/Chicago";
+
+/** The day the work actually happened, best-available. */
+function serviceDate(job: Pick<Job, "created_at"> & { poster_completed_at?: string | null; helper_completed_at?: string | null }): string {
+  return job.poster_completed_at ?? job.helper_completed_at ?? job.created_at;
+}
+
 function formatDate(dateStr: string | null): string {
-  return dateStr ? formatTimestamp(dateStr) : "Unknown date";
+  if (!dateStr) return "Unknown date";
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return "Unknown date";
+  return d.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: PLATFORM_TIME_ZONE,
+  });
+}
+
+/** The calendar year of an instant, in the platform's zone. */
+function platformYear(dateStr: string): number {
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return NaN;
+  return Number(d.toLocaleDateString("en-CA", { timeZone: PLATFORM_TIME_ZONE }).slice(0, 4));
 }
 
 function groupByYear(jobs: CompletedJobWithHelper[]): { year: number; jobs: CompletedJobWithHelper[] }[] {
   const map = new Map<number, CompletedJobWithHelper[]>();
-  for (const job of jobs) {
-    const year = new Date(job.created_at).getFullYear();
+  // Order by the same instant the headings and labels use, so the list can't
+  // read out of sequence against its own dates (the query still sorts by
+  // created_at, which is a different ordering once completion dates differ).
+  const ordered = [...jobs].sort(
+    (a, b) => new Date(serviceDate(b)).getTime() - new Date(serviceDate(a)).getTime(),
+  );
+  for (const job of ordered) {
+    const year = platformYear(serviceDate(job));
     if (!map.has(year)) map.set(year, []);
     map.get(year)!.push(job);
   }
@@ -206,7 +252,7 @@ const HomeHistory = () => {
                           timeline entries read as app cards floating over the
                           page rather than as entries on a single record
                           sheet. Uses `.doc-card`, the SAME document-surface
-                          material /work-record and /benefits use (the
+                          material /work-record uses (the
                           document surface ladder in index.css) — this used
                           to hand-roll a `parchment/0.70` fill that measured
                           2-6/255 from the page canvas (a card that did not
@@ -251,7 +297,7 @@ const HomeHistory = () => {
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                           <span className="inline-flex items-center gap-1 text-ds-11 text-muted-foreground">
                             <Calendar className="w-3 h-3 shrink-0" />
-                            {formatDate(job.created_at)}
+                            {formatDate(serviceDate(job))}
                           </span>
                           {/* A currency symbol is typography, not an icon: the
                               "$" belongs in the same text node as the digits.

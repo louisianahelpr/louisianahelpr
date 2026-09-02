@@ -6,8 +6,14 @@
 // free.
 //
 // Use `primaryTone="bark"` for reversible actions (log out, cancel
-// edits) and `primaryTone="sienna"` only for genuinely destructive
-// actions (delete, forfeit). Reserving sienna keeps it meaningful.
+// edits) — it renders the shared glossy primary CTA. Use
+// `primaryTone="sienna"` only for genuinely IRREVERSIBLE actions
+// (delete, forfeit, permanent ban); it renders the shared destructive
+// red, the same treatment `<Button variant="destructive">` gives the
+// "Confirm No-Show" button. Reserving it keeps it meaningful. The tone
+// names are kept (rather than renamed across 26 call sites) but they
+// now select a shared Button variant, not a bespoke style object — see
+// `primaryToneVariant` below.
 
 import { ReactNode } from "react";
 import {
@@ -28,7 +34,7 @@ import {
   hapticError,
 } from "@/lib/haptics";
 
-export type BrandPrimaryTone = "bark" | "sienna";
+type BrandPrimaryTone = "bark" | "sienna";
 export type BrandPrimaryHaptic =
   | "medium"
   | "heavy"
@@ -62,29 +68,34 @@ interface BrandConfirmDialogProps {
   onSecondary?: () => void;
 }
 
-const primaryToneStyle: Record<BrandPrimaryTone, React.CSSProperties> = {
-  bark: {
-    background: "hsl(var(--bark))",
-    color: "hsl(var(--parchment))",
-    border: "1px solid hsl(var(--bark-border))",
-    fontFamily: "Montserrat, system-ui, sans-serif",
-    fontWeight: 600,
-    boxShadow:
-      "inset 0 1px 0 0 rgba(255, 255, 255, 0.12), " +
-      "0 1px 2px hsl(70 20% 18% / 0.22), " +
-      "0 6px 14px -4px hsl(var(--bark) / 0.4)",
-  },
-  sienna: {
-    background: "hsl(var(--burnt-sienna))",
-    color: "hsl(var(--parchment))",
-    border: "1px solid hsl(19 75% 28%)",
-    fontFamily: "Montserrat, system-ui, sans-serif",
-    fontWeight: 600,
-    boxShadow:
-      "inset 0 1px 0 0 rgba(255, 255, 255, 0.12), " +
-      "0 1px 2px hsl(19 75% 18% / 0.18), " +
-      "0 6px 14px -4px hsl(var(--burnt-sienna) / 0.4)",
-  },
+/**
+ * Tone -> the SHARED Button variant. Not a per-dialog style object.
+ *
+ * This used to be two hand-written `React.CSSProperties` blocks that painted a
+ * FLAT `background: hsl(var(--bark))` for the reversible tone and a FLAT
+ * `background: hsl(var(--burnt-sienna))` for the destructive one. Two things
+ * were wrong with that, both of them standing project rules:
+ *
+ *  1. GLOSSY, NEVER FLAT. The primary CTA everywhere else in the app is
+ *     `.btn-grad-primary` — the radial bark gradient. This dialog is behind
+ *     every confirm in the product ("Log Out?", "Delete account", "Decline
+ *     this job", 20+ call sites), so the single most-seen primary button in
+ *     Helpr was the one flat one. `variant="default"` restores the gradient,
+ *     the shared hover (brighten + 1px lift + bark glow) and the shared press.
+ *  2. ONE DESTRUCTIVE TREATMENT. `sienna` painted irreversible actions in the
+ *     brand ACCENT colour — the same burnt sienna used for eyebrows, callout
+ *     borders and emphasis — while ten other dialogs painted theirs in
+ *     `--destructive` red via `<Button variant="destructive">`. Two colours
+ *     for one meaning, and the accent one is the colour the UI also uses for
+ *     things that are merely *notable*. Destructive is now `--destructive`,
+ *     app-wide, matching the "Report No-Show" pattern.
+ *
+ * If the owner wants the sienna destructive back, it is this one map — not 20
+ * call sites.
+ */
+const primaryToneVariant: Record<BrandPrimaryTone, "default" | "destructive"> = {
+  bark: "default",
+  sienna: "destructive",
 };
 
 const fireHaptic = (kind: BrandPrimaryHaptic) => {
@@ -166,13 +177,16 @@ export function BrandConfirmDialog({
             sat one above the other while the buttons in every other popup sat
             side by side. */}
         <AlertDialogFooter>
+          {/* No per-dialog className. `rounded-ds-md` and `mt-0` are already
+              what AlertDialogCancel applies, and `border-border/60` was
+              styling a border the ghost treatment no longer draws. */}
           <AlertDialogCancel
             onClick={onSecondary ? (e) => { e.preventDefault(); onSecondary(); } : undefined}
-            className="mt-0 rounded-ds-md border-border/60"
           >
             {secondaryLabel}
           </AlertDialogCancel>
           <AlertDialogAction
+            variant={primaryToneVariant[primaryTone]}
             disabled={primaryDisabled}
             onClick={(e) => {
               if (primaryHaptic !== "none") {
@@ -184,8 +198,6 @@ export function BrandConfirmDialog({
               // calling e.preventDefault() inside onPrimary.
               onPrimary(e);
             }}
-            style={primaryToneStyle[primaryTone]}
-            className="rounded-ds-md"
           >
             {primaryLabel}
           </AlertDialogAction>

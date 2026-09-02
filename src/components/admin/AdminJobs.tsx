@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
+import { unwrapMutation, mutationErrorMessage, isWriteRejected } from "@/lib/mutationResult";
 import { formatName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Flag, CheckCircle2, Briefcase } from "lucide-react";
@@ -16,6 +16,88 @@ import { RemoveJobDialog } from "./adminJobs/RemoveJobDialog";
 import { RefundJobDialog } from "./adminJobs/RefundJobDialog";
 import { StatusOverrideDialog } from "./adminJobs/StatusOverrideDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { requireBiometric } from "@/lib/biometricGate";
+import { report } from "@/lib/errorLogger";
+
+/**
+ * Where an admin notification about a job should land, per RECIPIENT.
+ *
+ * Two things were wrong at the three call sites below, and neither is visible
+ * from the producer side:
+ *
+ * 1. THE SURFACE WAS THE OTHER PARTY'S. `/my-jobs` is the HELPER surface
+ *    (`Activity defaultTab="applied"`, App.tsx:170); the poster's is
+ *    `/my-posts` (App.tsx:171). Every notice addressed to
+ *    `detailJob.customer_id` — the poster — linked to `/my-jobs`, a screen
+ *    built from that user's *applications*, where their own posted job cannot
+ *    appear at all. The helper's notices went to `/dashboard` (Browse), which
+ *    is not wrong so much as silent: it says nothing about the job that just
+ *    changed under them.
+ *
+ * 2. THE BUCKET WAS THE WRONG ONE. Both Activity routes open on "Needs You"
+ *    (`defaultStatusFilterFor`, activityConstants.ts). An admin-removed job is
+ *    Cancelled and an override lands in Done/Cancelled/Needs You depending on
+ *    the target status — essentially never Needs You. And no fixed `?filter=`
+ *    can fix that from here: which bucket a job is in is a question about its
+ *    LIVE state ("whose move is it?"), and the answer keeps changing while the
+ *    notification sits unread.
+ *
+ * `?job=<id>` is the one shape that is always right and stays right — the
+ * deep-link effect in src/pages/Activity.tsx resolves the live bucket at open
+ * time. It is what every other producer in the app was swept onto in
+ * 20260831232514_notification_links_land_on_the_right_spot.sql; these two call
+ * sites were the last ones still writing a bare surface.
+ *
+ * The CASE-on-the-recipient is the same fix that migration applied to
+ * `block_user_and_settle` (entry 39), which had the identical defect: one
+ * hard-coded surface for a notification that can be addressed to either party.
+ */
+const activityLinkFor = (role: "poster" | "helper", jobId: string): string =>
+  role === "poster" ? `/my-posts?job=${jobId}` : `/my-jobs?job=${jobId}`;
+
+/**
+ * Insert one admin notification, and refuse to let it fail silently.
+ *
+ * These inserts used to be a bare `await supabase.from("notifications")
+ * .insert({...})` with the result thrown on the floor — the shape CLAUDE.md
+ * forbids twice over: the `error` half was dropped, and a null `error` proves
+ * nothing on its own. This notification is the ONLY signal the poster and the
+ * helpr ever get that an admin removed or re-statused their job; a dropped
+ * insert means the job changes under them with no explanation at all.
+ *
+ * Best-effort by design: the job write has already landed by the time we get
+ * here, so a failed notify must not report the admin action as failed (same
+ * rule as AdminUsers.unbanUser). It is *surfaced* instead — `unwrapMutation`
+ * reports it to error_logs, and the admin gets a toast naming which party was
+ * not told, so they can reach out by hand.
+ */
+const notifyJobParty = async (
+  row: { user_id: string; title: string; message: string; type: string; link: string },
+  who: "the poster" | "the helpr",
+  context: Record<string, unknown>,
+): Promise<void> => {
+  try {
+    // .select("id"): without it `data` comes back null and the row count is
+    // unobservable, so unwrapMutation cannot tell a landed write from a no-op.
+    unwrapMutation(await supabase.from("notifications").insert(row).select("id"), {
+      action: `notify ${who}`,
+      rejectedMessage: `That change is saved, but ${who} could not be notified.`,
+      context,
+    });
+  } catch (err) {
+    // WriteRejectedError is already reported by unwrapMutation; anything else
+    // (transport, RLS, constraint) has not been, so report it here.
+    if (!isWriteRejected(err)) {
+      report(err, { severity: "error", tags: { source: "AdminJobs.notifyJobParty" }, context });
+    }
+    toast.error(
+      mutationErrorMessage(
+        err,
+        `That change is saved, but ${who} couldn't be notified — tell them directly.`,
+      ),
+    );
+  }
+};
 
 const AdminJobs = () => {
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -145,24 +227,33 @@ const AdminJobs = () => {
         },
       );
 
-      // Notify the job poster
-      await supabase.from("notifications").insert({
-        user_id: detailJob.customer_id,
-        title: "Job removed by admin",
-        message: `Your job "${detailJob.title}" was removed. Reason: ${deleteReason}`,
-        type: "warning",
-        link: "/my-jobs",
-      });
-
-      // Also notify the helper if assigned
-      if (detailJob.helper_id) {
-        await supabase.from("notifications").insert({
-          user_id: detailJob.helper_id,
+      // Notify the job poster — on THEIR surface (My Posts), on the job.
+      await notifyJobParty(
+        {
+          user_id: detailJob.customer_id,
           title: "Job removed by admin",
-          message: `The job "${detailJob.title}" you were assigned to was removed by an admin.`,
+          message: `Your job "${detailJob.title}" was removed. Reason: ${deleteReason}`,
           type: "warning",
-          link: "/dashboard",
-        });
+          link: activityLinkFor("poster", detailJob.id),
+        },
+        "the poster",
+        { jobId: detailJob.id, adminAction: "remove_job" },
+      );
+
+      // Also notify the helper if assigned. This used to land on /dashboard
+      // (Browse), which never mentions the job they just lost.
+      if (detailJob.helper_id) {
+        await notifyJobParty(
+          {
+            user_id: detailJob.helper_id,
+            title: "Job removed by admin",
+            message: `The job "${detailJob.title}" you were assigned to was removed by an admin.`,
+            type: "warning",
+            link: activityLinkFor("helper", detailJob.id),
+          },
+          "the helpr",
+          { jobId: detailJob.id, adminAction: "remove_job" },
+        );
       }
 
       // Update local state
@@ -191,6 +282,13 @@ const AdminJobs = () => {
       return;
     }
     const isPartial = partialCents !== null && partialCents < totalCents;
+
+    // Face ID / Touch ID gate: an admin refund moves real money back out of
+    // Stripe and cancels the job. No undo. Runs after the amount validation
+    // so a rejected form never raises an OS prompt. No-op on web and on
+    // devices without enrolled biometrics (see requireBiometric).
+    const ok = await requireBiometric("Confirm this refund");
+    if (!ok) return;
 
     setRefunding(true);
     try {
@@ -243,8 +341,18 @@ const AdminJobs = () => {
         updates.cancelled_by = user?.id || null;
       }
 
-      const { error } = await (supabase.from("jobs").update as any)(updates).eq("id", detailJob.id);
-      if (error) throw error;
+      // .select("id"): an override that matches zero rows returns
+      // error === null, and both parties were then told the status changed —
+      // with a deep link to a job still sitting in its old state. Same guard
+      // the removal path above already carries.
+      unwrapMutation(
+        await (supabase.from("jobs").update as any)(updates).eq("id", detailJob.id).select("id"),
+        {
+          action: "override this job's status",
+          rejectedMessage: "This job's status wasn't changed — it may have already moved. Refresh the list.",
+          context: { jobId: detailJob.id, toStatus: overrideStatus },
+        },
+      );
 
       await logAdminAction("manual_status_override", "job", detailJob.id, {
         from_status: previousStatus,
@@ -252,16 +360,24 @@ const AdminJobs = () => {
         reason: overrideReason.trim(),
       });
 
-      // Notify both parties so they aren't surprised by the change.
+      // Notify both parties so they aren't surprised by the change. Each one
+      // gets their OWN surface — the poster's My Posts, the helpr's My Jobs —
+      // with the job on it, so the link resolves to whichever bucket the job
+      // is in by the time it's read.
       const parties = [detailJob.customer_id, detailJob.helper_id].filter(Boolean) as string[];
       for (const uid of parties) {
-        await supabase.from("notifications").insert({
-          user_id: uid,
-          title: `Admin updated your job status`,
-          message: `"${detailJob.title}" was set to ${overrideStatus} by an admin. Reason: ${overrideReason.trim()}`,
-          type: "info",
-          link: uid === detailJob.customer_id ? "/my-jobs" : "/dashboard",
-        });
+        const isPoster = uid === detailJob.customer_id;
+        await notifyJobParty(
+          {
+            user_id: uid,
+            title: `Admin updated your job status`,
+            message: `"${detailJob.title}" was set to ${overrideStatus} by an admin. Reason: ${overrideReason.trim()}`,
+            type: "info",
+            link: activityLinkFor(isPoster ? "poster" : "helper", detailJob.id),
+          },
+          isPoster ? "the poster" : "the helpr",
+          { jobId: detailJob.id, adminAction: "manual_status_override", toStatus: overrideStatus },
+        );
       }
 
       setJobs((prev) => prev.map((j) => j.id === detailJob.id ? { ...j, ...updates } as Job : j));
@@ -270,8 +386,11 @@ const AdminJobs = () => {
       setOverrideStatus("open");
       setDetailJob(null);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Couldn't override status — try again";
-      toast.error(msg);
+      // mutationErrorMessage, not err.message: a WriteRejectedError's `message`
+      // is the engineering explanation ("affected 0 rows, expected 1"), and
+      // `instanceof Error` is true of it — so the raw read showed that string
+      // to an admin. This picks the userMessage when there is one.
+      toast.error(mutationErrorMessage(err, "Couldn't override status — try again"));
     } finally {
       setOverriding(false);
     }

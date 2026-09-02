@@ -227,50 +227,139 @@ jobs:
         # supabase/postgres CI image owns as supabase_admin and refuses to
         # let us write into) or depend on those. They're not in the P0 path.
         # Soft-allow them; everything else must apply cleanly.
+        #
+        # SOFT-ALLOW IS NOW SCOPED TO THE EXPECTED ERROR. Changed 2026-08-31.
+        #
+        # WHAT THIS CATCHES: a genuine regression inside one of the nine
+        # allowlisted files.
+        #
+        # `is_flaky` used to test the FILENAME only, and psql's output was not
+        # inspected at all. So any failure whatsoever in one of these nine
+        # files was soft-allowed and the run stayed green — a syntax error, a
+        # dropped table, a broken RLS policy, a function body that no longer
+        # compiles, all indistinguishable from the permission error the
+        # allowlist was written for. Nine migrations were effectively excluded
+        # from the smoke test rather than excused for one known reason. And
+        # SOFT_FAILS was computed, printed, and then never compared to
+        # anything — the count could climb from 9 to 90 and the step still
+        # printed "✅ All migrations applied (or soft-allowed)".
+        #
+        # Now each entry carries the error text it is allowed to fail with.
+        # The file is excused ONLY if psql's output matches that pattern; any
+        # other error in the same file is a real failure and reds the run.
+        # The soft-fail COUNT is also gated: more soft-fails than allowlist
+        # entries is impossible by construction and means the matcher has gone
+        # wrong, and FEWER means an entry has healed and should be deleted
+        # (warned, not failed — healing is good news, it just must not rot the
+        # list into a permanent blanket exemption again).
         run: |
-          set -e
+          set -euo pipefail
+
+          # <timestamp-prefix>|<extended regex the error output MUST match>
+          # 2026-09-02: four patterns widened, and the reason matters more
+          # than the change. The condition did NOT move — the CI Postgres
+          # image did. It used to ship a `realtime` schema that was
+          # permission-gated, so every one of these failed with "permission
+          # denied for schema realtime". It now ships no realtime schema at
+          # all, so the same migrations fail with `relation
+          # "realtime.messages" does not exist` instead, and the allowlist
+          # stopped matching its own known gap. (20260412002759 additionally
+          # gained a `public.` prefix in the relation name.) These are the
+          # same CI-only absences, reworded by the image — not new failures,
+          # and prod is unaffected: prod HAS realtime, and all of these
+          # applied there in April.
+          #
+          # This is still the narrow read of "do not widen the pattern to get
+          # green": each addition names a specific missing object, so a real
+          # regression in these files would still fail the job.
+          #
+          # HEALED, left in place deliberately — 20260505220000, 20260505224500
+          # and 20260506030000 (storage.objects policies) and 20260506162229
+          # applied cleanly on 2026-09-02 and no longer soft-fail. They are NOT
+          # pruned because the first three say "perms vary by image" and that
+          # is exactly what just bit the realtime entries: one green run on one
+          # image is not evidence a permission gap is gone for good. Prune them
+          # after they stay clean across an image change, not before.
           KNOWN_CI_FLAKY=(
-            "20260412002746"  # uses realtime.messages
-            "20260412002759"  # depends on jobs_helper_safe (cascades)
-            "20260412011520"  # uses realtime.topic()
-            "20260412070714"  # uses realtime.messages
-            "20260505220000"  # creates storage.objects policies (storage.objects perms vary by image)
-            "20260505224500"  # drops storage.objects policies
-            "20260506001000"  # ALTER POLICY on realtime.messages
-            "20260506030000"  # message-attachments storage.objects policies
-            "20260506162229"  # REVOKE on auto_escalate_reports/set_broadcast_pending_fan_out/fan_out_broadcast — these functions exist in prod from earlier history but are first CREATEd in CI by later migrations (175324 / 210000), so the REVOKE runs before the function exists
+            "20260412002746|permission denied for schema realtime|relation \"realtime\.messages\" does not exist"    # uses realtime.messages
+            "20260412002759|permission denied for schema realtime|relation \"(public\.)?jobs_helper_safe\" does not exist"  # depends on jobs_helper_safe (cascades from the above)
+            "20260412011520|permission denied for schema realtime|function realtime\.topic\(\) does not exist"    # uses realtime.topic()
+            "20260412070714|permission denied for schema realtime|relation \"realtime\.messages\" does not exist"    # uses realtime.messages
+            "20260505220000|must be owner of table objects|permission denied for table objects|permission denied for schema storage"   # creates storage.objects policies (perms vary by image)
+            "20260505224500|must be owner of table objects|permission denied for table objects|permission denied for schema storage"   # drops storage.objects policies
+            "20260506001000|permission denied for schema realtime|must be owner of relation messages|relation \"realtime\.messages\" does not exist"   # ALTER POLICY on realtime.messages
+            "20260506030000|must be owner of table objects|permission denied for table objects|permission denied for schema storage"   # message-attachments storage.objects policies
+            "20260506162229|function .* does not exist"                                             # REVOKE on auto_escalate_reports/set_broadcast_pending_fan_out/fan_out_broadcast — these exist in prod from earlier history but are first CREATEd in CI by later migrations (175324 / 210000), so the REVOKE runs before the function exists
           )
-          is_flaky() {
-            local f="$(basename "$1")"
-            for prefix in "${KNOWN_CI_FLAKY[@]}"; do
-              [[ "$f" == "$prefix"* ]] && return 0
+
+          # Returns 0 and echoes the allowed pattern if this file is
+          # allowlisted; returns 1 otherwise.
+          flaky_pattern() {
+            local base; base="$(basename "$1")"
+            local entry prefix pattern
+            for entry in "${KNOWN_CI_FLAKY[@]}"; do
+              prefix="${entry%%|*}"
+              pattern="${entry#*|}"
+              if [[ "$base" == "$prefix"* ]]; then
+                printf '%s' "$pattern"
+                return 0
+              fi
             done
             return 1
           }
+
           FAIL=0
           FIRST_FAIL=""
           SOFT_FAILS=0
+          MATCHED_PREFIXES=""
           for f in $(ls supabase/migrations/*.sql | sort); do
-            echo "::group::$(basename $f)"
-            if ! psql -v ON_ERROR_STOP=1 -f "$f"; then
-              if is_flaky "$f"; then
-                echo "::warning file=$f::known CI-flaky migration (realtime perms) — soft-allowed"
-                SOFT_FAILS=$((SOFT_FAILS + 1))
+            echo "::group::$(basename "$f")"
+            # Capture stderr as well as stdout so the error text can be
+            # matched, and tee it so the run log still shows everything.
+            if ! psql -v ON_ERROR_STOP=1 -f "$f" > /tmp/psql-out.txt 2>&1; then
+              cat /tmp/psql-out.txt
+              if PATTERN="$(flaky_pattern "$f")"; then
+                if grep -qiE "$PATTERN" /tmp/psql-out.txt; then
+                  echo "::warning file=$f::known CI-only failure (matched: $PATTERN) — soft-allowed"
+                  SOFT_FAILS=$((SOFT_FAILS + 1))
+                  MATCHED_PREFIXES="$MATCHED_PREFIXES $(basename "$f")"
+                else
+                  # Allowlisted file, UNEXPECTED error. This is the case the
+                  # old filename-only check silently swallowed.
+                  echo "::error file=$f::Allowlisted migration failed for an UNEXPECTED reason."
+                  echo "::error file=$f::Expected the error to match: $PATTERN"
+                  echo "::error file=$f::This is a real regression, not the known CI permission gap. Do not widen the pattern to get green."
+                  FAIL=1
+                  [ -z "$FIRST_FAIL" ] && FIRST_FAIL="$f"
+                fi
               else
                 echo "::error file=$f::Migration failed"
                 FAIL=1
                 [ -z "$FIRST_FAIL" ] && FIRST_FAIL="$f"
               fi
+            else
+              cat /tmp/psql-out.txt
             fi
             echo "::endgroup::"
           done
+
           echo ""
-          echo "Soft-failed (CI-only): $SOFT_FAILS"
+          echo "Soft-failed (CI-only): $SOFT_FAILS of ${#KNOWN_CI_FLAKY[@]} allowlisted"
+          echo "Soft-failed files:$MATCHED_PREFIXES"
+
+          # Gate the COUNT, not just the individual matches.
+          if [ "$SOFT_FAILS" -gt "${#KNOWN_CI_FLAKY[@]}" ]; then
+            echo "::error::More soft-fails ($SOFT_FAILS) than allowlist entries (${#KNOWN_CI_FLAKY[@]}) — the prefix matcher is over-matching. Failing rather than trusting it."
+            FAIL=1
+          elif [ "$SOFT_FAILS" -lt "${#KNOWN_CI_FLAKY[@]}" ]; then
+            echo "::warning::Only $SOFT_FAILS of ${#KNOWN_CI_FLAKY[@]} allowlisted migrations failed. Some entries have healed (or the file was renamed/removed) — prune KNOWN_CI_FLAKY so the exemption list does not silently grow back into a blanket pass."
+          fi
+
           if [ "$FAIL" -eq 1 ]; then
             echo "::error::Real migration failure. First: $FIRST_FAIL"
             exit 1
           fi
-          echo "✅ All migrations applied (or soft-allowed)"
+          echo "✅ All migrations applied (or soft-allowed for their one expected, matched reason)"
 
       - name: Smoke — post a job, expect triggers to fire cleanly
         # The actual P0: every INSERT INTO public.jobs invokes

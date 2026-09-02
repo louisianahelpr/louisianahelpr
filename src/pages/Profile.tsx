@@ -4,6 +4,7 @@ import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
+import { assertUploadableAvatar, replaceAvatarObject } from "@/lib/avatarStorage";
 import { signOutWithPushCleanup } from "@/lib/authSignOut";
 import { ProfilePageSkeleton } from "@/components/SkeletonLoaders";
 import AppShell from "@/components/AppShell";
@@ -136,6 +137,16 @@ const ProfilePage = () => {
 
   // Sync tab to URL for bookmarkability; React Router owns history so browser
   // back/forward updates searchParams, which the effect below mirrors to state.
+  //
+  // Opening a tab PUSHES a history entry. It used to replace, so entering a
+  // tab added nothing to history and Back skipped the Profile landing
+  // entirely: /dashboard -> Profile -> Account Security -> Back landed on
+  // /dashboard, with history.length never incrementing. On iOS the swipe-back
+  // gesture did the same, which is the one users reach for constantly.
+  //
+  // Returning to the landing still REPLACES, so Back doesn't walk you through
+  // every tab you happened to visit — one Back from a tab lands on the
+  // landing, a second leaves Profile.
   useEffect(() => {
     const current = resolveTab(searchParams.get("tab"));
     if (current === tab) return;
@@ -146,7 +157,7 @@ const ProfilePage = () => {
         else next.set("tab", tab);
         return next;
       },
-      { replace: true },
+      { replace: tab === "landing" },
     );
   }, [tab]);
 
@@ -431,28 +442,46 @@ const ProfilePage = () => {
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
-    if (!file.type.startsWith("image/")) { toast.error("That doesn't look like an image — try JPG or PNG."); return; }
-    if (file.size > 5 * 1024 * 1024) { toast.error("That image is over 5 MB — try a smaller one."); return; }
 
+    // ── THIS IS THE "I UPLOADED THE WRONG THING" PATH ────────────────────
+    //
+    // The member who uploads a photo of their driver's licence by mistake,
+    // notices, and comes back to swap in a selfie arrives HERE. So this call
+    // has to actually retract the old object, not just add a new one beside
+    // it — which is what it did until 2026-09-01: the key embedded the picked
+    // file's own extension (`avatar.${file.name.split(".").pop()}`, so also
+    // `avatar.undefined` for a file with no dot), a `.png` over a `.jpg` was a
+    // second public object, and the licence stayed anonymously fetchable at
+    // 200 forever. `replaceAvatarObject` derives the key from the CONTENT TYPE
+    // and deletes every other `avatar.*` in the folder, verifying the delete
+    // by re-listing. See `@/lib/avatarStorage`.
+    //
+    // Type + size are checked in there too, against the bucket's OWN limits,
+    // rather than the looser `startsWith("image/")` this used (which accepted
+    // image/heic and image/svg+xml — neither is in the bucket's
+    // allowed_mime_types, so both failed at the server with an opaque message).
     setAvatarUploading(true);
-    const ext = file.name.split(".").pop();
-    const path = `${user.id}/avatar.${ext}`;
 
-    // Avatars go in the public `avatars` bucket (user-documents is now
-    // private as of 2026-05-05; mixing public avatars with private docs
-    // forced a wrong choice on bucket-level public flag).
-    const { error: uploadError } = await supabase.storage
-      .from("avatars")
-      .upload(path, file, { upsert: true });
-
-    if (uploadError) {
-      toast.error("Couldn't upload your photo — " + uploadError.message);
+    let replaced;
+    try {
+      assertUploadableAvatar(file);
+      replaced = await replaceAvatarObject(supabase, user.id, file, file.type);
+    } catch (err) {
+      toast.error(mutationErrorMessage(err, "Couldn't upload your photo — please try again."));
       setAvatarUploading(false);
       return;
     }
 
-    const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
-    const avatarUrl = urlData.publicUrl + "?t=" + Date.now();
+    const avatarUrl = replaced.publicUrl;
+
+    // The new photo is live but the OLD one survived the sweep, so it is still
+    // being served publicly. Say so — this is the case where staying quiet
+    // means telling someone their document is gone when it is not.
+    if (replaced.staleRemaining.length > 0) {
+      toast.error(
+        "Your new photo is saved, but we couldn't remove the previous one — it may still be visible. Please try changing your photo again.",
+      );
+    }
 
     const { error: updateError } = await supabase
       .from("profiles")
@@ -482,26 +511,28 @@ const ProfilePage = () => {
     if (deleteConfirmText !== "DELETE") return;
     setDeletingAccount(true);
     try {
-      // Block deletion while the user is mid-transaction: an active job or
-      // escrowed funds would be orphaned. The edge function enforces this too
-      // (409), but pre-checking here lets us show a clear, human message
-      // instead of a generic "Failed to delete" from a non-2xx response.
-      if (user?.id) {
-        const { data: activeJobs, error: activeErr } = await supabase
-          .from("jobs")
-          .select("id")
-          .or(`customer_id.eq.${user.id},helper_id.eq.${user.id}`)
-          .or("status.in.(accepted,arrived,in_progress,awaiting),payment_status.eq.escrow")
-          .limit(1);
-        if (activeErr) throw activeErr;
-        if (activeJobs && activeJobs.length > 0) {
-          toast.error(
-            "You have an active job or a payment in progress. Wrap up your open jobs and let any payments settle first.",
-          );
-          setDeletingAccount(false);
-          return;
-        }
-      }
+      // There is NO client-side pre-check for active jobs here, on purpose.
+      //
+      // There used to be one, duplicating the guard inside delete-own-account.
+      // It carried its own copy of the `job_status` list, that copy contained
+      // `arrived` and `awaiting` — neither of which is a member of the enum
+      // (`arrived` belongs to `job_tracking.status`; `awaiting` exists
+      // nowhere) — and Postgres rejects the WHOLE query with 22P02 when any
+      // listed value is not a member. Verified against prod 2026-08-31:
+      //   GET /rest/v1/jobs?status=in.(accepted,arrived,in_progress,awaiting)
+      //   -> 400 {"code":"22P02","message":"invalid input value for enum
+      //           job_status: \"arrived\""}
+      // Because `if (activeErr) throw activeErr` ran before the invoke, this
+      // threw for EVERY user regardless of whether they had any jobs, so
+      // in-app account deletion was 100% broken — an App Store compliance
+      // gate. The edge function's identical list was fixed a day earlier and
+      // the fix was never carried across, which is the whole argument against
+      // keeping a second copy.
+      //
+      // The server already enforces this and answers 409 with a human message
+      // that `functionErrorMessage` surfaces verbatim, so the pre-check bought
+      // nothing but a drift hazard. One guard, server-side, where it has to
+      // live anyway.
       const { error } = await supabase.functions.invoke("delete-own-account", {
         body: { confirmation: "DELETE MY ACCOUNT" },
       });

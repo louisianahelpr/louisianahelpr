@@ -8,7 +8,7 @@
 // part of the Web Crypto standard). Safe to import from any Deno edge
 // function.
 
-export function base64UrlEncode(bytes: Uint8Array): string {
+function base64UrlEncode(bytes: Uint8Array): string {
   let s = "";
   for (const b of bytes) s += String.fromCharCode(b);
   return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
@@ -21,7 +21,7 @@ export function base64UrlEncode(bytes: Uint8Array): string {
 // algParams selects the algorithm:
 //   { name: 'ECDSA', namedCurve: 'P-256' }      — APNs (ES256)
 //   { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' } — Google service accounts (RS256)
-export async function importPkcs8Pem(
+async function importPkcs8Pem(
   pem: string,
   algParams: EcKeyImportParams | RsaHashedImportParams,
 ): Promise<CryptoKey> {
@@ -39,7 +39,7 @@ export async function importPkcs8Pem(
 // signParams must match the algParams used to import the key:
 //   ES256: { name: 'ECDSA', hash: 'SHA-256' }
 //   RS256: { name: 'RSASSA-PKCS1-v1_5' }
-export async function signJwt(
+async function signJwt(
   header: Record<string, unknown>,
   claims: Record<string, unknown>,
   key: CryptoKey,

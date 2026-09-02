@@ -1,9 +1,11 @@
+import * as React from "npm:react@18.3.1";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
-import { brand } from '../_shared/email-templates/styles.ts'
-import { htmlEscape } from "../_shared/safe-strings.ts";
+import { FROM_DEFAULT, sendWithResend } from "../_shared/resend.ts";
+import { SelfEmailChangeNoticeEmail } from "../_shared/email-templates/email-changed.tsx";
+import { renderEmail } from "../_shared/email-templates/render.ts";
 
 /**
  * notify-email-change — sends an "email address changed" notification to
@@ -84,33 +86,28 @@ serve(async (req) => {
       });
     }
 
-    const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"></head>
-<body style="background-color:${brand.parchment};font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif;margin:0;padding:24px">
-<div style="max-width:480px;margin:0 auto;background:${brand.surface};border-radius:14px;padding:32px 28px;border:1px solid ${brand.hairline}">
-  <img src="https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/brand-asset" alt="Helpr" width="80" style="display:block;width:150px;max-width:150px;height:auto;border:0;outline:none;text-decoration:none;margin:0 0 24px;" />
-  <h1 style="font-size:24px;font-weight:bold;color:${brand.inkDeep};margin:0 0 16px">Your email address was changed</h1>
-  <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">Someone signed in to your Helpr account and started changing your login email from <strong>${htmlEscape(oldEmail)}</strong> to <strong>${htmlEscape(newEmail)}</strong>. To finalize the change, the new address will need to confirm the request.</p>
-  <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px"><strong>Was this you?</strong> No action needed — the confirmation link was sent to your new address.</p>
-  <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px"><strong>Was this NOT you?</strong> Reset your password immediately and contact us at <a href="mailto:admin@louisianahelpr.com" style="color:${brand.burntSienna}">admin@louisianahelpr.com</a>.</p>
-  <p style="font-size:13px;color:${brand.bodyOlive};line-height:1.5;margin:24px 0 0;padding:16px 0 0;border-top:1px solid ${brand.hairline}">Questions? Contact us at admin@louisianahelpr.com.</p>
-</div>
-</body></html>`;
-    const text = `Your Helpr account email is being changed from ${oldEmail} to ${newEmail}. If this was NOT you, reset your password and contact admin@louisianahelpr.com immediately.`;
+    // Both parts come from ONE react-email component: `renderEmail` returns the
+    // HTML and react-email's own plaintext twin, so the two can never drift —
+    // the hand-written text body this replaced had already lost the "was this
+    // you / was this NOT you" guidance the HTML carried. React escapes both
+    // addresses; the shape check above is the layer that actually keeps prose
+    // out of a Helpr-branded security notice.
+    const { html, text } = await renderEmail(
+      React.createElement(SelfEmailChangeNoticeEmail, { oldEmail, newEmail }),
+    );
 
-    const resp = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${resendApiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        from: "Helpr <noreply@louisianahelpr.com>",
-        to: [oldEmail],
+    try {
+      await sendWithResend(resendApiKey, {
+        to: oldEmail,
+        from: FROM_DEFAULT,
         subject: "Your Helpr email address is being changed",
         html,
         text,
-      }),
-    });
-
-    if (!resp.ok) {
-      const detail = await resp.text().catch(() => "");
+      });
+    } catch (sendErr) {
+      // sendWithResend throws on any non-2xx (it does not hand back a Response),
+      // so the failure path that used to read `!resp.ok` lives here now.
+      const detail = sendErr instanceof Error ? sendErr.message : String(sendErr);
       console.error("[notify-email-change] Resend send failed:", detail);
       return new Response(JSON.stringify({ success: false, error: "Notification send failed" }), {
         status: 500,

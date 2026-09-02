@@ -216,7 +216,12 @@ export async function fetchPostedActivityDetail(
   const [helperProfilesRes, tipsRes, reviewsRes, trackingRes, groupHelpersRes] = await Promise.all([
     helperIds.length ? supabase.rpc("get_safe_profiles", { user_ids: helperIds }) : emptyResult<SafeProfileRow>(),
     completedIds.length
-      ? supabase.from("tips").select("job_id").in("job_id", completedIds).eq("tipper_id", userId)
+      // `payment_status = 'paid'` matters: without it ANY tips row counted as
+      // "tipped", including the `pending` row create-payment writes before the
+      // user reaches Stripe. So abandoning the checkout permanently locked the
+      // Tip button to a disabled "Tipped" state for that job — the poster could
+      // never tip, and the helper never got one, with nothing to show why.
+      ? supabase.from("tips").select("job_id").in("job_id", completedIds).eq("tipper_id", userId).eq("payment_status", "paid")
       : emptyResult<{ job_id: string }>(),
     completedIds.length
       ? supabase.from("reviews").select("job_id").in("job_id", completedIds).eq("reviewer_id", userId)

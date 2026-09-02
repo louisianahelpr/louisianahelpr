@@ -13,6 +13,7 @@ import { report } from "@/lib/errorLogger";
 import { formatCategory, formatPrice, formatPriceFloor, wrappedSeasonLabel } from "@/lib/format";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
 import { sumHelperTakeHomeDollars } from "@/lib/helperEarnings";
+import { jobLocalMidnightMs } from "../../supabase/functions/_shared/cancellationFee";
 
 const YEAR = new Date().getFullYear();
 // "Wrapped" in December, "so far" the rest of the year (see LH-39).
@@ -38,13 +39,22 @@ interface WrappedStats {
 }
 
 async function fetchWrappedStats(userId: string): Promise<WrappedStats> {
-  const yearStart = `${YEAR}-01-01T00:00:00.000Z`;
-  const yearEnd = `${YEAR}-12-31T23:59:59.999Z`;
+  // The year window is the PLATFORM's year, not UTC's. `${YEAR}-01-01T00:00Z`
+  // is 6pm on Dec 31 of the previous year in Louisiana, so the UTC bounds
+  // silently pulled in the last six hours of last year and dropped the last
+  // six hours of this one — including New Year's Eve, which is exactly when a
+  // "year in review" gets opened. `jobLocalMidnightMs` resolves a YYYY-MM-DD
+  // at midnight America/Chicago, the same primitive the job-date comparisons
+  // use, so Wrapped and the rest of the app agree on which day a job was.
+  const yearStart = new Date(jobLocalMidnightMs(`${YEAR}-01-01`)).toISOString();
+  const yearEnd = new Date(jobLocalMidnightMs(`${YEAR + 1}-01-01`) - 1).toISOString();
 
   const [postedRes, completedRes, reviewsGivenRes, reviewsReceivedRes, profileRes] = await Promise.all([
     supabase
       .from("jobs")
-      .select("id, budget, category, helper_id")
+      // `status` is selected so the MONEY figure below can be scoped to jobs
+      // that actually happened. The row count stays every posted job.
+      .select("id, budget, category, helper_id, status")
       .eq("customer_id", userId)
       .gte("created_at", yearStart)
       .lte("created_at", yearEnd),
@@ -61,10 +71,21 @@ async function fetchWrappedStats(userId: string): Promise<WrappedStats> {
       .eq("reviewer_id", userId)
       .gte("created_at", yearStart)
       .lte("created_at", yearEnd),
+    // Reviews RECEIVED must obey the two filters `src/lib/reviewStats.ts`
+    // names as the single source of truth: past the anti-retaliation reveal
+    // (`feedback_visible_at`), and not attached to a cancelled job. Without
+    // them this screen counted reviews the recipient is not yet allowed to
+    // see. Measured on the seeded helper 2026-08-31: /profile showed
+    // "5.0 · 1 review" while /wrapped showed "2 REVIEWS RECEIVED", because
+    // review c3ee22a8 is embargoed until 2026-09-14 — and `bestRating` below
+    // surfaced its score too. Wrapped is the app's most screenshotted screen,
+    // so it was the one place the embargo leaked.
     supabase
       .from("reviews")
-      .select("id, rating")
+      .select("id, rating, jobs!inner(status)")
       .eq("reviewee_id", userId)
+      .lte("feedback_visible_at", new Date().toISOString())
+      .neq("jobs.status", "cancelled")
       .gte("created_at", yearStart)
       .lte("created_at", yearEnd),
     supabase
@@ -113,8 +134,18 @@ async function fetchWrappedStats(userId: string): Promise<WrappedStats> {
   const reviewsGiven = reviewsGivenRes.data ?? [];
   const reviewsReceived = reviewsReceivedRes.data ?? [];
 
-  // Total spent = sum of budgets on posted jobs (proxy)
-  const totalSpent = posted.reduce((acc, j) => acc + (j.budget ?? 0), 0);
+  // Total spent — COMPLETED posted jobs only. This renders as "invested in
+  // community", which is a claim about money that moved, so it cannot be
+  // summed over `open`, `cancelled`, `disputed` and `pending_approval` jobs
+  // the way it used to be: a poster who listed four $200 jobs and cancelled
+  // all four was told they had invested $800 in their neighbours. Every other
+  // money aggregate in the app scopes the same way (AdminExport, Admin
+  // analytics, money-reconciliation all `.eq("status","completed")`).
+  // `jobsPosted` below intentionally still counts every posted job — that one
+  // is an activity count, not a money claim.
+  const totalSpent = posted
+    .filter((j) => j.status === "completed")
+    .reduce((acc, j) => acc + (j.budget ?? 0), 0);
   // Total earned = helper take-home (net of the platform fee), so the same
   // $75 job reads the same here as on analytics/work-record/Earnings. The
   // per-job resolution (stamped fee → frozen per-job % → tier rate, plus the
@@ -245,10 +276,18 @@ const HelprWrapped = () => {
         : parts.length === 1
           ? parts[0]
           : `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
+    // NO `url`. This passed `https://www.louisianahelpr.com` — the marketing
+    // homepage — which is the identical defect to the Work Record bug: iOS
+    // prefers a URL over text and renders ITS link preview, so the recipient
+    // got "Helpr — Louisiana's Local Job Partner | Hire or Find Work" and the
+    // generic site blurb where the person's year was supposed to be. There is
+    // no public page that shows someone's Wrapped, so per the contract on
+    // `ShareContent.url` there is nothing real to link to and the field is
+    // omitted. The summary is the whole point of this share, and without a
+    // URL competing for the preview it is what actually gets sent.
     await shareNative({
       title: `My ${YEAR} on Helpr`,
       text: `I ${summary} on @LouisianaHelpr this year! 🎉`,
-      url: "https://www.louisianahelpr.com",
       dialogTitle: SEASON.isYearEnd ? "Share your Helpr Wrapped" : "Share your Helpr year",
     });
   };

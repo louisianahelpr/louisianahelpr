@@ -160,8 +160,17 @@ jobs:
             | grep -vE "/(supabase|jspdf|firebase|charts|motion|stripe)-" \
             | grep -vE "/index-[A-Za-z0-9_-]+\.js$" || true)
           if [ -n "$OFFENDERS" ]; then
-            echo "::warning::console.log statements found in production bundle:"
+            # BLOCKING (2026-08-31). This was ::warning:: with no exit code, so
+            # the step named "Guard against console.log in built bundle"
+            # guarded nothing: it printed the offending chunks and the release
+            # shipped anyway. Same shape as the `|| true` on the type check
+            # above (fixed 2026-08-27) — a step that reads as a gate and is
+            # not one. A stray console.log in a shipped App Store bundle can
+            # leak user/job/payment payloads to any attached console.
+            echo "::error::console.log statements found in the production bundle:"
             echo "$OFFENDERS"
+            echo "::error::Vite's esbuild \`drop\` should have removed these. Either the call is in a vendor chunk that needs adding to the exclusion list above, or it is application code reached through a path \`drop\` cannot see (e.g. a string-built call). Fix it — do not widen the exclusion to get green."
+            exit 1
           else
             echo "✓ No stray console.log in application bundle (vendor refs ignored)"
           fi
@@ -339,9 +348,15 @@ jobs:
           echo "▶ Checking required iOS files..."
           test -f ios/PrivacyInfo.xcprivacy        || (echo "❌ Missing PrivacyInfo.xcprivacy" && exit 1)
           test -d ios/App/App/Assets.xcassets/AppIcon.appiconset || (echo "❌ Missing AppIcon.appiconset" && exit 1)
+          # BLOCKING (2026-08-31). This was a ::warning:: with no exit code.
+          # App Store Connect REJECTS a submission with no 1024x1024 marketing
+          # icon, so a missing icon does not "need verifying in Xcode" — it is
+          # a guaranteed failed upload after ~40 minutes of paid macOS runner
+          # time, reported by Apple rather than by this pre-submission
+          # validation step whose entire job is to catch it first.
           test -f ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png \
             || test -f ios/App/App/Assets.xcassets/AppIcon.appiconset/icon-1024.png \
-            || echo "::warning::1024×1024 marketing icon not found at expected path — verify in Xcode"
+            || (echo "::error::1024x1024 marketing icon not found at ios/App/App/Assets.xcassets/AppIcon.appiconset/{AppIcon-512@2x.png,icon-1024.png} — App Store Connect will reject this submission. Regenerate the app icon set (see ios-icon-sync.yml) and commit it." && exit 1)
 
           echo "▶ Verifying bundle ID = com.Helpr"
           BUNDLE_ID=$(grep -E "PRODUCT_BUNDLE_IDENTIFIER" ios/App/App.xcodeproj/project.pbxproj | head -1 | sed 's/.*= //' | tr -d ' ;')

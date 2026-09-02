@@ -111,7 +111,9 @@ export async function settleOnboardingFee(
           title: "Duplicate fee refunded",
           message:
             "We caught a duplicate $2 onboarding fee on your account and refunded it. The fee is one-time only — you won't see it again.",
-          link: "/profile",
+          // The refund shows on Earnings & Payouts; the landing tab doesn't
+          // mention money at all.
+          link: "/profile?tab=earnings",
           read: false,
         });
         logStep("Refunded duplicate onboarding fee", {

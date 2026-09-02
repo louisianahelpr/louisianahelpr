@@ -10,7 +10,7 @@
  */
 import { safeStorage } from "@/lib/safeStorage";
 
-function getBrandColors(): string[] {
+export function getBrandColors(): string[] {
   if (typeof window === "undefined")
     return ["#5E6544", "#8C947D", "#A0613B", "#D4A55F", "#FAF8F5"];
   const s = getComputedStyle(document.documentElement);

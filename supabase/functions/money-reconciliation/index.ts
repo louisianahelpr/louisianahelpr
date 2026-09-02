@@ -44,11 +44,34 @@ import { computeCancellationFee, hoursUntilJob } from "../_shared/cancellationFe
 import { helperCommissionDollars, feePercentForTier } from "../_shared/helperFees.ts";
 import { AUTO_COMPLETE_HOURS } from "../_shared/escrowTiming.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
+import { cronError, cronResult } from "../_shared/cron-result.ts";
+import { scanAll, scanAllIn, scanDefect } from "../_shared/paginate.ts";
 
 /** Offending ids reported per check. A bad day must not emit a 10MB payload. */
 const MAX_IDS_PER_CHECK = 10;
-/** Hard cap on rows pulled per table, so one runaway table can't OOM the run. */
-const SCAN_LIMIT = 5000;
+/*
+ * THERE IS NO `SCAN_LIMIT` ANY MORE, AND ITS REMOVAL IS THE POINT.
+ *
+ * IT USED TO BE `.limit(5000)` PLUS `if (rows.length >= 5000) caps.push(...)`,
+ * AND THAT ALARM COULD NEVER FIRE.
+ *
+ * PostgREST enforces `db-max-rows = 1000` on this project, and an explicit
+ * `.limit()` above the cap does not raise it. Measured against prod on
+ * 2026-09-01: `notifications?select=id&limit=5000` against a 1,619-row table
+ * returned `content-range: 0-999/*` — exactly 1000 rows. So every scan below
+ * read at most a FIFTH of what it asked for, `rows.length` topped out at 1000,
+ * `1000 >= 5000` was false every single time, and this reconciler reported
+ * "clean, no caps hit" while auditing a fifth of the money. A reconciler that
+ * silently scans a subset is worse than no reconciler: it is an assertion of
+ * correctness over data it never looked at.
+ *
+ * The scans are now paged (`scanAll`, which walks `.range()` past the cap) and
+ * the truncation check is against the SERVER'S OWN exact count rather than a
+ * client-side limit the platform is free to override. The only ceiling left is
+ * `MAX_PAGES × PAGE_SIZE` inside that helper, and reaching it is reported as a
+ * defect rather than accepted. Nothing here declares a limit of its own,
+ * because a limit is the thing that lied.
+ */
 /** Money compares are on dollars; tolerate half a cent of float noise. */
 const EPSILON = 0.005;
 /**
@@ -70,6 +93,19 @@ const EPSILON = 0.005;
  */
 const SETTLE_WINDOW_HOURS = 2;
 const SETTLE_WINDOW_MS = SETTLE_WINDOW_HOURS * 60 * 60 * 1000;
+
+/**
+ * How long a job may legitimately sit in `payout_pending` past its scheduled
+ * payout time before it counts as stranded.
+ *
+ * auto-release-payment sets `payout_scheduled_at = now + 24h` and then fires
+ * the payout from its own Phase 2, which runs every 30 minutes. So a job that
+ * has been due for hours has not been "waiting"; something failed and said
+ * nothing. Six hours is generous against a Stripe outage or a batch of retries
+ * while still catching a stranded payout on the same day it strands.
+ */
+const PAYOUT_WINDOW_HOURS = 6;
+const PAYOUT_WINDOW_MS = PAYOUT_WINDOW_HOURS * 60 * 60 * 1000;
 
 type Severity = "critical" | "warning" | "info";
 
@@ -224,11 +260,19 @@ serve(async (req) => {
         "critical",
         "A job is in a live dispute (status='disputed', or dispute_status open/escalated/stripe_chargeback/reversal_hold) but has_active_dispute = false — the review gate and every other reader of the flag see an undisputed job.",
       ),
-      timeCredits: new Check(
-        "time_credit_balance_drift",
-        "warning",
-        "time_credits.balance_after does not equal the running sum of amount_minutes for that user — the denormalized balance has drifted from its own ledger.",
+      payoutStranded: new Check(
+        "payout_pending_stranded",
+        "critical",
+        `payment_status='payout_pending' more than ${PAYOUT_WINDOW_HOURS}h past payout_scheduled_at — the helper was told they would be paid and nothing has moved. This is the END STATE of an unguarded release write (a zero-row flip after the transfer went out) and of a payout that failed with nothing recorded, and until now NOTHING detected it: this reconciler only looked at 'escrow'.`,
       ),
+      // `time_credit_balance_drift` was retired with the table it graded.
+      // `public.time_credits` was dropped by migration 20260901035602 (its RLS
+      // let any signed-in user mint their own credits, and nothing in the app
+      // ever minted or spent them). Leaving the check here would have this
+      // reconciler read a table that no longer exists on every run — it
+      // degrades rather than crashes, but it would then push a
+      // "time-credit check skipped" note into every single result, forever,
+      // which is how a reconciler's output stops being read.
     };
 
     const notes: string[] = [];
@@ -237,21 +281,32 @@ serve(async (req) => {
     // ── Load jobs ────────────────────────────────────────────────────────────
     // Never drop a Supabase `error`: a swallowed failure here would report
     // "all clean" while having scanned nothing, which is worse than no alarm.
-    let jobQuery = admin
-      .from("jobs")
-      .select(
-        "id, is_seed, status, payment_status, budget, date_needed, cancelled_at, helper_id, " +
-          "cancellation_fee, cancellation_fee_status, late_cancellation, platform_fee_amount, " +
-          "helper_fee_percent, is_group_job, helpers_needed, has_active_dispute, dispute_status, " +
-          "poster_completed_at, helper_completed_at, updated_at",
-      )
-      .limit(SCAN_LIMIT);
-    if (!includeSeed) jobQuery = jobQuery.eq("is_seed", false);
-    const { data: jobs, error: jobsErr } = await jobQuery;
-    if (jobsErr) throw new Error(`jobs read failed: ${jobsErr.message}`);
-    if ((jobs?.length ?? 0) >= SCAN_LIMIT) caps.push(`jobs scan hit the ${SCAN_LIMIT}-row cap`);
+    // The column list MUST stay one unbroken string literal. postgrest-js parses
+    // the select at the TYPE level to build the row shape, and it can only do
+    // that from a literal: `"a, b" + "c, d"` widens to plain `string`, the parser
+    // gives up and every row becomes `GenericStringError`, so `job.budget`,
+    // `job.helper_id` and the other 20 columns below are all type errors. Written
+    // as a `+` concatenation this one query produced 70 of the 120 errors the
+    // edge typecheck first reported. Same characters, same query — a template
+    // literal or a `+` chain would put it straight back.
+    const jobScan = await scanAll<Record<string, unknown>>("jobs", (countOpt) => {
+      const q = admin
+        .from("jobs")
+        .select(
+          "id, is_seed, status, payment_status, budget, date_needed, cancelled_at, helper_id, cancellation_fee, cancellation_fee_status, late_cancellation, platform_fee_amount, helper_fee_percent, is_group_job, helpers_needed, has_active_dispute, dispute_status, poster_completed_at, helper_completed_at, payout_scheduled_at, updated_at",
+          countOpt,
+        )
+        // Paging without an ORDER BY is sampling, not paging: the cap and the
+        // offset both apply after the sort, and with no sort there is no
+        // stable one. `id` is the primary key.
+        .order("id", { ascending: true });
+      return includeSeed ? q : q.eq("is_seed", false);
+    });
+    if (jobScan.error) throw new Error(`jobs read failed: ${jobScan.error.message}`);
+    const jobsCap = scanDefect("jobs", jobScan);
+    if (jobsCap) caps.push(jobsCap);
 
-    const jobRows = jobs ?? [];
+    const jobRows = jobScan.rows;
     const jobById = new Map(jobRows.map((j) => [j.id as string, j]));
 
     // ── Cancelled-job checks ─────────────────────────────────────────────────
@@ -346,6 +401,33 @@ serve(async (req) => {
       });
     }
 
+    // ── Payouts that were promised and never moved ───────────────────────────
+    // This whole reconciler used to skip anything not in 'escrow' (`if
+    // (job.payment_status !== "escrow") continue`), which left the single most
+    // expensive terminal state unwatched. A job reaches `payout_pending` only
+    // after auto-release-payment has told the helper "you will be paid in 24
+    // hours", so a job stuck there is a promise the platform made and did not
+    // keep — and it is exactly where an unguarded release write leaves a job
+    // whose transfer already went out, and where a payout that failed with
+    // nothing recorded leaves one whose transfer never did. Neither had an
+    // alarm.
+    for (const job of jobRows) {
+      if (job.payment_status !== "payout_pending") continue;
+      // Keyed on the SCHEDULED time, not on when the row was last touched: the
+      // schedule is the promise, and `updated_at` moves for unrelated reasons.
+      // A row with no schedule at all is still graded (falling back to
+      // updated_at) rather than exempted — an unknown timestamp must not become
+      // a silent pass, which is the same rule the escrow check above follows.
+      const dueAt = ts(job.payout_scheduled_at) ?? ts(job.updated_at) ?? 0;
+      if (nowMs - dueAt <= PAYOUT_WINDOW_MS) continue;
+      checks.payoutStranded.add({
+        job_id: job.id,
+        budget: money(job.budget),
+        payout_scheduled_at: job.payout_scheduled_at ?? null,
+        hours_overdue: Math.round(((nowMs - dueAt) / 3_600_000) * 100) / 100,
+      });
+    }
+
     // ── Released / paying-out jobs ───────────────────────────────────────────
     const payoutJobs = jobRows.filter(
       (j) => j.payment_status === "released" || j.payment_status === "payout_pending",
@@ -379,15 +461,27 @@ serve(async (req) => {
       ...new Set(payoutJobs.map((j) => j.helper_id).filter((v): v is string => !!v)),
     ];
     if (payoutHelperIds.length) {
-      const { data: profs, error: profErr } = await admin
-        .from("profiles")
-        .select("user_id, subscription_tier, subscription_expires_at")
-        .in("user_id", payoutHelperIds);
-      if (profErr) {
+      // `.in(...)` is capped like every other read — a 3,000-id IN list returns
+      // 1000 rows with no complaint — and a long enough list blows the URL
+      // length first. `scanAllIn` chunks the ids AND pages each chunk, so a
+      // silently short profile read can no longer turn into "no tier drift".
+      const profScan = await scanAllIn<Record<string, unknown>>(
+        "profiles",
+        payoutHelperIds,
+        (chunk, countOpt) =>
+          admin
+            .from("profiles")
+            .select("user_id, subscription_tier, subscription_expires_at", countOpt)
+            .order("user_id", { ascending: true })
+            .in("user_id", chunk),
+      );
+      if (profScan.error) {
         // Do NOT swallow. This check degrades; the rest of the run stands.
-        notes.push(`tier cross-check skipped: profiles read failed (${profErr.message})`);
+        notes.push(`tier cross-check skipped: profiles read failed (${profScan.error.message})`);
       } else {
-        const tierBy = new Map((profs ?? []).map((p) => [p.user_id as string, p]));
+        const profCap = scanDefect("profiles", profScan);
+        if (profCap) caps.push(profCap);
+        const tierBy = new Map(profScan.rows.map((p) => [p.user_id as string, p]));
         for (const job of payoutJobs) {
           const prof = job.helper_id ? tierBy.get(job.helper_id as string) : null;
           if (!prof) continue;
@@ -409,17 +503,61 @@ serve(async (req) => {
     }
 
     // ── Payout ledger ────────────────────────────────────────────────────────
-    const { data: transfers, error: trErr } = await admin
-      .from("payout_transfers")
-      .select("job_id, amount_cents, platform_fee_cents, status")
-      .limit(SCAN_LIMIT);
-    if (trErr) throw new Error(`payout_transfers read failed: ${trErr.message}`);
-    if ((transfers?.length ?? 0) >= SCAN_LIMIT) caps.push(`payout_transfers scan hit the ${SCAN_LIMIT}-row cap`);
+    type TransferRow = {
+      job_id: string;
+      amount_cents: number | null;
+      platform_fee_cents: number | null;
+      status: string | null;
+      stripe_transfer_id: string | null;
+    };
+    const transferScan = await scanAll<TransferRow>("payout_transfers", (countOpt) =>
+      admin
+        .from("payout_transfers")
+        .select("job_id, amount_cents, platform_fee_cents, status, stripe_transfer_id", countOpt)
+        .order("id", { ascending: true }),
+    );
+    if (transferScan.error) throw new Error(`payout_transfers read failed: ${transferScan.error.message}`);
+    // A TRUNCATED payout ledger does not hide findings here — it MANUFACTURES
+    // them. `paidJobIds` is built from whatever came back, so every `released`
+    // job whose transfer row fell outside a short read is reported as
+    // `released_without_payout_transfer`: "money supposedly left, with no
+    // record of where." That is a CRITICAL, and a critical that fires because a
+    // scan came up short is how an alarm gets muted. `transferFeeMismatch` has
+    // the same exposure for the same reason.
+    //
+    // So both ledger checks degrade to "skipped", exactly as the dispute
+    // cross-check below already does. Skipping is recorded in `notes`, which
+    // feeds the defect count and the degraded Slack alert, so the skip is
+    // louder than the false criticals would have been — and honest.
+    const transferCap = scanDefect("payout_transfers", transferScan);
+    const transfers = transferScan.rows;
 
-    // Reversed transfers legitimately leave a job with money clawed back, so
-    // they don't count as "this job was paid".
+    // Only rows where money actually moved count as "this job was paid".
+    //
+    // This used to be `status !== 'reversed'`, an allow-everything-else test
+    // that was correct only because 'failed' rows never existed — nothing in
+    // the payout set ever wrote one. They do now (the claim protocol in
+    // _shared/payoutClaim.ts records every failed attempt), and so do 'pending'
+    // CLAIM rows written moments before a transfer that may never happen. Under
+    // the old test both would have counted as payment, and
+    // `released_without_payout_transfer` — a critical check — would have gone
+    // quiet on exactly the jobs it exists to catch.
+    // Money is out, and stayed out, iff the row is 'paid' — or 'pending' with a
+    // REAL Stripe transfer id, which is the brief window between
+    // transfers.create returning and the row being stamped paid.
+    //
+    // 'reversed' and 'reversal_cleared' both mean money was clawed back, so
+    // neither counts. A 'pending' row with a NULL id is a CLAIM taken moments
+    // before a transfer that may never happen, and 'failed'/'canceled' are
+    // attempts that moved nothing.
+    const isSettledTransfer = (t: { status: unknown; stripe_transfer_id?: unknown }) =>
+      String(t.status) === "paid" ||
+      (String(t.status) === "pending" && t.stripe_transfer_id != null);
+    if (transferCap) {
+      notes.push(`payout-ledger checks skipped: ${transferCap}`);
+    } else {
     const paidJobIds = new Set(
-      (transfers ?? []).filter((t) => t.status !== "reversed").map((t) => t.job_id as string),
+      transfers.filter(isSettledTransfer).map((t) => t.job_id as string),
     );
     for (const job of jobRows) {
       if (job.payment_status === "released" && !paidJobIds.has(job.id as string)) {
@@ -427,11 +565,16 @@ serve(async (req) => {
       }
     }
 
-    for (const t of transfers ?? []) {
+    for (const t of transfers) {
       const job = jobById.get(t.job_id as string);
       // A transfer whose job is outside this scan's scope (e.g. a seed job on a
       // non-seed run) is not a finding — it simply wasn't audited here.
       if (!job) continue;
+      // Only settled rows carry a real commission to compare. A 'failed' attempt
+      // records 0 and a 'pending' claim records an estimate; grading either
+      // against jobs.platform_fee_amount would manufacture a critical finding
+      // out of a row that never moved money.
+      if (!isSettledTransfer(t)) continue;
       const expectedCents = Math.round(money(job.platform_fee_amount) * 100);
       const storedCents = Math.round(Number(t.platform_fee_cents ?? 0));
       if (expectedCents !== storedCents) {
@@ -443,18 +586,34 @@ serve(async (req) => {
         });
       }
     }
+    } // end payout-ledger checks
 
     // ── Dispute flag vs dispute rows ─────────────────────────────────────────
     const flaggedJobIds = jobRows.filter((j) => j.has_active_dispute === true).map((j) => j.id as string);
     if (flaggedJobIds.length) {
-      const { data: disputeRows, error: dErr } = await admin
-        .from("disputes")
-        .select("job_id")
-        .in("job_id", flaggedJobIds);
-      if (dErr) {
-        notes.push(`dispute cross-check skipped: disputes read failed (${dErr.message})`);
+      const disputeScan = await scanAllIn<Record<string, unknown>>(
+        "disputes",
+        flaggedJobIds,
+        (chunk, countOpt) =>
+          admin
+            .from("disputes")
+            .select("job_id", countOpt)
+            .order("id", { ascending: true })
+            .in("job_id", chunk),
+      );
+      // A TRUNCATED dispute read makes flagged jobs look like they have NO
+      // dispute row, and `dispute_flag_without_row` is a CRITICAL. So an
+      // incomplete read here does not merely hide findings, it MANUFACTURES
+      // them — and a critical that fires because a scan came up short is how
+      // people learn to ignore an alarm. Both failures therefore degrade the
+      // check to "skipped" rather than grading a partial set.
+      const disputeCap = scanDefect("disputes", disputeScan);
+      if (disputeCap) {
+        // `notes` only, not `caps` as well — both feed the defect list below
+        // and a skipped check should be one defect, not two.
+        notes.push(`dispute cross-check skipped: ${disputeCap}`);
       } else {
-        const withDispute = new Set((disputeRows ?? []).map((d) => d.job_id as string));
+        const withDispute = new Set(disputeScan.rows.map((d) => d.job_id as string));
         for (const id of flaggedJobIds) {
           if (!withDispute.has(id)) checks.disputeNoRow.add({ job_id: id });
         }
@@ -479,41 +638,18 @@ serve(async (req) => {
     }
 
     // ── Credit conservation ──────────────────────────────────────────────────
-    // Only `time_credits` carries a denormalized running balance
-    // (`balance_after`) that can disagree with its own ledger. referral_credits
-    // and pif_credits have no cached balance column and no `profiles` mirror —
-    // their balances are summed live from the rows, so there is no second copy
-    // to drift. Nothing to reconcile there; asserting on them would be theatre.
-    const { data: tc, error: tcErr } = await admin
-      .from("time_credits")
-      .select("id, user_id, amount_minutes, balance_after, created_at")
-      .order("user_id", { ascending: true })
-      .order("created_at", { ascending: true })
-      .order("id", { ascending: true })
-      .limit(SCAN_LIMIT);
-    if (tcErr) {
-      notes.push(`time-credit check skipped: time_credits read failed (${tcErr.message})`);
-    } else {
-      if ((tc?.length ?? 0) >= SCAN_LIMIT) caps.push(`time_credits scan hit the ${SCAN_LIMIT}-row cap`);
-      let currentUser: string | null = null;
-      let running = 0;
-      for (const row of tc ?? []) {
-        const uid = row.user_id as string;
-        if (uid !== currentUser) {
-          currentUser = uid;
-          running = 0;
-        }
-        running += Number(row.amount_minutes ?? 0);
-        const after = row.balance_after;
-        if (after !== null && after !== undefined && Number(after) !== running) {
-          checks.timeCredits.add({
-            time_credit_id: row.id,
-            balance_after: Number(after),
-            expected_running_balance: running,
-          });
-        }
-      }
-    }
+    // Nothing to reconcile. `time_credits` was the ONLY credit table carrying a
+    // denormalized running balance (`balance_after`) that could disagree with
+    // its own ledger, and migration 20260901035602 dropped it — the table let
+    // any signed-in user INSERT their own rows, and no code path ever minted or
+    // spent a credit, so it was deleted rather than re-policed.
+    //
+    // referral_credits and pif_credits have no cached balance column and no
+    // `profiles` mirror — their balances are summed live from the rows, so
+    // there is no second copy to drift. Asserting on them would be theatre.
+    // (Both were checked for the same self-insert RLS hole on 2026-09-01 and
+    // both correctly refuse it: HTTP 403, "new row violates row-level security
+    // policy".)
 
     // ── Emit ─────────────────────────────────────────────────────────────────
     const findings = Object.values(checks)
@@ -521,12 +657,27 @@ serve(async (req) => {
       .filter((f): f is Finding => f !== null);
 
     const summary = {
-      ok: findings.length === 0,
+      // NOT named `ok`: cronResult owns that key and gives it a narrower
+      // meaning (no DEFECTS, i.e. nothing critical and no degraded check).
+      // `clean` is this reconciler's own, broader claim: no findings at all,
+      // warnings included.
+      clean: findings.length === 0,
       scope: includeSeed ? "all jobs (seed included)" : "real jobs only (is_seed = false)",
       scanned: {
         jobs: jobRows.length,
-        payout_transfers: transfers?.length ?? 0,
-        time_credits: tc?.length ?? 0,
+        payout_transfers: transfers.length,
+        // `time_credits` was reported here until migration 20260901035602
+        // dropped the table. Both the count and its server_total are gone
+        // rather than pinned at 0: a zero would read as "scanned it, found
+        // nothing", which is a different and untrue claim.
+        // What the SERVER says exists for the same filters. Printed next to
+        // what was read so "we scanned everything" is a comparison a human can
+        // check at a glance rather than a claim to be taken on faith.
+        server_totals: {
+          jobs: jobScan.total,
+          payout_transfers: transferScan.total,
+        },
+        pages: jobScan.pages + transferScan.pages,
       },
       checks_run: Object.values(checks).map((c) => c.name),
       findings,
@@ -566,21 +717,65 @@ serve(async (req) => {
           "Persisted money rows disagree with what the settlement logic derives. This function is read-only — nothing has been corrected. Investigate before the numbers reach a helper's payout, the admin revenue view, or a reliability score.",
         fields,
       });
-    } else if (notes.length) {
+    } else if (notes.length || caps.length) {
+      // A truncated scan belongs here and not in the silent branch. "No
+      // findings over an unknown fraction of the money" is not a clean run, and
+      // the old `caps` could never reach this line because the condition that
+      // produced it — `rows.length >= 5000` against a server that returns 1000
+      // — was unsatisfiable.
       await postSlackOpsAlert({
         kind: "custom",
         severity: "warning",
         title: "Money reconciliation ran degraded",
-        message: "No discrepancies found, but one or more checks could not run — a clean result here is not trustworthy.",
-        fields: { notes: notes.join(" | "), scope: summary.scope },
+        message: "No discrepancies found, but one or more checks could not run or could not read every row — a clean result here is not trustworthy.",
+        fields: {
+          notes: notes.join(" | ") || "none",
+          truncated_scans: caps.join(" | ") || "none",
+          scope: summary.scope,
+        },
       });
     } else {
       console.log(`[money-reconciliation] clean — ${jobRows.length} jobs, ${summary.checks_run.length} checks`);
     }
 
-    return new Response(JSON.stringify(summary), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    // ── Answer the watchers, not just Slack ──────────────────────────────────
+    // Two defects were hiding in the old `new Response(...)`:
+    //
+    // 1. NO `fn` KEY. `sweep_silent_cron_failures` only ingests responses whose
+    //    body matches `content ~ '"fn"\s*:\s*"'`, so this function had ZERO
+    //    rows in `cron_run_log` despite running daily since 2026-08-28 —
+    //    invisible to the watcher built alongside it. `sweep_cron_http_failures`
+    //    would likewise have had to guess its name from timestamp proximity.
+    //
+    // 2. ALWAYS 200. A run that found `critical` discrepancies answered exactly
+    //    like a clean one. Slack carried the news and nothing else did, so a
+    //    Slack outage or a muted channel erased the finding entirely.
+    //
+    // `cronResult` fixes both. Defects are the CRITICAL findings plus any
+    // degraded note (a check that could not run) — a critical discrepancy is
+    // positive evidence that money rows disagree with reality, which is exactly
+    // what the convention says should page. Warnings deliberately do NOT count:
+    // they are already in Slack and in this body, and a watcher that pages on
+    // them is a watcher people mute — the failure mode this file exists to fix.
+    const criticalFindings = findings.filter((f) => f.severity === "critical");
+    //
+    // A TRUNCATED SCAN is a defect too, and it did not used to be one — `caps`
+    // was collected and printed and never counted, which was survivable only
+    // because the condition that filled it could not occur. Now that the check
+    // is against the server's own exact count it can, and a reconciler that
+    // read part of the money and reported `ok: true` is the exact failure this
+    // function exists to prevent in the data it audits.
+    const defectReasons = [
+      ...criticalFindings.map((f) => `${f.check}: ${f.count}${f.truncated ? "+" : ""}`),
+      ...notes.map((n) => `degraded — ${n}`),
+      ...caps.map((c) => `truncated scan — ${c}`),
+    ];
+    return cronResult(
+      "money-reconciliation",
+      summary,
+      { count: defectReasons.length, reasons: defectReasons },
+      corsHeaders,
+    );
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("[money-reconciliation] run failed:", message);
@@ -593,9 +788,6 @@ serve(async (req) => {
       message: "The nightly money reconciliation errored. No money invariants were checked on this run.",
       fields: { error: message },
     });
-    return new Response(JSON.stringify({ ok: false, error: message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return cronError("money-reconciliation", message, corsHeaders);
   }
 });

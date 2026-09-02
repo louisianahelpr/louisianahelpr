@@ -1,5 +1,5 @@
 // The ONE place a raw `profiles.subscription_tier` id becomes a name a human
-// reads. Tiers are named by the tier alone — "Basic / Pro / Plus / Elite".
+// reads. Tiers are named by the tier alone — "Basic / Pro / Elite".
 //
 // This reversed an earlier rule (2026-08-24) that put the brand in front of
 // every tier: inside the app the brand is already established by the app you
@@ -18,12 +18,16 @@
 // `src/lib/tierNames.parity.test.ts` asserts these strings and TIER_PERKS never
 // drift apart. Mirrors the `_shared/proTiers.ts` + `src/lib/proTiers.ts` pattern.
 //
+// There is no "Business" entry. It was removed on 2026-09-01 together with the
+// `business` rung in `helperFees.ts` and the `business` row in TIER_PERKS —
+// nothing can sell or store that tier (see the helperFees.ts header). A legacy
+// 'business' string therefore falls through `tierDisplayName`'s default and
+// reads back as "Free", the same safe default every other unknown id gets.
 export const TIER_DISPLAY_NAMES: Record<string, string> = {
   free: "Free",
   basic: "Basic",
   pro: "Pro",
   elite: "Elite",
-  business: "Business",
 };
 
 /**

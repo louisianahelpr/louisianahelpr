@@ -22,6 +22,7 @@ import type {
 } from "./adminDisputes/types";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { AdminViewShell, AdminCard } from "./AdminViewShell";
+import { requireBiometric } from "@/lib/biometricGate";
 
 const AdminDisputes = () => {
   const [disputes, setDisputes] = useState<DisputedJob[]>([]);
@@ -185,6 +186,13 @@ const AdminDisputes = () => {
   }, [loadDisputes]);
 
   const resolveDispute = async (job: DisputedJob, action: "release" | "refund") => {
+    // Face ID / Touch ID gate: Quick Release / Quick Refund move real escrow
+    // out of Stripe in one tap, with no undo. No-op on web and on devices
+    // without enrolled biometrics (see requireBiometric).
+    const ok = await requireBiometric(
+      action === "release" ? "Confirm releasing this escrow" : "Confirm refunding this escrow",
+    );
+    if (!ok) return;
     setResolving(job.id);
     try {
       if (action === "release") {
@@ -231,6 +239,12 @@ const AdminDisputes = () => {
       toast.error("Add a decision note first.");
       return;
     }
+    // Face ID / Touch ID gate: this records the formal decision AND executes
+    // the split — a real Stripe transfer plus a real refund. Irreversible.
+    // Runs after the decision-note check so a rejected form never raises an
+    // OS prompt. No-op on web and on devices without enrolled biometrics.
+    const ok = await requireBiometric("Confirm this dispute decision and settlement");
+    if (!ok) return;
     setSubmittingDecision(true);
     try {
       const payoutSplit = {

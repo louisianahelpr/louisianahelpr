@@ -59,10 +59,20 @@
 //
 // ── Returns ──────────────────────────────────────────────────────────
 //   { sent: N, failed: M, no_tokens: bool, ios?: {...}, android?: {...} }
+//
+// ── Observability ────────────────────────────────────────────────────
+// Every invocation writes at least one `notification_logs` row with
+// channel='push' (via _shared/notificationLog.ts), plus one extra
+// `token_deleted` row per push registration APNs/FCM rejected as dead.
+// Until 2026-09-01 this function wrote nothing at all — the push channel
+// had zero rows in that table for the life of the project, which meant a
+// completely dead push pipeline and a healthy one on a quiet night were
+// indistinguishable in the only place anyone looks.
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { signEs256Jwt, signRs256Jwt } from '../_shared/jwt.ts'
 import { postSlackOpsAlert } from '../_shared/slack-alerts.ts'
+import { logPush } from '../_shared/notificationLog.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -415,6 +425,37 @@ Deno.serve(async (req) => {
     )
   }
 
+  const supabase = createClient(Deno.env.get('SUPABASE_URL') ?? '', serviceRoleKey)
+
+  // ── Observability ─────────────────────────────────────────────────
+  // Every exit from this handler leaves a `notification_logs` row with
+  // channel='push'. Before this, NONE of them did — the whole channel was
+  // unrepresented in the one table an operator reads to answer "did we
+  // actually tell this person?", so a dead push pipeline and a healthy quiet
+  // hour produced identical evidence (none). See _shared/notificationLog.ts
+  // for the full argument; the short version is that "zero push rows" was
+  // never a fact about push, it was a fact about the logging.
+  //
+  // `logPush` never throws and never blocks delivery: a push that reached the
+  // device is a success even if we could not write it down. It is never silent
+  // either — it console.errors under a `[push-log]` tag.
+  //
+  // `payload.thread_id` carries `notifications.type` (set by
+  // `fan_out_push_on_notification`), which is what the category is derived
+  // from; `payload.link` is used only to recover the job id.
+  const logOutcome = (
+    status: 'sent' | 'failed' | 'skipped' | 'token_deleted',
+    error?: string | null,
+  ) =>
+    logPush(supabase, {
+      user_id: payload.user_id,
+      notification_type: payload.thread_id,
+      status,
+      subject: payload.title,
+      link: payload.link,
+      error: error ?? null,
+    })
+
   // Detect backend availability — both are optional, both can be off.
   const apnsConfigured = !!(
     Deno.env.get('APNS_KEY_ID') &&
@@ -427,13 +468,12 @@ Deno.serve(async (req) => {
   )
   if (!apnsConfigured && !fcmConfigured) {
     console.warn('No push backend configured — skipping')
+    await logOutcome('skipped', 'no_push_backend_configured')
     return new Response(
       JSON.stringify({ sent: 0, failed: 0, no_tokens: false, skipped: 'no_push_backend_configured' }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     )
   }
-
-  const supabase = createClient(Deno.env.get('SUPABASE_URL') ?? '', serviceRoleKey)
 
   // ── Quiet hours gate ──────────────────────────────────────────────
   // Honor notification_preferences.quiet_start / quiet_end. If both
@@ -461,6 +501,13 @@ Deno.serve(async (req) => {
         quiet_start: quietPrefs.quiet_start,
         quiet_end: quietPrefs.quiet_end,
       })
+      // Worth a row of its own: "I never got the notification" and "the app
+      // held it back because it was 3am" are the same experience for the user
+      // and completely different problems for us.
+      await logOutcome(
+        'skipped',
+        `quiet_hours ${quietPrefs.quiet_start}–${quietPrefs.quiet_end} UTC`,
+      )
       return new Response(
         JSON.stringify({ sent: 0, failed: 0, no_tokens: false, skipped: 'quiet_hours' }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
@@ -474,6 +521,7 @@ Deno.serve(async (req) => {
     .eq('user_id', payload.user_id)
   if (tokenErr) {
     console.error('Failed to load push_tokens', tokenErr)
+    await logOutcome('failed', `push_tokens lookup failed: ${tokenErr.message}`)
     return new Response(JSON.stringify({ error: tokenErr.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -524,6 +572,8 @@ Deno.serve(async (req) => {
       console.error('[send-push-notification] admin Slack fallback failed:', e)
     }
 
+    await logOutcome('skipped', 'no_registered_devices')
+
     return new Response(
       JSON.stringify({ sent: 0, failed: 0, no_tokens: true }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
@@ -535,7 +585,12 @@ Deno.serve(async (req) => {
 
   let sent = 0
   let failed = 0
-  const deadTokenIds: string[] = []
+  // Dead registrations carry their REJECTION with them, not just their id: the
+  // whole value of logging a token deletion is being able to read WHY Apple or
+  // Google refused it (410 / BadDeviceToken = the app was deleted or the token
+  // was reissued; NOT_FOUND = unregistered). An id alone would tell an operator
+  // that something vanished and nothing about what happened.
+  const deadTokens: { id: string; platform: string; status: number; reason: string }[] = []
   const result: Record<string, unknown> = {}
 
   // ── iOS path ──────────────────────────────────────────────────────
@@ -559,7 +614,9 @@ Deno.serve(async (req) => {
           const r = await sendApnsOne(apnsHost, jwt, bundleId, t.token, payload)
           if (!r.ok) {
             console.warn('APNs send failed', { token_id: t.id, status: r.status, reason: r.reason })
-            if (r.isInvalidToken) deadTokenIds.push(t.id)
+            if (r.isInvalidToken) {
+              deadTokens.push({ id: t.id, platform: 'ios', status: r.status, reason: r.reason })
+            }
           }
           return r.ok
         })
@@ -590,7 +647,9 @@ Deno.serve(async (req) => {
           const r = await sendFcmOne(projectId, accessToken, t.token, payload)
           if (!r.ok) {
             console.warn('FCM send failed', { token_id: t.id, status: r.status, reason: r.reason })
-            if (r.isInvalidToken) deadTokenIds.push(t.id)
+            if (r.isInvalidToken) {
+              deadTokens.push({ id: t.id, platform: 'android', status: r.status, reason: r.reason })
+            }
           }
           return r.ok
         })
@@ -616,16 +675,63 @@ Deno.serve(async (req) => {
   // forever while the response below reported them as cleaned_up. Await it, and
   // report what actually happened rather than what we intended.
   let cleanedUp = 0
-  if (deadTokenIds.length > 0) {
-    const { error: cleanupError } = await supabase
+  let cleanupFailure: string | null = null
+  const deletedIds = new Set<string>()
+  if (deadTokens.length > 0) {
+    const { data: deleted, error: cleanupError } = await supabase
       .from('push_tokens')
       .delete()
-      .in('id', deadTokenIds)
+      .in('id', deadTokens.map((d) => d.id))
+      .select('id')
     if (cleanupError) {
+      cleanupFailure = cleanupError.message
       console.error('[send-push-notification] dead token cleanup failed:', cleanupError.message)
     } else {
-      cleanedUp = deadTokenIds.length
+      // A null `error` is not proof the DELETE matched anything — a delete of
+      // zero rows returns `{ data: [], error: null }`. Count what came back
+      // rather than what we asked for, so `cleaned_up` is a measurement.
+      for (const r of (deleted ?? []) as { id: string }[]) deletedIds.add(r.id)
+      cleanedUp = deletedIds.size
+      if (cleanedUp !== deadTokens.length) {
+        console.warn(
+          `[send-push-notification] asked to delete ${deadTokens.length} dead token(s), removed ${cleanedUp}`,
+        )
+      }
     }
+  }
+
+  // ── The row that matters most ─────────────────────────────────────
+  // One `token_deleted` log per registration we just took away from a user.
+  // This is a destructive, entirely invisible act: their device stops
+  // receiving push, nothing tells them, and until now the only trace was a
+  // console.warn in an edge-function log that ages out. It is also the
+  // complete explanation for "push worked and then stopped for me", so it
+  // belongs in the table an operator actually reads.
+  //
+  // Logged AFTER the DELETE and describing what really happened — a rejection
+  // whose cleanup failed is recorded as still-present, not as deleted.
+  for (const d of deadTokens) {
+    const removed = deletedIds.has(d.id)
+    await logOutcome(
+      'token_deleted',
+      `${d.platform} token rejected (HTTP ${d.status} ${d.reason}) — push_tokens row ${d.id} ${
+        removed ? 'deleted' : `NOT deleted: ${cleanupFailure ?? 'delete matched 0 rows'}`
+      }`,
+    )
+  }
+
+  // ── The aggregate outcome for this send ───────────────────────────
+  // `sent > 0` is a success even if some other device failed — the person was
+  // reached. Zero delivered with failures is a failure. Zero delivered with no
+  // failures means every token belonged to a platform whose backend is not
+  // configured, which is a skip, not a failure.
+  const perPlatform = JSON.stringify(result)
+  if (sent > 0) {
+    await logOutcome('sent', failed > 0 ? `partial: ${failed} of ${tokens.length} failed — ${perPlatform}` : null)
+  } else if (failed > 0) {
+    await logOutcome('failed', `0 of ${tokens.length} delivered — ${perPlatform}`)
+  } else {
+    await logOutcome('skipped', `no send attempted — ${perPlatform}`)
   }
 
   return new Response(

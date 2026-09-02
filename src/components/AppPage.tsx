@@ -5,18 +5,20 @@ import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 /**
  * AppPage — the shell every signed-in sub-screen wears.
  *
- * The point of this file is that Host Automation, Gift Card and Benefits &
- * Perks render through the SAME component as Schedule, Availability, Saved
- * Helprs and Licensed & Insured (owner, 2026-08-30: "all of them should be the
- * same though ... what does schedule availability saved helpr license and
- * insured use? that's what host gift and benefits needs to use").
+ * The point of this file is that Host Automation and Gift Card render through
+ * the SAME component as Schedule, Availability, Saved Helprs and Licensed &
+ * Insured (owner, 2026-08-30: "all of them should be the same though ... what
+ * does schedule availability saved helpr license and insured use? that's what
+ * host gift and benefits needs to use"). Benefits & Perks was the third page
+ * in that quote; it was deleted on 2026-08-31 (no partner agreements behind
+ * it), which changes nothing about why the shell is shared.
  *
  * Those four are Profile TABS: they render inside Profile.tsx's AppShell, in a
  * `container` → `page-measure` scroll column, with `ProfileTabHeader` as their
- * title. The other three were standalone ROUTES that had each hand-assembled a
- * near-copy of that arrangement — which is how they drifted (different
- * paddings, one missing `topInsetHandled`, all three on a `min-h-screen`
- * document-scroll wrapper the tabs never had).
+ * title. The standalone ROUTES had each hand-assembled a near-copy of that
+ * arrangement — which is how they drifted (different paddings, one missing
+ * `topInsetHandled`, all of them on a `min-h-screen` document-scroll wrapper
+ * the tabs never had).
  *
  * So this replicates the tab shell verbatim rather than inventing a third
  * layout. Every class string below is copied from Profile.tsx; if that shell
@@ -62,7 +64,7 @@ interface AppPageProps {
   children: ReactNode;
 }
 
-export function AppPage({ title, backTo, onBack, titleActions, children }: AppPageProps) {
+function AppPage({ title, backTo, onBack, titleActions, children }: AppPageProps) {
   return (
     <AppShell
       scrollable={false}

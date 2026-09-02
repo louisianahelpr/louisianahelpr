@@ -255,5 +255,3 @@ export function EarningsBreakdownCharts({ earningsJobs, feeFallbackPercent }: Ea
     </section>
   );
 }
-
-export default EarningsBreakdownCharts;

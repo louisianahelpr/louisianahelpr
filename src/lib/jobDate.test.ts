@@ -55,4 +55,29 @@ describe("job dates resolve in the platform's zone", () => {
     expect(jobDateMs(undefined)).toBeNull();
     expect(isPastDue(null)).toBe(false);
   });
+
+  it("returns null instead of THROWING on a value that is not a bare date", () => {
+    // `jobLocalMidnightMs` splits on "-" and feeds the parts to `Date.UTC`, so
+    // anything else yields NaN — and `Intl.DateTimeFormat.formatToParts(new
+    // Date(NaN))` throws `RangeError: Invalid time value`. That throw escaped
+    // through `isPastDue` into the `useMemo` that buckets the Activity list, so
+    // a single unreadable date took /my-posts to the error boundary and every
+    // job on the page vanished. Losing the overdue treatment on one card is a
+    // far cheaper failure than losing the page.
+    for (const bad of ["", "not-a-date", "2026-09-03T04:12:34.567Z", "09/03/2026", "2026-9-3"]) {
+      expect(() => jobDateMs(bad), `jobDateMs(${JSON.stringify(bad)}) threw`).not.toThrow();
+      expect(jobDateMs(bad), `jobDateMs(${JSON.stringify(bad)})`).toBeNull();
+      expect(isPastDue(bad)).toBe(false);
+    }
+  });
+
+  it("does NOT accept an ISO timestamp by taking its first ten characters", () => {
+    // Tempting shortcut, and wrong: those ten characters are the UTC day, and
+    // in Central an evening instant is already the NEXT UTC day. Reading
+    // "2026-06-15T23:30:00-05:00" as 16 June is the exact off-by-one-day class
+    // of bug this module was created to end, so an ISO string is rejected
+    // outright rather than truncated into a plausible answer.
+    expect(jobDateMs("2026-06-15T23:30:00-05:00")).toBeNull();
+    expect(jobDateMs("2026-06-15")).not.toBeNull();
+  });
 });

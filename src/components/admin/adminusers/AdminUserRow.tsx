@@ -7,6 +7,7 @@
  */
 import { memo } from "react";
 import { formatName } from "@/lib/utils";
+import UserAvatar from "@/components/UserAvatar";
 import { Badge } from "@/components/ui/badge";
 import {
   Star, ShieldAlert, Clock, MailIcon, ShieldCheck,
@@ -81,13 +82,28 @@ const AdminUserRowBase = ({
     >
       <div className="flex items-start gap-3">
         <div className="relative flex-shrink-0">
-          {p.avatar_url ? (
-            <img loading="lazy" decoding="async" src={p.avatar_url} alt={`${formatName(p.full_name, "User")} profile photo`} className="w-10 h-10 rounded-full object-cover border border-border" />
-          ) : (
-            <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-muted-foreground text-ds-11 font-medium">
-              {formatName(p.full_name, "?")[0]?.toUpperCase()}
-            </div>
-          )}
+          {/* Migrated onto the shared `<UserAvatar>` (2026-08-31). This is a
+              virtualized list, which is the case the shared component is
+              specifically hardened for: rows are RECYCLED, so a per-row
+              `avatarFailed` flag that never resets would keep every subsequent
+              occupant of a slot on the monogram path. `<UserAvatar>` resets its
+              verdict on `src` change for exactly that reason.
+
+              What was here: a bare `<img>` with no error path, falling back to
+              a flat `bg-secondary` circle carrying ONE character
+              (`formatName(...)[0]`) only when `avatar_url` was null. Every
+              blank-but-200 avatar on prod rendered as a flat coloured circle
+              among hundreds of rows an admin scans to find one person. See
+              `src/lib/avatarImage.ts`. */}
+          <UserAvatar
+            userId={p.user_id}
+            src={p.avatar_url}
+            name={p.full_name}
+            pixelSize={40}
+            aria-hidden
+            className="w-10 h-10 border border-border"
+            fallbackClassName="text-ds-11 ring-0"
+          />
           {isOnline && (
             <span
               aria-label="Active in last 24h"

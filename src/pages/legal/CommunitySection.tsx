@@ -11,7 +11,12 @@ import { LAST_UPDATED } from "./legalSections";
 // permanent ban at the 3rd strike — the SQL has four rungs and, since
 // 20260829010000, never bans automatically at all. Binding copy in a legal
 // document is the LAST place a restated consequence should live.
-import { RELIABILITY_LADDER_RUNGS } from "@/lib/reliabilityLadder";
+// Same rule for the no-show ladder, which this page stated as "instant
+// permanent ban" — never true (the first report has always been a warning) and
+// doubly false since 20260831183302 moved the second report onto the shared
+// reviewable rung. Binding copy in a legal document is the LAST place a
+// restated consequence should live.
+import { RELIABILITY_LADDER_RUNGS, NO_SHOW_LADDER_SENTENCE, CANCELLATION_LADDER_RUNGS } from "@/lib/reliabilityLadder";
 // Derive the escrow auto-release schedule instead of restating it in prose.
 // These are the platform's binding promises about when money moves, so they
 // must follow the config the cron enforces (guarded by escrowTiming.parity.test).
@@ -41,10 +46,22 @@ export const CommunityContent = () => (
   <div className="space-y-3">
     <TldrCard
       items={[
-        `Cancel free 24+ hours ahead. Inside 24h, fees apply (${LATE_CANCEL_PERCENT}% / ${VERY_LATE_CANCEL_PERCENT}%). No-show = permanent ban.`,
+        `Cancel free 24+ hours ahead. Inside 24h, fees apply (${LATE_CANCEL_PERCENT}% / ${VERY_LATE_CANCEL_PERCENT}%). A no-show is a final warning, then a 7-day restriction an admin reviews.`,
         `Payment auto-releases ${COPY_AUTO_RELEASE_HOURS} hours after completion if either side doesn't act.`,
         "If something's wrong, request a revision first → file a dispute → admin decides. Each step has a 72-hour window.",
-        "Three strikes = ban. Fraud, harassment, off-platform payments, and identity fraud skip the strikes.",
+        // WAS "Three strikes = ban." — false, and the single most consequential
+        // sentence on the page, sitting in the TL;DR a restricted user reads
+        // first. No ladder in the app bans anyone: all four call
+        // `apply_consequence_ladder` with `p_permanent_requires_review => true`
+        // (20260829030000:298,373,466 and 20260831183302), which converts the
+        // 'permanent' effect into a 7-day restriction plus a
+        // `pending_ban_review` violation an admin resolves in
+        // /admin?view=banreview. The rung lists three screens down
+        // (CANCELLATION_LADDER_RUNGS / RELIABILITY_LADDER_RUNGS) already said
+        // so; the TL;DR contradicted them. It survived the ladder guard because
+        // that guard matches "Nth strike" + a consequence on one line, and this
+        // sentence says neither.
+        "Strikes ladder up to a 7-day restriction while an admin reviews — a permanent ban is never automatic. Fraud, harassment, off-platform payments, and identity fraud skip the ladder and go straight to an admin.",
         "Helprs are independent contractors — taxes are your responsibility. We send 1099s when thresholds are met.",
       ]}
     />
@@ -129,9 +146,9 @@ export const CommunityContent = () => (
       />
       <PolicyRowItem
         icon={Ban}
-        title="No-show — instant permanent ban"
+        title="No-show — final warning, then admin review"
         body={
-          <p>If a Helpr accepts a job and fails to show without prior cancellation, their account is <strong className="text-destructive">permanently banned</strong>. The poster receives a full refund. <strong className="text-foreground">Even a late cancellation is better than a no-show.</strong></p>
+          <p>If a Helpr accepts a job and fails to show without prior cancellation, {NO_SHOW_LADDER_SENTENCE}. The poster receives a full refund. <strong className="text-foreground">Even a late cancellation is better than a no-show.</strong></p>
         }
         warning
       />
@@ -159,7 +176,30 @@ export const CommunityContent = () => (
       <PolicyRowItem
         icon={Clock}
         title={`One-sided confirmation = ${COPY_AUTO_RELEASE_HOURS}-hour window`}
-        body={<p>If only one party confirms, the other has {COPY_AUTO_RELEASE_HOURS} hours to confirm or request a revision. Both parties are notified every 12 hours.</p>}
+        // WAS "Both parties are notified every 12 hours." — false twice over,
+        // in a binding document. `payment-confirm-reminder` inserts ONE
+        // notification, to `job.customer_id` only (index.ts:222-243) — the
+        // Helpr is never notified at all — and it is idempotent by design: the
+        // row is stamped `payment_confirm_notif_sent` immediately after
+        // (index.ts:257-260) and the next tick's query filters that flag out,
+        // so there is no recurring 12-hour cadence to be on. 12 is the DELAY
+        // (`REMIND_AFTER_HOURS`, index.ts:73), not a period. Corrected to the
+        // one nudge that actually exists.
+        //
+        // SEPARATE, UNFIXED, REPORTED: the cron runs once daily (`15 15 * * *`,
+        // 20260829010000) against an eligibility window only 12 hours wide, so
+        // roughly half of submissions age out of it and are never reminded at
+        // all. The function computes this itself (`SCHEDULE_LEAVES_A_HOLE`,
+        // index.ts:82) and prescribes a six-hourly schedule. Copy cannot fix a
+        // schedule — owner's call.
+        //
+        // LINE COMMENTS ON PURPOSE. This block was a /* … */ comment, and the
+        // six-hourly cron expression it quoted contains a `*` followed by a
+        // slash — which CLOSED the comment early and turned the rest of the
+        // element into unparseable JSX. The file failed `parsecheck --all`
+        // while it sat in the tree. Never quote a cron step value inside a
+        // block comment.
+        body={<p>If only one party confirms, the other has {COPY_AUTO_RELEASE_HOURS} hours to confirm or request a revision. We send the poster a reminder about 12 hours in.</p>}
       />
       <PolicyRowItem
         icon={CheckCircle}
@@ -251,9 +291,9 @@ export const CommunityContent = () => (
              and notifies admins to decide. The in-app CancellationDialog
              already said so, so the legal page was the odd one out. */
           <ul className="list-disc pl-4 space-y-0.5">
-            <li><strong className="text-foreground">1st strike:</strong> Written warning recorded; admins notified.</li>
-            <li><strong className="text-foreground">2nd strike:</strong> Final warning.</li>
-            <li><strong className="text-foreground">3rd strike and beyond:</strong> Your account is restricted for 7 days while an admin reviews the case. They decide what happens next — a permanent ban is never automatic.</li>
+            {CANCELLATION_LADDER_RUNGS.map((rung) => (
+              <li key={rung}>{rung}</li>
+            ))}
             <li>Cancelling a job <em>before</em> a Helpr is assigned does <strong>not</strong> count toward strikes (timing-based fees still apply).</li>
           </ul>
         }

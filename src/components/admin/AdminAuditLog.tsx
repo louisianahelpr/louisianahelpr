@@ -14,6 +14,7 @@ import type { Json } from "@/integrations/supabase/types";
 import { toneBadgeClasses, type Tone } from "@/components/admin/tones";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
+import { saveOrShareFile } from "@/lib/fileExport";
 
 interface AuditEntry {
   id: string;
@@ -62,18 +63,35 @@ const AdminAuditLog = () => {
     },
   });
 
+  /**
+   * Export the loaded entries as CSV.
+   *
+   * This used to be `URL.createObjectURL` → `<a download>` → `.click()` →
+   * `revokeObjectURL`, which is a NO-OP inside the shipped app: Capacitor
+   * serves bundled `dist/` from WKWebView, which honours neither the `download`
+   * attribute nor a `blob:` navigation. The button was completely dead for any
+   * admin on a phone — it fired, produced no file, threw nothing and logged
+   * nothing (owner, 2026-08-30: "Download csv pdf etc does not work").
+   *
+   * `saveOrShareFile` routes per platform (native: stage the file, open the OS
+   * share sheet; web: the anchor download) and toasts on every failure. See
+   * src/lib/fileExport.ts.
+   *
+   * `charset=utf-8` is not cosmetic — admin names and free-text `details`
+   * reasons are not ASCII, and an unlabelled CSV opens as mojibake in Excel.
+   */
   const exportCSV = () => {
     const header = "Timestamp,Admin,Action,Target Type,Target ID,Details\n";
     const rows = entries.map(e =>
       `"${e.created_at}","${e.admin_name}","${e.action}","${e.target_type || ""}","${e.target_id || ""}","${JSON.stringify(e.details || {}).replace(/"/g, '""')}"`
     ).join("\n");
-    const blob = new Blob([header + rows], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `audit-log-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    const blob = new Blob([header + rows], { type: "text/csv;charset=utf-8" });
+    return saveOrShareFile({
+      blob,
+      filename: `audit-log-${new Date().toISOString().slice(0, 10)}.csv`,
+      label: "the audit log",
+      source: "AdminAuditLog.exportCSV",
+    });
   };
 
   const actionTone: Record<string, Tone> = {

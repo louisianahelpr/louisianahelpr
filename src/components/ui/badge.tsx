@@ -18,7 +18,9 @@ const badgeVariants = cva(
         // reads as an accent, not an alert. (Brand HSL tokens aren't wired
         // into the Tailwind theme, so they're referenced as arbitrary values.)
         sienna:
-          "border-transparent bg-[hsl(var(--burnt-sienna)/0.12)] text-[hsl(var(--burnt-sienna))] hover:bg-[hsl(var(--burnt-sienna)/0.18)]",
+          // text uses --accent-ink (same as --burnt-sienna in light, lifted to 66% in dark)
+          // so the chip clears 4.5:1 on dark tinted surfaces without moving light mode.
+          "border-transparent bg-[hsl(var(--burnt-sienna)/0.12)] text-[hsl(var(--accent-ink))] hover:bg-[hsl(var(--burnt-sienna)/0.18)]",
         outline: "text-foreground",
       },
     },
@@ -28,10 +30,10 @@ const badgeVariants = cva(
   },
 );
 
-export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement>, VariantProps<typeof badgeVariants> {}
+interface BadgeProps extends React.HTMLAttributes<HTMLDivElement>, VariantProps<typeof badgeVariants> {}
 
 function Badge({ className, variant, ...props }: BadgeProps) {
   return <div className={cn(badgeVariants({ variant }), className)} {...props} />;
 }
 
-export { Badge, badgeVariants };
+export { Badge };

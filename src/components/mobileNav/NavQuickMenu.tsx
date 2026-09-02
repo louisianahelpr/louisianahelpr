@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { useReducedMotion } from "@/lib/accessibility";
 
@@ -42,16 +43,34 @@ export function NavQuickMenu({
           {/* Full-screen scrim — dismisses the menu on any outside tap.
               Sits below the menu (z-40) but above everything else on the
               page; the nav bar itself is z-50 so the menu (also z-50,
-              nested inside the tab slot) still reads on top of it. */}
-          <motion.div
-            aria-hidden
-            className="fixed inset-0 z-40"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={reducedMotion ? { duration: 0 } : { duration: 0.15 }}
-            onClick={onClose}
-          />
+              nested inside the tab slot) still reads on top of it.
+
+              PORTALLED TO <body>, unlike the menu beside it. `position: fixed`
+              resolves against the viewport only while no ancestor establishes
+              a containing block, and the dock supplies two: the <nav> carries
+              an unconditional inline `transform: translateY(0)` (it animates
+              itself off-screen on scroll — MobileNav.tsx), and the pill inside
+              it carries `backdrop-filter: blur(40px) saturate(180%)`. Rendered
+              in place, `inset-0` therefore sized this "full-screen" scrim to
+              the DOCK: measured 369x56 at (12, 790) in a 393x852 viewport —
+              6.6% of the screen height. Everything above the dock was not
+              covered, so tapping the page to dismiss did nothing and the menu
+              could only be closed with Escape, a row, or a tap on the dock
+              itself. The MENU stays where it is: it is anchored with
+              `absolute bottom-full` to its tab slot on purpose, and that
+              anchoring is the thing a portal would break. */}
+          {createPortal(
+            <motion.div
+              aria-hidden
+              className="fixed inset-0 z-40"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={reducedMotion ? { duration: 0 } : { duration: 0.15 }}
+              onClick={onClose}
+            />,
+            document.body,
+          )}
           <motion.div
             ref={menuRef}
             role="menu"

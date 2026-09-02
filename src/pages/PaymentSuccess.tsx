@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Capacitor } from "@capacitor/core";
-import { Share } from "@capacitor/share";
-import { toast } from "sonner";
+// No @capacitor/share or sonner import here any more: the share ladder and
+// every one of its user-visible outcomes belong to `shareNative`.
 // Derive the auto-release window rather than restating "48 hours" in prose.
 // This is checkout copy — a legally load-bearing promise about when money
 // moves — so it must follow the config the cron actually enforces. Imported
@@ -34,6 +33,7 @@ import { safeStorage } from "@/lib/safeStorage";
 import { formatPrice } from "@/lib/format";
 import { MaterialsPanel } from "@/components/postjob/MaterialsPanel";
 import { getPublicSiteUrl } from "@/lib/authRedirects";
+import { shareNative } from "@/lib/nativeShare";
 
 // Visual lifecycle preview — replaces the dense paragraph that used to
 // sit in this same slot. Keeps the same content (4 stages from job-state
@@ -150,27 +150,44 @@ const PaymentSuccess = () => {
           : "Payment Status Unconfirmed — Helpr",
   );
 
-  // Share the just-posted job. Follows the same Capacitor → Web Share →
-  // clipboard tiered fallback as the existing ShareJobButton — repeated
-  // here so this CTA doesn't pull in the whole button's styling.
+  /**
+   * Share the just-posted job so a neighbour can see it and apply.
+   *
+   * THREE THINGS WERE WRONG HERE, none of which threw or logged.
+   *
+   * 1. The link was `/dashboard?job=<id>`. `/dashboard` is a `ProtectedRoute`,
+   *    so a recipient without an account was bounced to
+   *    `/login?redirect=%2Fdashboard%3Fjob%3D…` (verified against production,
+   *    signed out) — a login wall in place of the job. And `Dashboard` never
+   *    reads a `?job=` param at all, so even a signed-in recipient landed on
+   *    their own dashboard with the job nowhere in sight. It is now the same
+   *    public `/jobs/:id` preview route `ShareJobButton` uses, which renders
+   *    for guests and routes Apply to signup.
+   * 2. There was no `text` — the OS got a bare URL, so the recipient saw a
+   *    naked link with no idea what it was or who sent it.
+   * 3. The ladder was a third private copy of the share chain, and its last
+   *    rung was `else if (navigator.clipboard?.writeText)`. When neither
+   *    `navigator.share` NOR `navigator.clipboard` exists — desktop Safari on
+   *    an insecure origin, older browsers — every branch was skipped and the
+   *    function returned having done nothing and said nothing. Reproduced: the
+   *    tap produced zero side effects and zero toasts. Even the branch that
+   *    DID copy gave no feedback. `shareNative` owns all of it now and every
+   *    rung ends in something the user can perceive.
+   */
   const handleShareJob = async () => {
     if (sharing || !resolvedJobId) return;
     setSharing(true);
     void hapticLight();
-    const url = `${getPublicSiteUrl()}/dashboard?job=${resolvedJobId}`;
+    const url = `${getPublicSiteUrl()}/jobs/${resolvedJobId}?ref=share`;
+    const text = "I just posted a job on Louisiana Helpr. Can you help, or know someone who can?";
     try {
-      if (Capacitor.isNativePlatform()) {
-        await Share.share({ url, title: "Job posted on Helpr", dialogTitle: "Share this job" });
-      } else if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
-        await navigator.share({ url, title: "Job posted on Helpr" });
-      } else if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(url);
-      }
-    } catch (err) {
-      const isCancel =
-        err instanceof Error &&
-        (err.name === "AbortError" || /cancel|dismiss/i.test(err.message));
-      if (!isCancel) toast.error("Couldn't share — try again.");
+      await shareNative({
+        title: "Job posted on Helpr",
+        text,
+        url,
+        dialogTitle: "Share this job",
+        clipboardText: `${text}\n${url}`,
+      });
     } finally {
       setSharing(false);
     }

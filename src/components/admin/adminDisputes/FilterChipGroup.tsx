@@ -22,8 +22,22 @@ export const FilterChipGroup = ({ label, value, onChange, options }: {
             type="button"
             onClick={() => onChange(opt.id)}
             aria-pressed={active}
-            className={`px-2 h-6 rounded-sm text-ds-10 font-semibold transition-colors ${
-              active ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            /* Selected = GLOSSY BRAND, not a white pill on a grey track.
+               Two things were wrong with the old `bg-background text-foreground
+               shadow-sm`. First the project rule: a selected control is glossy
+               (`btn-grad-primary`), never flat — and white-on-grey is as flat
+               as it gets. Second, cohesion: AdminSubscriptions and AdminJobs
+               already select with `bg-primary text-primary-foreground`, so the
+               same control class had two different selection languages in one
+               console and the whole Filters card on /admin?view=disputes read
+               as unbranded grayscale next to brand-toned siblings.
+
+               h-8 rather than h-6: 24px was the smallest tap target in the
+               admin surface. Still under the 44px guideline (a dense filter
+               strip cannot carry 44px rows without dominating the card), but
+               a third bigger and no longer a hairline. */
+            className={`px-2.5 h-8 rounded-sm text-ds-10 font-semibold transition-colors ${
+              active ? "btn-grad-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             {opt.label}

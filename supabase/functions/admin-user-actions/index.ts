@@ -1,17 +1,16 @@
+import * as React from 'npm:react@18.3.1'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { postSlackOpsAlert } from '../_shared/slack-alerts.ts'
-import { htmlEscape } from '../_shared/safe-strings.ts'
-import { brand } from '../_shared/email-templates/styles.ts'
+import { getAppUrl } from '../_shared/appUrl.ts'
+import { queueEmail, SUPPORT_EMAIL } from '../_shared/resend.ts'
+import { banConfirmedMessage, banDismissedMessage, banReviewCopy } from './banReviewCopy.ts'
+import { AdminActionEmail, type AdminActionCallout } from '../_shared/email-templates/admin-action.tsx'
+import { renderEmail } from '../_shared/email-templates/render.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
-
-const SITE_NAME = 'Helpr'
-const SENDER_DOMAIN = 'louisianahelpr.com'
-const ROOT_DOMAIN = 'louisianahelpr.com'
-const SITE_URL = `https://${ROOT_DOMAIN}`
 
 type ActionType =
   | 'manual_verify'
@@ -30,41 +29,29 @@ type ActionType =
   | 'confirm_message_ban'
   | 'dismiss_message_ban_review'
 
-async function sendEmail(apiKey: string, to: string, subject: string, html: string, text: string) {
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      from: `${SITE_NAME} <noreply@${SENDER_DOMAIN}>`,
-      to: [to],
-      subject,
-      html,
-      text,
-    }),
-  })
-  if (!res.ok) {
-    const body = await res.text()
-    throw new Error(`Resend error [${res.status}]: ${body}`)
-  }
-  return res.json()
-}
+// Every admin email used to go out through a local hand-rolled Resend fetch,
+// fired as `sendEmail(...).catch(console.error)`. That swallowed EVERY failure:
+// the admin was shown a success, the user got nothing, and no `email_send_log`
+// row existed to prove it either way. There is no local sender any more —
+// `queueEmail` writes the pending log row AND enqueues, never throws, and
+// returns `{ ok }` so each response below can carry an honest partial-success
+// flag. The Resend API key now lives only with the queue worker
+// (process-email-queue), so this function no longer reads RESEND_API_KEY at all.
 
-function wrapEmail(title: string, bodyHtml: string, ctaUrl?: string, ctaLabel?: string) {
-  const cta = ctaUrl
-    ? `<a href="${ctaUrl}" style="display:inline-block;background-color:${brand.bark};color:${brand.surface};font-size:15px;border-radius:12px;padding:14px 28px;text-decoration:none;font-weight:600">${ctaLabel || 'Open Helpr'}</a>`
-    : ''
-  return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"></head>
-<body style="background-color:${brand.parchment};font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif;margin:0;padding:24px">
-<div style="max-width:480px;margin:0 auto;background:${brand.surface};border-radius:14px;padding:32px 28px;border:1px solid ${brand.hairline}">
-  <img src="https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/brand-asset" alt="Helpr" width="80" style="display:block;width:150px;max-width:150px;height:auto;border:0;outline:none;text-decoration:none;margin:0 0 24px;" />
-  <h1 style="font-size:24px;font-weight:bold;color:${brand.inkDeep};margin:0 0 16px">${title}</h1>
-  ${bodyHtml}
-  ${cta}
-  <p style="font-size:13px;color:${brand.bodyOlive};line-height:1.5;margin:24px 0 0;padding:16px 0 0;border-top:1px solid ${brand.hairline}">
-    Questions? Reply to this email or contact our support team at any time.
-  </p>
-</div>
-</body></html>`
+// The card layout for all four emails below lives in
+// `_shared/email-templates/admin-action.tsx`. It used to be a local
+// `wrapEmail()` HTML-string builder here, built on
+// `<div style="max-width:480px;margin:0 auto">` — which Outlook's Word engine
+// cannot centre — and every call site hand-assembled its own body markup and a
+// separate hand-written plaintext twin. Both parts now come from the one
+// react-email component via `renderEmail`, so they cannot drift, and React
+// escapes every interpolated value instead of a hand-applied htmlEscape().
+
+/** Partial-success fields for a response whose action committed but whose email may not have queued. */
+function emailStatusFields(result: { ok: boolean }) {
+  return result.ok
+    ? { email_sent: true }
+    : { email_sent: false, email_error: 'Notification email could not be queued.' }
 }
 
 Deno.serve(async (req) => {
@@ -141,11 +128,12 @@ Deno.serve(async (req) => {
       })
     }
 
-    const resendApiKey = Deno.env.get('RESEND_API_KEY')
+    // Canonical base URL. Was a local `SITE_URL` built from a hardcoded
+    // ROOT_DOMAIN, which disagreed with the rest of the product.
+    const appUrl = getAppUrl()
+    // Passed straight into JSX, which escapes it — and only once, so readers
+    // never see &#39; in their mail client the way a double-escaped value would.
     const fullName = profile.full_name || 'there'
-    // HTML-context copy only — the plaintext bodies keep the raw value so
-    // readers never see &#39; in their mail client.
-    const fullNameHtml = htmlEscape(fullName)
 
     // ---- Action handlers ----
     if (action === 'grant_admin') {
@@ -204,18 +192,35 @@ Deno.serve(async (req) => {
         link: '/dashboard',
       })
 
-      if (resendApiKey) {
-        const html = wrapEmail(
-          'You\'re verified',
-          `<p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">Hey ${fullNameHtml},</p>
-           <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">An admin has personally <strong style="color:${brand.burntSienna}">verified your account</strong>. You now have full access to post or accept jobs on Helpr.</p>`,
-          `${SITE_URL}/dashboard`,
-          'Go to Dashboard',
-        )
-        const text = `Hey ${fullName},\n\nAn admin has manually verified your account. You now have full access to Helpr.\n\nGo to your dashboard: ${SITE_URL}/dashboard`
-        await sendEmail(resendApiKey, profile.email, 'You\'re verified on Helpr', html, text).catch((e) => console.error('email failed', e))
-      }
-      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      const { html, text } = await renderEmail(
+        React.createElement(AdminActionEmail, {
+          preheader: 'An admin verified your identity — you now have full access to Helpr.',
+          title: 'You\'re verified',
+          greetingName: fullName,
+          paragraphs: [
+            [
+              'An admin has personally ',
+              { accent: 'verified your account' },
+              '. You now have full access to post or accept jobs on Helpr.',
+            ],
+          ],
+          ctaUrl: `${appUrl}/dashboard`,
+          ctaLabel: 'Go to Dashboard',
+        }),
+      )
+      const emailResult = await queueEmail(admin, {
+        to: profile.email,
+        subject: 'You\'re verified on Helpr',
+        html,
+        text,
+        templateName: 'admin_manual_verify',
+        replyTo: SUPPORT_EMAIL,
+      })
+      if (!emailResult.ok) console.error('[admin-user-actions] manual_verify email not queued:', emailResult.error)
+
+      return new Response(JSON.stringify({ success: true, ...emailStatusFields(emailResult) }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     if (action === 'idv_reject') {
@@ -293,19 +298,37 @@ Deno.serve(async (req) => {
         link: '/profile',
       })
 
-      if (resendApiKey) {
-        const html = wrapEmail(
-          'Quick fix needed on your ID',
-          `<p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">Hey ${fullNameHtml},</p>
-           <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">Your ID photo was a bit hard to read on our end. Can you snap a clearer one so we can finish setting you up?</p>
-           ${note ? `<p style="font-size:14px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px;padding:12px;border-radius:8px;background-color:hsl(45,90%,95%);border:1px solid hsl(45,80%,85%)"><strong>Admin note:</strong> ${note}</p>` : ''}`,
-          `${SITE_URL}/profile`,
-          'Re-upload ID',
-        )
-        const text = `Hey ${fullName},\n\nYour ID photo was a bit hard to read. Please re-upload a clearer one.\n${note ? `\nAdmin note: ${note}\n` : ''}\nUpdate it here: ${SITE_URL}/profile`
-        await sendEmail(resendApiKey, profile.email, 'Helpr — please re-upload your ID', html, text).catch((e) => console.error('email failed', e))
-      }
-      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      const { html, text } = await renderEmail(
+        React.createElement(AdminActionEmail, {
+          preheader: 'Your ID photo was hard to read — please upload a clearer one.',
+          title: 'Quick fix needed on your ID',
+          greetingName: fullName,
+          paragraphs: [
+            'Your ID photo was a bit hard to read on our end. Can you snap a clearer one so we can finish setting you up?',
+          ],
+          // `note` is admin-authored free text landing in an HTML document. It
+          // used to be interpolated raw, then hand-escaped; as a JSX child
+          // React escapes it, exactly as in the formal_warning branch.
+          callouts: note
+            ? [{ tone: 'note' as const, body: [{ b: 'Admin note:' }, ' ', note] }]
+            : [],
+          ctaUrl: `${appUrl}/profile`,
+          ctaLabel: 'Re-upload ID',
+        }),
+      )
+      const emailResult = await queueEmail(admin, {
+        to: profile.email,
+        subject: 'Helpr — please re-upload your ID',
+        html,
+        text,
+        templateName: 'admin_id_reupload',
+        replyTo: SUPPORT_EMAIL,
+      })
+      if (!emailResult.ok) console.error('[admin-user-actions] request_id_reupload email not queued:', emailResult.error)
+
+      return new Response(JSON.stringify({ success: true, ...emailStatusFields(emailResult) }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     if (action === 'reset_password') {
@@ -313,14 +336,14 @@ Deno.serve(async (req) => {
       const { data: linkData, error: linkErr } = await (admin.auth.admin as any).generateLink({
         type: 'recovery',
         email: profile.email,
-        options: { redirectTo: `${SITE_URL}/reset-password` },
+        options: { redirectTo: `${appUrl}/reset-password` },
       })
       if (linkErr) {
         return new Response(JSON.stringify({ error: linkErr.message }), {
           status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
       }
-      const actionLink = linkData?.properties?.action_link || `${SITE_URL}/forgot-password`
+      const actionLink = linkData?.properties?.action_link || `${appUrl}/forgot-password`
 
       const { error: auditErr } = await admin.from('admin_audit_log').insert({
         admin_id: userData.user.id,
@@ -331,27 +354,56 @@ Deno.serve(async (req) => {
       })
       if (auditErr) console.error('[admin-user-actions] audit log write FAILED — privileged action has no trail:', auditErr.message)
 
-      if (resendApiKey) {
-        const html = wrapEmail(
-          'Reset your password',
-          `<p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">Hey ${fullNameHtml},</p>
-           <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">An admin sent you a password reset link. Click the button below to choose a new password. This link expires in 1 hour.</p>`,
-          actionLink,
-          'Reset Password',
-        )
-        const text = `Hey ${fullName},\n\nReset your Helpr password using this link (expires in 1 hour):\n${actionLink}`
-        await sendEmail(resendApiKey, profile.email, 'Reset your Helpr password', html, text).catch((e) => console.error('email failed', e))
-      }
-      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      const { html, text } = await renderEmail(
+        React.createElement(AdminActionEmail, {
+          preheader: 'An admin sent you a password reset link — it expires in 1 hour.',
+          title: 'Reset your password',
+          greetingName: fullName,
+          paragraphs: [
+            'An admin sent you a password reset link. Click the button below to choose a new password. This link expires in 1 hour.',
+          ],
+          ctaUrl: actionLink,
+          ctaLabel: 'Reset Password',
+        }),
+      )
+      const emailResult = await queueEmail(admin, {
+        to: profile.email,
+        subject: 'Reset your Helpr password',
+        html,
+        text,
+        templateName: 'admin_password_reset',
+        replyTo: SUPPORT_EMAIL,
+      })
+      if (!emailResult.ok) console.error('[admin-user-actions] reset_password email not queued:', emailResult.error)
+
+      return new Response(JSON.stringify({ success: true, ...emailStatusFields(emailResult) }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     if (action === 'formal_warning') {
       // 3-strike system: 1st = warning, 2nd = final warning (banner shown in app), 3rd = 7-day auto-suspension
       // Count prior strikes (warning + final_warning) to determine escalation tier
-      const { count: priorStrikes } = await admin.from('user_violations')
+      // Fail CLOSED on a read fault. The error used to be dropped, and that is
+      // not a cosmetic omission: on any read failure PostgREST returns
+      // `count === null`, `(priorStrikes || 0)` turns that into 0,
+      // `strikeNumber` becomes 1, and a user who has earned a 3rd strike (a
+      // 7-day auto-suspension) is handed "Formal warning (Strike 1 of 3)"
+      // instead. The response still reports `success: true, strike_number: 1`
+      // and the `admin_audit_log` row records `prior_strikes: 0`, so the audit
+      // trail actively misstates what happened — the consequence ladder is
+      // silently reset by a transient database blip.
+      const { count: priorStrikes, error: strikeCountErr } = await admin.from('user_violations')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', targetUserId)
         .in('action_taken', ['warning', 'final_warning'])
+      if (strikeCountErr) {
+        console.error('[admin-user-actions] strike count read failed:', strikeCountErr.message)
+        return new Response(
+          JSON.stringify({ error: "Couldn't read this user's strike history, so the escalation tier can't be determined. Nothing was changed — please try again." }),
+          { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        )
+      }
 
       // If admin chose to bypass the next strike (one-time courtesy), keep
       // strike number at the current level (still log the warning, but don't escalate).
@@ -363,10 +415,19 @@ Deno.serve(async (req) => {
       let notifMsg = note || 'You\'ve received a formal warning for a platform rule violation. Please review the platform rules.'
       let emailSubject = 'Helpr — Formal warning issued'
       let emailHeading = 'Formal warning (Strike 1 of 3)'
-      // Backticks, not quotes: this string interpolates a brand token. As a
-      // single-quoted literal the ${...} would have shipped verbatim into the
-      // email body.
-      let escalationHtml = `<p style="font-size:14px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">This is your <strong>1st strike</strong>. A 2nd strike will trigger a final warning banner across the app; a 3rd will result in a 7-day account suspension.</p>`
+      let emailPreheader = 'A formal warning has been issued on your Helpr account (strike 1 of 3).'
+      // The escalation line is DATA now, not an HTML string. It used to be a
+      // template literal interpolating a brand token, and HAD to be written
+      // with backticks — as a single-quoted literal the ${...} shipped
+      // verbatim into the email body. There is no string left to get wrong.
+      let escalation: AdminActionCallout = {
+        tone: 'plain',
+        body: [
+          'This is your ',
+          { b: '1st strike' },
+          '. A 2nd strike will trigger a final warning banner across the app; a 3rd will result in a 7-day account suspension.',
+        ],
+      }
 
       if (strikeNumber === 2) {
         actionTaken = 'final_warning'
@@ -375,7 +436,14 @@ Deno.serve(async (req) => {
         notifMsg = (note || 'You\'ve received a final warning.') + ' One more violation will result in a 7-day suspension. A warning banner will appear at the top of your app.'
         emailSubject = 'Helpr — FINAL warning'
         emailHeading = 'Final warning (Strike 2 of 3)'
-        escalationHtml = '<p style="font-size:14px;color:hsl(0,70%,45%);line-height:1.6;margin:0 0 20px;padding:12px;border-radius:8px;background-color:hsl(0,80%,97%);border:1px solid hsl(0,70%,90%)"><strong>This is your final warning.</strong> One more violation will result in an automatic 7-day suspension. A warning banner is now visible at the top of your app.</p>'
+        emailPreheader = 'This is a final warning on your Helpr account — one more violation means a 7-day suspension.'
+        escalation = {
+          tone: 'alert',
+          body: [
+            { b: 'This is your final warning.' },
+            ' One more violation will result in an automatic 7-day suspension. A warning banner is now visible at the top of your app.',
+          ],
+        }
       } else if (strikeNumber >= 3) {
         actionTaken = 'suspension'
         const suspendUntil = new Date()
@@ -385,7 +453,16 @@ Deno.serve(async (req) => {
         notifMsg = `Your account is suspended until ${suspendUntil.toLocaleDateString()}. ${note ? 'Reason: ' + note : 'You exceeded the 3-strike limit.'} Active bids have been cancelled.`
         emailSubject = 'Helpr — Account suspended (7 days)'
         emailHeading = 'Account suspended for 7 days'
-        escalationHtml = `<p style="font-size:14px;color:hsl(0,70%,45%);line-height:1.6;margin:0 0 20px;padding:12px;border-radius:8px;background-color:hsl(0,80%,97%);border:1px solid hsl(0,70%,90%)"><strong>Your account has reached 3 strikes and is now suspended.</strong> Access will be restored on <strong>${suspendUntil.toLocaleDateString()}</strong>. All active bids have been cancelled.</p>`
+        emailPreheader = `Your Helpr account is suspended for 7 days after a third violation. Access returns on ${suspendUntil.toLocaleDateString()}.`
+        escalation = {
+          tone: 'alert',
+          body: [
+            { b: 'Your account has reached 3 strikes and is now suspended.' },
+            ' Access will be restored on ',
+            { b: suspendUntil.toLocaleDateString() },
+            '. All active bids have been cancelled.',
+          ],
+        }
 
         // Cancel all pending applications (active bids)
         await admin.from('applications').update({ status: 'rejected' } as any)
@@ -402,7 +479,14 @@ Deno.serve(async (req) => {
             'Suspended until': suspendUntil.toISOString().slice(0, 10),
             Reason: note?.slice(0, 200) || '—',
           },
-          link: `https://www.louisianahelpr.com/admin?tab=users&user=${targetUserId}`,
+          // `?view=`, not `?tab=`, and `people`, not `users`. Admin.tsx:47
+          // reads `searchParams.get("view")` and its `View` union (Admin.tsx:45)
+          // has no `users` member — `isRealView` then bounces an unknown view
+          // to home, so this alert (the one that pages someone about a 3-strike
+          // auto-suspension) landed on the admin landing page and dropped the
+          // `?user=` id, which AdminUsers only reads once the people view has
+          // actually mounted.
+          link: `${appUrl}/admin?view=people&user=${targetUserId}`,
         })
       }
 
@@ -437,26 +521,56 @@ Deno.serve(async (req) => {
         link: '/rules',
       })
 
-      if (resendApiKey) {
-        const html = wrapEmail(
-          emailHeading,
-          `<p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">Hey ${fullNameHtml},</p>
-           <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">${strikeNumber >= 3 ? 'Your account has been automatically suspended due to a third platform policy violation:' : 'You\'ve received a formal warning regarding a platform policy violation:'}</p>
-           ${note ? `<p style="font-size:14px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px;padding:12px;border-radius:8px;background-color:hsl(45,90%,95%);border:1px solid hsl(45,80%,85%)">${htmlEscape(note)}</p>` : ''}
-           ${escalationHtml}`,
-          `${SITE_URL}/rules`,
-          'Review Platform Rules',
-        )
-        const text = `Hey ${fullName},\n\nStrike ${strikeNumber} of 3.\n${note ? `\nDetails: ${note}\n` : ''}\nReview rules: ${SITE_URL}/rules`
-        await sendEmail(resendApiKey, profile.email, emailSubject, html, text).catch((e) => console.error('email failed', e))
-      }
-      return new Response(JSON.stringify({ success: true, strike_number: strikeNumber, action_taken: actionTaken }), {
+      const { html, text } = await renderEmail(
+        React.createElement(AdminActionEmail, {
+          preheader: emailPreheader,
+          title: emailHeading,
+          greetingName: fullName,
+          paragraphs: [
+            strikeNumber >= 3
+              ? 'Your account has been automatically suspended due to a third platform policy violation:'
+              : 'You\'ve received a formal warning regarding a platform policy violation:',
+          ],
+          // `note` is admin-authored free text; React escapes it as a JSX child,
+          // which is what the hand-applied htmlEscape() used to do here.
+          callouts: [
+            ...(note ? [{ tone: 'note' as const, body: note }] : []),
+            escalation,
+          ],
+          ctaUrl: `${appUrl}/rules`,
+          ctaLabel: 'Review Platform Rules',
+        }),
+      )
+      const emailResult = await queueEmail(admin, {
+        to: profile.email,
+        subject: emailSubject,
+        html,
+        text,
+        templateName: 'admin_formal_warning',
+        replyTo: SUPPORT_EMAIL,
+      })
+      if (!emailResult.ok) console.error('[admin-user-actions] formal_warning email not queued:', emailResult.error)
+
+      return new Response(JSON.stringify({
+        success: true,
+        strike_number: strikeNumber,
+        action_taken: actionTaken,
+        ...emailStatusFields(emailResult),
+      }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    // ---- Message-scanner ban review ----
-    // Both branches are the ONLY way a message-scanner case turns into (or
+    // ---- Ban review (ALL consequence ladders) ----
+    // The action names still say "message" for wire compatibility with
+    // AdminBanReview.tsx, but this queue has not been message-only since
+    // 20260829030000: off_platform, cancel_with_helper, job_denial and (since
+    // 20260831183302) no_show all land here. Every sentence a user reads out of
+    // this block therefore comes from ./banReviewCopy.ts keyed on the case's own
+    // violation_type — never a hard-coded one, which is how a helper banned for
+    // no-shows was told it was about messages.
+    //
+    // Both branches are the ONLY way such a case turns into (or
     // stops being) a ban. The caller was verified as an admin above, and every
     // decision writes an admin_audit_log row, so a permanent ban always names
     // the human who chose it — the old client path named the offender.
@@ -464,11 +578,33 @@ Deno.serve(async (req) => {
       const violationId: string | null = body.violationId ?? null
       const confirming = action === 'confirm_message_ban'
 
+      // What kind of case is this? Read it BEFORE anything is written, because
+      // both the stored ban reason and the sentence the user is shown are
+      // derived from it — and because the close step below sets action_taken,
+      // after which the pending rows can no longer be found.
+      //
+      // Scoped exactly the way the close is scoped: one row when the client
+      // named a violation (it always does), otherwise every open case for the
+      // user, which is the same set the close will dispose of. If that set
+      // spans more than one kind, banReviewCopy() falls back to neutral wording
+      // rather than picking one of them.
+      const typeQuery = admin.from('user_violations').select('violation_type')
+      const { data: caseRows, error: caseErr } = violationId
+        ? await typeQuery.eq('id', violationId)
+        : await typeQuery.eq('user_id', targetUserId).eq('action_taken', 'pending_ban_review')
+      if (caseErr) {
+        // Not fatal — a decision must not fail because its label could not be
+        // read. The fallback copy is vague but true.
+        console.error('[admin-user-actions] could not read violation type for review copy:', caseErr.message)
+      }
+      const caseTypes: string[] = (caseRows ?? []).map((r: { violation_type: string }) => r.violation_type)
+      const copy = banReviewCopy(caseTypes)
+
       if (confirming) {
         const { error: banErr } = await admin.from('user_bans').insert({
           user_id: targetUserId,
           ban_type: 'permanent',
-          reason: note || 'Repeated off-platform contact attempts in messages (admin-confirmed)',
+          reason: note || copy.banReason,
           banned_by: userData.user.id,
         })
         if (banErr) throw new Error(`Failed to record ban: ${banErr.message}`)
@@ -505,7 +641,7 @@ Deno.serve(async (req) => {
         action: confirming ? 'confirm_message_ban' : 'dismiss_message_ban_review',
         target_id: targetUserId,
         target_type: 'user',
-        details: { note, violation_id: violationId },
+        details: { note, violation_id: violationId, violation_types: caseTypes },
       })
       if (auditErr) console.error('[admin-user-actions] audit log write FAILED — privileged action has no trail:', auditErr.message)
 
@@ -514,14 +650,20 @@ Deno.serve(async (req) => {
           ? {
               user_id: targetUserId,
               title: 'Account permanently banned',
-              message: 'An admin reviewed your blocked messages and permanently banned your account. Email admin@louisianahelpr.com if you believe this is a mistake.',
+              // One sentence, built from the case's own violation type — see
+              // ./banReviewCopy.ts. This used to be hard-coded to "blocked
+              // messages" for every ladder feeding this queue.
+              message: banConfirmedMessage(copy, SUPPORT_EMAIL),
               type: 'warning',
               link: '/account-banned',
             }
           : {
               user_id: targetUserId,
               title: 'Restriction lifted',
-              message: 'An admin reviewed your account and lifted the restriction. Keep chats and payments on Helpr and you\'re all set.',
+              // Same source of truth as the ban sentence. This used to end with
+              // "Keep chats and payments on Helpr" for every ladder — messaging
+              // advice handed to someone whose case was about no-shows.
+              message: banDismissedMessage(copy),
               type: 'success',
               link: '/dashboard',
             },

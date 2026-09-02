@@ -138,8 +138,9 @@ export const ANON_SCREENS: ScreenSpec[] = [
   // "covered" ticks. `not-found` below already covers that screen once, on
   // purpose. The zz-catalog-routes-resolve test keeps this from recurring.
   //
-  // /benefits and /gift-card moved to AUTHED_SCREENS: both sit behind
-  // ProtectedRoute, so on an ANON pass they render /login, not themselves.
+  // /gift-card moved to AUTHED_SCREENS: it sits behind ProtectedRoute, so on
+  // an ANON pass it renders /login, not itself. /benefits moved with it and was
+  // then deleted outright on 2026-08-31 when the page was removed.
   { name: "privacy", url: "/privacy" },
   { name: "terms", url: "/terms" },
   { name: "rules", url: "/rules" },
@@ -234,10 +235,15 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   // fixture values; a route that redirects (many of these do, depending on
   // profile state) still gets audited, just as whatever it lands on.
   { name: "activity", url: "/activity" },
-  // REMOVED 2026-08-23: /analytics is a <Navigate> to /profile?tab=earnings
-  // now, not a screen. Left in, this row would have audited the Earnings tab
-  // under the wrong name and counted it twice — the over-counting the catalog
-  // guard exists to catch. `profile-earnings` already covers the destination.
+  // RESTORED 2026-09-01. It was removed on 2026-08-23 because /analytics had
+  // become a <Navigate> to /profile?tab=earnings, so the row would have audited
+  // the Earnings tab under the wrong name and counted it twice. /analytics is a
+  // real screen again — Advanced Analytics, the Pro/Elite perk — and it is a
+  // DIFFERENT screen from the Earnings tab, not the same body retitled. Note
+  // that what it renders depends on the account's tier: an entitled helper gets
+  // the dashboard, everyone else gets the upgrade offer. Both are real states
+  // and both want auditing; the seeded audit helper is Elite.
+  { name: "analytics", url: "/analytics" },
   { name: "auto-tip", url: "/auto-tip" },
   { name: "availability", url: "/availability" },
   { name: "earnings", url: "/earnings" },
@@ -255,7 +261,9 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   { name: "home-history", url: "/home-history" },
   // REMOVED 2026-08-22: /job-history's redirect stub was deleted in 2352466e,
   // so this row rendered the 404 page while reporting as the job-history
-  // screen. The real screen is /profile?tab=completed_jobs, already covered.
+  // screen. The completed-work screen it meant to reach is `/work-record`
+  // (the `?tab=completed_jobs` tab this comment used to name was itself
+  // removed from the Tab union — see the Profile block above).
   // ⚠ These seven `/jobs/*` rows do NOT audit JobDetail. JobDetail.tsx:79
   // redirects every SIGNED-IN visitor to `/dashboard?quickApply={id}` by
   // design (the dashboard owns the apply flow), so all seven land on the
@@ -280,7 +288,8 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   // Both were listed as ANON until 2026-08-22, where ProtectedRoute meant they
   // rendered the login screen and the sweep filed it under their name.
   { name: "gift-card", url: "/gift-card" },
-  { name: "benefits", url: "/benefits" },
+  // "benefits" (/benefits) removed 2026-08-31 with the page and its route —
+  // the path now renders NotFound, which `not-found` already covers once.
   { name: "pets", url: "/pets" },
   { name: "saved-helpers", url: "/saved-helpers" },
   { name: "schedule", url: "/schedule" },

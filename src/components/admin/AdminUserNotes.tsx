@@ -341,7 +341,7 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
             <AlertDialogAction
               onClick={(e) => { e.preventDefault(); removeNote(); }}
               disabled={deleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              variant="destructive"
             >
               {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <Trash2 className="w-3.5 h-3.5 mr-1" />}
               Delete Note

@@ -8,6 +8,8 @@ import { MagicLinkEmail } from '../_shared/email-templates/magic-link.tsx'
 import { RecoveryEmail } from '../_shared/email-templates/recovery.tsx'
 import { EmailChangeEmail } from '../_shared/email-templates/email-change.tsx'
 import { ReauthenticationEmail } from '../_shared/email-templates/reauthentication.tsx'
+import { getAppUrl } from '../_shared/appUrl.ts'
+import { FROM_DEFAULT, SENDER_DOMAIN } from '../_shared/resend.ts'
 
 // Supabase Auth "Send Email Hook" handler.
 //
@@ -60,19 +62,23 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
 }
 
 // Branding constants — keep in sync with the email templates.
-// Sender = apex `louisianahelpr.com` (the domain Resend verified). The
-// DKIM/SPF/MX records on the `send.*` subdomain are infrastructure
-// (DKIM signing, SPF authority, bounce handler) that prove the apex
-// domain is authorized to send via Resend's AWS SES backend.
+// Sender = apex `louisianahelpr.com` (the domain Resend verified, exported as
+// SENDER_DOMAIN from _shared/resend.ts). The DKIM/SPF/MX records on the
+// `send.*` subdomain are infrastructure (DKIM signing, SPF authority, bounce
+// handler) that prove the apex domain is authorized to send via Resend's AWS
+// SES backend.
+//
+// The LINK host is a different question from the SENDING domain, and this file
+// used to answer it locally: it built `https://www.${ROOT_DOMAIN}` while
+// send-notification-email, send-account-status-email, admin-user-actions and
+// engagement-automations all built apex `https://louisianahelpr.com`. Two
+// hosts in the same inbox. Every link now comes from getAppUrl().
 const SITE_NAME = 'Helpr'
-const SENDER_DOMAIN = 'louisianahelpr.com'
-const ROOT_DOMAIN = 'louisianahelpr.com'
-const FROM_DOMAIN = 'louisianahelpr.com'
 
 // Sample data for the /preview endpoint (renders templates without
 // signing/enqueuing — useful for visual review). The .test TLD is RFC 6761
 // reserved so it can't accidentally hit a real domain.
-const SAMPLE_PROJECT_URL = `https://www.${ROOT_DOMAIN}`
+const SAMPLE_PROJECT_URL = getAppUrl()
 const SAMPLE_EMAIL = 'user@example.test'
 const SAMPLE_DATA: Record<string, object> = {
   signup: { siteName: SITE_NAME, siteUrl: SAMPLE_PROJECT_URL, recipient: SAMPLE_EMAIL, confirmationUrl: SAMPLE_PROJECT_URL },
@@ -186,14 +192,14 @@ async function handleWebhook(req: Request): Promise<Response> {
   // Build the verification URL Supabase expects users to follow. Per docs,
   // the format is: <site_url>/auth/v1/verify?token=<token_hash>&type=<type>&redirect_to=<redirect_to>
   // We build it on our domain so links are branded.
-  const verifyUrl = new URL(`https://www.${ROOT_DOMAIN}/auth/v1/verify`)
+  const verifyUrl = new URL(`${getAppUrl()}/auth/v1/verify`)
   if (emailData.token_hash) verifyUrl.searchParams.set('token', emailData.token_hash)
   if (emailType) verifyUrl.searchParams.set('type', emailType)
   if (emailData.redirect_to) verifyUrl.searchParams.set('redirect_to', emailData.redirect_to)
 
   const templateProps = {
     siteName: SITE_NAME,
-    siteUrl: `https://www.${ROOT_DOMAIN}`,
+    siteUrl: getAppUrl(),
     recipient: user.email,
     confirmationUrl: verifyUrl.toString(),
     token: emailData.token,
@@ -226,7 +232,7 @@ async function handleWebhook(req: Request): Promise<Response> {
     payload: {
       message_id: messageId,
       to: user.email,
-      from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
+      from: FROM_DEFAULT,
       sender_domain: SENDER_DOMAIN,
       subject: EMAIL_SUBJECTS[emailType] || 'Notification',
       html,

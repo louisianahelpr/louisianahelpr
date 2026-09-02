@@ -124,7 +124,9 @@ export async function handleAccountUpdated(
           title: "Payout account verified",
           message: "Your payout account is fully set up! You can now receive payments for completed jobs.",
           type: "success",
-          link: "/profile",
+          // Name the tab. Bare "/profile" opens the LANDING tab (resolveTab,
+          // src/pages/profile/types.ts), which says nothing about payouts.
+          link: "/profile?tab=payment",
         });
         logStep("Helper payout account verified (no auto-approve needed)", { userId: helperProfile.user_id, email_verified: helperProfile.email_verified, approval_status: helperProfile.approval_status });
       }
@@ -134,7 +136,8 @@ export async function handleAccountUpdated(
         title: "Payout account needs attention",
         message: "Your payout account requires additional information. Please update your details to continue receiving payments.",
         type: "warning",
-        link: "/profile",
+        // "Please update your details" has to land ON the details.
+        link: "/profile?tab=payment",
       });
       logStep("Helper account needs attention", { userId: helperProfile.user_id, due: account.requirements.currently_due });
     }

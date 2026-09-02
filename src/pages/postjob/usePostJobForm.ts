@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useDraftJob } from "@/hooks/useDraftJob";
 import { safeStorage } from "@/lib/safeStorage";
+import { DEFAULT_OFFER_RESPONSE_HOURS } from "@/lib/offerResponseWindow";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import type { Step } from "./postJobFormTypes";
 import { useJobMediaUpload } from "./useJobMediaUpload";
@@ -9,6 +10,7 @@ import { useJobSubmit } from "./useJobSubmit";
 import { useJobEntry } from "./useJobEntry";
 import { useJobDerived } from "./useJobDerived";
 import { useJobFormEffects } from "./useJobFormEffects";
+import { usePifCredit } from "./usePifCredit";
 
 export type { Step } from "./postJobFormTypes";
 
@@ -38,6 +40,14 @@ export function usePostJobForm() {
   // start-fresh / draft / template choice first, which declutters the page.
   const skipEntry = !!(searchParams.get("rebook") || searchParams.get("offerTo"));
   const [step, setStep] = useState<Step>(skipEntry ? "form" : "entry");
+
+  // Pay It Forward — the gift card this post is being funded with, if any.
+  // Read ONCE here so the id that goes to create-payment and the amount the
+  // checkout screen quotes come from the same place. They used to be
+  // unrelated: the id was passed through to the server and the screen never
+  // knew a gift existed, so it quoted full price against a $0 charge.
+  const pifCreditId = searchParams.get("pif_credit");
+  const pifCredit = usePifCredit(pifCreditId);
 
   // Advance to the form when `rebook`/`offerTo` arrives AFTER mount.
   //
@@ -220,6 +230,11 @@ export function usePostJobForm() {
   // Direct Offer state — set when arriving via /post-job?offerTo=<helperId>
   const [offerToHelperId, setOfferToHelperId] = useState<string | null>(null);
   const [offerToHelperName, setOfferToHelperName] = useState<string>("");
+  // How long the targeted helpr gets first refusal. Poster-chosen in
+  // DirectOfferBanner; 24h is the historic (and still default) window.
+  const [offerResponseHours, setOfferResponseHours] = useState<number>(
+    DEFAULT_OFFER_RESPONSE_HOURS,
+  );
 
   // Mount/reactive side effects (platform fee, open-job preflight, rebook
   // prefill, LA smart defaults, direct-offer targeting, parish lookup,
@@ -359,11 +374,12 @@ export function usePostJobForm() {
     platformFee,
     salesTaxRate,
     offerToHelperId,
+    offerResponseHours,
     credentialTier,
     includeMaterials,
     materialsNote,
     saveCardForFuture,
-    pifCreditId: searchParams.get("pif_credit"),
+    pifCreditId,
     uploadAndAttachPhotos,
     uploadAndAttachScopeVideo,
   });
@@ -377,6 +393,9 @@ export function usePostJobForm() {
     customerFeeAmount,
     onboardingFeeAmount,
     totalCharge,
+    hasGift,
+    giftAppliedAmount,
+    giftCreditAmount,
     categoryLabel,
     detailsComplete,
     logisticsComplete,
@@ -403,6 +422,10 @@ export function usePostJobForm() {
     dateNeeded,
     startTime,
     parish,
+    // Only a credit the server would actually accept feeds the money math.
+    // An unusable one must quote FULL price, not $0 — being under-quoted and
+    // then charged is the failure this whole lane exists to prevent.
+    pifCreditAmount: pifCredit.usable ? pifCredit.creditAmount : null,
   });
 
   const handlePostJobBack = () => {
@@ -446,6 +469,8 @@ export function usePostJobForm() {
     // direct offer
     offerToHelperId,
     offerToHelperName,
+    offerResponseHours,
+    setOfferResponseHours,
     clearOffer,
     // draft prompt
     hasDraft,
@@ -550,6 +575,15 @@ export function usePostJobForm() {
     customerFeeAmount,
     onboardingFeeAmount,
     totalCharge,
+    // Pay It Forward gift, surfaced to the checkout screen so the total it
+    // prints is the total that gets charged.
+    hasGift,
+    giftAppliedAmount,
+    giftCreditAmount,
+    /** A gift id is in the URL but hasn't resolved yet — hold the pay button. */
+    giftLoading: pifCredit.loading,
+    /** A gift id was supplied that the server would refuse. Say so. */
+    giftUnavailable: !!pifCreditId && pifCredit.unavailable,
     categoryLabel,
     detailsComplete,
     logisticsComplete,

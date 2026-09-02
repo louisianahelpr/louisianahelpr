@@ -18,7 +18,20 @@ import { test, expect, FAKE_HELPER, installSupabaseMocks } from "./fixtures";
 
 /** Text unique to each view, present even on an empty account. */
 const MARKERS: Record<string, RegExp> = {
-  Money: /in progress/i,
+  // Was /in progress/i. That text came from the Money view's 3-up tile row
+  // ("Active · N · in progress"), which rendered unconditionally — including
+  // the "0 · in progress" tile this suite's empty helper account produced.
+  // ad315368 replaced that row with <EarningsSummaryCard />, whose equivalent
+  // band is `{!loading && inProgressCount > 0 && …}` — correct product
+  // behaviour (an empty account should not be told it has zero jobs running),
+  // and it means the old marker is absent on exactly the account this spec
+  // uses. The marker requirement above ("present even on an empty account")
+  // stopped being true of the string, not of the view.
+  //
+  // `earnedRangeLabel("lifetime")` is the replacement: EarningsTab opens on the
+  // lifetime range, the card prints the label under the figure whatever the
+  // figure is, and the phrase exists in exactly one place in src/.
+  Money: /total earned/i,
   History: /Earning history/i,
   // Was /take-home/i — that text came from HeroSummary, which was deleted
   // once the tab's Money view made it the third statement of one number.

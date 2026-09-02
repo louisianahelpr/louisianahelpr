@@ -13,16 +13,52 @@ import { maybeFireFirstPostConfetti } from "./firstPostConfetti";
 import { recordJobActionForPermissionPrompt } from "@/hooks/useNotificationPermissionPrompt";
 import { buildJobInsertPayload } from "./jobSubmitHelpers";
 import { hasUnfilledPlaceholders } from "@/lib/postingTemplates";
+import { isScheduleInThePast } from "@/lib/jobExpiry";
 import type { Step } from "./postJobFormTypes";
 import { composeSpecialRequirements, scrollToField } from "./postJobFormHelpers";
 import {
   MIN_JOB_BUDGET_DOLLARS,
   MAX_JOB_BUDGET_DOLLARS,
   URGENT_FEE_FLOOR_DOLLARS,
+  MAX_URGENT_FEE_DOLLARS,
   formatDollarsWhole,
 } from "@/lib/moneyLimits";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { isNativePlatform } from "@/lib/nativeInit";
+
+/**
+ * Remove a job whose payment setup failed, and PROVE it went.
+ *
+ * `.select("id")` is the whole point. A DELETE that matches zero rows is
+ * `{ data: [], error: null }`, so `if (cleanupError) report(...)` was silent
+ * about the one outcome that actually matters here: the job row survives. That
+ * leaves an orphan in the marketplace with NO escrow behind it — browsable,
+ * applicable-to, and impossible to pay out — which is exactly what the cleanup
+ * exists to prevent, reported as a success.
+ *
+ * Deliberately never throws: both call sites are already on an error path
+ * (payment setup failed) that owns the user-facing toast and the step reset.
+ * A failed cleanup must be loud in monitoring, not a second exception thrown
+ * over the first one.
+ */
+async function cleanupOrphanJob(jobId: string): Promise<void> {
+  try {
+    const { data, error } = await supabase.from("jobs").delete().eq("id", jobId).select("id");
+    if (error) {
+      report(error, { tags: { source: "PostJob.orphanCleanup" }, context: { job_id: jobId } });
+      return;
+    }
+    if (!data || data.length === 0) {
+      report(new Error("Orphan job cleanup deleted 0 rows — unfunded job may be live"), {
+        severity: "error",
+        tags: { source: "PostJob.orphanCleanup", kind: "mutation_rejected" },
+        context: { job_id: jobId, rowsAffected: data?.length ?? 0 },
+      });
+    }
+  } catch (err) {
+    report(err, { tags: { source: "PostJob.orphanCleanup" }, context: { job_id: jobId } });
+  }
+}
 
 /**
  * useJobSubmit — owns the review-gate, pre-submit checks, and the full
@@ -78,6 +114,7 @@ export interface UseJobSubmitParams {
   platformFee: number | null;
   salesTaxRate: number;
   offerToHelperId: string | null;
+  offerResponseHours: number;
   credentialTier: number;
   // Materials + card
   includeMaterials: boolean;
@@ -131,6 +168,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     platformFee,
     salesTaxRate,
     offerToHelperId,
+    offerResponseHours,
     credentialTier,
     includeMaterials,
     materialsNote,
@@ -160,6 +198,18 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     const selectedDate = new Date(dateNeeded + "T00:00:00");
     if (selectedDate < today) { toast.error("Date cannot be in the past."); scrollToField("date"); return; }
     if (!isFlexibleSchedule && !startTime) { toast.error("Start time is required (or mark the schedule as flexible)."); scrollToField("flexible"); return; }
+    // The date check above is midnight-to-midnight, so TODAY at a time that
+    // has already gone by used to sail through — and the listing expiry is
+    // derived from exactly that instant, so the job was created already
+    // expired and invisible to every helper the moment the poster paid.
+    // Refuse it here rather than silently shifting their time, so they fix it
+    // BEFORE checkout. (jobExpiry's floor and trg_job_expiry_floor still catch
+    // any path that gets past this.)
+    if (isScheduleInThePast(dateNeeded, startTime)) {
+      toast.error("That start time has already passed. Pick a later time or a future date.");
+      scrollToField("date");
+      return;
+    }
     // special_requirements is optional — no validation needed
     // The budget is always required and always bounded now. It used to be
     // skipped entirely in "Accept bids" mode, which is how a bid job reached
@@ -167,6 +217,10 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     if (!budget || parseFloat(budget) < MIN_JOB_BUDGET_DOLLARS) { toast.error(`Minimum budget is ${formatDollarsWhole(MIN_JOB_BUDGET_DOLLARS)}`); scrollToField("budget"); return; }
     if (parseFloat(budget) > MAX_JOB_BUDGET_DOLLARS) { toast.error(`Maximum budget is ${formatDollarsWhole(MAX_JOB_BUDGET_DOLLARS)}.`); scrollToField("budget"); return; }
     if (isUrgent && (parseFloat(urgentFee) < URGENT_FEE_FLOOR_DOLLARS || isNaN(parseFloat(urgentFee)))) { toast.error(`Urgent bonus must be at least ${formatDollarsWhole(URGENT_FEE_FLOOR_DOLLARS)}`); scrollToField("custom-urgent-fee"); return; }
+    // The bonus had a floor but no CEILING, while the budget it rides on is
+    // capped at $5,000. $99,999 in this field on a $100 job reached a live
+    // Stripe checkout for $103,088.88 with Pay enabled.
+    if (isUrgent && parseFloat(urgentFee) > MAX_URGENT_FEE_DOLLARS) { toast.error(`Urgent bonus can't be more than ${formatDollarsWhole(MAX_URGENT_FEE_DOLLARS)}`); scrollToField("custom-urgent-fee"); return; }
     // A series with no days is not a series. The picker seeds the job's own
     // weekday so this should be unreachable from a fresh form, but a restored
     // draft predating the day set would come back empty — and letting it
@@ -293,6 +347,12 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     const buildPayload = (opts: { withExtras: boolean }) =>
       buildJobInsertPayload({
         userId: user.id,
+        // Always NULL. There are no business accounts: `businesses` and
+        // `business_members` were dropped in migration 20260828011811, and the
+        // jobs INSERT policy now requires `business_id IS NULL`. The column is
+        // kept (AdminExport still exports it), so the field stays on the
+        // payload type — it just has no non-null source. Same story for
+        // `department` below.
         businessId: null,
         title,
         description,
@@ -320,6 +380,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
         platformFee,
         salesTaxRate,
         offerToHelperId,
+        offerResponseHours,
         credentialTier: opts.withExtras ? credentialTier : 0,
         department: null,
         requiresW9: false,
@@ -332,9 +393,17 @@ export function useJobSubmit(params: UseJobSubmitParams) {
       .single();
 
     if (error) {
-      // jobs.department / pending_approval enum value may not exist on
-      // prod yet (migration unapplied). Strip the new fields and retry
-      // so the post still lands.
+      // A column this payload opts into may not exist on prod yet (migration
+      // unapplied). `withExtras: false` is what the retry actually strips:
+      // jobs.credential_tier (migration 20260612150000). Strip it and retry so
+      // the post still lands.
+      //
+      // This used to also cover a `status = 'pending_approval'` write — hence
+      // 22P02 (invalid_text_representation), which fired when the job_status
+      // enum on an old prod lacked that label. Nothing writes `status` from the
+      // post flow any more (see jobSubmitHelpers), so 22P02 is no longer
+      // reachable from that cause; it is kept only because retrying on it is
+      // harmless and a future enum-valued field would want it.
       const code = (error as { code?: string }).code;
       const missingNew = code === "PGRST204" || code === "42703" || code === "22P02";
       if (missingNew) {
@@ -485,8 +554,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
 
       if (hasError) {
         // Delete the job since payment setup failed — don't leave orphan jobs.
-        const { error: cleanupError } = await supabase.from("jobs").delete().eq("id", jobData.id);
-        if (cleanupError) report(cleanupError, { tags: { source: "PostJob.orphanCleanup" }, context: { job_id: jobData.id } });
+        await cleanupOrphanJob(jobData.id);
         safeStorage.removeItem(COOLDOWN_KEY);
         const errorMsg = paymentData?.error || paymentError?.message || "Payment setup failed";
         hapticError();
@@ -501,14 +569,21 @@ export function useJobSubmit(params: UseJobSubmitParams) {
       }
 
       clearDraft();
-      // Notify matching helprs now that escrow is set up — done here, not
-      // before create-payment, so a failed payment setup (which deletes the
-      // job above) never fires ghost notifications for a job that no longer
-      // exists. Awaited so it lands before the redirect unloads the page;
-      // best-effort — the job is still discoverable via browse if it fails.
-      try {
-        await supabase.functions.invoke("instant-job-match", { body: { jobId: jobData.id } });
-      } catch { /* best-effort */ }
+      // The instant-job-match fan-out USED to happen here. It has moved to
+      // stripe-webhook's checkoutSessionCompleted, because "escrow is set up"
+      // was never true at this point: create-payment only mints a Checkout
+      // Session URL, and payment_status stays 'unpaid' until the poster
+      // actually completes checkout and the webhook flips it to 'escrow'.
+      //
+      // Since migration 20260831010000 the browse RPCs only return jobs whose
+      // payment_status is one of ('escrow','payout_pending','released'), so
+      // every notification sent from here advertised a job no helper could
+      // open — and if the poster abandoned the Stripe page, a job that never
+      // became real at all. Firing it post-funding is the only placement where
+      // the push and the browse result agree.
+      //
+      // This also removes a network round-trip that was being AWAITED on the
+      // path to the checkout redirect.
       // Land the geocode write before the redirect unloads the page. It's
       // been running concurrently since job insert, so it's usually already
       // done; cap the wait at 2.5s so a slow/blocked Nominatim never stalls
@@ -526,8 +601,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     } catch (err) {
       report(err, { tags: { source: "PostJob.paymentInvoke" }, context: { job_id: jobData.id } });
       // Delete the job since payment setup failed
-      const { error: cleanupError } = await supabase.from("jobs").delete().eq("id", jobData.id);
-      if (cleanupError) report(cleanupError, { tags: { source: "PostJob.orphanCleanup" }, context: { job_id: jobData.id } });
+      await cleanupOrphanJob(jobData.id);
       safeStorage.removeItem(COOLDOWN_KEY);
       hapticError();
       toast.error("We couldn't set up payment just yet — please try again.");

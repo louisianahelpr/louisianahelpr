@@ -6,12 +6,14 @@ import { useEffect, useState } from "react";
 // different pop up dialog shells? Why??".
 import {
   Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHero,
   DialogClose,
+  DialogContent,
+  DialogHero,
+  DialogBody,
+  DialogFooter,
+  DialogSecondaryAction,
+  DialogDestructiveAction,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -134,10 +136,8 @@ export function BlockUserDialog({
           title={<>Block {blockedUserName}?</>}
         />
         <div className="space-y-3 mt-2">
-              <ul
-                className="font-serif italic space-y-1 list-disc pl-5 leading-relaxed text-ds-13"
-                style={{ color: "hsl(var(--olivewood) / 0.85)" }}
-              >
+              <DialogBody>
+                <ul className="space-y-1 list-disc pl-5">
                 <li>You won&apos;t see their messages, applications, or profile.</li>
                 <li>They won&apos;t be able to apply to your jobs or message you.</li>
                 <li>They won&apos;t be notified that you blocked them.</li>
@@ -164,7 +164,8 @@ export function BlockUserDialog({
                     )}
                   </li>
                 )}
-              </ul>
+                </ul>
+              </DialogBody>
               <div className="space-y-1.5">
                 <label
                   className="font-serif italic uppercase block text-ds-10"
@@ -185,47 +186,49 @@ export function BlockUserDialog({
             flex-col-reverse on mobile, which would float Cancel to the top.
             We want the action stack to read Just block → Block and report →
             Cancel, with Cancel anchored at the bottom. */}
-        <DialogFooter className="!flex-col sm:!items-stretch sm:!space-x-0">
-          {/* Order: Just block → Block and report → Cancel. When the parent
-              opts into report-and-block, "Block and report" is the primary
-              filled CTA and sits closest to the thumb (just above Cancel);
-              "Just block" reads as a solid-tinted secondary above it. When
-              there's no report path, "Just block" is the lone primary. */}
-          <Button
-            onClick={(e) => {
-              e.preventDefault();
-              handleBlock();
-            }}
-            disabled={submitting}
-            className="rounded-ds-md"
-            style={
-              onReportAndBlock
-                ? {
-                    // Secondary — but clearly ENABLED, not greyed. "Block and
-                    // report" stays the primary filled CTA; this reads as a
-                    // solid-tinted secondary (a real choice, since the reason
-                    // is optional), not a disabled control.
-                    background: "hsl(var(--burnt-sienna) / 0.16)",
-                    backgroundImage: "none",
-                    border: "1px solid hsl(var(--burnt-sienna) / 0.65)",
-                    color: "hsl(var(--burnt-sienna))",
-                    boxShadow: "inset 0 1px 1px 0 rgba(255,255,255,0.4), 0 1px 2px hsl(var(--burnt-sienna) / 0.12)",
-                    fontFamily: "Montserrat, system-ui, sans-serif",
-                    fontWeight: 600,
-                    letterSpacing: "0.01em",
-                  }
-                : {
-                    background: "hsl(var(--burnt-sienna))",
-                    backgroundImage: "none",
-                    border: "1px solid hsl(var(--burnt-sienna))",
-                    color: "hsl(var(--parchment))",
-                    fontFamily: "Montserrat, system-ui, sans-serif",
-                    fontWeight: 600,
-                    letterSpacing: "0.01em",
-                    boxShadow: "var(--elev-sienna-raised)",
-                  }
-            }
-          >
+        {/* THE SHARED FOOTER, with the canonical DOM order.
+            `DialogFooter` is `flex-col-reverse` on phones and a right-aligned
+            `flex-row` from `sm` up, so DOM order [dismiss … primary] renders
+            as primary-on-top / dismiss-at-the-bottom on a phone and
+            dismiss-left / primary-right on a desktop — the same reading order
+            both ways. This footer had `!flex-col sm:!items-stretch
+            sm:!space-x-0`, which forced a full-width stack at EVERY width and,
+            being `flex-col` rather than `-reverse`, left the primary in the
+            MIDDLE of the stack.
+
+            All three buttons are shared variants now. Blocking is punitive and
+            the blocker cannot undo it from this screen, so it takes the same
+            `destructive` red as "Confirm No-Show" and "Delete User"; when a
+            report path is offered, "Block and Report" is the primary and
+            "Just Block" steps back to `outline`. The three hand-written sienna
+            style objects (a 16%-tint secondary and two solid fills) were a
+            fourth and fifth destructive treatment on top of the two already in
+            the app. */}
+        <DialogFooter>
+          <DialogClose asChild>
+            <DialogSecondaryAction disabled={submitting}>Cancel</DialogSecondaryAction>
+          </DialogClose>
+          {/* THE ONLY THREE-ACTION FOOTER IN THE APP, and the one documented
+              exception in dialogShell.test.ts. It is not decoration: "Just
+              Block" and "Block and Report" are two different writes, and the
+              brief for this pass was explicit that no dialog loses an action
+              to fit the pattern.
+              The demotion the old `outline` expressed is kept, said in the
+              canonical vocabulary: when a report path is offered, "Block and
+              Report" is the one red commit and "Just Block" steps back to the
+              app's demoted treatment (ghost) rather than to a bordered
+              `outline` button no other popup uses. With no report path there
+              is nothing to demote against, so blocking IS the commit and takes
+              the red. Two reds side by side would be the hierarchy defect this
+              avoids. */}
+          {onReportAndBlock ? (
+            <DialogSecondaryAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleBlock();
+              }}
+              disabled={submitting}
+            >
             {submitting ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -234,26 +237,33 @@ export function BlockUserDialog({
             ) : (
               "Just Block"
             )}
-          </Button>
+            </DialogSecondaryAction>
+          ) : (
+            <DialogDestructiveAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleBlock();
+              }}
+              disabled={submitting}
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Blocking…
+                </>
+              ) : (
+                "Just Block"
+              )}
+            </DialogDestructiveAction>
+          )}
           {onReportAndBlock && (
-            <Button
+            <DialogDestructiveAction
               onClick={async (e) => {
                 e.preventDefault();
                 const blocked = await handleBlock();
                 if (blocked) onReportAndBlock();
               }}
               disabled={submitting}
-              className="rounded-ds-md"
-              style={{
-                background: "hsl(var(--burnt-sienna))",
-                backgroundImage: "none",
-                border: "1px solid hsl(var(--burnt-sienna))",
-                color: "hsl(var(--parchment))",
-                fontFamily: "Montserrat, system-ui, sans-serif",
-                fontWeight: 600,
-                letterSpacing: "0.01em",
-                boxShadow: "var(--elev-sienna-raised)",
-              }}
             >
               {submitting ? (
                 <>
@@ -263,11 +273,8 @@ export function BlockUserDialog({
               ) : (
                 "Block and Report"
               )}
-            </Button>
+            </DialogDestructiveAction>
           )}
-          <DialogClose asChild>
-            <Button variant="ghost" disabled={submitting} className="rounded-ds-md">Cancel</Button>
-          </DialogClose>
         </DialogFooter>
       </DialogContent>
     </Dialog>

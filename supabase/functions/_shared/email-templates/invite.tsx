@@ -3,28 +3,17 @@
 import * as React from 'npm:react@18.3.1'
 
 import {
-  Body,
-  Button,
-  Container,
-  Head,
   Heading,
-  Html,
-  Img,
-  Link,
-  Preview,
   Text,
+  Link,
 } from 'npm:@react-email/components@0.0.22'
 
 import {
-  main,
-  container,
-  logo,
   h1,
   text,
   linkStyle,
-  button,
-  footer,
 } from './styles.ts'
+import { BaseLayout, BrandButton, TransactionalFooter } from './components.tsx'
 
 interface InviteEmailProps {
   siteName: string
@@ -37,29 +26,20 @@ export const InviteEmail = ({
   siteUrl,
   confirmationUrl,
 }: InviteEmailProps) => (
-  <Html lang="en" dir="ltr">
-    <Head />
-    <Preview>You've been invited to join Helpr</Preview>
-    <Body style={main}>
-      <Container style={container}>
-        <Img src="https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/brand-asset" alt="Helpr" width="80" style={logo} />
-        <Heading style={h1}>You've been invited to Helpr.</Heading>
-        <Text style={text}>
-          A neighbor invited you to join{' '}
-          <Link href={siteUrl} style={linkStyle}>
-            <strong>Helpr</strong>
-          </Link>
-          . Tap below to accept and set up your account.
-        </Text>
-        <Button style={button} href={confirmationUrl}>
-          Accept Invitation
-        </Button>
-        <Text style={footer}>
-          If you weren't expecting this invitation, you can safely ignore this email.
-        </Text>
-      </Container>
-    </Body>
-  </Html>
+  <BaseLayout preheader="You've been invited to join Helpr">
+      <Heading className="e-h1" style={h1}>You've been invited to Helpr.</Heading>
+      <Text className="e-text" style={text}>
+        A neighbor invited you to join{' '}
+        <Link href={siteUrl} className="e-accent" style={linkStyle}>
+          <strong>Helpr</strong>
+        </Link>
+        . Tap below to accept and set up your account.
+      </Text>
+      <BrandButton href={confirmationUrl} label="Accept Invitation" />
+      <TransactionalFooter>
+        If you weren't expecting this invitation, you can safely ignore this email.
+      </TransactionalFooter>
+  </BaseLayout>
 )
 
 export default InviteEmail

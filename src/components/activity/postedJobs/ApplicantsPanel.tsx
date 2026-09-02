@@ -1,9 +1,9 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { formatName } from "@/lib/utils";
-import { OptimizedImage } from "@/components/ui/optimized-image";
+import UserAvatar from "@/components/UserAvatar";
 import { Button } from "@/components/ui/button";
-import { Eye, Pencil, Plus, ShieldAlert, ShieldCheck, Sparkles, Star, X } from "lucide-react";
+import { ArrowUp, Eye, Pencil, Plus, ShieldAlert, ShieldCheck, Sparkles, Star, X } from "lucide-react";
 import AppPage from "@/components/AppPage";
 import { AttachmentLink } from "@/components/AttachmentLink";
 import CredentialBadge from "@/components/CredentialBadge";
@@ -39,6 +39,15 @@ interface ApplicantsPanelProps {
       resolves, or when the job has never been viewed — the readout is
       simply omitted in both cases rather than rendering a zero. */
   jobAnalytics?: JobAnalytics;
+  /** Opens JobBoostDialog / EditJobDialog for the selected job. Both are
+      already state on the Activity page (useActivityActions' `setBoostJobId`
+      and `setEditJob`); they are threaded down here so the "nobody has
+      applied" empty state can offer the two levers that actually change the
+      outcome, instead of naming them in prose and leaving the poster to go
+      find the controls on the card behind this overlay. Optional: the empty
+      state omits a lever it cannot open rather than rendering a dead one. */
+  onBoost?: (jobId: string) => void;
+  onEdit?: (job: Job) => void;
 }
 
 export function ApplicantsPanel({
@@ -56,6 +65,8 @@ export function ApplicantsPanel({
   onTimeMap,
   distanceMap,
   jobAnalytics,
+  onBoost,
+  onEdit,
 }: ApplicantsPanelProps) {
   // The counter-offer state (bid input, optimistic negotiation status, the
   // counter_application_bid RPC call) lived here until bidding was removed —
@@ -103,6 +114,30 @@ export function ApplicantsPanel({
     distanceMap,
   });
 
+  /**
+   * Escape closes the panel, the same as the back chevron.
+   *
+   * A full-screen overlay dismissible only by hitting one specific control is
+   * a keyboard dead end, and every other dismissible surface in the app (every
+   * Dialog, every Sheet) takes Escape — so this one reads as broken without it.
+   *
+   * A window listener rather than `onKeyDown` on the container: this panel is
+   * a push, not a modal, so it never takes focus on open and a container
+   * handler would simply never fire. The guard is the price of that — an open
+   * Radix overlay (the Boost and Edit dialogs the empty state opens, the
+   * decline sheet) owns Escape while it is up, and closing the panel out from
+   * under it would dismiss two things with one key.
+   */
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || e.defaultPrevented) return;
+      if (document.querySelector('[data-state="open"][role="dialog"], [data-state="open"][role="alertdialog"]')) return;
+      setSelectedJob(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [setSelectedJob]);
+
   // PORTALLED TO <body> ON PURPOSE — do not "simplify" this back to a plain
   // return. The panel is a full-screen overlay, but a `position: fixed`
   // element (both this wrapper AND AppShell's own `.app-shell-frame`) is
@@ -124,7 +159,21 @@ export function ApplicantsPanel({
           wrapper only supplies the slide-in transition + stacking; AppShell
           itself already fills the viewport (`fixed inset-x-0 bottom-0`,
           100dvh) so it doesn't need `inset-0`/background of its own. */}
-      <div className="fixed inset-0 z-50 motion-safe:animate-in motion-safe:slide-in-from-right motion-safe:duration-200">
+      <div
+        className="fixed inset-0 z-50 motion-safe:animate-in motion-safe:slide-in-from-right motion-safe:duration-200"
+        /* The screen's accessible NAME, and the one place the job it belongs to
+           is programmatically tied to the heading. The visible subtitle under
+           the h1 is a plain sibling <p> — sighted readers get the association
+           from proximity, and a screen reader gets nothing until it happens to
+           read the next line. Naming the region "Applicants for <job>" states
+           it once, up front, without changing what is drawn.
+
+           `region`, deliberately not `dialog`: this is a full-screen push, not
+           a modal — it has no backdrop, nothing behind it is inert, and
+           claiming `dialog` would promise a focus trap that does not exist. */
+        role="region"
+        aria-label={`Applicants for ${selectedJob.title}`}
+      >
         <AppPage
           title="Applicants"
           onBack={() => setSelectedJob(null)}
@@ -180,7 +229,12 @@ export function ApplicantsPanel({
               <ApplicantsErrorState onRetry={() => onLoadApplications(selectedJob)} />
             ) : applications.length === 0 ? (
               /* Empty state — warmer copy when no one has applied yet */
-              <ApplicantsEmptyState selectedJob={selectedJob} />
+              <ApplicantsEmptyState
+                selectedJob={selectedJob}
+                jobAnalytics={jobAnalytics}
+                onBoost={onBoost}
+                onEdit={onEdit}
+              />
             ) : (
               <div className="space-y-1.5">
                 {/* Sort control — horizontal pill row */}
@@ -189,8 +243,28 @@ export function ApplicantsPanel({
                   setApplicantSort={setApplicantSort}
                 />
 
+                {/* Paid-ordering disclosure.
+                    The poster is choosing a person, so if money moved the
+                    order they are entitled to know before they read the list
+                    top-down — an undisclosed pay-for-position ranking on a
+                    hiring surface is the trust defect, not the perk itself.
+                    Shown only when Priority Placement ACTUALLY promoted
+                    someone in this list (see `promotedByTier`), so it is a
+                    fact about what they are looking at rather than boilerplate
+                    that trains people to ignore it. */}
+                {applicantSort === "recommended" && sortedApplications.some((s) => s.promotedByTier) && (
+                  <p
+                    className="text-ds-11 font-sans mb-3 -mt-1"
+                    style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+                  >
+                    Ranked on ratings, work history and verified credentials.
+                    {" "}Pro and Elite members get a small placement bump — enough to
+                    settle a close call, never enough to outrank a stronger helper.
+                  </p>
+                )}
+
                 {/* Applicant cards */}
-                {sortedApplications.map(({ app, signals, neighborCount }) => {
+                {sortedApplications.map(({ app, signals, neighborCount, promotedByTier }) => {
                   const helperTier = (app.profiles?.subscription_tier ?? "free") as string;
                   const isElite = helperTier === "elite";
                   const isPro = helperTier === "pro";
@@ -221,6 +295,24 @@ export function ApplicantsPanel({
                         </div>
                       )}
 
+                      {/* Per-card half of the disclosure: this specific card
+                          sits above where its earned score alone would have
+                          put it. Mutually exclusive with the badge above —
+                          the quality top pick cannot be promoted past itself.
+                          Muted, not celebratory: it is an explanation the
+                          poster is owed, not a second endorsement. */}
+                      {promotedByTier && (
+                        <div className="flex items-center gap-1.5 mb-1.5 pl-1">
+                          <ArrowUp className="w-3 h-3" style={{ color: "hsl(var(--olivewood) / 0.7)" }} aria-hidden />
+                          <span
+                            className="text-ds-10 font-sans font-semibold uppercase"
+                            style={{ color: "hsl(var(--olivewood) / 0.7)", letterSpacing: "0.06em" }}
+                          >
+                            Priority placement
+                          </span>
+                        </div>
+                      )}
+
                       {/* Compact applicant card */}
                       <div
                         className="rounded-ds-md p-3.5 space-y-2.5"
@@ -238,29 +330,50 @@ export function ApplicantsPanel({
                       >
                         {/* Row 1: avatar + name + rating + hire button */}
                         <div className="flex items-center gap-3">
+                          {/* Migrated onto the shared `<UserAvatar>`
+                              (2026-08-31). This is a hiring decision: the
+                              poster is choosing between people, and the
+                              previous markup gave a candidate whose upload is
+                              a flat coloured block NO identity at all — an
+                              `<OptimizedImage>` with no guard beyond a bare
+                              404, layered over an initials span that only
+                              rendered when `avatar_url` was null. Every blank
+                              avatar on prod returns 200, so the initials never
+                              got a turn and the applicant read as an anonymous
+                              tinted circle. See `src/lib/avatarImage.ts`.
+
+                              The <a> keeps the link, the halo ring (top-pick /
+                              verified) and the 44px tap target; the avatar
+                              inside is now the app-wide one. `ring-0` cancels
+                              `UserAvatar`'s own hairline so the halo is the
+                              only edge. */}
                           <a
                             href={`/user/${app.helper_id}`}
+                            // The avatar inside is `aria-hidden` (the name link
+                            // beside it already names this person), so without
+                            // an explicit label this link would have no
+                            // accessible name at all. It had none before either
+                            // whenever a photo was present — `alt=""` on the
+                            // image and nothing else in the anchor — so this is
+                            // a fix, not a consequence of the migration.
+                            aria-label={`View ${helperName}'s profile`}
                             className="shrink-0 w-11 h-11 rounded-full overflow-hidden inline-flex items-center justify-center"
                             style={{
-                              background: "hsl(var(--bark) / 0.12)",
                               boxShadow: haloColor
                                 ? `0 0 0 2.5px ${haloColor}`
                                 : "0 0 0 1px hsl(var(--olivewood) / 0.18)",
                             }}
                           >
-                            {app.profiles?.avatar_url ? (
-                              <OptimizedImage
-                                src={app.profiles.avatar_url}
-                                width={44}
-                                height={44}
-                                alt=""
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <span className="font-sans font-semibold text-ds-14" style={{ color: "hsl(var(--bark))" }}>
-                                {helperInitials}
-                              </span>
-                            )}
+                            <UserAvatar
+                              userId={app.helper_id}
+                              src={app.profiles?.avatar_url}
+                              name={helperName}
+                              initials={helperInitials}
+                              pixelSize={44}
+                              aria-hidden
+                              className="w-full h-full"
+                              fallbackClassName="text-ds-14 ring-0"
+                            />
                           </a>
 
                           <div className="flex-1 min-w-0">

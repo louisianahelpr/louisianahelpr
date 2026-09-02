@@ -18,10 +18,31 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
 
   useEffect(() => {
     const load = async () => {
+      // NOTE: this component is currently mounted nowhere (the profile and
+      // public-profile surfaces render their own lists). It is kept because
+      // it is the reference shape for a review list — which is exactly why
+      // its query must not be wrong: the two filters below were both absent,
+      // so whoever mounted it next would have shipped a wall that shows
+      // operator-removed reviews and computes an average from a different row
+      // set than every other surface.
+      //
+      //  - `status = 'published'` — an admin takedown deletes the row today,
+      //    but the column exists and nothing else here honoured it.
+      //  - `feedback_visible_at <= now()` — the double-blind reveal. The
+      //    reviews SELECT policy also enforces it, EXCEPT for rows you
+      //    authored yourself, which the policy deliberately lets through; on
+      //    a list of reviews ABOUT someone that exception is not wanted.
+      //
+      // Still missing, and not fixable from the client: the cancelled-job
+      // exclusion. `jobs` is unreadable to a non-party, which is why
+      // `get_public_profile_reviews` exists. Route through that RPC before
+      // mounting this anywhere real.
       const { data, error } = await supabase
         .from("reviews")
-        .select("*")
+        .select("id, rating, punctuality, quality, communication, feedback, created_at, reviewer_id, photo_urls")
         .eq("reviewee_id", userId)
+        .eq("status", "published")
+        .lte("feedback_visible_at", new Date().toISOString())
         .order("created_at", { ascending: false });
 
       if (error) {

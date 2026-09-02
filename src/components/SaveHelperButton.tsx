@@ -20,7 +20,7 @@ interface SaveHelperButtonProps {
  * Surfaces the previously-unused `favorite_helpers` table so posters
  * can later send Direct Offers from the Saved Helpers page.
  */
-export const SaveHelperButton = ({
+const SaveHelperButton = ({
   helperId,
   customerId,
   variant = "icon",
@@ -66,17 +66,26 @@ export const SaveHelperButton = ({
     setWorking(true);
     hapticLight();
 
-    const { error } = previousSaved
+    // The unsave branch ends in `.select("id")` on purpose: a DELETE that
+    // matches zero rows is `{ data: [], error: null }`, so without it the heart
+    // stayed un-filled over a row that is still in the table — the helper the
+    // poster deliberately dropped from their shortlist is back on the next
+    // load, with no error anywhere. `data` is `null` on the insert branch
+    // (PostgREST returns no body without a select), which is why the row-count
+    // check below is scoped to `previousSaved`.
+    const { data, error } = previousSaved
       ? await supabase
           .from("favorite_helpers")
           .delete()
           .eq("customer_id", customerId)
           .eq("helper_id", helperId)
+          .select("id")
       : await supabase
           .from("favorite_helpers")
           .insert({ customer_id: customerId, helper_id: helperId });
 
-    if (error) {
+    const removedNothing = previousSaved && (!data || data.length === 0);
+    if (error || removedNothing) {
       // Revert on failure so the persisted state stays consistent.
       setSaved(previousSaved);
       onChange?.(previousSaved);

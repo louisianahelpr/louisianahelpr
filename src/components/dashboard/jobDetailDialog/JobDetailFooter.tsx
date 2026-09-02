@@ -65,25 +65,13 @@ export const JobDetailFooter = ({
         // only one of them wires a real `onApply` (Jobs.tsx and JobDetail.tsx
         // pass a noop and rely on this button navigating itself).
         onClick={() => navigate(signupUrlFor(`/jobs/${job.id}`))}
-        className="btn-liquid-fill w-full rounded-ds-md h-11 sm:h-12 px-3 group relative overflow-hidden"
-        style={{
-          background:
-            "linear-gradient(180deg, hsl(var(--bark)) 0%, hsl(var(--bark) / 0.86) 100%)",
-          border: "0.5px solid hsl(var(--bark))",
-          fontFamily: "Montserrat, system-ui, sans-serif",
-          fontWeight: 600,
-          letterSpacing: "0.01em",
-          boxShadow:
-            "inset 0 1px 1px 0 rgba(255, 255, 255, 0.25), " +
-            "inset 0 -1px 1px 0 rgba(0, 0, 0, 0.18), " +
-            "0 1px 2px hsl(var(--olivewood) / 0.12), " +
-            "0 8px 22px -6px hsl(var(--bark) / 0.45)",
-        }}
+        /* Surface, elevation, hover and press all come from <Button>'s primary
+           variant — see the note on the authenticated commit below. The guest
+           sign-up CTA is the same decision wearing a different verb, so it
+           cannot wear a different paint. */
+        className="w-full rounded-ds-md h-11 sm:h-12 px-3 group"
       >
-        <span
-          className="relative z-10 inline-flex items-center justify-center gap-2 min-w-0"
-          style={{ color: "white", textShadow: "0 1px 2px rgba(0, 0, 0, 0.28)" }}
-        >
+        <span className="inline-flex items-center justify-center gap-2 min-w-0">
           <span className="truncate">{guestCtaLabel}</span>
           <ChevronRight
             className="w-4 h-4 shrink-0 transition-transform duration-300 group-hover:translate-x-1"
@@ -230,30 +218,29 @@ export const JobDetailFooter = ({
              2026-08-28). Guests never reach this branch; the guest footer
              above navigates on its own. */
           onClick={() => onApply(job.id)}
-          className="btn-liquid-fill flex-1 min-w-0 rounded-ds-md h-11 sm:h-12 px-3 group relative overflow-hidden"
-          style={{
-            // Two-stop bark gradient under the glass surface — subtle
-            // top-light to bottom-deep wash so the button doesn't read flat.
-            background:
-              "linear-gradient(180deg, hsl(var(--bark)) 0%, hsl(var(--bark) / 0.86) 100%)",
-            border: "0.5px solid hsl(var(--bark))",
-            fontFamily: "Montserrat, system-ui, sans-serif",
-            fontWeight: 600,
-            letterSpacing: "0.01em",
-            boxShadow:
-              "inset 0 1px 1px 0 rgba(255, 255, 255, 0.25), " +
-              "inset 0 -1px 1px 0 rgba(0, 0, 0, 0.18), " +
-              "0 1px 2px hsl(var(--olivewood) / 0.12), " +
-              "0 8px 22px -6px hsl(var(--bark) / 0.45)",
-          }}
+          /* THE PAINT IS THE VARIANT'S, NOT THIS FILE'S.
+             This used to carry an inline `background: linear-gradient(180deg,
+             bark → bark/0.86)`, plus a bark border, a re-declared Montserrat,
+             a hand-rolled box-shadow and a white/text-shadow label — the
+             surface of the `bark` <Button> variant, kept alive by hand after
+             that variant was folded into `primary` (button.tsx: "`default`,
+             `bark` and `hero` were three names for the same thing").
+             An INLINE `background` beats `.btn-grad-primary`, so the variant
+             resolved to the glossy radial and this element then repainted it
+             flat: measured computed background-image was
+             `linear-gradient(rgb(95,101,67) 0%, rgba(95,101,67,0.86) 100%)`
+             where every other primary CTA reads
+             `radial-gradient(125% 125% at 32% 22%, …)`. The class list said
+             `btn-grad-primary` the whole time, which is why reading it proved
+             nothing (CLAUDE.md: read the COMPUTED background-image).
+             The hand-rolled box-shadow also outranked ELEV_FILLED's
+             `active:` collapse, so the press had no depth either.
+             ONLY the geometry stays local: `h-11 sm:h-12` is shared with the
+             three non-commit branches of this slot on purpose (see the
+             credential-gate note above) and must not move. */
+          className="flex-1 min-w-0 rounded-ds-md h-11 sm:h-12 px-3 group"
         >
-          <span
-            className="relative z-10 inline-flex items-center justify-center gap-2 min-w-0"
-            style={{
-              color: "white",
-              textShadow: "0 1px 2px rgba(0, 0, 0, 0.28)",
-            }}
-          >
+          <span className="inline-flex items-center justify-center gap-2 min-w-0">
             {/* Invisible leading spacer the same width as the trailing chevron,
                 so the label sits at the button's true optical center instead of
                 being pushed left by the chevron. */}

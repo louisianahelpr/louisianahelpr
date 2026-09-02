@@ -362,9 +362,11 @@ scope.
 
 ### Medium
 
-8. **`type` the `?tab=`/`?view=` params generally.** The Profile bug was a blind
-   `as Tab`. `/admin?view=` uses the same pattern and will do the same thing on
-   a stale link.
+8. ~~**`type` the `?tab=`/`?view=` params generally.**~~ **WRONG —
+   RETRACTED.** `/admin?view=` already has an `isRealView` guard derived from
+   `VIEW_LABELS`, added 2026-08-24 for exactly this bug (a stale
+   `?view=parishtax` link rendered an empty `<h1>`). I generalised from the
+   Profile case without checking the Admin one.
 9. **Snapshot/restore in any control sweep.** Mine mutated the seeded account's
    notification preferences and all seven availability rows. I restored both and
    verified by SQL read (`push_enabled` → `true`, all 7
@@ -403,12 +405,15 @@ scope.
     from `noreply@`.
 20. `send-notification-email`'s HTML footer says "Manage your preferences in
     your profile settings" with **no link**; the plaintext version has one.
-21. `OfflineBanner` has no "back online" confirmation — the banner just
-    vanishes.
+21. ~~`OfflineBanner` has no "back online" confirmation.~~ **WRONG —
+    RETRACTED.** Deliberate and documented in the component: "we never flash a
+    'back online' confirmation — it's noise." A decision, not a defect.
 22. No update-required / force-upgrade banner exists anywhere
     (`updateRequired`, `minVersion`, `force_update` all return nothing).
-23. `components/ui/calendar.tsx` day cells are `h-9 w-9` — under the 44×44
-    minimum.
+23. ~~`components/ui/calendar.tsx` day cells are `h-9 w-9`.~~ **WRONG —
+    RETRACTED.** They are `h-11 w-11` (44×44) and compliant. The claim came
+    from `PLATFORM_CONVENTIONS.md` calling it a "known offender"; the code was
+    fixed and the doc is stale. The doc is the thing to correct.
 24. `send-account-status-email:222` compares the service-role token with `===`;
     `send-notification-email:113` correctly uses `timingSafeEqual`.
 25. Five raw-HTML email templates have no preheader, so the inbox preview falls
@@ -436,21 +441,48 @@ the risk is that they hide the next defect.
 09e08996 (pre-audit):  exit 1 · Unused files (16) · Unused exports (148)
 d15c9a5f (now):        exit 1 · Unused files (16) · Unused exports (147)
 ```
-   So I did not cause it and marginally improved it. But it means `main`
-   cannot go green on `Test` until ~16 orphaned files and ~147 unused exports
-   are dealt with, or knip is configured to tolerate them. Fixing the type
-   error uncovered this rather than introducing it.
+   **CLOSED 2026-08-31 (`fa6a7898`).** knip now exits 0. A second premise of
+   mine was also wrong: the 147 unused *exports* were never the blocker —
+   `knip.json` already sets `"exports": "warn"`. Only the error-level
+   categories counted, i.e. unused FILES (16) and unused DEPENDENCIES (1).
+   All 16 files were deleted (11 of them the remains of the Insights feature
+   deliberately removed on 2026-08-30 and left orphaned), and
+   `@radix-ui/react-toast` went with the toast consolidation.
 
-1. **Playwright E2E has been red for many commits.** 21 spec files failing.
-   I verified I did not cause it by diffing the failing spec-file sets from the
-   two runs:
-```
-run 33363719042 (19b1a054, pre-my-work): 21 failing spec files
-run 33368304258 (a19e9474, mine):        21 failing spec files
-comm -13 → NEW in my run: (none)   comm -23 → FIXED by my run: (none)
-``` Unit tests are also **not in CI**
-   (`npx vitest run` is local-only), so between a red E2E gate and absent unit
-   coverage, the only thing actually blocking a bad merge is typecheck/lint/build.
+1. ~~**Playwright E2E has been red for many commits.** 21 spec files failing.~~
+   **CORRECTED 2026-08-31 — this finding was wrong, and wrong in an
+   instructive way.** `e2e/happy-path/` contains exactly 21 spec files, so
+   "21 failing spec files" was not 21 failures — it was *every* spec file,
+   which is the signature of a DEAD PREVIEW SERVER, not of accumulated rot.
+   `playwright.config.ts:124` sets `reuseExistingServer: !CI`, so two local
+   sessions share port 4173 and the second kills the first mid-run.
+   Reproduced deliberately: a run died with
+   `net::ERR_CONNECTION_REFUSED at http://127.0.0.1:4173/my-posts?filter=waiting`.
+   I caused it myself — my own audit preview server was on 4173 while CI's
+   logs were being compared.
+
+   The last genuinely-red CI run had **three** failures, and both underlying
+   defects were real `src/` bugs, since fixed by a concurrent lane in
+   `1c3d4014`: the shared dialog Close rendered 32px against the 44px HIG
+   floor, and a second `role="tab"` group made `getByRole("tab")` resolve 8
+   elements instead of 4.
+
+   Fixed in `1a7ac776`: the port is now one `HAPPY_PATH_PORT` constant so
+   lanes can run concurrently, the onboarding tour is dismissed at the single
+   shared entry point, two dead route probes were replaced, and an
+   accidentally-committed temporary probe spec (2.4 of the suite's 3.7
+   minutes) was deleted. Verified locally: **88 passed, 645 skipped, 0
+   failed.**
+
+   The real gap underneath it: **645 of 733 tests are gated behind
+   `RUN_*_SWEEP` env vars CI does not set**, so a green "E2E smoke" check is
+   88 tests, not full-surface coverage.
+
+   Lesson for the method: a failure count equal to the total file count is a
+   harness failure until proven otherwise. I compared two runs, saw identical
+   sets, and concluded "stable pre-existing rot" — when identical-and-total
+   was the tell that neither run tested anything.
+
 2. **`main` can go red and stay red.** It did, and the fix was already written
    and sitting uncommitted. Nothing surfaced it.
 3. **The coverage ledger was structurally incomplete**, not merely stale: it

@@ -79,6 +79,9 @@ serve(async (req: Request) => {
         address: { postal_code: zip, state: state || "LA", country: "US" },
         address_source: "billing",
       },
+      // Required for the `jurisdiction` field below to exist at all — see the
+      // note there. Sub-list expansion, not a second API call.
+      expand: ["line_items"],
     });
 
     return jsonResponse(
@@ -86,9 +89,20 @@ serve(async (req: Request) => {
         taxCents: calculation.tax_amount_exclusive,
         totalCents: calculation.amount_total,
         // Surfaced so the UI can name the jurisdiction it is quoting, the way
-        // the old copy named the parish.
+        // the old copy named the parish. CheckoutStep renders it as
+        // "Sales tax (St. Tammany Parish)" when present.
+        //
+        // It read `calculation.tax_breakdown[0].jurisdiction` and was therefore
+        // ALWAYS null: on a Tax Calculation the top-level `tax_breakdown[]`
+        // entries carry only `amount`, `inclusive`, `taxable_amount`,
+        // `taxability_reason` and `tax_rate_details`. `jurisdiction` (with the
+        // human-readable `display_name`) exists only on the LINE ITEM
+        // breakdown, which in turn is only returned when `line_items` is
+        // expanded on the request above. `?.` swallowed both misses, so the
+        // parish label silently never rendered and no error was ever logged.
         jurisdiction:
-          calculation.tax_breakdown?.[0]?.jurisdiction?.display_name ?? null,
+          calculation.line_items?.data?.[0]?.tax_breakdown?.[0]?.jurisdiction?.display_name ??
+            null,
       },
       200,
       corsHeaders,

@@ -21,6 +21,7 @@ import { toneBadgeClasses, toneTextClasses } from "@/components/admin/tones";
 import { cn } from "@/lib/utils";
 import { report } from "@/lib/errorLogger";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 
@@ -33,8 +34,9 @@ import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
  * REVERSIBLE 7-day restriction. As of 20260829010000 all three ladders behave
  * that way and feed this one queue — off-platform contact
  * (`off_platform`), cancelling on a committed Helpr (`cancel_with_helper`) and
- * reliability strikes (`job_denial`), which was the last one still
- * auto-banning. The queue filters on `action_taken` alone and derives its
+ * reliability strikes (`job_denial`). 20260831183302 added the fourth and last
+ * one, reported no-shows (`no_show`), which until then still wrote an automatic
+ * permanent ban on the second report. The queue filters on `action_taken` alone and derives its
  * evidence from each case's own `violation_type`, so a new ladder feeding it
  * needs nothing here except a label below. This view is where a person reads
  * the actual evidence and decides: confirm the permanent ban, or dismiss it
@@ -55,6 +57,10 @@ const caseNoun = (violationType: string, count: number): string => {
     off_platform: ["blocked message", "blocked messages"],
     cancel_with_helper: ["cancellation", "cancellations"],
     job_denial: ["reliability strike", "reliability strikes"],
+    // Added with 20260831183302, which moved the no-show ladder off its own
+    // auto-permanent-ban and onto this queue. Without the entry an admin would
+    // read "2 violations" for a case whose evidence is two no-show reports.
+    no_show: ["no-show report", "no-show reports"],
   };
   const pair = nouns[violationType] ?? ["violation", "violations"];
   return count === 1 ? pair[0] : pair[1];
@@ -90,7 +96,7 @@ const BanReviewInner = () => {
   const [dismissTarget, setDismissTarget] = useState<ReviewCase | null>(null);
   const [note, setNote] = useState("");
 
-  const { data: cases, isInitialLoading } = useInstantQuery<ReviewCase[]>({
+  const { data: cases, isInitialLoading, isError, refetch } = useInstantQuery<ReviewCase[]>({
     key: queryKey,
     fallback: [],
     fetcher: async () => {
@@ -106,8 +112,12 @@ const BanReviewInner = () => {
         if ((error as { code?: string }).code === "PGRST202" || error.message?.includes("does not exist")) {
           return [];
         }
-        toast.error(error.message);
-        return [];
+        // Throw rather than return []: a swallowed read error rendered "No
+        // accounts awaiting review", which is the same screen as a genuinely
+        // empty queue — an outage read as an all-clear on the surface that
+        // decides whether someone stays banned. The PGRST202 branch above is
+        // the ONE legitimate empty: the migration simply hasn't deployed yet.
+        throw error;
       }
 
       const pending = (data ?? []) as ViolationRow[];
@@ -218,7 +228,15 @@ const BanReviewInner = () => {
           ) : undefined
         }
       >
-        {cases.length === 0 ? (
+        {isError ? (
+          <ErrorState
+            surfaceStyle={NESTED_EMPTY_SURFACE}
+            variant="inline"
+            title="We couldn't load the ban review queue."
+            body="Tap Try again. Nobody's case has been decided — this list is read straight from their violations."
+            onRetry={() => refetch()}
+          />
+        ) : cases.length === 0 ? (
           <EmptyState
             surfaceStyle={NESTED_EMPTY_SURFACE}
             variant="inline"
@@ -310,7 +328,7 @@ const BanReviewInner = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              variant="destructive"
               onClick={() => {
                 if (confirmTarget) decide(confirmTarget, true);
               }}

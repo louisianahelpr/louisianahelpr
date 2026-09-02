@@ -2,6 +2,7 @@ import {
   jobLocalMidnightMs,
   cancellationFeePercent as sharedCancellationFeePercent,
 } from "../../supabase/functions/_shared/cancellationFee";
+import { CANCELLATION_LADDER_RUNGS } from "@/lib/reliabilityLadder";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 // unwrapMutation is gone with the client-side UPDATE it guarded; isWriteRejected
@@ -9,10 +10,16 @@ import { supabase } from "@/integrations/supabase/client";
 // future write lands here.
 import { isWriteRejected } from "@/lib/mutationResult";
 import { report } from "@/lib/errorLogger";
-import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHero,
+  DialogFooter,
+  DialogSecondaryAction,
+  DialogDestructiveAction,
+} from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertTriangle, Ban, ShieldAlert, DollarSign, CheckCircle, ArrowRight, ShieldCheck } from "lucide-react";
+import { AlertTriangle, ShieldAlert, DollarSign, CheckCircle, ArrowRight, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
@@ -260,10 +267,18 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, hasHel
                   <p className="text-ds-11 font-semibold text-foreground">Before a Helpr is selected</p>
                   {!hasHelper && <span className="text-ds-10 font-bold bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full">YOU ARE HERE</span>}
                 </div>
-                <p className="text-ds-11 text-muted-foreground mt-0.5">Cancel anytime with no fee. You&apos;ll receive a full refund.</p>
+                {/* Says "budget refunded", not "full refund". The platform
+                    service fee is deliberately withheld — Stripe keeps its cut
+                    on a refund, so returning it would put the platform
+                    out-of-pocket on every cancellation
+                    (void-cancelled-payments/index.ts:320-331). A live run
+                    charged $67.20 and refunded $60.00, exactly as designed —
+                    while this text promised a "full refund", which is the part
+                    that was wrong. */}
+                <p className="text-ds-11 text-muted-foreground mt-0.5">Cancel anytime with no cancellation fee. Your job budget is refunded in full; the service fee isn&apos;t refundable once payment has been processed.</p>
                 <div className="flex items-center gap-1.5 mt-1.5">
                   <CheckCircle className="w-3 h-3 text-primary shrink-0" />
-                  <span className="text-ds-11 text-primary font-medium">$0 fee · Full refund · No consequences</span>
+                  <span className="text-ds-11 text-primary font-medium">$0 cancellation fee · Budget refunded · No consequences</span>
                 </div>
               </div>
             </div>
@@ -335,19 +350,9 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, hasHel
             <div className="space-y-2 text-ds-11 text-muted-foreground">
               <div className="flex items-start gap-2">
                 <AlertTriangle className="w-3.5 h-3.5 text-accent mt-0.5 shrink-0" />
-                <p><strong className="text-foreground">1st strike:</strong> Written warning on your account.</p>
-              </div>
-              <div className="flex items-start gap-2">
-                <ShieldAlert className="w-3.5 h-3.5 text-destructive mt-0.5 shrink-0" />
-                <p><strong className="text-foreground">2nd strike:</strong> Final warning.</p>
-              </div>
-              {/* This used to promise an automatic, irreversible permanent ban
-                  on the 3rd strike. It now says what actually happens: a
-                  reversible 7-day restriction while a person reviews the case
-                  (apply_cancellation_violation_consequence, 20260826040000). */}
-              <div className="flex items-start gap-2">
-                <Ban className="w-3.5 h-3.5 text-destructive mt-0.5 shrink-0" />
-                <p><strong className="text-foreground">3rd strike:</strong> Your account is restricted for 7 days while an admin reviews it. They decide what happens next — a permanent ban is never automatic.</p>
+                {CANCELLATION_LADDER_RUNGS.map((rung) => (
+                  <p key={rung}>{rung}</p>
+                ))}
               </div>
             </div>
             {!hasHelper && (
@@ -400,10 +405,26 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, hasHel
             </div>
           )}
 
-          {/* Worker protection notice — shown when the poster cancels within
-              24h of the scheduled time and a helper is assigned. Lets the poster
-              know the helper is covered, and the helper will see their credit. */}
-          {hasHelper && hoursUntilJob < 24 && hoursUntilJob >= 0 && (
+          {/* What the Helpr actually gets — the two things nothing else in this
+              dialog says, both traceable to code that runs.
+
+              It used to promise "a $10 Helpr credit within 24 hours". No such
+              credit exists: `worker_protection_credits` was a never-built
+              ledger, dropped on 2026-08-30
+              (20260830072801_drop_unused_scaffold_tables), and
+              `poster_cancel_job` (20260830010000) issues nothing of the kind.
+              What it DOES do, in the same transaction as the cancellation, is
+              INSERT the Helpr's notification ("Job cancelled — you'll be
+              compensated"); the hourly `void-cancelled-payments` cron (:10,
+              20260829010000) then transfers their share of the fee via
+              payHelperCancellationFee. So this states those two, and nothing
+              else.
+
+              Gated on the FEE, not on `hoursUntilJob < 24 && >= 0` as before:
+              the ladder charges 50% at negative hours too (a job cancelled
+              after its start time), and the old window excluded exactly that
+              case — the one where the Helpr has already given up their day. */}
+          {hasHelper && cancellationFee > 0 && (
             <div
               className="rounded-ds-md p-3"
               style={{
@@ -417,14 +438,14 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, hasHel
                   className="font-sans font-semibold text-ds-13"
                   style={{ color: "hsl(var(--success-ink))" }}
                 >
-                  Your Helpr is protected
+                  Your Helpr is told, and paid
                 </p>
               </div>
               <p
                 className="font-serif italic text-ds-12"
                 style={{ color: "hsl(var(--success-ink))" }}
               >
-                Since this is a last-minute cancellation, {helperName || "your Helpr"} will receive a $10 Helpr credit within 24 hours — separate from any cancellation fee above.
+                {helperName || "Your Helpr"} is notified the moment you confirm, and their share of the ${formatPrice(cancellationFee)} cancellation fee is transferred to them automatically within the hour.
               </p>
             </div>
           )}
@@ -446,33 +467,29 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, hasHel
             />
           </div>
         </div>
+        {/* THE SHARED FOOTER ACTIONS.
+            This was the app's last hand-built popup button, and it broke three
+            standing rules at once. The commit painted a FLAT burnt-sienna with
+            `backgroundImage: "none"` — the same explicit gloss-deletion that
+            was removed from BrandConfirmDialog and PhotoProof — in the brand
+            ACCENT colour, giving cancellation a third destructive treatment
+            alongside `--destructive` red and the sienna BrandConfirmDialog had
+            already given up. It also re-declared Montserrat (the global sans),
+            its own weight, its own letter-spacing and its own shadow, so the
+            one dialog a poster sees when money is about to move looked like it
+            came from a different app. The dismiss carried `font-sans
+            font-semibold` and an inline bark colour on top of the ghost
+            variant that already styles it.
+            Cancelling an accepted job charges a fee and cannot be undone here,
+            so it is destructive; "Keep the Job" is the dismiss. Copy, fee
+            arithmetic and handlers are untouched. */}
         <DialogFooter>
-          <Button
-            variant="ghost"
-            disabled={cancelling}
-            onClick={onClose}
-            className="rounded-ds-md font-sans font-semibold"
-            style={{ color: "hsl(var(--bark))" }}
-          >
+          <DialogSecondaryAction disabled={cancelling} onClick={onClose}>
             Keep the Job
-          </Button>
-          <Button
-            onClick={handleCancel}
-            disabled={cancelling}
-            className="rounded-ds-md"
-            style={{
-              background: "hsl(var(--burnt-sienna))",
-              backgroundImage: "none",
-              border: "1px solid hsl(var(--burnt-sienna))",
-              color: "hsl(var(--parchment))",
-              fontFamily: "Montserrat, system-ui, sans-serif",
-              fontWeight: 600,
-              letterSpacing: "0.01em",
-              boxShadow: "var(--elev-sienna-raised)",
-            }}
-          >
+          </DialogSecondaryAction>
+          <DialogDestructiveAction onClick={handleCancel} disabled={cancelling}>
             {cancelling ? "Cancelling…" : cancellationFee > 0 ? `Cancel · pay $${cancellationFee}` : "Cancel Job"}
-          </Button>
+          </DialogDestructiveAction>
         </DialogFooter>
       </DialogContent>
     </Dialog>

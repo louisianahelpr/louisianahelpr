@@ -19,6 +19,25 @@
 --
 -- HOW TO REMOVE
 --   Run the "CLEANUP" block at the bottom (commented out by default).
+--
+-- DATES ARE RELATIVE TO now(), AND SOME ARE DELIBERATELY IN THE PAST.
+--   Every job here used to be dated `current_date + N days`, so on seeding day
+--   the demo data contained not one past-due job. Anything that only goes wrong
+--   once a deadline has passed — an overdue in-progress job, an expiry sweep, a
+--   late-cancellation tier — was therefore invisible until the data had aged for
+--   days by accident. (Measured 2026-08-31, four days after the last prod seed:
+--   12 fixtures had drifted into `in_progress` with `date_needed` 1-4 days past.
+--   None of them existed on seeding day.) Offsets now straddle now() so those
+--   states exist immediately.
+--
+-- EVERY ROW SETS is_seed = true.
+--   `jobs.is_seed` / `profiles.is_seed` default to FALSE (20260825184500) and
+--   that migration's backfill was a one-time UPDATE, not a trigger — so demo
+--   rows landed looking like real production data. Beyond skewing every admin
+--   revenue tile, the money crons (auto-release-payment,
+--   process-scheduled-payouts) and money-reconciliation now scope themselves to
+--   `is_seed = false`, and an unflagged fixture gets picked up by the live
+--   settlement paths.
 -- ============================================================================
 
 BEGIN;
@@ -84,91 +103,91 @@ VALUES
 
 -- ---------- 4. Create the matching profiles --------------------------------
 INSERT INTO profiles (user_id, full_name, email, parish, location, bio, approval_status,
-  insurance_status, license_status, email_verified, accepted_terms_at)
+  insurance_status, license_status, email_verified, accepted_terms_at, is_seed)
 VALUES
   ('11111111-1111-1111-1111-111111111101', 'Camille Robicheaux', 'demo1@helpr.test',
    'Orleans', 'New Orleans', 'Five years of detail-cleaning Mid-City homes. Bring your own key — I bring everything else.',
-   'approved', 'verified', 'verified', true, now()),
+   'approved', 'verified', 'verified', true, now(), true),
   ('11111111-1111-1111-1111-111111111102', 'Tre Boudreaux', 'demo2@helpr.test',
    'East Baton Rouge', 'Baton Rouge', 'Handyman, mover, and yard guy. Truck + tools. Saturday and Sunday only.',
-   'approved', 'verified', 'verified', true, now()),
+   'approved', 'verified', 'verified', true, now(), true),
   ('11111111-1111-1111-1111-111111111103', 'Marie Hebert', 'demo3@helpr.test',
    'Lafayette', 'Lafayette', 'Errands, grocery runs, pet sitting. Quiet, dependable, on time.',
-   'approved', 'verified', 'verified', true, now()),
+   'approved', 'verified', 'verified', true, now(), true),
   ('11111111-1111-1111-1111-111111111104', 'Eli Thibodeaux', 'demo4@helpr.test',
    'Jefferson', 'Metairie', 'Painter and assembly. IKEA furniture welcome. Hourly or per-piece.',
-   'approved', 'verified', 'verified', true, now()),
+   'approved', 'verified', 'verified', true, now(), true),
   ('11111111-1111-1111-1111-111111111105', 'Layla Fontenot', 'demo5@helpr.test',
    'Orleans', 'New Orleans', 'Pet care and dog walking in the Garden District and Uptown. CPR-certified.',
-   'approved', 'verified', 'verified', true, now());
+   'approved', 'verified', 'verified', true, now(), true);
 
 -- ---------- 5. Insert 10 demo jobs visible in Browse -----------------------
 -- Owned by demo helpers, status=open, so the current user can see/apply to them.
 INSERT INTO jobs (customer_id, title, description, category, location, parish,
-  date_needed, estimated_hours, budget, status, photos)
+  date_needed, estimated_hours, budget, status, photos, is_seed)
 VALUES
   ('11111111-1111-1111-1111-111111111101', 'Help with hurricane prep — Magazine St.',
    '[demo] Need an extra set of hands to bring in patio furniture, board up two windows, and stash supplies before the storm. Have plywood and tools ready.',
    'handyman', '4400 Magazine St, New Orleans, LA 70115', 'Orleans',
-   (current_date + interval '1 day')::date, 3, 95, 'open', ARRAY[]::text[]),
+   (now() - interval '2 days')::date, 3, 95, 'open', ARRAY[]::text[], true),
   ('11111111-1111-1111-1111-111111111102', 'Move a couch up two flights — Spanish Town',
    '[demo] Need 2 strong helpers to move a sleeper sofa from a U-Haul to a third-floor walk-up. Should take 30 min if we hustle.',
    'moving', '500 N 5th St, Baton Rouge, LA 70802', 'East Baton Rouge',
-   (current_date + interval '2 days')::date, 1, 60, 'open', ARRAY[]::text[]),
+   (now() + interval '2 days')::date, 1, 60, 'open', ARRAY[]::text[], true),
   ('11111111-1111-1111-1111-111111111103', 'Weekly yard mow — quarter acre',
    '[demo] Lawn, edging, blow off the driveway. Recurring weekly through October. I have the mower; bring trimmer and blower.',
    'yard_work', '210 Cherry St, Lafayette, LA 70506', 'Lafayette',
-   (current_date + interval '3 days')::date, 2, 65, 'open', ARRAY[]::text[]),
+   (now() - interval '1 day')::date, 2, 65, 'open', ARRAY[]::text[], true),
   ('11111111-1111-1111-1111-111111111104', 'Assemble two IKEA wardrobes (PAX)',
    '[demo] Two PAX wardrobes, all parts here, instructions printed. Tools welcome but I have a basic set.',
    'assembly', '4200 Veterans Blvd, Metairie, LA 70006', 'Jefferson',
-   (current_date + interval '4 days')::date, 4, 140, 'open', ARRAY[]::text[]),
+   (now() + interval '4 days')::date, 4, 140, 'open', ARRAY[]::text[], true),
   ('11111111-1111-1111-1111-111111111105', 'Dog walk while I''m on shift — every Tue/Thu',
    '[demo] 45-min walk for a 50-lb golden mix. Friendly, leash-trained. Need someone consistent for the next 3 weeks.',
    'pet_care', '1800 Coliseum St, New Orleans, LA 70130', 'Orleans',
-   (current_date + interval '1 day')::date, 1, 25, 'open', ARRAY[]::text[]),
+   (now() + interval '1 day')::date, 1, 25, 'open', ARRAY[]::text[], true),
   ('11111111-1111-1111-1111-111111111101', 'Deep clean before family visit',
    '[demo] 2BR/1BA, kitchen and baths the priority, baseboards if there''s time. Friday afternoon.',
    'cleaning', '2700 St Charles Ave, New Orleans, LA 70130', 'Orleans',
-   (current_date + interval '5 days')::date, 4, 130, 'open', ARRAY[]::text[]),
+   (now() + interval '5 days')::date, 4, 130, 'open', ARRAY[]::text[], true),
   ('11111111-1111-1111-1111-111111111102', 'Costco run + drop-off',
    '[demo] List of about 12 items, I''ll Venmo the receipt + a flat fee for time and gas. ~30 min each way.',
    'errands', '7000 Siegen Ln, Baton Rouge, LA 70809', 'East Baton Rouge',
-   (current_date + interval '1 day')::date, 2, 40, 'open', ARRAY[]::text[]),
+   (now() - interval '4 days')::date, 2, 40, 'open', ARRAY[]::text[], true),
   ('11111111-1111-1111-1111-111111111104', 'Touch-up paint, dining room',
    '[demo] Small wall section after a furniture move scuffed it. I have the paint. Should be a quick patch and roll.',
    'painting', '900 N Carrollton Ave, New Orleans, LA 70119', 'Orleans',
-   (current_date + interval '6 days')::date, 2, 70, 'open', ARRAY[]::text[]),
+   (now() + interval '6 days')::date, 2, 70, 'open', ARRAY[]::text[], true),
   ('11111111-1111-1111-1111-111111111103', 'Mount a 65" TV',
    '[demo] Bracket and TV in box, drywall (no studs in the spot — using anchors). Cable management nice-to-have.',
    'handyman', '450 Walmart Dr, Lafayette, LA 70508', 'Lafayette',
-   (current_date + interval '2 days')::date, 1, 55, 'open', ARRAY[]::text[]),
+   (now() + interval '12 hours')::date, 1, 55, 'open', ARRAY[]::text[], true),
   ('11111111-1111-1111-1111-111111111105', 'Saturday market grocery delivery',
    '[demo] Pick up my pre-paid order at the Crescent City Farmers Market and drop at my house Uptown.',
    'delivery', '750 Carondelet St, New Orleans, LA 70130', 'Orleans',
-   (current_date + interval '3 days')::date, 1, 30, 'open', ARRAY[]::text[]);
+   (now() + interval '3 days')::date, 1, 30, 'open', ARRAY[]::text[], true);
 
 -- ---------- 6. Insert 4 jobs the current user has POSTED -------------------
 -- These appear in My Posted Jobs.
 INSERT INTO jobs (customer_id, title, description, category, location, parish,
-  date_needed, estimated_hours, budget, status, photos)
+  date_needed, estimated_hours, budget, status, photos, is_seed)
 VALUES
   (current_setting('demo.my_user_id')::uuid, 'Help me unload a moving truck',
    '[demo] Loading is done — just need 2 hands for an hour to unload the truck into the front room. Drinks on me.',
    'moving', '1234 St Charles Ave, New Orleans, LA 70130', 'Orleans',
-   (current_date + interval '1 day')::date, 1, 60, 'open', ARRAY[]::text[]),
+   (now() - interval '3 days')::date, 1, 60, 'open', ARRAY[]::text[], true),
   (current_setting('demo.my_user_id')::uuid, 'Power-wash the driveway and porch',
    '[demo] About 600 sq ft of concrete. I have a Ryobi pressure washer or you can bring your own.',
    'yard_work', '1234 St Charles Ave, New Orleans, LA 70130', 'Orleans',
-   (current_date + interval '4 days')::date, 3, 95, 'open', ARRAY[]::text[]),
+   (now() + interval '4 days')::date, 3, 95, 'open', ARRAY[]::text[], true),
   (current_setting('demo.my_user_id')::uuid, 'Hang gallery wall (8 frames)',
    '[demo] Frames already arranged on the floor. Need someone with a level and a stud finder.',
    'handyman', '1234 St Charles Ave, New Orleans, LA 70130', 'Orleans',
-   (current_date + interval '6 days')::date, 2, 70, 'open', ARRAY[]::text[]),
+   (now() + interval '6 days')::date, 2, 70, 'open', ARRAY[]::text[], true),
   (current_setting('demo.my_user_id')::uuid, 'Cat-sit Friday through Sunday',
    '[demo] Two indoor cats. Just food, water, litter. House key under the planter. Pay per visit or flat.',
    'pet_care', '1234 St Charles Ave, New Orleans, LA 70130', 'Orleans',
-   (current_date + interval '7 days')::date, 1, 80, 'open', ARRAY[]::text[]);
+   (now() + interval '7 days')::date, 1, 80, 'open', ARRAY[]::text[], true);
 
 -- ---------- 7. Insert 6 demo messages between current user and helpers -----
 -- Attach messages to the user's first posted job so they appear in Messages.

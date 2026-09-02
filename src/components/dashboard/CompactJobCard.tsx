@@ -138,5 +138,3 @@ export function CompactJobCard({
     </li>
   );
 }
-
-export default CompactJobCard;

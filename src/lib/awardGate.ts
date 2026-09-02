@@ -99,26 +99,26 @@ export function awardBlockCopy(reason: AwardBlockReason): AwardBlockCopy {
   switch (reason) {
     case "helper_payout_setup_incomplete":
       return {
-        title: "Set up payouts to take this job",
+        title: "Set Up Payouts to Take This Job",
         body:
           "Helpr pays through Stripe, so your payout account has to exist before a job can become yours. It takes about two minutes, and you only do it once.",
-        ctaLabel: "Set up payouts",
+        ctaLabel: "Set Up Payouts",
         collect: "currently_due",
       };
     case "helper_identity_unverified":
       return {
-        title: "Stripe is still verifying you",
+        title: "Stripe Is Still Verifying You",
         body:
           "Your payout account is connected, but Stripe hasn't finished confirming who you are — it's usually a Social Security number or a photo ID it still needs. Posters are letting you into their homes, so we wait for that answer before a job becomes yours. Finish what Stripe is asking for and this clears on its own.",
-        ctaLabel: "Finish verification with Stripe",
+        ctaLabel: "Finish Verification with Stripe",
         collect: "eventually_due",
       };
     case "helper_unknown":
       return {
-        title: "We couldn't find your profile",
+        title: "We Couldn't Find Your Profile",
         body:
           "Something's off with your account — we couldn't read the verification status this job needs. Try again in a moment, and get in touch if it keeps happening.",
-        ctaLabel: "Open payout settings",
+        ctaLabel: "Open Payout Settings",
         collect: "currently_due",
       };
   }

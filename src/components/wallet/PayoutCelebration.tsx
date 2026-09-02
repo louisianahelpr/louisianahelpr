@@ -303,5 +303,3 @@ export function PayoutCelebration({ payouts, onViewDetails }: PayoutCelebrationP
     </AnimatePresence>
   );
 }
-
-export default PayoutCelebration;

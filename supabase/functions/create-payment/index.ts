@@ -25,6 +25,33 @@ import { formatPayoutDollars } from "../_shared/money.ts";
  */
 const TAX_BEHAVIOR = "exclusive" as const;
 
+/**
+ * NOTIFICATION LINKS: `?job=<id>`, never a fixed `?filter=`.
+ *
+ * Every Activity notification this function writes carries the job id and lets
+ * the page resolve the bucket at OPEN time (the deep-link effect in
+ * src/pages/Activity.tsx). A fixed `?filter=` can never be right from the
+ * producer side, for two independent reasons:
+ *
+ *  - The bucket a job belongs to is a question about its LIVE state ("whose
+ *    move is it?"), and the answer changes while the notification sits unread.
+ *    A job linked as `?filter=scheduled` is in "Needs you" the moment its day
+ *    passes; one linked `?filter=cancelled` moves out of that bucket if a
+ *    later direct offer revives the helper's application.
+ *  - Most of the keys these links used are LEGACY: the chip strip is five
+ *    buckets (needs_you / scheduled / waiting / done / cancelled,
+ *    activityFilters.ts). `in_progress`, `completed`, `revision`,
+ *    `not_selected`, `offered`, `open` still work as filter VALUES but have no
+ *    chip, so the reader landed on a filtered list with nothing showing as
+ *    selected and no way to tell what they were looking at. 66 rows in prod
+ *    `notifications` are sitting on exactly that (measured 2026-08-31).
+ *
+ * And an explicit `?filter=` WINS over `?job=` resolution (`deepLinkHadFilter`
+ * in Activity.tsx), so a stale filter actively defeats the fix — passing both
+ * is worse than passing neither. Same rule, same reasons, as migration
+ * 20260831232514_notification_links_land_on_the_right_spot.sql.
+ */
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -166,11 +193,42 @@ serve(async (req) => {
             metadata: { job_id: jobId, customer_id: user.id, pif_credit_id: pifCreditId },
           },
           success_url: buildRedirectUrl(`/payment-success?job_id=${jobId}`, isNative),
-          cancel_url: buildRedirectUrl(`/post-job`, isNative),
+          // Carry the credit back with them. A bare `/post-job` cancel_url
+          // dropped the `pif_credit` query param that PostJob reads
+          // (usePostJobForm: searchParams.get("pif_credit")), so a recipient
+          // who backed out of the shortfall checkout landed on a plain
+          // post-a-task form — and their next submit created a SECOND job at
+          // FULL price while the gift sat 'reserved' against the abandoned
+          // one, unusable on anything else until the session expired.
+          cancel_url: buildRedirectUrl(`/post-job?pif_credit=${encodeURIComponent(pifCreditId)}`, isNative),
           metadata: { job_id: jobId, customer_id: user.id, pif_credit_id: pifCreditId },
         }, {
           idempotencyKey: `pif-diff-${jobId}`,
         });
+
+        // Record the session on the job, exactly as the full-escrow path below
+        // does. Two things depend on it and BOTH were blind on this branch:
+        // the double-payment guard at the top of this action (which requires a
+        // stripe_session_id before it will refuse a second checkout, so an
+        // already-PIF-funded job could be charged again at full price), and
+        // void-cancelled-payments' abandoned-checkout sweep (Part B selects on
+        // `.not("stripe_session_id","is",null)`) — without it an abandoned PIF
+        // shortfall left the job open+unpaid forever, permanently consuming one
+        // of the poster's open-job slots in enforce_open_job_limit.
+        // .select("id") because a zero-row match returns error === null.
+        const { data: diffUpdated, error: diffUpdateErr } = await supabaseAdmin
+          .from("jobs")
+          .update({ stripe_session_id: diffSession.id })
+          .eq("id", jobId)
+          .select("id");
+        if (diffUpdateErr || !diffUpdated || diffUpdated.length === 0) {
+          console.error(`[create-payment] PIF difference session ${diffSession.id} created for job ${jobId} but jobs.update failed:`, diffUpdateErr ?? "matched 0 rows");
+          // Safe to fail loudly: the credit is still 'reserved' against THIS
+          // job, and redeem_pif_credit treats re-entry for the same job as a
+          // retry, so the user can simply try again.
+          throw new Error("Could not record the payment session — please try again");
+        }
+
         return new Response(JSON.stringify({ url: diffSession.url }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
         });
@@ -190,31 +248,58 @@ serve(async (req) => {
         console.error(`[create-payment] platform_settings read failed — refusing to price escrow with default fees:`, settingsErr);
         throw new Error("Pricing configuration is temporarily unavailable — please try again in a moment");
       }
-      const globalCustomerFeePercent = settings.customer_fee_percent; // fallback only
+      // customer_fee_percent is READ but deliberately NOT BOUND. It is still
+      // selected and null-checked above because an unreadable/incomplete
+      // settings row means the pricing config is broken and this function must
+      // fail loud rather than price escrow on guesses — but its VALUE no longer
+      // reaches any charge (see the fee fallback below for why).
       const helperFeePercent = settings.helper_fee_percent;
       const onboardingFeeCents = settings.onboarding_fee_cents; // NOT NULL DEFAULT 200 in schema
 
       // Check if the poster owes the one-time onboarding fee (first job post) and
       // resolve their OWN subscription tier so the service fee follows the
-      // 12/10/8/6 ladder (a Business poster pays 6%, matching the helper side).
-      // The global customer_fee_percent is only a fallback if the row can't be read.
+      // 12/11/10/8 ladder — one user, one tier, one percent, whichever side of
+      // the job they are on.
+      // If that read fails, the fee falls back to the FREE-tier rate — see the
+      // fallback expression below for why it is not the global setting.
       const { data: posterProfile, error: posterProfileErr } = await supabaseAdmin
         .from("profiles")
         .select("onboarding_fee_paid, subscription_tier, subscription_expires_at")
         .eq("user_id", user.id)
         .single();
       if (posterProfileErr) {
-        // Don't fail the charge — fall back to the global fee percent — but make
-        // the failure findable, never silent. Critically, only bill the one-time
+        // Don't fail the charge — fall back to the free-tier rate — but make the
+        // failure findable, never silent. Critically, only bill the one-time
         // onboarding fee when we can PROVE it's unpaid: a read failure leaves
         // posterProfile null, so guarding on `!!posterProfile` prevents
         // re-charging onboarding to someone who already paid it.
-        console.error(`[create-payment] poster profile read failed — using global fee fallback, skipping onboarding charge:`, posterProfileErr);
+        console.error(`[create-payment] poster profile read failed — using the free-tier fee fallback, skipping onboarding charge:`, posterProfileErr);
       }
       const owesOnboardingFee = !!posterProfile && !posterProfile.onboarding_fee_paid && onboardingFeeCents > 0;
+      // FALLBACK = DEFAULT_TIER_FEE_PERCENT (the free rate), never
+      // `platform_settings.customer_fee_percent` and never a bare literal.
+      //
+      // This used to be `globalCustomerFeePercent`. The stored global is 10 and
+      // the free ladder rung is 12, so an unreadable poster profile quietly
+      // billed a free-tier poster 10% — two points of budget under their real
+      // rate, on the ONE path where the number is charged to a card. The helper
+      // side had the identical bug on its payout fallbacks and was fixed the
+      // same way; this is its charge-side twin, and it matters more, because a
+      // payout re-resolves the rate later (process-scheduled-payouts) while a
+      // capture does not: the shortfall is never clawed back.
+      //
+      // Direction is the whole argument. An unexpected value must never
+      // UNDER-charge the platform — over-charging a discounted poster is
+      // refundable, a discount already given is not recoverable — and
+      // DEFAULT_TIER_FEE_PERCENT is deliberately the free (highest) rung, so it
+      // is the safe end of the ladder in both roles.
+      //
+      // Deriving it from DEFAULT_TIER_FEE_PERCENT rather than writing 12 keeps
+      // this pinned to the ladder: retune TIER_FEE_PERCENT.free and both the
+      // poster and helper fallbacks move with it, automatically and together.
       const customerFeePercent = posterProfile
         ? posterFeePercentForTier(posterProfile.subscription_tier, posterProfile.subscription_expires_at)
-        : globalCustomerFeePercent;
+        : DEFAULT_TIER_FEE_PERCENT;
 
       // Customer service fee (added as a line item — taxable, platform revenue).
       // Floored at Stripe's real processing cost on the WHOLE transaction (budget
@@ -398,10 +483,88 @@ serve(async (req) => {
         );
       }
 
-      // Minimum job time enforcement: 30 minutes after helper confirmed/accepted
-      const jobStartTime = job.helper_confirmed_at || job.updated_at;
-      if (jobStartTime) {
-        const elapsed = Date.now() - new Date(jobStartTime).getTime();
+      // ─── Completion gates (server-side mirror of the DB trigger) ───
+      //
+      // `enforce_helper_completion_gates` (20260828011057_verified_arrival_gate.sql)
+      // returns early on `auth.uid() IS NULL`, and every write in this function
+      // goes out on the SERVICE-ROLE client — so on THIS path the trigger never
+      // fires and its three gates (arrival established, proof photos, 30-minute
+      // floor) would be enforced nowhere but the client. The tracker's own Done
+      // step writes with the user's JWT and DOES hit the trigger, so without
+      // this block one action has two doors, only one of which is locked — and
+      // the unlocked one is the one that schedules the payout.
+      //
+      // The conditions below are transcribed from that trigger body rather than
+      // re-derived, so the two doors cannot drift. Same scoping as the trigger:
+      // helper-only, and only on the NULL → NOT NULL transition of
+      // helper_completed_at (a poster acting on their own job is not gated, and
+      // neither is a re-confirmation of an already-stamped completion).
+      // `select("*")` above already returns every column read here.
+      const isNewHelperCompletion = isHelper && !isPoster && !job.helper_completed_at;
+      if (isNewHelperCompletion) {
+        // 1. ARRIVAL MUST BE ESTABLISHED — the server verified the helper within
+        //    500ft when they marked arrived, or the poster vouched for them. A
+        //    bare `helper_arrived_at` is a CLAIM and does not unlock completion
+        //    on its own, except for jobs already underway when the gate shipped
+        //    (same grandfather cutoff as the trigger, so a mid-job helper is not
+        //    stranded by a deploy). Mirrors src/lib/arrivalGate.ts on the client.
+        const ARRIVAL_GRANDFATHER_CUTOFF_MS = Date.parse("2026-08-28T00:00:00Z");
+        const arrivedAtMs = job.helper_arrived_at ? Date.parse(job.helper_arrived_at) : NaN;
+        const arrivalEstablished =
+          !!job.helper_arrival_verified_at ||
+          !!job.poster_confirmed_arrival_at ||
+          (Number.isFinite(arrivedAtMs) && arrivedAtMs < ARRIVAL_GRANDFATHER_CUTOFF_MS);
+        if (!arrivalEstablished) {
+          // Never a dead end — name the next thing they can actually do, the
+          // same two options arrivalGateMessage() offers.
+          throw new Error(
+            job.helper_arrived_at
+              ? "You marked yourself arrived, but we couldn't confirm your location. Ask the poster to tap \"Confirm They Arrived\" on their job — that unlocks wrap-up."
+              : "Mark yourself arrived at the job site first. If your location won't work, ask the poster to confirm you arrived — that works too.",
+          );
+        }
+
+        // 2. PROOF PHOTOS — before AND after, on every job regardless of size.
+        //    They are the evidence that releases an escrowed payment. Same rule
+        //    as src/lib/photoProofPolicy.ts and the trigger's array_length check.
+        const hasBeforeProof = Array.isArray(job.proof_before_urls) && job.proof_before_urls.length > 0;
+        const hasAfterProof = Array.isArray(job.proof_after_urls) && job.proof_after_urls.length > 0;
+        if (!hasBeforeProof || !hasAfterProof) {
+          throw new Error("Before & after photos are required — they're the proof that releases your payment.");
+        }
+      }
+
+      // 3. MINIMUM JOB TIME — 30 minutes measured from when work actually
+      //    started. The anchor was `helper_confirmed_at || updated_at`, which
+      //    measured neither the trigger's rule nor the client's: `jobs` carries
+      //    an `update_updated_at_column` trigger (20260311000404), so with
+      //    `helper_confirmed_at` NULL the fallback was rewritten by EVERY write
+      //    to the row — the arrival stamp, each proof-photo save, the poster's
+      //    working confirmation. The window restarted continuously and could
+      //    never elapse: the helper saw a fully-enabled "I'm Done — Request
+      //    Payout" button, tapped it, and got a "N minutes remaining" error
+      //    where N never shrank on retry. The poster's Approve inherited the
+      //    same stuck clock. This is now the one expression all three surfaces
+      //    use: COALESCE(poster_confirmed_working_at, helper_arrived_at).
+      //
+      //    NULL ANCHOR ⇒ ALLOW, deliberately. Both stamps NULL means there is
+      //    no recorded start to measure from, and the trigger's own shape
+      //    (`COALESCE(...) IS NOT NULL AND now() - ... < 30 min`) plus both
+      //    client gates (`workStart ? ... : false`) already resolve that to
+      //    "no floor". Blocking instead would be unclearable: nothing later
+      //    back-fills those stamps, so a poster-vouched arrival with no
+      //    `helper_arrived_at` would be frozen out of its own payout forever.
+      //    The helper's door is not left open by this — the arrival and photo
+      //    gates above still stand between them and the completion write.
+      //    Applies to BOTH parties: the floor is a property of the job, not of
+      //    who taps first.
+      const workStartMs = job.poster_confirmed_working_at
+        ? Date.parse(job.poster_confirmed_working_at)
+        : job.helper_arrived_at
+          ? Date.parse(job.helper_arrived_at)
+          : NaN;
+      if (Number.isFinite(workStartMs)) {
+        const elapsed = Date.now() - workStartMs;
         const MIN_JOB_TIME_MS = 30 * 60 * 1000; // 30 minutes
         if (elapsed < MIN_JOB_TIME_MS) {
           const minutesLeft = Math.ceil((MIN_JOB_TIME_MS - elapsed) / 60000);
@@ -478,7 +641,8 @@ serve(async (req) => {
           user_id: job.helper_id,
           title: "Poster marked the job complete",
           message: `The poster marked "${job.title}" as complete. Please confirm completion to release payment.`,
-          type: "info", link: "/my-jobs?filter=in_progress",
+          // `?job=` — see the note on the shared rule at the top of this file.
+          type: "info", link: `/my-jobs?job=${job.id}`,
         });
       }
       if (isHelper && !posterDone) {
@@ -486,7 +650,7 @@ serve(async (req) => {
           user_id: job.customer_id,
           title: "Helpr marked the job complete",
           message: `The helpr marked "${job.title}" as complete. Please confirm completion to release payment.`,
-          type: "info", link: "/my-posts?filter=in_progress",
+          type: "info", link: `/my-posts?job=${job.id}`,
         });
       }
 
@@ -503,7 +667,7 @@ serve(async (req) => {
           user_id: job.customer_id,
           title: "Job completed!",
           message: `"${job.title}" is complete. Payment has been captured. The helpr will be paid in 24 hours.`,
-          type: "payment", link: "/my-posts?filter=completed",
+          type: "payment", link: `/my-posts?job=${job.id}`,
         });
       }
 
@@ -542,7 +706,7 @@ serve(async (req) => {
           user_id: job.helper_id,
           title: "Revision requested",
           message: `The poster has requested revisions on "${job.title}": ${note || "Please check the details."}`,
-          type: "warning", link: "/my-jobs?filter=revision",
+          type: "warning", link: `/my-jobs?job=${job.id}`,
         });
       }
 
@@ -578,7 +742,7 @@ serve(async (req) => {
         user_id: job.customer_id,
         title: "Revision completed — review needed",
         message: `The helpr has fixed the revision for "${job.title}". You have 72 hours to accept (mark complete) or dispute. If you do nothing, payment auto-releases.`,
-        type: "warning", link: "/my-posts?filter=revision_requested",
+        type: "warning", link: `/my-posts?job=${job.id}`,
       });
 
       return new Response(JSON.stringify({ success: true }), {
@@ -939,11 +1103,23 @@ serve(async (req) => {
       // Transfer already sent — a failed flip would leave the job "disputed"
       // (permanently blocked by release-payout's dispute guard) while the
       // notifications below assert it was resolved. Fail loudly instead.
+      //
+      // dispute_status + dispute_resolved_at are written HERE, not left behind.
+      // Without them `trg_sync_has_active_dispute` (20260831010000) keeps
+      // deriving has_active_dispute = true — its predicate is
+      // "dispute_status is neither 'resolved' nor 'auto_resolved'" — and
+      // can_review_job's `(has_active_dispute = false OR dispute_resolved_at IS
+      // NOT NULL)` clause then never passes. A Quick Release used to leave the
+      // job PERMANENTLY un-reviewable by both parties: the one job in the whole
+      // app where a review matters most, and neither side could ever leave one.
+      const disputeResolvedAt = new Date().toISOString();
       const { data: releaseUpdated, error: releaseUpdateErr } = await supabaseAdmin.from("jobs").update({
         status: "completed",
         payment_status: "released",
         helper_fee_percent: disputeFeePercent,
         platform_fee_amount: feeAmt,
+        dispute_status: "resolved",
+        dispute_resolved_at: disputeResolvedAt,
       }).eq("id", jobId).select("id");
       if (releaseUpdateErr || !releaseUpdated || releaseUpdated.length === 0) {
         console.error(`CRITICAL: dispute transfer sent for job ${jobId} but jobs.update to released failed — manual reconciliation needed:`, releaseUpdateErr ?? "matched 0 rows");
@@ -951,6 +1127,59 @@ serve(async (req) => {
           error: "transfer sent but job status update failed — manual reconciliation needed",
         }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 });
       }
+
+      // Close the formal dispute record too, with the real Stripe transfer id
+      // and the real amount. Left open — as it was — the row keeps the job
+      // trapped under `disputes_one_open_per_job_idx` (every future filing
+      // merges into a settled dispute, and rpc_open_dispute's existing-dispute
+      // branch re-freezes an already-paid job), and it stays one
+      // `rpc_decide_dispute` call away from being handed to
+      // execute-dispute-split. Marking it executed is what makes that executor
+      // refuse instead of trying to move money that has already gone.
+      //
+      // The recorded amount comes from the LEDGER, not from `helperPayout`.
+      // The transfer above is conditional (`job.helper_id && helperPayout > 0`),
+      // so on the no-transfer path nothing moved — and writing a computed
+      // `Math.round(helperPayout * 100)` there would record a "received" figure
+      // against escrow that never left. `null` means "not recorded here", which
+      // is the truth; a number would be a claim.
+      const settledTransfer = await lookupSettledTransfer(supabaseAdmin, jobId, job.helper_id);
+      await closeDisputeRecordForJob(supabaseAdmin, {
+        jobId,
+        outcome: "helper",
+        decidedBy: user.id,
+        decisionText: "Resolved by admin Quick Release: the full escrow was released to the helpr.",
+        helperCents: settledTransfer.amountCents,
+        transferId: settledTransfer.transferId,
+      });
+
+      // An admin moving money leaves a trail. `admin_refund_general` already
+      // writes one for its (less consequential) refunds; the two dispute
+      // actions — the ones that decide who keeps the escrow — wrote nothing at
+      // all, so /admin?view=audit showed no record of a resolved dispute.
+      await logAdminMoneyAction(supabaseAdmin, {
+        adminId: user.id,
+        action: "dispute_admin_release",
+        jobId,
+        details: {
+          job_title: job.title,
+          customer_id: job.customer_id,
+          helper_id: job.helper_id,
+          budget: job.budget,
+          // Both figures: what this call computed, and what the ledger says
+          // actually moved. They agree on the normal path; when they don't
+          // (a re-run hitting transferToHelper's idempotency guard after the
+          // helper's tier changed) the audit trail shows the discrepancy
+          // instead of quietly picking one.
+          helper_payout_cents: settledTransfer.amountCents,
+          computed_helper_payout_cents: Math.round(helperPayout * 100),
+          platform_fee_cents: Math.round((feeAmt / dpHelpersCount) * 100),
+          helper_fee_percent: disputeFeePercent,
+          payment_intent_id: captureResult.paymentIntentId,
+          stripe_transfer_id: settledTransfer.transferId,
+          dispute_resolved_at: disputeResolvedAt,
+        },
+      });
 
       // Notify both parties
       if (job.helper_id) {
@@ -965,7 +1194,7 @@ serve(async (req) => {
         user_id: job.customer_id,
         title: "Dispute resolved",
         message: `The dispute on "${job.title}" has been resolved. Payment was released to the helpr.`,
-        type: "info", link: "/my-posts?filter=completed",
+        type: "info", link: `/my-posts?job=${job.id}`,
       });
 
       return new Response(JSON.stringify({ success: true }), {
@@ -1005,6 +1234,11 @@ serve(async (req) => {
       // receives a "Refund issued" notification — data corruption with $0 returned.
       // admin_release_dispute has this same guard (line ~816); keep them in sync.
       if (!paymentIntentId) throw new Error("No payment intent found for this job — cannot issue refund");
+      // Hoisted so the dispute-record close below can record what actually went
+      // back to the poster. 0 with a null id is the legitimate "the Stripe fee
+      // consumed the whole capture" outcome, which the branch below alerts on.
+      let disputeRefundId: string | null = null;
+      let disputeRefundCents = 0;
       try {
         const pi = await stripe.paymentIntents.retrieve(paymentIntentId, {
           expand: ["latest_charge.balance_transaction"],
@@ -1054,6 +1288,8 @@ serve(async (req) => {
                 { payment_intent: paymentIntentId, amount: refundAmount },
                 { idempotencyKey: `refund-dispute-${jobId}` },
               );
+              disputeRefundId = refund.id;
+              disputeRefundCents = Math.round(Number(refund.amount ?? refundAmount));
               await recordRefund(supabaseAdmin, {
                 refund,
                 jobId,
@@ -1117,9 +1353,16 @@ serve(async (req) => {
         }
 
       // Refund is out — same fail-loud rule as admin_release_dispute above.
+      // dispute_status/dispute_resolved_at for the same reason: without them
+      // trg_sync_has_active_dispute keeps has_active_dispute = true on a job
+      // whose dispute is over, which is a permanently-live dispute as far as
+      // money-reconciliation's dispute checks and can_review_job are concerned.
+      const refundResolvedAt = new Date().toISOString();
       const { data: refundUpdated, error: refundUpdateErr } = await supabaseAdmin.from("jobs").update({
         status: "cancelled",
         payment_status: "refunded",
+        dispute_status: "resolved",
+        dispute_resolved_at: refundResolvedAt,
       }).eq("id", jobId).select("id");
       if (refundUpdateErr || !refundUpdated || refundUpdated.length === 0) {
         console.error(`CRITICAL: refund issued for disputed job ${jobId} but jobs.update to refunded failed — manual reconciliation needed:`, refundUpdateErr ?? "matched 0 rows");
@@ -1128,19 +1371,46 @@ serve(async (req) => {
         }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 });
       }
 
+      // Same two closing writes as the release path: the formal dispute record,
+      // and the audit trail.
+      await closeDisputeRecordForJob(supabaseAdmin, {
+        jobId,
+        outcome: "poster",
+        decidedBy: user.id,
+        decisionText: "Resolved by admin Quick Refund: the escrow was refunded to the poster, less the non-refundable Stripe processing fee.",
+        refundCents: disputeRefundCents,
+        refundId: disputeRefundId,
+      });
+
+      await logAdminMoneyAction(supabaseAdmin, {
+        adminId: user.id,
+        action: "dispute_admin_refund",
+        jobId,
+        details: {
+          job_title: job.title,
+          customer_id: job.customer_id,
+          helper_id: job.helper_id,
+          budget: job.budget,
+          refund_cents: disputeRefundCents,
+          payment_intent_id: paymentIntentId,
+          stripe_refund_id: disputeRefundId,
+          dispute_resolved_at: refundResolvedAt,
+        },
+      });
+
       // Notify both parties
       await supabaseAdmin.from("notifications").insert({
         user_id: job.customer_id,
         title: "Dispute resolved — refund issued",
         message: `The dispute on "${job.title}" has been resolved in your favor. A refund has been issued.`,
-        type: "payment", link: "/my-posts?filter=cancelled",
+        type: "payment", link: `/my-posts?job=${job.id}`,
       });
       if (job.helper_id) {
         await supabaseAdmin.from("notifications").insert({
           user_id: job.helper_id,
           title: "Dispute resolved",
           message: `The dispute on "${job.title}" has been resolved. The customer has been refunded.`,
-          type: "info", link: "/my-jobs?filter=not_selected",
+          type: "info", link: `/my-jobs?job=${job.id}`,
         });
       }
 
@@ -1304,7 +1574,11 @@ serve(async (req) => {
         title: isPartial ? "Partial refund issued" : "Refund issued",
         message: customerMessage,
         type: "payment",
-        link: isPartial ? `/my-posts` : "/my-posts?filter=cancelled",
+        // A partial refund leaves the job running, so it has no single fixed
+        // bucket — link the job and let Activity place it. (The full-refund
+        // branch cancels the job, so `cancelled` is safe there, but `?job=`
+        // says the same thing more directly.)
+        link: `/my-posts?job=${job.id}`,
       });
 
       // Helper notification — only on full refund (job is cancelled). Partial
@@ -1315,7 +1589,25 @@ serve(async (req) => {
           user_id: job.helper_id,
           title: "Job cancelled",
           message: `"${job.title}" was cancelled by support and refunded to the customer.${reason ? ` Reason: ${reason}` : ""}`,
-          type: "info", link: "/my-jobs?filter=not_selected",
+          // `?job=` — same shape as the poster half above, and as every
+          // producer converted in migration
+          // 20260831232514_notification_links_land_on_the_right_spot.sql.
+          //
+          // This was `/my-jobs?filter=not_selected`. Two things were wrong
+          // with it. `not_selected` is a LEGACY filter key: the Activity strip
+          // is five buckets now (needs_you / scheduled / waiting / done /
+          // cancelled, activityFilters.ts), and legacy enum keys still work as
+          // filter VALUES but have no chip — so the helper landed on a filter
+          // that no chip showed as selected, on a list filtered by it. And an
+          // explicit `?filter=` WINS over `?job=` resolution in Activity's
+          // deep-link effect (`deepLinkHadFilter`), so it could not even be
+          // rescued by also passing the job.
+          //
+          // A fixed `?filter=` can never be right from the producer side
+          // anyway: which bucket a job sits in is a question about its LIVE
+          // state, and the answer changes while the notification sits unread.
+          // `?job=` lets Activity resolve the bucket at open time.
+          type: "info", link: `/my-jobs?job=${job.id}`,
         });
       }
 
@@ -1349,6 +1641,170 @@ serve(async (req) => {
 /**
  * Transfer funds to the helper's connected Stripe account.
  */
+/**
+ * Read back the settled payout for a job from the `payout_transfers` ledger —
+ * the transfer id AND the amount that actually moved.
+ *
+ * Both halves matter. `transferToHelper` returns nothing, and it has two
+ * success paths: a fresh `stripe.transfers.create`, and an early return when a
+ * `payout_transfers` row already exists (its DB-level idempotency guard). On
+ * that second path the caller's freshly-recomputed `helperPayout` is NOT what
+ * moved — the fee is resolved from the helper's LIVE subscription tier, which
+ * may have changed since the original transfer. Recording the computed figure
+ * beside the real transfer id would put two disagreeing numbers on one row, so
+ * the ledger's `amount_cents` wins whenever there is a row to read.
+ *
+ * Scoped to this helper and to transfers that are actually money: a `failed` or
+ * `reversed` row, or another roster member's transfer on a group job, must
+ * never be stamped onto the dispute record as its settlement.
+ *
+ * Best-effort: nulls cost the dispute record two reference fields and must
+ * never turn a completed release into an error. The error is logged, not
+ * dropped.
+ */
+async function lookupSettledTransfer(
+  supabaseAdmin: any,
+  jobId: string,
+  helperId: string | null,
+): Promise<{ transferId: string | null; amountCents: number | null }> {
+  const empty = { transferId: null, amountCents: null };
+  if (!helperId) return empty;
+  const { data, error } = await supabaseAdmin
+    .from("payout_transfers")
+    .select("stripe_transfer_id, amount_cents, status")
+    .eq("job_id", jobId)
+    .eq("helper_id", helperId)
+    .in("status", ["pending", "paid"])
+    .order("created_at", { ascending: false })
+    .limit(1);
+  if (error) {
+    console.error(`[create-payment] lookupSettledTransfer — payout_transfers read failed for job ${jobId}:`, error);
+    return empty;
+  }
+  const row = data?.[0];
+  if (!row) return empty;
+  const cents = Number(row.amount_cents);
+  return {
+    transferId: (row.stripe_transfer_id as string | undefined) ?? null,
+    amountCents: Number.isFinite(cents) && cents >= 0 ? Math.round(cents) : null,
+  };
+}
+
+/**
+ * Close the `public.disputes` record for a job whose escrow an admin has just
+ * settled by hand, via the single writer `settle_dispute_record`
+ * (20260901034758).
+ *
+ * Deliberately NON-FATAL. Every caller reaches this only AFTER the money has
+ * moved and the job row is correct, so throwing here would turn a completed,
+ * correct settlement into a 500 the admin reads as "it failed" — and they would
+ * click again. The failure is loud instead (console + Slack), and
+ * auto-resolve-disputes' orphan sweep closes the record on its next tick.
+ */
+async function closeDisputeRecordForJob(
+  supabaseAdmin: any,
+  args: {
+    jobId: string;
+    outcome: "helper" | "poster";
+    decidedBy: string;
+    decisionText: string;
+    helperCents?: number | null;
+    refundCents?: number | null;
+    transferId?: string | null;
+    refundId?: string | null;
+  },
+): Promise<void> {
+  try {
+    const { data: disputeId, error } = await supabaseAdmin.rpc("settle_dispute_record", {
+      _job_id: args.jobId,
+      _outcome: args.outcome,
+      _decided_by: args.decidedBy,
+      _decision_text: args.decisionText,
+      _helper_cents: args.helperCents ?? null,
+      _refund_cents: args.refundCents ?? null,
+      _transfer_id: args.transferId ?? null,
+      _refund_id: args.refundId ?? null,
+    });
+    if (error) {
+      console.error(`[create-payment] settle_dispute_record failed for job ${args.jobId}:`, error);
+      await postSlackOpsAlert({
+        kind: "custom",
+        severity: "warning",
+        title: "Dispute settled but its record stayed open",
+        message:
+          "An admin resolved a dispute and the money moved, but the public.disputes row could not be closed. " +
+          "The auto-resolve sweep will retry; until it does, the job cannot take a genuinely new dispute.",
+        fields: {
+          job_id: args.jobId,
+          outcome: args.outcome,
+          admin_id: args.decidedBy,
+          db_error: error.message,
+          db_error_code: (error as { code?: string }).code ?? "",
+        },
+      });
+      return;
+    }
+    // A NULL id is legitimate: a dispute filed before `public.disputes` existed
+    // has no record to close. It is not an error and not a silent no-op — it is
+    // logged so a reader of the logs can tell the two apart.
+    console.log(
+      disputeId
+        ? `[create-payment] closed dispute record ${disputeId} for job ${args.jobId} (${args.outcome})`
+        : `[create-payment] job ${args.jobId} had no open disputes row to close`,
+    );
+  } catch (e) {
+    console.error(`[create-payment] settle_dispute_record threw for job ${args.jobId}:`, e);
+  }
+}
+
+/**
+ * Write the `admin_audit_log` row for an admin action that moved escrow.
+ *
+ * Non-fatal for the same reason as above — the money is already gone, and a
+ * 500 here would invite a second click — but never silent: a money movement
+ * with no audit trail is exactly what an audit log exists to prevent, so a
+ * failed write goes to Slack.
+ */
+async function logAdminMoneyAction(
+  supabaseAdmin: any,
+  args: { adminId: string; action: string; jobId: string; details: Record<string, unknown> },
+): Promise<void> {
+  try {
+    // `.select("id")`: admin_audit_log HAS an id column, and an RLS refusal
+    // returns `{ data: [], error: null }` — indistinguishable from success.
+    const { data, error } = await supabaseAdmin
+      .from("admin_audit_log")
+      .insert({
+        admin_id: args.adminId,
+        action: args.action,
+        target_type: "job",
+        target_id: args.jobId,
+        details: args.details,
+      })
+      .select("id");
+    if (error || !data || data.length === 0) {
+      console.error(
+        `CRITICAL: admin_audit_log write failed for ${args.action} on job ${args.jobId}:`,
+        error ?? "matched 0 rows",
+      );
+      await postSlackOpsAlert({
+        kind: "custom",
+        severity: "warning",
+        title: "Admin money action left no audit trail",
+        message: `An admin moved escrow (${args.action}) but the admin_audit_log row was not written.`,
+        fields: {
+          job_id: args.jobId,
+          action: args.action,
+          admin_id: args.adminId,
+          db_error: error?.message ?? "insert matched 0 rows",
+        },
+      });
+    }
+  } catch (e) {
+    console.error(`[create-payment] logAdminMoneyAction threw for job ${args.jobId}:`, e);
+  }
+}
+
 async function transferToHelper(
   stripe: any,
   supabaseAdmin: any,

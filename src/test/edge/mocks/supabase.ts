@@ -19,6 +19,39 @@ export interface TableResult {
   rows?: Row[];
   /** Error object to return instead of data. */
   error?: { message: string; code?: string } | null;
+  /**
+   * Per-SELECT overrides, matched on the column list the code passed to
+   * `.select(...)`. The first entry whose `includes` string appears in that
+   * column list wins; anything unmatched falls through to `rows` / `error`.
+   *
+   * Needed because a scenario keys results by TABLE NAME alone, and several
+   * money paths read the SAME table twice for different reasons — notably
+   * `profiles`, which `getHelperFeePercent` reads for
+   * `subscription_tier, subscription_expires_at` while the payout code reads
+   * it for `stripe_account_id, onboarding_fee_paid`. Failing the whole table
+   * cannot distinguish "the tier read failed" (the fee-fallback path under
+   * test) from "the helper has no Connect account" (a different branch that
+   * aborts before the fee is ever committed).
+   *
+   * Additive: a scenario that does not set this behaves exactly as before.
+   */
+  selectOverrides?: Array<{ includes: string; result: TableResult }>;
+  /**
+   * The exact row count PostgREST reports for `.select(cols, { count: "exact" })`.
+   *
+   * OPT-IN ON PURPOSE. Real PostgREST answers the count from a `COUNT(*)` that
+   * is NOT subject to `db-max-rows`, which is why `_shared/paginate.ts` uses it
+   * as its independent proof that a paged read saw everything: the header on a
+   * capped read literally reads `0-999/1619`. Leaving it unset makes the mock
+   * return `count: null`, which is how every pre-existing scenario behaved and
+   * is what `scanAll` reads as "the server withheld a count" — so those tests
+   * are untouched.
+   *
+   * Set it ABOVE `rows.length` to simulate the truncation this project's cap
+   * actually produces: the store hands back the seeded rows while the server
+   * insists more exist, which is precisely the shape of a silently short read.
+   */
+  count?: number;
 }
 
 /**
@@ -55,10 +88,32 @@ export interface SupabaseScenario {
     op: "insert" | "update" | "delete";
     payload: unknown;
     filters: Array<{ op: "eq" | "neq" | "in"; column: string; value: unknown }>;
+    /**
+     * The column list passed to the write's trailing `.select(...)`, or null
+     * when the write did not end in one.
+     *
+     * Recorded because the store resolves a result by TABLE NAME and hands back
+     * the seeded rows regardless of projection — so a `.select("id")` on a table
+     * whose primary key is NOT `id` passes every behavioural assertion here and
+     * 400s in production. `stripe_webhook_events` is exactly that table
+     * (`event_id TEXT PRIMARY KEY`, no `id` column; verified against prod:
+     * `?select=id` → 400, `?select=event_id` → 200), so the projection itself
+     * has to be assertable, not just the row count it produces.
+     */
+    selectCols: string | null;
   }>;
   /** Optional override: table name -> error to return on write. */
   writeErrors: Record<string, { message: string; code?: string }>;
-  /** Optional override: rows returned from a write that ends in .select(). */
+  /**
+   * Optional override: rows returned from a write that ends in .select().
+   *
+   * Keyed by table name, or by `"<table>:<op>"` (e.g. `"tips:delete"`) when one
+   * table is both written and deleted in the same run and only one of them is
+   * under test — auto-tip-charge INSERTs the `tips` claim with `.select("id")`
+   * and then DELETEs it with `.select("id")`, so a bare `tips` key that forced
+   * zero rows would fail the claim insert and the delete would never be
+   * reached. The more specific key wins.
+   */
   writeSelectRows: Record<string, Row[]>;
 }
 
@@ -96,15 +151,34 @@ class QueryBuilder implements PromiseLike<{ data: unknown; error: unknown }> {
   private op: "select" | "insert" | "update" | "delete" = "select";
   private payload: unknown;
   private endsWithSelect = false;
+  /** Column list passed to `.select(...)` on a read — see `selectOverrides`. */
+  private cols = "";
+  /** Column list passed to a WRITE's trailing `.select(...)`. */
+  private writeSelectCols: string | null = null;
   private filters: Array<{ op: "eq" | "neq" | "in"; column: string; value: unknown }> = [];
+  /** Set by `.select(cols, { count: "exact" })`. */
+  private wantsCount = false;
+  /** Set by `.select(cols, { head: true })` — a count with no rows. */
+  private headOnly = false;
+  /** Set by `.range(from, to)`. Null means "no window requested". */
+  private window: { from: number; to: number } | null = null;
 
   constructor(private table: string) {}
 
-  select(_cols?: string) {
+  select(_cols?: string, _opts?: { count?: "exact" | "planned" | "estimated"; head?: boolean }) {
     if (this.op === "select") {
-      // plain read
+      // Remembered so `selectOverrides` can tell two reads of the same table
+      // apart by the columns they asked for.
+      this.cols = _cols ?? "";
+      // `{ count: "exact" }` asks PostgREST for the true total alongside the
+      // (possibly capped) page. `head: true` asks for the count and NO rows.
+      if (_opts?.count) this.wantsCount = true;
+      if (_opts?.head) this.headOnly = true;
     } else {
       this.endsWithSelect = true;
+      // Remembered so a test can assert the PROJECTION, not merely that some
+      // rows came back — see `writes[].selectCols`.
+      this.writeSelectCols = _cols ?? "";
     }
     return this;
   }
@@ -152,6 +226,35 @@ class QueryBuilder implements PromiseLike<{ data: unknown; error: unknown }> {
   is() {
     return this;
   }
+  /**
+   * `.ilike(column, pattern)` — case-insensitive LIKE. Chainable no-op like its
+   * siblings; the scenario decides the result.
+   *
+   * It was MISSING, and the omission was not inert — it is the same trap
+   * `.not()` was. `review-nag-cron`'s duplicate-nag guard is
+   * `.eq().eq().ilike("link", "%job=…%").gte()`, so the chain threw
+   * `TypeError: … .ilike is not a function` inside the function's own
+   * try/catch and the whole run took the error path. The function simply could
+   * not be loaded by this harness at all.
+   */
+  ilike(column?: string, value?: unknown) {
+    this.filters.push({ op: "eq", column: column ?? "", value });
+    return this;
+  }
+  /**
+   * `.not(column, operator, value)` — PostgREST's negation. Chainable no-op
+   * like its siblings; the scenario decides the result.
+   *
+   * It was MISSING, and the omission was not inert: any function whose query
+   * chain contains `.not(...)` threw `TypeError: … .not is not a function`
+   * inside its own try/catch, so the whole run took the error path and the test
+   * saw a plausible-looking failure envelope instead of the behaviour it meant
+   * to assert. `expire-subscriptions` opens with two `.not()` calls.
+   */
+  not(column?: string, _operator?: string, value?: unknown) {
+    this.filters.push({ op: "neq", column: column ?? "", value });
+    return this;
+  }
   lte() {
     return this;
   }
@@ -170,12 +273,46 @@ class QueryBuilder implements PromiseLike<{ data: unknown; error: unknown }> {
   order() {
     return this;
   }
+  /**
+   * `.range(from, to)` — PostgREST's inclusive row window, and the ONLY way to
+   * read past `db-max-rows`. Implemented as a real slice rather than a
+   * chainable no-op: `_shared/paginate.ts` decides it has reached the end of a
+   * table when a page comes back SHORTER than it asked for, so a no-op `range`
+   * would hand every page the full seeded set and spin the loop to its page
+   * ceiling. Slicing makes a paged read terminate here the same way it does
+   * against the real server.
+   */
+  range(from: number, to: number) {
+    this.window = { from, to };
+    return this;
+  }
 
-  private resolveValue(): { data: unknown; error: unknown } {
+  private resolveValue(): { data: unknown; error: unknown; count?: number | null } {
     if (this.op === "select") {
-      const t = scenario.reads[this.table] ?? {};
-      if (t.error) return { data: null, error: t.error };
-      return { data: t.rows ?? [], error: null };
+      const base = scenario.reads[this.table] ?? {};
+      const override = base.selectOverrides?.find((o) => this.cols.includes(o.includes));
+      const t = override ? override.result : base;
+      if (t.error) return { data: null, error: t.error, count: null };
+      const all = t.rows ?? [];
+      // Two different count behaviours, and the split is deliberate.
+      //
+      // A `head: true` count returns no rows, and several already-tested
+      // functions (`auto-release-payment`, `review-nag-cron`) branch on it. Its
+      // count stays strictly OPT-IN — unset means null, exactly how this mock
+      // has always behaved — so those tests are untouched.
+      //
+      // A PAGED read (`.select(cols, {count:"exact"})` + `.range()`) is
+      // different: real PostgREST ALWAYS answers such a request with a total,
+      // and `_shared/paginate.ts` now treats a MISSING total as unverifiable
+      // rather than complete. Defaulting to the seeded row count models the
+      // real server; a test simulating truncation sets `count` ABOVE
+      // `rows.length` to say "more exist than I handed you".
+      const count = this.wantsCount
+        ? (t.count ?? (this.headOnly ? null : all.length))
+        : undefined;
+      if (this.headOnly) return { data: null, error: null, count };
+      const rows = this.window ? all.slice(this.window.from, this.window.to + 1) : all;
+      return { data: rows, error: null, count };
     }
     // write
     scenario.writes.push({
@@ -183,6 +320,7 @@ class QueryBuilder implements PromiseLike<{ data: unknown; error: unknown }> {
       op: this.op,
       payload: this.payload,
       filters: this.filters,
+      selectCols: this.writeSelectCols,
     });
     const writeErr = scenario.writeErrors[this.table];
     if (writeErr) return { data: null, error: writeErr };
@@ -194,7 +332,11 @@ class QueryBuilder implements PromiseLike<{ data: unknown; error: unknown }> {
       // never think about the write-time `.select()` at all, so an empty
       // default here would make every such test spuriously hit the "matched
       // 0 rows" failure path the source code now checks for.
-      const override = scenario.writeSelectRows[this.table];
+      // `"<table>:<op>"` wins over the bare table name so one table can be
+      // written twice in a run with only one of the writes forced to zero rows.
+      const override =
+        scenario.writeSelectRows[`${this.table}:${this.op}`] ??
+        scenario.writeSelectRows[this.table];
       return { data: override ?? [{ id: "mock-matched-row" }], error: null };
     }
     return { data: null, error: null };
@@ -264,7 +406,15 @@ export function createClient(_url: string, _key: string): SupabaseClientMock {
       scenario.rpcCalls?.push({ name, args });
       const err = scenario.rpcErrors?.[name];
       if (err) return { data: null, error: err };
-      return { data: scenario.rpc[name], error: null };
+      // A function value is called with the arguments, so one scenario can
+      // answer the SAME rpc differently per call — `restore_pif_credit_for_job`
+      // is asked to value a gift (p_dry_run: true) and then to mint it
+      // (p_dry_run: false), and a single frozen value cannot be both.
+      const configured = scenario.rpc[name];
+      const data = typeof configured === "function"
+        ? (configured as (a?: unknown) => unknown)(args)
+        : configured;
+      return { data, error: null };
     }),
   };
 }

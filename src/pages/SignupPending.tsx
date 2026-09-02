@@ -171,9 +171,18 @@ const SignupPending = () => {
           <div className="flex items-start gap-3">
             {stepIcon(3)}
             <div>
-              <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Start right away</p>
+              {/* Was: "Start right away / You're all set — post and accept jobs
+                  the moment you're in." That skipped a mandatory step. The
+                  confirmation poll above navigates to `/complete-profile`, and
+                  `ProtectedRoute`'s profile gate holds the user there until
+                  five fields (name, photo, date of birth, phone, city) are
+                  filled — so "you're all set" was said to someone standing in
+                  front of a required form. Naming the step is also the honest
+                  thing: a user who knows a short form is coming completes it;
+                  a user promised they're finished bounces. */}
+              <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Finish your profile</p>
               <p className="text-ds-13 font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                You're all set — post and accept jobs the moment you're in.
+                A short form — name, photo, date of birth, phone and city — then you can post and accept jobs.
               </p>
             </div>
           </div>

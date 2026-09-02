@@ -76,7 +76,7 @@ const reportedTokenFailures = new Set<string>();
  * Exposed so the UI can say so calmly instead of rendering a map that looks
  * exactly like a correctly-configured one. See `useMapKitTokenSource`.
  */
-export type MapKitTokenSource = "unknown" | "server" | "build-time" | "none";
+type MapKitTokenSource = "unknown" | "server" | "build-time" | "none";
 
 let tokenSource: MapKitTokenSource = "unknown";
 const tokenSourceListeners = new Set<(s: MapKitTokenSource) => void>();

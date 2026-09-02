@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { jobActionChipStyle, JOB_ACTION_FULL_CLASS } from "@/components/activity/JobActionRow";
+import { JobActionRow, JobActionChip } from "@/components/activity/JobActionRow";
 import { Button } from "@/components/ui/button";
 import { AUTO_COMPLETE_HOURS, hoursToMs } from "../../../../supabase/functions/_shared/escrowTiming";
 import { CheckCircle2, MessageSquare, RefreshCw, Check, ClipboardList, CalendarX2 } from "lucide-react";
@@ -14,11 +14,15 @@ import { PhotoProofGroup } from "@/components/PhotoProof";
 import { hasRequiredProof } from "@/lib/photoProofPolicy";
 import { report } from "@/lib/errorLogger";
 import DeadlineCountdown from "@/components/activity/DeadlineCountdown";
-import { JobConfirmation } from "@/components/JobConfirmation";
-import { JobTracking, type TrackingData } from "@/components/JobTracking";
+import { deriveCurrentStatusIdx, STATUS_IDX, type TrackingData } from "@/components/JobTracking";
+import { HelperTrackerPanel } from "./HelperTrackerPanel";
 import { DirectionsButton } from "./DirectionsButton";
 import { HelperRevisionCard } from "@/components/activity/HelperRevisionCard";
 import type { AppliedApp, Job } from "../activityConstants";
+
+/** The floor a job has to sit above before its payout can be requested. Same
+ *  30 minutes JobTracking's Done gate and completeJob's re-check enforce. */
+const MIN_WORK_MS = 30 * 60 * 1000;
 
 interface ActiveJobSectionProps {
   app: AppliedApp;
@@ -48,7 +52,80 @@ export function ActiveJobSection({
 }: ActiveJobSectionProps) {
   const [resolving, setResolving] = useState(false);
 
-  // ── The sanctioned exit for a job already underway ──
+  // ── THE 30-MINUTE WINDOW HAS TO ELAPSE ON SCREEN ──
+  //
+  // "Available in 25 min" was computed from Date.now() at render time on a
+  // component with no timer of any kind — its only other hooks are useState.
+  // DeadlineCountdown's 60s interval ticks its OWN state, not ours, so a
+  // helper who opened /my-jobs at minute 5 sat there watching a frozen
+  // "Available in 25 min" on a disabled button until they navigated away and
+  // came back. The unlock moment is a fixed point in time, so compute it once
+  // and re-render on it.
+  //
+  // 60s is the granularity the copy is stated in, so it is the granularity we
+  // tick at; and the interval only exists while the gate is actually closed —
+  // once it opens `payoutGateClosed` goes false, the effect cleans up and
+  // nothing spins for the rest of the job.
+  const payoutUnlocksAt = (() => {
+    // The floor measures from the poster's working confirmation when it
+    // exists, else from the helper's own arrival stamp — a ghosting poster
+    // must not be able to hold the clock at zero.
+    const workingStart = job.poster_confirmed_working_at ?? job.helper_arrived_at;
+    return workingStart ? new Date(workingStart).getTime() + MIN_WORK_MS : null;
+  })();
+  const [now, setNow] = useState(() => Date.now());
+  const payoutGateClosed =
+    !job.helper_completed_at &&
+    !!job.helper_arrived_at &&
+    payoutUnlocksAt != null &&
+    now < payoutUnlocksAt;
+  useEffect(() => {
+    if (!payoutGateClosed) return;
+    const interval = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(interval);
+  }, [payoutGateClosed]);
+
+  // ── The sanctioned exit, and the point at which it stops being offered ──
+  //
+  // Owner, 2026-08-30: "can't finish should not be an option." Taken literally
+  // that strands the state machine — a helper mid-job with no sanctioned exit
+  // has no recorded reason, no automatic re-open and escrow held until a human
+  // intervenes, which is the ghosting `helper_abort_job` exists to price. So
+  // the exit is not deleted, it is BOUNDED: it stays while the job has not
+  // actually started, and it is gone once work is underway.
+  //
+  //   scheduled / on the way / arrived  → the exit is offered
+  //   working (and anything after)      → no exit chip at all
+  //
+  // Past that line the honest move is a conversation, and Message is the
+  // control that is still on the row. `helper_abort_job` is untouched and is
+  // still the correct RPC for the states above the line — this removes a
+  // CONTROL from one state, not the path.
+  //
+  // `deriveCurrentStatusIdx` is the same derivation the step rail directly
+  // above this row is drawn from, so the chip and the rail can never disagree
+  // about whether work has started — a card reading "Working" with a
+  // "Can't Finish" chip under it is the exact inconsistency this avoids. The
+  // evidence handed to it is the evidence HelperTrackerPanel hands JobTracking,
+  // item for item. `initialTracking` refreshes on the `job_tracking` realtime
+  // subscription in useActivityData, so the tap that starts work also takes
+  // the chip away.
+  const workUnderway =
+    deriveCurrentStatusIdx({
+      trackingStatus: initialTracking?.status ?? null,
+      jobStatus: job.status,
+      helperConfirmedAt: job.helper_confirmed_at,
+      helperDayofConfirmedAt: job.helper_dayof_confirmed_at,
+      jobDateNeeded: job.date_needed,
+      posterConfirmedAt: job.poster_confirmed_at,
+      helperOnTheWayAt: job.helper_on_the_way_at,
+      helperArrivedAt: job.helper_arrived_at,
+      helperArrivalVerifiedAt: job.helper_arrival_verified_at,
+      posterConfirmedArrivalAt: job.poster_confirmed_arrival_at,
+      helperCompletedAt: job.helper_completed_at,
+      posterCompletedAt: job.poster_completed_at,
+    }) >= STATUS_IDX.working;
+
   // Server owns every part of this decision (helper_abort_job, migration
   // 20260825190000): which settlement path the job takes, and what the strike
   // costs. The client only states it truthfully before the tap.
@@ -143,8 +220,13 @@ export function ActiveJobSection({
 
   return (
     <div className="px-4 py-3 border-t border-[hsl(var(--olivewood)/0.1)] bg-card space-y-2.5" onClick={(e) => e.stopPropagation()}>
-      {/* Live tracking for in-progress jobs */}
-      <JobTracking jobId={app.job_id} helperId={userId} isHelper={true} isOwner={false} jobDateNeeded={job.date_needed} jobStartTime={job.start_time} jobStatus={job.status} helperConfirmedAt={job.helper_confirmed_at} helperDayofConfirmedAt={job.helper_dayof_confirmed_at} posterConfirmedAt={job.poster_confirmed_at} initialTracking={initialTracking} jobLatitude={job.latitude} jobLongitude={job.longitude} helperOnTheWayAt={job.helper_on_the_way_at} helperArrivedAt={job.helper_arrived_at} helperArrivalVerifiedAt={job.helper_arrival_verified_at} posterConfirmedArrivalAt={job.poster_confirmed_arrival_at} helperCompletedAt={job.helper_completed_at} posterCompletedAt={job.poster_completed_at} />
+      {/* Live tracking for in-progress jobs — the SAME merged panel the
+          scheduled card uses, so the tracker is one box on both. On an
+          in-progress job the day-of confirmation is already behind the helper
+          (or moot), so the panel's gate is inert here and JobTracking's own
+          next-step control is live; what this buys is that the two cards draw
+          one tracker rather than two. */}
+      <HelperTrackerPanel app={app} job={job} userId={userId} initialTracking={initialTracking} />
 
       {/* Pet care report card — only for pet_care jobs */}
       {job.category === "pet_care" && (
@@ -199,8 +281,9 @@ export function ActiveJobSection({
         </div>
       )}
 
-      {/* Job confirmation for helper during active job */}
-      <JobConfirmation jobId={app.job_id} isOwner={false} isHelper={true} posterConfirmedAt={job.poster_confirmed_at} helperConfirmedAt={job.helper_confirmed_at} helperDayofConfirmedAt={job.helper_dayof_confirmed_at} dateNeeded={job.date_needed} jobStatus={job.status} helperOnTheWayAt={job.helper_on_the_way_at} />
+      {/* The day-of confirmation used to render a SECOND glass card here, a
+          full card-height below the tracker it belongs to. It now lives inside
+          HelperTrackerPanel above, at the step it completes. */}
       {/* Revision notice — HelperRevisionCard shows the formal
           job_revisions row (or falls back to jobs.revision_note).
           The "I'll fix it" / "Discuss" path lives there. */}
@@ -269,14 +352,11 @@ export function ActiveJobSection({
           // ONE shared proof rule (photoProofPolicy) — the same predicate
           // JobTracking's Done step and completeJob's re-check enforce.
           const hasPhotos = hasRequiredProof(job, job.proof_before_urls, job.proof_after_urls);
-          const workingStart = job.poster_confirmed_working_at
-            ? new Date(job.poster_confirmed_working_at)
-            : job.helper_arrived_at
-              ? new Date(job.helper_arrived_at)
-              : null;
-          const minWorkMs = 30 * 60 * 1000;
-          const tooEarly = workingStart ? (Date.now() - workingStart.getTime()) < minWorkMs : false;
-          const minutesLeft = workingStart ? Math.ceil((minWorkMs - (Date.now() - workingStart.getTime())) / 60000) : 0;
+          // `now`, not `Date.now()` — the state the minute timer above drives,
+          // which is what makes this button re-enable itself while the helper
+          // is looking at it.
+          const tooEarly = payoutUnlocksAt != null && now < payoutUnlocksAt;
+          const minutesLeft = payoutUnlocksAt != null ? Math.ceil((payoutUnlocksAt - now) / 60000) : 0;
           const disabled = completingJobId === app.job_id || !hasPhotos || tooEarly;
           const label = completingJobId === app.job_id ? "…" : !hasPhotos ? "Upload before & after photos first" : tooEarly ? `Available in ${minutesLeft} min` : "Mark Complete";
           return (
@@ -309,32 +389,64 @@ export function ActiveJobSection({
             </>
           );
         })()}
-        {/* Still needed AFTER the job goes live: "in progress" covers
-            on-the-way and on-site, and a helpr who has tapped "I'm on my way"
-            is precisely the person reaching for navigation. Hidden once they
-            have arrived — they are already there. */}
-        {!job.helper_arrived_at && <DirectionsButton location={job.location} />}
-        <Button size="sm" variant="outline" style={jobActionChipStyle("neutral")} className={JOB_ACTION_FULL_CLASS} onClick={() => navigate(job.customer_id ? `/messages?jobId=${app.job_id}&userId=${job.customer_id}` : "/messages")}><MessageSquare className="w-4 h-4" />Message</Button>
-        {/* The sanctioned exit for a job already underway. This REPLACES the
-            stopgap line that used to sit here ("once a job starts it can only
-            be completed or disputed") — true when it was written, and the
-            defect: ghosting was the only remaining move AND the cheapest one,
-            because it recorded no strike while every honest exit did. */}
-        {aborted ? (
-          <p className="font-serif italic text-center text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            {aborted === "disputed"
-              ? "You’ve told the poster you can’t finish. Our team is reviewing what you’re owed — the payment stays in escrow until then."
-              : "You’ve told the poster you can’t finish. The job is open to other Helprs again."}
-          </p>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setAbortOpen(true)}
-            className="w-full text-center text-ds-11 font-serif italic underline underline-offset-2 text-muted-foreground hover:text-foreground transition-colors min-h-[44px]"
-          >
-            Can’t finish this job? See what happens
-          </button>
-        )}
+        {/* THREE PEERS, ONE ROW — the same shared JobActionRow the scheduled
+            card and the posted card use (owner, 2026-08-30: "directions
+            messages and can't make it all need to be buttons in a row side by
+            side"). Directions was a full-width outline, Message another, and
+            the exit a bare underlined link: three treatments for three peers.
+
+            Directions is still hidden once the helpr has ARRIVED — they are
+            already there — and the exit collapses to a sentence once taken, so
+            the column count is derived from what actually renders rather than
+            assumed; JobActionRow's explicit `columns` exists for exactly this. */}
+        {(() => {
+          const showDirections = !job.helper_arrived_at && !!job.location?.trim();
+          /* The exit is offered only BEFORE work starts, and only until it has
+             been taken — see `workUnderway` above. `columns` is derived from
+             what actually renders, which is why the row does not strand a lone
+             stretched button when the exit drops out: at `working` the helpr
+             has also arrived, so Directions is already gone and the row is a
+             single full-width Message chip rather than one chip floating in a
+             three-column grid. */
+          const showExit = !aborted && !workUnderway;
+          const columns = (1 + (showDirections ? 1 : 0) + (showExit ? 1 : 0)) as 1 | 2 | 3;
+          return (
+            <>
+              <JobActionRow columns={columns}>
+                {showDirections && <DirectionsButton location={job.location} variant="chip" />}
+                <JobActionChip
+                  icon={MessageSquare}
+                  label="Message"
+                  ariaLabel="Message the poster about this job"
+                  tone="message"
+                  onClick={() => navigate(job.customer_id ? `/messages?jobId=${app.job_id}&userId=${job.customer_id}` : "/messages")}
+                />
+                {/* The sanctioned exit for a job already underway. This REPLACES
+                    the stopgap line that used to sit here ("once a job starts it
+                    can only be completed or disputed") — true when it was
+                    written, and the defect: ghosting was the only remaining move
+                    AND the cheapest one, because it recorded no strike while
+                    every honest exit did. */}
+                {showExit && (
+                  <JobActionChip
+                    icon={CalendarX2}
+                    label="Can't Finish"
+                    ariaLabel="Can't finish this job? See what happens if you stop now"
+                    tone="danger"
+                    onClick={() => setAbortOpen(true)}
+                  />
+                )}
+              </JobActionRow>
+              {aborted && (
+                <p className="font-serif italic text-center text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                  {aborted === "disputed"
+                    ? "You’ve told the poster you can’t finish. Our team is reviewing what you’re owed — the payment stays in escrow until then."
+                    : "You’ve told the poster you can’t finish. The job is open to other Helprs again."}
+                </p>
+              )}
+            </>
+          );
+        })()}
         <BrandConfirmDialog
           open={abortOpen}
           onOpenChange={(next) => { if (!aborting) setAbortOpen(next); }}

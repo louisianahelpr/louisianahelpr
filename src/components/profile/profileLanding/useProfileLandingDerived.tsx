@@ -1,6 +1,6 @@
 import {
   Shield, ShieldAlert, Bell, PawPrint, ClipboardList,
-  CalendarDays, Heart, ShieldCheck, Home, Star, Gift, Coins, UserPlus,
+  CalendarDays, Heart, ShieldCheck, Home, Gift, Coins, UserPlus,
   TrendingUp, Crown, FileText, Gavel, HelpCircle,
   AlertTriangle, Type, Clock,
 } from "lucide-react";
@@ -111,7 +111,7 @@ export function useProfileLandingDerived({
   // architecture grouping — every row keeps the exact tab `key` / `href`
   // it had before, so nothing is dropped or re-targeted. Surfaces that
   // don't map cleanly to a bucket are folded into their nearest one
-  // (family/pets/home record → Account; insights/host/community/benefits
+  // (family/pets/home record → Account; insights/host/community
   // → Work; credits/referrals/earnings docs → Money; warnings/support →
   // Legal).
   const menuGroups: { title: string; items: MenuItem[] }[] = [
@@ -157,14 +157,11 @@ export function useProfileLandingDerived({
           tint: SECTION_TINT.work,
           href: "/gift-card",
         },
-        {
-          key: "benefits",
-          label: "Benefits & Perks",
-          icon: <Star className="w-5 h-5" />,
-          desc: "Health coverage, financial tools & supply discounts",
-          tint: SECTION_TINT.work,
-          href: "/benefits",
-        },
+        // "Benefits & Perks" (/benefits) removed 2026-08-31 (owner): the page
+        // it opened had no partner agreements behind it, so the row promised
+        // "health coverage, financial tools & supply discounts" that Helpr
+        // never actually offered. Page and route deleted; the row goes with
+        // them rather than becoming a dead entry point.
       ],
     },
     {
@@ -172,9 +169,14 @@ export function useProfileLandingDerived({
       items: [
         {
           key: "auto-tip",
-          label: "Auto-Tip & Instant Release",
+          // Matches the screen's own title verbatim (owner, 2026-08-31). The
+          // row used to read "Auto-Tip & Instant Release" onto a page titled
+          // "Auto-Tip", so the entry point named one more setting than the
+          // screen it opened admitted to holding. Both are now "After a Job",
+          // and the description carries the two things that happen there.
+          label: "After a Job",
           icon: <Coins className="w-5 h-5" />,
-          desc: "Tips & instant payment release",
+          desc: "Automatic tips & instant payment release",
           tint: SECTION_TINT.money,
           href: "/auto-tip",
         },
@@ -255,30 +257,27 @@ export function useProfileLandingDerived({
           tint: SECTION_TINT.account,
           href: "/home-history",
         },
-        // The standalone "Posted Jobs" / "Completed Jobs" list tabs were
-        // deleted (owner: they duplicated My Posts, which already has richer
-        // status filtering) — these two rows now deep-link straight into My
-        // Posts instead of a Profile tab. "Posted Jobs" showed every status,
-        // so it lands on My Posts' default (unfiltered) view; "Completed
-        // Jobs" specifically meant finished work, which is My Posts' "Done"
-        // bucket (`?filter=done` — see POSTED_STATUS_FILTERS /
-        // postedActivityBucket in activityFilters.ts).
-        {
-          key: "posted_jobs",
-          label: "Posted Jobs",
-          icon: <FileText className="w-5 h-5" />,
-          desc: "Tasks you've posted",
-          tint: SECTION_TINT.account,
-          href: "/my-posts",
-        },
-        {
-          key: "completed_jobs",
-          label: "Completed Jobs",
-          icon: <ClipboardList className="w-5 h-5" />,
-          desc: "Work you've finished or had done",
-          tint: SECTION_TINT.account,
-          href: "/my-posts?filter=done",
-        },
+        // "Posted Jobs" (→ /my-posts) and "Completed Jobs"
+        // (→ /my-posts?filter=done) were the last two rows here until
+        // 2026-08-31, when the owner removed them: "Remove posted and
+        // completed jobs from here."
+        //
+        // They were already only doorways. The standalone Posted/Completed
+        // Profile *tabs* were deleted earlier (they duplicated My Posts,
+        // which has richer status filtering), and these rows were rewired to
+        // deep-link into My Posts — so Account offered two extra spellings of
+        // the Posts tab that the bottom nav and the desktop rail both already
+        // carry, one of them a pre-applied filter chip. Nothing is lost:
+        // posting history lives in My Posts (`/my-posts`, Activity's "posted"
+        // tab) and completion history in its "Done" bucket (`?filter=done` —
+        // POSTED_STATUS_FILTERS / postedActivityBucket in activityFilters.ts).
+        //
+        // No route was orphaned by this: `/my-posts` is a primary nav
+        // destination (MobileNav, DesktopSidebarNav) and the target of a dozen
+        // notification deep links. `/profile?tab=posted_jobs` /
+        // `?tab=completed_jobs` still resolve — `resolveTab` in
+        // src/pages/profile/types.ts maps any unknown tab to `landing`, which
+        // is the standing guard for stale bookmarks and must stay.
       ],
     },
     {

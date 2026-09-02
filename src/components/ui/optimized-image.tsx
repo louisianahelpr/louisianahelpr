@@ -23,7 +23,7 @@ import { buildImageUrl, type BuildImageUrlOptions } from "@/lib/imageUrl";
  * can be slotted in anywhere an existing `<img>` lives without restructuring
  * the surrounding markup.
  */
-export interface OptimizedImageProps
+interface OptimizedImageProps
   extends Omit<
     React.ImgHTMLAttributes<HTMLImageElement>,
     "src" | "loading" | "decoding" | "width" | "height"

@@ -26,7 +26,7 @@ import {
 
 describe("poster service fee (%) — tier-derived, not a flat rate", () => {
   // SOURCE OF TRUTH: the poster's OWN subscription tier, resolved by
-  // posterFeePercentForTier (src/lib/posterFees.ts), mirroring the same 12/10/8/6
+  // posterFeePercentForTier (src/lib/posterFees.ts), mirroring the same 12/11/10/8
   // ladder as the helper commission. The edge authority is
   // supabase/functions/_shared/posterFees.ts and the two are guarded against
   // drift by posterFees.parity.test.ts.
@@ -47,7 +47,6 @@ describe("poster service fee (%) — tier-derived, not a flat rate", () => {
     expect(posterFeePercentForTier("free")).toBe(12);
     expect(posterFeePercentForTier("pro")).toBe(10);
     expect(posterFeePercentForTier("elite")).toBe(8);
-    expect(posterFeePercentForTier("business")).toBe(6);
   });
 
   it("defaults an unknown/missing tier to the free (never-undercharge) rate", () => {
@@ -57,14 +56,16 @@ describe("poster service fee (%) — tier-derived, not a flat rate", () => {
   });
 
   it("uses the SAME ladder as the helper-side tier commission", () => {
-    // Poster service fee and helper platform fee now share one 12/10/8/6 ladder
-    // (a Business account pays 6% on both sides). Assert the source ladder so a
-    // future change to one tier is caught here too.
+    // Poster service fee and helper platform fee share one 12/11/10/8 ladder —
+    // one user, one tier, one percent. Assert the source ladder so a future
+    // change to one tier is caught here too.
     expect(TIER_PERKS.free.platformFeePercent).toBe(12);
+    expect(TIER_PERKS.basic.platformFeePercent).toBe(11);
     expect(TIER_PERKS.pro.platformFeePercent).toBe(10);
     expect(TIER_PERKS.elite.platformFeePercent).toBe(8);
-    expect(TIER_PERKS.business.platformFeePercent).toBe(6);
-    expect(posterFeePercentForTier("business")).toBe(TIER_PERKS.business.platformFeePercent);
+    for (const tier of ["free", "basic", "pro", "elite"] as const) {
+      expect(posterFeePercentForTier(tier)).toBe(TIER_PERKS[tier].platformFeePercent);
+    }
   });
 });
 

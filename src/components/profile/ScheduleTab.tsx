@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MapPin, Clock, ChevronLeft, ChevronRight, CalendarDays, CalendarPlus, Search, Plus, ListFilter } from "lucide-react";
+import { MapPin, Clock, Calendar, ChevronLeft, ChevronRight, CalendarDays, CalendarPlus, Search, Plus, ListFilter } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import {
   Popover,
@@ -14,11 +14,12 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import type { Database } from "@/integrations/supabase/types";
-import { jobStatusColorClasses } from "@/lib/statusColors";
 import { jobStatusLabel } from "@/lib/statusLabels";
+import { StatusBadge } from "@/components/StatusBadge";
 import { categoryColors } from "@/components/activity/activityConstants";
-import { CategoryIcon } from "@/components/job/CategoryIcon";
-import { todayLocalISO } from "@/lib/dateUtils";
+import { JobCardShell } from "@/components/activity/JobCardShell";
+import { todayLocalISO, formatJobDate } from "@/lib/dateUtils";
+import { getCity } from "@/lib/locationUtils";
 import { formatPrice } from "@/lib/format";
 import { helperTakeHomeDollars } from "@/lib/helperEarnings";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
@@ -75,6 +76,50 @@ function scheduleRowTarget(job: Job, isPosted: boolean): { to: string; destinati
   return inProgressBadgeTarget(job);
 }
 
+/**
+ * ONE schedule card, one shape — regardless of which fields the row carries.
+ *
+ * The three cards on this tab used to be three different cards. The category
+ * icon sat inline with the title when the title was short and wrapped onto a
+ * line of its own when it wasn't; the location printed a full street address
+ * on one card and a city on the next; the status was stated twice, in two
+ * vocabularies ("Open" + "Posted", "In progress" + "Assigned"); and money,
+ * time and location came in whatever order the flex row happened to wrap them.
+ *
+ * The fix is to stop hand-rolling the card and adopt the one the activity
+ * surfaces already use:
+ *
+ *  - `JobCardShell` (consumed as-is) paints the liquid-glass surface, the
+ *    category colour rail and the category TAB over the top-left corner. The
+ *    category is therefore no longer part of the title flow at all, which is
+ *    what made cards 1 and 3 different shapes. It also replaces the old
+ *    status-tinted card surface — `jobStatusColorClasses` is a CHIP palette,
+ *    and stretching it over a whole card meant every card had a different
+ *    background for a fact the status chip already states.
+ *  - The header row (title + money chip) is JobCardTitleBar's geometry, which
+ *    is itself JobPrice's `chip` variant verbatim — the component documented
+ *    as "THE single money element". So the same figure is set at the same
+ *    size, weight and colour here as on Browse / My Posts / My Jobs.
+ *  - The meta row matches `JobCardMetaRow`'s visual language exactly (same
+ *    icons, same `text-ds-11 text-muted-foreground`, same gaps, and the same
+ *    location → date → time ORDER as the feed). It is *matched* rather than
+ *    consumed for one concrete reason: that component's location chip is a
+ *    real `<a>`/`<button>` map control, and this card's body is a single
+ *    navigation `<button>` — an interactive element inside a button is
+ *    invalid markup and breaks keyboard/AT focus order. The map lives one tap
+ *    away on the job itself.
+ *
+ * Two facts, stated once each, on their own line under the meta row:
+ *  - STATUS (where the job is in its life) → `StatusBadge`, the canonical
+ *    dot-plus-label pill, once. The bare `jobStatusLabel` text that used to
+ *    sit in the card's top-right corner is gone.
+ *  - ROLE (which side of the job you are on) → a chip worded as a verb
+ *    phrase. It has to exist because this list MIXES jobs you posted with
+ *    jobs you were hired for, and it drives whose money the amount is. It
+ *    used to read "Posted"/"Assigned", which are the vocabulary of job
+ *    STATUS, so the card looked like it was contradicting itself. "You
+ *    posted" / "You're helping" cannot be misread as a lifecycle state.
+ */
 const ScheduleCard = ({
   job,
   isPosted,
@@ -89,88 +134,155 @@ const ScheduleCard = ({
   const navigate = useNavigate();
   const { to, destination } = scheduleRowTarget(job, isPosted);
   const time = formatTime12(job.start_time);
-  // Category color-coding (item 27) — the calendar/schedule list used to
-  // tell jobs apart only by STATUS color, which is nearly identical across
-  // most in-flight jobs (every "open"/"accepted" row reads the same tint
-  // regardless of whether it's a move or a cleaning). The category dot uses
-  // the same distinct per-category palette as Browse/Activity
-  // (`categoryColors`), so a glance at the row tells you what KIND of job
-  // it is, not just what state it's in.
-  const catStyle = categoryColors[job.category ?? "other"] || categoryColors.other;
+  // Whose money is this? On a job you POSTED the budget is what you pay, so
+  // the raw figure is right. On a job you were ASSIGNED it is not your money —
+  // your take-home is the budget minus the platform fee, and that is the
+  // number every other helper-facing surface shows (My Jobs, Earnings &
+  // Payouts, Work Record). The whole job row is passed so `payment_status`
+  // comes with it: these are LIVE jobs, so the escrow-time stamp must not be
+  // trusted over the viewer's tier.
+  const amount = formatPrice(isPosted ? job.budget : helperTakeHomeDollars(job, viewerFeePercent));
+  const amountTitle = isPosted
+    ? "Your budget for this job"
+    : "Your take-home after the platform fee";
 
   return (
-    // The row used to be a single whole-card <button> — clean, but it left
-    // no room for a second action (Add to Calendar) without nesting a
-    // <button> inside a <button>, which is invalid HTML and breaks
-    // keyboard/AT focus order. So the nav control is now scoped to its own
-    // <button> and the calendar export gets its own sibling <button> in a
-    // footer row, both inside a plain (non-interactive) wrapping <div> that
-    // keeps the original card chrome (border/tint/radius).
-    //
-    // Card surface tint mirrors the canonical status palette so an "in
-    // progress" calendar entry reads in the same sienna family as the chip
-    // for that state elsewhere. Border is left to the canvas (`bg-card`)
-    // for terminal states so the calendar doesn't shout with cancelled
-    // jobs.
-    <div className={`rounded-ds-md border border-border/40 overflow-hidden ${jobStatusColorClasses(job.status)}`}>
+    <JobCardShell
+      expandable={false}
+      expanded={false}
+      /* Never called — `expandable` is false, so JobCardShell wires no
+         wrapper onClick and renders no expand button. This card navigates;
+         it does not expand. */
+      onToggle={() => {}}
+      category={job.category}
+    >
       <button
         type="button"
         onClick={() => navigate(to)}
-        aria-label={`${job.title} — ${isPosted ? "posted by you" : "assigned to you"}. Tap to ${destination}.`}
-        className="btn-press w-full text-left block p-3 transition-transform active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
+        /* The accessible name states the same two facts the chips below show,
+           in the same words, plus where the tap goes — the chips are inside
+           this button, so without it a screen reader would read title, money,
+           place, date, time, status and role as one undifferentiated run. */
+        aria-label={`${job.title} — ${isPosted ? "you posted this" : "you're helping"}, ${jobStatusLabel(job.status).toLowerCase()}. Tap to ${destination}.`}
+        /* `pt-6` clears the category tab JobCardShell paints over the top-left
+           corner — the same allowance JobCardTitleBar and Browse's JobCard
+           make, and the reason every card's title now starts at an identical
+           offset from the card's top edge no matter how long it is. */
+        className="btn-press w-full text-left block px-4 pt-6 pb-2 transition-transform active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
       >
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap mb-1">
-              <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-ds-10 font-semibold ${catStyle.badge}`}>
-                <CategoryIcon category={job.category ?? "other"} aria-hidden className="w-2.5 h-2.5 shrink-0" strokeWidth={2.5} />
-              </span>
-              <h4 className="font-semibold text-ds-13">{job.title}</h4>
-              <span className="text-ds-11 px-2 py-0.5 rounded-full bg-card font-medium">{isPosted ? "Posted" : "Assigned"}</span>
-            </div>
-            <div className="flex flex-wrap gap-3 text-ds-11 text-muted-foreground">
-              <span className="flex items-center gap-1"><MapPin className="w-3 h-3 shrink-0" /> {job.location}</span>
-              {/* A currency symbol is typography, not an icon: the "$" belongs
-                  in the same text node as the digits. A DollarSign glyph beside
-                  a string that already carried one rendered as "$ $200". */}
-              {/* Whose money is this? On a job you POSTED the budget is what you
-                  pay, so the raw figure is right. On a job you were ASSIGNED it
-                  is not your money — your take-home is the budget minus the
-                  platform fee, and that is the number every other helper-facing
-                  surface shows (My Jobs, Earnings & Payouts, Work Record). This
-                  row used to print the raw budget either way, so the same job
-                  read $85 here and $74 on the job card, in identical type.
-                  The whole job row is passed so `payment_status` comes with it:
-                  these are LIVE jobs, so the escrow-time stamp must not be
-                  trusted over the viewer's tier. */}
-              <span className="tabular-nums">
-                ${formatPrice(isPosted ? job.budget : helperTakeHomeDollars(job, viewerFeePercent))}
-              </span>
-              <span className="flex items-center gap-1"><Clock className="w-3 h-3 shrink-0" /> {time}</span>
-            </div>
-          </div>
-          <span className="text-ds-11 font-medium shrink-0">{jobStatusLabel(job.status)}</span>
+        <div className="flex items-center justify-between gap-3">
+          <h4
+            className="font-display italic font-bold leading-snug truncate min-w-0 text-headline-card"
+            style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+          >
+            {job.title}
+          </h4>
+          {/* JobPrice `chip` / JobCardTitleBar geometry, value for value —
+              change one, change all three. A currency symbol is typography,
+              not an icon: the "$" is part of the same text node as the digits
+              (a DollarSign glyph beside an already-prefixed string rendered as
+              "$ $200"). */}
+          <span
+            className="inline-flex flex-col items-center justify-center px-2.5 py-1 rounded-ds-md text-center shrink-0 ml-3"
+            title={amountTitle}
+            style={{
+              background: "hsl(var(--bark) / 0.10)",
+              border: "0.5px solid hsl(var(--bark) / 0.28)",
+            }}
+          >
+            <span
+              className="font-display leading-none tabular-nums text-ds-17"
+              style={{ fontWeight: 800, color: "hsl(var(--bark))", letterSpacing: "-0.02em" }}
+            >
+              <span style={{ fontSize: "0.82em", verticalAlign: "0.02em", marginRight: "0.5px" }}>$</span>
+              {amount}
+            </span>
+          </span>
+        </div>
+        {/* Location → date → time, the same order and the same chips the feed
+            and both activity cards use. The DATE is new here and not optional:
+            "Upcoming jobs" is a date-sorted list that previously printed only
+            a clock time, so two jobs a week apart read as though they were the
+            same afternoon. The CITY replaces the raw `location` column, which
+            printed a full street address on some rows and a city on others —
+            `getCity` is the same normaliser JobCardMetaRow runs, so the
+            schedule can never disagree with the cards it links to. The full
+            address still travels in the exported calendar event, where it is
+            the point. */}
+        <div className="mt-1.5 flex items-center gap-x-2 min-[360px]:gap-x-3 sm:gap-x-5 flex-nowrap min-w-0 overflow-hidden text-ds-11 text-muted-foreground">
+          <span className="flex items-center gap-1 min-[360px]:gap-1.5 min-w-0 shrink">
+            <MapPin className="w-3 h-3 shrink-0" />
+            <span className="truncate">{getCity(job.location)}</span>
+          </span>
+          <span className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
+            <Calendar className="w-3 h-3 shrink-0" />
+            {formatJobDate(job.date_needed)}
+          </span>
+          <span className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
+            <Clock className="w-3 h-3 shrink-0" />
+            {time}
+          </span>
+        </div>
+        {/* The two chips that say what this job IS. Both are plain, inert
+            spans, so they live INSIDE the navigation button — which also makes
+            more of the card a tap target for the thing tapping the card does.
+
+            They get a LINE OF THEIR OWN rather than sharing one with the
+            calendar action, and that is a measured decision, not a stylistic
+            one: sharing the line, the row fitted on a card whose status read
+            "Open" and wrapped on one whose status read "In progress", so two
+            cards in the same list came out different heights with the action
+            in a different place — the exact defect this rebuild exists to
+            remove. Structure must not depend on how long a label happens to
+            be. */}
+        <div className="mt-2 flex items-center gap-x-2 min-w-0">
+          <StatusBadge status={job.status} className="shrink-0" />
+          <span
+            className="inline-flex items-center rounded-ds-pill px-2 py-0.5 text-ds-10 font-semibold leading-none whitespace-nowrap shrink-0"
+            style={{
+              background: "hsl(var(--ivory-sand) / 0.65)",
+              border: "1px solid hsl(var(--olivewood) / 0.18)",
+              color: "hsl(var(--olivewood))",
+            }}
+          >
+            {isPosted ? "You posted" : "You're helping"}
+          </span>
         </div>
       </button>
-      {/* Device calendar export — there's no native calendar plugin in this
-          app, so this hands the browser/OS a standards-compliant .ics
-          (native: via the existing Capacitor Share sheet; web: a plain
-          file download) rather than writing straight into the calendar
-          app. Its own row keeps it out of the nav button above. */}
-      <div className="px-3 pb-2.5 pt-0.5 border-t border-border/30">
+      {/* The one secondary action.
+
+          "Add to calendar" used to be a full-width row of its own under a
+          divider — the exact geometry a PRIMARY action gets, given to a
+          secondary one, on every card in the list. It is a compact,
+          right-aligned control now, with no rule above it. It has to be a
+          sibling of the navigation button rather than a child (a button inside
+          a button is invalid markup and breaks keyboard/AT focus order), which
+          is the only reason it still occupies a row at all.
+
+          Rendered unconditionally: `useProfileSchedule` only ever fetches
+          open / accepted / in_progress jobs, so there is no settled row here
+          to hide it from — and a branch that can never render is a branch that
+          can never be verified. Every card gets the same footer. */}
+      <div className="px-4 pb-2.5 pt-1 flex items-center">
         <button
           type="button"
           onClick={(e) => {
             e.stopPropagation();
             void exportJobRowToCalendar(job);
           }}
-          className="btn-press inline-flex items-center gap-1.5 text-ds-11 font-semibold px-2 py-1 -ml-2 rounded-ds-sm active:scale-[0.96] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
+          /* `min-h-[44px]` with `-my-2.5` buys the app's 44px tap floor
+             without adding 20px of height to every card — the overhang lands
+             on the card's own bottom padding, and the only thing above it is
+             the navigation button's own generous hit area, so nothing can
+             steal the tap. */
+          className="btn-press ml-auto inline-flex items-center gap-1.5 min-h-[44px] -my-2.5 px-2 -mr-2 rounded-ds-sm text-ds-11 font-semibold active:scale-[0.96] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
+          style={{ color: "hsl(var(--bark))" }}
         >
-          <CalendarPlus className="w-3 h-3 shrink-0" aria-hidden />
-          Add to Calendar
+          <CalendarPlus className="w-3.5 h-3.5 shrink-0" aria-hidden />
+          Add to calendar
         </button>
       </div>
-    </div>
+    </JobCardShell>
   );
 };
 
@@ -397,7 +509,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
                     title={blockedReason ?? undefined}
                     aria-label={blockedReason ? `${dateStr} — ${blockedReason.toLowerCase()}` : undefined}
                     className={`relative h-8 flex flex-col items-center justify-center rounded-ds-sm text-ds-11 transition-colors ${
-                      isSelected ? "bg-primary text-primary-foreground" :
+                      isSelected ? "btn-grad-primary text-[hsl(var(--parchment))]" :
                       isToday ? "text-primary font-bold ring-2 ring-primary/70 ring-inset bg-primary/8" :
                       isBlocked ? "text-muted-foreground/70 bg-muted/30 hover:bg-muted/50" :
                       "hover:bg-secondary text-foreground"
@@ -561,7 +673,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
                           type="button"
                           onClick={() => setUpcomingFilter(opt.value)}
                           className={`w-full text-left px-2.5 h-9 rounded-md text-ds-13 font-sans font-medium transition-colors ${
-                            active ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-secondary/70"
+                            active ? "btn-grad-primary text-[hsl(var(--parchment))]" : "text-foreground hover:bg-secondary/70"
                           }`}
                         >
                           {opt.label}

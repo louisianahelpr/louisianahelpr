@@ -1,6 +1,13 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHero,
+  DialogBody,
+  DialogFooter,
+  DialogSecondaryAction,
+  DialogPrimaryAction,
+} from "@/components/ui/dialog";
 import { ShieldCheck, Camera, FileCheck2, Loader2, AlertTriangle, Hourglass } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { functionErrorBody, functionErrorMessage } from "@/lib/supabaseResult";
@@ -147,10 +154,10 @@ export function IDVPromptDialog({
   };
 
   const headline = isAdminReview
-    ? "We're checking this by hand"
+    ? "We're Checking This by Hand"
     : isPending
-      ? "Verification in progress"
-      : "Verify your identity";
+      ? "Verification in Progress"
+      : "Verify Your Identity";
 
   const Icon = isAdminReview ? Hourglass : isPending ? Hourglass : ShieldCheck;
 
@@ -179,12 +186,9 @@ export function IDVPromptDialog({
         />
 
         {intro && (
-          <p
-            className="font-serif italic px-1 pt-1 text-ds-13"
-            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-          >
-            {intro}
-          </p>
+          <DialogBody>
+            <p>{intro}</p>
+          </DialogBody>
         )}
 
         {/* Automated check spent — show the reason for transparency, no retry
@@ -301,30 +305,26 @@ export function IDVPromptDialog({
         )}
 
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={loading} className="rounded-ds-md h-11">
+          <DialogSecondaryAction onClick={() => onOpenChange(false)} disabled={loading}>
             {isPending || isAdminReview ? "OK" : "Not Now"}
-          </Button>
+          </DialogSecondaryAction>
           {!isPending && !isAdminReview && feeDue && (
-            <Button
-              variant="primary"
+            <DialogPrimaryAction
               onClick={handlePayFee}
               disabled={loading}
-              className="rounded-ds-md h-11"
             >
               {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-              Pay setup fee
-            </Button>
+              Pay Setup Fee
+            </DialogPrimaryAction>
           )}
           {!isPending && !isAdminReview && !feeDue && (
-            <Button
-              variant="primary"
+            <DialogPrimaryAction
               onClick={handleStart}
               disabled={loading}
-              className="rounded-ds-md h-11"
             >
               {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Icon className="w-4 h-4 mr-2" />}
               Start Verification
-            </Button>
+            </DialogPrimaryAction>
           )}
         </DialogFooter>
       </DialogContent>

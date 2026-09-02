@@ -21,21 +21,26 @@ longer exists) and complements `/audit` (static grading) and `/improve`.
    headless Chromium genuinely cannot verify.
 5. `docs/audit/COVERAGE_LEDGER.md` — the manifest you are here to fill.
 
-### Contradictions already resolved — do not re-litigate
+### Contradictions — FIXED AT SOURCE 2026-08-31, do not re-litigate
 
-The repo's audit docs disagree with each other in five places. These are the
-rulings for this audit:
+These five used to disagree between documents. **Every one has now been
+corrected in the source document itself**, so the rulings below are what those
+documents already say — kept here only so a reader of an older copy knows which
+way it went.
 
-| Conflict | Ruling |
+| Conflict | Ruling (now stated in the source doc) |
 |---|---|
-| SKILL.md §1 "a large UNVERIFIED section is a GOOD outcome" vs §5 "UNVERIFIED is NOT an acceptable final state" | **§5 wins.** This audit ends with a 100%-filled manifest. UNVERIFIED is a blocker to close, not a result to file. |
-| SKILL.md:521 "primary controls are glossy (`btn-grad-primary` / `variant="bark"`)" vs AGENTS.md "no gloss/glow" | **Glossy wins** for green/bark primary buttons and selected controls. AGENTS.md's "no gloss" applies to decorative surfaces, not primary CTAs. A flat primary button is a defect. |
-| `.claude/commands/audit.md` "branch + PR, never commit to `main`" vs CLAUDE.md "commit directly to `main`" | **CLAUDE.md wins.** Commit direct to `main`. |
-| `.claude/commands/audit.md` "apply migrations via MCP `apply_migration`" vs CLAUDE.md "**NEVER**" | **CLAUDE.md wins.** Never `apply_migration`. `execute_sql` for read-only checks is fine. Schema changes go through `npm run migration:new -- <slug>` and auto-deploy on merge. |
-| `docs/TWO_ACCOUNT_E2E_TEST_PROMPT.md` "You cannot type passwords, that restriction is absolute" / `scripts/e2e/README.md` "Claude is not permitted to handle the keys" vs SKILL.md §5 "self-provision gated cells" | **Self-provision wins.** You have standing authorization for testing, including prod Supabase writes against clearly-marked test accounts. Mint your own sessions (§3 below). "I couldn't sign in" is not an acceptable reason for an unfilled cell. |
+| SKILL.md §1 "a large UNVERIFIED section is a GOOD outcome" vs §5 "UNVERIFIED is NOT an acceptable final state" | **One rule, in both sections:** exhaust everything you can self-provision FIRST — nothing self-provisionable may be filed UNVERIFIED — and then report whatever genuinely remains (physical device, real external secret, live third-party event) honestly, as a required section. Stopping early and calling the leftovers unreachable is the violation; admitting a real gap is not. |
+| SKILL.md §3 "primary controls are glossy (`btn-grad-primary` / `variant="bark"`)" vs AGENTS.md "no gloss/glow" | **Gloss is scoped:** required on green/bark **primary** buttons and **selected** controls; forbidden on decorative surfaces (cards, panels, backgrounds, empty-state art, non-selected chips). A flat primary button and a glowing decorative card are both defects. Both docs now say this. |
+| `.claude/commands/audit.md` "branch + PR, never commit to `main`" vs CLAUDE.md "commit directly to `main`" | **CLAUDE.md wins.** Commit direct to `main`. (`audit.md` and `improve.md` both corrected.) |
+| `.claude/commands/audit.md` "apply migrations via MCP `apply_migration`" vs CLAUDE.md "**NEVER**" | **CLAUDE.md wins.** Never `apply_migration`. `execute_sql` for read-only checks and test-account rows is fine. Schema changes go through `npm run migration:new -- <slug>` and auto-deploy on merge via `db-deploy.yml`. (`audit.md` corrected; SKILL.md's self-provision block now says `execute_sql` too.) |
+| `docs/TWO_ACCOUNT_E2E_TEST_PROMPT.md` "You cannot type passwords, that restriction is absolute" vs SKILL.md §5 "self-provision gated cells" | **Both are satisfied, and the conflict was false:** no password is ever typed *because* sessions are minted through Supabase admin `generate_link`. Use `scripts/test-signin-link.mjs` or the four-step recipe in §3. "I couldn't sign in" is not an acceptable reason for an unfilled cell. |
 
-Also stale, do not trust: `docs/audit/WALK_EVERY_SCREEN_PROMPT.md:39-40` calls
-`node scripts/test-signin-link.mjs` — **that file does not exist.** Use §3.
+Also fixed: `docs/audit/WALK_EVERY_SCREEN_PROMPT.md` calls
+`node scripts/test-signin-link.mjs poster|helper` — **that script now exists**
+(it did not, which stalled every session that followed that prompt). It prints
+a magic link, or `--session --json` for the localStorage blob, and refuses any
+address outside the seeded test set.
 
 ### Commit trailer
 
@@ -52,22 +57,22 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
 **Mission:** operate every surface of this app until the coverage manifest is
 100% filled, fix everything you find, and leave durable artifacts proving it.
 
-### The real surface count — ~178, not 48
+### The real surface count — ~177, not 47
 
 Previous audits undercounted badly by conflating "routes" with "screens." The
 honest tally, each figure derived from source, not asserted:
 
 | Group | Count | Derivation |
 |---|---:|---|
-| Rendering routes | 34 | `grep -oE 'path="[^"]+"' src/App.tsx` = 48 total, minus 14 redirects |
+| Rendering routes | 33 | `grep -oE 'path="[^"]+"' src/App.tsx` = 47 total, minus 14 redirects |
 | Redirect-only routes | 14 | `grep -c "Navigate to=" src/App.tsx` |
 | Profile tabs | 17 | `Tab` union, `src/pages/profile/types.ts:5` |
 | Admin views | 24 | `type View`, `src/pages/Admin.tsx:45` |
 | Activity tabs | 2 | `activityConstants.ts` (× 4 status filters each = 8 more states) |
-| **Navigable subtotal** | **91** | |
+| **Navigable subtotal** | **90** | |
 | Overlay roots (dialog / sheet / drawer / popover / dropdown / hovercard) | **78** | `grep -roE "<(Dialog\|AlertDialog\|Sheet\|Drawer\|Popover\|DropdownMenu\|HoverCard)\s+open=" src --exclude-dir=ui` |
 | Native OS prompt classes | 9 | §6 B10 |
-| **Total auditable surfaces** | **~178** | |
+| **Total auditable surfaces** | **~177** | |
 | Edge functions (separate axis) | 63 | `ls supabase/functions \| grep -v _shared` |
 | Transactional + marketing emails (separate axis) | see §6.5 | `supabase/functions/*email*`, `*digest*`, `*report*`, `*nag*`, `*blast*` |
 
@@ -78,7 +83,7 @@ never been opened is exactly the substitution this ledger exists to prevent.
 
 **You are done when — and only when — all of the following are true:**
 
-- Every one of the **91 navigable surfaces** in §5 is `WALKED` in
+- Every one of the **90 navigable surfaces** in §5 is `WALKED` in
   `docs/audit/COVERAGE_LEDGER.md`, with real evidence.
 - Every one of the **78 overlay roots** in §6 has been *opened and operated*,
   and each has a ledger row.
@@ -174,6 +179,48 @@ implemented in `scripts/audit-capture.mjs:80-119`; copy it:
    via `context.addInitScript` (Playwright) or before first paint.
 
 Project ref: `fncmgoasalhdgfwzhsqa`.
+
+Or just shell out — `scripts/test-signin-link.mjs` wraps exactly this and
+refuses any address outside the seeded test set:
+
+```bash
+node scripts/test-signin-link.mjs poster              # magic-link URL
+node scripts/test-signin-link.mjs helper --session --json   # localStorage blob
+```
+
+### MANDATORY — dismiss the onboarding tour in the SAME init script
+
+`OnboardingTour` (`src/components/OnboardingTour.tsx`, mounted by
+`src/pages/Dashboard.tsx`) opens on `/dashboard` — where every signed-in pass
+starts — 1.5s after load, in **every fresh browser context**: new Playwright
+context, incognito window, cleared simulator, and *each of the three origins*
+in the two-origin trick below. It is a Radix dialog that **blurs the page
+behind it and intercepts clicks**. A harness that does not dismiss it
+screenshots a blurred dashboard, measures the tour's layout, feeds axe the
+tour's DOM, and files all of that as findings about the screen underneath. The
+1.5s delay also makes it intermittent — a ~1500ms settle straddles the
+boundary, so the same screen comes out clean on one run and blurred on the
+next.
+
+It is gated purely on `localStorage`, so seed the completed state **before
+first paint**, right next to the session:
+
+```js
+await context.addInitScript(() => {
+  try {
+    localStorage.setItem(
+      "helpr_onboarding",
+      JSON.stringify({ completed: true, currentStep: 0, completedSteps: [] }),
+    );
+  } catch {}
+});
+```
+
+Key `helpr_onboarding`, shape `{completed, currentStep, completedSteps}`;
+`completed: true` is what suppresses it. If a screenshot looks softly blurred
+or a click lands on nothing, check this before filing anything. The tour is
+still in scope — audit it once, deliberately, in a context where the key is
+*not* seeded.
 
 ### The personas — every flow is walked as each
 
@@ -280,19 +327,19 @@ runtime via `Capacitor.isNativePlatform()`:
 
 ---
 
-## 5. Manifest A — the 91 navigable surfaces
-### (34 routes + 14 redirects + 17 profile tabs + 24 admin views + 2 activity tabs)
+## 5. Manifest A — the 90 navigable surfaces
+### (33 routes + 14 redirects + 17 profile tabs + 24 admin views + 2 activity tabs)
 
 Source of truth is the `<Routes>` table in `src/App.tsx` (lines ~153-323); there
 are no nested route files. **Re-derive before starting.**
 
-### A1 — Rendering routes (34)
+### A1 — Rendering routes (33)
 
 | # | Route | Component | Auth | Guard | Notes |
 |---|---|---|---|---|---|
 | 1 | `/` | `Index` | public | `RouteErrorBoundary` → `MarketingRedirect` → `PageTransition` | native branch renders `NativeRedirect` |
 | 2 | `/login` | `Login` | public | own signed-in bounce | social auth sheet on native |
-| 3 | `/signup` | `Signup` | public | | multi-step; business signup path |
+| 3 | `/signup` | `Signup` | public | | multi-step (2026-08-31: "business signup path" removed from this row — the whole business surface is gone; `src/pages/ForBusiness.tsx`, `src/components/business/` and `src/pages/business/` do not exist and `find src -iname "*usiness*"` returns nothing) |
 | 4 | `/signup-pending` | `SignupPending` | public | | |
 | 5 | `/complete-profile` | `CompleteProfile` | signed-in | `ProtectedRoute allowUnapproved` | checklist gate |
 | 6 | `/account-pending` | `AccountPending` | public | | force via `approval_status` |
@@ -321,9 +368,8 @@ are no nested route files. **Re-derive before starting.**
 | 29 | `/work-record` | `WorkRecord` | approved | `ProtectedRoute` | |
 | 30 | `/help` | `HelpCenter` | public | | |
 | 31 | `/wrapped` | `HelprWrapped` | approved | `ProtectedRoute` | |
-| 32 | `/benefits` | `BenefitsPage` | approved | `ProtectedRoute` | |
-| 33 | `/pets` | `PetProfiles` | approved | `ProtectedRoute` | |
-| 34 | `*` | `NotFound` | public | `RouteErrorBoundary` only (no `PageTransition`) | drops the `app-shell` lock via `setNotFoundPathname()` |
+| 32 | `/pets` | `PetProfiles` | approved | `ProtectedRoute` | |
+| 33 | `*` | `NotFound` | public | `RouteErrorBoundary` only (no `PageTransition`) | drops the `app-shell` lock via `setNotFoundPathname()` |
 
 ### A2 — Redirect-only routes (14)
 
@@ -415,11 +461,36 @@ normalizations — they 404 in a web browser. Confirm that is intended.
 
 ### Known 404s and sitemap drift — verify and fix
 
-- **`public/sitemap.xml` lists `/subscription`, which is not a registered
-  route** — it renders NotFound. The real screen is `/profile?tab=subscription`.
-  `src/lib/sitemap.test.ts` does not assert that every `<loc>` resolves, which
-  is how it slipped through. **Fix both the sitemap and the test.**
-- `TODO.md` F-SEO-01 says ~20 public pages are missing from the sitemap.
+**The sitemap is now GENERATED — stop hand-editing it.**
+
+```bash
+node scripts/generate-sitemap.mjs            # rewrite public/sitemap.xml
+node scripts/generate-sitemap.mjs --check    # exit 1 on drift (CI)
+node scripts/generate-sitemap.mjs --stdout   # print, write nothing
+```
+
+It derives the URL list from the `<Route>` table in `src/App.tsx` — every
+public, non-redirect, non-parameterised route that is not behind
+`ProtectedRoute`/`AdminRoute`, minus a documented NOINDEX list (auth entry
+points, account-state screens, one-time-token pages). Add a public route to
+`App.tsx` and it is picked up automatically. There is no npm alias; run the
+command directly. `.github/workflows/sitemap-drift.yml` runs `--check` on any
+PR that touches `src/App.tsx` or the sitemap.
+
+- ~~`public/sitemap.xml` lists `/subscription`~~ — **already fixed**: the file
+  no longer lists it (verified 2026-08-31; the real screen is
+  `/profile?tab=subscription`). `src/lib/sitemap.test.ts` now also asserts
+  every `<loc>` is a path `App.tsx` still registers, so that direction of drift
+  is gated. The generator closes the *other* direction — a new public route
+  nobody added.
+- `TODO.md` F-SEO-01 said ~20 public pages were missing from the sitemap.
+  **That premise is stale**: the marketing pages it counted (`/how-it-works`,
+  `/community`, `/parishes`, `/impact`, …) were deleted in `2352466e`. The
+  generator enumerates the real number — the app has **6** indexable public
+  routes (`/`, `/browse`, `/jobs`, `/help`, `/support`, `/legal`), all six
+  already listed. `/login` and `/signup` are public but deliberately NOINDEXed
+  as auth entry points (one-line change in the script if that judgement
+  changes).
 - Retired paths that now genuinely 404 (deleted in `2352466e`):
   `/how-it-works`, `/become-a-partner`, `/enterprise`, `/community`,
   `/parishes`, `/parish/:slug`, `/impact`, `/local-guide`, `/browse-jobs`,
@@ -708,10 +779,16 @@ not raw viewport center). Screenshot both.
 - Canonical nouns: **job** (not task), **Helpr / Helprs**, **poster**,
   **Membership**, **Gift Card**. There is **no bidding and no quotes**. The app
   is **never role-based** — every account can both post and work.
-- ⚠️ `.text-display-eyebrow` is `display: none` (`src/index.css:1848`). The
-  skill still mandates the eyebrow stack and calls a missing eyebrow a defect —
-  **that guidance is stale.** Either restore the class or stop treating a
-  missing eyebrow as a finding; decide and fix one way.
+- ✅ **Eyebrows are retired — settled 2026-08-31, do not file a missing one.**
+  `.text-display-eyebrow` is `display: none` (`src/index.css:1959` — the cite
+  here used to say `:1848`, which has drifted), under the decision recorded at
+  that rule: 2026-07-25, "all eyebrows gone". The `SectionEyebrow` component is
+  gone from `src/` entirely (`grep -rn "SectionEyebrow" src/` → zero hits).
+  This entry previously said "decide and fix one way"; the decision is the
+  removal. A block still needs a *name* — `AppliedJobCard.tsx` keeps its
+  `<h4 …className="sr-only">Job description</h4>` inside a
+  `<section aria-labelledby>` — but nothing is painted, so "no visible eyebrow"
+  is not a finding at any tier.
 - `statusLabels.ts` casing is **test-enforced** — changing a label means
   updating `statusLabels.test.ts` in the same commit.
 
@@ -958,7 +1035,10 @@ prompt already names:
 - `auditRoutes.ts` lists two dead profile tabs and omits `accessibility`.
 - `sitemap.xml` lists a non-existent route; its test doesn't check resolution.
 - `COVERAGE_LEDGER.md` tracks 134 units and omits the entire 78-overlay axis.
-- `.text-display-eyebrow` is `display:none` while the standard still mandates it.
+- ~~`.text-display-eyebrow` is `display:none` while the standard still mandates it.~~
+  RESOLVED 2026-08-31 — eyebrows are retired app-wide and `SectionEyebrow` is
+  deleted; the standard should not treat a missing one as a defect. See the
+  Copy/nouns section above.
 - SKILL.md §1 and §5 contradict each other on UNVERIFIED.
 - SKILL.md and AGENTS.md contradict each other on gloss.
 - `.claude/commands/audit.md` contradicts CLAUDE.md on branching and migrations.

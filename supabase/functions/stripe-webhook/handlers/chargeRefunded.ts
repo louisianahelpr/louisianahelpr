@@ -106,7 +106,9 @@ export async function handleChargeRefunded(
         title: "Refund processed",
         message: `Your payment for "${refundedJob.title}" has been refunded.`,
         type: "payment",
-        link: "/my-posts",
+        // The refunded job, not the My Posts default bucket — a refunded job
+        // is `cancelled`/`done`, never "Needs you".
+        link: `/my-posts?job=${refundedJob.id}`,
       });
       if (notifyErr) logStep("WARN: refund notification insert failed", { error: notifyErr.message });
 

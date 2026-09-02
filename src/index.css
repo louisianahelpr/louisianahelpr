@@ -487,7 +487,9 @@
   --accent-ink:   19 70% 66%;   /* accent-as-text on a raised dark surface —
                                     lifted from 52% so 9.6px labels clear
                                     4.5:1 (52% measured ~3.3:1) */
-  --stormy-sky:   198 14% 60%;  /* muted-foreground — lightened for dark bg */
+  --stormy-sky:   198 14% 65%;  /* muted-foreground — lightened for dark bg; 60% gave 4.07:1
+                                    against --sand (220 10% 24%), axe WCAG2aa 4.5:1 min at
+                                    10-11px (admin badge/code text); 65% → ~4.70:1 */
   --gold-warm:    38 55% 56%;   /* antique gold — slightly brighter */
   --gold-ink:     38 55% 62%;   /* text gold on the dark ground — lighter,
                                    not darker, because the background inverts. */
@@ -636,6 +638,15 @@
   --surface-band: 20 12% 13%;
 }
 
+/* ── Dark-mode text-destructive brightness lift ──────────────────────
+   --destructive (6 60% 51%) was calibrated for white text ON a solid red fill
+   (4.64:1). At L=51% it reads 3.52–3.79:1 as text on near-black page canvas,
+   failing WCAG 2aa at 11–14px. Raising --destructive itself would break the
+   button-fill case. Override only the TEXT role in dark mode. */
+[data-theme="dark"] .text-destructive {
+  color: hsl(6 60% 62%);   /* ~5.0:1 on --parchment (220 14% 9%) */
+}
+
 /* ── iOS-native color divergence ─────────────────────────────────────
    The native iOS WebView renders in Display-P3 wide gamut, so the same
    token reads slightly different on an iPhone than in desktop Chrome
@@ -694,9 +705,6 @@
   background-color: hsl(20 12% 13% / 0.92);
 }
 
-[data-theme="dark"] .glass-island {
-  background-color: hsl(var(--parchment) / 0.88);
-}
 
 [data-theme="dark"] .liquid-glass {
   background-color: var(--glass-bg-soft);
@@ -708,10 +716,6 @@
   border-color: hsla(0, 0%, 100%, 0.07);
 }
 
-[data-theme="dark"] .section-linen {
-  background-color: hsla(0, 0%, 8%, 0.45);
-  border-color: hsla(0, 0%, 100%, 0.06);
-}
 
 [data-theme="dark"] :where(.bg-card) {
   background-color: hsl(var(--card));
@@ -1155,13 +1159,22 @@ html.web-desktop {
 }
 
 /* Apple MapKit JS (the browse map). The pin/cluster annotation elements are
-   our own DOM, so they only need to stop the map's own cursor showing through;
-   the callout body is a React-rendered card that supplies its own spacing, so
-   all MapKit's bubble has to do is not clip it or let it outgrow the pane on a
-   375px phone. */
+   our own DOM. They are `role="button"` + `tabindex="0"` (see mapMarkers.ts —
+   MapKit hands us a bare div and adds no semantics of its own), so they need a
+   real focus ring: without one they were focusable-but-invisible, which is
+   worse than not focusable at all. The pin popup used to be a MapKit callout
+   with a `.browse-map-callout` body; it is a bottom sheet rendered by BrowseMap
+   itself now, styled inline with the app's tokens, so that rule set is gone. */
 .browse-map-pin,
 .browse-map-cluster {
   cursor: pointer;
+}
+
+.browse-map-pin:focus-visible,
+.browse-map-cluster:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 3px;
+  border-radius: 4px;
 }
 
 /* Desktop split-view hover sync (BrowseMap's hoveredJobId effect): scales
@@ -1170,39 +1183,6 @@ html.web-desktop {
 .browse-map-pin-hovered {
   transform: scale(1.25);
   z-index: 30;
-}
-
-.browse-map-callout {
-  /* No padding of our own (owner, 2026-08-30: the bubble read bigger than
-     the card it holds — "make it the same size as the job card"). MapKit's
-     own `.mk-bubble` chrome already pads its content; stacking our 10px/12px
-     on top of that made the bubble's outer edge visibly wider than the
-     JobCard inside it. JobCard supplies its own internal spacing, so this
-     wrapper needs none. */
-  box-sizing: border-box;
-  max-width: calc(100vw - 32px);
-  /* Paint the card's own surface rather than trusting MapKit's native
-     `.mk-bubble` chrome. That chrome is the browser's bare default popover
-     styling, not our design system — it reads as a different app in a
-     screenshot (a floating X with the page's own gradient bleeding through
-     the corners, no card behind it). The `bare` JobCard inside carries no
-     paint of its own, by design, so SOMETHING has to; this wrapper is that
-     something, reusing the same solid-fill + hairline + shadow recipe as
-     `.liquid-glass` but at the callout's own radius (rounded-lg, matching
-     the JobCard `bare` clip) instead of that class's 24px. */
-  background-color: hsl(0 0% 100%);
-  border: 1px solid hsl(var(--border));
-  border-radius: 0.5rem;
-  box-shadow:
-    inset 0 1px 0 0 hsla(0, 0%, 100%, 0.9),
-    0 1px 3px hsl(var(--olivewood) / 0.1),
-    0 14px 28px -8px hsl(var(--olivewood) / 0.16),
-    0 32px 64px -16px hsl(var(--olivewood) / 0.2);
-}
-
-[data-theme="dark"] .browse-map-callout {
-  background-color: var(--glass-bg-soft);
-  border-color: var(--glass-border);
 }
 
 /* Zoom buttons: centre the glyph in the button it is actually in.
@@ -1316,14 +1296,6 @@ html.web-desktop {
   -webkit-backdrop-filter: blur(10px);
 }
 
-.card-interactive {
-  transition: box-shadow 0.2s var(--ease-out), transform 0.2s var(--ease-out);
-}
-
-.card-interactive:hover {
-  box-shadow: var(--shadow-card-hover);
-  transform: translateY(-2px);
-}
 
 /* Link hover — the ONE canonical text-link affordance, used app-wide so every
    text link hovers/focuses identically regardless of surface or color. Shares
@@ -1741,21 +1713,10 @@ button,
 /* Living seal — Louisiana Verified badge slowly rotates one full turn per
    minute. Slow enough to feel "alive" without distracting. Honors the user's
    reduced-motion preference. */
-@keyframes seal-rotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
 
-.seal-spin {
-  animation: seal-rotate 60s linear infinite;
-  transform-origin: center;
-}
 
 @media (prefers-reduced-motion: reduce) {
-  .seal-spin {
-    animation: none;
-    transform: rotate(-3deg);
-  }
+  
 
   /* Collapsible/accordion expand-collapse (Legal policy sections, etc.)
      snaps open/closed instead of animating its height for users who've
@@ -1805,50 +1766,6 @@ button,
 }
 
 
-/* GALLERY FRAME — substantial rounded container for the hero photograph in
-   the new 2-column gallery layout. Photo reads as a piece of art rather
-   than wallpaper. Soft 1 px copper hairline (matching bento tiles) + multi-
-   stop drop shadow that suggests it's hung on the wall. */
-.gallery-frame {
-  position: relative;
-  border-radius: 1.5rem;
-  background: hsl(var(--card));
-  border: 1px solid hsl(var(--copper) / 0.32);
-  box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.45),
-    0 1px 2px rgba(20, 20, 18, 0.05),
-    0 12px 28px -6px rgba(20, 20, 18, 0.1),
-    0 32px 64px -16px rgba(20, 20, 18, 0.14);
-  overflow: hidden;
-}
-
-/* GLASS ISLAND — heavy frosted plate that sits OVER the hero photograph.
-   Reads as a window into the scene rather than a card on a page. Generous
-   blur, low-opacity linen tint, restrained inner highlight, deep soft shadow
-   (shadow is heavier here because it's floating over a photograph, not over
-   warm linen, and needs to anchor visually). */
-.glass-island {
-  position: relative;
-  border-radius: 2rem;
-  /* Bumped surface opacity to 88 % — combined with the lighter blur below,
-     the island reads as a frosted plate but stops washing out the photo
-     behind it. Architectural scrim on the hero now does the legibility
-     job that heavy backdrop-blur was doing previously. */
-  background-color: hsl(var(--background) / 0.88);
-  backdrop-filter: blur(16px) saturate(150%);
-  -webkit-backdrop-filter: blur(16px) saturate(150%);
-  /* Stack: 1px white inner-stroke (full perimeter, restrained at 20%) +
-     subtle inner top highlight + bottom shadow line + deep multi-stop drop
-     shadow that anchors the island to the photograph. */
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.5),
-    inset 0 -1px 0 0 rgba(20, 20, 18, 0.05),
-    0 1px 2px rgba(20, 20, 18, 0.08),
-    0 24px 48px -12px rgba(20, 20, 18, 0.28),
-    0 56px 112px -24px rgba(20, 20, 18, 0.22);
-}
-
 /* Shared tactile press primitive — referenced by ~50 tappable elements but
    never defined, so none of them reacted to touch until now. */
 .btn-press {
@@ -1869,68 +1786,6 @@ button,
   }
 }
 
-/* Primary button — Jasper Green fill in editorial serif (Fraunces 700).
-   1px inner top-edge highlight, soft Jasper-tinted shadow. Hover deepens
-   to Forest tone and a subtle white "glint" sweeps across the surface. */
-.btn-premium {
-  position: relative;
-  overflow: hidden;
-  background: hsl(var(--jasper-green));
-  color: #ffffff;
-  border: 1px solid hsl(var(--jasper-green));
-  font-family: Fraunces, Georgia, Cambria, serif;
-  font-weight: 700;
-  letter-spacing: -0.005em;
-  box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.14),
-    0 1px 2px rgba(20, 20, 18, 0.06),
-    0 8px 24px -8px hsl(var(--jasper-green) / 0.45);
-  transition: transform 0.25s var(--ease-out),
-              box-shadow 0.25s var(--ease-out),
-              background-color 0.4s var(--ease-out),
-              text-shadow 0.4s var(--ease-out);
-}
-
-.btn-premium:hover {
-  background: hsl(var(--jasper-deep));
-  box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.18),
-    0 0 0 1px hsl(var(--jasper-green) / 0.18),
-    0 1px 2px rgba(20, 20, 18, 0.08),
-    0 12px 32px -8px hsl(var(--jasper-deep) / 0.55);
-  transform: translateY(-1px);
-}
-
-.btn-premium:active {
-  transform: translateY(0);
-  box-shadow:
-    inset 0 1px 2px rgba(20, 20, 18, 0.08),
-    0 1px 2px rgba(20, 20, 18, 0.06);
-}
-
-/* Outline counterpart — same restraint, paper surface. */
-.btn-premium-outline {
-  position: relative;
-  background: hsl(var(--card));
-  color: hsl(var(--foreground));
-  border: 1px solid hsl(var(--border));
-  box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.4),
-    0 1px 2px rgba(20, 20, 18, 0.04),
-    0 8px 16px -8px rgba(20, 20, 18, 0.08);
-  transition: transform 0.2s var(--ease-out),
-              box-shadow 0.2s var(--ease-out),
-              border-color 0.2s var(--ease-out);
-}
-
-.btn-premium-outline:hover {
-  border-color: hsl(var(--primary));
-  box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.5),
-    0 1px 2px rgba(20, 20, 18, 0.06),
-    0 12px 24px -8px rgba(20, 20, 18, 0.12);
-  transform: translateY(-1px);
-}
 
 /*
  * Primary-CTA gradient — the `default`/`hero` button fill.
@@ -1960,22 +1815,6 @@ button,
   );
 }
 
-/* Oversized fluid display headline — used for the marquee marketing headers.
-   Editorial serif (Fraunces) on near-black `--ink-deep`. Body text stays
-   warm-charcoal `--foreground`; only headlines reach for the deep ink. */
-.text-display-xl {
-  /* Section H2 — Bodoni Moda 700 italic. Lighter weight + italic style
-     keeps section headings distinct from the hero H1 (which uses inline
-     Bodoni 900 upright) so the page has clear typographic hierarchy.
-     Italic full-text reads as editorial print rather than display tech. */
-  font-family: "Bodoni Moda", Georgia, serif;
-  font-size: clamp(2.25rem, 4vw + 0.75rem, 3.5rem);
-  font-weight: 700;
-  font-style: italic;
-  line-height: 1.05;
-  letter-spacing: -0.025em;
-  color: hsl(var(--ink-deep));
-}
 
 /* "Blueprint label" — tiny EB Garamond small-caps in Burnt Sienna for step
    numbers and category eyebrows. Reads like an architect's drawing label or
@@ -2008,87 +1847,6 @@ button,
 
 /* ----- Texture surfaces (asset-free) ----- */
 
-/* Warm "stone" texture for category bento tiles — radial warmth gradient
-   layered with subtle SVG turbulence noise via background-blend-mode. No
-   asset dependency, no overlay element. Reads as cut linen/stone, not flat. */
-.bg-stone-texture {
-  background-color: hsl(var(--card));
-  background-image:
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.27 0 0 0 0 0.26 0 0 0 0 0.24 0 0 0 0.06 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>"),
-    radial-gradient(ellipse 120% 80% at 30% 0%, hsl(var(--secondary) / 0.55) 0%, transparent 60%),
-    radial-gradient(ellipse 90% 70% at 85% 100%, hsl(var(--secondary) / 0.35) 0%, transparent 65%);
-  background-blend-mode: multiply, normal, normal;
-  background-size: 160px 160px, auto, auto;
-}
-
-/* Linen surface for the "How it works" section — now treated as a frosted
-   glass layer rather than a tinted block. Subtle noise still adds grain,
-   but the warm tan tint is dropped almost entirely so the panel reads as
-   a soft pane of glass over the parchment + mesh-gradient. */
-.section-linen {
-  background-color: hsla(0, 0%, 100%, 0.28);
-  backdrop-filter: blur(24px) saturate(150%);
-  -webkit-backdrop-filter: blur(24px) saturate(150%);
-  border: 1px solid hsla(0, 0%, 100%, 0.5);
-  background-image:
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.27 0 0 0 0 0.26 0 0 0 0 0.24 0 0 0 0.025 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
-  background-size: 220px 220px;
-  box-shadow:
-    inset 0 1px 0 0 hsla(0, 0%, 100%, 0.65),
-    inset 0 -1px 0 0 hsl(var(--olivewood) / 0.04),
-    0 1px 2px rgba(0, 0, 0, 0.02),
-    0 12px 36px -8px rgba(0, 0, 0, 0.04);
-}
-
-/* Ghost CTA — frosted-blur secondary button. Reads as a separate material
-   without competing with the sage-filled primary. */
-.btn-ghost-blur {
-  position: relative;
-  background-color: hsl(var(--background) / 0.4);
-  color: hsl(var(--foreground));
-  border: 1px solid hsl(var(--border) / 0.55);
-  backdrop-filter: blur(16px) saturate(140%);
-  -webkit-backdrop-filter: blur(16px) saturate(140%);
-  box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.35),
-    0 1px 2px rgba(20, 20, 18, 0.04),
-    0 8px 16px -8px rgba(20, 20, 18, 0.08);
-  transition: transform 0.2s var(--ease-out),
-              background-color 0.2s var(--ease-out),
-              border-color 0.2s var(--ease-out),
-              box-shadow 0.2s var(--ease-out);
-}
-
-.btn-ghost-blur:hover {
-  background-color: hsl(var(--background) / 0.6);
-  border-color: hsl(var(--border));
-  transform: translateY(-1px);
-  box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.45),
-    0 1px 2px rgba(20, 20, 18, 0.06),
-    0 12px 24px -8px rgba(20, 20, 18, 0.12);
-}
-
-.btn-ghost-blur:active {
-  transform: translateY(0);
-}
-
-/* Estate-pressed effect — applied to the Navbar logo (icon + wordmark) so
-   the mark reads as debossed/embossed into the header rather than printed
-   on top. The 1px white drop-shadow below catches an imagined overhead
-   light source, the matching 1px dark inset on top gives the recess depth.
-   Restraint-compatible: it's one effect, not stacked. */
-.estate-pressed-icon {
-  filter:
-    drop-shadow(0 1px 0 rgba(255, 255, 255, 0.55))
-    drop-shadow(0 -0.5px 0 rgba(20, 20, 18, 0.18));
-}
-
-.estate-pressed-text {
-  text-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.45),
-    0 -0.5px 0 rgba(20, 20, 18, 0.12);
-}
 
 /* Nuclear full-bleed — escapes any parent padding by anchoring the element
    to the viewport edges via negative -50vw margins. Use sparingly (hero only).
@@ -2103,25 +1861,6 @@ button,
   right: 50%;
 }
 
-/* Image-rendering hints for the hero. Tells the browser to use the
-   highest-quality scaler available — both the modern `high-quality` value
-   and the older WebKit-prefixed `-webkit-optimize-contrast` so Safari and
-   Chrome both pick the best path. Important now that the source asset is
-   1376w native and gets upscaled on retina laptops. */
-.img-crisp {
-  image-rendering: high-quality;
-  image-rendering: -webkit-optimize-contrast;
-}
-
-/* Editorial serif italic for subheadlines that sit under the Fraunces 900
-   display headlines. The contrast (900 upright vs 500 italic) gives the
-   page a magazine-spread feel. */
-.subhead-serif {
-  font-family: "EB Garamond", Georgia, Cambria, serif;
-  font-style: italic;
-  font-weight: 500;
-  letter-spacing: 0;
-}
 
 /* Beth Ellen handwritten signature — restrained, used for micro-accents
    ("personal & authentic" tone). Never use as body copy. */
@@ -2132,21 +1871,6 @@ button,
   letter-spacing: 0;
 }
 
-/* Editorial pull quote — large EB Garamond italic, centered, no card chrome.
-   Print-era typographic flourish. Used between sections to break the page
-   rhythm with a human voice. text-wrap: balance keeps line ends elegant. */
-.editorial-quote {
-  font-family: "EB Garamond", Georgia, Cambria, serif;
-  font-style: italic;
-  font-weight: 400;
-  /* Reduced ~30 % from the previous 1.875–3rem. Compact pull quote that
-     fits cleanly beside the FAQ in the side-by-side Trust Center layout. */
-  font-size: clamp(1.3rem, 2.1vw + 0.5rem, 2.1rem);
-  line-height: 1.2;
-  letter-spacing: -0.005em;
-  color: hsl(var(--olivewood));
-  text-wrap: balance;
-}
 
 /* Liquid glass surface — frosted parchment over the page bg. Heavy backdrop
    blur + saturation for the Apple "liquid glass" depth. White inner stroke
@@ -2188,18 +1912,25 @@ button,
    linen panel — keeps the surface alive even when the list is short
    and the panel is mostly empty. Layered on top of the
    `.liquid-glass` background, so call sites just add this class. */
-.glass-paper-mesh {
-  background-image:
-    /* Tiny pinpoint dots — 1px stipple, barely visible up close, gives
-       the surface a calm "pressed linen" texture when glanced at. */
-    radial-gradient(circle at 1px 1px, hsl(var(--olivewood) / 0.045) 0.6px, transparent 1.2px),
-    /* Verdigris-tinted radial in the upper-left corner. */
-    radial-gradient(80% 60% at 12% 8%, hsla(165, 18%, 92%, 0.55) 0%, transparent 60%),
-    /* Warm sand radial in the lower-right corner. */
-    radial-gradient(60% 50% at 92% 95%, hsla(38, 35%, 88%, 0.4) 0%, transparent 65%),
-    /* Soft white center bloom. */
-    radial-gradient(40% 35% at 50% 50%, hsla(0, 0%, 100%, 0.18) 0%, transparent 70%);
-  background-size: 14px 14px, 100% 100%, 100% 100%, 100% 100%;
+
+
+/* ONE BOX, NOT TWO — the merged live-tracker panel.
+   Owner, 2026-08-30: "bottom box needs to be merged in the live tracker."
+   The helper's My Jobs card stacked two `.liquid-glass` panels — the step rail
+   in one, the day-of "Still on for this one?" confirmation in another right
+   below it — for what is a single step of a single timeline.
+   `HelperTrackerPanel` now owns the outer glass and nests `JobTracking` inside
+   it; this strips the nested panel's own chrome so the two read as one surface.
+   Scoped to a DIRECT child so nothing deeper in the tracker (the map, the
+   step tooltips) is touched. */
+.tracker-merged > .liquid-glass {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  padding: 0;
 }
 
 /* Frosted sticky-header surface — the translucent app-bar treatment
@@ -2333,30 +2064,6 @@ button,
     var(--card-shadow);
 }
 
-/* Keep the bento-tile feature card opaque — it's already glass-y
-   internally and double-glassing it muddies the icon contrast. */
-:where(.bento-tile-feature),
-:where(.section-linen) {
-  /* explicit reset (zero-specificity rule above already loses, but
-     this makes the intent obvious to a reader). */
-}
-
-.liquid-glass-hover {
-  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
-              box-shadow 0.4s cubic-bezier(0.22, 1, 0.36, 1),
-              border-color 0.4s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.liquid-glass-hover:hover {
-  transform: translateY(-3px);
-  border-color: hsla(0, 0%, 100%, 0.7);
-  box-shadow:
-    inset 0 1px 0 0 hsla(0, 0%, 100%, 0.85),
-    0 0 0 1px hsl(var(--sage) / 0.18),
-    0 1px 2px hsl(var(--olivewood) / 0.06),
-    0 16px 32px -6px hsl(var(--olivewood) / 0.12),
-    0 36px 72px -16px hsl(var(--olivewood) / 0.15);
-}
 
 /* ─────────────────────────────────────────────────────────────────
    Depth-on-press — Apple "liquid glass" tactile feedback
@@ -2411,75 +2118,7 @@ button,
    creates a seamless loop because the second copy reaches the viewport
    exactly when the first copy ends. Pauses on hover. Reduced-motion
    skips the animation entirely. */
-@keyframes category-marquee-scroll {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
-}
 
-.category-marquee {
-  display: flex;
-  width: max-content;
-  animation: category-marquee-scroll 75s linear infinite;
-}
-
-/* Subtle vertical float on the wrapper — composes cleanly with the
-   horizontal scroll on the inner track because they're on separate
-   elements. Both pause on hover via the parent container. */
-.category-marquee-float {
-  /* Vertical bob disabled — the ambient bounce read as unnecessary motion
-     and made the surrounding area look shadowy. Static keeps the marquee
-     feeling calm. */
-}
-
-@keyframes category-marquee-float {
-  0% {
-    transform: translateY(0);
-  }
-  100% {
-    transform: translateY(-4px);
-  }
-}
-
-.category-marquee-container:hover .category-marquee-float {
-  animation-play-state: paused;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .category-marquee-float {
-    animation: none;
-  }
-}
-
-/* (3) Hero mesh background — two overlapping radial gradients that drift
-   over 30 s so the parchment gets a hint of depth without any visible
-   motion noise. 3 % opacity max; imperceptible on first glance, felt on
-   sustained view. */
-.hero-mesh-bg {
-  position: relative;
-  background-image:
-    radial-gradient(60% 40% at 20% 20%, hsl(var(--burnt-sienna) / 0.03), transparent),
-    radial-gradient(50% 40% at 80% 30%, hsl(var(--gold-warm) / 0.03), transparent),
-    radial-gradient(40% 30% at 50% 80%, hsl(var(--sage) / 0.03), transparent);
-  /* STATIC. The three radials used to drift across the hero on a 30s
-     infinite alternate, which is why the background appeared to shift or
-     "jump": `background-position` is not a compositor property, so every
-     frame repainted the whole layer — and with the glass/backdrop-filter
-     surfaces stacked above it, that repaint is visible as the tint moving
-     underneath them. The gradients stay; only the motion is gone. */
-  background-size: 100% 100%;
-  background-position: 0% 0%, 100% 0%, 50% 100%;
-}
-@keyframes hero-mesh-drift {
-  from { background-position: 0% 0%, 100% 0%, 50% 100%; }
-  to   { background-position: 0% 0%, 100% 0%, 50% 100%; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .hero-mesh-bg { animation: none; }
-}
 
 /* (4) The H1 letter-spacing "settle" is GONE. It animated tracking from
    -0.045em to -0.025em over 400ms on mount, which read as the headline
@@ -2499,101 +2138,19 @@ button,
    first card of copy B ISN'T half of the total track), which is what makes
    the reset visibly jump. Compensate by shifting an extra half-gap-width
    left so the second copy lands precisely at the origin. */
-@keyframes jobs-strip-scroll {
-  from { transform: translateX(0); }
-  to { transform: translateX(calc(-50% - var(--jobs-strip-half-gap, 10px))); }
-}
-.jobs-strip-marquee {
-  display: flex;
-  width: max-content;
-  /* gap-5 (20px) on mobile → half-gap is 10px */
-  --jobs-strip-half-gap: 10px;
-  animation: jobs-strip-scroll 60s linear infinite;
-}
-@media (min-width: 640px) {
-  /* sm:gap-6 (24px) at ≥640px → half-gap is 12px */
-  .jobs-strip-marquee { --jobs-strip-half-gap: 12px; }
-}
+
+
 /* Hover-pause intentionally removed — user asked for a continuous loop
    that never stops. The cards are still tappable while moving; a slow
    scroll speed keeps them readable. */
-@media (prefers-reduced-motion: reduce) {
-  .jobs-strip-marquee { animation: none; }
-}
 
-.category-marquee-container:hover .category-marquee {
-  animation-play-state: paused;
-}
-
-/* Soft fade at the left + right edges so pills don't hard-cut at the
-   container border — they appear to drift in and out of the visible area.
-   Wider fade zone (12 % / 88 %) hides any clipping of pill drop shadows
-   at the container edges. Vertical padding gives shadows room. */
-.category-marquee-container {
-  padding-block: 0.25rem;
-  mask-image: linear-gradient(
-    to right,
-    transparent 0%,
-    black 6%,
-    black 94%,
-    transparent 100%
-  );
-  -webkit-mask-image: linear-gradient(
-    to right,
-    transparent 0%,
-    black 6%,
-    black 94%,
-    transparent 100%
-  );
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .category-marquee {
-    animation: none;
-  }
-}
 
 /* City-strip marquee — same seamless 0 → -50% loop pattern as the category
    marquee, but MUCH slower (~120 s / lap) because the strip is decorative
    ambient signage, not a call-to-action. The visible list of Louisiana
    cities should drift so slowly it reads as still on first glance and only
    reveals its motion on a return look. Reduced-motion disables it entirely. */
-@keyframes city-strip-marquee-scroll {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
-}
 
-.city-strip-marquee {
-  width: max-content;
-  animation: city-strip-marquee-scroll 120s linear infinite;
-}
-
-.city-strip-marquee-container {
-  mask-image: linear-gradient(
-    to right,
-    transparent 0%,
-    black 4%,
-    black 96%,
-    transparent 100%
-  );
-  -webkit-mask-image: linear-gradient(
-    to right,
-    transparent 0%,
-    black 4%,
-    black 96%,
-    transparent 100%
-  );
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .city-strip-marquee {
-    animation: none;
-  }
-}
 
 /* Scroll-stagger fade-up — elements enter the viewport with a soft upward
    shift + opacity rise. Toggled by the `is-visible` class which the
@@ -2633,87 +2190,7 @@ button,
 /* FAQ accordion item — uses native <details>/<summary>. Removes default
    browser chevron, adds our own + a smooth open/close. Border + spacing
    live on the parent .faq-list. */
-.faq-item {
-  list-style: none;
-  border-bottom: 1px solid hsl(var(--olivewood) / 0.12);
-}
 
-.faq-item:last-child {
-  border-bottom: none;
-}
-
-.faq-item > summary {
-  list-style: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 1.25rem 0;
-  user-select: none;
-}
-
-.faq-item > summary::-webkit-details-marker {
-  display: none;
-}
-
-.faq-item > summary::after {
-  content: "";
-  width: 12px;
-  height: 12px;
-  border-right: 1.5px solid hsl(var(--bark));
-  border-bottom: 1.5px solid hsl(var(--bark));
-  transform: rotate(45deg);
-  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
-  margin-right: 4px;
-  flex-shrink: 0;
-}
-
-.faq-item[open] > summary::after {
-  transform: rotate(-135deg);
-  margin-bottom: -4px;
-}
-
-.faq-item > .faq-answer {
-  padding: 0 0 1.25rem 0;
-}
-
-/* Liquid-fill hover — a deeper-tone wash pours across the button face from
-   left to right when hovered. Replaces the previous glint sweep / color
-   step. The label stays positioned via z-index above the fill. */
-.btn-liquid-fill {
-  position: relative;
-  overflow: hidden;
-  isolation: isolate;
-}
-
-.btn-liquid-fill::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: hsl(var(--bark));
-  transform: translateX(-101%);
-  transition: transform 0.55s cubic-bezier(0.7, 0, 0.3, 1);
-  z-index: -1;
-}
-
-.btn-liquid-fill:hover::before {
-  transform: translateX(0);
-}
-
-/* Liquid pulse — inner white glow appears on hover, paired with the
-   left-to-right Bark wash. Subtle "pressing into glass" feel. */
-.btn-liquid-fill {
-  transition: box-shadow 0.4s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.btn-liquid-fill:hover {
-  box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.3),
-    inset 0 0 16px rgba(255, 255, 255, 0.1),
-    0 1px 2px rgba(0, 0, 0, 0.05),
-    0 12px 32px -8px hsl(var(--bark) / 0.35);
-}
 
 /* Mesh gradient — multiple soft radial washes that drift slowly. The
    "moving liquid" mood for the page background, restrained colors so it
@@ -2742,74 +2219,19 @@ button,
    that expands and fades. Reads as a "live" heartbeat without the clashing
    saturated-green glow (the brand's live accent is burnt-sienna, matching
    the "Live" indicator in the phone mockups). */
-@keyframes status-glow-pulse {
-  0%, 100% {
-    box-shadow:
-      0 0 22px rgba(255, 255, 255, 0.5),
-      0 0 0 0 hsl(var(--burnt-sienna) / 0.35),
-      inset 0 1px 0 rgba(255, 255, 255, 0.7),
-      0 1px 2px rgba(46, 47, 34, 0.06);
-  }
-  50% {
-    box-shadow:
-      0 0 38px rgba(255, 255, 255, 0.85),
-      0 0 0 8px hsl(var(--burnt-sienna) / 0),
-      inset 0 1px 0 rgba(255, 255, 255, 0.85),
-      0 1px 2px rgba(46, 47, 34, 0.06);
-  }
-}
 
-.status-pill-glow {
-  animation: status-glow-pulse 3.5s ease-in-out infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .status-pill-glow {
-    animation: none;
-  }
-}
 
 /* Phone float animations — three different durations per phone so the
    trio bobs at different speeds, like floating in water. Composes with
    each phone's static rotation because they're applied on a wrapper. */
-@keyframes phone-float-a {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
-}
 
-@keyframes phone-float-b {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-9px); }
-}
 
-@keyframes phone-float-c {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
-}
-
-.phone-float-a {
-  animation: phone-float-a 5.5s ease-in-out infinite;
-}
-
-.phone-float-b {
-  animation: phone-float-b 7.5s ease-in-out infinite;
-}
-
-.phone-float-c {
-  animation: phone-float-c 6.5s ease-in-out infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .phone-float-a,
-  .phone-float-b,
-  .phone-float-c {
-    animation: none;
-  }
-}
-
-/* (Auto-shimmer pseudo-element removed — was acting as a "film" over the
-   primary button, dulling the true bark color. Hover still triggers the
-   liquid fill via .btn-liquid-fill::before.) */
+/* (Auto-shimmer pseudo-element removed — it acted as a "film" over the primary
+   button, dulling the true bark color. This note used to add "Hover still
+   triggers the liquid fill via .btn-liquid-fill::before"; that class was
+   deleted on 2026-08-30 with zero call sites, so there is no liquid fill and
+   no hover fallback. A primary button's hover state now comes from
+   GREEN_CTA_HOVER in src/components/ui/button.tsx.) */
 
 @media (prefers-reduced-motion: reduce) {
   .mesh-gradient-global {
@@ -2842,16 +2264,7 @@ button,
   0% { background-position: 0% 50%; }
   100% { background-position: 200% 50%; }
 }
-.boosted-shimmer {
-  background-image: linear-gradient(
-    90deg,
-    hsl(var(--gold-warm) / 0.20) 0%,
-    hsl(var(--gold-warm) / 0.42) 50%,
-    hsl(var(--gold-warm) / 0.20) 100%
-  );
-  background-size: 200% 100%;
-  animation: boosted-shimmer 2.8s linear infinite;
-}
+
 /* Companion scale pulse for the boosted badge — slower than urgent
    (2.4s vs 1.6s) and gentler amplitude so the two motions read as
    distinct signals rather than competing. */
@@ -2872,7 +2285,6 @@ button,
   transform-origin: center;
 }
 @media (prefers-reduced-motion: reduce) {
-  .boosted-shimmer,
   .boosted-pulse {
     animation: none;
     background-image: linear-gradient(90deg, hsl(var(--gold-warm) / 0.22), hsl(var(--gold-warm) / 0.32));
@@ -2941,31 +2353,7 @@ button,
 /* Ambient sparkle — single drifting Burnt-Sienna pinpoint moves slowly
    diagonally across the dashboard background once per minute. Not in any
    one place, just an "atmosphere" cue that the page is alive. */
-@keyframes ambient-sparkle {
-  0%   { opacity: 0; transform: translate3d(-10vw, -10vh, 0) scale(0.6); }
-  10%  { opacity: 0.8; }
-  50%  { opacity: 0.6; }
-  90%  { opacity: 0.5; }
-  100% { opacity: 0; transform: translate3d(110vw, 110vh, 0) scale(1.1); }
-}
-.ambient-sparkle {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: hsl(var(--burnt-sienna));
-  filter: blur(0.5px);
-  pointer-events: none;
-  z-index: 1;
-  opacity: 0;
-  animation: ambient-sparkle 60s linear infinite;
-  box-shadow: 0 0 8px hsl(var(--burnt-sienna) / 0.5);
-}
-@media (prefers-reduced-motion: reduce) {
-  .ambient-sparkle { display: none; }
-}
+
 
 /* Highlight pulse — draws the user's eye to a deep-linked application
    card after landing from a notification (/my-jobs?highlight=<appId>).
@@ -3261,10 +2649,22 @@ button,
    reasons documented there) and the motion damping. This block keeps only
    what it alone provided: the tap-target floor. The 110% root font-size is
    gone — the px rung overrides ignore root sizing, so it only double-scaled
-   the rem-based text around them. */
-.senior-mode button, .senior-mode a {
-  min-height: 48px;
-}
+   the rem-based text around them.
+
+   The tap-target floor itself USED TO LIVE HERE, as a second, unguarded
+   `.senior-mode button, .senior-mode a { min-height: 48px }`. It has moved
+   down to the guarded rule near the bottom of this file (search
+   `html.senior-mode button:not(`); do not restore a copy here. Measured
+   2026-09-01, the two-rule arrangement is what made Senior Mode inflate every
+   control it was supposed to leave alone: this rule matched `button` with no
+   `:not([role=…])` chain, so the exclusions on the rule below — whose own
+   comment says they exist to stop exactly this — never got the chance to
+   apply. Exclusion is not subtraction: skipping a selector does not undo a
+   floor another selector already set. Synthetic bench, class off → on:
+   switch 31 → 48 (thumb still 27), checkbox 16 → 48, plain radio 16 → 48, and
+   a `[role=radio].min-h-[52px]` 52 → **48**, i.e. Senior Mode made a target
+   SMALLER — `.senior-mode button` is (0,1,1) and outranks Tailwind's
+   `.min-h-\[52px\]` at (0,1,0). One rule now, and it carries the guards. */
 
 /* ── Landing hero motion ────────────────────────────────────────────────────
    Brings the marketing hero "to life": a staggered entrance for the copy +
@@ -3273,45 +2673,7 @@ button,
    from React (HeroSection) on an inner wrapper, so float (outer, translateY)
    and tilt (inner, rotate) never fight over the same transform.
    All of it honors prefers-reduced-motion via the guard at the bottom. */
-@keyframes hero-rise {
-  from { transform: translateY(18px); opacity: 0; }
-  to   { transform: translateY(0);    opacity: 1; }
-}
-/* Start hidden so there's no flash of un-animated content before the
-   delayed entrance fires. */
-.hero-rise {
-  opacity: 0;
-  animation: hero-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
 
-@keyframes hero-float {
-  0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-12px); }
-}
-.hero-phones-float {
-  animation: hero-float 6s ease-in-out infinite;
-  will-change: transform;
-}
-
-@keyframes hero-glow-drift {
-  0%, 100% { transform: scale(1);    opacity: 0.55; }
-  50%      { transform: scale(1.08); opacity: 0.8; }
-}
-.hero-glow {
-  animation: hero-glow-drift 9s ease-in-out infinite;
-  will-change: transform, opacity;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .hero-rise {
-    opacity: 1;
-    animation: none;
-  }
-  .hero-phones-float,
-  .hero-glow {
-    animation: none;
-  }
-}
 
 /* Global: any right-arrow icon inside a hovered link/button slides right.
    lucide-react emits `.lucide-<icon-name>`, so ArrowRight === .lucide-arrow-right. */
@@ -3354,6 +2716,53 @@ html.senior-mode .text-ds-15 { font-size: 18px !important; line-height: 1.45 !im
    that hierarchy back for contrast. */
 html.senior-mode .text-muted-foreground { color: hsl(var(--ink-deep) / 0.78) !important; }
 
+/* ── A larger type scale must never HIDE more text than the default ─────────
+   The rungs above are the whole feature, and they have a side effect nobody
+   had measured: a line clamp counts LINES, so the same two-line box holds
+   ~27% fewer characters at 14px than it did at 11px. Senior Mode was therefore
+   showing MORE of each word and LESS of each sentence — which is the opposite
+   of the deal, and worse than the default for anyone who needs the mode.
+
+   Measured 2026-09-01, `/profile` and `/settings` at 320, `.line-clamp-2`
+   description rows: content height 42px both ways (the clamp is doing its
+   job), but hidden overflow went 16px → 42px, i.e. a full extra line of copy
+   disappeared behind the ellipsis in the mode built for people who cannot
+   read the small copy in the first place.
+
+   Giving each clamp one more line restores the amount of text, in the larger
+   size, at the cost of a taller row — which is the trade this whole mode
+   already makes everywhere else. Not `-webkit-line-clamp: none`: unclamping
+   turns a tidy card list into a wall and loses the scannability the clamp was
+   bought for. Only the clamps the app actually uses are restated. */
+html.senior-mode .line-clamp-1 { -webkit-line-clamp: 2; }
+html.senior-mode .line-clamp-2 { -webkit-line-clamp: 3; }
+html.senior-mode .line-clamp-3 { -webkit-line-clamp: 4; }
+html.senior-mode .line-clamp-4 { -webkit-line-clamp: 5; }
+
+/* The horizontal twin of that defect — `truncate` eating words at 14px that
+   were fully visible at 11px — is NOT fixed here, and the attempt is recorded
+   so nobody spends the day rediscovering it.
+
+   Tried, measured, reverted (2026-09-01): turning every `.truncate` in this
+   mode into a two-line `-webkit-line-clamp`. On the numbers it looked like a
+   clear win — across 188 clamped elements the count of ones showing FEWER
+   characters in Senior Mode than at base fell 35 → 10, with 45 newly showing
+   more, and the Messages preview went from one clipped line to two full ones.
+   The screenshots said otherwise, for a reason the character count cannot see:
+   `-webkit-line-clamp` only draws its ellipsis when the LINE limit is hit, so
+   a single word too wide for its column overflows sideways and is hard-cut
+   with no ellipsis at all. At 320 the Messages header rendered "Messages"
+   sliced mid-word where it had read "Messa…", the conversation name broke to
+   "A / ne", and the membership taglines went from "No co…" to "No / commi".
+   Trading a legible ellipsis for a silent amputation is the same defect this
+   block exists to fix, pointed the other way.
+
+   The honest fix is per-component — give the label its column back (the
+   Messages name is `basis-[9rem]` against a 320px screen; the plan tagline
+   shares a row with a price) — which belongs in those files, not in a global
+   override that cannot tell prose from a proper noun. Sites and numbers are in
+   the audit report. Do NOT re-add a blanket `.truncate` rule here. */
+
 /* ── The OS asks; the app answers ─────────────────────────────────────────
    iOS exposes three accessibility settings this app already had the CSS for
    and simply never listened to. Every accommodation below is the SAME
@@ -3373,22 +2782,75 @@ html.senior-mode .text-muted-foreground { color: hsl(var(--ink-deep) / 0.78) !im
 }
 
 /* Settings > Accessibility > Display & Text Size > Reduce Transparency.
-   31 surfaces in this stylesheet blur what is behind them, and until now not
-   one of them responded to this setting. `backdrop-filter: none` alone would
-   leave a translucent panel with the page showing straight through it — the
-   blur was doing the separating — so each surface also needs an opaque fill.
+   Surfaces all over this app blur what is behind them; until now four of them
+   responded to this setting. `backdrop-filter: none` alone would leave a
+   translucent panel with the page showing straight through it — the blur was
+   doing the separating — so each surface also needs an opaque fill.
 
-   Scoped to the tokens rather than a blanket `* { backdrop-filter: none }`:
-   the latter would also strip the effect from decorative washes that have no
-   legibility cost, and would fight the theme's own dark-mode overrides. */
+   TWO layers, because the surfaces come from two places and only one of them
+   is reachable by a selector.
+
+   1. The blanket. This used to be four class names, deliberately, on the
+      reasoning that `*` would "also strip the effect from decorative washes
+      that have no legibility cost, and would fight the theme's own dark-mode
+      overrides." The second half is about `background-color`, which the
+      blanket does not touch; the first half is a matter of taste that Reduce
+      Transparency has already settled — a user who asks the OS for less
+      transparency is asking for the decorative wash to go too. And scoping it
+      to class names could never have worked here anyway: measured 2026-09-01
+      with the media feature emulated, 18 elements across dashboard / messages
+      / browse / activity / job-detail were STILL blurring, and the three
+      biggest offenders (the nav dock pill at blur(40px), a 32px hero wash, an
+      88px avatar disc) carry their blur in an INLINE style. No class selector
+      can reach an inline declaration — but an `!important` author rule can,
+      because important-author outranks inline-normal in the cascade. That is
+      the only reason this is a blanket, and it is why it must keep the
+      `!important`. */
 @media (prefers-reduced-transparency: reduce) {
+  *,
+  *::before,
+  *::after {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  /* And again, at class-level specificity — because `!important` does not
+     settle a fight between two `!important` author declarations; specificity
+     does, and `*` has none. The toast in ui/sonner.tsx styles itself with
+     Tailwind's important variant (`!backdrop-blur-[18px]`), which compiles to
+     `.\!backdrop-blur-\[18px\] { … !important }` at (0,1,0) and beat the
+     blanket above outright: with the media feature emulated it was the single
+     surface still frosting after every other one had gone quiet. `[class]`
+     twice is (0,2,0), which clears any one-class utility, and the two rules
+     together cover both halves of the DOM — elements with a class attribute
+     and elements without. This is the one place a doubled attribute selector
+     earns its keep; do not "simplify" it back to a single `*`. */
+  [class][class],
+  [class][class]::before,
+  [class][class]::after {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  /* 2. The fills. Killing the blur is not enough on its own — a 40%-opaque
+        pill with nothing behind it is less legible than a frosted one, not
+        more. Each named surface gets the opaque token its material implies.
+        `.glass-nav.is-scrolled` keeps its own opaque fill and needs nothing.
+
+        This list is the stylesheet's frosted surfaces, which is all a
+        stylesheet can speak for. The inline-styled ones above lose their blur
+        to the blanket but keep their inline translucent background, because
+        the right fill for each is a per-component decision (a token or a
+        class), not something this rule can guess. Those sites are called out
+        in the audit report rather than papered over here. */
+  .glass,
+  .glass-nav,
+  .glass-header,
+  .glass-dock,
   .glass-modal,
   .glass-field,
   .liquid-glass,
-  .glass-island,
   .skeleton-glass {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
     background-color: hsl(var(--background)) !important;
   }
 }
@@ -3405,9 +2867,22 @@ html.senior-mode .text-muted-foreground { color: hsl(var(--ink-deep) / 0.78) !im
       like it worked while doing nothing.
    2. Correctness. It excludes switches/checkboxes/radios because those have
       designed dimensions — our Switch is h-[31px]. Without the same
-      exclusions, Simple Mode stretched the toggle into a 48px-tall pill. */
+      exclusions, Simple Mode stretched the toggle into a 48px-tall pill.
+
+   That second reason was true and the rule was still defeated, because an
+   UNGUARDED duplicate sat ~105 lines above and set the same floor on bare
+   `button`. It is gone (see the note up there); this is now the only 48px
+   floor in the file, which is why the guards finally bite. `a` is folded in
+   here rather than left behind in that duplicate: a bare `min-height` is inert
+   on a non-replaced inline anchor, so this only reaches the block/flex,
+   button-like links it was always meant for — and every role-bearing control
+   Radix renders is a `<button>`, so the anchor branch needs no guards of its
+   own. Verified 2026-09-01 on a synthetic bench of all eight shapes: switch
+   31→31, checkbox 16→16, `[role=radio].min-h-[52px]` 52→52, plain radio 16→16
+   (all four untouched, as designed), while button 44→48, `a[role=button]`
+   44→48, block `a` 24→48 and `[role=tab]` 24→48 still take the floor. */
 html.senior-mode button:not([role="checkbox"]):not([role="radio"]):not([role="switch"]),
-html.senior-mode a[role="button"],
+html.senior-mode a,
 html.senior-mode [role="tab"] { min-height: 48px; }
 
 /* Decorative motion is noise when reading is already effortful. This is the
@@ -3454,6 +2929,24 @@ html.senior-mode *::after {
   --elev-card: 0 1px 2px hsl(var(--olivewood) / 0.06), 0 6px 14px -4px hsl(var(--olivewood) / 0.12);
 }
 
+
+/* ── The overlay scrim tokens are GONE ────────────────────────────────────
+   `--scrim-tint` / `--scrim-blur` (a warm 8%-alpha parchment tint over a 24px
+   blur) lived here as the single source for every overlay in the app. Their
+   only consumer was `ui/popover.tsx`'s `PopoverScrim`, the shared
+   anchored-panel scrim — and on 2026-08-31 the owner removed the scrim from
+   both anchored panels ("This blur is not correct it should be anchored to
+   screen remove the blur" / "Same for this. No blur"). Nothing reads the
+   tokens any more, so they are deleted rather than left as two dead custom
+   properties that look like a live contract.
+
+   WHAT STILL CARRIES THE LITERAL, and did before these tokens existed:
+   `ui/dialog.tsx`, `ui/alert-dialog.tsx` and `ui/sheet.tsx` each hardcode
+   `backdrop-blur-[24px] backdrop-saturate-150` plus the same tint. Those
+   overlays are unchanged and INTENTIONALLY so — dialogs keep their backdrop;
+   only the two anchored panels lost theirs. If they are ever unified again,
+   reintroduce one token pair here and switch all three at once; do not copy
+   the literal a fourth time. */
 
 /* ── Modal entrance under Reduce Motion ───────────────────────────────────
    The dialog / alert-dialog primitives enter with a scale-and-rise

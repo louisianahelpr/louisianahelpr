@@ -3,7 +3,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
 import { useNavigate } from "react-router-dom";
 import {
-  CheckCircle2, Star, Users,
+  CheckCircle2, Star,
   RefreshCw, XCircle,
   Eye, Pencil,
 } from "lucide-react";
@@ -138,6 +138,16 @@ function AppliedJobCardInner({
     viewerFeePercent,
   );
 
+  /** Does the description say anything the TITLE hasn't already said? A job
+   *  whose description is its own title back again is one line of duplication. */
+  const showDescription =
+    !isMinimalCard &&
+    isExpanded &&
+    job.description.trim().toLowerCase() !== (job.title || "").trim().toLowerCase();
+  /** Whether the block between the meta row and the action row has ANY content.
+   *  Every child of it is conditional — see the note at the block itself. */
+  const hasCardBody = !isMinimalCard && isExpanded && (!!app.posterName || showDescription);
+
   /**
    * Location · date · time — built once, placed twice. Desktop puts it on the
    * TITLE row; phone keeps it below. Mirrors PostedJobCard exactly, which is
@@ -167,6 +177,14 @@ function AppliedJobCardInner({
         latitude={job.latitude}
         longitude={job.longitude}
         expiresAt={isPending && !job.helper_id ? job.expires_at : null}
+        /* "👥 3", inline right after the time (owner, 2026-08-30: "3 helprs
+           needed goes to the right of time"). It used to be a line of its own
+           at the very BOTTOM of the card, under the Edit/Withdraw row, in the
+           photos/recurring footer — a fact about the JOB stranded below the
+           helper's own actions, reading like small print. The browse feed
+           already stated it in the meta row; this is the same chip, in the
+           same place, on both surfaces. */
+        helpersNeeded={job.is_group_job ? (job.helpers_needed ?? 2) : null}
       />
     </>
   );
@@ -226,6 +244,20 @@ function AppliedJobCardInner({
               stacked to ~48px of dead band with a hairline through the middle,
               directly above the Accept/Decline pair. Same trim the posted card
               makes. */}
+          {/* THE BAND ONLY EXISTS IF IT HAS CONTENT (owner, 2026-08-30: "remove
+              gap under the location and above the buttons").
+
+              Every child of this block is conditional — the "Posted by" row and
+              the description need `isExpanded`, the not-selected line needs
+              `isMinimalCard` — so on a COLLAPSED pending card (the Waiting tab,
+              the state the owner was looking at) it rendered an empty div with
+              `pt-2.5 pb-1.5` of padding, directly above the action block's own
+              `py-2.5` and its hairline top border. ~26px of white with a rule
+              through it and nothing in it: it reads as a section that failed to
+              render, not as spacing. The padding was always sized for content;
+              when there is none the band collapses rather than reserving space
+              for it. */}
+          {(hasCardBody || isMinimalCard) && (
           <div className={`px-4 pt-2.5 space-y-2 ${hasActionSection && !isMinimalCard ? "pb-1.5" : "pb-3"}`}>
             {/* No chevron glyph on this card (owner: remove it) — the whole
                 card is the expand/collapse tap target (JobCardShell), so no
@@ -263,8 +295,31 @@ function AppliedJobCardInner({
                 </a>
               </div>
             )}
-            {!isMinimalCard && isExpanded && job.description.trim().toLowerCase() !== (job.title || "").trim().toLowerCase() && (
-              <p className="text-ds-11 text-muted-foreground leading-relaxed">{job.description}</p>
+            {/* EYEBROW GONE AGAIN, and this time for good (owner, 2026-08-30:
+                "remove eye brows" — reversing the same day's "eye brows were
+                removed so update so they know what things are"). The
+                burnt-sienna small-caps label read as a section masthead on a
+                card that is one short passage of prose, and the apply screen
+                the helper came from had already dropped exactly that treatment
+                for exactly that reason (see ApplyBody's own note).
+
+                What tells the two passages apart now is TYPE, not a heading:
+                this one — the POSTER's description — is `text-ds-11` grey, and
+                the helper's own message below is `text-ds-14` in
+                `text-foreground`, the size and colour they typed it at on the
+                apply screen. Small and grey is context; large and dark is
+                yours.
+
+                The <section> and its `aria-labelledby` are UNCHANGED — the
+                heading is still there, still associated, just `sr-only`. A
+                landmark with no accessible name is what the eyebrow was
+                originally added to fix, and dropping the name would re-break
+                that for a screen-reader user while fixing nothing visible. */}
+            {showDescription && (
+              <section aria-labelledby={`job-desc-${app.job_id}`} className="space-y-1">
+                <h4 id={`job-desc-${app.job_id}`} className="sr-only">Job description</h4>
+                <p className="text-ds-11 text-muted-foreground leading-relaxed">{job.description}</p>
+              </section>
             )}
 
             {isMinimalCard && (
@@ -277,6 +332,7 @@ function AppliedJobCardInner({
               </div>
             )}
           </div>
+          )}
 
           {/* Pending expandable section */}
           {!isMinimalCard && isPending && isExpanded && (
@@ -426,7 +482,16 @@ function AppliedJobCardInner({
                   uses for Review/Reviewed — this was a plain full-width
                   outline Button, the one place the two Done-tab cards
                   visibly diverged in style. */}
-              {job.payment_status === "released" && (
+              {/* `payout_pending` counts too. Migration
+                  20260825053000_reviews_allow_payout_pending.sql widened the
+                  reviews INSERT policy to accept BOTH settlement states for
+                  exactly this reason — payment_status only becomes 'released'
+                  when the payout actually settles, ~24h later. The poster's
+                  gate (PostedJobActions.tsx:533) was updated; the helper's was
+                  not, so the helper was locked out for a full day while the
+                  poster's review sat hidden behind feedback_visible_at waiting
+                  for a counter-review that could not be written. */}
+              {(job.payment_status === "released" || job.payment_status === "payout_pending") && (
                 <JobActionRow columns={1}>
                   {helperReviewedJobIds.has(app.job_id) ? (
                     <JobActionChip
@@ -512,19 +577,19 @@ function AppliedJobCardInner({
           )}
 
           {/* Footer: extra details (photos, requirements, group/recurring) */}
-          {!isMinimalCard && (!isFullyDone || isExpanded) && ((job.photos || []).length > 0 || job.is_recurring || job.is_group_job) && (
+          {/* NO group-size line here any more — it moved into the meta row,
+              inline after the time (owner: "3 helprs needed goes to the right
+              of time"). It was the last item on the whole card, below the
+              Edit/Withdraw chips, so a fact about the job was printed
+              underneath the helper's own controls. See the `helpersNeeded`
+              prop on JobCardMetaRow above. */}
+          {!isMinimalCard && (!isFullyDone || isExpanded) && ((job.photos || []).length > 0 || job.is_recurring) && (
             <div className="px-4 py-2.5 border-t border-border/20 space-y-2">
               <JobCardPhotoStrip urls={job.photos || []} size="sm" />
               {job.is_recurring && (
                 <div className="flex items-center gap-1.5 text-ds-11 text-muted-foreground">
                   <RefreshCw className="w-3 h-3 text-primary" />
                   <span>{formatRecurrenceInterval(job.recurrence_interval)}{job.recurrence_end_date && ` until ${formatShortDate(job.recurrence_end_date)}`}</span>
-                </div>
-              )}
-              {job.is_group_job && (
-                <div className="flex items-center gap-1.5 text-ds-11 text-muted-foreground">
-                  <Users className="w-3 h-3 text-primary" />
-                  <span>{job.helpers_needed ? `${job.helpers_needed} Helprs needed` : "Group job"}</span>
                 </div>
               )}
             </div>

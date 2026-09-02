@@ -1,11 +1,12 @@
 import { memo, useCallback, type KeyboardEvent } from "react";
 import {
-  MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Users, Repeat, CheckCheck,
+  MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Repeat, CheckCheck,
 } from "lucide-react";
 import { hapticLight } from "@/lib/haptics";
 import { differenceInHours } from "date-fns";
 
 import { categoryLabels, categoryColors } from "@/components/activity/activityConstants";
+import { JobHelprsChip } from "@/components/activity/JobCardMetaRow";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { formatJobDate, formatTimeLeft } from "@/lib/dateUtils";
 import { formatPrice, formatPriceFloor } from "@/lib/format";
@@ -119,13 +120,20 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
     : `$${formatPriceFloor(computeNet(job.budget, effectiveFee, job.urgent_fee ?? 0, helpersCount).netEarnings)}`;
   const catStyle = categoryColors[job.category] || categoryColors.other;
 
-  // Freshness signal: a job still inside the early-access window gets a "New"
-  // chip. DERIVED from the shared perk value (the free-tier delay — 20 min)
-  // rather than restated: this used to hardcode 30 min next to a comment
-  // claiming alignment with the 20-min window, so the badge outlived the
-  // exclusivity it advertised. Subscribers see the badge while the job is
-  // still early-access; it drops exactly when every helper can see the job.
-  const isNew = Date.now() - new Date(job.created_at).getTime() < earlyAccessDelayMs(null);
+  // Freshness signal — ONE chip, "Just in", living on the badge rail below.
+  //
+  // There used to be TWO freshness badges on the same card, computed
+  // differently, rendered by different components: this "New" dot inside the
+  // category tab (gated on the early-access window) and a floating "JUST IN"
+  // pill that SwipeableJobCard painted over the card (hardcoded 30 min). A
+  // job under 20 minutes old therefore showed BOTH, saying the same thing
+  // twice in two visual languages. They are now one chip.
+  //
+  // DERIVED from the shared perk value (the free-tier delay — 20 min) rather
+  // than restated: the 30-minute literal is the exact bug this file already
+  // fixed once, where the badge outlived the exclusivity it advertised. The
+  // chip drops exactly when every helper can see the job.
+  const isJustIn = Date.now() - new Date(job.created_at).getTime() < earlyAccessDelayMs(null);
 
   const cityState = getCity(job.location);
 
@@ -279,13 +287,60 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
           aria-hidden
           className={`absolute left-0 top-0 bottom-0 w-1.5 ${catStyle.dot}`}
         />
-        {/* Category tab — anchored at the top-left, flat left edge (squared)
-            continuing the rail, rounded pill nose on the right. The poster
-            avatar moved to the job-detail view (JobPosterCard) so the feed
-            card stays uncluttered. */}
-        <div className="absolute top-0 left-0 z-20 flex items-stretch gap-1">
+        {/* ── BADGE RAIL ───────────────────────────────────────────────
+            ONE row holding EVERY badge this card can render, sharing one
+            top edge, one bottom edge and one baseline BY CONSTRUCTION —
+            they are siblings in a single flex row, not three separately
+            positioned blocks that happen to be tuned to the same offset.
+
+            This is the fix for "JUST IN needs to be better aligned"
+            (owner, 2026-08-31). The freshness pill was not on this rail at
+            all: it lived in SwipeableJobCard, a DIFFERENT component,
+            absolutely positioned over the finished card at `top-2 left-20`
+            — 8px below the rail the category tab and BOOSTED sit on, and
+            80px from the left, a hardcoded guess at how wide the category
+            tab would be. Measured on the real feed, that guess was wrong on
+            every card at every width: "Yard Work" / "Pet Care" / "Handyman"
+            tabs end at x=135–152, so the pill painted straight across the
+            category label, and its bottom edge (32.8px) crossed the title's
+            top edge (29px). Three badges, three baselines, one overlap.
+
+            The rail is IN NORMAL FLOW, not absolutely positioned. The old
+            arrangement reserved space for the badges with the body's
+            `pt-6` — a guess about how tall a chip is, which is wrong the
+            moment the chip changes size. It already was: in senior mode
+            `.text-ds-*{line-height:1.45!important}` beats `leading-none`,
+            every chip grows ~9px, and the rail painted over the title on
+            EVERY card (measured: rail bottom 28.84 vs title top 28.00 at
+            1440). In flow, the body is placed after the rail whatever the
+            rail's height turns out to be, so the two can never collide in
+            any font-size mode. And because the category tab always renders,
+            the rail is always exactly one chip tall — so the title starts
+            at the SAME y on every card, badges or no badges.
+
+            PRIORITY, and what gives when the row runs out of width (320px):
+              1. status corner (Boosted > Urgent > Instant) — never shrinks.
+              2. secondary chip — at most ONE, "Just in" before
+                 "Recommended" (see below) — never shrinks.
+              3. the category tab — the ONLY flexible item: its LABEL
+                 truncates. Category is the safest thing to abbreviate
+                 because it is also carried by the colored left rail, the
+                 tab's own tint and the icon; the other two are
+                 closed-vocabulary signals that mean nothing ellipsised.
+            Nothing wraps (the row is nowrap and every label is nowrap), so
+            the rail can never become two chips tall and shove the title
+            down — which is exactly what it did at 320px with Recommended
+            present before this change. */}
+        <div className="relative z-20 flex items-stretch gap-1">
+          {/* 1. Category tab — flat left edge (squared) continuing the
+                 vertical rail, rounded nose on the right. The poster avatar
+                 moved to the job-detail view (JobPosterCard) so the feed
+                 card stays uncluttered. `min-w-0` + `truncate` make this the
+                 item that yields width; `max-w-[52%]` keeps a long or
+                 unmapped raw category value from eating the rail even when
+                 it is the only chip present. */}
           <span
-            className={`inline-flex items-center gap-1 pl-3 pr-2.5 py-1 rounded-l-none rounded-br-lg rounded-tr-none border-b border-r text-ds-10 font-semibold leading-none shadow-sm ${catStyle.badge}`}
+            className={`inline-flex items-center gap-1 min-w-0 max-w-[52%] pl-3 pr-2.5 py-1 rounded-l-none rounded-br-lg rounded-tr-none border-b border-r text-ds-10 font-semibold leading-none shadow-sm ${catStyle.badge}`}
           >
             <CategoryIcon
               category={job.category}
@@ -293,35 +348,46 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               className="w-2.5 h-2.5 shrink-0"
               strokeWidth={2.25}
             />
-            <span className="font-serif italic">{categoryLabels[job.category] || job.category}</span>
-            {/* Freshness lives in the category tab — a quiet burnt-sienna dot
-                + "New" — so it reads as metadata at the corner and never
-                competes with the job title for the eye. */}
-            {isNew && (
-              <span className="inline-flex items-center gap-1 ml-0.5" aria-label="New listing">
-                <span
-                  aria-hidden
-                  className="w-1.5 h-1.5 rounded-full motion-safe:animate-pulse"
-                  style={{
-                    background: "hsl(var(--burnt-sienna))",
-                    boxShadow: "0 0 0 2px hsl(var(--burnt-sienna) / 0.22), 0 0 6px hsl(var(--burnt-sienna) / 0.55)",
-                  }}
-                />
-                <span
-                  className="font-sans font-bold uppercase not-italic text-ds-9"
-                  style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.07em",}}
-                >
-                  New
-                </span>
-              </span>
-            )}
+            <span className="font-serif italic truncate">{categoryLabels[job.category] || job.category}</span>
           </span>
-          {/* Recommended — sits to the RIGHT of the category tab in the same
-              tab style (a relevance chip hanging from the top edge), instead of
-              an extra row above the title that pushed the title down. */}
-          {recommended && (
+          {/* 2. Secondary slot — EXACTLY ONE chip, never both.
+                 "Just in" outranks "Recommended" because freshness is
+                 perishable (true for one early-access window, then gone
+                 forever and unknowable from anywhere else on the card),
+                 while a recommended pick is already signalled by its
+                 position — the feed puts it at the top. It is also the
+                 narrower of the two, so the rail degrades less on a 320px
+                 phone. Both are `shrink-0`: an ellipsised "Recommen…" or
+                 "Just i…" carries no information, so they hold their width
+                 and the category label gives instead. */}
+          {isJustIn ? (
             <span
-              className="inline-flex items-center gap-1 px-2 py-1 rounded-b-lg border-b border-r text-ds-10 font-semibold leading-none shadow-sm pointer-events-none"
+              aria-label="Just posted"
+              className="inline-flex items-center gap-1.5 shrink-0 px-2 py-1 rounded-b-lg border-b border-r text-ds-10 font-semibold leading-none shadow-sm pointer-events-none"
+              style={{
+                background: "hsl(var(--burnt-sienna) / 0.12)",
+                // --sienna-ink for the same reason the Recommended chip uses
+                // it (see below) — this is small label text on the sienna
+                // family's own tint. The floating pill this replaces painted
+                // raw --burnt-sienna on a 0.10 tint, i.e. the exact dark-mode
+                // contrast failure --sienna-ink was minted to fix.
+                color: "hsl(var(--sienna-ink))",
+                borderColor: "hsl(var(--burnt-sienna) / 0.20)",
+              }}
+            >
+              <span
+                aria-hidden
+                className="w-1.5 h-1.5 shrink-0 rounded-full motion-safe:animate-pulse"
+                style={{
+                  background: "hsl(var(--burnt-sienna))",
+                  boxShadow: "0 0 6px hsl(var(--burnt-sienna) / 0.55)",
+                }}
+              />
+              <span className="font-serif italic uppercase tracking-[0.14em] whitespace-nowrap">Just in</span>
+            </span>
+          ) : recommended ? (
+            <span
+              className="inline-flex items-center gap-1 shrink-0 px-2 py-1 rounded-b-lg border-b border-r text-ds-10 font-semibold leading-none shadow-sm pointer-events-none"
               style={{
                 background: "hsl(var(--burnt-sienna) / 0.12)",
                 // --sienna-ink, not --burnt-sienna: this is 10px label text on
@@ -339,16 +405,20 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 strokeWidth={2}
                 style={{ fill: "hsl(var(--burnt-sienna) / 0.3)" }}
               />
-              <span className="font-sans font-semibold leading-none">Recommended</span>
+              <span className="font-sans font-semibold whitespace-nowrap">Recommended</span>
             </span>
-          )}
-        </div>
-        {/* Status corner — mirrors the category tab on the opposite
-            (top-right) corner. Shows the single highest-priority signal as
-            a clean accent instead of a cluster stacked over the price. */}
-        {(() => {
+          ) : null}
+          {/* 3. Elastic gap — the ONLY thing on the rail allowed to grow or
+                 shrink freely. It is what pins the status chip to the right
+                 edge, so the top-right corner no longer needs its own
+                 absolute position (and so can no longer be overlapped by a
+                 left-hand chip that outgrew its hardcoded slot). */}
+          <span aria-hidden className="flex-1 min-w-[8px]" />
+          {/* 4. Status corner — the single highest-priority signal, mirroring
+                 the category tab on the opposite corner. */}
+          {(() => {
           const corner =
-            "absolute top-0 right-0 z-20 inline-flex items-center gap-1 pl-2.5 pr-3 py-1 rounded-bl-lg border-b border-l text-ds-9 font-bold uppercase leading-none shadow-sm";
+            "inline-flex items-center gap-1 shrink-0 pl-2.5 pr-3 py-1 rounded-bl-lg border-b border-l text-ds-9 font-bold uppercase leading-none shadow-sm";
           if (job.isBoosted)
             return (
               <span
@@ -406,8 +476,13 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               </span>
             );
           return null;
-        })()}
-        <div className="w-full px-3.5 pt-6 pb-2.5">
+          })()}
+        </div>
+        {/* Body. `pt-2` is a real gap under the rail, NOT a reservation for
+            it — the rail is in flow above, so this padding no longer has to
+            guess how tall a badge chip is (the guess it replaces, `pt-6`,
+            was already wrong in senior mode). */}
+        <div className="w-full px-3.5 pt-2 pb-2.5">
         {/* Title + price share the top row — price chip is vertically
             centered against the title. The location/date/time meta spans
             the full card width below.
@@ -419,7 +494,12 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             short-vs-tall run of cards. `min-w-0` lets it shrink/truncate
             inside the flex row at all. */}
         <div className="flex items-center justify-between gap-3">
-          <h3
+          {/* h2, not h3: these cards sit DIRECTLY under the page <h1>
+              ("Browse Jobs", "My Posts"), with no intervening section
+              heading, so an h3 skipped a level and failed axe's
+              heading-order on 18 pages. The visual size is carried by
+              `text-headline-card`, not by the tag, so nothing moves. */}
+          <h2
             className="text-headline-card flex-1 font-display italic font-bold text-foreground leading-tight truncate min-w-0"
             style={{
               color: "hsl(var(--ink-deep))",
@@ -427,7 +507,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             }}
           >
             {job.title}
-          </h3>
+          </h2>
           <JobPrice
             budget={job.budget}
             effectiveFee={effectiveFee}
@@ -461,14 +541,38 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               see the `is_group_job` chip, which drops its separator and rides
               tighter than the rest of the row. */}
           <div className="flex items-center gap-x-2 flex-nowrap overflow-hidden">
-            <span className="flex items-center gap-1 min-w-0">
+            <span className="flex items-center gap-1 min-w-0 overflow-hidden">
               <MapPin className="w-2.5 h-2.5 shrink-0" />
-              {/* min-w floor: the row above moved urgency out precisely so the
-                  city would stop collapsing first, but a rating chip still
-                  squeezed it — adjacent cards in one feed rendered "Lafayette",
-                  "Lafayet…" and "Lafay…" for the same parish. The floor keeps
-                  the parish recognisable; the cap still bounds it on wide cards. */}
-              <span className="truncate min-w-[6ch] max-w-[150px] font-sans">{cityState}</span>
+              {/* `min-w-0` + `overflow-hidden` + `truncate`, and NOTHING that
+                  sets a width. Two wrong answers were tried here first, and the
+                  comment records both so neither comes back:
+
+                  1. A MIN-WIDTH FLOOR (`min-w-[6ch] max-w-[150px]`). The floor
+                     was larger than the space this group actually got on a
+                     narrow card, so the city overflowed its own parent box and
+                     PAINTED ON TOP of the date beside it — measured on the real
+                     feed at 320px on every card ("Lafayette" over "Fri, Sep 4",
+                     "Scott" over "Fri, Sep 4") and at 375px on any long parish
+                     ("St. Martinville" over "Mon, Aug 31"). A floor cannot make
+                     space that isn't there; it can only make the overflow
+                     invisible to the layout.
+
+                  2. `flex-1`, which replaced it. That fixed the overlap, but it
+                     fixed it by making the city GROW into every pixel the
+                     fixed-width "when" group did not need — so on the common
+                     card with a short city ("Scott", "Crowley") the group
+                     stretched the whole width of the card and shoved the date
+                     and time out to the far right edge. Owner, 2026-08-30:
+                     "why did you add so much space between location and date?"
+
+                  The city only ever needed to SHRINK, not to grow. A flex item
+                  shrinks by default, so with the floor gone and no `flex-1`,
+                  the city takes exactly its own text width when there is room
+                  and ellipsises when there isn't — and the date sits one
+                  `gap-x-2` away from the end of the city name on every card,
+                  whatever its length. The "when" group beside it stays
+                  `shrink-0`, so it is still the city that gives. */}
+              <span className="truncate font-sans">{cityState}</span>
             </span>
             {distanceLabel && (
               <span
@@ -477,7 +581,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                     ? `Approximately ${drivingLabel} drive, ${distanceLabel} away`
                     : `Approximately ${distanceLabel} away`
                 }
-                className="inline-flex items-center gap-0.5 px-1.5 py-px rounded-full font-sans font-semibold whitespace-nowrap text-ds-9"
+                className="inline-flex shrink-0 items-center gap-0.5 px-1.5 py-px rounded-full font-sans font-semibold whitespace-nowrap text-ds-9"
                 style={{
                   letterSpacing: "0.02em",
                   background: "hsl(var(--burnt-sienna) / 0.10)",
@@ -488,7 +592,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 {drivingLabel ? `${drivingLabel} · ${distanceLabel}` : distanceLabel}
               </span>
             )}
-            <span className="opacity-30">·</span>
+            <span className="shrink-0 opacity-30">·</span>
             {/* Date + time + duration live in ONE no-wrap group so the "when"
                 of a job can never be split across lines — the trio moves
                 together. "Due" is dropped — the date is self-evidently the day
@@ -496,7 +600,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 start_time is set (most posts leave it blank); the duration
                 chip fills that slot from estimated_hours, which every post
                 collects, so the row always answers "how much of my day?". */}
-            <span className="inline-flex items-center gap-x-2">
+            <span className="inline-flex shrink-0 items-center gap-x-2">
               {!job.date_needed && !job.start_time ? (
                 <span className="flex items-center gap-1">
                   <Calendar className="w-2.5 h-2.5 shrink-0" />
@@ -512,9 +616,22 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                       </span>
                     </span>
                   )}
-                  {job.date_needed && job.start_time && <span className="opacity-30">·</span>}
+                  {/* Start time is the FIRST thing dropped under 360px — the
+                      same sub-360 guard the recurring chip already uses, for
+                      the same measured reason. This row is nowrap and clipped,
+                      so anything that does not fit is not "tight", it is
+                      SILENTLY GONE: at 320px the group-size chip ("👥 4") was
+                      being cut off the right edge of every multi-helpr card
+                      while the clock read "11:00 AM". On a 320px phone, what
+                      day the work is and how many helprs it needs both beat
+                      what o'clock it starts, and the time is one tap away on
+                      the detail sheet. Dropping it deliberately is the only
+                      way the chips behind it survive. */}
+                  {job.date_needed && job.start_time && (
+                    <span className="shrink-0 opacity-30 hidden [@media(min-width:360px)]:inline">·</span>
+                  )}
                   {job.start_time && (
-                    <span className="flex items-center gap-1">
+                    <span className="shrink-0 hidden [@media(min-width:360px)]:flex items-center gap-1">
                       <Clock className="w-2.5 h-2.5 shrink-0" />
                       <span className="font-sans whitespace-nowrap">{formatTime12(job.start_time)}</span>
                     </span>
@@ -534,30 +651,38 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 on small phones. Freshness is still signalled by the "New"
                 chip (<30m) at the head of the row. */}
             {job.is_group_job && (
-              // No leading "·" and a tighter gap than its siblings. Every chip
-              // on this nowrap row is width the city does not get, and the city
-              // is the only item that shrinks — so a multi-person job used to
-              // render "Abbev." while single-helper cards next to it showed
-              // "Abbeville" in full. Dropping the separator and halving the gap
-              // returns ~14px to the parish for the cost of nothing legible:
-              // the person icon already separates this from the time beside it.
-              <span
-                className="flex items-center gap-0.5 shrink-0 ml-0.5"
-                style={{ color: "hsl(var(--primary))" }}
-              >
-                <Users className="w-2.5 h-2.5 shrink-0" strokeWidth={2.25} aria-label="Helprs needed" />
-                <span className="font-sans font-medium">
-                  {job.helpers_needed ?? 2}
-                </span>
-              </span>
+              // THE SAME CHIP the activity cards render (JobHelprsChip, in
+              // JobCardMetaRow) — one component now states "how many Helprs"
+              // everywhere, after the owner found the applied card putting it
+              // in a footer line while this row had it inline. Only the two
+              // metrics this row sets for every other chip in it are passed:
+              // 10px icons, and no leading "·" with a tighter gap than its
+              // siblings. Every chip on this nowrap row is width the city does
+              // not get, and the city is the only item that shrinks — so a
+              // multi-person job used to render "Abbev." while single-helper
+              // cards next to it showed "Abbeville" in full. Dropping the
+              // separator and halving the gap returns ~14px to the parish for
+              // the cost of nothing legible: the person icon already separates
+              // this from the time beside it.
+              <JobHelprsChip
+                helpersNeeded={job.helpers_needed}
+                className="gap-0.5 ml-0.5"
+                iconClassName="w-2.5 h-2.5"
+              />
             )}
             {job.is_recurring && (
-              // Same sub-360px guard as the age chip: hide the
-              // recurring chip on the smallest phones so the meta
-              // row stays on two lines max.
+              // Lowest-priority chip on the row, so it carries the widest
+              // guard: hidden below 400px. It was 360px, which was measured
+              // to be too low — at 375px a recurring GROUP job put
+              // "⟳ Weekly" past the right edge of the clipped row, so the
+              // chip was rendering into nothing on the exact phone width it
+              // was supposed to be safe on. "Recurring" is the least
+              // decision-relevant item here (it does not change what the job
+              // is, where, when, or what it pays) and it is the longest, so
+              // it is the right thing to drop first.
               <>
-                <span className="opacity-30 hidden [@media(min-width:360px)]:inline">·</span>
-                <span className="hidden [@media(min-width:360px)]:flex items-center gap-1">
+                <span className="shrink-0 opacity-30 hidden [@media(min-width:400px)]:inline">·</span>
+                <span className="shrink-0 hidden [@media(min-width:400px)]:flex items-center gap-1">
                   <Repeat className="w-2.5 h-2.5 shrink-0" strokeWidth={2.25} />
                   <span className="font-sans">
                     {job.recurrence_interval || "Recurring"}
@@ -575,9 +700,9 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 keeps "1 day left" from breaking across two lines. */}
             {expiryText && (
               <>
-                <span className="opacity-30">·</span>
+                <span className="shrink-0 opacity-30">·</span>
                 <span
-                  className={`flex items-center gap-1 ${isExpiringSoon ? "text-destructive font-medium" : ""}`}
+                  className={`flex shrink-0 items-center gap-1 ${isExpiringSoon ? "text-destructive font-medium" : ""}`}
                 >
                   <Timer className="w-2.5 h-2.5 shrink-0" />
                   <span className="font-sans whitespace-nowrap">{expiryText}</span>

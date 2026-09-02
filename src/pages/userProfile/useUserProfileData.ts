@@ -1,26 +1,110 @@
 import { useState, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { formatName } from "@/lib/utils";
+import { formatCategory } from "@/lib/format";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { queryKeys } from "@/lib/queryKeys";
 import { unwrap } from "@/lib/supabaseResult";
 import { report } from "@/lib/errorLogger";
 import { pickRequestedProfile } from "@/lib/safeProfiles";
-import type { ProfileReview, ProfileJob } from "./types";
+import type { ProfileReview, ProfileJob, ReplyLatency } from "./types";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
-// The three trust-signal side queries below are deliberately soft-failing —
+// The trust-signal side queries below are deliberately soft-failing —
 // a missing table/function must hide a badge, not brick the profile. But
 // "not deployed yet" is the ONLY benign case: PGRST202 (function missing),
 // PGRST205 / 42P01 (relation missing). Every other error — RLS regression,
 // timeout, outage — has to stay observable, otherwise a real failure reads
-// as "this user has no disputes / no credentials / no pet history", which is
-// a trust claim we'd be making without knowing it's true.
+// as "this user has no credentials / no pet history", which is a trust claim
+// we'd be making without knowing it's true. (The dispute-count query that
+// used to sit alongside these was removed for exactly that reason — see the
+// note further down: RLS made its answer meaningless, not just fragile.)
 const NOT_DEPLOYED_CODES = new Set(["PGRST202", "PGRST205", "42P01"]);
 function isNotDeployed(err: { code?: string } | null | undefined): boolean {
   return !!err?.code && NOT_DEPLOYED_CODES.has(err.code);
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   PUBLIC STATS — the numbers a STRANGER is allowed to be told.
+
+   Measured on prod 2026-09-01 with a purpose-built auth user holding zero
+   shared history with anybody, querying through PostgREST as themselves:
+
+     jobs                            → []      applications              → []
+     profiles (another member's row) → []      reviews + jobs!inner(…)   → []
+     reviews with NO join            → 5 rows
+
+   So every stat this hook derived below — review count, average rating, job
+   counts, cancellation rate, on-time rate, revision rate, the trust flags —
+   was structurally 0/false for every visitor, while `get_user_repeat_hire_
+   percent` (SECURITY DEFINER) kept answering truthfully. The two collided on
+   one card: profile 6bdc1f67 rendered "New · No reviews yet" beside "100%
+   Clients who rebooked". A visitor read both as measurements. One was.
+
+   `get_public_profile_stats` / `get_public_profile_reviews` (migration
+   20260901002325) compute those numbers server-side where the rows are
+   readable, with every sample floor enforced in SQL. When they answer, they
+   WIN over the client-side derivations below — for the owner too, so there is
+   one set of numbers rather than two that disagree. When they don't answer
+   (PGRST202 in the merge→`db push` window) the client derivations stand,
+   which is exactly today's behaviour.
+   ─────────────────────────────────────────────────────────────────────────── */
+type PublicProfileStatsRow = {
+  user_id: string;
+  review_count: number | null;
+  avg_rating: number | string | null;
+  poster_review_count: number | null;
+  poster_avg_rating: number | string | null;
+  completed_jobs_as_helper: number | null;
+  completed_jobs_total: number | null;
+  posted_jobs_total: number | null;
+  jobs_total: number | null;
+  cancelled_jobs: number | null;
+  cancellation_rate: number | string | null;
+  on_time_sample: number | null;
+  on_time_rate: number | string | null;
+  revision_sample: number | null;
+  revision_rate: number | string | null;
+  repeat_client_sample: number | null;
+  repeat_hire_percent: number | string | null;
+  approval_status: string | null;
+  is_id_verified: boolean | null;
+  has_stripe_account: boolean | null;
+  is_background_checked: boolean | null;
+  has_pending_credentials: boolean | null;
+};
+
+type PublicProfileReviewRow = {
+  id: string;
+  rating: number;
+  punctuality: number | null;
+  quality: number | null;
+  communication: number | null;
+  feedback: string | null;
+  created_at: string;
+  reviewer_name: string | null;
+  job_category: string | null;
+  response_text: string | null;
+  response_at: string | null;
+  total_count: number | string | null;
+};
+
+/**
+ * Postgres `numeric` crosses PostgREST as a STRING ("4.57"), and `Number(null)`
+ * is `0` — which is the precise shape of the bug this whole change exists to
+ * kill. Unknown stays `null` all the way to the render site so the UI can say
+ * "not enough history yet" instead of printing a zero nobody measured.
+ */
+function num(v: unknown): number | null {
+  if (v === null || v === undefined) return null;
+  const n = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+function int(v: unknown): number | null {
+  const n = num(v);
+  return n === null ? null : Math.round(n);
 }
 
 // Shared review-enrichment mapper — identical in both the initial queryFn
@@ -53,9 +137,8 @@ function enrichReviewRows(
 /**
  * Encapsulates every Supabase fetch + derivation the UserProfile page needs:
  * the primary profile query (with all its trust-signal / stats derivation),
- * the three PGRST202-safe side queries (disputes, submitted credentials, pet
- * care), and the offset-paginated "load more reviews" flow. Extracted verbatim
- * from UserProfile.tsx — no behaviour, error handling, or query shape changed.
+ * the PGRST202-safe side queries (submitted credentials, pet care), and the
+ * offset-paginated "load more reviews" flow.
  */
 export function useUserProfileData(userId: string | undefined, currentUserId: string | null) {
   // React Query: cached for 60s, instant on revisit, refresh in background.
@@ -130,11 +213,6 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         return { profile: null as Profile | null };
       }
 
-      // Unified user model — every user can apply OR post. Always fetch
-      // applications; the metrics section just hides itself if empty.
-      // Was previously gated on role === 'helper', but role distinction
-      // no longer exists in the UI.
-      //
       // jobs select also pulls latitude/longitude so the "did N jobs
       // nearby" social-proof badge (#31) can filter against the viewer's
       // location without a second round trip. status_history_total /
@@ -148,14 +226,30 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
       // blocks the row read.
       const wantsMutual = !!currentUserId && currentUserId !== userId;
 
-      const [reviewsRes, postedRes, workedRes, appsRes, idCheckRes, postedTotalRes, postedCancelledRes, workedTotalRes, workedCancelledRes, lastActiveRes, mutualRes, workedTimingRes, posterReviewsRes, repeatHireRes, credentialTierRes, existingThreadRes, appliedToMineRes] = await Promise.all([
+      // The uuid in the URL may be a `profiles.id` rather than an auth
+      // `user_id` (Messages links do this — see the long note above). `prof`
+      // has already been re-matched against what we asked for, so its
+      // `user_id` is the authoritative identity of the human on screen. The
+      // new stats RPCs are keyed off THAT, not off the raw route param, so
+      // they can never aggregate a different person's record onto this page.
+      const targetUserId = ((prof as { user_id?: string | null }).user_id ?? userId) as string;
+
+      /* Reply latency is the OWNER's own number and the RPC that computes it
+         takes no argument — it reads auth.uid(), so it cannot be pointed at
+         anyone else. Skip the round trip entirely on a visitor's view rather
+         than fire a call whose answer is structurally an empty sample. Both
+         key spaces are accepted because the route param may be a
+         `profiles.id` (Messages links do that — see the note above). */
+      const wantsReplyLatency =
+        !!currentUserId && (currentUserId === targetUserId || currentUserId === userId);
+
+      const [reviewsRes, postedRes, workedRes, idCheckRes, postedTotalRes, postedCancelledRes, workedTotalRes, workedCancelledRes, lastActiveRes, mutualRes, workedTimingRes, posterReviewsRes, repeatHireRes, credentialTierRes, existingThreadRes, appliedToMineRes, publicStatsRes, publicReviewsRes, replyLatencyRes] = await Promise.all([
         // feedback_visible_at filter: anti-retaliation reveal — hidden until
         // both sides post or 14 days pass. set_review_visibility trigger
         // stamps this column on insert.
         supabase.from("reviews").select("id, rating, punctuality, quality, communication, feedback, created_at, reviewer_id, job_id, response_text, response_at, jobs!inner(status)", { count: "exact" }).eq("reviewee_id", userId!).lte("feedback_visible_at", new Date().toISOString()).neq("jobs.status", "cancelled").order("created_at", { ascending: false }).limit(20),
-        supabase.from("jobs").select("id, title, status, category, budget, created_at, latitude, longitude").eq("customer_id", userId!).order("created_at", { ascending: false }).limit(20),
-        supabase.from("jobs").select("id, title, status, category, budget, created_at, latitude, longitude").eq("helper_id", userId!).order("created_at", { ascending: false }).limit(20),
-        supabase.from("applications").select("status, created_at, updated_at").eq("helper_id", userId!),
+        supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("customer_id", userId!).order("created_at", { ascending: false }).limit(20),
+        supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("helper_id", userId!).order("created_at", { ascending: false }).limit(20),
         // Verification-ladder inputs (#112): grab the trust signals while
         // we're already touching this row. `get_safe_profiles` doesn't
         // expose these, but the profiles RLS policy already permits SELECT
@@ -210,12 +304,30 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         // their 20 most recent. This query is deliberately unlimited (same
         // as the avgRating path it already feeds). Degrades gracefully to
         // empty on error.
+        //
+        // NO `jobs!inner(...)`. That join is why this profile said "New to
+        // Helpr" for a member with five published, revealed 5-star reviews:
+        // `jobs` is hidden from any non-party by RLS, so an INNER join through
+        // it matches nothing and every stat computed from this query lands at
+        // zero. Measured in the running app on 2026-08-31 against a real
+        // production profile — `get_public_profile_stats` answered 404 (not
+        // deployed yet), this fallback returned 0 rows, `stats.reviewCount`
+        // came out 0, and the page rendered "hasn't built a public record
+        // yet" beside a helper who has one. Silent: 200 OK, empty array.
+        //
+        // The poster/helper split the join was there to decide is recovered
+        // below from `postedJobs`/`workedJobs`, which this hook already loads.
+        // The cancelled-job exclusion is NOT expressible here at all — that is
+        // precisely what `get_public_profile_stats` exists to do — so this
+        // fallback can over-count a review left on a job that later went
+        // completed → disputed → cancelled. Over-counting a rare transition is
+        // a far smaller lie than reporting every helper as unrated.
         supabase
           .from("reviews")
-          .select("rating, job_id, jobs!inner(status, customer_id)")
+          .select("rating, job_id")
           .eq("reviewee_id", userId!)
-          .lte("feedback_visible_at", new Date().toISOString())
-          .neq("jobs.status", "cancelled"),
+          .eq("status", "published")
+          .lte("feedback_visible_at", new Date().toISOString()),
         // Repeat-hire % (#milestones) — % of unique customers who hired
         // this helper more than once. PGRST202-safe: function may not be
         // deployed on production yet; falls back to null (milestone hidden).
@@ -258,6 +370,31 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
               .eq("helper_id", userId!)
               .eq("jobs.customer_id", currentUserId!)
           : Promise.resolve({ data: null, error: null, count: 0 } as any),
+        // THE PUBLIC AGGREGATES. Granted to anon AND authenticated — a
+        // signed-out visitor is the truest stranger there is, and a count and
+        // a mean identify nobody.
+        supabase.rpc("get_public_profile_stats" as any, { p_user_ids: [targetUserId] }),
+        // THE PUBLIC REVIEW LIST. Replaces the `reviews … jobs!inner(status)`
+        // select above, whose inner join runs through a table RLS hides from
+        // every visitor — which is why it returned zero rows for all of them
+        // while a bare `reviews` select returned five. Granted to
+        // `authenticated` only, deliberately: that is the exact audience the
+        // `reviews` SELECT policy already allows, so the join is fixed without
+        // widening who can read a review by one person.
+        supabase.rpc("get_public_profile_reviews" as any, {
+          p_user_id: targetUserId,
+          p_limit: 20,
+          p_offset: 0,
+        }),
+        /* TYPICAL REPLY TIME — the owner's own, measured from real message
+           threads. This replaces `avg(applications.updated_at - created_at)`,
+           which measured the POSTER's latency and published it under the
+           helper's name; see 20260901005108 for the prod rows that prove it.
+           Self-only by construction (no argument, reads auth.uid()), so a
+           visitor never fires it. */
+        wantsReplyLatency
+          ? supabase.rpc("get_my_reply_latency" as any)
+          : Promise.resolve({ data: null, error: null } as any),
       ]);
 
       // These five feed secondary stats (reviews, job counts, response
@@ -267,7 +404,7 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
       // is observable instead of looking like "this user has 0 reviews".
       for (const [label, res] of [
         ["reviews", reviewsRes], ["posted_jobs", postedRes], ["worked_jobs", workedRes],
-        ["applications", appsRes], ["trust_signals", idCheckRes],
+        ["trust_signals", idCheckRes],
         ["posted_total", postedTotalRes], ["posted_cancelled", postedCancelledRes],
         ["worked_total", workedTotalRes], ["worked_cancelled", workedCancelledRes],
         ["worked_timing", workedTimingRes], ["poster_reviews", posterReviewsRes],
@@ -315,6 +452,58 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
           context: { viewed_user_id: userId },
         });
       }
+      /* PUBLIC-STATS RPCs — the same PGRST202-safe split every other RPC on
+         this page uses, with one addition. `get_public_profile_reviews` is
+         granted to `authenticated` only, so a signed-out visitor gets 42501
+         on every single call; that is the designed outcome, not an outage, and
+         reporting it would bury Sentry in noise from the marketing traffic.
+         Anything else — RLS regression, timeout, a broken function body — must
+         stay observable, because a silently-swallowed failure here reads as
+         "this person has no record", which is a trust claim we would be making
+         without knowing it is true. */
+      // `get_public_profile_stats` / `get_public_profile_reviews` are not in the
+      // generated `Database` types until the migration lands and types are
+      // regenerated, so the two results are read through an explicit shape.
+      type RpcResult = { data?: unknown; error?: { code?: string } | null };
+      const statsRes = publicStatsRes as RpcResult;
+      const reviewsRpcRes = publicReviewsRes as RpcResult;
+
+      const replyRpcRes = replyLatencyRes as RpcResult;
+
+      for (const [label, res, benign] of [
+        ["public_stats", statsRes, ["PGRST202"]],
+        ["public_reviews", reviewsRpcRes, ["PGRST202", "42501"]],
+        // Same split: PGRST202 is the deploy-lag window, 42501 is a signed-out
+        // caller hitting an `authenticated`-only grant. Neither is an outage.
+        ["reply_latency", replyRpcRes, ["PGRST202", "42501"]],
+      ] as const) {
+        const err = res.error;
+        if (err && !benign.includes(err.code as never)) {
+          report(err, {
+            severity: "warning",
+            tags: { area: `user_profile.${label}` },
+            context: { viewed_user_id: targetUserId },
+          });
+        }
+      }
+
+      /* Re-match the aggregate row against the person we are actually showing.
+         `get_public_profile_stats` resolves BOTH `profiles.user_id` and
+         `profiles.id` (same contract as get_safe_profiles), and on prod a
+         single uuid is already one member's auth id and a different member's
+         profile id. Taking row [0] blind is how the wrong human's trust record
+         lands on a vetting screen; it happened once already and was silent. */
+      const publicStats: PublicProfileStatsRow | null = statsRes.error
+        ? null
+        : ((statsRes.data ?? []) as PublicProfileStatsRow[]).find(
+            (r) => r?.user_id === targetUserId,
+          ) ?? null;
+
+      const hasPublicReviewRpc = !reviewsRpcRes.error && Array.isArray(reviewsRpcRes.data);
+      const publicReviewRows: PublicProfileReviewRow[] = hasPublicReviewRpc
+        ? (reviewsRpcRes.data as PublicProfileReviewRow[])
+        : [];
+
       const lastActiveAt =
         lastActiveRes.data?.[0]?.last_active_at
           ? new Date(lastActiveRes.data[0].last_active_at)
@@ -340,10 +529,24 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
       // reviewsRes has a .limit(20) now — its .data can't reliably compute
       // the average across all reviews.
       const allRatings = (posterReviewsRes?.data?.map((r: any) => r.rating) ?? []).filter(Number.isFinite) as number[];
+      /* THE HEADLINE NUMBERS. The RPC wins whenever it answered — for the
+         owner as well as for a visitor, so the page cannot show one person two
+         different averages depending on who is looking. The client-side
+         derivation underneath is the PGRST202 fallback and is left byte-for-
+         byte as it was, so the deploy-lag window behaves exactly like today.
+         `avgRating` keeps its `0`-means-none contract because `computeBadges`
+         and `computeHelperTier` are written against it; nothing renders that 0
+         — every display site gates on `reviewCount > 0` first. */
       const stats = {
-        completedJobs: completedCount,
-        avgRating: allRatings.length > 0 ? allRatings.reduce((a: number, b: number) => a + b, 0) / allRatings.length : 0,
-        reviewCount: reviewsRes.count ?? allRatings.length,
+        completedJobs: int(publicStats?.completed_jobs_total) ?? completedCount,
+        avgRating:
+          num(publicStats?.avg_rating) ??
+          (publicStats
+            ? 0
+            : allRatings.length > 0
+            ? allRatings.reduce((a: number, b: number) => a + b, 0) / allRatings.length
+            : 0),
+        reviewCount: int(publicStats?.review_count) ?? reviewsRes.count ?? allRatings.length,
       };
 
       // Cancellation-rate metric (#30) — separate posted-side vs worked-side
@@ -351,13 +554,22 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
       // compute the combined rate inline at the render site. A minimum
       // sample size of 5 prevents "1 of 1 cancelled = 100%" cliffs on
       // fresh accounts.
-      const totalJobsCount = (postedTotalRes.count ?? 0) + (workedTotalRes.count ?? 0);
-      const totalCancelledCount = (postedCancelledRes.count ?? 0) + (workedCancelledRes.count ?? 0);
+      const clientTotalJobsCount = (postedTotalRes.count ?? 0) + (workedTotalRes.count ?? 0);
+      const clientTotalCancelledCount =
+        (postedCancelledRes.count ?? 0) + (workedCancelledRes.count ?? 0);
+      // The >= 5 floor now lives in SQL (one rule, not two), so `rate` arrives
+      // already NULL below it. The counts come back too, so the card can still
+      // say WHY it is withholding — "after 5 jobs" — instead of just vanishing.
+      const totalJobsCount = int(publicStats?.jobs_total) ?? clientTotalJobsCount;
+      const totalCancelledCount = int(publicStats?.cancelled_jobs) ?? clientTotalCancelledCount;
       const cancellationRate = {
         total: totalJobsCount,
         cancelled: totalCancelledCount,
-        // Only render when there's enough history to be meaningful.
-        rate: totalJobsCount >= 5 ? (totalCancelledCount / totalJobsCount) * 100 : null,
+        rate: publicStats
+          ? num(publicStats.cancellation_rate)
+          : totalJobsCount >= 5
+          ? (totalCancelledCount / totalJobsCount) * 100
+          : null,
       };
 
       // Mutual jobs (#1) — silently degrade to 0 if the count read errored
@@ -418,35 +630,82 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         }
       }
 
-      let responseMetrics = { avgResponseHours: null as number | null, acceptanceRate: null as number | null, totalApplications: 0 };
-      if (appsRes?.data && appsRes.data.length > 0) {
-        const allApps = appsRes.data;
-        const accepted = allApps.filter((a: any) => a.status === "accepted");
-        // Needs a real sample before it means anything. One application that
-        // hasn't been answered yet made a brand-new helper show "0% accept
-        // rate" — which a poster reads as a bad record, not as no data, and it
-        // sat three lines above "they're new on Helpr" saying the opposite.
-        //
-        // 5 matches the floor the cancellation rate already uses on this same
-        // card, and for the identical reason recorded there: "so a single early
-        // cancellation doesn't read as 100% cancel rate". Below the floor the
-        // metric is null and simply does not render, the way it already
-        // behaves at zero applications.
-        const MIN_ACCEPT_RATE_SAMPLE = 5;
-        const acceptanceRate =
-          allApps.length >= MIN_ACCEPT_RATE_SAMPLE ? (accepted.length / allApps.length) * 100 : null;
-        const responseTimes = accepted
-          .map((a: any) => (new Date(a.updated_at).getTime() - new Date(a.created_at).getTime()) / 3_600_000)
-          .filter((h: number) => h > 0 && h < 720);
-        responseMetrics = {
-          avgResponseHours: responseTimes.length > 0 ? responseTimes.reduce((a: number, b: number) => a + b, 0) / responseTimes.length : null,
-          acceptanceRate,
-          totalApplications: allApps.length,
-        };
+      /* Server-side wins. Two things the SQL gets right that the block above
+         could not:
+           1. It sees the whole completed history. The select above carries a
+              .limit(50) — an artefact of paging a table, not a decision about
+              what the rate should mean.
+           2. Timezone. `new Date("2026-07-01T09:00:00")` resolves in the
+              VIEWER's zone, so the same helper was on time in Baton Rouge and
+              five hours late in London. The RPC pins America/Chicago, which is
+              the zone `date_needed` + `start_time` were written in.
+         Sample sizes come back alongside so the card can say "after 5 jobs"
+         rather than silently dropping a cell. */
+      const onTimeSample = int(publicStats?.on_time_sample) ?? timingRows.length;
+      const revisionSample = int(publicStats?.revision_sample) ?? timingRows.length;
+      if (publicStats) {
+        onTimeArrivalRate = num(publicStats.on_time_rate);
+        revisionFrequency = num(publicStats.revision_rate);
       }
 
+      /* ── TYPICAL REPLY TIME ────────────────────────────────────────────
+         Was: `avg(applications.updated_at - applications.created_at)` over the
+         ACCEPTED applications this member submitted, labelled "Avg. reply
+         time" on their own profile. Neither end of that subtraction is a reply
+         and only one end is theirs — `created_at` is them applying, and
+         `updated_at` is a last-touch column that RLS lets only the POSTER
+         write. Prod, 2026-09-01: three different helpers on three different
+         jobs shared one `updated_at` to the microsecond (a bulk maintenance
+         write), and the card rendered the distance to it as 22d / 17d / 3d of
+         "reply time".
+
+         Now: the median gap between the other party's message and this
+         member's answer, over real threads, computed by
+         `get_my_reply_latency()`. Median rather than mean because one
+         overnight gap moved a real member's mean from 47m to 6.6h. NULL below
+         five replies — the floor the cancellation, on-time and revision rates
+         already use — and NULL, never 0, while the RPC is undeployed.
+
+         The old sibling metric, "Accept rate", is not replaced. It is deleted;
+         see the note in AtAGlanceCard.tsx. */
+      const replyRow = (Array.isArray(replyRpcRes.data) ? replyRpcRes.data[0] : null) as
+        | { reply_sample?: number | string | null; median_reply_minutes?: number | string | null }
+        | null;
+      const replyLatency: ReplyLatency = {
+        medianReplyMinutes: replyRow ? num(replyRow.median_reply_minutes) : null,
+        replySample: replyRow ? int(replyRow.reply_sample) ?? 0 : 0,
+        // Only true when the RPC actually answered. A visitor (never called)
+        // and a deploy-lag PGRST202 both land here as `false`, so the card
+        // stays silent instead of claiming a measurement it does not have.
+        measured: !replyRpcRes.error && !!replyRow,
+      };
+
       let reviews: any[] = [];
-      if (reviewsRes.data && reviewsRes.data.length > 0) {
+      /* PREFERRED PATH: the DEFINER function. It already applied the reveal
+         window and the cancelled-job exclusion in SQL, masked the reviewer's
+         name by the same approved-and-not-banned rule get_safe_profiles uses,
+         and returned the job's CATEGORY rather than its title — titles are
+         free text and routinely carry a street or a surname, and a sibling
+         lane spent today closing an address leak. It also saves the two
+         follow-up round trips the fallback needs, one of which (`jobs`
+         .select(title, category)) returns nothing for a visitor anyway, which
+         is why every review on a stranger's view read "For: a task". */
+      if (hasPublicReviewRpc) {
+        reviews = publicReviewRows.map((r) => ({
+          id: r.id,
+          rating: r.rating,
+          punctuality: r.punctuality ?? null,
+          quality: r.quality ?? null,
+          communication: r.communication ?? null,
+          feedback: r.feedback,
+          created_at: r.created_at,
+          reviewerName: r.reviewer_name ? formatName(r.reviewer_name) : "a neighbor",
+          jobTitle: r.job_category ? formatCategory(r.job_category) : "a task",
+          jobCategory: r.job_category ?? null,
+          response_text: r.response_text ?? null,
+          response_at: r.response_at ?? null,
+        })) as ProfileReview[];
+      } else if (reviewsRes.data && reviewsRes.data.length > 0) {
         const reviewerIds = [...new Set(reviewsRes.data.map((r: any) => r.reviewer_id))] as string[];
         const jobIds = [...new Set(reviewsRes.data.map((r: any) => r.job_id))] as string[];
         const [profilesRes2, jobsRes] = await Promise.all([
@@ -469,6 +728,16 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
       // Only show when there are 3+ poster reviews (same minimum as the
       // helper-side chart) to avoid noisy stats on fresh accounts.
       const allReviewRows = (posterReviewsRes.data ?? []) as any[];
+      // With the `jobs!inner` embed removed from that query (see the comment
+      // on it — the join silently zeroed EVERY stat on this page), `r.jobs` is
+      // absent and this filter yields []. That is not a regression: `jobs` is
+      // unreadable to a non-party, so the embed returned nothing for any
+      // visitor anyway and the poster/helper split was already empty in
+      // production. The split is `get_public_profile_stats`' job
+      // (`poster_avg_rating` / `poster_review_count`, used below whenever the
+      // RPC resolves); this fallback simply reports no poster-side split
+      // rather than a fabricated one, while the OVERALL rating above now
+      // reflects real reviews instead of zero.
       const posterReviewRows = allReviewRows.filter((r) => {
         const job = Array.isArray(r?.jobs) ? r.jobs[0] : r?.jobs;
         return job?.customer_id === userId;
@@ -476,7 +745,16 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
       const posterRatings = posterReviewRows
         .map((r) => r.rating as number)
         .filter(Number.isFinite);
-      const posterReputation = posterRatings.length >= 3
+      // Same 3-review floor, now enforced in SQL: `poster_avg_rating` arrives
+      // already NULL below it, so there is one rule instead of two that can
+      // drift apart.
+      const publicPosterAvg = publicStats ? num(publicStats.poster_avg_rating) : null;
+      const publicPosterCount = int(publicStats?.poster_review_count) ?? 0;
+      const posterReputation = publicStats
+        ? publicPosterAvg !== null
+          ? { reviewCount: publicPosterCount, avgRating: publicPosterAvg }
+          : null
+        : posterRatings.length >= 3
         ? {
             reviewCount: posterRatings.length,
             avgRating: posterRatings.reduce((a, b) => a + b, 0) / posterRatings.length,
@@ -484,15 +762,47 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         : null;
 
       return {
-        profile: prof as Profile,
+        profile: {
+          ...(prof as Profile),
+          /* ProfileHeaderCard reads `background_check_status` straight off the
+             profile object, and `get_safe_profiles` does not return it — so
+             the Background-Checked badge was permanently dark on every
+             visitor's view of every profile. Only the AFFIRMATIVE verdict is
+             published: 'pending' and 'failed' are negative safety claims about
+             a named individual and stay with the owner, whose own row RLS
+             already lets them read (that value survives the `??` below). */
+          ...(publicStats?.is_background_checked
+            ? { background_check_status: "verified" }
+            : {}),
+        } as Profile,
         reviews,
         stats,
-        // Total count from the count-query on the limited reviews fetch.
-        // Used on the render side to know whether there are more pages.
-        reviewsTotalCount: reviewsRes.count ?? 0,
+        /* PAGINATION denominator — the number of reviews this viewer can
+           actually LOAD, which is not the same as `stats.reviewCount`, the
+           number that exist. A signed-out visitor is told the true count (5)
+           but cannot read the prose, so conflating the two would render a
+           "Load more" button that loads nothing forever. */
+        reviewsTotalCount: hasPublicReviewRpc
+          ? int(publicReviewRows[0]?.total_count) ?? publicReviewRows.length
+          : reviewsRes.count ?? 0,
+        /* FALSE only for a viewer with no session: review prose is granted to
+           `authenticated`, exactly as the `reviews` RLS policy already was.
+           The card uses this to say "sign in to read them" instead of the flat
+           lie "No reviews yet". */
+        canReadReviewText: hasPublicReviewRpc || !reviewsRes.error,
+        // Sample sizes behind each gated rate, so the UI can distinguish
+        // "measured 0%" from "not enough history yet" and say which.
+        statSamples: {
+          jobs: totalJobsCount,
+          onTime: onTimeSample,
+          revisions: revisionSample,
+          repeatClients: int(publicStats?.repeat_client_sample) ?? 0,
+          posterReviews: publicStats ? publicPosterCount : posterRatings.length,
+          hasServerStats: !!publicStats,
+        },
         postedJobs,
         workedJobs,
-        responseMetrics,
+        replyLatency,
         cancellationRate,
         mutualJobsCount,
         canMessage,
@@ -505,72 +815,88 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         // a public "Verified Helpr" ribbon shown to strangers, even though
         // nobody reviews the upload. Now it is Stripe's identity verdict.
         // See supabase/functions/_shared/stripeIdentity.ts.
-        isIdVerified: idCheckRes.data?.stripe_identity_verified === true,
+        // `idCheckRes` is a direct `profiles` select, which RLS permits on
+        // your OWN row only — measured: zero rows for any other member. So
+        // this was permanently false for every visitor. The RPC computes it
+        // server-side; the direct read stays as the PGRST202 fallback.
+        isIdVerified:
+          publicStats?.is_id_verified ?? idCheckRes.data?.stripe_identity_verified === true,
+        // Owner-only surface (the purchase CTA). Deliberately NOT sourced from
+        // the RPC: the raw status is never published, only the 'verified' bit.
         backgroundCheckStatus: (idCheckRes.data?.background_check_status ?? "none") as string,
         // Verification-ladder inputs — passed straight through to
-        // HelperTierBadge. Null-safe if the row read was blocked.
+        // HelperTierBadge, which was therefore tier 0 (badge hidden) on every
+        // visitor's view for the same RLS reason.
         tierProfile: {
-          approval_status: idCheckRes.data?.approval_status ?? null,
-          stripe_identity_verified: idCheckRes.data?.stripe_identity_verified ?? null,
-          stripe_account_id: idCheckRes.data?.stripe_account_id ?? null,
+          approval_status: publicStats?.approval_status ?? idCheckRes.data?.approval_status ?? null,
+          stripe_identity_verified:
+            publicStats?.is_id_verified ?? idCheckRes.data?.stripe_identity_verified ?? null,
+          /* The ladder only ever truthiness-tests this (`if
+             (!profile.stripe_account_id) return false` in src/lib/helperTier.ts),
+             so the RPC publishes a boolean and the real acct_… identifier never
+             leaves the database. The sentinel is a presence marker, not an id —
+             do not start reading it as one. */
+          stripe_account_id: publicStats
+            ? publicStats.has_stripe_account
+              ? "connected"
+              : null
+            : idCheckRes.data?.stripe_account_id ?? null,
         },
         posterReputation,
-        postedTotalCount: postedTotalRes.count ?? 0,
+        postedTotalCount: int(publicStats?.posted_jobs_total) ?? postedTotalRes.count ?? 0,
         postedCancelledCount: postedCancelledRes.count ?? 0,
-        // Repeat-hire % — null when the RPC isn't deployed yet (PGRST202)
-        // or when the helper has no completed jobs yet.
-        repeatHirePercent: repeatHireRes?.error ? null : (typeof repeatHireRes?.data === "number" ? repeatHireRes.data : null),
+        // Jobs completed AS A HELPER. `completedWorkedJobs.length` counts a
+        // .limit(20) page of rows a visitor cannot read at all — it was 0 for
+        // every stranger and capped at 20 for everybody else.
+        completedAsHelperCount: int(publicStats?.completed_jobs_as_helper),
+        /* Repeat-hire % — now gated at 3 distinct completed-job clients.
+           Ungated, ONE returning customer published a boldfaced "100% Clients
+           who rebooked", which is the half of the contradiction that was
+           technically true and still misleading. Below the floor this is null
+           and the cell does not render. Falls back to the older ungated RPC
+           only while the new one is undeployed. */
+        repeatHirePercent: publicStats
+          ? num(publicStats.repeat_hire_percent)
+          : repeatHireRes?.error
+          ? null
+          : typeof repeatHireRes?.data === "number"
+          ? repeatHireRes.data
+          : null,
         // Credential tier 0-3 — 0 when the RPC errored/isn't deployed, which
         // simply withholds the "Licensed Pro" milestone rather than claiming it.
         credentialTier:
           credentialTierRes?.error || typeof credentialTierRes?.data !== "number"
             ? 0
             : credentialTierRes.data,
+        // `helper_credentials` is RLS-scoped to the owner, so the amber
+        // "Verification in progress" chip could only ever appear on your own
+        // profile. Published as a bare boolean — no vendor, no document, no
+        // dates, just "something is with a reviewer".
+        hasPendingCredentials: publicStats?.has_pending_credentials ?? null,
       };
     },
   });
 
-  // "No disputes on record" trust signal — check whether any dispute
-  // has been opened by this user via the new job_disputes table.
-  // Wrapped in a separate query so a PGRST202 (table not yet deployed)
-  // just hides the badge rather than blocking the whole profile load.
-  const { data: disputeCheckData } = useQuery({
-    queryKey: ["user_dispute_count", userId],
-    enabled: !!userId && !!data?.profile,
-    staleTime: 2 * 60_000,
-    queryFn: async () => {
-      try {
-        const { count, error } = await supabase
-          .from("job_disputes")
-          .select("id", { count: "exact", head: true })
-          .eq("opened_by", userId!);
-        // Table not deployed yet — hide the badge silently. Any other error
-        // is a real failure: report it rather than let it pass for a count
-        // we never actually read.
-        if (error) {
-          if (!isNotDeployed(error)) {
-            report(error, {
-              severity: "warning",
-              tags: { area: "user_profile.dispute_count" },
-              context: { viewed_user_id: userId },
-            });
-          }
-          return null;
-        }
-        return { count: count ?? 0 };
-      } catch (e) {
-        report(e, {
-          severity: "warning",
-          tags: { area: "user_profile.dispute_count" },
-          context: { viewed_user_id: userId },
-        });
-        return null;
-      }
-    },
-  });
-  // Derive the clean-record flag: null = query not done or failed
-  // (hide the badge), 0 = no disputes opened by this user (show signal).
-  const hasCleanRecord = disputeCheckData?.count === 0;
+  /* THE DISPUTE-COUNT QUERY IS GONE (2026-08-31).
+
+     It fetched `job_disputes` filtered on `opened_by = <viewed user>` and
+     exposed `hasCleanRecord = count === 0`, which UserProfile rendered as a
+     green "No disputes on record" line.
+
+     Two things were wrong with it, either one fatal:
+
+       1. RLS. `job_disputes`'s SELECT policy ("Job parties and admins can view
+          job_disputes", 20260612190000_dispute_revision.sql) only returns rows
+          for jobs the CALLER was a party to. A visitor can never see a
+          stranger's disputes, so the count came back 0 for everyone and the
+          affirmative safety claim rendered on every profile in the app,
+          truthfully or not.
+       2. Semantics. It counted disputes this person OPENED — not disputes
+          opened AGAINST them, which is what a reader takes the badge to mean.
+
+     A truthful version needs a SECURITY DEFINER aggregate RPC (the shape
+     `helper_repeat_hire_percent` already uses). Until that exists we claim
+     nothing rather than claim it wrongly. */
 
   // Check for submitted credentials awaiting vendor verification — shows
   // an amber "Verification in progress" indicator on the profile.
@@ -610,7 +936,10 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
       }
     },
   });
-  const hasSubmittedCredentials = (submittedCredentialsData?.count ?? 0) > 0;
+  // Server answer first (works for a visitor), own-row count second (the
+  // PGRST202 fallback, and the only thing that ever worked before).
+  const hasSubmittedCredentials =
+    data?.hasPendingCredentials ?? (submittedCredentialsData?.count ?? 0) > 0;
 
   // Pet care trust signal — count of distinct pets cared for + report cards
   // sent by this user. PGRST202-safe: silently hides badge if tables aren't
@@ -686,6 +1015,47 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
     try {
       const from = reviews.length;
       const to = from + 19;
+
+      /* Page through the DEFINER function first — same source as page 1, so
+         page 2 cannot contain a review page 1 filtered out (the cancelled-job
+         exclusion applies to both), and it works for a viewer who cannot read
+         `reviews` directly. PGRST202/42501 falls through to the direct select
+         below, which is the pre-existing path, untouched. */
+      const rpcPage = (await supabase.rpc("get_public_profile_reviews" as any, {
+        p_user_id: userId,
+        p_limit: 20,
+        p_offset: from,
+      })) as { data?: unknown; error?: { code?: string } | null };
+      if (!rpcPage.error && Array.isArray(rpcPage.data)) {
+        const rows = rpcPage.data as PublicProfileReviewRow[];
+        if (rows.length === 0) return;
+        setLocalReviews((prev) => [
+          ...(prev ?? reviewsFromQuery),
+          ...rows.map((r) => ({
+            id: r.id,
+            rating: r.rating,
+            punctuality: r.punctuality ?? null,
+            quality: r.quality ?? null,
+            communication: r.communication ?? null,
+            feedback: r.feedback,
+            created_at: r.created_at,
+            reviewerName: r.reviewer_name ? formatName(r.reviewer_name) : "a neighbor",
+            jobTitle: r.job_category ? formatCategory(r.job_category) : "a task",
+            jobCategory: r.job_category ?? null,
+            response_text: r.response_text ?? null,
+            response_at: r.response_at ?? null,
+          })),
+        ]);
+        return;
+      }
+      if (rpcPage.error && rpcPage.error.code !== "PGRST202" && rpcPage.error.code !== "42501") {
+        report(rpcPage.error, {
+          severity: "warning",
+          tags: { area: "user_profile.load_more_reviews_rpc" },
+          context: { viewed_user_id: userId },
+        });
+      }
+
       const { data: moreRows, error } = await supabase
         .from("reviews")
         .select("id, rating, punctuality, quality, communication, feedback, created_at, reviewer_id, job_id, response_text, response_at")
@@ -726,7 +1096,22 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
   // In Progress / Accepted rows, so filter to completed before counting or
   // listing under that label.
   const completedWorkedJobs = workedJobs.filter((j) => j.status === "completed");
-  const responseMetrics = data?.responseMetrics ?? { avgResponseHours: null, acceptanceRate: null, totalApplications: 0 };
+  /* THE COUNT and THE LIST are different things, and conflating them is what
+     made a stranger see "0 jobs completed" on a helper with a dozen. The list
+     is a .limit(20) page of rows RLS hides from visitors; the count is a
+     server-side aggregate. Render the count, list what you can load. */
+  const completedWorkedCount = data?.completedAsHelperCount ?? completedWorkedJobs.length;
+  const canReadReviewText = data?.canReadReviewText ?? true;
+  const statSamples = data?.statSamples ?? {
+    jobs: 0,
+    onTime: 0,
+    revisions: 0,
+    repeatClients: 0,
+    posterReviews: 0,
+    hasServerStats: false,
+  };
+  const replyLatency: ReplyLatency =
+    data?.replyLatency ?? { medianReplyMinutes: null, replySample: 0, measured: false };
   const cancellationRate = data?.cancellationRate ?? { total: 0, cancelled: 0, rate: null as number | null };
   const mutualJobsCount = data?.mutualJobsCount ?? 0;
   // Deny while the fetch is still in flight: the Message button appearing and
@@ -748,7 +1133,6 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
     data,
     isError,
     refetch,
-    hasCleanRecord,
     hasSubmittedCredentials,
     petCareSignal,
     reviewsFromQuery,
@@ -764,7 +1148,10 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
     postedJobs,
     workedJobs,
     completedWorkedJobs,
-    responseMetrics,
+    completedWorkedCount,
+    canReadReviewText,
+    statSamples,
+    replyLatency,
     cancellationRate,
     mutualJobsCount,
     canMessage,

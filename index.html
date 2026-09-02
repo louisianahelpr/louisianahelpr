@@ -152,10 +152,54 @@
     <meta property="og:url" content="https://www.louisianahelpr.com" />
     <meta property="og:title" content="Helpr — Louisiana's Local Job Partner" />
     <meta property="og:description" content="Helpr connects you with trusted neighbors across Louisiana for cleaning, errands, moving, yard work, and more. Serving New Orleans, Baton Rouge, Shreveport &amp; beyond." />
-    <meta property="og:image" content="https://www.louisianahelpr.com/og-image.png" />
-    <meta property="og:image:width" content="1640" />
-    <meta property="og:image:height" content="624" />
-    <meta property="og:image:alt" content="Helpr — Louisiana's Local Job Partner" />
+    <!-- === SOCIAL PREVIEW IMAGES — the centring is load-bearing ===
+         og-image.png is 1200×630 (1.91:1, the Open Graph standard) with the
+         wrought-iron H mark DEAD CENTRE on the #F1F2F4 canvas. Centre placement is
+         not styling: every consumer crops this file to its own aspect ratio from
+         the centre, so the mark survives all of them — 1.91:1 (Facebook/LinkedIn,
+         no crop at all), 2:1 (Twitter/X summary_large_image, trims 15px top and
+         bottom), and 1:1 (iOS's compact share-sheet thumbnail, WhatsApp, Android).
+
+         This replaced a 1640×624 banner whose only content was the "Helpr . LA"
+         wordmark sitting right of centre. iOS square-crops the share-sheet
+         thumbnail, which reduced that 1640-wide banner to its middle 624px — landing
+         mid-wordmark and slicing the "r" off, so every shared job previewed as a
+         blank cream tile reading "Help". Confirmed by centre-cropping the old file
+         to 624×624 and reproducing the exact thumbnail.
+
+         Rules that follow from that, for anyone regenerating this art:
+           • Keep text OUT of the central 630×630 square, or omit text entirely
+             (og:title already renders as the card headline right beneath the image,
+             so a wordmark baked into the picture is redundant anyway).
+           • Never go wider than 1.91:1 again — the extra width is pure crop bait.
+           • Anything that must never be clipped belongs inside that centre square.
+
+         The ?v=h2 query is a deliberate cache bust, not a stray. Facebook, Slack,
+         LinkedIn and Apple's LinkPresentation each cache a scraped og:image against
+         its full URL for weeks, independent of Cache-Control, so reusing the bare
+         /og-image.png path would have kept serving the clipped "Help" tile to
+         everyone who had already shared a link. The file at the bare path is the new
+         image too, so any stale scrape self-heals on revalidation. Bump to v=h3 (and
+         so on) whenever the artwork changes.
+
+         og-image-square.png (1024×1024 — the App Store icon at native resolution) is
+         declared as a SECOND og:image. Every major consumer takes the FIRST og:image,
+         so the banner remains the large-card image everywhere; the square exists for
+         any consumer that selects a candidate by aspect ratio instead. Order is
+         therefore significant — keep the banner first, and keep each
+         og:image:width/height/alt immediately after the og:image it describes, since
+         Open Graph binds structured sub-properties to the preceding parent by
+         position, not by name. -->
+    <meta property="og:image" content="https://www.louisianahelpr.com/og-image.png?v=h2" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="The Helpr mark — an ornate wrought-iron letter H with a fleur-de-lis at its centre" />
+    <meta property="og:image" content="https://www.louisianahelpr.com/og-image-square.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1024" />
+    <meta property="og:image:height" content="1024" />
+    <meta property="og:image:alt" content="The Helpr mark — an ornate wrought-iron letter H with a fleur-de-lis at its centre" />
     <meta property="og:site_name" content="Helpr" />
     <meta property="og:locale" content="en_US" />
 
@@ -166,8 +210,11 @@
     <meta name="twitter:url" content="https://www.louisianahelpr.com" />
     <meta name="twitter:title" content="Helpr — Louisiana's Local Job Partner" />
     <meta name="twitter:description" content="Helpr connects you with trusted neighbors across Louisiana for cleaning, errands, moving, yard work, and more. Serving New Orleans, Baton Rouge, Shreveport &amp; beyond." />
-    <meta name="twitter:image" content="https://www.louisianahelpr.com/og-image.png" />
-    <meta name="twitter:image:alt" content="Helpr — Louisiana's Local Job Partner" />
+    <!-- Deliberately the WIDE banner, not the square: summary_large_image crops to
+         2:1, so handing it the 1024×1024 square would shave the top and bottom off
+         the H. The banner's centred mark survives that crop untouched. -->
+    <meta name="twitter:image" content="https://www.louisianahelpr.com/og-image.png?v=h2" />
+    <meta name="twitter:image:alt" content="The Helpr mark — an ornate wrought-iron letter H with a fleur-de-lis at its centre" />
 
     <!-- Site-wide structured data, served statically so non-JS crawlers
          (Bing, social/link-preview bots, LLM crawlers) see Helpr's

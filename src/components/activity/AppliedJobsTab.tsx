@@ -4,7 +4,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { hapticError, hapticLight, hapticSuccess } from "@/lib/haptics";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetFooter,
+  SheetHero,
+  SheetPrimaryAction,
+  SheetSecondaryAction,
+} from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { Briefcase, Check } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -365,10 +372,14 @@ export const AppliedJobsTab = ({
             sheet.tsx's `sheetVariants`), so there's no bespoke drag handle to
             keep in sync with here: drag-to-dismiss was removed app-wide, not
             just from this one sheet. */}
-        <SheetContent
-          side="bottom"
-          className="border-t-0 px-5 pt-6 pb-[calc(var(--safe-area-bottom,0px)_+_24px)] max-h-[85dvh] overflow-y-auto"
-        >
+        {/* Only the STRUCTURAL part of the override survives — the max height
+            and inner scroll, for a sheet whose reason list plus textarea can
+            outgrow a short phone. The cosmetic half (`px-5 pt-6`, a
+            safe-area bottom inset written differently in each of the six
+            bottom sheets, and a `border-t-0` for a top border a centred modal
+            no longer has) is gone: SheetContent's shared `p-4 sm:p-5` is the
+            same padding ramp DialogContent uses. */}
+        <SheetContent side="bottom" className="max-h-[85dvh] overflow-y-auto">
           <SheetHero title="Withdraw Application?" />
 
           <fieldset className="mt-5 space-y-1.5" disabled={!!withdrawingAppId}>
@@ -386,7 +397,20 @@ export const AppliedJobsTab = ({
               Choose a reason <span aria-hidden>*</span>
               <span className="sr-only">(required)</span>
             </legend>
-            <div className="grid grid-cols-2 gap-1.5">
+            {/* ONE COLUMN OF FULL-WIDTH ROWS, not a 2-column chip grid.
+                Same reasoning the report dialog's picker was rebuilt on: a
+                grid of variable-length prose labels cannot be tidy —
+                "No longer interested" wraps to two lines while "Other" is one
+                word, so the four tiles carried visibly different heights and
+                the last one orphaned across the bottom of the grid. Rows give
+                every label the same left edge, room to wrap without disturbing
+                a neighbour, and no orphan at any count.
+
+                The SELECTED row is `btn-grad-primary` — the glossy primary
+                surface. It was a flat 10%-bark tint, i.e. a flat selected
+                control, against the standing "primary and selected controls
+                are glossy, never flat" rule. */}
+            <div className="space-y-1.5">
               {([
                 { value: "another_job", label: "Got another job" },
                 { value: "schedule_conflict", label: "Schedule conflict" },
@@ -404,25 +428,29 @@ export const AppliedJobsTab = ({
                       if (value !== "other") setWithdrawDetail("");
                     }}
                     aria-pressed={active}
-                    className="px-3 py-2 rounded-ds-md text-ds-13 font-medium transition-all active:scale-[0.97] inline-flex items-center justify-center gap-1.5"
-                    style={{
-                      // Was `bg-primary/10 text-primary` selected against a
-                      // plain white unselected chip, which composited to a
-                      // GREYER, lower-contrast tile than the four it sat among
-                      // — the chosen answer read as the disabled one. Same
-                      // triple DeclineApplicantSheet uses: the inactive state
-                      // starts translucent so active is genuinely more
-                      // saturated, not less. The check glyph means colour is
-                      // no longer the only signal either.
-                      background: active ? "hsl(var(--bark) / 0.10)" : "hsl(var(--ivory-sand) / 0.55)",
-                      color: active ? "hsl(var(--bark))" : "hsl(var(--olivewood) / 0.85)",
-                      border: active
-                        ? "0.5px solid hsl(var(--bark) / 0.35)"
-                        : "0.5px solid hsl(var(--olivewood) / 0.2)",
-                    }}
+                    // A bare <button>, not the shared <Button>: button.tsx's
+                    // base carries `whitespace-nowrap`, which would stop a long
+                    // reason wrapping and clip it at 320px. The global
+                    // `button { min-height: 44px }` floor still applies.
+                    className={`w-full flex items-center gap-3 min-h-[3.5rem] px-3 py-2.5 rounded-ds-md text-left transition-all duration-150 ease-ds-spring active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+                      active
+                        ? "btn-grad-primary border border-[hsl(var(--bark))] shadow-[inset_0_1px_0_hsl(var(--parchment)/0.22),0_1px_1px_hsl(var(--ink-deep)/0.10),0_2px_6px_hsl(var(--ink-deep)/0.12)]"
+                        : "bg-secondary/45 border border-border/60 hover:bg-secondary/70 hover:border-border shadow-[inset_0_1px_0_rgba(255,255,255,0.5)]"
+                    }`}
                   >
-                    {active && <Check className="w-3.5 h-3.5 shrink-0" aria-hidden />}
-                    {label}
+                    {active && (
+                      <Check
+                        className="w-[18px] h-[18px] shrink-0"
+                        style={{ color: "hsl(var(--parchment))" }}
+                        aria-hidden
+                      />
+                    )}
+                    <span
+                      className="flex-1 min-w-0 whitespace-normal break-words font-sans font-semibold leading-snug text-ds-14"
+                      style={{ color: active ? "hsl(var(--parchment))" : "hsl(var(--ink-deep))" }}
+                    >
+                      {label}
+                    </span>
                   </button>
                 );
               })}
@@ -455,10 +483,22 @@ export const AppliedJobsTab = ({
               makes the two guard toasts in confirmWithdraw reachable; they were
               dead code behind a disabled button, so a helper who hadn't picked
               a reason got no explanation at all. */}
-          <div className="mt-5 flex gap-2">
-            <Button
-              variant="outline"
-              className="flex-1 rounded-ds-md"
+          {/* THE SHARED POPUP FOOTER. This was a hand-rolled
+              `flex gap-2` row of two `flex-1` buttons — a third footer
+              arrangement, alongside the stacked one every dialog uses and the
+              right-aligned one they use from `sm` up. `SheetFooter` is the
+              same component `DialogFooter`/`AlertDialogFooter` are, so the
+              buttons now stack full-width with the primary on top on a phone
+              and sit right-aligned inline on a wide screen, exactly like every
+              other popup.
+
+              The confirm was also a hand-written `hsl(var(--olivewood))` fill:
+              a FOURTH primary colour in the app, after the glossy bark, the
+              destructive red and the burnt sienna. Withdrawing an application
+              is reversible — the helper can apply again — so it takes the
+              ordinary glossy primary, not a destructive treatment. */}
+          <SheetFooter className="mt-5">
+            <SheetSecondaryAction
               disabled={!!withdrawingAppId}
               onClick={() => {
                 setWithdrawTarget(null);
@@ -467,21 +507,15 @@ export const AppliedJobsTab = ({
               }}
             >
               Keep It
-            </Button>
-            <Button
-              className="flex-1 rounded-ds-md"
+            </SheetSecondaryAction>
+            <SheetPrimaryAction
               disabled={!!withdrawingAppId}
               aria-busy={!!withdrawingAppId}
               onClick={confirmWithdraw}
-              style={{
-                background: "hsl(var(--olivewood))",
-                border: "1px solid hsl(var(--olivewood))",
-                color: "hsl(var(--parchment))",
-              }}
             >
               {withdrawingAppId ? "Withdrawing…" : "Confirm Withdrawal"}
-            </Button>
-          </div>
+            </SheetPrimaryAction>
+          </SheetFooter>
         </SheetContent>
       </Sheet>
     </>

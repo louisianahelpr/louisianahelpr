@@ -117,12 +117,17 @@ export function MessageActionSheet({
 
   return (
     <Sheet open onOpenChange={(open) => { if (!open) onClose(); }}>
-      <SheetContent side="bottom" className="border-t-0 px-4 pt-3 pb-[calc(var(--safe-area-bottom,0px)_+_1rem)]">
+      {/* No bespoke padding or ground. `side="bottom"` is a centred modal at
+          every width now, not a floor-anchored sheet, so the safe-area bottom
+          inset each sheet had written differently is dead weight — and
+          `.glass-modal` is THE popup surface. Shared `p-4 sm:p-5`, same ramp
+          DialogContent uses. */}
+      <SheetContent side="bottom">
         {/* SheetHero is the canonical sheet header (the Sheet-side twin of
             DialogHero). This block used to compose the eyebrow → title parts
             inline because SheetHero did not exist yet; hand-copying the tokens
             is what let four sheets drift to four different title sizes. */}
-        <SheetHero className="pl-1 pb-2" title="What Next?" />
+        <SheetHero title="What Next?" />
         {/* Tapbacks — the row sits ABOVE the action list because it is the
             thing people reach for most, and because a horizontal emoji strip
             reads as a different KIND of control than the stacked destructive

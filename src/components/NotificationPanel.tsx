@@ -1,12 +1,25 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useId, useRef, useState, useMemo, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { channelNonce } from "@/lib/realtimeChannel";
 import { useReducedMotion } from "@/lib/accessibility";
-import { Button } from "@/components/ui/button";
-import { CheckCheck, BellRing } from "lucide-react";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { AlertTriangle, BellRing, CheckCheck } from "lucide-react";
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+  PopoverPortal,
+  PopoverAnchor,
+  PopoverDismissLayer,
+} from "@/components/ui/popover";
+import {
+  AnchoredPanelHeader,
+  AnchoredPanelSegmented,
+  screenPanelContentClass,
+  screenPanelContentProps,
+  useScreenPanelBand,
+} from "@/components/ui/anchoredPanel";
 import { isPushSupported, registerServiceWorker, showLocalNotification, getPushPermission } from "@/lib/pushNotifications";
 import { useRequestPushPermission } from "@/lib/nativePush";
 import { Capacitor } from "@capacitor/core";
@@ -14,17 +27,35 @@ import { toast } from "sonner";
 import { hapticLight } from "@/lib/haptics";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
-import { ErrorState } from "@/components/ui/ErrorState";
 import { report } from "@/lib/errorLogger";
+import { unwrapMutation } from "@/lib/mutationResult";
 import type { Notification, Filter } from "@/components/notificationPanel/types";
 import { typeIcons, groupByDay, timeAgo } from "@/components/notificationPanel/notificationPanelHelpers";
 import { NotificationTrigger } from "@/components/notificationPanel/NotificationTrigger";
+import { notificationDestination } from "@/components/notificationPanel/notificationDestination";
 
 const NotificationPanel = () => {
   const navigate = useNavigate();
   const reducedMotion = useReducedMotion();
+  const titleId = useId();
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  /* The TRUE unread total, not the count within the fetched page.
+     Measured before this existed: the database held 76 unread while the badge
+     read 47, because both were derived from a `limit(50)` fetch. The bell and
+     the panel agreed with each other — which is what stopped them
+     contradicting on screen — but both under-reported reality, and did so
+     WORSE the more someone used the app. The most engaged users saw the least
+     accurate number.
+     `head: true` returns no rows, and the (user_id, read) index already exists
+     for exactly this shape, so it costs a count and no payload. */
+  const [unreadTotal, setUnreadTotal] = useState<number | null>(null);
   const [open, setOpen] = useState(false);
+  /* The bell itself. `PopoverTrigger asChild` composes its own ref with the
+     child's, so passing this to <NotificationTrigger> costs nothing and gives
+     `useScreenPanelBand` the element whose header bar decides where the
+     panel's top edge lands. */
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const { anchorRef, band } = useScreenPanelBand(open, triggerRef);
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushSupported, setPushSupported] = useState(false);
   /* UNREAD BY DEFAULT — but only when there IS unread (owner). A notification
@@ -40,6 +71,16 @@ const NotificationPanel = () => {
   // user has no notifications.
   const [loadError, setLoadError] = useState(false);
   const requestPush = useRequestPushPermission();
+
+  // `loadNotifications` is created fresh every render but is CAPTURED once —
+  // by the mount effect's setTimeout and by usePullToRefresh. Reading
+  // `notifications` directly inside it would therefore always see the empty
+  // first-render array, so "do we already have rows on screen?" is read from
+  // a ref that tracks the live value instead.
+  const notificationsRef = useRef<Notification[]>([]);
+  useEffect(() => {
+    notificationsRef.current = notifications;
+  }, [notifications]);
 
   const loadNotifications = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -60,12 +101,27 @@ const NotificationPanel = () => {
       // show. A background refresh failure with prior data on screen
       // stays silent so a transient hiccup doesn't blow away a list the
       // user is mid-reading.
-      setLoadError((prev) => (notifications.length === 0 ? true : prev));
+      setLoadError((prev) => (notificationsRef.current.length === 0 ? true : prev));
       toast.error("Couldn't load notifications — try again?");
       return;
     }
     setLoadError(false);
     if (data) setNotifications(data);
+
+    // Counted separately and deliberately: the list is a page, the badge is a
+    // fact. A failure here leaves unreadTotal null and the UI falls back to
+    // the page-derived count — stale, but never a number invented from an
+    // error path.
+    const { count, error: countErr } = await supabase
+      .from("notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", session.user.id)
+      .eq("read", false);
+    if (countErr) {
+      report(countErr, { tags: { source: "NotificationPanel.unreadCount" } });
+      return;
+    }
+    setUnreadTotal(count ?? 0);
   };
 
   // Pull-to-refresh on the notification list — manual recovery path
@@ -108,7 +164,11 @@ const NotificationPanel = () => {
           { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
           async (payload) => {
             const n = payload.new as Notification;
-            setNotifications((prev) => [n, ...prev]);
+            // A realtime INSERT can race the initial fetch (both can carry the
+            // same row), and React would then render two elements with the same
+            // key. Dedupe on id — the badge count is derived from this list, so
+            // a duplicate would also overcount unread.
+            setNotifications((prev) => (prev.some((x) => x.id === n.id) ? prev : [n, ...prev]));
             // Play notification chime + vibrate
             try {
               const ctx = new (window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)();
@@ -129,7 +189,9 @@ const NotificationPanel = () => {
             } catch {}
             if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
             if (document.hidden && getPushPermission() === "granted") {
-              showLocalNotification(n.title, n.message, n.link || undefined);
+              // Same resolution as a tap in the panel — a realtime row must
+              // not open somewhere different from the row it just inserted.
+              showLocalNotification(n.title, n.message, notificationDestination(n) ?? undefined);
             }
           },
         )
@@ -164,7 +226,25 @@ const NotificationPanel = () => {
     }
   };
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  /* READ STATE — one source, so the bell and the panel cannot disagree.
+     `unreadCount` is derived from the SAME `notifications` array the list
+     renders, and it feeds both the bell badge and the Unread segment. There
+     is no second query, no cached count, and nothing that can drift.
+
+     Opening the panel deliberately does NOT mark anything read. `read` is a
+     per-row boolean on `public.notifications` (see the table DDL) and it is
+     what drives the badge, the Unread filter, and the sienna row tint — if
+     merely opening the panel cleared it, the badge would zero before the user
+     had looked at anything and "what have I missed" would be unanswerable on
+     the next open. Read is claimed explicitly: opening a row (which is also
+     how you act on it) or the Mark-all-read control. */
+  const unreadInPage = notifications.filter((n) => !n.read).length;
+  // Prefer the counted total; fall back to the page while it is still loading
+  // or if the count query failed. Never show a number derived from an error.
+  const unreadCount = unreadTotal ?? unreadInPage;
+  // The list can only ever show what it fetched. Saying so is the honest
+  // alternative to quietly shrinking the badge to match the page.
+  const hasMoreThanPage = unreadTotal !== null && unreadTotal > unreadInPage;
   // Seed the default from the first loaded page, once. `null` means "not chosen
   // yet" so the very first render — when `notifications` is still empty — does
   // not lock the panel to All.
@@ -183,12 +263,25 @@ const NotificationPanel = () => {
   );
 
   const markAsRead = async (id: string) => {
+    // Already read on the client — nothing to write, and firing the UPDATE
+    // anyway would make every re-open of an old notification a pointless
+    // round-trip.
+    if (notifications.find((n) => n.id === id)?.read) return;
     // Optimistic flip first so the row responds instantly; revert on failure
     // so the badge doesn't lie about what the server thinks is unread.
     setNotifications((prev) => prev.map((n) => n.id === id ? { ...n, read: true } : n));
-    const { error } = await supabase.from("notifications").update({ read: true }).eq("id", id);
-    if (error) {
-      report(error, { tags: { source: "NotificationPanel.markAsRead" } });
+    try {
+      // `.select("id")` + unwrapMutation is the CLAUDE.md row guard: RLS on
+      // `notifications` is `auth.uid() = user_id`, so a row that isn't ours
+      // (or has been deleted) comes back `{ data: [], error: null }` — a
+      // silent no-op that would leave the bell badge permanently one lower
+      // than the database. Zero rows is a failure here, not a valid outcome.
+      unwrapMutation(
+        await supabase.from("notifications").update({ read: true }).eq("id", id).select("id"),
+        { action: "mark this notification read", context: { notificationId: id } },
+      );
+    } catch (err) {
+      report(err, { tags: { source: "NotificationPanel.markAsRead" } });
       setNotifications((prev) => prev.map((n) => n.id === id ? { ...n, read: false } : n));
     }
   };
@@ -198,11 +291,20 @@ const NotificationPanel = () => {
     if (unreadIds.length === 0) return;
     // Optimistically clear unread state so the UI responds immediately.
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-    const { error } = await supabase
-      .from("notifications")
-      .update({ read: true })
-      .in("id", unreadIds);
-    if (error) {
+    try {
+      // Every id must come back. A short result means some rows were filtered
+      // out by RLS or no longer exist, and the badge would otherwise sit at 0
+      // while the database still holds unread rows.
+      unwrapMutation(
+        await supabase.from("notifications").update({ read: true }).in("id", unreadIds).select("id"),
+        {
+          action: "mark your notifications read",
+          min: unreadIds.length,
+          rejectedMessage: "Couldn't mark all as read — please try again.",
+        },
+      );
+    } catch (err) {
+      report(err, { tags: { source: "NotificationPanel.markAllRead" } });
       // Roll back the optimistic update and let the user retry.
       setNotifications((prev) =>
         prev.map((n) => (unreadIds.includes(n.id) ? { ...n, read: false } : n)),
@@ -213,140 +315,140 @@ const NotificationPanel = () => {
     hapticLight();
   };
 
+  /* Does this row have somewhere to go, and WHERE?
+     Resolved through notificationDestination(), which prefers the `job_id`
+     REFERENCE over parsing `link` — see that file for why the string was never
+     trustworthy. Rows with no job_id (everything written before
+     20260901035600, and anything whose job was later deleted) fall back to the
+     link exactly as before. A null result is a real state: 6 rows in prod
+     carry `link: null` ("Test from Helpr", "Application declined"). */
+  const destinationOf = (n: Notification): string | null => notificationDestination(n);
+  const hasDestination = (n: Notification): boolean => destinationOf(n) !== null;
+
+  /* Is there anything a tap on this row can DO?
+     Two things can happen on tap: navigate, and mark read. A row with no link
+     that is already read offers neither — every previous render still gave it
+     `role="button"`, `cursor-pointer` and `active:opacity-80`, so it looked
+     like a control, absorbed a tap, and returned nothing. That is a small lie
+     the user pays for with a tap, and it repeats every time they scroll past.
+     An UNREAD row without a link is genuinely actionable: tapping clears the
+     dot and repaints the row, which is a visible result and an honest one. So
+     the affordance is shown exactly when a tap has an effect. */
+  const isActionable = (n: Notification): boolean => hasDestination(n) || !n.read;
+
   const handleClick = (n: Notification) => {
     void markAsRead(n.id);
-    // A notification exists to take you somewhere — follow its link when it
-    // has one. Only in-app (root-relative) links are navigable; anything
-    // absent or malformed just marks read and keeps the panel open.
-    if (n.link && n.link.startsWith("/")) {
+    // A notification exists to take you somewhere — follow its destination
+    // when it has one. Anything absent or malformed just marks read and keeps
+    // the panel open.
+    const to = destinationOf(n);
+    if (to) {
       // Navigate first, close a frame later — closing synchronously in the
       // same tick as the route change reads as one jarring instant unmount
       // stacked on top of the page transition.
-      navigate(n.link);
+      navigate(to);
       requestAnimationFrame(() => setOpen(false));
     }
   };
 
+  const showPushRow = pushSupported && !pushEnabled;
+
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    /* `modal` is load-bearing, not decoration — and it is KEPT even though the
+       scrim is gone. It is what locks the page (so the FEED can't scroll under
+       an open panel — the panel's own list is the only thing that moves),
+       traps focus inside the panel, and returns focus to the bell on close.
+       None of those were the scrim's doing. Dismissal is still tap-outside /
+       Escape via Radix's DismissableLayer, plus the explicit X in the header
+       for touch. */
+    <Popover open={open} onOpenChange={setOpen} modal>
       <PopoverTrigger asChild>
-        <NotificationTrigger unreadCount={unreadCount} />
+        <NotificationTrigger ref={triggerRef} unreadCount={unreadCount} />
       </PopoverTrigger>
-      {/* Anchored panel off the bell, at every width — not a full-height
-          modal sheet any more (owner, 2026-08-30: the 3-surface follow-up to
-          the FilterSheet anchored-popover treatment — see FilterSheet.tsx).
-          No backdrop dimming; dismiss is tap-outside or Escape. */}
+      {/* The panel is positioned against a measured SCREEN BAND, not against
+          the bell: a zero-height rect spanning the viewport at the bottom edge
+          of the header the bell sits in. The trigger still opens it; the band
+          is what decides where it lands. See `useScreenPanelBand`. */}
+      <PopoverAnchor virtualRef={anchorRef} />
+      {/* NO SCRIM — the page behind is neither dimmed nor blurred (owner,
+          2026-08-31: "Same for this. No blur"). What is still mounted is a
+          layer that PAINTS NOTHING and exists only to receive the tap that
+          dismisses the panel: without it, Radix's deferred outside-dismiss
+          lets the very same click land on the job card underneath and open it.
+          See `PopoverDismissLayer` in `ui/popover.tsx`. Its own portal, placed
+          before the Content's, the way `SheetPortal` stacks `SheetOverlay`
+          under `SheetContent`. */}
+      <PopoverPortal>
+        <PopoverDismissLayer />
+      </PopoverPortal>
       <PopoverContent
-        align="end"
-        sideOffset={8}
-        collisionPadding={16}
-        aria-label="Notifications"
-        className="w-[400px] max-w-[calc(100vw-2rem)] max-h-[75vh] p-0 gap-0 flex flex-col overflow-hidden rounded-ds-lg bg-premium-page"
+        {...screenPanelContentProps(band)}
+        aria-labelledby={titleId}
+        className={screenPanelContentClass}
+        // Park focus on the PANEL, not on its first focusable child. Radix's
+        // default would land on "Mark all as read", so opening the panel and
+        // pressing Enter — or a screen reader's first move — would silently
+        // clear every unread notification. Focusing the container instead
+        // announces the panel, starts Tab inside it, and arms nothing. Same
+        // fix, same reason, as DialogContent's onOpenAutoFocus.
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          (event.currentTarget as HTMLElement | null)?.focus({ preventScroll: true });
+        }}
       >
-        <div className="px-4 pt-4 pb-3 border-b border-border shrink-0 space-y-2.5">
-          <div className="flex items-baseline gap-2">
-            <p
-              className="font-display italic font-bold leading-tight"
-              style={{ fontSize: "clamp(1.1rem, 1.4vw + 0.4rem, 1.3rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
-            >
-              Notifications
-            </p>
-            {/* Unread count reads alongside the title — the pills below
-                already carry it too, but putting it here means the
-                headline itself answers "anything new?" without scanning
-                down to the controls row. */}
-            {unreadCount > 0 && (
-              <span
-                className="font-sans text-ds-11 font-semibold tabular-nums"
-                style={{ color: "hsl(var(--burnt-sienna))" }}
+        {/* No caret. The panel spans the screen, so there is no edge for a
+            notch to point back at the bell from (owner: "it should be anchored
+            to screen").
+
+            The wrapper below is the flex column that holds header + list +
+            footer. Its children are left at the outer indent level on purpose:
+            re-indenting the whole panel would bury the real change in a
+            200-line whitespace diff.
+
+            `mx-auto max-w-lg` is a CONTENT measure, not a side margin: the
+            SURFACE still runs edge to edge (that is the whole point of a
+            screen-anchored band), but the rows inside it stop at the app's
+            shared popup measure. Without it the Unread/All segmented control
+            stretched to 1440px on the desktop website — one pill the width of
+            the window, which is not a control anyone reads as a control.
+            Below 512px, which is every phone the owner reviewed this on, the
+            measure is wider than the screen and changes nothing. */}
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden w-full max-w-lg mx-auto">
+        <AnchoredPanelHeader
+          titleId={titleId}
+          title="Notifications"
+          onClose={() => setOpen(false)}
+          actions={
+            unreadCount > 0 ? (
+              <button
+                type="button"
+                onClick={markAllRead}
+                aria-label="Mark all as read"
+                title="Mark all as read"
+                className="shrink-0 w-11 h-11 inline-flex items-center justify-center rounded-full transition-colors hover:bg-[hsl(var(--bark)/0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--bark))] focus-visible:ring-offset-1"
+                style={{ color: "hsl(var(--bark))" }}
               >
-                {unreadCount} unread
-              </span>
-            )}
-          </div>
-          {/* One controls row: filter pills on the left (the primary way to
-              change what you're looking at), Mark-all-read / Enable-push
-              actions on the right (secondary, occasional actions). Keeping
-              them on a single justified line — rather than a standalone
-              right-floated button row — keeps the header compact and away
-              from the close button, while the left/right split separates
-              "what am I viewing" from "what can I do about it". */}
-          <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5">
-            {([
-              // Unread leads: it is the tab the panel opens on (see the
-              // filter default above), and the first pill should be the one
-              // that is already active.
-              { key: "unread" as Filter, label: "Unread", count: unreadCount, atCap: false },
-              // The fetch caps at 50 rows, so an at-cap count is a floor,
-              // not a total — say so instead of understating.
-              { key: "all" as Filter, label: "All", count: notifications.length, atCap: notifications.length >= 50 },
-            ]).map((opt) => {
-              const isActive = (filter ?? "all") === opt.key;
-              return (
-                <button
-                  key={opt.key}
-                  type="button"
-                  onClick={() => setFilter(opt.key)}
-                  className={`inline-flex items-center gap-1.5 rounded-full px-2.5 h-7 text-ds-11 font-sans font-semibold transition-all active:scale-[0.96] ${
-                    isActive
-                      ? ""
-                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
-                  }`}
-                  style={
-                    isActive
-                      ? {
-                          background: "hsl(var(--bark))",
-                          color: "hsl(var(--parchment))",
-                          boxShadow: "0 1px 2px hsl(var(--bark) / 0.18), 0 4px 10px -4px hsl(var(--bark) / 0.3)",
-                        }
-                      : undefined
-                  }
-                >
-                  {opt.label}
-                  {opt.count > 0 && (
-                    <span
-                      className="tabular-nums text-ds-11 font-bold"
-                      style={{
-                        color: isActive ? "hsl(var(--parchment) / 0.85)" : "hsl(var(--olivewood) / 0.8)",
-                      }}
-                    >
-                      {opt.atCap ? `${opt.count}+` : opt.count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-            <div className="flex items-center gap-1 shrink-0">
-              {pushSupported && !pushEnabled && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={enablePush}
-                  className="text-ds-11 text-[hsl(var(--bark))] h-7 px-2 rounded-full hover:bg-[hsl(var(--bark)/0.08)] hover:text-[hsl(var(--bark))]"
-                >
-                  <BellRing className="w-3.5 h-3.5 mr-1" /> Enable Push
-                </Button>
-              )}
-              {/* Separator only when both actions are present — otherwise a
-                  lone hairline floats next to a single button for no reason. */}
-              {pushSupported && !pushEnabled && unreadCount > 0 && (
-                <span aria-hidden="true" className="w-px h-4 bg-border mx-0.5" />
-              )}
-              {unreadCount > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={markAllRead}
-                  className="text-ds-11 text-[hsl(var(--bark))] h-7 px-2 rounded-full hover:bg-[hsl(var(--bark)/0.08)] hover:text-[hsl(var(--bark))]"
-                >
-                  <CheckCheck className="w-3.5 h-3.5 mr-1" /> Mark All Read
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
+                <CheckCheck className="w-[18px] h-[18px]" strokeWidth={2.25} />
+              </button>
+            ) : undefined
+          }
+        >
+          {/* ONE control, two segments — not a bare word beside a filled
+              circle. The count rides the Unread segment so it says exactly
+              what the bell badge said a moment ago; All carries no count
+              because the fetch caps at 50 rows, and a capped number here
+              would be a figure the panel can't stand behind. */}
+          <AnchoredPanelSegmented<Filter>
+            label="Filter notifications"
+            value={filter ?? "all"}
+            onChange={(v) => { hapticLight(); setFilter(v); }}
+            options={[
+              { key: "unread", label: "Unread", count: unreadCount },
+              { key: "all", label: "All" },
+            ]}
+          />
+        </AnchoredPanelHeader>
+
         <PullToRefreshWrapper
           ref={containerRef}
           pullDistance={pullDistance}
@@ -354,84 +456,84 @@ const NotificationPanel = () => {
           isPulling={isPulling}
           canTrigger={canTrigger}
           className="flex-1 min-h-0 no-scrollbar overscroll-contain"
-          style={{ paddingBottom: "var(--safe-area-bottom, 0px)" }}
         >
           {loadError && notifications.length === 0 ? (
-            // A failed initial load takes precedence over the "All caught
-            // up" empty state — show a recoverable retry surface so the
-            // user can recover from a transient hiccup without closing
-            // and re-opening the panel.
-            <div className="px-4 pt-6 flex min-h-full">
-              <ErrorState
-                variant="inline"
-                title="We couldn't load your notifications."
-                onRetry={loadNotifications}
-              />
-            </div>
-          ) : visibleNotifications.length === 0 ? (
-            <div className="min-h-full flex flex-col items-center justify-center text-center gap-4 px-6 py-8">
+            /* A failed initial load takes precedence over the "All caught up"
+               empty state — the user must be able to tell "nothing happened"
+               from "we couldn't ask".
+
+               Deliberately NOT `<ErrorState>`: that primitive is a full
+               frosted card (a ~100px glyph, an eyebrow, a headline and a
+               wrapped body) sized for a whole page, and inside a ~450px
+               dropdown it overflowed the scroll area — pushing "Try again",
+               the one thing this state exists to offer, below the fold.
+               Same scale defect the empty state above had. This mirrors that
+               empty state's compact shape instead, so the recovery action is
+               always visible without scrolling. */
+            <div className="px-6 py-7 flex flex-col items-center text-center gap-2">
               <div
-                className="w-20 h-20 rounded-full flex items-center justify-center motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 motion-safe:duration-500"
+                className="w-10 h-10 rounded-full flex items-center justify-center"
                 style={{
-                  backgroundColor: "hsl(var(--ivory-sand) / 0.55)",
-                  backdropFilter: "blur(16px) saturate(150%)",
-                  WebkitBackdropFilter: "blur(16px) saturate(150%)",
-                  border: "1px solid hsl(var(--olivewood) / 0.18)",
-                  boxShadow:
-                    "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
-                    "0 1px 2px hsl(var(--olivewood) / 0.05), " +
-                    "0 8px 22px -6px hsl(var(--olivewood) / 0.12)",
+                  background: "hsl(var(--burnt-sienna) / 0.10)",
+                  border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
                 }}
               >
-                {/* CheckCheck reads as "all clear / done done" — warmer
-                    than a sleepy bell when the user actively cleared
-                    their feed or arrived to an empty inbox. */}
-                <CheckCheck className="w-8 h-8" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
+                <AlertTriangle className="w-5 h-5" style={{ color: "hsl(var(--burnt-sienna))" }} strokeWidth={2} />
               </div>
-              <div className="space-y-1.5">
-                <span className="text-display-eyebrow">All caught up.</span>
-                <p
-                  className="font-display italic font-bold leading-tight"
-                  style={{
-                    fontSize: "clamp(1.1rem, 1.5vw + 0.4rem, 1.4rem)",
-                    color: "hsl(var(--ink-deep))",
-                    letterSpacing: "-0.02em",
-                  }}
-                >
-                  {filter === "unread" && notifications.length > 0
-                    ? "Nothing unread."
-                    : "Nothing new yet."}
-                </p>
-                <p
-                  className="font-serif italic text-ds-13 leading-relaxed max-w-xs mx-auto"
-                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                >
-                  {filter === "unread" && notifications.length > 0
-                    ? "Switch to All to see everything from this week."
-                    : "Applications, messages, payouts, and job updates will land here as they happen."}
-                </p>
+              <p
+                className="font-display italic font-bold leading-tight text-ds-15"
+                style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
+              >
+                Couldn't load notifications.
+              </p>
+              <p
+                className="font-serif italic text-ds-12 leading-snug"
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+              >
+                Our end had a hiccup — not yours.
+              </p>
+              <button
+                type="button"
+                onClick={loadNotifications}
+                className="mt-1 h-11 px-5 rounded-full btn-grad-primary text-ds-12 font-sans font-semibold"
+                style={{ color: "hsl(var(--parchment))", boxShadow: "var(--elev-bark-raised)" }}
+              >
+                Try again
+              </button>
+            </div>
+          ) : visibleNotifications.length === 0 ? (
+            /* COMPACT empty state (owner, 2026-08-30: the old one — an 80px
+               circled glyph, an eyebrow, a display headline and two lines of
+               italic copy, vertically centred in a `min-h-full` box — was the
+               biggest thing on screen for the case where there is nothing to
+               show). A panel with nothing in it should take the space of
+               nothing: one small glyph, one line, one optional way out. */
+            <div className="px-6 py-7 flex flex-col items-center text-center gap-2">
+              <div
+                className="w-10 h-10 rounded-full flex items-center justify-center"
+                style={{
+                  background: "hsl(var(--bark) / 0.08)",
+                  border: "0.5px solid hsl(var(--olivewood) / 0.14)",
+                }}
+              >
+                <CheckCheck className="w-5 h-5" style={{ color: "hsl(var(--bark))" }} strokeWidth={2} />
               </div>
-              {/* When the user has read everything but their list isn't
-                  empty, give them a quick switch back to All instead of
-                  having to find the filter pill manually. */}
-              {filter === "unread" && notifications.length > 0 && (
-                <Button
-                  variant="outline"
-                  onClick={() => setFilter("all")}
-                  className="rounded-ds-md mt-1"
-                >
-                  Show All Notifications
-                </Button>
-              )}
-              {filter === "all" && pushSupported && !pushEnabled && (
-                <Button
-                  variant="primary"
-                  onClick={enablePush}
-                  className="rounded-ds-md mt-1"
-                >
-                  <BellRing className="w-4 h-4 mr-2" /> Turn On Push Notifications
-                </Button>
-              )}
+              <p
+                className="font-display italic font-bold leading-tight text-ds-15"
+                style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
+              >
+                {filter === "unread" && notifications.length > 0
+                  ? "Nothing unread."
+                  : "Nothing new yet."}
+              </p>
+              <p
+                className="font-serif italic text-ds-12 leading-snug"
+                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+              >
+                {filter === "unread" && notifications.length > 0
+                  ? "Switch to All to see everything."
+                  : "Applications, messages and payouts land here."}
+              </p>
             </div>
           ) : (
             <div>
@@ -461,24 +563,43 @@ const NotificationPanel = () => {
                       down + fade). The first render of the sheet stays
                       static so the panel doesn't feel slow to open. */}
                   <AnimatePresence initial={false}>
-                    {group.items.map((n) => (
+                    {group.items.map((n) => {
+                      /* A row only DRESSES as a control when a tap on it does
+                         something (see `isActionable`). When it doesn't, every
+                         part of the promise comes off together — the role, the
+                         tab stop, the pointer cursor, the press feedback and
+                         the handlers — because leaving any one of them behind
+                         still tells the user "press me". The row keeps its
+                         padding and min-height so the list rhythm is
+                         unchanged; only the affordance goes. */
+                      const actionable = isActionable(n);
+                      return (
                       <motion.div
                         key={n.id}
-                        role="button"
-                        tabIndex={0}
+                        role={actionable ? "button" : undefined}
+                        tabIndex={actionable ? 0 : undefined}
+                        onClick={actionable ? () => handleClick(n) : undefined}
+                        onKeyDown={
+                          actionable
+                            ? (e: ReactKeyboardEvent) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault();
+                                  handleClick(n);
+                                }
+                              }
+                            : undefined
+                        }
                         layout={!reducedMotion}
                         initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -12 }}
                         animate={reducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
                         exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -12 }}
                         transition={reducedMotion ? { duration: 0 } : { duration: 0.2, ease: "easeOut" }}
-                        onClick={() => handleClick(n)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            handleClick(n);
-                          }
-                        }}
-                        className="w-full text-left px-4 py-3 transition-colors active:opacity-80 cursor-pointer"
+                        // `min-h-[44px]`: the row is the primary tap target in
+                        // this panel and must clear the HIG floor even when a
+                        // notification is a single short line.
+                        className={`w-full text-left px-4 py-3 min-h-[44px] transition-colors${
+                          actionable ? " active:opacity-80 cursor-pointer" : ""
+                        }`}
                         style={{
                           background: !n.read ? "hsl(var(--burnt-sienna) / 0.06)" : undefined,
                           borderBottom: "0.5px solid hsl(var(--olivewood) / 0.08)",
@@ -537,9 +658,9 @@ const NotificationPanel = () => {
                               } else if (
                                 n.type === "job_update" &&
                                 n.message.toLowerCase().includes("cancelled") &&
-                                n.link
+                                destinationOf(n)
                               ) {
-                                actions.push({ label: "View", href: n.link });
+                                actions.push({ label: "View", href: destinationOf(n)! });
                               }
                               if (actions.length === 0) return null;
                               return (
@@ -550,11 +671,11 @@ const NotificationPanel = () => {
                                       type="button"
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        markAsRead(n.id);
+                                        void markAsRead(n.id);
                                         setOpen(false);
                                         navigate(a.href);
                                       }}
-                                      className="h-6 px-2.5 text-ds-11 font-sans font-semibold rounded-ds-md border transition-all active:scale-[0.94]"
+                                      className="h-9 px-3 text-ds-11 font-sans font-semibold rounded-ds-md border transition-all active:scale-[0.94]"
                                       style={{
                                         borderColor: "hsl(var(--bark) / 0.35)",
                                         color: "hsl(var(--bark))",
@@ -576,13 +697,47 @@ const NotificationPanel = () => {
                           </div>
                         </div>
                       </motion.div>
-                    ))}
+                      );
+                    })}
                   </AnimatePresence>
                 </section>
               ))}
             </div>
           )}
         </PullToRefreshWrapper>
+
+        {/* The list is a page; the badge is a fact. When they differ, say so.
+            The alternative — quietly shrinking the badge to match what was
+            fetched — is what produced a bell reading 47 over a database
+            holding 76. "Mark all read" still only claims the rows on screen,
+            which is why this line names the shown count first. */}
+        {hasMoreThanPage && (
+          <p
+            className="shrink-0 px-4 py-2 text-ds-11 font-sans text-center border-t border-[hsl(var(--olivewood)/0.12)]"
+            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+          >
+            Showing the latest {notifications.length} · {unreadTotal} unread in total
+          </p>
+        )}
+
+        {/* Push opt-in lives in a footer row, outside the scroll area, rather
+            than as a big button inside the empty state — it is relevant
+            whether or not the list is empty, and it is the one thing here
+            that changes what lands in this panel in future. */}
+        {showPushRow && (
+          <button
+            type="button"
+            onClick={enablePush}
+            className="shrink-0 w-full h-11 inline-flex items-center justify-center gap-1.5 text-ds-12 font-sans font-semibold border-t border-[hsl(var(--olivewood)/0.12)] transition-colors hover:bg-[hsl(var(--bark)/0.06)]"
+            style={{
+              color: "hsl(var(--bark))",
+              marginBottom: "var(--safe-area-bottom, 0px)",
+            }}
+          >
+            <BellRing className="w-4 h-4" strokeWidth={2.25} /> Turn on push notifications
+          </button>
+        )}
+        </div>
       </PopoverContent>
     </Popover>
   );

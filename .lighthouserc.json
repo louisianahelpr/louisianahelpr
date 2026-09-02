@@ -1,14 +1,61 @@
 {
+  "_comment": [
+    "Lighthouse CI config for .github/workflows/lighthouse.yml.",
+    "",
+    "WHAT THE `settings` BLOCK NOW CATCHES: itself not running.",
+    "",
+    "This file used to say `\"preset\": \"mobile\"`. There is no such preset.",
+    "Lighthouse accepts exactly three (`perf`, `experimental`, `desktop`), so",
+    "the collector threw on startup and died in about two seconds; the",
+    "workflow's `continue-on-error: true` then converted that crash into a",
+    "green check. Every scheduled Lighthouse run from 2026-05-18 onward",
+    "finished in 13-23 seconds and reported success having measured nothing at",
+    "all. Same failure shape as the three prod incidents: a detector whose",
+    "result never reaches the exit code.",
+    "",
+    "Mobile is now expressed the way Lighthouse actually takes it -- explicit",
+    "formFactor + screenEmulation + throttling, rather than a preset name.",
+    "`formFactor` and `screenEmulation.mobile` MUST agree or Lighthouse warns",
+    "and the scores are not comparable run to run. Do not reintroduce a",
+    "`preset` key here: `desktop` is the only preset that would even load, and",
+    "it would silently turn this into a desktop audit.",
+    "",
+    "THRESHOLDS ARE MEASURED, NOT GUESSED. Real mobile Lighthouse 12.8.2 runs",
+    "against prod on 2026-08-31 (throttled mobile, headless Chrome):",
+    "  /         perf 0.63  a11y 1.00  best-practices 1.00  seo 1.00",
+    "  /browse   perf 0.65  a11y 1.00  best-practices 0.96  seo 1.00",
+    "  /login    perf 0.67  a11y 1.00  best-practices 1.00  seo 1.00",
+    "  /signup   perf 0.79  a11y 1.00  best-practices 0.96  seo 1.00",
+    "`categories:performance` is an `error` at 0.50 -- the workflow header has",
+    "always claimed it 'fails the run if mobile performance drops below",
+    "threshold', and now that is true. 0.50 against a measured 0.63-0.67 is",
+    "~0.13 of headroom, enough to absorb runner variance while still catching",
+    "a real regression. If this starts failing, fix the regression; do not",
+    "lower the number or demote it back to `warn`.",
+    "",
+    "accessibility/best-practices stay at `warn`: a11y-axe.yml is the real",
+    "accessibility gate (WCAG 2A/2AA via axe over every screen at four",
+    "variants), and Lighthouse's category score is a weaker, noisier signal",
+    "that should not be a second, softer copy of it."
+  ],
   "ci": {
     "collect": {
       "settings": {
-        "preset": "mobile"
+        "formFactor": "mobile",
+        "screenEmulation": {
+          "mobile": true,
+          "width": 412,
+          "height": 823,
+          "deviceScaleFactor": 1.75,
+          "disabled": false
+        },
+        "throttlingMethod": "simulate"
       },
-      "numberOfRuns": 1
+      "numberOfRuns": 2
     },
     "assert": {
       "assertions": {
-        "categories:performance": ["warn", { "minScore": 0.5 }],
+        "categories:performance": ["error", { "minScore": 0.5 }],
         "categories:accessibility": ["warn", { "minScore": 0.85 }],
         "categories:best-practices": ["warn", { "minScore": 0.8 }],
         "categories:seo": ["error", { "minScore": 0.9 }]

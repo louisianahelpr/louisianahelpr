@@ -1,6 +1,10 @@
 import { Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { JOB_ACTION_FULL_CLASS, jobActionChipStyle } from "@/components/activity/JobActionRow";
+import {
+  JOB_ACTION_CHIP_CLASS,
+  JOB_ACTION_FULL_CLASS,
+  jobActionChipStyle,
+} from "@/components/activity/JobActionRow";
 import { mapsSearchUrl } from "@/lib/mapsLink";
 
 /**
@@ -25,9 +29,50 @@ import { mapsSearchUrl } from "@/lib/mapsLink";
  * Returns null when there is no address — a Directions button that navigates
  * nowhere is worse than no button.
  */
-export function DirectionsButton({ location }: { location: string | null | undefined }) {
+export function DirectionsButton({
+  location,
+  variant = "full",
+}: {
+  location: string | null | undefined;
+  /**
+   * `"full"` is the original full-width row control.
+   *
+   * `"chip"` is the icon-over-label chip, for the shared `JobActionRow` — owner,
+   * 2026-08-30: "directions messages and can't make it all need to be buttons
+   * in a row side by side". It renders through the SAME
+   * `JOB_ACTION_CHIP_CLASS`/`jobActionChipStyle` pair `JobActionChip` uses
+   * (ShareJobButton does the identical thing for the same reason: this one owns
+   * its own <a>, so it can't render through JobActionChip's <button>), which is
+   * what keeps it geometrically identical to the chips beside it — same 44px
+   * floor, same wrapping label, same tint.
+   */
+  variant?: "full" | "chip";
+}) {
   const href = location ? mapsSearchUrl(location) : "";
   if (!href) return null;
+
+  if (variant === "chip") {
+    return (
+      <Button
+        asChild
+        size="sm"
+        variant="outline"
+        className={JOB_ACTION_CHIP_CLASS}
+        style={jobActionChipStyle("neutral")}
+      >
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          aria-label={`Directions — get directions to ${location}`}
+        >
+          <Navigation className="w-4 h-4" />
+          <span className="text-ds-11 leading-tight font-medium">Directions</span>
+        </a>
+      </Button>
+    );
+  }
 
   return (
     <Button
@@ -58,5 +103,3 @@ export function DirectionsButton({ location }: { location: string | null | undef
     </Button>
   );
 }
-
-export default DirectionsButton;

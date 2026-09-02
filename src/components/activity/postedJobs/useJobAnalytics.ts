@@ -65,7 +65,19 @@ export function useJobAnalytics(
     for (const job of jobs) {
       const views = viewCounts[job.id] ?? 0;
       const appCount = applicantCounts[job.id] ?? 0;
-      const conversionRate = views > 0 ? Math.round((appCount / views) * 100) : null;
+      // Views and applications come from two unrelated sources — the
+      // `get_job_view_counts` RPC (which degrades to 0 for every job on any
+      // error) and the applications table — so `appCount` can legitimately
+      // exceed `views`: a helper reached the job from a notification or a
+      // shared link that recorded no view, or the RPC failed. Unclamped, the
+      // header rendered "200% applied" off 2 applicants and 1 view. A share
+      // of a whole cannot exceed the whole, and a number that obviously
+      // cannot be true discredits the ones beside it, so cap the RATE at 100
+      // and suppress it entirely where it would be a lie rather than a
+      // rounding: if there are more applicants than recorded views the
+      // denominator is wrong, and "100%" would be an invention too.
+      const conversionRate =
+        views > 0 && appCount <= views ? Math.round((appCount / views) * 100) : null;
 
       map[job.id] = {
         viewCount: views,

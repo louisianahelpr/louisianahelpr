@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { safeStorage } from "@/lib/safeStorage";
 import { maybeCelebrate } from "@/lib/celebrate";
 import {
@@ -129,10 +129,7 @@ export function useHelperMilestones({
 
       markCelebrated(safeStorage, helperId, m.id);
 
-      toast({
-        title: m.title,
-        description: m.description,
-      });
+      toast(m.title, { description: m.description });
     }
 
     // Reuse the existing brand confetti utility for the visual beat.
@@ -141,5 +138,3 @@ export function useHelperMilestones({
     void maybeCelebrate("first_complete", { particleCount: 100 });
   }, [helperId, completedJobCount, totalEarningsDollars, lastCompletedAt, qc]);
 }
-
-export default useHelperMilestones;

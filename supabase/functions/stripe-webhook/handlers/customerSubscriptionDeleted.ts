@@ -2,6 +2,8 @@ import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
 import { PRODUCT_TO_TIER } from "../constants.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
+import { resolveSubscriptionUserId } from "./_resolveUser.ts";
+import { CLEARED_SUBSCRIPTION_LINKAGE } from "../../_shared/subscriptionLinkage.ts";
 
 export async function handleCustomerSubscriptionDeleted(
   event: Stripe.Event,
@@ -23,14 +25,39 @@ export async function handleCustomerSubscriptionDeleted(
   const customerId = subscription.customer as string;
   const customer = await stripe.customers.retrieve(customerId) as Stripe.Customer;
   const email = customer.email;
-  if (!email) { logStep("No email on customer"); return; }
+  // Resolve the account by subscription metadata first, falling back to a
+  // UNIQUE email match. A bare .eq("email", ...) could hit zero rows (paying
+  // customer silently loses access) or several (wrong account changed).
+  const { userId, reason } = await resolveSubscriptionUserId(supabase, subscription, email, logStep);
+  if (!userId) {
+    logStep("Could not resolve account for subscription — not applying", { email, reason });
+    await postSlackOpsAlert({
+      kind: "custom",
+      severity: "critical",
+      title: "Stripe subscription event could not be matched to an account",
+      message: "A customer.subscription event fired but no single Helpr profile could be resolved, so the tier change was NOT applied. Reconcile manually.",
+      fields: {
+        email: email ?? "(missing)",
+        subscription_id: subscription.id,
+        reason: reason ?? "(unknown)",
+      },
+    }).catch(() => {});
+    return;
+  }
 
   logStep("Subscription deleted", { email });
 
   const { data: clearedProfiles, error } = await supabase
     .from("profiles")
-    .update({ subscription_tier: null, subscription_expires_at: null })
-    .eq("email", email)
+    .update({
+      subscription_tier: null,
+      subscription_expires_at: null,
+      // Same clear as the cancellation branch of customerSubscriptionUpdated,
+      // and idempotent for the same reason: fixed values keyed on user_id, so a
+      // Stripe redelivery rewrites the identical row.
+      ...CLEARED_SUBSCRIPTION_LINKAGE,
+    })
+    .eq("user_id", userId)
     .select("user_id");
 
   if (error) {

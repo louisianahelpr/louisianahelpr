@@ -7,11 +7,31 @@ import { getHelperFeePercent, helperCommissionDollars, DEFAULT_TIER_FEE_PERCENT 
 import { netUrgentFeeDollars } from "../_shared/stripeFees.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { formatPayoutDollars } from "../_shared/money.ts";
+import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
+import { claimPayout, failClaim, settleClaim } from "../_shared/payoutClaim.ts";
+
+/**
+ * Job payment states this cron may legitimately walk forward to 'released'.
+ *
+ * 'payout_pending' is the normal one; 'released' stays in the set so a resumed
+ * run is a clean no-op. Everything else — and 'chargeback' above all — means
+ * something else owns this job's money now. Without this precondition the flip
+ * below could overwrite a webhook-set 'chargeback' with 'released', which is
+ * the exact hazard auto-release-payment:195-198 documents and guards against
+ * on the escrow side.
+ */
+const RELEASABLE_PAYMENT_STATES = ["payout_pending", "released"] as const;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Defects are things that BROKE (a read rejected, a write refused, a transfer
+  // that threw) — never business outcomes like "this helper has no Connect
+  // account", which are permanent facts that would page forever. See
+  // _shared/cron-result.ts.
+  const defects = defectTracker();
 
   try {
     // Fail loud on missing config — previously masked by `?? ""` / `|| ""`
@@ -26,7 +46,14 @@ serve(async (req) => {
     if (!supabaseUrl) missing.push("SUPABASE_URL");
     if (!stripeSecretKey) missing.push("STRIPE_SECRET_KEY");
     if (!serviceRoleKey) missing.push("SECRET_KEY or SUPABASE_SERVICE_ROLE_KEY");
-    if (missing.length) throw new Error(`Missing required env vars: ${missing.join(", ")}`);
+    // The `||` tail is logically redundant with `missing.length` — it is spelled
+    // out so the compiler can narrow the three consts to `string` below. Without
+    // it `createClient(supabaseUrl, serviceRoleKey)` and `new Stripe(key)` are
+    // called with `string | undefined` as far as the types are concerned, which
+    // is exactly the shape that hides a real missing-config crash.
+    if (missing.length || !supabaseUrl || !stripeSecretKey || !serviceRoleKey) {
+      throw new Error(`Missing required env vars: ${missing.join(", ")}`);
+    }
 
     // Verify cron secret
     const authHeader = req.headers.get("Authorization");
@@ -42,13 +69,25 @@ serve(async (req) => {
 
     const now = new Date().toISOString();
 
-    const { data: jobs, error } = await supabaseAdmin
+    // Seed fixtures are settled by harnesses and replay scripts, never by the
+    // real money paths, so they fail here forever and legitimately. Excluding
+    // them is the precedent money-reconciliation:249 already set
+    // (`if (!includeSeed) jobQuery = jobQuery.eq("is_seed", false)`), and it is
+    // not cosmetic: one unpayable fixture drove auto-release-payment to HTTP
+    // 500 on 83 of its last 257 runs, every 30 minutes for two days, saturating
+    // the money alarm until a genuine payout failure would have landed in a
+    // channel everyone had learned to ignore. `?include_seed=1` restores the
+    // old behaviour for a manual run against fixtures.
+    const includeSeed = new URL(req.url).searchParams.get("include_seed") === "1";
+    let jobQuery = supabaseAdmin
       .from("jobs")
       .select("id, title, helper_id, customer_id, budget, platform_fee_amount, helper_fee_percent, urgent_fee, stripe_session_id, stripe_payment_intent_id, status, is_group_job, helpers_needed, sales_tax_rate")
       .eq("status", "completed")
       .eq("payment_status", "payout_pending")
       .is("disputed_at", null)          // defense-in-depth: never pay out disputed jobs
       .lte("payout_scheduled_at", now);
+    if (!includeSeed) jobQuery = jobQuery.eq("is_seed", false);
+    const { data: jobs, error } = await jobQuery;
 
     if (error) throw error;
 
@@ -85,6 +124,29 @@ serve(async (req) => {
     // isolation for free: one helper's missing Connect account can't block the
     // rest of the roster from being paid.
     const payoutTargets: { job: typeof jobs[number]; helperId: string }[] = [];
+    // How many helpers this job will ACTUALLY be paid out to, keyed by job id.
+    //
+    // This is not the same number as `helpers_needed`, and conflating the two
+    // strands money and wedges the job. `helpers_needed` is what the poster
+    // asked for and what the escrow was split into; the roster is who turned
+    // up. `accept_group_application` keeps the job 'open' until the roster is
+    // full, but a roster row can still be removed while it is staffing, and a
+    // legacy group job may have no roster at all — so an UNDER-FILLED group
+    // job can reach 'completed'. When it does:
+    //
+    //   * every roster member is correctly paid `budget / helpers_needed`,
+    //     which is exactly the 1/N share they accepted, and
+    //   * the release check below used to require
+    //     `distinctPaid >= helpers_needed`, a threshold an under-filled roster
+    //     can never reach — so the job sat in `payout_pending` forever, was
+    //     re-swept every hour, and the unallocated remainder of the escrow was
+    //     never surfaced to anyone.
+    //
+    // Counting against the roster releases the job once everyone who is owed
+    // has been paid, and the alert below makes the leftover escrow visible so
+    // it can be refunded to the poster instead of resting on the platform
+    // balance in silence.
+    const rosterSizeByJob = new Map<string, number>();
     for (const job of (jobs || [])) {
       if (job.is_group_job) {
         const { data: roster, error: rosterErr } = await supabaseAdmin
@@ -96,6 +158,7 @@ serve(async (req) => {
           // partial view of the roster is exactly the bug being fixed.
           console.error(`[process-scheduled-payouts] roster read failed for group job ${job.id}:`, rosterErr);
           results.push({ job_id: job.id, status: "roster_read_error", error: rosterErr.message });
+          defects.record(`roster read ${job.id}: ${rosterErr.message}`);
           continue;
         }
         const rosterIds = (roster ?? []).map((r) => r.helper_id).filter(Boolean);
@@ -103,12 +166,61 @@ serve(async (req) => {
           // Roster empty but the job completed — fall back to the lead helper
           // so a legacy group job (created before the roster existed) still
           // pays someone rather than silently paying nobody.
-          if (job.helper_id) payoutTargets.push({ job, helperId: job.helper_id });
+          if (job.helper_id) {
+            payoutTargets.push({ job, helperId: job.helper_id });
+            rosterSizeByJob.set(job.id, 1);
+          } else {
+            // Empty roster AND no lead helper. `jobs.helper_id` is nullable and
+            // is actively NULLed by the account-deletion purge (migration
+            // 20260901033011 re-points the FK to ON DELETE SET NULL), so this
+            // is reachable, not defensive. Refuse to pay — there is nobody to
+            // pay — but SAY SO: this used to be a bare `continue`, which left
+            // the job in payout_pending forever with no log, no `results`
+            // entry, and therefore invisible to sweep_silent_cron_failures.
+            console.error(
+              `[process-scheduled-payouts] group job ${job.id} has an empty roster AND no lead helper_id (helper account deleted?) — nobody can be paid; escrow is held.`,
+            );
+            results.push({ job_id: job.id, status: "no_payable_helper", skipped: true });
+          }
           continue;
         }
-        for (const helperId of rosterIds) payoutTargets.push({ job, helperId });
+        const distinctRoster = new Set(rosterIds);
+        rosterSizeByJob.set(job.id, distinctRoster.size);
+        if (distinctRoster.size < (job.helpers_needed ?? 1)) {
+          // Page, but do NOT skip. Everyone on the roster still gets the share
+          // they agreed to; what needs a human is the slice of escrow that
+          // belongs to a slot nobody filled, which no automatic path can
+          // decide the destination of (refund to the poster vs. redistribute
+          // is a product/contract call, not a cron's).
+          console.error(
+            `[process-scheduled-payouts] group job ${job.id} is under-filled: ${distinctRoster.size} of ${job.helpers_needed} slots. Paying the roster; the remaining share is unallocated.`,
+          );
+          await postSlackOpsAlert({
+            kind: "payout_failed",
+            severity: "warning",
+            title: "Under-filled group job paid out — escrow remainder unallocated",
+            message:
+              "A group job completed with fewer helpers on its roster than it was funded for. Every roster member is being paid their agreed budget/helpers_needed share, but the unfilled slot's share stays on the platform balance and needs a decision (refund the poster, or redistribute).",
+            fields: {
+              "Job ID": job.id,
+              "Roster size": String(distinctRoster.size),
+              "Helpers needed": String(job.helpers_needed ?? 1),
+              "Unallocated share":
+                `${(job.helpers_needed ?? 1) - distinctRoster.size}/${job.helpers_needed ?? 1} of $${Number(job.budget ?? 0).toFixed(2)}`,
+            },
+            link: "https://www.louisianahelpr.com/admin?tab=payouts",
+          });
+        }
+        for (const helperId of distinctRoster) payoutTargets.push({ job, helperId });
       } else if (job.helper_id) {
         payoutTargets.push({ job, helperId: job.helper_id });
+      } else {
+        // Same reachable NULL, same rule: refuse rather than guess a recipient.
+        // Also previously a silent fall-through with no `results` entry.
+        console.error(
+          `[process-scheduled-payouts] job ${job.id} is payout_pending with a NULL helper_id (helper account deleted?) — refusing to pay; escrow is held.`,
+        );
+        results.push({ job_id: job.id, status: "no_payable_helper", skipped: true });
       }
     }
 
@@ -145,6 +257,7 @@ serve(async (req) => {
         // notification and permanently stall the payout until manual intervention).
         console.error(`[process-scheduled-payouts] helper profile read failed for ${helperId} (job ${job.id}):`, helperProfileErr);
         results.push({ job_id: job.id, status: "helper_profile_read_error", error: helperProfileErr.message });
+        defects.record(`helper profile read ${job.id}: ${helperProfileErr.message}`);
         continue;
       }
 
@@ -193,6 +306,7 @@ serve(async (req) => {
         // paying out against an unverified charge — defer to the next run.
         console.error(`[process-scheduled-payouts] pif_credits read failed for job ${job.id}:`, pifErr);
         results.push({ job_id: job.id, status: "pif_check_error", error: pifErr.message });
+        defects.record(`pif_credits read ${job.id}: ${pifErr.message}`);
         continue;
       }
       const isPifFunded = !!pifRow;
@@ -243,6 +357,7 @@ serve(async (req) => {
         } catch (e: any) {
           console.error(`Failed to verify payment for job ${job.id}:`, e);
           results.push({ job_id: job.id, status: "verify_error", error: (e as Error).message });
+          defects.record(`payment verify ${job.id}: ${(e as Error).message}`);
           continue;
         }
       }
@@ -268,24 +383,24 @@ serve(async (req) => {
       // helper's "paid" row and skip everyone after them — silently paying 1 of N.
       const { data: ledgerRows, error: ledgerReadErr } = await supabaseAdmin
         .from("payout_transfers")
-        .select("stripe_transfer_id, status")
+        .select("id, stripe_transfer_id, status, created_at")
         .eq("job_id", job.id)
         .eq("helper_id", helperId);
       if (ledgerReadErr) {
         // Fail closed: without the ledger we can't rule out a prior transfer.
         console.error(`[process-scheduled-payouts] payout_transfers read failed for job ${job.id}:`, ledgerReadErr);
         results.push({ job_id: job.id, status: "ledger_read_error", error: ledgerReadErr.message });
+        defects.record(`payout_transfers read ${job.id}: ${ledgerReadErr.message}`);
         continue;
       }
       const blockingPayout = (ledgerRows ?? []).find((r) =>
-        ["pending", "paid", "reversed"].includes(r.status)
+        r.stripe_transfer_id !== null && ["pending", "paid", "reversed"].includes(r.status)
       );
       if (blockingPayout) {
         console.log(`[process-scheduled-payouts] Payout already exists for job ${job.id} (${blockingPayout.stripe_transfer_id}/${blockingPayout.status}); skipping.`);
         results.push({ job_id: job.id, status: "already_transferred", transfer_id: blockingPayout.stripe_transfer_id });
         continue;
       }
-      const failedCount = (ledgerRows ?? []).filter((r) => r.status === "failed").length;
 
       // ── Onboarding-fee claim (deferred to HERE, immediately before the
       // transfer) ──
@@ -312,6 +427,7 @@ serve(async (req) => {
           // "lost the race" would silently skip collecting the fee forever.
           console.error(`[process-scheduled-payouts] onboarding-fee claim failed for ${helperId} (job ${job.id}):`, claimErr);
           results.push({ job_id: job.id, status: "onboarding_fee_claim_error", error: claimErr.message });
+          defects.record(`onboarding-fee claim ${job.id}: ${claimErr.message}`);
           continue;
         }
         if (claimed && claimed.length > 0) {
@@ -338,6 +454,58 @@ serve(async (req) => {
         }
         // else: lost the race — flag flipped between read and claim. Don't deduct.
       }
+
+      // Un-claim the one-time onboarding fee if THIS target claimed it. Every
+      // post-claim exit that moves no money must call this, or the retry reads
+      // the flag as already-paid and the $2 is silently lost forever.
+      const rollBackOnboardingFeeClaim = async () => {
+        if (!owesOnboardingFee) return;
+        const { error: unclaimErr } = await supabaseAdmin
+          .from("profiles")
+          .update({ onboarding_fee_paid: false, onboarding_fee_charged_at: null })
+          .eq("user_id", helperId);
+        if (unclaimErr) {
+          console.error(
+            `CRITICAL: [process-scheduled-payouts] payout did not proceed AND onboarding-fee un-claim failed for ${helperId} (job ${job.id}) — onboarding_fee_paid is incorrectly true but the fee was NOT collected; manual reconciliation needed:`,
+            unclaimErr,
+          );
+        }
+      };
+
+      // ── Claim the payout BEFORE calling Stripe ──────────────────────────
+      // The ledger read above cannot close the race the comment at Step 4
+      // claims it closes. This cron and release-payout target the same jobs
+      // with DIFFERENT Stripe idempotency keys, so both would send; an unlocked
+      // SELECT can only lose that race. The INSERT below is arbitrated by the
+      // partial unique index on (job_id, helper_id) over the live statuses
+      // (migration 20260831190418) — exactly one runner gets the row and the
+      // rest stop here rather than at the Stripe call. The same row is what
+      // records a FAILED attempt, which nothing in this function ever wrote.
+      const claimAmountCents = Math.round(helperPayout * 100);
+      const claim = await claimPayout(supabaseAdmin, {
+        jobId: job.id,
+        helperId,
+        amountCents: claimAmountCents,
+        platformFeeCents: Math.round(helperCommission * 100),
+        stripeAccountId: helperProfile.stripe_account_id,
+        initiatedBy: "system",
+        metadata: { source: "scheduled_payout" },
+        ledgerRows: (ledgerRows ?? []) as { id: string; stripe_transfer_id: string | null; status: string; created_at?: string | null }[],
+      });
+      if (claim.kind === "error") {
+        console.error(`[process-scheduled-payouts] payout claim failed for job ${job.id} / helper ${helperId}: ${claim.message}`);
+        await rollBackOnboardingFeeClaim();
+        results.push({ job_id: job.id, status: "claim_error", error: claim.message });
+        defects.record(`payout claim ${job.id}: ${claim.message}`);
+        continue;
+      }
+      if (claim.kind === "blocked") {
+        console.log(`[process-scheduled-payouts] payout not claimed for job ${job.id} / helper ${helperId}: ${claim.reason}`);
+        await rollBackOnboardingFeeClaim();
+        results.push({ job_id: job.id, status: "already_claimed", detail: claim.reason });
+        continue;
+      }
+      const failedCount = claim.failedCount;
 
       // ── Step 5: Transfer to helper (charge is confirmed captured) ──
       try {
@@ -421,47 +589,42 @@ serve(async (req) => {
         // tries to flip this row from "pending" → "paid", but it can fire before
         // this insert executes, leaving the row stuck at "pending" forever with no
         // future event to fix it. Inserting as "paid" upfront eliminates that race.
-        const { error: ledgerErr } = await supabaseAdmin
-          .from("payout_transfers")
-          .insert({
-            job_id: job.id,
-            helper_id: helperId,
-            stripe_transfer_id: transfer.id,
-            stripe_account_id: helperProfile.stripe_account_id,
-            amount_cents: Math.round(helperPayout * 100),
-            platform_fee_cents: Math.round(helperCommission * 100),
-            status: "paid",
-            paid_at: new Date().toISOString(),
-            initiated_by: "system",
-            metadata: {
-              source: "scheduled_payout",
-              onboarding_fee_cents: owesOnboardingFee ? onboardingFeeCents : 0,
-            },
-          });
-        if (ledgerErr && (ledgerErr as any).code !== "23505") {
-          // 23505 = unique_violation: idempotent retry returned the same transfer.id
-          // (already logged on a previous partial run). Any other error means the
-          // transfer succeeded in Stripe but we have no DB record — a financial
-          // reconciliation gap that requires manual intervention. Alert ops; the
-          // duplicate-transfer guard in future runs queries payout_transfers, so a
-          // missing row could allow a second transfer if the job somehow re-enters
-          // payout_pending (unlikely since it's flipped to "released" below, but
-          // a manual DB edit could re-expose it).
+        // Settle the claim taken before the call. Same reason it is stamped
+        // "paid" straight away: Stripe marketplace transfers settle
+        // synchronously, and the `transfer.created` webhook that would flip
+        // pending → paid can fire before this UPDATE runs — a webhook that
+        // finds nothing to update is a no-op no future event repairs.
+        const settled = await settleClaim(supabaseAdmin, claim.claimId, {
+          stripeTransferId: transfer.id,
+          amountCents: Math.round(helperPayout * 100),
+          platformFeeCents: Math.round(helperCommission * 100),
+          stripeAccountId: helperProfile.stripe_account_id,
+          metadata: {
+            source: "scheduled_payout",
+            onboarding_fee_cents: owesOnboardingFee ? onboardingFeeCents : 0,
+          },
+        });
+        if (!settled.ok) {
+          // The transfer succeeded in Stripe but the ledger does not say so —
+          // a financial reconciliation gap requiring a human. The claim row
+          // still exists and still holds the (job, helper) lock, so this
+          // cannot become a double transfer; it just cannot resolve itself.
           console.error(
-            `[process-scheduled-payouts] Ledger insert failed for job ${job.id} (transfer ${transfer.id}):`,
-            ledgerErr,
+            `[process-scheduled-payouts] Ledger settle failed for job ${job.id} (transfer ${transfer.id}): ${settled.message}`,
           );
+          defects.record(`ledger settle ${job.id}: ${settled.message}`);
           await postSlackOpsAlert({
             kind: "payout_failed",
             severity: "critical",
             title: "Scheduled payout — transfer sent but payout_transfers ledger write FAILED",
-            message: `A Stripe transfer succeeded for job ${job.id} but the payout_transfers row was not written. The transfer exists in Stripe but not in our DB — reconcile manually. The duplicate-transfer guard relies on this row; if the job ever re-enters payout_pending a second transfer could be issued.`,
+            message: `A Stripe transfer succeeded for job ${job.id} but its payout_transfers claim row could not be stamped paid with the transfer id. The transfer exists in Stripe but the ledger does not record it — reconcile manually.`,
             fields: {
               "Job ID": job.id,
               "Transfer ID": transfer.id,
               "Amount": `$${helperPayout.toFixed(2)}`,
-              "Helper ID": job.helper_id,
-              "DB error": ((ledgerErr as any).message as string | undefined)?.slice(0, 200) ?? String(ledgerErr),
+              "Helper ID": helperId,
+              "Claim row": claim.claimId,
+              "DB error": settled.message.slice(0, 200),
             },
           });
         }
@@ -486,37 +649,104 @@ serve(async (req) => {
             console.error(`[process-scheduled-payouts] roster payout count failed for job ${job.id}:`, paidCountErr);
             allRosterPaid = false;
           } else {
-            const distinctPaid = new Set((paidRows ?? []).map((r) => r.helper_id)).size;
-            allRosterPaid = distinctPaid >= (job.helpers_needed ?? 1);
+            // SYMMETRY WITH THE ROSTER READ ABOVE, which does
+            // `.map(r => r.helper_id).filter(Boolean)`. That one drops a NULL
+            // `helper_id`; this one did not, and the two numbers are compared
+            // to each other on the very next line.
+            //
+            // `payout_transfers.helper_id` is nullable and is actively NULLed
+            // by the account-deletion purge (20260901033011 step 4d sets it to
+            // NULL and stamps `helper_redacted_at`; 20260902014651 does the
+            // same to the matching `group_job_helpers` row). So after one
+            // roster member deletes their account, a group job's denominator
+            // EXCLUDES them while the numerator COUNTED them: on a 3-slot job
+            // with roster {A,B,C} where A is redacted, rosterSize becomes 2
+            // while `new Set([null, "C"]).size` is also 2 — so paying C alone
+            // trips `allRosterPaid`, flips the job to 'released', and drops it
+            // out of a cron that selects on payment_status='payout_pending'.
+            // B is then never retried, and their budget/helpers_needed share
+            // rests on the platform balance with no alert. That is precisely
+            // the failure the comment above says this block exists to prevent.
+            //
+            // A redacted row is not a roster member this run can pay, so it
+            // must not count as one. Excluding it fails CLOSED: the job stays
+            // payout_pending and is retried next run (Stripe dedupes on the
+            // same idempotency key), which is recoverable — wrongly releasing
+            // is not.
+            const distinctPaid = new Set(
+              (paidRows ?? [])
+                .map((r) => r.helper_id)
+                .filter((id): id is string => typeof id === "string" && id.length > 0),
+            ).size;
+            // Against the ROSTER, not `helpers_needed` — see rosterSizeByJob
+            // above. `helpers_needed` is a threshold an under-filled roster can
+            // never reach, which left the job cycling through this cron forever
+            // with every member already paid.
+            allRosterPaid = distinctPaid >= (rosterSizeByJob.get(job.id) ?? job.helpers_needed ?? 1);
           }
         }
 
-        const { error: statusUpdateErr } = allRosterPaid
-          ? await supabaseAdmin.from("jobs").update({
-              payment_status: "released",
-              helper_fee_percent: jobHelperFeePercent,
-              platform_fee_amount: Math.round(perHelperBudget * jobHelperFeePercent) / 100,
-            }).eq("id", job.id)
-          : { error: null };
-        if (statusUpdateErr) {
+        // The money is out. This write used to be a bare `.eq("id", job.id)`
+        // with no `.select("id")` and no state precondition, which is two bugs
+        // in one line:
+        //
+        //   1. a zero-row match returns `{ data: [], error: null }`, so a job
+        //      whose payment_status had moved under us stayed in payout_pending
+        //      forever while the run reported success and Stripe had paid;
+        //   2. with no precondition it would happily overwrite a webhook-set
+        //      'chargeback' with 'released' — paying out and then marking as
+        //      settled a job the bank has already clawed back. That is the
+        //      exact hazard auto-release-payment:195-198 documents and guards
+        //      against on the escrow side, and this path had no such guard.
+        //
+        // Now it mirrors execute-dispute-split:879-885: explicit allowed
+        // states, `.select("id")`, and a zero-row branch that alerts.
+        // `helper_fee_percent` and `platform_fee_amount` are PER-HELPER values
+        // on a row that a group job shares between N of them. This flip runs on
+        // whichever roster member happened to settle last, so stamping them on a
+        // group job wrote one arbitrary helper's tier rate onto everybody's job
+        // — and `helperEarnings.ts` treats the frozen percent as the authority
+        // on exactly those rows (`shares !== 1`), so an Elite helper's card
+        // would quote a free-tier helper's 12% (or, worse, the reverse: a
+        // displayed take-home HIGHER than the transfer, the one thing
+        // `JobPrice.tsx` says must never happen). The truth is already per-helper
+        // in `payout_transfers`; leave the shared row's escrow-time stamp alone
+        // rather than overwriting it with a number that is right for one of N.
+        const releaseFields: Record<string, unknown> = { payment_status: "released" };
+        if (!job.is_group_job) {
+          releaseFields.helper_fee_percent = jobHelperFeePercent;
+          releaseFields.platform_fee_amount = Math.round(perHelperBudget * jobHelperFeePercent) / 100;
+        }
+        const { data: flippedJob, error: statusUpdateErr } = allRosterPaid
+          ? await supabaseAdmin.from("jobs").update(releaseFields)
+            .eq("id", job.id)
+            .in("payment_status", [...RELEASABLE_PAYMENT_STATES])
+            .select("id")
+          : { data: [{ id: job.id }], error: null };
+        if (statusUpdateErr || !flippedJob || flippedJob.length === 0) {
+          const zeroRow = !statusUpdateErr;
           // The Stripe transfer already succeeded — throwing here would wrongly
           // mark this job as transfer_failed. Log critically and alert ops so
-          // the row can be manually flipped; the cron will retry idempotently
-          // (same transfer key → Stripe dedupes, same ledger key → 23505 deduped).
+          // the row can be reconciled by hand.
           console.error(
-            `[process-scheduled-payouts] CRITICAL: transfer sent but jobs.update failed for job ${job.id}:`,
+            `[process-scheduled-payouts] CRITICAL: transfer sent but jobs.update ${zeroRow ? "matched ZERO rows (payment_status left the releasable set — chargeback or refund?)" : "failed"} for job ${job.id}:`,
             statusUpdateErr,
+          );
+          defects.record(
+            `job release flip ${job.id}: ${zeroRow ? "zero rows matched" : (statusUpdateErr as Error)?.message ?? "update failed"}`,
           );
           await postSlackOpsAlert({
             kind: "payout_failed",
             severity: "critical",
             title: "Payout status flip failed — manual fix required",
-            message: `Transfer sent to helper for job ${job.id} but \`payment_status\` could not be flipped to "released". Job is stuck in payout_pending — requires manual DB update.`,
+            message: zeroRow
+              ? `Transfer sent to helper for job ${job.id} but \`payment_status\` was no longer in {payout_pending, released}, so the flip matched zero rows. The helper has been paid on a job that may have been charged back or refunded underneath this run. Reconcile immediately — do NOT simply set it to released.`
+              : `Transfer sent to helper for job ${job.id} but \`payment_status\` could not be flipped to "released". Job is stuck in payout_pending — requires manual DB update.`,
             fields: {
               "Job ID": job.id,
               "Helpr ID": helperId,
               Amount: `$${helperPayout.toFixed(2)}`,
-              Error: (statusUpdateErr as Error)?.message?.slice(0, 200) ?? String(statusUpdateErr),
+              Error: (statusUpdateErr as Error)?.message?.slice(0, 200) ?? "zero rows matched",
             },
             link: "https://www.louisianahelpr.com/admin?tab=payouts",
           });
@@ -541,25 +771,27 @@ serve(async (req) => {
       } catch (e) {
         console.error(`Payout failed for job ${job.id}:`, e);
         results.push({ job_id: job.id, status: "transfer_failed", error: (e as Error).message });
+        defects.record(`transfer failed ${job.id}: ${(e as Error).message}`);
 
-        // Un-claim the onboarding fee if THIS job claimed it. The atomic claim
-        // above flipped the flag to true BEFORE the transfer; the transfer
-        // failed, so no money moved and the fee was never collected. Leaving
-        // the flag true would make the retry (which re-reads onboarding_fee_paid
-        // as already-paid) skip the deduction, silently losing the fee. The
-        // atomic claim guarantees sole ownership, so this rollback is safe.
-        if (owesOnboardingFee) {
-          const { error: unclaimErr } = await supabaseAdmin
-            .from("profiles")
-            .update({ onboarding_fee_paid: false, onboarding_fee_charged_at: null })
-            .eq("user_id", helperId);
-          if (unclaimErr) {
-            console.error(
-              `CRITICAL: [process-scheduled-payouts] transfer failed AND onboarding-fee un-claim failed for ${helperId} (job ${job.id}) — onboarding_fee_paid is incorrectly true but the fee was NOT collected; manual reconciliation needed:`,
-              unclaimErr,
-            );
-          }
+        // Record the FAILED attempt on the claim row. Nothing in this function
+        // ever wrote `status='failed'` — the only writer was the
+        // transfer.failed webhook, which never fires when the CREATE call
+        // itself throws. So `failedCount` stayed 0, the idempotency key stayed
+        // unsalted, and Stripe replayed this same cached failure for ~24h,
+        // making every retry a silent no-op for a day.
+        const failed = await failClaim(supabaseAdmin, claim.claimId, (e as Error).message, {
+          source: "scheduled_payout",
+        });
+        if (!failed.ok) {
+          console.error(
+            `CRITICAL: [process-scheduled-payouts] transfer failed for job ${job.id} AND the claim row could not be marked failed (${failed.message}); the next run resumes it against the same idempotency key.`,
+          );
+          defects.record(`claim fail-mark ${job.id}: ${failed.message}`);
         }
+
+        // Un-claim the onboarding fee if THIS job claimed it — no money moved,
+        // so the fee was never collected and the flag must not say it was.
+        await rollBackOnboardingFeeClaim();
 
         await postSlackOpsAlert({
           kind: "payout_failed",
@@ -589,18 +821,23 @@ serve(async (req) => {
       }
     }
 
-    return new Response(
-      JSON.stringify({ success: true, processed, results }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+    // Name the function in the body. `sweep_silent_cron_failures` only ingests
+    // responses matching `content ~ '"fn"\s*:\s*"'`, and `sweep_cron_http_failures`
+    // otherwise falls back to timestamp proximity — which guessed wrong three
+    // times in four. Without this key a payout cron is invisible to both
+    // watchers built to watch it.
+    return cronResult(
+      "process-scheduled-payouts",
+      { success: true, processed, results },
+      defects.defects,
+      corsHeaders,
     );
   } catch (error) {
     console.error("[process-scheduled-payouts] fatal:", error);
-    return new Response(
-      JSON.stringify({
-        error: "Internal server error",
-        detail: (error as Error).message,
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+    return cronError(
+      "process-scheduled-payouts",
+      `Internal server error: ${(error as Error).message}`,
+      corsHeaders,
     );
   }
 });

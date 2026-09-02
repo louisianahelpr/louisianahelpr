@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import { createPortal } from "react-dom";
 import { X, ChevronLeft, ChevronRight, Grid3x3 } from "lucide-react";
 
 interface PhotoLightboxProps {
@@ -63,20 +64,35 @@ export function PhotoLightbox({ photos, lightboxIndex, setLightboxIndex, openInG
 
   // Lightbox keyboard navigation: arrows + escape. Esc also collapses
   // grid → single, and resets a zoomed-in image before closing.
+  //
+  // CAPTURE on `window`, and the Escape branch stops propagation. The viewer
+  // is the topmost thing on screen, so Escape is its key while it is open —
+  // but JobDetailDialog opens it from inside a Radix modal, and Radix's
+  // dismissable layer registers its own Escape handler as
+  // `document.addEventListener("keydown", h, { capture: true })` when the
+  // DIALOG opens, i.e. before this one exists. Measured: one Escape closed the
+  // photo viewer AND the job sheet behind it, so a reader who pressed Escape
+  // to leave a photo lost the job they were reading. Capture order runs
+  // window before document, so this is the only hook that lands ahead of a
+  // handler registered earlier on document — same-node/same-phase listeners
+  // fire in registration order, which no amount of re-registering here wins.
+  // Arrow keys deliberately do NOT stop; nothing else competes for them.
   useEffect(() => {
     if (lightboxIndex === null) return;
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
+        e.stopPropagation();
         if (mode === "grid") { setMode("single"); return; }
         if (zoom > 1) { setZoom(1); setPan({ x: 0, y: 0 }); return; }
         setLightboxIndex(null);
+        return;
       }
       if (mode !== "single" || zoom !== 1) return;
       if (e.key === "ArrowRight") setLightboxIndex((i) => (i === null ? null : Math.min(i + 1, photos.length - 1)));
       if (e.key === "ArrowLeft") setLightboxIndex((i) => (i === null ? null : Math.max(i - 1, 0)));
     };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+    window.addEventListener("keydown", handler, true);
+    return () => window.removeEventListener("keydown", handler, true);
   }, [lightboxIndex, photos.length, mode, zoom, setLightboxIndex]);
 
   // Preload the prev/next image so a navigate is instant. We let the
@@ -91,6 +107,47 @@ export function PhotoLightbox({ photos, lightboxIndex, setLightboxIndex, openInG
       img.src = photos[i];
     });
   }, [lightboxIndex, mode, photos]);
+
+  // Focus return. The viewer is a portal at the END of <body>, so when it
+  // unmounts focus would otherwise land on <body> and the next Tab would
+  // restart at the top of the document instead of at the thumbnail (or the
+  // dialog) the viewer was opened from.
+  const openerRef = useRef<HTMLElement | null>(null);
+  const open = lightboxIndex !== null && photos.length > 0;
+  useEffect(() => {
+    if (!open) return;
+    openerRef.current = document.activeElement as HTMLElement | null;
+    return () => {
+      const el = openerRef.current;
+      openerRef.current = null;
+      if (el && document.contains(el)) el.focus({ preventScroll: true });
+    };
+  }, [open]);
+
+  // Keep the viewer visible to assistive tech. Second consequence of the
+  // portal: an open Radix modal calls `hideOthers()` (the `aria-hidden`
+  // package), which stamps `aria-hidden="true"` + `data-aria-hidden` on every
+  // child of <body> that is not the dialog — and it keeps doing so for nodes
+  // added afterwards. Measured: opened from JobDetailDialog, this element
+  // rendered as `role="dialog" aria-modal="true" aria-hidden="true"`, i.e. a
+  // photo viewer no screen reader could see. Inline, it was a descendant of
+  // the dialog and was never a candidate. Un-hide ourselves and hold it: the
+  // job sheet underneath stays hidden, which is the correct end state.
+  const rootRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!open || !el) return;
+    const unhide = () => {
+      if (el.getAttribute("aria-hidden") === "true") {
+        el.removeAttribute("aria-hidden");
+        el.removeAttribute("data-aria-hidden");
+      }
+    };
+    unhide();
+    const mo = new MutationObserver(unhide);
+    mo.observe(el, { attributes: true, attributeFilter: ["aria-hidden"] });
+    return () => mo.disconnect();
+  }, [open]);
 
   if (lightboxIndex === null || photos.length === 0) return null;
 
@@ -196,8 +253,38 @@ export function PhotoLightbox({ photos, lightboxIndex, setLightboxIndex, openInG
 
   const photoUrl = photos[lightboxIndex];
 
-  return (
+  // PORTALLED TO <body>, and that is load-bearing rather than tidy.
+  //
+  // `position: fixed` resolves against the VIEWPORT only while no ancestor
+  // establishes a containing block — and every one of this component's three
+  // mount sites supplies one:
+  //
+  //   ChatView / ReviewList  render inside PageScaffold's panel, whose
+  //     `.liquid-glass` carries `backdrop-filter: blur(20px) saturate(170%)`
+  //     (index.css). A non-none filter makes an element the containing block
+  //     for fixed descendants, exactly as a transform does — and the panel
+  //     also sets `overflow: hidden`, so it clipped as well as resized.
+  //     Measured inline: 351x767 at (21, 85) in a 393x852 viewport.
+  //
+  //   JobDetailDialog        renders it INSIDE `<DialogContent>`, which centres
+  //     itself with the standalone `translate: -50% -50%` property AND carries
+  //     `.glass-modal`'s own backdrop-filter. Measured inline there: a
+  //     359x87 strip at (17, 383) — 10% of the viewport height. A "fullscreen"
+  //     photo viewer was rendering inside the job card that opened it.
+  //
+  // Same class of bug as the "Add a Pet" sheet (see the note in
+  // src/pages/petProfiles/PetForm.tsx), same fix: leave the transformed
+  // subtree by construction rather than relying on no ancestor ever gaining a
+  // transform, a filter, or a `will-change`.
+  //
+  // A plain portal, not the shared <Dialog>: this file is on
+  // popupShellInventory.test.ts's HAND_ROLLED_BY_DESIGN list because framing a
+  // photo in a 512px titled card to satisfy a consistency rule makes the photo
+  // worse. The portal buys the one thing the shell was wanted for — a
+  // containing block that is the viewport — and nothing it was not.
+  return createPortal(
     <div
+      ref={rootRef}
       className="fixed inset-0 z-[60] flex items-center justify-center animate-in fade-in-0 duration-200"
       style={{
         // Frosted parchment scrim — heavy blur of whatever's underneath
@@ -208,6 +295,19 @@ export function PhotoLightbox({ photos, lightboxIndex, setLightboxIndex, openInG
         // Disable native pinch-to-zoom on the page so our pinch math
         // is the only zoom handler in play.
         touchAction: zoom > 1 ? "none" : "pan-y",
+        // REQUIRED because of the portal above, not decoration. JobDetailDialog
+        // opens this from inside a Radix modal, and an open Radix modal sets
+        // `pointer-events: none` on <body> so only its own layer stays live.
+        // `pointer-events` inherits, so a portal appended to <body> inherits
+        // `none`: measured, the viewer rendered at the full 393x852 and was
+        // completely inert — the X, the arrows and the scrim all dead, while
+        // the click passed through to the dialog's dismiss layer and closed
+        // the JOB SHEET behind it. Re-enabling here also restores Radix's own
+        // nesting logic: with the pointerdown landing on this element, it
+        // propagates up the REACT tree (which still runs through
+        // DialogContent, portal or not), so Radix reads it as inside and no
+        // longer dismisses the parent.
+        pointerEvents: "auto",
       }}
       onClick={() => {
         // Tapping the scrim closes — but only when not actively zoomed
@@ -413,6 +513,7 @@ export function PhotoLightbox({ photos, lightboxIndex, setLightboxIndex, openInG
           </div>
         </div>
       )}
-    </div>
+    </div>,
+    document.body,
   );
 }

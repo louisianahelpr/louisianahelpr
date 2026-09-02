@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -101,11 +101,20 @@ const PetProfiles = () => {
     queryClient.invalidateQueries({ queryKey: ["pet_profiles", userId] });
   };
 
-  // Mobile add: open the full-screen sheet form (existing behavior).
+  // Mobile add: open the shared popup form.
   const openAddMobile = () => {
     setEditingPet(null);
     setFormOpen(true);
   };
+
+  // Desktop only: the inline create form is appended BELOW the pets list in
+  // the single stacked column, so on a tall list — or on the empty state,
+  // whose card is nearly a full viewport on its own — tapping "Add a Pet"
+  // rendered the form entirely off screen and read as a dead button.
+  // Measured at 1440x900 with no pets: the form's header landed at y=1140,
+  // 240px past the fold. The mobile path has never had this problem (its form
+  // is a popup over the page), which is why it went unnoticed.
+  const inlineFormRef = useRef<HTMLDivElement>(null);
 
   // Desktop add: reveal the inline right-pane create form, clearing the
   // active-pet URL param so the pane isn't showing a detail underneath.
@@ -114,6 +123,10 @@ const PetProfiles = () => {
     const next = new URLSearchParams(searchParams);
     next.delete("pet");
     setSearchParams(next, { replace: true });
+    // After the state lands, not before — the node does not exist on the tap.
+    requestAnimationFrame(() => {
+      inlineFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   };
 
   // Mobile edit: open the full-screen sheet form.
@@ -294,15 +307,17 @@ const PetProfiles = () => {
               style={{ scrollbarGutter: "stable" }}
             >
               {desktopAdding && userId && (
-                <PetForm
-                  existingNames={(pets ?? []).map((p) => p.name)}
-                  key="desktop-add"
-                  variant="inline"
-                  initialValues={null}
-                  ownerId={userId}
-                  onClose={() => setDesktopAdding(false)}
-                  onSaved={handleSaved}
-                />
+                <div ref={inlineFormRef}>
+                  <PetForm
+                    existingNames={(pets ?? []).map((p) => p.name)}
+                    key="desktop-add"
+                    variant="inline"
+                    initialValues={null}
+                    ownerId={userId}
+                    onClose={() => setDesktopAdding(false)}
+                    onSaved={handleSaved}
+                  />
+                </div>
               )}
 
               {!desktopAdding && activePet && (

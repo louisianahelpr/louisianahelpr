@@ -2,6 +2,12 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { LEGAL_TERMS_VERSION, LEGAL_PRIVACY_VERSION } from "../_shared/legalVersions.ts";
+import {
+  avatarObjectKey,
+  resolveAvatarContentType,
+  safeDocumentExt,
+  sweepSupersededAvatars,
+} from "../_shared/storageKeys.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -66,6 +72,18 @@ serve(async (req) => {
       // deferred at signup, so this checkbox is what satisfies the legal age
       // gate on the initial path (see the 18+ gate below).
       ageAttested,
+      // Explicit "I agree to the Terms, Privacy Policy and Platform Rules"
+      // attestation. The tick is a hard client gate, but recording the
+      // assertion the user actually made beats inferring consent from the
+      // arrival of a request. Optional on the wire so an already-shipped iOS
+      // build (whose JS is bundled into the .ipa and cannot be updated from
+      // here) does not start failing signup — `null` means "this client is
+      // older than the field", not "the user declined".
+      termsAccepted,
+      // `?ref=<code>` from a referral share link, forwarded by Signup.tsx.
+      // See the referral block near the bottom of this function for why it is
+      // recorded here rather than by the client.
+      referralCode,
     } = body;
 
     let userId: string | null = null;
@@ -190,6 +208,10 @@ serve(async (req) => {
     }
 
     let avatarUrl: string | null = null;
+    // Superseded avatar objects the sweep could NOT confirm are gone. Returned
+    // to the caller rather than only logged, so a still-public previous photo
+    // is something the app can surface to the person whose photo it is.
+    let staleAvatarObjects: string[] = [];
     let idDocumentUrl: string | null = null;
     let licenseUrl: string | null = null;
     let insuranceUrl: string | null = null;
@@ -198,13 +220,34 @@ serve(async (req) => {
     // 1. Upload avatar to the dedicated public `avatars` bucket
     // (was incorrectly using job-photos before — bucket got created
     // 2026-05-05 alongside making user-documents private).
-    if (avatarBase64 && avatarExt) {
-      const avatarPath = `${userId}/avatar.${avatarExt}`;
+    //
+    // The key is DERIVED from the content type by `../_shared/avatarKey.ts`;
+    // `avatarExt` is no longer interpolated into it. It used to be, and because
+    // this function holds the SERVICE ROLE key there was no storage RLS to
+    // catch it: `avatarExt: "png/../../<victim>/avatar.png"` overwrote another
+    // account's public profile photo, verified against prod. Every detail and
+    // the three reproductions are in that file's header.
+    if (avatarBase64) {
+      const resolvedType = resolveAvatarContentType(avatarContentType, avatarExt);
+      if (!resolvedType) {
+        // A permanent property of the file, not a transient failure — so it
+        // must NOT fall through to the "couldn't save it, try again" 502
+        // below, which would send the user round a loop that cannot succeed.
+        return new Response(
+          JSON.stringify({
+            error:
+              "That file type isn't supported for a profile photo — use JPG, PNG, WebP or GIF.",
+          }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const avatarPath = avatarObjectKey(userId, resolvedType);
       const avatarBytes = Uint8Array.from(atob(avatarBase64), (c) => c.charCodeAt(0));
       const { error: avatarErr } = await supabase.storage
         .from("avatars")
         .upload(avatarPath, avatarBytes, {
-          contentType: avatarContentType || "image/jpeg",
+          contentType: resolvedType,
           upsert: true,
         });
 
@@ -213,12 +256,36 @@ serve(async (req) => {
       } else {
         const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(avatarPath);
         avatarUrl = urlData.publicUrl;
+
+        // Delete any `avatar.*` sibling left by a different format (or by the
+        // old client-controlled key scheme) and PROVE it by re-listing. Never
+        // throws: the new photo is already live, and failing here would leave
+        // the profile pointing at the object being replaced.
+        const { staleRemaining } = await sweepSupersededAvatars(
+          supabase,
+          userId,
+          avatarPath.slice(userId.length + 1),
+        );
+        if (staleRemaining.length > 0) {
+          staleAvatarObjects = staleRemaining;
+          console.error(
+            `[complete-signup] ${staleRemaining.length} superseded avatar object(s) still public for ${userId}: ${staleRemaining.join(", ")}`,
+          );
+        }
       }
     }
 
     // 2. Upload ID document
-    if (idBase64 && idExt) {
-      const idPath = `${userId}/id-document.${idExt}`;
+    //
+    // `idExt` is no longer interpolated into the key — see
+    // `../_shared/storageKeys.ts`. Being a PRIVATE bucket was never the
+    // mitigation it looks like: `idExt: "png/../../<victim>/id-document.png"`
+    // planted a file under another member's folder, and that is precisely the
+    // object an admin reviewer opens as that member's government ID. The bucket
+    // also declares no allowed_mime_types and no size limit, so nothing below
+    // this line was checking either.
+    if (idBase64) {
+      const idPath = `${userId}/id-document.${safeDocumentExt(idContentType, idExt)}`;
       const idBytes = Uint8Array.from(atob(idBase64), (c) => c.charCodeAt(0));
       const { error: idErr } = await supabase.storage
         .from("id-documents")
@@ -238,8 +305,8 @@ serve(async (req) => {
     // user-documents bucket is private — store the PATH (not full URL) so
     // we can generate signed URLs at display time. Admin/owner read access
     // is enforced by the bucket's owner-or-admin RLS policy.
-    if (licenseBase64 && licenseExt) {
-      const licensePath = `${userId}/credentials/license-${Date.now()}.${licenseExt}`;
+    if (licenseBase64) {
+      const licensePath = `${userId}/credentials/license-${Date.now()}.${safeDocumentExt(licenseContentType, licenseExt)}`;
       const licenseBytes = Uint8Array.from(atob(licenseBase64), (c) => c.charCodeAt(0));
       const { error: licErr } = await supabase.storage
         .from("user-documents")
@@ -255,8 +322,8 @@ serve(async (req) => {
     }
 
     // 2c. Upload insurance document (if provided)
-    if (insuranceBase64 && insuranceExt) {
-      const insurancePath = `${userId}/credentials/insurance-${Date.now()}.${insuranceExt}`;
+    if (insuranceBase64) {
+      const insurancePath = `${userId}/credentials/insurance-${Date.now()}.${safeDocumentExt(insuranceContentType, insuranceExt)}`;
       const insuranceBytes = Uint8Array.from(atob(insuranceBase64), (c) => c.charCodeAt(0));
       const { error: insErr } = await supabase.storage
         .from("user-documents")
@@ -279,7 +346,10 @@ serve(async (req) => {
     // portfolio + admins still get fresh signed URLs at display time too.
     if (portfolioFiles && Array.isArray(portfolioFiles)) {
       for (const file of portfolioFiles) {
-        const path = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${file.ext}`;
+        // A FIFTH site of the same defect, not in the original report: `file.ext`
+        // is an element of a client-supplied array, interpolated straight into
+        // the key. Same treatment as the three above.
+        const path = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${safeDocumentExt(file.contentType, file.ext)}`;
         const bytes = Uint8Array.from(atob(file.base64), (c) => c.charCodeAt(0));
         const { error: pErr } = await supabase.storage
           .from("user-documents")
@@ -301,10 +371,13 @@ serve(async (req) => {
     // the storage write fail, and still land "approved" with the doc missing.
     // Detect provided-but-unstored files and make the caller retry instead.
     const uploadFailures: string[] = [];
-    if (avatarBase64 && avatarExt && !avatarUrl) uploadFailures.push("profile picture");
-    if (idBase64 && idExt && !idDocumentUrl) uploadFailures.push("ID document");
-    if (licenseBase64 && licenseExt && !licenseUrl) uploadFailures.push("license");
-    if (insuranceBase64 && insuranceExt && !insuranceUrl) uploadFailures.push("insurance document");
+    // `avatarExt` is no longer part of the condition: it is not required to
+    // store the file any more, so keeping it here would have let a client that
+    // omits it upload nothing and still be told the signup succeeded.
+    if (avatarBase64 && !avatarUrl) uploadFailures.push("profile picture");
+    if (idBase64 && !idDocumentUrl) uploadFailures.push("ID document");
+    if (licenseBase64 && !licenseUrl) uploadFailures.push("license");
+    if (insuranceBase64 && !insuranceUrl) uploadFailures.push("insurance document");
     if (uploadFailures.length > 0) {
       return new Response(
         JSON.stringify({ error: `We couldn't save your ${uploadFailures.join(", ")}. Please try again.` }),
@@ -435,8 +508,24 @@ serve(async (req) => {
     // policy triggers the re-consent modal (see TermsReconsentDialog). The
     // policies checkbox in SignupStep1 is a hard requirement to reach this
     // path, so recording it here IS the affirmative acceptance.
+    //
+    // THREE columns, three different questions, and they used to be answered
+    // by three unrelated writers:
+    //   terms_version_accepted — which version they are on (drives re-consent)
+    //   terms_accepted_at      — when they accepted THAT version (re-stamped)
+    //   accepted_terms_at      — the FIRST time they ever accepted (immutable)
+    // `accepted_terms_at` was written only by CompleteProfile.tsx and this
+    // function only wrote the other two, so prod ended up with 12/30 profiles
+    // missing one and 22/30 missing the other. Both are written here now, and
+    // `tr_preserve_first_consent` (migration 20260901035252) pins
+    // `accepted_terms_at` to its existing value, so re-running this function
+    // on a resubmission re-stamps the version timestamp without destroying the
+    // original consent. Sending it unconditionally is deliberate: the database
+    // owns "first wins", so no caller has to read-then-write and race.
+    const consentAt = new Date().toISOString();
     updateData.terms_version_accepted = LEGAL_TERMS_VERSION;
-    updateData.terms_accepted_at = new Date().toISOString();
+    updateData.terms_accepted_at = consentAt;
+    updateData.accepted_terms_at = consentAt;
     if (availability) updateData.availability = availability;
     if (transportation) updateData.transportation = transportation;
     if (hearAboutUs) updateData.hear_about_us = hearAboutUs;
@@ -447,13 +536,29 @@ serve(async (req) => {
     if (jobRadius) updateData.job_radius = jobRadius;
     if (extraComments) updateData.extra_comments = extraComments;
 
-    const { error: profileErr } = await supabase
+    // `.select("user_id")` + a zero-row branch, per CLAUDE.md. This UPDATE is
+    // what sets `approval_status: "approved"` (line 397) — it is the write that
+    // decides whether the account can post or apply at all — and an UPDATE
+    // matching zero rows returns `{ data: [], error: null }`, indistinguishable
+    // from success.
+    //
+    // Zero rows is genuinely reachable here, not theoretical: on the JWT path
+    // the profile read at :323-335 deliberately tolerates PGRST116 ("no profile
+    // row yet"), so execution arrives here with no proof a row exists. Without
+    // the guard the function answered `success: true` and Signup.tsx treated
+    // the account as finished, leaving the user stranded unapproved with no
+    // error surfaced anywhere.
+    const { data: updatedRows, error: profileErr } = await supabase
       .from("profiles")
       .update(updateData)
-      .eq("user_id", userId);
+      .eq("user_id", userId)
+      .select("user_id");
 
-    if (profileErr) {
-      console.error("Profile update error:", profileErr);
+    if (profileErr || (updatedRows?.length ?? 0) === 0) {
+      console.error(
+        "Profile update error:",
+        profileErr ?? `zero rows matched for user_id ${userId} — profile row missing, account left unapproved`,
+      );
       return new Response(JSON.stringify({ error: "Failed to update profile" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -467,15 +572,84 @@ serve(async (req) => {
     // the LAST_UPDATED stamps in src/pages/legal/legalSections.ts; bump
     // both places together on a material policy change. Non-fatal: a failed
     // consent write is logged loudly but must not strand a finished signup.
+    //
+    // `marketing_opted_in` is now populated. The column has existed since the
+    // table was created and was never written, so every row in the audit trail
+    // said the user had NOT opted into marketing — including the rows for
+    // users who ticked the box. The value the sender actually filters on lives
+    // in `profiles.marketing_consent` (written above), so nothing mis-mailed;
+    // but the record that is supposed to EVIDENCE the opt-in disagreed with
+    // it, which is worse than leaving the column out of the schema.
     const { error: legalErr } = await supabase.from("legal_acceptances").insert({
       user_id: userId,
       terms_version: LEGAL_TERMS_VERSION,
       privacy_version: LEGAL_PRIVACY_VERSION,
+      marketing_opted_in: marketingConsent === true,
       ip_address: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
       user_agent: req.headers.get("user-agent") ?? null,
     });
     if (legalErr) {
       console.error(`[complete-signup] legal_acceptances insert failed for ${userId}:`, legalErr);
+    }
+    // An older shipped client that does not send the field yields `null`, which
+    // is "unknown", not "declined" — the tick is still a hard gate in the form.
+    // Logged so the tail of pre-update builds is visible rather than assumed.
+    if (termsAccepted !== true) {
+      console.warn(
+        `[complete-signup] no explicit termsAccepted from client for ${userId} (got ${JSON.stringify(termsAccepted)}); consent recorded from completion`,
+      );
+    }
+
+    // Record the referral, if this signup came in through a `?ref=` link.
+    //
+    // THIS IS THE ONLY PLACE IT CAN HAPPEN. `process_referral` requires
+    // `auth.uid() = p_new_user_id` (hardened 2026-08-19) and is granted to
+    // `authenticated` only, but the client calls it moments after
+    // `auth.signUp` — which returns no session while email confirmation is on.
+    // So the client call was 401 `42501 permission denied` 100% of the time,
+    // and prod has 29 referral codes against 0 referrals to show for it.
+    //
+    // This function is the right home: it has already proved the caller owns
+    // `userId` (a 30-minute window from account creation + never-signed-in +
+    // an empty profile, or a valid JWT), and it runs service-role, so it needs
+    // no session. It deliberately does NOT call `process_referral` — under
+    // service-role `auth.uid()` is NULL, which that function correctly rejects
+    // as `not_authorized`. It calls `record_referral_signup`, the shared body
+    // behind both entry points, granted to service_role only.
+    //
+    // Best-effort by design: a referral is a bonus, and failing a completed
+    // signup over one would trade a $5 credit for an orphaned account. But the
+    // error is never dropped — a silently-failing referral path is the exact
+    // bug being fixed here, and it stayed invisible for months.
+    let referralRecorded = false;
+    if (typeof referralCode === "string" && referralCode.trim()) {
+      const { data: referralOk, error: referralErr } = await supabase.rpc("record_referral_signup", {
+        p_referral_code: referralCode.trim().toUpperCase(),
+        p_new_user_id: userId,
+      });
+      if (referralErr) {
+        // PGRST202 means the RPC is not in the schema cache yet — this
+        // function deploys on push while the migration deploys on merge, so
+        // there is a window where the code is live and the function is not.
+        // Distinguished in the log so the deploy-lag case is not investigated
+        // as a permissions or data bug.
+        const code = (referralErr as { code?: string }).code;
+        console.error(
+          `[complete-signup] referral not recorded for ${userId} (code ${referralCode.trim().toUpperCase()})${
+            code === "PGRST202" ? " — record_referral_signup not deployed yet (migration lag)" : ""
+          }:`,
+          referralErr.message ?? referralErr,
+        );
+      } else {
+        // The RPC returns FALSE for an unknown code, a self-referral, or a
+        // user who was already referred — all legitimate no-ops, not errors.
+        referralRecorded = referralOk === true;
+        if (!referralRecorded) {
+          console.log(
+            `[complete-signup] referral code ${referralCode.trim().toUpperCase()} did not apply to ${userId} (unknown code, self-referral, or already referred)`,
+          );
+        }
+      }
     }
 
     // Notify all admins about the new signup (deduped: skip if we already sent one for this user in the last 24h)
@@ -486,36 +660,63 @@ serve(async (req) => {
         .eq("user_id", userId)
         .single();
 
+      // ONE definition, read by both the dedupe query and the insert. Two
+      // hand-written copies of this string is what made the dedupe dead.
+      const NEW_MEMBER_TITLE = "New member joined";
       const userName = profile?.full_name || "Someone";
       const userLocation = profile?.location ? ` from ${profile.location}` : "";
       const notifMessage = `${userName}${userLocation} just joined. They're auto-approved and can start posting + applying right away.`;
 
-      // Dedupe: skip if an identical notification was sent in the last 24h
+      // Dedupe: skip if an identical notification was sent in the last 24h.
+      //
+      // The title on BOTH sides comes from one constant now. It did not: the
+      // query asked for "👤 New member joined" (with the emoji) while the
+      // insert below wrote "New member joined" (without), so the two could
+      // never match and the dedupe was dead from the day the emoji was
+      // dropped. Verified against prod 2026-08-31: 88 notification rows carry
+      // the plain title and ZERO carry the emoji one, and those 88 rows hold
+      // only 6 distinct messages — one repeated 26 times.
+      //
+      // A failed dedupe READ must fail CLOSED (skip the fan-out) rather than
+      // default to sending: `!existing?.length` treated a read error as "no
+      // prior notification", which is the same shape that re-mailed the cohort.
       const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      const { data: existing } = await supabase
+      const { data: existing, error: existingErr } = await supabase
         .from("notifications")
         .select("id")
-        .eq("title", "👤 New member joined")
+        .eq("title", NEW_MEMBER_TITLE)
         .eq("message", notifMessage)
         .gte("created_at", since)
         .limit(1);
-
-      if (!existing?.length) {
-        const { data: admins } = await supabase
+      if (existingErr) {
+        console.error("[complete-signup] admin-notify dedupe read failed; skipping fan-out:", existingErr.message);
+      } else if (!existing?.length) {
+        const { data: admins, error: adminsErr } = await supabase
           .from("user_roles")
           .select("user_id")
           .eq("role", "admin");
-
-        if (admins?.length) {
+        if (adminsErr) {
+          console.error("[complete-signup] admin lookup failed; no admin was told about this signup:", adminsErr.message);
+        } else if (admins?.length) {
           const adminNotifs = admins.map((admin: { user_id: string }) => ({
             user_id: admin.user_id,
-            title: "New member joined",
+            title: NEW_MEMBER_TITLE,
             message: notifMessage,
+            // `?view=people&user=<id>` — the id-bearing deep link Admin.tsx:47
+            // actually reads (`searchParams.get("view")`, and the View union
+            // spells it `people`, not `users`). A bare "/admin" made the
+            // reviewer hunt for the account the notification is about.
             type: "info",
-            link: "/admin",
+            link: `/admin?view=people&user=${userId}`,
           }));
 
-          await supabase.from("notifications").insert(adminNotifs);
+          // PostgREST resolves with `{ error }`; it does not throw, so the
+          // enclosing try/catch could never see a failed insert. Read the
+          // error off the result.
+          const { error: notifInsertErr } = await supabase.from("notifications").insert(adminNotifs);
+          if (notifInsertErr) {
+            console.error("[complete-signup] admin notification insert failed:", notifInsertErr.message);
+          }
         }
       }
     } catch (notifErr) {
@@ -523,7 +724,16 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, avatarUrl, idDocumentUrl, portfolioUrls }),
+      JSON.stringify({
+        success: true,
+        avatarUrl,
+        idDocumentUrl,
+        portfolioUrls,
+        referralRecorded,
+        // Empty on the normal path. Non-empty means a previous profile photo is
+        // STILL publicly fetchable — see `../_shared/avatarKey.ts`.
+        staleAvatarObjects,
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {

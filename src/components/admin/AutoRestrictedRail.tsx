@@ -9,9 +9,15 @@
 // dialog in AdminUsers) and an optional `onChange` callback if the
 // parent wants to refetch profile lists after a reversal.
 //
-// The "auto-ban" signal we filter on is auto_suspended_until being set —
-// only the auto_restrict trigger writes that column. Manual admin temp
-// bans leave it null and therefore never appear here.
+// The signal we filter on is auto_suspended_until being set. That USED to mean
+// "written by the auto_restrict trigger only" — but leaving it null on a manual
+// admin temp ban was a bug, not a discriminator: it is the column the
+// sweep_expired_auto_bans cron reads to END a suspension, so an admin-issued
+// "7-day ban" never expired. BanDialog now writes it too, which means this rail
+// shows every account currently under a temporary restriction, however it was
+// applied. The heading says "Temporarily restricted" rather than
+// "Auto-restricted" for exactly that reason — the review-and-reverse action is
+// the same either way, and an admin should be able to see and undo BOTH.
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -121,7 +127,9 @@ export function AutoRestrictedRail({ onReview, onChange }: AutoRestrictedRailPro
       title: "Restriction lifted",
       message: "An admin reviewed your account and lifted the temporary restriction.",
       type: "success",
-      link: "/profile",
+      // "Restriction lifted" means they can work again — send them to the
+      // feed, the way admin-user-actions' own dismiss branch does.
+      link: "/dashboard",
     });
     hapticSuccess();
     setReversing(null);
@@ -136,10 +144,32 @@ export function AutoRestrictedRail({ onReview, onChange }: AutoRestrictedRailPro
       <div className="flex items-center gap-2">
         <ShieldAlert className="w-4 h-4" />
         <p className="text-ds-11 font-semibold">
-          Auto-restricted ({users.length}) — review and reverse if mistaken
+          Temporarily restricted ({users.length}) — review and reverse if mistaken
         </p>
       </div>
-      <div className="flex gap-2 overflow-x-auto pb-1">
+      {/* Scroll rail on phones, GRID from `sm` up. As a pure flex rail of
+          fixed 220px cards, a single auto-restricted account left a 1128px
+          warning band on the desktop Users screen holding one small card and
+          ~880px of nothing — the "content stops a third of the way across"
+          dead-space defect. The grid lets one card sit in a normal column and
+          many cards fill the row instead of disappearing off the right edge. */}
+      <div
+        className={cn(
+          "flex gap-2 overflow-x-auto pb-1 sm:overflow-visible",
+          // Column count follows the ITEM count, capped at 4. A fixed 4-up
+          // grid left a single restricted account in a 270px card with ~830px
+          // of empty warning band beside it; scaling the track count means one
+          // card fills the row and four still tile cleanly.
+          // One card => a plain single-column grid at EVERY width, phones
+          // included. Left as a flex rail it kept its 220px min-width and sat
+          // in the left half of a 402px iPhone screen with the rest of the
+          // warning band empty (measured in the simulator).
+          users.length === 1 ? "grid grid-cols-1"
+            : users.length === 2 ? "sm:grid sm:grid-cols-2"
+            : users.length === 3 ? "sm:grid sm:grid-cols-2 lg:grid-cols-3"
+            : "sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4",
+        )}
+      >
         {users.map((u) => {
           const daysLeft = Math.max(
             0,
@@ -151,7 +181,13 @@ export function AutoRestrictedRail({ onReview, onChange }: AutoRestrictedRailPro
           return (
             <div
               key={u.user_id}
-              className="shrink-0 min-w-[220px] rounded-ds-sm bg-background border border-warning/30 p-2.5 space-y-1.5 text-foreground"
+              className={cn(
+                "rounded-ds-sm bg-background border border-warning/30 p-2.5 space-y-1.5 text-foreground",
+                // The 220px floor is what makes a MULTI-card rail scroll
+                // instead of squashing. With a single card it is just a
+                // dead-space generator, so it only applies from two up.
+                users.length > 1 && "shrink-0 min-w-[220px] sm:min-w-0 sm:shrink",
+              )}
             >
               <p className="text-ds-11 font-semibold truncate">
                 {formatName(u.full_name, u.email || "User")}

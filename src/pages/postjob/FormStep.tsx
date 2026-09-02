@@ -53,6 +53,8 @@ export function FormStep({ form }: FormStepProps) {
         <DirectOfferBanner
           offerToHelperName={form.offerToHelperName}
           onCancel={form.clearOffer}
+          responseHours={form.offerResponseHours}
+          onResponseHoursChange={form.setOfferResponseHours}
         />
       )}
 
@@ -155,6 +157,7 @@ export function FormStep({ form }: FormStepProps) {
             setCustomUrgentFee={form.setCustomUrgentFee}
             budgetComplete={form.budgetComplete}
             category={form.category}
+            giftAmount={form.giftCreditAmount}
           />
         </div>
 
@@ -183,12 +186,20 @@ export function FormStep({ form }: FormStepProps) {
                 it always stays readable. */}
             <span className="inline-flex items-center gap-2 min-w-0 max-w-full">
               <span className="truncate min-w-0">{submitLabel}</span>
-              {formReady && form.budgetNum > 0 && (
+              {/* `totalCharge`, not `budgetNum`. This showed the bare budget on
+                  a button labelled "Review & Pay", so a $100 job read
+                  "Review & Pay · $100" and then charged $112 — the platform
+                  fee, urgent bonus and first-job onboarding fee were all
+                  invisible until the next screen. useJobDerived computes
+                  totalCharge through posterServiceFeeCents, the same authority
+                  create-payment uses, so this figure equals the Stripe charge
+                  (bar sales tax, which resolves on the checkout step). */}
+              {formReady && form.totalCharge > 0 && (
                 <span
                   className="font-display italic font-bold tabular-nums shrink-0 text-ds-16"
                   style={{ letterSpacing: "-0.01em" }}
                 >
-                  · ${formatPrice(form.budgetNum)}
+                  {" "}· ${formatPrice(form.totalCharge)}
                 </span>
               )}
             </span>

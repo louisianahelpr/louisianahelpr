@@ -2,6 +2,7 @@ import { toast } from "sonner";
 import { Pencil, RefreshCw, MailIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
+import UserAvatar from "@/components/UserAvatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatName } from "@/lib/utils";
@@ -26,14 +27,47 @@ export function DetailHeader({
 }: DetailHeaderProps) {
   return (
     <div className="flex gap-3 sm:gap-4">
+      {/* Migrated onto the shared `<UserAvatar>` (2026-08-31), with the link
+          to the ORIGINAL file kept. This is a moderation surface, so the two
+          requirements pull against each other: the admin must not be shown a
+          blank coloured block in place of a person (the defect), and must
+          still be able to inspect exactly what the member uploaded (the
+          evidence). Rendering the guarded avatar inside the existing
+          `<a href={avatar_url}>` satisfies both — the header identifies the
+          account, and one click opens the raw object at full fidelity.
+          `rounded-ds-md`, not the avatar squircle: this frame is deliberately
+          document-shaped on the admin screens.
+
+          The bare `<img>` this replaces had no error path, and its fallback (a
+          flat `bg-secondary` square with ONE letter) only rendered when
+          `avatar_url` was null. See `src/lib/avatarImage.ts`. */}
       {viewProfile.avatar_url ? (
-        <a href={viewProfile.avatar_url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
-          <img loading="lazy" decoding="async" src={viewProfile.avatar_url} alt={`${formatName(viewProfile.full_name, "User")} profile photo`} className="w-20 h-20 sm:w-24 sm:h-24 rounded-ds-md object-cover border-2 border-border hover:border-primary transition-colors cursor-pointer" />
+        <a
+          href={viewProfile.avatar_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex-shrink-0"
+          aria-label={`Open ${formatName(viewProfile.full_name, "this user")}'s profile photo file`}
+        >
+          <UserAvatar
+            userId={viewProfile.user_id}
+            src={viewProfile.avatar_url}
+            name={viewProfile.full_name}
+            pixelSize={96}
+            aria-hidden
+            className="w-20 h-20 sm:w-24 sm:h-24 rounded-ds-md border-2 border-border hover:border-primary transition-colors cursor-pointer"
+            fallbackClassName="rounded-ds-md text-ds-24 ring-0"
+          />
         </a>
       ) : (
-        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-ds-md bg-secondary flex items-center justify-center text-muted-foreground text-ds-24 font-medium flex-shrink-0">
-          {formatName(viewProfile.full_name, "?")[0]?.toUpperCase()}
-        </div>
+        <UserAvatar
+          userId={viewProfile.user_id}
+          src={null}
+          name={viewProfile.full_name}
+          aria-hidden
+          className="w-20 h-20 sm:w-24 sm:h-24 rounded-ds-md border-2 border-border flex-shrink-0"
+          fallbackClassName="rounded-ds-md text-ds-24 ring-0"
+        />
       )}
       <div className="flex-1 min-w-0 space-y-1.5">
         <div className="flex items-center gap-1.5 flex-wrap">

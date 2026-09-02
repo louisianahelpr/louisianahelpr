@@ -30,5 +30,3 @@ export function useHiddenAtMount(): boolean {
   );
   return hidden;
 }
-
-export default useHiddenAtMount;

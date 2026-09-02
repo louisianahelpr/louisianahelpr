@@ -181,3 +181,59 @@ describe("requestPushPermission", () => {
     expect(await requestPushPermission()).toBe(false);
   });
 });
+
+/**
+ * NATIVE (Capacitor iOS/Android) behaviour.
+ *
+ * This is the regression these tests exist for. `isPushSupported()` was a
+ * web-push capability probe — `PushManager` + `serviceWorker` + `Notification`
+ * — none of which exist in the iOS WKWebView. It therefore returned false on
+ * the one platform where push is real, and every surface gated on it (chiefly
+ * NotificationPanel's "Turn on notifications" row, the only ungated way to
+ * enable push) was unreachable on iOS. Production carried zero `push_tokens`
+ * rows as a result.
+ *
+ * `isNativePlatform` is a module-level const evaluated at import time, so the
+ * native cases re-import the module behind a mocked `@/lib/nativeInit`.
+ */
+describe("native platform", () => {
+  async function loadNative() {
+    vi.resetModules();
+    vi.doMock("@/lib/nativeInit", () => ({ isNativePlatform: true }));
+    return await import("./pushNotifications");
+  }
+
+  afterEach(() => {
+    vi.doUnmock("@/lib/nativeInit");
+    vi.resetModules();
+  });
+
+  it("reports push as supported even with no web push APIs at all", async () => {
+    const mod = await loadNative();
+    Reflect.deleteProperty(window, "Notification");
+    Reflect.deleteProperty(navigator, "serviceWorker");
+    Reflect.deleteProperty(window, "PushManager");
+    expect(mod.isPushSupported()).toBe(true);
+  });
+
+  it("never touches the Notification global (it does not exist on iOS)", async () => {
+    const mod = await loadNative();
+    Reflect.deleteProperty(window, "Notification");
+    // Each of these would throw a ReferenceError if it read Notification.
+    expect(mod.getPushPermission()).toBe("default");
+    expect(await mod.registerServiceWorker()).toBeNull();
+    expect(await mod.requestPushPermission()).toBe(false);
+    expect(() => mod.showLocalNotification("t", "m")).not.toThrow();
+  });
+
+  it("serves the permission state published from the Capacitor check", async () => {
+    const mod = await loadNative();
+    expect(mod.getPushPermission()).toBe("default"); // not yet primed
+    mod.setNativePushPermission("granted");
+    expect(mod.getPushPermission()).toBe("granted");
+    mod.setNativePushPermission("denied");
+    expect(mod.getPushPermission()).toBe("denied");
+    mod.__resetNativePushPermission();
+    expect(mod.getPushPermission()).toBe("default");
+  });
+});

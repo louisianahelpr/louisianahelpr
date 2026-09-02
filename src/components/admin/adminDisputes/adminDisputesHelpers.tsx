@@ -10,7 +10,13 @@ export const slaBadge = (disputedAt: string | null) => {
   const hours = (Date.now() - new Date(disputedAt).getTime()) / 3600_000;
   if (hours > 120) {
     return (
-      <span className="inline-flex items-center gap-1 text-ds-10 px-2 py-0.5 rounded-full bg-destructive/15 text-destructive font-bold uppercase tracking-wide">
+      /* Solid destructive fill, not a 15% tint. `text-destructive` on
+         `bg-destructive/15` measured 4.34:1 (axe, /admin?view=disputes, all
+         four breakpoints) — under the 4.5:1 AA floor, and 10px bold is NOT
+         "large text", so no exemption applies. Inverting to the solid pair
+         clears AA by a wide margin and, on the highest-urgency badge in the
+         console, reads as the alarm it is rather than as another pink pill. */
+      <span className="inline-flex items-center gap-1 text-ds-10 px-2 py-0.5 rounded-full bg-destructive text-destructive-foreground font-bold uppercase tracking-wide">
         <Flame className="w-3 h-3" /> Chargeback risk · {Math.floor(hours / 24)}d
       </span>
     );

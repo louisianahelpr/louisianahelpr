@@ -325,7 +325,13 @@ export async function installSupabaseMocks(
     // must track HAPPY_PATH_BASE_URL (playwright.config.ts reads the same var):
     // hardcoding :4173 made every request 204 when the suite ran against any
     // other port, so the very first goto died with ERR_ABORTED.
-    const previewOrigin = process.env.HAPPY_PATH_BASE_URL || "http://127.0.0.1:4173";
+    // HAPPY_PATH_PORT is the same knob playwright.config.ts uses to give a
+    // session its own preview server; honour it here too, otherwise a run on a
+    // non-default port falls back to :4173 for the pre-navigation origin and
+    // 204s its own first request.
+    const previewOrigin =
+      process.env.HAPPY_PATH_BASE_URL ||
+      `http://127.0.0.1:${process.env.HAPPY_PATH_PORT || "4173"}`;
     const base = new URL(page.url() === "about:blank" ? previewOrigin : page.url());
 
     // Same-origin: the preview server owns it (app chunks, assets).
@@ -650,6 +656,37 @@ export async function seedAuthedSession(context: BrowserContext, user: FakeUser,
   // intercepts pointer events and breaks click-based test flows.
   await context.addInitScript(() => {
     try { window.localStorage.setItem('helpr_welcomed', '1'); } catch { /* SSR guard */ }
+  });
+  // …and the first-run OnboardingTour, for the same reason.
+  //
+  // OnboardingTour (src/components/OnboardingTour.tsx) opens on a
+  // `setTimeout(…, 1500)` on /dashboard for any account that has not completed
+  // it — which every freshly-seeded test session is. It is a MODAL Radix
+  // dialog: it holds focus, blurs the page behind it, and eats the first tap
+  // and the first Escape. A spec that lands on /dashboard without suppressing
+  // it is driving the tour, not the app, and the failures it produces are
+  // artifacts of the harness (focus "not moved into the overlay", Escape "did
+  // not close it", a tap that opened nothing, axe scanning a mid-fade
+  // composite at 1.01:1).
+  //
+  // Suppressed HERE, once, at the only shared entry point every authed spec
+  // goes through — rather than in ~13 separate copies of the same init script
+  // that had to be remembered each time a spec was written. `completed: true`
+  // short-circuits the auto-show effect before any other branch; the
+  // dismissed_at key stops the "Resume tour" pill too. The full shape
+  // (`currentStep`/`completedSteps`) is written, not the older `{seen,
+  // completed}` shorthand, so it matches what the component actually persists.
+  //
+  // A spec that wants to audit the tour itself must clear the key in its own
+  // addInitScript after seeding — none does today.
+  await context.addInitScript(() => {
+    try {
+      window.localStorage.setItem(
+        "helpr_onboarding",
+        JSON.stringify({ completed: true, currentStep: 0, completedSteps: [] }),
+      );
+      window.localStorage.setItem("helpr.onboarding_tour_dismissed_at", new Date().toISOString());
+    } catch { /* SSR guard */ }
   });
   // Some browsers gate localStorage on origin — touch the origin once so
   // the addInitScript above lands on the right localStorage partition.

@@ -295,5 +295,3 @@ export function CurrentLocationPill({ onResolved }: CurrentLocationPillProps) {
     </button>
   );
 }
-
-export default CurrentLocationPill;

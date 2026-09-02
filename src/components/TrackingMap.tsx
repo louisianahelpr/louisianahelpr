@@ -151,15 +151,22 @@ export function TrackingMap({
           destLat={destLat}
           destLng={destLng}
         />
-        {/* Helper — moving truck icon */}
+        {/* Helper — moving truck icon.
+            `alt` matters here: Leaflet renders markers with keyboard: true by
+            default, so each of these becomes a focusable role="button" in the
+            tab order. divIcon({html}) supplies no accessible name, so a
+            screen-reader user met two unlabelled buttons on a map whose entire
+            purpose is telling them where two things are. */}
         <Marker
           position={[helperLat, helperLng]}
           icon={helperIcon()}
+          alt="Your Helpr's current location"
         />
         {/* Job destination — classic drop-pin */}
         <Marker
           position={[destLat, destLng]}
           icon={destinationIcon()}
+          alt="The job location"
         />
       </MapContainer>
     </div>

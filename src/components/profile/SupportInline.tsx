@@ -4,6 +4,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import {
   MessageSquarePlus,
@@ -19,7 +26,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
-import { hapticError } from "@/lib/haptics";
+import { hapticError, hapticLight } from "@/lib/haptics";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import {
   SUPPORT_TOPICS,
@@ -58,7 +65,23 @@ const supportCategories = SUPPORT_TOPICS.map((topic) => ({
  * option to change the reason" shape the public /support page offers through
  * its <Select>. The option list itself is NOT forked: both surfaces read
  * `SUPPORT_TOPICS` from `src/lib/supportTopics.ts`, so they cannot drift.
- * The Help Center is a single quiet line above the form.
+ *
+ * The Help Center link now sits BELOW the card (owner, 2026-08-31: "Help
+ * center move below this card"). Note this reverses the 2026-08-27 placement
+ * described above — what the owner objected to then was a full CARD parked
+ * under a topic PICKER, on a screen with no form. The screen is a form now,
+ * so "below" means "after the Send button", and self-serve is the fallback
+ * you offer after the ask rather than a detour in front of it.
+ *
+ * The topic control is a DROPDOWN (owner, 2026-08-31: "Keep all 4 2x2 or Or
+ * just make it a drop down how the public help and support does"). It was a
+ * row of chips, which could not hold four options evenly — three across
+ * orphaned `Other` onto a second row by itself. Rather than invent a fourth
+ * shape, this now renders the SAME `<Select>` the public /support page uses
+ * over the SAME `SUPPORT_TOPICS` list, so the two support surfaces share one
+ * control instead of two spellings of one question. All four topics stay;
+ * see the note in `src/lib/supportTopics.ts` for why `Other` is kept even
+ * though it converges with `Message Admin`.
  */
 
 /** Inline field error — same shape as /support's FieldError (role="alert" +
@@ -93,7 +116,6 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
   const [uploadingScreenshot, setUploadingScreenshot] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
-
   const selected =
     supportCategories.find((c) => c.key === category) ?? supportCategories[0];
 
@@ -233,25 +255,6 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
     <div className="space-y-3">
       <ProfileTabHeader title="Help & Support" onBack={onBack} />
 
-      {/* Self-serve KB — parity with the web footer's Help Center link so app
-          users can search the FAQ before opening a ticket (LH-46). One quiet
-          line ABOVE the form: it used to be a full card sitting below the
-          topic picker, which the owner did not want under the primary
-          content. It is a shortcut past the form, so it belongs before it. */}
-      <Link
-        to="/help"
-        className="flex items-center gap-2.5 rounded-ds-md px-1 py-1.5 transition-colors active:opacity-70"
-      >
-        <BookOpen className="w-4 h-4 text-primary shrink-0" aria-hidden />
-        <p className="flex-1 min-w-0 font-sans text-ds-12 leading-snug" style={{ color: "hsl(var(--olivewood) / 0.9)" }}>
-          Quick answer?{" "}
-          <span className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>
-            Browse the Help Center
-          </span>
-        </p>
-        <ChevronRight aria-hidden className="w-4 h-4 text-muted-foreground shrink-0" />
-      </Link>
-
       <form
         ref={formRef}
         onSubmit={handleSubmit}
@@ -261,46 +264,75 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
         {/* Reason — the click-to-change control. Same three options the
             public /support <Select> renders, from the one shared list. */}
         <div>
-          <p className="font-sans font-medium text-ds-11 leading-none" id="support-reason-label">
+          {/* A real <Label htmlFor> now that the control is a <Select> — the
+              same pairing /support uses. It was a bare <p> + aria-labelledby
+              because the control used to be a radiogroup, which has no
+              labelable form element to point at. */}
+          <Label htmlFor="support-reason" className="text-ds-11">
             What&apos;s this about?
-          </p>
-          <div
-            role="radiogroup"
-            aria-labelledby="support-reason-label"
-            className="mt-2 grid grid-cols-3 gap-2"
+          </Label>
+          {/* A DROPDOWN, not a chip row (owner, 2026-08-31: "just make it a
+              drop down how the public help and support does").
+              This is deliberately the SAME control the public /support page
+              uses — `<Select>` over the same `SUPPORT_TOPICS` list — so the
+              two support surfaces are now one control, not two shapes of the
+              same question. Four topics never sat evenly in a chip row (three
+              across orphaned the fourth onto its own line); a dropdown holds
+              any number of them in one row and scales if a fifth is added.
+              Radix, not a native <select>: it is what /support already ships
+              inside this same Capacitor/WKWebView build, so it is the proven
+              option here. */}
+          <Select
+            value={category}
+            onValueChange={(value) => {
+              hapticLight();
+              setCategory(value as SupportCategory);
+            }}
           >
-            {supportCategories.map((c) => {
-              const isActive = c.key === category;
-              return (
-                <button
+            <SelectTrigger id="support-reason" className="mt-2">
+              <SelectValue placeholder="Choose a topic" />
+            </SelectTrigger>
+            <SelectContent>
+              {supportCategories.map((c) => (
+                <SelectItem
                   key={c.key}
-                  type="button"
-                  role="radio"
-                  aria-checked={isActive}
-                  onClick={() => setCategory(c.key)}
+                  value={c.key}
+                  // Project rule: a SELECTED control is glossy — the same
+                  // radial bark gradient every primary CTA wears, never a flat
+                  // tint. Styled here rather than in ui/select.tsx because
+                  // that file is shared with every other Select in the app.
+                  //
+                  // The gloss is toggled in JS, NOT with a
+                  // `data-[state=checked]:btn-grad-primary` variant: Tailwind
+                  // variants only compose over utilities Tailwind generates,
+                  // and `.btn-grad-primary` is a hand-written class in
+                  // index.css. That variant silently compiles to nothing and
+                  // the selected row renders flat — which is the exact defect
+                  // this rule exists to prevent. Every other call site
+                  // (CredentialTierSelector, ReportDialog, ReviewForm) toggles
+                  // it the same way.
+                  //
+                  // `min-h-[44px]` + py-2.5 take the option row from the
+                  // shared ~30px default up to a real touch target.
                   className={
-                    "flex flex-col items-center justify-center gap-1.5 rounded-ds-md px-2 py-3 text-center transition-all active:scale-[0.98] " +
-                    (isActive
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:bg-primary/5")
+                    "min-h-[44px] py-2.5 text-ds-13 rounded-ds-md " +
+                    (c.key === category
+                      ? "btn-grad-primary !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
+                      : "")
                   }
-                  style={{
-                    border: isActive
-                      ? "1.5px solid hsl(var(--primary) / 0.45)"
-                      : "1px solid hsl(var(--olivewood) / 0.16)",
-                  }}
                 >
-                  {c.icon}
-                  <span
-                    className="font-sans font-semibold text-ds-11 leading-tight"
-                    style={{ color: isActive ? undefined : "hsl(var(--ink-deep))" }}
-                  >
-                    {c.label}
+                  <span className="flex items-center gap-2">
+                    {/* Lucide icons stroke with `currentColor`, so the
+                        checked-state colour override above reaches them. */}
+                    <span className="shrink-0" aria-hidden>
+                      {c.icon}
+                    </span>
+                    <span className="font-sans font-semibold">{c.label}</span>
                   </span>
-                </button>
-              );
-            })}
-          </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           {/* The chosen reason's one-line explanation — the same copy the
               public form shows under its Select. */}
           <p
@@ -402,6 +434,40 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
           )}
         </Button>
       </form>
+
+      {/* Self-serve KB — parity with the web footer's Help Center link so app
+          users can search the FAQ before opening a ticket (LH-46).
+          BELOW the card, after Send Message (owner, 2026-08-31: "Help center
+          move below this card"). The form is the primary action and this is
+          the fallback, so it reads as an offer AFTER the ask rather than a
+          detour before it.
+          It gets its own bordered row — not a bare line — because a plain
+          link hanging under a card reads as a footnote/caption belonging to
+          the form. Its own surface plus a gap DOUBLE the parent's rhythm are
+          what separate it from the card above.
+          The `!` on the margin is load-bearing: the parent's `space-y-3`
+          compiles to `.space-y-3 > :not([hidden]) ~ :not([hidden])`, which
+          outranks a plain `.mt-6` on specificity — without the important
+          modifier this row snapped back to the same 12px gap that sits
+          between the header and the card, and read as part of the form. */}
+      <Link
+        to="/help"
+        className="!mt-6 flex items-center gap-2.5 rounded-2xl px-4 py-3 transition-colors active:opacity-70 hover:brightness-[0.98]"
+        style={{
+          background: "hsl(var(--parchment))",
+          border: "0.5px solid hsl(var(--border) / 0.7)",
+          boxShadow: "var(--elev-inset-gloss)",
+        }}
+      >
+        <BookOpen className="w-4 h-4 text-primary shrink-0" aria-hidden />
+        <p className="flex-1 min-w-0 font-sans text-ds-12 leading-snug" style={{ color: "hsl(var(--olivewood) / 0.9)" }}>
+          Quick answer?{" "}
+          <span className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>
+            Browse the Help Center
+          </span>
+        </p>
+        <ChevronRight aria-hidden className="w-4 h-4 text-muted-foreground shrink-0" />
+      </Link>
     </div>
   );
 }

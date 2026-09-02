@@ -1,8 +1,15 @@
 import { useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHero,
+  DialogBody,
+  DialogFooter,
+  DialogSecondaryAction,
+  DialogPrimaryAction,
+} from "@/components/ui/dialog";
 import { ImagePlus, X as XIcon } from "lucide-react";
 import { toast } from "sonner";
 import { maybeRequestInAppReview } from "@/lib/inAppReview";
@@ -16,7 +23,7 @@ import { report } from "@/lib/errorLogger";
 import { StarRow } from "./StarRow";
 import { CATEGORY_ROWS, safeImageSrc, type CategoryKey, type ReviewFormProps } from "./types";
 
-export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: ReviewFormProps) => {
+export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, canTip = false }: ReviewFormProps) => {
   const [scores, setScores] = useState<Record<CategoryKey, number>>({
     rating: 0,
     punctuality: 0,
@@ -89,9 +96,10 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
   // wall ("Please rate all four categories") and the job silently
   // never got reviewed.
   const canSubmit = scores.rating > 0;
-  // True once the user has also filled the detailed categories — used
-  // only to brighten the submit button as positive reinforcement.
-  const allRated = canSubmit && scores.punctuality > 0 && scores.quality > 0 && scores.communication > 0;
+  // (There used to be an `allRated` flag here — "the user also filled the
+  // optional category stars" — whose only consumer was the submit button's
+  // label, which it flipped between two different names for one action. The
+  // label is fixed now, so the flag has no reader.)
 
   const handleSubmit = async () => {
     if (!canSubmit) {
@@ -103,44 +111,103 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { hapticError(); toast.error("Please sign back in to leave your review."); setSubmitting(false); return; }
 
-    // Upload any attached photos to the proof-photos bucket under
-    // reviews/<userId>/<timestamp>. We attempt uploads but don't block
+    // Upload any attached photos to the job-photos bucket under
+    // <userId>/reviews/<timestamp>. We attempt uploads but don't block
     // the review submission if they fail — photos are a bonus.
     let uploadedPhotoUrls: string[] | null = null;
     if (photoFiles.length > 0) {
+      // TWO separate bugs lived on this path, and fixing only the first left
+      // the photos just as invisible.
+      //
+      // 1. PATH SHAPE. The uid-prefixed policies key on
+      //    `(storage.foldername(name))[1]`, so it must be `<uid>/reviews/…`.
+      //    This once built `reviews/<uid>/…`, putting the literal "reviews" in
+      //    segment 1, and RLS rejected EVERY file with a 400 while the
+      //    per-file `continue` swallowed it.
+      //
+      // 2. BUCKET. The fix for (1) kept writing to `proof-photos` and kept
+      //    calling `getPublicUrl` on it — but `proof-photos` was made PRIVATE
+      //    in 20260403194800, and a private bucket's "public" URL is dead for
+      //    everyone (verified against prod: that path answers
+      //    `NoSuchBucket`). So the stored `photo_urls` would have been
+      //    permanently broken images on every profile that rendered them.
+      //
+      // `job-photos` is the right home and is used instead: it is genuinely
+      // public (never flipped false), it carries the same uid-prefixed INSERT
+      // policy (20260403180510), and a review photo shown on a public profile
+      // is public content by definition. That also keeps the URL PERMANENT — a
+      // signed URL would have quietly expired out from under a review that
+      // stays on the profile forever.
       const urls: string[] = [];
+      let uploadFailed = false;
       for (const file of photoFiles) {
         const ext = file.name.split(".").pop() || "jpg";
-        const path = `reviews/${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-        const { error: upErr } = await supabase.storage.from("proof-photos").upload(path, file);
+        const path = `${user.id}/reviews/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const { error: upErr } = await supabase.storage.from("job-photos").upload(path, file);
         if (upErr) {
+          uploadFailed = true;
           report(upErr, { tags: { source: "ReviewForm.uploadPhoto" } });
           continue;
         }
-        const { data: urlData } = supabase.storage.from("proof-photos").getPublicUrl(path);
+        const { data: urlData } = supabase.storage.from("job-photos").getPublicUrl(path);
+        // A missing URL is the same user-visible outcome as a failed upload —
+        // a photo they believe is attached and isn't — so it counts as one.
         if (urlData?.publicUrl) urls.push(urlData.publicUrl);
+        else uploadFailed = true;
       }
       if (urls.length > 0) uploadedPhotoUrls = urls;
+      // Surface a partial failure rather than silently dropping the photos.
+      // The review itself still posts — photos are a bonus, not a blocker —
+      // but the user is told, instead of believing they attached something.
+      if (uploadFailed) {
+        toast.error(
+          urls.length > 0
+            ? "Some photos couldn't be attached — your review was still posted."
+            : "Your photos couldn't be attached — your review was still posted.",
+        );
+      }
     }
 
-    const { error } = await supabase.from("reviews").insert({
-      job_id: jobId,
-      reviewer_id: user.id,
-      reviewee_id: revieweeId,
-      rating: scores.rating,
+    // `.select("id")`: a review is a trust artifact and the row must be proven
+    // to exist before we celebrate, fire analytics and close the form. The
+    // validity trigger RAISEs (so most refusals do surface as an error), but
+    // an RLS-filtered insert is the case that would not — and this used to
+    // report success on it.
+    const { data: inserted, error } = await supabase
+      .from("reviews")
+      .insert({
+        job_id: jobId,
+        reviewer_id: user.id,
+        reviewee_id: revieweeId,
+        rating: scores.rating,
       // Unrated detailed categories persist as null (not 0) so the
       // ReviewList averages skip them rather than dragging the score down.
       punctuality: scores.punctuality > 0 ? scores.punctuality : null,
       quality: scores.quality > 0 ? scores.quality : null,
       communication: scores.communication > 0 ? scores.communication : null,
-      feedback: feedback.trim() || null,
-      photo_urls: uploadedPhotoUrls,
-    });
+        feedback: feedback.trim() || null,
+        photo_urls: uploadedPhotoUrls,
+      })
+      .select("id");
 
-    if (error) {
+    if (error || !inserted || inserted.length === 0) {
       hapticError();
-      if (error.code === "23505") toast.error("You've already reviewed this job.");
-      else toast.error("We couldn't post your review — please try again.");
+      if (error?.code === "23505") {
+        toast.error("You've already reviewed this job.");
+      } else if (error?.code === "23514" && error.message) {
+        // The validity trigger raises check_violation with a HUMAN sentence —
+        // "Reviews can only be left after the job is marked completed.",
+        // "You cannot review yourself." Swallowing those behind a generic
+        // "please try again" left the user retrying forever with no idea what
+        // was wrong; a job that went completed → disputed is the common case.
+        toast.error(error.message);
+      } else if (!error) {
+        toast.error(
+          "We couldn't post your review — this job may no longer be open for reviews. Refresh and try again.",
+        );
+      } else {
+        toast.error("We couldn't post your review — please try again.");
+      }
     } else {
       hapticSuccess();
       // Brand-tinted confetti for the first few reviews so the moment
@@ -160,7 +227,7 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
           track(AhaEvent.FirstReviewLeft, { job_id: jobId, rating: scores.rating });
         }
       } catch { /* analytics must never break the flow */ }
-      if (scores.rating === 5) {
+      if (scores.rating === 5 && canTip) {
         track(AhaEvent.FirstFiveStarReview, { job_id: jobId, rating: 5 });
         // Fire-and-forget — internally rate-limited to once per 90 days.
         void maybeRequestInAppReview();
@@ -170,6 +237,18 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
         setSubmitting(false);
         return;
       }
+      if (scores.rating === 5) {
+        track(AhaEvent.FirstFiveStarReview, { job_id: jobId, rating: 5 });
+        void maybeRequestInAppReview();
+      }
+      // Say what happens next. This form is DOUBLE-BLIND: the review is held
+      // until the other side posts theirs or the 14-day window lapses
+      // (`set_review_visibility`, 20260506192638). Closing silently made a
+      // reviewer who checked the profile and saw nothing believe the review
+      // had failed — and this is the one screen that can explain the wait.
+      toast.success(
+        "Review posted. It goes live once they review you too — or in 14 days, whichever comes first.",
+      );
       onClose();
     }
     setSubmitting(false);
@@ -219,11 +298,17 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
                   key={opt}
                   type="button"
                   onClick={() => toggleQuickOption(opt)}
-                  className="shrink-0 whitespace-nowrap text-ds-12 font-sans font-semibold px-3 py-1.5 rounded-full transition-all active:scale-[0.97]"
+                  // SELECTED = GLOSSY. `btn-grad-primary` is the shared
+                  // primary surface; this chip painted a FLAT `--bark` fill,
+                  // which is the same rule break the withdraw and decline
+                  // reason pickers had ("primary and selected controls must be
+                  // glossy, never flat").
+                  className={`shrink-0 whitespace-nowrap text-ds-12 font-sans font-semibold px-3 py-1.5 rounded-full transition-all active:scale-[0.97] ${
+                    selected ? "btn-grad-primary" : ""
+                  }`}
                   style={
                     selected
                       ? {
-                          background: "hsl(var(--bark))",
                           color: "hsl(var(--parchment))",
                           border: "0.5px solid hsl(var(--bark))",
                           boxShadow: "var(--elev-bark-flat)",
@@ -312,33 +397,45 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
             />
           </div>
         </div>
-        <DialogFooter className="!flex-col !items-stretch">
-          <Button
-            onClick={handleSubmit}
-            disabled={submitting || !canSubmit}
-            className="rounded-ds-md w-full"
-            style={{
-              background: canSubmit ? "hsl(var(--bark))" : undefined,
-              backgroundImage: "none",
-              border: canSubmit ? "1px solid hsl(var(--bark))" : undefined,
-              color: canSubmit ? "hsl(var(--parchment))" : undefined,
-              boxShadow: canSubmit ? "0 1px 2px hsl(var(--bark) / 0.18), 0 8px 20px -6px hsl(var(--bark) / 0.34)" : undefined,
-            }}
-          >
-            {submitting ? "Submitting…" : allRated ? "Submit Review" : "Post Review"}
-          </Button>
+        {/* Plain DialogFooter. The `!flex-col !items-stretch` override forced
+            this one dialog to stack its buttons full-width at EVERY width,
+            primary on top — while every other popup stacks on phones and goes
+            to a right-aligned inline row from `sm` up. The shared footer
+            already produces the phone layout this was reaching for. */}
+        {/* DISMISS FIRST IN THE DOM, COMMIT LAST — the order every other
+            footer in the app uses, and the only order that renders correctly
+            in both of DialogFooter's layouts. This one was written the other
+            way round, so on a phone (`flex-col-reverse`) "Maybe Later" sat ON
+            TOP of "Submit Review", and on desktop (`sm:flex-row
+            sm:justify-end`) the primary sat to the LEFT of the dismiss —
+            mirror-imaged from every other popup, including the tip prompt 40
+            lines below in this same file. */}
+        <DialogFooter>
           {/* A non-destructive escape hatch. "Cancel" reads as "discard",
               which is wrong here — the review isn't lost, it can still be
               left later from the completed job. This says so plainly so a
               user who isn't ready right now doesn't feel pressured. */}
-          <Button
-            variant="ghost"
+          <DialogSecondaryAction
             onClick={onClose}
             disabled={submitting}
-            className="rounded-ds-md w-full"
           >
             Maybe Later
-          </Button>
+          </DialogSecondaryAction>
+          <DialogPrimaryAction
+            onClick={handleSubmit}
+            disabled={submitting || !canSubmit}
+          >
+            {/* ONE name for one action. This used to read
+                `allRated ? "Submit Review" : "Post Review"`, where `allRated`
+                only meant the OPTIONAL category stars were filled — both
+                branches ran the same handler with the same enablement, so the
+                button renamed itself under the user's cursor as they filled
+                fields that changed nothing about what it does. "Submit
+                Review" is the wording the rest of the flow uses
+                (CompletionPrompts.tsx, and the "Submitting…" state right
+                here); "Post Review" appeared nowhere else in the app. */}
+            {submitting ? "Submitting…" : "Submit Review"}
+          </DialogPrimaryAction>
         </DialogFooter>
       </DialogContent>
 
@@ -353,25 +450,23 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName }: R
               user has to be able to read. The `subtitle` prop is gone from the
               hero above rather than left sr-only, so screen readers hear it
               once, here, instead of twice. */}
-          <p className="font-serif italic leading-relaxed text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-            Goes straight to the Helpr — no platform cut. Most posters tip 10–15%
-            for great work.
-          </p>
+          <DialogBody>
+            <p>
+              Goes straight to the Helpr — no platform cut. Most posters tip 10–15%
+              for great work.
+            </p>
+          </DialogBody>
           <DialogFooter>
-            <Button
-              variant="ghost"
+            <DialogSecondaryAction
               onClick={() => { setTipPromptOpen(false); onClose(); }}
-              className="rounded-ds-md"
             >
               No Thanks
-            </Button>
-            <Button
-              variant="primary"
+            </DialogSecondaryAction>
+            <DialogPrimaryAction
               onClick={() => { setTipPromptOpen(false); setTipDialogOpen(true); }}
-              className="rounded-ds-md"
             >
               Send a Tip
-            </Button>
+            </DialogPrimaryAction>
           </DialogFooter>
         </DialogContent>
       </Dialog>

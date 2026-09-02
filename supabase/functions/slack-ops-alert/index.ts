@@ -21,7 +21,20 @@ type AlertKind =
   | 'custom'
 
 interface AlertBody {
-  kind: AlertKind
+  // Optional. Eight SQL watchers post here through `net.http_post` and NOT ONE
+  // of them sends `kind` — the field was required, so every one of them got a
+  // 400 and the ops channel has never received a single automated alert.
+  // Verified 2026-09-01 by reading all eight `jsonb_build_object` bodies:
+  // 20260828010000:117, 20260828030000:168, 20260829020000:229,
+  // 20260831153813, 20260831190419:241, 20260831193039, 20260901011254:548,
+  // 20260901030926:308.
+  //
+  // Making it optional here repairs all eight at once. The alternative — eight
+  // migration edits — is eight chances to miss one, and a ninth watcher written
+  // tomorrow would hit the same wall. `kind` only selects an icon and a label,
+  // so defaulting it costs nothing; a missing TITLE or MESSAGE is still fatal,
+  // because an alert with no text is not an alert.
+  kind?: AlertKind
   severity?: AlertSeverity
   title: string
   message: string
@@ -31,6 +44,23 @@ interface AlertBody {
   link?: string
   // Override the destination channel (defaults to SLACK_OPS_CHANNEL or #ops-alerts)
   channel?: string
+}
+
+/**
+ * Coerce whatever the caller sent into a severity this module can render.
+ *
+ * The same eight watchers send `'severity': 'error'`, which is not a member of
+ * AlertSeverity — so `SEVERITY_ICON[severity]` and `SEVERITY_COLOR[severity]`
+ * were both `undefined` and the Slack message would have read
+ * "undefined 3 cron HTTP failure(s)" with an invalid attachment color, on the
+ * runs that got past the 400 (i.e. none). 'error' means 'critical' here; any
+ * other unknown string is treated as critical too, because an alert whose
+ * severity we cannot read is not one to quietly downgrade.
+ */
+function normalizeSeverity(raw: unknown): AlertSeverity {
+  if (raw === 'critical' || raw === 'warning' || raw === 'info') return raw
+  if (raw === undefined || raw === null) return 'warning'
+  return 'critical'
 }
 
 const SEVERITY_ICON: Record<AlertSeverity, string> = {
@@ -115,14 +145,16 @@ Deno.serve(async (req) => {
     }
 
     const body = (await req.json()) as AlertBody
-    if (!body?.kind || !body?.title || !body?.message) {
+    if (!body?.title || !body?.message) {
       return new Response(
-        JSON.stringify({ error: 'kind, title, and message are required' }),
+        JSON.stringify({ error: 'title and message are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+    // Default rather than reject — see the note on AlertBody.kind.
+    if (!body.kind) body.kind = 'custom'
 
-    const severity: AlertSeverity = body.severity ?? 'warning'
+    const severity: AlertSeverity = normalizeSeverity(body.severity)
     const channel = body.channel || DEFAULT_CHANNEL
     const blocks = buildBlocks(body, severity)
 

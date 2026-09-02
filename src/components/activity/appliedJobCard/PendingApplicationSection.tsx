@@ -19,6 +19,41 @@ interface PendingApplicationSectionProps {
   handleRemoveAttachment: (appId: string, currentUrls: string[], urlToRemove: string) => void;
 }
 
+/**
+ * THE READ-BACK OF WHAT THEY SUBMITTED — and it looks like the screen they
+ * submitted it on.
+ *
+ * Owner, 2026-08-30: "this should basically be similar to the screen they
+ * applied on. Except this will just show their messages and attachments.
+ * Shouldn't be such a big design different." Plus, the same day: "remove eye
+ * brows" — reversing the earlier ask that put them back.
+ *
+ * The screen being matched is ApplyBody (`components/dashboard/applyConfirmDialog`),
+ * which is what the helper actually typed into. Three things came straight
+ * across from it, and each one replaces something this block was doing
+ * differently for no reason:
+ *
+ *  - **No eyebrow.** ApplyBody had already dropped the burnt-sienna small-caps
+ *    label for exactly the reason the owner is now giving here — its own
+ *    comment reads "the small-caps italic burnt-sienna eyebrow it replaces was
+ *    styled like a section masthead for what is an optional note field." The
+ *    two surfaces disagreeing about that is the "big design difference".
+ *  - **No tinted panel.** The message sat in a `bg-primary/5` bordered box; on
+ *    the apply screen it is a plain field on the sheet. A read-back does not
+ *    need more chrome than the thing it reads back.
+ *  - **The same type.** `font-sans text-ds-14 leading-relaxed` — literally the
+ *    Textarea's own classes — so the sentence reads back at the size it was
+ *    written at, and the editor and the static text are the same block of text
+ *    rather than two.
+ *
+ * WHAT LABELS THE BLOCKS NOW THAT THE EYEBROWS ARE GONE: type, not headings.
+ * The poster's job description above renders `text-ds-11 text-muted-foreground`
+ * (small, grey) and the helper's own message renders `text-ds-14` in
+ * `text-foreground` (larger, dark) — so "which of these did I write" is
+ * answered by weight and size, the way the apply screen answers it. The words
+ * survive for assistive tech: every block keeps a real `sr-only` <label> or
+ * heading, so nothing here is an unlabelled control or an anonymous region.
+ */
 export function PendingApplicationSection({
   app,
   job,
@@ -32,37 +67,40 @@ export function PendingApplicationSection({
   handleAddAttachment,
   handleRemoveAttachment,
 }: PendingApplicationSectionProps) {
+  const editing = editingMessageAppId === app.id;
+  const messageFieldId = `app-message-${app.id}`;
+  const attachmentsHeadingId = `app-attachments-${app.id}`;
+
   return (
-    <div className="px-4 pb-3 space-y-2">
+    /* `space-y-3.5` is ApplyBody's own `gap-3.5` between its blocks — the two
+       screens stack their sections at the same rhythm. */
+    <div className="px-4 pb-3 space-y-3.5">
       <JobCardPhotoStrip urls={job.photos || []} size="sm" stopPropagation />
 
       {/* The editable "Your Offer" price block lived here, on accept_bids
           jobs only. Bidding was removed (zero production usage), so a
           pending application is just a message + attachments now. */}
 
-      {/* Your application message — editable */}
-      <div className="rounded-ds-sm bg-primary/5 border border-primary/15 p-2" onClick={(e) => e.stopPropagation()}>
-        {editingMessageAppId !== app.id && (
-          <div className="flex justify-end mb-1">
-            <button
-              type="button"
-              aria-label="Edit your message"
-              className="text-primary hover:text-primary/80 btn-press p-0.5 -m-0.5"
-              onClick={() => { setEditingMessageAppId(app.id); setEditMessageText(app.message || ""); }}
-            >
-              <Pencil className="w-3 h-3" />
-            </button>
-          </div>
-        )}
-        {editingMessageAppId === app.id ? (
+      {/* THEIR MESSAGE. */}
+      <section aria-label="Your message to the poster" onClick={(e) => e.stopPropagation()}>
+        {editing ? (
           <div className="space-y-1.5">
+            {/* The eyebrow used to be this control's <label htmlFor>, so
+                removing it visibly must not remove it structurally — a
+                textarea with no accessible name is a WCAG 3.3.2 failure and
+                VoiceOver reads it as "text field, blank". `sr-only` keeps the
+                association and the announced name, verbatim. */}
+            <label htmlFor={messageFieldId} className="sr-only">
+              Your message to the poster
+            </label>
             <Textarea
+              id={messageFieldId}
               value={editMessageText}
               onChange={(e) => setEditMessageText(e.target.value)}
-              aria-label="Edit your application message"
               placeholder="Introduce yourself or share relevant experience…"
               rows={3}
-              className="text-ds-11"
+              /* Verbatim from ApplyBody's Textarea. */
+              className="rounded-ds-md bg-background/60 border-border/60 focus-visible:bg-background focus-visible:border-primary/40 font-sans text-ds-14 leading-relaxed"
             />
             <div className="flex items-center gap-1.5 justify-end">
               <Button size="sm" variant="ghost" className="h-7 px-2 text-ds-11" onClick={() => setEditingMessageAppId(null)} disabled={savingMessage}>
@@ -74,18 +112,33 @@ export function PendingApplicationSection({
             </div>
           </div>
         ) : (
-          <p className="text-ds-11 text-foreground">{app.message || <span className="text-muted-foreground italic">No message yet — add one</span>}</p>
+          /* Read-back: the sentence, and a pencil. The pencil sits INSIDE the
+             text flow rather than in a header bar above it, because there is
+             no header bar any more — it is the only control here, so it rides
+             the end of the paragraph it edits. */
+          <div className="flex items-start justify-between gap-2">
+            <p className="font-sans text-ds-14 leading-relaxed text-foreground min-w-0">
+              {app.message || <span className="text-muted-foreground italic">No message yet — add one</span>}
+            </p>
+            <button
+              type="button"
+              aria-label="Edit your message"
+              /* `p-2 -m-2` grows the hit area to ~44px without moving the
+                 glyph — the same trick the meta row's location chip uses. */
+              className="text-primary hover:text-primary/80 btn-press p-2 -m-2 shrink-0"
+              onClick={() => { setEditingMessageAppId(app.id); setEditMessageText(app.message || ""); }}
+            >
+              <Pencil className="w-3.5 h-3.5" />
+            </button>
+          </div>
         )}
-      </div>
+      </section>
 
-      {/* Your attachments */}
-      <div className="space-y-1.5">
-        <p
-          className="font-serif italic uppercase text-ds-10"
-          style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-        >
-          Your attachments
-        </p>
+      {/* THEIR ATTACHMENTS. The heading is `sr-only` for the same reason the
+          message's label is: the region still has to be named for a screen
+          reader even though the owner does not want the name drawn. */}
+      <section aria-labelledby={attachmentsHeadingId} className="space-y-1.5" onClick={(e) => e.stopPropagation()}>
+        <h4 id={attachmentsHeadingId} className="sr-only">Your attachments</h4>
         {/* Each row used to render a FileText icon and the filename, then embed
             an <AttachmentLink variant="chip"> that renders its OWN FileText and
             the SAME filename inside its own tinted chip — a chip inside a chip
@@ -118,7 +171,7 @@ export function PendingApplicationSection({
           // global 44px minimum applies to `button`, not `label`. `sr-only`
           // keeps the input focusable; `min-h-11` gives the row a real target.
           <label
-            className="flex items-center gap-2 min-h-11 text-ds-11 text-primary cursor-pointer hover:underline focus-within:underline"
+            className="flex items-center gap-2 min-h-11 text-ds-12 text-primary cursor-pointer hover:underline focus-within:underline"
             onClick={(e) => e.stopPropagation()}
           >
             <Paperclip className="w-3.5 h-3.5" />
@@ -137,9 +190,9 @@ export function PendingApplicationSection({
           </label>
         )}
         {(app.attachment_urls || []).length === 0 && !uploadingAttachment && (
-          <p className="text-muted-foreground text-ds-11">No attachments yet</p>
+          <p className="text-muted-foreground text-ds-12">No attachments yet</p>
         )}
-      </div>
+      </section>
     </div>
   );
 }

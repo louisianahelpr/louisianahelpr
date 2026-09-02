@@ -2,18 +2,31 @@ import { useState, useEffect } from "react";
 import { TimePickerSelect } from "@/components/TimePickerSelect";
 import { DatePickerField } from "@/components/DatePickerField";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHero,
+  DialogCallout,
+  DialogFooter,
+  DialogSecondaryAction,
+  DialogPrimaryAction,
+} from "@/components/ui/dialog";
+// `Lock` is the lucide glyph, imported explicitly. Without this line the
+// identifier still RESOLVES — to the DOM global `Lock` (the Web Locks API
+// interface in lib.dom.d.ts) — so the file parses and only a full `tsc`
+// catches it. Same trap for Range / Selection / Notification / Image / Text.
+import { Lock } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHero } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
 import { categories, type Job } from "./activityConstants";
 import { todayLocalISO } from "@/lib/dateUtils";
+import { computeJobExpiresAt } from "@/lib/jobExpiry";
 
 interface EditJobDialogProps {
   job: Job | null;
@@ -68,10 +81,23 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
   const save = async () => {
     if (!job) return;
     setSaving(true);
+    const scheduleChanged =
+      dateNeeded !== (job.date_needed || "") || startTime !== (job.start_time || "");
     const updateData: any = {
       title: title.trim(), description: description.trim(), category,
       location: location.trim(), date_needed: dateNeeded, start_time: startTime || null,
       special_requirements: specialReq.trim() || null,
+      // Moving the schedule MUST move the listing expiry with it. It didn't:
+      // a job pushed 08-31 -> 09-03 kept its 08-31 expires_at, which is what
+      // the feed and the map filter on, so the poster's paid listing stayed
+      // invisible with no in-app way to un-expire it short of re-posting and
+      // paying again. Recomputed from the same rule the post wizard uses.
+      //
+      // Only written when the schedule actually moved — a poster fixing a typo
+      // on a job whose date genuinely lapsed must not resurrect the listing.
+      // trg_job_expiry_floor (20260831201631) enforces the same recompute
+      // server-side, so this also holds for any other client.
+      ...(scheduleChanged ? { expires_at: computeJobExpiresAt(dateNeeded, startTime) } : {}),
     };
     try {
       unwrapMutation(
@@ -132,16 +158,9 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
         <DialogHero title={title ? `"${title}"` : "Edit Job"} />
         <div className="space-y-5">
           {locked && (
-            <p
-              className="font-serif italic text-ds-13 leading-relaxed rounded-ds-md p-2.5"
-              style={{
-                color: "hsl(var(--olivewood) / 0.85)",
-                background: "hsl(var(--amber-tint) / 0.10)",
-                border: "0.5px solid hsl(var(--amber-tint) / 0.30)",
-              }}
-            >
+            <DialogCallout icon={Lock}>
               These fields are locked — a Helpr's already accepted this job.
-            </p>
+            </DialogCallout>
           )}
 
           {/* ── The task — what it is ─────────────────────────────────── */}
@@ -208,27 +227,19 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
           </section>
         </div>
         <DialogFooter>
-          <Button
-            variant="ghost"
-            onClick={() => handleClose(false)}
-            className="rounded-ds-md bg-transparent border-transparent shadow-none text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
-          >
+          {/* The `ghost` variant already IS transparent/borderless/unshadowed
+              with a muted label and a secondary hover — the class list here
+              was re-declaring it by hand, one hover token off from every other
+              dialog's Cancel. */}
+          <DialogSecondaryAction onClick={() => handleClose(false)}>
             Cancel
-          </Button>
-          <Button
+          </DialogSecondaryAction>
+          <DialogPrimaryAction
             onClick={handleSaveClick}
             disabled={saving || hasHelper}
-            className="rounded-ds-md"
-            style={{
-              background: "hsl(var(--bark))",
-              backgroundImage: "none",
-              border: "1px solid hsl(var(--bark))",
-              color: "hsl(var(--parchment))",
-              boxShadow: "var(--elev-bark-raised)",
-            }}
           >
             {saving ? "Saving…" : "Save Changes"}
-          </Button>
+          </DialogPrimaryAction>
         </DialogFooter>
       </DialogContent>
     </Dialog>

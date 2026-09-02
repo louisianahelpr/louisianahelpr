@@ -10,6 +10,7 @@ import { Mail, Loader2, Check, X } from "lucide-react";
 import AuthShell from "@/components/auth/AuthShell";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
+import { captureException } from "@/lib/sentry";
 
 const RESEND_COOLDOWN_S = 60;
 
@@ -69,6 +70,25 @@ const ForgotPassword = () => {
         return false;
       }
       // Fall through: success-shaped UX even on error.
+      //
+      // But NOT silence. The neutral UX above is right — telling the user "no
+      // account with that email" is a free user-existence oracle — and it is
+      // also the only place in this flow where a real failure could surface.
+      // Before this report() the screen was indistinguishable in BOTH
+      // directions: a user whose reset genuinely never sent saw "Check your
+      // inbox", and so did we. A password reset that silently doesn't send is
+      // the single worst failure this screen has, because the user's only
+      // recourse — press the button again — reproduces it exactly.
+      //
+      // Anti-enumeration is about what we tell the USER, not about what we
+      // tell ourselves. This keeps the user-facing behaviour byte-identical
+      // and gives operators the one signal they had no way to get. The email
+      // is deliberately NOT included in the payload — that would recreate the
+      // oracle inside the monitoring tool.
+      captureException(error, {
+        tags: { area: "auth", flow: "password-reset-request" },
+        note: "resetPasswordForEmail failed; user was shown the neutral success state",
+      });
     }
     hapticSuccess();
     setResendCooldown(RESEND_COOLDOWN_S);
@@ -149,7 +169,11 @@ const ForgotPassword = () => {
                 a section heading under it. It was an h1 back when the title
                 row lived inside the `!sent` branch and disappeared here —
                 lifting the row into AuthShell made the page briefly carry two. */}
-            <h2 className="text-page-title leading-tight truncate">
+            {/* `text-balance`, not `truncate` — this string is short enough to
+                fit today, but it is the same centred-card headline pattern that
+                clipped on AccountBanned/AccountDenied at 320/375, so it carries
+                the same latent defect. Wrapping is always correct here. */}
+            <h2 className="text-page-title leading-tight text-balance">
               Check your inbox.
             </h2>
             {/* Neutral confirmation copy — leaks no signal about whether

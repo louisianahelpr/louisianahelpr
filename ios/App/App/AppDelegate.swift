@@ -32,6 +32,50 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
     }
 
+    // MARK: - Remote notifications (APNs)
+    //
+    // THESE TWO METHODS ARE NOT OPTIONAL AND THEY ARE NOT IN THE STOCK
+    // CAPACITOR TEMPLATE. Without them push cannot work, at all, ever.
+    //
+    // How the plugin actually gets a device token:
+    //   1. JS calls PushNotifications.register().
+    //   2. PushNotificationsPlugin.register() calls
+    //      UIApplication.shared.registerForRemoteNotifications().
+    //   3. APNs answers by calling
+    //      application(_:didRegisterForRemoteNotificationsWithDeviceToken:)
+    //      on THIS AppDelegate.
+    //   4. The plugin is listening on NotificationCenter for
+    //      .capacitorDidRegisterForRemoteNotifications, and only then fires
+    //      its JS "registration" event.
+    //
+    // Step 4 never happens unless step 3 forwards the token. Capacitor does
+    // NOT swizzle or proxy these callbacks — grep the framework: it declares
+    // Notification.Name.capacitorDidRegisterForRemoteNotifications in
+    // CAPNotifications.swift and posts it from nowhere. The host app is the
+    // only thing that can post it.
+    //
+    // This file did not post it. That is why `push_tokens` was empty for
+    // every user in production on 2026-08-31 and `notification_logs` had
+    // never recorded a single `channel='push'` row: iOS was handing the app
+    // a perfectly good device token on every launch and the app was dropping
+    // it on the floor. The JS side (nativePush.ts) had a correct
+    // "registration" listener that could never be called.
+    //
+    // Ref: https://capacitorjs.com/docs/apis/push-notifications#ios
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        NotificationCenter.default.post(
+            name: .capacitorDidRegisterForRemoteNotifications,
+            object: deviceToken
+        )
+    }
+
+    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        NotificationCenter.default.post(
+            name: .capacitorDidFailToRegisterForRemoteNotifications,
+            object: error
+        )
+    }
+
     func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
         // Called when the app was launched with a url. Feel free to add additional processing here,
         // but if you want the App API to support tracking app url opens, make sure to keep this call

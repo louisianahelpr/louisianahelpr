@@ -3,7 +3,15 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
-import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHero,
+  DialogBody,
+  DialogFooter,
+  DialogSecondaryAction,
+  DialogPrimaryAction,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { CurrencyInput } from "@/components/ui/currency-input";
@@ -11,6 +19,7 @@ import { Star, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import { fetchReferralData } from "@/hooks/useReferralData";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
+import { getPublicSiteUrl } from "@/lib/authRedirects";
 import { report } from "@/lib/errorLogger";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { isNativePlatform } from "@/lib/nativeInit";
@@ -82,8 +91,20 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
       .catch(() => { /* referral link unavailable — skip */ });
   }, [step, referralCode, userId]);
 
+  // `/signup?ref=`, NOT `/?ref=`. The landing page has no referral-code reader:
+  // the only two things in the app that read `?ref=` are `useJobRef` (which
+  // validates against a fixed token registry — msg/notif/share/email — and
+  // silently drops anything else, including a referral code) and Signup.tsx,
+  // which never mounts on `/`. So every code shared from this prompt was
+  // discarded before the recipient reached the form, and the referrer was
+  // never credited. `ReferralSection.tsx:74` already builds the correct
+  // `/signup?ref=` URL; this is the same link, built from the same helper —
+  // the domain was hardcoded here, so the two builders could drift apart on
+  // environment as well as on path.
+  // `encodeURIComponent` matches it too — codes are alphanumeric today, but
+  // the two builders should not disagree about escaping.
   const referralLink = referralCode
-    ? `https://www.louisianahelpr.com/?ref=${referralCode}`
+    ? `${getPublicSiteUrl()}/signup?ref=${encodeURIComponent(referralCode)}`
     : "";
 
   const copyReferral = async () => {
@@ -213,7 +234,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
             title={`Rate ${revieweeName}`}
           />
           <div className="space-y-4">
-            <p className="text-ds-11 text-muted-foreground">How was your experience with {revieweeName} on "{jobTitle}"?</p>
+            <DialogBody><p>How was your experience with {revieweeName} on "{jobTitle}"?</p></DialogBody>
             <div className="flex gap-1 justify-center">
               {[1, 2, 3, 4, 5].map((s) => (
                 <button key={s} onClick={() => setRating(s)} onMouseEnter={() => setHoverRating(s)} onMouseLeave={() => setHoverRating(0)} aria-label={`Rate ${s} star${s === 1 ? "" : "s"}`}>
@@ -229,7 +250,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
                   onClick={() => toggleQuickOption(opt)}
                   className={`text-ds-11 px-3 py-1.5 rounded-full border transition-colors ${
                     feedback.includes(opt)
-                      ? "bg-primary text-primary-foreground border-primary"
+                      ? "btn-grad-primary text-[hsl(var(--parchment))] border-transparent"
                       : "bg-secondary text-secondary-foreground border-border hover:bg-accent"
                   }`}
                 >
@@ -240,10 +261,10 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
             <Textarea aria-label="Comment (optional)" value={feedback} onChange={(e) => setFeedback(e.target.value)} rows={2} />
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setStep("tip")}>Skip</Button>
-            <Button onClick={submitReview} disabled={saving || rating === 0}>
+            <DialogSecondaryAction onClick={() => setStep("tip")}>Skip</DialogSecondaryAction>
+            <DialogPrimaryAction onClick={submitReview} disabled={saving || rating === 0}>
               {saving ? "Submitting…" : "Submit Review"}
-            </Button>
+            </DialogPrimaryAction>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -256,7 +277,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
             title="Say Thanks with a Tip?"
           />
           <div className="space-y-4">
-            <p className="text-ds-11 text-muted-foreground">Tips go directly to {revieweeName}. Totally optional!</p>
+            <DialogBody><p>Tips go directly to {revieweeName}. Totally optional!</p></DialogBody>
             <div className="space-y-2">
               <label htmlFor="custom-tip-amount" className="text-ds-13 font-medium text-foreground">Enter your tip</label>
               <div className="flex gap-2">
@@ -273,7 +294,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
                   onClick={() => sendTip(customTip ?? 0)}
                   disabled={saving || customTip === undefined || customTip <= 0}
                 >
-                  {saving ? "..." : "Send"}
+                  {saving ? "Sending…" : "Send"}
                 </Button>
               </div>
             </div>
@@ -290,8 +311,9 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
               ))}
             </div>
           </div>
+          {/* Lone footer control -> `outline`, not a bare ghost label. */}
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setStep("share")}>No Thanks</Button>
+            <DialogSecondaryAction onClick={() => setStep("share")}>No Thanks</DialogSecondaryAction>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -302,14 +324,16 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
       <Dialog open={step === "share"} onOpenChange={() => setStep("nps")}>
         <DialogContent>
           <DialogHero
-            title="Loved It? Share Helpr."
+            title="Loved It? Share Helpr"
           />
           <div className="space-y-4">
-            <p className="text-ds-11 text-muted-foreground">
-              Helpr grows by neighbors telling neighbors. Send a friend
-              your link — when they sign up and complete their first job,
-              you both get a credit.
-            </p>
+            <DialogBody>
+              <p>
+                Helpr grows by neighbors telling neighbors. Send a friend
+                your link — when they sign up and complete their first job,
+                you both get a credit.
+              </p>
+            </DialogBody>
             {referralLink ? (
               <div className="flex items-center gap-2 rounded-ds-md border border-border bg-muted/40 p-2 pl-3">
                 <span className="flex-1 text-ds-11 font-mono truncate text-foreground">
@@ -324,7 +348,7 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
                 </Button>
               </div>
             ) : (
-              <p className="text-ds-11 text-muted-foreground italic">Loading your invite link…</p>
+              <DialogBody><p>Loading your invite link…</p></DialogBody>
             )}
 
             {/* More work nearby — only shown to helpers once the share step
@@ -353,8 +377,9 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
               </div>
             )}
           </div>
+          {/* Lone footer control -> `outline`, not a bare ghost label. */}
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setStep("nps")}>Maybe Later</Button>
+            <DialogSecondaryAction onClick={() => setStep("nps")}>Maybe Later</DialogSecondaryAction>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
+import { describeDeleteError, findActiveWork, purgeAccount } from "../_shared/accountPurge.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -57,22 +58,23 @@ serve(async (req) => {
     // (their helper/poster vanishes) and orphan escrowed funds with no party
     // left to release or refund them. The job must reach a terminal state
     // (completed/cancelled) and escrow must be settled first.
-    // `.or(...).or(...)` ANDs the two clauses: (I'm a party) AND (it's live).
-    const { data: activeJobs, error: activeErr } = await supabaseAdmin
-      .from("jobs")
-      .select("id")
-      .or(`customer_id.eq.${user.id},helper_id.eq.${user.id}`)
-      .or("status.in.(accepted,arrived,in_progress,awaiting),payment_status.eq.escrow")
-      .limit(1);
+    //
+    // One implementation, in _shared/accountPurge.ts, shared with
+    // admin-delete-user. This used to be a hand-copied block in each function
+    // with a comment promising they were kept byte-identical; they were not,
+    // and the drift (a dead `arrived`/`awaiting` enum list left in the admin
+    // twin) broke admin deletion completely for a day. It also missed group
+    // jobs entirely — see findActiveWork for that half.
+    const active = await findActiveWork(supabaseAdmin, user.id);
 
-    if (activeErr) {
+    if (!active.ok) {
       // Fail closed — if we can't verify the account is safe to delete, don't.
       return new Response(
         JSON.stringify({ error: "Couldn't verify account state. Please try again." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
-    if (activeJobs && activeJobs.length > 0) {
+    if (active.active) {
       return new Response(
         JSON.stringify({
           error:
@@ -82,21 +84,54 @@ serve(async (req) => {
       );
     }
 
-    // Delete the user from auth (cascade removes profile and related data)
+    // Erase what must be erased and anonymise what must be retained, BEFORE
+    // touching the auth row. See _shared/accountPurge.ts for the ordering
+    // argument — the short version is that if anything below fails, the
+    // account is already stripped of its PII and its stored documents rather
+    // than left fully intact behind an error message.
+    //
+    // This is the step that was missing entirely. `auth.admin.deleteUser`
+    // alone left the user's government ID scan in `id-documents/<uid>/`, their
+    // avatar anonymously fetchable from the public `avatars` bucket, their
+    // messages (no FK on that table, so nothing cascades) and their Stripe
+    // subscription still billing.
+    const purge = await purgeAccount(supabaseAdmin, user.id);
+    if (!purge.ok) {
+      console.error("[delete-own-account] purge incomplete:", JSON.stringify(purge.steps));
+      return new Response(JSON.stringify({ error: purge.userMessage }), {
+        status: 503,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    console.log(`[delete-own-account] purge for ${user.id}:`, JSON.stringify(purge.steps));
+
+    // Now the auth row. Remaining FK rules finish the job: CASCADE erases the
+    // profile and the reviews written ABOUT this user; SET NULL anonymises the
+    // reviews they WROTE (a third party's reputation), the payout ledger, and
+    // the jobs retained as financial records.
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(user.id);
 
     if (deleteError) {
-      return new Response(JSON.stringify({ error: deleteError.message }), {
+      // Never pass a raw Postgres constraint violation to the user. Before
+      // this, a 23503 surfaced verbatim in the delete dialog as
+      // `violates foreign key constraint "jobs_helper_id_fkey"` — a permanent,
+      // unexplained refusal with no way forward.
+      console.error("[delete-own-account] deleteUser failed:", deleteError.message);
+      return new Response(JSON.stringify({ error: describeDeleteError(deleteError.message) }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    return new Response(JSON.stringify({ success: true }), {
+    return new Response(JSON.stringify({ success: true, steps: purge.steps }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
+    // `catch` binds `unknown`: a thrown string, a Supabase error object or a
+    // rejected non-Error all reach here, and `err.message` on `null`/`undefined`
+    // throws INSIDE the handler — turning a diagnosable 500 into an empty one.
+    const message = err instanceof Error ? err.message : String(err);
+    return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

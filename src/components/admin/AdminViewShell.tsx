@@ -46,7 +46,13 @@ export function AdminCard({
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           {title && (
             <div className="min-w-0 space-y-0.5">
-              <h3 className="font-display font-semibold text-foreground text-ds-16">{title}</h3>
+              {/* h2, not h3. Admin.tsx renders the page's only <h1> through
+                  AdminSectionHeader, so every AdminCard title sitting at <h3>
+                  skipped a level — axe flagged `heading-order` on 22 of the 24
+                  admin views from this one line. The visual size is a token
+                  (text-ds-16), independent of the level, so the fix is purely
+                  structural: nothing moves, the outline just becomes h1 → h2. */}
+              <h2 className="font-display font-semibold text-foreground text-ds-16">{title}</h2>
               {subtitle && <p className="text-ds-11 text-muted-foreground">{subtitle}</p>}
             </div>
           )}

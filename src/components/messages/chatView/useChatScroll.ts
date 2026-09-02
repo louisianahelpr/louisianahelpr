@@ -146,26 +146,40 @@ export function useChatScroll({
   // padding and shrinks the visible thread — without this the latest
   // messages slide up behind the keyboard. We only pull to the bottom if
   // the user was already parked near it (nearBottomRef); if they'd scrolled
-  // up to read history, yanking them down would be hostile. Double-rAF so
-  // the scroll runs after the padding change has been laid out. We key on
-  // the open transition only (>0) — on close the padding shrinks back and
-  // the content is already in view.
+  // up to read history, yanking them down would be hostile. We key on the
+  // open transition only (>0) — on close the padding shrinks back and the
+  // content is already in view.
+  //
+  // The scroll is re-applied EVERY FRAME until the padding animation has
+  // settled, not once on a double-rAF. The wrapper that carries the
+  // keyboard padding animates it (`transition-[padding] duration-150` in
+  // ChatView), so the thread's height shrinks gradually. A single scroll
+  // fired ~2 frames in landed while the container had not shrunk yet —
+  // measured at 375x812 with a 291px keyboard: at +16ms the scroller's max
+  // scrollTop was still 0, so `scrollTo` clamped to 0 and did nothing; by
+  // +100ms the max was 161px and the position was still 0, leaving the
+  // newest 161px of the thread — including the whole last message — parked
+  // behind the keyboard with no indication it was there. Re-pinning across
+  // the animation is what actually keeps the latest message visible.
   const prevKeyboardInsetRef = useRef(keyboardInset);
   useEffect(() => {
     const opened = prevKeyboardInsetRef.current === 0 && keyboardInset > 0;
     prevKeyboardInsetRef.current = keyboardInset;
     if (!opened || !nearBottomRef.current) return;
-    let raf2 = 0;
-    const raf1 = requestAnimationFrame(() => {
-      raf2 = requestAnimationFrame(() => {
-        const el = scrollContainerRef.current;
-        if (el) el.scrollTo({ top: el.scrollHeight });
-      });
-    });
-    return () => {
-      cancelAnimationFrame(raf1);
-      cancelAnimationFrame(raf2);
+    let raf = 0;
+    // Comfortably past the 150ms padding transition; short enough that a
+    // user who starts scrolling right after the keyboard opens isn't fought
+    // for long.
+    const settleBy = performance.now() + 400;
+    const pinToBottom = () => {
+      const el = scrollContainerRef.current;
+      // Assigning scrollTop (rather than scrollTo) clamps to the current
+      // maximum, so this is a no-op on every frame where nothing moved.
+      if (el) el.scrollTop = el.scrollHeight;
+      if (performance.now() < settleBy) raf = requestAnimationFrame(pinToBottom);
     };
+    raf = requestAnimationFrame(pinToBottom);
+    return () => cancelAnimationFrame(raf);
   }, [keyboardInset]);
 
   return {

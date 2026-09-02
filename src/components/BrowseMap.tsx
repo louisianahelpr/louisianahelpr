@@ -15,13 +15,18 @@
 // estimate, so the script is usually warm by the time /browse asks for it.
 //
 // Structure: static config/types/storage live in ./browseMap/config,
-// marker element + heat-density helpers in ./browseMap/mapMarkers, the
-// MapKit runtime typings + the pixel↔metre bridge in ./browseMap/mapkitRuntime,
-// and the map overlays/controls in ./browseMap/MapLayers. This file owns the
-// data fetch + the imperative map lifecycle.
+// marker element builders in ./browseMap/mapMarkers, the MapKit runtime
+// typings + the pixel↔metre bridge in ./browseMap/mapkitRuntime, and the map
+// overlays/controls in ./browseMap/MapLayers. This file owns the data fetch,
+// the imperative map lifecycle, and the pin PREVIEW SHEET.
+//
+// Pin preview (reworked 2026-08-31): tapping a pin no longer opens a MapKit
+// callout floating over the pin. It opens a bottom sheet this component
+// renders, anchored above the dock in the map's own bottom control stack,
+// holding the same `<JobCard bare>` the feed renders. See the `selectedJobId`
+// state and the "Bottom control stack" block in the JSX for why.
 
 import { useEffect, useRef, useState, useMemo, useCallback } from "react";
-import { createRoot, type Root } from "react-dom/client";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { Button } from "@/components/ui/button";
@@ -30,6 +35,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { useMapKitJs } from "@/hooks/useMapKitJs";
 import {
   LA_BOUNDS,
+  MAP_DOCK_CLEARANCE,
   type MapJob,
 } from "./browseMap/config";
 import { mapJobToEnrichedJob } from "./browseMap/mapJobToEnrichedJob";
@@ -56,8 +62,8 @@ import {
 
 interface BrowseMapProps {
   /**
-   * Tap anywhere on a pin's popup card (same tap-anywhere-opens-the-job
-   * behaviour as the feed's `JobCard`, which the popup now literally
+   * Tap anywhere on a pin's preview card (same tap-anywhere-opens-the-job
+   * behaviour as the feed's `JobCard`, which the preview literally
    * reuses — no separate "Apply" button on the map anymore).
    */
   onJobAction?: (jobId: string) => void;
@@ -184,41 +190,41 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
   // worse than one the app says it can't apply here.
   const ignoredFilters = filters ? unsupportedMapFilters(filters) : [];
 
-  /**
-   * The map pane's own width, watched — the cap for a pin callout.
-   *
-   * MapKit does not pan the map to fit an oversized callout the way Leaflet
-   * did (that was the old width math's whole reason for existing), but a
-   * callout wider than the pane still overflows it. The narrowest surface this
-   * ships to is a 375px phone map pane and the desktop side-by-side column is
-   * ~270px, so the callout is capped to the MEASURED pane rather than a
-   * constant. Watched rather than read once because the column resizes with
-   * the window and with the side panel.
-   */
   const mapBoxRef = useRef<HTMLDivElement | null>(null);
-  const [paneWidth, setPaneWidth] = useState(0);
+
+  /**
+   * The job whose preview is open, or null.
+   *
+   * WAS a MapKit CALLOUT — a bubble MapKit floated over the tapped pin, whose
+   * body we rendered a `<JobCard>` into with a detached React root per pin.
+   * That is the structural cause of everything the owner flagged:
+   *   • MapKit owns a callout's position, so the card landed mid-map on top of
+   *     the pins, the place labels and the map controls, and (worst) on top of
+   *     the very pin that opened it;
+   *   • the callout body has no chrome of its own, so the close control had
+   *     nowhere structural to live and was `absolute top-1 right-1` OVER the
+   *     card — which is JobCard's own top-right corner, i.e. directly on the
+   *     price chip. A 24x24 stray glyph laid on the "$123", well under the
+   *     44px tap-target floor, with no background and no hit area;
+   *   • one React root per visible pin, all rendered up front, purely so the
+   *     callout had something to measure.
+   * It is now our own bottom sheet (see the preview block in the JSX), which
+   * this state drives. MapKit still owns pin SELECTION — we just draw the card.
+   */
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const selectedJob = useMemo(
+    () => visibleJobs.find((j) => j.id === selectedJobId) ?? null,
+    [visibleJobs, selectedJobId],
+  );
+  // A filter (or a refetch) that removes the previewed job must close the
+  // preview — otherwise the sheet describes a pin that is no longer on the map.
   useEffect(() => {
-    const el = mapBoxRef.current;
-    if (!el || typeof ResizeObserver === "undefined") return;
-    setPaneWidth(el.getBoundingClientRect().width);
-    const ro = new ResizeObserver(([entry]) => {
-      setPaneWidth(entry.contentRect.width);
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-  // ONE WIDTH, not a range (owner: "each one has a diff layout, make all
-  // consistent"). A content-sized callout meant every pin opened a
-  // differently-shaped card — 225px for a short title, 265px for a long one —
-  // and the meta row wrapped onto one line or two depending on which pin you
-  // happened to tap. A fixed width makes the callout an object the content
-  // flows into, which is what the feed card beside it already is.
-  //
-  // 40px keeps the card clear of MapKit's own callout chrome and shadow.
-  // Floor raised from 180 to 220 — below that the location/date/time meta
-  // row (nowrap by design, shared with the feed card) had no room to
-  // breathe and its pieces visually crowded/overlapped each other.
-  const calloutWidth = paneWidth ? Math.max(220, Math.min(320, paneWidth - 40)) : 320;
+    if (selectedJobId && !selectedJob) setSelectedJobId(null);
+  }, [selectedJobId, selectedJob]);
+  /** True when the open preview was opened from the keyboard, so focus should
+   *  move into the sheet and back to the pin on close (a pointer tap must NOT
+   *  steal focus — that scroll-jumps the map on iOS). */
+  const openedByKeyboardRef = useRef(false);
 
   const retry = () => {
     setLoadError(false);
@@ -229,8 +235,12 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
   // ── MapKit lifecycle ────────────────────────────────────────────────────
   const mapRef = useRef<MKMap | null>(null);
   const annotationsRef = useRef<MKAnnotation[]>([]);
-  /** One React root per open callout body, torn down with its annotation. */
-  const calloutRootsRef = useRef<Root[]>([]);
+  // Latest values, readable from the DOM-level pin/keyboard handlers below
+  // without making them (and therefore every annotation) rebuild on change.
+  const jobsRef = useRef<MapJob[]>(visibleJobs);
+  jobsRef.current = visibleJobs;
+  const selectedJobIdRef = useRef<string | null>(selectedJobId);
+  selectedJobIdRef.current = selectedJobId;
   // A CALLBACK REF, held in state, not a plain ref: the map surface is not in
   // the tree during the loading/error early-returns, so a ref would still be
   // null the one time the creation effect ran and the map would never be
@@ -273,11 +283,14 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
         const count = members.length;
         return new mk.Annotation(
           cluster.coordinate,
-          () => {
-            const node = clusterElement(count);
-            // Tap a cluster → zoom into the jobs it stands for, matching
-            // Leaflet's zoom-to-bounds-on-cluster-click.
-            node.addEventListener("click", () => {
+          () =>
+            // Tap OR keyboard-activate a cluster → zoom into the jobs it
+            // stands for, matching Leaflet's zoom-to-bounds-on-cluster-click.
+            // The handler moved into `clusterElement` so pointer and Enter/
+            // Space go through one path and the bubble carries a real
+            // accessible name ("6 jobs in this area — zoom in to see them")
+            // instead of a bare, unnamed "6".
+            clusterElement(count, () => {
               const coords = members.map((m) => m.coordinate);
               if (!coords.length) return;
               const lats = coords.map((c) => c.latitude);
@@ -293,9 +306,7 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
                 ),
                 true,
               );
-            });
-            return node;
-          },
+            }),
           { calloutEnabled: false },
         );
       };
@@ -312,11 +323,6 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
   // status change can never destroy a live map out from under the user.
   useEffect(() => {
     return () => {
-      const roots = calloutRootsRef.current;
-      calloutRootsRef.current = [];
-      // Deferred: React refuses to unmount a root synchronously while it is
-      // already rendering, which is exactly where an effect cleanup runs.
-      setTimeout(() => roots.forEach((r) => r.unmount()), 0);
       try { mapRef.current?.destroy?.(); } catch { /* ignore */ }
       mapRef.current = null;
       annotationsRef.current = [];
@@ -341,24 +347,105 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
     } catch { /* older runtimes may not allow reassignment — leave as built */ }
   }, [isDark, mapReady]);
 
-  /** Remove and unmount every job annotation currently on the map. */
+  /** Remove every job annotation currently on the map. */
   const clearAnnotations = useCallback(() => {
     const map = mapRef.current;
     if (map && annotationsRef.current.length) {
       try { map.removeAnnotations(annotationsRef.current); } catch { /* ignore */ }
     }
     annotationsRef.current = [];
-    const roots = calloutRootsRef.current;
-    calloutRootsRef.current = [];
-    if (roots.length) setTimeout(() => roots.forEach((r) => r.unmount()), 0);
   }, []);
 
-  // Pins layer. Each job becomes a custom annotation whose callout body is a
-  // real `<JobCard>` — MapKit's callout delegate hands back DOM, not React
-  // children, so the popup is rendered into a detached node by its own React
-  // root and that node is what `calloutContentForAnnotation` returns. It is
-  // rendered up front (not on tap) so the callout has laid-out content to
-  // measure the moment MapKit asks for it.
+  /**
+   * Open a pin's preview and slide the camera so the pin is NOT under the
+   * sheet that is about to cover the bottom of the pane.
+   *
+   * This is the other half of the "the card covers the pin you just tapped"
+   * fix: moving the card to the bottom stops it landing ON the pin, and this
+   * lifts the pin into the clear upper band so the two are visibly connected.
+   * The shift is a fraction of the CURRENT span, so it behaves the same at
+   * every zoom level, and the camera keeps its zoom (no `fitToPins` re-frame).
+   */
+  const openPreview = useCallback((jobId: string, fromKeyboard: boolean) => {
+    openedByKeyboardRef.current = fromKeyboard;
+    setSelectedJobId(jobId);
+    const mk = getMapKit();
+    const map = mapRef.current;
+    if (!mk || !map) return;
+    const job = jobsRef.current.find((j) => j.id === jobId);
+    if (!job) return;
+    try {
+      const span = map.region.span;
+      map.setRegionAnimated(
+        new mk.CoordinateRegion(
+          // South of the pin by ~18% of the visible height ⇒ the pin renders
+          // ABOVE centre, in the band the sheet never reaches.
+          new mk.Coordinate(Number(job.latitude) - span.latitudeDelta * 0.18, Number(job.longitude)),
+          new mk.CoordinateSpan(span.latitudeDelta, span.longitudeDelta),
+        ),
+        true,
+      );
+    } catch { /* a runtime that won't hand back its region just skips the nudge */ }
+  }, []);
+
+  /** Dismiss the preview. `returnFocus` puts focus back on the pin that opened
+   *  it, which is what a keyboard user expects and what makes the pin → sheet
+   *  → close → pin loop traversable without a mouse. */
+  const closePreview = useCallback((returnFocus: boolean) => {
+    const map = mapRef.current;
+    const jobId = selectedJobIdRef.current;
+    setSelectedJobId(null);
+    // MapKit JS deselects a pin by clearing `selectedAnnotations`.
+    try { if (map) map.selectedAnnotations = []; } catch { /* ignore */ }
+    if (returnFocus && jobId && map) {
+      const pin = map.element.querySelector<HTMLElement>(
+        `.browse-map-pin[data-job-id="${CSS.escape(jobId)}"]`,
+      );
+      pin?.focus();
+    }
+  }, []);
+
+  /**
+   * Keep only the pins a user can actually reach in the tab order.
+   *
+   * MapKit does not remove a clustered pin from the DOM — it leaves the
+   * element parked at the cluster's position, drawn BEHIND the cluster bubble,
+   * and marks it by setting `pointer-events: none` on it (verified 2026-08-31:
+   * every pin under a cluster computed `none`, every standalone pin `auto`).
+   * Because our pins are `tabIndex=0`, that meant a keyboard user could tab to
+   * a pin that is invisible under a bubble and get a focus ring on nothing.
+   * Mirroring MapKit's own signal into `tabindex`/`aria-hidden` fixes it with
+   * no loss: the cluster standing in for those pins is itself focusable and
+   * named ("6 jobs in this area — zoom in to see them"), and expanding it
+   * hands the pins back.
+   */
+  const syncPinFocusability = useCallback(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    map.element.querySelectorAll<HTMLElement>(".browse-map-pin").forEach((el) => {
+      // Never hide the element that currently HAS focus — aria-hidden on the
+      // active element is itself a violation, and the user is mid-interaction.
+      const collapsed =
+        getComputedStyle(el).pointerEvents === "none" && document.activeElement !== el;
+      el.tabIndex = collapsed ? -1 : 0;
+      if (collapsed) el.setAttribute("aria-hidden", "true");
+      else el.removeAttribute("aria-hidden");
+    });
+  }, []);
+
+  // Read through a ref so the annotation factories never close over a stale
+  // `openPreview`, and so the pins effect does not rebuild every annotation
+  // when it changes identity.
+  const openPreviewRef = useRef(openPreview);
+  openPreviewRef.current = openPreview;
+
+  // Pins layer. Each job becomes a custom annotation. The pin ELEMENT carries
+  // its own accessible name + Enter/Space handling (see `pinElement`), and
+  // activating it opens the preview SHEET this component renders at the bottom
+  // of the pane — MapKit's own callout is switched off (`calloutEnabled:
+  // false`). Nothing is pre-rendered per pin any more: the old code built a
+  // detached React root and a full `<JobCard>` for EVERY visible pin up front,
+  // just so MapKit's bubble had something to measure.
   useEffect(() => {
     const mk = getMapKit();
     const map = mapRef.current;
@@ -367,55 +454,17 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
     if (visibleJobs.length === 0) return;
 
     const annotations = visibleJobs.map((job) => {
-      const body = document.createElement("div");
-      body.className = "browse-map-callout";
-      body.style.width = `${calloutWidth}px`;
-      // Belt and braces on the narrowest surface: even if the pane is
-      // mis-measured, the callout can never be wider than the phone screen.
-      body.style.maxWidth = "calc(100vw - 32px)";
-      const root = createRoot(body);
-      // Render the SAME `<JobCard>` the feed uses — not a separately-built
-      // lookalike (owner: "its not a shared component its the same page
-      // the both use it"). `mapJobToEnrichedJob` adapts the map RPC's
-      // privacy-reduced row into JobCard's prop shape; see that file's
-      // header for exactly which fields are inert placeholders and why
-      // that's safe (JobCard never reads them). A tap anywhere on the card
-      // opens the job — same as the feed — via `onJobAction`, which the
-      // caller (Dashboard/BrowseTasksFeed) resolves against the full,
-      // authoritative job list before opening JobDetailDialog, so the
-      // reduced object built here never reaches the dialog. That also
-      // retires the popup's own separate "Apply" button from the recent
-      // unify-with-detail-dialog change — tapping the reused card IS the
-      // apply/view action now, exactly like the list.
-      root.render(
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => {
-              // Dismiss the callout without waiting for an outside tap —
-              // MapKit JS deselects a pin by clearing `selectedAnnotations`.
-              try { map.selectedAnnotations = []; } catch { /* ignore */ }
-            }}
-            aria-label="Close"
-            className="absolute top-1 right-1 z-20 w-6 h-6 flex items-center justify-center text-muted-foreground hover:text-foreground"
-          >
-            <X className="w-4 h-4" strokeWidth={2.5} />
-          </button>
-          <JobCard
-            job={mapJobToEnrichedJob(job)}
-            effectiveFee={effectiveFee ?? 0}
-            onSelect={() => onJobAction?.(job.id)}
-            onApply={() => onJobAction?.(job.id)}
-            onReport={() => { /* no report surface on the map pin popup */ }}
-            guestPricing={effectiveFee === undefined}
-            bare
-          />
-        </div>,
-      );
-      calloutRootsRef.current.push(root);
       return new mk.Annotation(
         new mk.Coordinate(Number(job.latitude), Number(job.longitude)),
-        () => pinElement(job.category, job.is_urgent, job.id),
+        () =>
+          pinElement({
+            category: job.category,
+            isUrgent: job.is_urgent,
+            jobId: job.id,
+            title: job.title,
+            where: job.location ?? job.parish,
+            onActivate: (fromKeyboard) => openPreviewRef.current(job.id, fromKeyboard),
+          }),
         {
           // MapKit centres a custom annotation element on its coordinate;
           // the pin's point is at its bottom edge, so lift it by half the
@@ -423,22 +472,121 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
           anchorOffset:
             typeof DOMPoint === "function" ? new DOMPoint(0, -PIN_HEIGHT / 2) : undefined,
           clusteringIdentifier: "browse-job",
-          calloutEnabled: true,
-          callout: { calloutContentForAnnotation: () => body },
+          // OFF. MapKit positions a callout over the pin it belongs to, which
+          // is precisely the overlap the owner flagged; the preview is our own
+          // bottom sheet now. Selection itself still happens (the `select` /
+          // `deselect` listeners below), so the pin keeps its selected state.
+          calloutEnabled: false,
           data: { jobId: job.id },
         },
       );
     });
     annotationsRef.current = annotations;
     try { map.addAnnotations(annotations); } catch { /* ignore */ }
-  }, [visibleJobs, mapReady, effectiveFee, onJobAction, calloutWidth, clearAnnotations]);
+  }, [visibleJobs, mapReady, clearAnnotations]);
 
-  // Frame the pins whenever the visible set changes (FitToPins' old job).
+  // MapKit still owns SELECTION, so mirror it into our own state: selecting a
+  // pin any other way (programmatically, or a tap MapKit handled before the
+  // element's own click listener) opens the sheet, and deselecting — which is
+  // what tapping empty map does — closes it.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const onSelect = (e: unknown) => {
+      const annotation = (e as { annotation?: MKAnnotation }).annotation;
+      const jobId = annotation?.data?.jobId;
+      // Do NOT touch `openedByKeyboardRef` here — MapKit fires this for a
+      // pointer tap too, and the pin element's own handler is the one that
+      // knows which input opened the preview.
+      if (typeof jobId === "string") setSelectedJobId(jobId);
+    };
+    // Guarded, not a blanket clear: switching pins fires deselect(old) and
+    // select(new), and the two can arrive in either order relative to the pin
+    // element's own click handler. Clearing only when the DESELECTED pin is
+    // the one on screen means a pin-to-pin switch can never close the sheet
+    // it just opened, while tapping empty map (which deselects the open pin)
+    // still closes it.
+    const onDeselect = (e: unknown) => {
+      const jobId = (e as { annotation?: MKAnnotation }).annotation?.data?.jobId;
+      if (typeof jobId !== "string") return;
+      setSelectedJobId((cur) => (cur === jobId ? null : cur));
+    };
+    map.addEventListener("select", onSelect);
+    map.addEventListener("deselect", onDeselect);
+    return () => {
+      map.removeEventListener("select", onSelect);
+      map.removeEventListener("deselect", onDeselect);
+    };
+  }, [mapReady]);
+
+  // Escape closes the preview, like every other dismissible surface in the app.
+  useEffect(() => {
+    if (!selectedJob) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        closePreview(true);
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [selectedJob, closePreview]);
+
+  // Focus moves into the sheet ONLY when the pin was activated from the
+  // keyboard (see `openedByKeyboardRef`).
+  const previewCloseRef = useRef<HTMLButtonElement | null>(null);
+  useEffect(() => {
+    if (selectedJob && openedByKeyboardRef.current) previewCloseRef.current?.focus();
+  }, [selectedJob]);
+
+  /**
+   * The live pixel height of the strip the dock + FAB cover, measured rather
+   * than assumed: `MAP_DOCK_CLEARANCE` is a `calc()` over CSS variables
+   * (`--safe-area-bottom`, `--bottom-nav-h`) whose resolved value differs by
+   * surface — 0 + 16 on signed-out `/browse`, ~112 with a dock, more on a
+   * notched phone. A zero-width probe styled to that height is the only way to
+   * read it without duplicating the arithmetic.
+   */
+  const clearanceProbeRef = useRef<HTMLDivElement | null>(null);
+
+  // Re-run it whenever the clustering can have changed. MapKit rebuilds and
+  // re-styles annotation nodes asynchronously (and re-clusters on every camera
+  // move), so a one-shot call after `addAnnotations` is always too early — a
+  // rAF-debounced MutationObserver on the map's own subtree is what actually
+  // catches it. `attributeFilter: ["style"]` both narrows the work to the
+  // property that carries MapKit's signal AND keeps our own `tabindex` /
+  // `aria-hidden` writes from re-triggering the observer.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    let raf = 0;
+    const schedule = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(syncPinFocusability);
+    };
+    schedule();
+    const obs = new MutationObserver(schedule);
+    obs.observe(map.element, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["style"],
+    });
+    map.addEventListener("region-change-end", schedule);
+    return () => {
+      cancelAnimationFrame(raf);
+      obs.disconnect();
+      map.removeEventListener("region-change-end", schedule);
+    };
+  }, [visibleJobs, mapReady, syncPinFocusability]);
+
+  // Frame the pins whenever the visible set changes (FitToPins' old job), with
+  // the dock band excluded so an auto-framed pin is never parked underneath it.
   useEffect(() => {
     const mk = getMapKit();
     const map = mapRef.current;
     if (!mk || !map) return;
-    fitToPins(mk, map, visibleJobs);
+    fitToPins(mk, map, visibleJobs, false, clearanceProbeRef.current?.offsetHeight ?? 0);
   }, [visibleJobs, mapReady]);
 
   // Desktop split-view hover sync: scale the pin whose feed card the pointer
@@ -521,7 +669,10 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
         <div
           className="absolute top-3 left-3 z-[400] max-w-[60%] px-2.5 py-1.5 rounded-ds-md font-sans text-ds-11 leading-snug"
           style={{
-            background: "hsla(0, 0%, 100%, 0.92)",
+            // Tokened, not a literal white — see the same fix on
+            // `RecenterControl`: `--olivewood` inverts in dark mode, so a
+            // hard-coded white ground put near-white text on near-white.
+            background: "hsl(var(--card) / 0.94)",
             color: "hsl(var(--olivewood))",
             border: "0.5px solid hsl(var(--olivewood) / 0.18)",
             boxShadow: "0 4px 14px -4px hsl(var(--olivewood) / 0.18)",
@@ -550,7 +701,7 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
               backgroundColor: "hsl(var(--surface-band) / 0.92)",
               border: "0.5px solid hsl(var(--olivewood) / 0.18)",
               boxShadow:
-                "inset 0 1px 1px 0 rgba(255, 255, 255, 0.6), " +
+                "inset 0 1px 1px 0 hsl(var(--card) / 0.7), " +
                 "0 10px 30px -10px hsl(var(--olivewood) / 0.32)",
               backdropFilter: "blur(8px)",
               WebkitBackdropFilter: "blur(8px)",
@@ -559,10 +710,10 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
             <div
               className="w-14 h-14 rounded-full flex items-center justify-center"
               style={{
-                backgroundColor: "hsla(0, 0%, 100%, 0.55)",
+                backgroundColor: "hsl(var(--card) / 0.6)",
                 border: "1px solid hsl(var(--olivewood) / 0.10)",
                 boxShadow:
-                  "inset 0 1px 1px 0 rgba(255, 255, 255, 0.65), " +
+                  "inset 0 1px 1px 0 hsl(var(--card) / 0.7), " +
                   "0 1px 2px hsl(var(--olivewood) / 0.05), " +
                   "0 6px 14px -4px hsl(var(--olivewood) / 0.10)",
               }}
@@ -652,6 +803,15 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
         <Loader2 className="w-5 h-5 animate-spin" style={{ color: "hsl(var(--bark) / 0.6)" }} />
         </div>
       )}
+      {/* Zero-width probe: renders nothing, exists so the dock clearance can be
+          MEASURED in px (see `clearanceProbeRef`) instead of re-deriving the
+          `calc()` in JS. */}
+      <div
+        ref={clearanceProbeRef}
+        aria-hidden
+        className="absolute left-0 bottom-0 w-0 pointer-events-none"
+        style={{ height: MAP_DOCK_CLEARANCE }}
+      />
       <div
         ref={setContainerEl}
         data-testid="browse-map-surface"
@@ -659,7 +819,133 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
         aria-label="Map of open jobs across Louisiana"
         style={{ height: "100%", width: "100%" }}
       />
-      {mapReady && !mapKitUnusable && <RecenterControl onRecenter={recenter} />}
+      {/* ── Bottom control stack ────────────────────────────────────────────
+          ONE bottom-anchored column owns everything the map floats over its
+          own lower edge, so nothing here can collide with anything else here.
+          Reading up from the floor: the dock clearance (`MAP_DOCK_CLEARANCE`,
+          the map bleeds under the app's dock + FAB), then the preview sheet,
+          then the recenter button — so opening a preview LIFTS the recenter
+          button by exactly the sheet's height rather than letting the two
+          overlap. Previously `RecenterControl` positioned itself absolutely at
+          that same corner with no knowledge of anything else, which is why it
+          crowded the FAB.
+
+          The column itself is `pointer-events-none` so the map stays pannable
+          through the empty space either side of the sheet; only the sheet and
+          the button take pointer events back. */}
+      {!mapKitUnusable && (
+        <div
+          className="absolute left-0 right-0 z-[420] flex flex-col items-stretch gap-2 px-3 pointer-events-none"
+          style={{ bottom: MAP_DOCK_CLEARANCE }}
+        >
+          {mapReady && (
+            <div className="flex justify-end">
+              <RecenterControl onRecenter={recenter} />
+            </div>
+          )}
+          {/* ── Pin preview ──────────────────────────────────────────────────
+              A BOTTOM SHEET, not a callout over the pin (owner, 2026-08-31:
+              "X needs to be arranged better"; the card "floats mid-map
+              covering Cankton/Sunset" and clips a place label).
+
+              WHY A BOTTOM SHEET. The card has to go somewhere that is (a) a
+              fixed, predictable place rather than wherever the tapped pin
+              happens to be, (b) never on top of the pin that opened it, and
+              (c) never on top of the map controls. A bottom sheet anchored
+              above the dock is the conventional map+list answer (Apple Maps,
+              Google Maps) for exactly those reasons, and it is the only
+              placement that also gives the close control a real structural
+              home — a header lane of its own — instead of an overlay laid on
+              the card's price chip. `openPreview` additionally nudges the
+              camera so the tapped pin sits ABOVE centre, in the band the sheet
+              never reaches, so pin and card stay visibly connected.
+
+              The card inside is still the SAME `<JobCard bare>` the feed
+              renders (owner: "its not a shared component its the same page the
+              both use it") — untouched, and NOT edited for this: the close
+              control is the sheet's, not the card's. */}
+          {selectedJob && (
+            <aside
+              // Named with the JOB, not just "Job preview": a keyboard/screen
+              // reader user lands on the close button inside this landmark, and
+              // the complementary landmark's name is what tells them WHICH pin
+              // they just opened. "Job preview" alone would announce the
+              // container and nothing about the content.
+              aria-label={`Job preview: ${selectedJob.title}`}
+              data-testid="browse-map-preview"
+              className="pointer-events-auto w-full max-w-[26rem] mx-auto motion-safe:animate-fade-in overflow-hidden"
+              style={{
+                borderRadius: "1rem",
+                backgroundColor: "hsl(var(--card))",
+                border: "1px solid hsl(var(--border))",
+                boxShadow:
+                  "inset 0 1px 0 0 hsl(var(--card) / 0.9), " +
+                  "0 1px 3px hsl(var(--olivewood) / 0.1), " +
+                  "0 14px 28px -8px hsl(var(--olivewood) / 0.16), " +
+                  "0 32px 64px -16px hsl(var(--olivewood) / 0.2)",
+              }}
+            >
+              {/* Header lane — the close control's OWN place in the sheet's
+                  structure. It is a row, above the card, at the sheet's full
+                  width: it cannot reach the price chip or the title, because
+                  they are not in it. The grab handle centres the lane so the
+                  surface reads as a sheet, and the 44x44 button sits at the
+                  end of the row the way every other dismiss in the app does.
+                  This lane is also why the card's own top-left category tab
+                  and top-right status corner are left alone — the sheet adds
+                  chrome ABOVE the card rather than competing inside it. */}
+              <div className="relative flex items-center justify-end h-11 pl-3 pr-1.5">
+                <span
+                  aria-hidden
+                  className="absolute left-1/2 top-2 -translate-x-1/2 h-1 w-9 rounded-full"
+                  style={{ backgroundColor: "hsl(var(--olivewood) / 0.22)" }}
+                />
+                <button
+                  type="button"
+                  ref={previewCloseRef}
+                  // Return focus to the pin only when the preview was reached
+                  // from the keyboard — a mouse user must not have the map
+                  // scrolled to a focused pin under them, and a keyboard user
+                  // must not be dumped on <body> with the map's whole tab
+                  // sequence to walk again.
+                  onClick={() => closePreview(openedByKeyboardRef.current)}
+                  aria-label="Close job preview"
+                  title="Close job preview"
+                  data-testid="browse-map-preview-close"
+                  // 44x44 — the project tap-target floor. The old control was
+                  // a bare 24x24 glyph with no background and no hit area.
+                  className="w-11 h-11 -mr-0.5 rounded-full flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  style={{ color: "hsl(var(--olivewood) / 0.75)" }}
+                >
+                  {/* Its own filled disc, so the glyph has contrast against
+                      the sheet no matter what the card beneath it renders. */}
+                  <span
+                    aria-hidden
+                    className="w-7 h-7 rounded-full flex items-center justify-center"
+                    style={{
+                      backgroundColor: "hsl(var(--olivewood) / 0.08)",
+                      border: "0.5px solid hsl(var(--olivewood) / 0.16)",
+                    }}
+                  >
+                    <X className="w-4 h-4" strokeWidth={2.5} />
+                  </span>
+                </button>
+              </div>
+              <div className="px-2 pb-2">
+                <JobCard
+                  job={mapJobToEnrichedJob(selectedJob)}
+                  effectiveFee={effectiveFee ?? 0}
+                  onSelect={() => onJobAction?.(selectedJob.id)}
+                  onApply={() => onJobAction?.(selectedJob.id)}
+                  onReport={() => { /* no report surface on the map pin preview */ }}
+                  guestPricing={effectiveFee === undefined}
+                  bare
+                />
+              </div>
+            </aside>
+          )}
+        </div>
+      )}
     </div>
   );
 }

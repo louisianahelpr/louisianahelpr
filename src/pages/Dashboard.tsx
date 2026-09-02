@@ -125,8 +125,12 @@ const Dashboard = () => {
     const boostCancelled = searchParams.get("boost_cancelled");
     if (!boosted && !boostCancelled) return;
     if (boosted) {
+      // `?boosted` IS the job id, so send the tap to that job rather than to
+      // My Posts' default "Needs you" bucket — a freshly-boosted open post
+      // with nobody on it yet buckets to `waiting`, so a bare /my-posts landed
+      // on an empty list.
       toast.success("Your job is boosted — it's at the top of the feed for the next 24 hours.", {
-        action: { label: "View", onClick: () => navigate("/my-posts") },
+        action: { label: "View", onClick: () => navigate(`/my-posts?job=${boosted}`) },
       });
     } else {
       toast.error("Boost cancelled — your job is still posted, just not boosted.");
@@ -209,15 +213,16 @@ const Dashboard = () => {
   // corresponding map pin. null = no card hovered.
   const [hoveredJobId, setHoveredJobId] = useState<string | null>(null);
 
-  // Pay It Forward — count of available credits in the user's parish.
-  // Shown as a teaser banner above the community teaser when > 0.
-  // PGRST202-safe: table may not be on prod yet between merge + db push.
-  const userParish = profile?.parish ?? null;
-
+  // Gift cards — count of funded, unspent gift cards addressed to THIS user.
+  // Shown as a teaser banner above the community teaser when > 0. The email
+  // is needed as well as the id: a gift is named to an address and only gains
+  // a `recipient_id` once claimed, so an unclaimed one is invisible by id.
+  // (This was keyed off the user's parish, which matched nothing — see the
+  // query's comment in useDashboardSideQueries.)
   const {
     pifCount,
     savedJobIds, setSavedJobIds, dismissedJobIds, setDismissedJobIds,
-  } = useDashboardSideQueries({ userId: user?.id, userParish, allJobs });
+  } = useDashboardSideQueries({ userId: user?.id, userEmail: user?.email, allJobs });
 
   // Profile-completion is no longer nudged on the home feed — the full
   // "Finish your profile" card pushed the job feed below the fold. The
@@ -635,6 +640,14 @@ const Dashboard = () => {
                         currentUserId={user?.id}
                         filters={filters.mapFilter}
                         onClearFilters={filters.clearFilters}
+                        // MUST match the feed column beside it. Without this
+                        // prop BrowseMap falls back to guest pricing and the
+                        // pin preview prints the GROSS budget, so on this exact
+                        // screen "Pressure wash a house exterior" read $368 in
+                        // the list and $400 on the map, side by side, for the
+                        // same job (caught 2026-08-31 at 1440). Same value the
+                        // list's JobCards use — one number per job, everywhere.
+                        effectiveFee={effectiveFee}
                       />
                     </Suspense>
                   </div>

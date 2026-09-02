@@ -1,6 +1,6 @@
 import { test, expect, FAKE_HELPER, installSupabaseMocks, mockTable, mockRpc } from "./fixtures";
 
-// APPLYING HAPPENS ON ONE SURFACE, ANCHORED TO ONE EDGE.
+// APPLYING HAPPENS ON ONE SURFACE, ANCHORED TO ONE PLACE.
 //
 // Owner, 2026-08-28: "I don't like how one opens at the bottom then the next is
 // in the middle." Tapping Apply used to close the job-detail bottom sheet and
@@ -13,7 +13,10 @@ import { test, expect, FAKE_HELPER, installSupabaseMocks, mockTable, mockRpc } f
 // diff would miss:
 //
 //   1. No second dialog is created — the same element stays mounted.
-//   2. The surface never leaves the bottom edge.
+//   2. The surface never moves between steps — same anchor, both steps.
+//      (It anchors near the TOP, at 7vh: owner, 2026-08-31, "why is it pinned
+//      to the bottom? this is not correct." The property this spec pins is
+//      that the anchor does not CHANGE mid-act, not which edge it is.)
 //   3. Back returns to the job, rather than out of the sheet entirely.
 
 const BASE_JOB = {
@@ -57,7 +60,7 @@ const POSTER_PROFILE = {
   subscription_expires_at: null,
 };
 
-test("applying stays on ONE bottom-anchored sheet", async ({ helperPage: page }) => {
+test("applying stays on ONE top-anchored sheet", async ({ helperPage: page }) => {
   await installSupabaseMocks(page, {
     user: FAKE_HELPER,
     rules: [
@@ -95,9 +98,9 @@ test("applying stays on ONE bottom-anchored sheet", async ({ helperPage: page })
     return { top: +r.top.toFixed(1), bottom: +r.bottom.toFixed(1), vh: window.innerHeight };
   });
 
-  // DETAIL STEP — the sheet is anchored to the bottom edge.
+  // DETAIL STEP — the sheet is anchored near the top, at 7vh.
   const detailRect = await rectOf();
-  expect(detailRect.bottom).toBeCloseTo(detailRect.vh, 0);
+  expect(detailRect.top).toBeCloseTo(detailRect.vh * 0.07, 0);
   // The apply step's own back button is not on screen yet.
   await expect(sheet.getByRole("button", { name: /^back$/i })).toHaveCount(0);
 
@@ -110,11 +113,12 @@ test("applying stays on ONE bottom-anchored sheet", async ({ helperPage: page })
   //    of this one, not a modal stacked over it.
   expect(await page.locator('[role="dialog"],[role="alertdialog"]').count()).toBe(1);
 
-  // 2. STILL ANCHORED TO THE BOTTOM. This is the regression that started it:
-  //    the replaced AlertDialog was vertically centred, so its bottom sat
-  //    hundreds of pixels above the viewport floor.
+  // 2. THE ANCHOR DID NOT MOVE. This is the regression that started it: the
+  //    replaced AlertDialog had its own anchor, so stepping forward made the
+  //    surface jump. The box may GROW downward as the apply form appears —
+  //    what must not change is where its top edge sits.
   const applyRect = await rectOf();
-  expect(applyRect.bottom).toBeCloseTo(applyRect.vh, 0);
+  expect(applyRect.top).toBeCloseTo(detailRect.top, 0);
 
   // 3. The apply step really is showing. Dashboard passes hideEarnings=true
   //    (earnings are already visible in the detail step above), so we verify

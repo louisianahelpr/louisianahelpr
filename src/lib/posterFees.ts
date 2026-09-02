@@ -3,8 +3,8 @@
 // `create-payment` edge function will charge.
 //
 // The poster's own subscription tier sets the service-fee percentage, using the
-// SAME 12 / 10 / 8 / 6 ladder the helper commission uses (a Business account
-// pays 6% on both sides) — sourced from `TIER_PERKS` in `subscriptionTiers.ts`.
+// SAME 12 / 11 / 10 / 8 ladder the helper commission uses — one user, one tier,
+// one percent — sourced from `TIER_PERKS` in `subscriptionTiers.ts`.
 // The collected fee is floored at Stripe's real processing cost on the whole
 // transaction so a tiny job can never lose the platform money to fees.
 //
@@ -12,25 +12,27 @@
 // `supabase/functions/_shared/posterFees.ts`. `posterFees.parity.test.ts` fails
 // the build if this client mirror and that edge authority ever diverge.
 
-import { TIER_PERKS, toSubscriptionTier } from "./subscriptionTiers";
+import { tierFeePercent } from "./subscriptionTiers";
 import { STRIPE_FLAT_CENTS, STRIPE_PCT, stripeProcessingCostCents } from "./stripeFees";
 
 /**
  * Resolve the poster's service-fee percent from their raw `subscription_tier`
  * and `subscription_expires_at`. An expired paid tier reverts to the free rate,
  * mirroring the edge authority so the shown fee matches the charged fee.
+ *
+ * PRODUCT RULE: one user, one tier, one percent — posting and helping must
+ * resolve the SAME number for the same person. On the client that one resolver
+ * is `tierFeePercent` (which the helper-side earnings surfaces already call),
+ * so this is an alias rather than a third copy of "lowercase, then check
+ * expiry, then index the ladder". Each extra copy of that input handling is a
+ * place the two roles can diverge without the fee TABLE ever drifting — which
+ * is precisely how a role split would slip past the table-level parity tests.
  */
 export function posterFeePercentForTier(
   rawTier: string | null | undefined,
   expiresAt?: string | null,
 ): number {
-  const expired = expiresAt ? new Date(expiresAt).getTime() < Date.now() : false;
-  // Normalize case before resolving so "PRO" matches "pro". The edge authority
-  // (`_shared/helperFees.ts` `feePercentForTier`) lowercases its input, but the
-  // client `toSubscriptionTier` exact-matches — without this the two runtimes
-  // diverge on a mixed-case tier string and `posterFees.parity.test.ts` fails.
-  const normalized = (rawTier ?? "").toLowerCase();
-  return TIER_PERKS[toSubscriptionTier(expired ? "free" : normalized)].platformFeePercent;
+  return tierFeePercent(rawTier, expiresAt);
 }
 
 /**
@@ -40,7 +42,7 @@ export function posterFeePercentForTier(
  * edge authority.
  *
  * @param budgetCents        job budget in cents
- * @param feePercent         the poster's resolved tier fee percent (12/10/8/6)
+ * @param feePercent         the poster's resolved tier fee percent (12/11/10/8)
  * @param otherChargeCents   sum of every OTHER charged line item, in cents
  */
 export function posterServiceFeeCents(

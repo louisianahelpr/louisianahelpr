@@ -14,7 +14,7 @@ import {
 import { stripeProcessingCostCents } from "./stripeFees";
 
 describe("poster-fee tier ladder + Stripe floor parity (UI ↔ edge)", () => {
-  const tiers = ["free", "basic", "pro", "elite", "business", "PRO", null, undefined, "nonsense"];
+  const tiers = ["free", "basic", "pro", "elite", "PRO", null, undefined, "business", "nonsense"];
 
   it("resolves the same fee percent for every tier on both runtimes", () => {
     for (const tier of tiers) {
@@ -22,12 +22,20 @@ describe("poster-fee tier ladder + Stripe floor parity (UI ↔ edge)", () => {
     }
   });
 
-  it("encodes the agreed 12 / 11 / 10 / 8 / 6 ladder from the free/paid tiers", () => {
+  it("encodes the agreed 12 / 11 / 10 / 8 ladder from the free/paid tiers", () => {
     expect(uiPosterFeePercentForTier("free")).toBe(12);
     expect(uiPosterFeePercentForTier("basic")).toBe(11);
     expect(uiPosterFeePercentForTier("pro")).toBe(10);
     expect(uiPosterFeePercentForTier("elite")).toBe(8);
-    expect(uiPosterFeePercentForTier("business")).toBe(6);
+  });
+
+  it("charges a legacy 'business' the FREE rate on both runtimes, not 6%", () => {
+    // The `business` tier was retired on 2026-09-01 — nothing could sell or
+    // store it and the prod census was zero rows. A stale string must fall
+    // through to the never-under-charge default on the poster side too, so the
+    // two roles cannot disagree about what it costs.
+    expect(uiPosterFeePercentForTier("business")).toBe(12);
+    expect(edgePosterFeePercentForTier("business")).toBe(12);
   });
 
   it("reverts an EXPIRED paid tier to the free rate on both runtimes", () => {
@@ -42,7 +50,7 @@ describe("poster-fee tier ladder + Stripe floor parity (UI ↔ edge)", () => {
 
   it("computes the same service fee (with floor) for a grid of budgets/tiers/extras", () => {
     const budgets = [1000, 2500, 5000, 10_000, 25_000, 100]; // cents; incl. a sub-floor tiny value
-    const percents = [12, 11, 10, 8, 6];
+    const percents = [12, 11, 10, 8];
     const extras = [0, 500, 700];
     for (const b of budgets) {
       for (const p of percents) {
@@ -54,10 +62,10 @@ describe("poster-fee tier ladder + Stripe floor parity (UI ↔ edge)", () => {
   });
 
   it("floors the fee at Stripe's processing cost so a tiny job can't lose money", () => {
-    // $1 job at 6% → tier fee = 6¢, but Stripe costs ~33¢: the floor must win.
-    const fee = uiPosterServiceFeeCents(100, 6, 0);
-    expect(fee).toBeGreaterThan(6);
-    expect(fee).toBe(edgePosterServiceFeeCents(100, 6, 0));
+    // $1 job at 8% → tier fee = 8¢, but Stripe costs ~33¢: the floor must win.
+    const fee = uiPosterServiceFeeCents(100, 8, 0);
+    expect(fee).toBeGreaterThan(8);
+    expect(fee).toBe(edgePosterServiceFeeCents(100, 8, 0));
   });
 
   it("uses the raw tier percentage when it already exceeds the Stripe floor", () => {
@@ -73,7 +81,7 @@ describe("poster-fee tier ladder + Stripe floor parity (UI ↔ edge)", () => {
     // was meant to protect us. Sweep the small-budget/high-extra region where
     // the floor binds and assert the invariant holds on BOTH runtimes.
     for (const b of [100, 500, 1000, 1500, 5000]) {
-      for (const p of [12, 11, 10, 8, 6]) {
+      for (const p of [12, 11, 10, 8]) {
         for (const e of [0, 200, 500, 900]) {
           const fee = uiPosterServiceFeeCents(b, p, e);
           expect(fee).toBe(edgePosterServiceFeeCents(b, p, e));

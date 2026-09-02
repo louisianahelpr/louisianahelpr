@@ -1,13 +1,12 @@
+import * as React from 'npm:react@18.3.1'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsHeadersFull as corsHeaders } from '../_shared/cors.ts'
-import { htmlEscape, sanitizeSameOriginLink, timingSafeEqual } from '../_shared/safe-strings.ts'
-import { brand } from '../_shared/email-templates/styles.ts'
-
-const SITE_NAME = "Helpr"
-const SENDER_DOMAIN = "louisianahelpr.com"
-const ROOT_DOMAIN = "louisianahelpr.com"
-const SITE_URL = `https://${ROOT_DOMAIN}`
-const FROM_NAME = "The Helpr Team"
+import { sanitizeSameOriginLink, timingSafeEqual } from '../_shared/safe-strings.ts'
+import { FROM_DEFAULT, sendWithResend } from '../_shared/resend.ts'
+import { buildUnsubscribeUrl, unsubscribeHeaders } from '../_shared/unsubscribe.ts'
+import { NotificationEmail } from '../_shared/email-templates/notification.tsx'
+import { renderEmail } from '../_shared/email-templates/render.ts'
+import { getAppUrl } from '../_shared/appUrl.ts'
 
 // Map notification "type" values to (a) the email pref column and (b) the
 // log category used for admin observability.
@@ -30,69 +29,57 @@ const TYPE_MAP: Record<string, { prefCol: string; category: string }> = {
   promotion:         { prefCol: 'email_promotions',       category: 'promotions' },
 }
 
-// Send directly through the Resend API.
-async function sendWithResend(apiKey: string, params: { to: string; from: string; subject: string; html: string; text: string }) {
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${apiKey}`,
-  }
-
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      from: params.from,
-      to: [params.to],
-      subject: params.subject,
-      html: params.html,
-      text: params.text,
-    }),
-  })
-
-  if (!res.ok) {
-    const body = await res.text()
-    throw new Error(`Resend API error [${res.status}]: ${body}`)
-  }
-
-  return await res.json()
+/**
+ * `lexilombas05@gmail.com` -> `lexi…@gmail.com`.
+ *
+ * The caller (create-notification, and through it the "Send a Test" button)
+ * needs to tell the user WHICH inbox to check — "Sent a test email to
+ * lexi…@gmail.com" is actionable where a bare "Sent" is not. Masked rather
+ * than verbatim because this string travels back out through an edge-function
+ * response body that an admin caller can request for another user.
+ */
+function maskEmail(email: string): string {
+  const at = email.lastIndexOf('@')
+  if (at <= 0) return '…'
+  const local = email.slice(0, at)
+  const domain = email.slice(at)
+  return `${local.slice(0, Math.min(4, local.length))}…${domain}`
 }
 
-function renderNotificationEmail(title: string, message: string, link: string | null, userName: string): { html: string; text: string } {
-  // HTML-escape every interpolated value. The plaintext title/message/userName
-  // come from upstream callers (notification triggers, edge functions) but a
-  // compromised RPC, a future caller-bug, or a stored-XSS via DB row could
-  // smuggle markup; escaping at the render boundary makes that a non-issue.
-  // The URL is built from SITE_URL + a server-relative link path that the
-  // caller has already sanitized (sanitizeSameOriginLink) — escaped here as
-  // defense-in-depth.
-  const safeTitle = htmlEscape(title)
-  const safeMessage = htmlEscape(message)
-  const safeUser = htmlEscape(userName || 'there')
-  const actionUrl = link ? `${SITE_URL}${link}` : SITE_URL
-  const safeActionUrl = htmlEscape(actionUrl)
-  const safeFromName = htmlEscape(FROM_NAME)
-  const safeRootDomain = htmlEscape(ROOT_DOMAIN)
+/**
+ * Render the notification email.
+ *
+ * Both parts come from ONE react-email component: `renderEmail` produces the
+ * HTML and asks react-email for the plaintext twin, so the two can never
+ * drift, and every interpolated value is escaped by React rather than by a
+ * hand-applied htmlEscape() call.
+ *
+ * `link` is a server-relative path the caller has already run through
+ * sanitizeSameOriginLink.
+ */
+async function renderNotificationEmail(
+  title: string,
+  message: string,
+  link: string | null,
+  userName: string,
+  unsubscribeUrl?: string,
+): Promise<{ html: string; text: string }> {
+  const siteUrl = getAppUrl()
+  const actionUrl = link ? `${siteUrl}${link}` : siteUrl
+  // The one link a recipient actually wants when this email is unwelcome.
+  const prefsUrl = `${siteUrl}/profile?tab=notifications`
 
-  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="background-color:${brand.parchment};font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif;margin:0;padding:24px">
-<div style="max-width:480px;margin:0 auto;background:${brand.surface};border-radius:14px;padding:32px 28px;border:1px solid ${brand.hairline}">
-  <img src="https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/brand-asset" alt="Helpr" width="80" style="display:block;width:150px;max-width:150px;height:auto;border:0;outline:none;text-decoration:none;margin:0 0 24px;" />
-  <h1 style="font-size:20px;font-weight:bold;color:${brand.inkDeep};margin:0 0 12px">${safeTitle}</h1>
-  <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 8px">Hey ${safeUser},</p>
-  <p style="font-size:15px;color:${brand.bodyOlive};line-height:1.6;margin:0 0 20px">${safeMessage}</p>
-  <a href="${safeActionUrl}" style="display:inline-block;background-color:${brand.bark};color:${brand.surface};font-size:15px;border-radius:12px;padding:14px 28px;text-decoration:none;font-weight:600">
-    View Details
-  </a>
-  <p style="font-size:14px;color:${brand.olivewood};margin:28px 0 4px">— ${safeFromName}</p>
-  <p style="font-size:12px;color:${brand.footerOlive};margin:24px 0 0;padding:16px 0 0;border-top:1px solid ${brand.hairline}">
-    You're receiving this because you enabled email notifications on ${safeRootDomain}. Manage your preferences in your profile settings.
-  </p>
-</div></body></html>`
-
-  // Text body uses raw (unescaped) values — text/plain doesn't interpret HTML
-  // and the only mutator is the caller, who validated lengths already.
-  const text = `${title}\n\nHey ${userName || 'there'},\n\n${message}\n\nView details: ${actionUrl}\n\n— ${FROM_NAME}\nManage notifications: ${SITE_URL}/profile`
-  return { html, text }
+  return await renderEmail(
+    React.createElement(NotificationEmail, {
+      title,
+      message,
+      actionUrl,
+      userName,
+      prefsUrl,
+      host: siteUrl.replace(/^https?:\/\//, ''),
+      ...(unsubscribeUrl ? { unsubscribeUrl } : {}),
+    }),
+  )
 }
 
 Deno.serve(async (req) => {
@@ -164,9 +151,13 @@ Deno.serve(async (req) => {
 
     if (!prefs || !(prefs as any)[prefColumn]) {
       await logSkip('skipped', 'preference_off')
-      return new Response(JSON.stringify({ skipped: true, reason: 'email_disabled' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      // `pref_column` / `category` travel back so the caller can name the exact
+      // switch the user has to flip. "Email is off for Work Status" is a fix
+      // the user can act on; "email_disabled" is not.
+      return new Response(
+        JSON.stringify({ skipped: true, reason: 'email_disabled', pref_column: prefColumn, category }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
     }
 
     const { data: profile } = await supabase
@@ -202,22 +193,45 @@ Deno.serve(async (req) => {
 
     if (suppressed) {
       await logSkip('suppressed', 'on_suppression_list')
-      return new Response(JSON.stringify({ skipped: true, reason: 'suppressed' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      return new Response(
+        JSON.stringify({ skipped: true, reason: 'suppressed', to: maskEmail(profile.email) }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
     }
 
-    const { html, text } = renderNotificationEmail(title, message, safeLink, profile.full_name || '')
+    // `promotion` is the one COMMERCIAL entry in TYPE_MAP. Every other
+    // notification type is transactional — a job update, a payment, a message
+    // — and must never carry an unsubscribe control, because a mail client
+    // will happily use one to opt a user out of their own account notices.
+    //
+    // A promotion, on the other hand, is commercial mail and needs the same
+    // treatment as a campaign: the marketing footer with a signed one-click
+    // link, and the List-Unsubscribe headers. Nothing in the repo creates a
+    // `promotion` notification today, so this is a hole being closed before
+    // it is used rather than a live defect.
+    const isCommercial = category === 'promotions'
+    const unsubscribeUrl = isCommercial
+      ? ((await buildUnsubscribeUrl(profile.email)) ?? undefined)
+      : undefined
+
+    const { html, text } = await renderNotificationEmail(
+      title,
+      message,
+      safeLink,
+      profile.full_name || '',
+      unsubscribeUrl,
+    )
     const messageId = crypto.randomUUID()
 
     const emailPayload = {
       to: profile.email,
-      from: `${FROM_NAME} <noreply@${SENDER_DOMAIN}>`,
+      from: FROM_DEFAULT,
       subject: title,
       html,
       text,
       message_id: messageId,
       template_name: `notification_${category}`,
+      ...(isCommercial ? { headers: await unsubscribeHeaders(profile.email) } : {}),
     }
 
     await supabase.from('email_send_log').insert({
@@ -235,6 +249,15 @@ Deno.serve(async (req) => {
       })
     }
 
+    // How the mail actually left (or didn't). The old code returned a blanket
+    // `{ success: true }` from BOTH the happy path and the catch below where
+    // the queue AND the direct Resend send had both failed — so a caller (and
+    // the "Send a Test" button behind it) was told the email was on its way
+    // when recordLog had just written status='failed'. The outcome now travels
+    // in the response body.
+    let delivery: 'queued' | 'direct' | null = null
+    let deliveryError: string | null = null
+
     try {
       // supabase-js `.rpc()` RESOLVES with { data, error } — it does not throw on a
       // Postgres-side failure. Without this destructure a missing queue / PGRST202 /
@@ -247,6 +270,7 @@ Deno.serve(async (req) => {
       })
       if (enqueueError) throw new Error(`enqueue_email failed: ${enqueueError.message}`)
       await recordLog('sent')
+      delivery = 'queued'
       console.log(`Notification email enqueued for ${profile.email}: ${title}`)
     } catch (enqueueErr) {
       const errMsg = enqueueErr instanceof Error ? enqueueErr.message : String(enqueueErr)
@@ -255,13 +279,19 @@ Deno.serve(async (req) => {
       try {
         await sendWithResend(resendApiKey, {
           to: profile.email,
-          from: `${FROM_NAME} <noreply@${SENDER_DOMAIN}>`,
+          from: FROM_DEFAULT,
           subject: title,
           html,
           text,
+          // Same headers the queued path would have carried. Without this the
+          // fallback would ship a commercial promotion with the footer link
+          // but no native unsubscribe control — the two paths must not differ
+          // in what the recipient can do about the mail.
+          ...(isCommercial ? { headers: await unsubscribeHeaders(profile.email) } : {}),
         })
         await supabase.from('email_send_log').update({ status: 'sent' }).eq('message_id', messageId)
         await recordLog('sent', 'fallback_direct')
+        delivery = 'direct'
         console.log(`Notification email sent directly to ${profile.email}: ${title}`)
       } catch (sendErr) {
         const sendErrMsg = sendErr instanceof Error ? sendErr.message : String(sendErr)
@@ -271,12 +301,27 @@ Deno.serve(async (req) => {
           error_message: sendErrMsg,
         }).eq('message_id', messageId)
         await recordLog('failed', sendErrMsg)
+        deliveryError = sendErrMsg
       }
     }
 
-    return new Response(JSON.stringify({ success: true }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    if (delivery === null) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          reason: 'send_failed',
+          error: deliveryError ?? 'Email delivery failed',
+          to: maskEmail(profile.email),
+          message_id: messageId,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
+
+    return new Response(
+      JSON.stringify({ success: true, delivery, to: maskEmail(profile.email), message_id: messageId }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    )
   } catch (err) {
     console.error('Error:', err)
     return new Response(JSON.stringify({ error: 'Internal server error' }), {

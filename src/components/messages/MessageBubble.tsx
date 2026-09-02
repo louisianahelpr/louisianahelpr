@@ -150,7 +150,7 @@ export function MessageBubble({
     >
       <div
         {...pressHandlers}
-        className={`max-w-[75%] rounded-[18px] px-4 py-2.5 text-ds-13 group relative space-y-2 transition-opacity ${
+        className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-ds-13 group relative space-y-2 transition-opacity ${
           mine ? "rounded-br-md" : "rounded-bl-md"
         } ${isSending ? "opacity-60" : ""}`}
         style={mine ? {

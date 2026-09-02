@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { report } from "@/lib/errorLogger";
 import { logAdminAction } from "@/lib/adminAudit";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 
@@ -59,7 +60,7 @@ const ExceptionQueueInner = () => {
   const [resolveTarget, setResolveTarget] = useState<ExceptionRow | null>(null);
   const [resolution, setResolution] = useState("");
 
-  const { data: rows, isInitialLoading } = useInstantQuery<ExceptionRow[]>({
+  const { data: rows, isInitialLoading, isError, refetch } = useInstantQuery<ExceptionRow[]>({
     key: queryKey,
     fallback: [],
     fetcher: async () => {
@@ -85,8 +86,13 @@ const ExceptionQueueInner = () => {
         if ((error as any).code === "PGRST202" || error.message?.includes("does not exist")) {
           return [];
         }
-        toast.error(error.message);
-        return [];
+        // THROW, don't `return []`. A toast is transient; the list it leaves
+        // behind reads "No open exceptions — Nothing is waiting on a decision
+        // right now" forever, which is the opposite of the truth on a
+        // COMPLIANCE queue. Throwing flips isError so the surface says so.
+        // (The PGRST202 branch above stays a legitimate empty: the table
+        // genuinely does not exist yet during a deploy-lag window.)
+        throw error;
       }
 
       const baseRows = (data ?? []) as any[];
@@ -233,7 +239,15 @@ const ExceptionQueueInner = () => {
           ) : undefined
         }
       >
-      {rows.length === 0 ? (
+      {isError ? (
+        <ErrorState
+          surfaceStyle={NESTED_EMPTY_SURFACE}
+          variant="inline"
+          title="We couldn't load the exception queue."
+          body="Tap Try again. Nothing has been decided or lost — this list is read straight from verification_exceptions."
+          onRetry={() => refetch()}
+        />
+      ) : rows.length === 0 ? (
         <EmptyState
           surfaceStyle={NESTED_EMPTY_SURFACE}
           variant="inline"

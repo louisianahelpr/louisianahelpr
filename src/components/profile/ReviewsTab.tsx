@@ -246,7 +246,7 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
                       type="button"
                       onClick={() => setSortBy(opt.value)}
                       className={`w-full flex items-center gap-2 px-2.5 h-9 rounded-md text-ds-13 font-sans font-medium transition-colors ${
-                        active ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-secondary/70"
+                        active ? "btn-grad-primary text-[hsl(var(--parchment))]" : "text-foreground hover:bg-secondary/70"
                       }`}
                     >
                       <OptIcon className="w-3.5 h-3.5" />

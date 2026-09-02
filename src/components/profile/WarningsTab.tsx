@@ -23,12 +23,39 @@ interface WarningsTabProps {
 //   1st strike — written warning on your account
 //   2nd strike — final warning
 //   3rd strike — 7-day account restriction while an admin reviews it
+import { CANCELLATION_LADDER_RUNGS } from "@/lib/reliabilityLadder";
+
 const STRIKE_LABELS = ["Written warning", "Final warning", "7-day restriction"] as const;
 
 export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
   const strikeCount = violations.filter((v) => v.action_taken === "warning" || v.action_taken === "final_warning").length;
   const hasBan = violations.some((v) => v.action_taken === "permanent_ban");
-  const hasSuspension = violations.some((v) => v.action_taken === "suspension" || v.action_taken === "temporary_ban");
+  // `temp_ban` is the value that is ACTUALLY written — BanDialog.tsx:175 —
+  // and it is what the admin console reads (adminusers/OverviewTab.tsx:106).
+  // This checked only "suspension" and "temporary_ban", neither of which any
+  // code path in the repo ever writes, so a user WITH a live temp ban saw
+  // "Strike 1 of 3 — a written warning" while the list directly beneath
+  // showed their TEMP BAN. The two older spellings are kept so a legacy row
+  // still resolves, but `temp_ban` is the one that matters.
+  // `pending_ban_review` is the rung ALL FOUR ladders now write at the top —
+  // cancellation, job-denial, off-platform messaging, and (since
+  // 20260831183302) no-show. apply_consequence_ladder converts effect
+  // 'permanent' into 'review' when p_permanent_requires_review is set, and
+  // every wrapper sets it: the account is restricted for 7 days while an admin
+  // decides, never banned automatically.
+  //
+  // This list did not know that value, so a user sitting on a live 7-day
+  // restriction with a ban decision pending read "Strike 2 of 3 — a final
+  // warning" on the one screen that explains what is happening to their
+  // account. Same defect as a job status falling through every branch, on a
+  // trust surface where being wrong is worse.
+  const hasSuspension = violations.some(
+    (v) =>
+      v.action_taken === "temp_ban" ||
+      v.action_taken === "pending_ban_review" ||
+      v.action_taken === "suspension" ||
+      v.action_taken === "temporary_ban",
+  );
   // Where the account sits on the 3-strike ladder: 1st/2nd strike map
   // directly to the "warning"/"final_warning" action_taken rows above; the
   // 3rd strike is the suspension/temporary_ban consequence (a 7-day
@@ -126,12 +153,21 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
               );
             };
             if (hasBan) return renderHero(Shield, "destructive", "Account banned", "Permanently banned due to policy violations.", true);
-            if (hasSuspension) return renderHero(AlertTriangle, "orange", "Suspended", "3rd strike: your account is restricted for 7 days while an admin reviews it.", true);
+            // The rung sentences come from CANCELLATION_LADDER_RUNGS, not from
+            // here. Three surfaces used to hand-type this ladder and all three
+            // were TRUE — which is exactly why it needed a constant rather than
+            // a correction. They were true last time too, and then the RPC moved
+            // and "five strikes is a ban" shipped in front of users for weeks.
+            //
+            // `where` is the rung the account is ON; `next` is what the one
+            // after it costs, which is the part that changes behaviour.
+            const rung = (i: number) => CANCELLATION_LADDER_RUNGS[i]?.replace(/^\S+\s+—\s+/, "") ?? "";
+            if (hasSuspension) return renderHero(AlertTriangle, "orange", "Suspended", `3rd strike: ${rung(2)}.`, true);
             if (strikeCount > 0) return renderHero(
               AlertTriangle, "amber", `Strike ${strikeCount} of 3`,
               strikeCount === 1
-                ? "1st strike: a written warning on your account. A 2nd strike is a final warning."
-                : "2nd strike: final warning. A 3rd strike restricts your account for 7 days.",
+                ? `1st strike: ${rung(0)}. A 2nd strike is a ${rung(1)}.`
+                : `2nd strike: ${rung(1)}. A 3rd strike means ${rung(2)}.`,
               true,
             );
             return renderHero(CheckCircle2, "primary", "Good standing", "No warnings or violations on record. Keep it up.", true);

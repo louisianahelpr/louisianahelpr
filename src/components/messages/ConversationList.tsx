@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
 import { defaultInboxTab } from "@/lib/inboxDefault";
-import { CheckSquare, Menu, MessageSquare, Pin, RotateCcw, Search, Trash2, X } from "lucide-react";
+import { CheckSquare, ChevronDown, Menu, MessageSquare, Pin, RotateCcw, Search, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { hapticLight } from "@/lib/haptics";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
@@ -20,6 +20,7 @@ import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllus
 import { ErrorState } from "@/components/ui/ErrorState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { UnderlineTabs } from "@/components/ui/UnderlineTabs";
+import { ScreenHeaderRow } from "@/components/ui/ScreenHeaderRow";
 // Card-matching skeleton — mirrors the actual ConversationRow shape
 // (avatar + name/job/last-msg lines + timestamp + unread dot) so the
 // loading→loaded swap doesn't shift the row. See task #121.
@@ -107,6 +108,46 @@ function byLastAtDesc(a: Conversation, b: Conversation): number {
 const MESSAGES_HEADER_PADDING = "!py-1.5 lg:!py-2";
 
 /**
+ * The tab this inbox calls "unfiltered", read from the same function the
+ * default-tab effect below seeds its state with — so the disclosure and the
+ * seeding rule can never disagree about what "unfiltered" means. Mirrors
+ * ActivityHeader's DEFAULT_STATUS_FILTER for exactly the same reason.
+ *
+ * The argument is the unread count; `defaultInboxTab` ignores it and always
+ * answers "all" (owner, 2026-08-30 — see lib/inboxDefault.ts), so 0 is a
+ * truthful stand-in for "whatever the rule says with nothing unread".
+ */
+const DEFAULT_INBOX_TAB = defaultInboxTab(0);
+
+/**
+ * The id the disclosure's `aria-controls` points at.
+ *
+ * Exactly ONE of the two tab placements renders at a time (the inline desktop
+ * one under `embedded`, the phone row under `!embedded`), so a single id stays
+ * unique and the attribute resolves on whichever surface is live. Activity hit
+ * the opposite of this: its desktop chevron pointed at an id that only existed
+ * in the phone branch, which axe flags `aria-valid-attr-value` critical.
+ */
+const INBOX_TABS_ID = "messages-inbox-tabs";
+
+/**
+ * The header row's icon buttons — search, the tab disclosure, the overflow
+ * menu — as ONE class, copied verbatim from ActivityHeader's non-inline
+ * buttons.
+ *
+ * Cross-screen: My Posts / My Jobs put the same search + chevron pair in the
+ * same corner of the same card, and two identical clusters in two different
+ * inks is the kind of difference a reader feels without being able to name it.
+ * Within the row: the chevron must not be a different weight of grey from the
+ * magnifier eight pixels away.
+ *
+ * `h-11` is 44px, the HIG target index.css already floors every button at.
+ */
+const HEADER_ICON_BUTTON_CLASS =
+  "rounded-ds-md flex items-center justify-center btn-press transition " +
+  "text-muted-foreground hover:text-foreground hover:bg-secondary/60 h-11 w-11";
+
+/**
  * ConversationList — the inbox surface of the Messages page: the
  * Messages title card, the "All threads" header, and the pull-to-
  * refresh, virtualized list of conversation rows (avatar, unread
@@ -152,6 +193,37 @@ export function ConversationList({
      `null` means "not chosen yet" so the effect below can seed it as soon as
      the first page of threads lands. */
   const [inboxFilter, setInboxFilter] = useState<string | null>(null);
+  /* ── The tab row's disclosure ──────────────────────────────────────────
+     Messages opens COLLAPSED, exactly like My Posts / My Jobs (owner, from a
+     device: "Messages should also be collapsed when opened, add that"). It was
+     the only one of the three that opened with its filter row already down,
+     which made this title card 122px against their 62px — measured at 320 /
+     375 / 393 / 768 before the change.
+
+     Deliberately the SAME shape as ActivityHeader's `tabsOpenPhone`, not a new
+     invention: a plain component-local `useState`, so the state is per-visit
+     and never persisted, and a chevron that only rotates (no height tween) —
+     if the two screens remembered their disclosure differently, "the same
+     control" would be a lie the second time you opened one.
+
+     It starts open only when a NON-default filter is active. Collapsing a
+     screen that is silently showing you a subset (the hamburger's Pinned /
+     Recently Deleted views land here) would leave the reader looking at two of
+     their six threads with nothing on screen saying why. The disclosure hides
+     a control, never an active filter — ActivityHeader's rule, verbatim.
+
+     `embedded` (the desktop website's list+thread split) has no disclosure at
+     all: the tabs ride inline beside the screen name there, where there is
+     room for them, which is what `inlineFilters` does on Activity. */
+  const isDefaultInboxFilter = (inboxFilter ?? DEFAULT_INBOX_TAB) === DEFAULT_INBOX_TAB;
+  const [tabsOpenPhone, setTabsOpenPhone] = useState(false);
+  const tabsOpen = embedded || tabsOpenPhone;
+  // A filter arriving LATER — the hamburger switching to Pinned / Recently
+  // Deleted — has to be able to open the disclosure too, or the same
+  // "filtered, but nothing says so" state comes back through the side door.
+  useEffect(() => {
+    if (!isDefaultInboxFilter) setTabsOpenPhone(true);
+  }, [isDefaultInboxFilter]);
   // Bump this nonce after a pin/unpin so the derived order re-reads
   // sessionStorage (the pin set is read directly to avoid a parallel
   // state branch). Cheap, scoped to a paint.
@@ -485,6 +557,210 @@ export function ConversationList({
     </div>
   );
 
+  /* Select mode and search mode each take the WHOLE row over. ScreenHeaderRow's
+     `children` branch is precisely that escape hatch: it keeps the row geometry
+     and still renders the page's h1 `sr-only`, so Messages never has zero
+     headings while a text input is standing in for its name. Null in the normal
+     state, which is what puts the row back on its title / meta / actions
+     branch. */
+  const rowTakeover = selectMode ? (
+    /* Select mode — the row is just the page name's stand-in. The live
+       "N/3 selected" count lives in the floating action bar at the bottom of
+       the list (see below); having it here too put the same number on screen
+       twice. */
+    <span className="flex-1 text-ds-13 font-medium" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+      {selectedKeys.size}/{MAX_SELECT} selected
+    </span>
+  ) : searchOpen ? (
+    /* Search mode — input replaces the row inline (iOS pattern). */
+    <>
+      <div className="relative flex-1">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+        <input
+          autoFocus
+          type="search"
+          aria-label="Search conversations"
+          placeholder="Search conversations…"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          spellCheck={false}
+          className="w-full pl-9 pr-9 h-9 text-ds-13 rounded-ds-md glass-field focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"
+        />
+        {searchQuery && (
+          // Fixed 24×24 circle, inset a touch further than the old bare icon
+          // so its hover/active/focus-visible ring stays inside the field's
+          // rounded-ds-md edge instead of poking past it. The old version had
+          // no explicit box — just an icon glyph — so the browser's default
+          // focus outline and any hover fill drew flush against (and past)
+          // the field boundary.
+          <button
+            type="button"
+            onClick={() => setSearchQuery("")}
+            aria-label="Clear search"
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--olivewood)/0.10)] active:bg-[hsl(var(--olivewood)/0.16)] btn-press transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+      <button
+        type="button"
+        onClick={() => { hapticLight(); setSearchOpen(false); setSearchQuery(""); }}
+        className="shrink-0 text-ds-13 font-medium btn-press py-2"
+        style={{ color: "hsl(var(--bark))" }}
+      >
+        Cancel
+      </button>
+    </>
+  ) : null;
+
+  /* What sits beside the screen name: on the DESKTOP website, the tabs
+     themselves — exactly as they do on My Posts / My Jobs, where there is width
+     to spare beside the name and nothing needs to hide behind a chevron.
+     Nothing at all on phone.
+
+     WHAT ABOUT THE COUNTS the collapsed row folds away ("All 2 · Unread 1 ·
+     Active")? A "1 unread" caption beside the title was the obvious answer and
+     it was wrong, measured: at 393 the row is 353px of card, the three 44px
+     controls and their gaps take 144 of it, and the caption plus its gap takes
+     73 more — which leaves 96px for a title that needs 101. The screen's own
+     NAME truncated to "Messag…" to make room for a number. That is a worse
+     trade than the one it was fixing, and it showed up at 375 and 393, the two
+     widths that matter most.
+
+     It is also a number the reader already has three ways over. The dock's
+     Messages tab carries a live unread badge on every screen in the app; each
+     unread thread in the list below wears its own dot and bold ink; and "All N"
+     is just the length of that list. My Posts and My Jobs make the same call —
+     neither surfaces its collapsed counts on the row. Where they DO surface
+     them is the one place the list cannot speak for itself: an empty view,
+     where My Jobs says "you have 3 in Waiting and 2 in Done" rather than
+     leaving you to go hunting. Messages' tab-empty copy does the same (see
+     noTabMatches below), and that is where the counts were owed. */
+  const headerMeta =
+    embedded && hasThreads ? <div id={INBOX_TABS_ID}>{inboxTabs}</div> : undefined;
+
+  /* The trailing icon cluster.
+     Search · chevron · hamburger, in that order — the chevron sits NEXT TO
+     SEARCH, which is where the owner put it on Activity ("add a dropdown arrow
+     next to search so these aren't always showing"), and the overflow menu
+     stays last, where an overflow menu belongs.
+
+     All three share ONE class, and it is ActivityHeader's: the chevron cannot
+     be a different ink from the search glyph beside it, and Messages' cluster
+     should not be a different ink from the identical cluster on My Jobs. */
+  const headerActions = (
+    <>
+      {/* Pinned/Recently Deleted read a different source than the default
+          inbox (see isSpecialFilterView above), so they can have their own
+          threads to search even when hasThreads (the DEFAULT inbox) is
+          false. */}
+      {(hasThreads || isSpecialFilterView) && (
+        <button
+          type="button"
+          onClick={() => { hapticLight(); setSearchOpen(true); }}
+          aria-label="Search conversations"
+          className={HEADER_ICON_BUTTON_CLASS}
+        >
+          <Search className="w-4 h-4" />
+        </button>
+      )}
+      {/* THE DISCLOSURE — the same control, glyph and rotation My Posts / My
+          Jobs use, so "collapsed when opened" is one behaviour across the three
+          screens rather than three near-misses. Not rendered when `embedded`:
+          the desktop split shows the tabs inline and a chevron there would hide
+          three short words to save nothing (ActivityHeader drops it under
+          `inlineFilters` for the same reason).
+
+          Gated on `hasThreads` alongside search — with no threads there is
+          nothing to slice, and the empty state below already says so. */}
+      {!embedded && hasThreads && (
+        <button
+          type="button"
+          onClick={() => { hapticLight(); setTabsOpenPhone((v) => !v); }}
+          aria-expanded={tabsOpen}
+          /* Only while the panel EXISTS. The tabs unmount when collapsed, so
+             emitting this unconditionally points at a missing id — axe flags it
+             `aria-valid-attr-value` critical, and it is a real lie to a screen
+             reader. */
+          aria-controls={tabsOpen ? INBOX_TABS_ID : undefined}
+          aria-label={tabsOpen ? "Hide conversation filters" : "Filter conversations"}
+          className={`${HEADER_ICON_BUTTON_CLASS} ${
+            // No filled pill: the chevron's ROTATION already carries
+            // open/closed. The ink darkens while a non-default slice is on, so
+            // a filtered inbox is never silent even with the row folded away.
+            isDefaultInboxFilter ? "" : "!text-[hsl(var(--bark))]"
+          }`}
+        >
+          <ChevronDown
+            className={`w-4 h-4 transition-transform duration-200 ${tabsOpen ? "rotate-180" : ""}`}
+            strokeWidth={2.25}
+          />
+        </button>
+      )}
+      {/* Hamburger — the OVERFLOW MENU, not the disclosure. It opens Select
+          messages / Pinned / Recently Deleted: one bulk action and two views
+          onto data the three tabs do not cover. It stays exactly as it was —
+          the chevron above is an addition, not a replacement — because
+          Recently Deleted is the only route back to a thread you have hidden.
+
+          Deliberately NOT gated on hasThreads: Pinned/Recently Deleted look at
+          DIFFERENT data than what is currently showing, so an empty "All" must
+          not strand the user unable to reach either. (Concretely: archive the
+          one thread you have and the inbox goes empty — hiding this would make
+          restoring that thread permanently unreachable through the UI.) */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            aria-label="Conversation list options"
+            className={HEADER_ICON_BUTTON_CLASS}
+          >
+            <Menu className="w-4 h-4" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          {hasThreads && (
+            <DropdownMenuItem onClick={enterSelectMode}>
+              <CheckSquare className="w-4 h-4 mr-2" />
+              Select messages
+            </DropdownMenuItem>
+          )}
+          {/* Both entries are wired to real data: Pinned reads the existing
+              swipe-to-pin state (getPinnedSet/pinnedKey above); Recently
+              Deleted reads the existing archive state
+              (archivedConversations.ts, already backing the swipe-to-archive
+              action) via allConversations, the pre-archive-filter list
+              useMessagesData already keeps around for deep links. The
+              status-filter stubs (Needs You / Scheduled / Waiting / Done) were
+              removed — they had no data behind them and no owner-approved
+              design for what "status" means for a two-party thread (unlike
+              Activity's single-sided job status), so a toast-only entry was
+              pure dead-end UI. Re-add if/when that's designed. */}
+          <DropdownMenuItem onClick={() => setInboxFilter("pinned")}>
+            <Pin className="w-4 h-4 mr-2" />
+            Pinned
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => {
+              setInboxFilter("recentlyDeleted");
+              // allConversations is capped to the 200 most recent messages
+              // across every thread (fetchConversations) — a thread archived
+              // long enough ago to fall outside that window (or archived
+              // before this device's cache was ever populated) wouldn't be
+              // resolvable without a fresh fetch. Refresh on open so this view
+              // is as complete as that cap allows; it's still not a guarantee
+              // for very old archives.
+              if (userId) void loadConversations(userId);
+            }}
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            Recently Deleted
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </>
+  );
+
   /* THE TITLE CARD, on phone and native (owner, 2026-08-27).
      Messages used to render its name INSIDE the content panel, under a
      hairline, so the whole screen was one tall box while Home, My Posts and
@@ -499,234 +775,73 @@ export function ConversationList({
      desktop mode here — see the prop's docs. */
   const headerEl = (
     <>
-          {/* Thin list toolbar — iOS shows only the nav title over the
-              list, so the old "Conversations" eyebrow + "All threads"
-              serif heading are gone (an app-wide decision to drop these
-              eyebrow kickers). What remains is a Select + Search toolbar;
-              in select mode it swaps to a live "N/3 selected" count.
-              Hidden on an empty inbox so the empty state reads as one
-              clean panel. */}
-          {/* The header renders ALWAYS, including when the inbox is empty.
-              It used to be gated on the inverse of the controls' gate, which meant an
-              empty Messages
-              had no title bar at all — the screen just opened on the empty
-              illustration with nothing naming it, while My Jobs beside it kept
-              its title. It also left the page with ZERO h1, so a screen reader
-              landed on an unnamed screen. (The route sweep missed this because
-              it seeds conversations, so Messages is never empty there — the
-              owner hit it on a real device with no messages.)
+          <ScreenHeaderRow
+            /* THE SHARED ROW — literally the component My Posts / My Jobs
+               render through ActivityHeader, and the Browse feed through
+               BrowseTasksToolbar. This row used to be a hand-rolled copy of it
+               (same `flex items-center gap-3`, same `min-w-0 flex-1 gap-2
+               py-2.5` title block, same `gap-1 shrink-0` action cluster), which
+               is exactly how two screens end up a few pixels apart. It is now
+               the real thing, so the geometry cannot drift.
 
-              Only the Select/Search actions are gated now: those genuinely
-              have nothing to act on when the list is empty. */}
-          {(
-            <div
-              // In the title card the card owns the horizontal padding and
-              // there is nothing below to rule off from — the gap does that.
-              // Embedded (desktop) keeps both, because there it IS the panel's
-              // first row.
-              className={`shrink-0 flex items-center gap-3 ${embedded ? "px-4" : ""}`}
-              style={{
-                // The 52px floor is an IN-PANEL toolbar measure: it kept the
-                // row from collapsing onto the list under it. In the title
-                // card the card's own padding governs the height, and every
-                // control in the row already carries its own 44pt target — so
-                // keeping it made this card 6pt taller than the identical
-                // card on My Posts, measured on device.
-                minHeight: embedded ? "52px" : undefined,
-                borderBottom: embedded ? "1px solid hsl(var(--olivewood) / 0.1)" : undefined,
-              }}
-            >
-              {selectMode ? (
-                /* Select mode — live "N/3 selected" counter fills the row.
-                   The sr-only h1 keeps the page named for screen readers
-                   while the visible title row is taken over. */
-                <>
-                  <h1 className="sr-only">Messages</h1>
-                  <span className="flex-1 text-ds-13 font-medium" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                    {selectedKeys.size}/{MAX_SELECT} selected
-                  </span>
-                </>
-              ) : searchOpen ? (
-                /* Search mode — input replaces the row inline (iOS pattern).
-                   Same sr-only h1 rule as select mode above. */
-                <>
-                  <h1 className="sr-only">Messages</h1>
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                    <input
-                      autoFocus
-                      type="search"
-                      aria-label="Search conversations"
-                      placeholder="Search conversations…"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      spellCheck={false}
-                      className="w-full pl-9 pr-9 h-9 text-ds-13 rounded-ds-md glass-field focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground"
-                    />
-                    {searchQuery && (
-                      // Fixed 24×24 circle, inset a touch further than the
-                      // old bare icon so its hover/active/focus-visible ring
-                      // stays inside the field's rounded-ds-md edge instead
-                      // of poking past it. The old version had no explicit
-                      // box — just an icon glyph — so the browser's default
-                      // focus outline and any hover fill drew flush against
-                      // (and past) the field boundary.
-                      <button
-                        type="button"
-                        onClick={() => setSearchQuery("")}
-                        aria-label="Clear search"
-                        className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--olivewood)/0.10)] active:bg-[hsl(var(--olivewood)/0.16)] btn-press transition-colors"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => { hapticLight(); setSearchOpen(false); setSearchQuery(""); }}
-                    className="shrink-0 text-ds-13 font-medium btn-press py-2"
-                    style={{ color: "hsl(var(--bark))" }}
-                  >
-                    Cancel
-                  </button>
-                </>
-              ) : (
-                /* Normal mode — title + Select + Search. */
-                <>
-                  {/* Title and unread count sit on ONE line, count to the
-                      right of the name — owner: "put 1 unread to the right of
-                      messages bc i dont like it under". Stacking them made a
-                      two-line block for what is really one short phrase, and
-                      pushed the row taller than the other screens' toolbars.
-
-                      `items-baseline` so the small italic count sits on the
-                      wordmark's baseline rather than centring against a much
-                      larger cap-height. The h1 keeps `min-w-0` + truncate and
-                      the count is `shrink-0`, so a long title yields first and
-                      the count is never the thing that gets cut. */}
-                  <div className="flex items-baseline min-w-0 flex-1 gap-2 py-2.5">
-                    {/* On the desktop website the page name is deleted from
-                        this row (owner) — the app bar and the side panel both
-                        already say where you are, so a third "Messages" three
-                        rows apart is chrome restating chrome. It goes
-                        `sr-only`, never away: a screen with no h1 is an a11y
-                        defect, and this is Messages' only one. Phone and
-                        native keep it visible — they have no app bar. */}
-                    <h1
-                      className={
-                        embedded
-                          ? "sr-only"
-                          : "font-display font-bold text-foreground text-ds-20 truncate m-0 leading-none min-w-0"
-                      }
-                    >
-                      Messages
-                    </h1>
-                    {/* DESKTOP: the tabs ride beside the screen name, exactly
-                        as they do on My Posts / My Jobs. Phone puts them on
-                        their own line below this row — see after the toolbar.
-                        The "2 unread" caption that used to sit here is gone:
-                        the Unread tab carries that number now, and the caption
-                        beside a tab that already says it is the same fact
-                        twice. */}
-                    {embedded && hasThreads && inboxTabs}
-                  </div>
-                  {/* Search is gated on hasThreads (nothing to search when
-                      the CURRENT view is empty), but the hamburger itself is
-                      NOT — Pinned/Recently Deleted are views onto DIFFERENT
-                      data than what's currently showing, so an empty "All"
-                      must not strand the user unable to reach either one.
-                      (Concretely: archive the one thread you have and the
-                      inbox goes empty — hiding the hamburger here would make
-                      Recently Deleted, and thus restoring that thread,
-                      permanently unreachable through the UI.) */}
-                  <div className="flex items-center gap-1 shrink-0">
-                    {/* Pinned/Recently Deleted read a different source than
-                        the default inbox (see isSpecialFilterView above), so
-                        they can have their own threads to search even when
-                        hasThreads (the DEFAULT inbox) is false. */}
-                    {(hasThreads || isSpecialFilterView) && (
-                      <button
-                        onClick={() => { hapticLight(); setSearchOpen(true); }}
-                        aria-label="Search conversations"
-                        className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-ds-md transition-colors btn-press shrink-0"
-                        style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                      >
-                        <Search className="w-4 h-4" />
-                      </button>
-                    )}
-                    {/* Hamburger — replaces the old text "Select" button, and
-                        sits to the RIGHT of search (was to its left). Opens a
-                        menu: entering multi-select is one entry among several
-                        now, alongside Pinned / Recently Deleted / a status
-                        filter — so the icon has to read as "more options",
-                        not "select", hence the 3-line glyph rather than a
-                        checkbox icon. */}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button
-                          aria-label="Conversation list options"
-                          className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-ds-md transition-colors btn-press shrink-0"
-                          style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                        >
-                          <Menu className="w-4 h-4" />
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        {hasThreads && (
-                          <DropdownMenuItem onClick={enterSelectMode}>
-                            <CheckSquare className="w-4 h-4 mr-2" />
-                            Select messages
-                          </DropdownMenuItem>
-                        )}
-                        {/* Both entries are wired to real data: Pinned reads
-                            the existing swipe-to-pin state (getPinnedSet/
-                            pinnedKey above); Recently Deleted reads the
-                            existing archive state (archivedConversations.ts,
-                            already backing the swipe-to-archive action) via
-                            allConversations, the pre-archive-filter list
-                            useMessagesData already keeps around for deep
-                            links. The status-filter stubs (Needs You /
-                            Scheduled / Waiting / Done) were removed — they
-                            had no data behind them and no owner-approved
-                            design for what "status" means for a two-party
-                            thread (unlike Activity's single-sided job
-                            status), so a toast-only entry was pure
-                            dead-end UI. Re-add if/when that's designed. */}
-                        <DropdownMenuItem onClick={() => setInboxFilter("pinned")}>
-                          <Pin className="w-4 h-4 mr-2" />
-                          Pinned
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setInboxFilter("recentlyDeleted");
-                            // allConversations is capped to the 200 most
-                            // recent messages across every thread
-                            // (fetchConversations) — a thread archived long
-                            // enough ago to fall outside that window (or
-                            // archived before this device's cache was ever
-                            // populated) wouldn't be resolvable without a
-                            // fresh fetch. Refresh on open so this view is as
-                            // complete as that cap allows; it's still not a
-                            // guarantee for very old archives.
-                            if (userId) void loadConversations(userId);
-                          }}
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Recently Deleted
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-          {/* PHONE: the same tabs, on their own line under the toolbar —
-              there is no room for them beside a visible "Messages" title and
-              the Select / Search cluster. Hidden while search or select mode
-              has taken the row over: one control at a time. */}
-          {!embedded && hasThreads && !searchOpen && !selectMode && (
-            <div className="shrink-0 pt-1.5 overflow-x-auto scrollbar-hide">
+               The row renders ALWAYS, including on an empty inbox. It used to
+               be gated on the inverse of the controls' gate, which meant an
+               empty Messages had no title bar at all — the screen opened on the
+               empty illustration with nothing naming it, while My Jobs beside
+               it kept its title, and the page had ZERO h1 so a screen reader
+               landed on an unnamed screen. Only the Search / disclosure actions
+               are gated: those genuinely have nothing to act on. */
+            title="Messages"
+            /* On the desktop website the page name is deleted from this row
+               (owner) — the app bar and the side panel both already say where
+               you are, so a third "Messages" three rows apart is chrome
+               restating chrome. It goes `sr-only`, never away. Phone and native
+               keep it visible: they have no app bar. */
+            titleSrOnly={embedded}
+            // In the title card the card owns the horizontal padding and there
+            // is nothing below to rule off from — the gap does that. Embedded
+            // (desktop) keeps both, because there it IS the panel's first row.
+            /* `max-[359px]:gap-2` is the ONLY deviation from the shared row's
+               geometry, and it is 4px on one breakpoint. At 320 the card gives
+               this row 240px; the three 44px controls and their gaps take 141,
+               the shared `gap-3` takes 12, and "Messages" wants 88 in the 87
+               that leaves — a two-pixel miss that cost the screen its own name
+               ("Messag…", measured, not guessed). Tightening the title-to-
+               actions gap by one step below 360 buys the four pixels back.
+               375 and up are untouched, so the row stays pixel-identical to My
+               Posts / My Jobs at every width a shipping phone actually has. */
+            className={`shrink-0 max-[359px]:gap-2 ${embedded ? "px-4" : ""}`}
+            style={{
+              // The 52px floor is an IN-PANEL toolbar measure: it keeps the row
+              // off the list under it. In the title card the card's own padding
+              // governs the height and ScreenHeaderRow's own 44px floor carries
+              // the controls — keeping 52 there made this card 6pt taller than
+              // the identical card on My Posts, measured on device.
+              minHeight: embedded ? "52px" : undefined,
+              borderBottom: embedded ? "1px solid hsl(var(--olivewood) / 0.1)" : undefined,
+            }}
+            meta={rowTakeover ? undefined : headerMeta}
+            actions={rowTakeover ? undefined : headerActions}
+          >
+            {rowTakeover}
+          </ScreenHeaderRow>
+          {/* PHONE: the same tabs, on their own line under the toolbar — there
+              is no room for them beside a visible "Messages" title and the
+              action cluster. Behind the disclosure now (see tabsOpen), so this
+              screen opens at My Posts' / My Jobs' height instead of twice it.
+              Still hidden while search or select mode has taken the row over:
+              one control at a time. */}
+          {!embedded && hasThreads && tabsOpen && !searchOpen && !selectMode && (
+            /* `-mx-1 px-1 pb-0.5`, not the `pt-1.5` this used to carry — these
+               are ActivityHeader's exact classes, so the card matches My Posts
+               / My Jobs at 118px EXPANDED as well as at 62px collapsed. (With
+               the top pad it measured 122 against their 118: four pixels, but
+               four pixels of nothing, on the one screen the owner had just
+               asked to stop being the odd one out.) The negative margin keeps
+               the tabs' focus rings inside the scroller rather than clipped by
+               it; the scroller itself is insurance for 320px, where three
+               labels are already comfortable. */
+            <div id={INBOX_TABS_ID} className="shrink-0 -mx-1 px-1 pb-0.5 overflow-x-auto scrollbar-hide">
               {inboxTabs}
             </div>
           )}
@@ -817,14 +932,38 @@ export function ConversationList({
                 className="font-serif italic text-ds-13 max-w-[240px]"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
+                {/* NAME THE NUMBER, the way My Jobs does ("you have 3 in
+                    Waiting and 2 in Done"). This is the one place the counts
+                    the collapsed header folds away are genuinely owed to the
+                    reader: the list below is empty, so it cannot show them,
+                    and "Switch to All" without a number asks you to go and
+                    check whether there is anything over there at all. */}
                 {inboxFilter === "unread"
-                  ? "Every thread has been read. Switch to All to see them."
+                  ? "Every thread has been read — nothing is waiting on you."
                   : inboxFilter === "pinned"
                     ? "No conversations are pinned. Swipe a thread right to pin it."
                     : inboxFilter === "recentlyDeleted"
                       ? "Nothing hidden. Swipe a thread left to hide it — it stays here, not deleted."
-                      : "No conversations belong to a job that's still running. Switch to All to see them."}
+                      : "No conversations belong to a job that's still running."}
               </p>
+              {/* THE COUNT, and a way to ACT on it — the "Show Waiting (3)"
+                  button My Jobs puts under the same copy, which is where that
+                  screen surfaces the numbers its own collapsed header folds
+                  away. This is the one place Messages' counts are genuinely
+                  owed to the reader: the list is empty, so it cannot show them,
+                  and "switch to All" without a number asks you to go and check
+                  whether there is anything over there at all. Carrying the
+                  number HERE rather than in the sentence also keeps the prose
+                  from saying "All" twice in one line.
+
+                  Only for the two tabs whose fix really is "switch to All".
+                  Pinned and Recently Deleted are told to swipe instead: there
+                  is nothing under All to send them to. */}
+              {(inboxFilter === "unread" || inboxFilter === "active") && conversations.length > 0 && (
+                <BarkPillButton onClick={() => { hapticLight(); setInboxFilter(DEFAULT_INBOX_TAB); }}>
+                  Show All ({conversations.length})
+                </BarkPillButton>
+              )}
             </div>
           ) : noSearchMatches ? (
             /* Active search filtered every thread out — a tidy in-place

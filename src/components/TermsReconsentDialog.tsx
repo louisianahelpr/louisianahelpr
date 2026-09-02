@@ -117,8 +117,12 @@ export function TermsReconsentDialog() {
   };
 
   return (
+    // Deliberately non-dismissible: this is a hard re-consent gate, so there
+    // is no `onOpenChange`. `closeDisabled` tells the shared shell that, so
+    // the corner ✕ renders inert-and-dimmed instead of looking like a live
+    // dismiss that silently does nothing when tapped.
     <AlertDialog open={open}>
-      <AlertDialogContent>
+      <AlertDialogContent closeDisabled>
         <AlertDialogHero
           title="Please Take a Moment to Re-Agree"
         />
@@ -131,7 +135,6 @@ export function TermsReconsentDialog() {
               e.preventDefault();
               void handleAccept();
             }}
-            className="rounded-ds-md"
           >
             {submitting ? "Saving…" : "I Agree"}
           </AlertDialogAction>

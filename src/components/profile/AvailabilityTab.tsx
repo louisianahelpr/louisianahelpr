@@ -58,17 +58,32 @@ export function AvailabilityTab({ userId, onBack }: AvailabilityTabProps) {
     setToggling(true);
     hapticSuccess();
     try {
+      // The `error.code !== "PGRST202"` escape that used to wrap both calls is
+      // gone. CLAUDE.md allows swallowing PGRST202 as a DEPLOY-LAG fallback for
+      // a BRAND-NEW RPC; these two shipped in migration 20260612430000 and have
+      // been live for months. Today a PGRST202 means the function was dropped
+      // or EXECUTE was revoked — and the old code answered that by flipping the
+      // switch to "Available now" anyway. The toggle stayed on, the database
+      // was untouched, and posters never saw the helper as available.
       if (isAvailable) {
         const { error } = await (supabase.rpc as any)("clear_available_now");
-        if (error && error.code !== "PGRST202") throw error;
+        if (error) throw error;
         setAvailableUntil(null);
       } else {
         const { data, error } = await (supabase.rpc as any)("set_available_now", { p_hours: 4 });
-        if (error && error.code !== "PGRST202") throw error;
-        if (data) setAvailableUntil(new Date(data));
-        else setAvailableUntil(new Date(Date.now() + 4 * 60 * 60 * 1000));
+        if (error) throw error;
+        // No `else` branch inventing `now + 4h`. That fabricated a server state
+        // that did not exist: the card then rendered "Available now · Until
+        // 6:42 PM" off a number computed in the browser. A missing return value
+        // from a function whose whole job is to return the new expiry is a
+        // failure, not a default.
+        if (!data) throw new Error("set_available_now returned no expiry");
+        setAvailableUntil(new Date(data));
       }
-    } catch {
+    } catch (err) {
+      // Was a bare `catch {}` → toast. A dropped or revoked RPC is exactly the
+      // failure this screen cannot see on its own, so it needs a signal.
+      report(err, { severity: "error", tags: { source: "AvailabilityTab.toggle" }, context: { userId } });
       toast.error("Couldn't update availability — try again.");
     } finally {
       setToggling(false);
@@ -98,7 +113,11 @@ export function AvailabilityTab({ userId, onBack }: AvailabilityTabProps) {
           </p>
           <p className="text-ds-12 text-muted-foreground">
             {isAvailable
-              ? `Until ${availableUntil!.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`
+              // Pinned to the platform zone. Without `timeZone` this renders in
+              // the DEVICE's zone, so a helper travelling (or with a wrong
+              // device clock) read a different wall-clock expiry than the
+              // poster reading the same signal on the applicant card.
+              ? `Until ${availableUntil!.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" })}`
               : "Signal you're ready to start a job today"}
           </p>
         </div>

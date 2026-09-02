@@ -336,7 +336,22 @@ test.describe("My Posts — card density + header", () => {
     // JobCardShell is the keyboard/screen-reader affordance — it is intentionally
     // not visually interactive, so { force: true } bypasses Playwright's
     // "element is on top" check, which sr-only elements always fail.
-    const toggle = page.getByRole("button", { name: "Expand Job Details" }).first();
+    //
+    // Target the specific Deep clean card by heading rather than .first(): the
+    // overdue-sort lifts the revision_requested card (Touch-up paint, date
+    // yesterday) above this open job, so position-based selectors expand the
+    // wrong card and then cannot find Deep clean's description text.
+    // Find the card div that is the direct parent of the sr-only expand button
+    // AND an ancestor of the heading. Double-filter ensures we get the exact card
+    // (not an inner wrapper that has the heading but not the button, and not an
+    // outer ancestor of multiple cards). .last() picks the deepest matching div —
+    // inner wrappers don't contain the sibling button, so this is the card div.
+    const deepCleanCard = page.locator("div").filter({
+      has: page.getByRole("heading", { name: "Deep clean a two-bedroom before move-out" }),
+    }).filter({
+      has: page.getByRole("button", { name: "Expand Job Details" }),
+    }).last();
+    const toggle = deepCleanCard.getByRole("button", { name: "Expand Job Details" });
     await expect(toggle).toBeAttached();
     await expect(toggle).toHaveAttribute("aria-expanded", "false");
 
@@ -349,7 +364,7 @@ test.describe("My Posts — card density + header", () => {
     await expect(page).toHaveURL(/\/my-posts/);
     await page.screenshot({ path: `${SHOTS}/card-expanded-375.png`, fullPage: true });
 
-    const collapse = page.getByRole("button", { name: "Collapse Job Details" }).first();
+    const collapse = deepCleanCard.getByRole("button", { name: "Collapse Job Details" });
     await expect(collapse).toHaveAttribute("aria-expanded", "true");
     await collapse.click({ force: true });
     await expect(description).toHaveCount(0);
@@ -412,17 +427,52 @@ test.describe("My Posts — card density + header", () => {
     // the narrowest width this app supports, where a three-up row fails first.
     await page.setViewportSize({ width: 320, height: 640 });
     await settle(page);
-    for (const name of ["Message Helpr", "Report the Helpr as a no-show"]) {
+    // Matched on the ACCESSIBLE-NAME PREFIX, not on one full spelling of it.
+    // `JobActionChip`'s `ariaLabel` REPLACES the chip's accessible name rather
+    // than adding to it, so 7ef7de98 rewrote every chip in PostedJobActions.tsx
+    // to "<visible label> — <context>" (WCAG 2.5.3 Label in Name: the name must
+    // start with the visible text, or voice control cannot speak the control).
+    // The no-show chip's name went from "Report the Helpr as a no-show" to
+    // "No-Show — report that the Helpr never turned up" and this loop was never
+    // updated, so it sat waiting 30s for a name nothing has had since. The
+    // assertion here is about tap-target height, not wording — anchoring it to
+    // the visible label keeps it green through the next re-phrasing of the
+    // trailing context while still failing if the chip disappears.
+    for (const name of [/^Message Helpr\b/, /^No-Show\b/]) {
       const box = await page.getByRole("button", { name }).first().boundingBox();
       expect(box, `${name} has no box`).not.toBeNull();
       expect(box!.height, `${name} tap target`).toBeGreaterThanOrEqual(44);
     }
+    // SCOPED TO THE ACTION CHIPS, which is what the sentence above claims.
+    //
+    // This used to sweep every `button span` in the document. It had never once
+    // run to completion — the loop above it timed out on a stale aria-label for
+    // days — and the first time it did, it flagged "Lafayette": JobCardMetaRow's
+    // location chip, measured at scrollWidth 49 in clientWidth 32. That chip is
+    // the ONE `min-w-0 shrink` item in a meta row whose date and time chips are
+    // `shrink-0 whitespace-nowrap`; it is deliberately the thing that gives way
+    // when the row runs out of width, and it carries `truncate` so it ellipses
+    // rather than overflows. Asserting it never truncates would be asserting the
+    // opposite of the design.
+    //
+    // An action label has no such fallback — the chips are a fixed-column grid,
+    // so a label that does not fit is simply unreadable, which is the failure
+    // this gate exists to catch. `[data-job-action-chip]` is the hook that
+    // separates the two (JobActionRow.tsx).
     const clipped = await page.evaluate(() =>
-      Array.from(document.querySelectorAll<HTMLElement>("button span"))
+      Array.from(document.querySelectorAll<HTMLElement>("[data-job-action-chip] span"))
         .filter((el) => el.scrollWidth > el.clientWidth + 1)
         .map((el) => el.textContent ?? ""),
     );
     expect(clipped, `truncated action labels at 320px: ${clipped.join(", ")}`).toEqual([]);
+    // …and the gate must actually have chips to look at, or it passes vacuously
+    // the day someone drops the attribute. Two, not the three the row shows:
+    // SOS is a SosShareButton, not a JobActionChip, so it carries no hook. The
+    // two that do are exactly the two the tap-target loop above names.
+    expect(
+      await page.locator("[data-job-action-chip]").count(),
+      "no action chips found at 320px — the gate above would pass on an empty row",
+    ).toBeGreaterThanOrEqual(2);
     await page.screenshot({ path: `${SHOTS}/actions-3up-320.png`, fullPage: true });
   });
 
@@ -607,7 +657,10 @@ test.describe("My Posts — card density + header", () => {
   // the card is still open afterwards.
   test("an action in the bottom row does not toggle the card", async ({ page, context, baseURL }) => {
     await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
-    await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true });
+    // Provide only the open job so expandCard()'s .first() is unambiguous — the
+    // default seed includes an overdue revision_requested card that sorts first
+    // and does not render Edit (only "open" status cards do).
+    await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true, rules: [jobsRule([SEED_JOBS[0] as Row])] });
     await page.goto("/my-posts?filter=all");
     await page.waitForSelector("h1");
     await settle(page);

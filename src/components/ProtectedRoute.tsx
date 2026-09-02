@@ -272,24 +272,40 @@ const ProtectedRoute = ({
         return <Navigate to="/account-denied" replace />;
       }
 
-      // Progressive-activation routes (`allowPending`) let a pending or
-      // email-unconfirmed user through so they can browse/save/apply while
-      // they wait. Every other route still bounces them to /account-pending.
-      if (!allowPending) {
-        // Stage 1: Email verification (auth user is the source of truth)
-        if (!user.email_confirmed_at) {
-          if (DEBUG_AUTH) console.log("[auth] ProtectedRoute redirect", { path: location.pathname, to: "/account-pending", reason: "email-unconfirmed" });
-          return <Navigate to="/account-pending" replace />;
-        }
-        if (profile.approval_status === "pending") {
-          if (DEBUG_AUTH) console.log("[auth] ProtectedRoute redirect", { path: location.pathname, to: "/account-pending", reason: "approval-pending" });
-          return <Navigate to="/account-pending" replace />;
-        }
+      // Stage 1: Email verification (auth user is the source of truth).
+      // Stays AHEAD of the completeness gate below, because until the address
+      // is confirmed there is nothing productive to send the user to — and
+      // /account-pending's unconfirmed variant is the screen that actually
+      // helps them (it holds the Resend button). Progressive-activation
+      // routes (`allowPending`) let them through to browse while they wait.
+      if (!allowPending && !user.email_confirmed_at) {
+        if (DEBUG_AUTH) console.log("[auth] ProtectedRoute redirect", { path: location.pathname, to: "/account-pending", reason: "email-unconfirmed" });
+        return <Navigate to="/account-pending" replace />;
       }
     }
 
     // Stage 2: Universal "Big 7" verification gate.
     // Legacy users (created before the cutoff) bypass the gate entirely.
+    //
+    // ORDER MATTERS, AND IT USED TO BE WRONG. This gate ran AFTER the
+    // `approval_status === "pending"` bounce below, so a user whose profile
+    // was incomplete AND still pending — the exact state left behind when
+    // `complete-signup` fails partway through `Signup.tsx`, or when an
+    // account is created outside the signup form — was sent to
+    // /account-pending from every route instead of to the one screen that
+    // could fix them. /account-pending then told them "Our team is reviewing
+    // your credentials" and showed "Final admin review — Waiting", about a
+    // review that does not exist: `complete-signup` sets `approved`
+    // unconditionally, and prod holds 30/30 approved and 0 ever pending
+    // (verified 2026-09-01). It offers no link to /complete-profile, and
+    // `cleanup-abandoned-accounts` deletes a still-`pending` account at day
+    // 30 with no warning email. The only way out was the "Explore Jobs While
+    // You Wait" button, whose destination (/dashboard) happens to be
+    // `allowPending` and therefore falls through to this gate by accident.
+    //
+    // An incomplete profile is a thing the USER can fix, so it is now
+    // answered before any queue-shaped screen. `pending` is checked after,
+    // and only for a profile that is already complete.
     const isLegacy = profile.is_legacy_user === true;
     if (
       !isLegacy &&
@@ -298,7 +314,26 @@ const ProtectedRoute = ({
       !isProfileGateAllowed(location.pathname, location.search)
     ) {
       if (DEBUG_AUTH) console.log("[auth] ProtectedRoute redirect", { path: location.pathname, to: "/complete-profile", reason: "profile-incomplete" });
-      return <Navigate to="/complete-profile" replace />;
+      // Carry the destination across the gate. `<Navigate to="/complete-profile">`
+      // dropped it entirely — path AND query — so a user who followed a push
+      // deep link, a shared job URL or an email link into the app finished
+      // the form and landed on /dashboard with no idea what they had lost.
+      // `safeInternalRedirect` re-validates on the far side, so an
+      // attacker-crafted `?next=` cannot turn this into an open redirect.
+      const intended = location.pathname + location.search;
+      const to =
+        intended && intended !== "/" && !intended.startsWith("/complete-profile")
+          ? `/complete-profile?next=${encodeURIComponent(intended)}`
+          : "/complete-profile";
+      return <Navigate to={to} replace />;
+    }
+
+    // Stage 3: approval still pending. Reached only by an account whose
+    // profile IS complete (Stage 2 above catches the rest), so the screen it
+    // lands on is genuinely "waiting on us", not "waiting on you".
+    if (!allowUnapproved && !allowPending && profile.approval_status === "pending") {
+      if (DEBUG_AUTH) console.log("[auth] ProtectedRoute redirect", { path: location.pathname, to: "/account-pending", reason: "approval-pending" });
+      return <Navigate to="/account-pending" replace />;
     }
   }
 

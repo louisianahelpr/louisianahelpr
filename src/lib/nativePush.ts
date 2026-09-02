@@ -24,6 +24,7 @@ import {
   isPushSupported,
   registerServiceWorker,
   requestPushPermission as requestWebPushPermission,
+  setNativePushPermission,
 } from "@/lib/pushNotifications";
 import { Browser } from "@capacitor/browser";
 import { normalizeDeepLinkUrl, NATIVE_RETURN_SCHEME } from "@/lib/deepLinkRoute";
@@ -44,6 +45,22 @@ let authListenerAttached = false;
 // sign-out can delete just this device's row instead of nuking the user's
 // tokens on every other device they're signed in on.
 let currentDeviceToken: string | null = null;
+
+/**
+ * Translate Capacitor's `PermissionState` ("granted" | "denied" | "prompt" |
+ * "prompt-with-rationale") into the web vocabulary `getPushPermission()`
+ * speaks, and cache it there.
+ *
+ * `getPushPermission()` has to stay synchronous (NotificationPanel calls it
+ * from a `useEffect` and from a realtime handler) but the native permission
+ * check is async, so the native answer is pushed to it from here instead of
+ * pulled.
+ */
+function publishNativePermission(receive: string): void {
+  if (receive === "granted") setNativePushPermission("granted");
+  else if (receive === "denied") setNativePushPermission("denied");
+  else setNativePushPermission("default"); // "prompt" | "prompt-with-rationale"
+}
 
 // App version is exposed on `window.HELPR_BUILD` from main.tsx (set at
 // bundle time). This avoids the previous hardcoded "1.0.4" which would
@@ -191,6 +208,21 @@ export function useNativePushSetup() {
             // Tag the navigation with ?ref=notif so the receiving page can
             // capture the attribution source via useJobRef().
             captureJobRef("notif");
+            // CLAIM THE LAUNCH FIRST. A tap on a push notification while the
+            // app is CLOSED is a cold launch: the app boots at "/",
+            // NativeLaunchRouter resolves the default post-auth route async,
+            // and — unless somebody claimed the launch — navigates there with
+            // `replace: true`, throwing this link away. That is precisely the
+            // race nativeLaunchMutex exists for, and the Universal-Link path
+            // below already claims it (see handleIncomingUrl); the push-tap
+            // path was the one participant that never did, so a tap from a
+            // closed app landed on the default screen rather than on the thing
+            // the notification was about.
+            //
+            // Claiming when the app was merely BACKGROUNDED is harmless:
+            // NativeLaunchRouter only ever acts once, on its own mount, and
+            // only when the initial path is "/".
+            claimDeepLinkLaunch();
             navigate(appendRef(link, "notif"));
           }
         });
@@ -208,6 +240,13 @@ export function useNativePushSetup() {
         // registered.
         try {
           const status = await PushNotifications.checkPermissions();
+          // Publish the native state to the synchronous accessor in
+          // pushNotifications.ts. `getPushPermission()` cannot await
+          // Capacitor, and NotificationPanel calls it inside a useEffect —
+          // without this prime it would report "default" forever on native
+          // and keep offering "Turn on notifications" to users who already
+          // granted it.
+          publishNativePermission(status.receive);
           if (status.receive === "granted") {
             await PushNotifications.register();
           }
@@ -352,6 +391,10 @@ export async function requestPushPermission(): Promise<boolean> {
   try {
     const { PushNotifications } = await import("@capacitor/push-notifications");
     const status = await PushNotifications.requestPermissions();
+    // Keep the synchronous accessor in step with the answer the user just
+    // gave — otherwise NotificationPanel keeps showing "Turn on
+    // notifications" until the next cold launch re-primes the cache.
+    publishNativePermission(status.receive);
     if (status.receive === "granted") {
       await PushNotifications.register();
       return true;
@@ -400,10 +443,11 @@ export function useRequestPushPermission() {
  * Remove this device's push token for the signing-out user. Call on sign-out.
  *
  * Deletes by (user_id, token) when this session saw the device token, so
- * signing out here doesn't kill push on the user's other devices. Only when
- * the token is unknown (web, or registration never fired this session) does
- * it fall back to the user-wide delete — the handed-off-device privacy leak
- * (F-PRIV-01) is worse than a re-registration on the next sign-in.
+ * signing out here doesn't kill push on the user's other devices. On NATIVE,
+ * when the token is unknown (registration never fired this session), it falls
+ * back to the user-wide delete — the handed-off-device privacy leak
+ * (F-PRIV-01) is worse than a re-registration on the next sign-in. On WEB the
+ * fallback is skipped entirely; see the comment in the body.
  *
  * Best-effort — a failure never blocks logout — but it must NOT be silent:
  * a swallowed delete failure leaves the token behind and re-opens F-PRIV-01
@@ -412,8 +456,24 @@ export function useRequestPushPermission() {
  */
 export async function unregisterPushOnSignOut(userId: string) {
   try {
+    // WEB SIGN-OUT MUST NEVER TOUCH NATIVE TOKENS.
+    //
+    // `push_tokens` only ever holds rows written by the native registration
+    // listener (platform 'ios' | 'android') — web push does not persist a
+    // row here at all. So on web, `currentDeviceToken` is always null and the
+    // user-wide fallback below would delete the user's PHONE tokens because
+    // they signed out of a browser tab. That is all cost and no benefit: it
+    // protects nothing on the device being signed out of (there is nothing
+    // there to protect) and silently kills push on a device the user still
+    // holds. The hand-off leak F-PRIV-01 the fallback exists for is a
+    // shared-DEVICE concern, so scope the fallback to native.
+    if (!isNativePlatform && !currentDeviceToken) return;
+
     let query = supabase.from("push_tokens").delete().eq("user_id", userId);
     if (currentDeviceToken) query = query.eq("token", currentDeviceToken);
+    // No unwrapMutation row-count guard: zero rows deleted is a legitimate
+    // and common outcome here (the user never granted push, or already
+    // signed out on this device), so an empty result is not a silent failure.
     const { error } = await query;
     if (error) {
       report(error, {

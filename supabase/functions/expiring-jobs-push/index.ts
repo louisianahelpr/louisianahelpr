@@ -83,7 +83,10 @@ Deno.serve(async (req) => {
           title: "Your job expires soon",
           message: `"${job.title}" expires in less than 24 hours with no helpr yet. Boost it to get more visibility!`,
           type: "job_updates",
-          link: "/my-posts",
+          // The expiring job itself. A job with no helpr yet and no pending
+          // applications buckets to "Waiting", not the "Needs you" bucket a
+          // bare /my-posts opens on.
+          link: `/my-posts?job=${job.id}`,
         });
 
         if (notifErr) {

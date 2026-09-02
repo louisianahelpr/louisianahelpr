@@ -1,27 +1,47 @@
 /**
- * subscriptionTiers.ts — canonical perk definitions for the CONSUMER
- * membership tiers (Free / Basic / Pro / Elite) plus a Business row
- * that exists here ONLY as the fee-percent reference for business accounts.
+ * subscriptionTiers.ts — canonical perk definitions for the membership tiers.
+ * There are exactly four: Free / Basic / Pro / Elite.
  *
  * Consumer prices MUST equal the live Stripe Price objects (verified):
  *   basic $5/mo $50/yr   pro  $10/mo  $100/yr   elite  $20/mo  $200/yr
  * `annualPrice` is stored as the monthly-equivalent of the annual plan
- * (yearly ÷ 12) because the /subscription page renders it as "$X/mo annual".
+ * (yearly ÷ 12) because the membership cards render it as "$X/mo annual".
  *
- * BUSINESS IS NOT A SUBSCRIBABLE CONSUMER TIER. Business accounts are
- * billed per-seat on the FOUR seat-plan tiers defined in
- * `supabase/functions/_shared/businessSeatTiers.ts` (Starter free · Crew
- * $20/mo · Team $30/mo · Enterprise $40/mo). The `business` entry below
- * carries `price: null` and `annualPrice: null` on purpose so any code that
- * reads them can never accidentally render a fictional "$50/mo Business"
- * price. The in-app Business product was REMOVED on 2026-08-25; this row
- * survives only as the fee-percent reference the ladder and the edge
- * functions still read.
+ * THE ONLY SURFACE THAT SELLS THESE IS `/profile?tab=subscription`
+ * (`SubscriptionTab` → `subscriptionTab/tierConfig.tsx`). This header, and
+ * several comments elsewhere in the codebase, used to describe a "public
+ * /subscription page" as a second storefront. There is no such route: `App.tsx`
+ * registers 47 paths and `/subscription` is not among them, and
+ * `SubscriptionPage.tsx` no longer exists. Verified 2026-09-01. The only
+ * survivor is a dead allow-list entry in `src/lib/desktopNavRoutes.ts`.
+ *
+ * THERE IS NO BUSINESS TIER. A `business` row used to sit at the bottom of
+ * this table at 6%, described as the fee reference for business accounts. It
+ * was removed on 2026-09-01 because nothing could reach it, in either
+ * direction:
+ *   • Nothing could SELL it — `create-pro-checkout`'s ALLOWED_TIERS is
+ *     ["basic","pro","elite"] and throws on anything else (verified live in
+ *     test mode: a `business` checkout returns an error, `basic`/`pro`/`elite`
+ *     return a session); `ProTierKey` is "basic"|"pro"|"elite"; no Stripe Price
+ *     maps to it; `_shared/PRODUCT_TO_TIER` maps no product to it; there is no
+ *     seat-checkout function.
+ *   • Nothing could HOLD it — the business backend (`businesses`,
+ *     `business_members`, the seat ladder) was dropped by migrations
+ *     20260828004538 / 20260828011811, and
+ *     `supabase/functions/_shared/businessSeatTiers.ts` — which several file
+ *     headers cited as the pricing authority — does not exist. A prod census
+ *     immediately before the removal found ZERO `profiles` rows holding
+ *     'business'; `profiles.subscription_tier` is the only column that stores
+ *     a tier, so nobody was re-rated.
+ *
+ * A stray 'business' string surviving somewhere resolves to the FREE rate (12%)
+ * through `toSubscriptionTier`, `tierFeePercent` and the edge
+ * `DEFAULT_TIER_FEE_PERCENT` — the safe direction: an unrecognised tier
+ * over-charges the user's account rather than under-charging the platform.
  *
  * The tier IDs align with the subscription_tier column on profiles
- * ("basic", "pro", "elite", "business"). "free" is the
- * default/null case. The commission ladder is five rungs:
- * free 12% → basic 11% → pro 10% → elite 8% → business 6%.
+ * ("basic", "pro", "elite"). "free" is the default/null case. The commission
+ * ladder is four rungs: free 12% → basic 11% → pro 10% → elite 8%.
  *
  * There is deliberately NO 9% rung. A "Plus" tier ($15/mo, 9%) shipped on
  * 2026-08-27 and was removed by the owner on 2026-08-28 — it was never wired
@@ -65,19 +85,27 @@ export { tierDisplayName };
  */
 export const ONE_TIME_PASS_DAYS = 30;
 
-export type SubscriptionTier = "free" | "basic" | "pro" | "elite" | "business";
+export type SubscriptionTier = "free" | "basic" | "pro" | "elite";
 
 export interface TierPerks {
   name: string;
   price: number | null;         // monthly USD, null = free
   annualPrice: number | null;   // annual plan's monthly-equivalent (yearly ÷ 12), null = free
-  platformFeePercent: number;   // % taken from helper payout — descends as price rises (free 12% → pro 10% → elite 8% → business 6%)
+  platformFeePercent: number;   // % taken from helper payout — descends as price rises (free 12% → basic 11% → pro 10% → elite 8%)
   priorityPlacement: boolean;   // application floated higher in poster's recommended list
   featuredBadge: boolean;       // gold/crown badge on profile and applicant cards
   earlyAccess: boolean;         // sees new jobs before non-subscribers (basic 5m / pro 10m / elite 20m)
   advancedAnalytics: boolean;   // earnings trends, category breakdown, best hours
-  multiTech: boolean;           // business: manage a team of technicians under one account
-  verifiedBusiness: boolean;    // business: verified entity badge surfaced to posters
+  // `multiTech` and `verifiedBusiness` were removed on 2026-09-01, ahead of the
+  // Business tier itself. Both were Business-only booleans describing features
+  // whose backends were deleted by migration
+  // 20260828004538_remove_business_seats_dead_backend: seat/team management has
+  // no UI and no edge function, and `is_user_verified_business_member()` was
+  // dropped along with the whole verification queue. Neither flag was ever read
+  // anywhere — a repo-wide grep found hits only in this file and its own
+  // `featureBullets` copy — so they were pure marketing description of things
+  // that do not exist. Do not reintroduce a perk flag before the feature that
+  // satisfies it.
   dedicatedSupport: boolean;    // priority support response SLA
   tagline: string;
   ctaLabel: string;
@@ -100,8 +128,6 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     featuredBadge: false,
     earlyAccess: false,
     advancedAnalytics: false,
-    multiTech: false,
-    verifiedBusiness: false,
     dedicatedSupport: false,
     tagline: "No commitment",
     ctaLabel: "Current Plan",
@@ -121,8 +147,6 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     // in earlyAccess.ts's tier switch.
     earlyAccess: true,
     advancedAnalytics: false,
-    multiTech: false,
-    verifiedBusiness: false,
     dedicatedSupport: false,
     tagline: "Faster payouts",
     ctaLabel: "Upgrade",
@@ -142,8 +166,6 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     featuredBadge: false,
     earlyAccess: true,
     advancedAnalytics: true,
-    multiTech: false,
-    verifiedBusiness: false,
     dedicatedSupport: false,
     tagline: "For serious earners",
     ctaLabel: "Upgrade",
@@ -169,8 +191,6 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
     featuredBadge: true,
     earlyAccess: true,
     advancedAnalytics: true,
-    multiTech: false,
-    verifiedBusiness: false,
     dedicatedSupport: true,
     tagline: "Maximum visibility",
     ctaLabel: "Upgrade",
@@ -188,34 +208,6 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
       // "every 6 months" cadence was also a bug on the Once 30-day pass,
       // which can never reach a 6-month window.
       "Reliability Shield — 1 strike",
-      "Priority Support",
-    ],
-  },
-  business: {
-    name: TIER_DISPLAY_NAMES.business,
-    // NOT a consumer subscription price. Business is billed per-seat
-    // (Starter free · Crew $20/mo · Team $30/mo · Enterprise $40/mo) —
-    // see supabase/functions/_shared/businessSeatTiers.ts. These stay
-    // null so no surface can accidentally render a fictional consumer
-    // "$50/mo Business" tier. platformFeePercent below is the real
-    // shared rate across all seat plans.
-    price: null,
-    annualPrice: null,
-    platformFeePercent: 6,
-    priorityPlacement: true,
-    featuredBadge: true,
-    earlyAccess: true,
-    advancedAnalytics: true,
-    multiTech: true,
-    verifiedBusiness: true,
-    dedicatedSupport: true,
-    tagline: "Teams and crews",
-    ctaLabel: "See Seat Plans",
-    featureBullets: [
-      "Manage a team of technicians",
-      "Verified Business badge",
-      "Priority Placement",
-      "Advanced Analytics",
       "Priority Support",
     ],
   },
@@ -252,7 +244,7 @@ export function getPaysSelfBack(
  * Unknown / null / empty → "free" (the safe default that never charges a
  * user for perks they didn't opt into). */
 export function toSubscriptionTier(raw: string | null | undefined): SubscriptionTier {
-  if (raw === "basic" || raw === "pro" || raw === "elite" || raw === "business") return raw;
+  if (raw === "basic" || raw === "pro" || raw === "elite") return raw;
   return "free";
 }
 
@@ -263,8 +255,9 @@ export function toSubscriptionTier(raw: string | null | undefined): Subscription
  * the edge payout resolver (`_shared/helperFees.ts` `getHelperFeePercent`) so the
  * commission the UI SHOWS a helper matches the fee their payout is actually
  * charged. The ladder is identical for poster and helper (free 12 / basic
- * 11 / pro 10 / elite 8 / business 6). Case is normalized so "PRO"
- * resolves like "pro".
+ * 11 / pro 10 / elite 8). Case is normalized so "PRO" resolves like "pro",
+ * and any value off the ladder — including a legacy "business" — falls to the
+ * free rate, which never under-charges.
  */
 export function tierFeePercent(
   rawTier: string | null | undefined,

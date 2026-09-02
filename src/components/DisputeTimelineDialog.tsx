@@ -16,8 +16,15 @@
  */
 import { useEffect, useState } from "react";
 import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
-import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHero,
+  DialogBody,
+  DialogFooter,
+  DialogSecondaryAction,
+  DialogPrimaryAction,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Upload, X, Clock, CheckCircle2, FileImage } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,6 +45,10 @@ interface DisputeRow {
   decided_by: string | null;
   decision_text: string | null;
   payout_split: { poster?: number; helper?: number } | null;
+  /** What the split ACTUALLY settled at, once execute-dispute-split ran. */
+  execution_status: string | null;
+  execution_helper_cents: number | null;
+  execution_refund_cents: number | null;
 }
 
 interface DisputeTimelineDialogProps {
@@ -83,7 +94,7 @@ export const DisputeTimelineDialog = ({
     (async () => {
       setLoading(true);
       const { data, error } = await (supabase.from as any)("disputes")
-        .select("id, job_id, opener_id, reason, evidence_urls, status, created_at, decided_at, decided_by, decision_text, payout_split")
+        .select("id, job_id, opener_id, reason, evidence_urls, status, created_at, decided_at, decided_by, decision_text, payout_split, execution_status, execution_helper_cents, execution_refund_cents")
         .eq("job_id", jobId)
         .order("created_at", { ascending: false })
         .limit(1)
@@ -135,20 +146,35 @@ export const DisputeTimelineDialog = ({
       const { data: authData } = await supabase.auth.getUser();
       const uid = authData?.user?.id;
       const newUrls: string[] = [];
+      let failedUploads = 0;
       for (const file of evidenceFiles) {
         const ext = file.name.split(".").pop();
         const path = `${uid}/disputes/${jobId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
         const { error: uploadError } = await supabase.storage.from("proof-photos").upload(path, file);
         if (uploadError) {
           report(uploadError, { tags: { source: "DisputeTimelineDialog.upload" } });
+          failedUploads += 1;
           continue;
         }
         const { data: urlData, error: signedUrlError } = await supabase.storage.from("proof-photos").createSignedUrl(path, 60 * 60 * 24 * 365);
         if (signedUrlError) {
           report(signedUrlError, { tags: { source: "DisputeTimelineDialog.createSignedUrl" } });
+          failedUploads += 1;
           continue;
         }
         if (urlData?.signedUrl) newUrls.push(urlData.signedUrl);
+        else failedUploads += 1;
+      }
+
+      // Fail LOUD on a partial upload — the same rule DisputeDialog already
+      // follows on the filing screen. This twin kept the old behaviour: it
+      // only threw when EVERY file failed, so 2-of-3 landing reported success
+      // and the photo that would have decided the dispute was never attached
+      // and never mentioned. Evidence is not a "best effort" payload.
+      if (failedUploads > 0) {
+        throw new Error(
+          `${failedUploads} of ${evidenceFiles.length} photo${evidenceFiles.length === 1 ? "" : "s"} didn't upload. Nothing was attached — try again, your evidence matters here.`,
+        );
       }
 
       if (newUrls.length === 0) {
@@ -156,7 +182,20 @@ export const DisputeTimelineDialog = ({
       }
 
       if (dispute) {
-        const merged = [...(dispute.evidence_urls || []), ...newUrls];
+        // Re-read the array immediately before merging. This UPDATE sends the
+        // WHOLE array, so it is last-write-wins: merging onto the copy loaded
+        // when the dialog opened would silently DELETE anything added since —
+        // including, once both sides can file, the other party's evidence.
+        const { data: fresh, error: freshErr } = await (supabase.from as any)("disputes")
+          .select("evidence_urls")
+          .eq("id", dispute.id)
+          .maybeSingle();
+        if (freshErr) {
+          report(freshErr, { tags: { source: "DisputeTimelineDialog.reReadEvidence" } });
+          throw new Error("Couldn't attach your evidence — try again?");
+        }
+        const existingUrls: string[] = (fresh?.evidence_urls as string[] | null) ?? dispute.evidence_urls ?? [];
+        const merged = [...existingUrls, ...newUrls];
         // .select("id"): evidence that silently fails to attach is evidence
         // the admin deciding this dispute never sees, while the uploader was
         // told it landed.
@@ -191,6 +230,9 @@ export const DisputeTimelineDialog = ({
       }
 
       hapticSuccess();
+      toast.success(
+        `${newUrls.length} photo${newUrls.length === 1 ? "" : "s"} attached to the dispute.`,
+      );
       setEvidenceFiles([]);
       onUpdated();
     } catch (err: unknown) {
@@ -212,7 +254,27 @@ export const DisputeTimelineDialog = ({
   const decisionText = dispute?.decision_text ?? null;
   const payoutSplit = dispute?.payout_split ?? null;
   const isOpener = openerId === userId;
-  const canAddEvidence = (dispute?.status ?? "open") === "open";
+  // Who may actually attach evidence, per the ONLY UPDATE policy on
+  // `disputes`: `USING (auth.uid() = opener_id AND status = 'open')`
+  // (20260609140000). This used to test the status alone, so the accused
+  // party was shown "Add follow-up evidence", let them pick files, uploaded
+  // them to storage — and then the UPDATE matched zero rows and they were
+  // told "the dispute may have already been decided", which is not what
+  // happened. A control nobody can use is worse than no control: it reads as
+  // a right to reply that is not there.
+  //
+  // The legacy path (no formal `disputes` row yet, evidence lives on
+  // `jobs.dispute_evidence_urls`) is governed by the job-party policy
+  // instead, so it is left open to both sides.
+  const canAddEvidence = dispute
+    ? dispute.status === "open" && isOpener
+    : true;
+  // The counterparty's real channel, so the dialog explains rather than
+  // just going quiet on them.
+  const blockedFromEvidence = !!dispute && dispute.status === "open" && !isOpener;
+
+  const usd = (cents: number) =>
+    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
 
   const eyebrowCls = "text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground";
 
@@ -224,7 +286,7 @@ export const DisputeTimelineDialog = ({
         />
 
         {loading ? (
-          <p className="text-sm text-muted-foreground">Loading…</p>
+          <DialogBody><p>Loading…</p></DialogBody>
         ) : (
           <div className="space-y-3">
             {/* Created */}
@@ -297,7 +359,42 @@ export const DisputeTimelineDialog = ({
                     Helpr <span className="tabular-nums font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>{Math.round((payoutSplit.helper ?? 0) * 100)}%</span>
                   </p>
                 )}
+                {/* THE AMOUNTS, not just the percentages. This is the screen
+                    where each party finds out what a dispute over their money
+                    actually cost them, and it was quoting a ratio and nothing
+                    else — "poster 50% · Helpr 50%" of an escrow neither side
+                    is shown anywhere on this dialog. These are the settled
+                    figures execute-dispute-split stamped, so they are what
+                    moved, not a recomputation. */}
+                {dispute?.execution_status === "executed" &&
+                  (dispute.execution_helper_cents != null || dispute.execution_refund_cents != null) && (
+                    <p className="font-sans text-ds-11 mt-1" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
+                      Settled: poster{" "}
+                      <span className="tabular-nums font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
+                        {usd(dispute.execution_refund_cents ?? 0)}
+                      </span>
+                      {" · "}
+                      Helpr{" "}
+                      <span className="tabular-nums font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
+                        {usd(dispute.execution_helper_cents ?? 0)}
+                      </span>
+                    </p>
+                  )}
               </div>
+            )}
+
+            {/* The other party can't attach here — say so, and point at the
+                channel that does work, instead of silently rendering nothing
+                where the filer sees an uploader. */}
+            {blockedFromEvidence && (
+              <p
+                className="font-serif italic text-ds-12 pt-1"
+                style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+              >
+                Only the person who filed can add evidence here. Your side of it
+                goes in the response box on this job's card, and an admin reads
+                both before deciding.
+              </p>
             )}
 
             {/* Follow-up evidence uploader */}
@@ -344,24 +441,21 @@ export const DisputeTimelineDialog = ({
         )}
 
         <DialogFooter>
-          <Button variant="ghost" onClick={onClose} className="rounded-ds-md">
+          {/* `outline`: the Upload button beside it is conditional, so most of
+              the time this is the footer's only control. */}
+          <DialogSecondaryAction onClick={onClose}>
             Close
-          </Button>
+          </DialogSecondaryAction>
+          {/* Uploading follow-up evidence adds to the record — it removes
+              nothing and penalises nobody — so this is the ordinary glossy
+              primary, not the destructive treatment it was wearing. */}
           {canAddEvidence && evidenceFiles.length > 0 && (
-            <Button
+            <DialogPrimaryAction
               onClick={handleSubmit}
               disabled={submitting}
-              className="rounded-ds-md"
-              style={{
-                background: "hsl(var(--burnt-sienna))",
-                backgroundImage: "none",
-                border: "1px solid hsl(var(--burnt-sienna))",
-                color: "hsl(var(--parchment))",
-                boxShadow: "var(--elev-sienna-raised)",
-              }}
             >
               {submitting ? "Uploading…" : `Upload ${evidenceFiles.length} File${evidenceFiles.length === 1 ? "" : "s"}`}
-            </Button>
+            </DialogPrimaryAction>
           )}
         </DialogFooter>
       </DialogContent>

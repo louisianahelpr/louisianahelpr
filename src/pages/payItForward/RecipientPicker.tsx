@@ -18,7 +18,7 @@ import { useEffect, useRef, useState } from "react";
 import { Search, X as XIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
-import { OptimizedImage } from "@/components/ui/optimized-image";
+import UserAvatar from "@/components/UserAvatar";
 import { formatName } from "@/lib/utils";
 import { report } from "@/lib/errorLogger";
 
@@ -36,14 +36,10 @@ const SEARCH_DEBOUNCE_MS = 300;
 // would just churn the RPC for no possible hit.
 const LOOKS_EMAIL_ISH = /[@]/;
 
-function initialsFrom(name: string | null): string {
-  const trimmed = (name ?? "").trim();
-  if (!trimmed) return "?";
-  const parts = trimmed.split(/\s+/);
-  const first = parts[0]?.[0] ?? "";
-  const last = parts.length > 1 ? parts[parts.length - 1]?.[0] ?? "" : "";
-  return (first + last).toUpperCase() || "?";
-}
+// `initialsFrom` used to live here. It is now `avatarInitials` inside
+// `<UserAvatar>` (`src/lib/avatarImage.ts`), which every avatar surface in the
+// app shares — and which additionally rejects a photo that loads fine but
+// contains nothing, the case this picker could not see at all.
 
 interface RecipientPickerProps {
   /** Currently selected search result, or null if none / an email is typed instead. */
@@ -163,22 +159,23 @@ export function RecipientPicker({
             border: "1px solid hsl(var(--bark) / 0.30)",
           }}
         >
-          <div
-            className="w-7 h-7 shrink-0 rounded-full flex items-center justify-center overflow-hidden font-sans text-ds-11 font-semibold"
-            style={{ background: "hsl(var(--bark) / 0.20)", color: "hsl(var(--bark))" }}
-          >
-            {selected.avatar_url ? (
-              <OptimizedImage
-                src={selected.avatar_url}
-                alt=""
-                className="w-full h-full object-cover"
-                width={28}
-                height={28}
-              />
-            ) : (
-              initialsFrom(selected.full_name)
-            )}
-          </div>
+          {/* Migrated onto the shared `<UserAvatar>` (2026-08-31). The sender
+              is confirming WHO is about to receive money — a blank tinted
+              circle here is the one place in the app where a mistaken identity
+              costs cash. The previous markup showed the photo whenever
+              `avatar_url` was non-null and fell back to initials only when it
+              was null, so every blank-but-200 avatar on prod (a flat block, a
+              DiceBear frame, a `?d=mp` gravatar) rendered as an empty circle
+              and the initials were unreachable. See `src/lib/avatarImage.ts`. */}
+          <UserAvatar
+            userId={selected.user_id}
+            src={selected.avatar_url}
+            name={selected.full_name}
+            pixelSize={28}
+            aria-hidden
+            className="w-7 h-7 shrink-0"
+            fallbackClassName="text-ds-11 ring-0"
+          />
           <p className="flex-1 font-sans text-ds-13 font-semibold truncate" style={{ color: "hsl(var(--ink-deep))" }}>
             {formatName(selected.full_name)}
           </p>
@@ -205,14 +202,20 @@ export function RecipientPicker({
             onChange={(e) => setText(e.target.value)}
             placeholder="Name or email address…"
             aria-label="Recipient — name or email"
-            className="w-full rounded-ds-sm py-2 pl-9 pr-3 text-ds-13 font-sans"
+            // min-h-11 is the 44px HIG tap target. The global floor in
+            // index.css only covers <button>/[role=button], so this field
+            // measured 37px tall — the one control on the screen under the
+            // minimum, and the first one anybody touches.
+            className="w-full min-h-11 rounded-ds-sm py-2 pl-9 pr-3 text-ds-13 font-sans"
             style={{
               background: "hsl(var(--parchment) / 0.6)",
               border: `0.5px solid hsl(var(--bark) / ${
                 looksLikeEmail && trimmed && !emailValid ? "0.4" : "0.22"
               })`,
               color: "hsl(var(--ink-deep))",
-              outline: "none",
+              // No `outline: "none"` — an inline one beats the global
+              // `:focus-visible` rule and left this field with no visible
+              // keyboard focus.
             }}
           />
 
@@ -267,22 +270,22 @@ export function RecipientPicker({
                         className="w-full flex items-center gap-2.5 py-2 px-3 text-left transition-colors"
                         style={{ background: "hsl(var(--parchment) / 0.5)" }}
                       >
-                        <div
-                          className="w-7 h-7 shrink-0 rounded-full flex items-center justify-center overflow-hidden font-sans text-ds-11 font-semibold"
-                          style={{ background: "hsl(var(--bark) / 0.15)", color: "hsl(var(--bark))" }}
-                        >
-                          {r.avatar_url ? (
-                            <OptimizedImage
-                              src={r.avatar_url}
-                              alt=""
-                              className="w-full h-full object-cover"
-                              width={28}
-                              height={28}
-                            />
-                          ) : (
-                            initialsFrom(r.full_name)
-                          )}
-                        </div>
+                        {/* Same migration as the selected-recipient chip
+                            above — and it matters more here: this is the list
+                            the sender picks FROM, so several rows rendering as
+                            identical blank circles is what makes choosing the
+                            wrong person possible. The hashed gradient is
+                            seeded from `user_id`, so two different people
+                            never collapse into the same block. */}
+                        <UserAvatar
+                          userId={r.user_id}
+                          src={r.avatar_url}
+                          name={r.full_name}
+                          pixelSize={28}
+                          aria-hidden
+                          className="w-7 h-7 shrink-0"
+                          fallbackClassName="text-ds-11 ring-0"
+                        />
                         <p className="font-sans text-ds-13" style={{ color: "hsl(var(--ink-deep))" }}>
                           {formatName(r.full_name)}
                         </p>

@@ -31,6 +31,18 @@ export interface StripeMock {
   };
   paymentIntents: {
     retrieve: ReturnType<typeof vi.fn>;
+    /**
+     * Off-session charge creation. auto-tip-charge is the only caller — it
+     * confirms a saved card with no user present — and without this the whole
+     * successful-charge path of that function was unreachable in tests: the
+     * missing property threw inside the function's own try/catch, so every
+     * scenario silently took the `giveUp()` decline branch instead.
+     */
+    create: ReturnType<typeof vi.fn>;
+  };
+  /** Saved-card lookup — what makes an off-session auto-tip possible at all. */
+  paymentMethods: {
+    list: ReturnType<typeof vi.fn>;
   };
   refunds: {
     create: ReturnType<typeof vi.fn>;
@@ -40,6 +52,16 @@ export interface StripeMock {
   };
   transfers: {
     create: ReturnType<typeof vi.fn>;
+    /**
+     * Prior-transfer lookup. `execute-dispute-split` asks Stripe directly on a
+     * RESUME whether it already paid the Helpr, because the `payout_transfers`
+     * ledger is exactly the record that can be missing (transfer succeeded,
+     * ledger write failed) and Stripe's idempotency key stops protecting
+     * anything after ~24h. Defaults to "no prior transfers".
+     */
+    list: ReturnType<typeof vi.fn>;
+    /** Verifies a transfer id stamped on the dispute row actually exists. */
+    retrieve: ReturnType<typeof vi.fn>;
   };
   accounts: {
     retrieve: ReturnType<typeof vi.fn>;
@@ -49,6 +71,19 @@ export interface StripeMock {
   };
   subscriptions: {
     retrieve: ReturnType<typeof vi.fn>;
+    /**
+     * Subscription lookup by customer. Needed by every function that has to
+     * decide "does this email actually hold a membership?" —
+     * check-pro-subscription, create-pro-checkout and pro-customer-portal all
+     * loop it over EVERY customer record for the address, because one person
+     * routinely holds more than one Stripe customer on one email and `list()`
+     * returns an arbitrary one. Defaults to "no subscriptions".
+     */
+    list: ReturnType<typeof vi.fn>;
+  };
+  /** Billing Portal — the app's only self-serve cancel/switch/update-card path. */
+  billingPortal: {
+    sessions: { create: ReturnType<typeof vi.fn> };
   };
   webhooks: {
     constructEventAsync: ReturnType<typeof vi.fn>;
@@ -85,6 +120,10 @@ export const stripeMock: StripeMock = {
   },
   paymentIntents: {
     retrieve: vi.fn(),
+    create: vi.fn(),
+  },
+  paymentMethods: {
+    list: vi.fn(),
   },
   refunds: {
     create: vi.fn(),
@@ -94,6 +133,10 @@ export const stripeMock: StripeMock = {
   },
   transfers: {
     create: vi.fn(),
+    // Default to "no prior transfers" so a first attempt — and any resume in a
+    // test that isn't exercising recovery — proceeds to create one.
+    list: vi.fn().mockResolvedValue({ data: [] }),
+    retrieve: vi.fn(),
   },
   accounts: {
     retrieve: vi.fn(),
@@ -103,6 +146,14 @@ export const stripeMock: StripeMock = {
   },
   subscriptions: {
     retrieve: vi.fn(),
+    // Default to "this customer has no subscriptions" so a test that only
+    // cares about the customer-selection loop doesn't have to stub every call.
+    list: vi.fn().mockResolvedValue({ data: [] }),
+  },
+  billingPortal: {
+    sessions: {
+      create: vi.fn().mockResolvedValue({ url: "https://billing.stripe.test/session" }),
+    },
   },
   webhooks: {
     constructEventAsync: vi.fn(),
@@ -123,11 +174,13 @@ export function resetStripeMock() {
     stripeMock.customers,
     stripeMock.checkout.sessions,
     stripeMock.paymentIntents,
+    stripeMock.paymentMethods,
     stripeMock.refunds,
     stripeMock.transfers,
     stripeMock.accounts,
     stripeMock.charges,
     stripeMock.subscriptions,
+    stripeMock.billingPortal.sessions,
     stripeMock.webhooks,
     stripeMock.identity.verificationSessions,
   ]) {
@@ -141,6 +194,17 @@ export function resetStripeMock() {
   // A default of "no prior refunds" keeps the sequence at 0; tests exercising a
   // repeat partial override it per-case.
   stripeMock.refunds.list.mockResolvedValue({ data: [] });
+  // Same reasoning for the two defaults added alongside: `subscriptions.list`
+  // is awaited for `.data` inside the customer-selection loop, so an unset mock
+  // throws before the branch under test is reached.
+  stripeMock.subscriptions.list.mockResolvedValue({ data: [] });
+  stripeMock.billingPortal.sessions.create.mockResolvedValue({
+    url: "https://billing.stripe.test/session",
+  });
+  // Same reasoning for the transfer leg: execute-dispute-split awaits `.data`
+  // on a resume, and a reset mock returning undefined would make every resume
+  // fail closed with "could not verify prior transfers".
+  stripeMock.transfers.list.mockResolvedValue({ data: [] });
 }
 
 /**

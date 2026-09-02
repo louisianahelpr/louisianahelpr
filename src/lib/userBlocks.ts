@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
+import { unwrapMutation, isWriteRejected } from "@/lib/mutationResult";
 
 /**
  * Returns the set of user IDs that the current user has blocked,
@@ -95,11 +96,36 @@ export async function blockUser(
   return { ok: true, cancelledJobIds: settled.map((s) => s.job_id), settled };
 }
 
+/**
+ * Lift a block. Returns false — and reports — unless a row actually went away.
+ *
+ * The `.select("id")` is load-bearing. A DELETE matching zero rows is
+ * `{ data: [], error: null }`, so `return !error` reported SUCCESS for a delete
+ * RLS refused, or one whose ids no longer matched. For a harassment control
+ * that is wrong in both directions at once: the caller drops the person off the
+ * blocked list and tells the user they are reconnected, while the block is
+ * still in force on the server and every list keeps filtering them out. Unlike
+ * the `getBlockedUserIds` read above, there is no fail-closed reading of a
+ * silent no-op here — it has to be observed.
+ */
 export async function unblockUser(blockerId: string, blockedId: string): Promise<boolean> {
-  const { error } = await supabase
-    .from("user_blocks")
-    .delete()
-    .eq("blocker_id", blockerId)
-    .eq("blocked_id", blockedId);
-  return !error;
+  try {
+    unwrapMutation(
+      await supabase
+        .from("user_blocks")
+        .delete()
+        .eq("blocker_id", blockerId)
+        .eq("blocked_id", blockedId)
+        .select("id"),
+      { action: "unblock this person", context: { blockerId, blockedId } },
+    );
+    return true;
+  } catch (err) {
+    // unwrapMutation already reported the zero-row rejection; this covers the
+    // transport / RLS error that unwrap() rethrows unreported.
+    if (!isWriteRejected(err)) {
+      report(err, { severity: "warning", tags: { source: "userBlocks.unblockUser" } });
+    }
+    return false;
+  }
 }

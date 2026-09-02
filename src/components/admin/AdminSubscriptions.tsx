@@ -8,6 +8,7 @@ import { tierDisplayName } from "@/lib/subscriptionTiers";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 import { formatShortDate } from "@/lib/format";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 
@@ -23,7 +24,7 @@ const AdminSubscriptions = () => {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "active" | "expired">("all");
 
-  const { data: allProfiles, isInitialLoading } = useInstantQuery<SubscribedProfile[]>({
+  const { data: allProfiles, isInitialLoading, isError, refetch } = useInstantQuery<SubscribedProfile[]>({
     key: ["admin-subscriptions"],
     fallback: [],
     fetcher: async () => {
@@ -80,7 +81,11 @@ const AdminSubscriptions = () => {
     switch (tier) {
       // intentional: Elite tier is a brand/premium gold chip, not a
       // semantic status tone — see AdminHelperTiers for the same rule.
-      case "elite": return "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400";
+      // yellow-800, not yellow-700: on the 10% yellow ground this chip
+      // measured 4.43:1 (axe, /admin?view=subscriptions, all four
+      // breakpoints) — just under the 4.5:1 AA floor at 10px regular.
+      // yellow-800 keeps the gold read and clears AA.
+      case "elite": return "bg-yellow-500/10 text-yellow-800 dark:text-yellow-400";
       case "pro": return "bg-primary/10 text-primary";
       case "basic": return "bg-secondary text-secondary-foreground";
       default: return "bg-muted text-muted-foreground";
@@ -182,7 +187,19 @@ const AdminSubscriptions = () => {
             </div>
           );
         })}
-        {filtered.length === 0 && (
+        {/* isError FIRST. The fetcher unwrap()s, so a failed read throws into
+            React Query — but nothing read isError, so `filtered.length === 0`
+            won, and an outage rendered "No subscriptions found" on the screen
+            that reports paid revenue. */}
+        {isError ? (
+          <ErrorState
+            surfaceStyle={NESTED_EMPTY_SURFACE}
+            variant="inline"
+            title="We couldn't load the subscriber list."
+            body="Tap Try again. The counts above are from the same failed read — don't quote them."
+            onRetry={() => refetch()}
+          />
+        ) : filtered.length === 0 ? (
           <EmptyState
             surfaceStyle={NESTED_EMPTY_SURFACE}
             variant="inline"
@@ -190,7 +207,7 @@ const AdminSubscriptions = () => {
             title="No subscriptions found"
             body="Nothing matches the current filter."
           />
-        )}
+        ) : null}
       </div>
       </AdminCard>
     </AdminViewShell>

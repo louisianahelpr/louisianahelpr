@@ -10,6 +10,7 @@ import { fireSuccessMoment } from "@/lib/successMoment";
 import type { usePushPermissionNudge } from "@/lib/pushPermissionNudge";
 import type { useStripeConnectCheck } from "@/hooks/useStripeConnectCheck";
 import { awardBlockFromError, posterAwardBlockMessage, type AwardBlockReason } from "@/lib/awardGate";
+import { postedActivityBucket } from "@/pages/activity/activityFilters";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import type {
   Job,
@@ -92,11 +93,39 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
     // decline in the other, leaving the job `accepted` with helper_id set while
     // that same application read `rejected` — two views of one deal disagreeing.
     // A zero-row result now means "already resolved elsewhere", not a failure.
-    const { error } = await supabase
-      .from("applications")
-      .update({ status: "rejected" })
-      .eq("id", app.id)
-      .eq("status", "pending");
+    // The reason rides ALONG WITH the status flip, not in a second
+    // notification afterwards. notify_on_application() reads
+    // NEW.decline_reason in the same statement and folds it into the ONE
+    // notification it writes — this used to be a separate createNotification
+    // call, which is why declining produced two notifications, one of them
+    // with `link: null` (nothing to tap).
+    const declineNote = note.trim();
+    const declineUpdate = async (withReason: boolean) =>
+      supabase
+        .from("applications")
+        .update(
+          (withReason && declineNote
+            ? { status: "rejected", decline_reason: declineNote }
+            : { status: "rejected" }) as never,
+        )
+        .eq("id", app.id)
+        .eq("status", "pending");
+
+    let { error } = await declineUpdate(true);
+    // applications.decline_reason ships in migration 20260831203052. Between
+    // merge and `supabase db push` the column isn't there yet, so retry
+    // without it and keep the legacy client-side notification for that window
+    // only — otherwise the poster's reason would silently vanish.
+    let columnMissing = false;
+    if (
+      error &&
+      (String(error.code) === "PGRST204" ||
+        String(error.code) === "42703" ||
+        /decline_reason/i.test(String(error.message ?? "")))
+    ) {
+      columnMissing = true;
+      ({ error } = await declineUpdate(false));
+    }
     if (error) {
       hapticError();
       toast.error("Couldn't decline that applicant — please try again.");
@@ -116,7 +145,11 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
       }
       return updated;
     });
-    if (note.trim()) {
+    // Deploy-lag fallback ONLY. On a database that already has
+    // decline_reason, notify_on_application() has just written the single
+    // notification (with the reason and a working link) and this is skipped —
+    // sending here too is exactly the duplicate this change removes.
+    if (columnMissing && declineNote) {
       // Fetch the poster's first name from their profile for the message.
       const posterFirstName = user
         ? await supabase
@@ -129,8 +162,16 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
       await createNotification({
         user_id: app.helper_id,
         title: "Application declined",
-        message: `${posterFirstName} declined your application for "${jobTitle}": ${note.trim()}`,
+        message: `${posterFirstName} declined your application for "${jobTitle}": ${declineNote}`,
         type: "info",
+        // `?job=`, not `?filter=cancelled`. `cancelled` IS a live chip and a
+        // declined application looks terminal — but it is not: a later direct
+        // offer for the same job promotes the SAME applications row back to
+        // `accepted` (respond_to_direct_offer, ON CONFLICT DO UPDATE), and the
+        // card moves out of Cancelled while this notification is still unread.
+        // Kept in lockstep with notify_on_application(), which is the primary
+        // producer for this event and now writes the same shape.
+        link: `/my-jobs?job=${app.job_id}`,
       });
     }
   };
@@ -274,7 +315,13 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
         );
       }
     }
-    await createNotification({ user_id: deadlineDialogApp.helper_id, title: "📋 New job offer!", message: `You've been selected for "${selectedJob.title}". Respond within ${deadlineHours} hour${deadlineHours > 1 ? "s" : ""} or the offer expires.`, type: "info", link: "/my-jobs?filter=offered" });
+    // `?job=`, not `?filter=offered`: `offered` is a legacy filter key with no
+    // chip in the five-bucket strip, so the helper landed on a filtered list
+    // with nothing selected — 33 such rows in prod. The applications row was
+    // just set to `accepted` above, so `?job=` resolves against it and Activity
+    // both selects the live bucket ("Needs you", since the offer is being held
+    // for them) and pulses the card.
+    await createNotification({ user_id: deadlineDialogApp.helper_id, title: "📋 New job offer!", message: `You've been selected for "${selectedJob.title}". Respond within ${deadlineHours} hour${deadlineHours > 1 ? "s" : ""} or the offer expires.`, type: "info", link: `/my-jobs?job=${selectedJob.id}` });
     // Success moment — the poster just hired an applicant. hapticSuccess is
     // a result haptic (fires even under Reduce Motion); the overlay itself
     // self-respects reduced motion (static check, no draw-in).
@@ -285,7 +332,20 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
     setApplications([]);
     setInlineApplicants(prev => { const copy = { ...prev }; delete copy[selectedJob.id]; return copy; });
     await refresh();
-    setStatusFilter("offered");
+    // The poster's OWN view after hiring. Same defect as the links above:
+    // "offered" is a legacy key with no chip, so this left the strip with
+    // nothing selected on the one screen the poster was just sent to. Ask the
+    // single source of truth for the bucket the job is actually in now
+    // (accepted + unconfirmed → "Waiting", or "Needs you" if its day has
+    // already passed) instead of naming one.
+    setStatusFilter(
+      postedActivityBucket({
+        status: "accepted",
+        helper_id: deadlineDialogApp.helper_id,
+        helper_confirmed_at: null,
+        date_needed: selectedJob.date_needed,
+      }),
+    );
   };
 
   /**
@@ -639,7 +699,7 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
           report(adminRolesErr, { severity: "warning", tags: { source: "useOfferHandlers.declineAdminFanout" } });
         }
         for (const admin of adminRoles ?? []) {
-          await createNotification({ user_id: admin.user_id, title: "⚠️ Helpr declined job offer", message: `Helpr declined offer (${priorCount + 1} total). Action: ${actionTaken}.`, type: "warning", link: "/admin" });
+          await createNotification({ user_id: admin.user_id, title: "⚠️ Helpr declined job offer", message: `Helpr declined offer (${priorCount + 1} total). Action: ${actionTaken}.`, type: "warning", link: "/admin", job_id: app.job_id });
         }
       }
       refresh();

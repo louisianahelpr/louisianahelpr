@@ -2,10 +2,10 @@
 // at checkout, for the Deno edge runtime.
 //
 // The poster's own subscription tier sets the service-fee percentage, using the
-// SAME 12 / 11 / 10 / 8 / 6 ladder as the helper-side commission (a Business
-// account pays 6% on both sides). We reuse `feePercentForTier` from
-// `helperFees.ts` so there is exactly one fee ladder in the edge runtime and
-// one parity test (`src/lib/helperFees.parity.test.ts`) guarding it against
+// SAME 12 / 11 / 10 / 8 ladder as the helper-side commission — one user, one
+// tier, one percent. We reuse `feePercentForTier` from `helperFees.ts` so there
+// is exactly one fee ladder in the edge runtime and one parity test
+// (`src/lib/helperFees.parity.test.ts`) guarding it against
 // `subscriptionTiers.ts`.
 //
 // Unlike the helper commission (resolved at PAYOUT because no helper is assigned
@@ -27,16 +27,21 @@ import { STRIPE_FLAT_CENTS, STRIPE_PCT, stripeProcessingCostCents } from "./stri
 
 /**
  * Resolve the poster's service-fee percent from their raw `subscription_tier`
- * and `subscription_expires_at`. An expired paid tier reverts to the free rate
- * even if the `expire-subscriptions` cron hasn't nulled the column yet, so a
- * lapsed Pro poster is never charged the discounted rate.
+ * and `subscription_expires_at`.
+ *
+ * PRODUCT RULE: one user, one tier, one percent — the same person must be
+ * charged the same percentage whether they are posting or helping. So this is a
+ * pure alias for the shared resolver, not a second implementation: it used to
+ * hold its own copy of the expiry comparison, which is exactly the kind of
+ * duplicated input handling that lets the two roles drift apart even while they
+ * share one fee table. `src/lib/roleFeeParity.test.ts` pins poster === helper
+ * for every tier, expired and unexpired.
  */
 export function posterFeePercentForTier(
   rawTier: string | null | undefined,
   expiresAt?: string | null,
 ): number {
-  const expired = expiresAt ? new Date(expiresAt).getTime() < Date.now() : false;
-  return feePercentForTier(expired ? "free" : rawTier);
+  return feePercentForTier(rawTier, expiresAt);
 }
 
 /**
@@ -47,7 +52,7 @@ export function posterFeePercentForTier(
  * loss on fees for a tiny job.
  *
  * @param budgetCents        job budget in cents (the taxable/escrowed amount)
- * @param feePercent         the poster's resolved tier fee percent (12/11/10/8/6)
+ * @param feePercent         the poster's resolved tier fee percent (12/11/10/8)
  * @param otherChargeCents   sum of every OTHER charged line item, in cents
  */
 export function posterServiceFeeCents(

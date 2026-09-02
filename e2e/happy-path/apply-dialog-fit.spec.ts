@@ -258,7 +258,10 @@ for (const { name, width, job } of [
     for (const action of m.actions) {
       expect(action.inViewport, `${action.text} is off screen: ${JSON.stringify(action)}`).toBe(true);
       expect(action.labelTruncated, `${action.text} label is clipped`).toBe(false);
-      expect(action.height).toBeGreaterThanOrEqual(44);
+      expect(
+        action.height,
+        `${action.text} tap target is under 44px: ${JSON.stringify(action)}`,
+      ).toBeGreaterThanOrEqual(44);
       // The corner Close is frame chrome and sits in the padding gutter by
       // design (right-3); only the footer action must stay inside the content
       // box. Both must still be on screen and ≥44px, asserted above.

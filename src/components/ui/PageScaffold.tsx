@@ -182,5 +182,3 @@ export function PageScaffold({
     </AppShell>
   );
 }
-
-export default PageScaffold;

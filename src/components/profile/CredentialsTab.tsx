@@ -453,19 +453,41 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
           <Switch
             id={toggleId}
             checked={on}
-            onCheckedChange={(v) => {
-              if (v) {
-                patchCache(kind === "license" ? { is_licensed: true } : { is_insured: true });
-                return;
-              }
-              if (drafts[kind]) discardDraft(kind);
-              if (url) {
+            onCheckedChange={async (v) => {
+              // These used to call patchCache() and return — a CACHE-ONLY
+              // write, with no Supabase update on either branch. Flipping the
+              // switch showed "on", and because the React Query cache is
+              // persisted it still showed "on" after a hard reload, while
+              // `profiles.is_licensed` stayed false forever. A silent no-op on
+              // a TRUST control: the poster-facing badge is driven by this
+              // column, so a helper could believe they had declared a licence
+              // that no one would ever see. No toast, no error, nothing.
+              //
+              // Now writes first and patches the cache from the result, using
+              // the same unwrapMutation guard the two upload paths in this
+              // file already use — a zero-row update returns error === null,
+              // which is exactly how this would regress unnoticed again.
+              if (drafts[kind] && !v) discardDraft(kind);
+              if (!v && url) {
                 // Something is already with the reviewers — confirm before
                 // pulling it back. The toggle stays on until they say yes.
                 setPullBack(kind);
                 return;
               }
-              patchCache(kind === "license" ? { is_licensed: false } : { is_insured: false });
+              const patch = kind === "license" ? { is_licensed: v } : { is_insured: v };
+              try {
+                unwrapMutation(
+                  await supabase.from("profiles").update(patch).eq("user_id", userId).select("user_id"),
+                  {
+                    action: v ? "save that declaration" : "clear that declaration",
+                    rejectedMessage: "That didn't save — please try again.",
+                    context: { userId, kind },
+                  },
+                );
+                patchCache(patch);
+              } catch (err) {
+                toast.error(mutationErrorMessage(err, "That didn't save — please try again."));
+              }
             }}
           />
         </div>

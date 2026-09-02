@@ -194,5 +194,3 @@ export function AppleMapPreview({ street, city, state, zipCode }: AppleMapPrevie
     />
   );
 }
-
-export default AppleMapPreview;

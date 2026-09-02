@@ -9,8 +9,19 @@ You are auditing **Louisiana Helpr** for ship-readiness. This is a **Capacitor a
 the entire UI/logic is **React 18 + TS + Vite in `src/`**, built to `dist/` and shipped
 inside an iOS/Android shell; the same code runs as the web app at louisianahelpr.com.
 Backend is **Supabase** (Postgres, RPCs, edge functions in `supabase/functions/`);
-payments are **Stripe Connect (escrow)**. There is **no meaningful native code** — do not
-audit for SwiftUI. Build target: App Store Connect v1.0.x, `appId: com.Helpr`.
+payments are **Stripe Connect (escrow)**. Do not audit for SwiftUI patterns — there are
+none. Build target: App Store Connect v1.0.x, `appId: com.Helpr`.
+
+**But `ios/App/App/AppDelegate.swift` is NOT out of scope, and "it's stock boilerplate"
+is not a reason to skip it.** This file used to say there was no meaningful native code,
+and that sentence is why push notifications were broken for the entire life of the
+project without anyone looking: Capacitor's `PushNotificationsPlugin` observes
+`.capacitorDidRegisterForRemoteNotifications`, that notification is *declared* by the
+framework but **posted from nowhere**, and the host app must post it from
+`didRegisterForRemoteNotificationsWithDeviceToken`. Stock boilerplate does not, so iOS
+handed the app a valid APNs token on every launch and it was dropped on the floor —
+unfillable `push_tokens`, no error, no log. If a native capability appears dead in a way
+no amount of TypeScript explains, read the AppDelegate.
 
 **Mission:** find anything that is a launch risk — broken, insecure, money-unsafe,
 privacy-leaking, half-finished, or App-Store-gating — and **grade each finding by severity**.
@@ -76,6 +87,23 @@ table; Phase 0 screen inventory; severity-grouped consolidated findings (each wi
 fix); scorecards (money-path + per-screen, 1–5); a prioritized punch list (must-fix-before-build /
 quick wins / deferred); and an explicit **coverage-honesty** note on what was not fully traced.
 
-Per repo rules: branch + PR, never commit to `main`; if a finding's fix needs a migration, apply it
-to prod surgically via MCP `apply_migration` (never blind `db push`), keep it replay-safe, and never
-let prod lag the repo. End commits with the required `Co-Authored-By` trailer.
+## Repo rules that apply to this command (CLAUDE.md is the source of truth)
+
+These two used to say the opposite of `CLAUDE.md`. `CLAUDE.md` wins — corrected here:
+
+- **Commit directly to `main`.** No branch/PR ceremony. Run `npm run typecheck` locally (plus
+  `npx vitest run` when touching tested code); lint/build/full-suite run in CI (`husky
+  pre-commit` + `.github/workflows/test.yml`). Still run the review agents (`code-reviewer`,
+  `silent-failure-hunter`, `security-auditor`) against the working diff before committing
+  money/auth/data-model changes — there is no PR gate to catch it otherwise.
+- **NEVER apply a migration to prod via MCP `apply_migration`.** It records the current time as
+  `schema_migrations.version` instead of the file's prefix, which poisons the ledger and breaks
+  automated deploys (it cost a full ledger repair once already). If a finding's fix needs a
+  migration: create it with `npm run migration:new -- <slug>` (never hand-type a timestamp),
+  keep it replay-safe (guard DDL against objects a later migration may define), and commit it —
+  `.github/workflows/db-deploy.yml` runs `supabase db push --linked --include-all` on merge to
+  `main`, and can be fired manually with `gh workflow run db-deploy.yml`. MCP `execute_sql` is
+  fine for read-only introspection and for test-account rows. Never let prod lag the repo:
+  `supabase migration list --linked` must show every version on both sides.
+
+End commits with the required `Co-Authored-By` trailer from `CLAUDE.md`.

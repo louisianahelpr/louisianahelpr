@@ -8,13 +8,16 @@ import {
   Dialog,
   DialogContent,
   DialogHero,
+  DialogBody,
   DialogFooter,
+  DialogSecondaryAction,
+  DialogDestructiveAction,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { formatName } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
+import { requireBiometric } from "@/lib/biometricGate";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -34,6 +37,12 @@ export function DeleteUserDialog({ profile, onClose, onSuccess }: DeleteUserDial
 
   const submit = async () => {
     if (!profile) return;
+    // Face ID / Touch ID gate: this permanently destroys an account and all
+    // its data — the single most irreversible action in the admin console.
+    // No-op on web and on devices without enrolled biometrics (see
+    // requireBiometric), so an admin can never be locked out of the console.
+    const ok = await requireBiometric("Confirm permanently deleting this account");
+    if (!ok) return;
     setDeleting(true);
     try {
       const { data, error } = await supabase.functions.invoke("admin-delete-user", {
@@ -57,10 +66,12 @@ export function DeleteUserDialog({ profile, onClose, onSuccess }: DeleteUserDial
           title="Delete Account"
         />
         <div className="space-y-4">
-          <p className="text-ds-11 text-muted-foreground">
-            Are you sure you want to permanently delete{" "}
-            <strong className="text-foreground">{formatName(profile?.full_name)}</strong>'s account?
-          </p>
+          <DialogBody>
+            <p>
+              Are you sure you want to permanently delete{" "}
+              <strong className="text-foreground">{formatName(profile?.full_name)}</strong>'s account?
+            </p>
+          </DialogBody>
           <div className="rounded-ds-sm bg-destructive/5 border border-destructive/20 p-3">
             <p className="text-ds-11 text-destructive flex items-center gap-1">
               <AlertTriangle className="w-3 h-3" />
@@ -69,12 +80,12 @@ export function DeleteUserDialog({ profile, onClose, onSuccess }: DeleteUserDial
           </div>
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={handleClose} disabled={deleting}>
+          <DialogSecondaryAction onClick={handleClose} disabled={deleting}>
             Cancel
-          </Button>
-          <Button variant="destructive" onClick={submit} disabled={deleting}>
+          </DialogSecondaryAction>
+          <DialogDestructiveAction onClick={submit} disabled={deleting}>
             {deleting ? "Deleting…" : "Delete Permanently"}
-          </Button>
+          </DialogDestructiveAction>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, lazy, Suspense } from "react";
+import { useEffect, useRef, useState, useCallback, lazy, Suspense } from "react";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
@@ -39,6 +39,8 @@ import {
   POSTED_STATUS_FILTERS,
   APPLIED_STATUS_FILTERS,
   useActivityFilters,
+  postedActivityBucket,
+  appliedActivityBucket,
 } from "@/pages/activity/activityFilters";
 import { ActivityHeader, ACTIVITY_HEADER_PADDING } from "@/pages/activity/ActivityHeader";
 import { ActivityEmptyState } from "@/pages/activity/ActivityEmptyState";
@@ -94,9 +96,66 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
   // it once on mount, hand it to AppliedJobsTab so the matching card
   // can scroll into view + pulse, then strip it from the URL (replace,
   // not push) so Back doesn't re-trigger the animation.
-  const [highlightAppId] = useState<string | null>(() =>
+  const [highlightAppId, setHighlightAppId] = useState<string | null>(() =>
     defaultTab === "applied" ? (searchParams.get("highlight") ?? null) : null,
   );
+
+  // Deep-link to ONE JOB — `?job=<jobId>`.
+  //
+  // This is the param nearly every notification wants to send, and until now
+  // nothing on this screen read it. `notify_on_payment_escrowed` has linked
+  // "Payment secured in escrow" / "Job funded" to `/my-posts?job=<id>` and
+  // `/my-jobs?job=<id>` since 20260824070000 — the route resolved, the param
+  // was dropped on the floor, and the reader landed on the default "Needs you"
+  // bucket, which for a freshly-funded booking is the one bucket the job is
+  // NOT in. 79 rows in prod `notifications` carry that shape.
+  //
+  // A STATIC filter cannot fix that from the producer side: which bucket a job
+  // is in depends on the job's live state (whose move is it?), not on which
+  // event fired the notification. So resolve it HERE, where the job is already
+  // loaded: find the job, ask activityFilters which bucket it lands in right
+  // now, and select that bucket. A deep link is then always right, and stays
+  // right as the job moves between buckets.
+  //
+  // Same treatment for `?highlight=<applicationId>`: a "poster viewed your
+  // application" notification highlighted a card that the default filter was
+  // hiding, because a pending application buckets to `waiting`, not
+  // `needs_you`.
+  //
+  // `?job=` BEATS `?filter=` when a link carries both.
+  //
+  // This is a reversal, and the reason it reversed is the whole point of
+  // 20260901035600. The old rule was "an explicit bucket in the URL is the
+  // caller being specific, and it wins" — reasonable when the URL was the only
+  // thing a producer could say anything with. It turned out to be the rule
+  // that DEFEATED the two sweeps before it: a producer writing a stale
+  // `?filter=` alongside a perfectly good `?job=` got the stale bucket, so
+  // passing both was strictly worse than passing neither, and the 66 chip-less
+  // prod rows are what that cost.
+  //
+  // Being specific about a BUCKET is a claim about the job's live state frozen
+  // at write time, and it goes stale while the row sits unread. Being specific
+  // about a JOB is a fact that stays true. So the job wins, and a `?filter=`
+  // on its own still works untouched — which is what keeps every pre-job_id
+  // row landing where it always did.
+  //
+  // NotificationPanel already strips `filter` whenever it resolves from a
+  // job_id (notificationDestination.ts), so in practice both params only
+  // arrive together from a link minted before this change — an old email or a
+  // push notification already sitting on someone's phone. Those are exactly
+  // the ones that should now resolve properly rather than honour a dead chip.
+  const deepLinkJobId = searchParams.get("job");
+  const deepLinkHadFilter = searchParams.get("filter") !== null;
+  // Keyed on WHICH deep link was resolved, not a bare "have we resolved once".
+  //
+  // A boolean meant the resolution was one-shot for the LIFETIME of the
+  // component, so tapping a second notification while already sitting on
+  // Activity stripped its `?job=` and resolved nothing — the reader stayed on
+  // whatever bucket they were already looking at. Every other entry point
+  // (cold open, push, email) remounts the page and hid it. Keying on the id
+  // makes a genuinely new deep link re-resolve while still making re-runs for
+  // the same one a no-op, which is what the ref was there for.
+  const deepLinkResolvedFor = useRef<string | null>(null);
 
   // "Report" on a Done-tab My Posts card — same dialog Browse uses.
   const [reportJobId, setReportJobId] = useState<string | null>(null);
@@ -174,6 +233,77 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
     if (!hasAnyBid) return;
     void triggerPushNudge("customer-first-bid");
   }, [user, applicantCounts, triggerPushNudge]);
+
+  // Resolve `?job=` / `?highlight=` to the bucket the target is ACTUALLY in.
+  //
+  // Runs once, after this tab's data has landed (the job has to exist before
+  // its bucket can be asked for). If the target isn't in the list at all — a
+  // job from the other side of the app, a stale link — we still drop the param
+  // and leave the view on its default rather than pinning a bucket that would
+  // be empty for a different reason.
+  //
+  // The `job` param is stripped in the SAME write that sets `filter`, so the
+  // mirror's adopt() pass sees the new bucket already in the URL and can't
+  // reset it back to the default in between.
+  //
+  // (Observed: when a `filter` IS written, useSearchParamMirror's own write
+  // effect can re-run off the pre-navigation `search` and put `job` back. That
+  // is harmless and deliberately not fought — a second writer racing that hook
+  // is what caused the replaceState floods it was built to stop. A lingering
+  // `?job=` just means a refresh re-lands on the same bucket, which is what
+  // the link asked for.)
+  useEffect(() => {
+    // Which deep link is this? `?job=` names the job, `?highlight=` names an
+    // application; either identifies one card. Resolving is idempotent per
+    // key, so a re-run for the SAME link is a no-op while a genuinely new one
+    // (a second notification tapped without leaving the page) still resolves.
+    const deepLinkKey = deepLinkJobId ?? (highlightAppId ? `app:${highlightAppId}` : null);
+    if (!deepLinkKey) return;
+    if (deepLinkResolvedFor.current === deepLinkKey) return;
+    if (loading) return;
+    deepLinkResolvedFor.current = deepLinkKey;
+
+    let bucket: string | null = null;
+    if (tab === "posted") {
+      const job = deepLinkJobId ? postedJobs.find((j) => j.id === deepLinkJobId) : undefined;
+      if (job) bucket = postedActivityBucket(job, pendingApplicantCounts?.[job.id] ?? 0);
+    } else {
+      // `?job=` names the JOB; `?highlight=` names the APPLICATION. Either one
+      // identifies the same card on this tab.
+      const app =
+        (deepLinkJobId ? appliedApps.find((a) => a.job_id === deepLinkJobId) : undefined) ??
+        (highlightAppId ? appliedApps.find((a) => a.id === highlightAppId) : undefined);
+      if (app) {
+        bucket = appliedActivityBucket(app);
+        // Pulse the card we just navigated to, even when the link only knew
+        // the job id.
+        if (!highlightAppId) setHighlightAppId(app.id);
+      }
+    }
+
+    // A `?filter=` only wins when the link named NO job — see the note on
+    // `deepLinkHadFilter`. With a job in hand the live bucket is the better
+    // answer, and honouring a frozen one is what defeated the last two sweeps.
+    if (deepLinkHadFilter && !deepLinkJobId) bucket = null;
+
+    const next = new URLSearchParams(searchParams);
+    const hadJobParam = next.has("job");
+    if (hadJobParam) next.delete("job");
+    if (bucket) {
+      setStatusFilter(bucket);
+      // Mirror it into the URL only when it differs from the default, matching
+      // useSearchParamMirror's "empty means default, so drop the param" rule.
+      if (bucket === defaultFilter) next.delete("filter");
+      else next.set("filter", bucket);
+    }
+    if (hadJobParam || bucket) setSearchParams(next, { replace: true });
+    // Guarded by `deepLinkResolvedFor`, so the churn of `searchParams` and the
+    // two lists can't re-run the same resolution. `deepLinkJobId` IS a dep —
+    // without it a notification tapped while Activity is already mounted never
+    // reaches this effect at all, because none of the data deps change. It
+    // cannot loop: the branch above deletes `job` from the URL, which sets
+    // `deepLinkJobId` to null and the next run returns on the null key.
+  }, [loading, postedJobs, appliedApps, pendingApplicantCounts, deepLinkJobId]);
 
   // Data-loading + action handlers + dialog/UI state (extracted hook).
   const actions = useActivityActions({
@@ -393,7 +523,18 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               onSelectStatusFilter={setStatusFilter}
             />
           ) : (
-            <div style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 96px)" }}>
+            /* `min-h-full flex flex-col` so a SHORT list can fill the panel.
+               PageScaffold's panel is a fixed-height liquid-glass card, so a
+               one-card view left ~426px of blank card stock above the nav at
+               375 — measured, and the owner's "roughly half the screen empty".
+               Giving this wrapper the panel's full height lets the tab's
+               end-of-list block take the slack with `mt-auto`/`flex-1` instead
+               of the void taking it. Nothing moves on a full list: `min-h-`,
+               not `h-`, so the wrapper still grows past the fold as before. */
+            <div
+              className="min-h-full flex flex-col"
+              style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + 96px)" }}
+            >
           {tab === "posted" && (
             <Suspense fallback={
               <div className="px-0 space-y-2.5">
@@ -441,6 +582,15 @@ const Activity = ({ defaultTab = "posted" }: { defaultTab?: "posted" | "applied"
               loadingApplicants={actions.loadingApplicants}
               applicantErrors={actions.applicantErrors}
               onActionComplete={refresh}
+              // Context for the END-OF-LIST block, which fills the panel's
+              // leftover height on a short list (owner: three cards and then
+              // "roughly half the screen empty"). Same four values
+              // ActivityEmptyState already takes, so the two surfaces say the
+              // same sentence about where the rest of your posts are.
+              statusFilter={statusFilter}
+              statusCounts={activeCounts}
+              statusLabels={activeStatusFilters}
+              onSelectStatusFilter={setStatusFilter}
             />
             </SectionBoundary>
             </Suspense>

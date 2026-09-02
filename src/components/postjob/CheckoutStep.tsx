@@ -15,6 +15,7 @@ import {
   DollarSign,
   ShieldCheck,
   Loader2,
+  Gift,
 } from "lucide-react";
 import type { HelprActivity } from "@/hooks/useHelprActivity";
 // formatPriceExact, not formatPrice: this card SHOWS THE ARITHMETIC, which
@@ -71,6 +72,24 @@ interface CheckoutStepProps {
   /** One-time account-setup fee, in dollars — 0 once the poster has paid it. */
   onboardingFeeAmount: number;
   totalCharge: number;
+  /* ── Pay It Forward gift ───────────────────────────────────────────────
+     A gift-funded post is priced by `redeem_pif_credit` + create-payment's
+     PIF branch, NOT by the tier/fee/tax path the rest of this card assumes:
+     the gift covers `budget + urgent_fee`, the service fee and the one-time
+     setup fee are waived, and no sales tax is charged. `totalCharge` already
+     arrives correct for that path (useJobDerived); these props let the
+     breakdown SHOW the arithmetic behind it instead of printing a total the
+     lines above don't add up to. */
+  /** True when a usable gift is being applied to this post. */
+  hasGift?: boolean;
+  /** Dollars of the gift actually consumed by this job. */
+  giftAppliedAmount?: number;
+  /** Face value of the gift — larger than applied when it outruns the job. */
+  giftCreditAmount?: number;
+  /** A gift id is in the URL but hasn't resolved yet. */
+  giftLoading?: boolean;
+  /** A gift id was supplied that the server would refuse. */
+  giftUnavailable?: boolean;
   confirmed: boolean;
   setConfirmed: (v: boolean) => void;
   /** Opt-in to saving the card for off-session future use (Stripe `setup_future_usage`). */
@@ -115,6 +134,11 @@ export function CheckoutStep({
   customerFeeAmount,
   onboardingFeeAmount,
   totalCharge,
+  hasGift = false,
+  giftAppliedAmount = 0,
+  giftCreditAmount = 0,
+  giftLoading = false,
+  giftUnavailable = false,
   confirmed,
   setConfirmed,
   saveCardForFuture,
@@ -147,7 +171,17 @@ export function CheckoutStep({
   //   0    → exempt category: tax is a known zero, the total is exact.
   //   null → taxable category whose parish rate isn't resolved yet.
   const seriesDates = isRecurring ? recurringVisitDates(dateNeeded, recurrenceDays, recurrenceWeeks) : [];
-  const totalWithTax = totalCharge + (salesTax ?? 0);
+  // A gift-funded post is never taxed: the fully-covered branch of
+  // create-payment settles from the platform balance and never reaches
+  // Stripe, and the shortfall branch prices its one line `txcd_00000000`
+  // (non-taxable). Adding `salesTax` on top of `totalCharge` here would quote
+  // a charge Stripe will not make — the same class of defect as the invented
+  // 9-11% range this row was built to kill, just pointed at gifts.
+  const totalWithTax = hasGift ? totalCharge : totalCharge + (salesTax ?? 0);
+  // `giftCoversEverything` is the $0 case: nothing left to collect. The CTA
+  // and the total both change wording for it, because "Continue to Payment"
+  // in front of a $0.00 total is the screen contradicting itself.
+  const giftCoversEverything = hasGift && totalCharge <= 0;
   return (
     <>
       {/* A "Review your job before paying" line used to open this card.
@@ -237,12 +271,20 @@ export function CheckoutStep({
                 {/* A taxable job whose parish isn't known yet can only be
                     quoted pre-tax — mark it rather than let this read as the
                     final number. */}
-                {salesTax === null && <span className="font-normal text-ds-11 text-muted-foreground"> + tax</span>}
+                {/* Never on the gift path: that total is exact, and a
+                    "+ tax" caveat on a $0.00 charge is noise that reads as
+                    doubt. */}
+                {!hasGift && salesTax === null && <span className="font-normal text-ds-11 text-muted-foreground"> + tax</span>}
               </p>
               {budgetNum > 0 && (
                 <p className="text-ds-12 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   <span className="font-semibold text-foreground">${formatPriceExact(budgetNum)}</span>
-                  {" "}budget + fees
+                  {/* "budget + fees" is wrong on a gift-funded post — there
+                      are no fees, and the number above is what's left after
+                      the gift, so name the gift instead. */}
+                  {hasGift
+                    ? ` budget · $${formatPriceExact(giftAppliedAmount)} gift applied`
+                    : " budget + fees"}
                 </p>
               )}
             </div>
@@ -367,13 +409,57 @@ export function CheckoutStep({
         <div className="p-5 space-y-3">
           {/* What the customer pays */}
           <p className="text-ds-12 font-semibold text-muted-foreground uppercase tracking-wide">Your charges</p>
+          {/* A gift id came through the URL and we could not confirm it —
+              missing, not this account's, unfunded, expired, or already
+              spent. The numbers below are therefore FULL PRICE, and the
+              poster has to be told that before they read them. Silently
+              quoting full price is how "I clicked to use my gift card and
+              the money doesn't transfer" happens; silently quoting $0 would
+              be worse, because the charge would not match. */}
+          {giftUnavailable && (
+            <div
+              className="rounded-ds-md px-3 py-2 text-ds-12 leading-snug"
+              style={{
+                background: "hsl(var(--destructive) / 0.08)",
+                color: "hsl(var(--destructive))",
+              }}
+            >
+              We couldn't apply your gift card to this job — it may already be
+              used, expired, or sent to a different account. The total below is
+              the full price. Check it on your{" "}
+              <a href="/gift-card" className="underline font-semibold">
+                gift cards
+              </a>{" "}
+              before you pay.
+            </div>
+          )}
+          {giftLoading && (
+            <div className="flex items-center gap-2 text-ds-12 text-muted-foreground">
+              <Loader2 className="w-3 h-3 animate-spin" aria-hidden />
+              Checking your gift card…
+            </div>
+          )}
           <div className="flex justify-between text-ds-13">
             <span className="text-muted-foreground">Job budget</span>
             <span className="font-medium text-foreground">${formatPriceExact(budgetNum)}</span>
           </div>
+          {/* Service fee — waived outright on a gift-funded post. create-payment
+              returns from the PIF branch before the tier/fee pricing runs, so
+              there is no percentage to state; printing "12%  $0.00" would
+              invite the poster to check arithmetic that isn't happening. The
+              donor already covered the processing floor at donate time
+              (create-pif-donation → posterServiceFeeCents(amount, 0)). */}
           <div className="flex justify-between text-ds-13">
-            <span className="text-muted-foreground">Service fee ({customerFee ?? 12}%)</span>
-            <span className="font-medium text-foreground">${formatPriceExact(customerFeeAmount)}</span>
+            <span className="text-muted-foreground">
+              {hasGift ? "Service fee" : `Service fee (${customerFee ?? 12}%)`}
+            </span>
+            {hasGift ? (
+              <span className="font-medium" style={{ color: "hsl(var(--success-ink))" }}>
+                Waived
+              </span>
+            ) : (
+              <span className="font-medium text-foreground">${formatPriceExact(customerFeeAmount)}</span>
+            )}
           </div>
           {isUrgent && urgentFeeNum > 0 && (
             <div className="flex justify-between text-ds-13">
@@ -385,6 +471,24 @@ export function CheckoutStep({
             <div className="flex justify-between text-ds-13">
               <span className="text-muted-foreground">One-time account setup <span className="text-ds-12 italic">(first job only)</span></span>
               <span className="font-medium text-foreground">${formatPriceExact(onboardingFeeAmount)}</span>
+            </div>
+          )}
+          {/* ── Gift applied ────────────────────────────────────────────────
+              The line this screen was missing. `redeem_pif_credit` applies the
+              gift against budget + urgent_fee, so this credit sits directly
+              under those two rows and above the total, exactly where the
+              poster reads the subtraction. */}
+          {hasGift && (
+            <div className="flex justify-between text-ds-13">
+              <span
+                className="flex items-center gap-1"
+                style={{ color: "hsl(var(--success-ink))" }}
+              >
+                <Gift className="w-3 h-3" aria-hidden /> Gift applied
+              </span>
+              <span className="font-semibold" style={{ color: "hsl(var(--success-ink))" }}>
+                −${formatPriceExact(giftAppliedAmount)}
+              </span>
             </div>
           )}
           {/* Sales tax — the REAL figure, not a guess.
@@ -411,6 +515,50 @@ export function CheckoutStep({
               We just never read it. Now we do — and when the parish isn't known
               yet we say so instead of quoting a number we don't have. */}
           {(() => {
+            // A gift-funded post never reaches the taxable-line logic below,
+            // because it never reaches the Stripe pricing that logic mirrors.
+            // Its total is exact and final in BOTH directions: $0.00 when the
+            // gift covers the job, and the precise shortfall when it doesn't.
+            // The partial case is the one that quietly breaks if only the
+            // easy path is checked, so it is spelled out here as its own
+            // sentence rather than sharing copy with the covered case.
+            if (hasGift) {
+              const leftover = Math.max(0, giftCreditAmount - giftAppliedAmount);
+              return (
+                <>
+                  <div className="h-px bg-border" />
+                  <div className="flex justify-between items-baseline">
+                    <span className="font-semibold text-foreground">
+                      {giftCoversEverything ? "You pay" : "Total"}
+                    </span>
+                    <span className="text-ds-20 font-bold text-foreground">
+                      ${formatPriceExact(totalCharge)}
+                    </span>
+                  </div>
+                  <p className="text-ds-11 text-muted-foreground leading-snug">
+                    {giftCoversEverything ? (
+                      <>
+                        Your gift covers this job in full — nothing will be
+                        charged to a card.
+                        {leftover > 0 && (
+                          <>
+                            {" "}The remaining ${formatPriceExact(leftover)} stays
+                            yours as a new gift card.
+                          </>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        Your ${formatPriceExact(giftAppliedAmount)} gift covers
+                        most of this job. You'll pay the $
+                        {formatPriceExact(totalCharge)} difference — no service
+                        fee and no sales tax on a gifted job.
+                      </>
+                    )}
+                  </p>
+                </>
+              );
+            }
             const taxable = hasTaxableLine(category);
             const tax = salesTax;
             // Exempt category (the common case): tax is a known $0, so the
@@ -610,17 +758,23 @@ export function CheckoutStep({
         </span>
       </label>
 
-      {/* Action Buttons */}
+      {/* Action Buttons.
+          `giftLoading` gates the CTA: a gift id is in the URL and hasn't
+          resolved yet, so the total on screen is provisional. Holding the
+          button for that beat is the difference between quoting a price and
+          guessing one. */}
       <div className="space-y-3">
         <Button
           variant="primary"
           className="w-full rounded-ds-md"
           size="lg"
           onClick={onSubmit}
-          disabled={saving || uploading || !confirmed}
+          disabled={saving || uploading || !confirmed || giftLoading}
         >
           {saving || uploading ? (
             <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden />
+          ) : giftCoversEverything && confirmed ? (
+            <Gift className="w-4 h-4 mr-2" />
           ) : confirmed ? (
             <CreditCard className="w-4 h-4 mr-2" />
           ) : (
@@ -632,9 +786,17 @@ export function CheckoutStep({
               ? "Uploading Photos…"
               : saving
                 ? "Processing…"
-                : !confirmed
-                  ? "Confirm Details to Continue"
-                  : "Continue to Payment"}
+                : giftLoading
+                  ? "Checking your gift…"
+                  : !confirmed
+                    ? "Confirm Details to Continue"
+                    // "Continue to Payment" in front of a $0.00 total is the
+                    // screen arguing with itself — there is no payment step
+                    // when the gift covers the job; create-payment returns
+                    // straight to /payment-success.
+                    : giftCoversEverything
+                      ? "Post Job — Covered by Your Gift"
+                      : "Continue to Payment"}
         </Button>
         {/* Escrow-trust microline — sits right under the pay CTA so the
             reassurance lands at the moment of commitment, in the poster's

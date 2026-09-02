@@ -1,19 +1,40 @@
 import { useState } from "react";
+import { helperPlatformFeeDollars, isSettledForDisplay } from "@/lib/helperEarnings";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { Button } from "@/components/ui/button";
 import { Download, Users, Briefcase, DollarSign, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
+import { saveOrShareFile } from "@/lib/fileExport";
 
-const downloadCSV = (filename: string, header: string, rows: string[]) => {
-  const blob = new Blob([header + "\n" + rows.join("\n")], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
+/**
+ * Hand a built CSV to the admin's device.
+ *
+ * This used to be `URL.createObjectURL` → `<a download>` → `.click()` →
+ * `revokeObjectURL`, which is a NO-OP inside the shipped app: Capacitor serves
+ * bundled `dist/` from WKWebView, which honours neither the `download`
+ * attribute nor a `blob:` navigation. All three Export buttons on this screen
+ * were therefore completely dead for any admin working from a phone — the click
+ * fired, no file appeared, nothing was thrown and nothing was logged (owner,
+ * 2026-08-30: "Download csv pdf etc does not work").
+ *
+ * `saveOrShareFile` picks the route the current platform actually supports —
+ * native stages the file and opens the OS share sheet, web keeps the anchor
+ * download — and toasts on every failure. See src/lib/fileExport.ts.
+ *
+ * `charset=utf-8` on the Blob is not cosmetic: these rows carry real names and
+ * locations, and an unlabelled CSV is opened as the platform's legacy encoding
+ * by Excel, which turns every accented character into mojibake.
+ */
+const downloadCSV = (dataset: string, header: string, rows: string[]) => {
+  const blob = new Blob([header + "\n" + rows.join("\n")], { type: "text/csv;charset=utf-8" });
+  return saveOrShareFile({
+    blob,
+    filename: `${dataset}-${new Date().toISOString().slice(0, 10)}.csv`,
+    label: `the ${dataset} export`,
+    source: `AdminExport.${dataset}`,
+  });
 };
 
 const esc = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
@@ -53,7 +74,10 @@ const AdminExport = () => {
     }
     const header = "User ID,Name,Email,Role,Status,Ban Status,Location,Created,Subscription";
     const rows = data.map(p => [p.user_id, p.full_name, p.email, roleByUser.get(p.user_id) ?? "", p.approval_status, p.ban_status, p.location, p.created_at, p.subscription_tier].map(esc).join(","));
-    downloadCSV(`users-${new Date().toISOString().slice(0, 10)}.csv`, header, rows);
+    // Awaited: the native path stages a file and opens the share sheet, so the
+    // button must stay in its spinner until the handoff resolves rather than
+    // snapping back while the sheet is still coming up.
+    await downloadCSV("users", header, rows);
     setExporting(null);
   };
 
@@ -94,13 +118,15 @@ const AdminExport = () => {
       j.id, j.title, j.category, j.status, j.budget, j.platform_fee_amount, j.customer_id, j.helper_id,
       j.date_needed, j.created_at, j.payment_status, j.department ?? "", j.business_id ?? "",
     ].map(esc).join(","));
-    downloadCSV(`jobs-${new Date().toISOString().slice(0, 10)}.csv`, header, rows);
+    await downloadCSV("jobs", header, rows);
     setExporting(null);
   };
 
   const exportEarnings = async () => {
     setExporting("earnings");
-    const { data, error } = await supabase.from("jobs").select("id, title, budget, platform_fee_amount, platform_fee_percent, helper_id, customer_id, status, updated_at, payment_status, urgent_fee").eq("status", "completed");
+    // helper_fee_percent, is_group_job and helpers_needed are selected because
+    // the stamped fee alone is not the truth — see the header note below.
+    const { data, error } = await supabase.from("jobs").select("id, title, budget, platform_fee_amount, platform_fee_percent, helper_fee_percent, is_group_job, helpers_needed, helper_id, customer_id, status, updated_at, payment_status, urgent_fee").eq("status", "completed");
     if (error) {
       report(error, { tags: { source: "AdminExport.exportEarnings" } });
       toast.error("Export failed: " + error.message);
@@ -108,9 +134,41 @@ const AdminExport = () => {
       return;
     }
     if (!data?.length) { toast.error("No data to export."); setExporting(null); return; }
-    const header = "Job ID,Title,Budget,Platform Fee,Fee %,Urgent Fee,Helper ID,Customer ID,Payment Status,Completed At";
-    const rows = data.map(j => [j.id, j.title, j.budget, j.platform_fee_amount, j.platform_fee_percent, j.urgent_fee, j.helper_id, j.customer_id, j.payment_status, j.updated_at].map(esc).join(","));
-    downloadCSV(`earnings-${new Date().toISOString().slice(0, 10)}.csv`, header, rows);
+    // WHY THIS CSV CARRIES TWO FEE COLUMNS.
+    //
+    // `jobs.platform_fee_amount` / `helper_fee_percent` are stamped at ESCROW —
+    // before a helper exists — from the global platform_settings rate. An Elite
+    // helper actually pays 8%, but a job funded before they were assigned is
+    // recorded as 10%. Money moves correctly and the app already shows the
+    // right figure (helperEarnings.isSettledForDisplay works around it), but
+    // this export read the raw column and therefore OVERSTATED retained
+    // commission — on the file labelled tax/earnings.
+    //
+    // Both are exported deliberately. "Platform Fee (stamped)" is the ledger
+    // value an auditor reconciles against; "Platform Fee (resolved)" is what
+    // was actually retained. "Fee Settled" says which one to trust: on a
+    // settled row the stamp IS the record of what the payout deducted, and the
+    // two agree.
+    const FEE_FALLBACK_PERCENT = 10;
+    const header =
+      "Job ID,Title,Budget,Platform Fee (stamped),Platform Fee (resolved),Fee %,Helper Fee %,Fee Settled,Urgent Fee,Helper ID,Customer ID,Payment Status,Completed At";
+    const rows = data.map((j) => {
+      const settled = isSettledForDisplay(j as Parameters<typeof isSettledForDisplay>[0]);
+      const resolved = helperPlatformFeeDollars(
+        j as Parameters<typeof helperPlatformFeeDollars>[0],
+        FEE_FALLBACK_PERCENT,
+      );
+      return [
+        j.id, j.title, j.budget,
+        j.platform_fee_amount,
+        resolved.toFixed(2),
+        j.platform_fee_percent,
+        j.helper_fee_percent,
+        settled ? "yes" : "no",
+        j.urgent_fee, j.helper_id, j.customer_id, j.payment_status, j.updated_at,
+      ].map(esc).join(",");
+    });
+    await downloadCSV("earnings", header, rows);
     setExporting(null);
   };
 
@@ -132,7 +190,12 @@ const AdminExport = () => {
         contentClassName="grid grid-cols-1 sm:grid-cols-3 gap-3"
       >
         {DATASETS.map(({ key, icon: Icon, title, body, label, run }) => (
-          <div key={key} className="rounded-ds-md border border-border/60 bg-background/40 p-4 space-y-3">
+          /* `flex-col` + `mt-auto` on the button: the three descriptions are
+             different lengths, so "Users" wrapped to two lines and its Export
+             button sat a line lower than its two siblings — three buttons on
+             three different baselines across one row. The button now pins to
+             the bottom of every card regardless of copy length. */
+          <div key={key} className="flex flex-col rounded-ds-md border border-border/60 bg-background/40 p-4 space-y-3">
             <div className="w-9 h-9 rounded-ds-sm bg-primary/10 flex items-center justify-center">
               <Icon className="w-4 h-4 text-primary" />
             </div>
@@ -140,7 +203,7 @@ const AdminExport = () => {
               <h3 className="font-display font-semibold text-foreground text-ds-13">{title}</h3>
               <p className="text-ds-11 text-muted-foreground">{body}</p>
             </div>
-            <Button size="sm" onClick={run} disabled={!!exporting}>
+            <Button size="sm" className="mt-auto self-start" onClick={run} disabled={!!exporting}>
               {exporting === key ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Download className="w-3 h-3 mr-1" />}
               {label}
             </Button>

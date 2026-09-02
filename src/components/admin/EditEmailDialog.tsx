@@ -9,11 +9,13 @@ import {
   DialogContent,
   DialogHero,
   DialogFooter,
+  DialogSecondaryAction,
+  DialogPrimaryAction,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
+import { requireBiometric } from "@/lib/biometricGate";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -50,6 +52,14 @@ export function EditEmailDialog({ profile, onClose, onSuccess }: EditEmailDialog
       toast.error("That doesn't look like a valid email address.");
       return;
     }
+
+    // Face ID / Touch ID gate: repointing a user's login email is a complete
+    // account-takeover primitive — the new address owns password reset from
+    // that moment on. Same tier as ban/delete. Runs after validation so a
+    // rejected form never raises an OS prompt. No-op on web and on devices
+    // without enrolled biometrics (see requireBiometric).
+    const ok = await requireBiometric("Confirm changing this user's login email");
+    if (!ok) return;
 
     setUpdating(true);
     try {
@@ -126,12 +136,12 @@ export function EditEmailDialog({ profile, onClose, onSuccess }: EditEmailDialog
           </div>
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={handleClose} disabled={updating}>
+          <DialogSecondaryAction onClick={handleClose} disabled={updating}>
             Cancel
-          </Button>
-          <Button onClick={submit} disabled={updating || !email1 || email1 !== email2}>
+          </DialogSecondaryAction>
+          <DialogPrimaryAction onClick={submit} disabled={updating || !email1 || email1 !== email2}>
             {updating ? "Updating…" : "Update Email"}
-          </Button>
+          </DialogPrimaryAction>
         </DialogFooter>
       </DialogContent>
     </Dialog>

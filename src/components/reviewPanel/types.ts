@@ -19,6 +19,18 @@ export interface ReviewFormProps {
   jobId: string;
   revieweeId: string;
   revieweeName: string;
+  /**
+   * May THIS reviewer tip the person they just reviewed?
+   *
+   * Only the poster can — `create-payment` action=tip refuses anyone else
+   * outright ("Only the customer can tip the helper", create-payment:785).
+   * The same form serves both directions, so without this flag a HELPER who
+   * gave the poster 5 stars was shown "Send <poster> a tip?" and walked into
+   * a dialog that can only fail, offering to pay money up the wrong side of
+   * the marketplace. Defaults to false so a new mount cannot re-open that by
+   * omission.
+   */
+  canTip?: boolean;
 }
 
 export type CategoryKey = "rating" | "punctuality" | "quality" | "communication";

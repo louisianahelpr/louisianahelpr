@@ -218,20 +218,30 @@ export function useDashboardData() {
       // or were directly offered. Effectively empty, more confusing than the
       // honest ErrorState.)
       // Early access: subscription tiers shave time off a 20-minute delay on
-      // brand-new jobs (free=20, Basic=15, Pro=10, Elite=0). Subscribers get a
-      // head start; the exact delay comes from earlyAccessDelayMs so this
-      // server cutoff and the client gate in useDashboardFilters stay in sync.
+      // brand-new jobs (free=20, Basic=15, Pro=10, Elite=0).
+      //
+      // THIS IS NO LONGER THE GATE. The perk is enforced inside
+      // `open_jobs_browse` itself, against `public.early_access_cutoff()`
+      // (migration 20260901022522) — the same authority `/jobs`
+      // (get_ranked_open_jobs) and the map (get_open_jobs_for_map) compare
+      // against. It had to move: a `.lte()` the client attaches is a `.lte()`
+      // the client can delete, and everybody browsing already holds the anon
+      // key, so the paid perk was one hand-rolled PostgREST call away from
+      // free. DO NOT re-promote this line to "the gate" — if you need to
+      // change who gets early access, change the SQL function.
+      //
+      // The cutoff below stays only as a redundant PRE-filter. It can subtract
+      // rows the server already allowed, never add one, so at worst it agrees
+      // with the server and at best it keeps behaviour correct in the window
+      // between this commit landing and db-deploy finishing. It is computed
+      // from the same `resolveEarlyAccessTier` + `earlyAccessDelayMs` pair the
+      // SQL mirrors (null expiry = ACTIVE, matching tierFeePercent), so the two
+      // layers cannot disagree; Elite resolves to a 0ms delay (cutoff === now),
+      // which passes every already-created job.
       //
       // profile is read from the outer useDashboardData scope (always
       // current-user's profile). Default to free-tier when profile is
       // still loading — safer than accidentally granting early access.
-      // Graduated early-access cutoff — resolveEarlyAccessTier is the SAME
-      // resolver the client gate in useDashboardFilters uses, so the two
-      // layers can no longer disagree. Its convention (null expiry = ACTIVE,
-      // matching tierFeePercent) also fixes this layer treating a
-      // null-expiry subscriber as free-tier. An inactive/absent subscription
-      // falls through to the free (20-min) delay; Elite resolves to a 0ms
-      // delay (cutoff === now), which passes every already-created job.
       const effectiveTier = resolveEarlyAccessTier(
         profile?.subscription_tier,
         profile?.subscription_expires_at,
@@ -255,9 +265,8 @@ export function useDashboardData() {
           )
           .neq("payment_status", "abandoned");
 
-        // Graduated early-access gate: each tier shaves time off the 20-min
-        // free delay (Elite = 0). Elite's cutoff === now passes all open
-        // jobs immediately; lower tiers exclude the most-recent window.
+        // Redundant pre-filter, NOT the gate — see the long note above the
+        // cutoff. The view already refuses these rows server-side.
         const filteredQuery = baseQuery.lte("created_at", earlyAccessCutoff);
 
         rawJobsRes = unwrap(await withTimeout(filteredQuery
@@ -365,14 +374,25 @@ export function useDashboardData() {
           };
         });
 
-      // Auto-bump: within the existing newest-first order, lift Elite-
-      // posted jobs to the top, then Plus-, then Pro-posted, then the rest.
-      // Stable sort preserves the boosted ordering inside each tier band
-      // (already applied by the SQL ORDER BY boosted_at).
-      const tierWeight = (tier: string | null | undefined) =>
-        tier === "elite" ? 3 : tier === "pro" ? 1 : 0;
-      enriched.sort((a, b) => tierWeight(b.posterSubscriptionTier) - tierWeight(a.posterSubscriptionTier));
-
+      // NO poster-tier re-sort here any more, deliberately.
+      //
+      // This used to end with an unbounded `tierWeight` sort (elite 3, pro 1,
+      // else 0) that lifted every Elite poster's job above everything else
+      // outright. It was wrong twice over. It was an OVERRIDE of the signals a
+      // browsing helper actually needs — freshness, budget, distance — on the
+      // surface where they are the customer of the ranking. And it never
+      // reached the screen anyway: `useDashboardFilters` re-ranks `allJobs`
+      // through `sortJobsSmart`, whose only tie-break is input index, and
+      // `smartScore` is continuous, so exact ties essentially never happen and
+      // this ordering was discarded on every render. Same defect, same shape,
+      // as the applicant list's discarded tier sort (applicantScoring.ts).
+      //
+      // The perk still exists — it is now a BOUNDED term inside `smartScore`
+      // (`POSTER_PLACEMENT_MAX_POINTS`, capped under the smallest discrete
+      // signal that scorer awards), where it survives the downstream sort and
+      // cannot outrank a genuinely better-matched job. `posterSubscriptionTier`
+      // is set above and is what that term reads. Re-adding a sort here would
+      // not reinforce it; it would be silently thrown away again.
       return { jobs: enriched, nextOffset: hasMore ? offset + PAGE_SIZE : null };
     },
     getNextPageParam: (lastPage) => lastPage.nextOffset ?? undefined,
@@ -475,7 +495,7 @@ export function useDashboardData() {
 
   // Helper commission shown on the dashboard (ApplyEarningsBreakdown) is the
   // VIEWER's own tiered rate, not the global platform_settings.helper_fee_percent
-  // — a Pro helper sees their real 10% (Elite 8%, Business 6%), matching what the
+  // — a Pro helper sees their real 10% (Basic 11%, Elite 8%), matching what the
   // payout resolver charges (`_shared/helperFees.ts`). Derived from the already-
   // loaded profile, so no extra fetch; reverts an expired paid tier to free. Falls
   // back to the ctx (global) fee, then the free rate, until the profile row is

@@ -10,6 +10,33 @@ permissions:
 # - On every PR to main (catches regressions before merge)
 # - Weekly on Sundays (tracks long-term trends)
 # - Manually via workflow_dispatch
+#
+# THAT FIRST CLAIM IS NOW TRUE. It was not, from 2026-05-18 to 2026-08-31.
+# ------------------------------------------------------------------------
+# Two independent faults stacked into a check that audited nothing and said
+# it passed:
+#
+#   1. .lighthouserc.json set `"preset": "mobile"`. Lighthouse has no such
+#      preset (only perf / experimental / desktop), so the collector threw at
+#      startup and died in ~2 seconds without loading a single URL.
+#   2. This step carried `continue-on-error: true`, which converted that
+#      crash into a green check.
+#
+# Every scheduled run since June finished in 13-23 seconds and reported
+# success. Nobody looked at a report because there were no reports. This is
+# the same shape as the other three prod incidents this repo has shipped: a
+# detector whose result never reaches the job's exit code.
+#
+# `continue-on-error` is gone and must not come back. The old rationale was
+# that collector runtime errors (NO_FCP on a slow/sleeping site) are
+# independent of the PR's diff — true, and irrelevant: a collector that
+# cannot measure has produced NO evidence, and "no evidence" must never
+# render as "passed". That is the entire bug class. The mitigation for
+# genuine flake is `numberOfRuns: 2` in .lighthouserc.json (Lighthouse takes
+# the representative run), not a blanket pass.
+#
+# Assertion levels live in .lighthouserc.json, with the measured 2026-08-31
+# prod baseline recorded there next to each threshold.
 
 on:
   # Re-enabled 2026-05-09 — cost-tuned path filters keep this off random
@@ -38,7 +65,10 @@ jobs:
     # Skip Dependabot PRs — perf changes from dep bumps are evaluated separately.
     if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # 20, not 10: this job used to "finish" in ~15s because the collector was
+    # dying on startup. A real audit is 4 URLs x numberOfRuns 2 = 8 throttled
+    # Lighthouse runs, roughly 6-10 minutes on a shared runner.
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
@@ -46,12 +76,13 @@ jobs:
 
       - name: Audit published site (mobile, public routes only)
         uses: treosh/lighthouse-ci-action@v12
-        # Advisory only — never blocks a PR. Two failure modes hit us:
-        # 1. Assertion failures (handled by `warn` levels in .lighthouserc.json)
-        # 2. Collector runtime errors like NO_FCP when the site is
-        #    sleeping/slow — happens independently of the PR's diff.
+        # BLOCKING. No `continue-on-error` — see the header for what its
+        # presence cost. This step fails the run on either:
+        #   1. an `error`-level assertion in .lighthouserc.json
+        #      (mobile performance < 0.50, SEO < 0.90), or
+        #   2. a collector runtime error — because a run that measured
+        #      nothing has proven nothing and must not read as a pass.
         # Reports still upload via temporaryPublicStorage for trend review.
-        continue-on-error: true
         with:
           # Public routes only — anything behind auth (/dashboard, /post-job,
           # /my-jobs, /messages, etc.) needs a test session and isn't worth
@@ -62,8 +93,9 @@ jobs:
             https://www.louisianahelpr.com/browse
             https://www.louisianahelpr.com/login
             https://www.louisianahelpr.com/signup
-          # Mobile emulation by default. Soft-fail on perf so flaky LH runs
-          # don't block PRs, but reports are uploaded for review.
+          # Mobile emulation is set EXPLICITLY in .lighthouserc.json
+          # (formFactor + screenEmulation), not by a preset name — the bogus
+          # `"preset": "mobile"` is what killed the collector for three months.
           uploadArtifacts: true
           temporaryPublicStorage: true
           configPath: ./.lighthouserc.json

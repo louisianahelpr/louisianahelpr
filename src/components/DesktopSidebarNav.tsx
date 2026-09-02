@@ -109,8 +109,15 @@ const DesktopSidebarNav = () => {
 
   // Mirror MobileNav's unread-count query so the Messages badge matches the
   // dock exactly. Scoped + nonced realtime channel per the project rules.
+  //
+  // Gated on isWebDesktop as well as `user`. This component returns null
+  // below on anything narrower, but effects run BEFORE that early return —
+  // so every phone and native page load was opening a websocket channel and
+  // running a messages count query for a rail that never paints. It also
+  // exactly duplicates useNavUnreadCount (mobileNav/useNavUnreadCount.ts),
+  // which is the one that actually renders on those viewports.
   useEffect(() => {
-    if (!user) return;
+    if (!user || !isWebDesktop) return;
     const loadCounts = async () => {
       // getBlockedUserIds now THROWS on a failed read rather than returning an
       // empty set, because an empty set reads as "nobody is blocked" and would
@@ -156,7 +163,7 @@ const DesktopSidebarNav = () => {
       supabase.removeChannel(channel);
       window.removeEventListener(ARCHIVE_CHANGED_EVENT, onArchiveChanged);
     };
-  }, [user?.id]);
+  }, [user?.id, isWebDesktop]);
 
   // Render nothing unless we're on the wide desktop website. This is the same
   // gate as the `web-desktop` <html> class, so the rail and the CSS that

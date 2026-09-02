@@ -161,5 +161,3 @@ export function DatePickerField({
     </Popover>
   );
 }
-
-export default DatePickerField;

@@ -87,5 +87,20 @@ export function useLongPress({
     onMouseMove: (e: React.MouseEvent) => checkDrift(e.clientX, e.clientY),
     onMouseUp: () => release(),
     onMouseLeave: () => clear(),
+    /**
+     * The system took the pointer away — cancel, never fire.
+     *
+     * `onTouchCancel` only covers the touch event model. A press that the
+     * BROWSER converts into a gesture it owns (an iOS scroll/pan that wins the
+     * touch, a WKWebView text-selection or callout, a drag, the app going to
+     * the background mid-press) emits `pointercancel` and, in several of those
+     * cases, no `touchcancel` at all — so the timer survived and the action
+     * fired for a gesture the user had already lost control of. That is the
+     * exact "slow scroll launched the map" misfire this hook exists to prevent.
+     *
+     * Additive: every existing consumer spreads this object onto an element,
+     * so they all inherit the cancel without a call-site change.
+     */
+    onPointerCancel: () => clear(),
   };
 }

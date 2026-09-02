@@ -120,7 +120,10 @@ export const CohortRetentionCard = ({
         <div className="col-span-5">Retention</div>
       </div>
       {cohorts.map((c) => {
-        const pct = c.total > 0 ? Math.round((c.active / c.total) * 100) : 0;
+        // Clamped for the same reason as the funnel bar below: a retention
+        // figure can only ever be 0–100%, and a fill wider than its track is
+        // both a layout defect and an unreadable chart.
+        const pct = c.total > 0 ? Math.min(100, Math.round((c.active / c.total) * 100)) : 0;
         const isEmpty = c.total === 0;
         const tone = isEmpty
           ? "bg-muted/40"
@@ -158,14 +161,23 @@ export const FunnelCard = ({
   subtitle: string;
   stages: { label: string; count: number; of: number }[];
 }) => {
-  // Bar widths normalize against the first (largest) stage so the funnel
-  // visually narrows. Empty cohort renders as a flat empty bar instead of NaN.
-  const max = Math.max(stages[0]?.count ?? 0, 1);
+  // Bar widths normalize against the LARGEST stage, not the first one.
+  // The old code assumed stage 0 was always the biggest ("so the funnel
+  // visually narrows") — but these funnels are not monotonic in practice: one
+  // posted job can collect several applications, so a later stage routinely
+  // exceeds the first. That produced `width: 200%` bars (measured at every
+  // breakpoint on /admin?view=analytics: a 254px track painted with a 508px
+  // fill), which the track's overflow-hidden silently clipped to look exactly
+  // like 100% — a bar that overflowed its own row AND lied about the number
+  // printed beside it. Normalizing on the real max makes every bar comparable,
+  // and the clamp is a belt-and-braces guard so no future data shape can push a
+  // fill past its track again.
+  const max = Math.max(1, ...stages.map((s) => s.count ?? 0));
   return (
     <AdminCard title={title} subtitle={subtitle}>
       <div className="space-y-2.5">
         {stages.map((s, i) => {
-          const widthPct = Math.max(2, Math.round((s.count / max) * 100));
+          const widthPct = Math.min(100, Math.max(2, Math.round((s.count / max) * 100)));
           const convPct = i === 0 ? null : s.of > 0 ? Math.round((s.count / s.of) * 100) : 0;
           return (
             <div key={s.label}>

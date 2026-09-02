@@ -123,5 +123,3 @@ export function QuietHoursClock({ start, end, size = 48 }: QuietHoursClockProps)
     </svg>
   );
 }
-
-export default QuietHoursClock;

@@ -1,7 +1,14 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHero,
+  DialogBody,
+  DialogFooter,
+  DialogSecondaryAction,
+  DialogPrimaryAction,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
 import { Zap, Loader2, Clock } from "lucide-react";
@@ -10,6 +17,7 @@ import { requireBiometric } from "@/lib/biometricGate";
 import { functionErrorMessage } from "@/lib/supabaseResult";
 import { INSTANT_PAYOUT_FEE_PERCENT } from "@/lib/instantPayoutFee";
 import { formatPriceExact } from "@/lib/format";
+import { STANDARD_PAYOUT_WINDOW } from "@/lib/payoutTiming";
 
 interface Props {
   open: boolean;
@@ -82,7 +90,7 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHero
-          title="Cash Out Instantly."
+          title="Cash Out Instantly"
         />
 
         {/* Relocated OUT of DialogHero's `subtitle` (2026-07-25 "one main
@@ -91,9 +99,9 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
             user has to be able to read. The `subtitle` prop is gone from the
             hero above rather than left sr-only, so screen readers hear it
             once, here, instead of twice. */}
-        <p className="font-serif italic leading-relaxed text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-          In your debit card in ~30 minutes.
-        </p>
+        <DialogBody>
+          <p>In your debit card in ~30 minutes.</p>
+        </DialogBody>
         {loading ? (
           <div className="py-8 flex justify-center">
             <HelprSpinner size={32} delay={0} />
@@ -152,21 +160,19 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
               <Clock className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
               <p className="font-serif italic leading-snug text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 Arrives in ~30 minutes. Prefer to wait? Standard payouts are{" "}
-                <strong className="not-italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>free</strong> and take 1–2 business days.
+                <strong className="not-italic font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>free</strong> and land {STANDARD_PAYOUT_WINDOW}.
               </p>
             </div>
           </div>
         ) : null}
 
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={processing} className="rounded-ds-md">
+          <DialogSecondaryAction onClick={() => onOpenChange(false)} disabled={processing}>
             Cancel
-          </Button>
-          <Button
-            variant="primary"
+          </DialogSecondaryAction>
+          <DialogPrimaryAction
             onClick={handleConfirm}
             disabled={!quote || processing || !!error}
-            className="gap-2 rounded-ds-md"
           >
             {processing ? (
               <>
@@ -177,7 +183,7 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
                 <Zap className="w-4 h-4" /> Cash Out {quote ? fmt(quote.net_cents) : ""}
               </>
             )}
-          </Button>
+          </DialogPrimaryAction>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -1,6 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
+import { describeDeleteError, findActiveWork, purgeAccount } from "../_shared/accountPurge.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -80,40 +81,75 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Fetch profile details before deleting — cascade removes this row on auth deletion
-    const { data: profile } = await supabaseAdmin
-      .from("profiles")
-      .select("approval_status, full_name, email")
-      .eq("user_id", userId)
-      .single();
-
-    if (!profile) {
-      return new Response(JSON.stringify({ error: "User not found" }), {
-        status: 404,
+    // `userId` reaches PostgREST filter strings, a storage list prefix and an
+    // RPC argument below. It is admin-gated and every consumer fails closed,
+    // so this is a narrowing rather than a hole being closed — but validating
+    // the shape here costs one line and removes the filter-injection and
+    // prefix-traversal surface entirely.
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)) {
+      return new Response(JSON.stringify({ error: "userId must be a UUID" }), {
+        status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Refuse to delete a user who is party to an in-flight job or holds money
-    // in escrow — same guard as the user-initiated delete-own-account path.
-    // An admin delete has no such check today, so deleting mid-job strands
-    // the counterparty and orphans the escrowed funds with no party left to
-    // release or refund them.
-    const { data: activeJobs, error: activeErr } = await supabaseAdmin
-      .from("jobs")
-      .select("id")
-      .or(`customer_id.eq.${userId},helper_id.eq.${userId}`)
-      .or("status.in.(accepted,arrived,in_progress,awaiting),payment_status.eq.escrow")
-      .limit(1);
+    // Fetch profile details before deleting — cascade removes this row on auth deletion.
+    //
+    // `maybeSingle` + an explicit error check, NOT `const { data: profile }`
+    // with `.single()`. Dropping the error made a transient PostgREST failure
+    // indistinguishable from a nonexistent user and reported it as 404 "User
+    // not found" — the exact `const { data: x }` pattern whose three-month
+    // silent no-op is documented in cleanup-abandoned-accounts. `.single()`
+    // also 406s on zero rows, so an auth user with no profiles row (an orphan
+    // signup) could not be deleted through this path at all.
+    const { data: profile, error: profileErr } = await supabaseAdmin
+      .from("profiles")
+      .select("approval_status, full_name, email")
+      .eq("user_id", userId)
+      .maybeSingle();
 
-    if (activeErr) {
+    if (profileErr) {
+      console.error("[admin-delete-user] profile read failed:", profileErr.message);
+      return new Response(
+        JSON.stringify({ error: "Couldn't read this user's profile. Please retry." }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // A missing profile row is no longer fatal: the auth user may still exist
+    // and still needs deleting. Only refuse if there is no auth user either.
+    if (!profile) {
+      const { data: authUser, error: authErr } = await supabaseAdmin.auth.admin.getUserById(userId);
+      if (authErr || !authUser?.user) {
+        return new Response(JSON.stringify({ error: "User not found" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      console.warn(`[admin-delete-user] ${userId} has an auth row but no profile — deleting anyway`);
+    }
+
+    // Refuse to delete a user who is party to an in-flight job or holds money
+    // in escrow — the same guard as the user-initiated delete-own-account
+    // path, from the SAME implementation in _shared/accountPurge.ts.
+    //
+    // These were two hand-copied blocks, with a comment in this one claiming
+    // it was "kept byte-identical to delete-own-account so the two guards
+    // cannot drift again". They had already drifted: a dead `arrived` /
+    // `awaiting` enum list survived here for a day after the twin was fixed,
+    // and because the check fails closed, admin deletion answered 500 for
+    // every target in that window — including users with no jobs at all. A
+    // comment is not a mechanism; a shared function is.
+    const active = await findActiveWork(supabaseAdmin, userId);
+
+    if (!active.ok) {
       // Fail closed — if we can't verify the account is safe to delete, don't.
       return new Response(
         JSON.stringify({ error: "Couldn't verify account state. Please try again." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
-    if (activeJobs && activeJobs.length > 0) {
+    if (active.active) {
       return new Response(
         JSON.stringify({
           error:
@@ -130,9 +166,9 @@ Deno.serve(async (req) => {
       target_id: userId,
       target_type: "user",
       details: {
-        email: profile.email,
-        full_name: profile.full_name,
-        approval_status: profile.approval_status,
+        email: profile?.email ?? null,
+        full_name: profile?.full_name ?? null,
+        approval_status: profile?.approval_status ?? null,
       },
     });
     // NOTE: a PostgrestBuilder is a lazy PromiseLike that implements `then`
@@ -145,15 +181,37 @@ Deno.serve(async (req) => {
       console.error("[admin-delete-user] audit log failed:", auditError.message);
     }
 
+    // Same purge path as the user-initiated delete — one implementation, in
+    // _shared/accountPurge.ts. An admin removing an account must erase exactly
+    // as much as the user asking for it themselves: identity documents,
+    // avatars, contact details, push tokens, and the Stripe subscription.
+    // The audit row above is written BEFORE this, so the compliance trail
+    // survives a purge that fails halfway.
+    const purge = await purgeAccount(supabaseAdmin, userId);
+    if (!purge.ok) {
+      console.error("[admin-delete-user] purge incomplete:", JSON.stringify(purge.steps));
+      return new Response(
+        JSON.stringify({
+          error:
+            "Couldn't finish removing this user's data, so the deletion was stopped " +
+            "rather than left half-done. Nothing was lost — retry in a few minutes.",
+          steps: purge.steps,
+        }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    console.log(`[admin-delete-user] purge for ${userId}:`, JSON.stringify(purge.steps));
+
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
     if (deleteError) {
-      return new Response(JSON.stringify({ error: deleteError.message }), {
+      console.error("[admin-delete-user] deleteUser failed:", deleteError.message);
+      return new Response(JSON.stringify({ error: describeDeleteError(deleteError.message) }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    console.log(`Admin ${caller.id} deleted user ${userId} (${profile.email ?? "no-email"})`);
+    console.log(`Admin ${caller.id} deleted user ${userId} (${profile?.email ?? "no-email"})`);
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

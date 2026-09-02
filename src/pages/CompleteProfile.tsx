@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +11,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { toast } from "sonner";
-import { Camera, Check, Loader2, ShieldCheck, X } from "lucide-react";
+import { Camera, Check, Circle, Loader2, ShieldCheck, X } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { DatePickerField } from "@/components/DatePickerField";
 import { CityAutocomplete } from "@/components/postjob/CityAutocomplete";
@@ -19,8 +19,12 @@ import { cn } from "@/lib/utils";
 import { isProfileComplete } from "@/components/ProtectedRoute";
 import { splitName } from "@/lib/splitName";
 import { queryKeys } from "@/lib/queryKeys";
+import { unwrapMutationRow, isWriteRejected, mutationErrorMessage } from "@/lib/mutationResult";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
 import AuthShell from "@/components/auth/AuthShell";
+import { safeInternalRedirect } from "@/lib/authRedirects";
+import { LATEST_TERMS_VERSION } from "@/lib/consent";
+import { report } from "@/lib/errorLogger";
 import { uploadProfileFiles } from "./completeProfile/uploadProfileFiles";
 import type { ProfileCompletionUpdates } from "./completeProfile/types";
 import {
@@ -35,6 +39,18 @@ const CompleteProfile = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user, profile, isLoading, refresh } = useCurrentUser();
+  const [searchParams] = useSearchParams();
+  // Where the user was actually headed when the completeness gate
+  // intercepted them (ProtectedRoute passes it as `?next=`). Before this,
+  // the redirect dropped the destination entirely — a push deep link, a
+  // shared job URL or an email link all ended on /dashboard once the form
+  // was done, with nothing left pointing at what they had opened.
+  //
+  // Re-validated here rather than trusted: `?next=` is attacker-supplied,
+  // and `safeInternalRedirect` rejects protocol-relative, scheme-bearing,
+  // control-character and auth-screen targets. Anything it refuses falls
+  // back to the dashboard.
+  const nextDestination = safeInternalRedirect(searchParams.get("next")) ?? "/dashboard";
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -49,6 +65,11 @@ const CompleteProfile = () => {
 
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  // A remote avatar_url can 404 (a deleted Storage object, a dead dicebear
+  // URL). Falling back to the camera placeholder on `onError` is what lets us
+  // render the real photo optimistically instead of refusing to render any
+  // non-blob: URL at all — see the preview block below.
+  const [avatarBroken, setAvatarBroken] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -73,14 +94,38 @@ const CompleteProfile = () => {
     if (profile.phone && !phone) setPhone(formatPhone(profile.phone));
     if (profile.location && !location) setLocation(profile.location);
     if (profile.bio && !bio) setBio(profile.bio);
-    if (profile.avatar_url && !avatarPreview) setAvatarPreview(profile.avatar_url);
+    // NOTE: avatar_url is deliberately NOT hydrated here. This effect is
+    // one-shot (hydratedRef), and the avatar is the one field the gate reads
+    // LIVE off `profile.avatar_url` (see `checklist` below). Hydrating it here
+    // let the two drift: a profile whose avatar landed after this ran showed
+    // "Profile photo * · tap to add" under an ENABLED "Enter App" button —
+    // the screen naming a required field as missing while the gate counted it
+    // as present. The dedicated effect below keeps them in sync instead.
     // Persisted terms acceptance — read straight from the row so refresh / re-entry
     // doesn't reset the user's previous "yes I agree".
-    if (profile.accepted_terms_at) setAcceptedPolicies(true);
+    //
+    // BOTH columns are consulted. `accepted_terms_at` was written only by this
+    // screen and `terms_accepted_at` only by `complete-signup` / the re-consent
+    // modal, so a user who ticked the box during signup (which every signup
+    // forces) and later landed here was asked to agree a second time to
+    // policies they had already accepted — the row said so, in the column this
+    // screen wasn't reading.
+    if (profile.accepted_terms_at || profile.terms_accepted_at) setAcceptedPolicies(true);
   // Intentionally scoped to user_id so a stable user never re-triggers this.
   // The hydratedRef is the real guard; user_id is included to correctly reset
   // the gate when the logged-in user changes (e.g. in a shared-device test).
   }, [profile?.user_id]);
+
+  // Keeps the avatar THUMBNAIL in step with the avatar the GATE reads.
+  // A locally-picked file always wins (its blob: URL is the freshest truth);
+  // otherwise mirror whatever `profile.avatar_url` currently is, including a
+  // value that arrives on a later refetch.
+  useEffect(() => {
+    if (avatarFile) return;
+    const url = profile?.avatar_url ?? null;
+    setAvatarPreview((prev) => (prev === url ? prev : url));
+    setAvatarBroken(false);
+  }, [profile?.avatar_url, avatarFile]);
 
   const validateFile = (file: File, allowedTypes: string[], label: string): boolean => {
     if (!allowedTypes.includes(file.type)) {
@@ -98,6 +143,7 @@ const CompleteProfile = () => {
     const file = e.target.files?.[0];
     if (file && validateFile(file, ALLOWED_IMAGE_TYPES, "Profile picture")) {
       setAvatarFile(file);
+      setAvatarBroken(false);
       setAvatarPreview(URL.createObjectURL(file));
     }
   };
@@ -189,7 +235,7 @@ const CompleteProfile = () => {
         profile: data,
         isAdmin: current?.isAdmin ?? false,
       }));
-      navigate("/dashboard", { replace: true });
+      navigate(nextDestination, { replace: true });
       return true;
     } catch {
       return false;
@@ -215,6 +261,7 @@ const CompleteProfile = () => {
     setSubmitting(true);
     try {
       const fullName = `${firstName.trim()} ${lastName.trim()}`;
+      const nowIso = new Date().toISOString();
 
       // Note: full_name is persisted to the profiles table below. We intentionally
       // skip supabase.auth.updateUser() here because it grabs the auth lock and can
@@ -225,7 +272,19 @@ const CompleteProfile = () => {
       // Government ID upload was removed from this page — Stripe Identity
       // (triggered from the first job post) collects the real ID now, so
       // idFile is always null here.
-      const { avatarUrl, idDocumentPath } = await uploadProfileFiles(user.id, avatarFile, null);
+      const { avatarUrl, idDocumentPath, staleAvatarObjects } =
+        await uploadProfileFiles(user.id, avatarFile, null);
+
+      // A superseded photo that survived the replace is STILL PUBLIC. Do not
+      // fail the submit over it — the new photo is live and the profile is
+      // about to point at it — but never let it pass silently either: if the
+      // member was replacing a photo they wanted retracted (the licence /
+      // passport case this bucket has already seen), silence is the failure.
+      if (staleAvatarObjects.length > 0) {
+        toast.error(
+          "Your new photo is saved, but we couldn't remove the previous one — it may still be visible. Please try changing your photo again.",
+        );
+      }
 
       // Single, lightweight DB update — no large JSON over the wire
       const updates: ProfileCompletionUpdates = {
@@ -234,10 +293,32 @@ const CompleteProfile = () => {
         bio: bio.trim(),
         location: location.trim(),
         date_of_birth: dateOfBirth,
-        approval_status: "pending",
+        // `approval_status: "pending"` used to be sent here. It never did
+        // anything for a normal user — the BEFORE UPDATE trigger
+        // `tr_prevent_self_escalation` (public.prevent_self_escalation) pins
+        // approval_status back to OLD for every non-admin, so the column was
+        // written and discarded on every submit. For an ADMIN the trigger
+        // returns NEW untouched, so the one account it COULD reach was an
+        // admin completing their own profile — demoting themselves to
+        // `pending` and locking themselves out of every non-allowPending
+        // route. A field the DB refuses to take from this caller does not
+        // belong in this caller's payload.
         // Stamp the moment the user accepted the rules / terms / privacy.
         // Persisting this means the checklist won't ask again on refresh.
-        accepted_terms_at: new Date().toISOString(),
+        //
+        // Written into the SAME three places the signup path uses, so consent
+        // has one shape no matter which screen collected it:
+        //   accepted_terms_at      — first-ever consent (immutable server-side)
+        //   terms_accepted_at      — acceptance of the version below
+        //   terms_version_accepted — which version that was
+        // plus an append-only `legal_acceptances` row after the save.
+        // Before this, `accepted_terms_at` was the only one this screen wrote
+        // and `terms_version_accepted` stayed '' — which meant a user who
+        // completed their profile here was left permanently "stale" to
+        // TermsReconsentDialog's version check.
+        accepted_terms_at: nowIso,
+        terms_accepted_at: nowIso,
+        terms_version_accepted: LATEST_TERMS_VERSION,
       };
       if (avatarUrl) updates.avatar_url = avatarUrl;
       if (idDocumentPath) updates.id_document_url = idDocumentPath;
@@ -246,23 +327,105 @@ const CompleteProfile = () => {
       // Big-7 completeness gate re-evaluates the instant we navigate to
       // /dashboard, so the cache MUST hold the authoritative saved row — not
       // an optimistic guess that a stale background refetch could clobber.
-      const { data: savedRow, error: updateErr } = await withTimeout(
-        Promise.resolve(
-          supabase.from("profiles").update(updates).eq("user_id", user.id).select("*").maybeSingle(),
+      //
+      // Guarded through unwrapMutation because a null `error` does NOT mean
+      // the write happened: an UPDATE matching zero rows (RLS refusing the
+      // row, a session whose auth.uid() no longer matches) returns
+      // `{ data: [], error: null }`. The previous shape read that as success
+      // and fell back to an OPTIMISTIC merge — writing a profile the database
+      // does not have into the cache, letting the gate pass, and dropping the
+      // user on /dashboard until the next real fetch bounced them back here
+      // with nothing to show for the attempt. This is the one write on the
+      // screen, and it is the screen's only exit, so a silent rejection has to
+      // surface as a failure.
+      const savedRow = unwrapMutationRow<Record<string, unknown>>(
+        await withTimeout(
+          Promise.resolve(
+            supabase.from("profiles").update(updates).eq("user_id", user.id).select("*"),
+          ),
+          "Profile save",
         ),
-        "Profile save",
+        {
+          action: "save your profile",
+          context: { userId: user.id },
+        },
       );
-      if (updateErr) throw updateErr;
+
+      // Append the acceptance EVENT to the audit trail. `legal_acceptances` is
+      // append-only (INSERT + SELECT policies only, no UPDATE/DELETE), so a
+      // version bump adds a record instead of replacing one — which is the
+      // whole point of having it alongside the two profile columns. This
+      // screen never wrote to it before, so a consent collected here left no
+      // audit row at all; only the signup path did.
+      //
+      // Non-fatal and explicitly checked: a missed audit row must not strand a
+      // user on the one screen they cannot leave, but the error is never
+      // dropped — a consent trail that silently stops being written is exactly
+      // the failure this table exists to prevent.
+      const { error: legalErr } = await supabase.from("legal_acceptances").insert({
+        user_id: user.id,
+        terms_version: LATEST_TERMS_VERSION,
+        privacy_version: LATEST_TERMS_VERSION,
+      });
+      if (legalErr) {
+        report(legalErr, {
+          severity: "warning",
+          tags: { source: "CompleteProfile.legalAcceptances" },
+          context: { userId: user.id },
+        });
+      }
+
+      // Clear a stale `pending` so finishing this form actually finishes
+      // onboarding.
+      //
+      // `approval_status` is pinned to OLD by `tr_prevent_self_escalation` for
+      // every non-admin, so the update above cannot move it and this screen
+      // must not pretend otherwise. Without this call the gate reorder in
+      // ProtectedRoute would only relocate the trap: a pending user would be
+      // routed here (correctly), fill the form, and be bounced straight back
+      // to /account-pending because nothing had changed the column.
+      //
+      // `complete-signup` is the ONE authority that already owns this
+      // transition — it is what approves every email signup — and it accepts a
+      // JWT for exactly this "resubmission from a logged-in user" case. Reusing
+      // it beats adding a second writer with its own idea of when an account
+      // is cleared. Only fired when actually needed, so the normal (already
+      // approved) completion keeps its single-round-trip shape.
+      //
+      // `denied` is deliberately excluded: that path requires a re-uploaded ID
+      // this screen no longer collects, and a denied user is routed to
+      // /account-denied rather than here.
+      let approvalRow: Record<string, unknown> | null = null;
+      if (savedRow?.approval_status === "pending") {
+        const { data: fnData, error: fnError } = await supabase.functions.invoke("complete-signup", {
+          body: { ageAttested: true, termsAccepted: true },
+        });
+        const fnMessage = fnError?.message || (fnData as { error?: string } | null)?.error;
+        if (fnMessage) {
+          // Surfaced, not swallowed: the profile is saved but the account is
+          // still gated, and telling the user "done" here would drop them back
+          // on /account-pending with no explanation.
+          throw new Error(
+            "Your profile is saved, but we couldn't finish activating your account. Tap Save again in a moment.",
+          );
+        }
+        // Re-read rather than assume: the edge function wrote the row, so the
+        // cache must hold what the DATABASE has, not an optimistic merge. This
+        // is the same rule the update above follows.
+        const { data: refreshed, error: refreshErr } = await withTimeout(
+          Promise.resolve(supabase.from("profiles").select("*").eq("user_id", user.id).maybeSingle()),
+          "Profile refresh",
+          12000,
+        );
+        if (refreshErr) throw refreshErr;
+        approvalRow = refreshed as Record<string, unknown> | null;
+      }
 
       queryClient.setQueryData(queryKeys.currentUser.byId(user.id), (current: any) => ({
         ...(current ?? {}),
-        // Prefer the row Postgres actually persisted; fall back to a merged
-        // optimistic shape only if the read-back came back empty.
-        profile: savedRow ?? {
-          ...(current?.profile ?? profile ?? {}),
-          ...updates,
-          user_id: user.id,
-        },
+        // The row Postgres actually persisted — guaranteed non-null by the
+        // guard above.
+        profile: approvalRow ?? savedRow,
         isAdmin: current?.isAdmin ?? false,
       }));
       // No invalidate + sleep here: that triggered a background refetch that
@@ -271,10 +434,20 @@ const CompleteProfile = () => {
       // back to /complete-profile (LH-29). The authoritative row above is the
       // single source of truth; staleTime keeps it from refetching on arrival.
       hapticSuccess();
-      navigate("/dashboard", { replace: true });
+      navigate(nextDestination, { replace: true });
     } catch (err: any) {
       const recovered = await recoverCompletedProfile();
-      if (!recovered) { hapticError(); toast.error(err?.message || "We couldn't save your profile just yet — give it another try."); }
+      if (!recovered) {
+        hapticError();
+        // A silently-rejected write gets its own sentence (the row wasn't
+        // ours / wasn't there); everything else keeps the human fallback so a
+        // raw PostgREST code never reaches the one screen a user cannot leave.
+        toast.error(
+          isWriteRejected(err)
+            ? mutationErrorMessage(err)
+            : err?.message || "We couldn't save your profile just yet — give it another try.",
+        );
+      }
     } finally {
       setSubmitting(false);
     }
@@ -386,8 +559,22 @@ const CompleteProfile = () => {
                 aria-label={avatarPreview ? "Change profile picture" : "Upload profile picture"}
               >
                 <div className="w-24 h-24 rounded-full overflow-hidden ring-2 ring-border bg-muted flex items-center justify-center transition-all group-hover:ring-primary/50">
-                  {avatarPreview && avatarPreview.startsWith("blob:") ? (
-                    <img loading="lazy" decoding="async" src={avatarPreview} alt="Profile preview" className="w-full h-full object-cover" />
+                  {/* Renders ANY preview URL, not just a freshly-picked
+                      `blob:`. The old `startsWith("blob:")` guard meant a user
+                      who already had an avatar on file saw an empty camera
+                      placeholder under the caption "Tap to change" — the
+                      screen implying the photo was missing on the one screen
+                      that will not let them leave until it isn't. A remote URL
+                      that 404s falls back to the placeholder via onError. */}
+                  {avatarPreview && !avatarBroken ? (
+                    <img
+                      loading="lazy"
+                      decoding="async"
+                      src={avatarPreview}
+                      alt="Profile preview"
+                      className="w-full h-full object-cover"
+                      onError={() => setAvatarBroken(true)}
+                    />
                   ) : (
                     <Camera className="w-7 h-7 text-muted-foreground" />
                   )}
@@ -404,9 +591,23 @@ const CompleteProfile = () => {
                 />
               </label>
               <p className="text-ds-11 text-muted-foreground">
-                {avatarPreview
+                {avatarPreview && !avatarBroken
                   ? "Tap to change · JPG, PNG, WebP (5MB max)"
                   : <>Profile photo <span className="text-destructive">*</span> · tap to add</>}
+              </p>
+              {/* WHERE THIS FILE GOES, said at the moment the file is chosen.
+                  The `avatars` bucket is PUBLIC — anonymously fetchable at a
+                  guessable URL — and identity documents have twice been
+                  uploaded into it from a picker that looked exactly like this
+                  one and said nothing. "Photo of a document" cannot be
+                  detected client-side (the licence found in prod was
+                  2502×1407, the passport 1093×1491 — no dimension or
+                  aspect-ratio test separates either from a selfie), so making
+                  the CONSEQUENCE legible is the entire defence. One quiet
+                  line, in the muted token, next to the control it describes —
+                  not a warning banner, which people learn to skip. */}
+              <p className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
+                Public — shown on your profile to anyone on Helpr.
               </p>
             </div>
 
@@ -548,11 +749,71 @@ const CompleteProfile = () => {
               </span>
             </label>
 
+            {/* WHAT IS STILL MISSING — the whole point of this screen.
+                The `checklist` above has existed since the gate shipped and was
+                never rendered: the only signal a blocked user got was a
+                DISABLED button reading "Complete Required Fields", with every
+                field on the form wearing an identical red asterisk whether it
+                was satisfied or not. Because the button is disabled whenever
+                `allComplete` is false, the per-field `fail()` toasts in
+                handleSubmit are unreachable too — so a user missing exactly one
+                field (four accounts in prod on 2026-08-31, two of them missing
+                only City) had nothing anywhere on the page naming it.
+                This is a redirect the app will not let them out of, so naming
+                the remaining fields is not a nicety.
+                Shown only while incomplete: once every item is done the list
+                is noise and the enabled "Enter App" button says it better. */}
+            {!allComplete && (
+              <div
+                className="rounded-ds-md border p-3.5"
+                style={{
+                  borderColor: "hsl(var(--burnt-sienna) / 0.28)",
+                  background: "hsl(var(--burnt-sienna) / 0.06)",
+                }}
+              >
+                {/* NOT `text-display-eyebrow` — that utility is `display: none`
+                    app-wide (index.css, the 2026-07-25 "all eyebrows gone"
+                    decision), so a label written with it renders nothing.
+                    Caught here by reading the computed page text, not the
+                    class name — same trap as asserting gloss by class. */}
+                <p className="text-ds-11 font-semibold" style={{ color: "hsl(var(--burnt-sienna))" }}>
+                  Still needed
+                </p>
+                <ul className="mt-2 space-y-1.5" aria-live="polite">
+                  {checklist
+                    .filter((c) => !c.done)
+                    .map((c) => (
+                      <li key={c.label} className="flex items-center gap-2 text-ds-11" style={{ color: "hsl(var(--ink-deep))" }}>
+                        <Circle className="w-3 h-3 shrink-0" strokeWidth={2.5} style={{ color: "hsl(var(--burnt-sienna) / 0.7)" }} aria-hidden />
+                        {c.label}
+                      </li>
+                    ))}
+                </ul>
+                {checklist.some((c) => c.done) && (
+                  <p className="mt-2.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                    {checklist.filter((c) => c.done).length} of {checklist.length} done.
+                  </p>
+                )}
+              </div>
+            )}
+
             <Button
               type="submit"
               size="lg"
               className={cn(
                 "w-full rounded-ds-md",
+                // The label is clipped at 320px without this. `size="lg"` is
+                // `h-[60px] px-8` and `Button`'s base class is
+                // `whitespace-nowrap`, so at a 320px viewport the button box is
+                // 230px, 64px of that is padding, and "Complete Required
+                // Fields" needs 226px in 166px of room — measured
+                // scrollWidth 245 vs clientWidth 230, i.e. the primary action
+                // on the one screen a blocked user cannot leave was running off
+                // its own button. Narrow padding plus a permitted wrap fixes it
+                // without touching the shared `Button` variants: the label
+                // wraps to two lines under `sm`, and `h-auto`/`min-h-[60px]`
+                // keeps the tap target at its full size instead of clipping.
+                "h-auto min-h-[60px] whitespace-normal text-balance px-4 py-3 sm:px-8 sm:py-0",
                 allComplete && !submitting && "btn-grad-primary",
               )}
               disabled={submitting || !allComplete}
@@ -573,6 +834,22 @@ const CompleteProfile = () => {
             >
               <X className="w-4 h-4 mr-2" /> Sign Out
             </Button>
+
+            {/* The only route to a human from inside the gate. ProtectedRoute's
+                PROFILE_GATE_ALLOWED set lets a half-onboarded user reach
+                /support, /terms, /rules, /privacy and /profile?tab=legal — but
+                until now this screen linked to four of those five and never to
+                support, so the escape hatch existed and was invisible. Someone
+                stuck on a field they cannot satisfy (a phone number the format
+                rejects, a city not in the list) had "Sign Out" as their only
+                other affordance. /help is NOT on the allowed list, so link
+                /support, which is. */}
+            <p className="text-center text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              Stuck on something?{" "}
+              <a href="/support" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
+                Contact support
+              </a>
+            </p>
           </form>
       </div>
     </AuthShell>

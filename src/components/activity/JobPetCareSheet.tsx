@@ -165,5 +165,3 @@ export function JobPetCareSheet({ jobId }: { jobId: string }) {
     </div>
   );
 }
-
-export default JobPetCareSheet;

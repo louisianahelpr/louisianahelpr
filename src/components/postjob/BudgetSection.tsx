@@ -2,11 +2,12 @@ import { CurrencyInput } from "@/components/ui/currency-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { DollarSign, Zap, Lightbulb, TrendingUp, Sparkles } from "lucide-react";
+import { DollarSign, Zap, Lightbulb, TrendingUp, Sparkles, Gift } from "lucide-react";
 import type { CategoryPriceStats } from "@/hooks/useCategoryPriceStats";
 import { SectionCard } from "@/components/postjob/SectionCard";
 import { categoryPricing, getSmartPrice } from "@/lib/pricingGuide";
-import { formatPrice } from "@/lib/format";
+import { formatPrice, formatPriceExact } from "@/lib/format";
+import { URGENT_FEE_FLOOR_DOLLARS } from "@/lib/moneyLimits";
 
 /**
  * PRICING_MODE_REMOVED — 2026-08-19.
@@ -59,6 +60,17 @@ interface BudgetSectionProps {
   budgetComplete: boolean;
   /** Current job category — used for smart-price midpoint lookup. */
   category?: string;
+  /**
+   * Value of the Pay It Forward gift funding this post, in dollars, or 0.
+   *
+   * Shown as a note beside the budget field — NOT prefilled into it. The gift
+   * is money off a job the poster prices themselves ("deducted off the amount
+   * they choose to spend"), so seeding the field with the gift's value would
+   * quietly argue a poster who wants a $120 job down to exactly $75. The note
+   * carries the reassurance the gift survived the trip; the field stays
+   * theirs.
+   */
+  giftAmount?: number;
 }
 
 /**
@@ -129,6 +141,7 @@ export function BudgetSection({
   setCustomUrgentFee,
   budgetComplete,
   category = "other",
+  giftAmount = 0,
 }: BudgetSectionProps) {
   const budgetNum = parseFloat(budget) || 0;
 
@@ -145,11 +158,19 @@ export function BudgetSection({
     lowballFloor != null &&
     budgetNum < lowballFloor;
 
-  // Urgent bonus has a hard $5 floor. Surface it inline (same pattern as
-  // the lowball warning) the moment a user types a sub-$5 amount, so the
-  // rule isn't a silent submit-time rejection.
+  // Urgent bonus has a hard floor. Surface it inline (same pattern as the
+  // lowball warning) the moment a user types a sub-floor amount, so the rule
+  // isn't a silent submit-time rejection.
+  //
+  // The number comes from moneyLimits, not from here. That module's own header
+  // says every screen naming one of these figures MUST import it — "that is how
+  // the '$5 min' vs '$10 min' drift happened". useJobSubmit obeyed it; this
+  // file, the FORM the poster actually reads, hand-typed the floor. If the form
+  // and the validator ever disagree, the user is shown a minimum the submit
+  // path then rejects.
   const urgentFeeNum = parseFloat(urgentFee) || 0;
-  const showUrgentMinWarning = isUrgent && urgentFee.trim() !== "" && urgentFeeNum < 5;
+  const showUrgentMinWarning =
+    isUrgent && urgentFee.trim() !== "" && urgentFeeNum < URGENT_FEE_FLOOR_DOLLARS;
 
   return (
     <SectionCard
@@ -180,6 +201,24 @@ export function BudgetSection({
             aria-label="Job budget in dollars"
             enterKeyHint="done"
           />
+          {/* Gift note — the answer to "where did my gift card go?".
+              Deliberately phrased as a DEDUCTION off whatever they choose,
+              not as a budget suggestion: the field above stays the poster's
+              number, and the subtraction is shown for real at checkout. */}
+          {giftAmount > 0 && (
+            <p
+              className="flex items-start gap-1.5 text-ds-12 leading-snug"
+              style={{ color: "hsl(var(--success-ink))" }}
+            >
+              <Gift className="w-3.5 h-3.5 shrink-0 mt-0.5" aria-hidden />
+              <span>
+                You have a{" "}
+                <span className="font-semibold">${formatPriceExact(giftAmount)}</span>{" "}
+                gift card. Set whatever budget the job is worth — the gift comes
+                off your total at checkout.
+              </span>
+            </p>
+          )}
 
           {/* The category comps line used to live here — "Most Yard Work jobs
               in Louisiana go for $30–$100" — directly above a "Suggested:

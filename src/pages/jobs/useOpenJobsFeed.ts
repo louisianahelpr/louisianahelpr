@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import { SHOW_SEED_JOBS_PUBLICLY } from "@/config/showSeedJobs";
 
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,6 +36,23 @@ export const useOpenJobsFeed = ({
   // (1000) + parish match (500) + urgent (100) + recency (0-50) and coarsens
   // the address to "City, ST" via mask_job_location server-side. Anon callers
   // work (EXECUTE granted) — they just don't get the parish-match boost.
+  //
+  // EARLY ACCESS IS ENFORCED IN THE RPC, and there is deliberately no gate in
+  // this file. Until migration 20260901022522 there was no gate anywhere on
+  // this route: `/jobs` is the public, anon-callable board, so a member paying
+  // $5–$20/mo for a 5-to-20-minute head start could be undercut by anyone
+  // opening a private window — the perk was given away on the one surface that
+  // required no account at all. It is now a predicate inside
+  // get_ranked_open_jobs, compared against `public.early_access_cutoff()`, the
+  // same authority the dashboard view and the map RPC use.
+  //
+  // For a caller with no session `auth.uid()` is NULL, which resolves to the
+  // free 20-minute delay — so this feed shows a guest the free experience, by
+  // design, and a filter added here could only ever take MORE away. Do not add
+  // one: this is a paid entitlement, and the place to change it is the SQL.
+  // (No PGRST202 window either — the function signature is unchanged, so both
+  // the 2- and 3-argument call forms below keep resolving throughout the
+  // db-deploy lag; they simply gain the gate the moment it lands.)
   const {
     data: pagesData,
     isLoading: jobsLoading,
@@ -53,20 +69,26 @@ export const useOpenJobsFeed = ({
       // unwrap surfaces a failed fetch as the query's error state (drives
       // <ErrorState/>) instead of silently degrading to a blank feed.
       const rows = unwrap(
+        // FIXTURE (`is_seed`) ROWS ARE THE SERVER'S DECISION, and there is
+        // deliberately no argument for them here. `p_include_seed` still
+        // exists on the RPC and still NARROWS, but the switch that matters —
+        // "are fixtures visible on the public marketplace?" — is
+        // `public.seed_jobs_hidden_publicly()`, read inside the function
+        // (migration 20260901035245).
+        //
+        // It used to be a client constant passed from this one call site, and
+        // that reached exactly one of the three browse surfaces: the map RPC
+        // takes no arguments and `open_jobs_browse` has no `is_seed` column,
+        // so flipping it here would have emptied /jobs while leaving every
+        // fixture on the map and the dashboard. See src/config/showSeedJobs.ts
+        // for the whole story and the one-line flip.
+        //
+        // Filtering after the fetch is not an option either way: this feed
+        // paginates, so dropping rows client-side would return short pages and
+        // break the "was that a full page?" check below.
         await supabase.rpc("get_ranked_open_jobs", {
           p_limit: PAGE_SIZE,
           p_offset: offset,
-          // Fixture rows are filtered in the RPC, not here: this feed
-          // paginates, so dropping rows after the fetch would return short
-          // pages and break the "was that a full page?" check below.
-          //
-          // The argument is passed ONLY when we actually need the filter.
-          // Migrations deploy on merge, so between this commit landing and
-          // db-deploy finishing, the 3-argument signature does not exist yet
-          // and sending it would 404 the whole guest feed (PGRST202). Omitting
-          // it uses the 2-arg form that has always existed, and the new
-          // parameter defaults to true server-side — identical behaviour.
-          ...(SHOW_SEED_JOBS_PUBLICLY ? {} : { p_include_seed: false }),
         }),
       );
       const jobs = (rows ?? []) as unknown as PublicJob[];

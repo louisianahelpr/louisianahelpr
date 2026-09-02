@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { verifyCronSecret } from '../_shared/cron-auth.ts'
 import { cronError, cronResult, defectTracker } from '../_shared/cron-result.ts'
+import { FROM_DEFAULT, htmlToPlainText, sendWithResend } from '../_shared/resend.ts'
 
 // Email delivery is via Resend exclusively. Helpr's auth-email-hook
 // renders templates locally with @react-email/components and enqueues
@@ -25,41 +26,6 @@ function getRetryAfterSeconds(error: unknown): number {
     return (error as { retryAfterSeconds: number | null }).retryAfterSeconds ?? 60
   }
   return 60
-}
-
-// Send via Resend API for transactional emails
-async function sendWithResend(apiKey: string, payload: any): Promise<void> {
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: payload.from,
-      to: [payload.to],
-      subject: payload.subject,
-      html: payload.html,
-      text: payload.text,
-      // Forwarded verbatim from the enqueuing function. Marketing/lifecycle
-      // sends set List-Unsubscribe so Gmail/Apple Mail render a native
-      // one-click unsubscribe control; transactional sends omit it. The
-      // worker had no way to pass these through before, so the header was
-      // unset on every queued email regardless of what the caller wanted.
-      ...(payload.headers ? { headers: payload.headers } : {}),
-    }),
-  })
-
-  if (!res.ok) {
-    const body = await res.text()
-    const err: any = new Error(`Resend API error [${res.status}]: ${body}`)
-    err.status = res.status
-    if (res.status === 429) {
-      const retryAfter = res.headers.get('Retry-After')
-      err.retryAfterSeconds = retryAfter ? parseInt(retryAfter, 10) : 60
-    }
-    throw err
-  }
 }
 
 Deno.serve(async (req) => {
@@ -252,7 +218,28 @@ Deno.serve(async (req) => {
         // Both auth_emails and transactional_emails route through Resend.
         // The auth-email-hook function pre-renders templates to HTML/text
         // before enqueuing, so payload already has subject/html/text.
-        await sendWithResend(resendApiKey, payload)
+        //
+        // The shared sender (../_shared/resend.ts) REQUIRES a plaintext part.
+        // Anything already sitting on the queue from before that rule existed
+        // could lack one, and a message that can never succeed just burns its
+        // five retries and lands in the DLQ — so derive the text part from the
+        // HTML rather than failing a real, already-accepted message.
+        await sendWithResend(resendApiKey, {
+          to: payload.to,
+          from: payload.from ?? FROM_DEFAULT,
+          subject: payload.subject,
+          html: payload.html,
+          text: typeof payload.text === 'string' && payload.text.trim()
+            ? payload.text
+            : htmlToPlainText(payload.html ?? ''),
+          // Forwarded verbatim from the enqueuing function. Marketing/lifecycle
+          // sends set List-Unsubscribe so Gmail/Apple Mail render a native
+          // one-click unsubscribe control; transactional sends omit it. The
+          // worker had no way to pass these through before, so the header was
+          // unset on every queued email regardless of what the caller wanted.
+          headers: payload.headers,
+          replyTo: payload.reply_to,
+        })
 
         // Log success. auth-email-hook inserts a `pending` row at enqueue
         // time with the same message_id, so prefer to UPDATE that row

@@ -9,7 +9,15 @@ import { createNotification } from "@/lib/notifications";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHero,
+  DialogBody,
+  DialogFooter,
+  DialogSecondaryAction,
+  DialogPrimaryAction,
+} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,6 +35,7 @@ import { AdminViewShell, AdminFilterStrip } from "@/components/admin/AdminViewSh
 import { cn } from "@/lib/utils";
 import { report } from "@/lib/errorLogger";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
 
 type Report = {
   id: string;
@@ -70,7 +79,12 @@ const AdminReports = () => {
   const [deletingReview, setDeletingReview] = useState(false);
 
   const queryKey = ["admin-reports", filter];
-  const { data: reports, isInitialLoading } = useInstantQuery<Report[]>({
+  // isError/refetch, not a swallowed toast. This caught the error, told the
+  // user once, and returned [] — so a failed read rendered "No pending
+  // reports", which is the same screen as a genuinely empty queue. An admin
+  // looking at an outage saw an all-clear and moved on. AdminIDVReview.tsx
+  // already ships the right shape; this matches it.
+  const { data: reports, isInitialLoading, isError, refetch } = useInstantQuery<Report[]>({
     key: queryKey,
     fallback: [],
     fetcher: async () => {
@@ -88,10 +102,9 @@ const AdminReports = () => {
       if (filter === "dismissed") query = query.eq("status", "dismissed");
 
       const { data, error } = await query;
-      if (error) {
-        toast.error("Couldn't load reports — refresh to retry.");
-        return [];
-      }
+      // Throw into React Query rather than returning a fallback: an empty
+      // array here is indistinguishable from "the queue is clear".
+      if (error) throw error;
 
       const reportRows = (data || []) as Report[];
       const userIds = [
@@ -350,6 +363,13 @@ const AdminReports = () => {
 
       {isInitialLoading ? (
         <p className="text-muted-foreground text-ds-11 py-8 text-center">Loading reports…</p>
+      ) : isError ? (
+        <ErrorState
+          variant="inline"
+          title="We couldn't load the reports queue."
+          body="Tap Try again. Nothing has been dismissed — this list is read straight from the reports table."
+          onRetry={() => refetch()}
+        />
       ) : reports.length === 0 ? (
         <EmptyState
           variant="inline"
@@ -521,9 +541,9 @@ const AdminReports = () => {
             title={`Message ${messageTarget?.name}`}
           />
           <div className="space-y-3">
-            <p className="text-ds-11 text-muted-foreground">
-              This will send an in-app notification to {messageTarget?.name}.
-            </p>
+            <DialogBody>
+              <p>This will send an in-app notification to {messageTarget?.name}.</p>
+            </DialogBody>
             <Textarea
               aria-label="Message to user"
               value={messageText}
@@ -532,10 +552,10 @@ const AdminReports = () => {
             />
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setMessageTarget(null)}>Cancel</Button>
-            <Button onClick={handleSendMessage} disabled={sendingMessage || !messageText.trim()}>
+            <DialogSecondaryAction onClick={() => setMessageTarget(null)}>Cancel</DialogSecondaryAction>
+            <DialogPrimaryAction onClick={handleSendMessage} disabled={sendingMessage || !messageText.trim()}>
               {sendingMessage ? "Sending…" : "Send Message"}
-            </Button>
+            </DialogPrimaryAction>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -543,12 +563,12 @@ const AdminReports = () => {
       <AlertDialog open={!!deleteReviewTarget} onOpenChange={(open) => { if (!open) setDeleteReviewTarget(null); }}>
         <AlertDialogContent>
           <AlertDialogHero
-            title="Remove this review?"
+            title="Remove This Review?"
             subtitle="This permanently deletes the review. The reviewee's star rating recalculates immediately — this can't be undone."
           />
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deletingReview}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={deleteReportedReview} disabled={deletingReview} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction onClick={deleteReportedReview} disabled={deletingReview} variant="destructive">
               {deletingReview ? "Removing…" : "Remove Review"}
             </AlertDialogAction>
           </AlertDialogFooter>

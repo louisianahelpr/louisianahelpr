@@ -39,12 +39,15 @@ export function JobCardTitleBar({ title, category, amount, amountTitle, meta }: 
       style={{ borderBottom: "0.5px solid hsl(var(--olivewood) / 0.10)" }}
     >
       <div className="flex items-center justify-between">
-      <h3
+      {/* h2, not h3 — these cards sit directly under the page <h1> with no
+          intervening section heading, so h3 skipped a level and failed axe's
+          heading-order. Size comes from `text-headline-card`, not the tag. */}
+      <h2
         className="font-display italic font-bold leading-snug truncate min-w-0 text-headline-card"
         style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
       >
         {title}
-      </h3>
+      </h2>
       {/* Same surface + ink as JobPrice's `chip` variant — the component
           documented as "THE single money element". The comment below already
           claimed an amount "reads identically everywhere", but it did not:

@@ -1,5 +1,6 @@
 import { test, expect, FAKE_CUSTOMER, mockTable, mockRpc, installSupabaseMocks, checkA11y } from "./fixtures";
 import { settleAnimations } from "./auditRoutes";
+import { DATE } from "./seedData";
 
 // Customer sees an application: an authed customer with one posted job
 // that has one helper application on it navigates to /my-posts and sees
@@ -21,7 +22,16 @@ const POSTED_JOB = {
   description: "Standard cleaning job with at least 20 chars of description.",
   category: "cleaning",
   budget: 120,
-  date_needed: new Date(Date.now() + 3 * 86_400_000).toISOString(),
+  // BARE "YYYY-MM-DD", not an ISO timestamp — `jobs.date_needed` is a Postgres
+  // `date` (seedData.ts documents the column type and the wire format), so a
+  // full ISO string is a shape PostgREST can never return. Consumers parse it
+  // with `split("-").map(Number)`; on an ISO string the day parses as
+  // "05T04:12:34.567Z" → NaN, which since 0f806174 flows into
+  // `jobLocalMidnightMs` → `Intl.DateTimeFormat.formatToParts(new Date(NaN))`
+  // and THROWS `RangeError: Invalid time value` out of the bucketing `useMemo`.
+  // /my-posts rendered "This page hit a problem." and this spec timed out on a
+  // crashed page. Fixture bug, not an app bug.
+  date_needed: DATE(3),
   start_time: "09:00",
   location: "New Orleans, LA",
   status: "open",

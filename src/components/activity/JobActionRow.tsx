@@ -38,9 +38,30 @@ const COLS: Record<number, string> = {
  * neighbours exactly — it takes this string through its `className` prop.
  *
  * `min-h-[44px]` is the tap target. `h-auto` alone left these at ~41px.
+ *
+ * THE LABEL MUST WRAP, and the override has to live on the label element.
+ * `buttonVariants` sets `whitespace-nowrap` on the button itself, so a label
+ * longer than its column did not wrap — it rendered outside the tinted box.
+ * Measured at 375px: "View Timeline & Add Evidence" wanted 169px in a 110px
+ * chip, clipping "Vi" off the left edge of the card and colliding with the
+ * Message chip beside it; the shorter chips in the five-up completed row
+ * spilled 6-22px each, and ~30px more at 320px.
+ *
+ * `whitespace-normal` in THIS string would not fix it: Tailwind emits
+ * `whitespace-nowrap` after `whitespace-normal` in its own stylesheet, so on
+ * the same element nowrap wins regardless of class order. The label inherits
+ * nowrap from the button instead, and a rule that targets the label directly
+ * beats inheritance — hence the `[&_span]:` descendant variants. They also
+ * reach the two chips that render their own <span> through this class
+ * (ShareJobButton, SosShareButton) without those files having to know.
+ *
+ * `min-w-0` is the other half: a grid item's default `min-width: auto` refuses
+ * to shrink below its content, which is what let a too-wide chip push past its
+ * column instead of wrapping inside it.
  */
 export const JOB_ACTION_CHIP_CLASS =
-  "w-full h-auto min-h-[44px] flex-col gap-0.5 px-1 py-1.5 glass-press border-0";
+  "w-full h-auto min-h-[44px] min-w-0 flex-col gap-0.5 px-1 py-1.5 glass-press border-0 " +
+  "[&_span]:whitespace-normal [&_span]:break-words [&_span]:leading-tight [&_span]:text-center";
 
 /**
  * The FULL-WIDTH sibling of the chip, for the one-decision-per-row controls
@@ -67,7 +88,7 @@ export const JOB_ACTION_FULL_CLASS =
   "w-full h-11 min-h-[44px] gap-1.5 px-3 text-ds-11 font-medium glass-press border-0";
 
 export type JobActionTone =
-  | "info"
+  | "message"
   | "boost"
   | "edit"
   | "danger"
@@ -90,9 +111,22 @@ export type JobActionTone =
  */
 export function jobActionChipStyle(tone: JobActionTone): CSSProperties {
   switch (tone) {
-    case "info":
-      // Matches messageButtonStyle above — owner call 2026-08-24 moved
-      // Message from blue to the quiet olivewood outline, chip included.
+    // MESSAGE, and nothing else. This tone exists so the owner rule — stated
+    // twice, "Message should be the same color for all places" — is something
+    // a call site *passes* rather than something a comment *asserts*.
+    //
+    // It replaces a `messageButtonStyle` CSSProperties constant that claimed to
+    // be the single source of truth for Message and had ZERO importers: the
+    // chip row hardcoded the identical triple beside a comment saying the two
+    // "cannot drift apart again", while Message itself was split across
+    // `tone="info"` (x4) and `tone="neutral"` (x2) — two tones that happened to
+    // resolve to the same values, so a real drift was already latent and
+    // invisible. Every Message in the app now passes `tone="message"`, and
+    // `src/test/messageToneInvariant.test.ts` fails the build if one doesn't.
+    // That is what the deleted comment was promising.
+    case "message":
+      // Quiet olivewood outline — owner call 2026-08-24 ("brand the action
+      // buttons"), reversing 2026-08-20's blue.
       return {
         background: "hsl(var(--olivewood) / 0.08)",
         color: "hsl(var(--olivewood))",
@@ -126,21 +160,15 @@ export function jobActionChipStyle(tone: JobActionTone): CSSProperties {
         border: "0.5px solid hsl(var(--destructive) / 0.32)",
       };
     case "neutral":
-      // The quiet tone. Two users:
+      // The quiet tone — the SUPPORTING actions, the ones that neither decide
+      // anything nor destroy anything. Today: Timeline & Evidence and Contact
+      // Admin on a disputed job (both cards), Directions, and the tracker
+      // panel's secondary control.
       //
-      //  1. MESSAGE, in every state. It used to be solid bark here, on the
-      //     theory that a full-width "Approve & release payment" above the row
-      //     carried the hierarchy. Both halves of that were wrong: the owner's
-      //     rule is "Message should be the same color for all places", and
-      //     every OTHER Message in the app (ActiveJobSection, ConfirmedSection,
-      //     DisputedSection, the accepted-state row) is a quiet outline button
-      //     — so bark made this one chip the odd one out rather than the
-      //     consistent one. The full-width Approve is also gone; it is a chip
-      //     in this same row now, and `primary` (solid bark) is reserved for it
-      //     and for Hire again, the two chips that really are the main move.
-      //
-      //  2. A COMPLETED action's done-state (Tipped / Reviewed) — inert, so it
-      //     should recede rather than keep the live action's colour.
+      // Message used to live here too, which is why it is worth saying plainly
+      // that it no longer does: Message has its own `message` tone so a change
+      // to the supporting-action grey cannot silently recolour it. Same values
+      // today, different tones on purpose (see `share`).
       //
       // Same olivewood tint the "waiting" status pill uses, so it reads as
       // secondary without borrowing another action's hue.
@@ -150,28 +178,21 @@ export function jobActionChipStyle(tone: JobActionTone): CSSProperties {
         border: "0.5px solid hsl(var(--olivewood) / 0.22)",
       };
     case "approve":
-      // A GREEN LIGHT, literally (owner: "make this more of a green light
-      // color"). Approve had been on `primary` — the bark tint borrowed from
-      // the money chip — which is olive, the same family as the page's own
-      // furniture, so the one chip that means "go, release the money" looked
-      // like part of the card rather than a decision.
+      // THE DECISIVE BARK TINT — the loudest chip in the row, for "Approve &
+      // release payment".
       //
-      // --live is the app's existing go-green (142° at 64%): the presence dot,
-      // the landing heartbeat, the payout ticker. Reused rather than minted so
-      // the app keeps ONE saturated green, and it already carries a lightened
-      // dark-mode value. The ink is --success-ink-deep, the same green family's
-      // text token, which measures well clear of AA on this fill in both
-      // themes.
+      // Read the values, not the history: this is bark at 0.18/0.55, one step
+      // louder than `primary`'s 0.10/0.28, so the main move outweighs the
+      // card's other actions without leaving the brand's own hue. Owner call
+      // 2026-08-24 ("brand the action buttons"); solid fills were rejected the
+      // same day on the filter chips, so hierarchy is carried by tint depth.
       //
-      // Distinct from `done` on purpose: `done` is the SAME hue at low
-      // presence for a finished, inert action (Tipped / Reviewed), this is the
-      // live one. Green means good outcome either way; brightness says whether
-      // there is still something to press.
+      // It was briefly a saturated go-green (`--live` / `--success-ink-deep`,
+      // 2026-08-20) and this comment kept describing that green for a week
+      // after the bark landed under it — a doc block asserting one colour over
+      // a return statement producing another. If this case changes again,
+      // change these lines with it.
       return {
-        // Bark tint, not the green light — owner call 2026-08-24 ("brand the
-        // action buttons"), reversing the 2026-08-20 green. Same-day context:
-        // solid fills were rejected on the filter chips, so the main move is
-        // the DECISIVE tint (0.18/0.55), one step louder than `primary`.
         background: "hsl(var(--bark) / 0.18)",
         color: "hsl(var(--bark))",
         border: "0.5px solid hsl(var(--bark) / 0.55)",
@@ -194,24 +215,27 @@ export function jobActionChipStyle(tone: JobActionTone): CSSProperties {
         border: "0.5px solid hsl(var(--success-ink) / 0.38)",
       };
     case "share":
-      // SHARE. Owner call 2026-08-20: blue moved to Message ("I think blue
-      // suits messages better"), and Share must not fall back to the quiet
-      // neutral. It cannot take `boost` either — Share and Boost sit in the
-      // same row on an open job, and identical chips would read as one
-      // control repeated. Sage is the brand's own accent, unused by any other
-      // tone, so Share stays distinctly non-neutral without borrowing a hue
-      // that already means something else in this row.
+      // SHARE, on the open posted-job row. It renders through ShareJobButton,
+      // which owns the native-share fallback chain and therefore draws its own
+      // <Button> — so it takes this via `style={jobActionChipStyle("share")}`
+      // rather than a `tone` prop.
       //
-      // The label is --sage-ink, not raw --bark: every other tinted tone in
-      // this row pairs its tint with a theme-adaptive -ink token, and Share
-      // was the one that skipped it. Dark-mode --bark is a mid olive and
-      // measured 4.24:1 on this chip — the same defect the --danger-ink
-      // comment above records. Light mode is unchanged (--sage-ink's light
-      // value IS the old --bark).
+      // This case used to be a SAGE tint (`--sage` / `--sage-ink`), justified
+      // by a 2026-08-20 owner call: blue had just moved to Message, and Share
+      // "must not fall back to the quiet neutral". That value was dead — no
+      // call site ever passed `tone="share"` — because the 2026-08-24 branding
+      // call put Share on the same quiet olivewood as everything else in the
+      // row, under the name `info`. The sage is gone rather than preserved in
+      // a comment: what ships is what is written here.
+      //
+      // It is deliberately the SAME triple as `message` and `neutral` today
+      // and deliberately NOT the same constant. Folding three identical
+      // literals into one shared object would mean recolouring Share silently
+      // recolours Message — the exact coupling this file just got rid of.
       return {
-        background: "hsl(var(--sage) / 0.18)",
-        color: "hsl(var(--sage-ink))",
-        border: "0.5px solid hsl(var(--sage) / 0.42)",
+        background: "hsl(var(--olivewood) / 0.08)",
+        color: "hsl(var(--olivewood))",
+        border: "0.5px solid hsl(var(--olivewood) / 0.22)",
       };
     case "primary":
     default:
@@ -239,27 +263,6 @@ export function jobActionChipStyle(tone: JobActionTone): CSSProperties {
 
 
 /**
- * The Message treatment, in ONE place.
- *
- * Owner rule, stated twice: "Message should be the same color for all places."
- * Owner call 2026-08-20: that colour is BLUE — "I think blue suits messages
- * better" — and Share gave the blue up in exchange (see the `share` tone).
- *
- * Message renders as a chip in the posted-card action row and as an outline
- * <Button> in five other sections. Both read from this so they cannot drift
- * apart again, which is exactly how Message ended up solid-bark in one place
- * and outline in five others.
- */
-export const messageButtonStyle: CSSProperties = {
-  // Olivewood quiet outline — owner call 2026-08-24 ("brand the action
-  // buttons"), reversing 2026-08-20's blue. The rule that matters survives:
-  // Message is one colour EVERYWHERE, and this constant is that one place.
-  background: "hsl(var(--olivewood) / 0.08)",
-  color: "hsl(var(--olivewood))",
-  borderColor: "hsl(var(--olivewood) / 0.22)",
-};
-
-/**
  * Row wrapper. `columns` is passed explicitly rather than counted from
  * children so a conditionally-absent action (No-Show only appears once the
  * start time has passed) yields a deliberate two-up row instead of two chips
@@ -281,14 +284,37 @@ export function JobActionRow({
   );
 }
 
+/**
+ * The chip's accessible name, which must CONTAIN its visible label (WCAG 2.5.3
+ * Label in Name).
+ *
+ * `aria-label` REPLACES the visible text rather than adding to it, so passing
+ * the descriptive string alone left a voice-control user unable to say the word
+ * they can see: "Hire Again" spoke as "Hire this Helpr again", "Contact Admin"
+ * as "Contact an admin about this dispute". Deleting the descriptive text is
+ * not the fix either — a screen-reader user out of the row's visual context
+ * needs it. So compose: visible label first (what a voice user says), context
+ * after (what a screen-reader user needs).
+ *
+ * The prefix is skipped when the caller's string already opens with the visible
+ * label, so a call site that writes its own "Hire Again — …" does not come out
+ * as "Hire Again — Hire Again — …".
+ */
+function composeAccessibleName(label: string, ariaLabel?: string): string | undefined {
+  if (!ariaLabel) return undefined; // no aria-label: the visible text IS the name
+  const starts = ariaLabel.trim().toLowerCase().startsWith(label.trim().toLowerCase());
+  return starts ? ariaLabel : `${label} — ${ariaLabel}`;
+}
+
 export function JobActionChip({
   icon: Icon,
   label,
   tone,
   onClick,
   disabled,
-  /** Spoken name when the visible label is abbreviated for width
-   *  ("Message" in a 320px three-up row, "Message Helpr" to a screen reader). */
+  /** Extra context for a screen reader ("Message" in a 320px three-up row,
+   *  "Message Helpr" spoken). It is APPENDED to the visible label, never
+   *  substituted for it — see composeAccessibleName. */
   ariaLabel,
 }: {
   icon: LucideIcon;
@@ -305,11 +331,22 @@ export function JobActionChip({
       className={JOB_ACTION_CHIP_CLASS}
       style={jobActionChipStyle(tone)}
       disabled={disabled}
-      aria-label={ariaLabel}
+      // Test hook, same shape as `data-status-stripe`. The 320px "no action
+      // label truncates" gate in activity-card-density.spec.ts had no way to
+      // say "the chips in this row" and swept every `button span` on the page
+      // — which caught JobCardMetaRow's location chip, a control that is
+      // SUPPOSED to ellipsis (it is the one `shrink` item in a row of
+      // `shrink-0` date/time chips, so it is what gives way at narrow widths).
+      // A chip label is different: it has nowhere to go and must fit.
+      data-job-action-chip=""
+      aria-label={composeAccessibleName(label, ariaLabel)}
       onClick={onClick}
     >
       <Icon className="w-4 h-4" />
-      <span className="text-ds-11 leading-none font-medium">{label}</span>
+      {/* leading-tight, not leading-none: these labels wrap now (see
+          JOB_ACTION_CHIP_CLASS), and leading-none stacked two lines on top of
+          each other. */}
+      <span className="text-ds-11 leading-tight font-medium">{label}</span>
     </Button>
   );
 }

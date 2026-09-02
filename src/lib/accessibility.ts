@@ -6,6 +6,7 @@
  * CSS variable (--user-text-scale) you can multiply against in CSS.
  */
 import { useEffect, useState } from "react";
+import { osBodyPx, IOS_DEFAULT_BODY_PX } from "@/lib/simpleMode";
 
 /**
  * Above this measured Dynamic Type scale we auto-enable the larger-text
@@ -80,33 +81,34 @@ export function useDynamicTypeSync(): number {
 /**
  * Returns the user's text-size scale relative to the platform default (1.0).
  *
- * iOS/iPadOS WKWebView (and desktop Safari) do NOT surface Dynamic Type on the
- * root font-size — `getComputedStyle(root).fontSize` is pinned at 16px no
- * matter how large the user's OS text setting is. The size IS reflected in the
- * computed font of the `-apple-system-body` keyword, so we probe that. The
- * default Dynamic Type size ("Large") renders body text at 17px, so we divide
- * by 17 to get a scale of 1.0 at default.
+ * The Dynamic Type reading itself comes from `osBodyPx()` in simpleMode.ts —
+ * the single probe for the app. This used to carry its own copy, gated on
+ * `CSS.supports("font", "-apple-system-body")`, which WebKit can answer false
+ * to while still resolving the keyword; that gate made this hook report 1.0 on
+ * exactly the devices it exists to serve. See the trace in that file.
  *
- * On platforms without that keyword (Android WebView, non-Safari desktop) the
- * root font-size *does* track the browser/OS text scale, so we fall back to it.
+ * Default Dynamic Type ("Large") renders body at 17px, so dividing by
+ * IOS_DEFAULT_BODY_PX puts the default at 1.0.
+ *
+ * Off-Apple the probe answers null, and there the root font-size DOES track
+ * the browser/OS text scale, so fall back to it.
  */
 function measureDynamicTypeScale(): number {
-  const supportsAppleBody =
-    typeof CSS !== "undefined" &&
-    typeof CSS.supports === "function" &&
-    CSS.supports("font", "-apple-system-body");
-
-  if (supportsAppleBody && typeof document !== "undefined" && document.body) {
-    const probe = document.createElement("span");
-    probe.setAttribute("aria-hidden", "true");
-    probe.textContent = "M";
-    probe.style.cssText =
-      "font: -apple-system-body;position:absolute;visibility:hidden;pointer-events:none;height:0;overflow:hidden;";
-    document.body.appendChild(probe);
-    const probed = parseFloat(getComputedStyle(probe).fontSize);
-    document.body.removeChild(probe);
-    if (isFinite(probed) && probed > 0) return probed / 17;
-  }
+  const px = osBodyPx();
+  // Never scale DOWN off this probe. Measured in real WebKit (Playwright
+  // webkit 26.5, 2026-09-01): `-apple-system-body` resolves to **13px**, which
+  // is macOS's system body size, not a Dynamic Type rung — macOS has no
+  // Dynamic Type at all. Divided by 17 that is 0.765, clamped to 0.85, so
+  // every desktop Safari user was being served the whole app ~15% smaller than
+  // designed. Pre-existing, not introduced by consolidating the probe, and
+  // invisible in Chromium (which drops the keyword) — which is why it survived
+  // the audit.
+  //
+  // The floor is deliberate rather than a tighter band: this probe exists to
+  // detect ENLARGED text, and iOS's smallest rung (xSmall, 14px) is not a
+  // request to shrink our layout either. Shrinking still works through the
+  // fallback below, where root font-size reflects a real browser/OS setting.
+  if (px !== null) return Math.max(px / IOS_DEFAULT_BODY_PX, 1);
 
   const computed = parseFloat(getComputedStyle(document.documentElement).fontSize);
   return isFinite(computed) && computed > 0 ? computed / 16 : 1;

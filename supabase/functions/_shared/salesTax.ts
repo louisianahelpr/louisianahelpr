@@ -66,7 +66,7 @@ export function hasTaxableLine(category: string | null | undefined): boolean {
  * @param budgetCents the job budget (the labor line's unit_amount)
  * @param category    the job category
  */
-export function taxableBaseCents(budgetCents: number, category: string | null | undefined): number {
+function taxableBaseCents(budgetCents: number, category: string | null | undefined): number {
   return isLaborTaxable(category) ? budgetCents : 0;
 }
 

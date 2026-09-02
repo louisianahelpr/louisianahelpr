@@ -46,6 +46,7 @@ const MOCK = {
   supabase: "./mocks/supabase.ts",
   shared: "./mocks/shared.ts",
   deno: "./mocks/deno-runtime.ts",
+  email: "./mocks/email.ts",
 };
 
 /**
@@ -69,6 +70,17 @@ function rewriteExternalImports(src: string): string {
   // (also `import type { SupabaseClient } from ...`).
   out = out.replace(
     /import\s+(type\s+)?\{([^}]*)\}\s+from\s+["']npm:@supabase\/supabase-js@[^"']+["'];?/g,
+    `import $1{$2} from "${MOCK.supabase}";`,
+  );
+
+  // supabase-js via esm.sh: `import { createClient } from
+  // "https://esm.sh/@supabase/supabase-js@2"` (also `@2.99.0`). Functions are
+  // split roughly half and half between this form and the `npm:` form above —
+  // verification-webhook and daily-match-digest use esm.sh — and without this
+  // rule their `createClient` resolved to the REAL library, which then tried to
+  // reach the network instead of the in-memory table store.
+  out = out.replace(
+    /import\s+(type\s+)?\{([^}]*)\}\s+from\s+["']https:\/\/esm\.sh\/@supabase\/supabase-js@[^"']+["'];?/g,
     `import $1{$2} from "${MOCK.supabase}";`,
   );
 
@@ -101,6 +113,65 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/helperFees.ts";`,
   );
 
+  // Cron result envelope: `_shared/cron-result.ts` is a pure shape helper (no
+  // Deno, no network) that decides a cron's HTTP status from its defect count.
+  // Point at the REAL module — whether a failed run answers non-2xx is exactly
+  // the thing the silent-cron watcher depends on, and several crons were
+  // answering 200 on failure until recently.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/cron-result\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/cron-result.ts";`,
+  );
+
+  // Payout claim protocol: `_shared/payoutClaim.ts` has ZERO imports — it takes
+  // the Supabase client as a parameter — so the generated file points at the
+  // REAL module rather than a mock. This is deliberate: the claim protocol is
+  // what stands between two concurrent payout paths and a double transfer
+  // (INSERT the ledger row BEFORE Stripe, unique index arbitrates, the loser
+  // gets 23505 and never reaches transfers.create). Mocking it would mean the
+  // one guard against paying a helper twice is the one thing not under test.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/payoutClaim\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/payoutClaim.ts";`,
+  );
+
+  // Subscription period resolver: `_shared/stripeSubscriptionPeriod.ts` has
+  // ZERO imports (it is structurally typed over the Stripe payload), so the
+  // generated file points at the REAL module rather than a mock — same
+  // reasoning as payoutClaim above. This helper is the ONLY thing standing
+  // between a paid recurring membership and a `RangeError: Invalid time value`
+  // that 500s the whole webhook: `subscription.current_period_end` was removed
+  // from the Subscription object in Stripe API version 2025-03-31.basil and
+  // these functions pin 2025-08-27.basil. Mocking it would mean the fix for a
+  // "customer charged, entitlement never granted" bug is the one thing not
+  // under test.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/stripeSubscriptionPeriod\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/stripeSubscriptionPeriod.ts";`,
+  );
+
+  // Tier display names: `_shared/tierNames.ts` has ZERO imports and is a plain
+  // lookup table, so the generated file points at the REAL module. It is what
+  // stops a lapse notification telling a member "Your pro pass ended" with the
+  // raw column id in it, which is a user-visible string worth having under test.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/tierNames\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/tierNames.ts";`,
+  );
+
+  // Stripe->profile linkage projection: `_shared/subscriptionLinkage.ts` has
+  // ZERO imports and is a pure function of the Stripe payload, so — same
+  // reasoning as stripeSubscriptionPeriod above — the generated file points at
+  // the REAL module. It decides the customer id, subscription id, billing cycle
+  // and cancel-at-period-end that get written onto `profiles`, which is what
+  // makes a membership reconcilable against Stripe at all and what decides
+  // whether the Membership card says "Renews", "Ends" or "Expires". Mocking it
+  // would leave exactly that untested.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/subscriptionLinkage\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/subscriptionLinkage.ts";`,
+  );
+
   // Stripe product -> membership tier: `_shared/productTiers.ts` is a plain
   // constant map (no Deno/remote imports), so the generated file points at the
   // REAL module. Matched for BOTH forms, because stripe-webhook/constants.ts
@@ -120,6 +191,20 @@ function rewriteExternalImports(src: string): string {
   out = out.replace(
     /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/stripeIdentity\.ts["'];?/g,
     `import {$1} from "../../../supabase/functions/_shared/stripeIdentity.ts";`,
+  );
+
+  // Flat one-time product prices: `_shared/productPrices.ts` is a plain
+  // constant module (no Deno/remote imports), so the generated file points at
+  // the REAL module. These ARE the amounts Stripe charges for a boost and a
+  // background check, and BOOST_DISCOUNT_PCT / BOOST_MIN_UNIT_AMOUNT_CENTS
+  // decide what a subscriber actually pays — mocking them would leave the one
+  // thing worth asserting (the charged cents) untested. Without this rule the
+  // specifier stayed `../_shared/productPrices.ts`, unresolvable from a
+  // `.gen.ts` in this directory, so create-boost-payment could not be loaded
+  // by the harness at all.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/productPrices\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/productPrices.ts";`,
   );
 
   // Stripe processing-cost floor: `_shared/stripeFees.ts` is likewise pure
@@ -170,6 +255,104 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/adminIds.ts";`,
   );
 
+  // PostgREST paging: `_shared/paginate.ts` has ZERO imports (it drives a
+  // query factory the caller supplies), so the generated file points at the
+  // REAL module. This is the code that reads past `db-max-rows = 1000` and
+  // decides whether a scan saw everything — the previous generation of that
+  // logic was `.limit(5000)` plus an alarm on `rows.length >= 5000`, which the
+  // 1000-row cap made unsatisfiable, so several crons certified completeness
+  // over a fifth of the data. Mocking it away would leave exactly the
+  // mechanism that failed as the one thing not under test.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/paginate\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/paginate.ts";`,
+  );
+
+  // Helper take-home: `_shared/helperEarnings.ts` is pure TypeScript (its only
+  // import is a sibling `_shared` constant module, which vitest resolves from
+  // disk once this specifier points at the real file). It is the arithmetic
+  // behind the dollar figure `weekly-helper-report` emails a helper about
+  // their own week — including the group-job roster split that used to mail a
+  // 3-person job's FULL budget to each of them — so it stays under test.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/helperEarnings\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/helperEarnings.ts";`,
+  );
+
+  // Cancellation ladder: `_shared/cancellationFee.ts` has ZERO imports and is
+  // the module `money-reconciliation` re-derives every stored cancellation fee
+  // from. Mocking it would mean the reconciler's central comparison — stored
+  // column vs. what settlement would compute — is asserted against a stub.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/cancellationFee\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/cancellationFee.ts";`,
+  );
+
+  // ── The transactional-email layer ────────────────────────────────────────
+  //
+  // `_shared/resend.ts` constructs a Resend client at module scope,
+  // `_shared/unsubscribe.ts` signs links with a Deno-provided secret, and the
+  // templates pull in `@react-email/components`. None of that is what a
+  // lifecycle cron's tests are about — the decisions under test (who is
+  // eligible, whose consent was read, when the run refuses to send at all) are
+  // all made before a template is touched. The whole layer points at one
+  // double; see `./mocks/email.ts`.
+  //
+  // Without these rules `engagement-automations` could not be loaded by this
+  // harness at all, which is why the one function in the repo that mails
+  // marketing to real people had no tests.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/(resend|unsubscribe)\.ts["'];?/g,
+    `import {$1} from "${MOCK.email}";`,
+  );
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/email-templates\/[A-Za-z0-9_-]+\.tsx?["'];?/g,
+    `import {$1} from "${MOCK.email}";`,
+  );
+  // `import * as React from 'npm:react@18.3.1'` — this repo already depends on
+  // React 18, so the real library serves. `React.createElement` on an inert
+  // template component is exactly what the function does in production; only
+  // the rendering is stubbed out.
+  out = out.replace(
+    /import\s+\*\s+as\s+React\s+from\s+["']npm:react@[^"']+["'];?/g,
+    `import * as React from "react";`,
+  );
+
+  // Recurring calendar: `_shared/recurringSchedule.ts` has ZERO imports and is
+  // the single definition of which dates a series runs. The Post-a-Task screen
+  // quotes "9 visits · $450 total" from it and `charge-recurring-visits` bills
+  // a saved card from it, so a stub here would mean the calendar every one of
+  // those charges is derived from is the one thing not under test — and the
+  // failure mode is a poster billed for a visit the app never showed them.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/recurringSchedule\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/recurringSchedule.ts";`,
+  );
+
+  // Cron authorization: `_shared/cron-auth.ts` is the ONLY thing standing
+  // between a public HTTPS endpoint and a function that charges saved cards
+  // off-session, so it points at the REAL module rather than a permissive
+  // stub — a mocked gate is a gate nobody tested. It is otherwise pure: its
+  // sole dependency is `Deno.env.get`, which the global installed in
+  // `loadEdgeFunction` below satisfies (a `_shared` module is imported from
+  // disk, so it cannot receive the per-function preamble the entry gets).
+  //
+  // Without this rule any function importing it — charge-recurring-visits,
+  // cleanup-abandoned-accounts, process-email-queue — could not be loaded by
+  // the harness at all: the emitted `.gen.ts` kept a `../_shared/cron-auth.ts`
+  // specifier that does not resolve from this directory.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/cron-auth\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/cron-auth.ts";`,
+  );
+
+  // Escrow clock: `_shared/escrowTiming.ts` has ZERO imports and is the single
+  // source of the 24-hour auto-release cutoff that user copy, the payout cron
+  // and `payment-confirm-reminder`'s window all have to agree on.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/escrowTiming\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/escrowTiming.ts";`,
+  );
 
   return out;
 }
@@ -301,6 +484,18 @@ export async function loadEdgeFunction(fnName: string): Promise<EdgeHarness> {
   // Reset the captured handler before importing so each load is isolated.
   const deno = await import("./mocks/deno-runtime.ts");
   deno.__clearHandler();
+
+  // A `Deno` GLOBAL, in addition to the per-function preamble binding.
+  //
+  // The preamble gives the function's own modules a local `Deno`, but a
+  // `_shared` helper pointed at its real path is imported from disk and never
+  // rewritten, so it can only see a global. `_shared/cron-auth.ts` is exactly
+  // that: real source, under test, reading `Deno.env.get`. The stub is backed
+  // by the same map `setEnv()` writes, so a test configures both the same way.
+  //
+  // The preamble's local binding SHADOWS this inside every rewritten module, so
+  // nothing that worked before changes behaviour.
+  (globalThis as { Deno?: unknown }).Deno = deno.__denoStub;
 
   const entryGenPath = join(HERE, entry.genName);
   try {

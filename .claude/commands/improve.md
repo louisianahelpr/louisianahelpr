@@ -87,6 +87,7 @@ instead of fighting them.
 - **Append the roadmap** to `TODO.md`.
 
 This is a planning/proposal pass — it writes docs, it does not refactor code. When the user later picks
-items to implement: branch + PR (never commit to `main`), respect the "never guess UI targets" rule
+items to implement: commit directly to `main` (per CLAUDE.md — this file used to say "branch + PR,
+never commit to main", which was the opposite of the repo rule), respect the "never guess UI targets" rule
 (fix the exact element named, confirm before editing visuals), rebuild + sync the iOS simulator after
 UI changes, and end commits with the required `Co-Authored-By` trailer.

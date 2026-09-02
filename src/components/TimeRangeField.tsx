@@ -107,5 +107,3 @@ export function TimeRangeField({ start, end, onChange, disabled, className }: Ti
     </Popover>
   );
 }
-
-export default TimeRangeField;

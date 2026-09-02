@@ -12,9 +12,11 @@ import {
   Dialog,
   DialogContent,
   DialogHero,
+  DialogBody,
   DialogFooter,
+  DialogSecondaryAction,
+  DialogPrimaryAction,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -83,10 +85,12 @@ export function FormalWarningDialog({ profile, onClose, onSuccess }: FormalWarni
           title="Issue Manual Strike"
         />
         <div className="space-y-5">
-          <p className="text-ds-11 text-muted-foreground leading-relaxed">
-            Per the Repeat Offender Policy: <strong>1st</strong> = warning, <strong>2nd</strong> = final warning banner, <strong>3rd</strong> = 7-day suspension.
-            This logs a strike, emails {formatName(profile?.full_name)}, and adds it to their violation history.
-          </p>
+          <DialogBody>
+            <p>
+              Per the Repeat Offender Policy: <strong>1st</strong> = warning, <strong>2nd</strong> = final warning banner, <strong>3rd</strong> = 7-day suspension.
+              This logs a strike, emails {formatName(profile?.full_name)}, and adds it to their violation history.
+            </p>
+          </DialogBody>
           <div className="space-y-2">
             <p className="text-ds-11 font-medium text-muted-foreground uppercase tracking-wide">Reason category</p>
             <Select value={category} onValueChange={setCategory}>
@@ -127,17 +131,22 @@ export function FormalWarningDialog({ profile, onClose, onSuccess }: FormalWarni
             </div>
           </label>
         </div>
-        <DialogFooter className="gap-2 sm:gap-2 pt-2 border-t border-border/40 -mx-5 sm:-mx-6 px-5 sm:px-6">
-          <Button variant="ghost" onClick={handleClose} disabled={busy} className="w-full sm:w-auto">
+        {/* Plain DialogFooter. This carried a full-bleed rule that no other
+              popup in the app has, and the bleed arithmetic was wrong: the
+              negative margins were written for a `p-5 sm:p-6` container, but
+              DialogContent is `p-4 sm:p-5`, so the divider overshot the card
+              edge by 4px at every breakpoint and drew across the rounded
+              corner radius. */}
+          <DialogFooter>
+          <DialogSecondaryAction onClick={handleClose} disabled={busy}>
             Cancel
-          </Button>
-          <Button
+          </DialogSecondaryAction>
+          <DialogPrimaryAction
             onClick={submit}
             disabled={busy || !note.trim()}
-            className="w-full sm:w-auto"
           >
             {busy ? "Issuing…" : bypass ? "Issue (No Escalation)" : "Issue Strike"}
-          </Button>
+          </DialogPrimaryAction>
         </DialogFooter>
       </DialogContent>
     </Dialog>

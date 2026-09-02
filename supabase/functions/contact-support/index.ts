@@ -26,28 +26,40 @@
 //   • No auth required (config.toml sets verify_jwt = false).
 //   • Rate limited per IP via _shared/rate-limit.ts — an open, unauthenticated
 //     endpoint that sends mail is a spam relay without it.
-//   • Every user-supplied string is length-checked and HTML-escaped
-//     (_shared/safe-strings.ts) before it lands in the email template.
+//   • Every user-supplied string is length-checked and control-character
+//     stripped (clean/cleanLine below) before it lands in the email template,
+//     and the template escapes it: the body is a react-email component, so
+//     each value is a JSX child that React escapes by construction. The old
+//     hand-applied htmlEscape() calls are gone with the HTML string they
+//     protected — see _shared/email-templates/support-request.tsx.
 //   • The response NEVER varies on whether the submitted email belongs to an
 //     existing account — the function does not look the address up at all, so
 //     it cannot become an account-enumeration oracle.
 //   • Honest failures: if the mail never leaves, the caller gets a non-2xx.
 //     We never report "sent" for a message that went nowhere.
 
+import * as React from 'npm:react@18.3.1'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsHeadersFull as corsHeaders } from '../_shared/cors.ts'
 import { checkRateLimit, rateLimitResponse } from '../_shared/rate-limit.ts'
-import { htmlEscape } from '../_shared/safe-strings.ts'
 import { postSlackOpsAlert } from '../_shared/slack-alerts.ts'
-
-const SITE_NAME = 'Helpr'
-const FROM_DOMAIN = 'louisianahelpr.com'
-// Destination inbox. Overridable via secret so the address can move without a
-// code change; defaults to the address already published across the app
-// (HelpCenter, AccountPending, ReportDialog…), so no new secret is required
-// for this function to work on first deploy.
-const SUPPORT_INBOX =
-  Deno.env.get('SUPPORT_INBOX_EMAIL') || 'admin@louisianahelpr.com'
+// Sending, the From header, and the destination inbox all come from the one
+// Resend module now — this function used to carry its own copy of each.
+//
+// SUPPORT_EMAIL is the same value the local SUPPORT_INBOX constant computed:
+// `Deno.env.get('SUPPORT_INBOX_EMAIL') || 'admin@louisianahelpr.com'`. The
+// address stays overridable by secret so it can move without a code change,
+// and still defaults to the one published across the app (HelpCenter,
+// AccountPending, ReportDialog…), so no new secret is required to deploy.
+//
+// FROM_CONTACT keeps the "Helpr Contact" display name for this INTERNAL relay
+// only — it makes the support inbox sortable at a glance and never reaches a
+// customer. It is defined in exactly one place now (_shared/resend.ts).
+import { FROM_CONTACT, SUPPORT_EMAIL, sendWithResend } from '../_shared/resend.ts'
+// The email itself is a react-email component now (see the note on
+// renderSupportEmail below), so nothing in this file builds HTML by hand.
+import { SupportRequestEmail } from '../_shared/email-templates/support-request.tsx'
+import { renderEmail } from '../_shared/email-templates/render.ts'
 
 // Mirrors SUPPORT_TOPICS in src/lib/supportTopics.ts — edge functions run on
 // Deno and cannot import from src/. Change both together.
@@ -107,85 +119,24 @@ function cleanLine(input: unknown, max: number): string {
     .slice(0, max)
 }
 
-async function sendWithResend(
-  apiKey: string,
-  params: { to: string; from: string; subject: string; html: string; text: string },
-) {
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: params.from,
-      to: [params.to],
-      subject: params.subject,
-      html: params.html,
-      text: params.text,
-    }),
-  })
-  if (!res.ok) {
-    const body = await res.text()
-    throw new Error(`Resend ${res.status}: ${body}`)
-  }
-}
-
-function renderEmail(t: {
+/**
+ * Render the support-inbox email.
+ *
+ * Both parts come from ONE react-email component: `renderEmail` produces the
+ * HTML and asks react-email for the plaintext twin, so the two can never
+ * drift. The hand-written plaintext block that used to live here had to be
+ * kept in step with the HTML by eye, and every interpolated value needed its
+ * own htmlEscape() call — React escapes them now.
+ */
+async function renderSupportEmail(t: {
   topicLabel: string
   name: string
   email: string
   subject: string
   message: string
   accountLine: string
-}): { html: string; text: string } {
-  // Every interpolated value is escaped — this body is assembled from
-  // untrusted, unauthenticated input.
-  const name = htmlEscape(t.name)
-  const email = htmlEscape(t.email)
-  const subject = htmlEscape(t.subject || 'No subject')
-  const topicLabel = htmlEscape(t.topicLabel)
-  const accountLine = htmlEscape(t.accountLine)
-  // Preserve the writer's line breaks without letting markup through.
-  const messageHtml = htmlEscape(t.message).replace(/\n/g, '<br />')
-
-  const html = `<!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/></head>
-<body style="background:#F0F2F4;font-family:'Montserrat','Helvetica Neue',Helvetica,Arial,sans-serif;margin:0;padding:24px;color:#2E2F22;">
-  <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:14px;padding:32px 28px;border:1px solid #CBCFD8;">
-    <img src="https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/brand-asset" alt="Helpr" width="80" style="display:block;width:150px;max-width:150px;height:auto;border:0;outline:none;text-decoration:none;margin:0 0 24px;" />
-    <h1 style="font-size:22px;font-weight:700;margin:0 0 4px;line-height:1.3;">[${topicLabel}] ${subject}</h1>
-    <p style="font-size:13px;line-height:1.6;margin:0 0 24px;color:#6E7C83;">Submitted from the public contact form.</p>
-
-    <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin:0 0 20px;font-size:14px;color:#55656D;">
-      <tr><td style="padding:4px 0;width:88px;color:#6E7C83;">From</td><td style="padding:4px 0;color:#2E2F22;"><strong>${name}</strong></td></tr>
-      <tr><td style="padding:4px 0;color:#6E7C83;">Email</td><td style="padding:4px 0;color:#2E2F22;">${email}</td></tr>
-      <tr><td style="padding:4px 0;color:#6E7C83;">Topic</td><td style="padding:4px 0;color:#2E2F22;">${topicLabel}</td></tr>
-      <tr><td style="padding:4px 0;color:#6E7C83;">Account</td><td style="padding:4px 0;color:#2E2F22;">${accountLine}</td></tr>
-    </table>
-
-    <div style="border-top:1px solid #CBCFD8;padding-top:20px;font-size:15px;line-height:1.6;color:#2E2F22;white-space:normal;">${messageHtml}</div>
-
-    <p style="font-size:12px;line-height:1.6;margin:28px 0 0;padding-top:16px;border-top:1px solid #CBCFD8;color:#6E7C83;">
-      Reply directly to <strong>${email}</strong> to answer this person.
-    </p>
-  </div>
-</body></html>`
-
-  const text = `[${t.topicLabel}] ${t.subject || 'No subject'}
-Submitted from the public contact form.
-
-From:    ${t.name}
-Email:   ${t.email}
-Topic:   ${t.topicLabel}
-Account: ${t.accountLine}
-
-${t.message}
-
-—
-Reply directly to ${t.email} to answer this person.`
-
-  return { html, text }
+}): Promise<{ html: string; text: string }> {
+  return await renderEmail(React.createElement(SupportRequestEmail, t))
 }
 
 Deno.serve(async (req) => {
@@ -322,7 +273,7 @@ Deno.serve(async (req) => {
     }
 
     const accountLine = userId ? `Signed in (user ${userId})` : 'Not signed in (guest)'
-    const { html, text } = renderEmail({
+    const { html, text } = await renderSupportEmail({
       topicLabel,
       name,
       email,
@@ -333,11 +284,16 @@ Deno.serve(async (req) => {
 
     try {
       await sendWithResend(resendApiKey, {
-        to: SUPPORT_INBOX,
-        from: `${SITE_NAME} Contact <noreply@${FROM_DOMAIN}>`,
+        to: SUPPORT_EMAIL,
+        from: FROM_CONTACT,
         subject: `[${topicLabel}] ${subject || 'No subject'} — ${name}`,
         html,
         text,
+        // The footer says "Reply directly to <them>", but the envelope is
+        // noreply@ — without this the support agent has to copy the address
+        // out of the body by hand. `email` has already been through
+        // cleanLine() + EMAIL_RE above, so no newline can reach this header.
+        replyTo: email,
       })
     } catch (sendErr) {
       const msg = sendErr instanceof Error ? sendErr.message : String(sendErr)

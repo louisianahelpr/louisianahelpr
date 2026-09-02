@@ -1,6 +1,9 @@
 import { lazy, Suspense, forwardRef, useEffect, useState, type ReactElement } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
+// Static, not lazy: it renders a <Navigate> and nothing else, so a code-split
+// chunk (and a Suspense frame) would cost more than the component.
+import ActivityLegacyRedirect from "./pages/ActivityLegacyRedirect";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { Analytics } from "@vercel/analytics/react";
 
@@ -22,6 +25,7 @@ import { OfflineBannerLayoutProvider } from "@/lib/offlineBannerLayout";
 import { useLoginTracking } from "@/hooks/useLoginTracking";
 import { useNativePushSetup } from "@/lib/nativePush";
 import { useDynamicTypeSync, OS_LARGE_TEXT_THRESHOLD } from "@/lib/accessibility";
+import { syncSeniorMode } from "@/lib/simpleMode";
 import { useCppVariantRouter } from "@/lib/cppRouting";
 import NativeLaunchRouter from "@/components/NativeLaunchRouter";
 import RouteMemory from "@/components/RouteMemory";
@@ -33,17 +37,15 @@ import { useAppShellViewport } from "@/hooks/useAppShellViewport";
 import { useStatusBarStyle } from "@/hooks/useStatusBarStyle";
 import { useAppLifecycle } from "@/lib/appLifecycle";
 import { AppLockGate } from "@/components/AppLockGate";
+import { ForceUpdateGate } from "@/components/ForceUpdateGate";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useDarkMode } from "@/hooks/useDarkMode";
 
-// Toaster, Sonner and TooltipProvider pull in sonner + @radix-ui/react-toast +
+// Sonner and TooltipProvider pull in sonner +
 // @radix-ui/react-tooltip + @floating-ui (~14 KB gzipped of
 // otherwise-unused JS on the landing page where no toast fires and no tooltip
 // is visible). Lazy-loading them keeps the libs out of the critical entry
 // bundle — they hydrate after first paint when the wrappers actually mount.
-const Toaster = lazy(() =>
-  import("@/components/ui/toaster").then((m) => ({ default: m.Toaster }))
-);
 const Sonner = lazy(() =>
   import("@/components/ui/sonner").then((m) => ({ default: m.Toaster }))
 );
@@ -107,8 +109,8 @@ const HelpCenter = lazy(() => import("./pages/HelpCenter"));
 const Support = lazy(() => import("./pages/Support"));
 const HomeHistory = lazy(() => import("./pages/HomeHistory"));
 const WorkRecord = lazy(() => import("./pages/WorkRecord"));
+const HelperAnalytics = lazy(() => import("./pages/HelperAnalytics"));
 const PetProfiles = lazy(() => import("./pages/PetProfiles"));
-const BenefitsPage = lazy(() => import("./pages/BenefitsPage"));
 
 // Lazy load less-critical global components
 
@@ -133,6 +135,28 @@ const AdminRoute = lazy(() => import("./components/AdminRoute"));
 const routeEl = (node: ReactElement, fallback: ReactElement = <RouteSuspenseFallback />) => (
   <Suspense fallback={fallback}>{node}</Suspense>
 );
+
+/**
+ * A `<Navigate>` that carries the query string (and hash) across.
+ *
+ * `<Navigate to="/somewhere" />` REPLACES the entire location, so `?claim=`,
+ * `?token=`, `?job=` and every other param the inbound link depended on is
+ * discarded. That is silent by construction: the destination reads `null` from
+ * `searchParams.get(...)`, takes its "nothing to do" branch, and renders a
+ * perfectly normal page — no error, no toast, nothing in Sentry. It has now
+ * cost this app four separate bugs (two `pif_credit`, the old `/activity`
+ * redirect that burned direct offers, and the gift-card claim link), so the
+ * fix is a named primitive rather than a fourth one-off.
+ *
+ * Use this for ANY legacy-path redirect. Only a redirect whose destination
+ * hard-codes its own params (e.g. `/terms` → `/legal?tab=terms`) should keep a
+ * bare `<Navigate>`, and only because those paths are never linked with a
+ * query — see the audit note on each below.
+ */
+function PreserveQueryRedirect({ to }: { to: string }) {
+  const { search, hash } = useLocation();
+  return <Navigate to={{ pathname: to, search, hash }} replace />;
+}
 
 const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
   const location = useLocation();
@@ -172,7 +196,11 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/payment-success" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PaymentSuccess /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/user/:userId" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><UserProfile /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/admin" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><AdminRoute><Admin /></AdminRoute></ProtectedRoute>)}</RouteErrorBoundary>} />
-      <Route path="/activity" element={<Navigate to="/my-posts" replace />} />
+      {/* Legacy route. Routes to the poster OR helper surface based on the
+          query it was linked with, instead of always dumping helpers on My
+          Posts — and preserves the query string, which the old bare
+          <Navigate> silently dropped. See ActivityLegacyRedirect. */}
+      <Route path="/activity" element={<ActivityLegacyRedirect />} />
       {/* → the EARNINGS TAB, not the Profile landing. `/earnings` is the
           deep link people bookmark and the one older notifications point at;
           dropping them on the landing made them find the tab themselves. */}
@@ -233,6 +261,15 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           above — a deep link into a Profile tab. */}
       <Route path="/data-rights" element={<Navigate to="/profile?tab=legal" replace />} />
 
+      {/* Two live prod notifications link here — "Cancellation warning (1 of 2)"
+          and "Your Elite shield absorbed this one" — and there has never been a
+          route, so both landed on NotFound. A consequence notice that dead-ends
+          is the worst one to lose: the reader is being told something is on
+          their record and cannot see what. Two DB producers still emit this
+          path, so a redirect (not a producer rewrite) is what fixes the rows
+          already sent. Same reasoning as /data-rights above. */}
+      <Route path="/warnings" element={<Navigate to="/profile?tab=warnings" replace />} />
+
       {/* Public, indexable jobs landing — Jobs.tsx reads anon job data
           (get_ranked_open_jobs, granted to anon) and renders guest
           "Sign up to apply" cards, so it must be reachable WITHOUT auth.
@@ -275,13 +312,37 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       {/* Gift Card — send a gift card to a Helpr (renamed from Pay It Forward) */}
       <Route path="/auto-tip" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><AutoTip /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/gift-card" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PayItForward /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      {/* Legacy /pay-it-forward → /gift-card (feature renamed). */}
-      <Route path="/pay-it-forward" element={<Navigate to="/gift-card" replace />} />
-      {/* /analytics rendered the SAME body as the Earnings tab under a
-          different title — an orphan route kept for deep links, and a second
-          screen for one subject. It redirects now, so the bookmarks keep
-          working and there is one Earnings & Analytics, not two (owner). */}
-      <Route path="/analytics" element={<Navigate to="/profile?tab=earnings" replace />} />
+      {/* Legacy /pay-it-forward → /gift-card (feature renamed).
+          MUST carry the query string. This was a bare
+          `<Navigate to="/gift-card" replace />`, and a bare string `to`
+          replaces the whole location — search and hash included — so every
+          gift-card claim link died here. `_shared/pifGiftEmail.ts:49` mails
+          `${getAppUrl()}/pay-it-forward?claim=<token>`; the token was dropped
+          on the way to /gift-card, PayItForward.tsx:121 read `null` from
+          `searchParams.get("claim")`, its claim effect returned early, and the
+          credit was never claimed — no error, no toast, nothing to notice.
+          Signed out it died one step earlier: ProtectedRoute builds
+          `?redirect=` from `location.pathname + location.search`, so with the
+          search already gone the user came back from login to a bare
+          /gift-card. Same defect shape as the two `pif_credit` bugs and the
+          old `/activity` redirect (see ActivityLegacyRedirect). */}
+      <Route path="/pay-it-forward" element={<PreserveQueryRedirect to="/gift-card" />} />
+      {/* /analytics — Advanced Analytics, the perk printed on the $10 Pro card.
+          It was a <Navigate> to the Earnings tab from 2026-08-23, and that was
+          the right call at the time: the old page rendered the SAME body as the
+          Earnings tab under a different title, so it was a second screen for one
+          subject. This is not that page returning. An audit found the Pro bullet
+          pointed at nothing — every free helper already had the tab it
+          redirected to — and the owner chose to build the perk rather than drop
+          the bullet. The new page answers "how do I earn more" (fee split,
+          category vs market rates, application funnel, posting clock); the
+          Earnings tab keeps "what did I make and where is the money". Half of
+          this page's data is other people's jobs, which a helper cannot read at
+          all, so it could never have lived on the Earnings tab.
+          Gated in SQL: get_helper_analytics() returns entitled:false to
+          non-subscribers and the page renders an upgrade offer, not a locked
+          copy of the dashboard. */}
+      <Route path="/analytics" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><HelperAnalytics /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* Public vertical landing pages */}
 
       <Route path="/home-history" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><HomeHistory /></ProtectedRoute>)}</RouteErrorBoundary>} />
@@ -308,8 +369,16 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           visitor never sees a flash of authed chrome (HelprWrapped's own
           useEffect redirect used to fire only after the first paint). */}
       <Route path="/wrapped" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><HelprWrapped /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      {/* Benefits marketplace — partner perks for helpers */}
-      <Route path="/benefits" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BenefitsPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      {/* /benefits (BenefitsPage) was removed 2026-08-31 (owner): there were
+          no partner agreements behind it — every row was a plain link to a
+          public third-party site, so the screen made a promise the product
+          could not honour. Deleted outright rather than retitled. NO redirect,
+          for the same reason as the retired routes above: nothing outside the
+          app cites the URL (it is absent from sitemap.xml, robots.txt, the App
+          Store metadata, every email/push template and every legal page — it
+          was a ProtectedRoute reachable only from the Profile → Work group),
+          so it falls through to the `path="*"` NotFound below. If an external
+          citation ever appears, add a real <Route>, not a comment. */}
       {/* Pet care — manage pet profiles and vet notes */}
       <Route path="/pets" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PetProfiles /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* /evacuation was removed; its redirect to /pets went with it in
@@ -402,17 +471,23 @@ const SessionManager = () => {
   // auto-refetch. No-op on web.
   useAppLifecycle();
 
-  // Apply senior-mode CSS class on <html> when EITHER the loaded profile has
-  // senior_mode enabled, OR the OS reports a large accessibility text size
-  // (Dynamic Type). The profile flag is a manual opt-in; the Dynamic Type
-  // bridge (LH-22) honors the user's system-level text-size choice without
-  // them having to flip the in-app toggle. They're OR'd so the two can't
-  // clobber each other.
+  // Feed the two inputs this component owns into the Senior Mode resolver and
+  // let IT write the class. The profile flag is a manual account-level opt-in;
+  // the Dynamic Type bridge (LH-22) honors the user's system-level text-size
+  // choice without them having to flip the in-app toggle.
+  //
+  // This used to `classList.toggle("senior-mode", profileSenior || osLargeText)`
+  // directly, and that unconditional write is what erased the DEVICE preference
+  // `initSimpleMode()` had applied ~20ms earlier before first paint — the
+  // /profile?tab=accessibility toggle turned the app on and was silently undone
+  // on the next launch. The third input lives in simpleMode.ts (it has to, it
+  // runs before React), so the decision lives there too; see the trace in that
+  // file's header.
   const { profile } = useCurrentUser();
   useEffect(() => {
     const profileSenior = !!(profile as unknown as { senior_mode?: boolean })?.senior_mode;
     const osLargeText = dynamicTypeScale >= OS_LARGE_TEXT_THRESHOLD;
-    document.documentElement.classList.toggle("senior-mode", profileSenior || osLargeText);
+    syncSeniorMode({ profileSenior, osLargeText });
   }, [profile, dynamicTypeScale]);
 
 
@@ -507,10 +582,13 @@ const DeferredToasters = () => {
           app, so the policy layer — not the mount — is where suppression
           belongs.
 
-          Both hosts are needed: <Sonner /> serves the ~430 `sonner` call sites,
-          <Toaster /> the three that still use the Radix `@/hooks/use-toast`
-          (AdminHealth, EarningsTab, useHelperMilestones). */}
-      <Toaster />
+          One host, not two: the three remaining Radix `@/hooks/use-toast`
+          callers (AdminHealth, EarningsTab, useHelperMilestones) were migrated
+          to `sonner`, so <Toaster /> and the whole @/hooks/use-toast +
+          ui/toast + ui/toaster stack are gone. Two toast systems meant two
+          places to configure duration, stacking and dismissal, and a toast
+          could render in either one depending on which import a file
+          happened to pick. */}
       <Sonner />
       <SuccessMomentHost />
     </Suspense>
@@ -533,6 +611,19 @@ const App = () => (
       <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md">
         Skip to content
       </a>
+      {/* ForceUpdateGate sits OUTSIDE the router, above AppLockGate, and is
+          the outermost thing in the tree that can replace the app.
+          · Outside the router because it is not a route and has none: its only
+            navigation is an external App Store link, so it must not depend on
+            the router — or on any of the app it is refusing to run — to work.
+          · Above AppLockGate because when both apply (an out-of-date install
+            with Face ID enabled) this one must win. Demanding a biometric
+            before telling someone their app is dead is the wrong first screen,
+            and there is no account data on this one to protect.
+          It renders children untouched on the web and on any native install
+          that is up to date, gate-off, or unable to answer the question — see
+          hooks/useVersionCheck.ts for why every uncertainty lets the user in. */}
+      <ForceUpdateGate>
       <BrowserRouter>
         {/* Provider wraps the banner (publisher of its measured height) and
             the page content (AppShell reads the offset to reserve space).
@@ -574,6 +665,7 @@ const App = () => (
         </OfflineBannerLayoutProvider>
         </AppLockGate>
       </BrowserRouter>
+      </ForceUpdateGate>
       <Analytics />
     </QueryClientProvider>
   </ErrorBoundary>

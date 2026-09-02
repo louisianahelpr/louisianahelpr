@@ -89,49 +89,18 @@ const SwipeableJobCard = ({
     setSwiping(false);
   };
 
-  // "Just in" pulsing dot for jobs posted in the last 30 minutes — gives
-  // browsing helprs a live signal that the marketplace is active.
-  const isJustIn = (() => {
-    const createdRaw = job.created_at;
-    if (!createdRaw) return false;
-    const ageMs = Date.now() - new Date(createdRaw).getTime();
-    return ageMs > 0 && ageMs < 30 * 60 * 1000;
-  })();
+  // The "Just in" freshness pill used to be rendered HERE — an absolutely
+  // positioned overlay at `top-2 left-20`, painted over the finished JobCard
+  // from outside it, with a hardcoded guess at where the category tab ended.
+  // It is now a first-class chip on JobCard's own badge rail (owner,
+  // 2026-08-31: "Just in needs to be better aligned"), which is the only
+  // place that knows how wide the other badges actually are. A card's badges
+  // must not be authored in two components: the one that does not own the
+  // layout can only ever guess, and it guessed wrong at every width.
+  // See the BADGE RAIL block in JobCard.tsx.
 
   return (
     <div ref={containerRef} className="relative overflow-hidden rounded-2xl">
-      {/* "Just in" freshness pill — surfaces on jobs posted in the last
-          30 min so browsing helprs see the feed is live, not stale.
-          Positioned top-left (offset past the category tab) so it never
-          overlaps the price chip in the top-right corner.
-          pointer-events-none since SwipeableJobCard owns the drag gesture. */}
-      {isJustIn && (
-        <span
-          aria-label="Just posted"
-          className="absolute top-2 left-20 z-20 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full pointer-events-none"
-          style={{
-            background: "hsl(var(--burnt-sienna) / 0.10)",
-            border: "0.5px solid hsl(var(--burnt-sienna) / 0.28)",
-            backdropFilter: "blur(8px)",
-            WebkitBackdropFilter: "blur(8px)",
-          }}
-        >
-          <span
-            className="w-1.5 h-1.5 rounded-full motion-safe:animate-pulse"
-            style={{
-              background: "hsl(var(--burnt-sienna))",
-              boxShadow: "0 0 6px hsl(var(--burnt-sienna) / 0.55)",
-            }}
-            aria-hidden
-          />
-          <span
-            className="text-ds-10 font-serif italic uppercase tracking-[0.16em]"
-            style={{ color: "hsl(var(--burnt-sienna))" }}
-          >
-            Just in
-          </span>
-        </span>
-      )}
       {/* Swipe-to-dismiss trail — gradient deepens from the right edge as
           you pull left, so you feel the action growing rather than just
           a flat tinted background. */}

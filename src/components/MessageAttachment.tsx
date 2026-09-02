@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { FileText, ExternalLink, Loader2, X, Play, Pause } from "lucide-react";
 import {
   getMessageAttachmentSignedUrl,
@@ -176,6 +177,8 @@ export function MessageAttachment({ path, mime, size, duration, mine }: MessageA
   const [thumbUrl, setThumbUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const thumbRef = useRef<HTMLButtonElement>(null);
+  const wasOpenRef = useRef(false);
 
   // ESC to close the lightbox (keyboard parity with JobDetailDialog's
   // photo viewer, which uses the same pattern).
@@ -186,6 +189,21 @@ export function MessageAttachment({ path, mime, size, duration, mine }: MessageA
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
+  }, [lightboxOpen]);
+
+  // Focus return. The viewer is a portal at the END of <body>, so once it
+  // unmounts there is nothing between the caret and the top of the document —
+  // without this, Escape drops focus onto <body> and the next Tab restarts at
+  // the skip link rather than at the message the photo belongs to.
+  useEffect(() => {
+    if (lightboxOpen) {
+      wasOpenRef.current = true;
+      return;
+    }
+    if (wasOpenRef.current) {
+      wasOpenRef.current = false;
+      thumbRef.current?.focus();
+    }
   }, [lightboxOpen]);
 
   // Image thumbnails: resolve a signed URL on mount. PDFs: defer the signed
@@ -229,6 +247,7 @@ export function MessageAttachment({ path, mime, size, duration, mine }: MessageA
     return (
       <>
         <button
+          ref={thumbRef}
           type="button"
           onClick={handleOpenImageLightbox}
           className="block max-w-xs overflow-hidden rounded-2xl active:scale-[0.98] transition-transform"
@@ -261,15 +280,41 @@ export function MessageAttachment({ path, mime, size, duration, mine }: MessageA
           )}
         </button>
 
-        {/* Inline lightbox — frosted parchment backdrop matching the
-            JobDetailDialog photo viewer. Click backdrop or X to close. */}
-        {lightboxOpen && thumbUrl && (
+        {/* Lightbox — frosted parchment backdrop matching the JobDetailDialog
+            photo viewer. Click backdrop or X to close.
+            PORTALLED TO <body>, and that is load-bearing rather than tidy.
+            `position: fixed` resolves against the VIEWPORT only while no
+            ancestor establishes a containing block, and one does: this bubble
+            renders inside PageScaffold's panel, whose `.liquid-glass` carries
+            `backdrop-filter: blur(20px) saturate(170%)` (index.css) — a
+            non-none filter makes an element the containing block for every
+            fixed descendant, exactly as a transform does. Rendered inline,
+            `inset-0` therefore sized the "full-screen" viewer to the CHAT
+            PANEL and the panel's own `overflow: hidden` then clipped it:
+            measured 351x767 at (21, 85) in a 393x852 viewport — 89% of the
+            width, 90% of the height, inset under the title card. Same class of
+            bug as the "Add a Pet" sheet (see the note in
+            src/pages/petProfiles/PetForm.tsx), same fix: leave the transformed
+            subtree by construction instead of hoping no ancestor ever gains a
+            filter or a transform.
+            A plain portal, not the shared <Dialog>: this file is on
+            popupShellInventory.test.ts's HAND_ROLLED_BY_DESIGN list because
+            framing a photo in a 512px titled card to satisfy a consistency
+            rule makes the photo worse. */}
+        {lightboxOpen && thumbUrl && createPortal(
           <div
             className="fixed inset-0 z-[60] flex items-center justify-center animate-in fade-in-0 duration-200"
             style={{
               backgroundColor: "hsla(38, 18%, 12%, 0.55)",
               backdropFilter: "blur(28px) saturate(140%)",
               WebkitBackdropFilter: "blur(28px) saturate(140%)",
+              // Required by the portal above. Any open Radix modal sets
+              // `pointer-events: none` on <body>, and `pointer-events`
+              // inherits — so a portal appended to <body> while one is open
+              // renders at full size and is completely inert. Measured on the
+              // twin viewer in PhotoLightbox.tsx, which had exactly that
+              // failure inside JobDetailDialog.
+              pointerEvents: "auto",
             }}
             onClick={() => setLightboxOpen(false)}
             role="dialog"
@@ -301,7 +346,8 @@ export function MessageAttachment({ path, mime, size, duration, mine }: MessageA
               onClick={(e) => e.stopPropagation()}
               draggable={false}
             />
-          </div>
+          </div>,
+          document.body,
         )}
       </>
     );

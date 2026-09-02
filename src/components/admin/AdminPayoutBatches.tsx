@@ -16,13 +16,56 @@ import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
-import { Dialog, DialogContent, DialogHero, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHero,
+  DialogBody,
+  DialogFooter,
+  DialogSecondaryAction,
+  DialogPrimaryAction,
+  DialogDestructiveAction,
+} from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import type { PayoutBatch, PayoutLedgerRow } from "./adminPayoutBatches/types";
 import { loadHolds, saveHolds } from "./adminPayoutBatches/adminPayoutBatchesHelpers";
 import { BatchRow } from "./adminPayoutBatches/BatchRow";
 import { LedgerList } from "./adminPayoutBatches/LedgerList";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
+import { requireBiometric } from "@/lib/biometricGate";
+
+/**
+ * Guard against a SILENT NO-OP on the money path.
+ *
+ * "Send Payout" and "Bulk Approve" invoke the `stripe-payouts` edge function
+ * with `{ helper_id }`. That function never reads `helper_id`, and it never
+ * calls `stripe.transfers.create` — it looks up THE CALLER'S OWN
+ * `profiles.stripe_account_id` and returns a read-only Connect balance summary
+ * (`{ connected, payouts_enabled, available, pending, payouts }`). It is the
+ * same endpoint a Helpr's own Earnings tab calls with an empty body.
+ *
+ * An admin has no `stripe_account_id`, so the function returns
+ * `{ connected:false, payouts:[] }` with HTTP 200 and NO `error` field. The old
+ * code's `if (error) throw error` therefore never fired: after a Face ID
+ * prompt and a confirm dialog reading "This moves real money and can't be
+ * undone", the UI wrote an `admin_audit_log` row claiming the payout was
+ * triggered, closed the dialog, and moved on — while zero cents moved and the
+ * batch stayed in the queue.
+ *
+ * Until the backend gains a real admin batch-payout endpoint (the working
+ * per-job transfer lives in the `release-payout` function, which takes a
+ * `job_id`; `get_payout_batches()` does not currently return job ids, so the
+ * client cannot call it), this makes the no-op LOUD instead of silent: the
+ * admin sees a real error and the audit log is not falsified.
+ */
+function assertTransferHappened(data: unknown): void {
+  const d = data as Record<string, unknown> | null | undefined;
+  if (d && ("connected" in d || "payouts_enabled" in d)) {
+    throw new Error(
+      "Payout not sent. The endpoint this button calls only reads a Connect balance — it never creates a transfer, so no money moved. Escrow release still runs automatically; this batch is unchanged.",
+    );
+  }
+}
 
 const AdminPayoutBatches = () => {
   const qc = useQueryClient();
@@ -146,16 +189,70 @@ const AdminPayoutBatches = () => {
       toast.error(`${batch.helper_name} has no Stripe payout account configured.`);
       return;
     }
+    // Face ID / Touch ID gate: this pushes a real Stripe payout out of the
+    // platform balance. Irreversible once the transfer lands. Runs after the
+    // no-Stripe-account guard so a blocked payout never raises an OS prompt.
+    // No-op on web and on devices without enrolled biometrics.
+    const ok = await requireBiometric(`Confirm the payout to ${batch.helper_name}`);
+    if (!ok) return;
     setPaying(batch.helper_id);
     try {
-      const { error } = await supabase.functions.invoke("stripe-payouts", {
-        body: { helper_id: batch.helper_id },
-      });
-      if (error) throw error;
-      await logAdminAction("trigger_payout", "user", batch.helper_id, {
-        job_count: batch.job_count,
-        total_payout: batch.total_payout,
-      });
+      // `release-payout` is what actually transfers, and it takes a JOB id.
+      // get_payout_batches() aggregates by helper and returns no job ids,
+      // which is why the old call went to `stripe-payouts` — a function that
+      // never reads helper_id and only reports the CALLER's own balance. It
+      // answered 200 with no `error`, so this handler logged a payout that
+      // never happened. get_payout_batch_job_ids (20260831213026) shares that
+      // RPC's predicate exactly, so what we pay is what the batch counted.
+      // Cast through `never`: src/integrations/supabase/types.ts is a SNAPSHOT
+      // regenerated from the database, and get_payout_batch_job_ids landed in
+      // 20260831213026 after the last regeneration. The RPC is live in prod
+      // (verified), the types simply have not caught up — the same deploy-lag
+      // window CLAUDE.md documents for brand-new RPCs. Drop the cast once
+      // types.ts is regenerated.
+      const { data: jobRows, error: jobsErr } = await supabase.rpc(
+        "get_payout_batch_job_ids" as never,
+        { p_helper_id: batch.helper_id } as never,
+      );
+      if (jobsErr) throw jobsErr;
+      const jobIds = ((jobRows ?? []) as Array<{ job_id: string }>).map((r) => r.job_id);
+      if (jobIds.length === 0) {
+        // Zero rows is also what a non-admin sees, by design in the RPC.
+        throw new Error(
+          "Nothing left to pay in this batch — it may have settled already. Refresh to re-check.",
+        );
+      }
+
+      // One job at a time, and a partial success is reported as one. The claim
+      // protocol in release-payout means a job already paid answers cleanly
+      // rather than double-paying, so a retry after a partial failure is safe.
+      const failures: string[] = [];
+      for (const jobId of jobIds) {
+        const { data, error } = await supabase.functions.invoke("release-payout", {
+          body: { job_id: jobId },
+        });
+        if (error) { failures.push(jobId); continue; }
+        try { assertTransferHappened(data); } catch { failures.push(jobId); }
+      }
+
+      const paid = jobIds.length - failures.length;
+      // Log what ACTUALLY moved, not what was attempted. The whole reason this
+      // path is being rewritten is that the audit log recorded a payout that
+      // never happened.
+      if (paid > 0) {
+        await logAdminAction("trigger_payout", "user", batch.helper_id, {
+          jobs_attempted: jobIds.length,
+          jobs_paid: paid,
+          jobs_failed: failures.length,
+          total_payout: batch.total_payout,
+        });
+      }
+      if (failures.length > 0) {
+        throw new Error(
+          `Paid ${paid} of ${jobIds.length}. ${failures.length} could not be released — ` +
+            `they stay in the batch, and retrying is safe.`,
+        );
+      }
       qc.invalidateQueries({ queryKey });
     } catch (err: unknown) {
       report(err, { tags: { source: "AdminPayoutBatches.triggerPayout" } });
@@ -190,14 +287,21 @@ const AdminPayoutBatches = () => {
   const clearSelection = () => setSelected(new Set());
 
   const triggerBulkPayout = async () => {
-    setBulkPaying(true);
     setConfirmBulk(false);
+    // Face ID / Touch ID gate: ONE prompt for the whole selection, before the
+    // loop — never per-helper, which would be unusable on a 40-batch run and
+    // would train admins to blow through prompts. Irreversible money movement.
+    // No-op on web and on devices without enrolled biometrics.
+    const ok = await requireBiometric("Confirm this bulk payout run");
+    if (!ok) return;
+    setBulkPaying(true);
     for (const batch of selectedBatches) {
       try {
-        const { error } = await supabase.functions.invoke("stripe-payouts", {
+        const { data, error } = await supabase.functions.invoke("stripe-payouts", {
           body: { helper_id: batch.helper_id },
         });
         if (error) throw error;
+        assertTransferHappened(data);
         await logAdminAction("trigger_payout", "user", batch.helper_id, {
           job_count: batch.job_count,
           total_payout: batch.total_payout,
@@ -248,7 +352,10 @@ const AdminPayoutBatches = () => {
       )}
 
       {/* Tabs — Ready vs Hold for Review. Held batches sit in their own
-          queue so they don't sneak into a bulk select. */}
+          queue so they don't sneak into a bulk select. NOTE: holds live in
+          localStorage (see adminPayoutBatchesHelpers), so they are scoped to
+          THIS browser — the tab label says so, because a second admin sees an
+          unheld batch with a live Pay Out button. */}
       {batches.length > 0 && (
         <div role="tablist" aria-label="Payout queue" className="flex gap-1.5 border-b border-border">
           <button
@@ -276,6 +383,7 @@ const AdminPayoutBatches = () => {
           >
             <span className="inline-flex items-center gap-1.5">
               <Pause className="w-3.5 h-3.5" /> Hold for Review
+              <span className="text-ds-10 font-normal text-muted-foreground">(this device)</span>
               <span className="text-ds-11 tabular-nums">({heldBatches.length})</span>
             </span>
           </button>
@@ -387,10 +495,12 @@ const AdminPayoutBatches = () => {
             title="Hold Payout for Review"
           />
           <div className="space-y-3">
-            <p className="text-ds-11 text-muted-foreground">
-              Moves this helper's batch to the Hold-for-review queue. No
-              Stripe transfer is fired. Logged to admin_audit_log.
-            </p>
+            <DialogBody>
+              <p>
+                Moves this helper's batch to the Hold-for-review queue. No
+                Stripe transfer is fired. Logged to admin_audit_log.
+              </p>
+            </DialogBody>
             <Textarea
               aria-label="Hold reason"
               placeholder="Reason — visible to other admins reviewing the queue."
@@ -399,9 +509,9 @@ const AdminPayoutBatches = () => {
               rows={3}
             />
           </div>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setHoldReasonDraft(null)}>Cancel</Button>
-            <Button
+          <DialogFooter>
+            <DialogSecondaryAction onClick={() => setHoldReasonDraft(null)}>Cancel</DialogSecondaryAction>
+            <DialogPrimaryAction
               onClick={() => {
                 if (!holdReasonDraft) return;
                 addHold(holdReasonDraft.helperId, holdReasonDraft.reason.trim() || "No reason given");
@@ -410,7 +520,7 @@ const AdminPayoutBatches = () => {
               disabled={!holdReasonDraft?.reason.trim()}
             >
               Hold for Review
-            </Button>
+            </DialogPrimaryAction>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -421,10 +531,12 @@ const AdminPayoutBatches = () => {
             title="Deny This Payout"
           />
           <div className="space-y-3">
-            <p className="text-ds-11 text-muted-foreground">
-              Records the denial decision to admin_audit_log and tags the
-              hold as denied. No Stripe transfer is fired or reversed.
-            </p>
+            <DialogBody>
+              <p>
+                Records the denial decision to admin_audit_log and tags the
+                hold as denied. No Stripe transfer is fired or reversed.
+              </p>
+            </DialogBody>
             <Textarea
               aria-label="Denial reason"
               value={denyDraft?.reason ?? ""}
@@ -432,10 +544,9 @@ const AdminPayoutBatches = () => {
               rows={3}
             />
           </div>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setDenyDraft(null)}>Cancel</Button>
-            <Button
-              variant="destructive"
+          <DialogFooter>
+            <DialogSecondaryAction onClick={() => setDenyDraft(null)}>Cancel</DialogSecondaryAction>
+            <DialogDestructiveAction
               onClick={() => {
                 if (!denyDraft) return;
                 const reason = denyDraft.reason.trim();
@@ -446,7 +557,7 @@ const AdminPayoutBatches = () => {
               disabled={!denyDraft?.reason.trim()}
             >
               Deny Payout
-            </Button>
+            </DialogDestructiveAction>
           </DialogFooter>
         </DialogContent>
       </Dialog>

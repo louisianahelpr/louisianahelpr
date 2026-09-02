@@ -57,7 +57,13 @@ const DOCUMENT_SCROLL_ROUTES = [
   // AppShell's scroll surface (iOS double-rubber-band).
   "/user",         // /user/:userId — UserProfile (PageHeader + min-h-screen)
   "/admin",        // Admin dashboard (min-h-screen document-scroll + sidebar)
-  // /str-settings, /gift-card, /benefits, /auto-tip and /wrapped moved OFF
+  // /analytics — HelperAnalytics: PageHeader + `min-h-screen bg-premium-page
+  // pb-safe-nav`, a stack of panels that grows with the helper's history and
+  // routinely exceeds the fold. It renders NO AppShell/AppPage, so it belongs
+  // here; off this list, `html.app-shell { overflow: hidden }` would clip the
+  // lower panels with no way to scroll to them.
+  "/analytics",
+  // /str-settings, /gift-card, /auto-tip and /wrapped moved OFF
   // this list (owner, 2026-08-30: "app shell globally"). They are
   // strictly-authed app screens reached from the Profile landing, so unlike
   // their public siblings (/help, /legal, /jobs) they have no SEO or
@@ -187,7 +193,17 @@ export const useAppShellViewport = () => {
       // the shell 248px for a rail that never renders, leaving a dead gutter.
       // app-shell pages inset via .app-shell-frame; document-scroll pages via
       // the #root rule — both keyed off this class, so both stay in lockstep.
-      html.classList.toggle("desktop-rail", isDesktopRailRoute(pathname) && !!user);
+      // Also gated on the desktop viewport, not just the route and the user.
+      // The CSS that acts on this class already requires `web-desktop`, so a
+      // phone was never actually inset — but <html> carried `desktop-rail
+      // side-panel-open` on a 402px iPhone, which is a flag that says something
+      // untrue about the layout. The next person to write a rule keyed on it
+      // (reasonably assuming it means what it says) gets a rail on a phone.
+      const isWebDesktop = html.classList.contains("web-desktop");
+      html.classList.toggle(
+        "desktop-rail",
+        isWebDesktop && isDesktopRailRoute(pathname) && !!user,
+      );
     };
     apply();
     // Published so NotFound's `setNotFoundPathname` can re-apply the moment it

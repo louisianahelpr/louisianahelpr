@@ -14,7 +14,11 @@ import { toast } from "sonner";
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
-vi.mock("@/lib/haptics", () => ({ hapticError: vi.fn() }));
+// `hapticLight` is pulled in by the shared <Tabs> primitive (ui/tabs.tsx fires
+// a tick on every real selection change). Without it in this factory the mock
+// shadows the real module with an undefined export and the first tab switch
+// throws instead of switching documents.
+vi.mock("@/lib/haptics", () => ({ hapticError: vi.fn(), hapticLight: vi.fn() }));
 vi.mock("@/hooks/useAuthReady", () => ({
   useAuthReady: () => ({ user: { id: "user-1" } }),
 }));
@@ -66,6 +70,16 @@ beforeEach(() => {
 
 afterEach(() => vi.restoreAllMocks());
 
+/**
+ * Radix's TabsTrigger selects on MOUSEDOWN (and on focus in its default
+ * "automatic" activation mode) — not on click. `fireEvent.click` fires neither,
+ * so it leaves the panel exactly where it was and every tab assertion below
+ * would pass or fail for the wrong reason. Go through the event the primitive
+ * actually listens for.
+ */
+const selectDoc = (name: string) =>
+  fireEvent.mouseDown(screen.getByRole("tab", { name }), { button: 0 });
+
 const renderTab = () =>
   render(
     <MemoryRouter>
@@ -101,7 +115,14 @@ describe("Legal & policies — data rights", () => {
       reviews: TABLE_DATA.reviews,
     });
     expect(payload.exported_at).toEqual(expect.any(String));
-    expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:mock");
+    // The object URL is still revoked — but `saveOrShareFile` now defers it by
+    // ~1s (nativeShare.ts) rather than revoking on the same tick. Revoking
+    // immediately after `.click()` can abort the download in Safari, so the
+    // delay is deliberate. Kept as an assertion rather than dropped: an
+    // un-revoked blob URL pins the whole export in memory for the session.
+    await waitFor(() => expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:mock"), {
+      timeout: 2000,
+    });
   });
 
   it("surfaces a Supabase failure instead of downloading a file full of nulls", async () => {
@@ -125,41 +146,113 @@ describe("Legal & policies — data rights", () => {
     );
   });
 
-  it("still leads to the three anchor policy documents", () => {
+  it("keeps the data export reachable from where /data-rights lands", () => {
+    // /data-rights redirects to `/profile?tab=legal` with NO ?doc= (App.tsx),
+    // so it opens the DEFAULT document panel. The Privacy Policy and the iOS
+    // App Store privacy listing both point at that URL in writing, so the
+    // export has to be on screen there — i.e. outside the document tab band,
+    // not tucked inside the Privacy panel where the default view never shows
+    // it. Assert it while the default (Terms) panel is the one open.
     renderTab();
-    // Each document's block opens with a "Read the full …" card. The matcher
-    // carries the row's body copy too, so the Community Rules card is told
-    // apart from the section shortcut pointing at the same rules.
-    expect(
-      screen.getByRole("link", { name: /Read the full community rules How Helpr works/ }),
-    ).toHaveAttribute("href", "/rules");
+    expect(screen.getByRole("tab", { name: "Terms" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("heading", { name: "Download your data" })).toBeInTheDocument();
+  });
+});
+
+describe("Legal & policies — one document per surface", () => {
+  // Owner, 2026-08-31: "Legal is still all tangled together. Should be similar
+  // to the public legal pages." The tab used to STACK all three documents in
+  // one scroll behind "1/3" / "2/3" / "3/3" headings, so reaching Terms meant
+  // scrolling past seven Community Rules anchors. It now wears /legal's shape:
+  // a Terms / Rules / Privacy band with exactly one document mounted.
+
+  it("opens on Terms of service — zero taps, matching /legal's default tab", () => {
+    renderTab();
     expect(
       screen.getByRole("link", { name: /Read the full terms of service/ }),
     ).toHaveAttribute("href", "/terms");
+    // The other two documents are not merely below the fold — they are not
+    // rendered at all, which is what stops them tangling.
+    expect(screen.queryByRole("link", { name: /Read the full community rules/ })).toBeNull();
+    expect(screen.queryByRole("link", { name: /Read the full privacy policy/ })).toBeNull();
+  });
+
+  it("drops the 1/3 · 2/3 · 3/3 counters that admitted the stacking", () => {
+    renderTab();
+    expect(screen.queryByText("1/3")).toBeNull();
+    expect(screen.queryByText("2/3")).toBeNull();
+    expect(screen.queryByText("3/3")).toBeNull();
+  });
+
+  it("still leads to all three anchor policy documents, one tap each", () => {
+    renderTab();
+    // Each panel opens with a "Read the full …" card. The matcher carries the
+    // row's body copy too, so the Community Rules card is told apart from a
+    // section shortcut pointing at the same rules.
+    expect(
+      screen.getByRole("link", { name: /Read the full terms of service/ }),
+    ).toHaveAttribute("href", "/terms");
+
+    selectDoc("Rules");
+    expect(
+      screen.getByRole("link", { name: /Read the full community rules How Helpr works/ }),
+    ).toHaveAttribute("href", "/rules");
+
+    selectDoc("Privacy");
     expect(
       screen.getByRole("link", { name: /Read the full privacy policy/ }),
     ).toHaveAttribute("href", "/privacy");
   });
 
-  it("separates the three documents — every shortcut sits under its own policy", () => {
+  it("mounts only the open document's section shortcuts", () => {
     renderTab();
-    // The owner's complaint was that Terms, Community Rules and Privacy read
-    // as one undivided block. Each document must carry its own heading, and
-    // the section shortcuts must be scoped to the document they belong to —
-    // the two Terms rows used to sit in the same flat list as the seven
-    // Community Rules ones with nothing telling them apart.
-    const headings = ["Community Rules", "Terms of service", "Privacy policy"].map((name) =>
-      screen.getByRole("heading", { level: 2, name }),
-    );
-    expect(headings).toHaveLength(3);
+    // Terms' own two anchors are present…
+    expect(
+      screen.getByRole("link", { name: /Platform fees & the split fee model/ }),
+    ).toHaveAttribute("href", "/legal?tab=terms#payment-escrow-fees");
+    expect(
+      screen.getByRole("link", { name: /Membership tiers & pricing/ }),
+    ).toHaveAttribute("href", "/legal?tab=terms#subscription-tiers");
+    // …and none of Community Rules' seven can be mistaken for one of them,
+    // because they are not in the document.
+    expect(screen.queryByRole("link", { name: /Cancellations, response times & no-shows/ })).toBeNull();
+    expect(screen.queryByRole("link", { name: /Strikes, bans & how we detect violations/ })).toBeNull();
 
-    const termsBlock = headings[1].closest("section");
-    expect(termsBlock).not.toBeNull();
-    const feesRow = screen.getByRole("link", { name: /Platform fees & the split fee model/ });
-    expect(feesRow).toHaveAttribute("href", "/legal?tab=terms#payment-escrow-fees");
-    expect(termsBlock).toContainElement(feesRow);
-    expect(termsBlock).not.toContainElement(
+    selectDoc("Rules");
+    expect(
       screen.getByRole("link", { name: /Cancellations, response times & no-shows/ }),
-    );
+    ).toHaveAttribute("href", "/legal?tab=community#cancellations");
+    expect(screen.queryByRole("link", { name: /Platform fees & the split fee model/ })).toBeNull();
+  });
+
+  it("preserves every deep link, one for one, across the three panels", () => {
+    // The anchors are consent-referenced navigation into legally load-bearing
+    // copy: the restructure is allowed to move them between panels, never to
+    // change or lose one. This is the full manifest.
+    renderTab();
+    const hrefFor = (name: RegExp) =>
+      screen.getByRole("link", { name }).getAttribute("href");
+
+    expect(hrefFor(/Platform fees & the split fee model/)).toBe("/legal?tab=terms#payment-escrow-fees");
+    expect(hrefFor(/Membership tiers & pricing/)).toBe("/legal?tab=terms#subscription-tiers");
+
+    selectDoc("Rules");
+    expect(hrefFor(/The basics/)).toBe("/legal?tab=community#basics");
+    expect(hrefFor(/Budget limits, editing & new-Helpr limits/)).toBe("/legal?tab=community#posting-accepting");
+    expect(hrefFor(/Cancellations, response times & no-shows/)).toBe("/legal?tab=community#cancellations");
+    expect(hrefFor(/How your payment is held & released/)).toBe("/legal?tab=community#escrow-release");
+    expect(hrefFor(/Revisions, disputes & admin review/)).toBe("/legal?tab=community#disputes");
+    expect(hrefFor(/Strikes, bans & how we detect violations/)).toBe("/legal?tab=community#strikes-bans");
+    expect(hrefFor(/Money & taxes/)).toBe("/legal?tab=community#money-taxes");
+  });
+
+  it("keeps the export on screen whichever document is open", () => {
+    // It is a control, not a policy, so it sits outside the band — and the
+    // /data-rights promise above depends on it never being hidden behind one.
+    renderTab();
+    for (const tab of ["Rules", "Privacy", "Terms"]) {
+      selectDoc(tab);
+      expect(screen.getByRole("button", { name: "Download My Data" })).toBeInTheDocument();
+    }
   });
 });

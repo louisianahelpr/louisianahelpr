@@ -17,6 +17,7 @@ import { openExternalUrl } from "@/lib/openExternalUrl";
 import { getPublicReturnUrl } from "@/lib/authRedirects";
 import { queryKeys } from "@/lib/queryKeys";
 import { useAuthReady } from "@/hooks/useAuthReady";
+import { requireBiometric } from "@/lib/biometricGate";
 
 type PayoutMethod = {
   id: string;
@@ -99,6 +100,16 @@ export function PayoutSetupForm() {
   };
 
   const handleOnboard = async () => {
+    // Face ID / Touch ID gate before handing out a Stripe account link. That
+    // link is a live session into Connect onboarding, where the destination
+    // bank account for every future payout is set — on a stolen unlocked
+    // phone it is the highest-value target in the app. No-op on web and on
+    // devices without enrolled biometrics (see requireBiometric).
+    //
+    // Gate runs BEFORE track(): a helper who fails the prompt never started
+    // onboarding, so the funnel shouldn't record that they did.
+    const ok = await requireBiometric("Confirm changes to your payout account");
+    if (!ok) return;
     setOnboarding(true);
     try {
       const returnUrl = getPublicReturnUrl();
@@ -127,6 +138,12 @@ export function PayoutSetupForm() {
   };
 
   const handleManageDashboard = async () => {
+    // `dashboard` returns a Stripe Express *login link* — a one-click,
+    // already-authenticated session into the Connect dashboard where external
+    // bank accounts can be added, swapped, or made default. Same tier as
+    // onboarding: it changes where the money lands. Gate it.
+    const ok = await requireBiometric("Confirm access to your Stripe payout dashboard");
+    if (!ok) return;
     try {
       const returnUrl = getPublicReturnUrl();
       const { data, error } = await supabase.functions.invoke("stripe-connect", {
@@ -148,6 +165,12 @@ export function PayoutSetupForm() {
       toast.error("Keep at least one payout method — update it from your Stripe dashboard instead.");
       return;
     }
+    // Face ID / Touch ID gate before a destructive, irreversible change to
+    // where this helper gets paid. Runs AFTER the last-method guard so a
+    // blocked delete never raises an OS prompt for nothing. No-op on web and
+    // on devices without enrolled biometrics (see requireBiometric).
+    const ok = await requireBiometric("Confirm removing this payout method");
+    if (!ok) return;
     setDeleting(methodId);
     try {
       const { data, error } = await supabase.functions.invoke("stripe-connect", {
@@ -166,6 +189,12 @@ export function PayoutSetupForm() {
 
   const handleReset = async () => {
     setConfirmReset(false);
+    // `reset` DELETES the Stripe connected account and every payout method on
+    // it, then hands back a fresh onboarding link. Strictly more destructive
+    // than delete_payout_method, so it gets the same gate — the existing
+    // confirm dialog proves intent, the biometric proves identity.
+    const ok = await requireBiometric("Confirm resetting your payout account");
+    if (!ok) return;
     setResetting(true);
     try {
       const returnUrl = getPublicReturnUrl();

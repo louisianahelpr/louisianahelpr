@@ -218,5 +218,3 @@ export function JobPrice({
     </div>
   );
 }
-
-export default JobPrice;

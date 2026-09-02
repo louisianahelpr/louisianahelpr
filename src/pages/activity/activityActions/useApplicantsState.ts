@@ -73,22 +73,26 @@ export function useApplicantsState(user: SupaUser | null) {
           avgRating: stats?.avg ?? 0,
         };
       });
-      // Priority Placement: the perk TIER_PERKS advertises for Helpr Pro, Helpr
-      // Elite AND Business — paid helpers float to the top of the poster's
-      // applicant list.
+      // NO tier sort here any more, deliberately.
       //
-      // Two fixes here. (1) `business` was missing from the ladder, so a
-      // Business account — which sits ABOVE Elite on every other rung (6%
-      // commission, priorityPlacement: true) — ranked joint-last with Free.
-      // (2) The sort was ascending and then `.reverse()`d to correct itself.
-      // That produced the right tier order but also reversed ties, so helpers
-      // on the SAME tier came back in reverse application order — the earliest
-      // applicant sank to the bottom of their band. Sorting descending directly
-      // keeps Array.prototype.sort's stability, so within a tier the original
-      // (application) order is preserved.
-      const tierOrder = (tier: string | null | undefined) =>
-        tier === "business" ? 4 : tier === "elite" ? 3 : tier === "pro" ? 2 : tier === "basic" ? 1 : 0;
-      enriched.sort((a, b) => tierOrder(b.profiles?.subscription_tier) - tierOrder(a.profiles?.subscription_tier));
+      // This function used to end with a descending `tierOrder()` sort —
+      // elite 3, pro 2, basic 1, everyone else 0 — under a comment calling it
+      // the Priority Placement perk. It never reached a poster's screen. Both
+      // consumers of this array (ApplicantsPanel via useApplicantComparison,
+      // and the inline per-job list) re-sort it by `scoreApplicant()`, so the
+      // tier order was overwritten before the first render: the perk was
+      // computed, then discarded, on every load, for every paying helper.
+      //
+      // Ordering now has exactly ONE owner — `useApplicantComparison`, which
+      // ranks on `rankScore` = quality + a bounded tier boost capped below the
+      // smallest quality increment (applicantScoring.ts explains the bound and
+      // why a poster's list must not let money outrank merit). Re-adding a
+      // sort here would not "reinforce" that; it would be silently thrown away
+      // again, which is exactly how this shipped broken the first time.
+      //
+      // Applicants come back in application order (the `applications` select's
+      // natural order), which the ranking sort — stable, like every V8 sort —
+      // preserves within a tie.
       return enriched;
     }
     return [];

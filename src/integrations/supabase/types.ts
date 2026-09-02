@@ -2109,6 +2109,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          job_id: string | null
           link: string | null
           message: string
           read: boolean
@@ -2119,6 +2120,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          job_id?: string | null
           link?: string | null
           message: string
           read?: boolean
@@ -2129,6 +2131,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          job_id?: string | null
           link?: string | null
           message?: string
           read?: boolean
@@ -2136,7 +2139,15 @@ export type Database = {
           type?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "notifications_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       nps_responses: {
         Row: {
@@ -2719,7 +2730,11 @@ export type Database = {
           stripe_charges_enabled: boolean
           stripe_identity_verified: boolean
           stripe_identity_verified_at: string | null
+          stripe_customer_id: string | null
           stripe_payouts_enabled: boolean
+          stripe_subscription_id: string | null
+          subscription_billing_cycle: string | null
+          subscription_cancel_at_period_end: boolean
           subscription_expires_at: string | null
           subscription_tier: string | null
           terms_accepted_at: string | null
@@ -2813,7 +2828,11 @@ export type Database = {
           stripe_charges_enabled?: boolean
           stripe_identity_verified?: boolean
           stripe_identity_verified_at?: string | null
+          stripe_customer_id?: string | null
           stripe_payouts_enabled?: boolean
+          stripe_subscription_id?: string | null
+          subscription_billing_cycle?: string | null
+          subscription_cancel_at_period_end?: boolean
           subscription_expires_at?: string | null
           subscription_tier?: string | null
           terms_accepted_at?: string | null
@@ -2907,7 +2926,11 @@ export type Database = {
           stripe_charges_enabled?: boolean
           stripe_identity_verified?: boolean
           stripe_identity_verified_at?: string | null
+          stripe_customer_id?: string | null
           stripe_payouts_enabled?: boolean
+          stripe_subscription_id?: string | null
+          subscription_billing_cycle?: string | null
+          subscription_cancel_at_period_end?: boolean
           subscription_expires_at?: string | null
           subscription_tier?: string | null
           terms_accepted_at?: string | null
@@ -3264,6 +3287,8 @@ export type Database = {
           name: string
           notify_enabled: boolean
           parish: string | null
+          query: string | null
+          radius_miles: number | null
           user_id: string
         }
         Insert: {
@@ -3277,6 +3302,8 @@ export type Database = {
           name: string
           notify_enabled?: boolean
           parish?: string | null
+          query?: string | null
+          radius_miles?: number | null
           user_id: string
         }
         Update: {
@@ -3290,6 +3317,8 @@ export type Database = {
           name?: string
           notify_enabled?: boolean
           parish?: string | null
+          query?: string | null
+          radius_miles?: number | null
           user_id?: string
         }
         Relationships: []
@@ -3578,61 +3607,6 @@ export type Database = {
           },
           {
             foreignKeyName: "thread_pins_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "open_jobs_browse"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      time_credits: {
-        Row: {
-          amount_minutes: number
-          balance_after: number | null
-          created_at: string
-          credit_type: string
-          description: string | null
-          id: string
-          job_id: string | null
-          user_id: string
-        }
-        Insert: {
-          amount_minutes: number
-          balance_after?: number | null
-          created_at?: string
-          credit_type: string
-          description?: string | null
-          id?: string
-          job_id?: string | null
-          user_id: string
-        }
-        Update: {
-          amount_minutes?: number
-          balance_after?: number | null
-          created_at?: string
-          credit_type?: string
-          description?: string | null
-          id?: string
-          job_id?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "time_credits_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "jobs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "time_credits_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "jobs_helper_safe"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "time_credits_job_id_fkey"
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "open_jobs_browse"
@@ -5027,8 +5001,8 @@ export type Database = {
           hybrid_idv_enabled: boolean
           id: string
           idv_auto_approve_threshold: number
+          min_supported_build: number
           onboarding_fee_cents: number
-          platform_fee_percent: number
         }[]
       }
       get_ranked_open_jobs: {
@@ -5098,7 +5072,6 @@ export type Database = {
       }
       get_service_role_key: { Args: never; Returns: string }
       get_supabase_url: { Args: never; Returns: string }
-      get_time_credit_balance: { Args: { p_user_id: string }; Returns: number }
       get_top_helpers_by_parish: {
         Args: { p_limit?: number; p_parish?: string }
         Returns: {

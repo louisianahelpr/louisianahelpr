@@ -1,6 +1,17 @@
 import { describe, it, expect } from "vitest";
 import type { EnrichedJob } from "@/components/dashboard/types";
-import { smartScore, sortJobsSmart, type HelperLocation } from "./smartSort";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
+import {
+  MID_BONUS,
+  NEAR_BONUS,
+  POSTER_PLACEMENT_MAX_POINTS,
+  posterPlacementBonus,
+  smartScore,
+  sortJobsSmart,
+  type HelperLocation,
+} from "./smartSort";
 
 // A reference "now" so tests are deterministic regardless of when CI runs.
 const NOW = new Date("2026-05-20T12:00:00.000Z").getTime();
@@ -166,5 +177,133 @@ describe("sortJobsSmart", () => {
 
     const result = sortJobsSmart([a, b, c], null, NOW);
     expect(result.map((j) => j.id)).toEqual(["a", "b", "c"]);
+  });
+});
+
+/**
+ * POSTER PLACEMENT — the perk is real, and it is bounded. Both halves are
+ * pinned here because they pull against each other.
+ *
+ * It shipped broken in BOTH directions at once: `useDashboardData` re-sorted
+ * the page by an unbounded `tierWeight` that `sortJobsSmart` then discarded
+ * (so the perk did nothing), while `useDashboardFilters` carried a hard
+ * viewer-gated stratum that put every subscribed poster above every free one
+ * (so where it DID act, it was a total override). The bound below is what
+ * makes "bounded boost" durable rather than a comment someone later edits.
+ */
+describe("poster placement — bounded, never an override", () => {
+  const at = (o: Partial<EnrichedJob>) =>
+    makeJob({ id: "j", budget: 0, created_at: new Date(NOW).toISOString(), ...o });
+
+  it("pays only the tiers that advertise priorityPlacement", () => {
+    expect(posterPlacementBonus("elite")).toBe(POSTER_PLACEMENT_MAX_POINTS);
+    expect(posterPlacementBonus("pro")).toBe(POSTER_PLACEMENT_MAX_POINTS / 2);
+    // TIER_PERKS.basic.priorityPlacement === false.
+    expect(posterPlacementBonus("basic")).toBe(0);
+    expect(posterPlacementBonus("free")).toBe(0);
+  });
+
+  it("gives an unknown, absent, retired or expired tier nothing", () => {
+    expect(posterPlacementBonus(null)).toBe(0);
+    expect(posterPlacementBonus(undefined)).toBe(0);
+    // Retired 2026-09-01. Unknown must lose a perk, never gain one.
+    expect(posterPlacementBonus("business")).toBe(0);
+    expect(posterPlacementBonus("gold-plated")).toBe(0);
+    // An expired tier reaches the client as null (get_safe_profiles folds
+    // expiry in server-side, migration 20260901022522), so it scores 0.
+    expect(posterPlacementBonus("")).toBe(0);
+  });
+
+  it("is capped BELOW the smallest discrete signal this scorer awards", () => {
+    // THE inequality. If someone raises the boost to "make the perk feel
+    // stronger", this fails and names what they are about to sell: a paid
+    // poster outranking a better-matched job in a helper's browse feed.
+    expect(POSTER_PLACEMENT_MAX_POINTS).toBeLessThan(MID_BONUS);
+    expect(POSTER_PLACEMENT_MAX_POINTS).toBeLessThan(NEAR_BONUS);
+    // …and below a real budget step ($20 → $100) and the full recency span.
+    const budgetStep = smartScore(at({ budget: 100 }), null, NOW) - smartScore(at({ budget: 20 }), null, NOW);
+    expect(POSTER_PLACEMENT_MAX_POINTS).toBeLessThan(budgetStep);
+    expect(POSTER_PLACEMENT_MAX_POINTS).toBeLessThan(1);
+  });
+
+  it("cannot outrank a genuinely closer job", () => {
+    const here: HelperLocation = { lat: 30.45, lng: -91.19 };
+    const eliteFar = at({ id: "elite-far", posterSubscriptionTier: "elite", latitude: 31.6, longitude: -92.5 });
+    const freeNear = at({ id: "free-near", posterSubscriptionTier: null, latitude: 30.46, longitude: -91.2 });
+    expect(smartScore(freeNear, here, NOW)).toBeGreaterThan(smartScore(eliteFar, here, NOW));
+  });
+
+  it("cannot outrank a genuinely fresher job", () => {
+    // A free poster's job from 12h ago still beats an Elite job from 3 days
+    // back: the boost is worth ~5h of freshness, not three days of it.
+    const eliteOld = at({ id: "elite-old", posterSubscriptionTier: "elite", created_at: new Date(NOW - 3 * 864e5).toISOString() });
+    const freeFresh = at({ id: "free-fresh", posterSubscriptionTier: null, created_at: new Date(NOW - 12 * 36e5).toISOString() });
+    expect(smartScore(freeFresh, null, NOW)).toBeGreaterThan(smartScore(eliteOld, null, NOW));
+  });
+
+  it("DOES settle a near-tie in the paying poster's favour", () => {
+    // The perk has to actually do something, or we are back to charging for
+    // an ordering that gets discarded.
+    const free = at({ id: "free", posterSubscriptionTier: null });
+    const elite = at({ id: "elite", posterSubscriptionTier: "elite" });
+    expect(smartScore(elite, null, NOW)).toBeGreaterThan(smartScore(free, null, NOW));
+    const ranked = sortJobsSmart([free, elite], null, NOW);
+    expect(ranked[0].id).toBe("elite");
+  });
+
+  it("buys about fifteen hours of head start against a brand-new job", () => {
+    // Puts a human number on the cap, bracketed rather than exact so the
+    // assertion tracks the intent and not the curve's third decimal.
+    //
+    // This scorer's recency is EXPONENTIAL (4-day half-life), so 0.1 near the
+    // top of the curve is worth ~15h — not the ~5h the same 10% buys in
+    // `get_ranked_open_jobs`, whose recency term is linear (50 - hours). Same
+    // fraction of each feed's span, different wall-clock value; that is a
+    // property of the two curves, not a disagreement between them.
+    const freshFreeJob = smartScore(at({ posterSubscriptionTier: null }), null, NOW);
+    const eliteAged = (hoursOld: number) =>
+      smartScore(
+        at({ posterSubscriptionTier: "elite", created_at: new Date(NOW - hoursOld * 36e5).toISOString() }),
+        null,
+        NOW,
+      );
+    expect(eliteAged(12)).toBeGreaterThan(freshFreeJob);
+    expect(eliteAged(18)).toBeLessThan(freshFreeJob);
+  });
+});
+
+describe("poster placement — client/SQL parity", () => {
+  const SQL = readFileSync(
+    resolve(__dirname, "../../supabase/migrations/20260901031421_bounded_poster_placement_in_ranked_open_jobs.sql"),
+    "utf8",
+  );
+  const BODY = SQL.slice(SQL.indexOf("AS $function$"));
+
+  it("uses the same 10% / 5%-of-the-recency-span ratio on both scales", () => {
+    // SQL recency span is 0–50; the client's is 0–1. Elite must be 10% of
+    // each, Pro 5%, or the public /jobs board and the signed-in dashboard
+    // move a paid poster different distances — the inconsistency this fixed.
+    const elite = BODY.match(/subscription_tier = 'elite' THEN ([\d.]+)/);
+    const pro = BODY.match(/subscription_tier = 'pro'\s+THEN ([\d.]+)/);
+    expect(elite, "elite branch missing from rank_score").not.toBeNull();
+    expect(pro, "pro branch missing from rank_score").not.toBeNull();
+    const SQL_RECENCY_SPAN = 50;
+    expect(Number(elite![1]) / SQL_RECENCY_SPAN).toBeCloseTo(POSTER_PLACEMENT_MAX_POINTS / 1, 10);
+    expect(Number(pro![1]) / SQL_RECENCY_SPAN).toBeCloseTo(POSTER_PLACEMENT_MAX_POINTS / 2, 10);
+  });
+
+  it("stays below every other term in rank_score", () => {
+    const elite = Number(BODY.match(/subscription_tier = 'elite' THEN ([\d.]+)/)![1]);
+    for (const term of [1000 /* boost */, 500 /* parish */, 100 /* urgent */, 50 /* recency span */]) {
+      expect(elite).toBeLessThan(term);
+    }
+  });
+
+  it("grants no placement to an expired tier, or to the retired 'business'", () => {
+    expect(BODY).toMatch(
+      /WHEN pp\.subscription_expires_at IS NOT NULL\s*\n?\s*AND pp\.subscription_expires_at <= now\(\) THEN 0/,
+    );
+    expect(BODY).not.toMatch(/'business'/);
+    expect(BODY).not.toMatch(/subscription_tier = 'basic'/);
   });
 });

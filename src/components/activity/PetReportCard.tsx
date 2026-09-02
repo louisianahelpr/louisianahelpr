@@ -13,9 +13,16 @@ import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { createNotification } from "@/lib/notifications";
 import { report } from "@/lib/errorLogger";
-import { Button } from "@/components/ui/button";
 import {
-  X, ClipboardList, CheckCircle2, Footprints, Dog,
+  Dialog,
+  DialogContent,
+  DialogHero,
+  DialogBody,
+  DialogFooter,
+  DialogPrimaryAction,
+} from "@/components/ui/dialog";
+import {
+  ClipboardList, CheckCircle2, Footprints, Dog,
   Laugh, Smile, Frown, Zap, Moon,
 } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
@@ -50,23 +57,41 @@ export function SendReportCard({
 }: SendReportCardProps) {
   const queryClient = useQueryClient();
 
-  // Load pets belonging to this owner so the helper can select which pet
-  // they're filing for. PGRST202 graceful fallback: if the table doesn't
-  // exist yet in production, silently treat pets as empty.
-  const { data: pets, isLoading: petsLoading } = useQuery<PetProfile[]>({
-    queryKey: ["pet_profiles_for_job", ownerId],
-    queryFn: async () => {
-      const res = await supabase
-        .from("pet_profiles")
-        .select("id, name, species")
-        .eq("owner_id", ownerId);
-      if (res.error) {
-        if (res.error.code === "PGRST202") return [];
-        throw res.error;
-      }
-      return (res.data ?? []) as unknown as PetProfile[];
-    },
-  });
+  // Load the pets attached to THIS JOB so the helper can pick which one they
+  // are filing for.
+  //
+  // This used to read `pet_profiles` directly, filtered by `owner_id` — and it
+  // could never return a row. The only policy on `pet_profiles` is
+  // `FOR ALL USING (auth.uid() = owner_id)`, and this query runs as the HELPER,
+  // so PostgREST answered `{ data: [], error: null }` every single time: no
+  // error, no log, an empty chip list, the "owner hasn't added pet profiles
+  // yet" empty state, and a submit hard-blocked on `if (!petId)`. The whole
+  // sheet was dead, and a null `error` made it look healthy.
+  //
+  // `get_job_pets` is the sanctioned cross-party read: SECURITY DEFINER,
+  // granted to `authenticated` only, and it raises `not_authorized` unless the
+  // caller is the job's poster or its assigned helper. Scoping to the job also
+  // narrows the picker to the pets actually booked rather than every animal the
+  // owner has ever registered.
+  const { data: pets, isLoading: petsLoading, isError: petsError } =
+    useQuery<PetProfile[]>({
+      queryKey: ["job_pets", jobId],
+      queryFn: async () => {
+        const { data, error: rpcErr } = await supabase.rpc("get_job_pets", {
+          p_job_id: jobId,
+        });
+        // PGRST202 = migration merged, db-deploy not finished. Expected for a
+        // few minutes after a deploy; treat as "no pets" rather than an error.
+        if (rpcErr) {
+          if (rpcErr.code === "PGRST202") return [];
+          // Reported here rather than in the render body: a `report()` during
+          // render re-fires on every re-render and doubles under StrictMode.
+          report(rpcErr, { tags: { source: "SendReportCard.get_job_pets" } });
+          throw rpcErr;
+        }
+        return (data ?? []) as unknown as PetProfile[];
+      },
+    });
 
   const [petId, setPetId] = useState<string>("");
   const [ateWell, setAteWell] = useState<boolean | null>(null);
@@ -121,7 +146,21 @@ export function SendReportCard({
         title: `${petName}'s report card is ready`,
         message: `Your Helpr sent a daily update — check ${petName}'s activity, mood, and notes.`,
         type: "info",
-        link: "/my-posts",
+        // `?job=` — NOT a bare `/my-posts`.
+        //
+        // Both Activity routes open on the "Needs you" bucket
+        // (defaultStatusFilterFor, activityConstants.ts), and a job whose helper
+        // just filed a pet report card is in progress — the one bucket it is
+        // never in. So a bare `/my-posts` dropped the owner on an empty list
+        // and made them hunt for the card they were just told about.
+        //
+        // 20260831232514 converted every DB-side producer to `?job=<id>` and
+        // taught Activity to resolve the param to whichever bucket the job is
+        // ACTUALLY in at open time (the deep-link effect in Activity.tsx). This
+        // client-side producer was the last one still writing the bare form.
+        // The recipient is `ownerId` — the poster — so `/my-posts` is the right
+        // surface; it just needed to say which job.
+        link: `/my-posts?job=${jobId}`,
       });
 
       hapticSuccess();
@@ -136,229 +175,257 @@ export function SendReportCard({
     }
   };
 
+  // ── THE SHARED POPUP SHELL ───────────────────────────────────────────────
+  //
+  // This was a hand-rolled `fixed inset-0` sheet with its own sticky header,
+  // its own X and a `--safe-area-top` inset to emulate a modal. It never
+  // covered the screen. `position: fixed` resolves against the VIEWPORT only
+  // while no ancestor establishes a containing block, and one does: the card
+  // that opens this renders inside PageScaffold's panel on /my-jobs, and that
+  // panel is `.liquid-glass` — `backdrop-filter: blur(20px) saturate(170%)`
+  // (index.css). A non-none filter makes an element the containing block for
+  // every fixed descendant, exactly as a transform does, and the panel's own
+  // `overflow: hidden` then clips whatever overhangs. Measured before the
+  // change: 351x767 at (21, 85) in a 393x852 viewport — the form was drawn
+  // inside the activity panel, inset under the title card, with its last
+  // fields clipped by the panel edge.
+  //
+  // A Radix popup portals to `document.body`, outside every transformed or
+  // filtered subtree, so the containing block is the viewport again — by
+  // construction, not by a class the next filtered ancestor would break. It
+  // also brings the focus trap, the Escape handler and the background scroll
+  // lock this sheet never had, and retires the hand-rolled header + X.
+  // Identical reasoning and identical geometry to the "Add a Pet" sheet: see
+  // the long note above the `<Dialog>` in src/pages/petProfiles/PetForm.tsx
+  // for why `top-[7vh] bottom-auto`, a `max-h-[86dvh]` CEILING with no `h-*`,
+  // `grid-cols-1`, `content-start`, and a footer in flow rather than pinned.
   return (
-    <div
-      className="fixed inset-0 z-50 flex flex-col bg-premium-page overflow-y-auto"
-      // Same full-screen-overlay top inset as PetForm — see the note there.
-      style={{ paddingTop: "var(--safe-area-top, 0px)" }}
-    >
-      {/* Header */}
-      <div
-        className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 border-b"
-        style={{ background: "hsl(var(--parchment))", borderColor: "hsl(var(--olivewood) / 0.12)" }}
+    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent
+        // Without this Radix focuses the first control on open, which pops the
+        // iOS keyboard over a form the helper has not looked at yet. The shell
+        // parks focus on the dialog container instead (see dialog.tsx).
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        className={[
+          "grid-cols-1",
+          "top-[7vh] bottom-auto [translate:-50%_0]",
+          "max-h-[86dvh]",
+          "content-start",
+        ].join(" ")}
       >
-        <div className="flex items-center gap-2">
-          <ClipboardList className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} />
-          <h2
-            className="font-display font-bold text-ds-18"
-            style={{ color: "hsl(var(--ink-deep))" }}
-          >
-            Send report card
-          </h2>
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="w-10 h-10 flex items-center justify-center rounded-full active:bg-secondary/60 transition-colors"
-          aria-label="Close"
-        >
-          <X className="w-5 h-5 text-muted-foreground" />
-        </button>
-      </div>
+        <DialogHero title="Send report card" />
 
-      <div className="px-4 py-4 space-y-5 pb-safe-nav">
-        {/* Pet selector */}
-        <section>
-          <h3
-            className="font-serif italic uppercase text-ds-9 mb-3"
-            style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-          >
-            Which pet?
-          </h3>
-          {petsLoading ? (
-            <div className="rounded-ds-lg liquid-glass h-12 motion-safe:animate-pulse" />
-          ) : pets && pets.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {pets.map((p) => (
+        <div className="space-y-5">
+          {/* Pet selector */}
+          <section>
+            <h3
+              className="font-serif italic uppercase text-ds-9 mb-3"
+              style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
+            >
+              Which pet?
+            </h3>
+            {petsLoading ? (
+              <div className="rounded-ds-lg liquid-glass h-12 motion-safe:animate-pulse" />
+            ) : petsError ? (
+              // A failed read must NOT wear the empty state's clothes. It used
+              // to: any error rendered "the owner hasn't added pet profiles",
+              // which told the helper a falsehood and offered no retry.
+              <DialogBody>
+                <p>We couldn't load this job's pets. Check your connection and reopen this sheet.</p>
+              </DialogBody>
+            ) : pets && pets.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {pets.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setPetId(p.id)}
+                    // Gloss is toggled in JS, never as a Tailwind variant:
+                    // `data-[state=checked]:btn-grad-primary` compiles to
+                    // NOTHING, because variants only compose over utilities
+                    // Tailwind generates and `.btn-grad-primary` is hand-written
+                    // in index.css. The selected chip also must not carry an
+                    // inline `background` shorthand — that resets
+                    // `background-image` and silently flattens the gradient.
+                    className={`px-3 py-1.5 rounded-ds-md text-ds-13 font-medium transition-all ${
+                      petId === p.id ? "btn-grad-primary" : ""
+                    }`}
+                    style={
+                      petId === p.id
+                        ? { border: "1px solid hsl(var(--bark) / 0.35)" }
+                        : {
+                            backgroundColor: "hsl(var(--olivewood) / 0.06)",
+                            color: "hsl(var(--olivewood) / 0.8)",
+                            border: "1px solid transparent",
+                          }
+                    }
+                  >
+                    {p.name}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              // No pets are ATTACHED TO THIS JOB. The old copy ("you can still
+              // send a general note") was false: submit hard-blocks on
+              // `if (!petId)` and `pet_report_cards.pet_id` is NOT NULL, so
+              // there is no general-note path to offer.
+              <DialogBody>
+                <p>No pets were attached to this job, so there's nothing to report on yet. Ask the owner to add them from the job.</p>
+              </DialogBody>
+            )}
+          </section>
+
+          {/* Ate well */}
+          <section>
+            <h3
+              className="font-serif italic uppercase text-ds-9 mb-3"
+              style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
+            >
+              Ate their food?
+            </h3>
+            <div className="flex gap-2">
+              {([
+                { val: true, label: "Yes, ate well" },
+                { val: false, label: "Skipped food" },
+              ] as const).map(({ val, label }) => (
                 <button
-                  key={p.id}
+                  key={String(val)}
                   type="button"
-                  onClick={() => setPetId(p.id)}
-                  className="px-3 py-1.5 rounded-ds-md text-ds-13 font-medium transition-all"
+                  onClick={() => setAteWell(val)}
+                  className="flex-1 py-2 rounded-ds-md text-ds-13 font-medium transition-all"
                   style={{
                     background:
-                      petId === p.id
-                        ? "hsl(var(--bark) / 0.15)"
+                      ateWell === val
+                        ? val
+                          ? "hsl(var(--bark) / 0.15)"
+                          : "hsl(var(--burnt-sienna) / 0.12)"
                         : "hsl(var(--olivewood) / 0.06)",
                     color:
-                      petId === p.id
-                        ? "hsl(var(--bark))"
+                      ateWell === val
+                        ? val
+                          ? "hsl(var(--bark))"
+                          : "hsl(var(--burnt-sienna))"
                         : "hsl(var(--olivewood) / 0.8)",
-                    border:
-                      petId === p.id
-                        ? "1px solid hsl(var(--bark) / 0.35)"
-                        : "1px solid transparent",
+                    border: ateWell === val
+                      ? `1px solid ${val ? "hsl(var(--bark) / 0.30)" : "hsl(var(--burnt-sienna) / 0.30)"}`
+                      : "1px solid transparent",
                   }}
                 >
-                  {p.name}
+                  {label}
                 </button>
               ))}
             </div>
-          ) : (
-            <p className="text-ds-13 text-muted-foreground">
-              The owner hasn't added pet profiles yet — you can still send a general note.
-            </p>
-          )}
-        </section>
+          </section>
 
-        {/* Ate well */}
-        <section>
-          <h3
-            className="font-serif italic uppercase text-ds-9 mb-3"
-            style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-          >
-            Ate their food?
-          </h3>
-          <div className="flex gap-2">
-            {([
-              { val: true, label: "Yes, ate well" },
-              { val: false, label: "Skipped food" },
-            ] as const).map(({ val, label }) => (
-              <button
-                key={String(val)}
-                type="button"
-                onClick={() => setAteWell(val)}
-                className="flex-1 py-2 rounded-ds-md text-ds-13 font-medium transition-all"
-                style={{
-                  background:
-                    ateWell === val
-                      ? val
-                        ? "hsl(var(--bark) / 0.15)"
-                        : "hsl(var(--burnt-sienna) / 0.12)"
-                      : "hsl(var(--olivewood) / 0.06)",
-                  color:
-                    ateWell === val
-                      ? val
-                        ? "hsl(var(--bark))"
-                        : "hsl(var(--burnt-sienna))"
-                      : "hsl(var(--olivewood) / 0.8)",
-                  border: ateWell === val
-                    ? `1px solid ${val ? "hsl(var(--bark) / 0.30)" : "hsl(var(--burnt-sienna) / 0.30)"}`
-                    : "1px solid transparent",
-                }}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </section>
+          {/* Mood */}
+          <section>
+            <h3
+              className="font-serif italic uppercase text-ds-9 mb-3"
+              style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
+            >
+              Mood today
+            </h3>
+            <div className="flex gap-2 flex-wrap">
+              {MOODS.map(({ value, label, icon: Icon, color }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setMood(value)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-ds-md text-ds-12 font-medium transition-all"
+                  style={{
+                    background:
+                      mood === value ? `${color}22` : "hsl(var(--olivewood) / 0.06)",
+                    color: mood === value ? color : "hsl(var(--olivewood) / 0.8)",
+                    border:
+                      mood === value
+                        ? `1px solid ${color}55`
+                        : "1px solid transparent",
+                  }}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  {label}
+                </button>
+              ))}
+            </div>
+          </section>
 
-        {/* Mood */}
-        <section>
-          <h3
-            className="font-serif italic uppercase text-ds-9 mb-3"
-            style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-          >
-            Mood today
-          </h3>
-          <div className="flex gap-2 flex-wrap">
-            {MOODS.map(({ value, label, icon: Icon, color }) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => setMood(value)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-ds-md text-ds-12 font-medium transition-all"
-                style={{
-                  background:
-                    mood === value ? `${color}22` : "hsl(var(--olivewood) / 0.06)",
-                  color: mood === value ? color : "hsl(var(--olivewood) / 0.8)",
-                  border:
-                    mood === value
-                      ? `1px solid ${color}55`
-                      : "1px solid transparent",
-                }}
-              >
-                <Icon className="w-3.5 h-3.5" />
-                {label}
-              </button>
-            ))}
-          </div>
-        </section>
-
-        {/* Stats */}
-        <section>
-          <h3
-            className="font-serif italic uppercase text-ds-9 mb-3"
-            style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-          >
-            Activity stats
-          </h3>
-          <div className="rounded-ds-lg liquid-glass overflow-hidden px-4 py-3 space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-ds-11 text-muted-foreground block mb-1 flex items-center gap-1">
-                  <Footprints className="w-3 h-3" /> Exercise (min)
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  aria-label="Exercise in minutes"
-                  className="glass-field w-full rounded-ds-md px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none"
-                  value={exerciseMinutes}
-                  onChange={(e) => setExerciseMinutes(e.target.value)}
-                />
+          {/* Stats */}
+          <section>
+            <h3
+              className="font-serif italic uppercase text-ds-9 mb-3"
+              style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
+            >
+              Activity stats
+            </h3>
+            <div className="rounded-ds-lg liquid-glass overflow-hidden px-4 py-3 space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-ds-11 text-muted-foreground block mb-1 flex items-center gap-1">
+                    <Footprints className="w-3 h-3" /> Exercise (min)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    aria-label="Exercise in minutes"
+                    className="glass-field w-full rounded-ds-md px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none"
+                    value={exerciseMinutes}
+                    onChange={(e) => setExerciseMinutes(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="text-ds-11 text-muted-foreground block mb-1 flex items-center gap-1">
+                    <Dog className="w-3 h-3" /> Potty breaks
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    aria-label="Number of potty breaks"
+                    className="glass-field w-full rounded-ds-md px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none"
+                    value={pottyBreaks}
+                    onChange={(e) => setPottyBreaks(e.target.value)}
+                  />
+                </div>
               </div>
               <div>
-                <label className="text-ds-11 text-muted-foreground block mb-1 flex items-center gap-1">
-                  <Dog className="w-3 h-3" /> Potty breaks
+                <label className="text-ds-11 text-muted-foreground block mb-1">
+                  Walk summary (optional)
                 </label>
                 <input
-                  type="number"
-                  min={0}
-                  aria-label="Number of potty breaks"
+                  aria-label="Walk summary (optional)"
                   className="glass-field w-full rounded-ds-md px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none"
-                  value={pottyBreaks}
-                  onChange={(e) => setPottyBreaks(e.target.value)}
+                  value={walkSummary}
+                  onChange={(e) => setWalkSummary(e.target.value)}
                 />
               </div>
             </div>
-            <div>
-              <label className="text-ds-11 text-muted-foreground block mb-1">
-                Walk summary (optional)
-              </label>
-              <input
-                aria-label="Walk summary (optional)"
-                className="glass-field w-full rounded-ds-md px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none"
-                value={walkSummary}
-                onChange={(e) => setWalkSummary(e.target.value)}
-              />
-            </div>
-          </div>
-        </section>
+          </section>
 
-        {/* Notes */}
-        <section>
-          <h3
-            className="font-serif italic uppercase text-ds-9 mb-3"
-            style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-          >
-            Notes for the owner
-          </h3>
-          <textarea
-            rows={3}
-            aria-label="Notes for the owner"
-            className="glass-field w-full rounded-ds-lg px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none resize-none"
-            placeholder="Anything the owner should know about today's visit…"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-          />
-        </section>
+          {/* Notes */}
+          <section>
+            <h3
+              className="font-serif italic uppercase text-ds-9 mb-3"
+              style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
+            >
+              Notes for the owner
+            </h3>
+            <textarea
+              rows={3}
+              aria-label="Notes for the owner"
+              className="glass-field w-full rounded-ds-lg px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none resize-none"
+              placeholder="Anything the owner should know about today's visit…"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+            />
+          </section>
+        </div>
 
-        <Button className="w-full" size="lg" disabled={saving} onClick={handleSubmit}>
-          {saving ? "Sending…" : "Send Report Card"}
-        </Button>
-      </div>
-    </div>
+        <DialogFooter>
+          <DialogPrimaryAction disabled={saving} onClick={handleSubmit}>
+            {saving ? "Sending…" : "Send Report Card"}
+          </DialogPrimaryAction>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

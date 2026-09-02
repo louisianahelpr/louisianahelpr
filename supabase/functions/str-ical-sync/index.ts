@@ -7,6 +7,12 @@
  *   - POST { connection_id } → syncs a single connection (manual "sync now")
  *   - Cron (Authorization: Bearer <CRON_SECRET>) → syncs all active
  *
+ * SCHEDULED by migration 20260831193040 — every six hours at minute :44.
+ * Until that migration it existed in no cron.schedule call and no workflow, so
+ * this header described a cron that had never run: STR calendars only synced
+ * when a host opened Settings and tapped "Sync now". Anything that changes the
+ * schedule must change it there, not here.
+ *
  * Idempotent: str_processed_events has a UNIQUE(connection_id, event_uid)
  * constraint — re-running never duplicates jobs.
  */
@@ -14,10 +20,16 @@
 import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders, jsonResponse, errorResponse } from '../_shared/cors.ts';
+import { cronError, cronResult, defectTracker } from '../_shared/cron-result.ts';
+import { BlockedUrlError, FeedTooLargeError, fetchIcalFeed } from './safeFetch.ts';
 
+// SECRET_KEY first, matching every other cron-invoked function here
+// (auto-expire-jobs, cleanup-notifications, …). Reading only the legacy
+// SUPABASE_SERVICE_ROLE_KEY is the exact shape of the mismatch that 401'd five
+// cron-invoked functions in May — see migration 20260505220500.
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+  (Deno.env.get('SECRET_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!,
 );
 
 // ---------------------------------------------------------------------------
@@ -60,6 +72,28 @@ function parseIcalDate(icalDate: string): Date {
   const day   = parseInt(clean.slice(6, 8), 10);
   // Use UTC to avoid local-tz drift shifting the calendar day
   return new Date(Date.UTC(year, month, day));
+}
+
+/**
+ * Map a sync failure to a message that is safe to store where the connection's
+ * OWNER can read it, and still actionable enough for the "Sync now" toast.
+ *
+ * The rule: the host learns THAT their feed did not load and what to do about
+ * it; they never learn anything about what the platform's network can see. So
+ * every transport-level outcome collapses to one string — a refused connection,
+ * a timeout and a DNS failure must be indistinguishable, because telling them
+ * apart is precisely the scanner primitive.
+ */
+function sanitizeSyncError(err: unknown): string {
+  if (err instanceof BlockedUrlError) {
+    // Safe to be specific: this is a verdict on the URL the host typed, and
+    // saying so is the only way they can fix it.
+    return `This calendar URL was rejected: ${err.reason}. Paste the public iCal export link from Airbnb or VRBO.`;
+  }
+  if (err instanceof FeedTooLargeError) {
+    return 'That calendar feed is too large to sync. Check the link points at a single property export.';
+  }
+  return "We couldn't load that calendar feed. Check the link is the public iCal export URL and still works, then try again.";
 }
 
 // ---------------------------------------------------------------------------
@@ -117,26 +151,33 @@ serve(async (req) => {
     if (callerUserId) query = query.eq('user_id', callerUserId);
   }
 
+  // Defect counter for the cron watcher. Counts work that was SUPPOSED to
+  // happen and didn't because something is broken — a feed we couldn't fetch, a
+  // job insert the DB rejected, a processed-event row that failed to record. It
+  // does NOT count business outcomes; see _shared/cron-result.ts.
+  const defects = defectTracker();
+
   const { data: connections, error: connError } = await query;
   if (connError || !connections) {
     console.error('Failed to fetch STR connections:', connError);
-    return errorResponse('failed to fetch connections', 500, corsHeaders);
+    return cronError('str-ical-sync', `failed to fetch connections: ${connError?.message ?? 'no rows'}`, corsHeaders);
   }
 
   const now        = new Date();
   const oneWeekOut = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   const results: Array<{ connection_id: string; jobs_created?: number; error?: string }> = [];
+  /** Every job this run created is unfunded — see the block comment below. */
+  let jobsCreatedUnfunded = 0;
 
   for (const conn of connections) {
     try {
-      // Fetch the iCal feed — 10 s timeout
-      const icalResp = await fetch(conn.ical_url, {
-        headers: { 'User-Agent': 'Louisiana-Helpr/1.0 iCal-Sync' },
-        signal: AbortSignal.timeout(10_000),
-      });
-      if (!icalResp.ok) throw new Error(`iCal fetch failed: ${icalResp.status}`);
-
-      const icalText = await icalResp.text();
+      // Fetch the iCal feed through the SSRF gate. `ical_url` is a user-supplied
+      // string on a table whose RLS policy is `USING (auth.uid() = user_id)`, so
+      // this is the one place the platform dereferences an address an ordinary
+      // account chose. See safeFetch.ts for the measured proof of what the bare
+      // `fetch(conn.ical_url)` this replaces could reach — loopback, ULA and
+      // CGNAT space directly, and 169.254.169.254 via a 302 from a public host.
+      const icalText = await fetchIcalFeed(conn.ical_url);
       const events   = parseIcal(icalText);
 
       let jobsCreated = 0;
@@ -160,7 +201,36 @@ serve(async (req) => {
 
         if (existing) continue;
 
-        // Auto-create cleaning job
+        // Auto-create cleaning job.
+        //
+        // ⚠️ KNOWN PRODUCT GAP — these jobs are created UNFUNDED and no helper
+        // can see them. Counted in `jobs_created_unfunded` below so the number
+        // is visible rather than implied.
+        //
+        // `jobs.payment_status` defaults to 'unpaid' and nothing in this
+        // function funds it. Since migration 20260831010000 all three browse
+        // surfaces (get_ranked_open_jobs, open_jobs_browse, get_open_jobs_for_map)
+        // require payment_status IN ('escrow','payout_pending','released'), so
+        // every job this block creates is invisible to every helper on the
+        // platform. The HOST still sees it — their own surfaces read
+        // public.jobs directly — which is what makes it a trap rather than
+        // merely a no-op: the calendar sync looks like it worked.
+        //
+        // And there is no way out of that state from the UI: a repo-wide search
+        // found no client entry point that funds an already-created job (the
+        // `repay` metadata branch in stripe-webhook has no caller in src/). So
+        // an auto-created cleaning job is currently unfundable by the host AND
+        // unseeable by helpers.
+        //
+        // NOT "fixed" here, deliberately, because both available fixes are
+        // product decisions rather than security ones:
+        //   * making the job visible while unfunded re-opens exactly the hole
+        //     F-1 closed — a helper could accept and do the work with no escrow
+        //     behind it, which is strictly worse than the job not existing;
+        //   * charging the host unattended needs a stored card and explicit
+        //     consent this feature never collected.
+        // The honest options are a funding prompt for the host or not
+        // auto-creating at all. Raised for decision; see the audit report.
         if (conn.auto_create_cleaning) {
           const checkoutDateStr = checkoutDate.toISOString().slice(0, 10);
           const propName = conn.property_name ?? 'property';
@@ -187,6 +257,7 @@ serve(async (req) => {
 
           if (jobError) {
             console.error('Failed to create STR cleaning job:', jobError);
+            defects.record(`${conn.id}: cleaning job insert failed: ${jobError.message}`);
             continue;
           }
 
@@ -199,9 +270,14 @@ serve(async (req) => {
           });
           if (peError) {
             console.error('Failed to record processed event:', peError);
+            // Real defect, not cosmetic: str_processed_events IS the dedup
+            // guard, so a job created without its row gets created again on the
+            // next run — a duplicate cleaning job the host pays for.
+            defects.record(`${conn.id}: processed-event insert failed for ${event.uid}: ${peError.message}`);
           }
 
           jobsCreated++;
+          jobsCreatedUnfunded++;
         }
       }
 
@@ -215,14 +291,59 @@ serve(async (req) => {
 
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
+      // Operator-side: the FULL error, to the function log only.
       console.error(`Sync error for connection ${conn.id}:`, errMsg);
+      defects.record(`${conn.id}: ${errMsg}`);
+
+      // Owner-side: a sanitised reason. `last_sync_error` is readable by the
+      // connection's owner (RLS: `USING (auth.uid() = user_id)`), and the raw
+      // transport error is an SSRF oracle — "Connection refused" vs "Signal
+      // timed out" vs "dns error" vs an HTTP status distinguishes a live
+      // internal host from a filtered one from a nonexistent name. Measured on
+      // prod 2026-09-01: all four were distinguishable and all four were
+      // written here verbatim. Blocking the fetch without blocking the readback
+      // would leave a working scanner behind, so the two land together.
+      const safeMsg = sanitizeSyncError(err);
       await supabase
         .from('str_calendar_connections')
-        .update({ last_sync_error: errMsg })
+        .update({ last_sync_error: safeMsg })
         .eq('id', conn.id);
-      results.push({ connection_id: conn.id, error: errMsg });
+      results.push({ connection_id: conn.id, error: safeMsg });
     }
   }
 
-  return jsonResponse({ synced: results.length, results }, 200, corsHeaders);
+  // NB: `body` is already taken by the request payload above.
+  // `jobs_created_unfunded` is reported separately from `jobs_created` on
+  // purpose. It is not a defect (nothing is broken at the transport level, and
+  // raising it as one would fire the cron watcher on every normal run until the
+  // product decision lands), but it must not be invisible either: it is the
+  // count of jobs this run created that no helper can see.
+  const summary = { synced: results.length, jobs_created_unfunded: jobsCreatedUnfunded, results };
+  if (jobsCreatedUnfunded > 0) {
+    console.warn(
+      `str-ical-sync created ${jobsCreatedUnfunded} job(s) with payment_status='unpaid'. ` +
+      `The browse RPCs require a funded status, so these are invisible to every helper ` +
+      `and the host has no UI path to fund them. See the block comment in this file.`,
+    );
+  }
+
+  // The cron path answers with the shared convention: `fn` so
+  // sweep_silent_cron_failures / sweep_cron_http_failures can attribute the
+  // response to THIS function rather than guessing by timestamp, and non-2xx
+  // when the run dropped work. Before this the function always answered 200
+  // with no `fn`, so a run that failed every connection was invisible to both
+  // watchers.
+  if (isInternal) return cronResult('str-ical-sync', summary, defects.defects, corsHeaders);
+
+  // The manual "Sync now" path stays 200 and keeps the exact body shape
+  // StrSettings.tsx reads. It checks `res.ok` FIRST and would replace the
+  // specific per-connection error with a generic "(500) — try again?", so
+  // borrowing the cron status code here would make the one caller who can act
+  // on the reason stop seeing it. Browser fetches never reach
+  // net._http_response, so no watcher is missing anything.
+  return jsonResponse(
+    { ok: defects.count === 0, fn: 'str-ical-sync', ...summary, defects: defects.count },
+    200,
+    corsHeaders,
+  );
 });

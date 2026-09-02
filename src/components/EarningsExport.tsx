@@ -2,7 +2,11 @@ import { lazy, Suspense, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  Dialog, DialogContent, DialogHero, DialogTrigger,
+  Dialog,
+  DialogContent,
+  DialogHero,
+  DialogTrigger,
+  DialogBody,
 } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,6 +16,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { formatCategory } from "@/lib/format";
+import { saveOrShareFile } from "@/lib/fileExport";
 // jsPDF + jspdf-autotable are ~450KB combined; load only when user clicks PDF export.
 import type jsPDFType from "jspdf";
 
@@ -144,7 +149,7 @@ export const EarningsExport = ({ helperId, helperName, open: controlledOpen, onO
         toast(`No earnings found for ${range.label}.`);
         return;
       }
-      if (formatType === "csv") downloadCSV(rows, range.label);
+      if (formatType === "csv") await downloadCSV(rows, range.label);
       else await downloadPDF(rows, range.label);
       setOpen(false);
     } catch (err: unknown) {
@@ -154,7 +159,7 @@ export const EarningsExport = ({ helperId, helperName, open: controlledOpen, onO
     }
   };
 
-  const downloadCSV = (rows: ExportRow[], label: string) => {
+  const downloadCSV = async (rows: ExportRow[], label: string) => {
     const escape = (v: CSVValue) => {
       const s = v == null ? "" : String(v);
       return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
@@ -190,8 +195,16 @@ export const EarningsExport = ({ helperId, helperName, open: controlledOpen, onO
     lines.push(`Generated,${new Date().toISOString()}`);
     lines.push("Note,Parish tax is collected & remitted by Helpr (marketplace facilitator). Net payout shown before tips.");
 
-    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
-    triggerDownload(blob, `helpr-earnings-${label.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.csv`);
+    // WAS `triggerDownload` (createObjectURL + <a download> + click), which is
+    // a silent no-op in WKWebView — this button did nothing in the shipped app
+    // (owner: "Download csv pdf etc does not work"). saveOrShareFile keeps the
+    // anchor on web, routes native through the OS share sheet, and toasts on
+    // every outcome. See src/lib/fileExport.ts.
+    await saveOrShareFile({
+      blob: new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" }),
+      filename: `helpr-earnings-${label.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.csv`,
+      label: `${label} earnings CSV`,
+    });
   };
 
   const downloadPDF = async (rows: ExportRow[], label: string) => {
@@ -261,18 +274,15 @@ export const EarningsExport = ({ helperId, helperName, open: controlledOpen, onO
       { maxWidth: 720 }
     );
 
-    doc.save(`helpr-earnings-${label.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.pdf`);
-  };
-
-  const triggerDownload = (blob: Blob, filename: string) => {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    // NOT `doc.save()`. jsPDF's save() is the same `<a download>` click under
+    // the hood, so the PDF export was dead in WKWebView for exactly the same
+    // reason the CSV was. `output("blob")` hands us the bytes and
+    // saveOrShareFile decides how the platform receives them.
+    await saveOrShareFile({
+      blob: doc.output("blob"),
+      filename: `helpr-earnings-${label.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.pdf`,
+      label: `${label} earnings statement`,
+    });
   };
 
   return (
@@ -365,10 +375,12 @@ export const EarningsExport = ({ helperId, helperName, open: controlledOpen, onO
             </Button>
           </div>
 
-          <p className="text-ds-11 text-muted-foreground leading-relaxed">
-            Includes date, job, category, parish, taxable/exempt status, gross budget, platform fee,
-            parish tax collected, and net payout. Tips are tracked separately.
-          </p>
+          <DialogBody>
+            <p>
+              Includes date, job, category, parish, taxable/exempt status, gross budget, platform fee,
+              parish tax collected, and net payout. Tips are tracked separately.
+            </p>
+          </DialogBody>
         </div>
       </DialogContent>
     </Dialog>

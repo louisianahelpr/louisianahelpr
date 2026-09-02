@@ -392,3 +392,21 @@ Send a message when your finding is **actionable for a different lane**:
 5. Coverage manifest: list every route/file you actually opened. "No partial
    audits" (`lh-audit` §5) — an honest gap is a finding; a silent gap is a defect
    in the audit.
+6. **Every finding you filed is FIXED, or has a named reason it is not.** This is
+   the criterion this list used to be missing, and its absence is why previous
+   passes produced excellent reports and changed nothing. A lane that enumerated
+   its whole surface, filed twelve evidenced findings and fixed none of them has
+   **not** finished — it has written a document.
+
+   Acceptable reasons not to fix, stated explicitly per finding: it belongs to
+   another lane's territory (filed and relayed to the orchestrator); it needs a
+   product decision only the owner can make; it needs an action outside the repo
+   (an Apple, Stripe or Vercel dashboard change); the orchestrator has not yet
+   released you from plan mode. "Ran out of time" is a reason too — say it.
+
+   **A plan the orchestrator rejects during the sweep is a DEFERRAL, not a
+   refusal.** Resubmit it in the FIX phase. Do not silently drop a fix because
+   your first plan came back rejected.
+
+7. Your lane report's **"what I fixed"** section is the one the owner reads. If it
+   is empty, say why in the first line rather than leaving them to infer it.

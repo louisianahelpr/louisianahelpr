@@ -1,0 +1,4 @@
+
+## 2026-09-02T03:48:25.229Z — from lh-schema-integrity
+
+Lead for your lane, found while sweeping schema objects. public.user_roles has 'Deny all deletes to user_roles' declared PERMISSIVE with USING (false). Permissive policies OR together, so it subtracts nothing -- DELETE is governed solely by 'Admins can delete roles'. Its twin 'Deny all updates to user_roles' is also permissive-false but is the ONLY permissive UPDATE policy, so UPDATE is denied by absence rather than by the deny. No RESTRICTIVE policy exists on the table. Filed as SI-015 with the pg_policy dump; the authorization judgement is yours. Also from the prod performance advisor: verification_exceptions has two functionally identical admin policies ('Admins can manage verification exceptions' + 'Admins manage exceptions'), and helper_skills / job_pets / verification_exceptions policies carry no TO authenticated restriction so they apply to anon as well -- worth a correctness look, not just perf.

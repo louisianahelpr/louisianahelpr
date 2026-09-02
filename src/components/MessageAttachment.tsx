@@ -179,6 +179,32 @@ export function MessageAttachment({ path, mime, size, duration, mine }: MessageA
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const thumbRef = useRef<HTMLButtonElement>(null);
   const wasOpenRef = useRef(false);
+  const lightboxRef = useRef<HTMLDivElement>(null);
+
+  // Keep the viewer visible to assistive tech. Same trap as
+  // PhotoLightbox.tsx (dashboard/PhotoLightbox.tsx): an open Radix modal
+  // calls hideOthers() (the `aria-hidden` package), which stamps
+  // `aria-hidden="true"` on every <body> child that isn't the dialog — and
+  // keeps doing so for nodes added afterwards, including this portal. The
+  // `pointerEvents: "auto"` override a few lines below exists because this
+  // exact "lightbox open while another Radix modal is active" scenario was
+  // already reproduced once, on the twin PhotoLightbox viewer opened inside
+  // JobDetailDialog — only the pointer-events half of that fix had been
+  // ported here. Un-hide ourselves and hold it.
+  useEffect(() => {
+    const el = lightboxRef.current;
+    if (!lightboxOpen || !el) return;
+    const unhide = () => {
+      if (el.getAttribute("aria-hidden") === "true") {
+        el.removeAttribute("aria-hidden");
+        el.removeAttribute("data-aria-hidden");
+      }
+    };
+    unhide();
+    const mo = new MutationObserver(unhide);
+    mo.observe(el, { attributes: true, attributeFilter: ["aria-hidden"] });
+    return () => mo.disconnect();
+  }, [lightboxOpen]);
 
   // ESC to close the lightbox (keyboard parity with JobDetailDialog's
   // photo viewer, which uses the same pattern).
@@ -303,6 +329,7 @@ export function MessageAttachment({ path, mime, size, duration, mine }: MessageA
             rule makes the photo worse. */}
         {lightboxOpen && thumbUrl && createPortal(
           <div
+            ref={lightboxRef}
             className="fixed inset-0 z-[60] flex items-center justify-center animate-in fade-in-0 duration-200"
             style={{
               backgroundColor: "hsla(38, 18%, 12%, 0.55)",

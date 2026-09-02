@@ -81,11 +81,17 @@ Each of these has been filed as a real finding before and was wrong:
 A lane that found nothing may have looked at nothing. For each lane:
 
 - Compare its coverage manifest against `docs/audit/launch-2026-09/SURFACE.md` —
-  **148 addressable surfaces: 34 routes, 14 redirects, 20 tabs, 9 views, 85 overlays.**
-  **The 85 overlays are where the last audit failed**: routes were walked, coverage was
-  reported, and a large number of dialogs were never opened. Any lane whose manifest
-  covers routes but not the overlays in its scope has **not completed**, regardless of how
-  many findings it filed. Send it back.
+  **802 addressable surfaces: 34 routes, 14 redirects, 23 tabs, 24 admin views,
+  139 overlay instances, 40 forms, 517 toast messages, 20 emails.**
+  **Routes are 4% of the surface.** The last audit walked routes, reported coverage, and
+  never opened most of the dialogs. Any lane whose manifest covers routes but not the
+  overlays, forms and toasts in its scope has **not completed**, regardless of how many
+  findings it filed. Send it back.
+- Three counts in that manifest are worth knowing when you grade a claim: 6 overlays are
+  **hand-rolled portals on no dialog primitive** (the containing-block risk concentrates
+  there), 28 confirmations route through a shared `BrandConfirmDialog` that never says
+  `<Dialog>`, and the notification-type count is an explicit **floor** taken from `src/`
+  rather than from `notification_type_pref_map`.
 - Confirm each lane ran `npm run check:audit-evidence` on its report.
 - A lane that reports "no findings" on a substantial surface owes an explicit statement of
   what it checked and how. Absence of evidence is not evidence of absence.

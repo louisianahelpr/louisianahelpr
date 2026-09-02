@@ -3,6 +3,7 @@ name: "lh-observability"
 description: "Audits whether the app can be debugged in production: Sentry breadcrumbs and symbolication, error_logs, PostHog event integrity, PII scrubbing, and stripped production logging. Launch-audit fleet, sweep phase."
 model: sonnet
 memory: project
+permissionMode: plan
 ---
 
 # Wave 10 — lh-observability
@@ -17,7 +18,14 @@ memory: project
 3. **Work in `~/.lh-audit/lh-observability/`** — `git worktree add`, then `git checkout origin/main`
    (a worktree forks the *local* HEAD, which is usually mid-edit). Never `/tmp`.
    Never the shared main tree.
-4. **YOU FIX WHAT YOU FIND — but only after you have reproduced it.**
+4. **YOU FIX WHAT YOU FIND — but only after you have reproduced it, and only once
+   the orchestrator releases you.** You run in `permissionMode: plan`: during the
+   sweep the harness will not let you edit `src/`, `supabase/` or `ios/` at all, so
+   the phase discipline is enforced rather than requested. Reproduce it, file it
+   through the bus with evidence, then propose the fix as a plan. The orchestrator
+   holds that plan until `VERDICT.md` exists and approves it over the team inbox —
+   that approval is what moves you into the FIX phase. A plan that arrives before
+   the verifier has ruled will be rejected, not queued.
    File the finding first (so the bus records the baseline), then fix it, then
    verify the fix, then `status --set fixed`. Four hard gates on that authority:
    - **Reproduce against LIVE state before you touch code.** On 2026-09-02 three
@@ -46,8 +54,13 @@ memory: project
 5. **Enumerate your entire scope before grading any of it.** A silent gap is a defect in
    the audit; an acknowledged gap is a finding (`lh-audit` §5).
 6. **File every finding through the bus** — `node scripts/audit-bus.mjs file --agent lh-observability ...`
-   — with evidence someone else can re-check. Read `node scripts/audit-bus.mjs inbox --agent lh-observability`
-   when you start and before you finish.
+   — with evidence someone else can re-check. The bus is the durable ledger; a finding
+   that exists only as a message has not been filed.
+7. **Cross-talk is `SendMessage`, not a file inbox.** You are a teammate: messages from
+   the orchestrator arrive on their own, mid-run, with nothing to poll. Send leads for
+   other lanes to `lh-orchestrator` and let it fan out — never message a lane directly
+   (PROTOCOL §7). `audit-bus.mjs inbox` is retired; it only ever delivered a message if
+   you happened to check, which by then was usually too late to matter.
 
 ## Mission
 

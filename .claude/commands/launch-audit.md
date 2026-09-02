@@ -45,12 +45,26 @@ concurrently. Never more than 3. Each lane's own definition carries its brief �
 restate it; pass only wave-specific context (what earlier waves found that this lane
 should know).
 
+**Always pass `name:` set to the lane's own id** (`name: "lh-money-escrow"`,
+`subagent_type: "lh-money-escrow"`). The `name` is what promotes a spawn from an
+anonymous subagent into an addressable **teammate**: it registers in
+`~/.claude/teams/session-<id>/config.json`, shows up in `ListAgents`, and becomes a
+valid `SendMessage` target for the rest of the session. A lane spawned without `name`
+is unreachable — you can read its final report and nothing else, which breaks routing
+and the plan gate below.
+
 While a wave runs:
 - Do not start the next wave until all three report.
 - Hold the gate: if a lane asks to run `typecheck`/`vitest`/`lint`, serialize it.
-- **Route cross-talk.** When a lane reports something actionable for another,
-  `node scripts/audit-bus.mjs msg --to <lane> --from <lane> --body "..."`. You are the
-  hub; lanes do not negotiate scope with each other.
+- **Route cross-talk over `SendMessage`.** When a lane reports something actionable for
+  another, relay it yourself: `SendMessage({to: "lh-silent-failure", message: "..."})`.
+  You are the hub; lanes do not message each other directly and do not negotiate scope
+  between themselves. Native messaging replaced `audit-bus.mjs msg` because a lane
+  actually receives a `SendMessage` mid-run, whereas a file-bus message only landed if
+  someone thought to poll for it.
+  The bus keeps everything else — `file`, `status`, `dupe`, `list`, `rollup` are the
+  durable findings ledger and are **unchanged**. Findings go in the bus; conversation
+  goes over `SendMessage`.
 
 After each wave: `node scripts/audit-bus.mjs rollup`, commit
 `docs/audit/launch-2026-09/`, and report new blockers to the user immediately —
@@ -59,12 +73,40 @@ After each wave: `node scripts/audit-bus.mjs rollup`, commit
 ## Phase discipline — enforce it
 
 **SWEEP → VERIFY → FIX, strictly ordered.** During the sweep, no lane edits `src/`,
-`supabase/` or `ios/`. If a lane reports having fixed something, that is a process defect:
-record it, and have the verifier re-check the baseline it destroyed.
+`supabase/` or `ios/` — and as of the teams wiring this is **enforced, not requested**:
+all 29 read-only lanes carry `permissionMode: plan` in their frontmatter, so the harness
+refuses their edits outright.
+
+That makes you the release valve. A gated lane that wants to fix something sends you a
+`plan_approval_request`; you answer with a `plan_approval_response` naming its
+`request_id`:
+
+```json
+{"to": "lh-money-escrow",
+ "message": {"type": "plan_approval_response", "request_id": "...", "approve": false,
+             "feedback": "sweep phase — file it through the bus; VERDICT.md does not exist yet"}}
+```
+
+**Two kinds of request arrive, and you must not conflate them.** Every lane's step 3 is
+`git worktree add ~/.lh-audit/<lane>` — a lasting change, so a gated lane will ask you to
+approve it at wave start. **Approve those immediately**; the worktree is the isolation the
+sweep depends on, and 29 lanes stalled at setup is not phase discipline, it is a deadlock
+you caused. What you are actually guarding is edits to `src/`, `supabase/` and `ios/`.
+
+**Reject every plan that touches those until `VERDICT.md` exists.** Approving one drops that lane out of plan
+mode and into edit access, which is precisely the phase boundary you are guarding. Three
+lanes are deliberately ungated because their work *is* mutation — `lh-e2e-journeys`,
+`lh-input-boundary`, `lh-state-matrix` — plus `lh-verifier`, which must reproduce freely.
+For those four the old rule still holds by discipline alone: if one reports having fixed
+something during the sweep, that is a process defect — record it, and have the verifier
+re-check the baseline it destroyed.
 
 ## The FIX phase
 
 Only after `VERDICT.md` exists:
+0. Release the lanes you need: approve the `plan_approval_request` from each lane you are
+   putting to work, in the verifier's order. A lane stays in plan mode — and stays
+   harmless — until you approve it, so release them in the same batches you serialize.
 1. Blockers first, then HIGH, then MEDIUM, in the verifier's order.
 2. Serialize edits to shared files — `index.css`, `AppShell.tsx`, `App.tsx`, `PageScaffold.tsx`.
 3. Commit **directly to `main`**; run `npm run typecheck` (plus `npx vitest run` when

@@ -90,10 +90,12 @@ node scripts/audit-bus.mjs list --agent lh-x    # your own lane
 node scripts/audit-bus.mjs show M-004
 node scripts/audit-bus.mjs status M-004 --set verified --by lh-verifier --note "..."
 node scripts/audit-bus.mjs dupe R-011 --of M-004 --by lh-verifier
-node scripts/audit-bus.mjs msg --to lh-visual-critic --from lh-route-walker --body "..."
-node scripts/audit-bus.mjs inbox --agent lh-route-walker
 node scripts/audit-bus.mjs rollup
 ```
+
+The `msg` and `inbox` subcommands still exist in the script but are **no longer the
+cross-talk channel** — see §7. Use `SendMessage` to the orchestrator instead; messages
+reach a running lane, a file in the bus does not.
 
 **Severity** is `lh-audit` §4 vocabulary — `HIGH` / `MEDIUM` / `LOW` / `POLISH`
 — plus an orthogonal `--blocker` flag meaning *this alone should stop the
@@ -339,9 +341,23 @@ manifest, say which unit you counted before concluding the manifest is wrong.
 
 ## 7. Cross-talk
 
-Hub and spoke. You message the orchestrator; the orchestrator fans out. Peer
-messages via `audit-bus.mjs msg` are for handing another lane a lead, not for
-negotiating scope.
+Hub and spoke — unchanged as a rule, changed as a mechanism. You message the
+orchestrator with `SendMessage({to: "lh-orchestrator", message: "..."})`; the
+orchestrator fans out. You do **not** message another lane directly, and you do not
+negotiate scope with one. A relayed message hands another lane a lead; it never
+reassigns work.
+
+`audit-bus.mjs msg` is retired for this. It wrote to a file nobody was obliged to
+read, so a lead handed off mid-wave frequently arrived after the recipient had
+finished. `SendMessage` is delivered into the running lane at its next tool round.
+The rest of the bus is untouched and still mandatory: `file`, `status`, `dupe`,
+`list` and `rollup` remain the durable findings ledger. **Findings go in the bus;
+conversation goes over `SendMessage`.** A finding that exists only as a message has
+not been filed.
+
+Note you are a **teammate**, not an anonymous subagent: you were spawned with a
+`name`, you appear in `ListAgents`, and messages arrive unprompted — there is no
+inbox to poll.
 
 Send a message when your finding is **actionable for a different lane**:
 - Visual lane measures an overlay at 10% viewport height → tell `lh-silent-failure`

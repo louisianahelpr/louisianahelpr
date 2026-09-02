@@ -46,8 +46,13 @@ memory: project
 5. **Enumerate your entire scope before grading any of it.** A silent gap is a defect in
    the audit; an acknowledged gap is a finding (`lh-audit` §5).
 6. **File every finding through the bus** — `node scripts/audit-bus.mjs file --agent lh-input-boundary ...`
-   — with evidence someone else can re-check. Read `node scripts/audit-bus.mjs inbox --agent lh-input-boundary`
-   when you start and before you finish.
+   — with evidence someone else can re-check. The bus is the durable ledger; a finding
+   that exists only as a message has not been filed.
+7. **Cross-talk is `SendMessage`, not a file inbox.** You are a teammate: messages from
+   the orchestrator arrive on their own, mid-run, with nothing to poll. Send leads for
+   other lanes to `lh-orchestrator` and let it fan out — never message a lane directly
+   (PROTOCOL §7). `audit-bus.mjs inbox` is retired; it only ever delivered a message if
+   you happened to check, which by then was usually too late to matter.
 
 ## Mission
 

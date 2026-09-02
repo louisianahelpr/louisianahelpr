@@ -101,7 +101,15 @@ export function useProfileReviews(userId: string | undefined, enabled: boolean) 
           .order("created_at", { ascending: false }),
       );
       if (!data || data.length === 0) return [];
-      const reviewerIds = [...new Set(data.map((r) => r.reviewer_id))];
+      // `reviewer_id` is nullable — an account deletion anonymises the review
+      // rather than removing it, so the rating survives its author. Null is
+      // dropped here rather than tolerated downstream: `get_safe_profiles`
+      // takes a uuid[], and a null inside it is a malformed argument, not a
+      // no-match. The review still renders; its author falls back to "User"
+      // via `nameMap.get(...) || "User"` below.
+      const reviewerIds = [
+        ...new Set(data.map((r) => r.reviewer_id).filter((id): id is string => !!id)),
+      ];
       const jobIds = [...new Set(data.map((r) => r.job_id))];
       const [profilesRes, jobsRes] = await Promise.all([
         supabase.rpc("get_safe_profiles", { user_ids: reviewerIds }),

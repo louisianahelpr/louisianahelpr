@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       admin_audit_log: {
@@ -129,6 +154,7 @@ export type Database = {
         Row: {
           attachment_urls: string[] | null
           created_at: string
+          decline_reason: string | null
           helper_id: string
           id: string
           job_id: string
@@ -143,6 +169,7 @@ export type Database = {
         Insert: {
           attachment_urls?: string[] | null
           created_at?: string
+          decline_reason?: string | null
           helper_id: string
           id?: string
           job_id: string
@@ -157,6 +184,7 @@ export type Database = {
         Update: {
           attachment_urls?: string[] | null
           created_at?: string
+          decline_reason?: string | null
           helper_id?: string
           id?: string
           job_id?: string
@@ -292,25 +320,31 @@ export type Database = {
       }
       cron_work_expectations: {
         Row: {
-          candidate_key: string
-          disposition_keys: string[]
+          candidate_key: string | null
+          disposition_keys: string[] | null
+          expected_max_gap: string | null
           jobname: string
           min_streak: number
           note: string
+          registered_at: string
         }
         Insert: {
-          candidate_key: string
-          disposition_keys: string[]
+          candidate_key?: string | null
+          disposition_keys?: string[] | null
+          expected_max_gap?: string | null
           jobname: string
           min_streak?: number
           note?: string
+          registered_at?: string
         }
         Update: {
-          candidate_key?: string
-          disposition_keys?: string[]
+          candidate_key?: string | null
+          disposition_keys?: string[] | null
+          expected_max_gap?: string | null
           jobname?: string
           min_streak?: number
           note?: string
+          registered_at?: string
         }
         Relationships: []
       }
@@ -331,7 +365,7 @@ export type Database = {
           execution_transfer_id: string | null
           id: string
           job_id: string
-          opener_id: string
+          opener_id: string | null
           payout_split: Json | null
           reason: string
           status: string
@@ -352,7 +386,7 @@ export type Database = {
           execution_transfer_id?: string | null
           id?: string
           job_id: string
-          opener_id: string
+          opener_id?: string | null
           payout_split?: Json | null
           reason: string
           status?: string
@@ -373,7 +407,7 @@ export type Database = {
           execution_transfer_id?: string | null
           id?: string
           job_id?: string
-          opener_id?: string
+          opener_id?: string | null
           payout_split?: Json | null
           reason?: string
           status?: string
@@ -1064,7 +1098,7 @@ export type Database = {
           description: string | null
           id: string
           job_id: string
-          opened_by: string
+          opened_by: string | null
           photos: string[] | null
           reason: string
           resolution_note: string | null
@@ -1077,7 +1111,7 @@ export type Database = {
           description?: string | null
           id?: string
           job_id: string
-          opened_by: string
+          opened_by?: string | null
           photos?: string[] | null
           reason: string
           resolution_note?: string | null
@@ -1090,7 +1124,7 @@ export type Database = {
           description?: string | null
           id?: string
           job_id?: string
-          opened_by?: string
+          opened_by?: string | null
           photos?: string[] | null
           reason?: string
           resolution_note?: string | null
@@ -1177,7 +1211,7 @@ export type Database = {
           id: string
           job_id: string
           photos: string[] | null
-          requested_by: string
+          requested_by: string | null
           resolved_at: string | null
           status: string
         }
@@ -1188,7 +1222,7 @@ export type Database = {
           id?: string
           job_id: string
           photos?: string[] | null
-          requested_by: string
+          requested_by?: string | null
           resolved_at?: string | null
           status?: string
         }
@@ -1199,7 +1233,7 @@ export type Database = {
           id?: string
           job_id?: string
           photos?: string[] | null
-          requested_by?: string
+          requested_by?: string | null
           resolved_at?: string | null
           status?: string
         }
@@ -1346,7 +1380,7 @@ export type Database = {
           created_at: string
           credential_tier: number
           customer_fee_amount: number | null
-          customer_id: string
+          customer_id: string | null
           date_needed: string
           dayof_confirm_reminder_sent_at: string | null
           dayof_unanswered_poster_alert_sent_at: string | null
@@ -1386,7 +1420,7 @@ export type Database = {
           is_urgent: boolean | null
           late_cancellation: boolean | null
           latitude: number | null
-          location: string
+          location: string | null
           longitude: number | null
           no_show_alert_sent_at: string | null
           offered_to_helper_id: string | null
@@ -1457,7 +1491,7 @@ export type Database = {
           created_at?: string
           credential_tier?: number
           customer_fee_amount?: number | null
-          customer_id: string
+          customer_id?: string | null
           date_needed: string
           dayof_confirm_reminder_sent_at?: string | null
           dayof_unanswered_poster_alert_sent_at?: string | null
@@ -1497,7 +1531,7 @@ export type Database = {
           is_urgent?: boolean | null
           late_cancellation?: boolean | null
           latitude?: number | null
-          location: string
+          location?: string | null
           longitude?: number | null
           no_show_alert_sent_at?: string | null
           offered_to_helper_id?: string | null
@@ -1568,7 +1602,7 @@ export type Database = {
           created_at?: string
           credential_tier?: number
           customer_fee_amount?: number | null
-          customer_id?: string
+          customer_id?: string | null
           date_needed?: string
           dayof_confirm_reminder_sent_at?: string | null
           dayof_unanswered_poster_alert_sent_at?: string | null
@@ -1608,7 +1642,7 @@ export type Database = {
           is_urgent?: boolean | null
           late_cancellation?: boolean | null
           latitude?: number | null
-          location?: string
+          location?: string | null
           longitude?: number | null
           no_show_alert_sent_at?: string | null
           offered_to_helper_id?: string | null
@@ -1875,6 +1909,7 @@ export type Database = {
           is_system: boolean
           job_id: string
           read: boolean
+          read_at: string | null
           receiver_id: string
           reply_to_id: string | null
           sender_id: string
@@ -1893,6 +1928,7 @@ export type Database = {
           is_system?: boolean
           job_id: string
           read?: boolean
+          read_at?: string | null
           receiver_id: string
           reply_to_id?: string | null
           sender_id: string
@@ -1911,6 +1947,7 @@ export type Database = {
           is_system?: boolean
           job_id?: string
           read?: boolean
+          read_at?: string | null
           receiver_id?: string
           reply_to_id?: string | null
           sender_id?: string
@@ -2147,6 +2184,20 @@ export type Database = {
             referencedRelation: "jobs"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "notifications_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
         ]
       }
       nps_responses: {
@@ -2257,6 +2308,7 @@ export type Database = {
           failed_at: string | null
           failure_reason: string | null
           helper_id: string | null
+          helper_redacted_at: string | null
           id: string
           initiated_by: string
           initiated_by_user_id: string | null
@@ -2266,8 +2318,8 @@ export type Database = {
           platform_fee_cents: number
           reversed_at: string | null
           status: string
-          stripe_account_id: string
-          stripe_transfer_id: string
+          stripe_account_id: string | null
+          stripe_transfer_id: string | null
         }
         Insert: {
           amount_cents: number
@@ -2275,7 +2327,8 @@ export type Database = {
           currency?: string
           failed_at?: string | null
           failure_reason?: string | null
-          helper_id: string | null
+          helper_id?: string | null
+          helper_redacted_at?: string | null
           id?: string
           initiated_by?: string
           initiated_by_user_id?: string | null
@@ -2285,8 +2338,8 @@ export type Database = {
           platform_fee_cents?: number
           reversed_at?: string | null
           status?: string
-          stripe_account_id: string
-          stripe_transfer_id: string
+          stripe_account_id?: string | null
+          stripe_transfer_id?: string | null
         }
         Update: {
           amount_cents?: number
@@ -2295,6 +2348,7 @@ export type Database = {
           failed_at?: string | null
           failure_reason?: string | null
           helper_id?: string | null
+          helper_redacted_at?: string | null
           id?: string
           initiated_by?: string
           initiated_by_user_id?: string | null
@@ -2304,8 +2358,8 @@ export type Database = {
           platform_fee_cents?: number
           reversed_at?: string | null
           status?: string
-          stripe_account_id?: string
-          stripe_transfer_id?: string
+          stripe_account_id?: string | null
+          stripe_transfer_id?: string | null
         }
         Relationships: [
           {
@@ -2484,7 +2538,7 @@ export type Database = {
           claim_token: string | null
           created_at: string
           design_id: string | null
-          donor_id: string
+          donor_id: string | null
           expires_at: string | null
           id: string
           job_id: string | null
@@ -2496,6 +2550,7 @@ export type Database = {
           recipient_email: string | null
           recipient_id: string | null
           redeemed_at: string | null
+          restored_from_job_id: string | null
           status: string
           stripe_payment_intent_id: string | null
           stripe_session_id: string | null
@@ -2506,7 +2561,7 @@ export type Database = {
           claim_token?: string | null
           created_at?: string
           design_id?: string | null
-          donor_id: string
+          donor_id?: string | null
           expires_at?: string | null
           id?: string
           job_id?: string | null
@@ -2518,6 +2573,7 @@ export type Database = {
           recipient_email?: string | null
           recipient_id?: string | null
           redeemed_at?: string | null
+          restored_from_job_id?: string | null
           status?: string
           stripe_payment_intent_id?: string | null
           stripe_session_id?: string | null
@@ -2528,7 +2584,7 @@ export type Database = {
           claim_token?: string | null
           created_at?: string
           design_id?: string | null
-          donor_id?: string
+          donor_id?: string | null
           expires_at?: string | null
           id?: string
           job_id?: string | null
@@ -2540,6 +2596,7 @@ export type Database = {
           recipient_email?: string | null
           recipient_id?: string | null
           redeemed_at?: string | null
+          restored_from_job_id?: string | null
           status?: string
           stripe_payment_intent_id?: string | null
           stripe_session_id?: string | null
@@ -2571,6 +2628,27 @@ export type Database = {
             columns: ["parent_credit_id"]
             isOneToOne: false
             referencedRelation: "pif_credits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pif_credits_restored_from_job_id_fkey"
+            columns: ["restored_from_job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pif_credits_restored_from_job_id_fkey"
+            columns: ["restored_from_job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pif_credits_restored_from_job_id_fkey"
+            columns: ["restored_from_job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_browse"
             referencedColumns: ["id"]
           },
         ]
@@ -2623,6 +2701,24 @@ export type Database = {
         }
         Relationships: []
       }
+      profile_search_rate_log: {
+        Row: {
+          created_at: string
+          id: number
+          searcher_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          searcher_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          searcher_id?: string
+        }
+        Relationships: []
+      }
       profile_views: {
         Row: {
           hour_bucket: string
@@ -2650,6 +2746,7 @@ export type Database = {
       profiles: {
         Row: {
           accepted_terms_at: string | null
+          anonymized_at: string | null
           apple_original_transaction_id: string | null
           application_count: number
           approval_email_count: number
@@ -2728,9 +2825,9 @@ export type Database = {
           sms_consent: boolean
           stripe_account_id: string | null
           stripe_charges_enabled: boolean
+          stripe_customer_id: string | null
           stripe_identity_verified: boolean
           stripe_identity_verified_at: string | null
-          stripe_customer_id: string | null
           stripe_payouts_enabled: boolean
           stripe_subscription_id: string | null
           subscription_billing_cycle: string | null
@@ -2748,6 +2845,7 @@ export type Database = {
         }
         Insert: {
           accepted_terms_at?: string | null
+          anonymized_at?: string | null
           apple_original_transaction_id?: string | null
           application_count?: number
           approval_email_count?: number
@@ -2826,9 +2924,9 @@ export type Database = {
           sms_consent?: boolean
           stripe_account_id?: string | null
           stripe_charges_enabled?: boolean
+          stripe_customer_id?: string | null
           stripe_identity_verified?: boolean
           stripe_identity_verified_at?: string | null
-          stripe_customer_id?: string | null
           stripe_payouts_enabled?: boolean
           stripe_subscription_id?: string | null
           subscription_billing_cycle?: string | null
@@ -2846,6 +2944,7 @@ export type Database = {
         }
         Update: {
           accepted_terms_at?: string | null
+          anonymized_at?: string | null
           apple_original_transaction_id?: string | null
           application_count?: number
           approval_email_count?: number
@@ -2924,9 +3023,9 @@ export type Database = {
           sms_consent?: boolean
           stripe_account_id?: string | null
           stripe_charges_enabled?: boolean
+          stripe_customer_id?: string | null
           stripe_identity_verified?: boolean
           stripe_identity_verified_at?: string | null
-          stripe_customer_id?: string | null
           stripe_payouts_enabled?: boolean
           stripe_subscription_id?: string | null
           subscription_billing_cycle?: string | null
@@ -3037,7 +3136,7 @@ export type Database = {
           code: string
           created_at?: string
           id?: string
-          user_id: string | null
+          user_id?: string | null
         }
         Update: {
           code?: string
@@ -3101,7 +3200,7 @@ export type Database = {
           id?: string
           referral_code_id: string
           referred_id: string
-          referrer_id: string | null
+          referrer_id?: string | null
         }
         Update: {
           created_at?: string
@@ -3171,7 +3270,7 @@ export type Database = {
           response_at: string | null
           response_text: string | null
           reviewee_id: string
-          reviewer_id: string
+          reviewer_id: string | null
           status: string
         }
         Insert: {
@@ -3188,7 +3287,7 @@ export type Database = {
           response_at?: string | null
           response_text?: string | null
           reviewee_id: string
-          reviewer_id: string
+          reviewer_id?: string | null
           status?: string
         }
         Update: {
@@ -3205,7 +3304,7 @@ export type Database = {
           response_at?: string | null
           response_text?: string | null
           reviewee_id?: string
-          reviewer_id?: string
+          reviewer_id?: string | null
           status?: string
         }
         Relationships: [
@@ -3326,21 +3425,21 @@ export type Database = {
       skill_endorsements: {
         Row: {
           created_at: string
-          endorser_id: string
+          endorser_id: string | null
           id: string
           job_id: string | null
           skill_id: string
         }
         Insert: {
           created_at?: string
-          endorser_id: string
+          endorser_id?: string | null
           id?: string
           job_id?: string | null
           skill_id: string
         }
         Update: {
           created_at?: string
-          endorser_id?: string
+          endorser_id?: string | null
           id?: string
           job_id?: string | null
           skill_id?: string
@@ -3501,6 +3600,30 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_cancel_reasons: {
+        Row: {
+          created_at: string
+          id: string
+          reason: string
+          tier: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          reason: string
+          tier?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          reason?: string
+          tier?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       suppressed_emails: {
         Row: {
           created_at: string
@@ -3524,6 +3647,49 @@ export type Database = {
           reason?: string
         }
         Relationships: []
+      }
+      thread_archives: {
+        Row: {
+          archived_at: string
+          job_id: string
+          other_user_id: string
+          user_id: string
+        }
+        Insert: {
+          archived_at?: string
+          job_id: string
+          other_user_id: string
+          user_id: string
+        }
+        Update: {
+          archived_at?: string
+          job_id?: string
+          other_user_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "thread_archives_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "thread_archives_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "thread_archives_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       thread_mutes: {
         Row: {
@@ -4358,6 +4524,26 @@ export type Database = {
         Args: { _reason: string; _review_id: string }
         Returns: undefined
       }
+      admin_support_queue: {
+        Args: {
+          p_head_start_minutes?: number
+          p_priority_tiers?: string[]
+          p_status?: string
+        }
+        Returns: {
+          created_at: string
+          description: string
+          id: string
+          priority_at: string
+          priority_support: boolean
+          reason: string
+          reporter_email: string
+          reporter_id: string
+          reporter_name: string
+          status: string
+          support_tier: string
+        }[]
+      }
       apply_cancellation_violation_consequence: {
         Args: { p_job_id: string }
         Returns: Json
@@ -4453,6 +4639,7 @@ export type Database = {
       }
       detect_stuck_payments: { Args: never; Returns: number }
       detect_suspicious_user_patterns: { Args: never; Returns: number }
+      early_access_cutoff: { Args: never; Returns: string }
       endorse_skill: { Args: { p_skill_id: string }; Returns: undefined }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
@@ -4504,6 +4691,7 @@ export type Database = {
           total_jobs: number
         }[]
       }
+      get_helper_analytics: { Args: { p_days?: number }; Returns: Json }
       get_helper_completed_counts: {
         Args: { p_user_ids: string[] }
         Returns: {
@@ -4625,7 +4813,7 @@ export type Database = {
           created_at: string
           credential_tier: number
           customer_fee_amount: number | null
-          customer_id: string
+          customer_id: string | null
           date_needed: string
           dayof_confirm_reminder_sent_at: string | null
           dayof_unanswered_poster_alert_sent_at: string | null
@@ -4665,7 +4853,7 @@ export type Database = {
           is_urgent: boolean | null
           late_cancellation: boolean | null
           latitude: number | null
-          location: string
+          location: string | null
           longitude: number | null
           no_show_alert_sent_at: string | null
           offered_to_helper_id: string | null
@@ -4758,7 +4946,7 @@ export type Database = {
           created_at: string
           credential_tier: number
           customer_fee_amount: number | null
-          customer_id: string
+          customer_id: string | null
           date_needed: string
           dayof_confirm_reminder_sent_at: string | null
           dayof_unanswered_poster_alert_sent_at: string | null
@@ -4798,7 +4986,7 @@ export type Database = {
           is_urgent: boolean | null
           late_cancellation: boolean | null
           latitude: number | null
-          location: string
+          location: string | null
           longitude: number | null
           no_show_alert_sent_at: string | null
           offered_to_helper_id: string | null
@@ -4859,6 +5047,13 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_my_reply_latency: {
+        Args: never
+        Returns: {
+          median_reply_minutes: number
+          reply_sample: number
+        }[]
+      }
       get_my_saved_helpers: {
         Args: never
         Returns: {
@@ -4916,6 +5111,12 @@ export type Database = {
         }[]
       }
       get_parish_for_zip: { Args: { p_zip: string }; Returns: string }
+      get_payout_batch_job_ids: {
+        Args: { p_helper_id: string }
+        Returns: {
+          job_id: string
+        }[]
+      }
       get_payout_batches: {
         Args: never
         Returns: {
@@ -5005,6 +5206,50 @@ export type Database = {
           onboarding_fee_cents: number
         }[]
       }
+      get_public_profile_reviews: {
+        Args: { p_limit?: number; p_offset?: number; p_user_id: string }
+        Returns: {
+          communication: number
+          created_at: string
+          feedback: string
+          id: string
+          job_category: string
+          punctuality: number
+          quality: number
+          rating: number
+          response_at: string
+          response_text: string
+          reviewer_name: string
+          total_count: number
+        }[]
+      }
+      get_public_profile_stats: {
+        Args: { p_user_ids: string[] }
+        Returns: {
+          approval_status: string
+          avg_rating: number
+          cancellation_rate: number
+          cancelled_jobs: number
+          completed_jobs_as_helper: number
+          completed_jobs_total: number
+          has_pending_credentials: boolean
+          has_stripe_account: boolean
+          is_background_checked: boolean
+          is_id_verified: boolean
+          jobs_total: number
+          on_time_rate: number
+          on_time_sample: number
+          posted_jobs_total: number
+          poster_avg_rating: number
+          poster_review_count: number
+          repeat_client_sample: number
+          repeat_hire_percent: number
+          review_count: number
+          revision_rate: number
+          revision_sample: number
+          user_id: string
+        }[]
+      }
       get_ranked_open_jobs: {
         Args: { p_include_seed?: boolean; p_limit?: number; p_offset?: number }
         Returns: {
@@ -5061,7 +5306,6 @@ export type Database = {
           is_payout_ready: boolean
           license_status: string
           location: string
-          matched_on: string
           portfolio_urls: string[]
           profile_id: string
           role: string
@@ -5117,6 +5361,10 @@ export type Database = {
         Returns: string
       }
       helper_cancel_booking: { Args: { p_job_id: string }; Returns: Json }
+      helper_has_advanced_analytics: {
+        Args: { p_user_id: string }
+        Returns: boolean
+      }
       helper_mark_on_the_way: {
         Args: { p_job_id: string; p_lat?: number; p_lng?: number }
         Returns: string
@@ -5133,13 +5381,25 @@ export type Database = {
         Args: { p_has_helper: boolean; p_hours_until: number }
         Returns: boolean
       }
+      is_party_to_job_folder: {
+        Args: { object_name: string }
+        Returns: boolean
+      }
       is_thread_muted: {
         Args: { _job_id: string; _other_user_id: string; _user: string }
         Returns: boolean
       }
+      job_expires_at_for_schedule: {
+        Args: { p_date_needed: string; p_start_time: string }
+        Returns: string
+      }
       job_hours_until_start: {
         Args: { p_at: string; p_date_needed: string }
         Returns: number
+      }
+      log_cron_defect: {
+        Args: { p_context?: Json; p_err: string; p_fn: string; p_ref: string }
+        Returns: undefined
       }
       log_notification: {
         Args: {
@@ -5154,6 +5414,17 @@ export type Database = {
         }
         Returns: undefined
       }
+      log_push_notification: {
+        Args: {
+          _category: string
+          _error?: string
+          _job_id?: string
+          _status: string
+          _subject?: string
+          _user_id: string
+        }
+        Returns: string
+      }
       mark_applications_viewed: {
         Args: { p_job_id: string }
         Returns: undefined
@@ -5163,6 +5434,10 @@ export type Database = {
         Returns: Json
       }
       mask_job_location: { Args: { loc: string }; Returns: string }
+      miles_between: {
+        Args: { lat1: number; lat2: number; lng1: number; lng2: number }
+        Returns: number
+      }
       move_to_dlq: {
         Args: {
           dlq_name: string
@@ -5172,6 +5447,10 @@ export type Database = {
         }
         Returns: number
       }
+      notification_job_id_from_link: {
+        Args: { p_link: string }
+        Returns: string
+      }
       poster_cancel_job: {
         Args: { p_job_id: string; p_reason?: string }
         Returns: Json
@@ -5180,7 +5459,9 @@ export type Database = {
         Args: { p_new_user_id: string; p_referral_code: string }
         Returns: boolean
       }
+      profiles_locked_update_columns: { Args: never; Returns: string[] }
       prune_cron_run_log: { Args: never; Returns: undefined }
+      purge_user_data: { Args: { p_user_id: string }; Returns: Json }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
@@ -5189,9 +5470,14 @@ export type Database = {
           read_ct: number
         }[]
       }
+      reap_stranded_instant_payouts: { Args: never; Returns: Json }
       record_job_view: { Args: { p_job_id: string }; Returns: string }
       record_profile_view: {
         Args: { p_viewed_user_id: string }
+        Returns: boolean
+      }
+      record_referral_signup: {
+        Args: { p_new_user_id: string; p_referral_code: string }
         Returns: boolean
       }
       redact_audit_snapshot: { Args: { p_row: Json }; Returns: Json }
@@ -5215,6 +5501,10 @@ export type Database = {
       respond_to_review: {
         Args: { _response_text: string; _review_id: string }
         Returns: undefined
+      }
+      restore_pif_credit_for_job: {
+        Args: { p_dry_run?: boolean; p_job_id: string; p_share_bps?: number }
+        Returns: Json
       }
       review_credential: {
         Args: {
@@ -5252,16 +5542,35 @@ export type Database = {
       rpc_withdraw_dispute: { Args: { _job_id: string }; Returns: undefined }
       search_profiles_by_name: {
         Args: { query: string }
-        Returns: { avatar_url: string; full_name: string; user_id: string }[]
+        Returns: {
+          avatar_url: string
+          full_name: string
+          user_id: string
+        }[]
       }
+      seed_jobs_hidden_publicly: { Args: never; Returns: boolean }
       set_available_now: { Args: { p_hours?: number }; Returns: string }
       set_thread_snooze: {
         Args: { _job_id: string; _other_user_id: string; _until: string }
         Returns: string
       }
+      settle_dispute_record: {
+        Args: {
+          _decided_by?: string
+          _decision_text?: string
+          _helper_cents?: number
+          _job_id: string
+          _outcome: string
+          _refund_cents?: number
+          _refund_id?: string
+          _transfer_id?: string
+        }
+        Returns: string
+      }
       sweep_cron_http_failures: { Args: never; Returns: Json }
       sweep_daily_job_digest: { Args: never; Returns: number }
       sweep_dayof_confirm_reminders: { Args: never; Returns: number }
+      sweep_dead_crons: { Args: never; Returns: Json }
       sweep_expired_auto_bans: { Args: never; Returns: number }
       sweep_job_start_reminders: { Args: never; Returns: number }
       sweep_no_show_alerts: { Args: never; Returns: number }
@@ -5271,11 +5580,16 @@ export type Database = {
       sweep_pending_broadcast_fan_outs: { Args: never; Returns: number }
       sweep_release_last_chance: { Args: never; Returns: number }
       sweep_silent_cron_failures: { Args: never; Returns: Json }
+      sync_profiles_update_grants: { Args: never; Returns: Json }
       toggle_thread_mute: {
         Args: { _job_id: string; _other_user_id: string }
         Returns: boolean
       }
       user_has_pending_application: {
+        Args: { _job_id: string; _user_id: string }
+        Returns: boolean
+      }
+      user_may_see_job_address: {
         Args: { _job_id: string; _user_id: string }
         Returns: boolean
       }
@@ -5431,6 +5745,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       app_role: ["admin", "customer", "helper"],

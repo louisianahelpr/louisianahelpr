@@ -144,7 +144,10 @@ function PostedJobCardInner({
                 dateNeeded={job.date_needed}
                 startTime={job.start_time}
                 flexibleLabel="Flexible time"
-                location={job.location}
+                // A job whose poster deleted their account is anonymised, not
+                // removed (20260901033011), so it stands with no address. The
+                // chip's normaliser already treats "" as absent.
+                location={job.location ?? ""}
                 // Tap expands, HOLD opens the map (owner: "tapping the
                 // location here shouldn't open the map… I keep tapping it on
                 // accident"). The location sits in the middle of the card body,

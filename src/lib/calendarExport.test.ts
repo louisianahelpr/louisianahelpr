@@ -27,6 +27,27 @@ describe("buildJobICS", () => {
     expect(ics.includes("\r\n")).toBe(true);
   });
 
+  it("omits the LOCATION property entirely for an anonymised job", () => {
+    // A poster who deletes their account leaves the job standing with
+    // `location` NULL (20260901033011). This file leaves the app and lands in
+    // someone's real calendar, so the property must be ABSENT rather than
+    // present-and-empty: an absent property is what iCalendar means by
+    // "unknown", while `LOCATION:` asserts the event has no location.
+    const ics = buildJobICS({ ...baseJob, location: null });
+    expect(ics).not.toContain("LOCATION:");
+    // The rest of the event must still be well-formed — a missing address
+    // degrades one property, it does not invalidate the invitation.
+    expect(ics).toContain("SUMMARY:Move a couch");
+    expect(ics).toContain("DTSTART:20260915T143000");
+    expect(ics).toContain("END:VCALENDAR");
+  });
+
+  it("still writes LOCATION when the address is present", () => {
+    // Guards the spread in buildJobICS: the omission above must not have
+    // made the property conditional on something other than nullness.
+    expect(buildJobICS(baseJob)).toContain("LOCATION:123 Main St\\, Baton Rouge\\, LA");
+  });
+
   it("defaults to a 2-hour duration when estimatedHours is missing", () => {
     const ics = buildJobICS({ ...baseJob, estimatedHours: null });
     expect(ics).toContain("DTSTART:20260915T143000");

@@ -324,7 +324,13 @@ export function useActivityFilters({
       if (!statusMatch) return false;
       // Search filter
       if (searchLower) {
-        return j.title.toLowerCase().includes(searchLower) || j.description.toLowerCase().includes(searchLower) || j.location.toLowerCase().includes(searchLower);
+        // `location` is null once the poster deletes their account and the job
+        // is anonymised (20260901033011). This runs inside a filter callback,
+        // so an unguarded null here throws and takes out the WHOLE list, not
+        // one row — the same shape as the unparseable date that once emptied
+        // /my-posts. A job with no address simply never matches a text search,
+        // which is the truthful answer rather than a swallowed one.
+        return j.title.toLowerCase().includes(searchLower) || j.description.toLowerCase().includes(searchLower) || (j.location?.toLowerCase().includes(searchLower) ?? false);
       }
       return true;
     })
@@ -365,7 +371,10 @@ export function useActivityFilters({
       else if (statusFilter === "not_selected") statusMatch = a.status === "rejected" || a.job?.status === "cancelled";
       if (!statusMatch) return false;
       if (query && a.job) {
-        return a.job.title.toLowerCase().includes(query) || a.job.description.toLowerCase().includes(query) || a.job.location.toLowerCase().includes(query);
+        // Same null-location guard as the search predicate above, same reason:
+        // this is a filter callback, so a throw here empties the applications
+        // list instead of dropping one card.
+        return a.job.title.toLowerCase().includes(query) || a.job.description.toLowerCase().includes(query) || (a.job.location?.toLowerCase().includes(query) ?? false);
       }
       return true;
     })

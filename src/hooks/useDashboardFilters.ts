@@ -158,6 +158,19 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
     [userLoc],
   );
 
+  // A job whose poster deleted their account survives with `customer_id` NULL —
+  // 20260901033011 anonymises rather than deletes, so the job stays as a
+  // financial record. It must not stay BROWSABLE. The escrow may still be
+  // funded, but there is nobody left to answer a question, approve the work or
+  // release the money, so an application to it could never be acted on.
+  //
+  // Discovery only. Anyone already attached to the job — the assigned helper,
+  // their activity feed, admin — still sees it, because hiding an in-flight job
+  // from the person working it would strand them and their payout. Everything
+  // downstream in this hook derives from this list, so the rule holds for the
+  // feed, the smart ranking, the map and the nearby row without being restated.
+  const browsableJobs = useMemo(() => allJobs.filter((j) => !!j.customer_id), [allJobs]);
+
   // When sorting by Smart we pre-rank the prefiltered list with the
   // composite score so the per-pair comparator below can fall back to
   // "earlier index wins" (i.e. preserve the smart order) on ties. The
@@ -165,11 +178,11 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
   // override that, which keeps Smart consistent with the other modes.
   const smartIndexByJobId = useMemo(() => {
     if (sortBy !== "smart") return null;
-    const ranked = sortJobsSmart(allJobs, helperLocationForSort);
+    const ranked = sortJobsSmart(browsableJobs, helperLocationForSort);
     const map = new Map<string, number>();
     ranked.forEach((j, i) => map.set(j.id, i));
     return map;
-  }, [sortBy, allJobs, helperLocationForSort]);
+  }, [sortBy, browsableJobs, helperLocationForSort]);
 
   // The tier the early-access gate runs at — resolved from the PROFILE with
   // the shared resolver (null expiry = active, the tierFeePercent
@@ -193,7 +206,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
     return `${d.getFullYear()}-${m}-${day}`;
   }, []);
 
-  const filteredJobs = useMemo(() => allJobs
+  const filteredJobs = useMemo(() => browsableJobs
     .filter((job) => {
       if (userId && job.customer_id === userId) return false;
       // Drop stale posts whose needed date has already passed — a job
@@ -316,7 +329,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
         }
         default: return compareJobsBySortMode(a, b, sortBy);
       }
-    }), [allJobs, userId, searchQuery, selectedCategory, minBudget, maxBudget, locationFilter, nearbyMiles, userLoc, expiresWithin, earlyAccessTier, matchAvailability, helperAvailability, sortBy, boostedOnly, urgentOnly, profile?.parish, profile?.location, smartIndexByJobId, todayLocalDate]);
+    }), [browsableJobs, userId, searchQuery, selectedCategory, minBudget, maxBudget, locationFilter, nearbyMiles, userLoc, expiresWithin, earlyAccessTier, matchAvailability, helperAvailability, sortBy, boostedOnly, urgentOnly, profile?.parish, profile?.location, smartIndexByJobId, todayLocalDate]);
 
   // The same filter state, shaped for the Browse map. The map runs its own
   // (unpaginated) fetch against a narrow PII-safe row, so it can't reuse
@@ -366,7 +379,17 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
   const nearbyJobs = useMemo(() => {
     const userLocation = profile?.location?.toLowerCase() || "";
     return userLocation
-      ? allJobs.filter((j) => j.location.toLowerCase().includes(userLocation) || userLocation.includes(j.location.toLowerCase())).slice(0, 5)
+      ? browsableJobs
+          .filter((j) => {
+            // Guard the row OUT rather than coalescing to "". This comparison
+            // runs in both directions, and `userLocation.includes("")` is true
+            // for every string — so a null location coalesced to "" would make
+            // an address-less job match EVERY nearby search instead of none.
+            const loc = j.location?.toLowerCase();
+            if (!loc) return false;
+            return loc.includes(userLocation) || userLocation.includes(loc);
+          })
+          .slice(0, 5)
       : [];
   }, [allJobs, profile?.location]);
 

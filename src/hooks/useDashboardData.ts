@@ -459,7 +459,11 @@ export function useDashboardData() {
       .filter((j) => j.customer_id !== userId)
       .map((j) => {
         let score = 0;
-        if (userLoc && j.location.toLowerCase().includes(userLoc)) score += 2;
+        // `location` is nullable since 20260901033011 — deleting an account
+        // anonymises the poster's jobs, and the street address goes with them.
+        // An address-less job just scores no location point; it is not a match
+        // for every `userLoc` and it must not throw here.
+        if (userLoc && j.location?.toLowerCase().includes(userLoc)) score += 2;
         if (
           userSkills.some(
             (s) => j.category.includes(s) || j.title.toLowerCase().includes(s) || j.description.toLowerCase().includes(s),

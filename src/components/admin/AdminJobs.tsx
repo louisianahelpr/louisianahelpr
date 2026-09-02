@@ -183,14 +183,20 @@ const AdminJobs = () => {
     setDetailJob(job);
     setPosterName("");
     setHelperName("");
-    const ids = [job.customer_id, job.helper_id].filter(Boolean) as string[];
+    // `customer_id` is nullable since 20260901033011: deleting an account
+    // ANONYMISES the job rather than removing it, so the job stands as a
+    // financial record with no owner. Null is not an id — it must never reach
+    // `map.get`, and an admin should read the truth, not a friendly fallback.
+    const posterId = job.customer_id;
+    const ids = [posterId, job.helper_id].filter((id): id is string => !!id);
+    if (posterId === null) setPosterName("Deleted user");
     if (ids.length > 0) {
       const { data, error } = await supabase.from("profiles").select("user_id, full_name").in("user_id", ids);
       if (error) {
         console.error("[AdminJobs] openJob profiles:", error);
       } else if (data) {
         const map = new Map(data.map((p) => [p.user_id, formatName(p.full_name)]));
-        setPosterName(map.get(job.customer_id) || "Unknown");
+        if (posterId) setPosterName(map.get(posterId) || "Unknown");
         if (job.helper_id) setHelperName(map.get(job.helper_id) || "Unknown");
       }
     }
@@ -228,17 +234,24 @@ const AdminJobs = () => {
       );
 
       // Notify the job poster — on THEIR surface (My Posts), on the job.
-      await notifyJobParty(
-        {
-          user_id: detailJob.customer_id,
-          title: "Job removed by admin",
-          message: `Your job "${detailJob.title}" was removed. Reason: ${deleteReason}`,
-          type: "warning",
-          link: activityLinkFor("poster", detailJob.id),
-        },
-        "the poster",
-        { jobId: detailJob.id, adminAction: "remove_job" },
-      );
+      // Guarded on a non-null `customer_id`: since 20260901033011 an account
+      // deletion anonymises the job instead of removing it, so a job can
+      // outlive its poster. There is nobody to tell, and a notification row
+      // written against a null user_id has no recipient at all (same reasoning
+      // as AdminReports' `reporter_exists` gate).
+      if (detailJob.customer_id) {
+        await notifyJobParty(
+          {
+            user_id: detailJob.customer_id,
+            title: "Job removed by admin",
+            message: `Your job "${detailJob.title}" was removed. Reason: ${deleteReason}`,
+            type: "warning",
+            link: activityLinkFor("poster", detailJob.id),
+          },
+          "the poster",
+          { jobId: detailJob.id, adminAction: "remove_job" },
+        );
+      }
 
       // Also notify the helper if assigned. This used to land on /dashboard
       // (Browse), which never mentions the job they just lost.
@@ -364,7 +377,10 @@ const AdminJobs = () => {
       // gets their OWN surface — the poster's My Posts, the helpr's My Jobs —
       // with the job on it, so the link resolves to whichever bucket the job
       // is in by the time it's read.
-      const parties = [detailJob.customer_id, detailJob.helper_id].filter(Boolean) as string[];
+      // Type predicate rather than `as string[]`: an anonymised job (null
+      // customer_id, 20260901033011) simply has one fewer party to notify.
+      const parties = [detailJob.customer_id, detailJob.helper_id]
+        .filter((id): id is string => !!id);
       for (const uid of parties) {
         const isPoster = uid === detailJob.customer_id;
         await notifyJobParty(

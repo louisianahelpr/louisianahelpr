@@ -127,7 +127,10 @@ const JobDetailDialog = ({
           variant="icon"
           bare
           compact
-          job={{ id: job.id, title: job.title, budget: job.budget, category: job.category, city: getCity(job.location).replace(/,\s*LA\s*$/i, "") }}
+          // `?? ""` — a job whose poster deleted their account is anonymised,
+          // not removed (20260901033011), so it has no address to name. getCity
+          // answers "" and the share copy falls back to "Louisiana".
+          job={{ id: job.id, title: job.title, budget: job.budget, category: job.category, city: getCity(job.location ?? "").replace(/,\s*LA\s*$/i, "") }}
           ariaLabel="Share this job"
         />
       )}

@@ -222,8 +222,13 @@ const DashboardGuest = () => {
     staleTime: 60 * 1000,
   });
 
+  // A null `customer_id` is a poster who DELETED their account: deletion
+  // anonymises the job rather than removing it (20260901033011), so the job
+  // survives with no owner. Null is not an id to look up, and handing one to a
+  // uuid[] RPC parameter is a malformed filter rather than a no-match — so it
+  // is dropped here, not tolerated downstream.
   const posterIds = useMemo(
-    () => [...new Set(baseJobs.map((j) => j.customer_id))],
+    () => [...new Set(baseJobs.map((j) => j.customer_id).filter((id): id is string => !!id))],
     [baseJobs],
   );
 
@@ -272,15 +277,19 @@ const DashboardGuest = () => {
   const jobs = useMemo<EnrichedJob[]>(() => {
     if (!posterInfo) return baseJobs;
     return baseJobs.map((j) => {
-      const stats = posterInfo.reviewStatsMap.get(j.customer_id);
+      // Ownerless job (see posterIds above): it keeps the existing "a neighbor"
+      // fallback and scores with no tier, which is what an unknown poster
+      // already got. It must not reach a lookup keyed on a string.
+      const posterId = j.customer_id;
+      const stats = posterId ? posterInfo.reviewStatsMap.get(posterId) : undefined;
       return {
         ...j,
-        posterName: posterInfo.nameMap.get(j.customer_id) || "a neighbor",
-        posterAvatarUrl: posterInfo.avatarMap.get(j.customer_id) ?? null,
+        posterName: (posterId ? posterInfo.nameMap.get(posterId) : null) || "a neighbor",
+        posterAvatarUrl: (posterId ? posterInfo.avatarMap.get(posterId) : null) ?? null,
         posterReviewCount: stats?.count ?? 0,
         posterAvgRating: stats?.avg ?? 0,
         posterCompletedJobs: 0,
-        posterSubscriptionTier: posterInfo.tierMap.get(j.customer_id) ?? null,
+        posterSubscriptionTier: (posterId ? posterInfo.tierMap.get(posterId) : null) ?? null,
       };
     });
   }, [baseJobs, posterInfo]);

@@ -21,14 +21,14 @@ rather than shipped. Three fixes are proposed, scoped and ranked in
 
 ## Headline
 
-Seven findings filed (OA-001 … OA-007), one existing finding verified (NB-008),
+Eight findings filed (OA-001 … OA-008), one existing finding verified (NB-008),
 one existing finding resolved (RW-005), and one existing finding **root-caused
 into a materially different and more serious bug** (RW-004 → OA-001).
 
 | Severity | Count | Blockers |
 |---|---|---|
 | HIGH | 3 | OA-001, OA-003 |
-| MEDIUM | 4 | — |
+| MEDIUM | 5 | — |
 
 The two things the owner should read first:
 
@@ -85,6 +85,7 @@ Full claim, reproduction and evidence are in the bus
 | **OA-005** | MEDIUM | `/reset-password` | Validates **3 of the 5** password rules signup enforces; hint copy understates the policy; rejection falls through to *"Couldn't sign you in"*. |
 | **OA-006** | MEDIUM | `/reset-password` success | Promises *"Anywhere else you were signed in will ask for the new password next time"* — nothing in this codebase does that. Recovery token never stripped from the URL. |
 | **OA-007** | MEDIUM | `approval_status` + `/account-pending` | Resolves RW-005 (auto-approve is by design) and shows the pair with OA-001: **approval is a side effect of an edge function that can silently not run**. `/account-pending` then tells the stranded user a staffed review is coming that does not exist. |
+| **OA-008** | MEDIUM | iOS app-switcher snapshot | Snapshot redaction is gated on the **opt-in, default-off** App Lock flag, so the default user's task-switcher preview captures chat, checkout and profile screens. |
 
 **NB-008** (`lh-native-bridge`) → set **verified**, with the fix proposed in its
 status note and a correction: its stated blocker ("the iOS platform component is
@@ -114,7 +115,7 @@ Honest gaps. None of these is "assumed fine".
 | **Live GoTrue password policy (OA-005)** | Attempted an empirical probe (`POST /auth/v1/signup` with weak passwords, which creates nothing on rejection); **refused by the environment's safety classifier** as credential-shaped traffic. The screen-to-screen divergence is proven from source regardless; the severity of the consequence is inherited from `Signup.tsx`'s comment. |
 | **Whether other sessions actually survive a password reset (OA-006)** | Needs a real recovery link in a mailbox plus two browser contexts. The auth email budget was exhausted. Filed as "the app does not implement this", **not** as "the copy is proven false". |
 | **NB-008 on-device trigger** | Five failed Face ID attempts → `canEvaluatePolicy` false. The simulator exists and the app is installed, so this **is** reachable — I ran out of budget, not capability. Should not be closed as demonstrated until someone runs it. |
-| **App-switcher snapshot redaction** | In my brief, not reached. Requires driving the app to a chat/payment screen in the simulator and backgrounding it to inspect the task-preview snapshot. Coordinate with `lh-native-bridge`. **This is a genuine hole in this lane's coverage.** |
+| **App-switcher snapshot — visual confirmation** | Gap CLOSED as a finding (OA-008): the shield is gated on an opt-in flag that is default-off, corroborated by that key's absence on a real install. Still not done: backgrounding the running app and looking at the captured task-switcher image. Someone should confirm visually. |
 | **Social login — actually operated** | Both Apple and Google paths, cancellation and email collision were read from source only (`socialAuth.ts`), never driven on web or native. Apple is present and rendered first with identical styling (`SocialAuthButtons.tsx:78-79`), which satisfies prominence — but I did not complete a real OAuth round-trip on either surface. Email-collision behaviour depends on the Supabase "automatic linking" project setting, which the client code cannot reveal. **Hand the Apple-prominence conclusion to `lh-compliance-store` as source-verified only.** |
 | **AppLockGate re-lock and deep-link bypass — actually operated** | Read thoroughly (it wraps `<Routes>` in `App.tsx:645-676`, so no route escapes it, and `shouldLockOnFreshStart` fails closed on cold start). Not driven: no background/foreground cycle, no timeout expiry, no screenshots. Source reading is not sufficient for a lock. |
 | **Logout completeness — realtime + second tab** | Push-token deletion and the NSUserDefaults clear are verified from source and are correct. **Not** verified: there is no centralised realtime-channel teardown on sign-out (teardown relies on per-hook unmount), and I did not drive a second tab to confirm the BroadcastChannel propagation in practice. |

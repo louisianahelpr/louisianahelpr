@@ -135,24 +135,36 @@ describe("one segmented control, and it is glossy", () => {
     ).toEqual([]);
   });
 
-  it("the exemptions are the two known ones and nothing has quietly joined them", () => {
-    // The detector is deliberately allowed to reach these two; the assertion
-    // is that the set has not grown. Both wear the canonical `btn-grad-primary`
-    // gloss already — what exempts them is structure, not paint.
+  it("the exemption is the one known one and nothing has quietly joined it", () => {
+    // The detector is deliberately allowed to reach this one; the assertion is
+    // that the set has not grown. It wears the canonical `btn-grad-primary`
+    // gloss already — what exempts it is structure, not paint.
     //   SubscriptionTab   a framer `layoutId` pill that SLIDES between
     //                     segments, plus a 44px refresh button inside the same
-    //                     grid. Both were owner-specified.
-    //   HowItWorksSection a marketing tablist on the landing page whose track
-    //                     material was owner-matched to the hero's "Browse
-    //                     Jobs" button.
+    //                     grid. Both were owner-specified. There is no prop on
+    //                     <SegmentedControl /> that produces either, so this is
+    //                     a different control that happens to answer the same
+    //                     question — not this one, styled differently.
+    //
+    // HowItWorksSection USED TO BE THE SECOND ENTRY and no longer is, which is
+    // the distinction a future reader needs. Its exemption was never structural:
+    // it rendered an ordinary two-segment tablist, and what it opted out of was
+    // PAINT — a track whose frosted material (`blur(20px) saturate(180%)` inside
+    // a bark/0.4 border, 16px corner) had been owner-matched to the landing
+    // hero's "Browse Jobs" button, and a flat `hsl(var(--bark))` selected fill
+    // that made it the one place in the app where selected was not the gloss.
+    // Shown all three treatments rendered side by side (2026-09-02), the owner
+    // chose full unification: sixteen controls speaking one language beat one
+    // page's material match. It now renders <SegmentedControl />, so the
+    // detector skips it before it ever reaches this list.
+    //
+    // The rule that survives: a paint preference is not an exemption. Structure
+    // that the shared component cannot express is.
     const exempt = findHandRolledControls()
       .filter(({ file }) => read(file).includes(EXEMPT_MARKER))
       .map((o) => o.file)
       .sort();
-    expect(exempt).toEqual([
-      "src/components/landing/HowItWorksSection.tsx",
-      "src/components/profile/SubscriptionTab.tsx",
-    ]);
+    expect(exempt).toEqual(["src/components/profile/SubscriptionTab.tsx"]);
   });
 
   it("the canonical selected paint resolves to a real gradient", () => {

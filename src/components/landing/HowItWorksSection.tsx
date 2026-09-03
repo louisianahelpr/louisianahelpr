@@ -1,4 +1,8 @@
 import { useEffect, useRef, useState } from "react";
+import {
+  SegmentedControl,
+  type SegmentedOption,
+} from "@/components/ui/SegmentedControl";
 
 /**
  * How It Works — editorial magazine layout. Title lives in the left
@@ -15,10 +19,10 @@ import { useEffect, useRef, useState } from "react";
  */
 type Side = "hire" | "work";
 
-const SIDE_LABELS: Record<Side, string> = {
-  hire: "I need help",
-  work: "I want to work",
-};
+const SIDE_OPTIONS: SegmentedOption<Side>[] = [
+  { value: "hire", label: "I need help" },
+  { value: "work", label: "I want to work" },
+];
 
 const STEPS: Record<Side, { title: string; desc: string }[]> = {
   hire: [
@@ -155,75 +159,25 @@ const HowItWorksSection = () => {
               the toggle already shows: the two sides are literally labelled "I
               need help" and "I want to work". The heading and the control now
               share one row with nothing between them. */}
-          {/* @segmented-control-exempt — the marketing page's own control, not
-              the app's shared <SegmentedControl />. Its track material was
-              matched by the owner to the hero's "Browse Jobs" button
-              (`bg-background/70` inside a 1.5px bark/0.4 border, blurred), so
-              the two secondary controls on the landing page read as the same
-              material; adopting the app track would undo that. Its selected
-              segment is a flat bark fill rather than the glossy primary — the
-              one place in the app where selected is not glossy, left as the
-              owner set it and flagged rather than changed. */}
-          <div
-            role="tablist"
-            aria-label="Which side of Helpr are you on"
-            className="inline-flex flex-nowrap items-center justify-center gap-1 p-1 rounded-2xl"
-            style={{
-              // Olivewood, NOT burnt sienna. The track used to be
-              // sienna/0.06 inside a sienna/0.18 border — within a hair of the
-              // three step cards below it (sienna/0.04 inside sienna/0.15), so
-              // a control read as a fourth content panel and competed with the
-              // thing it is meant to filter. Sienna stays the content colour;
-              // the control sits on the neutral.
-              // BARK, the page's one control colour. The landing page was
-              // running three families at once: bark on the hero buttons,
-              // olivewood on this track, burnt sienna on the step cards — so a
-              // visitor met three different greens/browns before scrolling
-              // once. The rule now: bark = controls, sienna = content accent
-              // (cards, the 01/02/03 numerals), olivewood = text. This track is
-              // a control, so it is bark, and it matches the "Browse Jobs"
-              // button directly above it.
-              // Matched to the hero's "Browse Jobs" button (owner), which is
-              // `bg-background/70` inside a `1.5px solid hsl(var(--bark)/0.4)`
-              // border. Same surface, same edge — so the two secondary controls
-              // on the landing page read as the same material instead of two
-              // different tinted panels.
-              background: "transparent",
-              backdropFilter: "blur(20px) saturate(180%)",
-              WebkitBackdropFilter: "blur(20px) saturate(180%)",
-              border: "1.5px solid hsl(var(--bark) / 0.4)",
-              boxShadow: "var(--elev-inset-hairline)",
-            }}
-          >
-            {(["hire", "work"] as const).map((s) => {
-              const active = side === s;
-              return (
-                <button
-                  key={s}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() => setSide(s)}
-                  className="h-9 sm:h-10 px-4 sm:px-5 md:px-3 md:text-ds-12 lg:px-4 rounded-ds-md font-sans font-semibold text-ds-13 whitespace-nowrap transition-[background,color,transform] duration-150 active:scale-[0.98]"
-                  style={{
-                    background: active ? "hsl(var(--bark))" : "transparent",
-                    // Full-strength bark on the unselected tab — the 0.75
-                    // alpha measured 3.19:1 at 12px/600 (AA needs 4.5). The
-                    // active pill still separates by its filled background.
-                    color: active
-                      ? "hsl(var(--parchment))"
-                      : "hsl(var(--bark))",
-                    boxShadow: active
-                      ? "0 1px 2px rgba(0,0,0,0.08), inset 0 1px 0 hsl(var(--parchment) / 0.2)"
-                      : "none",
-                    letterSpacing: "-0.005em",
-                  }}
-                >
-                  {SIDE_LABELS[s]}
-                </button>
-              );
-            })}
-          </div>
+          {/* The app's shared control. This used to be a hand-rolled tablist
+              carrying `@segmented-control-exempt`: a frosted track matched to
+              the hero's "Browse Jobs" button, with a FLAT bark fill on the
+              selected segment — the one place in the app where selected was not
+              the olive gloss. It now renders <SegmentedControl /> like the
+              other fifteen call sites, so the marketing page and the app agree
+              on what "selected" looks like.
+
+              `semantics="tab"` because the control swaps the three step cards
+              below it, not a setting. No `panelIdPrefix`: the steps are a grid
+              of three cards rather than one labelled panel, so there is no
+              single element for `aria-controls` to point at. */}
+          <SegmentedControl
+            semantics="tab"
+            ariaLabel="Which side of Helpr are you on"
+            options={SIDE_OPTIONS}
+            value={side}
+            onChange={setSide}
+          />
         </div>
 
         {/* Right column — 3 steps with sequential fade-in. */}

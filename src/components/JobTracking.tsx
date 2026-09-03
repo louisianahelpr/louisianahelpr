@@ -1929,7 +1929,7 @@ export function JobTracking({
                   setConfirmDoneOpen(false);
                   void updateStatus("done");
                 }}
-                secondaryLabel="Not Yet"
+                secondaryLabel="Cancel"
               >
                 <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood))" }}>
                   The poster gets {COPY_AUTO_RELEASE_HOURS} hours to approve the work or ask for a change. If they don’t answer, your payment releases to you automatically. You can’t take this back from here.

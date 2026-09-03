@@ -1020,7 +1020,7 @@ export function PostedJobActions({
                 primaryTone="sienna"
                 primaryDisabled={disputeActing}
                 onPrimary={() => { void resolveDisputeAndRelease(); }}
-                secondaryLabel="Keep Dispute Open"
+                secondaryLabel="Cancel"
               />
               </>
             )}

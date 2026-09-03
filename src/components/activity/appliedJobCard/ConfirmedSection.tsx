@@ -155,7 +155,7 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
         primaryTone="sienna"
         primaryDisabled={cancelling}
         onPrimary={() => void handleCancelBooking()}
-        secondaryLabel="Keep the Job"
+        secondaryLabel="Cancel"
       />
     </div>
   );

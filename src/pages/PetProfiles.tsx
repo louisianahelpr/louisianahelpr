@@ -389,7 +389,7 @@ const PetProfiles = ({ onBack }: { onBack?: () => void }) => {
           if (petToDelete) deleteMutation.mutate(petToDelete.id);
           setPetToDelete(null);
         }}
-        secondaryLabel="Keep"
+        secondaryLabel="Cancel"
       />
     </div>
   );

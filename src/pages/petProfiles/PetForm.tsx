@@ -469,7 +469,7 @@ export function PetForm({
         setConfirmDiscard(false);
         onClose();
       }}
-      secondaryLabel="Keep Editing"
+      secondaryLabel="Cancel"
     />
   );
 

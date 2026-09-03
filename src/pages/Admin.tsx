@@ -558,7 +558,7 @@ const Admin = () => {
           primaryTone="bark"
           primaryHaptic="medium"
           onPrimary={async () => { await signOutWithPushCleanup(); navigate("/"); }}
-          secondaryLabel="Stay Signed In"
+          secondaryLabel="Cancel"
         />
       </div>
     </SidebarProvider>

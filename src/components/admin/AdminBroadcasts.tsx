@@ -366,7 +366,7 @@ const AdminBroadcasts = () => {
         primaryHaptic="error"
         primaryDisabled={deleting}
         onPrimary={(e) => { e.preventDefault(); if (confirmDeleteId) remove(confirmDeleteId); }}
-        secondaryLabel="Keep"
+        secondaryLabel="Cancel"
       />
     </AdminViewShell>
   );

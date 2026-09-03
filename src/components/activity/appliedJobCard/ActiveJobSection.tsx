@@ -446,7 +446,7 @@ export function ActiveJobSection({
           primaryHaptic="warning"
           primaryDisabled={aborting || abortReason.trim().length < 5}
           onPrimary={(e) => { e.preventDefault(); void handleAbort(); }}
-          secondaryLabel="Keep Working"
+          secondaryLabel="Cancel"
         >
           <div className="space-y-2.5">
             {/* The money outcome, stated plainly, before the tap. */}

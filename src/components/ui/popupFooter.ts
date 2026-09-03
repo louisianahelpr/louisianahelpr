@@ -144,7 +144,20 @@ export const POPUP_FOOTER_ROW = "flex items-center gap-3 pt-2";
  * parchment canvas reads as disabled.
  */
 export const POPUP_SECONDARY_CLS =
-  "flex-1 min-w-0 px-0 shrink-0 border-0 shadow-none " +
+  // `flex-1 min-w-0`, and NOTHING that stops it shrinking.
+  //
+  // This read `flex-1 min-w-0 px-0 shrink-0`, which is a contradiction: `min-w-0`
+  // says "you may shrink below your content", `shrink-0` says "you may not", and
+  // shrink-0 wins. With the word "Cancel" the button is 67px and fits its slot,
+  // which is why every measurement taken while building this row passed. With
+  // "Keep Account" or "Stay Signed In" it CANNOT shrink, so it overflowed the
+  // row and the card clipped it — the label rendered as "Keep Accoun" and
+  // "tay Signed I", with the commit button overlapping it.
+  //
+  // Thirteen dialogs shipped that way. It was invisible to the tests because
+  // they assert the CLASS is present, and invisible to my own measurement
+  // because I measured the one label that fits.
+  "flex-1 min-w-0 px-0 border-0 shadow-none " +
   "bg-[hsl(var(--olivewood)/0.06)] hover:bg-[hsl(var(--olivewood)/0.11)] " +
   "text-[hsl(var(--olivewood))]";
 
@@ -153,4 +166,17 @@ export const POPUP_SECONDARY_CLS =
  * dismiss beneath it. The `sm:w-auto sm:ml-auto` that used to shrink it and
  * push it right went with the row layout above.
  */
-export const POPUP_COMMIT_CLS = "flex-[3] min-w-0";
+// EQUAL WIDTH, which is what Apple does — and what makes the row impossible to
+// clip. A two-action UIAlertController lays its buttons out side by side at
+// equal width, cancel on the LEFT, the preferred action on the right in bold.
+//
+// This was `flex-[3]`, a deliberate 1:3 chosen from rendered comparisons so
+// width would carry the hierarchy. That reasoning was sound and the ratio was
+// still wrong, for a reason the renders could not show: a quarter-width slot
+// only holds a short word. The moment a dialog needed "Keep Dispute Open" the
+// ratio had to break, and `shrink-0` made it break by overflowing rather than
+// by wrapping. Equal width cannot overflow, and the labels are all "Cancel"
+// now anyway (owner, 2026-09-03), so the hierarchy comes from colour and
+// weight — the commit is the glossy or destructive fill, the dismiss is a flat
+// tint — exactly as it does on iOS.
+export const POPUP_COMMIT_CLS = "flex-1 min-w-0";

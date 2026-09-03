@@ -714,7 +714,7 @@ const ProfilePage = () => {
         primaryTone="bark"
         primaryHaptic="medium"
         onPrimary={handleLogout}
-        secondaryLabel="Stay Signed In"
+        secondaryLabel="Cancel"
       />
 
       {/* Mounted only once the user opens it — the dialog chunk (and its

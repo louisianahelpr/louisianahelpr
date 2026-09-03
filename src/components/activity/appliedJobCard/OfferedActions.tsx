@@ -288,7 +288,7 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
           setConfirmOpen(false);
           onHelperResponse(app, false);
         }}
-        secondaryLabel="Keep the Job"
+        secondaryLabel="Cancel"
       />
     </div>
   );

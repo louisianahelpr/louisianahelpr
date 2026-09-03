@@ -172,7 +172,7 @@ export function DeleteAccountDialog({
         primaryTone="sienna"
         primaryHaptic="warning"
         onPrimary={(e) => { e.preventDefault(); setDeleteStep(2); }}
-        secondaryLabel="Keep Account"
+        secondaryLabel="Cancel"
       >
         <RetentionSummary extraKeptItems={extraKeptItems} />
       </BrandConfirmDialog>

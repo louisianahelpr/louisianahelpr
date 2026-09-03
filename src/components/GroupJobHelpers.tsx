@@ -299,7 +299,7 @@ export function GroupJobHelpers({
           setPendingRemoval(null);
           if (target) void removeHelper(target.id);
         }}
-        secondaryLabel="Keep them on"
+        secondaryLabel="Cancel"
       />
     </div>
   );

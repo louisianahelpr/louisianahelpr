@@ -629,7 +629,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
           setPullBack(null);
           if (kind) void removeSentDoc(kind);
         }}
-        secondaryLabel="Keep It"
+        secondaryLabel="Cancel"
       />
 
       {showReverifyBanner && (
@@ -804,7 +804,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
           setRenameConfirm(false);
           void saveBusinessName();
         }}
-        secondaryLabel="Keep It As Is"
+        secondaryLabel="Cancel"
       />
 
       {/* Review-then-send. Attaching a file used to write `<kind>_url`

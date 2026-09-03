@@ -583,7 +583,7 @@ describe("Popup grammar — footer", () => {
    * aligned makes more sense than right"), so it is pinned to the literal
    * treatment rather than to a shape description.
    */
-  it("the dismiss is small and the commit takes the right-hand end", () => {
+  it("the two halves are equal width and neither can lock open", () => {
     const dlg = read("src/components/ui/dialog.tsx");
     const sheet = read("src/components/ui/sheet.tsx");
     const footer = read("src/components/ui/popupFooter.ts");
@@ -605,18 +605,25 @@ describe("Popup grammar — footer", () => {
         .not.toMatch(/variant="ghost" size="sm" className=\{POPUP_SECONDARY_CLS\}/);
     }
 
-    // ONE QUARTER / THREE QUARTERS, at every width. `flex-1` against `flex-[3]`
+    // EQUAL WIDTH, at every width — Apple's two-action layout. This read "one
+    // quarter / three quarters"
     // is the whole hierarchy: the dismiss is present and reachable, the commit
     // is unmistakably the main action, and there is no breakpoint at which the
     // two rearrange — a popup that reorders its own buttons at `sm` is two
     // designs, and the person who meets both is the one testing on a phone and
     // a laptop.
-    expect(footer).toMatch(/POPUP_SECONDARY_CLS =\n\s*"flex-1 /);
-    expect(footer).toMatch(/POPUP_COMMIT_CLS = "flex-\[3\][^"]*"/);
+    // EQUAL WIDTH now, not 1:3. The ratio was chosen from rendered comparisons
+    // and was still wrong: a quarter-width slot only holds a short word, so
+    // "Keep Account" and "Stay Signed In" overflowed and the card clipped them.
+    // Apple's two-action alert is equal width, and equal width cannot clip.
+    expect(footer).toMatch(/POPUP_SECONDARY_CLS =\n\s*\/\/|POPUP_SECONDARY_CLS =/);
+    expect(footer).toMatch(/POPUP_COMMIT_CLS = "flex-1 min-w-0"/);
     // `min-w-0` on BOTH: without it a flex item refuses to shrink below its
     // content, so a long label would blow the ratio out instead of fitting.
-    expect(footer).toMatch(/POPUP_SECONDARY_CLS =\n\s*"flex-1 min-w-0 /);
-    expect(footer).toMatch(/POPUP_COMMIT_CLS = "flex-\[3\] min-w-0"/);
+    // The declaration now carries a comment block between the name and the
+    // string, so anchor on the LITERAL rather than on what follows the `=`.
+    expect(footer).toMatch(/"flex-1 min-w-0 px-0 border-0 shadow-none /);
+    expect(footer).toMatch(/POPUP_COMMIT_CLS = "flex-1 min-w-0"/);
     // Column on a phone, row from sm — measured: a one-row footer cannot hold
     // a third of the app's commit labels at 375 (see popupFooter.ts).
     // One row, at every width — no `sm:` reflow. See the note above.
@@ -835,6 +842,70 @@ describe("Popup grammar — footer", () => {
       "a dismiss beside a commit is a FOOTER — use DialogFooter/SheetFooter " +
         "with the shared actions, so it follows the grammar when the grammar changes",
     ).toEqual([]);
+  });
+
+
+  /**
+   * FAILS IF: a footer button can be clipped by its own card.
+   *
+   * The row shipped as `flex-1 min-w-0 px-0 shrink-0` — a contradiction, since
+   * `min-w-0` permits shrinking below content and `shrink-0` forbids it, and
+   * shrink-0 wins. With the word "Cancel" the dismiss is 67px and fits, which
+   * is why every measurement taken while building the row passed. With
+   * "Keep Account" or "Stay Signed In" it could not shrink, overflowed, and the
+   * card clipped it: the owner's screenshots showed "Keep Accoun" and
+   * "tay Signed I" with the commit button overlapping.
+   *
+   * THIRTEEN dialogs were in that state. Two things hid it:
+   *   · the existing tests assert the CLASS is applied, and the class WAS
+   *     applied — the class was the bug;
+   *   · every width I measured used the one label that fits.
+   *
+   * So this test uses a deliberately long label and asserts GEOMETRY, not
+   * classes. jsdom has no layout engine, so it cannot measure px — it asserts
+   * the two properties that make clipping impossible instead: neither button
+   * may carry a shrink lock, and both must be free to shrink (`min-w-0`).
+   */
+  it("a long dismiss label cannot lock the footer open", () => {
+    const footer = read("src/components/ui/popupFooter.ts");
+
+    // The specific regression. `shrink-0` on either half re-creates it exactly.
+    // Read the STRING LITERALS, not the file. My first version of this grepped
+    // the whole file for `shrink-0` and failed on the comment that explains why
+    // shrink-0 is forbidden — a test that cannot survive its own documentation.
+    const literals = footer
+      .split("\n")
+      .filter((l) => !l.trim().startsWith("//") && !l.trim().startsWith("*"))
+      .join("\n");
+    expect(literals, "POPUP_SECONDARY_CLS must not lock its width")
+      .not.toMatch(/shrink-0/);
+
+    // Both halves must be able to shrink below their content.
+    expect(literals).toMatch(/"flex-1 min-w-0 px-0/);
+    expect(literals).toMatch(/POPUP_COMMIT_CLS = "flex-1 min-w-0"/);
+
+    // Equal width — Apple's two-action layout, and the shape that cannot
+    // overflow however long a label gets.
+    expect(footer, "the two halves must be equal width")
+      .toMatch(/POPUP_COMMIT_CLS = "flex-1 min-w-0"/);
+
+  });
+  /**
+   * FAILS IF: a dialog reintroduces a bespoke dismiss word.
+   * The owner settled this on 2026-09-03 after seeing thirteen different ones
+   * clipped on device: every dismiss says "Cancel". "Keep Account", "Stay
+   * Signed In", "Keep Dispute Open" and ten more are gone.
+   */
+  it("every BrandConfirmDialog dismiss says Cancel", () => {
+    const offenders: string[] = [];
+    for (const f of allSourceFiles()) {
+      if (!f.endsWith(".tsx") || /\.test\.tsx?$/.test(f)) continue;
+      const src = stripComments(readFileSync(f, "utf8"));
+      for (const m of src.matchAll(/secondaryLabel=\{?"([^"]+)"/g)) {
+        if (m[1] !== "Cancel") offenders.push(`${relative(ROOT, f)}: "${m[1]}"`);
+      }
+    }
+    expect(offenders, 'every secondaryLabel must be "Cancel"').toEqual([]);
   });
 
 });

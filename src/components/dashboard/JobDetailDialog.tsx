@@ -189,7 +189,6 @@ const JobDetailDialog = ({
   return (
     <Dialog open={!!job} onOpenChange={() => onClose()}>
       <DialogContent
-          stepped
         topRightSlot={cornerActions}
         // ONE SHELL AT EVERY WIDTH — TOP-ANCHORED, CONTENT-SIZED.
         //
@@ -344,6 +343,19 @@ const JobDetailDialog = ({
           // needs a height reservation sized from the settled content, which is
           // a measurement someone has to take rather than a number to guess.
           "max-h-[86dvh]",
+          // CENTRED (owner, 2026-09-03, from a device screenshot: top-anchored
+          // left the sheet floating in the upper third with a screen of empty
+          // space under it). `stepped` is removed HERE and stays for the other
+          // three multi-step dialogs.
+          //
+          // The height is RESERVED so centring cannot reintroduce the 66.4px
+          // jump that made this top-anchored in the first place: a vertically
+          // centred box absorbs a height change symmetrically, so stepping
+          // detail -> apply moved the whole surface up by half of it. Pinning a
+          // floor means the box does not resize between steps, which is what
+          // dialog.tsx prescribed as the right fix all along — "reserve the
+          // content's height, not re-anchor one dialog".
+          "min-h-[min(68dvh,600px)]",
           "content-start",
           "sm:w-[calc(100%-2rem)] sm:max-w-lg",
           "sm:pb-7",
@@ -565,10 +577,10 @@ const JobDetailDialog = ({
             because the collision was measured at 768 too. */}
         <div
           data-frame-chrome="true"
-          className={`relative order-first z-20 pointer-events-none flex flex-wrap items-stretch -mt-4 -mx-4 sm:-mt-5 sm:-mx-5 ${iconLaneReserve}`}
+          className={`relative order-first z-20 pointer-events-none flex flex-nowrap items-stretch min-w-0 -mt-4 -mx-4 sm:-mt-5 sm:-mx-5 ${iconLaneReserve}`}
         >
           <span
-            className={`inline-flex items-center gap-1.5 pl-3.5 pr-3 py-1.5 rounded-tl-lg text-ds-13 font-semibold leading-none shadow-sm border-b border-r ${!isRecommended && !job.is_urgent && !job.isBoosted ? "rounded-br-lg" : ""} ${catStyle.badge}`}
+            className={`inline-flex min-w-0 shrink items-center gap-1.5 pl-3.5 pr-3 py-1.5 rounded-tl-lg text-ds-13 font-semibold leading-none shadow-sm border-b border-r ${!isRecommended && !job.is_urgent && !job.isBoosted ? "rounded-br-lg" : ""} ${catStyle.badge}`}
           >
             <CategoryIcon
               category={job.category}
@@ -576,7 +588,7 @@ const JobDetailDialog = ({
               className="w-3.5 h-3.5 shrink-0"
               strokeWidth={2.25}
             />
-            <span className="font-serif italic">
+            <span className="font-serif italic truncate">
               {categoryLabels[job.category] || job.category}
             </span>
           </span>
@@ -586,7 +598,7 @@ const JobDetailDialog = ({
               JobCard's own Recommended chip. */}
           {isRecommended && (
             <span
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-ds-13 font-semibold leading-none shadow-sm border-b ${!job.is_urgent && !job.isBoosted ? "rounded-br-lg" : ""}`}
+              className={`inline-flex shrink-0 items-center gap-1.5 px-3 py-1.5 text-ds-13 font-semibold leading-none shadow-sm border-b ${!job.is_urgent && !job.isBoosted ? "rounded-br-lg" : ""}`}
               style={{
                 background: "hsl(var(--burnt-sienna) / 0.12)",
                 color: "hsl(var(--burnt-sienna))",

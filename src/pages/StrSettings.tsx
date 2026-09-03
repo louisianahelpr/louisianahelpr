@@ -409,7 +409,7 @@ export default function StrSettings({ onBack }: { onBack?: () => void }) {
           removeConnection(connToRemove.id);
           setConnToRemove(null);
         }}
-        secondaryLabel="Keep Calendar"
+        secondaryLabel="Cancel"
       />
     </div>
   );

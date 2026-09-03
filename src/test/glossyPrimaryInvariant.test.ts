@@ -120,7 +120,7 @@ function jsxSites(file: string): Site[] {
   return sites;
 }
 
-const POPUP_CONTENT = /<(DialogContent|AlertDialogContent|SheetContent)\b/;
+const POPUP_CONTENT = /<(DialogContent|SheetContent)\b/;
 
 const ALL_SITES = tsxFiles().flatMap(jsxSites);
 const POPUP_FILES = new Set(

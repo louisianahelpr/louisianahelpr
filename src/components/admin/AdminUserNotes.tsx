@@ -7,13 +7,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogFooter,
-  AlertDialogHero,
-} from "@/components/ui/alert-dialog";
+  Dialog,
+  DialogDestructiveAction,
+  DialogSecondaryAction,
+  DialogContent,
+  DialogFooter,
+  DialogHero,
+} from "@/components/ui/dialog";
 import { StickyNote, Plus, Trash2, Pencil, Check, X, Loader2 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
@@ -366,9 +366,9 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
         </div>
       )}
 
-      <AlertDialog open={!!deleteNote} onOpenChange={(open) => !open && setDeleteNote(null)}>
-        <AlertDialogContent>
-          <AlertDialogHero
+      <Dialog open={!!deleteNote} onOpenChange={(open) => !open && setDeleteNote(null)}>
+        <DialogContent role="alertdialog">
+          <DialogHero
             title="Delete This Note?"
           />
           {deleteNote && (
@@ -376,19 +376,18 @@ const AdminUserNotes = ({ userId }: AdminUserNotesProps) => {
               {deleteNote.note}
             </div>
           )}
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
+          <DialogFooter>
+            <DialogSecondaryAction disabled={deleting}>Cancel</DialogSecondaryAction>
+            <DialogDestructiveAction
               onClick={(e) => { e.preventDefault(); removeNote(); }}
               disabled={deleting}
-              variant="destructive"
             >
               {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <Trash2 className="w-3.5 h-3.5 mr-1" />}
               Delete Note
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </DialogDestructiveAction>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

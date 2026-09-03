@@ -11,7 +11,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { AlertDialog, AlertDialogContent, AlertDialogHero, AlertDialogFooter, AlertDialogAction } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHero, DialogFooter, DialogPrimaryAction } from "@/components/ui/dialog";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { LATEST_TERMS_VERSION } from "@/lib/consent";
 import { report } from "@/lib/errorLogger";
@@ -153,13 +153,13 @@ export function TermsReconsentDialog() {
     // is no `onOpenChange`. `closeDisabled` tells the shared shell that, so
     // the corner ✕ renders inert-and-dimmed instead of looking like a live
     // dismiss that silently does nothing when tapped.
-    <AlertDialog open={open}>
-      <AlertDialogContent closeDisabled>
-        <AlertDialogHero
+    <Dialog open={open}>
+      <DialogContent role="alertdialog" closeDisabled>
+        <DialogHero
           title="Please Take a Moment to Re-Agree"
         />
-        <AlertDialogFooter>
-          <AlertDialogAction
+        <DialogFooter>
+          <DialogPrimaryAction
             disabled={submitting}
             onClick={(e) => {
               // Keep the dialog on screen while the write runs so a slow
@@ -169,9 +169,9 @@ export function TermsReconsentDialog() {
             }}
           >
             {submitting ? "Saving…" : "I Agree"}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+          </DialogPrimaryAction>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

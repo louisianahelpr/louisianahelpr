@@ -17,14 +17,15 @@
 
 import { ReactNode } from "react";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHero,
-} from "@/components/ui/alert-dialog";
+  Dialog,
+  DialogPrimaryAction,
+  DialogDestructiveAction,
+  DialogSecondaryAction,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHero,
+} from "@/components/ui/dialog";
 import { AlertTriangle, type LucideIcon } from "lucide-react";
 import {
   hapticMedium,
@@ -64,7 +65,7 @@ interface BrandConfirmDialogProps {
   onPrimary: (e: React.MouseEvent<HTMLButtonElement>) => void;
   secondaryLabel: ReactNode;
   /** When provided, intercepts the secondary tap (e.g. step 2 → back).
-   *  Otherwise AlertDialogCancel closes the dialog normally. */
+   *  Otherwise DialogSecondaryAction closes the dialog normally. */
   onSecondary?: () => void;
 }
 
@@ -93,9 +94,12 @@ interface BrandConfirmDialogProps {
  * If the owner wants the sienna destructive back, it is this one map — not 20
  * call sites.
  */
-const primaryToneVariant: Record<BrandPrimaryTone, "default" | "destructive"> = {
-  bark: "default",
-  sienna: "destructive",
+const primaryToneVariant: Record<
+  BrandPrimaryTone,
+  typeof DialogPrimaryAction | typeof DialogDestructiveAction
+> = {
+  bark: DialogPrimaryAction,
+  sienna: DialogDestructiveAction,
 };
 
 const fireHaptic = (kind: BrandPrimaryHaptic) => {
@@ -125,9 +129,14 @@ export function BrandConfirmDialog({
   onSecondary,
 }: BrandConfirmDialogProps) {
   const CalloutIcon = callout?.icon ?? AlertTriangle;
+  // Capitalised binding: JSX treats a lowercase identifier as an HTML tag
+  // name, so `<primaryAction>` would silently render an unknown element and
+  // drop the button entirely.
+  const PrimaryAction = primaryToneVariant[primaryTone];
+
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent role="alertdialog">
         {/* NO per-dialog alignment. This confirm centred its title while the
             other ~147 popups in the app left-align theirs through the same
             Hero — and because BrandConfirmDialog is behind every confirm in
@@ -136,10 +145,10 @@ export function BrandConfirmDialog({
             one shell: the Hero owns the layout and no caller can override it.
             (Owner, more than once: "these pop ups need to share the same
             shell ... none of them have the same layout.") */}
-        <AlertDialogHero title={title} />
+        <DialogHero title={title} />
 
         {/* Description lives in the BODY, not the Hero. The 2026-07-25 "one
-            main title" decision stopped AlertDialogHero rendering a subtitle,
+            main title" decision stopped DialogHero rendering a subtitle,
             and this dialog kept passing `description` into nothing — ~25 call
             sites' consequence copy ("This moves real money and can't be undone
             here", "Permanent. Job history … gone for good") was silently
@@ -147,12 +156,12 @@ export function BrandConfirmDialog({
             belongs in the dialog body, so that is where it is rendered.
             Falsy/empty descriptions render nothing. */}
         {description ? (
-          <AlertDialogDescription
+          <DialogDescription
             className="font-serif italic text-ds-12 leading-relaxed"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             {description}
-          </AlertDialogDescription>
+          </DialogDescription>
         ) : null}
 
         {callout && (
@@ -171,22 +180,28 @@ export function BrandConfirmDialog({
 
         {children}
 
-        {/* AlertDialogFooter's OWN arrangement — inline and right-aligned from
+        {/* DialogFooter's OWN arrangement — inline and right-aligned from
             `sm` up, like every DialogFooter in the app. This overrode it to
             stay a full-width stack at every width, so a confirm box's buttons
             sat one above the other while the buttons in every other popup sat
             side by side. */}
-        <AlertDialogFooter>
+        <DialogFooter>
           {/* No per-dialog className. `rounded-ds-md` and `mt-0` are already
-              what AlertDialogCancel applies, and `border-border/60` was
+              what DialogSecondaryAction applies, and `border-border/60` was
               styling a border the ghost treatment no longer draws. */}
-          <AlertDialogCancel
+          <DialogSecondaryAction
             onClick={onSecondary ? (e) => { e.preventDefault(); onSecondary(); } : undefined}
           >
             {secondaryLabel}
-          </AlertDialogCancel>
-          <AlertDialogAction
-            variant={primaryToneVariant[primaryTone]}
+          </DialogSecondaryAction>
+          {/* `variant` is no longer a prop — the choice is the COMPONENT.
+              DialogPrimaryAction and DialogDestructiveAction strip `variant`
+              off at runtime as well as in the type, deliberately, so that the
+              inline-styled sienna slab and the `bg-destructive` className
+              fights they replaced cannot come back. `primaryToneVariant` maps
+              the public `primaryTone` API onto them, so the ~31 call sites
+              that pass `primaryTone="sienna"` are untouched. */}
+          <PrimaryAction
             disabled={primaryDisabled}
             onClick={(e) => {
               if (primaryHaptic !== "none") {
@@ -200,10 +215,10 @@ export function BrandConfirmDialog({
             }}
           >
             {primaryLabel}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+          </PrimaryAction>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

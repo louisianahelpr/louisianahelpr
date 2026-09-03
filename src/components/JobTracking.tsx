@@ -1912,7 +1912,7 @@ export function JobTracking({
                 The poster's mirror of this decision opens CompletionChoiceSheet
                 and walks them through it; the helper's requested the payout on
                 a single tap of a button that just said "Done". Shared shell
-                (BrandConfirmDialog → AlertDialogHero → the glass modal every
+                (BrandConfirmDialog → DialogHero → the glass modal every
                 other popup in the app wears), so this is one more confirm and
                 not a new kind of thing. */}
             {isDoneStep && (

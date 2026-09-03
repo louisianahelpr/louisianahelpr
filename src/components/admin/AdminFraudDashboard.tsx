@@ -20,13 +20,14 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogFooter,
-  AlertDialogHero,
-} from "@/components/ui/alert-dialog";
+  Dialog,
+  DialogPrimaryAction,
+  DialogSecondaryAction,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHero,
+} from "@/components/ui/dialog";
 
 interface FraudFlag {
   id: string;
@@ -238,20 +239,32 @@ const AdminFraudDashboard = () => {
       )}
       </AdminCard>
 
-      <AlertDialog open={!!resolveTarget} onOpenChange={(open) => { if (!open) setResolveTarget(null); }}>
-        <AlertDialogContent>
-          <AlertDialogHero
+      <Dialog open={!!resolveTarget} onOpenChange={(open) => { if (!open) setResolveTarget(null); }}>
+        <DialogContent role="alertdialog">
+          <DialogHero
             title="Mark This Flag Resolved?"
-            subtitle="This clears it from the active queue. Use this once you've confirmed the flagged activity isn't fraud, or have already acted on it."
           />
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={!!resolving}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => resolveTarget && resolveFlag(resolveTarget)} disabled={!!resolving}>
+          {/* WAS A `subtitle` PROP ON THE HERO — IT NEVER RENDERED.
+              DialogHero has shown the title alone since the 2026-07-25 "one main
+              title" decision, but it went on ACCEPTING `eyebrow`/`subtitle` and
+              discarding them, so this sentence has been dead in the shipped bundle
+              with no error, no warning and no type failure. Deleting the props from
+              the type surfaced six of these in one compile. The copy is not
+              decoration — it is the line that tells the reader what the button below
+              is about to do — so it moves into the body, which is where the same
+              decision already sent TipDialog's, ReviewForm's, InstantPayoutDialog's
+              and W9CollectionDialog's. */}
+          <DialogDescription>
+            This clears it from the active queue. Use this once you've confirmed the flagged activity isn't fraud, or have already acted on it.
+          </DialogDescription>
+          <DialogFooter>
+            <DialogSecondaryAction disabled={!!resolving}>Cancel</DialogSecondaryAction>
+            <DialogPrimaryAction onClick={() => resolveTarget && resolveFlag(resolveTarget)} disabled={!!resolving}>
               {resolving ? "Resolving…" : "Resolve"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </DialogPrimaryAction>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AdminViewShell>
   );
 };

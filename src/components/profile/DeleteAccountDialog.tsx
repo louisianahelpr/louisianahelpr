@@ -1,4 +1,4 @@
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHero } from "@/components/ui/alert-dialog";
+import { Dialog, DialogDestructiveAction, DialogSecondaryAction, DialogContent, DialogDescription, DialogFooter, DialogHero } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { AlertTriangle, Check, Loader2, X } from "lucide-react";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
@@ -163,18 +163,18 @@ export function DeleteAccountDialog({
   // the title includes a sienna AlertTriangle icon — slightly outside
   // the BrandConfirmDialog contract.
   return (
-    <AlertDialog open={open} onOpenChange={handleOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHero
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent role="alertdialog">
+        <DialogHero
           title={<><AlertTriangle className="w-5 h-5" /> Final confirmation</>}
         />
         {/* The field used to carry the only instruction — a placeholder that
             vanishes the moment you start typing, with nothing above it saying
             why. `aria-label` covered screen readers; sighted users got a bare
             box under a title. This is the visible instruction that stays put. */}
-        <AlertDialogDescription>
+        <DialogDescription>
           Type <span className="font-mono font-semibold">{CONFIRM_PHRASE}</span> below to confirm.
-        </AlertDialogDescription>
+        </DialogDescription>
         <Input
           autoFocus
           aria-label={`Type ${CONFIRM_PHRASE} to confirm account deletion`}
@@ -184,32 +184,31 @@ export function DeleteAccountDialog({
           className="my-2 h-11 text-center font-mono tracking-wide rounded-ds-md"
           disabled={deletingAccount}
         />
-        {/* Plain AlertDialogFooter. `sm:flex-col-reverse sm:space-x-0` pinned
+        {/* Plain DialogFooter. `sm:flex-col-reverse sm:space-x-0` pinned
             step 2 of this dialog to a full-width stack on desktop while step 1
             — the BrandConfirmDialog directly before it — went to an inline
             right-aligned row, so the buttons jumped layout mid-flow. */}
-        <AlertDialogFooter>
-          <AlertDialogCancel
+        <DialogFooter>
+          <DialogSecondaryAction
             disabled={deletingAccount}
             onClick={(e) => { e.preventDefault(); setDeleteStep(1); setDeleteConfirmText(""); }}
           >
             Back
-          </AlertDialogCancel>
+          </DialogSecondaryAction>
           {/* The shared destructive treatment, not a hand-copied sienna style
               block. This is the same button step 1 renders through
               BrandConfirmDialog's `primaryTone="sienna"`, so the two steps of
               one flow must not be painted by two different code paths. */}
-          <AlertDialogAction
-            variant="destructive"
+          <DialogDestructiveAction
             disabled={deleteConfirmText !== CONFIRM_PHRASE || deletingAccount}
             onClick={() => { void hapticError(); onDelete(); }}
           >
             {deletingAccount ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
             Delete Forever
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+          </DialogDestructiveAction>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

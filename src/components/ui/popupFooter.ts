@@ -1,5 +1,5 @@
 /**
- * THE ONE POPUP FOOTER. Dialog, AlertDialog and Sheet all build their footer
+ * THE ONE POPUP FOOTER. Dialog and Sheet both build their footer
  * from these three constants — not from three literals a test has to keep in
  * agreement.
  *
@@ -52,7 +52,7 @@
  * ─── ORDER: dismiss first in the DOM ───────────────────────────────────────
  *
  * DOM order is [dismiss, commit] — unchanged from the ~50 footers that already
- * wrote it that way, and from AlertDialogCancel/AlertDialogAction.
+ * wrote it that way, and from the confirm actions it replaced.
  *
  * It cannot match visual order at BOTH breakpoints, and that is inherent, not
  * an oversight: the visual order genuinely differs (commit-above-dismiss in a

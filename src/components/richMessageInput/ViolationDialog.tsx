@@ -1,10 +1,10 @@
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogContent,
-  AlertDialogFooter,
-  AlertDialogHero,
-} from "@/components/ui/alert-dialog";
+  Dialog,
+  DialogPrimaryAction,
+  DialogContent,
+  DialogFooter,
+  DialogHero,
+} from "@/components/ui/dialog";
 
 interface ViolationDialogProps {
   pendingViolation: string | null;
@@ -15,9 +15,9 @@ export const ViolationDialog = ({
   pendingViolation, onOpenChange,
 }: ViolationDialogProps) => {
   return (
-    <AlertDialog open={!!pendingViolation} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHero
+    <Dialog open={!!pendingViolation} onOpenChange={onOpenChange}>
+      <DialogContent role="alertdialog">
+        <DialogHero
           title="This Violates Platform Rules"
         />
         {/* Single CTA on purpose. A "Send Anyway" action here was a trap:
@@ -25,12 +25,12 @@ export const ViolationDialog = ({
             a violation per tap, so two taps reached the permanent-ban
             branch. Editing is the only path forward — the server trigger
             remains the true gate. */}
-        <AlertDialogFooter>
-          <AlertDialogAction onClick={() => onOpenChange(false)}>
+        <DialogFooter>
+          <DialogPrimaryAction onClick={() => onOpenChange(false)}>
             Edit Message
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+          </DialogPrimaryAction>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };

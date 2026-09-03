@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
-// Dialog, not AlertDialog. AlertDialog is the shared primitive for a PURE
-// confirm; this dialog collects a free-text reason, so it is a form and
-// belongs on the same Dialog + DialogHero shell every other safety popup uses
+// A plain Dialog, NOT a confirm — no `role="alertdialog"`. A confirm's
+// buttons auto-close it (see MaybeClose in dialog.tsx); this one collects a
+// free-text reason first, so its Cancel is wrapped in <DialogClose> and its
+// commit closes only after the write. Same Dialog + DialogHero shell as every
+// other safety popup
 // (ReportDialog, MuteSheet). Owner, 2026-08-25: block and report "have
 // different pop up dialog shells? Why??".
 import {

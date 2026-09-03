@@ -9,7 +9,7 @@ import { execFileSync } from "node:child_process";
  *
  * WHY THIS FILE EXISTS, AND WHY `dialogShell.test.ts` WAS NOT ENOUGH.
  * `src/components/ui/dialogShell.test.ts` guards the PRIMITIVES: it proves
- * dialog.tsx / alert-dialog.tsx / sheet.tsx agree with each other, and it bans
+ * dialog.tsx / sheet.tsx agree with each other, and it bans
  * three width tokens at call sites. That is a real guard and it stays. But it
  * cannot see the failure the owner keeps reporting — "there are a lot of these
  * pop ups and none of them have the same layout", asked six times now — because
@@ -125,7 +125,7 @@ const stripComments = (t: string): string => {
   return res;
 };
 
-const POPUP_CONTENT = /<(DialogContent|AlertDialogContent|SheetContent)\b/;
+const POPUP_CONTENT = /<(DialogContent|SheetContent)\b/;
 
 function popupFiles(): string[] {
   return tsxFiles().filter((f) => POPUP_CONTENT.test(stripComments(repoFile(f))));
@@ -154,7 +154,7 @@ describe("popup inventory", () => {
     const files = popupFiles();
     expect(
       files.length,
-      "fewer than 40 files render a DialogContent/AlertDialogContent/SheetContent — " +
+      "fewer than 40 files render a DialogContent/SheetContent — " +
         "the primitives were probably renamed, and every assertion in " +
         "popupShellInventory.test.ts is now silently passing over nothing. " +
         "Update POPUP_CONTENT.",
@@ -172,12 +172,12 @@ describe("every popup composes the shared shell", () => {
     for (const file of popupFiles()) {
       if (PRIMITIVE_WRAPPERS.has(file)) continue;
       const src = stripComments(repoFile(file));
-      const contents = (src.match(/<(DialogContent|AlertDialogContent|SheetContent)\b/g) ?? []).length;
-      const heroes = (src.match(/<(DialogHero|AlertDialogHero|SheetHero)\b/g) ?? []).length;
+      const contents = (src.match(/<(DialogContent|SheetContent)\b/g) ?? []).length;
+      const heroes = (src.match(/<(DialogHero|SheetHero)\b/g) ?? []).length;
       if (heroes < contents) {
         offenders.push(
           `${file} — ${contents} popup surface(s), ${heroes} Hero(es). ` +
-            `Add <DialogHero title="…" /> (or the AlertDialog/Sheet twin) as the ` +
+            `Add <DialogHero title="…" /> (or the Sheet twin) as the ` +
             `first child of each Content; do not hand-roll a header.`,
         );
       }
@@ -294,7 +294,7 @@ const HAND_ROLLED_BY_DESIGN: Record<string, string> = {
       if (file in EXCEPTIONS) continue;
       const src = stripComments(repoFile(file));
       for (const m of src.matchAll(
-        /<(DialogContent|AlertDialogContent|SheetContent)\b([\s\S]*?)>/g,
+        /<(DialogContent|SheetContent)\b([\s\S]*?)>/g,
       )) {
         const cls = /className=\{?["`]([^"`]*)["`]/.exec(m[2]);
         if (!cls) continue;
@@ -329,7 +329,7 @@ const HAND_ROLLED_BY_DESIGN: Record<string, string> = {
  * `src/components/ReportDialog.tsx` uses, which is:
  *
  *   1. every popup closes with the shared `<DialogFooter>` /
- *      `<AlertDialogFooter>` / `<SheetFooter>` (they are one layout — see
+ *      `<SheetFooter>` (they are one layout — see
  *      dialogShell.test.ts "the three popup footers are one layout");
  *   2. Cancel / Back / Skip is a real `<Button>` inside that footer, never a
  *      bare `<p>`/`<span>`/text link floating under the content.
@@ -403,12 +403,12 @@ describe("one footer convention", () => {
       if (PRIMITIVE_WRAPPERS.has(file)) continue;
       if (file in FOOTERLESS_BY_DESIGN) continue;
       const src = stripComments(repoFile(file));
-      const contents = (src.match(/<(DialogContent|AlertDialogContent|SheetContent)\b/g) ?? []).length;
-      const footers = (src.match(/<(DialogFooter|AlertDialogFooter|SheetFooter)\b/g) ?? []).length;
+      const contents = (src.match(/<(DialogContent|SheetContent)\b/g) ?? []).length;
+      const footers = (src.match(/<(DialogFooter|SheetFooter)\b/g) ?? []).length;
       if (footers < contents) {
         offenders.push(
           `${file} — ${contents} popup surface(s), ${footers} shared footer(s). ` +
-            `Close it with <DialogFooter> (the same row DialogFooter/AlertDialogFooter/SheetFooter ` +
+            `Close it with <DialogFooter> (the same row DialogFooter/SheetFooter ` +
             `all render), or add it to FOOTERLESS_BY_DESIGN with the reason it has no action row. ` +
             `See src/components/ReportDialog.tsx for the shape.`,
         );

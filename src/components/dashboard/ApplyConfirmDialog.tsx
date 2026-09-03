@@ -37,9 +37,13 @@ export function ApplyConfirmDialog(props: ApplyConfirmDialogProps) {
       >
         <div className="px-5 pt-5">
           <SheetHero
-            eyebrow={isInstantBook ? "You're booking" : "You're applying"}
             title={confirmApplyJob ? confirmApplyJob.title : isInstantBook ? "Book This Job" : "Apply for This Job"}
           />
+          {/* The `eyebrow` here never rendered either, and unlike the
+              subtitles it is NOT relocated: eyebrows were deleted globally
+              (owner, 2026-09-02) and are not coming back. It said
+              "You're applying" / "You're booking" above a title that already
+              says which. */}
         </div>
         {/* `min-w-0` is structural, not decoration. SheetContent is a grid, so
             this body is a grid item whose default `min-width:auto` makes the

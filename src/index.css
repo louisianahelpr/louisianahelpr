@@ -2004,7 +2004,7 @@ button,
   box-shadow: 0 -4px 20px -8px hsl(0 0% 0% / 0.08);
 }
 
-/* Modal content surface — the frosted card that Dialog and AlertDialog
+/* Modal content surface — the frosted card that Dialog and Sheet
    both float over their overlay. Single source of truth for that
    material so the two stay identical. Includes the `-webkit-` prefixed
    backdrop-filter that Tailwind's `backdrop-blur` utility omits (the
@@ -2073,7 +2073,7 @@ button,
    - Tooltips / popovers / dropdown menus use `--popover`, not
      `--card`, so they keep their solid background — important
      for legibility on hover-only chrome.
-   - AlertDialog / Dialog / Sheet content surfaces ALSO use
+   - Dialog / Sheet content surfaces ALSO use
      `--popover` via shadcn's defaults, so they're unaffected.
    - Toast / Sonner notifications have their own bg utilities.
    - Inputs / textareas / selects use `--input`, not `--card`. */

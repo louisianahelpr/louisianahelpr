@@ -1,18 +1,18 @@
 /**
  * Mounted once at the app root (App.tsx). Listens to usePermissionRationale
  * state and renders the SHARED confirm shell before any native permission
- * prompt fires — same AlertDialogContent surface, same AlertDialogHero title
- * row, same AlertDialogFooter, as every other confirm in the app.
+ * prompt fires — same DialogContent surface, same DialogHero title
+ * row, same DialogFooter, as every other confirm in the app.
  */
 import { useEffect, useState } from "react";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogFooter,
-  AlertDialogHero,
-} from "@/components/ui/alert-dialog";
+  Dialog,
+  DialogPrimaryAction,
+  DialogSecondaryAction,
+  DialogContent,
+  DialogFooter,
+  DialogHero,
+} from "@/components/ui/dialog";
 import {
   usePermissionRationaleState,
   __resolveRationale,
@@ -29,25 +29,25 @@ export function PermissionRationaleDialog() {
   return (
     // ESCAPE / ✕ NOW ACTUALLY CLOSE IT. `open` is controlled and there was no
     // `onOpenChange`, so every dismissal path Radix offers was inert: Escape
-    // did nothing, and the corner ✕ that AlertDialogContent renders for every
+    // did nothing, and the corner ✕ that DialogContent renders for every
     // confirm in the app fired its Cancel and left the dialog on screen. A
     // dead ✕ is worse than none. Dismissing resolves the rationale as a
     // decline, exactly like "Not Now".
-    <AlertDialog open={state.open} onOpenChange={(next) => { if (!next) __resolveRationale(false); }}>
-      <AlertDialogContent>
+    <Dialog open={state.open} onOpenChange={(next) => { if (!next) __resolveRationale(false); }}>
+      <DialogContent role="alertdialog">
         {/* NO ICON ROW. This was a bespoke 56px tile rendered ABOVE the Hero,
             which pushed the title off the top row and left the ✕ aligned to an
             icon instead of to a heading — so this was the one popup in the app
             whose header had a different shape (owner, 2026-08-31: "need to
             share the same sheet and design").
             The canonical popup header is the Hero's single title line, with
-            the ✕ beside it, and DialogHero/AlertDialogHero deliberately expose
+            the ✕ beside it, and DialogHero/DialogHero deliberately expose
             no slots. Permission rationales are not a separate species: they
             are ordinary confirms that happen to precede an OS prompt, and the
             body copy below already says which permission and why. If icons in
             popup headers are ever wanted, they belong in the shared Hero as
             one documented slot used by ALL popups — not rebuilt here. */}
-        <AlertDialogHero
+        <DialogHero
           title={copy.title}
         />
         {/* The rationale BODY is the entire point of this dialog and had been
@@ -74,20 +74,20 @@ export function PermissionRationaleDialog() {
         >
           {copy.body}
         </p>
-        {/* Plain AlertDialogFooter. The className restated the footer's own
+        {/* Plain DialogFooter. The className restated the footer's own
             `flex-col-reverse sm:flex-row gap-2`, and the `h-11` pinned both
             buttons to 44px while every other popup's footer buttons are the
             shared 56px — so this dialog's controls were visibly shorter than
             the ones in the confirm that might open right after it. */}
-        <AlertDialogFooter>
-          <AlertDialogCancel onClick={() => __resolveRationale(false)}>
+        <DialogFooter>
+          <DialogSecondaryAction onClick={() => __resolveRationale(false)}>
             Not Now
-          </AlertDialogCancel>
-          <AlertDialogAction onClick={() => __resolveRationale(true)}>
+          </DialogSecondaryAction>
+          <DialogPrimaryAction onClick={() => __resolveRationale(true)}>
             {copy.cta}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+          </DialogPrimaryAction>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

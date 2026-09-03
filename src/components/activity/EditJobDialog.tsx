@@ -8,19 +8,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
-  DialogContent,
-  DialogHero,
   DialogCallout,
+  DialogContent,
   DialogFooter,
-  DialogSecondaryAction,
+  DialogHero,
   DialogPrimaryAction,
+  DialogSecondaryAction,
 } from "@/components/ui/dialog";
 // `Lock` is the lucide glyph, imported explicitly. Without this line the
 // identifier still RESOLVES — to the DOM global `Lock` (the Web Locks API
 // interface in lib.dom.d.ts) — so the file parses and only a full `tsc`
 // catches it. Same trap for Range / Selection / Notification / Image / Text.
 import { Lock } from "lucide-react";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHero } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
@@ -154,7 +153,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
   return (
     <>
     <Dialog open={!!job} onOpenChange={handleClose}>
-      <DialogContent>
+      <DialogContent role="alertdialog">
         <DialogHero title={title ? `"${title}"` : "Edit Job"} />
         <div className="space-y-5">
           {locked && (
@@ -244,33 +243,33 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
       </DialogContent>
     </Dialog>
 
-    <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
-      <AlertDialogContent>
-        <AlertDialogHero
+    <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
+      <DialogContent role="alertdialog">
+        <DialogHero
           title="Save These Changes?"
         />
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={save}>Save Changes</AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+        <DialogFooter>
+          <DialogSecondaryAction>Cancel</DialogSecondaryAction>
+          <DialogPrimaryAction onClick={save}>Save Changes</DialogPrimaryAction>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 
     {/* Discard-changes confirm — only rendered when the user has actually
         edited something and then tries to close (X, backdrop, Esc, or
         Cancel). A clean-slate close skips this and exits directly, so it
         never becomes a nag on a "peek and leave" open. */}
-    <AlertDialog open={showDiscard} onOpenChange={setShowDiscard}>
-      <AlertDialogContent>
-        <AlertDialogHero
+    <Dialog open={showDiscard} onOpenChange={setShowDiscard}>
+      <DialogContent role="alertdialog">
+        <DialogHero
           title="Discard Your Changes?"
         />
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={confirmDiscard}>Discard Changes</AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+        <DialogFooter>
+          <DialogSecondaryAction>Cancel</DialogSecondaryAction>
+          <DialogPrimaryAction onClick={confirmDiscard}>Discard Changes</DialogPrimaryAction>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
     </>
   );
 }

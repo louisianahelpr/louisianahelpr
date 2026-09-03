@@ -8,13 +8,14 @@ import { Ban, Loader2, ShieldCheck, ShieldAlert } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { formatShortDate } from "@/lib/format";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogFooter,
-  AlertDialogHero,
-} from "@/components/ui/alert-dialog";
+  Dialog,
+  DialogPrimaryAction,
+  DialogDestructiveAction,
+  DialogSecondaryAction,
+  DialogContent,
+  DialogFooter,
+  DialogHero,
+} from "@/components/ui/dialog";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 import SectionBoundary from "@/components/SectionBoundary";
 import { toneBadgeClasses, toneTextClasses } from "@/components/admin/tones";
@@ -310,11 +311,11 @@ const BanReviewInner = () => {
         )}
       </AdminCard>
 
-      <AlertDialog open={!!confirmTarget} onOpenChange={(o) => !o && setConfirmTarget(null)}>
-        <AlertDialogContent>
-          {/* AlertDialogHero renders its title ONLY (the 2026-07-25 "one main
+      <Dialog open={!!confirmTarget} onOpenChange={(o) => !o && setConfirmTarget(null)}>
+        <DialogContent role="alertdialog">
+          {/* DialogHero renders its title ONLY (the 2026-07-25 "one main
               title" decision), so the consequence sentence is its own line. */}
-          <AlertDialogHero title="Confirm Permanent Ban" />
+          <DialogHero title="Confirm Permanent Ban" />
           <p className="text-ds-13 text-muted-foreground">
             {confirmTarget?.full_name || "This user"} will be permanently banned and lose access to Helpr.
           </p>
@@ -325,23 +326,22 @@ const BanReviewInner = () => {
             onChange={(e) => setNote(e.target.value)}
             rows={3}
           />
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              variant="destructive"
+          <DialogFooter>
+            <DialogSecondaryAction>Cancel</DialogSecondaryAction>
+            <DialogDestructiveAction
               onClick={() => {
                 if (confirmTarget) decide(confirmTarget, true);
               }}
             >
               Ban Permanently
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </DialogDestructiveAction>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-      <AlertDialog open={!!dismissTarget} onOpenChange={(o) => !o && setDismissTarget(null)}>
-        <AlertDialogContent>
-          <AlertDialogHero title="Dismiss Review" />
+      <Dialog open={!!dismissTarget} onOpenChange={(o) => !o && setDismissTarget(null)}>
+        <DialogContent role="alertdialog">
+          <DialogHero title="Dismiss Review" />
           <p className="text-ds-13 text-muted-foreground">
             {dismissTarget?.full_name || "This user"}&rsquo;s 7-day restriction will be lifted and the case closed. Their violation history stays on file.
           </p>
@@ -352,18 +352,18 @@ const BanReviewInner = () => {
             onChange={(e) => setNote(e.target.value)}
             rows={3}
           />
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
+          <DialogFooter>
+            <DialogSecondaryAction>Cancel</DialogSecondaryAction>
+            <DialogPrimaryAction
               onClick={() => {
                 if (dismissTarget) decide(dismissTarget, false);
               }}
             >
               Dismiss &amp; Lift
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </DialogPrimaryAction>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AdminViewShell>
   );
 };

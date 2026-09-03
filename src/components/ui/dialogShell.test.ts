@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { readFileSync, existsSync } from "node:fs";
+import { resolve, relative } from "node:path";
 import { execSync } from "node:child_process";
 
 /**
@@ -77,23 +77,38 @@ const STRUCTURAL_EXCEPTIONS: Record<string, string> = {
   "PhotoLightbox.tsx": "media viewer — sized to the viewport",
 };
 
+/**
+ * Every .ts/.tsx under src, from the filesystem — NOT a hand-kept list.
+ * A registry that is both a test's input and its definition of correctness
+ * cannot fail for a missing member; that pattern produced three false
+ * all-clears on 2026-09-02 alone.
+ */
+function allSourceFiles(): string[] {
+  return execSync("git ls-files 'src/**/*.ts' 'src/**/*.tsx'", { encoding: "utf8", cwd: ROOT })
+    .split("\n").filter(Boolean).map((f) => resolve(ROOT, f))
+    // `git ls-files` lists the INDEX, which still carries a file deleted from
+    // the working tree until the deletion is staged. Reading one throws ENOENT
+    // and fails the test for a reason that has nothing to do with what it
+    // asserts.
+    .filter(existsSync);
+}
+
 function dialogFiles(): string[] {
   const out = execSync(
-    "grep -rl -E '<(DialogContent|AlertDialogContent)' src --include='*.tsx' || true",
+    "grep -rl -E '<DialogContent' src --include='*.tsx' || true",
     { encoding: "utf8", cwd: ROOT },
   );
   return out.split("\n").filter(Boolean);
 }
 
 /**
- * Every popup CONTENT block in the app — Dialog and AlertDialog alike,
- * comments stripped. Both families, because "globally" is the instruction and
- * a confirm sheet opening next to a dialog is the comparison being made.
+ * Every popup CONTENT block in the app, comments stripped. There is one
+ * family now: a confirm is a Dialog with `role="alertdialog"`.
  */
-function contentBlocks(tags = ["DialogContent", "AlertDialogContent"]) {
+function contentBlocks(tags = ["DialogContent"]) {
   const out: { file: string; nth: number; block: string; tag: string }[] = [];
   const files = execSync(
-    "grep -rl -E '<(DialogContent|AlertDialogContent)' src --include='*.tsx' || true",
+    "grep -rl -E '<DialogContent' src --include='*.tsx' || true",
     { encoding: "utf8", cwd: ROOT },
   )
     .split("\n")
@@ -105,7 +120,7 @@ function contentBlocks(tags = ["DialogContent", "AlertDialogContent"]) {
       let i = 0;
       let n = 0;
       for (;;) {
-        // `<DialogContent` is a prefix of nothing, but `AlertDialogContent`
+        // `<DialogContent` is a prefix of nothing, but a stray `Content`
         // CONTAINS `DialogContent` — anchor on the `<` so the two families
         // are not double-counted.
         const s = src.indexOf("<" + tag, i);
@@ -121,11 +136,11 @@ function contentBlocks(tags = ["DialogContent", "AlertDialogContent"]) {
 }
 const dialogBlocks = () => contentBlocks(["DialogContent"]);
 
-/** Every popup footer in the app — Dialog, AlertDialog and Sheet alike. */
+/** Every popup footer in the app — Dialog and Sheet alike. */
 function footers(): { file: string; nth: number; body: string }[] {
   const out: { file: string; nth: number; body: string }[] = [];
   const files = execSync(
-    "grep -rl -E '<(Dialog|AlertDialog|Sheet)Footer' src --include='*.tsx' || true",
+    "grep -rl -E '<(Dialog|Sheet)Footer' src --include='*.tsx' || true",
     { encoding: "utf8", cwd: ROOT },
   )
     .split("\n")
@@ -135,7 +150,7 @@ function footers(): { file: string; nth: number; body: string }[] {
     const src = stripComments(read(f));
     let n = 0;
     for (const m of src.matchAll(
-      /<(Dialog|AlertDialog|Sheet)Footer[^>]*>([\s\S]*?)<\/\1Footer>/g,
+      /<(Dialog|Sheet)Footer[^>]*>([\s\S]*?)<\/\1Footer>/g,
     )) {
       out.push({ file: f, nth: ++n, body: m[2] });
     }
@@ -154,7 +169,7 @@ describe("Popups share one shell", () => {
       const base = rel.split("/").pop()!;
       if (base in STRUCTURAL_EXCEPTIONS) continue;
       const src = read(rel);
-      for (const m of src.matchAll(/<(DialogContent|AlertDialogContent)\b([^>]*?)>/gs)) {
+      for (const m of src.matchAll(/<DialogContent\b([^>]*?)>/gs)) {
         const cm = /className=\{?"([^"]*)"/.exec(m[2]);
         if (!cm) continue;
         const hit = cm[1].split(/\s+/).filter((t) => BANNED.includes(t));
@@ -167,24 +182,28 @@ describe("Popups share one shell", () => {
     ).toEqual([]);
   });
 
-  it("the shared default is still max-w-lg in BOTH primitives", () => {
+  it("the shared default is still max-w-lg", () => {
+    // Was "in BOTH primitives". There is one now — see the merge test at the
+    // bottom of this file.
     expect(read("src/components/ui/dialog.tsx")).toContain("max-w-lg");
-    expect(read("src/components/ui/alert-dialog.tsx")).toContain("max-w-lg");
   });
 
-  it("the two modal overlays use the SAME backdrop tint", () => {
-    const tint = (file: string) => {
-      const src = readFileSync(resolve(UI, file), "utf8");
-      return /backgroundColor:\s*"(hsla\([^"]*\))"/.exec(src)?.[1];
-    };
-    expect(tint("dialog.tsx")).toBeDefined();
-    expect(tint("alert-dialog.tsx")).toBe(tint("dialog.tsx"));
+  it("the modal overlay still declares an explicit backdrop tint", () => {
+    // This used to assert dialog.tsx and alert-dialog.tsx carried the SAME
+    // hsla() literal — and it earned its keep: the two drifted anyway, because
+    // a test comparing two copies still needs someone to edit the second one.
+    // DialogOverlay was lightened 45% -> 26% -> 14% -> 8% and the confirm
+    // overlay kept 26%, so every confirm in the app dimmed the page more than
+    // three times as hard as any other dialog. There is exactly one literal
+    // now and no second copy to fall behind.
+    const src = readFileSync(resolve(UI, "dialog.tsx"), "utf8");
+    expect(/backgroundColor:\s*"(hsla\([^"]*\))"/.exec(src)?.[1]).toBeDefined();
   });
 
   it("all three popup primitives keep their own backdrop blur", () => {
     // The panel lane removed the blur from popover/anchoredPanel on purpose.
     // Modals are not panels: this is what separates a dialog from the page.
-    for (const f of ["dialog.tsx", "alert-dialog.tsx", "sheet.tsx"]) {
+    for (const f of ["dialog.tsx", "sheet.tsx"]) {
       expect(
         readFileSync(resolve(UI, f), "utf8"),
         `${f} must keep the modal backdrop blur`,
@@ -194,11 +213,19 @@ describe("Popups share one shell", () => {
 
   it("Hero components expose no per-call-site style escape hatches", () => {
     const dlg = stripComments(read("src/components/ui/dialog.tsx"));
-    const alert = stripComments(read("src/components/ui/alert-dialog.tsx"));
     const sheet = stripComments(read("src/components/ui/sheet.tsx"));
-    for (const prop of ["titleClassName", "titleStyle", "eyebrowClassName", "eyebrowStyle"]) {
+    // `eyebrow` and `subtitle` join the list. They were ACCEPTED-BUT-DISCARDED
+    // for five weeks: the Hero rendered the title alone from 2026-07-25, but
+    // the prop type kept both "so a stray usage is a no-op rather than a build
+    // break". A no-op is SILENT. Removing them from the type surfaced SIX live
+    // call sites in one compile — AdminReports' "this can't be undone" on a
+    // permanent review deletion, AdminIDVReview's three explanations of what
+    // each admin decision does, AdminFraudDashboard's, AdminExceptionQueue's,
+    // and ApplyConfirmDialog's eyebrow — every one of them shipped invisible.
+    // Eyebrows were deleted globally (owner, 2026-09-02).
+    for (const prop of ["titleClassName", "titleStyle", "eyebrowClassName", "eyebrowStyle",
+                        "eyebrow?:", "subtitle?:"]) {
       expect(dlg, `dialog.tsx must not accept ${prop}`).not.toContain(prop);
-      expect(alert, `alert-dialog.tsx must not accept ${prop}`).not.toContain(prop);
       expect(sheet, `sheet.tsx must not accept ${prop}`).not.toContain(prop);
     }
   });
@@ -339,7 +366,7 @@ describe("Popup grammar — body voice", () => {
 
   /**
    * FAILS IF: DialogBody and the confirm family's description drift apart.
-   * The Dialog and AlertDialog families are twins; the whole complaint is that
+   * The Dialog and Sheet families are twins; the whole complaint is that
    * a confirm opening next to a dialog looks like a different product.
    */
   it("DialogBody is byte-identical to the confirm family's description", () => {
@@ -349,8 +376,8 @@ describe("Popup grammar — body voice", () => {
     const COLOR = 'hsl(var(--olivewood) / 0.8)';
     expect(dlg, "DialogBody's type token").toContain(TYPE);
     expect(dlg, "DialogBody's colour").toContain(COLOR);
-    expect(brand, "AlertDialogDescription's type token").toContain(TYPE);
-    expect(brand, "AlertDialogDescription's colour").toContain(COLOR);
+    expect(brand, "DialogDescription's type token").toContain(TYPE);
+    expect(brand, "DialogDescription's colour").toContain(COLOR);
   });
 });
 
@@ -426,7 +453,7 @@ describe("Popup grammar — footer", () => {
     }
   });
 
-  const ACTION = /<(Dialog|Sheet)(Secondary|Primary|Destructive)Action\b|<AlertDialog(Cancel|Action)\b/g;
+  const ACTION = /<(Dialog|Sheet)(Secondary|Primary|Destructive)Action\b/g;
 
   /**
    * FAILS IF: any footer goes back to a raw <Button>.
@@ -441,7 +468,7 @@ describe("Popup grammar — footer", () => {
     }
     expect(
       offenders,
-      "use DialogSecondaryAction / DialogPrimaryAction / DialogDestructiveAction (or the Sheet + AlertDialog twins). A raw <Button> is how `outline`, `w-full` and hand-rolled inline styles got back in.",
+      "use DialogSecondaryAction / DialogPrimaryAction / DialogDestructiveAction (or the Sheet twins). A raw <Button> is how `outline`, `w-full` and hand-rolled inline styles got back in.",
     ).toEqual([]);
   });
 
@@ -454,15 +481,15 @@ describe("Popup grammar — footer", () => {
     const offenders: string[] = [];
     for (const { file, nth, body } of footers()) {
       for (const m of body.matchAll(
-        /<(?:(?:Dialog|Sheet)(?:Secondary|Primary|Destructive)Action|AlertDialog(?:Cancel|Action))\b([^>]*)>/g,
+        /<(?:Dialog|Sheet)(?:Secondary|Primary|Destructive)Action\b([^>]*)>/g,
       )) {
         const attrs = m[1];
         for (const banned of ["className", "size=", "style="]) {
           if (attrs.includes(banned)) offenders.push(`${file}#${nth}: ${banned}`);
         }
-        // `variant` is legitimate on AlertDialogAction (its documented
+        // `variant` used to be legitimate on the confirm action (its documented
         // destructive switch) and nowhere else.
-        if (attrs.includes("variant") && !m[0].startsWith("<AlertDialogAction")) {
+        if (attrs.includes("variant")) {
           offenders.push(`${file}#${nth}: variant`);
         }
       }
@@ -480,7 +507,7 @@ describe("Popup grammar — footer", () => {
     const offenders: string[] = [];
     for (const { file, nth, body } of footers()) {
       const seq = [...body.matchAll(ACTION)].map((m) => m[0]);
-      const isDismiss = (t: string) => /Secondary|AlertDialogCancel/.test(t);
+      const isDismiss = (t: string) => /Secondary/.test(t);
       const lastDismiss = seq.map(isDismiss).lastIndexOf(true);
       const firstCommit = seq.findIndex((t) => !isDismiss(t));
       if (lastDismiss >= 0 && firstCommit >= 0 && lastDismiss > firstCommit) {
@@ -502,7 +529,7 @@ describe("Popup grammar — footer", () => {
     const offenders: string[] = [];
     for (const { file, nth, body } of footers()) {
       const seq = [...body.matchAll(ACTION)].map((m) => m[0]);
-      const dismisses = seq.filter((t) => /Secondary|AlertDialogCancel/.test(t)).length;
+      const dismisses = seq.filter((t) => /Secondary/.test(t)).length;
       const commits = seq.length - dismisses;
       if (dismisses > 1 && !(file in THREE_ACTION_EXCEPTIONS)) {
         offenders.push(`${file}#${nth}: ${dismisses} dismisses`);
@@ -522,8 +549,8 @@ describe("Popup grammar — footer", () => {
    * They used to be three copies of a layout string kept in agreement by this
    * test, and SheetFooter had already lost `gap-2` from its copy.
    */
-  it("Dialog, AlertDialog and Sheet footers all come from popupFooter.ts", () => {
-    for (const f of ["dialog.tsx", "alert-dialog.tsx", "sheet.tsx"]) {
+  it("Dialog and Sheet footers both come from popupFooter.ts", () => {
+    for (const f of ["dialog.tsx", "sheet.tsx"]) {
       const src = readFileSync(resolve(UI, f), "utf8");
       expect(src, `${f} must import the shared footer row`).toContain(
         'from "@/components/ui/popupFooter"',
@@ -546,7 +573,6 @@ describe("Popup grammar — footer", () => {
    */
   it("the dismiss is small and the commit takes the right-hand end", () => {
     const dlg = read("src/components/ui/dialog.tsx");
-    const alert = read("src/components/ui/alert-dialog.tsx");
     const sheet = read("src/components/ui/sheet.tsx");
     const footer = read("src/components/ui/popupFooter.ts");
 
@@ -555,8 +581,17 @@ describe("Popup grammar — footer", () => {
     // hierarchy — a quarter against three quarters — and a shorter dismiss read
     // as mismatched rather than ranked. `size="sm"` was right only while the two
     // were stacked full-width, where height was the sole available signal.
-    expect(dlg).toMatch(/variant="ghost" className=\{POPUP_SECONDARY_CLS\}/);
-    expect(dlg).not.toMatch(/variant="ghost" size="sm" className=\{POPUP_SECONDARY_CLS\}/);
+    // BOTH families. Asserting only `dlg` is how the Sheet kept `size="sm"`
+    // through the 2026-09-02 footer rework: dialog.tsx and alert-dialog.tsx
+    // were fixed, sheet.tsx was not, and nothing failed — a sheet Cancel sat
+    // 44px tall beside a 56px commit while every dialog's matched. `sheet` was
+    // read into a variable here and then never asserted on.
+    for (const [name, src] of [["dialog.tsx", dlg], ["sheet.tsx", sheet]] as const) {
+      expect(src, `${name}'s dismiss must use the shared secondary class`)
+        .toMatch(/variant="ghost" className=\{POPUP_SECONDARY_CLS\}/);
+      expect(src, `${name}'s dismiss must NOT step down to size="sm"`)
+        .not.toMatch(/variant="ghost" size="sm" className=\{POPUP_SECONDARY_CLS\}/);
+    }
 
     // ONE QUARTER / THREE QUARTERS, at every width. `flex-1` against `flex-[3]`
     // is the whole hierarchy: the dismiss is present and reachable, the commit
@@ -607,4 +642,119 @@ describe("Popup grammar — footer", () => {
       "the commit is DialogPrimaryAction or DialogDestructiveAction — never a hand-painted button",
     ).toEqual([]);
   });
+
+  /**
+   * FAILS IF: a second confirm-dialog family comes back.
+   *
+   * `ui/alert-dialog.tsx` existed for one reason — Radix ships a separate
+   * AlertDialog primitive — and it cost more than it gave. Its own comments
+   * said "change one, change both" in FOUR places, and it had drifted anyway
+   * in every one of them: the backdrop tint (26% against Dialog's 8%, so a
+   * confirm visibly darkened the page), the close X (44x44 vs 32x44, a 20px
+   * glyph vs 18px, no hover lift, `focus:` instead of `focus-visible:` so a
+   * mouse click drew the ring the owner had asked to be rid of), the footer
+   * dismiss height, and the corner X that kept rendering next to a Cancel
+   * after Dialog learned to drop it. A test comparing two copies cannot stop
+   * that, because keeping them equal still depends on someone editing the
+   * second file.
+   *
+   * The primitive also made one of the owner's instructions IMPOSSIBLE.
+   * Radix's AlertDialogContent assigns `onPointerDownOutside` and
+   * `onInteractOutside` to `preventDefault` AFTER spreading caller props, so
+   * they cannot be overridden — "but also allow tap out to close on all"
+   * (owner, 2026-09-02) could not be honoured for the 43 confirm boxes that
+   * sat on it. That is the defect that ended the argument.
+   *
+   * These assertions derive their subject from the filesystem and from
+   * package.json rather than from a hand-kept list, because a registry that is
+   * both a test's input and its definition of correctness cannot fail for a
+   * missing member.
+   */
+  it("there is exactly ONE dialog family — alert-dialog is gone and cannot return", () => {
+    expect(
+      existsSync(resolve(UI, "alert-dialog.tsx")),
+      "ui/alert-dialog.tsx is back. Confirms are Dialogs with role=\"alertdialog\".",
+    ).toBe(false);
+
+    const offenders = allSourceFiles()
+      // This spec NAMES the banned module in order to ban it. A guard that
+      // matches its own text is the "registry checked against itself" bug in
+      // miniature — it would fail on day one and get deleted by whoever was
+      // unblocking the build.
+      .filter((f) => !/\.test\.tsx?$/.test(f))
+      .filter((f) =>
+        /@radix-ui\/react-alert-dialog|@\/components\/ui\/alert-dialog/.test(readFileSync(f, "utf8")),
+      );
+    expect(offenders, "these files import the removed alert-dialog family").toEqual([]);
+
+    const pkg = JSON.parse(readFileSync(resolve(ROOT, "package.json"), "utf8"));
+    expect(
+      { ...pkg.dependencies, ...pkg.devDependencies }["@radix-ui/react-alert-dialog"],
+      "the alert-dialog package should not be a dependency any more",
+    ).toBeUndefined();
+  });
+
+  /**
+   * FAILS IF: a confirm's buttons stop closing it.
+   *
+   * This is the one behaviour the merge could have broken silently.
+   * `AlertDialogAction` and `AlertDialogCancel` were BOTH `DialogPrimitive.Close`
+   * under the hood, so every confirm button dismissed its dialog for free.
+   * `DialogPrimaryAction` is a plain `<Button>` and does not. A straight rename
+   * would have left all 43 confirm boxes — admin ban, remove review, delete
+   * note, delete account — OPEN after you confirmed, with no error and no type
+   * failure. `MaybeClose` restores it off `role="alertdialog"`.
+   */
+  it("actions inside a confirm auto-close it, and outside one do not", () => {
+    const src = read("src/components/ui/dialog.tsx");
+    expect(src, "the confirm switch must be role-driven, not a per-call-site prop")
+      .toContain('props.role === "alertdialog"');
+    expect(src, "MaybeClose must wrap in the Close primitive")
+      .toMatch(/isConfirm \? <DialogPrimitive\.Close asChild>/);
+    for (const action of ["DialogSecondaryAction", "DialogPrimaryAction", "DialogDestructiveAction"]) {
+      const body = src.slice(src.indexOf(`const ${action} =`), src.indexOf(`${action}.displayName`));
+      expect(body, `${action} must go through MaybeClose`).toContain("<MaybeClose>");
+    }
+  });
+
+  /**
+   * FAILS IF: a migrated confirm loses `role="alertdialog"` and its dismiss
+   * silently stops working.
+   *
+   * The invariant is derived, not listed. A `DialogSecondaryAction` closes its
+   * dialog by exactly one of three routes: its own `onClick`, an enclosing
+   * `<DialogClose asChild>`, or — for a confirm — `MaybeClose`, which is keyed
+   * off `role="alertdialog"`. A Cancel with none of the three is INERT: it
+   * renders, it is focusable, it is announced, and tapping it does nothing.
+   *
+   * Measured when this was written: nine files rely on the third route and one
+   * (BlockUserDialog) uses the second. Writing the test the obvious way first —
+   * "every dialog with a dismiss and a commit must be an alertdialog" — flagged
+   * 29 files, all of them FORM dialogs (Report, Dispute, Boost, InstantPayout)
+   * where auto-close would be wrong because the caller decides what happens
+   * after submit. That version would have been satisfied only by breaking them.
+   */
+  it("no dismiss button is inert — every Cancel has a way to close its dialog", () => {
+    const inert: string[] = [];
+    for (const f of allSourceFiles()) {
+      if (!f.endsWith(".tsx")) continue;
+      const src = stripComments(readFileSync(f, "utf8"));
+      if (!src.includes("<DialogSecondaryAction")) continue;
+      const isConfirm = /role="alertdialog"/.test(src);
+      for (const m of src.matchAll(/(<DialogClose[^>]*>\s*)?<DialogSecondaryAction([\s\S]*?)>/g)) {
+        const wrappedInClose = Boolean(m[1]);
+        const hasHandler = m[2].includes("onClick");
+        if (!wrappedInClose && !hasHandler && !isConfirm) {
+          inert.push(relative(ROOT, f));
+          break;
+        }
+      }
+    }
+    expect(
+      inert,
+      'these dismiss buttons do nothing: give the dialog role="alertdialog", ' +
+        "wrap the button in <DialogClose asChild>, or give it an onClick",
+    ).toEqual([]);
+  });
+
 });

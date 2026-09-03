@@ -487,7 +487,7 @@ export const AppliedJobsTab = ({
               `flex gap-2` row of two `flex-1` buttons — a third footer
               arrangement, alongside the stacked one every dialog uses and the
               right-aligned one they use from `sm` up. `SheetFooter` is the
-              same component `DialogFooter`/`AlertDialogFooter` are, so the
+              same component `DialogFooter` is, so the
               buttons now stack full-width with the primary on top on a phone
               and sit right-aligned inline on a wide screen, exactly like every
               other popup.

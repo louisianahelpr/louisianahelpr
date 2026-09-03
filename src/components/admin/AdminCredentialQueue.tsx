@@ -11,13 +11,13 @@ import { toast } from "sonner";
 import { ShieldCheck, FileText, ExternalLink, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { formatShortDate } from "@/lib/format";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogFooter,
-  AlertDialogHero,
-} from "@/components/ui/alert-dialog";
+  Dialog,
+  DialogPrimaryAction,
+  DialogSecondaryAction,
+  DialogContent,
+  DialogFooter,
+  DialogHero,
+} from "@/components/ui/dialog";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -335,9 +335,9 @@ const AdminCredentialQueue = () => {
       )}
       </AdminCard>
 
-      <AlertDialog open={!!rejectTarget} onOpenChange={(o) => !o && setRejectTarget(null)}>
-        <AlertDialogContent>
-          <AlertDialogHero
+      <Dialog open={!!rejectTarget} onOpenChange={(o) => !o && setRejectTarget(null)}>
+        <DialogContent role="alertdialog">
+          <DialogHero
             title="Reject Credential"
           />
           <Textarea
@@ -352,9 +352,9 @@ const AdminCredentialQueue = () => {
               Please provide at least 10 characters so the user knows what to fix.
             </p>
           )}
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
+          <DialogFooter>
+            <DialogSecondaryAction>Cancel</DialogSecondaryAction>
+            <DialogPrimaryAction
               disabled={rejectReason.trim().length < 10}
               onClick={() => {
                 if (rejectTarget) {
@@ -364,10 +364,10 @@ const AdminCredentialQueue = () => {
               }}
             >
               Reject
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </DialogPrimaryAction>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AdminViewShell>
   );
 };

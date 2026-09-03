@@ -1005,8 +1005,8 @@ export function PostedJobActions({
               </JobActionRow>
               {/* The shared confirm — NOT a new modal. BrandConfirmDialog is
                   the shell behind every confirm in the app (Log Out, Decline
-                  This Job, Delete Account) and rides the same AlertDialog /
-                  AlertDialogHero / .glass-modal stack dialogShell.test.ts
+                  This Job, Delete Account) and rides the same Dialog /
+                  DialogHero / .glass-modal stack dialogShell.test.ts
                   enforces. `sienna` because this is irreversible and
                   one-directional: the money leaves escrow and the dispute the
                   poster raised is over. */}

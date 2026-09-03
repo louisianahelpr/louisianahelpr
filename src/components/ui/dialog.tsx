@@ -42,6 +42,36 @@ const DialogClose = DialogPrimitive.Close;
 const DialogDismissCtx = React.createContext<((present: boolean) => void) | null>(null);
 
 /**
+ * Is this dialog a CONFIRM (`role="alertdialog"`)? Set by DialogContent, read
+ * by the three action components, which then wrap themselves in
+ * `DialogPrimitive.Close` so clicking one dismisses the dialog.
+ *
+ * WHY THIS EXISTS — it is the whole reason the merge was safe.
+ * Confirms used to live in `ui/alert-dialog.tsx` on Radix's AlertDialog
+ * primitive, where `AlertDialogAction` and `AlertDialogCancel` are BOTH
+ * `DialogPrimitive.Close` under the hood, i.e. every confirm button closed its
+ * dialog for free. `DialogPrimaryAction` is a plain `<Button>` and does not.
+ * So a straight rename of the 43 confirm boxes — 12 direct call sites plus
+ * every one of BrandConfirmDialog's 31 — would have left each of them OPEN
+ * after you confirmed, with no error and no type failure. Admin ban, remove
+ * review, delete note, delete account.
+ *
+ * Making it a CONTEXT rather than a prop is deliberate, and the same argument
+ * as DialogDismissCtx directly above: a prop means editing every call site and
+ * trusting each to pass it, which is exactly how the close button came to have
+ * three different sizes. Here `role="alertdialog"` — which those dialogs need
+ * for accessibility anyway — is the single switch, and a confirm cannot drift
+ * out of the behaviour by omission.
+ *
+ * `Close` composes its handler with the caller's via Radix's
+ * `composeEventHandlers`, which defaults to `checkForDefaultPrevented: true`.
+ * So a caller that calls `e.preventDefault()` in its own onClick still
+ * suppresses the close — AdminUserNotes relies on precisely that to hold the
+ * dialog open while the delete is in flight. Behaviour preserved exactly.
+ */
+const DialogConfirmCtx = React.createContext(false);
+
+/**
  * How much horizontal room the top-right chrome occupies, by icon count, as a
  * Tailwind padding class a caller can put on whatever sits under it.
  *
@@ -115,10 +145,31 @@ const DialogContent = React.forwardRef<
      * the single row they all share.
      */
     topRightSlot?: React.ReactNode;
+    /**
+     * This dialog cannot be dismissed — no X, no tap-outside, no Escape. For
+     * the one case where leaving is not a legitimate outcome: TermsReconsent,
+     * which has no `onOpenChange` because the user must accept before the app
+     * continues.
+     *
+     * It has to be spelled out HERE because of the very difference that made
+     * the alert-dialog merge worth doing. Radix's AlertDialog hard-codes
+     * `onPointerDownOutside`/`onInteractOutside` to `preventDefault` — assigned
+     * AFTER the caller's props, so it is not overridable — which is why the
+     * owner's "allow tap out to close on all" was unimplementable for the 43
+     * confirm boxes that lived on it. Dialog has the opposite default: it DOES
+     * close on outside click. Excellent for the other 42; for this one it would
+     * have meant a user could tap the backdrop and skip re-consenting to the
+     * terms. Migrating without this prop would have shipped exactly that.
+     */
+    closeDisabled?: boolean;
   }
->(({ className, children, onOpenAutoFocus, topRightSlot, ...props }, ref) => {
+>(({ className, children, onOpenAutoFocus, topRightSlot, closeDisabled, ...props }, ref) => {
   // See DialogDismissCtx: a dialog whose footer offers Cancel drops the X.
   const [hasDismiss, setHasDismiss] = React.useState(false);
+  // `role` is never set by this component, and `{...props}` is spread after
+  // every attribute it does set, so a caller's `role="alertdialog"` reaches
+  // the DOM intact. That is the switch; see DialogConfirmCtx.
+  const isConfirm = props.role === "alertdialog";
   return (
   <DialogPortal>
     <DialogOverlay />
@@ -168,7 +219,7 @@ const DialogContent = React.forwardRef<
         // The X gets its OWN ROW now, so the card reserves that row ONLY when
         // the X is actually there. A confirm dialog offers Cancel, drops the X,
         // and keeps its normal p-4 — no dead band above the title.
-        !hasDismiss && "pt-11 sm:pt-11",
+        !hasDismiss && !closeDisabled && "pt-11 sm:pt-11",
         // WHY THE FOUR slide-* CLASSES ARE LOAD-BEARING (they are not decoration)
         //
         // tailwindcss-animate's `enter` keyframe writes a whole `transform`:
@@ -268,9 +319,17 @@ const DialogContent = React.forwardRef<
       // `{...props}` comes AFTER, so a dialog that does supply its own
       // `aria-describedby` still wins.
       aria-describedby={undefined}
+      // See `closeDisabled` above: Dialog closes on backdrop click and Escape,
+      // AlertDialog did neither. Both routes are shut here, and `{...props}`
+      // still comes after so a caller can compose its own handlers.
+      onPointerDownOutside={closeDisabled ? (e) => e.preventDefault() : undefined}
+      onInteractOutside={closeDisabled ? (e) => e.preventDefault() : undefined}
+      onEscapeKeyDown={closeDisabled ? (e) => e.preventDefault() : undefined}
       {...props}
     >
-      <DialogDismissCtx.Provider value={setHasDismiss}>{children}</DialogDismissCtx.Provider>
+      <DialogConfirmCtx.Provider value={isConfirm}>
+        <DialogDismissCtx.Provider value={setHasDismiss}>{children}</DialogDismissCtx.Provider>
+      </DialogConfirmCtx.Provider>
       {/* `topRightSlot` (Share/Save/Report, when a caller passes them) sits to
           the left of the close X in its own absolute container, while keeping
           the close X independently absolute (required — see next comment).
@@ -388,7 +447,7 @@ const DialogContent = React.forwardRef<
           `getComputedStyle(btn).position === "absolute"` and exempts them from
           the content-box edge assertion — the X intentionally spans the padding
           gutter, so it needs that exemption. */}
-      {!hasDismiss && (
+      {!hasDismiss && !closeDisabled && (
       <DialogPrimitive.Close
         // `group` + the icon's own hover transform match the small lift every
         // other chrome icon (Share/Save/Flag) gets on hover (owner,
@@ -479,6 +538,28 @@ const DialogTitle = React.forwardRef<
 ));
 DialogTitle.displayName = DialogPrimitive.Title.displayName;
 
+/**
+ * The quiet supporting line under a confirm's title. Carried over from
+ * `alert-dialog.tsx` verbatim, including its type tokens — two confirms
+ * (BrandConfirmDialog and DeleteAccountDialog) render one, and without it
+ * here they would have had to hand-roll a <p> and drift.
+ *
+ * Rendering one also gives Radix a real `aria-describedby` target, which is
+ * why DialogContent's `aria-describedby={undefined}` is declared BEFORE
+ * `{...props}` rather than after — see the comment there.
+ */
+const DialogDescription = React.forwardRef<
+  React.ElementRef<typeof DialogPrimitive.Description>,
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Description>
+>(({ className, ...props }, ref) => (
+  <DialogPrimitive.Description
+    ref={ref}
+    className={cn("text-xs text-muted-foreground", className)}
+    {...props}
+  />
+));
+DialogDescription.displayName = DialogPrimitive.Description.displayName;
+
 
 /**
  * DialogHero — the ONE canonical popup header. Every dialog/sheet header
@@ -488,27 +569,30 @@ DialogTitle.displayName = DialogPrimitive.Title.displayName;
  * adopt this instead (it wraps DialogHeader, so the X-collision reserve
  * comes for free).
  *
- *   <DialogHero eyebrow="Editing your job" title={`"${title}"`} />
+ *   <DialogHero title={`"${title}"`} />
  *
- * The eyebrow is the small burnt-sienna uppercase serif label; the title is
- * the display-italic heading; the optional subtitle is a quiet supporting
- * line. `titleClassName`/`titleStyle` let a caller scale the title where a
- * long name needs it, without forking the structure.
+ * ONE LINE ONLY — the title. This block used to describe an eyebrow, a
+ * subtitle and `titleClassName`/`titleStyle`; none of those render, and two of
+ * them are not even in the prop type. The component has shown the title alone
+ * since the 2026-07-25 "one main title" decision (see the note in the
+ * signature). The docs were never updated, so the file simultaneously told a
+ * caller to pass an eyebrow and threw it away without an error. Sheet's and
+ * the old alert-dialog's copies of this block said the same thing.
  */
 const DialogHero = ({ title }: {
-  // `eyebrow` and `subtitle` remain ACCEPTED but are not rendered — the
-  // 2026-07-25 "one main title" decision: a popup header shows its title and
-  // nothing stacked above or below it. Every call site has had the props
-  // stripped; they are kept in the type so a stray usage is a no-op rather
-  // than a build break, and so restoring either is a one-line change here
-  // instead of an edit across ~40 files.
+  // TITLE ONLY. `eyebrow` and `subtitle` used to be ACCEPTED-BUT-DISCARDED, on
+  // the reasoning that keeping them in the type made a stray usage "a no-op
+  // rather than a build break". That is the wrong way round: a no-op is
+  // SILENT. A caller could pass a subtitle, ship it, and never learn the line
+  // had been thrown away — and the doc block above actively told them to,
+  // worked example included. Eyebrows were deleted globally (owner,
+  // 2026-09-02) and are not coming back, so the type now says so and a stray
+  // usage is a compile error that names the file and line.
   //
   // Copy a SIGHTED user must read — fee, tax, or payout disclosure — belongs
   // in the dialog body. Four were relocated there rather than dropped:
   // TipDialog, ReviewForm's tip prompt, InstantPayoutDialog, W9CollectionDialog.
-  eyebrow?: React.ReactNode;
   title: React.ReactNode;
-  subtitle?: React.ReactNode;
   // NO className / titleClassName / style escape hatches — same reason as
   // AlertDialogHero's. A popup header is ONE layout; if it changes, it changes
   // here, once, for all ~149 of them.
@@ -674,6 +758,20 @@ type DialogActionProps = Omit<
   "variant" | "className" | "size" | "asChild" | "shimmer"
 >;
 
+/**
+ * Wraps an action in `DialogPrimitive.Close` when it sits inside a confirm
+ * (`role="alertdialog"`), and leaves it alone otherwise.
+ *
+ * A regular dialog's primary action must NOT auto-close — it submits a form
+ * and the caller decides what happens next. A confirm's must, because that is
+ * what `AlertDialogAction`/`AlertDialogCancel` did before these two families
+ * became one component, and 43 confirm boxes were written against it.
+ */
+const MaybeClose = ({ children }: { children: React.ReactNode }) => {
+  const isConfirm = React.useContext(DialogConfirmCtx);
+  return isConfirm ? <DialogPrimitive.Close asChild>{children}</DialogPrimitive.Close> : <>{children}</>;
+};
+
 const stripOverrides = (props: Record<string, unknown>) => {
   const { className: _c, variant: _v, size: _s, asChild: _a, shimmer: _sh, ...rest } = props;
   void _c; void _v; void _s; void _a; void _sh;
@@ -703,9 +801,11 @@ const DialogSecondaryAction = React.forwardRef<HTMLButtonElement, DialogActionPr
     // rather than ranked. `size="sm"` was right when the two were stacked full
     // width, where height was the only signal available. Owner, 2026-09-02, from
     // the rendered row.
-    <Button ref={ref} variant="ghost" className={POPUP_SECONDARY_CLS} {...stripOverrides(props)}>
-        {children}
-      </Button>
+    <MaybeClose>
+        <Button ref={ref} variant="ghost" className={POPUP_SECONDARY_CLS} {...stripOverrides(props)}>
+          {children}
+        </Button>
+      </MaybeClose>
     );
   },
 );
@@ -714,9 +814,11 @@ DialogSecondaryAction.displayName = "DialogSecondaryAction";
 /** The commit. Always the glossy green `btn-grad-primary` CTA. */
 const DialogPrimaryAction = React.forwardRef<HTMLButtonElement, DialogActionProps>(
   ({ children, ...props }, ref) => (
-    <Button ref={ref} variant="primary" className={POPUP_COMMIT_CLS} {...stripOverrides(props)}>
-      {children}
-    </Button>
+    <MaybeClose>
+      <Button ref={ref} variant="primary" className={POPUP_COMMIT_CLS} {...stripOverrides(props)}>
+        {children}
+      </Button>
+    </MaybeClose>
   ),
 );
 DialogPrimaryAction.displayName = "DialogPrimaryAction";
@@ -736,9 +838,11 @@ DialogPrimaryAction.displayName = "DialogPrimaryAction";
  */
 const DialogDestructiveAction = React.forwardRef<HTMLButtonElement, DialogActionProps>(
   ({ children, ...props }, ref) => (
-    <Button ref={ref} variant="destructive" className={POPUP_COMMIT_CLS} {...stripOverrides(props)}>
-      {children}
-    </Button>
+    <MaybeClose>
+      <Button ref={ref} variant="destructive" className={POPUP_COMMIT_CLS} {...stripOverrides(props)}>
+        {children}
+      </Button>
+    </MaybeClose>
   ),
 );
 DialogDestructiveAction.displayName = "DialogDestructiveAction";
@@ -752,6 +856,7 @@ export {
   DialogContent,
   DialogHeader,
   DialogHero,
+  DialogDescription,
   DialogFooter,
   DialogBody,
   DialogCallout,

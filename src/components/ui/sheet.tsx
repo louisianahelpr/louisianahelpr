@@ -24,7 +24,7 @@ const SheetOverlay = React.forwardRef<
   <SheetPrimitive.Overlay
     className={cn(
       // Identical to DialogOverlay. Sheets used `bg-black/80`, a near-opaque
-      // black slab, while every Dialog and AlertDialog used the parchment tint
+      // black slab, while every Dialog used the parchment tint
       // + 24px blur that the owner lightened three times (45% -> 26% -> 14% ->
       // 8%). Two scrims meant a Sheet and a Dialog opened over the same page
       // looked like two different apps.
@@ -46,7 +46,7 @@ const sheetVariants = cva(
   // 40px blur, 28px radius, one shadow. Its own comment says "every dialog
   // uses this class so every dialog gets the same card"; sheets were the
   // exception, painting an opaque `bg-background` with `p-6` and their own
-  // `rounded-2xl`. Same padding ramp as DialogContent/AlertDialogContent
+  // `rounded-2xl`. Same padding ramp as DialogContent
   // (p-4 sm:p-5) so a sheet and a dialog are indistinguishable as surfaces.
   "glass-modal fixed z-50 gap-4 p-4 sm:p-5 transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
   {
@@ -151,7 +151,7 @@ const SheetCloseButton = ({ top, right }: { top: string; right: string }) => (
     // were changed and this one was missed, so the behaviour he reported as
     // fixed still happened on every sheet.
     //
-    // h-11 w-11 (44x44), matching DialogContent and AlertDialogContent. It was
+    // h-11 w-11 (44x44), matching DialogContent. It was
     // h-10 w-10 with a 20px glyph — a third size and a third glyph in a set of
     // three controls that do one job.
     className="absolute inline-flex h-11 w-11 items-center justify-center rounded-md ring-offset-background transition-colors hover:text-foreground active:scale-[0.94] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none"
@@ -178,7 +178,7 @@ const SheetCloseButton = ({ top, right }: { top: string; right: string }) => (
 // A caller passing `px-*` still merges this away (tailwind-merge, same slot) —
 // that is why `SheetHero` does NOT rely on it and owns its own inner lane.
 const SheetHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  // `space-y-1.5` matches DialogHeader/AlertDialogHeader. `pr-12` (not their
+  // `space-y-1.5` matches DialogHeader. `pr-12` (not its
   // `pr-10`) because the sheet close button is a larger floating disc.
   <div className={cn("flex flex-col space-y-1.5 text-center sm:text-left pr-12", className)} {...props} />
 );
@@ -226,21 +226,21 @@ SheetTitle.displayName = SheetPrimitive.Title.displayName;
 const SheetHero = ({
   title,
 }: {
-  // `eyebrow` and `subtitle` remain ACCEPTED but are not rendered — the
-  // 2026-07-25 "one main title" decision: a popup header shows its title and
-  // nothing stacked above or below it. Every call site has had the props
-  // stripped; they are kept in the type so a stray usage is a no-op rather
-  // than a build break, and so restoring either is a one-line change here
-  // instead of an edit across ~40 files.
+  // TITLE ONLY. `eyebrow` and `subtitle` used to be ACCEPTED-BUT-DISCARDED, on
+  // the reasoning that keeping them in the type made a stray usage "a no-op
+  // rather than a build break". That is the wrong way round: a no-op is
+  // SILENT. A caller could pass a subtitle, ship it, and never learn the line
+  // had been thrown away — and the doc block above actively told them to,
+  // worked example included. Eyebrows were deleted globally (owner,
+  // 2026-09-02) and are not coming back, so the type now says so and a stray
+  // usage is a compile error that names the file and line.
   //
   // Copy a SIGHTED user must read — fee, tax, or payout disclosure — belongs
   // in the dialog body. Four were relocated there rather than dropped:
   // TipDialog, ReviewForm's tip prompt, InstantPayoutDialog, W9CollectionDialog.
-  eyebrow?: React.ReactNode;
   title: React.ReactNode;
-  subtitle?: React.ReactNode;
   // NO className / titleClassName / titleStyle / eyebrow* escape hatches.
-  // DialogHero and AlertDialogHero had these deleted (and `dialogShell.test.ts`
+  // DialogHero had these deleted (and `dialogShell.test.ts`
   // bans them coming back) precisely because they are how one popup ends up
   // looking unlike the rest — SheetHero simply never got the same treatment,
   // and three sheets were already using `className` to nudge their header
@@ -257,7 +257,7 @@ const SheetHero = ({
   <SheetHeader className="space-y-0 text-left pr-0">
     <div className="pr-12">
       <SheetTitle
-        // NO `pt-2`. DialogHero and AlertDialogHero both had that exact class
+        // NO `pt-2`. DialogHero had that exact class
         // removed on 2026-08-29 ("the container's own padding already clears
         // the X") and SheetHero kept it, so every sheet title in the app sat
         // 8px lower in its card than every dialog title.
@@ -300,7 +300,16 @@ const stripSheetOverrides = (props: Record<string, unknown>) => {
 
 const SheetSecondaryAction = React.forwardRef<HTMLButtonElement, SheetActionProps>(
   ({ children, ...props }, ref) => (
-    <Button ref={ref} variant="ghost" size="sm" className={POPUP_SECONDARY_CLS} {...stripSheetOverrides(props)}>
+    // No `size="sm"`. The dismiss matches the commit's height (h-14, 56px)
+    // rather than stepping down to 44 — in a ROW the WIDTH already carries the
+    // hierarchy (a quarter against three quarters), so a shorter box reads as
+    // mismatched rather than ranked. Dialog's dismiss lost `size="sm"` on
+    // 2026-09-02 when the footer became a row; the Sheet's kept it, so a sheet
+    // Cancel was 44px beside a 56px commit while every dialog's was 56 — the
+    // third family drifting the moment the other two were fixed, which is the
+    // exact failure mode that ended alert-dialog.tsx. Asserted for BOTH files
+    // in dialogShell.test.ts now, not just dialog.tsx.
+    <Button ref={ref} variant="ghost" className={POPUP_SECONDARY_CLS} {...stripSheetOverrides(props)}>
       {children}
     </Button>
   ),

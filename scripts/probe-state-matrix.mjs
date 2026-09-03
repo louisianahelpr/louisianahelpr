@@ -16,7 +16,12 @@
  * this script; it is read-only against the account, same as audit-capture.mjs
  * itself. If a future probe needs a real submit, extend TRACKED_TABLES first.
  */
-import { chromium } from 'playwright';
+// `@playwright/test`, not bare `playwright`. Both resolve at runtime — the
+// test package depends on the driver — but only `@playwright/test` is in
+// package.json, so `npm run deadcode` (knip) fails the CI "Dead code" step on
+// an unlisted dependency. That step is a hard gate, so main has been RED since
+// this file landed. `chromium` is a documented export of @playwright/test.
+import { chromium } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';

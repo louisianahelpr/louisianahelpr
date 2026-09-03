@@ -11,21 +11,15 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
-  DialogContent,
-  DialogHero,
   DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogDestructiveAction,
   DialogFooter,
-  DialogSecondaryAction,
+  DialogHero,
   DialogPrimaryAction,
+  DialogSecondaryAction,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogFooter,
-  AlertDialogHero,
-} from "@/components/ui/alert-dialog";
 import { formatShortDate } from "@/lib/format";
 import { AlertTriangle, CheckCircle2, Clock, User, Briefcase, MessageSquare, ExternalLink, Send, Search, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -566,7 +560,7 @@ const AdminReports = () => {
 
       {/* Message Dialog */}
       <Dialog open={!!messageTarget} onOpenChange={(open) => { if (!open) setMessageTarget(null); }}>
-        <DialogContent>
+        <DialogContent role="alertdialog">
           <DialogHero
             title={`Message ${messageTarget?.name}`}
           />
@@ -590,20 +584,32 @@ const AdminReports = () => {
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={!!deleteReviewTarget} onOpenChange={(open) => { if (!open) setDeleteReviewTarget(null); }}>
-        <AlertDialogContent>
-          <AlertDialogHero
+      <Dialog open={!!deleteReviewTarget} onOpenChange={(open) => { if (!open) setDeleteReviewTarget(null); }}>
+        <DialogContent role="alertdialog">
+          <DialogHero
             title="Remove This Review?"
-            subtitle="This permanently deletes the review. The reviewee's star rating recalculates immediately — this can't be undone."
           />
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={deletingReview}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={deleteReportedReview} disabled={deletingReview} variant="destructive">
+          {/* WAS A `subtitle` PROP ON THE HERO — IT NEVER RENDERED.
+              DialogHero has shown the title alone since the 2026-07-25 "one main
+              title" decision, but it went on ACCEPTING `eyebrow`/`subtitle` and
+              discarding them, so this sentence has been dead in the shipped bundle
+              with no error, no warning and no type failure. Deleting the props from
+              the type surfaced six of these in one compile. The copy is not
+              decoration — it is the line that tells the reader what the button below
+              is about to do — so it moves into the body, which is where the same
+              decision already sent TipDialog's, ReviewForm's, InstantPayoutDialog's
+              and W9CollectionDialog's. */}
+          <DialogDescription>
+            This permanently deletes the review. The reviewee's star rating recalculates immediately — this can't be undone.
+          </DialogDescription>
+          <DialogFooter>
+            <DialogSecondaryAction disabled={deletingReview}>Cancel</DialogSecondaryAction>
+            <DialogDestructiveAction onClick={deleteReportedReview} disabled={deletingReview}>
               {deletingReview ? "Removing…" : "Remove Review"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </DialogDestructiveAction>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AdminViewShell>
   );
 };

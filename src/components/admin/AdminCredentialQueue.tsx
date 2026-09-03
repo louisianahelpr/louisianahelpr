@@ -53,6 +53,19 @@ const AdminCredentialQueue = () => {
   // the licence alone.
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkRunning, setBulkRunning] = useState(false);
+  // Expiry date per credential, keyed the same "<userId>:<credential>" way.
+  // review_credential() REFUSES to verify without one (migration
+  // 20260903012612), because get_user_credential_tier() fails closed on a NULL
+  // expiry — approving with no date would leave a helper wearing a Licensed
+  // badge that the job gate silently ignores.
+  //
+  // Deliberately NOT pre-filled with "a year from today": a default is a date
+  // nobody reads off the document, which is the exact failure being designed
+  // out. An empty box the admin has to fill from the COI in front of them is
+  // the point.
+  const [expiry, setExpiry] = useState<Record<string, string>>({});
+  const today = new Date().toISOString().slice(0, 10);
+  const hasExpiry = (key: string) => (expiry[key] ?? "") > today;
 
   const toggleSelected = (key: string) => {
     setSelected((prev) => {
@@ -61,6 +74,20 @@ const AdminCredentialQueue = () => {
       else next.add(key);
       return next;
     });
+  };
+
+  // Clearing a date must also untick the row, or a ticked-then-cleared
+  // credential rides along in the bulk approve and fails server-side.
+  const setExpiryFor = (key: string, value: string) => {
+    setExpiry((prev) => ({ ...prev, [key]: value }));
+    if (!(value > today)) {
+      setSelected((prev) => {
+        if (!prev.has(key)) return prev;
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
+    }
   };
 
   // unwrap() throws into React Query so a failed RPC flips isError on
@@ -78,12 +105,15 @@ const AdminCredentialQueue = () => {
     decision: "verified" | "rejected",
     reason?: string
   ) => {
-    setBusy(`${userId}:${credential}`);
+    const key = `${userId}:${credential}`;
+    setBusy(key);
     const { error } = await supabase.rpc("review_credential", {
       _user_id: userId,
       _credential: credential,
       _decision: decision,
       _reason: reason ?? undefined,
+      // Only meaningful on approval; the RPC nulls it out on a rejection.
+      _expires: decision === "verified" ? expiry[key] : undefined,
     });
     setBusy(null);
     if (error) {
@@ -106,6 +136,12 @@ const AdminCredentialQueue = () => {
    * and fans out a notification, and firing twenty at once is how you find the
    * rate limit during an incident. A queue this size is not worth the risk of
    * parallelism.
+   *
+   * Each credential carries its OWN expiry, taken from its own document. There
+   * is deliberately no "apply this date to everything selected" control: two
+   * COIs in the same batch renew on different days, and one date pasted across
+   * a batch is the same mistake as one rejection reason pasted across a batch.
+   * A row can only be ticked once its date is set, so this loop always has one.
    */
   const approveSelected = async () => {
     if (selected.size === 0) return;
@@ -119,6 +155,7 @@ const AdminCredentialQueue = () => {
         _user_id: userId,
         _credential: credential,
         _decision: "verified",
+        _expires: expiry[key],
       });
       if (error) {
         report(error, { tags: { source: "AdminCredentialQueue.approveSelected", credential } });
@@ -252,8 +289,9 @@ const AdminCredentialQueue = () => {
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input
                           type="checkbox"
-                          className="h-4 w-4 accent-[hsl(var(--bark))]"
+                          className="h-4 w-4 accent-[hsl(var(--bark))] disabled:opacity-40"
                           checked={selected.has(`${r.user_id}:license`)}
+                          disabled={!hasExpiry(`${r.user_id}:license`)}
                           onChange={() => toggleSelected(`${r.user_id}:license`)}
                           aria-label={`Select license for ${r.full_name || r.email}`}
                         />
@@ -262,11 +300,18 @@ const AdminCredentialQueue = () => {
                       <SignedOpenLink path={r.license_url} />
                     </div>
                     <DocPreview path={r.license_url} />
+                    <ExpiryField
+                      id={`${r.user_id}:license`}
+                      label="License expires"
+                      min={today}
+                      value={expiry[`${r.user_id}:license`] ?? ""}
+                      onChange={(v) => setExpiryFor(`${r.user_id}:license`, v)}
+                    />
                     <div className="flex gap-2">
                       <Button
                         size="sm"
                         className="flex-1"
-                        disabled={busy === `${r.user_id}:license`}
+                        disabled={busy === `${r.user_id}:license` || !hasExpiry(`${r.user_id}:license`)}
                         onClick={() => decide(r.user_id, "license", "verified")}
                       >
                         <CheckCircle2 className="w-4 h-4 mr-1" /> Approve
@@ -294,8 +339,9 @@ const AdminCredentialQueue = () => {
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input
                           type="checkbox"
-                          className="h-4 w-4 accent-[hsl(var(--bark))]"
+                          className="h-4 w-4 accent-[hsl(var(--bark))] disabled:opacity-40"
                           checked={selected.has(`${r.user_id}:insurance`)}
+                          disabled={!hasExpiry(`${r.user_id}:insurance`)}
                           onChange={() => toggleSelected(`${r.user_id}:insurance`)}
                           aria-label={`Select insurance for ${r.full_name || r.email}`}
                         />
@@ -304,11 +350,18 @@ const AdminCredentialQueue = () => {
                       <SignedOpenLink path={r.insurance_url} />
                     </div>
                     <DocPreview path={r.insurance_url} />
+                    <ExpiryField
+                      id={`${r.user_id}:insurance`}
+                      label="Policy expires"
+                      min={today}
+                      value={expiry[`${r.user_id}:insurance`] ?? ""}
+                      onChange={(v) => setExpiryFor(`${r.user_id}:insurance`, v)}
+                    />
                     <div className="flex gap-2">
                       <Button
                         size="sm"
                         className="flex-1"
-                        disabled={busy === `${r.user_id}:insurance`}
+                        disabled={busy === `${r.user_id}:insurance` || !hasExpiry(`${r.user_id}:insurance`)}
                         onClick={() => decide(r.user_id, "insurance", "verified")}
                       >
                         <CheckCircle2 className="w-4 h-4 mr-1" /> Approve
@@ -371,6 +424,56 @@ const AdminCredentialQueue = () => {
     </AdminViewShell>
   );
 };
+
+/**
+ * The expiry the admin reads off the document. Approving is blocked until this
+ * is set to a future date — see the `expiry` state comment above for why there
+ * is no default and no bulk "apply to all".
+ *
+ * `min` stops the past being pickable in the native picker; the RPC re-checks
+ * it server-side (`_expires <= current_date` raises), because a date input is
+ * a convenience, not a constraint.
+ */
+function ExpiryField({
+  id,
+  label,
+  min,
+  value,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  min: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const inputId = `expiry-${id}`;
+  return (
+    <div className="space-y-1">
+      <label htmlFor={inputId} className="block text-ds-11 font-semibold text-muted-foreground">
+        {label}
+      </label>
+      <input
+        id={inputId}
+        type="date"
+        min={min}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full rounded-ds-sm border border-border bg-background/60 px-2 py-1.5 text-ds-11 text-foreground"
+      />
+      {!value && (
+        <p className="text-ds-11 text-muted-foreground">
+          Required to approve — copy it from the document above.
+        </p>
+      )}
+      {value !== "" && value <= min && (
+        <p className="text-ds-11" style={{ color: "hsl(var(--burnt-sienna))" }}>
+          That date has already passed — this credential can't be approved.
+        </p>
+      )}
+    </div>
+  );
+}
 
 // Resolve a 5-minute signed URL on demand and open in a new tab.
 // user-documents bucket is private as of 2026-05-05 — admins authorize

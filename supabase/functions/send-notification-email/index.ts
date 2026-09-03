@@ -143,11 +143,49 @@ Deno.serve(async (req) => {
       })
     }
 
-    const { data: prefs } = await supabase
+    // `notification_preferences` rows were created LAZILY — only when a user
+    // opened Profile → Notifications and flipped something — so 85% of prod
+    // accounts had none, and the check below read a missing row as "opted out
+    // of everything". The measured result: not one notification email had
+    // ever reached a user without a row (notification_logs, 2026-09-02 — 46
+    // sent, every one to the handful of users who had a row; 6 skipped
+    // `preference_off`, every one to a user who did not).
+    //
+    // A missing row means the user's DEFAULT preference set, not opt-out.
+    // Upsert-then-read rather than a default map in TypeScript: the defaults
+    // differ per column (email_messages, email_promotions and
+    // email_transit_updates default FALSE, the rest TRUE) and restating them
+    // here would make this the fourth place that defines them. The DB column
+    // defaults stay the single source of truth. `user_id` is UNIQUE
+    // (migration 20260312023604), which is what makes onConflict work.
+    const { error: ensureError } = await supabase
+      .from('notification_preferences')
+      .upsert({ user_id }, { onConflict: 'user_id', ignoreDuplicates: true })
+    if (ensureError) {
+      await logSkip('failed', `preference_row_ensure_failed: ${ensureError.message}`)
+      return new Response(
+        JSON.stringify({ error: 'Could not resolve notification preferences' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
+
+    // maybeSingle plus an explicit error check. `.single()` reports "no row"
+    // as an error and this call dropped that error, which collapsed "the user
+    // opted out" and "we could not read the preference" into the same silent
+    // skip. They need different outcomes.
+    const { data: prefs, error: prefsError } = await supabase
       .from('notification_preferences')
       .select(prefColumn)
       .eq('user_id', user_id)
-      .single()
+      .maybeSingle()
+
+    if (prefsError) {
+      await logSkip('failed', `preference_read_failed: ${prefsError.message}`)
+      return new Response(
+        JSON.stringify({ error: 'Could not read notification preferences' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
 
     if (!prefs || !(prefs as any)[prefColumn]) {
       await logSkip('skipped', 'preference_off')

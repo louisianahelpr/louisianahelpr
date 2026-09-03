@@ -75,7 +75,16 @@ export const HelprMark = ({ to = "/", size = "md", hideSuffix = false, emblemOnl
             style={{
               fontSize: s.la,
               fontWeight: 400,
-              color: "hsl(var(--burnt-sienna))",
+              // --accent-ink, NOT --burnt-sienna. The two are byte-identical in
+              // light mode (19 75% 35%), so nothing about the light wordmark
+              // moves; only the dark value differs, and that is the whole point
+              // — this is 15.2px text, which needs the full 4.5:1. Measured
+              // from the painted pixels of the built bundle: raw
+              // --burnt-sienna gave 3.84:1 on the dark header surface across
+              // TWELVE public screens, --accent-ink gives 5.74:1. This is
+              // precisely the case --accent-ink was minted for: the accent used
+              // as TEXT rather than as a fill, border or icon.
+              color: "hsl(var(--accent-ink))",
               // Same airy small-caps tracking we use for metadata
               // throughout the app — high-end editorial feel.
               letterSpacing: "0.22em",

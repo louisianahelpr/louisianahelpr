@@ -158,10 +158,20 @@ const TopicSection = ({
           <span className="inline-flex flex-col gap-0.5 min-w-0">
             <span className="inline-flex items-center gap-2">
               {section.topic}
+              {/* 0.7 alpha, not 0.6. At 0.6 this composited to 3.64:1 over
+                  the topic card in light mode and this is 11px text, so AA
+                  wants 4.5; 0.7 measures 4.80:1. Dark mode was already fine
+                  (4.59:1 at 0.6, 5.72:1 now) because --olivewood inverts to a
+                  near-white there — which is exactly why a light-mode-only
+                  eyeball never caught it, and why the gate has to measure
+                  both. `aria-hidden` hides the count from a screen reader
+                  because the topic name already carries the meaning; it does
+                  nothing at all for a sighted reader, so it is not a reason to
+                  paint this below AA. */}
               <span
                 aria-hidden
                 className="font-sans font-medium normal-case tracking-normal text-ds-11"
-                style={{ color: "hsl(var(--olivewood) / 0.6)" }}
+                style={{ color: "hsl(var(--olivewood) / 0.7)" }}
               >
                 {section.items.length}
               </span>

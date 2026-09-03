@@ -584,7 +584,7 @@ const Login = () => {
           <span className="w-px flex-1" style={{ backgroundColor: "hsl(var(--olivewood) / 0.14)" }} />
           <span
             className="text-ds-11 tracking-[0.2em] uppercase font-serif italic"
-            style={{ color: "hsl(var(--burnt-sienna) / 0.9)" }}
+            style={{ color: "hsl(var(--accent-ink) / 0.9)" }}
           >
             or
           </span>
@@ -598,17 +598,27 @@ const Login = () => {
         {/* The OR rule only makes sense when the two methods are stacked. At
             lg+ they sit side by side, so the columns themselves do the
             separating. */}
-        {/* 0.9 alpha, not 0.7. Measured: burnt-sienna at 0.7 composited over
-            --parchment is 3.28:1, and this is 11px text, so WCAG AA wants 4.5.
-            0.9 measures 4.86:1. The desktop twin above carries the same value
-            for consistency — axe skips it because its wrapper is aria-hidden,
-            but aria-hidden does nothing for a sighted user reading low-contrast
-            text, so "not flagged" was never the same as "fine". */}
+        {/* --accent-ink at 0.9 alpha, not --burnt-sienna and not 0.7.
+            Two separate measurements, a month apart, and the second one is the
+            reason the token changed:
+              - 0.7 alpha composited over --parchment is 3.28:1, and this is
+                11px text, so WCAG AA wants 4.5. 0.9 measures 4.86:1.
+              - That number was LIGHT MODE ONLY. In dark mode --burnt-sienna
+                lifts to 19 65% 52%, which at 0.9 over the dark auth canvas
+                measures 4.27:1 — a fail that no check could see, because the
+                gate read axe's `violations` and axe files every contrast
+                result on this gradient canvas under `incomplete`.
+                --accent-ink is byte-identical in light mode (so 4.86:1 is
+                unchanged) and lifted in dark, where it measures 6.27:1.
+            The desktop twin above carries the same value for consistency —
+            axe skips it because its wrapper is aria-hidden, but aria-hidden
+            does nothing for a sighted user reading low-contrast text, so "not
+            flagged" was never the same as "fine". */}
         <div className="flex items-center gap-3 lg:hidden">
           <span className="h-px flex-1" style={{ backgroundColor: "hsl(var(--olivewood) / 0.14)" }} />
           <span
             className="text-ds-11 tracking-[0.2em] uppercase font-serif italic"
-            style={{ color: "hsl(var(--burnt-sienna) / 0.9)" }}
+            style={{ color: "hsl(var(--accent-ink) / 0.9)" }}
           >
             or
           </span>

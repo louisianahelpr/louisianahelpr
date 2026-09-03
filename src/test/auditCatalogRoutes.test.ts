@@ -101,6 +101,37 @@ const ALLOWED_UNRESOLVED: Record<string, string> = {
   "not-found": "The row's entire purpose is to render the 404 screen.",
 };
 
+/**
+ * Route patterns no catalog row covers, and why that is correct.
+ *
+ * This list is checked BOTH ways. A pattern here must be absent from the
+ * catalog (or it is stale), and — the part that matters — its route element
+ * must actually be a redirect, asserted against App.tsx below. A route that
+ * paints pixels cannot be excused by writing a sentence about it here.
+ *
+ * `*` is the NotFound catch-all, which the `not-found` catalog row renders;
+ * it is listed because resolveRoute() deliberately returns null for a URL that
+ * matches nothing else, so the row can never "resolve" to it.
+ */
+const UNSWEPT_ROUTES: Record<string, string> = {
+  "*": "The NotFound catch-all; the `not-found` catalog row is what renders it.",
+  "/warnings": "Navigate to /profile?tab=warnings — the catalog sweeps the profile tab.",
+  "/j/:id": "ShortLinkRedirect — resolves an id and navigates; paints nothing.",
+  "/u/:id": "ShortLinkRedirect — resolves an id and navigates; paints nothing.",
+  "/m/:id": "ShortLinkRedirect — resolves an id and navigates; paints nothing.",
+  "/messages/:id": "ShortLinkRedirect onto the real /messages thread, which the catalog sweeps.",
+  "/post-job/*": "ShortLinkRedirect for legacy /post-job/* deep links onto /post-job.",
+  "/legal/:tab": "ShortLinkRedirect onto /legal?tab=…, which the catalog sweeps.",
+};
+
+/** The element source for a given `path=`, so an excuse can be verified. */
+function elementFor(path: string): string | null {
+  for (const m of appSrc.matchAll(/<Route\s+path="([^"]+)"\s+element=\{([\s\S]*?)\}\s*\/>/g)) {
+    if (m[1] === path) return m[2];
+  }
+  return null;
+}
+
 describe("audit catalog matches the real route table", () => {
   it("every ANON screen resolves to a registered, publicly reachable route", () => {
     const broken = screensIn("ANON_SCREENS")
@@ -123,6 +154,65 @@ describe("audit catalog matches the real route table", () => {
       .map((s) => `${s.name} (${s.url}) → no route: renders NotFound`);
 
     expect(broken, `Catalog rows with no matching route:\n  - ${broken.join("\n  - ")}`).toEqual([]);
+  });
+
+  /**
+   * The direction the catalog was never checked in.
+   *
+   * The two tests above ask "does every catalog row render a real route?" —
+   * they catch a row pointing at a route that no longer exists. They cannot
+   * catch the opposite and more expensive failure: a route that exists and
+   * that no row points at. Such a route is swept by nothing, forever, and
+   * every sweep still reports "N screens, clean" — the number is simply
+   * measured over a smaller app than the one that shipped.
+   *
+   * Measured when this test was written: 46 registered patterns, 71 catalog
+   * rows, and 8 patterns no row reached. All eight turned out to be redirects,
+   * so the honest fix was to name them rather than to sweep them — but nothing
+   * had established that, and the next route added will not be a redirect.
+   *
+   * This is the same shape as the registries-checked-against-themselves trap:
+   * derive the set from the world (App.tsx), then diff it against the list.
+   */
+  it("every registered route is swept by a catalog row, or excused with a verified reason", () => {
+    const rows = [
+      ...screensIn("ANON_SCREENS"),
+      ...screensIn("AUTHED_SCREENS"),
+      ...screensIn("ADMIN_SCREENS"),
+    ];
+    const covered = new Set(rows.map((s) => resolveRoute(s.url)).filter(Boolean));
+
+    const unswept = [...new Set(registered)]
+      .filter((r) => !covered.has(r) && !UNSWEPT_ROUTES[r])
+      .map((r) => `${r} → no catalog row renders it, and it is not in UNSWEPT_ROUTES`);
+
+    expect(
+      unswept,
+      "Routes no sweep will ever visit. Add a row to the right list in " +
+        "e2e/happy-path/auditRoutes.ts, or — only if the route paints nothing — " +
+        `add it to UNSWEPT_ROUTES with the reason:\n  - ${unswept.join("\n  - ")}`,
+    ).toEqual([]);
+  });
+
+  it("every UNSWEPT_ROUTES excuse is still true", () => {
+    const wrong = Object.keys(UNSWEPT_ROUTES)
+      .filter((p) => p !== "*")
+      .map((p) => {
+        if (!registered.includes(p)) return `${p} → no longer a route; drop it from UNSWEPT_ROUTES`;
+        const el = elementFor(p);
+        if (el === null) return `${p} → could not read its element from App.tsx`;
+        // The whole excuse is "it paints nothing". Anything that is not a
+        // redirect renders a screen, and a screen has to be swept.
+        if (!/Navigate|ShortLinkRedirect/.test(el))
+          return `${p} → excused as a redirect but its element is ${el.trim().slice(0, 60)}…; it renders a screen, so it needs a catalog row`;
+        return null;
+      })
+      .filter(Boolean);
+
+    expect(
+      wrong,
+      `UNSWEPT_ROUTES entries that no longer describe the app:\n  - ${wrong.join("\n  - ")}`,
+    ).toEqual([]);
   });
 
   it("ADMIN_SCREENS covers every view in the Admin page's View union", () => {

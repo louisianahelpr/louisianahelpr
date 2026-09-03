@@ -63,7 +63,17 @@ export const SECTION_ACCENTS: Record<string, string> = {
   // palette this map exists to produce. Same byte-identical-key drift the
   // TOPICS comment above was written about; it just failed quietly here
   // because the fallback looked like a real colour.
-  "Membership & Billing": "hsl(var(--sage))",
+  //
+  // The seventh accent was --sage, and --sage IS NOT A TEXT COLOUR. Every
+  // accent in this map is rendered as the topic's 12px/600 label, and --sage
+  // (78 9% 53%) measured 2.75:1 on the light topic card — the worst contrast
+  // on the whole public surface, and the fix for the missing-key bug is what
+  // introduced it. --sage-ink exists for "sage as a label", but it is
+  // byte-identical to --bark, which "Posting a Job" already uses, so it would
+  // have re-created the duplicate-accent problem this entry was added to
+  // solve. --stormy-sky is a distinct hue from all six others, is documented
+  // AA in both themes, and measures 5.55:1 light / 6.71:1 dark here.
+  "Membership & Billing": "hsl(var(--stormy-sky))",
 };
 
 // ─── FAQ data ─────────────────────────────────────────────────────────────────

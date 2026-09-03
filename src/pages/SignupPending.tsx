@@ -110,7 +110,15 @@ const SignupPending = () => {
       className="w-9 h-9 rounded-ds-md flex items-center justify-center flex-shrink-0 mt-0.5"
       style={{ background: "hsl(var(--bark) / 0.1)" }}
     >
-      <span className="text-ds-15 font-bold" style={{ color: "hsl(var(--bark))" }} aria-hidden="true">
+      {/* --sage-ink, not --bark. Byte-identical in light mode (both 70 20%
+          33%, both measure 5.31:1 here), so the light badge does not move; the
+          dark value is the lifted one. The tint behind the numeral is
+          --bark/0.1, and that 10% wash is enough to take the DARK numeral from
+          4.95:1 on the bare card to 4.21:1 inside the badge — under the 4.5:1
+          this 15px text needs. --sage-ink gives 6.49:1 there. The badge's own
+          tint darkening its own label is the kind of thing only a measurement
+          of the composited pixels catches. */}
+      <span className="text-ds-15 font-bold" style={{ color: "hsl(var(--sage-ink))" }} aria-hidden="true">
         {step}
       </span>
     </div>

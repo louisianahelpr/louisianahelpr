@@ -15,19 +15,33 @@ posted, no Stripe key of any kind was touched.
 
 ## What I fixed
 
-**Nothing yet — the orchestrator has not released this lane from plan mode.**
-Two launch blockers (CC-001, CC-003) are reproduced, root-caused to specific
-lines, and have validated fixes waiting; both live in files this lane owns
-(`src/main.tsx`, `src/integrations/supabase/client.ts`, `src/lib/socialAuth.ts`
-— none is on the orchestrator-only list). The fix plan is submitted and pending
-approval. This is the "not yet released" reason from PROTOCOL §8, not a
-deferral on my part.
+**CC-001 and CC-003 — both launch blockers — are fixed and verified against the
+production bundle.** Awaiting `lh-silent-failure`'s REVIEW-ONLY pass and the
+orchestrator's typecheck gate before committing.
+
+| file | change |
+|---|---|
+| `index.html` (+93) | Inline pre-module script that probes `localStorage` and installs a `Map`-backed `Storage` when the browser refuses it. Closes **CC-001**. |
+| `src/main.tsx` (+79/−29) | Register the `SIGNED_OUT` cache purge **before**, and independently of, the analytics load; analytics is now strictly additive. Closes **CC-003**. |
+
+Two files, no new source files, and nothing touching
+`src/integrations/supabase/client.ts` — so the `lane-onboarding-auth` collision
+is avoided outright rather than deferred.
+
+**The build caught the first fix being wrong.** The originally-approved shape —
+a first import in `main.tsx` — measured clean on the dev server and changed
+*nothing* in the bundle. Details under CC-001. Without a `dist/` check this lane
+would have marked a blocker fixed while it was fully intact.
+
+**Not fixed, deliberately:** CC-006 is `lh-onboarding-auth`'s territory — filed
+and relayed, not touched. CC-002, CC-004 and CC-005 are real but non-blocking
+and are proposed separately, so a blocker fix is not held behind polish.
 
 ---
 
 ## Headline
 
-**5 findings: 2 HIGH (both launch blockers), 1 MEDIUM, 2 LOW.**
+**6 findings: 3 HIGH (all launch blockers), 1 MEDIUM, 2 LOW.**
 
 Both blockers are the same shape, and it is worth naming because it is *not* the
 shape this lane was sent to look for. The server-side concurrency machinery in
@@ -42,9 +56,58 @@ silently disarms something load-bearing:
 
 - **CC-001** — a bare `localStorage` read hangs boot forever.
 - **CC-003** — an empty `catch` skips the sign-out privacy control.
+- **CC-006** — an unhandled `FileReader` abort makes an awaited promise never
+  settle, so signup's second half never runs. This is RW-004's missing
+  mechanism.
 
-Neither produces a symptom. CC-003 in particular leaves the app looking
-*perfectly* signed out while the previous user's data sits in IndexedDB.
+None of the three produces a symptom. CC-003 leaves the app looking *perfectly*
+signed out while the previous user's data sits in IndexedDB; CC-006 leaves an
+account created, a spinner turning, and no error anywhere.
+
+The common thread is worth stating plainly, because it is the thing a checklist
+cannot catch: **each of these is a guard that is present, looks correct, and
+silently does not cover the case that matters.** `oauth-popup-bridge.js` wraps
+every function but one. `main.tsx`'s catch is honest about analytics and
+accidentally swallows a privacy control. `fileToBase64` handles two of
+`FileReader`'s three terminal events. None is a missing guard; all three are
+guards with a hole, which is why they survived previous passes.
+
+---
+
+## Method — how CC-001 was narrowed from "React never mounts" to two lines
+
+Recorded because the technique generalises, and because the result is only
+trustworthy if the method is inspectable.
+
+"React never mounts with storage blocked" could be blamed on a dozen modules,
+and the browser is no help: the failure surfaces as a single `pageerror` with an
+**empty stack**, because it is thrown during module evaluation. Bisecting by
+commenting things out would have meant editing `src/`, which plan mode
+(correctly) forbids during a sweep.
+
+So instead: redefine `window.localStorage` as a **getter that records
+`new Error().stack` and then decides**. Given an allowlist of stack substrings,
+it returns the real object when the caller matches and throws otherwise. Each
+run's *last recorded frame* is the next uncaught access. Add that frame to the
+allowlist, re-run, and the next one surfaces:
+
+| run | allowlist | last frame reached | mounted |
+|---|---|---|---|
+| 1 | `index.html:294` | `shouldAutoFinishOAuthRedirect` (capgo) | no |
+| 2 | `+ twitter-provider` | `supabase/client.ts:26:74` | no |
+| 3 | `+ supabase/client.ts` | 21 more, all absorbed by `safeStorage.safeGet` | **yes** |
+
+Three runs, no source edits, and the output is a *complete* fix list rather than
+a first offender — run 3 is what proves nothing else is lurking behind the two,
+which is the part that makes the fix small and provable rather than a guess.
+
+The same shape then validated the fix before proposing it: install a
+memory-backed `Storage` in an init script and confirm the app boots *and*
+`/login` renders. Evidence for a fix, with `src/` still untouched.
+
+Generalises to any module-scope global — `indexedDB`, `sessionStorage`,
+`matchMedia`, `navigator.*`. Harnesses: `.audit-scratch/boot-layers.mjs`,
+`.audit-scratch/fix-probe.mjs`.
 
 ---
 
@@ -54,7 +117,15 @@ Neither produces a symptom. CC-003 in particular leaves the app looking
 
 If `localStorage` access throws, **React never mounts.** The user gets
 `index.html`'s `#boot-loader` indefinitely — no error, no retry, no message.
-Marketing site and app both dead. Identical in Chromium and WebKit.
+Marketing site and app both dead.
+
+**Reproduced in Chromium AND WebKit, and against the production bundle — not
+just the dev server.** Both halves matter to the severity. WebKit is the engine
+this app actually ships in (Capacitor/WKWebView), so a Chromium-only result
+would have been a compatibility note; reproducing in *both* means this is not a
+"desktop Safari edge case" but every embedded-browser and privacy-hardened user,
+on a boot path with **no recovery and no error**. That is what makes it a
+blocker rather than a caveat.
 
 The trigger is a real user setting, not a lab construct: Safari **"Block All
 Cookies"**, a WKWebView or embedded browser with storage disabled, or
@@ -87,7 +158,26 @@ peeling one site off per run:
 
 So two sites are fatal and guarding both is *sufficient* — everything downstream
 is already defended. Screenshots: `boot-blocked.png`, `boot-wk-blocked.png`,
-`boot-clean.png`.
+`boot-clean.png`. The narrowing method is written up in **Method** above.
+
+**The dev server and the bundle have DIFFERENT fatal sets — building corrected
+this finding AND caught the first fix being wrong.** In `dist/`,
+`@capgo/capacitor-social-login` is **not** on the eager path: Rollup splits it
+into a lazy chunk, so `shouldAutoFinishOAuthRedirect` never runs at boot. It was
+the first offender in dev only because the dev server serves unbundled modules
+eagerly. The single fatal site in the bundle is the bare `localStorage`
+identifier reaching `assets/client-*.js`. A root cause derived from dev module
+order can name the wrong module; both are recorded above because both are true
+of their own surface, and the *fix* has to cover the union.
+
+**Confirmed against `dist/`, not only the dev server.** `npm run build` in the
+worktree (`BUILD_EXIT=0`), served on `:5232` via `vite preview`, probe re-run:
+Chromium `MOUNTED=false`, boot-loader visible, `pageerror: The operation is
+insecure.`; WebKit identical; control on the same bundle `MOUNTED=true`,
+textLen 658, boot-loader gone. Artifacts `dist-boot-blocked.png`,
+`dist-boot-wk-blocked.png`. (Both offenders are JS rather than CSS, so the
+specific minifier-collapse trap does not apply here — but the bundle is what
+ships, so it is what was measured.)
 
 **Sibling cases all survive today** — control runs via `node .audit-scratch/boot.mjs <case>`, all MOUNTED=true, root children 3, textLen 658: corrupt
 non-JSON session, half-written session, structurally-valid-but-garbage expired
@@ -95,13 +185,91 @@ session, quota-full `setItem`, IndexedDB blocked. The corrupt-session recovery
 this lane was specifically sent to test is **working correctly**; the hole is
 storage being *blocked*, not *corrupt*.
 
-**Validated fix** — `node .audit-scratch/fix-probe.mjs`, run without editing `src/`:
-probe `localStorage` once at the very top of boot and, if unusable, install a
-memory-backed `Storage` in its place. Result: `{usedFallback:true, children:3, textLen:658, bootLoader:false, MOUNTED:true, errs:[]}` — **zero page
-errors** — then `/login` returned `{emailField:true, textLen:110}` — a
-user with blocked storage gets a fully usable app whose session lives in memory
-for the session's lifetime. That is the correct degradation, and it fixes both
-sites plus any future one in a single place.
+**The fix, and the dead end that preceded it.** The first attempt was
+`import "./lib/storageFallback"` as the first import in `main.tsx` — correct by
+ES semantics, validated against the dev server, and it left the production
+bundle **completely unchanged** at `MOUNTED=false`. Rollup inlines a small
+side-effect module into the **entry chunk body**, and an entry chunk body runs
+only after every chunk it imports has been evaluated; the offending reads live
+in those vendor chunks, so they ran first regardless of import position. **No
+import position fixes this.**
+
+The shipped fix is therefore an inline `<script>` in `index.html`, above the
+existing pre-paint theme resolver — which, it turns out, is inline for exactly
+this reason, a fact the file did not record until now. It probes `localStorage`
+with a real round-trip and, if unusable, installs a `Map`-backed `Storage` in
+its place. One place, covering both the dev-eager and bundle-eager offenders and
+any future one, and touching no file that collides with `lh-onboarding-auth`.
+
+**Verified against a fresh `dist/` (`BUILD_EXIT=0`), before → after:**
+
+| case | engine | before | after |
+|---|---|---|---|
+| blocked | Chromium | MOUNTED=false, textLen 0, boot-loader visible | **MOUNTED=true, textLen 658, boot-loader gone** |
+| blocked | WebKit | MOUNTED=false, textLen 0, boot-loader visible | **MOUNTED=true, textLen 658, boot-loader gone** |
+| clean · quota-full · idb-blocked · corrupt-nonjson · corrupt-expired | Chromium | MOUNTED=true | MOUNTED=true — no regressions |
+
+The user gets a working app whose session lives in memory for the lifetime of
+the tab: they can sign in and use everything, and are signed out again on
+reload. That is the right degradation for someone who asked their browser not to
+persist anything, and it is strictly *more* private than the normal path,
+because nothing is written to disk. Free side effect: the shim sits above the
+theme script, so a dark-mode user with blocked storage now gets their theme
+instead of the hardcoded light fallback.
+
+### CC-006 — HIGH · **LAUNCH BLOCKER** — signup's second half can never run, silently
+
+**This is RW-004's missing mechanism.** `lh-onboarding-auth` proved
+`complete-signup` was never *entered* (no `edge_rate_limit_log` row, which that
+function writes as its first action). This is why the invocation never fires.
+
+`fileToBase64` (`signupHelpers.ts:70-78`) attaches only `onload` and `onerror`.
+`FileReader` has **three** terminal events — `load`, `error` and **`abort`**. An
+aborted read resolves nothing and rejects nothing, so the `await` hangs forever.
+
+That await is the **first statement** in `completeProfile` (`Signup.tsx:241`),
+and `completeProfile` runs *after* `supabase.auth.signUp` has already created the
+account. Every consequence matches the reported symptom:
+
+| observed in RW-004 | why |
+|---|---|
+| account is created | the `signUp` above already returned |
+| `complete-signup` never entered | `functions.invoke` is never reached — hence the absent rate-limit row |
+| no error, no toast | the `catch` at `Signup.tsx:398` never runs, so no `report()` |
+| (unreported, but implied) button spins forever | the `finally` never runs, so `setLoading(false)` never fires |
+| phone, city, DOB, photo blank | the profile keeps only what `handle_new_user` inserted — `user_id`, `full_name`, `email`. **The four missing fields are exactly the payload of the call that never fired.** |
+| intermittent | depends on the image and the device |
+
+**Proof** — imported the app's own module through the Vite graph and raced it
+against a timeout (`.audit-scratch/never-settles.mjs`):
+
+| case | result |
+|---|---|
+| control, ordinary `File` | `RESOLVED` |
+| aborted read, 2MB `File` | **`NEVER_SETTLED`** after 4000ms — neither resolved nor rejected |
+| handler probe (setter spy on the `FileReader`) | `["onload","onerror"]` — `onabort` never attached |
+
+The avatar is a **hard requirement** of the signup form ("Add a profile photo"
+blocks submit, observed 4/4 in my stubbed runs), so *every* signup passes
+through this function.
+
+**A second path produces byte-identical evidence.**
+`supabase.functions.invoke` is called with no `AbortSignal` and no timeout
+anywhere in the signup path (grep-verified). A stalled connection on a flaky
+mobile network hangs the same way, with the same silence. Both must be closed or
+the intermittency simply moves.
+
+**The codebase already learned this exact lesson and did not apply it here.**
+`keychainStorageAdapter.ts:24-38` says verbatim: *"The try/catch below is NOT
+sufficient on its own. It catches a REJECTION; it does nothing for a Capacitor
+bridge call that never settles at all."* That file added a `HARD_TIMEOUT` for
+precisely this. Meanwhile `grep -rn onabort src/` returns **zero hits app-wide**,
+and the only `.abort()` in `src/` is `useMapKitJs.ts:133` — which does correctly
+pair it with a timeout. So this is a known, solved pattern with two unguarded
+instances left on the highest-traffic path in the funnel.
+
+Owned by `lh-onboarding-auth` for the fix; filed here because the mechanism is
+this lane's class. Relayed via `team-lead`.
 
 ### CC-003 — HIGH · **LAUNCH BLOCKER** — an ad blocker disarms the sign-out cache wipe
 
@@ -131,9 +299,37 @@ include `["currentUser", <uid>]`, `["dashboardContext", <uid>]`,
 the scenario `queryClient.ts`'s own header comment says the wipe exists to
 prevent.
 
-**What makes it a blocker rather than a bug:** in *both* runs the auth token is
+**What makes it a blocker rather than a bug.** In *both* runs the auth token is
 correctly removed from `localStorage`, so the app presents as completely signed
-out. There is no symptom. Nobody would ever report this.
+out. There is no symptom, no error, and nothing a user could ever report — a
+privacy control that fails **silently and invisibly** is strictly worse than one
+that fails loudly, because nothing will ever prompt anyone to look.
+
+And the precondition is not exotic. "An ad blocker is installed" describes a
+large fraction of real browsers; this is not a contrived failure injected to
+make a point, it is the median privacy-conscious user. The two facts compose
+badly: the people most likely to trip this are exactly the people who would care
+most that it happened.
+
+**Fix, and verification against `dist/`.** The `onAuthStateChange` registration
+now happens **first**, in its own `try`, loading only the three modules the wipe
+itself needs. Analytics loads afterwards in a separate `try` and attaches
+identity to that listener through a nullable `analytics` holder — so it is
+strictly additive and its absence can no longer disarm anything. The privacy
+control's own catch is no longer empty: it `report()`s to Sentry, because a
+catch that silently swallows a privacy control failing is the exact defect this
+finding is about. The analytics block keeps its empty catch, which is correct
+there.
+
+Verified on the production bundle, signing out through the **real logout UI**
+rather than a scripted `signOut()`:
+
+| run | before | after (pre-fix) | after (post-fix) |
+|---|---|---|---|
+| CONTROL | 73,743 B · 13 queries · uid present | 88 B · 0 · uid absent | 88 B · 0 · uid absent |
+| POSTHOG BLOCKED | 73,743 B · 13 queries · uid present | **73,743 B · 13 · uid present** | **88 B · 0 · uid absent** |
+
+Both arms now match. Harness `.audit-scratch/signout-dist.mjs`.
 
 ### CC-002 — MEDIUM — the post-job draft has no cross-tab coordination
 
@@ -213,9 +409,11 @@ is not.
 
 ---
 
-## RW-004 — what I ruled out (relayed to `team-lead`, not filed)
+## RW-004 — ruled out, then solved (see CC-006)
 
-Not reproduced. Ruled out from my angle, so nobody re-derives it:
+**Resolved.** `lh-onboarding-auth` established that `complete-signup` was never
+*entered*; **CC-006 above is why it never fires**. What follows is what I ruled
+out on the way there, kept so nobody re-derives it:
 
 - **Not a zero-row UPDATE.** `complete-signup/index.ts:552-566` already does
   `.update(...).select("user_id")` and returns 500 on zero rows.
@@ -237,14 +435,15 @@ the loss is silent rather than a 400 — by design the server cannot tell
 "deferred on purpose" from "the client lost them" (see its own comment at
 `:447-451`).
 
-**One live lead handed off:** `src/components/DateWheelPicker.tsx:68-85` commits
+**A narrower lead, still open and much smaller than CC-006:**
+`src/components/DateWheelPicker.tsx:68-85` commits
 the month/day/year value on a **90ms debounced scroll-settle**, not on scroll. A
 submit landing inside that window takes the pre-scroll value. Narrow, but a
 genuine timing-dependent silent drop on exactly one of the four named fields
 (`date_of_birth`), and it would present as intermittent.
 
 **Evidence check.** `npm run check:audit-evidence -- docs/audit/launch-2026-09/lanes/lh-concurrency-cache.md`
-reports 23 claims / 3 with a recognised artifact. I attached the missing real
+reports 32 claims / 4 with a recognised artifact. I attached the missing real
 artifacts (the `pg_indexes` query behind the payout claim, the `file:line` behind
 the tip and webhook rows, the probe invocations and their literal output) rather
 than reword anything. The residual count is the checker's own heuristic firing on
@@ -261,13 +460,19 @@ listed below.
 
 Everything below was opened or executed. Nothing in scope is unlisted.
 
+**Production bundle:** `npm run build` (`BUILD_EXIT=0`) served via
+`vite preview` on `:5232`; CC-001's blocked-storage probe re-run there in both
+Chromium and WebKit, plus a clean control.
+
 **Executed live (Playwright, dev server :5231):** `/` (Chromium + WebKit),
 `/signup` step 1 + step 2, `/login`, `/dashboard` (authed, 10 seeded jobs),
 job-detail sheet + save control, `/post-job` entry + form (two tabs, one
 context). Storage matrix: clean · corrupt-nonjson · corrupt-halfjson ·
 corrupt-expired · blocked · quota-full · idb-blocked. Failure injection:
 `saved_jobs` → 500; PostHog chunk → `blockedbyclient`; `auth/v1/signup` and
-`functions/v1/complete-signup` → stubbed.
+`functions/v1/complete-signup` → stubbed. Module-level: imported
+`signupHelpers.ts` and `integrations/supabase/client.ts` through the Vite graph
+to exercise `fileToBase64` and `signOut()` directly.
 
 **Read (source):** `lib/queryClient.ts` · `lib/queryPersister.ts` ·
 `lib/realtimeRecovery.ts` · `lib/safeStorage.ts` · `lib/socialAuth.ts` ·
@@ -298,12 +503,8 @@ and 46 `gcTime` sites (enumerated; sampled for freshness-critical surfaces).
 2. **Live double-tap on money buttons** (pay, release, tip, cash out, redeem).
    Forbidden by the standing constraint — no live Stripe. Reasoned about from
    the idempotency keys and DB constraints above instead, as instructed.
-3. **CC-001 against the production bundle.** Reproduced on the dev server in
-   both engines; I asked the orchestrator for the `npm run build` gate to
-   confirm against `dist/` per CLAUDE.md's minifier rule and had not received it
-   at time of writing. The defect is a bare identifier access in TS source, not
-   a CSS/minifier artifact, so the risk of a dev-only false positive is low —
-   but it is not confirmed and I am not claiming it is.
+3. ~~CC-001 against the production bundle.~~ **CLOSED.** Built and re-probed
+   against `dist/` in both engines; see CC-001 above. No longer unverified.
 4. **The native WKWebView surface.** All browser work was Playwright Chromium +
    WebKit. Blocked-storage behaviour on a real iOS device with Safari's "Block
    All Cookies" was not driven; the WebKit result is the closest proxy.

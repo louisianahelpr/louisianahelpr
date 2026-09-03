@@ -41,8 +41,9 @@ non-admin needs a non-admin token, not an admin one.
 
 I created a throwaway account (`helpr-audit-adminlane@mailinator.com`), minted a
 real JWT for it, and called every admin RPC and edge function with it. Every
-target id was the sentinel `00000000-0000-4000-8000-000000000000`, so a check
-that failed open would have landed on "not found" rather than damage.
+target id was the sentinel `00000000-0000-4000-8000-000000000000` — **which
+bounds the blast radius only for the functions that take an id, and I wrongly
+claimed it bounded all of them; see §1a before reusing this probe.**
 
 Probe `scratchpad/lane-admin-authz-probe.mjs`, output `~/.lh-audit/admin-authz-probe.txt`, verbatim:
 
@@ -76,9 +77,12 @@ Probe `scratchpad/lane-admin-authz-probe.mjs`, output `~/.lh-audit/admin-authz-p
 
 Three notes on reading that table:
 
-- `admin_support_queue` returning `200 []` (probe line 2) is correct and deliberate — the
-  function embeds `AND public.has_role(auth.uid(),'admin')` in its WHERE clause
-  so a non-admin gets no rows rather than an error.
+- `admin_support_queue` returning `200 []` (probe line 2) is **not a pass** — I
+  first read it as "correct and deliberate", because the function does embed
+  `AND public.has_role(auth.uid(),'admin')` in its WHERE clause so a non-admin
+  gets no rows rather than an error. But prod holds zero `reported_type='support'`
+  rows, so an admin would see `[]` too and the test distinguishes nothing.
+  Corrected below and filed as AM-010.
 - `apply_cancellation_violation_consequence` returning `job_not_found` is
   correct — it is a *user*-facing RPC that authorizes on job ownership, not an
   admin one. My brief listed it under the admin consequence ladder; that was a
@@ -173,8 +177,11 @@ run does not repeat it.
 | AM-006 | MEDIUM | `auto_restrict_repeat_violators()` swallows every error — a suspension that fails to apply leaves the violator active with no trace |
 | AM-009 | MEDIUM | One blocked message runs through TWO disagreeing consequence ladders — different counters, different windows, different ceilings, neither aware of the other |
 | AM-004 | LOW | `/admin?view=audit` is 44% non-admin noise (89 of 202 rows are signup role grants) |
-| AM-005 | LOW | A removed feature (`broadcasts`) still has a live admin view, and it holds the console's only unguarded zero-row delete |
+| AM-013 | MEDIUM | `AdminBroadcasts.tsx:165` — the console's ONLY unguarded zero-row delete, on a live surface; the UI confirms a delete that may not have happened |
+| ~~AM-005~~ | ~~LOW~~ | **RETRACTED and split** — it claimed broadcasts was a removed feature. It is live. The zero-row half is re-filed as AM-013 |
 | AM-007 | LOW | `enforce_audit_log_self_attribution()` is a no-op on the service-role path — every admin edge function's audit write bypasses it |
+| AM-011 | MEDIUM | Admin queue badges never render on the desktop website — the only at-a-glance signal that a queue has work is gone for the way admins actually work |
+| AM-012 | MEDIUM | The admin console disagrees with itself about seed rows: dashboard says 0 pending disputes, the badge says 2, the queue lists 2 with live money buttons |
 | AM-010 | LOW | The `admin_support_queue` authorization test was VACUOUS (zero support rows exist) — corrects my own earlier evidence; plus the support queue has never received a row |
 
 ### AM-008 is the one that should hold the launch
@@ -331,8 +338,152 @@ each, because a retraction nobody records gets re-derived next sweep.
   `lane-account-lifecycle` — relayed to the orchestrator rather than claimed.**
 - **AM-005** (`src/components/admin/AdminBroadcasts.tsx:165`) — removal work owned by `lh-schema-integrity` (table) and the
   orchestrator (the `Admin.tsx` view entry). Not mine to edit.
+- **AM-008** — set `ban_status='temp_banned'` alongside `auto_suspended_until`
+  in `scan_message_content()`, so `is_caller_banned()` actually sees it and
+  `sweep_expired_auto_bans()` can later lift it. One-line-ish migration, but it
+  turns a currently-inert control into a real one that will start restricting
+  accounts, so it is **not** a low-risk fix: it needs the owner's sign-off on
+  the policy (is a 3rd flag in 24h really worth 7 days?) before the code change.
+  `lh-trust-safety` should own or co-sign it.
+- **AM-009** — decide which ladder is canonical and delete the other. My
+  recommendation is to keep the server trigger (it cannot be bypassed) and drop
+  the client's `logViolation()` call, folding the 3-rung escalation into
+  `scan_message_content()`. That is a product decision about consequence policy,
+  not a lane call.
+- **AM-010** — no code change. Two cheap actions close it: seed one
+  `reported_type='support'` row and re-run the probe, and submit one message
+  through the live `/help` form.
 - **AM-004, AM-007** — documentation/severity corrections, no code change
   proposed.
+
+## 3a. All 24 views rendered — what the screens actually do
+
+The permission boundary was lifted mid-run: the owner granted `admin` to
+`helpr-audit-routewalker2@mailinator.com` (`00b316d7-…`), verified by me against
+prod before use (`has_role(...,'admin')` → true, 14 admins, and the grant itself
+wrote 2 `admin_audit_log` rows — the audit trail working). **0-of-24 is now
+24-of-24.** Split with `lh-route-walker` at the orchestrator's direction: I took
+function and state, they take fit and overflow, and I filed nothing about
+layout.
+
+Driven against a vite dev server on `origin/main` pointed at prod Supabase,
+1440×900, session and `helpr_onboarding` seeded before first paint.
+Screenshots: `~/.lh-audit/admin-shots/` (24 + 5 deep-dives). Raw probe data:
+`~/.lh-audit/admin-walk.json`.
+
+**Verified working across all 24:**
+
+| check | result |
+|---|---|
+| Renders without crashing | 24/24 |
+| Exactly one `<h1>` | 24/24 — the `isRealView` coercion holds |
+| Console / page errors | 0, on 23 of 24 |
+| Failing Supabase requests | 0 |
+| `NaN` / `undefined` / `[object Object]` in the DOM | 0 |
+| Error boundaries tripped | 0 |
+| Stuck spinners after settle | 0 |
+
+**Empty states are designed, not blank.** Sampled the eight lowest-content
+views and every one has purposeful copy with a next action: broadcasts
+"Nothing scheduled — Tap New Broadcast to send one."; credentials "No pending
+credentials — Uploads land here as Helprs submit them."; exceptions "No open
+exceptions — Nothing is waiting on a…"; support "No pending tickets". (Support
+stacks that with "Nothing matches this filter — try All." — two empty-state
+messages at once. A nit, not filed.)
+
+**Destructive controls confirm, and the money ones confirm well.** The two I
+was most concerned about — `Quick: Release to Helpr` and `Quick: Refund Poster`
+on the disputes queue — route through `BrandConfirmDialog` with the exact
+amount interpolated and the sentence *"This moves real money and can't be
+undone here."* (`AdminDisputes.tsx:560-574`). I did not click either: both live
+disputes are seed rows and the standing constraint is no destructive action on
+a row I did not create.
+
+**The one console error, retracted.** `/admin?view=tiers` logs a 400 on
+`/storage/v1/object/public/user-documents/…/avatar.png`. Not a defect and not a
+leak: `user-documents` is a private bucket (`storage.buckets.public = false`),
+so a public URL for it correctly fails, and `src/lib/avatarImage.ts:26` already
+documents this exact row as the one case the `onError` fallback catches. It is
+one stale `profiles.avatar_url` value, not code.
+
+**Two findings came out of it** — AM-011 (queue badges absent on the desktop
+website) and AM-012 (the console disagrees with itself about seed rows, three
+counts for one queue). Both are in the table above.
+
+## 3b. Broadcasts is LIVE — I filed against a protocol that was wrong
+
+**AM-005 is retracted.** It claimed `?view=broadcasts` was a live admin view for
+a *removed* feature, citing PROTOCOL.md §6d. §6d was wrong, and I took it as
+fact — the exact mistake the protocol's own §1 warns about, made by trusting the
+protocol. `lh-compliance-store` found the same independently and the orchestrator
+has corrected §6d.
+
+Broadcasts is a real product surface, verified in prod: `broadcast_messages`
+exists with RLS on, `set_broadcast_pending_fan_out_tg` fires `BEFORE INSERT`
+(and enforces a 3-per-24h rate limit), a per-minute cron
+`sweep-pending-broadcast-fan-outs` is active, and `BroadcastBanner.tsx` is
+mounted on the dashboard at `Dashboard.tsx:389`. **No removal migration should
+be written for it.**
+
+One correction inside the correction: I first reported
+`fan_out_broadcast_to_notifications` as ABSENT. That was my error — I passed the
+zero-argument signature to `to_regprocedure` and the function takes `(uuid)`. It
+exists. Two further hypotheses about this surface also died on inspection: a
+broadcast cannot be created without an expiry (`expires_at` is derived from a
+required duration and is `NOT NULL`), and `starts_at` defaults to `now()` `NOT
+NULL`, so `BroadcastBanner`'s `.lte("starts_at", now)` filter cannot silently
+exclude a new broadcast.
+
+The half that survives is re-filed as **AM-013**, and it matters more now that
+the surface is live rather than a corpse.
+
+## 3c. The zero-row sweep: exactly one unguarded write in the console
+
+The orchestrator asked me to check every destructive admin control for the shape
+`AdminBroadcasts.tsx:165` has. I swept every `.update()` / `.delete()` call site
+under `src/components/admin/**` and `src/pages/Admin.tsx` for a missing
+`.select()`, independently of the delegated sweep that first found it.
+
+Three candidates came back. **Two are not database writes at all** —
+`AdminExceptionQueue.tsx:150` is `next.delete(id)` on a JavaScript `Set` (its
+real write at `:162` carries `.select("id")` plus a hand-rolled
+`!updated || updated.length === 0` guard), and `AdminJobs.tsx:163/:177` are
+`URLSearchParams.delete` and `Set.delete`.
+
+That leaves **`AdminBroadcasts.tsx:165` as the only one**, which is a good
+result for the console: every admin write touching money, trust or safety —
+bans, denials, dispute decisions, fraud-flag resolution, exception resolution,
+report status, platform settings, role revocation, payout holds — already
+carries `.select("id")` through `unwrapMutation()`, and two of them
+(`useAdminUserActions.ts:159`, `AdminExceptionQueue.tsx:162`) deliberately
+hand-roll the check because zero rows is ambiguous there rather than wrong.
+
+**Caveat, stated because it is the whole point of the check:** this is static
+analysis. I executed no admin write, so "the guard is present" is proven and
+"the write lands" is not. See UNVERIFIED 6b.
+
+## 4a. A dependency on lane-onboarding-auth I could not resolve
+
+The orchestrator relayed that `complete-signup` can silently never run, leaving
+`approval_status` at its `'pending'` default with no legal consent recorded.
+**That would change how retraction #2 above should be read**, so I am flagging
+it rather than concluding.
+
+What I established independently: `complete-signup/index.ts:470` sets
+`approval_status: "approved"`, and prod holds 37 approved profiles with **zero**
+`approve_user` audit rows — which I read as "signup auto-approves, so the admin
+queue was never used." If `complete-signup` sometimes does not run, then prod's
+3 `approval_status='pending'` profiles may not be people awaiting review at all;
+they may be accounts stranded mid-signup, and the admin approval queue is
+receiving them in a state nobody designed. An admin approving one of those would
+be approving an account with no recorded consent.
+
+I cannot tell the two apart from the admin side: both look like a pending row.
+The distinguishing evidence lives in whatever `complete-signup` writes *besides*
+`approval_status` — a consent row, a profile completeness flag — which is
+`lane-account-lifecycle` and `lane-verification` territory. **Not filed as a
+finding by me; handed back to the orchestrator to route.** The 3 pending
+profiles in prod are 1 day old, so whichever it is, it is current.
 
 ## 5. Two corrections the fleet needs
 
@@ -382,20 +533,30 @@ banreview.
 
 ### UNVERIFIED — could not reach
 
-1. **The 24 admin views were never RENDERED.** No screenshots, no measured
-   layout, no interactive verification of a single admin control. Reason:
-   `prevent_admin_role_self_grant()` admits `admin` role writes only from
-   `service_role`, and granting myself the role in prod is outside this lane's
-   standing constraints ("TEST ACCOUNTS ONLY", and elevating a test row to admin
-   in the live project is a decision for the owner, not for me).
-   **What I need to finish it:** either (a) the owner grants `admin` to one
-   clearly-marked test account for the duration of the audit, or (b) approval to
-   `INSERT INTO user_roles (user_id, role) VALUES ('<test uuid>','admin')` in
-   prod via the service-role key I already hold locally, which the trigger does
-   permit. Either unblocks the whole visual and interactive half of this lane in
-   one step. `lh-route-walker` was blocked on exactly this, so the two lanes
-   unblock together.
-2. **No dispute was driven end to end in test mode.** Standing constraint: no
+**The reason for every gap below is a permission boundary or a standing
+constraint, not an absence of effort.** Nothing here was skipped for budget.
+
+1. ~~All 24 admin views~~ — **RESOLVED mid-run.** The owner granted an admin
+   role to a marked audit account and all 24 were rendered and probed; see §3a.
+   The gap that remains is narrower: I audited **function and state only**, at
+   1440 on the desktop web surface. Not covered by me and not by anyone unless
+   `lh-route-walker` reaches them: fit/overflow at other breakpoints, the iOS
+   WKWebView surface, and the 6 `?tab=admin/people:*` variants.
+
+2. **RPC authorization: 11 of 13 proven at runtime, 2 not.**
+   Proven refused: `admin_delete_review`, `rpc_decide_dispute`,
+   `review_credential`, `check_dispute_velocity`, `settle_dispute_record`,
+   `apply_job_denial_consequence`, `is_helper_shadowbanned`,
+   `sweep_expired_auto_bans`, plus all 6 edge functions.
+   **NOT proven:** `admin_support_queue` — the `200 []` is vacuous, see AM-010.
+   **Not applicable:** `auto_restrict_repeat_violators` (`RETURNS trigger`, not
+   callable over PostgREST) and `redact_audit_snapshot` (a pure function
+   deliberately granted to PUBLIC; it reads nothing and takes its input as an
+   argument). `apply_cancellation_violation_consequence` and
+   `apply_message_violation_consequence` are user-facing, not admin, and were in
+   my list by miscategorisation.
+
+3. **No dispute was driven end to end in test mode.** Standing constraint: no
    live Stripe. There is no test-mode escrow fixture I could reach without
    creating one, and creating one needs the money lane's fixtures. So
    "does the split execute for the exact amounts decided, does escrow move once
@@ -403,10 +564,25 @@ banreview.
    (`WHERE status='open'`, `execution_status='executed'` as terminal), **not by
    execution.** I did not find a double-settle path; I also did not prove there
    isn't one.
-3. **`admin-test-push` delivery.** Refusal to a non-admin is proven; actual push
+4. **`admin-test-push` delivery.** Refusal to a non-admin is proven; actual push
    delivery needs a device.
-4. **`?tab=warnings`** (co-owned with `lh-trust-safety`) — the server-side
+5. **`?tab=warnings`** (co-owned with `lh-trust-safety`) — the server-side
    ladder behind it is covered; the rendered tab is not, same reason as (1).
+6. **The four empty tables** — `helper_credentials`, `helper_shadowbans`,
+   `payment_refunds`, `verification_exceptions` all returned `[]` to a non-admin
+   but hold zero rows, so the read is untested rather than passed. Seeding a row
+   in each would close this and needs no admin role — it is the cheapest
+   remaining cell and I did not reach it.
+6b. **No admin write was executed.** I rendered every view and read every
+   control, but I did not ban, delete, refund, deny, resolve or decide anything
+   — the standing constraint is no destructive action on a row I did not create,
+   and every candidate row in prod is a seed row or a real user. So "does every
+   admin write actually land" is answered by static analysis (all 41 call sites,
+   §6) and by reading the confirm dialogs, **not by execution**. The one known
+   zero-row write, AdminBroadcasts.tsx:165, was not driven.
+7. **The public support form was never submitted.** AM-010's second half — zero
+   `reported_type='support'` rows have ever existed. One submission through the
+   live `/help` form would settle whether the queue receives anything.
 
 ## 7. Out-of-scope conclusions (PROTOCOL §6)
 

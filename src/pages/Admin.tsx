@@ -41,8 +41,9 @@ const AdminIDVReview = lazy(() => import("@/components/admin/AdminIDVReview"));
 const AdminCredentialQueue = lazy(() => import("@/components/admin/AdminCredentialQueue"));
 const AdminExceptionQueue = lazy(() => import("@/components/admin/AdminExceptionQueue"));
 const AdminBanReview = lazy(() => import("@/components/admin/AdminBanReview"));
+const AdminSocialPosts = lazy(() => import("@/components/admin/AdminSocialPosts"));
 
-type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "notiflogs" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "payouts" | "tiers" | "marketing" | "idvreview" | "credentials" | "exceptions" | "banreview";
+type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "broadcasts" | "notifications" | "notiflogs" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "payouts" | "tiers" | "marketing" | "social" | "idvreview" | "credentials" | "exceptions" | "banreview";
 
 import { safeStorage } from "@/lib/safeStorage";
 import { adminNavGroups } from "@/components/admin/adminNavGroups";
@@ -68,6 +69,7 @@ const VIEW_LABELS: Record<View, string> = {
     referrals: "Referrals", subscriptions: "Subscriptions", fraud: "Fraud",
     audit: "Audit Log", health: "Health", export: "Export",
     payouts: "Payout Batches", tiers: "Helpr Tiers", marketing: "Marketing",
+    social: "Social Posts",
     idvreview: "Identity Review",
     credentials: "License & Insurance",
     exceptions: "Exception Queue",
@@ -450,6 +452,7 @@ const Admin = () => {
       // "Ban review needed" admin notification (20260825160000).
       case "banreview": return <AdminBanReview />;
       case "marketing": return <AdminMarketing />;
+      case "social": return <AdminSocialPosts />;
       default: return (
         <DashboardHome
           stats={stats}

@@ -117,6 +117,20 @@ project_id = "fncmgoasalhdgfwzhsqa"
   # not remove it.
   [functions.health-check]
     verify_jwt = false
+  # marketing-publish / marketing-token-health: invoked by pg_cron via
+  # net.http_post with `Bearer <service_role_key>` from the vault
+  # (20260903040120_schedule_marketing_crons.sql). That key is `sb_secret_*`,
+  # NOT a JWT, so with the gateway default of verify_jwt=true both would be
+  # rejected 401 before the handler ran — the same silent failure recorded for
+  # health-check above, which went unnoticed from 2026-04-26.
+  #
+  # Safe: both functions do their own auth and are stricter than the gateway.
+  # marketing-publish additionally refuses to claim any work unless the kill
+  # switch reads true, so a bad caller cannot cause a post.
+  [functions.marketing-publish]
+    verify_jwt = false
+  [functions.marketing-token-health]
+    verify_jwt = false
   # Service-role-only: send-notification-email accepts a bearer token equal to
   # SUPABASE_SERVICE_ROLE_KEY and renders an HTML email branded as Helpr. With
   # verify_jwt=true the gateway would accept any signed-in user's JWT and the

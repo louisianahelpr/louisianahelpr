@@ -320,6 +320,10 @@ export const ADMIN_VIEWS = [
   // a permanent ban is a person's decision instead of something the offender's
   // own client handed itself (2026-08-25).
   "banreview",
+  // "social" — the Facebook/Instagram auto-poster console. Distinct from
+  // "marketing" above, which is the Resend email-campaign sender; they are two
+  // separate systems that happen to share a word.
+  "social",
 ] as const;
 
 const adminRules = () => [mockTable("user_roles", [{ role: "admin" }])];

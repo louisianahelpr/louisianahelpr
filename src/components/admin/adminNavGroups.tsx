@@ -21,6 +21,7 @@ import {
   Scale,
   ScrollText,
   Settings,
+  Share2,
   ShieldAlert,
   ShieldCheck,
   Users,
@@ -106,6 +107,9 @@ export const adminNavGroups: { title: string; items: AdminNavItem[] }[] = [
       { id: "notifications", label: "Notifications", icon: BellRing },
       { id: "notiflogs", label: "Notification Logs", icon: ClipboardCheck },
       { id: "marketing", label: "Marketing", icon: Mail },
+      // Email campaigns are "Marketing" above; this is the Facebook/Instagram
+      // auto-poster, which is a different system with its own kill switch.
+      { id: "social", label: "Social Posts", icon: Share2 },
     ],
   },
   {

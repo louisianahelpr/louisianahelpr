@@ -506,7 +506,7 @@ export const AppliedJobsTab = ({
                 setWithdrawDetail("");
               }}
             >
-              Keep It
+              Cancel
             </SheetSecondaryAction>
             <SheetPrimaryAction
               disabled={!!withdrawingAppId}

@@ -605,29 +605,50 @@ describe("Popup grammar — footer", () => {
         .not.toMatch(/variant="ghost" size="sm" className=\{POPUP_SECONDARY_CLS\}/);
     }
 
-    // EQUAL WIDTH, at every width — Apple's two-action layout. This read "one
-    // quarter / three quarters"
-    // is the whole hierarchy: the dismiss is present and reachable, the commit
-    // is unmistakably the main action, and there is no breakpoint at which the
-    // two rearrange — a popup that reorders its own buttons at `sm` is two
-    // designs, and the person who meets both is the one testing on a phone and
-    // a laptop.
-    // EQUAL WIDTH now, not 1:3. The ratio was chosen from rendered comparisons
-    // and was still wrong: a quarter-width slot only holds a short word, so
-    // "Keep Account" and "Stay Signed In" overflowed and the card clipped them.
-    // Apple's two-action alert is equal width, and equal width cannot clip.
-    expect(footer).toMatch(/POPUP_SECONDARY_CLS =\n\s*\/\/|POPUP_SECONDARY_CLS =/);
-    expect(footer).toMatch(/POPUP_COMMIT_CLS = "flex-1 min-w-0"/);
-    // `min-w-0` on BOTH: without it a flex item refuses to shrink below its
-    // content, so a long label would blow the ratio out instead of fitting.
-    // The declaration now carries a comment block between the name and the
-    // string, so anchor on the LITERAL rather than on what follows the `=`.
-    expect(footer).toMatch(/"flex-1 min-w-0 px-0 border-0 shadow-none /);
-    expect(footer).toMatch(/POPUP_COMMIT_CLS = "flex-1 min-w-0"/);
-    // Column on a phone, row from sm — measured: a one-row footer cannot hold
-    // a third of the app's commit labels at 375 (see popupFooter.ts).
-    // One row, at every width — no `sm:` reflow. See the note above.
-    expect(footer).toContain('POPUP_FOOTER_ROW = "flex items-center gap-3 pt-2"');
+    // EQUAL HALVES, AND A ROW THAT STACKS RATHER THAN CLIPS.
+    //
+    // These assertions are on the SHAPE of the declaration, not on a literal,
+    // because a literal is what let two consecutive footer bugs ship green.
+    // The real guard is `popupFooterFit.spec.ts`, which renders every real
+    // label in a browser and measures the boxes. What is checkable HERE is
+    // narrow but genuinely load-bearing: that neither action uses a ZERO
+    // flex-basis, and that both use the SAME basis.
+    //
+    // WHY ZERO IS BANNED. `flex-1` is `flex: 1 1 0%`, and under
+    // `box-sizing: border-box` a basis of zero floors at padding + border. The
+    // dismiss carried `px-0` and the commit the Button default `px-6`, so their
+    // hypothetical sizes were 0px and 48px; the free space was then split
+    // evenly and the commit came out exactly 48px WIDER at every viewport —
+    // measured 133.5 vs 181.5 at 393, 205 vs 253 at 1440. Both declared
+    // `flex: 1 1 0%`. Neither was equal. The commit was then left with the same
+    // text room as a button reading "Cancel", and `Button` is
+    // `whitespace-nowrap` with `overflow: visible`, so 7 labels at 393, 15 at
+    // 375 and 45 at 320 spilled out of the pill — the left spill landing on top
+    // of the Cancel button.
+    //
+    // A percentage basis has no such floor. 2·(50% − 6px) + 12px gap = 100%.
+    const BASIS = /basis-\[calc\(50%-6px\)\]/;
+    expect(footer, "the dismiss must take an exact half, not a zero basis")
+      .toMatch(new RegExp(`POPUP_SECONDARY_CLS =[\\s\\S]{0,400}?${BASIS.source}`));
+    expect(footer, "the commit must take the SAME exact half")
+      .toMatch(new RegExp(`POPUP_COMMIT_CLS = "[^"]*${BASIS.source}`));
+    expect(footer, "neither action may use a zero flex-basis — it floors at padding")
+      .not.toMatch(/POPUP_(?:SECONDARY_CLS|COMMIT_CLS) = "(?:[^"]*\s)?flex-1\b/);
+
+    // `min-w-max` is what converts an over-long label from a SPILL into a WRAP:
+    // a button may not be laid out narrower than its own label, so the line
+    // overflows and breaks instead of the text escaping the pill.
+    for (const name of ["POPUP_SECONDARY_CLS", "POPUP_COMMIT_CLS"]) {
+      expect(footer, `${name} needs min-w-max or a long label spills instead of wrapping`)
+        .toMatch(new RegExp(`${name} =[\\s\\S]{0,400}?min-w-max`));
+    }
+
+    // And the row must be ABLE to wrap. `flex-wrap-reverse` (not plain `wrap`)
+    // puts the second line on top, so a stacked footer reads
+    // commit-above-dismiss — Apple's stacked alert — while the DOM order stays
+    // [dismiss, commit] and the commit stays last in the tab sequence.
+    expect(footer, "the footer must be able to stack, and stack commit-first")
+      .toMatch(/POPUP_FOOTER_ROW =[\s\S]{0,120}?flex-wrap-reverse/);
   });
 
   /**
@@ -880,32 +901,142 @@ describe("Popup grammar — footer", () => {
     expect(literals, "POPUP_SECONDARY_CLS must not lock its width")
       .not.toMatch(/shrink-0/);
 
-    // Both halves must be able to shrink below their content.
-    expect(literals).toMatch(/"flex-1 min-w-0 px-0/);
-    expect(literals).toMatch(/POPUP_COMMIT_CLS = "flex-1 min-w-0"/);
-
-    // Equal width — Apple's two-action layout, and the shape that cannot
-    // overflow however long a label gets.
-    expect(footer, "the two halves must be equal width")
-      .toMatch(/POPUP_COMMIT_CLS = "flex-1 min-w-0"/);
-
+    // `flex-1` is banned on both halves for the same reason `shrink-0` is: it
+    // is `flex: 1 1 0%`, and a zero basis under border-box floors at
+    // padding + border, so the half with `px-6` came out 48px wider than the
+    // half with `px-0` while both declared identical flex. That asymmetry was
+    // the SECOND clipping bug in this row — it moved the spill from the dismiss
+    // to the commit rather than removing it. An exact percentage basis has no
+    // floor and is equal for real.
+    expect(literals, "a zero flex-basis floors at padding — use the percentage basis")
+      .not.toMatch(/= "(?:[^"]*\s)?flex-1\b/);
+    for (const name of ["POPUP_SECONDARY_CLS", "POPUP_COMMIT_CLS"]) {
+      expect(literals, `${name} must take an exact half`)
+        .toMatch(new RegExp(`${name} =[\\s\\S]{0,200}?basis-\\[calc\\(50%-6px\\)\\]`));
+      expect(literals, `${name} must be able to grow into that half`)
+        .toMatch(new RegExp(`${name} =[\\s\\S]{0,200}?\\bgrow\\b`));
+    }
   });
   /**
-   * FAILS IF: a dialog reintroduces a bespoke dismiss word.
-   * The owner settled this on 2026-09-03 after seeing thirteen different ones
-   * clipped on device: every dismiss says "Cancel". "Keep Account", "Stay
-   * Signed In", "Keep Dispute Open" and ten more are gone.
+   * The dismiss labels written as CHILDREN, extracted brace-aware.
+   *
+   * A plain `<DialogSecondaryAction[^>]*>` regex does not work here and fails
+   * in the direction that hides bugs: nearly every call site carries an
+   * `onClick={() => setThing(null)}`, and the `>` of the ARROW closes the match
+   * early. The "label" then comes back as `setStep("tip")}>Skip`, which matches
+   * nothing on the allowlist and reports thirteen offenders that do not exist.
+   * A guard whose first run is thirteen false positives gets its allowlist
+   * padded until it is quiet, and then it is guarding nothing.
+   *
+   * So scan for the `>` that actually closes the open tag, tracking brace depth
+   * and string quotes. Children containing an expression or a nested element
+   * are skipped rather than guessed at — those are read by the browser fit
+   * spec, which sees rendered text instead of source.
    */
-  it("every BrandConfirmDialog dismiss says Cancel", () => {
+  function dismissChildLabels(src: string): string[] {
+    const out: string[] = [];
+    const open = /<(Dialog|Sheet)SecondaryAction\b/g;
+    let m: RegExpExecArray | null;
+    while ((m = open.exec(src))) {
+      let i = m.index + m[0].length;
+      let depth = 0;
+      let quote = "";
+      for (; i < src.length; i++) {
+        const c = src[i];
+        if (quote) {
+          if (c === quote) quote = "";
+          continue;
+        }
+        if (c === '"' || c === "'" || c === "`") quote = c;
+        else if (c === "{") depth++;
+        else if (c === "}") depth--;
+        else if (c === ">" && depth === 0) break;
+      }
+      if (i >= src.length || src[i - 1] === "/") continue;
+      const close = src.indexOf(`</${m[1]}SecondaryAction>`, i);
+      if (close === -1) continue;
+      const inner = src.slice(i + 1, close).trim();
+      if (!inner || inner.includes("{") || inner.includes("<")) continue;
+      out.push(inner);
+    }
+    return out;
+  }
+
+  /**
+   * FAILS IF: a dialog reintroduces a bespoke dismiss word.
+   *
+   * The owner settled this on 2026-09-03 after seeing thirteen clipped on
+   * device: a confirm's dismiss says "Cancel".
+   *
+   * WHAT THIS USED TO CHECK, AND WHY IT PROVED NOTHING. It read
+   * `secondaryLabel="…"` props only — one of the two ways a dismiss label is
+   * written — while its own name and comment claimed "every dismiss". The
+   * other way, `<DialogSecondaryAction>Label</DialogSecondaryAction>` children,
+   * is the MAJORITY of call sites, and the test could not see any of them. It
+   * passed on an app shipping NINE distinct dismiss labels while asserting
+   * there was one. Same shape as `registries-checked-against-itself`: the test
+   * defined its subject narrowly enough that it could not fail.
+   *
+   * So the subject is now derived from BOTH mechanisms, and the exceptions are
+   * an explicit allowlist rather than an accident of what the regex missed.
+   * Every entry is an opt-out on a NON-DESTRUCTIVE prompt, where "Cancel" would
+   * be actively wrong — declining a tip is not cancelling anything. That is a
+   * real distinction and it belongs in the open, per `popupFooter.ts`'s own
+   * note that read-only and opt-out surfaces carry different weight.
+   */
+  it("a confirm dismiss says Cancel, and every exception is declared", () => {
+    // Opt-out prompts, not confirms. Adding a name here is a deliberate
+    // statement that the surface is an invitation being declined.
+    const DECLINE_LABELS = new Set([
+      "Maybe Later",
+      "Not Now",
+      "Skip",
+      "No Thanks",
+      "Keep It On",
+      "Keep the Job",
+      "Close",
+    ]);
+
+    // Not a dismiss at all: in a STEPPED dialog the secondary walks back one
+    // step and the popup stays open (DeleteAccountDialog's `setDeleteStep(1)`).
+    // Labelling that "Cancel" would be a lie about what the button does.
+    const STEP_BACK_LABELS = new Set(["Back"]);
+
     const offenders: string[] = [];
+    const seen = new Set<string>();
     for (const f of allSourceFiles()) {
       if (!f.endsWith(".tsx") || /\.test\.tsx?$/.test(f)) continue;
       const src = stripComments(readFileSync(f, "utf8"));
+      const rel = relative(ROOT, f);
+
+      // Mechanism 1: the `secondaryLabel` prop.
       for (const m of src.matchAll(/secondaryLabel=\{?"([^"]+)"/g)) {
-        if (m[1] !== "Cancel") offenders.push(`${relative(ROOT, f)}: "${m[1]}"`);
+        seen.add(m[1]);
+        if (m[1] !== "Cancel" && !DECLINE_LABELS.has(m[1])) offenders.push(`${rel}: "${m[1]}"`);
+      }
+
+      // Mechanism 2: the element's children — the majority, and previously
+      // invisible to this test.
+      for (const label of dismissChildLabels(src)) {
+        seen.add(label);
+        if (label !== "Cancel" && !DECLINE_LABELS.has(label) && !STEP_BACK_LABELS.has(label)) {
+          offenders.push(`${rel}: "${label}"`);
+        }
       }
     }
-    expect(offenders, 'every secondaryLabel must be "Cancel"').toEqual([]);
+
+    // The guard on the guard: if the extraction breaks, `seen` collapses and
+    // this test starts passing vacuously — which is exactly how the previous
+    // version stayed green. A repo with ~50 footers has more than a handful of
+    // distinct dismiss words.
+    expect(seen.size, "extracted no dismiss labels at all — the regexes have drifted")
+      .toBeGreaterThan(3);
+    expect(seen, 'the canonical dismiss word must still be in use').toContain("Cancel");
+
+    expect(
+      [...new Set(offenders)],
+      'a confirm dismiss says "Cancel"; an opt-out prompt must be listed in DECLINE_LABELS with a reason',
+    ).toEqual([]);
   });
 
 });

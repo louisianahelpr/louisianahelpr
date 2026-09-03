@@ -184,6 +184,41 @@ void hydrateStorage();
   // ~30-50KB of JS and run their own init work; loading them before the
   // first frame was costing us ~4s of FCP on slow connections. Defer to
   // an idle callback so the marketing hero / login form paints first.
+  // The SIGNED_OUT cache wipe, registered INDEPENDENTLY of analytics.
+  //
+  // It used to live inside the analytics bootstrap below, sharing its
+  // `Promise.all` and its empty `catch`. That coupling meant a content blocker
+  // — `vite.config.ts` names those chunks literally `sentry-*.js` and
+  // `posthog-*.js` — silently removed a security boundary, and sign-out still
+  // looked completely normal. Nothing about wiping another user's cache
+  // depends on Sentry or PostHog being reachable, so it no longer waits on
+  // them, and its catch is not empty.
+  //
+  // The deterministic path is `signOutWithPushCleanup()`, which wipes the
+  // cache itself. This stays as the BACKSTOP for the sign-outs that never call
+  // it: token expiry, a sign-out in another tab, and a `scope: "global"`
+  // sign-out issued from another device.
+  const registerSessionTeardown = () => {
+    void (async () => {
+      try {
+        const [{ supabase }, { queryClient }, { removePersistedClient }] =
+          await Promise.all([
+            import("./integrations/supabase/client"),
+            import("./lib/queryClient"),
+            import("./lib/queryPersister"),
+          ]);
+        supabase.auth.onAuthStateChange((event) => {
+          if (event !== "SIGNED_OUT") return;
+          queryClient.clear();
+          void removePersistedClient();
+        });
+      } catch (err) {
+        // Loudly. A dropped error here is the leak.
+        console.error("[boot] sign-out cache teardown not registered", err);
+      }
+    })();
+  };
+
   const loadAnalytics = () => {
     void (async () => {
       try {
@@ -191,14 +226,10 @@ void hydrateStorage();
           { initSentry, setSentryUser },
           { initPostHog, identifyUser, resetUser },
           { supabase },
-          { queryClient },
-          { removePersistedClient },
         ] = await Promise.all([
           import("./lib/sentry"),
           import("./lib/posthog"),
           import("./integrations/supabase/client"),
-          import("./lib/queryClient"),
-          import("./lib/queryPersister"),
         ]);
 
         initSentry();
@@ -226,16 +257,10 @@ void hydrateStorage();
           } else if (event === "SIGNED_OUT") {
             resetUser();
             setSentryUser(null);
-            // Wipe React Query cache + persisted IndexedDB cache so the next
-            // user on this device doesn't rehydrate the prior user's data
-            // (Stripe payouts, admin payout ledger, job history,
-            // notification logs). The persister has a 24h maxAge — without
-            // these calls a shared-device sign-out would leak for a day.
-            // Several query keys do already user-scope themselves (see
-            // queryKeys.ts) but anything keyed only by a literal string
-            // would otherwise survive. Belt + suspenders.
-            queryClient.clear();
-            void removePersistedClient();
+            // The cache wipe that used to live here now runs in
+            // `signOutWithPushCleanup()` and in `registerSessionTeardown()`
+            // above — neither of which can be removed by a blocked
+            // analytics chunk. This branch is identity reset only.
           }
         });
       } catch {
@@ -250,6 +275,12 @@ void hydrateStorage();
   // before requestIdleCallback fires, so the chunks stay out of the trace.
   // Real users see no difference — idle fires within ~50ms of interaction.
   const runDeferred = () => {
+    // Teardown FIRST, and as its own call: a throw inside the analytics
+    // bootstrap must not be able to prevent it from being registered. It rides
+    // the same interaction gate, which is safe because signing out REQUIRES an
+    // interaction — by the time anyone can reach a sign-out control, `kick()`
+    // has already fired.
+    registerSessionTeardown();
     const ric = (window as unknown as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number })
       .requestIdleCallback;
     if (typeof ric === "function") {

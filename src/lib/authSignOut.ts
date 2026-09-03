@@ -1,6 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import { unregisterPushOnSignOut } from "@/lib/nativePush";
 import { clearRememberedRoute } from "@/lib/lastRoute";
+import { queryClient } from "@/lib/queryClient";
+import { removePersistedClient } from "@/lib/queryPersister";
 
 type SignOutOptions = { scope?: "global" | "local" | "others" };
 
@@ -29,5 +31,43 @@ export async function signOutWithPushCleanup(options?: SignOutOptions) {
   // No data leaks (ProtectedRoute and RLS still gate it), yet it plainly
   // isn't B's app. Cheap to clear, so clear it.
   clearRememberedRoute();
-  return supabase.auth.signOut(options);
+  const result = await supabase.auth.signOut(options);
+
+  // Wipe the in-memory React Query cache and the persisted IndexedDB copy, so
+  // the next person on this device cannot rehydrate the previous user's data:
+  // Stripe payouts, the admin payout ledger, job history, notification logs.
+  // `queryPersister.ts` keys the persisted cache as a single NON-user-scoped
+  // "helpr-rq-cache" with a 24h maxAge, and only 9 queries opt out via
+  // `meta: { persist: false }` — so without this, a shared-device sign-out
+  // leaks for a day. The in-memory half is the worse one: any query keyed by a
+  // literal string is served straight from RAM to the next user in the same
+  // page session, no expiry involved.
+  //
+  // WHY IT LIVES HERE AND NOT ONLY IN THE SIGNED_OUT LISTENER. It was only in
+  // that listener, and the listener is registered inside `main.tsx`'s analytics
+  // bootstrap: behind five dynamic imports, behind a first-interaction gate,
+  // inside a `try` whose `catch` is empty and commented "analytics + error
+  // tracking must never break the app". True of analytics; false of this.
+  // `vite.config.ts` names those chunks literally `sentry-*.js` and
+  // `posthog-*.js`, which is precisely what a content blocker matches on — so
+  // the realistic failure is not an exotic throw, it is an ad blocker, and it
+  // takes the cache wipe down with it. Sign-out then completes and looks
+  // completely normal. These two calls were the only occurrences in the repo.
+  //
+  // Ordering: AFTER `signOut()`, deliberately. Clearing first lets any
+  // in-flight query repopulate the cache using a session that is still valid.
+  // Afterwards there is no session, so an active-query refetch returns nothing
+  // to cache.
+  //
+  // Best-effort like the push cleanup above — a failed IndexedDB delete must
+  // not strand someone in a half-signed-out state — but NOT silent: a swallowed
+  // error here is the leak itself, so it is logged rather than dropped.
+  try {
+    queryClient.clear();
+    await removePersistedClient();
+  } catch (err) {
+    console.error("[signOut] cache wipe failed — prior user data may persist", err);
+  }
+
+  return result;
 }

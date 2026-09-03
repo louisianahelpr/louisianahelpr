@@ -98,20 +98,72 @@
  */
 
 /**
- * The footer: a REVERSED COLUMN AT EVERY WIDTH — commit on top, dismiss beneath
- * it, both full width.
+ * The footer: A ROW THAT STACKS ONLY WHEN THE LABELS DO NOT FIT.
  *
- * It used to become a right-aligned row from `sm` up. The owner chose one
- * layout everywhere (2026-09-02), picked from rendered comparisons rather than
- * a description, and the reason is worth keeping: a popup that rearranges its
- * own buttons at a breakpoint is two designs, and the person who sees both is
- * the one testing on a phone and a laptop — which is the owner. Consistency
- * across the app beat the desktop convention of a right-aligned row.
+ * The owner chose the row on 2026-09-02 from rendered comparisons, over a
+ * full-width column, and the reason holds: a popup that rearranges its buttons
+ * at a BREAKPOINT is two designs, and the person who sees both is the one
+ * testing on a phone and a laptop — the owner.
  *
- * `flex-col-reverse` with a DOM order of [dismiss, commit] is what puts the
- * commit on top. Every call site already writes them in that order.
+ * This is not that. There is one rule at every width — side by side if both
+ * labels fit in half the card, stacked full-width if either does not — and it
+ * is keyed on the CONTENT, not on the viewport. That is also literally what a
+ * two-action UIAlertController does, which is what "however Apple does them"
+ * (owner, 2026-09-03) asks for: equal halves with the dismiss on the LEFT, and
+ * a vertical stack the moment a title is too long for its half.
+ *
+ * HOW, in three classes and no JavaScript:
+ *
+ *   flex-wrap-reverse         wraps when the line overflows; `-reverse` puts
+ *                             the SECOND line on top, so a stacked footer
+ *                             reads commit-above-dismiss (Apple's stacked
+ *                             alert, and the DOM order stays [dismiss, commit])
+ *   basis-[calc(50%-6px)]     an exact half, less half the 12px gap:
+ *                             2·(50% − 6px) + 12px = 100%. Equal by
+ *                             construction, and NOT floored by padding —
+ *                             see the bug below
+ *   min-w-max                 a button may not be laid out narrower than its
+ *                             own label, so a label that will not fit its half
+ *                             forces the wrap instead of spilling out
+ *
+ * ─── THE BUG THIS REPLACES, because it is the SECOND one in this row ───────
+ *
+ * The first fix (2026-09-03) set both actions to `flex-1 min-w-0`, called it
+ * "equal width, which is what Apple does", and moved the clipping from the
+ * dismiss to the commit rather than removing it. `flex-1` is `flex: 1 1 0%`,
+ * and under `box-sizing: border-box` a flex-basis of ZERO floors at
+ * padding + border. The dismiss carried `px-0` and the commit the Button's
+ * default `px-6`, so their hypothetical sizes were 0px and 48px, the free
+ * space was then split evenly, and the commit came out exactly 48px WIDER at
+ * every viewport — measured 133.5 vs 181.5 at 393, 205 vs 253 at 1440. Both
+ * said `flex: 1 1 0%`. Neither was equal.
+ *
+ * The consequence was worse than the asymmetry: after its own 48px of padding
+ * the commit had the SAME 133.5px of text room as the button reading "Cancel",
+ * and `Button` is `whitespace-nowrap` with `overflow: visible`, so the label
+ * could not wrap, shrink or truncate. It spilled out of the pill on both
+ * sides — the left spill landing ON TOP of the Cancel button, the right spill
+ * clipped by DialogContent's `overflow-y-auto`. Seven labels at 393 ("Send
+ * Re-Upload Request", "Boost — Free This Month", "Send Revision Request",
+ * "Confirm Withdrawal", "Delete Permanently", "Confirm No-Show", "Issue (No
+ * Escalation)"), fifteen at 375, forty-five at 320 — including "Save Changes"
+ * and "Submit Review". Not admin-only: the boost sheet, withdraw, revision
+ * request, no-show and block flows are all core loop.
+ *
+ * A percentage basis has no such floor, which is why this one is equal for
+ * real. `px-4` on the dismiss is now cosmetic rather than load-bearing.
+ *
+ * ─── WHAT MADE BOTH BUGS INVISIBLE ────────────────────────────────────────
+ *
+ * Every test in this repo asserts that a CLASS IS PRESENT, and in both cases
+ * the class was present — the class WAS the bug. Nothing measured a rendered
+ * width, so `dialogShell.test.ts` passed on a footer whose buttons overlapped.
+ * `popupFooterFit.spec.ts` is the answer: it renders every real label in a
+ * browser and asserts the boxes do not overlap and nothing exceeds its parent.
+ * A class-name assertion cannot replace it.
  */
-export const POPUP_FOOTER_ROW = "flex items-center gap-3 pt-2";
+export const POPUP_FOOTER_ROW =
+  "flex flex-wrap-reverse items-center gap-3 pt-2";
 
 /* `pt-2` — the actions need MORE air above them than the body copy has between
    its own lines. DialogContent lays its children out on a uniform `gap-3`
@@ -144,20 +196,7 @@ export const POPUP_FOOTER_ROW = "flex items-center gap-3 pt-2";
  * parchment canvas reads as disabled.
  */
 export const POPUP_SECONDARY_CLS =
-  // `flex-1 min-w-0`, and NOTHING that stops it shrinking.
-  //
-  // This read `flex-1 min-w-0 px-0 shrink-0`, which is a contradiction: `min-w-0`
-  // says "you may shrink below your content", `shrink-0` says "you may not", and
-  // shrink-0 wins. With the word "Cancel" the button is 67px and fits its slot,
-  // which is why every measurement taken while building this row passed. With
-  // "Keep Account" or "Stay Signed In" it CANNOT shrink, so it overflowed the
-  // row and the card clipped it — the label rendered as "Keep Accoun" and
-  // "tay Signed I", with the commit button overlapping it.
-  //
-  // Thirteen dialogs shipped that way. It was invisible to the tests because
-  // they assert the CLASS is present, and invisible to my own measurement
-  // because I measured the one label that fits.
-  "flex-1 min-w-0 px-0 border-0 shadow-none " +
+  "basis-[calc(50%-6px)] grow min-w-max px-4 border-0 shadow-none " +
   "bg-[hsl(var(--olivewood)/0.06)] hover:bg-[hsl(var(--olivewood)/0.11)] " +
   "text-[hsl(var(--olivewood))]";
 
@@ -166,17 +205,20 @@ export const POPUP_SECONDARY_CLS =
  * dismiss beneath it. The `sm:w-auto sm:ml-auto` that used to shrink it and
  * push it right went with the row layout above.
  */
-// EQUAL WIDTH, which is what Apple does — and what makes the row impossible to
-// clip. A two-action UIAlertController lays its buttons out side by side at
-// equal width, cancel on the LEFT, the preferred action on the right in bold.
+// The commit takes the same exact half as the dismiss. Hierarchy comes from
+// COLOUR AND WEIGHT, not width — the commit is the glossy or destructive fill,
+// the dismiss a flat tint — exactly as on iOS.
 //
-// This was `flex-[3]`, a deliberate 1:3 chosen from rendered comparisons so
-// width would carry the hierarchy. That reasoning was sound and the ratio was
-// still wrong, for a reason the renders could not show: a quarter-width slot
-// only holds a short word. The moment a dialog needed "Keep Dispute Open" the
-// ratio had to break, and `shrink-0` made it break by overflowing rather than
-// by wrapping. Equal width cannot overflow, and the labels are all "Cancel"
-// now anyway (owner, 2026-09-03), so the hierarchy comes from colour and
-// weight — the commit is the glossy or destructive fill, the dismiss is a flat
-// tint — exactly as it does on iOS.
-export const POPUP_COMMIT_CLS = "flex-1 min-w-0";
+// This was `flex-[3]`, a deliberate 1:3 ratio chosen from rendered comparisons
+// so width would carry the hierarchy. Sound reasoning, wrong ratio, for a
+// reason the renders could not show: a quarter-width slot only holds a short
+// word, so the moment a dialog needed a real sentence the ratio had to break —
+// and `shrink-0` made it break by overflowing rather than by wrapping.
+//
+// A note the previous version of this comment got WRONG, and it matters
+// because it was the stated justification for a fixed ratio: the dismiss
+// labels are NOT all "Cancel". Counted across every call site — 38 "Cancel",
+// and then "Maybe Later", "Not Now", "Skip", "Keep the Job", "Keep It On",
+// "No Thanks", "Close", and a bare back-chevron. Nine distinct labels. Any
+// rule here has to hold for the longest of them, not for the common one.
+export const POPUP_COMMIT_CLS = "basis-[calc(50%-6px)] grow min-w-max";

@@ -483,6 +483,21 @@ tax handling or instant payout in marketing without the owner confirming the
 current numbers, because those change in code and a stale fee claim in a live
 post is a pricing misrepresentation.
 
+**Fee claims drift in one direction, every time: toward "free."** Observed three
+times in a single session on 2026-09-03, each by a different agent acting in good
+faith. "Signing up is free" — true but incomplete, because a one-time fee lands
+on the first job post. Corrected to "a small one-time fee… no ongoing cost after
+that" — now plainly false, because every job carries a service fee (25 jobs in
+prod carry a customer fee between $3.60 and $24.00). The pull is always the same
+way, because "free" is the sentence a marketer wants to be able to write.
+
+So the safe shape is narrow: **say a fee exists, say where the real number is
+shown, and stop.** Do not characterise it as small, one-time, or the only one
+unless you have read every fee that can apply to that flow. The live figures sit
+in `platform_settings` (`onboarding_fee_cents`, `customer_fee_percent`,
+`helper_fee_percent`, `platform_fee_percent`) where they change without anyone
+telling marketing — which is exactly why no post may quote them.
+
 **6. Email is not a channel this team writes.** `marketing_channel` has two
 values, `instagram` and `facebook` (§1), so there is nowhere to put an email
 draft and no dispatcher to send one. If email marketing comes up, the constraint

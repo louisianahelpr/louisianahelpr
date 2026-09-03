@@ -1,27 +1,40 @@
 # lh-route-walker — Wave 1 re-dispatch lane report
 
 Run date: 2026-09-02. Base: `origin/main` @ `ab2e4d15` (matches team-lead's
-stated deployed commit). Worktree: `~/.lh-audit/lh-route-walker`. Driver:
-Playwright/Chromium (the `claude-in-chrome` MCP had zero connected browsers in
-this session — `list_connected_browsers` returned `[]` — so this run used
-Playwright against a local `vite` dev server on port 4877 instead; same
-real-render, measured-evidence bar, different tool). Test data: prod
-Supabase (`fncmgoasalhdgfwzhsqa`), two self-provisioned accounts created via
-the real `/signup` UI flow and elevated only via `execute_sql` per the
-blanket testing approval — `helpr-audit-routewalker@mailinator.com` and
-`helpr-audit-routewalker2@mailinator.com`.
+stated deployed commit). Worktree: `~/.lh-audit/lh-route-walker`. Drivers:
+Playwright/Chromium throughout (the `claude-in-chrome` MCP had zero connected
+browsers in this session — `list_connected_browsers` returned `[]`). Guest,
+non-admin-authed and auth-state coverage ran against the `vite` dev server on
+port 4877; the admin sweep (added mid-run once access was granted — see
+below) ran against the actual built bundle (`npm run build` + `vite preview`
+on port 4878), per CLAUDE.md's dev-server-CSS-is-not-a-result rule. Test
+data: prod Supabase (`fncmgoasalhdgfwzhsqa`), two self-provisioned accounts
+created via the real `/signup` UI flow and elevated only via `execute_sql`
+per the blanket testing approval — `helpr-audit-routewalker@mailinator.com`
+and `helpr-audit-routewalker2@mailinator.com` (the latter granted `admin`
+mid-run by the owner, via `team-lead`).
 
 ## UNVERIFIED — could not reach, and why
 
-- **All 24 `?view=` admin variants and the 6 `?tab=admin/people:*` variants —
-  UNVERIFIED.** Self-provisioning admin failed: `insert into user_roles (user_id, role) values (..., 'admin')` returned error `42501: prevent_admin_role_self_grant()`.
+- **UPDATE, later in the same run: the admin gap below is CLOSED.** After I
+  filed this report's first draft, the owner approved an admin grant on
+  `helpr-audit-routewalker2@mailinator.com`, `team-lead` relayed it, and I
+  went back and covered all 30 admin cells — see the "ADDENDUM: now covered"
+  section under "24 `?view=` admin variants" below for the full result
+  (zero overflow, zero blank views, all 30 cells). Leaving the paragraph
+  below intact as a record of the blocker and how it was resolved, per the
+  standard's own "no partial audits" framing — a gap that gets closed mid-run
+  should show its own resolution, not just vanish from the report.
+- **(Historical, now resolved) All 24 `?view=` admin variants and the 6
+  `?tab=admin/people:*` variants — UNVERIFIED at time of writing.**
+  Self-provisioning admin failed: `insert into user_roles (user_id, role) values (..., 'admin')` returned error `42501: prevent_admin_role_self_grant()`.
   Full text: "ERROR: 42501: Admin roles can only be granted via
   service_role" (captured in this session's tool output, 2026-09-02). This is
   a genuine, working guard (worth noting
-  positively, not a defect), but it means I have no self-service path to an
+  positively, not a defect), but it meant I had no self-service path to an
   admin session. I relayed this to `team-lead` mid-run (SendMessage,
   "Admin role self-grant blocked — need real admin path or accept gap") and
-  did not hear back with a usable admin account before wrapping up. Confirmed
+  the owner approved a manual grant shortly after. Confirmed
   `execute_sql` otherwise has real write privilege — it successfully ran
   `update auth.users set email_confirmed_at = now() where email=...` and
   `update profiles set approval_status=... where email=...` against prod
@@ -105,17 +118,84 @@ No overflow at either breakpoint. Script: `scratch/checkurl.mjs`.
   tabs per `Profile.tsx`'s `Tab` type that aren't in SURFACE.md's 17-item
   list — flagging as a possible SURFACE.md gap, not a defect). Zero
   overflow, zero wide-element offenders, all 19×2=38 measurements clean.
-- **6 `?tab=admin/people:*` values — UNVERIFIED**, blocked on admin access
-  (see above).
+- **6 `?tab=admin/people:*` values — now covered**, see the ADDENDUM
+  section immediately below (admin access was granted mid-run).
 
-### 24 `?view=` admin variants — UNVERIFIED, all 24
+### 24 `?view=` admin variants + 6 `?tab=admin/people:*` — ADDENDUM: now covered
 
-Blocked on admin access (see above). RW-003 (filed by a prior run, "`?view=
-map`/`?view=parishtax` not in `VIEW_LABELS`") stays at status `filed`
-(see `node scripts/audit-bus.mjs show RW-003`), not `verified` — I could
-not reproduce it live this run. Left it as filed with a
-note rather than downgrading; the next lane with admin access should
-reproduce or retract it.
+**Update, same run, after the owner granted admin.** `team-lead` had
+`user_roles` grant `admin` to `helpr-audit-routewalker2@mailinator.com`
+(user_id `00b316d7-2986-4843-92f5-b7ae2da6869a`) and split scope with
+`lane-admin`: I own fit/overflow, they own function/state (console errors,
+real-vs-NaN data, empty/loading/error design, destructive-action confirms,
+write-lands). Per that split I did NOT re-file the console errors I saw
+(2 recurring 404/400s on every view, 4-6 on `?view=tiers` and the people
+tabs) — that's theirs.
+
+**Driver for this half: the BUILT bundle, not the dev server.** Per
+CLAUDE.md's own rule ("a CSS result measured on the dev server is not a
+result — the minifier can delete half your rule"), I ran `npm run build`
+in the worktree and served `dist/` via `vite preview --port 4878`, then
+re-authenticated against that. `lane-admin` is intentionally on their own
+dev server (they want the code that will ship, for a different reason —
+function, not CSS). This is the deliberate split team-lead described, not
+an inconsistency between our two reports.
+
+**Corrected URL shape.** SURFACE.md's own notation for the 6 people-tab
+cells (`?tab=admin/people:all` etc.) is not a literal URL — `tab` is a
+plain `useSearchParams().get("tab")` read independently of `view`
+(`src/components/admin/AdminUsers.tsx:46-47`), so the real addresses are
+`/admin?view=people&tab=all`, `&tab=approved`, `&tab=awaiting_email`,
+`&tab=banned`, `&tab=denied`, `&tab=pending`. Used the real shape.
+
+**Result: all 24 `?view=` + all 6 people-tab cells (30 total, 60
+measurements at 375/1440) — zero horizontal overflow
+(`documentElement.scrollWidth <= clientWidth`), zero wide-element
+offenders. No blank views (the ambiguous "empty state vs broken layout"
+case `lane-admin` asked about) — every cell rendered either real data or a
+designed empty state (icon + heading + subcopy, e.g. "No pending tickets",
+"Nothing scheduled", "No open exceptions", "No pending credentials"), so I
+had nothing to hand them. Script: `scratch/measure_admin.mjs` against
+`scratch/routes-admin-views.json`; raw output `scratch/results-admin.json`;
+screenshots `scratch/shots-admin/`.
+
+Visually spot-checked (not just the automated assertion) at both
+breakpoints: `?view=support`, `?view=broadcasts`, `?view=credentials`,
+`?view=exceptions`, `?view=people`, `?view=tiers`, `?view=jobs`,
+`?view=analytics`, `?view=health`. All correctly centered in the (now
+right-side) post-rail area, admin nav folds into the same shared right
+rail as an expandable "Admin" section rather than a separate admin shell —
+consistent with the rest of the app.
+
+**One `overflow-x-auto` false alarm worth recording as method, not a
+finding.** `?view=jobs` at 375 shows a 3-tab row ("Flagged (50)" /
+"Resolved (0)" / "All (65)") where "All" is visually clipped at the right
+edge — looks exactly like the double-inset/overflow class this lane hunts.
+Checked the DOM before filing: the row is `overflow-x-auto` with
+`scrollWidth: 413` vs `clientWidth: 343` and a `mask-image:
+linear-gradient(to_right, black calc(100%-28px), transparent)` fade — a
+deliberately horizontally-scrollable control with its own fade affordance,
+matching a pattern used elsewhere in the app (e.g. profile tab pills). Not
+a defect; would have been a false positive if I'd filed off the screenshot
+alone. Script: `scratch/check_jobs_tabs.mjs`.
+
+**One thing outside my mandate, relayed rather than filed:** `?view=broadcasts`
+renders a fully live "New Broadcast" composer. Broadcast messages
+(`broadcast_messages`, `broadcast_dismissals`,
+`fan_out_broadcast_to_notifications`, `set_broadcast_pending_fan_out`,
+`send-marketing-blast`) are on PROTOCOL §6d's confirmed-dead list. A dead
+feature with a fully-functional admin write surface still attached is
+`lh-schema-integrity`/`lh-admin-moderation` territory (dead objects/dead
+UI), not mine — relaying to `team-lead` rather than filing it myself since
+it's not a fit/overflow claim.
+
+RW-003 (filed by a prior run, "`?view=map`/`?view=parishtax` not in
+`VIEW_LABELS`") — I did not specifically re-target those two exact query
+values in this pass (they're not real `VIEW_LABELS` keys, so they'd fall
+through to whatever `isRealView`'s fallback does, which is a different
+question than the 24 real views above). Stays at status `filed`
+(`node scripts/audit-bus.mjs show RW-003`), not `verified` — still
+unreproduced by me. Flagging for `lane-admin` or a future pass to close.
 
 ### Auth states
 

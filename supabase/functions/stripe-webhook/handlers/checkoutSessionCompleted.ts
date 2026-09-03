@@ -728,9 +728,38 @@ export async function handleCheckoutSessionCompleted(
       });
     }
 
-    const { error: jobError } = await supabase.from("jobs").update(updateData).eq("id", jobId);
-    if (jobError) {
-      logStep("ERROR storing PI on job", { error: jobError.message });
+    // `.select("id")` and the zero-row check are the whole point, and their
+    // absence was a live money-loss path.
+    //
+    // A poster may DELETE their own job while it is `payment_status='unpaid'`,
+    // which is NOT the moneyless state — it is the money-IN-FLIGHT state.
+    // create-payment stamps `stripe_session_id` and deliberately leaves the
+    // status `unpaid`; only this handler flips it to `escrow`. So a job can be
+    // gone by the time Stripe calls back, and then:
+    //
+    //   UPDATE ... WHERE id = <deleted>  ->  { data: [], error: null }
+    //
+    // which took the SUCCESS branch: logged "Stored payment_intent and escrow
+    // status on job", fanned out helper matches, committed the idempotency row
+    // and 200-ACKed, so Stripe never retried. The Slack alert hangs off
+    // `jobError`, so nothing fired. Money captured, no local record.
+    //
+    // Neither recovery path covers it: paymentIntentSucceeded looks the job up
+    // by `stripe_payment_intent_id`, which this write is what sets; and
+    // money-reconciliation makes zero Stripe calls — every check starts from a
+    // `jobs` row, so a deleted job is invisible to it by construction.
+    //
+    // create-payment's own escrow write already carries this guard, with a
+    // comment saying exactly why. The write that marks the job FUNDED did not.
+    const { data: jobUpdated, error: jobError } = await supabase
+      .from("jobs")
+      .update(updateData)
+      .eq("id", jobId)
+      .select("id");
+    if (jobError || !jobUpdated || jobUpdated.length === 0) {
+      logStep("ERROR storing PI on job", {
+        error: jobError?.message ?? "matched 0 rows — job deleted mid-checkout",
+      });
       // The payment is CAPTURED but the job never got marked funded/escrow —
       // a money↔state divergence (funds held, job looks unpaid). Throw so
       // the outer handler rolls back the idempotency row and returns 500,
@@ -739,11 +768,25 @@ export async function handleCheckoutSessionCompleted(
       await postSlackOpsAlert({
         kind: "custom",
         severity: "critical",
-        title: "Escrow funding — job not marked funded after capture",
-        message: "A checkout was captured but the jobs UPDATE (payment_status→escrow/payout_pending) failed. Stripe will retry once the DB recovers.",
-        fields: { session_id: session.id, job_id: jobId, payment_intent: piId, repay: String(isRepay), db_error: jobError.message },
+        title: jobError
+          ? "Escrow funding — job not marked funded after capture"
+          : "Escrow funding — THE JOB IS GONE and the payment was captured",
+        message: jobError
+          ? "A checkout was captured but the jobs UPDATE (payment_status→escrow/payout_pending) failed. Stripe will retry once the DB recovers."
+          : "A checkout was captured and the job row no longer exists — deleted while its checkout was open. Stripe holds the money and nothing local references it. This will NOT self-heal: paymentIntentSucceeded looks the job up by stripe_payment_intent_id, which this write is what sets, and money-reconciliation makes no Stripe calls. Refund from the Stripe dashboard using the session id below.",
+        fields: {
+          session_id: session.id,
+          job_id: jobId,
+          payment_intent: piId,
+          repay: String(isRepay),
+          db_error: jobError?.message ?? "matched 0 rows — job deleted mid-checkout",
+        },
       });
-      throw new Error(`Escrow update failed for job ${jobId} (PI ${piId}): ${jobError.message}`);
+      throw new Error(
+        `Escrow update failed for job ${jobId} (PI ${piId}): ${
+          jobError?.message ?? "matched 0 rows — job deleted mid-checkout"
+        }`,
+      );
     } else {
       logStep("Stored payment_intent and escrow status on job", { jobId, pi: piId, repay: isRepay });
 

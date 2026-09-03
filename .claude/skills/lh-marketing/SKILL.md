@@ -424,8 +424,22 @@ These sit on top of §3 and are equally hard.
 gate, ID verification, and a credential tier ladder. Those are real and you may
 describe them *as process*. You may not describe them as *outcome*.
 
-- Permitted: "Helprs are approved before they can work." · "ID verification is
-  part of getting approved." · "Some Helprs have a verified license on file."
+- Permitted: "Helprs are approved before they can work." · "Some Helprs have a
+  verified license on file." · "ID verification is available" / "Helprs can
+  verify their ID."
+- **NOT permitted, and this list used to say it was: "ID verification is part of
+  getting approved."** Measured against live prod on 2026-09-03: of 37 approved
+  profiles, **12** are ID-verified and **0** have a cleared background check.
+  Approval and ID verification are separate gates, and the majority of approved
+  accounts have not passed the second one. Saying approval "includes" ID
+  verification is therefore false, and it is false in the most dangerous
+  direction — it is a safety representation about a product where a stranger
+  comes to someone's home.
+  This entry is the reason §3's "sourced, not reasonable" rule applies to
+  *process* claims and not only to numbers: the sentence sounded like a
+  description of how the product works, it appeared on this file's own
+  permitted list, and it took a query to find out it was wrong. **Re-check the
+  ratio before making any claim in this area; do not inherit it from here.**"
 - Forbidden: "guaranteed safe" · "100% background-checked" · "fully vetted" ·
   "screened for criminal history" · "we guarantee your Helpr" · anything with
   "safe" as a promise rather than a description of a step.

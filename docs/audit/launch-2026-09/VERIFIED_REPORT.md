@@ -431,3 +431,63 @@ gap it admitted (badges/pills) contains **four live AA failures** (`V-009`).
 
 **Revised answer to §1:** unchanged in direction, worse in degree. `V-002` is a live blocker that was
 hiding the same-day job board for five hours every evening while three lanes reported discovery clean.
+
+---
+
+# ADDENDUM 2 — fix verification (2026-09-03)
+
+Eight confirmed blockers were fixed and reported closed. I re-verified each against live prod rather
+than reading the migrations. **All eight hold.** Two are better than the fix the finding implied.
+
+| Finding | Verified how | Result |
+|---|---|---|
+| **`VF-002`** | **Re-ran my exact reproduction** | Dies at the privilege wall: `ERROR 42501: permission denied for table helper_credentials`. Table-level write grants to `authenticated`/`anon` are now **0** (were full) and the table carries **1** trigger where it had none. Closed at the grant layer, not papered over by a policy. |
+| `VF-001` | live function body | `get_user_credential_tier()` now reads **both** stores via a `src` CTE, so the admin-reviewed path can satisfy the gate that was previously unreachable. |
+| `VF-003` | live, incl. the grandfathered case | Promoting `profiles` to authoritative surfaced that it had **no expiry column at all**; `license_expires_at`/`insurance_expires_at` were added and the tier now requires `expires_at IS NOT NULL AND > current_date`. I tested the one real account with `is_licensed=true` and a NULL expiry: it returns **tier 0**, so a null expiry earns nothing rather than reading as "never expires". |
+| **`TS-001`** (≡`AM-008`) | full chain traced live | See below — materially better than the filed fix. |
+| `N-001` / `NT-001` | live counts | 40/40 accounts hold a prefs row (was 6/40); map is 17 rows (was 14); `handle_new_user` creates the row at signup. |
+| `AL-004` | live | `public.retained_bans` exists — a SHA-256 of the email, so the ban survives deletion without retaining the address. Closes both halves. |
+| `NB-008` | source at origin/main | Now reads `deviceIsSecure` (which stays **true** through a lockout, because the passcode still works) instead of `isAvailable` alone, with `UNSECURABLE_CODES` limited to `passcodeNotSet`/`noDeviceCredential`. Also makes the already-configured passcode fallback reachable. |
+| `BR-001` | origin/main | `deploy.yml` now carries **14** `VITE_` references (was 0); `ios-beta.yml` 9; `sentry-release.yml` 5 — plus a guard that fails the build on an *empty* secret, which is the important half: a named-but-empty secret would reproduce the original boot-loader hang silently. |
+
+## `TS-001` was not patched — it was re-architected, and that closed two more findings
+
+The consequence was **moved out of the `BEFORE` trigger** into a new `AFTER ROW` pair
+(`messages_scan_consequence`, `messages_scan_consequence_on_edit`) running
+`apply_message_scan_consequence()`, which writes the `fraud_flags` evidence row and then delegates to
+`apply_message_violation_consequence` → `apply_consequence_ladder` — and **that** is what sets
+`ban_status` and `auto_suspended_until`. I traced the whole chain in live function bodies.
+`scan_message_content` is now purely a detector, so it no longer tells a user they are suspended
+while enforcing nothing.
+
+Three consequences worth recording:
+
+- **The suspension had been dead twice, not once.** Beyond `ban_status` never being set,
+  `prevent_self_escalation` **pins `auto_suspended_until` back to `OLD`**, so the original `UPDATE`
+  wrote nothing even on its own terms. The new path sets `trusted_ladder_write` to bypass that pin
+  deliberately.
+- **`AM-009` is resolved at the root**, not merely unreachable. The two divergent ladders are now one.
+- **`TS-004` is resolved.** It correctly established that the client returns before the send, making
+  the server ladder unreachable from the app. Firing from an `AFTER ROW` trigger makes it
+  client-independent: a modified client that skips the scan still gets the evidence row and the strike.
+  `apply_message_scan_consequence` also re-checks `auth.uid() = NEW.sender_id` and escalates **nobody**
+  if it does not match, so a service-role or backfill write records evidence and strikes no one.
+
+## One that is defended, but not by the mechanism reported
+
+`profiles.apple_original_transaction_id` still shows **2 column-level grants** to `authenticated`. It
+is nonetheless **not exploitable**: I ran the rolled-back `UPDATE` as a non-admin and the value came
+back `null` — `prevent_self_escalation` pins it. The RLS INSERT policy now pins it too. So the column
+is inert, but **the defense is a trigger pin rather than a revoke**, and the write *succeeds with no
+error* while doing nothing — the zero-row-write shape. Worth knowing if anyone later assumes the grant
+was removed.
+
+## Two corrections to my own work
+
+- My "1 verified row without an expiry" flag was **my bad query** — I filtered on the legacy
+  `is_licensed` column rather than `license_status`. The tier function is defensive regardless
+  (that row returns 0). `is_licensed` is display-only and `CredentialBadge.tsx:42` correctly requires
+  both it *and* `license_status === "verified"`.
+- I initially read the stripped-down `scan_message_content` as the consequence having been **deleted**
+  rather than relocated. It was relocated; checking `pg_trigger` for the new function, rather than
+  re-reading the old one, is what settled it — the same "re-derive the set" rule I had written down.

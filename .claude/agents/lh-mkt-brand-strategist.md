@@ -166,6 +166,35 @@ Cover, concretely:
   Note explicitly what is banned: stock photography captioned as a real Helpr,
   AI-generated faces presented as members, anyone's actual job or address (§4.2,
   §4.7).
+- **Typefaces — FOUR, each with a job.** `tailwind.config.ts:61-70` states the
+  brand system outright, and it is the authority:
+  | Role | Face | Its job, per the config |
+  |---|---|---|
+  | Display | **Bodoni Moda** | "architectural authority — large hero headlines" |
+  | Serif | **EB Garamond** | "timeless trustworthy — body text" |
+  | Sans | **Montserrat** | "modern professional — UI + buttons" |
+  | Script | **Beth Ellen** | "personal authentic — micro-accents / signatures" |
+
+  All four load from Google Fonts in `index.html:101`, so all four are available
+  in Canva. **Do not substitute Inter.** A `.text-card-title` rule in
+  `src/index.css:1530` names Inter, but Inter is never loaded and that class has
+  no call sites — it is dead CSS, not the body face. Measured on the built
+  landing page, the faces actually painted above the fold are Montserrat (42
+  elements), Bodoni Moda (9) and EB Garamond (2).
+
+  **How the hero uses them, measured rather than recalled** — this is the
+  pattern a graphic should echo. The headline is Bodoni Moda **upright** in
+  olivewood `#2E2F22`, and only the final accent word is Bodoni Moda *italic* in
+  burnt sienna `#9C4116`. The italic is the emphasis; setting a whole headline
+  in it throws that away. The subhead is Montserrat in muted stormy-sky, and the
+  primary button is Montserrat on the deep-olive `--bark` gradient — sienna is
+  the accent colour, never the button.
+
+  `src/index.css:1479-1483` warns there are exactly THREE canonical Bodoni sizes
+  and that arbitrary sizes are not to be invented; the same restraint applies to
+  a graphic. **Bodoni Moda has very high stroke contrast — its hairlines
+  disappear at small sizes and on a busy photograph.** Use it large, on a calm
+  ground, and set anything small in Montserrat.
 - **Type and overlay discipline.** How much text can sit on an image before it
   stops being a photograph and starts being a flyer.
 - **What the owner can realistically make in an evening.** A brief that requires

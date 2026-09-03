@@ -62,7 +62,7 @@ export const UsersDrillDown = ({ users, roleByUser }: { users: Profile[]; roleBy
   const statusColor = (status: string) => {
     if (status === "approved") return "bg-primary/10 text-primary";
     if (status === "denied") return "bg-destructive/10 text-destructive";
-    return "bg-accent/20 text-accent";
+    return "bg-accent/20 text-[hsl(var(--accent-ink))]";
   };
 
   return (
@@ -143,7 +143,7 @@ export const SubscriptionsDrillDown = ({ users }: { users: Profile[] }) => {
               <p className="text-ds-11 text-muted-foreground">{u.email} · {u.location || "No location"}</p>
             </div>
             <Badge className={`capitalize text-ds-11 ${
-              u.subscription_tier === "elite" ? "bg-accent/20 text-accent" :
+              u.subscription_tier === "elite" ? "bg-accent/20 text-[hsl(var(--accent-ink))]" :
               u.subscription_tier === "pro" ? "bg-primary/10 text-primary" :
               u.subscription_tier === "basic" ? "bg-secondary text-secondary-foreground" :
               "bg-muted text-muted-foreground"

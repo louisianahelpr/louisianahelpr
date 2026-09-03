@@ -383,7 +383,15 @@ const DesktopSidebarNav = () => {
                   <li key={group.title}>
                     <p
                       className="px-3 pt-1 pb-0.5 text-ds-10 font-semibold uppercase tracking-[0.08em]"
-                      style={{ color: "hsl(var(--olivewood) / 0.65)" }}
+                      style={{
+                        // 0.70, not 0.65. These four section headers repeat on
+                        // every admin screen, so a single 0.03 miss became 96
+                        // of the failures the five-leg sweep found — the
+                        // largest cluster in the app by node count and one of
+                        // the smallest by cause. 0.65 measured 4.47:1 against
+                        // 4.5 required at 10px; 0.70 measures 5.18:1.
+                        color: "hsl(var(--olivewood) / 0.7)",
+                      }}
                     >
                       {group.title}
                     </p>

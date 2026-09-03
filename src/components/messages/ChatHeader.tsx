@@ -164,7 +164,15 @@ export function ChatHeader({
               className="w-full h-full object-cover"
             />
           ) : (
-            <span className="text-ds-15 font-bold drop-shadow-sm" style={{ color: "hsl(var(--ink-deep))" }}>
+            <span
+              className="text-ds-15 font-bold drop-shadow-sm"
+              style={{
+                // Pinned #23231a — same reason as ConversationRow and
+                // UserAvatar: the avatar gradient does not invert with the
+                // theme, so its ink must not either.
+                color: "#23231a",
+              }}
+            >
               {activeConvo.otherUserName.charAt(0).toUpperCase()}
             </span>
           )}

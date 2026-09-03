@@ -86,7 +86,7 @@ export const TaxReserveCard = ({
           ribbon down the left edge. */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
         <div className="flex items-center gap-2.5 min-w-0">
-          <span className="w-9 h-9 sm:w-10 sm:h-10 rounded-ds-sm flex items-center justify-center bg-accent/10 text-accent shrink-0">
+          <span className="w-9 h-9 sm:w-10 sm:h-10 rounded-ds-sm flex items-center justify-center bg-accent/10 text-[hsl(var(--accent-ink))] shrink-0">
             <Landmark className="w-4 h-4 sm:w-5 sm:h-5" />
           </span>
           <div className="min-w-0">

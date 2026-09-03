@@ -15,7 +15,7 @@ interface Broadcast {
 
 const typeStyles: Record<string, { bg: string; border: string; icon: React.ReactNode }> = {
   info: { bg: "bg-primary/5", border: "border-primary/20", icon: <Info className="w-4 h-4 text-primary" /> },
-  warning: { bg: "bg-accent/10", border: "border-accent/30", icon: <AlertTriangle className="w-4 h-4 text-accent" /> },
+  warning: { bg: "bg-accent/10", border: "border-accent/30", icon: <AlertTriangle className="w-4 h-4 text-[hsl(var(--accent-ink))]" /> },
   urgent: { bg: "bg-destructive/10", border: "border-destructive/30", icon: <AlertTriangle className="w-4 h-4 text-destructive" /> },
   promo: { bg: "bg-primary/5", border: "border-primary/20", icon: <Megaphone className="w-4 h-4 text-primary" /> },
 };

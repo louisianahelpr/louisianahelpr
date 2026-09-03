@@ -15,7 +15,7 @@ export const PriorityAlert = ({ label, count, color, onClick }: {
   >
     <span className={cn(
       "w-8 h-8 sm:w-9 sm:h-9 rounded-ds-sm flex items-center justify-center text-ds-11 sm:text-ds-13 font-bold tabular-nums shrink-0",
-      color === "destructive" ? "bg-destructive/15 text-destructive" : "bg-accent/20 text-accent"
+      color === "destructive" ? "bg-destructive/15 text-destructive" : "bg-accent/20 text-[hsl(var(--accent-ink))]"
     )}>
       {count}
     </span>

@@ -493,10 +493,19 @@
      label, rgb(20,22,26)) measured 2.60:1 on it. AA needs 4.5. Not a
      theoretical corner: "Post a Job" spans the whole rail and "Accept Job"
      half a card, so the label's far end genuinely sits in it.
-     40% puts the darkest painted colour at rgb(130,141,83) — 5.07:1 — while
-     keeping a real falloff from the 52% centre, so the button still reads as
-     lit from the top-left rather than flat. */
-  --bark-deep:    66 25% 40%;
+     40% was the first answer here and it was 0.17 SHORT. It was derived, not
+     measured: the assumption was that the label's far end sits at 0.828 of the
+     ramp, painting rgb(130,141,83) for 5.07:1. Measured off the built bundle
+     across 20 nodes on 2026-09-02 — admin selects, the gift-card denomination
+     rows, "Browse Jobs", "Export Earnings" — the colour actually under the far
+     end of the label is rgb(122,128,77), i.e. essentially the pure far stop,
+     and it measures 4.33:1. The label's end reaches further down the ramp than
+     the geometry suggested.
+     44% puts the pure far stop at 5.10:1 and anything short of it lighter
+     still, while keeping a real falloff from the 52% centre so the button
+     still reads as lit from the top-left rather than flat. If you change this,
+     MEASURE it — that is the whole lesson of the previous paragraph. */
+  --bark-deep:    66 25% 44%;
   --olivewood:    36 15% 80%;   /* primary text — near-white warm */
   --burnt-sienna: 19 65% 52%;   /* warm accent — slightly brighter on dark */
   --accent-ink:   19 70% 66%;   /* accent-as-text on a raised dark surface —

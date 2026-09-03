@@ -81,7 +81,15 @@ export function UnderlineTabs({
               // Selected reads BLACK, not bark green (owner). --ink-deep is the
               // app's near-black body ink, so the live tab now matches the
               // headings beside it instead of tinting toward the brand olive.
-              color: isActive ? "hsl(var(--ink-deep))" : "hsl(var(--olivewood) / 0.65)",
+              //
+              // Idle is 0.70, not 0.65. This one component is the single
+              // largest source of contrast failures in the app: 128 of the 292
+              // the five-leg sweep found, because it appears on every admin
+              // screen and across activity/messages/my-posts. 0.65 measured
+              // 4.46:1 against the 4.5:1 required — a 0.04 miss that reads as
+              // "basically fine" and is not. 0.70 measures 5.18 light / 5.74
+              // dark.
+              color: isActive ? "hsl(var(--ink-deep))" : "hsl(var(--olivewood) / 0.7)",
             }}
           >
             <span
@@ -96,13 +104,20 @@ export function UnderlineTabs({
             >
               {t.label}
             </span>
+            {/* The count is 9px — the smallest text in the app — and it was
+                the faintest: 0.45 idle measured 2.59:1 and 0.55 active 3.66:1.
+                Both now clear AA (idle 5.18/5.74, active 4.97/5.69). The idle
+                count deliberately matches the idle LABEL's alpha rather than
+                sitting below it: there is no alpha quieter than the label that
+                also clears 4.5:1 at this size, and the 9px-vs-13px size
+                difference already carries the hierarchy. */}
             {!!t.count && t.count > 0 && (
               <span
                 className="font-sans tabular-nums text-ds-9 leading-none"
                 style={{
                   color: isActive
-                    ? "hsl(var(--ink-deep) / 0.55)"
-                    : "hsl(var(--olivewood) / 0.45)",
+                    ? "hsl(var(--ink-deep) / 0.65)"
+                    : "hsl(var(--olivewood) / 0.7)",
                 }}
               >
                 {t.count}

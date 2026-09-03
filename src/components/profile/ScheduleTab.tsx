@@ -517,7 +517,15 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
                     className={`relative h-8 flex flex-col items-center justify-center rounded-ds-sm text-ds-11 transition-colors ${
                       isSelected ? "btn-grad-primary text-[hsl(var(--parchment))]" :
                       isToday ? "text-primary font-bold ring-2 ring-primary/70 ring-inset bg-primary/8" :
-                      isBlocked ? "text-muted-foreground/70 bg-muted/30 hover:bg-muted/50" :
+                      // text-muted-foreground at FULL strength, not /70. The
+                      // date numeral is the only thing identifying the cell,
+                      // and at 11px /70 measured 2.97:1 light / 4.05:1 dark
+                      // against the 4.5:1 it needs. "Blocked" is already
+                      // carried by the muted fill, the title tooltip and the
+                      // aria-label — dimming the number below AA to say it
+                      // again spends legibility on a signal three other things
+                      // already give. Full strength measures 5.46 / 6.77.
+                      isBlocked ? "text-muted-foreground bg-muted/30 hover:bg-muted/50" :
                       "hover:bg-secondary text-foreground"
                     }`}
                     style={

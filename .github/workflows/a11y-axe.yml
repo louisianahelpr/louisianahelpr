@@ -32,7 +32,13 @@ permissions:
 # structurally incapable of seeing it. `SWEEP_VARIANTS` therefore covers the
 # spec's whole matrix here:
 #   phone-light (375x812 light) · phone-dark (375x812 DARK) ·
-#   small-light (320x640) · desktop-light (1440x900)
+#   small-light (320x640) · desktop-light (1440x900) ·
+#   desktop-dark (1440x900 DARK)
+#
+# desktop-dark was added 2026-09-02. Until then the matrix varied THEME at one
+# width and WIDTH at one theme, so dark mode above 375px was swept by nothing —
+# and the dark-mode defect this paragraph cites as the reason the matrix exists
+# is exactly the shape of defect that hole would hide on the desktop layout.
 # Theme is driven by the `data-theme` attribute inside the spec, not by
 # `prefers-color-scheme` — this app reads the attribute, so emulating the OS
 # colour scheme would test nothing.
@@ -54,14 +60,22 @@ permissions:
 # ------------------------
 # ubuntu-latest, 1x billing multiplier. Budget ~12-15 min per leg on a CI
 # runner (slower than the laptop the 9 min was measured on), plus ~1 min
-# install, ~30s Chromium, ~1 min production build. Four legs is therefore
-# ~50-60 BILLED minutes per UI-touching push. That is real money for this
+# install, ~30s Chromium, ~1 min production build. FIVE legs is therefore
+# ~60-75 BILLED minutes per UI-touching push. That is real money for this
 # repo, which is exactly why the paths filter below exists: backend-only,
 # migration-only and docs-only commits report green in seconds and cost
 # essentially nothing. If the bill still bites, the correct lever is to drop
 # this to `pull_request` only (leaving push-to-main to ui-sweep's weekly
 # seeded run) — NOT to narrow the variant set back to phone-light, which is
 # what let the dark-mode defect live.
+#
+# The gate also got materially stronger on 2026-09-02: colour-contrast used to
+# be invisible to it, because axe files every contrast result on a gradient
+# canvas under `incomplete` rather than `violations`, and the gate read only
+# `violations`. It now decides those itself (e2e/happy-path/contrastResolve.ts)
+# and fails on a sub-AA ratio OR on a result nothing can decide. Expect this to
+# find things the four green legs never could — that is the point, and the
+# answer is still FIX THE SCREENS.
 #
 # BEFORE MAKING THIS A REQUIRED CHECK
 # -----------------------------------
@@ -82,7 +96,7 @@ on:
   workflow_dispatch:
     inputs:
       variants:
-        description: "Variant tags to run: all | phone-light | phone-dark | small-light | desktop-light"
+        description: "Variant tags to run: all | phone-light | phone-dark | small-light | desktop-light | desktop-dark"
         required: false
         default: all
         type: string
@@ -176,7 +190,7 @@ jobs:
         # in sync with that list — an unknown tag makes the spec throw
         # "SWEEP_VARIANTS=<tag> matched no variant tag", which fails loudly
         # rather than silently skipping, by design.
-        variant: [phone-light, phone-dark, small-light, desktop-light]
+        variant: [phone-light, phone-dark, small-light, desktop-light, desktop-dark]
 
     env:
       # Same publishable Vite vars the other workflows bake in. The sweep mocks

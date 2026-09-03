@@ -40,7 +40,7 @@ const CATEGORIES = [
   { value: "general", label: "General", color: "bg-muted text-muted-foreground border-border" },
   { value: "behavior", label: "Behavior", color: "bg-destructive/10 text-destructive border-destructive/30" },
   { value: "verification", label: "Verification", color: "bg-primary/10 text-primary border-primary/30" },
-  { value: "support", label: "Support", color: "bg-accent/10 text-accent border-accent/30" },
+  { value: "support", label: "Support", color: "bg-accent/10 text-[hsl(var(--accent-ink))] border-accent/30" },
   { value: "billing", label: "Billing", color: "bg-secondary text-secondary-foreground border-border" },
 ];
 

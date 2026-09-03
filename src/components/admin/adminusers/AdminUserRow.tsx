@@ -129,7 +129,7 @@ const AdminUserRowBase = ({
             const tone = waitHours >= 48
               ? "bg-destructive/15 text-destructive border-destructive/30"
               : waitHours >= 24
-              ? "bg-accent/20 text-accent border-accent/30"
+              ? "bg-accent/20 text-[hsl(var(--accent-ink))] border-accent/30"
               : "bg-primary/10 text-primary border-primary/20";
             return (
               <Badge variant="outline" className={`mt-1 h-5 px-2 text-ds-10 font-semibold ${tone}`}>
@@ -183,7 +183,7 @@ const AdminUserRowBase = ({
                       ? "bg-destructive/15 text-destructive"
                       : strikes === 2
                         ? "bg-destructive/15 text-destructive"
-                        : "bg-accent/20 text-accent"
+                        : "bg-accent/20 text-[hsl(var(--accent-ink))]"
                 )}
 
                 {/* Open reports/disputes — only show when present */}
@@ -304,7 +304,7 @@ const AdminUserRowBase = ({
                   const tone = count >= 3
                     ? "bg-destructive/15 text-destructive font-semibold"
                     : count >= 2
-                    ? "bg-accent/20 text-accent"
+                    ? "bg-accent/20 text-[hsl(var(--accent-ink))]"
                     : "bg-secondary/40 text-muted-foreground";
                   return chip(
                     "reminders",
@@ -323,7 +323,7 @@ const AdminUserRowBase = ({
       </div>
       {p.approval_status === "pending" && isVerifiedEmail(p) && wasFlaggedByStripe(p) && (
         <div className="flex gap-1.5 mt-2.5 flex-wrap items-center">
-          <Badge variant="outline" className="h-7 px-2 flex items-center gap-1 text-ds-10 bg-accent/10 text-accent border-accent/30">
+          <Badge variant="outline" className="h-7 px-2 flex items-center gap-1 text-ds-10 bg-accent/10 text-[hsl(var(--accent-ink))] border-accent/30">
             <ShieldAlert className="w-3 h-3" />
             Flagged by Stripe
           </Badge>

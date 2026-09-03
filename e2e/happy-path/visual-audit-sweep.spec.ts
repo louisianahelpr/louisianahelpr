@@ -16,10 +16,13 @@
 // one-line edit. Indices are assigned sequentially across all groups.
 //
 // This produces evidence (screenshots + an a11y JSON report) AND gates on it:
-// the final `zz gate` test fails the run if any screen failed to render or if
-// axe reported ANY wcag2a/2aa/21a/21aa violation. It used to record
+// the final `zz gate` test fails the run if any screen failed to render, if
+// axe reported ANY wcag2a/2aa/21a/21aa violation, or if a colour-contrast
+// result comes back below AA or undecided. It used to record
 // `totalViolations` and assert nothing, which is how a real 1.92:1 contrast
-// failure sat green in it. Run it on demand with:
+// failure sat green in it — and even after that was fixed, contrast itself was
+// still invisible, because axe files every contrast result on a gradient
+// canvas under `incomplete` rather than `violations`. Run it on demand with:
 //   RUN_VISUAL_SWEEP=1 PLAYWRIGHT_WEB_SERVER=1 \
 //     npx playwright test --project=happy-path visual-audit-sweep
 //
@@ -51,6 +54,21 @@ import {
   settleAnimations,
   type LayoutReport,
 } from "./auditRoutes";
+// axe REFUSES to decide colour-contrast over a gradient — and this app's page
+// canvas is a gradient, so every contrast result landed in `incomplete`, which
+// this gate never read. See contrastResolve.ts for the whole story.
+import {
+  resolveIncompleteContrast,
+  contrastFailures,
+  contrastUnresolved,
+  contrastVanished,
+  describeContrast,
+  type ResolvedContrast,
+} from "./contrastResolve";
+// The failures that are already written down. Turning the contrast check on
+// reveals more than one change can fix; this is how that is recorded without
+// anyone reaching for continue-on-error. See knownContrastFailures.ts.
+import { classifyAgainstKnown, type ClassifiedFailure } from "./knownContrastFailures";
 
 const OUTPUT_DIR = "/tmp/ui-review";
 mkdirSync(OUTPUT_DIR, { recursive: true });
@@ -76,6 +94,17 @@ interface ScreenResult {
   screenshot?: string;
   totalViolations?: number;
   topViolations?: ViolationSummary[];
+  /**
+   * Colour-contrast results axe left in `incomplete` and we then decided
+   * ourselves. `contrastChecked` is the count it declined to judge — if that
+   * is non-zero and both buckets below are empty, the check RAN and passed,
+   * which is the distinction the old gate could not make.
+   */
+  contrastChecked?: number;
+  contrastFailures?: ResolvedContrast[];
+  contrastUnresolved?: ResolvedContrast[];
+  /** Elements that disappeared before we could score them (toasts). */
+  contrastVanished?: ResolvedContrast[];
   layout?: LayoutReport;
   error?: string;
   notes?: string;
@@ -105,11 +134,21 @@ interface Variant {
   theme: "light" | "dark";
 }
 
+/**
+ * `desktop-dark` was added 2026-09-02. Before it, the matrix ran dark mode at
+ * exactly ONE width — 375 — so nothing dark-mode-specific above phone width
+ * was ever looked at by anything. That is not a small hole: this app's desktop
+ * layout is a different layout (the rail inset, the two-column hero, the wider
+ * cards), and the single worst defect the last audit found — 35 screens — was
+ * dark-mode-only. A matrix that varies theme at one width and width at one
+ * theme cannot see anything that needs both.
+ */
 const ALL_VARIANTS: Variant[] = [
   { tag: "phone-light", width: 375, height: 812, theme: "light" },
   { tag: "phone-dark", width: 375, height: 812, theme: "dark" },
   { tag: "small-light", width: 320, height: 640, theme: "light" },
   { tag: "desktop-light", width: 1440, height: 900, theme: "light" },
+  { tag: "desktop-dark", width: 1440, height: 900, theme: "dark" },
 ];
 
 // (unset) → phone-light only · "all" → the whole matrix · or a comma list of
@@ -280,6 +319,22 @@ async function captureScreen(
           .filter(Boolean),
       ),
     }));
+
+    // Decide what axe would not. `incomplete` is where a colour-contrast
+    // result goes when axe cannot resolve the backdrop, and over a gradient
+    // canvas that is EVERY result — so reading only `violations` reported
+    // green on a check that never ran. resolveIncompleteContrast composites
+    // the backdrop the text's own ancestors paint, scoring a gradient at its
+    // worst stop; anything it still cannot decide comes back as unresolved and
+    // fails the gate rather than vanishing.
+    const contrast = await resolveIncompleteContrast(page, axe);
+    result.contrastChecked = contrast.length;
+    result.contrastFailures = contrastFailures(contrast);
+    result.contrastUnresolved = contrastUnresolved(contrast);
+    // Self-dismissing overlays vanish between axe's scan and ours. Recorded,
+    // not failed — see contrastVanished.
+    result.contrastVanished = contrastVanished(contrast);
+
     result.status = "ok";
   } catch (err) {
     result.error = err instanceof Error ? err.message : String(err);
@@ -359,12 +414,26 @@ sweepDescribe("UI audit evidence sweep", () => {
    * asserting once at the end gives BOTH: a complete report on disk and a red
    * run that names every offending screen in one message.
    *
-   * Two things fail the run:
+   * FOUR things fail the run:
    *   - any axe wcag2a/2aa/21a/21aa violation on any screen;
    *   - any screen that did not render at all. A screen that threw has
    *     `totalViolations: undefined`, which would otherwise slip past the
    *     violation check and count as clean — a hole big enough to hide a
    *     white-screening route in.
+   *   - any NEW WCAG AA colour-contrast failure in the composited backdrop;
+   *   - any RECORDED contrast failure that got worse, or that is recorded and
+   *     no longer happens (see knownContrastFailures.ts — the list is only
+   *     allowed to shrink);
+   *   - any colour-contrast result nothing could decide.
+   *
+   * The last two were added 2026-09-02 and are not a refinement — they are the
+   * check itself. axe never put a single colour-contrast result in
+   * `violations` on this app: its page canvas is a gradient, so axe declines
+   * and files EVERY contrast result under `incomplete`, which this gate did
+   * not read. Measured on the built bundle: `/` reported 0 violations and 25
+   * incomplete colour-contrast nodes. So for the whole life of this gate, the
+   * one check its own workflow file is named after had never run, and reported
+   * green. See contrastResolve.ts.
    *
    * If this is red, FIX THE SCREENS. Do not narrow the tag set or filter by
    * impact to get it green — a muted gate is the state this change was made to
@@ -399,6 +468,81 @@ sweepDescribe("UI audit evidence sweep", () => {
     expect(
       violating,
       `axe wcag2a/2aa/21a/21aa violations (full report: /tmp/ui-review/a11y-report.json):\n  - ${violating.join("\n  - ")}`,
+    ).toEqual([]);
+
+    // Colour-contrast, which axe itself declined to judge on every screen with
+    // a gradient behind it. These assertions are the difference between a gate
+    // that checked contrast and a gate that skipped it and said nothing.
+    const allContrast: ClassifiedFailure[] = results.flatMap((r) =>
+      (r.contrastFailures ?? []).map((c) => ({
+        screen: r.name,
+        variant: r.variant ?? "?",
+        text: c.text ?? "",
+        ratio: c.ratio ?? 0,
+        line: `${r.index} ${r.name} (${r.variant}) @ ${r.url} — ${describeContrast(c)}`,
+      })),
+    );
+    const contrastUndecided = results.flatMap((r) =>
+      (r.contrastUnresolved ?? []).map(
+        (c) => `${r.index} ${r.name} (${r.variant}) @ ${r.url} — ${describeContrast(c)}`,
+      ),
+    );
+
+    // Staleness is only judgeable for what this leg actually visited — the CI
+    // matrix runs one variant per job, so every entry for the other variants
+    // would otherwise read as stale on every leg.
+    const swept = new Set(results.filter((r) => r.status === "ok").map((r) => `${r.name}|${r.variant}`));
+    const contrast = classifyAgainstKnown(allContrast, swept);
+
+    const vanished = results.flatMap((r) =>
+      (r.contrastVanished ?? []).map(
+        (c) => `${r.index} ${r.name} (${r.variant}) — ${describeContrast(c)}`,
+      ),
+    );
+    if (vanished.length) {
+      test.info().annotations.push({
+        type: "contrast-not-measured",
+        description:
+          `${vanished.length} element(s) disappeared between axe's scan and ours — a ` +
+          "self-dismissing overlay, most often a toast. NOT failed: there is no screen to " +
+          "fix, the thing being scored no longer exists. It IS an acknowledged coverage " +
+          `gap — short-lived text is not contrast-checked here:\n  - ${vanished.join("\n  - ")}`,
+      });
+    }
+
+    if (contrast.allowed.length) {
+      test.info().annotations.push({
+        type: "known-contrast-failures",
+        description:
+          `${contrast.allowed.length} recorded, unfixed colour-contrast failure(s) — not new, ` +
+          `not worse:\n  - ${contrast.allowed.join("\n  - ")}`,
+      });
+    }
+
+    const contrastBroken = contrast.fresh.map((f) => f.line);
+
+    expect(
+      contrastBroken,
+      "NEW WCAG AA colour-contrast failures, measured from the composited backdrop. " +
+        "These are not in knownContrastFailures.ts, which means this change introduced them — " +
+        `fix them, do not list them:\n  - ${contrastBroken.join("\n  - ")}`,
+    ).toEqual([]);
+    expect(
+      contrast.regressed,
+      "Recorded colour-contrast failures that got WORSE. The number in " +
+        `knownContrastFailures.ts is a ceiling, not a pass:\n  - ${contrast.regressed.join("\n  - ")}`,
+    ).toEqual([]);
+    expect(
+      contrast.stale,
+      "Stale entries in knownContrastFailures.ts — recorded but not seen on a screen this run " +
+        "DID sweep. The list is only allowed to shrink, so a fixed entry has to be deleted:\n  - " +
+        contrast.stale.join("\n  - "),
+    ).toEqual([]);
+    expect(
+      contrastUndecided,
+      "colour-contrast results NOTHING could decide — neither axe nor the pixel/ancestor " +
+        "resolver. An undecided check is not a passing check; look at each of these by hand " +
+        `and either fix the screen or make the backdrop measurable:\n  - ${contrastUndecided.join("\n  - ")}`,
     ).toEqual([]);
   });
 });

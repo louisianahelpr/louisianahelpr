@@ -494,10 +494,13 @@ export const AtAGlanceCard = ({
       {/* A tapped tile opens its list further down the page; say so once,
           quietly, rather than leaving three of the cells looking like buttons
           for no stated reason. */}
+      {/* 0.7, not 0.65. At 11px this needs 4.5:1 and 0.65 measured 4.38 —
+          the kind of miss that reads as "basically fine" and is not. 0.7
+          measures 5.08 light / 5.71 dark. */}
       {cells.some((c) => c.onClick) && (
         <p
           className="mt-2 font-serif italic text-ds-11"
-          style={{ color: "hsl(var(--olivewood) / 0.65)" }}
+          style={{ color: "hsl(var(--olivewood) / 0.7)" }}
         >
           Tap a highlighted figure to see what's behind it.
         </p>

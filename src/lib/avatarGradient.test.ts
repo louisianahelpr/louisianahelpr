@@ -10,7 +10,36 @@ describe("avatarGradientFor", () => {
 
   it("returns a Tailwind from/to fragment", () => {
     const cls = avatarGradientFor("any-seed");
-    expect(cls).toMatch(/^from-\[hsl\(var\(--[a-z-]+\)\)\] to-\[hsl\(var\(--[a-z-]+\)/);
+    // Both stops are OPAQUE 6-digit hex on purpose: an alpha on the `to` stop
+    // composites over whatever is behind the element, not over the `from`
+    // colour, which is how the dark-mode failure survived the first fix.
+    expect(cls).toMatch(/^from-\[#[0-9a-f]{6}\] to-\[#[0-9a-f]{6}\]$/);
+  });
+
+  /**
+   * The invariant this file exists to protect, and the one that was broken.
+   *
+   * The palette is a CALIBRATION — a light warm base and a mid-depth accent at
+   * an opacity tuned so the dark initials clear WCAG AA at the darkest point.
+   * It used to be written as `hsl(var(--parchment))` / `hsl(var(--bark)/0.62)`
+   * and every one of those tokens INVERTS under `[data-theme="dark"]`, so in
+   * dark mode "cream → deep accent" silently became "near-black → near-white"
+   * and no ink colour worked at both ends: measured across all eight variants,
+   * --ink-deep bottomed out at 2.54:1, pure white at 3.54:1, the light ink at
+   * 1.04:1.
+   *
+   * So: no theme tokens in this palette, in either stop. A future edit that
+   * reaches for `var(--…)` because it looks tidier re-introduces the bug, and
+   * it re-introduces it invisibly — light mode would still look right.
+   */
+  it("uses no theme-reactive tokens — the palette must not invert with the theme", () => {
+    const seeds = Array.from({ length: 60 }, (_, i) => `seed_${i}`);
+    const offenders = [...new Set(seeds.map(avatarGradientFor))].filter((c) => c.includes("var(--"));
+    expect(
+      offenders,
+      "Avatar gradient stops must be literal colours. A theme token here inverts in dark mode " +
+        `and takes the ink calibration with it:\n  - ${offenders.join("\n  - ")}`,
+    ).toEqual([]);
   });
 
   it("falls back to a stable variant for null/undefined/empty", () => {

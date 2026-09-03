@@ -22,8 +22,9 @@ import { cn } from "@/lib/utils";
  *   gradient — useful when the same person shows up in feed cards and the
  *   profile header.
  * - `initials` is derived from `name` when not supplied (first letter of
- *   first and last whitespace-separated words). Initials text uses
- *   `--ink-deep` so it stays legible on every variant.
+ *   first and last whitespace-separated words). Initials text is pinned to
+ *   the light-mode `--ink-deep` value so it stays legible on every variant in
+ *   BOTH themes — the token itself inverts, which is what broke it.
  * - `size` accepts a number (pixels) or a Tailwind class string. The
  *   internal `Avatar` defaults to `h-10 w-10` — pass `className` to
  *   override sizing or radius (e.g. `rounded-ds-avatar squircle`).
@@ -274,10 +275,17 @@ const UserAvatar = React.forwardRef<
           // opacity separates the gradient circle from light backgrounds
           // (cards, parchment page) and gives it a finished edge without
           // a hard border. `drop-shadow-sm` adds depth on the lighter
-          // variants. `text-[hsl(var(--ink-deep))]` keeps initials legible
-          // on every gradient pair; font-display italic matches the brand
-          // voice used elsewhere for initials and avatar text.
-          "bg-transparent bg-gradient-to-br text-[hsl(var(--ink-deep))] font-display italic font-bold",
+          // variants. font-display italic matches the brand voice used
+          // elsewhere for initials and avatar text.
+          //
+          // The ink is the LITERAL light-mode `--ink-deep` (64 16% 12%), not
+          // the token. The token inverts to near-white under
+          // `[data-theme="dark"]`, and so did every stop of the gradient it
+          // sits on — see the header of src/lib/avatarGradient.ts for the
+          // measurements. The palette is pinned there and the ink is pinned
+          // here, together, because either one moving alone breaks the pair:
+          // this ink on the OLD dark gradient measured 1.04:1.
+          "bg-transparent bg-gradient-to-br text-[#23231a] font-display italic font-bold",
           "ring-[1.5px] ring-[hsl(var(--olivewood)/0.12)] ring-offset-0",
           "drop-shadow-[0_1px_3px_hsl(var(--olivewood)/0.12)]",
           gradient,

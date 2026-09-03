@@ -182,7 +182,7 @@ const AdminBroadcasts = () => {
 
   const typeBadge: Record<string, string> = {
     info: "bg-primary/10 text-primary",
-    warning: "bg-accent/10 text-accent",
+    warning: "bg-accent/10 text-[hsl(var(--accent-ink))]",
     urgent: "bg-destructive/10 text-destructive",
     promo: "bg-primary/10 text-primary",
   };

@@ -34,10 +34,10 @@ export const statusBadge = (profile: Profile) => {
   if (banStatus === "temp_banned") return <Badge className="bg-destructive/10 text-destructive text-ds-11">Temp Banned</Badge>;
   // "warned" status is intentionally not surfaced as a status badge — the strike chip
   // ("1st Strike", "Final Warning", etc.) already conveys this without duplication.
-  if (!isVerifiedEmail(profile)) return <Badge className="bg-accent/20 text-accent text-ds-11">Pending Email Verification</Badge>;
+  if (!isVerifiedEmail(profile)) return <Badge className="bg-accent/20 text-[hsl(var(--accent-ink))] text-ds-11">Pending Email Verification</Badge>;
   if (profile.approval_status === "approved") return <Badge className="bg-primary/10 text-primary text-ds-11">Active</Badge>;
   if (profile.approval_status === "denied") return <Badge className="bg-destructive/10 text-destructive text-ds-11">Denied</Badge>;
-  return <Badge className="bg-accent/20 text-accent text-ds-11">Pending Review</Badge>;
+  return <Badge className="bg-accent/20 text-[hsl(var(--accent-ink))] text-ds-11">Pending Review</Badge>;
 };
 
 // Stripe Identity verification badge — green / yellow / gray.
@@ -57,7 +57,7 @@ export const stripeBadge = (profile: Profile) => {
   // "requires_input" and "action_needed" were listed here and are all
   // unreachable — the constraint rejects every one of them.
   if (s === "manual_review" || s === "failed") {
-    return <Badge className="bg-accent/20 text-accent border-accent/30 text-ds-10 gap-0.5"><ShieldAlert className="w-2.5 h-2.5" />Stripe Flagged</Badge>;
+    return <Badge className="bg-accent/20 text-[hsl(var(--accent-ink))] border-accent/30 text-ds-10 gap-0.5"><ShieldAlert className="w-2.5 h-2.5" />Stripe Flagged</Badge>;
   }
   return <Badge variant="outline" className="text-muted-foreground text-ds-10 gap-0.5"><ShieldAlert className="w-2.5 h-2.5" />ID Not Submitted</Badge>;
 };

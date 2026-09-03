@@ -102,14 +102,14 @@ export function computeBadges(stats: {
       key: "fast_responder",
       label: "Fast Responder",
       icon: <Zap className="w-3 h-3" />,
-      color: "bg-accent/15 text-accent",
+      color: "bg-accent/15 text-[hsl(var(--accent-ink))]",
     });
   } else if (stats.completedJobs >= 15) {
     badges.push({
       key: "fast_responder",
       label: "Fast Responder",
       icon: <Zap className="w-3 h-3" />,
-      color: "bg-accent/15 text-accent",
+      color: "bg-accent/15 text-[hsl(var(--accent-ink))]",
     });
   }
 

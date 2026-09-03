@@ -28,7 +28,7 @@ export const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick, spar
   // rendering near-invisible on the light `bg-accent/10` tile).
   const accentClasses = {
     primary: "bg-primary/10 text-primary",
-    accent: "bg-accent/15 text-accent",
+    accent: "bg-accent/15 text-[hsl(var(--accent-ink))]",
     destructive: "bg-destructive/10 text-destructive",
   }[accent];
 

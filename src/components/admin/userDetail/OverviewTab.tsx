@@ -104,7 +104,7 @@ export function OverviewTab({ viewProfile, profileViolations }: OverviewTabProps
                   <span className={`text-ds-11 px-2 py-0.5 rounded-full font-medium ${
                     v.action_taken === "permanent_ban" ? "bg-destructive/10 text-destructive" :
                     v.action_taken === "temp_ban" ? "bg-destructive/10 text-destructive" :
-                    "bg-accent/20 text-accent"
+                    "bg-accent/20 text-[hsl(var(--accent-ink))]"
                   }`}>
                     {v.action_taken === "permanent_ban" ? "Perm Ban" : v.action_taken === "temp_ban" ? "Temp Ban" : "Warning"}
                   </span>

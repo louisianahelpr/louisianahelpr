@@ -309,7 +309,16 @@ const ConversationRowBase = ({
             className="w-full h-full object-cover"
           />
         ) : (
-          <span className="text-ds-13 font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
+          <span
+            className="text-ds-13 font-bold"
+            style={{
+              // Pinned #23231a, the light-mode --ink-deep, matching UserAvatar.
+              // The token inverts to near-white in dark mode while the avatar
+              // gradient (src/lib/avatarGradient.ts) deliberately does not, so
+              // the token here painted this initial at 1.66:1 on the tan face.
+              color: "#23231a",
+            }}
+          >
             {c.otherUserName.charAt(0).toUpperCase()}
           </span>
         )}

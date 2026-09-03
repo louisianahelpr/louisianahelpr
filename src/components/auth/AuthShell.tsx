@@ -307,7 +307,10 @@ const AuthShell = ({
                 <span
                   className="font-display italic font-bold leading-none text-ds-22"
                   style={{
-                    color: "hsl(var(--burnt-sienna))",
+                    // --accent-ink, matching HelprMark's own "· LA" — see the
+                    // comment there. Byte-identical in light, lifted in dark,
+                    // where raw --burnt-sienna measures 3.84:1 at this size.
+                    color: "hsl(var(--accent-ink))",
                     letterSpacing: "0.22em",
                     marginLeft: "0.12em",
                   }}
@@ -315,9 +318,19 @@ const AuthShell = ({
                   · LA
                 </span>
               </Link>
+              {/* --accent-ink at 0.9, not --burnt-sienna at 0.7. This 11px
+                  line is the eyebrow every auth screen puts above its
+                  heading, and on /payment-success it carries "Payment not
+                  confirmed" — the one sentence telling a paying customer
+                  something went wrong, and it measured the WORST contrast on
+                  that screen: 3.33:1 light, 3.01:1 dark, against the 4.5:1
+                  small text needs. --accent-ink is byte-identical to
+                  --burnt-sienna in light mode and lifted in dark; 0.9 is the
+                  same alpha the "or" divider below uses, for the same reason.
+                  Now 4.97:1 light / 6.16:1 dark. */}
               <p
                 className="mt-2 text-ds-11 tracking-[0.18em] uppercase font-serif italic"
-                style={{ color: "hsl(var(--burnt-sienna) / 0.7)" }}
+                style={{ color: "hsl(var(--accent-ink) / 0.9)" }}
               >
                 {eyebrow}
               </p>

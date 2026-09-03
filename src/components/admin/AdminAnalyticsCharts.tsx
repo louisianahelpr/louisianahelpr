@@ -27,6 +27,23 @@ interface CategoryDatum {
   revenue: number;
 }
 
+/**
+ * Recharts colours a legend LABEL with its series colour. That is fine until a
+ * series is painted in a token that was never meant to be read: "New Users"
+ * used `--secondary`, which is `--sand`, a SURFACE token — #e2e4e9 in light and
+ * #373b43 in dark, i.e. near-invisible against the chart in both themes. The
+ * legend text measured 1.27:1 light and 1.45:1 dark against the 4.5:1 it needs.
+ *
+ * Two fixes, because there were two bugs stacked on each other. The series
+ * colour is corrected below, and this formatter pins every legend LABEL to
+ * `--foreground` so no future series colour can make its own label unreadable
+ * again. The swatch keeps the series colour, which is the part of a legend that
+ * actually has to match the line.
+ */
+const legendLabel = (value: string) => (
+  <span style={{ color: "hsl(var(--foreground))", fontSize: 12 }}>{value}</span>
+);
+
 const TOOLTIP_STYLE = {
   backgroundColor: "hsl(var(--card))",
   border: "1px solid hsl(var(--border))",
@@ -43,7 +60,7 @@ export const SubscriberPieChart = ({ data }: { data: SubPieDatum[] }) => (
         ))}
       </Pie>
       <Tooltip formatter={(value, name) => [`${value} helper${Number(value) === 1 ? "" : "s"}`, name as string]} />
-      <Legend />
+      <Legend formatter={legendLabel} />
     </RePieChart>
   </ResponsiveContainer>
 );
@@ -55,10 +72,16 @@ export const RevenueLineChart = ({ data }: { data: MonthlyDatum[] }) => (
       <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
       <YAxis tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
       <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: "hsl(var(--foreground))" }} />
-      <Legend />
+      <Legend formatter={legendLabel} />
       <Line type="monotone" dataKey="revenue" name="Revenue ($)" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 4 }} />
       <Line type="monotone" dataKey="fees" name="Profit ($)" stroke="hsl(var(--accent))" strokeWidth={2} dot={{ r: 4 }} />
-      <Line type="monotone" dataKey="signups" name="New Users" stroke="hsl(var(--secondary))" strokeWidth={2} dot={{ r: 4 }} />
+      {/* --stormy-sky, not --secondary. --secondary is --sand, a surface
+          token: as a 2px line it was invisible against the chart in both
+          themes, so this series had no readable line AND no readable legend
+          label. --stormy-sky is a real mid-tone in both themes (198 12% 36%
+          light / 198 14% 65% dark) and is a distinct hue from the bark green
+          and burnt-sienna rust of the other two series. */}
+      <Line type="monotone" dataKey="signups" name="New Users" stroke="hsl(var(--stormy-sky))" strokeWidth={2} dot={{ r: 4 }} />
     </LineChart>
   </ResponsiveContainer>
 );

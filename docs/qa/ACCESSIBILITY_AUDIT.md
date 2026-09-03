@@ -21,11 +21,20 @@ tick one to make the page look finished.
 The workflow runs `e2e/happy-path/visual-audit-sweep.spec.ts`, which scans
 every screen with **axe-core 4.13** (`@axe-core/playwright`) using the tag set
 `wcag2a` + `wcag2aa` + `wcag21a` + `wcag21aa` — **69 of axe's 105 rules**. Its
-`zz gate` test fails the run on *any* violation in that set, and on any screen
-that failed to render at all. It runs at **four variants**: `phone-light`,
-`phone-dark` (375×812 dark), `small-light` (320×640), `desktop-light`
-(1440×900). Dark mode matters: the worst single defect of the last full audit —
-35 screens — existed only there.
+`zz gate` test fails the run on *any* violation in that set, on any screen
+that failed to render at all, and — since 2026-09-02 — on any colour-contrast
+result that measures below AA or that nothing can decide. That last pair is not
+a refinement. axe files a colour-contrast result under `incomplete`, not
+`violations`, whenever it cannot resolve the backdrop, and this app's page
+canvas is a gradient, so *every* contrast result went there and the gate never
+read it: `/` reported 0 violations and 25 incomplete contrast nodes on the
+built bundle. `e2e/happy-path/contrastResolve.ts` now decides them from the
+painted pixels. It runs at **five variants**: `phone-light`, `phone-dark`
+(375×812 dark), `small-light` (320×640), `desktop-light` (1440×900),
+`desktop-dark` (1440×900 dark). Dark mode matters: the worst single defect of
+the last full audit — 35 screens — existed only there; `desktop-dark` exists
+because until it was added the matrix varied theme at one width and width at
+one theme, leaving dark mode above phone width swept by nothing.
 
 `.github/workflows/ui-sweep.yml` runs the same axe scan over the **empty-state**
 version of every screen on each push (phone-light), plus weekly seeded and

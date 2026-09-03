@@ -280,11 +280,16 @@ export const ProfileHeaderCard = ({
                   </span>
                 )}
                 {location && memberSinceLabel && (
-                  <span
-                    aria-hidden
-                    className="hidden sm:inline"
-                    style={{ color: "hsl(var(--burnt-sienna) / 0.35)" }}
-                  >
+                  // Inherits the row's own --olivewood/0.8 rather than
+                  // painting --burnt-sienna at 0.35. At 0.35 the separator
+                  // measured 1.77:1 light / 1.63:1 dark — the two lowest
+                  // numbers on the whole public surface. `aria-hidden` is
+                  // right (a screen reader gets the two facts as separate
+                  // nodes and does not need the dot read out) but it says
+                  // nothing about whether a sighted reader can see it, and at
+                  // 1.7:1 they cannot: "Lafayette" and "Since May 2026" ran
+                  // together with an invisible mark between them.
+                  <span aria-hidden className="hidden sm:inline">
                     ·
                   </span>
                 )}

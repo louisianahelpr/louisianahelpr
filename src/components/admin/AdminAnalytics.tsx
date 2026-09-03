@@ -390,11 +390,21 @@ const AdminAnalytics = () => {
           {/* Four tiers. grid-cols-4 keeps them on one row at the admin
               card's width rather than orphaning Free. */}
           <div className="grid grid-cols-4 gap-2 mt-4">
+            {/* `text-accent` is --burnt-sienna, which is the ACCENT value, not
+                the accent-as-text value: on its own 20% tint in dark mode the
+                Elite label measured 3.9:1. --accent-ink exists for exactly
+                this and is byte-identical in light mode, so only dark moves.
+
+                The Basic and Free rows also had `Bg-secondary` and `Bg-muted`
+                with a capital B — not Tailwind classes, so they compiled to
+                NOTHING and those two chips have been rendering unstyled. Same
+                family as the `data-[state=checked]:btn-grad-primary` trap in
+                CLAUDE.md: the class list reads correct and produces no CSS. */}
             {[
-              { label: TIER_PERKS.elite.name, count: subElite, color: "bg-accent/20 text-accent" },
+              { label: TIER_PERKS.elite.name, count: subElite, color: "bg-accent/20 text-[hsl(var(--accent-ink))]" },
               { label: TIER_PERKS.pro.name, count: subPro, color: "bg-primary/10 text-primary" },
-              { label: TIER_PERKS.basic.name, count: subBasic, color: "Bg-secondary Text-secondary-foreground" },
-              { label: TIER_PERKS.free.name, count: subFree, color: "Bg-muted Text-muted-foreground" },
+              { label: TIER_PERKS.basic.name, count: subBasic, color: "bg-secondary text-secondary-foreground" },
+              { label: TIER_PERKS.free.name, count: subFree, color: "bg-muted text-muted-foreground" },
             ].map(t => (
               <div key={t.label} className="text-center">
                 <p className="text-ds-17 font-bold text-foreground">{t.count}</p>

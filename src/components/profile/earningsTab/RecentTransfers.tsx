@@ -25,7 +25,7 @@ export function RecentTransfers({ payoutLedger }: RecentTransfersProps) {
             t.status === "paid" ? "bg-primary/10 text-primary"
             : t.status === "failed" ? "bg-destructive/10 text-destructive"
             : t.status === "reversed" ? "bg-muted text-muted-foreground"
-            : "bg-accent/20 text-accent"; // pending
+            : "bg-accent/20 text-[hsl(var(--accent-ink))]"; // pending
           return (
             <div key={t.id} className="rounded-ds-md liquid-glass p-3.5">
               <div className="flex items-start justify-between gap-3">

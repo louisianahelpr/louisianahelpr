@@ -68,10 +68,24 @@ function MilestoneChip({ milestone }: { milestone: CareerMilestone }) {
           // tall, so the hit area is extended with padding on the wrapper
           // rather than by inflating every chip in the row.
           className="inline-flex items-center gap-1.5 rounded-ds-pill px-2.5 py-1.5 text-ds-12 font-sans font-semibold active:opacity-70 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-ring relative after:absolute after:inset-x-0 after:top-1/2 after:-translate-y-1/2 after:h-11 after:content-['']"
+          // ONE colour was doing three jobs: the 12% fill, the 28% border, and
+          // the LABEL. That works for the fills and not for the label, because
+          // the milestone palette is tuned as accents — "First Job" is
+          // hsl(40 60% 55%), a light gold, and as 12px/600 text on its own 12%
+          // tint it measured 2.12:1 against the 4.5:1 it needs. It is the same
+          // rule index.css already states for gold: "GOLD IS PRESTIGE ONLY …
+          // --gold-ink for anything you read." The answer to a colour that is
+          // not a text colour is not a darker version of it.
+          //
+          // So the label now takes --foreground and the identity stays in the
+          // fill, the border and the icon. The icon is a graphic beside a text
+          // label, not the label itself. This is theme-correct by construction:
+          // --foreground inverts with the surface, and these hsl() literals do
+          // not invert at all.
           style={{
             background: milestone.color.replace(")", " / 0.12)"),
             border: `0.5px solid ${milestone.color.replace(")", " / 0.28)")}`,
-            color: milestone.color,
+            color: "hsl(var(--foreground))",
           }}
         >
           <MilestoneIcon name={milestone.icon} color={milestone.color} />

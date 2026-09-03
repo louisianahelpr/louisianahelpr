@@ -124,6 +124,20 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
   const nearbyMiles = parseNearbyFilter(locationFilter);
   const userLoc = useUserLocation(nearbyMiles !== null);
 
+  /**
+   * A radius is selected but we have no viewer coordinates to measure from —
+   * permission denied, still resolving, or geolocation unavailable. The feed
+   * deliberately keeps every job in that case (a denied permission must not
+   * empty the browse surface), which means the radius is genuinely NOT being
+   * applied, and no part of the UI may say otherwise.
+   *
+   * This exists because the toolbar used to print "Filtered Results" over an
+   * unfiltered feed. Silently doing nothing is a bug; announcing that you did
+   * it is a lie to the user, and the announcement is what made BD-001 hard to
+   * notice — the screen looked like it was working.
+   */
+  const nearbyUnavailable = nearbyMiles !== null && userLoc.status !== "ready";
+
   // Budget is ONE filter even though it occupies two state slots: the sheet's
   // budget bands ("$50 – $150") write min AND max together, so counting them
   // separately made a single tapped chip report "2 filters active" in the
@@ -224,19 +238,27 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
       if (selectedCategory && job.category !== selectedCategory) return false;
       if (minBudget && job.budget < parseFloat(minBudget)) return false;
       if (maxBudget && job.budget > parseFloat(maxBudget)) return false;
+      // "Nearby" radius. Three distinct cases, kept apart deliberately —
+      // collapsing the last two into one `else` is what made this filter a
+      // silent no-op for every logged-out visitor (BD-001).
       if (nearbyMiles !== null) {
         const jLat = job.latitude;
         const jLng = job.longitude;
         if (userLoc.status === "ready" && typeof jLat === "number" && typeof jLng === "number") {
-          // Precise radius filter when coords are present (e.g. map-sourced jobs).
+          // 1. The real filter. Both ends have coordinates, so measure.
+          //    The job's are the view's 2dp-masked pair (~1.1km), which is
+          //    well inside the error a phone's own fix already carries — it
+          //    cannot move a job across a 5-mile boundary, let alone a 25.
           if (haversineMiles(userLoc.lat, userLoc.lng, jLat, jLng) > nearbyMiles) return false;
-        } else {
-          // The browse list is fed by open_jobs_browse, which masks precise
-          // coords — so a haversine radius can never match. Honour "Nearby"
-          // with a location-string match against the viewer's saved location
-          // instead of silently emptying the entire feed. With no saved
-          // location we can't judge proximity, so we keep the job rather than
-          // hide it.
+        } else if (userLoc.status === "ready") {
+          // 2. We know where the VIEWER is, but this job has no geocode —
+          //    geocoding failed, is still pending, or the poster deleted their
+          //    account (which nulls the coordinates). We cannot measure it.
+          //
+          //    It is kept, not hidden: a poster whose geocode failed silently
+          //    losing their listing is a worse failure than one extra card in
+          //    a radius result, and it is invisible to them. The location
+          //    string narrows it where the viewer has a saved location.
           const myLoc = profile?.location?.trim().toLowerCase();
           if (myLoc) {
             const jobLoc = (job.location ?? "").toLowerCase().trim();
@@ -244,6 +266,12 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
             if (!near) return false;
           }
         }
+        // 3. `userLoc` is idle / loading / denied — there is no "here" to
+        //    measure from, so no radius can be honest. Every job is kept, so
+        //    denying the location permission leaves a usable feed rather than
+        //    an empty one. What must NOT happen is the UI claiming a filter
+        //    ran: `nearbyUnavailable` below is returned for exactly that, and
+        //    the toolbar heading reads it.
       }
       if (expiresWithin && job.expires_at) {
         const hoursLeft = (new Date(job.expires_at).getTime() - Date.now()) / (1000 * 60 * 60);
@@ -409,6 +437,6 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
     activeFilterCount, hasFilters, clearFilters,
     filteredJobs, nearbyJobs, mapFilter,
     totalMatchingCount, totalMatchingCountLoading,
-    userLoc, nearbyMiles,
+    userLoc, nearbyMiles, nearbyUnavailable,
   };
 }

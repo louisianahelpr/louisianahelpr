@@ -71,7 +71,23 @@ export function BrowseTasksToolbar({
 
   // One source for the row's heading text, used by both the normal and the
   // search state (search keeps it sr-only rather than dropping the h1).
-  const headingTitle = filters.hasFilters ? "Filtered Results" : "Browse Jobs";
+  //
+  // `nearbyUnavailable` is a chosen radius with no viewer coordinates to
+  // measure from (permission denied, still resolving, or no geolocation), in
+  // which case the feed is deliberately NOT narrowed — a denied permission
+  // must leave a usable browse surface, not an empty one. So that radius does
+  // not count toward "filtered".
+  //
+  // This heading is sr-only, which is exactly why it matters: it is the only
+  // signal this row gives a screen-reader user about whether they are looking
+  // at a subset. Announcing "Filtered Results" over an unnarrowed feed told
+  // them a filter had run when none had (BD-001).
+  const narrowedCount = filters.activeFilterCount - (filters.nearbyUnavailable ? 1 : 0);
+  const headingTitle = narrowedCount > 0
+    ? "Filtered Results"
+    : filters.nearbyUnavailable
+      ? "Browse Jobs — location unavailable, distance filter not applied"
+      : "Browse Jobs";
 
   return (
     <>

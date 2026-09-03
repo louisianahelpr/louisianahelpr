@@ -291,12 +291,20 @@ export function useDashboardData() {
         const baseQuery = supabase
           .from("open_jobs_browse")
           .select(
-            // NOTE: open_jobs_browse view does NOT expose latitude/longitude
-            // (the underlying jobs table has them, but the view masks them
-            // along with the precise location). Asking for them returned a
-            // PostgREST 400 that silently emptied the dashboard. The
-            // nearby-radius filter falls back to the location string match.
-            "id, title, description, category, budget, date_needed, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_flexible_schedule, is_recurring, is_group_job, helpers_needed, estimated_hours, special_requirements, photos, boosted_at, boost_expires_at, expires_at, start_time, recurrence_interval, recurrence_end_date, parent_job_id, payment_status, location, pricing_mode, applicant_count",
+            // `latitude, longitude` are the view's MASKED coordinates, rounded
+            // to 2dp (~1.1km) exactly as get_open_jobs_for_map has always
+            // returned them — migration 20260903031231.
+            //
+            // The note that stood here said the view "does NOT expose
+            // latitude/longitude" and that "the nearby-radius filter falls
+            // back to the location string match." Both halves were true, and
+            // together they were the bug: the fallback compares the viewer's
+            // saved `profiles.location` string to the job's, so it degraded to
+            // a city-name match for signed-in users and to NOTHING AT ALL on
+            // the guest feed, which has no profile. Measured at Baton Rouge, a
+            // 1-mile radius returned every open job including one 72.7 miles
+            // out, under a "Filtered Results" heading (BD-001).
+            "id, title, description, category, budget, date_needed, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_flexible_schedule, is_recurring, is_group_job, helpers_needed, estimated_hours, special_requirements, photos, boosted_at, boost_expires_at, expires_at, start_time, recurrence_interval, recurrence_end_date, parent_job_id, payment_status, location, latitude, longitude, pricing_mode, applicant_count",
           )
           .neq("payment_status", "abandoned");
 

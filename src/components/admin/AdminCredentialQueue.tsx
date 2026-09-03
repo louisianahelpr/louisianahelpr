@@ -530,7 +530,7 @@ function DocPreview({ path }: { path: string }) {
 
   if (error) {
     return (
-      <div className="flex items-center gap-2 rounded-ds-sm bg-destructive/10 p-3 text-ds-11 text-destructive">
+      <div className="flex items-center gap-2 rounded-ds-sm bg-destructive/10 p-3 text-ds-11 text-[hsl(var(--destructive-ink))]">
         <FileText className="w-4 h-4" /> Couldn't load preview — open via the link above.
       </div>
     );

@@ -361,7 +361,7 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
                   <td className="px-4 py-2.5 max-w-[280px] truncate">
                     <div className="truncate">{row.subject || <span className="text-muted-foreground">—</span>}</div>
                     {row.error_message && (
-                      <div className="text-ds-11 text-destructive truncate mt-0.5">{row.error_message}</div>
+                      <div className="text-ds-11 text-[hsl(var(--destructive-ink))] truncate mt-0.5">{row.error_message}</div>
                     )}
                   </td>
                   <td className="px-4 py-2.5">
@@ -426,7 +426,7 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
                   )}
                   {/* Error */}
                   {row.error_message && (
-                    <p className="text-ds-11 text-destructive truncate">{row.error_message}</p>
+                    <p className="text-ds-11 text-[hsl(var(--destructive-ink))] truncate">{row.error_message}</p>
                   )}
                 </div>
               ))}

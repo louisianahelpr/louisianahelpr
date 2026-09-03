@@ -25,7 +25,7 @@ export function CategoryPicker({
     // posted, which models a good, specific post.
     <div className="space-y-2.5">
       <div className="flex items-center justify-between gap-2">
-        <Label>Category <span className="text-destructive">*</span></Label>
+        <Label>Category <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
         {autoCategoryHint && category === autoCategoryHint && (
           <button
             type="button"

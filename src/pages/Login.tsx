@@ -473,7 +473,7 @@ const Login = () => {
               )}
             </div>
             {emailError && (
-              <p id="login-email-error" role="alert" className="inline-flex items-center gap-1 text-ds-11 text-destructive">
+              <p id="login-email-error" role="alert" className="inline-flex items-center gap-1 text-ds-11 text-[hsl(var(--destructive-ink))]">
                 <X className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden />
                 {email.trim() ? "Enter a valid email address" : "Add your email address"}
               </p>
@@ -519,7 +519,7 @@ const Login = () => {
               </button>
             </div>
             {passwordError && (
-              <p id="login-password-error" role="alert" className="inline-flex items-center gap-1 text-ds-11 text-destructive">
+              <p id="login-password-error" role="alert" className="inline-flex items-center gap-1 text-ds-11 text-[hsl(var(--destructive-ink))]">
                 <X className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden />
                 Add your password
               </p>

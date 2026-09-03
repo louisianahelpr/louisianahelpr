@@ -157,7 +157,7 @@ export function SignupStep1({
               empty case used to paint the border with no words at all, which
               is a "something's wrong" with no path out. */}
           {emailError && (
-            <p id="signup-email-error" role="alert" className="inline-flex items-center gap-1 text-ds-11 text-destructive">
+            <p id="signup-email-error" role="alert" className="inline-flex items-center gap-1 text-ds-11 text-[hsl(var(--destructive-ink))]">
               <X className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden />
               {email.trim() ? "Enter a valid email address" : "Add your email address"}
             </p>
@@ -194,7 +194,7 @@ export function SignupStep1({
             </p>
           )}
           {attempted && !password && (
-            <p id="signup-password-error" role="alert" className="inline-flex items-center gap-1 text-ds-11 text-destructive">
+            <p id="signup-password-error" role="alert" className="inline-flex items-center gap-1 text-ds-11 text-[hsl(var(--destructive-ink))]">
               <X className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden />
               Add a password
             </p>

@@ -123,7 +123,7 @@ export function EditEmailDialog({ profile, onClose, onSuccess }: EditEmailDialog
               onChange={(e) => setEmail2(e.target.value)}
             />
             {email2 && email1 !== email2 && (
-              <p className="text-ds-11 text-destructive">Emails don't match</p>
+              <p className="text-ds-11 text-[hsl(var(--destructive-ink))]">Emails don't match</p>
             )}
             {email2 && email1 === email2 && email1.length > 0 && (
               <p className="text-ds-11 text-primary">✓ Emails match</p>

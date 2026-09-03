@@ -262,6 +262,13 @@
      needs. Destructive dialogs differ from every other confirm in COLOUR ONLY
      — same layout, same spacing, same buttons. */
   --destructive: 19 74% 40%;
+  /* --destructive AS TEXT. The same split as --accent-ink, --sage-ink and
+     --gold-ink, and minted for the same measured reason: --destructive is a
+     FILL (JobTracking.tsx:1475 paints a solid button with it), so it cannot be
+     lightened for legibility without restyling every destructive control.
+     In LIGHT the fill colour is already legible as text (5.43:1 on white), so
+     this matches it; the dark value below is where they diverge. */
+  --destructive-ink: 19 74% 40%;
   --destructive-foreground: 0 0% 100%;
   --sidebar-background:         var(--parchment);
   --sidebar-foreground:         var(--olivewood);
@@ -560,6 +567,14 @@
      4.62:1, the highest value that still clears the 4.5:1 floor. Computed
      against white foreground before the change, not after. */
   --destructive:          19 74% 44%;
+  /* 44% -> 52%. The fill stays at 44%; only text moves. Measured against both
+     dark surfaces, because a required-field asterisk and an inline error sit on
+     the page AND inside cards: 44% gives 3.92:1 on the page and 3.54:1 on a
+     card, against the 4.5:1 that 11px error text needs. 52% gives 5.14:1 and
+     4.63:1. The dark --destructive had been lifted 40% -> 44% and stopped
+     there, which is the exact gap --accent-ink and --sage-ink were minted to
+     close and this token had been left out of. */
+  --destructive-ink:      19 74% 52%;
   --destructive-foreground: 0 0% 100%;
   --sidebar-background:   var(--parchment);
   --sidebar-foreground:   var(--olivewood);

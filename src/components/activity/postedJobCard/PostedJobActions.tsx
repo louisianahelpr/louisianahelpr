@@ -891,7 +891,7 @@ export function PostedJobActions({
               />
             )}
             <div className="p-3 rounded-ds-sm bg-destructive/5 border border-destructive/20">
-              <p className="text-ds-11 text-destructive font-medium flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" />
+              <p className="text-ds-11 text-[hsl(var(--destructive-ink))] font-medium flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" />
                 {disputeStatus === "escalated" ? "Escalated to Admin" : disputeStatus === "resolved" ? "Dispute Resolved" : "Dispute Under Review"}
               </p>
               {/* The "Admin is reviewing…" line used to be its OWN separate

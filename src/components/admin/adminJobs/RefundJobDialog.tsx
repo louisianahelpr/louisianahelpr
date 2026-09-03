@@ -97,7 +97,7 @@ export const RefundJobDialog = ({
           />
           {detailJob?.payment_status === "released" && (
             <div className="rounded-ds-sm bg-destructive/5 border border-destructive/20 p-3">
-              <p className="text-ds-11 text-destructive font-medium mb-1">⚠️ Money already paid out</p>
+              <p className="text-ds-11 text-[hsl(var(--destructive-ink))] font-medium mb-1">⚠️ Money already paid out</p>
               <p className="text-ds-11 text-foreground">
                 This payment has already been transferred to the helper.
                 Refunding the customer means the platform absorbs the loss

@@ -39,7 +39,7 @@ function FieldError({ id, message }: { id: string; message?: string }) {
     <p
       id={id}
       role="alert"
-      className="flex items-center gap-1 text-ds-11 text-destructive mt-1"
+      className="flex items-center gap-1 text-ds-11 text-[hsl(var(--destructive-ink))] mt-1"
     >
       <AlertCircle className="w-3 h-3 shrink-0" aria-hidden />
       {message}

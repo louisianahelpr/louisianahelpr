@@ -584,7 +584,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
             {/* Only the REASON, never a second copy of the status word — the
                 eyebrow above already named the state. */}
             {state === "rejected" && reason && (
-              <p className="inline-flex items-start gap-1.5 text-ds-11 text-destructive/90">
+              <p className="inline-flex items-start gap-1.5 text-ds-11 text-[hsl(var(--destructive-ink))]/90">
                 <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                 <span>{reason}</span>
               </p>

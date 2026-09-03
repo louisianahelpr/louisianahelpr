@@ -68,7 +68,7 @@ export const JobDetailDialog = ({
                     </Button>
                   </div>
                   {jobFlags.get(detailJob.id)!.map((flag, i) => (
-                    <p key={i} className="text-ds-11 text-destructive/80 pl-5">• {flag}</p>
+                    <p key={i} className="text-ds-11 text-[hsl(var(--destructive-ink))]/80 pl-5">• {flag}</p>
                   ))}
                 </div>
               )
@@ -151,7 +151,7 @@ export const JobDetailDialog = ({
 
             {detailJob.revision_note && (
               <div className="rounded-ds-sm bg-destructive/5 border border-destructive/20 p-3">
-                <p className="text-ds-11 text-destructive mb-1">Revision Note</p>
+                <p className="text-ds-11 text-[hsl(var(--destructive-ink))] mb-1">Revision Note</p>
                 <p className="text-ds-13 text-foreground">{detailJob.revision_note}</p>
               </div>
             )}

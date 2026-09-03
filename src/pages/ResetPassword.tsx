@@ -299,7 +299,7 @@ const ResetPassword = () => {
                   </p>
                 ) : (
                   <p
-                    className="inline-flex items-center gap-1 text-ds-11 text-destructive"
+                    className="inline-flex items-center gap-1 text-ds-11 text-[hsl(var(--destructive-ink))]"
                     role="alert"
                   >
                     <X className="w-3 h-3" strokeWidth={2.5} aria-hidden /> Passwords don't match

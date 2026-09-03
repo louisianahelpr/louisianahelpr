@@ -383,7 +383,7 @@ export const NearbyContent = ({
         <p className="text-ds-11 text-muted-foreground mt-2">Getting your location…</p>
       )}
       {current !== null && status === "error" && (
-        <p className="text-ds-11 text-destructive mt-2">{message || "Couldn't get your location"}</p>
+        <p className="text-ds-11 text-[hsl(var(--destructive-ink))] mt-2">{message || "Couldn't get your location"}</p>
       )}
       {current !== null && status === "ready" && (
         <p className="text-ds-11 text-muted-foreground mt-2">Showing jobs within {current} miles of you</p>

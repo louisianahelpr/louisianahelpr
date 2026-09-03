@@ -183,7 +183,7 @@ export function LogisticsSection({
     >
       <div className="space-y-3">
         <div className="flex items-center justify-between gap-2">
-          <Label htmlFor="streetAddress">Location <span className="text-destructive">*</span></Label>
+          <Label htmlFor="streetAddress">Location <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
           {/* "Use my current location" — Capacitor/web Geolocation +
               MapKit reverse-geocode in one tap. Falls back to a tasteful
               error toast if location is denied or no street can be
@@ -352,7 +352,7 @@ export function LogisticsSection({
       </div>
 
       <div className="space-y-3">
-        <Label htmlFor="date">Date needed <span className="text-destructive">*</span></Label>
+        <Label htmlFor="date">Date needed <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
         <DatePickerField
           id="date"
           value={dateNeeded}
@@ -362,7 +362,7 @@ export function LogisticsSection({
       </div>
 
       <div className="space-y-3" role="group" aria-labelledby="start-time-label">
-        <Label id="start-time-label">Start time <span className="text-destructive">*</span></Label>
+        <Label id="start-time-label">Start time <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
         <TimePickerWheel value={startTime} onChange={setStartTime} />
       </div>
 

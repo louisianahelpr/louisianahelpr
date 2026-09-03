@@ -593,7 +593,7 @@ const CompleteProfile = () => {
               <p className="text-ds-11 text-muted-foreground">
                 {avatarPreview && !avatarBroken
                   ? "Tap to change · JPG, PNG, WebP (5MB max)"
-                  : <>Profile photo <span className="text-destructive">*</span> · tap to add</>}
+                  : <>Profile photo <span className="text-[hsl(var(--destructive-ink))]">*</span> · tap to add</>}
               </p>
               {/* WHERE THIS FILE GOES, said at the moment the file is chosen.
                   The `avatars` bucket is PUBLIC — anonymously fetchable at a
@@ -616,7 +616,7 @@ const CompleteProfile = () => {
                 one chance to catch a wrong or missing name either way. */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor="firstName">First name <span className="text-destructive">*</span></Label>
+                <Label htmlFor="firstName">First name <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
                 <div className="relative">
                   <Input
                     id="firstName"
@@ -632,7 +632,7 @@ const CompleteProfile = () => {
                 </div>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="lastName">Last name <span className="text-destructive">*</span></Label>
+                <Label htmlFor="lastName">Last name <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
                 <div className="relative">
                   <Input
                     id="lastName"
@@ -650,7 +650,7 @@ const CompleteProfile = () => {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="dob">Date of birth (must be 18+) <span className="text-destructive">*</span></Label>
+              <Label htmlFor="dob">Date of birth (must be 18+) <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
               {/* Same shared DatePickerField as Signup's DOB field (tap-to-open
                   wheel, checkmark once a valid date is picked) — was a
                   separate three-Select picker here, reading as a different
@@ -666,12 +666,12 @@ const CompleteProfile = () => {
                 className="rounded-ds-md"
               />
               {dateOfBirth && !ageOk && (
-                <p className="text-ds-11 text-destructive">You'll need to be 18 or older to join Helpr.</p>
+                <p className="text-ds-11 text-[hsl(var(--destructive-ink))]">You'll need to be 18 or older to join Helpr.</p>
               )}
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="phone">Phone <span className="text-destructive">*</span></Label>
+              <Label htmlFor="phone">Phone <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
               <div className="relative">
                 <Input
                   id="phone"
@@ -690,7 +690,7 @@ const CompleteProfile = () => {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="city">City <span className="text-destructive">*</span></Label>
+              <Label htmlFor="city">City <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
               {/* CityAutocomplete is the same combobox used on the
                   Post-a-Task form. It nudges the user toward canonical
                   Louisiana spellings (the LOUISIANA_CITIES bundle) but

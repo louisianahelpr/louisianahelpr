@@ -394,7 +394,7 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
 
           {banType === "permanent" && (
             <div className="rounded-ds-sm bg-destructive/5 border border-destructive/20 p-3">
-              <p className="text-ds-11 text-destructive flex items-start gap-1.5">
+              <p className="text-ds-11 text-[hsl(var(--destructive-ink))] flex items-start gap-1.5">
                 <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                 <span>This action is severe. The user will lose access permanently.</span>
               </p>

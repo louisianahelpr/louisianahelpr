@@ -252,7 +252,16 @@ export function IdentityHeader({
                 <span
                   className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-flex items-center gap-1"
                   style={{
-                    color: "hsl(var(--gold-warm))",
+                    // --gold-INK, not --gold-warm. index.css:204 states the
+                    // rule this used to break, in writing: "--gold-warm for
+                    // surfaces, --gold-ink for anything you read." The label
+                    // was gold-warm ON a gold-warm/0.14 wash, which measures
+                    // 2.53:1 in LIGHT at 9px bold — the mirror image of the
+                    // dark-mode failures fixed in the same audit, and the one
+                    // theme nobody re-checked. Dark already passed at 5.26:1.
+                    // The identity stays: the wash, the border and the Crown
+                    // are all still gold-warm; only the text you read moves.
+                    color: "hsl(var(--gold-ink))",
                     background: "hsl(var(--gold-warm) / 0.14)",
                     letterSpacing: "0.08em",
                   }}

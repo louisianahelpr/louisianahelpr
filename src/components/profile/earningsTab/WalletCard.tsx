@@ -194,7 +194,7 @@ export function WalletCard({
       })()}
 
       {!stripeData.payouts_enabled && (
-        <p className="mt-2 text-ds-11 text-destructive">
+        <p className="mt-2 text-ds-11 text-[hsl(var(--destructive-ink))]">
           Payouts not yet enabled — finish setup to start receiving funds.
         </p>
       )}

@@ -187,7 +187,7 @@ export function BudgetSection({
           but a handful of seeded rows ever did anyway. */}
       {(
         <div className="space-y-3">
-          <Label htmlFor="budget">Budget <span className="text-destructive">*</span></Label>
+          <Label htmlFor="budget">Budget <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
           {/* CurrencyInput stores the value as a number, but the parent form
               still keeps `budget` as a string (it's threaded through draft
               persistence and validation that expect a string). Convert at

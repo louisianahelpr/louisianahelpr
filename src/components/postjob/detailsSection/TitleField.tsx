@@ -35,7 +35,7 @@ export function TitleField({ title, setTitle, category }: TitleFieldProps) {
   return (
     <div className="space-y-2.5">
       <div className="flex items-center justify-between gap-2">
-        <Label htmlFor="title">Job title <span className="text-destructive">*</span></Label>
+        <Label htmlFor="title">Job title <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
         <span
           className="text-ds-11 tabular-nums"
           style={overLimit ? { color: "hsl(var(--destructive))" } : undefined}

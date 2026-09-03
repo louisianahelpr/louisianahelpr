@@ -265,7 +265,7 @@ const ForgotPassword = () => {
                     eyebrows and the Mail badge, so it did not read as an
                     error at all. */}
                 {showEmailError && (
-                  <p id="fp-email-error" role="alert" className="inline-flex items-center gap-1 text-ds-11 text-destructive">
+                  <p id="fp-email-error" role="alert" className="inline-flex items-center gap-1 text-ds-11 text-[hsl(var(--destructive-ink))]">
                     <X className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden />
                     {/* Two messages, not one. An untouched field and a
                         malformed address are different problems, and "Enter a

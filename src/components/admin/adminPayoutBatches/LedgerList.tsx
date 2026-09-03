@@ -57,7 +57,7 @@ export const LedgerList = ({ ledger }: LedgerListProps) => {
                   )}
                 </p>
                 {t.failure_reason && t.status === "failed" && (
-                  <p className="text-ds-11 text-destructive mt-0.5 break-words">{t.failure_reason}</p>
+                  <p className="text-ds-11 text-[hsl(var(--destructive-ink))] mt-0.5 break-words">{t.failure_reason}</p>
                 )}
                 <p className="text-ds-10 text-muted-foreground mt-0.5">
                   {formatDistanceToNow(new Date(t.created_at), { addSuffix: true })}

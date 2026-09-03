@@ -408,7 +408,7 @@ export const PhotoProofGroup = ({
             "After-photos required for jobs $50+" — a rule none of the gates
             actually applied. */}
         {requireAfter && !hasRequiredProof({ budget }, beforeUrls, afterUrls) && (
-          <p className="text-ds-11 text-destructive flex items-center gap-1 mt-2">
+          <p className="text-ds-11 text-[hsl(var(--destructive-ink))] flex items-center gap-1 mt-2">
             <Camera className="w-3 h-3" /> {requiredProof({ budget }).reason}
           </p>
         )}

@@ -355,7 +355,12 @@ const JobDetailDialog = ({
           // floor means the box does not resize between steps, which is what
           // dialog.tsx prescribed as the right fix all along — "reserve the
           // content's height, not re-anchor one dialog".
-          "min-h-[min(68dvh,600px)]",
+          // 74dvh resolves to ≥600px on every standard phone height (812–932px),
+          // which floors both the detail step (~552px) and the apply step
+          // (~575px) at the same height. Without this floor, centred positioning
+          // absorbs the 23px height delta as an 11.5px top-edge shift
+          // (apply-single-sheet.spec.ts assertion). TC-003.
+          "min-h-[min(74dvh,600px)]",
           "content-start",
           "sm:w-[calc(100%-2rem)] sm:max-w-lg",
           "sm:pb-7",

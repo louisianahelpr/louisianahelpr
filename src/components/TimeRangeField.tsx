@@ -4,6 +4,17 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { TimePickerWheel } from "@/components/TimePickerWheel";
 import { formatTime12 } from "@/components/TimePickerSelect";
 import { cn } from "@/lib/utils";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
+
+/** The time each half currently holds, printed beside its label. `opacity`
+ *  rather than `text-muted-foreground`: on the selected segment the label is
+ *  parchment on the olive gloss, and a fixed muted grey there is unreadable —
+ *  inheriting `currentColor` keeps the suffix subordinate in both states. */
+const TimeSuffix = ({ time }: { time: string | null }) => (
+  <span className="ml-1.5 text-ds-11 font-normal tabular-nums opacity-70">
+    {formatTime12(time)}
+  </span>
+);
 
 interface TimeRangeFieldProps {
   start: string;
@@ -54,26 +65,17 @@ export function TimeRangeField({ start, end, onChange, disabled, className }: Ti
         onTouchMoveCapture={(event) => event.stopPropagation()}
         className="w-[300px] rounded-2xl p-4 space-y-4 touch-pan-y native-scroll-area"
       >
-        <div className="grid grid-cols-2 gap-1 rounded-ds-md bg-secondary p-1">
-          {(["start", "end"] as const).map((t) => (
-            <button
-              key={t}
-              type="button"
-              onClick={() => setTab(t)}
-              className={cn(
-                "h-9 rounded-ds-sm text-ds-13 font-semibold capitalize transition-all",
-                tab === t
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {t === "start" ? "Start" : "End"}
-              <span className="ml-1.5 text-ds-11 font-normal text-muted-foreground tabular-nums">
-                {formatTime12(t === "start" ? start : end)}
-              </span>
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          ariaLabel="Choose start or end time"
+          layout="grid"
+          gridClassName="grid-cols-2"
+          options={[
+            { value: "start" as const, label: <>Start<TimeSuffix time={start} /></> },
+            { value: "end" as const, label: <>End<TimeSuffix time={end} /></> },
+          ]}
+          value={tab}
+          onChange={setTab}
+        />
 
         {tab === "start" ? (
           <TimePickerWheel

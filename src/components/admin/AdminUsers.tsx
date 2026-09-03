@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Search, Users } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -291,55 +292,35 @@ const AdminUsers = () => {
           non-visual half of that highlight. Matches the tablist AdminPayoutBatches
           already ships, so the two segmented controls in admin now behave the
           same for assistive tech as they do visually. */}
-      <div
-        role="tablist"
-        aria-label="Filter users by status"
-        className="flex gap-0.5 bg-secondary/50 rounded-ds-sm p-0.5 w-fit max-w-full overflow-x-auto scrollbar-none [-webkit-mask-image:linear-gradient(to_right,black_calc(100%-16px),transparent)] [mask-image:linear-gradient(to_right,black_calc(100%-16px),transparent)]"
-      >
-        {tabs.map((t) => (
-          <button
-            key={t.key}
-            type="button"
-            role="tab"
-            aria-selected={tab === t.key}
-            onClick={() => setTab(t.key)}
-            /* `relative` is load-bearing, not decoration. The count badge below
-               carries an `sr-only` span, and `sr-only` is `position:absolute`.
-               With no positioned ancestor between it and the page, its
-               containing block resolved ABOVE this strip's `overflow-x-auto`,
-               so it escaped the clip and contributed its static x-offset
-               (~397px) to the DOCUMENT's scrollable overflow — the whole
-               /admin?view=people page scrolled 77px sideways at 320 and 22px at
-               375, failing CLAUDE.md's zero-horizontal-overflow rule. Making
-               the button the containing block keeps the sr-only box inside the
-               scroller, where it is clipped like everything else. */
-            className={`relative shrink-0 whitespace-nowrap px-2.5 py-1.5 rounded-md text-ds-10 sm:text-ds-13 font-medium transition-colors flex items-center justify-center gap-1 ${
-              tab === t.key ? "btn-grad-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <span>{t.label}</span>
-            {t.count !== undefined && t.count > 0 && (
-              /* The bare number read as loose digits after the label ("Active
-                 22"). Naming it makes the count a fact instead of noise, and
-                 hiding the visual twin stops it being announced twice. It says
-                 "users" rather than anything like "needing attention": these
-                 counts are per-tab populations (All is every user, Active is
-                 every approved one), not a work queue. */
-              /* Neutral, NOT destructive. These are populations — "Active 27",
-                 "All 28" — and the comment above already says so, yet they
-                 shipped in the alarm colour, so a healthy user base rendered as
-                 six red warnings and the one colour that means "something is
-                 wrong" in this console (open reports, strikes, disputed jobs)
-                 also meant "how many rows are in this tab". One alarm colour,
-                 one meaning per view. */
-              <span className="text-ds-9 sm:text-ds-10 bg-muted text-muted-foreground px-1 py-0.5 rounded-full flex-shrink-0">
-                <span aria-hidden="true">{t.count}</span>
-                <span className="sr-only">{`${t.count} ${t.count === 1 ? "user" : "users"}`}</span>
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
+      <SegmentedControl
+        semantics="tab"
+        ariaLabel="Filter users by status"
+        /* `relative` on each segment is load-bearing, not decoration. The count
+           badge carries an `sr-only` span, and `sr-only` is
+           `position:absolute`. With no positioned ancestor between it and the
+           page, its containing block resolved ABOVE this strip's
+           `overflow-x-auto`, so it escaped the clip and contributed its static
+           x-offset (~397px) to the DOCUMENT's scrollable overflow — the whole
+           /admin?view=people page scrolled 77px sideways at 320 and 22px at
+           375, failing CLAUDE.md's zero-horizontal-overflow rule. */
+        optionClassName="relative shrink-0"
+        className="w-fit max-w-full overflow-x-auto scrollbar-hide [-webkit-mask-image:linear-gradient(to_right,black_calc(100%-16px),transparent)] [mask-image:linear-gradient(to_right,black_calc(100%-16px),transparent)]"
+        options={tabs.map((t) => ({
+          value: t.key,
+          label: t.label,
+          count: t.count,
+          /* Naming the count makes it a fact instead of loose digits after the
+             label ("Active 22"), and hiding the visual twin stops it being
+             announced twice. It says "users" rather than anything like
+             "needing attention": these are per-tab populations (All is every
+             user, Active is every approved one), not a work queue — which is
+             also why the tone stays neutral. */
+          countLabel: `${t.count} ${t.count === 1 ? "user" : "users"}`,
+        }))}
+        value={tab}
+        onChange={setTab}
+        haptic={false}
+      />
 
       {/* Recently auto-restricted rail — extracted into its own component.
           Hides itself when empty; reverse + review handlers live there. */}

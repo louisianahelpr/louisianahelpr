@@ -9,6 +9,20 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { report } from "@/lib/errorLogger";
 import { unwrap } from "@/lib/supabaseResult";
 import { formatPriceExact } from "@/lib/format";
+import { SegmentedControl, type SegmentedOption } from "@/components/ui/SegmentedControl";
+
+type SpendScope = "lifetime" | "week" | "month" | "year";
+
+/** "This Month" rather than the literal month name: the sibling control on
+ *  this same screen offers "This Month", and two controls that mean the same
+ *  thing must not spell it two ways ("August" vs "This Month" was the pair a
+ *  reader had to reconcile). */
+const SPEND_SCOPES: SegmentedOption<SpendScope>[] = [
+  { value: "lifetime", label: "Lifetime" },
+  { value: "week", label: "This Week" },
+  { value: "month", label: "This Month" },
+  { value: "year", label: "This Year" },
+];
 
 /** Poster-side slice needed for the Spent tiles. */
 interface SpentJobRow {
@@ -136,7 +150,7 @@ export function PaymentTab({ totalEarnings, onSeeEarnings }: PaymentTabProps) {
   const weekSpentJobs = completedSince(spentJobs, weekStart);
   const monthSpentJobs = completedSince(spentJobs, monthStart);
   const yearSpentJobs = completedSince(spentJobs, yearStart);
-  const [scope, setScope] = useState<"lifetime" | "week" | "month" | "year">("lifetime");
+  const [scope, setScope] = useState<SpendScope>("lifetime");
   const scopedJobs =
     scope === "week" ? weekSpentJobs
     : scope === "month" ? monthSpentJobs
@@ -290,49 +304,18 @@ export function PaymentTab({ totalEarnings, onSeeEarnings }: PaymentTabProps) {
               control on this same screen offers "This Month", and two controls
               that mean the same thing must not spell it two ways ("August" vs
               "This Month" was the pair a reader had to reconcile). */}
-          <div
+          <SegmentedControl
             /* Wraps rather than squeezing — see the matching note in
                EarningsRangeToggle. Unwrapped, "This Week" and "This Month"
                broke across two lines INSIDE their own pills at 375, which is
                why the two rows of the control had different heights. */
-            className="flex flex-wrap items-center gap-0.5 p-0.5 rounded-2xl mb-4"
-            style={{
-              background: "hsl(var(--ivory-sand) / 0.4)",
-              border: "0.5px solid hsl(var(--olivewood) / 0.08)",
-            }}
-          >
-            {([
-              { key: "lifetime" as const, label: "Lifetime" },
-              { key: "week" as const, label: "This Week" },
-              { key: "month" as const, label: "This Month" },
-              { key: "year" as const, label: "This Year" },
-            ]).map((opt) => {
-              const active = scope === opt.key;
-              return (
-                <button
-                  key={opt.key}
-                  type="button"
-                  onClick={() => setScope(opt.key)}
-                  /* SELECTED = the glossy shared primary surface, never a flat
-                     brand fill (standing project rule). This was a flat
-                     `hsl(var(--bark))` set through an inline `style`, which is
-                     why glossyPrimaryInvariant.test.ts — it reads classNames —
-                     never saw it. `h-11` because index.css's bare
-                     `button { min-height: 44px }` was already overriding the
-                     `h-7` declared here; declare what actually renders. */
-                  className={
-                    "grow basis-[calc(50%-0.125rem)] sm:basis-auto min-w-fit whitespace-nowrap px-3 h-11 rounded-full text-ds-11 font-sans font-semibold transition-all " +
-                    (active
-                      ? "btn-grad-primary !text-[hsl(var(--parchment))] shadow-[inset_0_1px_0_hsl(var(--parchment)/0.22),0_2px_8px_-3px_hsl(var(--bark)/0.55)]"
-                      : "")
-                  }
-                  style={active ? undefined : { color: "hsl(var(--olivewood) / 0.8)" }}
-                >
-                  {opt.label}
-                </button>
-              );
-            })}
-          </div>
+            layout="wrap"
+            className="mb-4"
+            ariaLabel="Spend date range"
+            options={SPEND_SCOPES}
+            value={scope}
+            onChange={setScope}
+          />
 
           <div className="grid grid-cols-2 gap-3">
             <div>

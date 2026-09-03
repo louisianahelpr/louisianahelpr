@@ -56,7 +56,12 @@ for (const width of [375, 1440]) {
       .waitFor({ timeout: 20_000 })
       .catch(() => undefined);
 
-    const repeats = page.getByRole("button", { name: "Repeats", exact: true });
+    // `radio`, not `button`: the Job type control is the app's shared
+    // <SegmentedControl />, which gives the group `role="radiogroup"` and each
+    // segment `role="radio"` — a segmented control is a choice, and a
+    // getByRole("button") lookup here waits out its full timeout instead of
+    // failing usefully.
+    const repeats = page.getByRole("radio", { name: "Repeats", exact: true });
     await repeats.waitFor({ timeout: 20_000 });
     await repeats.click();
 

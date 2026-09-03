@@ -1,5 +1,6 @@
 import * as React from "react";
 import { X } from "lucide-react";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
 
 /**
  * anchoredPanel — the ONE treatment every panel that hangs off a header
@@ -359,11 +360,12 @@ export function AnchoredPanelHeader({
 /**
  * Two-or-more-option segmented control for an anchored panel's header.
  *
- * One control, not two loose chips: a single track holds both segments, so
- * "Unread" and "All" read as the two halves of one switch. The SELECTED
- * segment is glossy (`btn-grad-primary` — the app's single primary-CTA
- * surface), never flat: project rule, and the same rule that governs primary
- * buttons and every other selected control in the app.
+ * A thin adapter over the app's shared <SegmentedControl />, kept because the
+ * panel header wants a specific top margin and the call sites already speak
+ * `{ key, label, count }`. Everything visual — the track, the glossy selected
+ * segment, the count pill, the 44px row, the arrow-key handling — comes from
+ * the shared component, so this cannot drift from Analytics and Earnings the
+ * way the four hand-rolled copies did.
  */
 export function AnchoredPanelSegmented<T extends string>({
   label,
@@ -374,58 +376,21 @@ export function AnchoredPanelSegmented<T extends string>({
   label: string;
   value: T;
   options: { key: T; label: string; count?: number }[];
+  /** The panel's counts are backlogs (unread), not populations. */
   onChange: (v: T) => void;
 }) {
   return (
-    <div
-      role="radiogroup"
-      aria-label={label}
-      className="mt-2 flex items-center gap-0.5 p-0.5 rounded-full"
-      style={{
-        background: "hsl(var(--ivory-sand) / 0.5)",
-        border: "0.5px solid hsl(var(--olivewood) / 0.10)",
-      }}
-    >
-      {options.map((opt) => {
-        const active = opt.key === value;
-        return (
-          <button
-            key={opt.key}
-            type="button"
-            role="radio"
-            aria-checked={active}
-            onClick={() => onChange(opt.key)}
-            className={`flex-1 min-w-0 h-11 px-3 rounded-full inline-flex items-center justify-center gap-1.5 text-ds-12 font-sans font-semibold transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--bark))] ${
-              active ? "btn-grad-primary" : ""
-            }`}
-            style={
-              active
-                ? { color: "hsl(var(--parchment))", boxShadow: "var(--elev-bark-raised)" }
-                : { color: "hsl(var(--olivewood) / 0.85)" }
-            }
-          >
-            <span className="truncate">{opt.label}</span>
-            {opt.count !== undefined && opt.count > 0 && (
-              <span
-                className="tabular-nums text-ds-11 font-bold rounded-full px-1.5 min-w-[1.25rem] leading-5"
-                style={
-                  active
-                    ? {
-                        background: "hsl(var(--parchment) / 0.22)",
-                        color: "hsl(var(--parchment))",
-                      }
-                    : {
-                        background: "hsl(var(--burnt-sienna) / 0.12)",
-                        color: "hsl(var(--burnt-sienna))",
-                      }
-                }
-              >
-                {opt.count}
-              </span>
-            )}
-          </button>
-        );
-      })}
-    </div>
+    <SegmentedControl
+      ariaLabel={label}
+      className="mt-2"
+      options={options.map((o) => ({
+        value: o.key,
+        label: o.label,
+        count: o.count,
+        countTone: "attention" as const,
+      }))}
+      value={value}
+      onChange={onChange}
+    />
   );
 }

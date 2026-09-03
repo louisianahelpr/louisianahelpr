@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -378,23 +379,15 @@ const AdminHealth = () => {
         <AdminCard
           title={<span className="flex items-center gap-1.5"><TrendingUp className="w-4 h-4 text-primary" /> Marketplace Health</span>}
           action={
-            <div className="flex items-center gap-1 rounded-ds-sm bg-background/50 border border-border/40 p-0.5">
-              {FILL_DAYS_OPTIONS.map((d) => (
-                <button
-                  key={d}
-                  type="button"
-                  onClick={() => setFillDays(d)}
-                  aria-pressed={fillDays === d}
-                  className={cn(
-                    "px-2.5 py-1 text-ds-11 font-medium rounded-sm transition-colors",
-                    fillDays === d
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {d}d
-                </button>
-              ))}
+            <div className="flex items-center gap-1">
+              <SegmentedControl
+                ariaLabel="Fill-rate window"
+                className="w-fit"
+                options={FILL_DAYS_OPTIONS.map((d) => ({ value: d, label: `${d}d` }))}
+                value={fillDays}
+                onChange={setFillDays}
+                haptic={false}
+              />
               {fillFetching && <span className="ml-1 text-ds-10 text-muted-foreground motion-safe:animate-pulse">…</span>}
             </div>
           }

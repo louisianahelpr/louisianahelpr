@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { SegmentedControl, type SegmentedOption } from "@/components/ui/SegmentedControl";
 import type { DateRange } from "./types";
 
 export const DateRangeBar = ({
@@ -9,33 +9,22 @@ export const DateRangeBar = ({
   customDays: number;
   setCustomDays: (n: number) => void;
 }) => {
-  const options: { id: DateRange; label: string }[] = [
-    { id: "7d", label: "7d" },
-    { id: "30d", label: "30d" },
-    { id: "90d", label: "90d" },
-    { id: "custom", label: "Custom" },
+  const options: SegmentedOption<DateRange>[] = [
+    { value: "7d", label: "7d" },
+    { value: "30d", label: "30d" },
+    { value: "90d", label: "90d" },
+    { value: "custom", label: "Custom" },
   ];
   return (
     <div className="flex items-center gap-2 flex-wrap">
-      <div className="inline-flex items-center rounded-ds-md bg-muted/60 p-0.5">
-        {options.map((opt) => {
-          const active = dateRange === opt.id;
-          return (
-            <button
-              key={opt.id}
-              type="button"
-              onClick={() => setDateRange(opt.id)}
-              className={cn(
-                "px-2.5 h-7 rounded-md text-ds-11 font-semibold transition-colors tabular-nums",
-                active ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
-              )}
-              aria-pressed={active}
-            >
-              {opt.label}
-            </button>
-          );
-        })}
-      </div>
+      <SegmentedControl
+        ariaLabel="Date range"
+        className="w-fit"
+        options={options}
+        value={dateRange}
+        onChange={setDateRange}
+        haptic={false}
+      />
       {dateRange === "custom" && (
         <div className="inline-flex items-center gap-2 rounded-ds-md bg-muted/60 px-2 h-7">
           <label htmlFor="custom-days" className="text-ds-11 text-muted-foreground">

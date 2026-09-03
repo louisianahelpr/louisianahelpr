@@ -1,4 +1,5 @@
 import { lazy, Suspense, useState } from "react";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { Inbox, MapPin } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { Badge } from "@/components/ui/badge";
@@ -66,17 +67,18 @@ export const UsersDrillDown = ({ users, roleByUser }: { users: Profile[]; roleBy
 
   return (
     <div className="space-y-3">
-      <div role="group" aria-label="Filter by status" className="flex gap-1 bg-secondary/50 rounded-ds-sm p-1">
-        {(["all", "pending", "approved", "denied"] as const).map(s => {
-          const count = users.filter(u => s === "all" || u.approval_status === s).length;
-          return (
-            <button key={s} onClick={() => setStatusFilter(s)} aria-pressed={statusFilter === s}
-              className={`flex-1 px-3 py-1.5 rounded-md text-ds-11 font-medium transition-colors capitalize ${statusFilter === s ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
-              {s} ({count})
-            </button>
-          );
-        })}
-      </div>
+      <SegmentedControl
+        ariaLabel="Filter by status"
+        layout="wrap"
+        options={(["all", "pending", "approved", "denied"] as const).map(s => ({
+          value: s,
+          label: `${s} (${users.filter(u => s === "all" || u.approval_status === s).length})`,
+        }))}
+        value={statusFilter}
+        onChange={setStatusFilter}
+        optionClassName="capitalize"
+        haptic={false}
+      />
       {filtered.length === 0 ? (
         <DrillDownEmpty title="No users in this status" body="Nothing matches this filter — switch back to All." />
       ) : (
@@ -119,17 +121,17 @@ export const SubscriptionsDrillDown = ({ users }: { users: Profile[] }) => {
 
   return (
     <div className="space-y-3">
-      <div role="group" aria-label="Filter by tier" className="flex gap-1 bg-secondary/50 rounded-ds-sm p-1">
-        {tiers.map(t => {
-          const count = users.filter(u => t === "all" || (t === "free" ? !u.subscription_tier : u.subscription_tier === t)).length;
-          return (
-            <button key={t} onClick={() => setTierFilter(t)} aria-pressed={tierFilter === t}
-              className={`flex-1 px-3 py-1.5 rounded-md text-ds-11 font-medium transition-colors ${tierFilter === t ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
-              {t === "all" ? "All" : tierDisplayName(t)} ({count})
-            </button>
-          );
-        })}
-      </div>
+      <SegmentedControl
+        ariaLabel="Filter by tier"
+        layout="wrap"
+        options={tiers.map(t => ({
+          value: t,
+          label: `${t === "all" ? "All" : tierDisplayName(t)} (${users.filter(u => t === "all" || (t === "free" ? !u.subscription_tier : u.subscription_tier === t)).length})`,
+        }))}
+        value={tierFilter}
+        onChange={setTierFilter}
+        haptic={false}
+      />
       {filtered.length === 0 ? (
         <DrillDownEmpty title="No subscribers in this tier" body="Nothing matches this filter — switch back to All." />
       ) : (
@@ -199,14 +201,17 @@ export const PayoutsDrillDown = ({ jobs }: { jobs: Job[] }) => {
 
   return (
     <div className="space-y-3">
-      <div role="group" aria-label="Filter by payment status" className="flex gap-1 flex-wrap bg-secondary/50 rounded-ds-sm p-1">
-        {statuses.map(s => (
-          <button key={s} onClick={() => setFilter(s)} aria-pressed={filter === s}
-            className={`px-3 py-1.5 rounded-md text-ds-11 font-medium transition-colors ${filter === s ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
-            {s === "all" ? `All (${jobs.length})` : `${paymentStatusLabel(s)} (${jobs.filter(j => j.payment_status === s).length})`}
-          </button>
-        ))}
-      </div>
+      <SegmentedControl
+        ariaLabel="Filter by payment status"
+        layout="wrap"
+        options={statuses.map(s => ({
+          value: s,
+          label: s === "all" ? `All (${jobs.length})` : `${paymentStatusLabel(s)} (${jobs.filter(j => j.payment_status === s).length})`,
+        }))}
+        value={filter}
+        onChange={setFilter}
+        haptic={false}
+      />
 
       <div className="rounded-ds-md liquid-glass p-4 flex items-center justify-between">
         <span className="text-ds-11 text-muted-foreground">Total for filter ({filtered.length} job{filtered.length === 1 ? "" : "s"})</span>
@@ -258,14 +263,17 @@ export const JobsDrillDown = ({ jobs, showFinancials, showFees }: { jobs: Job[];
 
   return (
     <div className="space-y-3">
-      <div role="group" aria-label="Filter by job status" className="flex gap-1 flex-wrap bg-secondary/50 rounded-ds-sm p-1">
-        {statusOptions.map(s => (
-          <button key={s} onClick={() => setFilter(s)} aria-pressed={filter === s}
-            className={`px-3 py-1.5 rounded-md text-ds-11 font-medium transition-colors ${filter === s ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
-            {s === "all" ? `All (${jobs.length})` : `${jobStatusLabel(s)} (${jobs.filter(j => j.status === s).length})`}
-          </button>
-        ))}
-      </div>
+      <SegmentedControl
+        ariaLabel="Filter by job status"
+        layout="wrap"
+        options={statusOptions.map(s => ({
+          value: s,
+          label: s === "all" ? `All (${jobs.length})` : `${jobStatusLabel(s)} (${jobs.filter(j => j.status === s).length})`,
+        }))}
+        value={filter}
+        onChange={setFilter}
+        haptic={false}
+      />
 
       {showFinancials && (
         <div className="rounded-ds-md liquid-glass p-4 flex items-center justify-between">

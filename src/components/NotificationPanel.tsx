@@ -451,7 +451,7 @@ const NotificationPanel = () => {
           <AnchoredPanelSegmented<Filter>
             label="Filter notifications"
             value={filter ?? "all"}
-            onChange={(v) => { hapticLight(); setFilter(v); }}
+            onChange={setFilter}
             options={[
               { key: "unread", label: "Unread", count: unreadCount },
               { key: "all", label: "All" },

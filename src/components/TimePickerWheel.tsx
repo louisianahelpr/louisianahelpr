@@ -1,5 +1,11 @@
 import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
+import { SegmentedControl, type SegmentedOption } from "@/components/ui/SegmentedControl";
+
+const PERIOD_OPTIONS: SegmentedOption<"AM" | "PM">[] = [
+  { value: "AM", label: "AM" },
+  { value: "PM", label: "PM" },
+];
 
 interface TimePickerWheelProps {
   value: string;
@@ -165,28 +171,15 @@ export function TimePickerWheel({ value, onChange, disabled, className }: TimePi
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-2 rounded-2xl border border-input bg-background/70 p-1">
-        {(["AM", "PM"] as const).map((p) => {
-          const active = hasValue ? parsed.period === p : false;
-          return (
-            <button
-              key={p}
-              type="button"
-              disabled={disabled}
-              onClick={() => update("period", p)}
-              className={cn(
-                "h-11 rounded-ds-md text-ds-15 font-semibold tracking-tight transition-all",
-                active
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-              aria-pressed={active}
-            >
-              {p}
-            </button>
-          );
-        })}
-      </div>
+      <SegmentedControl
+        ariaLabel="AM or PM"
+        layout="grid"
+        gridClassName="grid-cols-2"
+        options={PERIOD_OPTIONS}
+        value={hasValue ? parsed.period : null}
+        onChange={(v) => update("period", v)}
+        disabled={disabled}
+      />
     </div>
   );
 }

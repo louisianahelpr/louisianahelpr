@@ -180,6 +180,14 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
           container" anyway). liquid-glass wrap restored, sliding-pill
           mechanics unchanged inside it. */}
       <div className="rounded-2xl liquid-glass p-1.5">
+      {/* @segmented-control-exempt — this is NOT the app's shared
+          <SegmentedControl />, on purpose. Two owner-specified things it
+          cannot express: the active pill SLIDES between segments via framer's
+          shared-layout `layoutId` rather than each button swapping its own
+          background, and Refresh is a fourth cell inside the same track
+          ("should all be in 1 toggle not separates") rather than an option.
+          The selected paint is still the canonical `btn-grad-primary`, so this
+          is a different STRUCTURE, not a fifth visual language. */}
       {/* Once/Monthly/Annual share the row equally; Refresh gets a fixed
           44px column instead of a 4th equal share — an even 4-up grid gave
           the icon-only button the same width as a text label, leaving it

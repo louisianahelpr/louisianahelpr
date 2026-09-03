@@ -1,7 +1,14 @@
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
+
 /**
- * FilterChipGroup — labelled segmented pill group used by the
- * disputes filters. Kept inline to avoid spawning yet another shared
- * component that nothing else uses.
+ * FilterChipGroup — a labelled segmented control for the disputes filters.
+ *
+ * The label and the control are one row, which is the only thing this adds
+ * over <SegmentedControl /> itself. Everything visual now comes from the
+ * shared control: this used to hand-roll a `bg-muted/60` track with its own
+ * radius and type scale, which is how the admin console ended up with three
+ * selection languages (glossy here, `bg-primary` flat on AdminHealth, a white
+ * pill on the analytics drilldowns) inside one product.
  */
 export const FilterChipGroup = ({ label, value, onChange, options }: {
   label: string;
@@ -13,37 +20,14 @@ export const FilterChipGroup = ({ label, value, onChange, options }: {
     <span className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-widest">
       {label}
     </span>
-    <div className="inline-flex items-center rounded-md bg-muted/60 p-0.5 flex-wrap">
-      {options.map((opt) => {
-        const active = value === opt.id;
-        return (
-          <button
-            key={opt.id}
-            type="button"
-            onClick={() => onChange(opt.id)}
-            aria-pressed={active}
-            /* Selected = GLOSSY BRAND, not a white pill on a grey track.
-               Two things were wrong with the old `bg-background text-foreground
-               shadow-sm`. First the project rule: a selected control is glossy
-               (`btn-grad-primary`), never flat — and white-on-grey is as flat
-               as it gets. Second, cohesion: AdminSubscriptions and AdminJobs
-               already select with `bg-primary text-primary-foreground`, so the
-               same control class had two different selection languages in one
-               console and the whole Filters card on /admin?view=disputes read
-               as unbranded grayscale next to brand-toned siblings.
-
-               h-8 rather than h-6: 24px was the smallest tap target in the
-               admin surface. Still under the 44px guideline (a dense filter
-               strip cannot carry 44px rows without dominating the card), but
-               a third bigger and no longer a hairline. */
-            className={`px-2.5 h-8 rounded-sm text-ds-10 font-semibold transition-colors ${
-              active ? "btn-grad-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {opt.label}
-          </button>
-        );
-      })}
-    </div>
+    <SegmentedControl
+      ariaLabel={label}
+      layout="wrap"
+      className="w-fit"
+      options={options.map((o) => ({ value: o.id, label: o.label }))}
+      value={value}
+      onChange={onChange}
+      haptic={false}
+    />
   </div>
 );

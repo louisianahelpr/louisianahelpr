@@ -32,6 +32,7 @@ import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { TwoFactorCard } from "@/components/profile/TwoFactorCard";
 import { report } from "@/lib/errorLogger";
 import { userFacingError } from "@/lib/userFacingError";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
 
 interface LoginHistoryRow {
   id: string;
@@ -535,72 +536,35 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
               Face ID & Passcode → Require Passcode), and it keeps the current
               choice visible without a tap, which a <select> would not. */}
           {appLockOn && (
-            <div
-              role="radiogroup"
-              aria-label="Lock again after"
-              className="pl-11 space-y-1.5"
-            >
+            <div className="pl-11 space-y-1.5">
               <p
                 className="text-ds-11 font-serif italic"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 Lock again
               </p>
-              {/* The track. The inset surface that used to be painted on each
-                  individual pill now lives here once, so the three cells read
-                  as one control. */}
               {/* max-w caps the track on desktop. Without it the three cells
                   stretched to 405px each at 1440 — a 1215px-wide segmented
                   control for three two-word options, which reads as a toolbar,
                   not a picker. The cap is above the widest phone track (237px
                   at 393pt), so it changes nothing on the device the control is
                   actually for. */}
-              <div
-                className="grid grid-cols-3 gap-1 p-1 rounded-ds-md max-w-[280px]"
-                style={{
-                  background: "hsl(var(--ivory-sand) / 0.55)",
-                  border: "0.5px solid hsl(var(--olivewood) / 0.18)",
-                }}
-              >
-                {APP_LOCK_GRACE_OPTIONS.map((option) => {
-                  const selected = graceMs === option.ms;
-                  return (
-                    <button
-                      key={option.ms}
-                      type="button"
-                      role="radio"
-                      aria-checked={selected}
-                      // Full wording for assistive tech — the visible label is
-                      // abbreviated to fit three-across, the accessible name is
-                      // not.
-                      aria-label={option.label}
-                      onClick={() => handleGraceChange(option.ms)}
-                      // min-h-11 = 44px — Apple's minimum tap target. min-w-0
-                      // lets the cell shrink to its third instead of pushing
-                      // the track wider than the card.
-                      className={
-                        "squircle min-h-11 w-full min-w-0 rounded-ds-sm px-1 " +
-                        "text-ds-12 font-sans font-semibold whitespace-nowrap " +
-                        "transition-[transform,box-shadow,filter] duration-[150ms] ease-ds-spring " +
-                        "active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 " +
-                        "focus-visible:ring-ring focus-visible:ring-offset-2 " +
-                        // Selected controls are GLOSSY (btn-grad-primary), never
-                        // a flat fill — project rule.
-                        (selected
-                          ? "btn-grad-primary !text-[hsl(var(--parchment))]"
-                          : "")
-                      }
-                      style={
-                        selected
-                          ? undefined
-                          : { color: "hsl(var(--ink-deep))" }
-                      }
-                    >
-                      {GRACE_SHORT_LABELS[option.ms] ?? option.label}
-                    </button>
-                  );
-                })}
-              </div>
+              <SegmentedControl
+                ariaLabel="Lock again after"
+                layout="grid"
+                gridClassName="grid-cols-3"
+                className="max-w-[280px]"
+                /* Full wording rides along as each option's `ariaLabel` — the
+                   visible label is abbreviated to fit three-across, the
+                   accessible name is not. */
+                options={APP_LOCK_GRACE_OPTIONS.map((o) => ({
+                  value: o.ms as number,
+                  label: GRACE_SHORT_LABELS[o.ms] ?? o.label,
+                  ariaLabel: o.label,
+                }))}
+                value={graceMs}
+                onChange={handleGraceChange}
+              />
               <p
                 className="text-ds-11 font-serif italic"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}

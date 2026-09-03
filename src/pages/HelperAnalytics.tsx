@@ -40,6 +40,7 @@ import {
   useHelperAnalytics,
   type AnalyticsRange,
 } from "@/hooks/useHelperAnalytics";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { AnalyticsUpgradePanel } from "@/components/analytics/AnalyticsUpgradePanel";
 import { ApplicationsPanel } from "@/components/analytics/ApplicationsPanel";
 import { CategoryPanel } from "@/components/analytics/CategoryPanel";
@@ -53,6 +54,11 @@ function Body({ children }: { children: React.ReactNode }) {
   return <div className="flex flex-col gap-4 items-stretch">{children}</div>;
 }
 
+/**
+ * The 90d / 12mo / 24mo window. Renders the app's shared segmented control —
+ * this used to be a local copy of the same markup, and it was one of the two
+ * (of four) that already wore the canonical olive gloss.
+ */
 function RangeToggle({
   value,
   onChange,
@@ -61,42 +67,13 @@ function RangeToggle({
   onChange: (v: AnalyticsRange) => void;
 }) {
   return (
-    <div
-      role="radiogroup"
-      aria-label="Time range"
-      className="flex items-center gap-0.5 p-0.5 rounded-full"
-      style={{
-        background: "hsl(var(--ivory-sand) / 0.5)",
-        border: "0.5px solid hsl(var(--olivewood) / 0.10)",
-      }}
-    >
-      {ANALYTICS_RANGES.map((r) => {
-        const active = r === value;
-        return (
-          <button
-            key={r}
-            type="button"
-            role="radio"
-            aria-checked={active}
-            onClick={() => onChange(r)}
-            // `btn-grad-primary` is toggled in JS, not through a Tailwind
-            // variant: `data-[state=checked]:btn-grad-primary` compiles to
-            // nothing, because variants only compose over utilities Tailwind
-            // generates and this class lives in index.css.
-            className={`h-11 px-3 rounded-full inline-flex items-center justify-center text-ds-11 font-sans font-semibold whitespace-nowrap transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--bark))] ${
-              active ? "btn-grad-primary" : ""
-            }`}
-            style={
-              active
-                ? { color: "hsl(var(--parchment))", boxShadow: "var(--elev-bark-raised)" }
-                : { color: "hsl(var(--olivewood) / 0.85)" }
-            }
-          >
-            {RANGE_LABELS[r]}
-          </button>
-        );
-      })}
-    </div>
+    <SegmentedControl
+      ariaLabel="Time range"
+      className="w-fit"
+      options={ANALYTICS_RANGES.map((r) => ({ value: r, label: RANGE_LABELS[r] }))}
+      value={value}
+      onChange={onChange}
+    />
   );
 }
 

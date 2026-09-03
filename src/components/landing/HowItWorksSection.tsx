@@ -155,6 +155,15 @@ const HowItWorksSection = () => {
               the toggle already shows: the two sides are literally labelled "I
               need help" and "I want to work". The heading and the control now
               share one row with nothing between them. */}
+          {/* @segmented-control-exempt — the marketing page's own control, not
+              the app's shared <SegmentedControl />. Its track material was
+              matched by the owner to the hero's "Browse Jobs" button
+              (`bg-background/70` inside a 1.5px bark/0.4 border, blurred), so
+              the two secondary controls on the landing page read as the same
+              material; adopting the app track would undo that. Its selected
+              segment is a flat bark fill rather than the glossy primary — the
+              one place in the app where selected is not glossy, left as the
+              owner set it and flagged rather than changed. */}
           <div
             role="tablist"
             aria-label="Which side of Helpr are you on"

@@ -1847,6 +1847,78 @@ button,
 }
 
 
+/* ── SEGMENTED CONTROL ────────────────────────────────────────────────────
+   The app's ONE "pick one of N" language, worn by <SegmentedControl />
+   (src/components/ui/SegmentedControl.tsx) and by nothing else.
+
+   Four different treatments used to answer the same question. Measured on a
+   production bundle 2026-09-02: the Analytics and Earnings range toggles wore
+   the olive gloss at a full pill; Accessibility's colour mode wore a 12%
+   flat bark tint at 0px radius; and the Earnings view switcher painted its
+   SELECTED segment `hsl(var(--parchment))` — which is the page canvas colour,
+   so the chosen quarter of the Earnings tab was the same colour as the paper
+   behind it. Two of those languages shipped 140px apart on one screen.
+
+   WHY THE PAINT LIVES IN CSS AND NOT ON THE CALL SITE. Two traps, both of
+   which this repo has already paid for:
+
+     1. A Tailwind variant does not compose over a hand-written class —
+        `data-[state=checked]:btn-grad-primary` emits no CSS at all, because
+        variants only build on utilities Tailwind itself generates. So the
+        selected paint has to be toggled as a plain class in JS, and a plain
+        class is worth naming once rather than restating at every call site.
+     2. An inline `background` SHORTHAND resets `background-image`. That is
+        precisely how the Earnings view switcher ended up canvas-coloured: the
+        markup could carry every correct class name and still be flat. With
+        the paint here there is no inline shorthand for it to be lost to.
+
+   `.segmented-option-selected` deliberately does NOT redeclare the gradient.
+   `.btn-grad-primary` is the single source of truth for the primary surface
+   and both classes go on together; a copy of the radial stops here would be a
+   second definition that merely happens to agree — the exact drift that
+   comment above `.btn-grad-primary` exists to stop. */
+.segmented-track {
+  background: hsl(var(--ivory-sand) / 0.5);
+  border: 0.5px solid hsl(var(--olivewood) / 0.1);
+}
+
+.segmented-option {
+  color: hsl(var(--olivewood) / 0.85);
+}
+
+/* AFTER `.segmented-option` on purpose: both are single-class selectors, so
+   source order is the only thing that decides which colour wins. */
+.segmented-option-selected {
+  color: hsl(var(--parchment));
+  box-shadow:
+    inset 0 1px 0 hsl(var(--parchment) / 0.22),
+    0 2px 8px -3px hsl(var(--bark) / 0.55);
+}
+
+/* The count pill some segments carry (NotificationPanel's Unread/All). On the
+   selected segment it has to sit on the olive gloss, so it borrows the
+   parchment it is printed on rather than the burnt-sienna it wears at rest. */
+/* NEUTRAL by default. These are usually populations — "Active 27", "All 28" —
+   and they shipped in the alarm colour once, so a healthy user base rendered as
+   six red warnings and the one colour that means "something is wrong" in the
+   admin console also meant "how many rows are in this tab". */
+.segmented-count {
+  background: hsl(var(--olivewood) / 0.1);
+  color: hsl(var(--olivewood) / 0.75);
+}
+
+/* Opt-in, for a count the reader is meant to act on (unread notifications). */
+.segmented-count-attention {
+  background: hsl(var(--burnt-sienna) / 0.12);
+  color: hsl(var(--burnt-sienna));
+}
+
+.segmented-count-selected {
+  background: hsl(var(--parchment) / 0.22);
+  color: hsl(var(--parchment));
+}
+
+
 /* "Blueprint label" — tiny EB Garamond small-caps in Burnt Sienna for step
    numbers and category eyebrows. Reads like an architect's drawing label or
    the date line in a journal rather than a web tagline. */
@@ -3127,7 +3199,18 @@ html.senior-mode .job-meta-row {
    44→48, block `a` 24→48 and `[role=tab]` 24→48 still take the floor. */
 html.senior-mode button:not([role="checkbox"]):not([role="radio"]):not([role="switch"]),
 html.senior-mode a,
-html.senior-mode [role="tab"] { min-height: 48px; }
+html.senior-mode [role="tab"],
+/* `.segmented-option` is here because the exclusions above are what a
+   segmented control falls through. <SegmentedControl /> renders the SAME
+   control with `role="tab"` or `role="radio"` depending on whether it also
+   swaps a panel — and those two branches land on opposite sides of the
+   `:not([role="radio"])` guard, so Simple Mode gave the Earnings tab switcher
+   48px and the range toggle 44px, four pixels apart, one screen apart.
+   Measured 2026-09-02 on the built bundle. The guard is right for a Radix
+   radio (16px, designed) and wrong for a segment that is a full-width tap
+   target either way; naming the class is how the segment opts back in without
+   reopening the guard for everything else. */
+html.senior-mode .segmented-option { min-height: 48px; }
 
 /* Decorative motion is noise when reading is already effortful. This is the
    same treatment prefers-reduced-motion gets, applied by choice rather than

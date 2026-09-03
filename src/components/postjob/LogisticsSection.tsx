@@ -17,6 +17,7 @@ import { formatPriceExact } from "@/lib/format";
 import { AppleMapPreview } from "@/components/postjob/AppleMapPreview";
 import { CurrentLocationPill } from "@/components/postjob/CurrentLocationPill";
 import { FieldError } from "@/components/ui/FieldError";
+import { SegmentedControl, type SegmentedOption } from "@/components/ui/SegmentedControl";
 import { GROUP_JOBS_ENABLED } from "@/lib/groupJobs";
 
 /**
@@ -40,6 +41,14 @@ import { GROUP_JOBS_ENABLED } from "@/lib/groupJobs";
  */
 const RECURRING_ENABLED = true;
 
+
+/** "Repeats", not "Recurring" — it names what the poster is doing rather than
+ *  the billing category. */
+const JOB_TYPE_OPTIONS: SegmentedOption<"once" | "recurring" | "group">[] = [
+  { value: "once", label: "One-Time" },
+  ...(RECURRING_ENABLED ? ([{ value: "recurring", label: "Repeats" }] as const) : []),
+  ...(GROUP_JOBS_ENABLED ? ([{ value: "group", label: "Group" }] as const) : []),
+];
 
 // Tailwind needs the whole class name as a literal to emit it, so these are
 // spelled out rather than built as `grid-cols-${n}`.
@@ -288,53 +297,24 @@ export function LogisticsSection({
           single one they can't make. */}
       <div className="space-y-3">
         <Label id="job-type-label">Job type</Label>
-        <div role="group" aria-labelledby="job-type-label" className={`grid ${JOB_TYPE_COLS} gap-1 p-1 rounded-2xl border border-input bg-background/70`}>
-          {([
-            { key: "once", label: "One-Time" },
-            // "Repeats", not "Recurring" — it names what the poster is doing
-            // rather than the billing category.
-            ...(RECURRING_ENABLED ? [{ key: "recurring", label: "Repeats" } as const] : []),
-            ...(GROUP_JOBS_ENABLED ? [{ key: "group", label: "Group" } as const] : []),
-          ] as const).map((opt) => {
-            // With Group withdrawn, a restored draft carrying
-            // `isGroupJob: true` (useJobEntry:123 rehydrates it) must not
-            // leave the whole control unselected — One-Time is what that
-            // draft now IS, and `jobSubmitHelpers` forces the same coercion
-            // on the way into the insert.
-            const groupActive = GROUP_JOBS_ENABLED && isGroupJob;
-            const active =
-              (opt.key === "once" && !isRecurring && !groupActive) ||
-              (opt.key === "recurring" && isRecurring) ||
-              (opt.key === "group" && groupActive);
-            return (
-              <button
-                key={opt.key}
-                type="button"
-                aria-pressed={active}
-                onClick={() => {
-                  setIsRecurring(opt.key === "recurring");
-                  setIsGroupJob(opt.key === "group");
-                }}
-                // Selected segment wears the shared glossy primary, not a flat
-                // `bg-primary`. Measured at 320/375/768/1440 before the change:
-                // computed `background-image: none` on the pressed segment —
-                // the control that chooses One-Time / Repeats / Group was the
-                // flat one sitting directly above a picker that cited it as its
-                // precedent, so both rows drifted together. `.btn-grad-primary`
-                // is a plain class (not a Tailwind variant, which would compile
-                // to nothing) and nothing here sets an inline `background`
-                // shorthand that would reset the gradient.
-                className={`h-11 rounded-ds-md text-ds-13 font-semibold tracking-tight transition-all ${
-                  active
-                    ? "btn-grad-primary text-primary-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {opt.label}
-              </button>
-            );
-          })}
-        </div>
+        {/* With Group withdrawn, a restored draft carrying `isGroupJob: true`
+            (useJobEntry:123 rehydrates it) must not leave the whole control
+            unselected — One-Time is what that draft now IS, and
+            `jobSubmitHelpers` forces the same coercion on the way into the
+            insert. */}
+        <SegmentedControl
+          ariaLabel="Job type"
+          layout="grid"
+          gridClassName={JOB_TYPE_COLS}
+          options={JOB_TYPE_OPTIONS}
+          value={
+            isRecurring ? "recurring" : GROUP_JOBS_ENABLED && isGroupJob ? "group" : "once"
+          }
+          onChange={(next) => {
+            setIsRecurring(next === "recurring");
+            setIsGroupJob(next === "group");
+          }}
+        />
 
         {isRecurring && (
           <RecurringSchedulePicker

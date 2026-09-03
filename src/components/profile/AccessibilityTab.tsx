@@ -2,6 +2,15 @@ import { useDarkMode } from "@/hooks/useDarkMode";
 import type { Theme } from "@/hooks/useDarkMode";
 import { Sun, Moon, Monitor, Type } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
+import { SegmentedControl, type SegmentedOption } from "@/components/ui/SegmentedControl";
+
+/** "Auto" is the visible label for `system` because the track is three cells
+ *  wide on a phone; the accessible name spells it out. */
+const COLOR_MODES: SegmentedOption<Theme>[] = [
+  { value: "light", label: "Light", icon: <Sun className="w-4 h-4" strokeWidth={2} /> },
+  { value: "system", label: "Auto", ariaLabel: "Match system", icon: <Monitor className="w-4 h-4" strokeWidth={2} /> },
+  { value: "dark", label: "Dark", icon: <Moon className="w-4 h-4" strokeWidth={2} /> },
+];
 
 interface AccessibilityTabProps {
   seniorMode: boolean;
@@ -18,35 +27,21 @@ export function AccessibilityTab({ seniorMode, onToggleSeniorMode, onBack }: Acc
 
       <div className="rounded-ds-lg liquid-glass overflow-hidden px-4 py-3 flex flex-col gap-2">
         <p className="text-ds-12 font-semibold text-foreground leading-tight">Color mode</p>
-        <div
-          className="flex rounded-ds-md overflow-hidden"
-          style={{ border: "0.5px solid hsl(var(--bark) / 0.2)" }}
-          role="group"
-          aria-label="Color mode"
-        >
-          {([
-            { value: "light" as Theme, Icon: Sun, label: "Light" },
-            { value: "system" as Theme, Icon: Monitor, label: "Auto" },
-            { value: "dark" as Theme, Icon: Moon, label: "Dark" },
-          ] as const).map(({ value, Icon, label }) => (
-            <button
-              key={value}
-              type="button"
-              aria-pressed={theme === value}
-              onClick={() => setTheme(value)}
-              className="flex-1 py-2.5 flex flex-col items-center gap-0.5 transition-colors"
-              style={{
-                background: theme === value ? "hsl(var(--bark) / 0.12)" : "transparent",
-                color: theme === value ? "hsl(var(--bark))" : "hsl(var(--olivewood) / 0.8)",
-              }}
-            >
-              <Icon className="w-4 h-4" strokeWidth={2} />
-              <span className="text-ds-10 font-sans font-semibold uppercase" style={{ letterSpacing: "0.06em" }}>
-                {label}
-              </span>
-            </button>
-          ))}
-        </div>
+        {/* The app's shared segmented control. This was the outlier of four:
+            a flat 12% bark tint at 0px radius, its type classes on an inner
+            <span> so the button itself reported the browser default — three
+            ways of being different from the identical control on Analytics and
+            Earnings. Nothing about "which colour mode" justified its own
+            language. */}
+        <SegmentedControl
+          ariaLabel="Color mode"
+          iconPosition="top"
+          layout="grid"
+          gridClassName="grid-cols-3"
+          options={COLOR_MODES}
+          value={theme}
+          onChange={setTheme}
+        />
       </div>
 
       {onToggleSeniorMode && (

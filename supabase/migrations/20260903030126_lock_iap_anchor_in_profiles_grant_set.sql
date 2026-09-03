@@ -41,6 +41,27 @@
 --
 -- Replay-safe: CREATE OR REPLACE plus an idempotent sync.
 
+-- REPLAY SAFETY, and a real piece of schema drift this exposed.
+--
+-- db-smoke replays every migration into an empty database, and this one failed
+-- there with:
+--
+--     ERROR: column "apple_original_transaction_id" of relation "profiles"
+--            does not exist
+--     CONTEXT: PL/pgSQL function sync_profiles_update_grants() line 30
+--
+-- The column exists in PROD — text, nullable, no default — but **no migration
+-- in this repo creates it**. It was added outside the migration system, so a
+-- from-scratch rebuild has never had it and the repo cannot reproduce
+-- production's schema. CLAUDE.md's standing requirement is zero migration
+-- drift; this is a live violation of it that nothing was checking, and my
+-- migration only made it visible by being the first thing to depend on the
+-- column existing.
+--
+-- `IF NOT EXISTS` so this is a no-op against prod and a repair everywhere else.
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS apple_original_transaction_id text;
+
 CREATE OR REPLACE FUNCTION public.profiles_locked_update_columns()
 RETURNS text[]
 LANGUAGE sql

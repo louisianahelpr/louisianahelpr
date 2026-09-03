@@ -43,6 +43,14 @@
 -- SECURITY DEFINER function is a privilege-escalation bug, not a style slip.
 -- Grants are NOT re-issued: they survive CREATE OR REPLACE.
 
+-- REPLAY SAFETY (added 2026-09-03). `CREATE OR REPLACE FUNCTION` cannot change a
+-- function's RETURNS TABLE signature — Postgres raises "cannot change return type
+-- of existing function". Against prod that never fired, because the previous
+-- definition happened to match; against db-smoke's from-scratch replay it did,
+-- and db-smoke has been RED on every run since. Dropping first is idempotent and
+-- is what makes this file replayable.
+DROP FUNCTION IF EXISTS public.get_public_open_jobs(integer);
+
 CREATE OR REPLACE FUNCTION public.get_public_open_jobs(p_limit integer DEFAULT 6)
  RETURNS TABLE(id uuid, title text, category text, location text, budget numeric, date_needed date, is_urgent boolean, is_boosted boolean)
  LANGUAGE sql
@@ -80,3 +88,11 @@ COMMENT ON FUNCTION public.get_public_open_jobs(integer) IS
   'Before 20260902163216 it had neither the funding nor the seed gate, so it '
   'would have kept advertising demo jobs to the public after the launch flag '
   'was flipped.';
+
+-- DROP DISCARDS THE ACL. `CREATE OR REPLACE` preserved these grants, which is
+-- why the file never needed them; the DROP added above for replay-safety does
+-- not. Restored to exactly what prod holds (read from pg_proc.proacl
+-- 2026-09-03: anon, authenticated, service_role) so a replayed database is not
+-- quietly more or less permissive than production. This is the same trap that
+-- bit review_credential() earlier today — a DROP is never only a DROP.
+GRANT EXECUTE ON FUNCTION public.get_public_open_jobs(integer) TO anon, authenticated, service_role;

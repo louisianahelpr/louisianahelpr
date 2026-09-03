@@ -89,6 +89,14 @@
 -- chosen), not the jobs — adding an ownership rule to any of them would filter
 -- the wrong relation and silently change ranking rather than visibility.
 -- ───────────────────────────────────────────────────────────────────────────
+-- REPLAY SAFETY (added 2026-09-03). `CREATE OR REPLACE FUNCTION` cannot change a
+-- function's RETURNS TABLE signature — Postgres raises "cannot change return type
+-- of existing function". Against prod that never fired, because the previous
+-- definition happened to match; against db-smoke's from-scratch replay it did,
+-- and db-smoke has been RED on every run since. Dropping first is idempotent and
+-- is what makes this file replayable.
+DROP FUNCTION IF EXISTS public.get_ranked_open_jobs(integer, integer, boolean);
+
 CREATE OR REPLACE FUNCTION public.get_ranked_open_jobs(p_limit integer DEFAULT 20, p_offset integer DEFAULT 0, p_include_seed boolean DEFAULT true)
  RETURNS TABLE(id uuid, title text, description text, category job_category, budget numeric, date_needed date, start_time time without time zone, location text, parish text, is_urgent boolean, urgent_fee numeric, is_flexible_schedule boolean, is_recurring boolean, recurrence_interval text, is_group_job boolean, helpers_needed integer, estimated_hours numeric, photos text[], special_requirements text, created_at timestamp with time zone, expires_at timestamp with time zone, boosted_at timestamp with time zone, boost_expires_at timestamp with time zone, parish_match boolean, rank_score numeric, pricing_mode text)
  LANGUAGE sql
@@ -184,6 +192,14 @@ $function$;
 --    See the header: the existing `latitude IS NOT NULL` filter makes this
 --    redundant TODAY and will not keep doing so.
 -- ───────────────────────────────────────────────────────────────────────────
+-- REPLAY SAFETY (added 2026-09-03). `CREATE OR REPLACE FUNCTION` cannot change a
+-- function's RETURNS TABLE signature — Postgres raises "cannot change return type
+-- of existing function". Against prod that never fired, because the previous
+-- definition happened to match; against db-smoke's from-scratch replay it did,
+-- and db-smoke has been RED on every run since. Dropping first is idempotent and
+-- is what makes this file replayable.
+DROP FUNCTION IF EXISTS public.get_open_jobs_for_map();
+
 CREATE OR REPLACE FUNCTION public.get_open_jobs_for_map()
  RETURNS TABLE(id uuid, title text, category text, budget numeric, is_urgent boolean, latitude numeric, longitude numeric, parish text, created_at timestamp with time zone, location text, date_needed date, start_time time without time zone, urgent_fee numeric, is_group_job boolean, helpers_needed integer)
  LANGUAGE sql
@@ -255,6 +271,14 @@ $function$;
 --    The same rule for the same reason. (Its missing `payment_status` gate is
 --    called out in the header and deliberately left alone here.)
 -- ───────────────────────────────────────────────────────────────────────────
+-- REPLAY SAFETY (added 2026-09-03). `CREATE OR REPLACE FUNCTION` cannot change a
+-- function's RETURNS TABLE signature — Postgres raises "cannot change return type
+-- of existing function". Against prod that never fired, because the previous
+-- definition happened to match; against db-smoke's from-scratch replay it did,
+-- and db-smoke has been RED on every run since. Dropping first is idempotent and
+-- is what makes this file replayable.
+DROP FUNCTION IF EXISTS public.get_public_open_jobs(integer);
+
 CREATE OR REPLACE FUNCTION public.get_public_open_jobs(p_limit integer DEFAULT 6)
  RETURNS TABLE(id uuid, title text, category text, location text, budget numeric, date_needed date, is_urgent boolean, is_boosted boolean)
  LANGUAGE sql
@@ -276,3 +300,13 @@ AS $function$
     j.created_at DESC
   LIMIT GREATEST(COALESCE(p_limit, 6), 1);
 $function$;
+
+-- DROP DISCARDS THE ACL. `CREATE OR REPLACE` preserved these grants, which is
+-- why the file never needed them; the DROP added above for replay-safety does
+-- not. Restored to exactly what prod holds (read from pg_proc.proacl
+-- 2026-09-03: anon, authenticated, service_role) so a replayed database is not
+-- quietly more or less permissive than production. This is the same trap that
+-- bit review_credential() earlier today — a DROP is never only a DROP.
+GRANT EXECUTE ON FUNCTION public.get_ranked_open_jobs(integer, integer, boolean) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.get_open_jobs_for_map() TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.get_public_open_jobs(integer) TO anon, authenticated, service_role;

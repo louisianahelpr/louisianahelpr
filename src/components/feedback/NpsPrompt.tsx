@@ -1,8 +1,14 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetHero,
+  SheetFooter,
+  SheetSecondaryAction,
+  SheetPrimaryAction,
+} from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { hapticLight, hapticSuccess, hapticError } from "@/lib/haptics";
@@ -213,24 +219,35 @@ export function NpsPrompt({ userId, onClose }: NpsPromptProps) {
             </div>
           )}
 
-          <div className="flex items-center justify-between gap-3 pt-2">
-            <Button
-              variant="ghost"
+          {/* THE SHARED FOOTER, not a hand-rolled row.
+              This was `justify-between` with a ghost button hard-left and a
+              `px-6` primary hard-right — the pre-2026-09-02 grammar, kept alive
+              here because the row was written by hand and so never picked up
+              the change that moved ~30 dialogs to a 1:3 row. Beside any other
+              popup it read as a different app: a 44px dismiss against a 56px
+              commit, floated apart instead of ranked by width.
+              `dismiss("maybe-later")` keeps its name — it is the stored reason
+              string in `nps_responses`, and renaming it would orphan every row
+              already written. Only the LABEL changes; see below. */}
+          <SheetFooter>
+            {/* "Skip", not "Maybe Later". The app has exactly two dismiss words
+                — Cancel where the secondary abandons, Skip where it advances
+                past an optional step — and this is the second kind. "Maybe
+                Later" was a third word for the same gesture, and the owner
+                settled that list on 2026-09-02. */}
+            <SheetSecondaryAction
               onClick={() => dismiss("maybe-later")}
               disabled={submitting}
-              className="text-[hsl(var(--olivewood)/0.8)]"
             >
-              Maybe Later
-            </Button>
-            <Button
-              variant="primary"
+              Skip
+            </SheetSecondaryAction>
+            <SheetPrimaryAction
               onClick={handleSend}
               disabled={submitting || score === null}
-              className="px-6"
             >
               {submitting ? "Sending…" : "Send"}
-            </Button>
-          </div>
+            </SheetPrimaryAction>
+          </SheetFooter>
         </div>
       </SheetContent>
     </Sheet>

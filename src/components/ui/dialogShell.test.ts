@@ -84,7 +84,19 @@ const STRUCTURAL_EXCEPTIONS: Record<string, string> = {
  * all-clears on 2026-09-02 alone.
  */
 function allSourceFiles(): string[] {
-  return execSync("git ls-files 'src/**/*.ts' 'src/**/*.tsx'", { encoding: "utf8", cwd: ROOT })
+  // `--cached --others --exclude-standard`, NOT a bare `git ls-files`.
+  //
+  // A bare listing shows only TRACKED files, so a brand-new, not-yet-committed
+  // file is invisible — which is precisely the case every rule below exists to
+  // catch. Verified rather than assumed: a probe file was written with a
+  // hand-rolled Cancel/Send row, and the guard PASSED. A guard that cannot see
+  // new work is worse than no guard, because the green tick is read as
+  // permission. `--others --exclude-standard` adds untracked files while still
+  // honouring .gitignore, so node_modules and dist stay out.
+  return execSync(
+    "git ls-files --cached --others --exclude-standard 'src/**/*.ts' 'src/**/*.tsx'",
+    { encoding: "utf8", cwd: ROOT },
+  )
     .split("\n").filter(Boolean).map((f) => resolve(ROOT, f))
     // `git ls-files` lists the INDEX, which still carries a file deleted from
     // the working tree until the deletion is staged. Reading one throws ENOENT
@@ -761,6 +773,67 @@ describe("Popup grammar — footer", () => {
       inert,
       'these dismiss buttons do nothing: give the dialog role="alertdialog", ' +
         "wrap the button in <DialogClose asChild>, or give it an onClick",
+    ).toEqual([]);
+  });
+
+
+  /**
+   * FAILS IF: a new popup hand-rolls a dismiss-and-commit row instead of using
+   * the shared footer.
+   *
+   * The shared footer only governs the popups that OPT IN by rendering it, so
+   * a row written by hand keeps whatever grammar it was born with and never
+   * hears about a change. NpsPrompt was exactly that: `justify-between` with a
+   * ghost dismiss hard-left and a `px-6` primary hard-right, i.e. the
+   * pre-2026-09-02 layout, still shipping weeks after ~30 other popups moved to
+   * the 1:3 row. Nothing failed, because nothing was looking.
+   *
+   * WHAT THIS DELIBERATELY DOES NOT FLAG, and why the rule is "one dismiss and
+   * one commit" rather than "two buttons". Measured across every popup in the
+   * app when this was written: NINE files have a Content, no shared footer, and
+   * raw <Button>s. Only ONE of them was a footer. The rest are different
+   * controls that a 1:3 dismiss/commit row would actively misrepresent:
+   *
+   *   EarningsExport      "Download CSV" + "Download PDF" — two EQUAL commits.
+   *   GateSheet           "Create Free Account" + "Log In" — two nav choices.
+   *   adminJobs/JobDetail Remove / Override / Refund — a wrapping toolbar.
+   *   AdminSettings       inline per-section saves inside a settings form.
+   *   TipDialog           one Send beside the amount input — an input group.
+   *   SosShareButton, PhotoProof, HelperScheduleStrip — single inline buttons.
+   *
+   * So the signature is a GHOST/OUTLINE button and a PRIMARY/DESTRUCTIVE button
+   * as siblings in one flex or grid container — that pair means "back out" and
+   * "go through", which is what the footer exists to rank.
+   */
+  it("no popup hand-rolls a dismiss-and-commit row", () => {
+    const offenders: string[] = [];
+    for (const f of allSourceFiles()) {
+      if (!f.endsWith(".tsx") || /\.test\.tsx?$/.test(f)) continue;
+      const src = stripComments(readFileSync(f, "utf8"));
+      if (!/<(?:Dialog|Sheet)Content/.test(src)) continue;
+      if (/<(?:Dialog|Sheet)Footer/.test(src)) continue; // opted in already
+
+      for (const row of src.matchAll(
+        /<div className="[^"]*(?:flex|grid)[^"]*"[^>]*>([\s\S]{0,900}?)<\/div>/g,
+      )) {
+        const body = row[1];
+        // The left slot is identified by what it SAYS, not how it is styled.
+        // Styling cannot tell a dismiss from a second destination: GateSheet's
+        // "Log In" is `variant="outline"` beside a primary "Create Free
+        // Account", and EarningsExport's "Download CSV" is outline beside
+        // "Download PDF" — both look exactly like a footer and neither is one.
+        // The first version of this rule flagged them, and satisfying it would
+        // have squeezed a real action into the dismiss's quarter-width slot.
+        // A dismiss is the button that means "not this, take me out".
+        const dismiss = /<Button\b[\s\S]{0,300}?>\s*(?:\{[^}]*\}\s*)?(?:Cancel|Skip|Close|Dismiss|Not Now|Maybe Later|No Thanks|Keep Editing)\s*</i.test(body);
+        const commit = /<Button\b(?![^>]*variant="(?:ghost|outline|link)")[^>]*>/.test(body);
+        if (dismiss && commit) { offenders.push(relative(ROOT, f)); break; }
+      }
+    }
+    expect(
+      offenders,
+      "a dismiss beside a commit is a FOOTER — use DialogFooter/SheetFooter " +
+        "with the shared actions, so it follows the grammar when the grammar changes",
     ).toEqual([]);
   });
 

@@ -425,28 +425,40 @@ gate, ID verification, and a credential tier ladder. Those are real and you may
 describe them *as process*. You may not describe them as *outcome*.
 
 - Permitted: "Helprs are approved before they can work." · "Some Helprs have a
-  verified license on file." · "ID verification is available" / "Helprs can
-  verify their ID."
-- **NOT permitted, and this list used to say it was: "ID verification is part of
-  getting approved."** Measured against live prod on 2026-09-03: of 37 approved
-  profiles, **12** are ID-verified and **0** have a cleared background check.
-  Approval and ID verification are separate gates, and the majority of approved
-  accounts have not passed the second one. Saying approval "includes" ID
-  verification is therefore false, and it is false in the most dangerous
-  direction — it is a safety representation about a product where a stranger
-  comes to someone's home.
-  This entry is the reason §3's "sourced, not reasonable" rule applies to
-  *process* claims and not only to numbers: the sentence sounded like a
-  description of how the product works, it appeared on this file's own
-  permitted list, and it took a query to find out it was wrong. **Re-check the
-  ratio before making any claim in this area; do not inherit it from here.**"
-- Forbidden: "guaranteed safe" · "100% background-checked" · "fully vetted" ·
-  "screened for criminal history" · "we guarantee your Helpr" · anything with
-  "safe" as a promise rather than a description of a step.
-- Do not describe what a background check *finds* or *rules out*. You are not
-  the vendor and you do not know the coverage.
-- Do not state a verification tier count, a check pass rate, or a rejection
-  rate. Those are §3 statistics.
+  verified license on file." · **"Nobody can be awarded a job until Stripe has
+  verified their identity."**
+- **NOT permitted: "ID verification is part of getting approved."** Approval and
+  identity verification are different gates. Of 37 approved profiles, 2 carry
+  Stripe's identity verdict (measured 2026-09-03). Approval does not include it.
+
+**The claim that IS true, and it is stronger — use this one.** Identity is
+enforced at the moment a helper is *awarded the job*, not at signup:
+`public.helper_award_block()` (migration `20260827191647_helper_award_gate.sql`)
+is called by `accept_application` and `accept_group_application`, and returns
+`helper_identity_unverified` unless `profiles.stripe_identity_verified` is true.
+A poster physically cannot hand a job to someone Stripe has not verified. That
+is a server-side gate on the exact moment that matters — not a promise about who
+signed up.
+
+Three conditions on it, all of which must be re-checked before the claim ships:
+1. **There is an operator kill switch.** `platform_settings.feature_flags ->>
+   'idv_requirement_paused'` suspends the gate during a Stripe Identity outage.
+   It fails CLOSED (a missing row or key leaves the requirement in force), and it
+   was `false` on 2026-09-03. **If it is ever true, this claim is false while it
+   is true.** Query it, do not assume.
+2. **Seeded helpers bypass the gate** (`is_seed` returns NULL early, permitting
+   the award). The claim is about real helpers; it is not true of fixture data.
+3. Say "verified their identity" or "ID verified by Stripe" — the product's own
+   wording (`ApplicantVerificationChip`). Do not say "background-checked",
+   "screened", "vetted" or "safe": **0 profiles have a cleared background check**,
+   and identity verification says who someone is, never how they will behave.
+
+This entry is the reason §3's "sourced, not reasonable" rule applies to *process*
+claims and not only numbers — and it cuts both ways. The first version of this
+list asserted a false version of this claim. The correction then over-banned the
+whole area, which would have thrown away a true and unusually strong trust story.
+**Read the gate, then write the claim.** Neither the optimistic nor the cautious
+guess was right.
 
 **2. No fabricated people.** No invented customer quotes, no invented Helpr
 stories, no composite "a customer in Lafayette told us", no AI-generated faces

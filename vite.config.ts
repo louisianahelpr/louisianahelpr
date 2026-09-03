@@ -416,7 +416,7 @@ export default defineConfig(({ mode }) => ({
   ].filter(Boolean),
   resolve: {
     alias: [
-      { find: "@", replacement: path.resolve(__dirname, "./src") },
+      { find: "@", replacement: path.resolve(import.meta.dirname, "./src") },
       { find: /^react$/, replacement: reactEntry },
       { find: /^react-dom$/, replacement: reactDomEntry },
       { find: /^react-dom\/client$/, replacement: reactDomClientEntry },

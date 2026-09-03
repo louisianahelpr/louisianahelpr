@@ -425,7 +425,7 @@ export function ActiveJobSection({
               {aborted && (
                 <p className="font-serif italic text-center text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   {aborted === "disputed"
-                    ? "You’ve told the poster you can’t finish. Our team is reviewing what you’re owed — the payment stays in escrow until then."
+                    ? "You’ve told the poster you can’t finish. Our team is reviewing what you’re owed — the payment is held safely until then."
                     : "You’ve told the poster you can’t finish. The job is open to other Helprs again."}
                 </p>
               )}
@@ -452,8 +452,8 @@ export function ActiveJobSection({
             {/* The money outcome, stated plainly, before the tap. */}
             <p className="font-serif italic text-ds-13" style={{ color: "hsl(var(--olivewood))" }}>
               {abortWorkStarted
-                ? "You’ve already started, so we won’t decide who’s owed what on our own. The poster’s payment stays in escrow and our team reviews it — you may still be paid for the part you did."
-                : "You never started, so the poster is charged nothing. The job reopens for other Helprs right away and their payment stays protected in escrow."}
+                ? "You’ve already started, so we won’t decide who’s owed what on our own. The poster’s payment is held safely and our team reviews it — you may still be paid for the part you did."
+                : "You never started, so the poster is charged nothing. The job reopens for other Helprs right away and their payment stays protected."}
             </p>
             <label htmlFor={`abort-reason-${app.job_id}`} className="block text-ds-11 font-medium text-foreground">
               What happened? The poster sees this.

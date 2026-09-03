@@ -738,6 +738,13 @@ describe("Popup grammar — footer", () => {
     const inert: string[] = [];
     for (const f of allSourceFiles()) {
       if (!f.endsWith(".tsx")) continue;
+      // Specs are fixtures, not product surfaces, and this rule cannot read
+      // them: dialogConfirmBehaviour.test.tsx renders ONE harness that is a
+      // confirm or a form dialog depending on a prop, precisely so it can
+      // assert both halves of this behaviour. Statically that file looks like
+      // a dismiss with no way out. It is the same self-reference trap as the
+      // alert-dialog ban below — a guard that flags the test proving the guard.
+      if (/\.test\.tsx?$/.test(f)) continue;
       const src = stripComments(readFileSync(f, "utf8"));
       if (!src.includes("<DialogSecondaryAction")) continue;
       const isConfirm = /role="alertdialog"/.test(src);

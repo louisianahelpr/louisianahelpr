@@ -679,14 +679,23 @@ test.describe("My Posts — card density + header", () => {
     await edit.click();
 
     // The action happened...
-    await expect(page.getByRole("dialog")).toBeVisible();
+    //
+    // `dialog, alertdialog` — NOT `getByRole("dialog")`. Edit opens
+    // EditJobDialog, which is a CONFIRM and therefore carries
+    // `role="alertdialog"` since ui/alert-dialog.tsx was merged into
+    // ui/dialog.tsx. ARIA treats alertdialog as its own role, not a subtype of
+    // dialog, so `getByRole("dialog")` stops matching it — and the failure
+    // reads as "element(s) not found", i.e. indistinguishable from the card
+    // having collapsed, which is the very thing this test exists to detect.
+    const modal = page.locator('[role="dialog"], [role="alertdialog"]');
+    await expect(modal).toBeVisible();
 
     // ...and the card underneath did NOT collapse. Dismiss the modal first:
     // Radix marks everything outside an open dialog aria-hidden, so the card's
     // own toggle is unreachable by role while it is up — and an "element not
     // found" there would look exactly like a collapse.
     await page.keyboard.press("Escape");
-    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(modal).toHaveCount(0);
     await expect(
       page.getByRole("button", { name: "Collapse Job Details" }).first(),
     ).toHaveAttribute("aria-expanded", "true");

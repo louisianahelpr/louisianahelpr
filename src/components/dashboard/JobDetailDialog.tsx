@@ -189,6 +189,7 @@ const JobDetailDialog = ({
   return (
     <Dialog open={!!job} onOpenChange={() => onClose()}>
       <DialogContent
+          stepped
         topRightSlot={cornerActions}
         // ONE SHELL AT EVERY WIDTH — TOP-ANCHORED, CONTENT-SIZED.
         //

@@ -162,8 +162,32 @@ const DialogContent = React.forwardRef<
      * terms. Migrating without this prop would have shipped exactly that.
      */
     closeDisabled?: boolean;
+    /**
+     * This dialog CHANGES ITS CONTENT IN PLACE — job detail -> apply, the
+     * three-step report, the rate -> tip -> share sequence, the onboarding
+     * tour. It pins its TOP edge instead of its centre.
+     *
+     * WHY, measured: a vertically-centred box absorbs a height change
+     * symmetrically, so it moves by HALF of it. Stepping the job sheet from
+     * detail (442px) to apply (575px) moved the whole surface UP 66.4px —
+     * every word the user was reading slid out from under them, mid-flow, in
+     * the middle of applying for a job. `apply-single-sheet.spec.ts` has been
+     * failing on exactly that since a46d6bdc5 centred it, and the assertion is
+     * right: what changed was the code, not the requirement.
+     *
+     * Owner ruled 2026-09-02, shown both measurements: top-anchor the ones
+     * that step, leave every single-step confirm centred. It is also what
+     * Apple and Google both do — a surface that changes in place does not
+     * move, because the user's eye is already fixed on it.
+     *
+     * Deliberately NOT the same thing as "this dialog is tall". Three dialogs
+     * once opted out of centring by hand with `top-[7vh]` to cure a *symptom*
+     * of this ("opens small then gets bigger?"), were centred again by
+     * a46d6bdc5, and the real distinction was never named. This is the name.
+     */
+    stepped?: boolean;
   }
->(({ className, children, onOpenAutoFocus, topRightSlot, closeDisabled, ...props }, ref) => {
+>(({ className, children, onOpenAutoFocus, topRightSlot, closeDisabled, stepped, ...props }, ref) => {
   // See DialogDismissCtx: a dialog whose footer offers Cancel drops the X.
   const [hasDismiss, setHasDismiss] = React.useState(false);
   // `role` is never set by this component, and `{...props}` is spread after
@@ -307,6 +331,14 @@ const DialogContent = React.forwardRef<
       // controls HEIGHT, which is what makes a short confirm feel short; only
       // the measure is shared. Change one primitive, change both.
         "glass-modal fixed left-1/2 top-1/2 [translate:-50%_-50%] z-50 grid w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] sm:w-full sm:max-w-lg max-h-[86vh] overflow-y-auto gap-3 p-4 sm:p-5 duration-300 focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+        // See `stepped` above. Placed AFTER the base string and BEFORE
+        // `className` so tailwind-merge resolves `top-*` and the arbitrary
+        // `translate` against the base, and a caller can still override both.
+        // The centring rides the standalone `translate` PROPERTY rather than
+        // `-translate-y-1/2`, because tailwindcss-animate's enter/exit
+        // keyframes write `transform` and would clobber a transform-based one
+        // mid-animation — so the opt-out has to move the same property.
+        stepped && "top-[7vh] [translate:-50%_0]",
         className,
       )}
       // Radix warns once per open when a Content has no `Description` and no

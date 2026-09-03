@@ -275,7 +275,8 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
           convention — DialogContent turns a prevented autofocus into
           `content.focus()`, so the dialog still owns focus, a screen reader
           announces the title, and Tab starts inside the modal. */}
-      <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
+      <DialogContent
+          stepped onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHero title={title} />
 
         {step === "reason" && (

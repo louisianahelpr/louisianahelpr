@@ -229,7 +229,8 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
     <>
       {/* Review Prompt */}
       <Dialog open={step === "review"} onOpenChange={() => { setStep("tip"); }}>
-        <DialogContent>
+        <DialogContent
+          stepped>
           <DialogHero
             title={`Rate ${revieweeName}`}
           />
@@ -272,7 +273,8 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
       {/* Tip Prompt — close advances to share step (peak emotional moment
           for a referral ask). Skipping the tip still hits the share step. */}
       <Dialog open={step === "tip"} onOpenChange={() => setStep("share")}>
-        <DialogContent>
+        <DialogContent
+          stepped>
           <DialogHero
             title="Say Thanks with a Tip?"
           />
@@ -322,7 +324,8 @@ export const CompletionPrompts = ({ jobId, jobTitle, revieweeId, revieweeName, u
           are happy. Best time to ask for a referral. Hidden if we
           couldn't load a referral code (offline / first-time edge). */}
       <Dialog open={step === "share"} onOpenChange={() => setStep("nps")}>
-        <DialogContent>
+        <DialogContent
+          stepped>
           <DialogHero
             title="Loved It? Share Helpr"
           />

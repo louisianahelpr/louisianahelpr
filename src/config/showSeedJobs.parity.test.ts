@@ -190,6 +190,124 @@ describe("fixture-job visibility — one switch, every surface", () => {
    * its claim only over registered surfaces, so if someone later removed the
    * gate from an unregistered one, every test would still pass.
    */
+  /**
+   * DISCOVERY AXIS TWO: what SELECTS open jobs?
+   *
+   * This is the forward question, and it is kept alongside the caller-based
+   * check below because NEITHER SUBSUMES THE OTHER, which took a real bug to
+   * learn:
+   *
+   *   · "what calls the gate, and is it all registered?" is decidable with zero
+   *     false positives, and it found a gated surface missing from the registry
+   *     (`notify_helpers_on_job_post`). It is structurally BLIND to a feed that
+   *     never had a gate at all — such a feed calls nothing, so a check that
+   *     starts from callers cannot see it.
+   *   · This one is noisy and needs the allowlist below. It is also the only
+   *     half that found `sweep_daily_job_digest`: a daily per-parish digest
+   *     EMAIL counting fixture jobs, with no `is_seed` reference anywhere in it.
+   *     At the time, 9 of 9 open jobs with a parish were fixtures — so flipping
+   *     the launch switch would have silenced every browse surface while that
+   *     email kept telling users about jobs they could not find.
+   *
+   * I had prototyped this predicate, measured it as noisy, and set it aside as
+   * "strictly worse". That judgement was wrong about what it is FOR. Noisy
+   * discovery plus a reasoned allowlist beats precise discovery that cannot see
+   * the case you care about.
+   *
+   * Every allowlist entry states why it is not a public feed. Nothing goes in
+   * here to quiet a failure — that is how the name regex this replaced came to
+   * exist.
+   */
+  const NOT_A_PUBLIC_FEED = new Map<string, string>([
+    // Mutations on ONE job the caller is already party to. They read
+    // `status = 'open'` as a precondition, not as a feed filter.
+    ["public.decline_job_offer", "single-job mutation; status is a precondition"],
+    ["public.expire_unanswered_offers", "sweep over offers, not a browse feed"],
+    ["public.helper_abort_job", "single-job mutation; status is a precondition"],
+    ["public.helper_cancel_booking", "single-job mutation; status is a precondition"],
+    ["public.report_helper_no_show", "single-job mutation; status is a precondition"],
+    ["public.rpc_open_dispute", "single-job mutation; status is a precondition"],
+    ["public.settle_dispute_record", "single-job mutation; status is a precondition"],
+    ["public.can_message_in_job", "authorisation check on one job"],
+    // Counts the POSTER'S OWN open jobs to enforce a cap. Their own fixtures
+    // should count against their own cap.
+    ["public.enforce_open_job_limit", "BEFORE-trigger counting the poster's own open jobs"],
+    // The helper's own applications. A fixture job you applied to must keep
+    // rendering on your activity screen after the flag flips, or the row you
+    // are looking at silently vanishes.
+    ["public.get_jobs_for_my_applications", "the caller's OWN applications, not a public feed"],
+    // Dead RPC: zero callers in src/ or supabase/functions (grepped 2026-09-03).
+    // Exempt because reddening the tree over a function nothing calls is how a
+    // gate gets switched off — but it counts open jobs with no is_seed filter,
+    // so it needs the gate BEFORE it is ever wired to anything.
+    [
+      "public.get_marketplace_activity_count",
+      "no caller in src/ or supabase/functions as of 2026-09-03 — dead RPC; needs the gate before it is ever wired up",
+    ],
+  ]);
+
+  it("every migration object that SELECTS open jobs is gated or declared not-a-feed", () => {
+    const registered = new Set(SEED_GATED_SURFACES.map((s) => s.object.toLowerCase()));
+
+    const header = /CREATE (?:OR REPLACE )?(?:FUNCTION|VIEW)\s+(public\.\w+)/gi;
+    const selectsOpenJobs = new Set<string>();
+    const dropped = new Set<string>();
+    for (const { sql } of FILES) {
+      const heads = [...sql.matchAll(header)];
+      heads.forEach((h, i) => {
+        const body = sql.slice(
+          (h.index ?? 0) + h[0].length,
+          i + 1 < heads.length ? heads[i + 1].index : sql.length,
+        );
+        if (
+          /\b(?:FROM|JOIN)\s+(?:public\.)?jobs\b/i.test(body) &&
+          /\bstatus\s*(?:::\s*\w+)?\s*=\s*'open'/i.test(body)
+        ) {
+          selectsOpenJobs.add(h[1].toLowerCase());
+        }
+      });
+      for (const d of sql.matchAll(
+        /DROP\s+(?:FUNCTION|VIEW)\s+(?:IF EXISTS\s+)?(public\.\w+)/gi,
+      )) {
+        dropped.add(d[1].toLowerCase());
+      }
+    }
+    for (const d of dropped) selectsOpenJobs.delete(d);
+    const discovered = [...selectsOpenJobs];
+
+    // Sanity: the discovery must find things, or this passes vacuously.
+    expect(discovered.length, "discovery found nothing — the extraction drifted").toBeGreaterThan(0);
+
+    // NO "the browse RPCs must appear here" ANCHOR, and the reason is worth
+    // stating because the obvious version of it is wrong. The three browse RPCs
+    // read the GATED VIEW `open_jobs_browse` (which carries
+    // `NOT is_seed OR NOT seed_jobs_hidden_publicly()`), so in migration TEXT
+    // they do not present as `FROM jobs` + `status = 'open'` and this scan does
+    // not discover them. That is correct behaviour, not a gap: they inherit the
+    // gate from the view, and the caller-based check below is what covers them.
+    //
+    // The positive anchor here is the anti-rot rule instead. Every one of the
+    // NOT_A_PUBLIC_FEED entries must still be discovered, so if the extraction
+    // ever breaks, all of them go stale at once and this fails loudly rather
+    // than quietly finding nothing. A guard needs SOME assertion that fails
+    // when it stops working; this is that assertion.
+
+    // Anti-rot: an allowlist entry for something no longer discovered is stale
+    // and must be removed, so the list can only shrink.
+    const stale = [...NOT_A_PUBLIC_FEED.keys()].filter((o) => !discovered.includes(o));
+    expect(stale, "stale NOT_A_PUBLIC_FEED entries — remove them").toEqual([]);
+
+    const unaccounted = discovered
+      .filter((o) => !registered.has(o) && !NOT_A_PUBLIC_FEED.has(o))
+      .sort();
+    expect(
+      unaccounted,
+      `These objects select open jobs but are neither registered as seed-gated ` +
+        `surfaces nor declared NOT_A_PUBLIC_FEED. Either give them the gate and ` +
+        `register them, or declare why they are not a public feed.`,
+    ).toEqual([]);
+  });
+
   it("every object that CALLS the seed gate is registered as a gated surface", () => {
     const registered = new Set(SEED_GATED_SURFACES.map((s) => s.object.toLowerCase()));
 

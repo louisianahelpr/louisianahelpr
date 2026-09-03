@@ -111,4 +111,16 @@ export const SEED_GATED_SURFACES = [
   // That is the same shape as the `get_public_open_jobs` omission above: a
   // registry that is both the test's input and its definition of correctness.
   { surface: "new-job helper push", object: "public.notify_helpers_on_job_post" },
+  // MISSING UNTIL 2026-09-03, and it never had the gate at all — unlike the
+  // entry above it, which was gated but unregistered. The daily per-parish
+  // digest email counted fixture jobs, and at the time it was found EVERY open
+  // job with a parish was a fixture (9 of 9). Flipping the launch switch would
+  // have silenced all six surfaces above while this email kept telling users
+  // there were jobs in their parish that they could not find anywhere.
+  //
+  // Found by the BEHAVIOURAL half of the discovery below ("what selects open
+  // jobs?"), not the caller half ("what calls the gate?") — a feed that never
+  // had a gate is invisible to a check that starts from callers of the gate.
+  // That is why both halves are kept. Gate added in 20260903081713.
+  { surface: "daily parish digest email", object: "public.sweep_daily_job_digest" },
 ] as const;

@@ -1,6 +1,6 @@
-import { useEffect } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Ban, Mail, LogOut, Clock } from "lucide-react";
+import { Ban, Mail, LogOut, Clock, Trash2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +9,13 @@ import { signOutWithPushCleanup } from "@/lib/authSignOut";
 import AuthShell from "@/components/auth/AuthShell";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useDeleteAccount } from "@/hooks/useDeleteAccount";
+
+// The same lazy import Profile uses: the dialog chunk and its confirm-flow
+// deps are fetched only if the user actually opens it.
+const DeleteAccountDialog = lazy(() =>
+  import("@/components/profile/DeleteAccountDialog").then((m) => ({ default: m.DeleteAccountDialog })),
+);
 
 const BAN_STATUSES = ["banned", "temp_banned", "permanently_banned"] as const;
 
@@ -16,6 +23,26 @@ const AccountBanned = () => {
   usePageTitle("Account Banned — Helpr");
   const navigate = useNavigate();
   const { user, profile, isLoading } = useCurrentUser();
+
+  // ACCOUNT DELETION LIVES HERE TOO, AND IT HAS TO.
+  //
+  // Apple requires in-app account deletion (App Store Review Guideline
+  // 5.1.1(v)) and App Review may exercise the path themselves. For a banned
+  // user this was the one screen in the product where that was impossible:
+  // `ProtectedRoute` runs its ban gate BEFORE the `allowUnapproved` branch, so
+  // every protected route — /profile included, which is where the delete
+  // control lives — redirects straight back here, and /data-rights redirects
+  // into the same gate. The only exits this screen offered were Support,
+  // Rules and Sign Out. So a suspended user's only route to deletion was to
+  // email a human, which is exactly what the guideline forbids.
+  //
+  // Meanwhile `delete-own-account` never read `ban_status` at all, so the API
+  // path worked fine for precisely the user the UI blocked. The two halves
+  // were backwards from each other.
+  //
+  // Same hook, same dialog as Profile — see `useDeleteAccount` for why this is
+  // shared rather than a second copy of the handler.
+  const deleteAccount = useDeleteAccount();
 
   // The actual reason, read from the row the ban was written to.
   //
@@ -242,7 +269,13 @@ const AccountBanned = () => {
         </div>
       </div>
 
-      <div className="text-center mt-5">
+      {/* Sign Out and Delete Account, in that order and both subordinate to the
+          appeal CTAs above. Deletion is a real exit and it must be offered —
+          but a suspended user's FIRST move should be the appeal, not the
+          irreversible thing, so neither of these wears a filled treatment.
+          `text-destructive` distinguishes the permanent one from the
+          reversible one without promoting it. */}
+      <div className="text-center mt-5 flex flex-col items-center gap-1">
         <Button
           variant="ghost"
           size="sm"
@@ -251,7 +284,37 @@ const AccountBanned = () => {
         >
           <LogOut className="w-4 h-4 mr-1" /> Sign Out
         </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={deleteAccount.requestDelete}
+          className="text-destructive hover:text-destructive"
+        >
+          <Trash2 className="w-4 h-4 mr-1" /> Delete Account
+        </Button>
       </div>
+
+      {deleteAccount.isOpen && (
+        <Suspense fallback={null}>
+          <DeleteAccountDialog
+            {...deleteAccount.dialogProps}
+            // The standard dialog lists what deletion keeps. For a banned user
+            // one more thing is kept, and staying quiet about it would let
+            // somebody delete their account believing it clears the
+            // suspension. It does not: `retain_ban_on_deletion` records the
+            // ban against a hash of this email before the purge runs, and
+            // `handle_new_user` re-applies it if that address signs up again
+            // (20260903014600_ban_survives_self_deletion.sql). Saying so up
+            // front is also the more useful answer — the appeal, not the
+            // delete button, is the route back in.
+            extraKeptItems={[
+              isPermanent
+                ? "This ban — it applies again if you sign up with this email"
+                : "This suspension — it applies again if you sign up with this email before it ends",
+            ]}
+          />
+        </Suspense>
+      )}
     </AuthShell>
   );
 };

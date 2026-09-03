@@ -54,10 +54,11 @@ export function EditEmailDialog({ profile, onClose, onSuccess }: EditEmailDialog
     }
 
     // Face ID / Touch ID gate: repointing a user's login email is a complete
-    // account-takeover primitive — the new address owns password reset from
-    // that moment on. Same tier as ban/delete. Runs after validation so a
-    // rejected form never raises an OS prompt. No-op on web and on devices
-    // without enrolled biometrics (see requireBiometric).
+    // account-takeover primitive — the new address owns password reset from that
+    // moment on. Same tier as ban/delete. Runs after validation so a rejected form
+    // never raises an OS prompt. No-op on web. On device it prompts whenever the
+    // device can authenticate its owner at all — falling back to the passcode when
+    // biometry is unavailable or locked out (see requireBiometric).
     const ok = await requireBiometric("Confirm changing this user's login email");
     if (!ok) return;
 

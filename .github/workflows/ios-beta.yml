@@ -201,12 +201,14 @@ jobs:
         # contains ZERO occurrences of the ref, and a good build contains it in
         # client-*.js. The ref is public (it is in every web bundle and in the
         # app's network calls); it is not a secret.
-        run: |
-          if ! grep -rq "fncmgoasalhdgfwzhsqa" dist/assets/*.js; then
-            echo "::error::Built bundle contains no Supabase URL — it would hang on the boot-loader. Check the VITE_* repo secrets."
-            exit 1
-          fi
-          echo "✓ bundle carries the Supabase config"
+        #
+        # MOVED into a script 2026-09-02. This check lived here as inline shell
+        # for four months while deploy.yml — the App Store release lane — had
+        # neither it nor the env block above, and shipped a bundle that could
+        # not boot. A guard the next workflow author has to remember to
+        # copy-paste is a guard that decays; both lanes now call one definition,
+        # which also adds a staging-ref check this version did not have.
+        run: node scripts/verify-bundle-env.mjs dist/assets
 
       - name: Sync Fastlane metadata into Xcode
         run: bundle exec fastlane ios sync_xcode_metadata --verbose

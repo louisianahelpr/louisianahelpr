@@ -288,7 +288,15 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
       setAppLockOn(false);
       return;
     }
-    const ok = await requireBiometric("Turn on the Face ID lock for Helpr");
+    // The ONE call site that passes `onUnsecurableDevice: "deny"`. Everywhere
+    // else a device with no biometry AND no passcode is waved through — there
+    // is no challenge to present, and refusing would block the user from their
+    // own money with no in-app remedy. Here that reasoning inverts: returning
+    // true on such a device would ARM a lock the user cannot then pass, which
+    // is the exact brick this prove-it-first flow exists to prevent.
+    const ok = await requireBiometric("Turn on the Face ID lock for Helpr", {
+      onUnsecurableDevice: "deny",
+    });
     if (!ok) {
       // User cancelled or failed — leave the switch off. The OS already showed
       // the prompt, so no extra error toast.

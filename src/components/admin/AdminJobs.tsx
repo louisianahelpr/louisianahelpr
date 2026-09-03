@@ -296,10 +296,11 @@ const AdminJobs = () => {
     }
     const isPartial = partialCents !== null && partialCents < totalCents;
 
-    // Face ID / Touch ID gate: an admin refund moves real money back out of
-    // Stripe and cancels the job. No undo. Runs after the amount validation
-    // so a rejected form never raises an OS prompt. No-op on web and on
-    // devices without enrolled biometrics (see requireBiometric).
+    // Face ID / Touch ID gate: an admin refund moves real money back out of Stripe
+    // and cancels the job. No undo. Runs after the amount validation so a rejected
+    // form never raises an OS prompt. No-op on web. On device it prompts whenever
+    // the device can authenticate its owner at all — falling back to the passcode
+    // when biometry is unavailable or locked out (see requireBiometric).
     const ok = await requireBiometric("Confirm this refund");
     if (!ok) return;
 

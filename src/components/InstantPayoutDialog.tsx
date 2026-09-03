@@ -61,8 +61,10 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
   }, [open]);
 
   const handleConfirm = async () => {
-    // Face ID / Touch ID gate before moving money. No-op on web and on
-    // devices without enrolled biometrics (see requireBiometric).
+    // Face ID / Touch ID gate before moving money. No-op on web. On device it
+    // prompts whenever the device can authenticate its owner at all — falling back
+    // to the passcode when biometry is unavailable or locked out (see
+    // requireBiometric).
     const ok = await requireBiometric("Confirm your instant cash-out");
     if (!ok) return;
     setProcessing(true);

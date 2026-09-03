@@ -79,6 +79,19 @@ jobs:
         run: npm install --no-audit --no-fund --legacy-peer-deps
 
       - name: Build production bundle
+        # Literals, not secrets, on purpose: this workflow runs on
+        # `pull_request`, and a PR from a fork gets no secrets — reading them
+        # here would make the job fail for outside contributors. Nothing here
+        # is confidential (the project ref is in every shipped bundle, and the
+        # key is the same non-functional placeholder e2e-happy-path.yml,
+        # a11y-axe.yml and ui-sweep.yml already use). Byte budgets don't care
+        # about the value, only that vite.config.ts's boot-env guard is
+        # satisfied so a size regression check can't be silently replaced by a
+        # build failure.
+        env:
+          VITE_SUPABASE_PROJECT_ID: fncmgoasalhdgfwzhsqa
+          VITE_SUPABASE_URL: https://fncmgoasalhdgfwzhsqa.supabase.co
+          VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_test_key_for_e2e_only
         run: npm run build
 
       - name: Check chunk sizes

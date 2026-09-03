@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { checkBundleEnv } from './verify-bundle-env.mjs';
 
 const root = process.cwd();
 const iosPublic = join(root, 'ios', 'App', 'App', 'public');
@@ -83,6 +84,16 @@ if (strayMaps.length) {
     'Run `npm run strip:ios-sourcemaps` after `npx cap sync ios`.',
   );
 }
+
+// The bundle that is ACTUALLY about to be packaged into the .ipa carries a
+// working Supabase config. The release lanes already assert this against
+// dist/ right after the build; this repeats it one step from the archive,
+// against the copy `cap sync` produced, so a stale or half-synced
+// ios/App/App/public cannot slip a boot-dead bundle past the earlier check.
+// Same shared definition — see scripts/verify-bundle-env.mjs for why an
+// env-less bundle is catastrophic and why this greps the project ref.
+const envFailures = checkBundleEnv(assetsDir, 'iOS bundle (ios/App/App/public/assets)');
+if (envFailures.length) fail(envFailures.join('\n'));
 
 const iconSize = statSync(appIcon).size;
 if (iconSize < 100_000) fail('iOS marketing icon looks too small; expected the full Helpr green/white icon.');

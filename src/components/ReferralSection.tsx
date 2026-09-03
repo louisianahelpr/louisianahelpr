@@ -115,8 +115,10 @@ const ReferralSection = ({ userId }: { userId: string }) => {
   };
 
   const handleCashOut = async () => {
-    // Face ID / Touch ID gate before moving money. No-op on web and on
-    // devices without enrolled biometrics (see requireBiometric).
+    // Face ID / Touch ID gate before moving money. No-op on web. On device it
+    // prompts whenever the device can authenticate its owner at all — falling back
+    // to the passcode when biometry is unavailable or locked out (see
+    // requireBiometric).
     const ok = await requireBiometric("Confirm your referral cash-out");
     if (!ok) return;
     setCashingOut(true);

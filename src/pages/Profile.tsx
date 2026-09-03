@@ -19,10 +19,10 @@ import { sumHelperTakeHomeDollars } from "@/lib/helperEarnings";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
 import { lookupParishByZip } from "@/lib/parishLookup";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import { useDeleteAccount } from "@/hooks/useDeleteAccount";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { splitName } from "@/lib/splitName";
 import { requireOnline } from "@/lib/requireOnline";
-import { functionErrorMessage } from "@/lib/supabaseResult";
 import {
   useProfileStats,
   useProfileReviews,
@@ -496,55 +496,18 @@ const ProfilePage = () => {
   };
 
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
-  const [showDeleteAccountDialog, setShowDeleteAccountDialog] = useState(false);
-  const [deleteStep, setDeleteStep] = useState<1 | 2>(1);
-  const [deleteConfirmText, setDeleteConfirmText] = useState("");
-  const [deletingAccount, setDeletingAccount] = useState(false);
   const handleLogout = async () => { await signOutWithPushCleanup(); navigate("/"); };
-  const handleDeleteAccount = async () => {
-    // The dialog asks the user to type "DELETE" (short, thumb-friendly).
-    // The delete-own-account edge function still validates against the
-    // legacy "DELETE MY ACCOUNT" phrase server-side, so we map here —
-    // server contract is unchanged.
-    if (deleteConfirmText !== "DELETE") return;
-    setDeletingAccount(true);
-    try {
-      // There is NO client-side pre-check for active jobs here, on purpose.
-      //
-      // There used to be one, duplicating the guard inside delete-own-account.
-      // It carried its own copy of the `job_status` list, that copy contained
-      // `arrived` and `awaiting` — neither of which is a member of the enum
-      // (`arrived` belongs to `job_tracking.status`; `awaiting` exists
-      // nowhere) — and Postgres rejects the WHOLE query with 22P02 when any
-      // listed value is not a member. Verified against prod 2026-08-31:
-      //   GET /rest/v1/jobs?status=in.(accepted,arrived,in_progress,awaiting)
-      //   -> 400 {"code":"22P02","message":"invalid input value for enum
-      //           job_status: \"arrived\""}
-      // Because `if (activeErr) throw activeErr` ran before the invoke, this
-      // threw for EVERY user regardless of whether they had any jobs, so
-      // in-app account deletion was 100% broken — an App Store compliance
-      // gate. The edge function's identical list was fixed a day earlier and
-      // the fix was never carried across, which is the whole argument against
-      // keeping a second copy.
-      //
-      // The server already enforces this and answers 409 with a human message
-      // that `functionErrorMessage` surfaces verbatim, so the pre-check bought
-      // nothing but a drift hazard. One guard, server-side, where it has to
-      // live anyway.
-      const { error } = await supabase.functions.invoke("delete-own-account", {
-        body: { confirmation: "DELETE MY ACCOUNT" },
-      });
-      if (error) throw error;
-      await signOutWithPushCleanup();
-      navigate("/");
-    } catch (err: unknown) {
-      // functionErrorMessage recovers the edge function's real reason from
-      // the response body — the SDK's own .message is just "non-2xx".
-      toast.error(await functionErrorMessage(err, "Couldn't delete your account — try again?"));
-    } finally {
-      setDeletingAccount(false);
-    }
-  };
+
+  // The whole delete flow — dialog state, the "DELETE" → "DELETE MY ACCOUNT"
+  // phrase mapping, the invoke, the sign-out — lives in `useDeleteAccount`,
+  // because /account-banned now offers the same flow. A banned user cannot
+  // reach this page at all (ProtectedRoute's ban gate runs before its
+  // `allowUnapproved` branch), and Apple requires in-app deletion for them
+  // too, so there had to be a second entry point. Two entry points sharing one
+  // hook; NOT two copies of the handler. The last time this file carried its
+  // own copy of a delete-path guard, it drifted from the edge function's and
+  // broke deletion for 100% of users — see the hook's header.
+  const deleteAccount = useDeleteAccount();
 
   if (loading) {
     // Loading state mirrors the loaded state's shell so there's no
@@ -651,7 +614,7 @@ const ProfilePage = () => {
                  fires when the posted/completed tab opens, so the prior
                  imperative prefetch is a no-op. */
               onLoadInlineJobs={() => {}}
-              onRequestDelete={() => { setDeleteStep(1); setDeleteConfirmText(""); setShowDeleteAccountDialog(true); }}
+              onRequestDelete={deleteAccount.requestDelete}
               onRequestLogout={() => setShowLogoutDialog(true)}
               statsError={statsQuery.isError}
               onRetryStats={() => { statsQuery.refetch(); }}
@@ -756,18 +719,9 @@ const ProfilePage = () => {
 
       {/* Mounted only once the user opens it — the dialog chunk (and its
           confirm-flow deps) is fetched on demand rather than with the route. */}
-      {showDeleteAccountDialog && (
+      {deleteAccount.isOpen && (
         <Suspense fallback={null}>
-          <DeleteAccountDialog
-            open={showDeleteAccountDialog}
-            onOpenChange={setShowDeleteAccountDialog}
-            deleteStep={deleteStep}
-            setDeleteStep={setDeleteStep}
-            deleteConfirmText={deleteConfirmText}
-            setDeleteConfirmText={setDeleteConfirmText}
-            deletingAccount={deletingAccount}
-            onDelete={handleDeleteAccount}
-          />
+          <DeleteAccountDialog {...deleteAccount.dialogProps} />
         </Suspense>
       )}
     </>

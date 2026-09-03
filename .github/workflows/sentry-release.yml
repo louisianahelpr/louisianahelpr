@@ -60,6 +60,24 @@ jobs:
       # Bake the commit SHA into the bundle so the runtime `release` tag
       # Sentry sees matches the release name we create below.
       VITE_SENTRY_RELEASE: ${{ github.sha }}
+      # The Supabase config MUST match what Vercel builds with, or this whole
+      # workflow uploads sourcemaps for files production never serves.
+      #
+      # Sentry matches a map to a frame by FILENAME (`~/assets/<chunk>.js`), and
+      # Vite inlines these env vars into the bundle, so their value feeds the
+      # content hash of every chunk that transitively imports the Supabase
+      # client. Measured 2026-09-02 at a single commit: building with vs.
+      # without them yields 394 chunks either way, but only 230 filenames are
+      # shared — 164 of 394 (42%) differ. Confirmed the same day that
+      # production IS built with them (www.louisianahelpr.com's
+      # client-BUsl5h47.js contains the project ref), so this env-less build
+      # was uploading 164 maps under names no production stack frame can ever
+      # reference. Those frames stayed minified while this workflow reported
+      # green — the worst failure mode for crash reporting, since the tool is
+      # silently blind in exactly the place you go looking for it.
+      VITE_SUPABASE_URL:             ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      VITE_APPLE_MAPKIT_TOKEN:       ${{ secrets.VITE_APPLE_MAPKIT_TOKEN }}
 
     steps:
       - name: Check Sentry secrets

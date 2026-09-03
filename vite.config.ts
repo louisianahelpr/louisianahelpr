@@ -1,4 +1,4 @@
-import { defineConfig, type Plugin } from "vite";
+import { defineConfig, loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { createRequire } from "module";
@@ -40,6 +40,66 @@ const appCommitFull = (() => {
   }
 })();
 
+// ─── Build-time env guard ───────────────────────────────────────────────────
+// The VITE_* vars whose absence produces a bundle that CANNOT BOOT.
+//
+// `createClient` in src/integrations/supabase/client.ts runs at MODULE SCOPE
+// and throws when handed undefined. App.tsx imports it eagerly, so the throw
+// lands before createRoot().render(<App/>): React never mounts, the splash
+// auto-hides after 1.5s, and the app sits on index.html's #boot-loader — a
+// blank wrought-iron H — forever, with no error surfaced anywhere.
+//
+// The catastrophic part is that VITE BUILDS THIS PERFECTLY HAPPILY. `vite
+// build` with no env exits 0 and emits a complete, well-formed, correctly
+// hashed bundle; the defect only appears when a user launches the app. So
+// every "did the build succeed?" signal — the green check, the exit code, the
+// artifact size — reports healthy on an app that is 100% dead.
+//
+// This guard lives in the BUILD, not in a workflow, on purpose. The same fix
+// was applied as inline shell inside ios-beta.yml on 2026-08-20; deploy.yml —
+// the App Store release lane — was never given it and still shipped
+// `npm run build:ios` with zero VITE_* env four months later. A guard that
+// each new workflow author has to remember to copy is a guard that decays.
+// Here, every call site gets it: both iOS lanes, Vercel, local fastlane, and
+// any workflow written after this comment.
+const REQUIRED_BUILD_ENV = [
+  "VITE_SUPABASE_URL",
+  "VITE_SUPABASE_PUBLISHABLE_KEY",
+] as const;
+
+// `apply: "build"` + buildStart means this fires ONLY for a real `vite build`
+// — never on config load, dev server, or vitest, all of which also evaluate
+// this file.
+const requireBuildEnv = (mode: string): Plugin => ({
+  name: "require-build-env",
+  apply: "build",
+  buildStart() {
+    // `vite build --mode development` (npm run build:dev) is a debugging
+    // artifact that is never shipped or uploaded, so it is exempt.
+    if (mode !== "production") return;
+
+    // loadEnv, not process.env: it merges the .env files Vite itself reads
+    // (how local and fastlane builds get their config) with any VITE_-prefixed
+    // process.env vars (how CI passes secrets). Reading process.env alone
+    // would falsely fail every local build.
+    const env = loadEnv(mode, process.cwd(), "VITE_");
+    const missing = REQUIRED_BUILD_ENV.filter((key) => !env[key]);
+    if (!missing.length) return;
+
+    throw new Error(
+      `\n\n  Refusing to build: ${missing.join(", ")} ${missing.length === 1 ? "is" : "are"} missing.\n\n` +
+        "  This build would produce a bundle that cannot boot. createClient() throws at\n" +
+        "  module scope, React never mounts, and the app hangs on the boot-loader forever\n" +
+        "  — a white screen with no error, on every launch.\n\n" +
+        "  In CI:    add the repo secrets to the build step's `env:` block.\n" +
+        "            Copy the block in .github/workflows/ios-beta.yml (\"Build web bundle\").\n" +
+        "  Locally:  populate .env at the repo root. These are the PUBLISHABLE/anon keys —\n" +
+        "            public by design, already in every shipped bundle, not service-role\n" +
+        "            secrets. RLS is the real boundary.\n",
+    );
+  },
+});
+
 const reactEntry = require.resolve("react");
 const reactDomEntry = require.resolve("react-dom");
 const reactDomClientEntry = require.resolve("react-dom/client");
@@ -75,6 +135,7 @@ export default defineConfig(({ mode }) => ({
     },
   },
   plugins: [
+    requireBuildEnv(mode),
     react(),
     // Stamp the built index.html with the commit it was built from.
     //

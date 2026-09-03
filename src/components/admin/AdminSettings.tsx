@@ -295,11 +295,12 @@ const AdminSettings = () => {
   };
 
   const addAdmin = async (profile: Profile) => {
-    // Face ID / Touch ID gate: granting admin is the privilege-escalation
-    // primitive that makes every other gate on this page moot — an attacker
-    // on a merely-unlocked admin phone would grant themselves a durable role
-    // that survives the phone being recovered. No-op on web and on devices
-    // without enrolled biometrics (see requireBiometric).
+    // Face ID / Touch ID gate: granting admin is the privilege-escalation primitive
+    // that makes every other gate on this page moot — an attacker on a
+    // merely-unlocked admin phone would grant themselves a durable role that
+    // survives the phone being recovered. No-op on web. On device it prompts
+    // whenever the device can authenticate its owner at all — falling back to the
+    // passcode when biometry is unavailable or locked out (see requireBiometric).
     const ok = await requireBiometric("Confirm granting admin access");
     if (!ok) return;
     setAdding(profile.user_id);

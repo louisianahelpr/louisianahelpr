@@ -13,6 +13,22 @@ interface DeleteAccountDialogProps {
   setDeleteConfirmText: (value: string) => void;
   deletingAccount: boolean;
   onDelete: () => void;
+  /**
+   * Extra rows for the "Kept, without your name" column.
+   *
+   * Exists for /account-banned, the second entry point to this flow. A banned
+   * user's deletion keeps one thing nobody else's does — the ban itself,
+   * recorded against a hash of their email so it survives the account
+   * (20260903014600_ban_survives_self_deletion.sql). The whole argument for
+   * RetentionSummary below is that a delete dialog which misdescribes the
+   * delete is a trust defect; a suspended user pressing Delete Forever in the
+   * belief that it clears their suspension would be exactly that defect, so
+   * the caller that has the context adds the line.
+   *
+   * Data rather than a `variant` flag: this is copy, and copy belongs to the
+   * screen that knows what is true on it.
+   */
+  extraKeptItems?: string[];
 }
 
 // Step 2 asks users to type a confirmation phrase. Short enough that
@@ -48,7 +64,7 @@ const CONFIRM_PHRASE = "DELETE";
  * `_shared/accountPurge.ts`. If the policy changes, this copy changes with it;
  * a delete dialog that misdescribes the delete is a trust defect, not a typo.
  */
-function RetentionSummary() {
+function RetentionSummary({ extraKeptItems }: { extraKeptItems?: string[] }) {
   // Kept deliberately terse. The first draft of this copy was accurate but ran
   // 103px past the fold on a 375×812 phone, which put the primary action below
   // the scroll on first paint — measured, not guessed. The dialog does scroll,
@@ -69,6 +85,9 @@ function RetentionSummary() {
     "Payment records — the law requires we keep them",
     "Reviews you wrote — they stay on that Helpr's profile",
     "Jobs that took a payment, minus your address",
+    // Caller-supplied, and it leads nothing — the shared three are the same
+    // for everybody, and the extra row is the one that only applies here.
+    ...(extraKeptItems ?? []),
   ];
 
   return (
@@ -126,6 +145,7 @@ export function DeleteAccountDialog({
   setDeleteConfirmText,
   deletingAccount,
   onDelete,
+  extraKeptItems,
 }: DeleteAccountDialogProps) {
   const handleOpenChange = (o: boolean) => {
     onOpenChange(o);
@@ -154,7 +174,7 @@ export function DeleteAccountDialog({
         onPrimary={(e) => { e.preventDefault(); setDeleteStep(2); }}
         secondaryLabel="Keep Account"
       >
-        <RetentionSummary />
+        <RetentionSummary extraKeptItems={extraKeptItems} />
       </BrandConfirmDialog>
     );
   }

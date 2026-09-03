@@ -100,11 +100,12 @@ export function PayoutSetupForm() {
   };
 
   const handleOnboard = async () => {
-    // Face ID / Touch ID gate before handing out a Stripe account link. That
-    // link is a live session into Connect onboarding, where the destination
-    // bank account for every future payout is set — on a stolen unlocked
-    // phone it is the highest-value target in the app. No-op on web and on
-    // devices without enrolled biometrics (see requireBiometric).
+    // Face ID / Touch ID gate before handing out a Stripe account link. That link
+    // is a live session into Connect onboarding, where the destination bank account
+    // for every future payout is set — on a stolen unlocked phone it is the
+    // highest-value target in the app. No-op on web. On device it prompts whenever
+    // the device can authenticate its owner at all — falling back to the passcode
+    // when biometry is unavailable or locked out (see requireBiometric).
     //
     // Gate runs BEFORE track(): a helper who fails the prompt never started
     // onboarding, so the funnel shouldn't record that they did.
@@ -165,10 +166,11 @@ export function PayoutSetupForm() {
       toast.error("Keep at least one payout method — update it from your Stripe dashboard instead.");
       return;
     }
-    // Face ID / Touch ID gate before a destructive, irreversible change to
-    // where this helper gets paid. Runs AFTER the last-method guard so a
-    // blocked delete never raises an OS prompt for nothing. No-op on web and
-    // on devices without enrolled biometrics (see requireBiometric).
+    // Face ID / Touch ID gate before a destructive, irreversible change to where
+    // this helper gets paid. Runs AFTER the last-method guard so a blocked delete
+    // never raises an OS prompt for nothing. No-op on web. On device it prompts
+    // whenever the device can authenticate its owner at all — falling back to the
+    // passcode when biometry is unavailable or locked out (see requireBiometric).
     const ok = await requireBiometric("Confirm removing this payout method");
     if (!ok) return;
     setDeleting(methodId);

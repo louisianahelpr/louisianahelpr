@@ -478,6 +478,98 @@ async function purgeIdentityStorage(
 }
 
 /**
+ * Carry an active ban across the deletion, before anything erases the account.
+ *
+ * WHY THIS RUNS AT ALL. Deletion here anonymises rather than deletes, but the
+ * ban is one of the few things it genuinely destroys: `profiles` CASCADEs off
+ * `auth.users`, taking `ban_status` and `auto_suspended_until` with it;
+ * `user_bans` survives only because it has no foreign key, and its rows point
+ * at a `user_id` a returning user will never be issued again; `purge_user_data`
+ * deletes `fraud_flags` outright; and the auth delete frees the email address.
+ * So a banned user who deletes their account is un-banned, and the address that
+ * carried the ban is available again. That was harmless only while the route
+ * was unreachable — the companion change puts the delete control on
+ * /account-banned, which is what Apple requires. See
+ * 20260903014600_ban_survives_self_deletion.sql for the retention argument.
+ *
+ * WHY IT IS ORDERED HERE. `retain_ban_on_deletion` reads `profiles.email`, and
+ * step 4e of `purge_user_data` nulls it. Called afterwards it would return 0
+ * with no error — a silent no-op nobody would notice until a banned user came
+ * back. It must precede `purgeDatabaseRows`, and the call site below is the
+ * only thing enforcing that.
+ *
+ * WHY THE ban_status READ COMES FIRST. Migrations deploy on merge, so there is
+ * a window where this function is live and the RPC is not. Failing closed on
+ * PGRST202 for EVERY deletion would take an App-Store-required capability down
+ * for the whole window to protect a case that applies to almost nobody. So the
+ * ban is read with a plain select — always available — and the RPC is called
+ * only when there is actually a ban to retain. For that user we DO fail
+ * closed: completing the deletion is what destroys the evidence, and there is
+ * no second chance afterwards.
+ */
+async function retainBanIfAny(
+  admin: PurgeCapableClient,
+  userId: string,
+  steps: PurgeStep[],
+): Promise<boolean> {
+  const BAN_STATUSES = ["banned", "temp_banned", "permanently_banned"];
+
+  const { data: profile, error: readErr }: PostgrestLike<{ ban_status: string | null }> =
+    await admin.from("profiles").select("ban_status").eq("user_id", userId).maybeSingle();
+
+  if (readErr) {
+    console.error(`[accountPurge] ban_status read failed for ${userId}:`, readErr.message);
+    steps.push({ step: "retain_ban", ok: false, detail: `ban_status read failed: ${readErr.message}` });
+    return false;
+  }
+
+  const status = profile?.ban_status ?? null;
+  if (!status || !BAN_STATUSES.includes(status)) {
+    steps.push({ step: "retain_ban", ok: true, detail: `not banned (${status ?? "null"}) — nothing to retain` });
+    return true;
+  }
+
+  const { data, error }: PostgrestLike<number> =
+    await admin.rpc("retain_ban_on_deletion", { p_user_id: userId });
+
+  if (error) {
+    console.error(`[accountPurge] retain_ban_on_deletion failed for ${userId}:`, error.message);
+    steps.push({
+      step: "retain_ban",
+      ok: false,
+      detail: error.code === "PGRST202"
+        ? "retain_ban_on_deletion RPC not deployed yet (PGRST202) — refusing to delete a banned account without it"
+        : `${error.code ?? "?"}: ${error.message}`,
+    });
+    return false;
+  }
+
+  // A null `error` does NOT mean the write happened. The RPC returns the row
+  // count for exactly this check: it answers 0 when the profile was already
+  // anonymised (email NULL) or when the suspension had already lapsed, and
+  // neither of those is a failure — but only the count can distinguish them
+  // from "the statement matched nothing".
+  const retained = typeof data === "number" ? data : null;
+  if (retained === null) {
+    steps.push({
+      step: "retain_ban",
+      ok: false,
+      detail: "retain_ban_on_deletion returned no count — treating as not-run",
+    });
+    return false;
+  }
+
+  steps.push({
+    step: "retain_ban",
+    ok: true,
+    detail: retained > 0
+      ? `retained ${status} against email hash`
+      : `${status} not retained (already anonymised, or the suspension had lapsed)`,
+  });
+  return true;
+}
+
+/**
  * The database half: one transactional RPC, defined in
  * 20260901033011_account_deletion_retention_policy.sql.
  */
@@ -641,6 +733,10 @@ export async function purgeAccount(
   const storageOk = await purgeIdentityStorage(admin, userId, steps, [
     { bucket: "message-attachments", paths: attachmentPaths },
   ]);
+  // BEFORE purgeDatabaseRows, always. It reads `profiles.email`, which step 4e
+  // of `purge_user_data` nulls — reversing these two lines turns the retention
+  // into a silent no-op that returns 0 and no error. See retainBanIfAny.
+  const banRetained = await retainBanIfAny(admin, userId, steps);
   const db = await purgeDatabaseRows(admin, userId, steps);
   const stripeOk = steps.find((s) => s.step === "stripe")?.ok !== false;
   const attachmentsOk = steps.find((s) => s.step === "message_attachments")?.ok !== false;
@@ -656,7 +752,14 @@ export async function purgeAccount(
   // account billed forever with nothing left to remediate from. The delete
   // dialog now tells the user "your membership stops billing" — this is what
   // makes that sentence true rather than aspirational.
-  if (!storageOk || !db.ok || !stripeOk || !attachmentsOk) {
+  //
+  // The ban-retention step joins that gate for the same reason, one step
+  // earlier in the argument: the auth delete is what frees the email and
+  // CASCADEs `ban_status` away, so if we cannot first record that this account
+  // was banned, completing the deletion converts a suspension into a clean
+  // slate with nothing left to reconstruct it from. It fails closed ONLY for
+  // an account that is actually banned — see retainBanIfAny.
+  if (!storageOk || !db.ok || !stripeOk || !attachmentsOk || !banRetained) {
     return {
       ok: false,
       steps,

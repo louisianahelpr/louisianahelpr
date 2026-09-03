@@ -113,11 +113,12 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
       toast.error("Add a freeform note for 'Other' reason.");
       return;
     }
-    // Face ID / Touch ID gate: a permanent ban ends someone's ability to earn
-    // on this platform and there is no self-serve undo. An admin's merely
-    // unlocked phone shouldn't be enough. Runs AFTER validation so a rejected
-    // form never raises an OS prompt for nothing. No-op on web and on devices
-    // without enrolled biometrics (see requireBiometric).
+    // Face ID / Touch ID gate: a permanent ban ends someone's ability to earn on
+    // this platform and there is no self-serve undo. An admin's merely unlocked
+    // phone shouldn't be enough. Runs AFTER validation so a rejected form never
+    // raises an OS prompt for nothing. No-op on web. On device it prompts whenever
+    // the device can authenticate its owner at all — falling back to the passcode
+    // when biometry is unavailable or locked out (see requireBiometric).
     const ok = await requireBiometric(
       banType === "permanent" ? "Confirm this permanent ban" : "Confirm this account action",
     );

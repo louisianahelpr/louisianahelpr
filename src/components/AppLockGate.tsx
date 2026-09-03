@@ -150,8 +150,21 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
     setChecking(true);
     try {
       const ok = await requireBiometric("Unlock Louisiana Helpr");
-      // requireBiometric returns TRUE when no biometric is enrolled, so a user
-      // who enabled the lock and later removed Face ID is not bricked out.
+      // The default `onUnsecurableDevice: "allow"` is deliberate HERE, and it
+      // is a narrower pass than it used to be. A user who enabled the lock and
+      // later dropped Face ID is not bricked out — but they are now asked for
+      // the device passcode, which is the point. The gate only returns true
+      // without a challenge when the device has NO biometry AND NO passcode,
+      // i.e. when there is nothing left to ask for; this screen has no
+      // password field and no sign-out, so failing closed there would be a
+      // permanent brick with no in-app remedy, and the phone it happens on is
+      // one an attacker already owns completely.
+      //
+      // What it must NOT do — and what NB-008 was — is pass on biometry
+      // LOCKOUT. Five failed Face ID attempts is the strongest evidence we
+      // ever get that the person holding the phone is not the owner, and it
+      // used to be the thing that opened the app. It now raises the passcode
+      // sheet instead. See lib/biometricGate.ts.
       if (ok) {
         setLocked(false);
         setCovered(false);

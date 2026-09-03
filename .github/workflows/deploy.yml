@@ -91,10 +91,19 @@ jobs:
           FASTLANE_APPLE_ID: ${{ secrets.FASTLANE_APPLE_ID }}
           FASTLANE_PASSWORD: ${{ secrets.FASTLANE_PASSWORD }}
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          # The two vars without which the SHIPPED bundle cannot boot. Checked
+          # here, on a 30-second ubuntu job, rather than 40 minutes into a
+          # macOS build — which is the stated reason this preflight job exists.
+          # vite.config.ts refuses to build without them, so a release missing
+          # them fails either way; this makes it fail cheaply and name them.
+          VITE_SUPABASE_URL:             ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
         run: |
           set -e
           MISSING=()
           [ -z "$ASC_KEY_ID"         ] && MISSING+=("ASC_KEY_ID")
+          [ -z "$VITE_SUPABASE_URL" ] && MISSING+=("VITE_SUPABASE_URL (app cannot boot without it)")
+          [ -z "$VITE_SUPABASE_PUBLISHABLE_KEY" ] && MISSING+=("VITE_SUPABASE_PUBLISHABLE_KEY (app cannot boot without it)")
           [ -z "$ASC_ISSUER_ID"      ] && MISSING+=("ASC_ISSUER_ID")
           # Either ASC_KEY_BASE64 or ASC_KEY_CONTENT is acceptable.
           if [ -z "$ASC_KEY_BASE64" ] && [ -z "$ASC_KEY_CONTENT" ]; then
@@ -147,7 +156,17 @@ jobs:
       - name: TypeScript type check
         run: npx tsc -b --noEmit
 
+      # This build is a compile check only — its dist/ is discarded with the
+      # runner and never ships. It still gets the real env, because a build
+      # that "verifies no build errors" against a DIFFERENT bundle than the one
+      # we ship verifies less than it appears to: the env vars are inlined, so
+      # without them 164 of 394 chunk hashes differ from the shipped set, and
+      # the console.log guard below is then reading chunks nobody will run.
       - name: Production build (verifies no build errors)
+        env:
+          VITE_SUPABASE_URL:             ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_APPLE_MAPKIT_TOKEN:       ${{ secrets.VITE_APPLE_MAPKIT_TOKEN }}
         run: npm run build
 
       - name: Guard against console.log in built bundle
@@ -285,7 +304,58 @@ jobs:
         run: npm outdated "@capacitor/*" || true
 
       - name: Build web bundle
+        # These MUST be present or the shipped app is dead on launch.
+        #
+        # This is the App Store release lane, and it ran `npm run build:ios`
+        # with NO VITE_* env at all from the day it was written until
+        # 2026-09-02. `.env` is gitignored, so CI has no copy;
+        # `import.meta.env.VITE_SUPABASE_URL` resolved to undefined,
+        # `createClient(undefined, undefined)` threw at MODULE SCOPE in
+        # src/integrations/supabase/client.ts, and because App.tsx imports that
+        # eagerly the throw landed before createRoot().render(<App/>). React
+        # never mounted, the splash auto-hid after 1.5s, and the app sat on
+        # index.html's #boot-loader — the wrought-iron H — forever, with no
+        # error surfaced anywhere. That artifact then went to
+        # `upload_to_app_store`.
+        #
+        # The identical bug was found and fixed in ios-beta.yml on 2026-08-20.
+        # The repo secrets it needs have existed since that date; this
+        # workflow simply never named them. That is why the primary guard now
+        # lives in vite.config.ts, which no workflow can forget to copy.
+        #
+        # Reproduced 2026-09-02 on an unmodified checkout: `vite build` with
+        # .env moved aside exits 0 and emits a complete 394-chunk bundle
+        # containing ZERO occurrences of the Supabase project ref and shipping
+        # the literal string "supabaseUrl is required".
+        #
+        # These are the PUBLISHABLE/anon keys — public by design and already
+        # present in every web bundle — not service-role secrets. Runtime
+        # secrets (Stripe, Resend, Slack) are not needed at build time and
+        # must never be added here: everything in a VITE_* var is embedded in
+        # the client bundle and is readable by anyone who downloads the app.
+        env:
+          VITE_SUPABASE_URL:             ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_APPLE_MAPKIT_TOKEN:       ${{ secrets.VITE_APPLE_MAPKIT_TOKEN }}
+          # Bake the commit SHA in as the Sentry release tag so the runtime
+          # `release` the shipped app reports matches the release the
+          # sourcemap upload creates. Without it the app reports the "1.0.0"
+          # fallback (src/lib/sentry.ts) and every App Store crash report
+          # stays minified.
+          VITE_SENTRY_RELEASE: ${{ github.sha }}
         run: npm run build:ios
+
+      - name: Verify the bundle can actually reach Supabase
+        # Fail the BUILD rather than ship a binary that dies at launch.
+        #
+        # Second layer, and it catches what the vite.config.ts guard cannot:
+        # env vars that are SET but point at the wrong project. A release built
+        # against staging installs, boots, and looks entirely correct while
+        # reading and writing the wrong database.
+        #
+        # Shared with ios-beta.yml — one definition, so the two lanes cannot
+        # drift apart again the way they did over the env block above.
+        run: node scripts/verify-bundle-env.mjs dist/assets
 
       - name: Sync Fastlane metadata into Xcode
         run: bundle exec fastlane ios sync_xcode_metadata --verbose

@@ -565,6 +565,20 @@ const JobDetailDialog = ({
                 0/1/2/3/4 badges are all just "the row is taller", and the
                 title's clearance stops being the hand-tuned `mt-5` magic
                 number it used to be (see the title row below).
+            THIS WENT TO `flex-nowrap` ON 2026-09-03 AND CAME BACK, measured.
+            The owner asked for Recommended to sit "on the right of the
+            category", which is an ORDER request — and order is preserved by
+            wrapping. Making the row nowrap to honour it was an unforced
+            change, and it inverted the priority: the category chip was the
+            only shrinkable item (Recommended/Urgent/Boosted are all
+            `shrink-0`), so the CATEGORY NAME — the most important label in the
+            row — was the first thing sacrificed. Measured on the built bundle
+            with recommended+urgent+boosted: the label rendered at 0 of 61px, a
+            bare unlabelled icon, at 320/375/393, and the row still overflowed
+            the sheet by 53.6px at 320 on top of that. Restoring `flex-wrap`
+            gives 61/61px at every width and every badge combination with zero
+            overflow, and the requested order is unchanged.
+
             DELIBERATE TRADE-OFF: at 320px, four badges (~460px of pills) into
             a 168px lane-free width is genuinely 3–4 short lines. That is the
             chosen resolution — every badge stays readable and nothing hides —
@@ -577,10 +591,10 @@ const JobDetailDialog = ({
             because the collision was measured at 768 too. */}
         <div
           data-frame-chrome="true"
-          className={`relative order-first z-20 pointer-events-none flex flex-nowrap items-stretch min-w-0 -mt-4 -mx-4 sm:-mt-5 sm:-mx-5 ${iconLaneReserve}`}
+          className={`relative order-first z-20 pointer-events-none flex flex-wrap items-stretch -mt-4 -mx-4 sm:-mt-5 sm:-mx-5 ${iconLaneReserve}`}
         >
           <span
-            className={`inline-flex min-w-0 shrink items-center gap-1.5 pl-3.5 pr-3 py-1.5 rounded-tl-lg text-ds-13 font-semibold leading-none shadow-sm border-b border-r ${!isRecommended && !job.is_urgent && !job.isBoosted ? "rounded-br-lg" : ""} ${catStyle.badge}`}
+            className={`inline-flex shrink-0 items-center gap-1.5 pl-3.5 pr-3 py-1.5 rounded-tl-lg text-ds-13 font-semibold leading-none shadow-sm border-b border-r ${!isRecommended && !job.is_urgent && !job.isBoosted ? "rounded-br-lg" : ""} ${catStyle.badge}`}
           >
             <CategoryIcon
               category={job.category}
@@ -588,7 +602,7 @@ const JobDetailDialog = ({
               className="w-3.5 h-3.5 shrink-0"
               strokeWidth={2.25}
             />
-            <span className="font-serif italic truncate">
+            <span className="font-serif italic">
               {categoryLabels[job.category] || job.category}
             </span>
           </span>

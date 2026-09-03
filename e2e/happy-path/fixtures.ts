@@ -14,6 +14,7 @@ import {
 } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { SEED_TABLES, SEED_JOBS } from "./seedData";
+import { assertFreshBundle } from "./assertFreshBundle";
 
 // Happy-path smoke fixtures. These tests run against `npm run build && npx
 // vite preview` (the Vite preview server, no live backend) and stub every
@@ -740,7 +741,12 @@ interface HappyPathFixtures {
 export const test = baseTest.extend<HappyPathFixtures>({
   // Always start on mobile viewport — matches the live mobile-viewport
   // spot-check workflow and is what 80%+ of Helpr users hit.
-  page: async ({ page }, use) => {
+  page: async ({ page, baseURL }, use) => {
+    // Once per run, before anything is asserted: refuse to test a bundle the
+    // server built from different source. See assertFreshBundle.ts — this has
+    // twice produced a confident, completely wrong conclusion about working
+    // code, and neither time looked like an environment problem.
+    await assertFreshBundle(baseURL ?? "");
     await page.setViewportSize(MOBILE_VIEWPORT);
     await use(page);
   },

@@ -1014,7 +1014,7 @@ export function PostedJobActions({
                 open={resolveConfirmOpen}
                 onOpenChange={setResolveConfirmOpen}
                 title="Release the payment?"
-                description={`Resolving this dispute closes it and releases the full amount held in escrow to ${job.helper_id ? (helperNames[job.helper_id] || "your Helpr") : "your Helpr"}. You can't reopen this dispute afterwards.`}
+                description={`Resolving this dispute closes it and releases the full amount held for this job to ${job.helper_id ? (helperNames[job.helper_id] || "your Helpr") : "your Helpr"}. You can't reopen this dispute afterwards.`}
                 callout={{ icon: DollarSign, text: "This moves real money. Only resolve if the issue is actually fixed." }}
                 primaryLabel="Resolve & Release Payment"
                 primaryTone="sienna"

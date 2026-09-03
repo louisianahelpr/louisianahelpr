@@ -159,7 +159,7 @@ export default function GiftCard() {
       } catch (e) {
         report(e, { tags: { source: "GiftCard.claim" } });
         errorToast("Couldn't claim gift card", {
-          description: e instanceof Error ? e.message : "Please try again.",
+          description: e instanceof Error ? e.message : "Try again?",
         });
       } finally {
         setClaiming(false);

@@ -327,7 +327,7 @@ const HomeHistory = ({ onBack }: { onBack?: () => void }) => {
             body="When a job is done it lands here for good — who came out, what it cost, and when. It's your home's permanent service history."
             action={
               <BarkPillButton onClick={() => navigate("/post-job")}>
-                Post your first job
+                Post your first task
               </BarkPillButton>
             }
           />

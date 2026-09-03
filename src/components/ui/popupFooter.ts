@@ -196,7 +196,7 @@ export const POPUP_FOOTER_ROW =
  * parchment canvas reads as disabled.
  */
 export const POPUP_SECONDARY_CLS =
-  "basis-[calc(50%-6px)] grow min-w-max px-4 border-0 shadow-none " +
+  "basis-[calc(50%-6px)] grow !min-w-max px-4 border-0 shadow-none " +
   "bg-[hsl(var(--olivewood)/0.06)] hover:bg-[hsl(var(--olivewood)/0.11)] " +
   "text-[hsl(var(--olivewood))]";
 
@@ -221,4 +221,4 @@ export const POPUP_SECONDARY_CLS =
 // and then "Maybe Later", "Not Now", "Skip", "Keep the Job", "Keep It On",
 // "No Thanks", "Close", and a bare back-chevron. Nine distinct labels. Any
 // rule here has to hold for the longest of them, not for the common one.
-export const POPUP_COMMIT_CLS = "basis-[calc(50%-6px)] grow min-w-max";
+export const POPUP_COMMIT_CLS = "basis-[calc(50%-6px)] grow !min-w-max";

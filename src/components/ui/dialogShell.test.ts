@@ -635,12 +635,31 @@ describe("Popup grammar — footer", () => {
     expect(footer, "neither action may use a zero flex-basis — it floors at padding")
       .not.toMatch(/POPUP_(?:SECONDARY_CLS|COMMIT_CLS) = "(?:[^"]*\s)?flex-1\b/);
 
-    // `min-w-max` is what converts an over-long label from a SPILL into a WRAP:
-    // a button may not be laid out narrower than its own label, so the line
+    // `min-w-max` converts an over-long label from a SPILL into a WRAP: a
+    // button may not be laid out narrower than its own label, so the line
     // overflows and breaks instead of the text escaping the pill.
+    //
+    // THE `!` IS LOAD-BEARING AND MUST NOT BE TIDIED AWAY. `index.css` carries
+    // a global HIG tap-target floor —
+    //
+    //   button:not([role=checkbox]):not([role=radio]):not([role=switch]),
+    //   [role=button], … { min-width: 44px; min-height: 44px }
+    //
+    // — at specificity (0,3,1), against `.min-w-max`'s (0,1,0). Without the
+    // important flag the computed min-width is 44px, the row never wraps, and
+    // every long label clips exactly as before. That was measured, not deduced:
+    // the first version of this fix shipped `min-w-max`, read as correct in
+    // every class list, and `getComputedStyle` returned `minWidth: "44px"`.
+    // 0 of 180 footers stacked at any width.
+    //
+    // The tap target is not lost: max-content on a button carrying 32-48px of
+    // horizontal padding is always comfortably over 44px.
     for (const name of ["POPUP_SECONDARY_CLS", "POPUP_COMMIT_CLS"]) {
-      expect(footer, `${name} needs min-w-max or a long label spills instead of wrapping`)
-        .toMatch(new RegExp(`${name} =[\\s\\S]{0,400}?min-w-max`));
+      expect(
+        footer,
+        `${name} needs !min-w-max — the plain class loses to the global 44px ` +
+          `tap-target rule, which silently makes the wrap inert`,
+      ).toMatch(new RegExp(`${name} =[\\s\\S]{0,400}?!min-w-max`));
     }
 
     // And the row must be ABLE to wrap. `flex-wrap-reverse` (not plain `wrap`)

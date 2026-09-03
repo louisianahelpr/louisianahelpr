@@ -8,8 +8,16 @@ import { cn } from "@/lib/utils";
  * WHY IT EXISTS. Four different visual languages answered the same question,
  * measured on a production bundle 2026-09-02:
  *
- *   Analytics "12 months"        olive gloss   9999px   14px/600
- *   Earnings range toggle        olive gloss   9999px   14px/600
+ *   Analytics "12 months"        olive gloss   9999px   text-ds-11/600
+ *   Earnings range toggle        olive gloss   9999px   text-ds-11/600
+ *
+ * THE SIZES IN THE SWEEP THAT FOUND THIS WERE SENIOR-MODE SIZES. The audit
+ * account has Senior Mode on, so `html.senior-mode` was active in all 188
+ * measured cells and index.css remaps `.text-ds-11` from its declared 11px to
+ * 14px there. The table above therefore reads in CLASSES, not pixels: writing
+ * `text-[14px]` would bake the senior size in as the default and opt this
+ * control out of Dynamic Type entirely — the opposite of what the finding
+ * asked for. Copy the class list, never the measurement.
  *   Accessibility "Light/Auto/Dark"  flat 12% bark tint   0px   (label 13px)
  *   Earnings view switcher       hsl(var(--parchment))    8px   15px/600
  *

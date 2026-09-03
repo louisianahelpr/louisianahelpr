@@ -357,3 +357,77 @@ command output; most claims here are evidenced by an inline SQL result, a row co
 or a `gh` run id, which it does not recognise, and several flagged lines are wrapped continuations of
 an already-evidenced sentence. The tool's own output says it is "a heuristic, not a verdict". The two
 genuinely artifact-free rows (`ME-019`, live Stripe movement) are in §4 UNVERIFIED by design.
+
+---
+
+# ADDENDUM — coverage audit of the near-silent lanes (2026-09-03)
+
+Three lanes filed almost nothing: **lh-browse-discovery (0), lh-state-matrix (1), lh-a11y-sensory
+(1)**. All three declared honest UNVERIFIED gaps, so the question was not "did they admit gaps" but
+**"is what they claim to have CHECKED actually clean?"** I re-checked their highest-consequence
+"clean" claims from scratch. It produced **8 new defects and 1 live launch blocker** — all in
+surfaces a lane had called clean.
+
+## Verdicts
+
+### `lh-browse-discovery` — **FALSE ALL-CLEAR** (mechanism: the findings were never filed)
+The lane looked, and looked hard, with real live-DB reproductions. **But its five findings
+(`BD-001`…`BD-005`) exist only as prose in its lane report and were never appended to the bus** — it
+ended mid-run "awaiting the typecheck gate". Verified: `grep -c '"id":"BD-'` over the ledger → **0**,
+while its report carries a five-row table headed *"Findings filed (bus: findings.jsonl)"*. Its
+self-declared fix is fictional too — `dedupeById` has **0 hits** in `src/`. So the ledger positively
+asserts a clean discovery surface, which is worse than a lane that found nothing. Filed as `V-003`.
+
+Two of its "verified clean by code read" conclusions are also wrong: its "four browse surfaces" is
+actually **nine**, and its one stated divergence is **inverted** (`get_public_open_jobs` *does* have
+the `payment_status` gate; the real gap is **early access**). It was right about two things worth
+keeping: the `''.includes('')` trap genuinely does not apply here (the guards at
+`useDashboardFilters.ts:241,307` are load-bearing — removing one flips the behaviour), and all four
+named surfaces consult `seed_jobs_hidden_publicly()` in real SQL rather than in a comment, so **the
+launch switch is safe**.
+
+### `lh-state-matrix` — **SHALLOW** (right conclusion, never earned, and it missed the live defect beside it)
+Its structural claim **holds** — I measured it rather than reading it. A `fixed inset-0` probe at the
+exact DOM position where the portal overlays mount measures **100.0% × 100.0% of viewport** in both
+Chromium and WebKit, with an empty ancestor blocker chain. But it reached that conclusion by reading
+comments, and it covered **the 3 files its brief named out of the 8 files / 9 instances SURFACE.md
+lists** — registry-checked-against-itself, with the brief as the registry. It never mentions
+`SuccessMoment.tsx`, `NavQuickMenu.tsx` or `RedirectingOverlay.tsx`. Its diagnosis of its own failed
+probe is also wrong: `appLock.ts:122` gates the demo harness on `import.meta.env.DEV`, so against
+live prod it could never have fired. **And it never considered the `pointer-events` half of the
+documented trap — which is where the real bug was** (`V-005`).
+
+### `lh-a11y-sensory` — **SHALLOW**, with one **FALSE** load-bearing sub-claim
+Its AS-001 fix is real. But the claim it used to justify a one-finding lane — *"the seeded axe CI
+gate already covers most missing-label / contrast defect classes"* — **is false** (`V-004`), and the
+gap it admitted (badges/pills) contains **four live AA failures** (`V-009`).
+
+## New findings — filed this pass
+
+| ID | Sev | What |
+|---|---|---|
+| **`V-002`** | **HIGH · BLOCKER** | **`CURRENT_DATE` is UTC and Louisiana is not.** Verified live at 21:36 CDT: `current_date` = 2026-09-03 while the Louisiana date is 2026-09-02. Three discovery RPCs gate on `date_needed >= CURRENT_DATE`, so **every evening from 19:00 CDT to midnight, jobs needed today vanish from the public board, the map and the landing feed** while staying visible on the signed-in dashboard. Measured at that instant: **9 visible vs 14 under the local date — 5 of 14 open jobs (36%) hidden.** The client already knows this is wrong: `useDashboardFilters.ts:196-201` builds `todayLocalDate` from local parts with a comment warning against exactly this. This is the peak window for same-day work in a same-day-labour marketplace, and it self-heals at midnight UTC — which is why no daytime pass would ever see it. |
+| `V-003` | HIGH | lh-browse-discovery's findings were never filed (above). |
+| `V-004` | HIGH | **A green a11y-axe run does not mean contrast was checked — it means contrast was skipped.** The gate reads `axe.violations` and never `axe.incomplete`, and axe classifies `color-contrast` as *incomplete* when it can't resolve the background — which is always, because the page canvas is a gradient. Live: `/` 0 violations / **24 incomplete**, `/help` 0 / **40**, `/browse` 0 / **22**. Also: `ALL_VARIANTS` sweeps **no dark mode above 375px**, and the catalog test asserts catalog→route but not route→catalog, so 7 route patterns are silently unswept forever. |
+| `V-005` | HIGH | **The app-lock screen can render perfectly and be completely dead.** `AppLockGate` keeps children mounted by design, so a Radix dialog open at background time stays open and `body{pointer-events:none}` **inherits** onto the lock panel — which, unlike `PhotoLightbox.tsx:310` and `MessageAttachment.tsx:344`, sets no `pointer-events:auto`. Measured in both engines: click **blocked**, handler fired **0** times. Recovery is force-quit. |
+| `V-006` | HIGH | One blocked poster permanently caps the dashboard feed — `hasMore` is computed *after* the blocked-poster filter, so `25 > 25` is false and infinite scroll never fires again. Silent. |
+| `V-007` | MEDIUM | The guest "Nearby" radius filter is a **total no-op** while showing a "Filtered Results" badge — both branches fall through for a guest. A 1-mile radius returns a job ~55 miles away. |
+| `V-008` | MEDIUM | The paid early-access perk leaks through `get_public_open_jobs` (anon-executable, `created_at DESC LIMIT 6` — exactly the jobs the perk withholds) and `notify_saved_searches_on_new_job`. |
+| `V-009` | MEDIUM | Four live WCAG AA contrast failures, all green in CI for the `V-004` reason. |
+
+## Method corrections worth keeping
+
+- **CLAUDE.md's `backdrop-filter` check is the wrong command.** `grep -c` counts *lines* and the
+  minified bundle is **one line**. Real counts in `dist/assets/*.css`: `backdrop-filter:none` → 14,
+  `-webkit-backdrop-filter:none` → 8. The cited "1 occurrence" could never have distinguished the two
+  states it exists to distinguish. **`grep -o … | wc -l` is the command that works.** The fix itself
+  is intact; the *evidence* was vacuous.
+- **The shared main tree is stale** (396 ledger rows; two lane reports absent entirely). Grade from
+  `origin/main`, never from `/Users/lexilombas/louisianahelpr`.
+- **Registry-checked-against-itself struck three more times here**, bringing the pass total to eight:
+  state-matrix checked the 3 overlays its brief named out of 9; the axe catalog test asserts one
+  direction only; and the `--amber-ink` contrast fix was applied to one colour map's members rather
+  than to every call site of `--amber-tint`-as-text.
+
+**Revised answer to §1:** unchanged in direction, worse in degree. `V-002` is a live blocker that was
+hiding the same-day job board for five hours every evening while three lanes reported discovery clean.

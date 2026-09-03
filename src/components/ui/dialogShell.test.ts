@@ -616,18 +616,70 @@ describe("Popup grammar — footer", () => {
     // and was still wrong: a quarter-width slot only holds a short word, so
     // "Keep Account" and "Stay Signed In" overflowed and the card clipped them.
     // Apple's two-action alert is equal width, and equal width cannot clip.
-    expect(footer).toMatch(/POPUP_SECONDARY_CLS =\n\s*\/\/|POPUP_SECONDARY_CLS =/);
-    expect(footer).toMatch(/POPUP_COMMIT_CLS = "flex-1 min-w-0"/);
-    // `min-w-0` on BOTH: without it a flex item refuses to shrink below its
-    // content, so a long label would blow the ratio out instead of fitting.
-    // The declaration now carries a comment block between the name and the
-    // string, so anchor on the LITERAL rather than on what follows the `=`.
-    expect(footer).toMatch(/"flex-1 min-w-0 px-0 border-0 shadow-none /);
-    expect(footer).toMatch(/POPUP_COMMIT_CLS = "flex-1 min-w-0"/);
-    // Column on a phone, row from sm — measured: a one-row footer cannot hold
-    // a third of the app's commit labels at 375 (see popupFooter.ts).
-    // One row, at every width — no `sm:` reflow. See the note above.
-    expect(footer).toContain('POPUP_FOOTER_ROW = "flex items-center gap-3 pt-2"');
+    // DERIVED, NOT PINNED. This block used to read
+    //   expect(footer).toMatch(/POPUP_COMMIT_CLS = "flex-1 min-w-0"/)
+    // three times over, and that is precisely why it never fired: `flex-1
+    // min-w-0` on both halves WAS the second footer bug. `flex-1` is
+    // `flex: 1 1 0%`, and under `box-sizing: border-box` a flex-basis of 0
+    // floors at padding+border — so the commit's `px-6` made it 48px wider than
+    // the `px-0` dismiss at every viewport while both declared the same flex,
+    // and after its own padding the commit had the same text room as the button
+    // that says "Cancel". A test that pins the string cannot tell you the string
+    // is wrong; it can only tell you it changed.
+    //
+    // So: compare the two constants to EACH OTHER and check the properties that
+    // make clipping impossible. The pixels are measured for real, against the
+    // built bundle at five widths for every label in the app, in
+    // `e2e/happy-path/popupFooterFit.spec.ts` — jsdom has no layout engine and
+    // this file should stop pretending otherwise.
+    const sizingOf = (name: string) => {
+      const decl = footer.match(new RegExp(`${name} =\\s*(?:\\/\\*[\\s\\S]*?\\*\\/\\s*)?"([^"]*)"`));
+      expect(decl, `${name} must be declared as a string literal`).not.toBeNull();
+      // Only the layout classes; colour and padding legitimately differ.
+      return decl![1]
+        .split(/\s+/)
+        .filter((c) => /^(!?basis-|!?grow$|!?shrink|!?flex-|!?w-|!?min-w-|!?max-w-|self-)/.test(c))
+        .sort()
+        .join(" ");
+    };
+    expect(
+      sizingOf("POPUP_COMMIT_CLS"),
+      "the two halves must be sized IDENTICALLY — that is what 'equal width' means, " +
+        "and the last time they merely looked equal the commit rendered 48px wider",
+    ).toBe(sizingOf("POPUP_SECONDARY_CLS"));
+
+    // Neither half may declare a flex-basis of zero. Under border-box that floors
+    // at padding, so two items with different padding get different widths from
+    // identical `flex` declarations — the exact trap above.
+    expect(
+      sizingOf("POPUP_COMMIT_CLS"),
+      "a zero flex-basis (`flex-1` / `basis-0`) floors at padding under border-box, " +
+        "so the half with more padding silently renders wider. Use a percentage basis.",
+    ).not.toMatch(/(^|\s)(flex-1|basis-0)(\s|$)/);
+
+    // The min-width escape, and the `!` that makes it real. index.css's HIG
+    // tap-target rule `button:not([role=checkbox]):not([role=radio]):not([role=switch])`
+    // is (0,3,1); `.min-w-max` is (0,1,0). Specificity decides before source
+    // order does, so a PLAIN `min-w-max` is emitted into the stylesheet and never
+    // applies to a <button> — measured: both actions stayed pinned at 121px at
+    // 320 and the long labels clipped exactly as before. The spec above reads the
+    // computed value; this line stops the `!` being tidied away.
+    expect(
+      sizingOf("POPUP_COMMIT_CLS"),
+      "`min-w-max` without the `!` loses to index.css's 44px tap-target rule on " +
+        "specificity and does nothing — a label that cannot fit its half will clip " +
+        "instead of wrapping. See popupFooter.ts.",
+    ).toMatch(/(^|\s)!min-w-max(\s|$)/);
+
+    // Because a half may now exceed its basis, the row MUST be able to wrap —
+    // otherwise the overflow has nowhere to go and reaches the card edge.
+    const rowDecl = footer.match(/POPUP_FOOTER_ROW =\s*(?:\/\*[\s\S]*?\*\/\s*)?"([^"]*)"/);
+    expect(rowDecl, "POPUP_FOOTER_ROW must be a string literal").not.toBeNull();
+    expect(
+      rowDecl![1],
+      "the row must be allowed to wrap: `min-w-max` lets a half exceed its basis, " +
+        "and with `flex-nowrap` that overflow runs off the card instead of stacking",
+    ).toMatch(/\bflex-wrap(-reverse)?\b/);
   });
 
   /**
@@ -880,15 +932,14 @@ describe("Popup grammar — footer", () => {
     expect(literals, "POPUP_SECONDARY_CLS must not lock its width")
       .not.toMatch(/shrink-0/);
 
-    // Both halves must be able to shrink below their content.
-    expect(literals).toMatch(/"flex-1 min-w-0 px-0/);
-    expect(literals).toMatch(/POPUP_COMMIT_CLS = "flex-1 min-w-0"/);
-
-    // Equal width — Apple's two-action layout, and the shape that cannot
-    // overflow however long a label gets.
-    expect(footer, "the two halves must be equal width")
-      .toMatch(/POPUP_COMMIT_CLS = "flex-1 min-w-0"/);
-
+    // The three lines that used to sit here pinned `flex-1 min-w-0` as the
+    // ANSWER to this very bug, and shipped the next one. The shape that actually
+    // survives a long label is now asserted structurally in "the two halves are
+    // equal width and neither can lock open" above, and MEASURED for every label
+    // in the app at five widths in `e2e/happy-path/popupFooterFit.spec.ts`.
+    // What is left here is the one thing this file can genuinely see: no lock.
+    expect(literals, "neither half may refuse to shrink OR refuse to grow")
+      .not.toMatch(/\bgrow-0\b/);
   });
   /**
    * FAILS IF: a dialog reintroduces a bespoke dismiss word.

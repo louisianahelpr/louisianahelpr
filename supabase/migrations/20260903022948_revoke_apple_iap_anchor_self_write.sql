@@ -21,6 +21,26 @@
 -- `helper_credentials` a column-level REVOKE here is sufficient rather than a
 -- silent no-op. Verified that difference before writing this.
 
+-- REPLAY SAFETY. The column exists in PROD but NO MIGRATION IN THIS REPO CREATES
+-- IT — it was added outside the migration system, so a from-scratch rebuild has
+-- never had it and every statement below fails there with
+-- `column "apple_original_transaction_id" of relation "profiles" does not exist`.
+--
+-- That is real schema drift against CLAUDE.md's zero-drift requirement, and it
+-- went unnoticed because nothing had ever depended on the column existing.
+-- Three migrations landed today are the first things that do. It goes HERE,
+-- rather than in the later one that first hit the error, because this is the
+-- earliest file that references the column in DDL — putting the repair after
+-- the first use fixes one error and leaves the one before it.
+--
+-- plpgsql bodies are not validated at CREATE time, which is why the July
+-- trigger that names this column in `NEW.x := OLD.x` never failed and never
+-- revealed the drift.
+--
+-- `IF NOT EXISTS`: a no-op against prod, a repair everywhere else.
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS apple_original_transaction_id text;
+
 REVOKE INSERT (apple_original_transaction_id), UPDATE (apple_original_transaction_id)
   ON public.profiles FROM authenticated;
 

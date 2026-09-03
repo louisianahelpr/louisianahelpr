@@ -97,4 +97,18 @@ export const SEED_GATED_SURFACES = [
   // fixture jobs to the public. Gate added in 20260902163216.
   { surface: "landing teaser", object: "public.get_public_open_jobs" },
   { surface: "saved-search alerts", object: "public.notify_saved_searches_on_new_job" },
+  // MISSING UNTIL 2026-09-03, and found the other way round. Every check here
+  // used to discover surfaces by NAME (`public.*open_jobs*`) and ask whether
+  // each was registered — which cannot see this one, or the saved-search entry
+  // above it. Asking the REVERSE question instead ("what calls the gate, and is
+  // it all registered?") is decidable with no false positives, and it turned
+  // this up immediately: `notify_helpers_on_job_post` consults
+  // `seed_jobs_hidden_publicly()` and was absent from the list.
+  //
+  // Nothing was visibly broken — the surface honours the gate today. The gap
+  // was that the parity suite proves its claim only over registered surfaces,
+  // so removing the gate from this one would have failed no test at all.
+  // That is the same shape as the `get_public_open_jobs` omission above: a
+  // registry that is both the test's input and its definition of correctness.
+  { surface: "new-job helper push", object: "public.notify_helpers_on_job_post" },
 ] as const;

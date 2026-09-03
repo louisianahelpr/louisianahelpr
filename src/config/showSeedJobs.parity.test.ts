@@ -161,6 +161,78 @@ describe("fixture-job visibility — one switch, every surface", () => {
     ).toEqual([]);
   });
 
+  /**
+   * THE OTHER DIRECTION, and the one that actually found something.
+   *
+   * The test above discovers browse feeds by NAME (`public.*open_jobs*`) and
+   * asks whether each is registered. That is a convention masquerading as a
+   * definition, and the registry's own fifth entry already violates it:
+   * `notify_saved_searches_on_new_job` is a gated surface the name rule cannot
+   * see. A byte-identical function passes or fails purely on what it is called.
+   *
+   * The obvious repair — discover by BEHAVIOUR, "selects jobs where status is
+   * open" — was prototyped over all migrations before this was written, and it
+   * is STRICTLY WORSE: it returns 13 candidates, ZERO of which are the four
+   * real browse surfaces, and all 13 of which are ordinary job logic
+   * (`enforce_open_job_limit`, `helper_cancel_booking`, `rpc_open_dispute`…).
+   * A guard that noisy gets an allowlist bolted on until it is quiet, and then
+   * it guards nothing. Recorded here so nobody re-derives it.
+   *
+   * What IS decidable without ambiguity: an object that CALLS the gate is a
+   * gated surface, by construction. Zero false positives possible. So this
+   * asks the reverse question — is everything that consults the authority
+   * actually registered? — and the answer was no: `notify_helpers_on_job_post`
+   * calls `seed_jobs_hidden_publicly()` and was absent from the list. Confirmed
+   * against the live database, where exactly six objects call the gate.
+   *
+   * The consequence of that gap is the subtle kind: the surface BEHAVES
+   * correctly today, so nothing is visibly broken. But the parity suite proves
+   * its claim only over registered surfaces, so if someone later removed the
+   * gate from an unregistered one, every test would still pass.
+   */
+  it("every object that CALLS the seed gate is registered as a gated surface", () => {
+    const registered = new Set(SEED_GATED_SURFACES.map((s) => s.object.toLowerCase()));
+
+    // Union across every definition in history, not just the latest: if any
+    // revision of an object ever consulted the gate, it is a gated surface and
+    // must be on the list. Conservative in the safe direction.
+    const header = /CREATE (?:OR REPLACE )?(?:FUNCTION|VIEW)\s+(public\.\w+)/gi;
+    const callers = new Set<string>();
+    const dropped = new Set<string>();
+    for (const { sql } of FILES) {
+      const heads = [...sql.matchAll(header)];
+      heads.forEach((h, i) => {
+        const body = sql.slice(
+          (h.index ?? 0) + h[0].length,
+          i + 1 < heads.length ? heads[i + 1].index : sql.length,
+        );
+        if (body.includes(SEED_VISIBILITY_AUTHORITY)) callers.add(h[1].toLowerCase());
+      });
+      for (const d of sql.matchAll(
+        /DROP\s+(?:FUNCTION|VIEW)\s+(?:IF EXISTS\s+)?(public\.\w+)/gi,
+      )) {
+        dropped.add(d[1].toLowerCase());
+      }
+    }
+    // The authority defines itself; it is not one of its own consumers.
+    callers.delete(SEED_VISIBILITY_AUTHORITY.toLowerCase());
+    for (const d of dropped) callers.delete(d);
+
+    // Same sanity floor as above: a discovery that finds nothing passes for
+    // exactly the reason this file exists to prevent.
+    expect(
+      callers.size,
+      "found NO callers of the seed gate — the extraction has drifted",
+    ).toBeGreaterThan(0);
+
+    expect(
+      [...callers].filter((c) => !registered.has(c)).sort(),
+      `These objects call ${SEED_VISIBILITY_AUTHORITY}() — so they ARE seed-gated ` +
+        `surfaces — but are absent from SEED_GATED_SURFACES, which means nothing ` +
+        `asserts they keep the gate. Add them to showSeedJobs.ts.`,
+    ).toEqual([]);
+  });
+
   it("keeps `p_include_seed` narrowing-only — a caller can hide fixtures, never re-admit them", () => {
     const { body } = latestDefinition("public.get_ranked_open_jobs");
     // `NOT is_seed OR (p_include_seed AND NOT <flag>)`: the argument is

@@ -150,10 +150,42 @@ function enumerateChannelSites(): ChannelSite[] {
         });
       }
 
-      // Is this the factory form? Look back a short way for the
-      // `subscribeWithRecovery(` that owns this callback.
+      // Is this the factory form? The callback must be the ARGUMENT of a
+      // `subscribeWithRecovery(` — so the arrow has to sit immediately before
+      // this channel call, with nothing but whitespace and comments between.
+      //
+      // THIS REGEX USED TO CARRY A SECOND ALTERNATION, `subscribeWithRecovery\s*\(`
+      // with no anchor, and that one branch made the whole check decorative: it
+      // matched the string ANYWHERE in the preceding 800 characters, so a
+      // hard-coded channel name was graded "nonced" because of an unrelated
+      // call up the file. Proven in both directions —
+      //
+      //   supabase.channel("probe-leak-static") alone in a new file  -> FAILS
+      //   the same channel in a file that also contains one ordinary
+      //   subscribeWithRecovery(...) call above it                    -> PASSES
+      //
+      // — and the file most likely to gain a new raw channel is a file that
+      // already does realtime, which is precisely where the hole was. That is
+      // the exact defect `channelNonce()` exists to prevent: Supabase dedupes
+      // by name, so the second subscription is silently dropped.
+      //
+      // The `>= 12` sanity assertion added in 4603ed5e9 does not cover this,
+      // because the site IS counted — it is just mis-graded. A count guards
+      // against the enumerator finding nothing; it cannot guard against the
+      // enumerator finding everything and scoring it wrong.
+      //
+      // Kept deliberately strict. A legitimate factory-form site that this
+      // does not match should be FIXED or named in an explicit allowlist, not
+      // absorbed by loosening the pattern — an inferred exception is not
+      // auditable, and loosening is how the first version got here.
+      // `idx` is the index of `.channel(`, so `back` ends with the RECEIVER of
+      // that call — `(name) => supabase` — not with the arrow. The anchor has
+      // to allow that receiver expression and nothing else, which is what makes
+      // it mean "this channel call is the arrow's body" rather than "the words
+      // appear near each other".
       const back = text.slice(Math.max(0, idx - 800), idx);
-      const viaRecovery = /subscribeWithRecovery\s*\(\s*(?:\/\/[^\n]*\n|\s)*?\(?\s*[A-Za-z_$][\w$]*\s*\)?\s*=>\s*$|subscribeWithRecovery\s*\(/.test(back);
+      const viaRecovery =
+        /subscribeWithRecovery\s*\(\s*(?:\/\/[^\n]*\n|\/\*[\s\S]*?\*\/|\s)*\(?\s*[A-Za-z_$][\w$]*\s*\)?\s*=>\s*(?:\/\/[^\n]*\n|\/\*[\s\S]*?\*\/|\s)*[A-Za-z_$][\w$]*(?:\s*\.\s*[A-Za-z_$][\w$]*)*\s*$/.test(back);
 
       // `subscribeWithRecovery` appends a fresh `channelNonce()` per attempt
       // (src/lib/realtimeRecovery.ts) UNLESS the caller opts out with

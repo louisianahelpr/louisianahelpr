@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
+import {
+  FunctionsFetchError,
+  FunctionsHttpError,
+  FunctionsRelayError,
+} from "@supabase/supabase-js";
+
 import { userFacingError } from "@/lib/userFacingError";
 
 const FALLBACK = "Couldn't save that — try again?";
@@ -40,6 +46,25 @@ describe("userFacingError", () => {
     expect(userFacingError(new Error(raw), FALLBACK)).toBe(raw);
   });
 
+  // auth-js falls back to `statusText || \`HTTP ${status}\`` for any non-2xx
+  // from GoTrue that is not JSON — a CDN, gateway or WAF page in front of
+  // Supabase. A bare reason phrase is a status line, not advice.
+  it.each(["Service Unavailable", "Bad Gateway", "HTTP 502", "Too Many Requests"])(
+    "suppresses the bare HTTP reason phrase %s",
+    (raw) => {
+      expect(userFacingError(new Error(raw), FALLBACK)).toBe(FALLBACK);
+    },
+  );
+
+  it("does not mistake our own copy for a status line", () => {
+    // The reason phrases are anchored: a sentence that merely starts with the
+    // same words is still ours.
+    expect(userFacingError(new Error("Too many requests — try again in a minute."), FALLBACK))
+      .toBe("Too many requests — try again in a minute.");
+    expect(userFacingError(new Error("Not found — that job may have been taken down."), FALLBACK))
+      .toBe("Not found — that job may have been taken down.");
+  });
+
   it("falls back when there is no message at all", () => {
     expect(userFacingError(new Error(""), FALLBACK)).toBe(FALLBACK);
     expect(userFacingError(null, FALLBACK)).toBe(FALLBACK);
@@ -55,16 +80,28 @@ describe("userFacingError", () => {
     expect(userFacingError("You must be logged in.", FALLBACK)).toBe("You must be logged in.");
   });
 
-  it("suppresses supabase-js's edge-function transport wrapper", () => {
-    // Regression: this string reads as prose and names none of the words the
-    // other patterns look for, so it was trusted and shown verbatim on
-    // /signup (observed live 2026-09-02). It is what supabase-js throws for
-    // ANY non-2xx from ANY functions.invoke, so it was reachable from
-    // TipDialog, JobBoostDialog, ReferralSection, AdminDisputes, SecurityTab.
-    expect(
-      userFacingError(new Error("Edge Function returned a non-2xx status code"), FALLBACK),
-    ).toBe(FALLBACK);
-  });
+  // Regression: these strings read as prose and name none of the words the
+  // other patterns look for, so they were trusted and shown verbatim on
+  // /signup (observed live 2026-09-02). They are what supabase-js throws for a
+  // failed functions.invoke, so they were reachable from TipDialog,
+  // JobBoostDialog, ReferralSection, AdminDisputes and SecurityTab too.
+  //
+  // There are THREE, and the first pass caught one. The instances are BUILT
+  // rather than retyped so the strings are whatever the installed library
+  // actually says: a rewording that would re-open the hole fails here instead
+  // of in a toast.
+  it.each(
+    [
+      new FunctionsFetchError(undefined),
+      new FunctionsRelayError(undefined),
+      new FunctionsHttpError(undefined),
+    ].map((e): [string, string] => [e.name, e.message]),
+  )(
+    "suppresses supabase-js's %s transport wrapper",
+    (_name, message) => {
+      expect(userFacingError(new Error(message), FALLBACK)).toBe(FALLBACK);
+    },
+  );
 
   it("still shows deliberate edge-function copy, which is what the filter is FOR", () => {
     expect(userFacingError(new Error("This task isn't accepting applications anymore."), FALLBACK))

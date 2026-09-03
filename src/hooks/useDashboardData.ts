@@ -19,6 +19,41 @@ import { earlyAccessDelayMs, resolveEarlyAccessTier } from "@/lib/earlyAccess";
 // on demand by the dashboard's IntersectionObserver sentinel.
 const PAGE_SIZE = 25;
 
+/**
+ * Split one raw `open_jobs_browse` response into this page's rows and "is
+ * there another page" — in that order, which is the entire point.
+ *
+ * `hasMore` MUST be read off what the SERVER returned, BEFORE any client-side
+ * filtering. It used to be computed after the blocked-poster filter had run:
+ *
+ *     const rawAll = rows.filter((j) => !blockedUserIds.has(j.customer_id));
+ *     const hasMore = rawAll.length > PAGE_SIZE;   // ← the bug
+ *
+ * The query asks for PAGE_SIZE + 1 rows (`.range(offset, offset + PAGE_SIZE)`,
+ * inclusive both ends) precisely so a full response means "at least one more
+ * row exists". Drop one row from it for any client-side reason and the
+ * response is PAGE_SIZE long, `25 > 25` is false, `nextOffset` comes back
+ * null, and React Query's `getNextPageParam` treats the feed as finished —
+ * permanently, for the rest of the session, because no later fetch ever runs
+ * to correct it. So a SINGLE blocked poster anywhere in the first page capped
+ * the dashboard at 25 jobs, silently: no error, the feed just ends early and
+ * looks exactly like the end of the list.
+ *
+ * The probe row is also dropped BEFORE the block filter rather than after.
+ * Page boundaries are server-index based (`offset` advances by PAGE_SIZE
+ * regardless of what the client removed), so filtering first and slicing
+ * second lets the probe row slide into this page and then render AGAIN as the
+ * first row of the next one.
+ */
+export function splitFeedPage<T>(
+  serverRows: T[],
+  isBlocked: (row: T) => boolean,
+): { rows: T[]; hasMore: boolean } {
+  const hasMore = serverRows.length > PAGE_SIZE;
+  const pageRows = hasMore ? serverRows.slice(0, PAGE_SIZE) : serverRows;
+  return { rows: pageRows.filter((row) => !isBlocked(row)), hasMore };
+}
+
 // Hard ceiling on each network phase of the feed fetch. Without it a stalled
 // connection leaves the dashboard spinning indefinitely; on timeout we reject
 // so React Query surfaces the existing ErrorState (with its manual retry).
@@ -291,12 +326,19 @@ export function useDashboardData() {
       const blockedUserIds = ctxData?.blockedUserIds ?? new Set<string>();
       const appliedJobIds = ctxData?.appliedJobIds ?? new Set<string>();
 
-      const rawAll = ((rawJobsRes ?? []) as any[]).filter((j) => !blockedUserIds.has(j.customer_id));
-      const hasMore = rawAll.length > PAGE_SIZE;
-      const rawJobs = hasMore ? rawAll.slice(0, PAGE_SIZE) : rawAll;
+      const { rows: rawJobs, hasMore } = splitFeedPage(
+        (rawJobsRes ?? []) as any[],
+        (j) => blockedUserIds.has(j.customer_id),
+      );
 
       if (rawJobs.length === 0) {
-        return { jobs: [], nextOffset: null };
+        // An empty page is NOT the end of the feed. Every row on it can be a
+        // blocked poster, and the filters below can empty it for applied-to /
+        // expired / past-dated rows too. Hand back the server's own answer so
+        // the scroll sentinel fetches the NEXT page instead of stopping here —
+        // returning a hardcoded null was the same "client-side filtering ends
+        // pagination" defect as the one splitFeedPage documents.
+        return { jobs: [], nextOffset: hasMore ? offset + PAGE_SIZE : null };
       }
 
       // Phase 2: enrich page with poster names + review stats + subscription tier (for Search Priority).

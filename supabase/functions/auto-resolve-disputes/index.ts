@@ -167,7 +167,11 @@ Deno.serve(async (req) => {
       if (!remindersReadable.ok) return 0;
       const pending = adminIds
         .filter((adminId) => !recentlyRemindedKeys.has(reminderKey(adminId, title, link)))
-        .map((adminId) => ({ user_id: adminId, title, message, type: "warning", link }));
+        // `admin_alert`, not `warning`. This fan-out is 246 of the 644
+        // operator-facing rows in prod and it is addressed to admins only —
+        // typing it as a severity put it in the same preference bucket as
+        // "your job was cancelled" (N-011).
+        .map((adminId) => ({ user_id: adminId, title, message, type: "admin_alert", link }));
       if (pending.length === 0) return 0;
       // `.select("id")`: notifications has an `id` column, and a null error on a
       // policy-refused insert would otherwise read as "the admins were told".
@@ -353,7 +357,10 @@ Deno.serve(async (req) => {
         user_id: job.customer_id,
         title: "Dispute auto-resolved",
         message: `The dispute on "${job.title}" was not resolved or escalated within 72 hours. Per platform policy, payment has been released to the helpr.`,
-        type: "warning",
+        // The helpr's half of this same event is already `payment` (above); the
+        // poster's half said `warning`, so ONE event landed in two different
+        // preference categories depending on which side of it you were on.
+        type: "payment",
         link: `/my-posts?job=${job.id}`,
       });
 
@@ -367,7 +374,7 @@ Deno.serve(async (req) => {
             user_id: adminId,
             title: "Dispute auto-resolved",
             message: `Dispute on "${job.title}" expired without poster action. Payment auto-released to helpr.`,
-            type: "warning",
+            type: "admin_alert",
             link: "/admin",
           });
         }

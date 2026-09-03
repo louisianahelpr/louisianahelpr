@@ -25,6 +25,7 @@ import { SignupStep2 } from "./signup/SignupStep2";
 import { getPublicOrigin } from "@/lib/authRedirects";
 import { userFacingError } from "@/lib/userFacingError";
 import { recognizedAuthError } from "@/lib/authErrors";
+import { completeSignupErrorCopy } from "./signup/completeSignupError";
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -282,7 +283,17 @@ const Signup = () => {
     });
 
     if (fnError) {
-      throw new Error(fnError.message || "We couldn't save your signup details.");
+      // NOT `fnError.message`. supabase-js sets that to one of three fixed
+      // transport strings ("Failed to send a request to the Edge Function",
+      // "Relay Error invoking the Edge Function", "Edge Function returned a
+      // non-2xx status code") and puts this function's OWN sentence in the
+      // response body hanging off `fnError.context`. Throwing the message
+      // therefore threw away every word complete-signup wrote for a human and
+      // handed the person a wrapper instead — and the `|| "…"` fallback that
+      // looked like the safety net never fired, because the message is never
+      // empty. completeSignupErrorCopy names the shape and, on the one that
+      // carries our copy, reads it. See completeSignupError.ts.
+      throw new Error(await completeSignupErrorCopy(fnError));
     }
 
     if (result?.error) {

@@ -1,4 +1,4 @@
-import { Check, Info, AlertTriangle, DollarSign, Users, Star, MessageCircle, Truck, Wrench, Sparkles, ShieldCheck, Megaphone } from "lucide-react";
+import { Check, Info, AlertTriangle, DollarSign, Users, Star, MessageCircle, Truck, Wrench, Sparkles, ShieldCheck, ShieldAlert, Megaphone } from "lucide-react";
 import type { Notification } from "./types";
 
 export const typeIcons: Record<string, React.ReactNode> = {
@@ -19,6 +19,9 @@ export const typeIcons: Record<string, React.ReactNode> = {
   verified: <ShieldCheck className="w-4 h-4 text-primary" />,
   job_match: <Sparkles className="w-4 h-4 text-primary" />,
   expired: <AlertTriangle className="w-4 h-4 text-muted-foreground" />,
+  // Operator mail — only admins ever receive it, but it renders in the same
+  // notification centre as everything else, so it needs its own glyph.
+  admin_alert: <ShieldAlert className="w-4 h-4 text-accent" />,
 };
 
 const startOfDay = (d: Date) => {

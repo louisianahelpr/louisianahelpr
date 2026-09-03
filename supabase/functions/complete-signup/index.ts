@@ -706,7 +706,10 @@ serve(async (req) => {
             // actually reads (`searchParams.get("view")`, and the View union
             // spells it `people`, not `users`). A bare "/admin" made the
             // reviewer hunt for the account the notification is about.
-            type: "info",
+            // `admin_alert`: this is the single largest `info` producer in
+            // prod (206 rows, 14 recipients, every one an admin). As `info` it
+            // shared the `work_status` preference with "Helpr is on the way".
+            type: "admin_alert",
             link: `/admin?view=people&user=${userId}`,
           }));
 

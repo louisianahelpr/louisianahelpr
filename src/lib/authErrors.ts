@@ -29,7 +29,27 @@ export function recognizedAuthError(raw: string | undefined | null): string | nu
   if (msg.includes("rate") && msg.includes("limit")) {
     return "Too many attempts just now. Give it a moment and try again.";
   }
+  // GoTrue's per-address email throttle. It is the same situation as the rate
+  // limit above and it is far more common, but it is worded as a sentence that
+  // shares not one word with it — "For security purposes, you can only request
+  // this after 47 seconds." — so it went straight to the toast. It reads as a
+  // security accusation, and "for security purposes" is the backend's
+  // vocabulary, not ours.
+  if (msg.includes("for security purposes")) {
+    return "Too many attempts just now. Give it a moment and try again.";
+  }
   if (msg.includes("network") || msg.includes("fetch") || msg.includes("timeout") || msg.includes("timed out")) {
+    return "Connection trouble. Check your signal and try again.";
+  }
+  // The SAME failure as the line above, on the platform this app actually
+  // ships on. A rejected fetch surfaces as `AuthRetryableFetchError(<the
+  // TypeError's message>)`, and that message is the browser's, not Supabase's:
+  // Chromium says "Failed to fetch" (caught above), WebKit says "Load failed"
+  // and Firefox "NetworkError when attempting to fetch resource". So an offline
+  // signup or login was handled on every machine we test on and showed "Load
+  // failed" inside the WKWebView we ship — the Chromium-cannot-see-WebKit gap
+  // CLAUDE.md describes, arriving as copy rather than as layout.
+  if (msg.includes("load failed") || msg.includes("networkerror")) {
     return "Connection trouble. Check your signal and try again.";
   }
   if (msg.includes("user already registered") || msg.includes("already registered")) {

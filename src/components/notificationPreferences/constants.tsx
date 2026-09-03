@@ -1,6 +1,6 @@
 import {
   Briefcase, MessageSquare, DollarSign, Star, Megaphone,
-  Navigation, CheckCircle2,
+  Navigation, CheckCircle2, Users, RefreshCw, Receipt, ShieldAlert,
 } from "lucide-react";
 import type { Prefs, Row } from "./types";
 
@@ -41,12 +41,37 @@ export const trimTime = (v: string | null | undefined): string | null => {
 // second line if it still needs one. Keep labels to a short Title Case pair
 // anyway — the budget above is what keeps them to ONE line at 375, and a
 // label long enough to wrap there would push the whole list taller.
+// ── Every mapped preference column gets a switch. All of them. ──
+// This list used to hold 7 rows for the 10 columns
+// `notification_type_pref_map` routes notifications through:
+// `job_applications`, `job_updates`, `payments` and `system_alerts` had no
+// control on this screen at all. That was survivable only while those columns
+// were inert — 85% of accounts had no `notification_preferences` row, so the
+// push gate skipped them entirely (fixed in 20260903012715). The moment the
+// row always existed, four categories started being enforced against a
+// preference the user could not see or change, which is a worse product than
+// the bug it replaced and an App Store risk besides.
+//
+// `src/test/notificationTypeRegistries.test.ts` derives the required set from
+// the map's seed rows in `supabase/migrations/` and fails if this list is
+// missing any of them — so a future map row cannot go unswitched the way
+// these four did. Do not shorten this list to match a hand-written count.
+//
+// On the two money rows: `payments` and `financial_alerts` are genuinely
+// separate columns with separate types. `payment` (escrow held, released,
+// refunded, cancellation fee) routes to `payments`; `financial_alerts` (tip
+// received, payout sent, instant payout) routes to its own column. The labels
+// have to carry that distinction because nothing else on the screen does.
 export const rows: Row[] = [
   { key: "new_offers", emailKey: "email_new_offers", label: "Job Offers", icon: <Briefcase className="w-3.5 h-3.5" /> },
+  { key: "job_applications", emailKey: "email_job_applications", label: "Applications", icon: <Users className="w-3.5 h-3.5" /> },
+  { key: "job_updates", emailKey: "email_job_updates", label: "Job Updates", icon: <RefreshCw className="w-3.5 h-3.5" /> },
   { key: "messages", emailKey: "email_messages", label: "Messages", icon: <MessageSquare className="w-3.5 h-3.5" /> },
   { key: "transit_updates", emailKey: "email_transit_updates", label: "Transit Updates", icon: <Navigation className="w-3.5 h-3.5" /> },
   { key: "work_status", emailKey: "email_work_status", label: "Work Status", icon: <CheckCircle2 className="w-3.5 h-3.5" /> },
+  { key: "payments", emailKey: "email_payments", label: "Job Payments", icon: <Receipt className="w-3.5 h-3.5" /> },
   { key: "financial_alerts", emailKey: "email_financial_alerts", label: "Payments & Tips", icon: <DollarSign className="w-3.5 h-3.5" /> },
   { key: "reviews", emailKey: "email_reviews", label: "Reviews", icon: <Star className="w-3.5 h-3.5" /> },
+  { key: "system_alerts", emailKey: "email_system_alerts", label: "System Alerts", icon: <ShieldAlert className="w-3.5 h-3.5" /> },
   { key: "promotions", emailKey: "email_promotions", label: "Promotions", icon: <Megaphone className="w-3.5 h-3.5" /> },
 ];

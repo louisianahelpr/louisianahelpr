@@ -415,7 +415,11 @@ export async function handleCheckoutSessionCompleted(
             title: "Background check started",
             message:
               "Thanks — your payment went through and your background check is in progress. We'll add your Background-Checked badge as soon as it clears.",
-            type: "success",
+            // `verified` — this is a credential/verification event about the
+            // reader's own account, and it is the type the notification centre
+            // already draws a shield for. `success` mapped it to `work_status`
+            // ("Helpr status update"), so muting job progress muted it.
+            type: "verified",
             link: "/profile",
           });
           logStep("Background check initiated", { userId: bgcUserId });

@@ -22,6 +22,11 @@ const ALLOWED_TYPES = new Set([
   "work_status",
   "transit_updates",
   "system_alert",
+  // Operator-facing mail (dispute overdue, payout blocked, new signup). Only
+  // ever produced server-side by service-role callers; it stays on this
+  // allowlist because create-notification is the shared insert path and an
+  // absent entry would 400 the admin alerts, not protect anything.
+  "admin_alert",
   "new_offers",
   "expired",
   "financial_alerts",

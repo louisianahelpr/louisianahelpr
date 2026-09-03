@@ -36,16 +36,13 @@ type TestSendResult = {
 // The email pref column the server names maps back to the row label the user
 // can actually see and flip on this very screen, so the failure copy points at
 // a switch rather than at a database column.
-const EMAIL_PREF_LABEL: Record<string, string> = {
-  email_new_offers: "Job Offers",
-  email_messages: "Messages",
-  email_transit_updates: "Transit Updates",
-  email_work_status: "Work Status",
-  email_financial_alerts: "Payments & Tips",
-  email_reviews: "Reviews",
-  email_promotions: "Promotions",
-  email_system_alerts: "system alerts",
-};
+// Built from `rows` rather than hand-listed: the four columns that had no
+// switch also had no entry here, so a skip attributed to `email_payments` or
+// `email_system_alerts` fell through to the generic "email is turned off for
+// this category" and named nothing the user could go and flip.
+const EMAIL_PREF_LABEL: Record<string, string> = Object.fromEntries(
+  rows.map((r) => [r.emailKey, r.label]),
+);
 
 /** `["a", "b", "c"]` -> `"a, b and c"`. */
 const joinList = (parts: string[]): string =>
@@ -141,17 +138,14 @@ const NotificationPreferences = () => {
     const newVal = !prefs[key];
     const updated = { ...prefs, [key]: newVal };
 
-    if (key === "new_offers") updated.job_applications = newVal;
-    if (key === "email_new_offers") updated.email_job_applications = newVal;
-    if (key === "transit_updates" || key === "work_status") {
-      updated.job_updates = updated.transit_updates || updated.work_status;
-    }
-    if (key === "email_transit_updates" || key === "email_work_status") {
-      updated.email_job_updates = updated.email_transit_updates || updated.email_work_status;
-    }
-    if (key === "financial_alerts") updated.payments = newVal;
-    if (key === "email_financial_alerts") updated.email_payments = newVal;
-
+    // No write-through mirroring any more. `job_applications` used to be
+    // slaved to `new_offers`, `payments` to `financial_alerts`, and
+    // `job_updates` to `transit_updates || work_status`, because those three
+    // columns had no switch of their own — the mirror was standing in for a
+    // control. They have switches now (constants.tsx), so mirroring would do
+    // the opposite of what it was for: turn "Applications" off, then touch
+    // "Job Offers", and the user's explicit choice would be silently
+    // overwritten by a value they never set.
     setPrefs(updated);
     setSavingKey(key);
 
@@ -212,13 +206,15 @@ const NotificationPreferences = () => {
   const toggleEmailMaster = () => {
     const newVal = !emailMasterEnabled;
     const patch: Partial<Prefs> = {};
+    // Every email column that has a row — which is now every email column the
+    // pref map routes through, so the master genuinely means "all email off".
+    // It previously missed `email_payments` and `email_system_alerts`
+    // entirely: they had no row here, and unlike `email_job_applications` and
+    // `email_job_updates` they were not hand-patched on afterwards either — so
+    // turning the master off left payment and platform-alert email sending.
     emailRowKeys.forEach((k) => {
       (patch as Record<string, boolean>)[k] = newVal;
     });
-    // Keep legacy mirror fields (read by older server code paths) in sync,
-    // same as the single-row toggle() does.
-    patch.email_job_applications = newVal;
-    patch.email_job_updates = newVal;
     void patchPrefs(patch, "email_master");
   };
 

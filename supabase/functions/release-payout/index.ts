@@ -374,7 +374,7 @@ serve(async (req) => {
           user_id: adminId,
           title: "Payout blocked — charge not captured",
           message: `Job ${job.id} ("${job.title}") payout blocked. PaymentIntent status: ${pi.status}.`,
-          type: "warning", link: "/admin",
+          type: "admin_alert", link: "/admin",
         });
       }
       return jsonResponse({ error: `escrow charge not captured (PI status: ${pi.status}) — payout refused`, pi_status: pi.status }, 409);
@@ -581,7 +581,7 @@ serve(async (req) => {
         user_id: adminId,
         title: "Payout blocked — exceeds captured amount",
         message: `Job ${job.id} ("${job.title}") tried to pay out $${(payoutCents / 100).toFixed(2)} against $${(escrowAmountReceivedCents / 100).toFixed(2)} captured. Budget may have been altered after checkout.`,
-        type: "warning", link: "/admin",
+        type: "admin_alert", link: "/admin",
       });
     }
     // This refusal sits AFTER the onboarding-fee claim, so it is one of the

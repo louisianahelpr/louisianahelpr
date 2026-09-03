@@ -279,7 +279,10 @@ serve(async (req) => {
           user_id: helperId,
           title: "Payout account required",
           message: `$${formatPayoutDollars(helperPayout)} from "${job.title}" is ready, but your payout account isn't set up yet. Add it in Profile → Payments.`,
-          type: "warning", link: "/profile?tab=payment",
+          // User-facing and about money the helpr is owed — `financial_alerts`,
+          // the category the prefs screen calls "Payments & Tips". As `warning`
+          // it was gated by `system_alerts` instead.
+          type: "financial_alerts", link: "/profile?tab=payment",
         });
         results.push({ job_id: job.id, status: "no_connect_account" });
         continue;
@@ -348,7 +351,7 @@ serve(async (req) => {
                   user_id: adminId,
                   title: "Payout blocked — charge not captured",
                   message: `Job ${job.id} ("${job.title}") payout cannot proceed. PI status: ${pi.status}.`,
-                  type: "warning", link: "/admin",
+                  type: "admin_alert", link: "/admin",
                 });
               }
             }
@@ -814,7 +817,7 @@ serve(async (req) => {
               user_id: adminId,
               title: "Scheduled payout failed",
               message: `Failed to pay $${helperPayout.toFixed(2)} to helpr for job ${job.id}. Error: ${(e as Error).message}`,
-              type: "warning", link: "/admin",
+              type: "admin_alert", link: "/admin",
             });
           }
         }

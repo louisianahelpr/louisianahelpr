@@ -186,56 +186,46 @@ void hydrateStorage();
   // an idle callback so the marketing hero / login form paints first.
   const loadAnalytics = () => {
     void (async () => {
-      // Analytics identity hooks, populated by block 2 below IF AND WHEN those
-      // chunks load. Null until then, and possibly forever — the auth listener
-      // registered in block 1 must never depend on them.
-      let analytics: {
-        identifyUser: (userId: string, props?: Record<string, unknown>) => void;
-        resetUser: () => void;
-        setSentryUser: (user: { id: string; email?: string | null } | null) => void;
-      } | null = null;
-
-      // ── 1. THE PRIVACY CONTROL — registered BEFORE, and independently of,
-      //       anything analytics-related.
-      //
-      // This used to live at the bottom of one big try that also loaded Sentry
-      // and PostHog and called their init functions, under a catch reading
-      // "analytics + error tracking must never break the app". That comment was
-      // true about its intent and wrong about its blast radius: the block it
-      // guarded ALSO contained this listener, so anything that threw earlier —
-      // most commonly an ad blocker refusing the PostHog chunk, which uBlock
-      // Origin, Brave and Safari content blockers all do by default — silently
-      // skipped the registration and the sign-out wipe never ran.
-      //
-      // Measured, same seeded account, IndexedDB `helpr-rq-cache` before/after
-      // signOut():
-      //   analytics loads   73,743 bytes / 13 queries  ->  88 bytes / 0 queries
-      //   PostHog blocked   73,743 bytes / 13 queries  ->  73,743 bytes / 13 queries
-      // The blocked run was byte-identical: the prior user's cache — including
-      // their email address, under ["pif-count", <uid>, <email>] — survived for
-      // the persister's full 24h maxAge, to be rehydrated by the next person on
-      // that device. In BOTH runs the auth token was correctly cleared from
-      // localStorage, so the app presented as completely signed out. There was
-      // no symptom, no error, and nothing a user could ever report.
-      //
-      // So: load only what the wipe itself needs, and register first. Analytics
-      // is now strictly additive — it attaches identity to this listener if it
-      // arrives, and its absence can no longer disarm anything.
       try {
-        const [{ supabase }, { queryClient }, { removePersistedClient }] =
-          await Promise.all([
-            import("./integrations/supabase/client"),
-            import("./lib/queryClient"),
-            import("./lib/queryPersister"),
-          ]);
+        const [
+          { initSentry, setSentryUser },
+          { initPostHog, identifyUser, resetUser },
+          { supabase },
+          { queryClient },
+          { removePersistedClient },
+        ] = await Promise.all([
+          import("./lib/sentry"),
+          import("./lib/posthog"),
+          import("./integrations/supabase/client"),
+          import("./lib/queryClient"),
+          import("./lib/queryPersister"),
+        ]);
 
+        initSentry();
+        initPostHog();
+
+        // Tie analytics + error identity to Supabase auth so events attribute
+        // correctly. Runs after first paint — pre-auth events still get
+        // captured anonymously and stitched on identify().
+        //
+        // PostHog gets the user id ONLY — no email. A stable id is all
+        // product analytics needs to stitch events; email is PII this
+        // vendor has no reason to hold (lh-observability audit, OBS-002).
+        // Sentry keeps email: it's the one vendor where a human actually
+        // needs to find "which user hit this crash" for support triage.
+        supabase.auth.getSession().then(({ data }) => {
+          if (data.session?.user) {
+            identifyUser(data.session.user.id);
+            setSentryUser({ id: data.session.user.id, email: data.session.user.email });
+          }
+        });
         supabase.auth.onAuthStateChange((event, session) => {
           if (event === "SIGNED_IN" && session?.user) {
-            analytics?.identifyUser(session.user.id, { email: session.user.email });
-            analytics?.setSentryUser({ id: session.user.id, email: session.user.email });
+            identifyUser(session.user.id);
+            setSentryUser({ id: session.user.id, email: session.user.email });
           } else if (event === "SIGNED_OUT") {
-            analytics?.resetUser();
-            analytics?.setSentryUser(null);
+            resetUser();
+            setSentryUser(null);
             // Wipe React Query cache + persisted IndexedDB cache so the next
             // user on this device doesn't rehydrate the prior user's data
             // (Stripe payouts, admin payout ledger, job history,
@@ -246,40 +236,6 @@ void hydrateStorage();
             // would otherwise survive. Belt + suspenders.
             queryClient.clear();
             void removePersistedClient();
-          }
-        });
-      } catch (err) {
-        // Reported, not swallowed. This catch guards a PRIVACY control, not
-        // analytics: if it fires, sign-out no longer clears the persisted cache
-        // and the next user on this device inherits the last one's data. That
-        // must not be silent — being silent is exactly what made the original
-        // defect unreportable.
-        try {
-          const { report } = await import("./lib/errorLogger");
-          report(err, { tags: { source: "main.authStateCachePurge" } });
-        } catch {
-          console.error("[auth] sign-out cache purge could not be registered:", err);
-        }
-      }
-
-      // ── 2. ANALYTICS — genuinely optional, genuinely allowed to fail.
-      try {
-        const [{ initSentry, setSentryUser }, { initPostHog, identifyUser, resetUser }] =
-          await Promise.all([import("./lib/sentry"), import("./lib/posthog")]);
-
-        initSentry();
-        initPostHog();
-        analytics = { identifyUser, resetUser, setSentryUser };
-
-        // Tie analytics + error identity to Supabase auth so events attribute
-        // correctly. Runs after first paint — pre-auth events still get
-        // captured anonymously and stitched on identify(). Future transitions
-        // are handled by the listener registered in block 1, via `analytics`.
-        const { supabase } = await import("./integrations/supabase/client");
-        supabase.auth.getSession().then(({ data }) => {
-          if (data.session?.user) {
-            identifyUser(data.session.user.id, { email: data.session.user.email });
-            setSentryUser({ id: data.session.user.id, email: data.session.user.email });
           }
         });
       } catch {

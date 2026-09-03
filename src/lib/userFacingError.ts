@@ -51,18 +51,41 @@ const INTERNAL_PATTERNS: RegExp[] = [
   /Failed to fetch|NetworkError|ERR_[A-Z_]+/,
   /supabase|postgres|pgrst/i,
   /\bat \w+ \(.*:\d+:\d+\)/, // a stack frame
-  // supabase-js's own transport wrapper. It reads as prose and contains none
-  // of the words above, so it sailed through: a user who tipped, boosted a
+  // supabase-js's own transport wrappers. They read as prose and contain none
+  // of the words above, so they sail through: a user who tipped, boosted a
   // job, or opened a dispute was told "Edge Function returned a non-2xx status
   // code" — an implementation detail with no next step. Observed live on
   // /signup 2026-09-02, and reachable from TipDialog, JobBoostDialog,
   // ReferralSection, AdminDisputes and SecurityTab, because this is what
-  // supabase-js throws for ANY non-2xx from ANY functions.invoke call.
+  // supabase-js throws for a non-2xx from ANY of the 71 functions.invoke calls.
+  //
+  // There are THREE of these, not one, and the first pass only caught the
+  // third. `FunctionsClient.invoke` (functions-js 2.112.3) can throw exactly:
+  //   FunctionsFetchError  "Failed to send a request to the Edge Function"
+  //                        — the fetch itself rejected: offline, DNS, TLS,
+  //                          abort. The likeliest of the three on a phone.
+  //   FunctionsRelayError  "Relay Error invoking the Edge Function"
+  //                        — the response carried `x-relay-error: true`.
+  //   FunctionsHttpError   "Edge Function returned a non-2xx status code"
+  // Matching the shared "Edge Function" phrase rather than three literals
+  // means a library rewording cannot silently re-open the hole. Verified
+  // safe: no user-facing copy in any of the 68 functions under
+  // supabase/functions/ contains that phrase (the only two non-comment hits
+  // are stripe-webhook's Slack ops alerts, which never reach a browser).
+  //
   // The deliberate edge-function copy this filter exists to PRESERVE
   // ("This task isn't accepting applications anymore.") is read out of the
-  // response body by the callers, not carried on this wrapper — so
-  // suppressing the wrapper costs none of it.
-  /Edge Function returned a non-2xx status code/i,
+  // response body by the callers, not carried on these wrappers — so
+  // suppressing them costs none of it. See completeSignupError.ts for the
+  // signup path, which reads that body instead of settling for a fallback.
+  /\bEdge Function\b/i,
+  // A bare HTTP reason phrase is a status line, not a sentence. auth-js falls
+  // back to `error.statusText || \`HTTP ${error.status}\`` whenever a non-2xx
+  // from GoTrue is not JSON — which is what a CDN, a gateway or a WAF in front
+  // of Supabase returns — so "Service Unavailable" and "HTTP 502" were being
+  // shown to a person mid-signup as if they were advice.
+  /^HTTP \d{3}$/i,
+  /^(Bad Request|Unauthorized|Forbidden|Not Found|Request Timeout|Too Many Requests|Internal Server Error|Bad Gateway|Service Unavailable|Gateway Timeout)$/i,
 ];
 
 /** A sentence a person can read: starts like prose and is not enormous. */

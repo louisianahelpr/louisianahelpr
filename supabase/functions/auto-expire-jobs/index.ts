@@ -101,7 +101,10 @@ Deno.serve(async (req) => {
         user_id: job.customer_id,
         title: "Job re-opened",
         message: `"${job.title}" was automatically re-opened because the helpr didn't start within 24 hours.`,
-        type: "warning",
+        // A change of status on the poster's own job — `job_updates`, the
+        // category this event belongs to. `warning` routed it through
+        // `system_alerts`, so muting platform alerts muted it.
+        type: "job_updates",
         // `?job=`, not `?filter=open`. The job is open again, but whether that
         // is "Waiting" (nobody has applied yet) or "Needs you" (applicants are
         // queued, or the day has already passed) depends on live state — and
@@ -114,7 +117,10 @@ Deno.serve(async (req) => {
           user_id: job.helper_id,
           title: "Job expired",
           message: `You didn't start "${job.title}" within 24 hours. The job has been re-opened for other helprs.`,
-          type: "warning",
+          // `expired` is the existing type for exactly this (it maps to
+          // `job_updates`), and it is what the notification centre already
+          // draws an expiry icon for.
+          type: "expired",
           // The helper's application was just set to `rejected` above, so an
           // applications row exists and `?job=` resolves against it.
           link: `/my-jobs?job=${job.id}`,
@@ -184,7 +190,9 @@ Deno.serve(async (req) => {
         user_id: job.customer_id,
         title: "Job auto-cancelled",
         message: `"${job.title}" was automatically cancelled because the scheduled time passed without a helpr being assigned. You can repost anytime.`,
-        type: "warning",
+        // 61 of the 71 prod rows under this title went to ordinary posters,
+        // not admins — a job-lifecycle event, not a platform alert.
+        type: "job_updates",
         link: "/post-job",
       });
 

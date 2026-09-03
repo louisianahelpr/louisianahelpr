@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import {
   getBiometryLabel,
@@ -76,6 +77,9 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
   /** Has the automatic prompt already fired for this JS context? */
   const hasAutoPrompted = useRef(false);
   const promptOpen = useRef(false);
+
+  /** The portaled lock panel — see the portal notes at the render below. */
+  const lockRef = useRef<HTMLDivElement>(null);
 
   // The lifecycle listeners are registered ONCE and read the user from here.
   //
@@ -305,6 +309,32 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
     };
   }, [supported, attemptUnlock]);
 
+  // Keep the lock panel visible to assistive tech.
+  //
+  // The panel is portaled to <body> (see the render), and Radix's
+  // `hideOthers()` — which every open Radix modal runs — stamps
+  // `aria-hidden="true"` on every <body> child that isn't the dialog, and
+  // keeps doing it for nodes added AFTERWARDS. A lock that is
+  // `role="dialog" aria-modal="true" aria-hidden="true"` is announced as
+  // nothing at all: a VoiceOver user would be handed a screen with no
+  // reachable content and no way to know the app is locked. Same trap, same
+  // fix, as dashboard/PhotoLightbox.tsx and MessageAttachment.tsx.
+  const lockVisible = supported && locked && isReady && Boolean(user);
+  useEffect(() => {
+    const el = lockRef.current;
+    if (!lockVisible || !el) return;
+    const unhide = () => {
+      if (el.getAttribute("aria-hidden") === "true") {
+        el.removeAttribute("aria-hidden");
+        el.removeAttribute("data-aria-hidden");
+      }
+    };
+    unhide();
+    const mo = new MutationObserver(unhide);
+    mo.observe(el, { attributes: true, attributeFilter: ["aria-hidden"] });
+    return () => mo.disconnect();
+  }, [lockVisible]);
+
   if (!supported) return <>{children}</>;
 
   // The full lock UI only renders once we KNOW there is a session behind it.
@@ -315,6 +345,7 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
   const showShield = !showLock && (covered || locked);
 
   if (!showLock && !showShield) return <>{children}</>;
+
 
   const email = user?.email ?? null;
   const unlockLabel = biometryLabel ? `Unlock with ${biometryLabel}` : "Unlock";
@@ -330,10 +361,43 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
         {children}
       </div>
 
-      {/* bg-premium-page is a CLASS, not a design token — there is no
+      {/* PORTALED TO <body>, and that is load-bearing twice over. This panel
+          is the last thing between a backgrounded app and the account behind
+          it, so neither failure mode below is survivable.
+
+          1. POINTER EVENTS — the bug this portal was added for. Any open
+             Radix modal sets `pointer-events: none` on <body>, and
+             `pointer-events` INHERITS. This panel used to render inline,
+             inside #root, which is a <body> child — so if the user happened
+             to have a dialog open when they backgrounded the app, the lock
+             came back pixel-perfect and completely inert. Measured: the
+             Unlock handler fired ZERO times, in Chromium and in WebKit. The
+             only recovery was force-quitting. Note the portal ALONE does not
+             fix this — a <body> child inherits the same `none` — which is why
+             the lock sets `pointerEvents: "auto"` on itself below, the same
+             override dashboard/PhotoLightbox.tsx and MessageAttachment.tsx
+             already carry for this exact reason.
+          2. CONTAINING BLOCK. `position: fixed` is not viewport-relative if
+             ANY ancestor carries a transform / filter / backdrop-filter /
+             contain / will-change, and this app has two app-wide sources of
+             those (AppPage's fill-forwards `animate-ds-page-in` transform,
+             and every frosted `.liquid-glass` surface). An inline lock is one
+             such ancestor away from covering a fraction of the screen and
+             leaking jobs and messages around its edges. The portal removes
+             that by construction instead of by inspection.
+
+          Why nobody caught (1): appLock.ts gates `?app_lock_demo=1` — the only
+          way to raise this screen in a browser — on `import.meta.env.DEV`,
+          which is a compile-time `false` in every production build. The
+          harness cannot fire against a built bundle at all, so a sweep
+          measuring the production preview finds the lock unreachable and
+          reads that as its own probe failing rather than as a gate.
+
+          bg-premium-page is a CLASS, not a design token — there is no
           `--premium-page` variable, so an inline hsl(var(--premium-page))
           would render transparent and leak account data behind the lock. */}
-      {showShield ? (
+      {createPortal(
+        showShield ? (
         // Wordless privacy shield. aria-hidden + no focusable content: it is a
         // snapshot cover, not a screen, and announcing "app locked" every time
         // the user glances at Control Centre would be noise.
@@ -355,6 +419,7 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
         </div>
       ) : (
         <div
+          ref={lockRef}
           role="dialog"
           aria-modal="true"
           aria-labelledby="app-lock-title"
@@ -423,6 +488,12 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
           style={{
             paddingTop: "max(var(--safe-area-top, 0px), 1rem)",
             paddingBottom: "max(var(--safe-area-bottom, 0px), 1rem)",
+            // NOT decoration — see point 1 in the portal comment above. An
+            // open Radix modal sets `pointer-events: none` on <body> and that
+            // inherits down to this panel, which made the whole lock screen
+            // unclickable with no visual tell. Removing this line reinstates
+            // a state whose only exit is force-quitting the app.
+            pointerEvents: "auto",
           }}
         >
           <div className="flex min-h-full w-full flex-col items-center sm:justify-center">
@@ -488,6 +559,8 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
             </div>
           </div>
         </div>
+        ),
+        document.body,
       )}
     </>
   );

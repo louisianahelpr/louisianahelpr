@@ -59,7 +59,22 @@ describe("group jobs — withdrawal gate", () => {
     const logistics = read("src/components/postjob/LogisticsSection.tsx");
     const submit = read("src/pages/postjob/jobSubmitHelpers.ts");
 
-    expect(logistics).toContain('GROUP_JOBS_ENABLED ? [{ key: "group", label: "Group" }');
+    // STRUCTURE, NOT A SOURCE STRING. This read
+    //   toContain('GROUP_JOBS_ENABLED ? [{ key: "group", label: "Group" }')
+    // and broke the moment the segmented controls were unified, because the
+    // shared SegmentedControl takes `value:` where this hand-rolled one took
+    // `key:`. The GATE was never touched — but a renamed property and a DELETED
+    // gate fail this test identically, so the one thing it exists to detect
+    // became indistinguishable from routine refactoring. A tripwire whose
+    // alarm cannot be told apart from noise gets disabled by whoever is
+    // unblocking the build, which is how a withdrawn feature comes back.
+    //
+    // What must hold is narrow and survives renaming: the "group" option may
+    // only be produced by an expression guarded on GROUP_JOBS_ENABLED.
+    expect(
+      logistics,
+      'the "group" segment must be produced only behind GROUP_JOBS_ENABLED',
+    ).toMatch(/GROUP_JOBS_ENABLED\s*\?[\s\S]{0,120}?["']group["']/);
     expect(logistics).toContain("{GROUP_JOBS_ENABLED && isGroupJob && (");
     expect(submit).toContain("is_group_job: GROUP_JOBS_ENABLED && isGroupJob,");
     expect(submit).toContain(

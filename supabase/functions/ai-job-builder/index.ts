@@ -53,7 +53,7 @@ serve(async (req) => {
     const systemPrompt = `You are Helpr's AI Job Builder. You help users create job postings on Helpr, a local services marketplace.
 
 Given a brief description of what the user needs help with, generate a complete job posting with:
-1. A clear, concise title (max 60 chars)
+1. A clear, concise title (max 32 chars — the form's title field hard-caps at 32 and rejects anything longer)
 2. A detailed description (2-3 paragraphs) covering scope, expectations, and any relevant details
 3. A recommended category from: cleaning, yard_work, moving, errands, handyman, painting, delivery, pet_care, assembly, other
 4. Estimated hours needed
@@ -92,7 +92,7 @@ Always respond using the generate_job_posting tool.`;
               parameters: {
                 type: "object",
                 properties: {
-                  title: { type: "string", description: "Job title, max 60 chars" },
+                  title: { type: "string", description: "Job title, max 32 chars" },
                   description: { type: "string", description: "Detailed job description" },
                   category: { 
                     type: "string", 
@@ -140,6 +140,18 @@ Always respond using the generate_job_posting tool.`;
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
     if (toolCall?.function?.arguments) {
       const jobData = JSON.parse(toolCall.function.arguments);
+      // Defensive, not decorative: reproduced live with gemini-3.6-flash
+      // generating a 33-char title against this exact "max 32 chars"
+      // instruction — a natural-language char-count instruction is a request,
+      // not a constraint the model reliably honors. FormStep's #title input
+      // hard-caps at maxLength=32 and shows a "Shorten this to 32 characters"
+      // error, so an overlong AI title loaded the form already invalid, with
+      // no indication of WHY to someone who never typed the title themselves.
+      // Truncating here (not just fixing the prompt) means the form always
+      // opens valid regardless of what the model does on any given call.
+      if (typeof jobData.title === "string" && jobData.title.length > 32) {
+        jobData.title = jobData.title.slice(0, 32).trimEnd();
+      }
       return new Response(JSON.stringify(jobData), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

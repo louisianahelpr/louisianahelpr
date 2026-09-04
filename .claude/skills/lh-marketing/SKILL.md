@@ -401,6 +401,33 @@ You are the last check.
 | "Trusted by thousands of Louisianians." | "Built for Louisiana, and nowhere else." |
 | "Sarah from Metairie says: 'Life-changing!'" | (Nothing. Ask the owner for a real, permissioned quote.) |
 
+**The rule TIGHTENS as the audience gets smaller.** §3 is written for
+auto-publish — nobody standing between a generated row and a public feed — so it
+reads as a rule about broadcast. The opposite is where the real exposure sits.
+
+An unsourced claim on Instagram reaches strangers who have no way to check it. The
+same claim in a parish Facebook group reaches several hundred people who
+collectively know everyone in that parish, and **one comment disproves it in
+public, under the owner's real name, in the group they most need.** A DM to a
+friend is checked the moment they open the app. So a private message, a group
+post and a comment reply are held to a *higher* standard than a caption, not a
+lower one — and "it's just a text to someone I know" is the exact reasoning that
+produces the worst version of this mistake.
+
+Two consequences worth writing down:
+
+- **Directions must be literally correct.** Naming a screen, tab or button in a
+  message to one person means they will try it in front of you. Verify the exact
+  label before it ships (this cost two corrections on 2026-09-03: "Earnings" for
+  "Earnings & Payouts", "Professional Credentials" for "Licensed & Insured"),
+  and verify the route is even reachable — a half-onboarded account is bounced to
+  `/complete-profile` from everywhere, so an instruction naming `/profile` is one
+  they cannot follow.
+- **Prefer the specific true thing to the vague one.** "I'm from around here" in
+  a small-town group is a claim about the owner that the group can test. "My
+  people are from Hammond" is both more credible and safer, because a vague claim
+  invites the test and a specific one answers it in advance.
+
 4. **Never ship the claim with a hedge instead of a source.** "Helprs can earn
    up to…" is the same violation with a weasel word in front. So is "many
    users report…". If you cannot source it, it does not go in the post.

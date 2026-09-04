@@ -274,6 +274,76 @@
     </script>
 
     <!--
+      BLOCKED-STORAGE REPAIR. Runs before every other script on the page,
+      including third-party vendor bundles this app has no control over.
+
+      A browser with site data blocked (Safari "Block All Cookies", a
+      Chrome/Edge per-site block, Brave Shields at strict, some kiosk or
+      embedded webviews) does not make `localStorage.getItem()` return null —
+      it makes the `localStorage` PROPERTY ITSELF throw a SecurityError the
+      instant anything references `window.localStorage`, read or write. That
+      is not something a `try { localStorage.getItem(...) }` at each call
+      site can be relied on to catch everywhere: it has to be caught at every
+      single reference, forever, including inside every vendor bundle this
+      app ships (Supabase's own client construction, a dark-mode hook, a
+      social-login SDK all touch it directly), and a single unguarded access
+      anywhere in that graph throws before React ever mounts — a permanent
+      blank white screen, no error surfaced to the user or to Sentry, because
+      the crash happens before the error pipeline exists.
+
+      The fix is structural, not local: replace `window.localStorage` itself,
+      globally, with a real in-memory Storage-shaped object, before anything
+      else runs. Every later reference — ours or a vendor's — gets a working,
+      spec-shaped object back and never throws again. The tradeoff is that a
+      visitor in this state does not get persistent storage: their session,
+      theme choice and drafts do not survive a reload. That is a materially
+      better outcome than the one it replaces, and matches what already
+      happens for those visitors in stricter private-browsing modes anyway.
+    -->
+    <script>
+      (function () {
+        try {
+          var probeKey = "__helpr_boot_storage_probe__";
+          window.localStorage.setItem(probeKey, "1");
+          window.localStorage.removeItem(probeKey);
+        } catch (e) {
+          var mem = Object.create(null);
+          var memoryStorage = {
+            getItem: function (key) {
+              return Object.prototype.hasOwnProperty.call(mem, key) ? mem[key] : null;
+            },
+            setItem: function (key, value) {
+              mem[key] = String(value);
+            },
+            removeItem: function (key) {
+              delete mem[key];
+            },
+            clear: function () {
+              mem = Object.create(null);
+            },
+            key: function (index) {
+              var keys = Object.keys(mem);
+              return index >= 0 && index < keys.length ? keys[index] : null;
+            },
+            get length() {
+              return Object.keys(mem).length;
+            },
+          };
+          try {
+            Object.defineProperty(window, "localStorage", {
+              value: memoryStorage,
+              writable: false,
+              configurable: true,
+            });
+          } catch (e2) {
+            /* A browser that won't even let us redefine the property is
+               beyond what this page can repair — nothing further to try. */
+          }
+        }
+      })();
+    </script>
+
+    <!--
       Pre-paint theme resolution. useDarkMode.ts only sets data-theme once the
       JS bundle parses — after the inline boot loader below has already painted,
       so dark-mode users saw a light flash on every cold start. This tiny inline

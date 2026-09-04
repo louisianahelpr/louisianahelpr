@@ -567,14 +567,16 @@
      4.62:1, the highest value that still clears the 4.5:1 floor. Computed
      against white foreground before the change, not after. */
   --destructive:          19 74% 44%;
-  /* 44% -> 52%. The fill stays at 44%; only text moves. Measured against both
-     dark surfaces, because a required-field asterisk and an inline error sit on
-     the page AND inside cards: 44% gives 3.92:1 on the page and 3.54:1 on a
-     card, against the 4.5:1 that 11px error text needs. 52% gives 5.14:1 and
-     4.63:1. The dark --destructive had been lifted 40% -> 44% and stopped
-     there, which is the exact gap --accent-ink and --sage-ink were minted to
-     close and this token had been left out of. */
-  --destructive-ink:      19 74% 52%;
+  /* 44% -> 52% -> 56%. The fill stays at 44%; only text moves. 52% was measured
+     against the PLAIN card and page (5.14:1 / 4.63:1) and missed the surface
+     this token is actually used against most: a tinted destructive background
+     (bg-destructive/0.08–0.10 — the deadline countdown, badges, banners). On
+     that tint 52% measures only 4.24-4.32:1, still under the 4.5:1 floor for
+     11px text. 56% gives 5.15:1 on the plain card, 4.80:1 on /0.08, 4.71:1 on
+     /0.10 — the actual worst-case surface this token ships on, not the
+     easiest one. Every consumer is confirmed text-only (`text-[hsl(var(...))]`),
+     so raising dark lightness cannot regress a border or fill anywhere. */
+  --destructive-ink:      19 74% 56%;
   --destructive-foreground: 0 0% 100%;
   --sidebar-background:   var(--parchment);
   --sidebar-foreground:   var(--olivewood);

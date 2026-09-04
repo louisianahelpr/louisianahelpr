@@ -5,7 +5,23 @@ const PHONE_REGEX = /(\+?1?\s*[-.]?\s*\(?\d{3}\)?[\s.-]*\d{3}[\s.-]*\d{4})/gi;
 const SPELLED_PHONE_REGEX = /(zero|one|two|three|four|five|six|seven|eight|nine|oh)([^a-z0-9]+(zero|one|two|three|four|five|six|seven|eight|nine|oh)){6,}/gi;
 const EMAIL_REGEX = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi;
 const PAYMENT_APPS = /\b(venmo|cashapp|cash\s*app|zelle|paypal|apple\s*pay|google\s*pay|crypto|bitcoin|btc|eth)\b/gi;
-const DIRECT_PAY_PHRASES = /\b(pay\s*me\s*direct|off\s*the\s*app|outside\s*the\s*app|text\s*me|call\s*me|whatsapp|telegram|my\s*number|my\s*email|dm\s*me|hit\s*me\s*up|contact\s*me\s*at|reach\s*me\s*at|send\s*money\s*to|pay\s*outside|skip\s*the\s*fee|avoid\s*the\s*fee)\b/gi;
+// `my number` / `my email` are deliberately CLIENT-ONLY (see the file header
+// in messageScanner.test.ts, F-TRUST-01, 2026-06-18): the server's ladder
+// auto-suspends on 2 flags/24h, so a signal this weak was dropped
+// server-side to avoid false-positive suspensions, while the client still
+// warns because the soft nudge has no punishment cost. That half is correct
+// and unchanged.
+//
+// `cash only` / `in cash` were the other half, and they were NOT a safe
+// asymmetry: the server DOES treat them as a real off-platform-payment
+// violation and can strike the sender for one, but the client warned about
+// NOTHING before send. A message like "cash only, I'll pay you Saturday"
+// composed clean, appeared sent in the sender's own thread (RLS always shows
+// your own messages), and only the recipient's copy was silently hidden —
+// the sender could be struck with no warning and no visible reason. Added
+// here so the client warns before send on exactly the phrases the server
+// will act on after send.
+const DIRECT_PAY_PHRASES = /\b(pay\s*me\s*direct|off\s*the\s*app|outside\s*the\s*app|text\s*me|call\s*me|whatsapp|telegram|my\s*number|my\s*email|dm\s*me|hit\s*me\s*up|contact\s*me\s*at|reach\s*me\s*at|send\s*money\s*to|pay\s*outside|skip\s*the\s*fee|avoid\s*the\s*fee|cash\s*only|in\s*cash)\b/gi;
 
 // Normalize fullwidth digits (U+FF10-U+FF19) to ASCII so they can't evade the
 // phone regex — mirrors the server-side translate(). (F-TRUST-02)

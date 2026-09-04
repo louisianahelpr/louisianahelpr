@@ -304,7 +304,15 @@ export function useDashboardData() {
             // the guest feed, which has no profile. Measured at Baton Rouge, a
             // 1-mile radius returned every open job including one 72.7 miles
             // out, under a "Filtered Results" heading (BD-001).
-            "id, title, description, category, budget, date_needed, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_flexible_schedule, is_recurring, is_group_job, helpers_needed, estimated_hours, special_requirements, photos, boosted_at, boost_expires_at, expires_at, start_time, recurrence_interval, recurrence_end_date, parent_job_id, payment_status, location, latitude, longitude, pricing_mode, applicant_count",
+            // `credential_tier` and `parish` were added to the view by
+            // 20260904031002. Without `credential_tier` here,
+            // `JobDetailFooter`'s `(job.credential_tier ?? 0) > 0` lock check
+            // was permanently false on this feed — a poster-restricted job
+            // read as open to everyone. Without `parish`, the drive-time
+            // readout and ranking tie-break silently no-op'd on /dashboard
+            // while working on /jobs, which reads the same column from a
+            // different RPC.
+            "id, title, description, category, budget, date_needed, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_flexible_schedule, is_recurring, is_group_job, helpers_needed, estimated_hours, special_requirements, photos, boosted_at, boost_expires_at, expires_at, start_time, recurrence_interval, recurrence_end_date, parent_job_id, payment_status, location, latitude, longitude, pricing_mode, applicant_count, credential_tier, parish",
           )
           .neq("payment_status", "abandoned");
 

@@ -77,6 +77,9 @@ jobs:
       # silently blind in exactly the place you go looking for it.
       VITE_SUPABASE_URL:             ${{ secrets.VITE_SUPABASE_URL }}
       VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      # Added — this workflow set the other 3 VITE_ vars but not this one,
+      # which is a real gap Vercel's own build does not have.
+      VITE_SUPABASE_PROJECT_ID:      ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
       VITE_APPLE_MAPKIT_TOKEN:       ${{ secrets.VITE_APPLE_MAPKIT_TOKEN }}
 
     steps:
@@ -102,7 +105,13 @@ jobs:
         if: steps.check-secrets.outputs.configured == 'true'
         uses: actions/setup-node@v7
         with:
-          node-version: "22"
+          # MUST match what Vercel actually builds with (confirmed via the
+          # Vercel API 2026-09-04: this project's `nodeVersion` is "24.x") —
+          # a build on a different Node version produces a different chunk
+          # graph even with identical source and identical env vars, which
+          # is the other half of the reason this workflow's uploaded maps
+          # didn't match what production served.
+          node-version: "24"
           cache: "npm"
 
       - name: Install dependencies

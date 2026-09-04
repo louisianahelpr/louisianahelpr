@@ -210,7 +210,9 @@ const DashboardGuest = () => {
           // guest — who has no saved profile location to fall back on — got NO
           // filtering at all while the toolbar said "Filtered Results". A
           // 1-mile radius returned a job 72.7 miles away (BD-001).
-          "id, title, description, category, budget, date_needed, location, latitude, longitude, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_flexible_schedule, is_recurring, is_group_job, helpers_needed, estimated_hours, special_requirements, photos, boosted_at, boost_expires_at, expires_at, start_time, recurrence_interval, recurrence_end_date, parent_job_id, payment_status, pricing_mode",
+          // `credential_tier`, `parish` — same column parity fix as the
+          // authed feed (useDashboardData.ts), see 20260904031002.
+          "id, title, description, category, budget, date_needed, location, latitude, longitude, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_flexible_schedule, is_recurring, is_group_job, helpers_needed, estimated_hours, special_requirements, photos, boosted_at, boost_expires_at, expires_at, start_time, recurrence_interval, recurrence_end_date, parent_job_id, payment_status, pricing_mode, credential_tier, parish",
         )
         .neq("payment_status", "abandoned")
         .order("boosted_at", { ascending: false, nullsFirst: false })

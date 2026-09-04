@@ -7,15 +7,21 @@
  * Both must be kept in sync; these tests pin the client's current behaviour so
  * future drift is caught immediately.
  *
- * Known intentional client-vs-server divergence (as of 2026-06-18):
+ * Known intentional client-vs-server divergence (as of 2026-09-04):
  *
  *   CLIENT-ONLY (soft UX warning, no server fraud_flag):
  *     "my number" / "my email" — dropped from server (too ambiguous; 2 flags in
  *     24 h trigger a 7-day account auto-suspend, so false-positive risk outweighs
- *     the security value at the server level).
+ *     the security value at the server level). Intentional and unchanged.
  *
- *   SERVER-ONLY (triggers fraud_flag + possible auto-suspend, no client warning):
- *     "cash only" / "in cash" — intentionally server-only.
+ *   "cash only" / "in cash" used to be server-only — the server struck the
+ *   sender for either phrase with no client-side warning at all, so the
+ *   message read as delivered in the sender's own thread while the
+ *   recipient's copy was silently hidden. Closed 2026-09-04: the client now
+ *   warns on both phrases too. The server remains the sole enforcer (this
+ *   scanner has never done anything but warn); the fix is purely that the
+ *   sender now gets the same heads-up before send that the server will act
+ *   on after send.
  *
  *   PHONE regex difference:
  *     Client:  /(\+?1?\s*[-.]?\s*\(?\d{3}\)?[\s.-]*\d{3}[\s.-]*\d{4})/
@@ -200,18 +206,21 @@ describe("F-TRUST-01 — client-only phrases (no server fraud_flag)", () => {
   });
 });
 
-describe("F-TRUST-01 — server-only phrases (not caught client-side)", () => {
-  it("does NOT flag 'cash only' — this is a server-only gate", () => {
-    // Intentional design: the client scanner has no regex for "cash only".
-    // If this test starts FAILING it means the client added the pattern —
-    // update this test and remove the server-only note above.
+describe("F-TRUST-01 — 'cash only'/'in cash' now warn client-side too (closed 2026-09-04)", () => {
+  // These were server-only: the server strikes the sender for either phrase,
+  // but the client showed no warning before send, so the message read as
+  // delivered in the sender's own thread while the recipient's copy was
+  // silently hidden — a phantom-delivery bug. The client now warns on the
+  // same phrases the server acts on; the server remains the sole enforcer
+  // (this scanner is advisory-only, per the file header).
+  it("flags 'cash only' — client now warns before the server strikes", () => {
     const v = scanMessage("I only take cash only payments");
-    expect(v.some((x) => x.type === "direct_pay")).toBe(false);
+    expect(v.some((x) => x.type === "direct_pay")).toBe(true);
   });
 
-  it("does NOT flag 'in cash' — server-only gate", () => {
+  it("flags 'in cash' — client now warns before the server strikes", () => {
     const v = scanMessage("Please pay me in cash");
-    expect(v.some((x) => x.type === "direct_pay")).toBe(false);
+    expect(v.some((x) => x.type === "direct_pay")).toBe(true);
   });
 });
 

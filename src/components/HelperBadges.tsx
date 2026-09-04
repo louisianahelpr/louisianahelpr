@@ -92,7 +92,7 @@ export function computeBadges(stats: {
       key: "streak",
       label: "On Fire",
       icon: <Flame className="w-3 h-3" />,
-      color: "bg-destructive/10 text-destructive",
+      color: "bg-destructive/10 text-[hsl(var(--destructive-ink))]",
     });
   }
 
@@ -129,7 +129,7 @@ export function computeBadges(stats: {
       key: "community_fav",
       label: "Community Fav",
       icon: <Heart className="w-3 h-3" />,
-      color: "bg-destructive/10 text-destructive",
+      color: "bg-destructive/10 text-[hsl(var(--destructive-ink))]",
     });
   }
 

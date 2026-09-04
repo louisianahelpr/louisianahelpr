@@ -7,7 +7,7 @@
     "migration:new": "node scripts/new-migration.mjs",
     "predev": "rm -rf node_modules/.vite",
     "dev": "vite",
-    "build": "vite build && node scripts/build-og-shell.mjs",
+    "build": "vite build && node scripts/build-og-shell.mjs && node scripts/strip-web-sourcemaps.mjs",
     "build:ios": "npm run sync:ios-metadata && VITE_CAPACITOR_BUILD=1 vite build",
     "sync:ios-metadata": "node scripts/sync-ios-metadata.mjs",
     "clear:xcode-cache": "node scripts/clear-xcode-cache.mjs",

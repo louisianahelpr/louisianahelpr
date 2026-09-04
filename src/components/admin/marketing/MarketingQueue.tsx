@@ -326,7 +326,11 @@ export function MarketingQueue({
                             row.status === "failed"
                               ? {
                                   background: "hsl(var(--destructive) / 0.08)",
-                                  color: "hsl(var(--destructive))",
+                                  // --destructive-ink, not the raw --destructive
+                                  // text token: on this tint the raw token measures
+                                  // 3.30:1 in dark mode, well under the 4.5:1 an
+                                  // 11px error line needs.
+                                  color: "hsl(var(--destructive-ink))",
                                 }
                               : {
                                   background: "hsl(var(--amber-tint) / 0.12)",

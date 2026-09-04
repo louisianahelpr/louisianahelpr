@@ -28,12 +28,50 @@ if (Capacitor.isNativePlatform()) {
   await hydratePromise;
 }
 
+/**
+ * A browser with site data blocked (Safari "Block All Cookies", Chrome/Edge
+ * "block on this site", Brave Shields strict, some kiosk/embedded webviews)
+ * throws a SecurityError the instant `window.localStorage` is REFERENCED —
+ * not just on `.getItem()`. This module used to hand the bare `localStorage`
+ * identifier straight to `createClient()`'s options object; referencing it
+ * threw during module evaluation, before React ever got a chance to render,
+ * and because almost every module in the app imports this client, the whole
+ * app was a permanent blank screen with no error surfaced anywhere.
+ *
+ * `getWebAuthStorage()` probes with a real read+write (a throw can come from
+ * either), and falls back to an in-memory Map so the auth client still
+ * constructs and the app still mounts. Auth simply won't persist across a
+ * reload for that visitor — which is what already happens for anyone in
+ * a private-browsing mode that limits storage, and is a wildly better
+ * outcome than a permanent white screen.
+ */
+function getWebAuthStorage(): Storage {
+  try {
+    const probeKey = "__helpr_storage_probe__";
+    window.localStorage.setItem(probeKey, "1");
+    window.localStorage.removeItem(probeKey);
+    return window.localStorage;
+  } catch {
+    const mem = new Map<string, string>();
+    return {
+      getItem: (key: string) => mem.get(key) ?? null,
+      setItem: (key: string, value: string) => void mem.set(key, value),
+      removeItem: (key: string) => void mem.delete(key),
+      clear: () => mem.clear(),
+      key: (index: number) => Array.from(mem.keys())[index] ?? null,
+      get length() {
+        return mem.size;
+      },
+    };
+  }
+}
+
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    storage: Capacitor.isNativePlatform() ? keychainStorageAdapter : localStorage,
+    storage: Capacitor.isNativePlatform() ? keychainStorageAdapter : getWebAuthStorage(),
     persistSession: true,
     autoRefreshToken: true,
   }

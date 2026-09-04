@@ -72,7 +72,7 @@
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Helpr transcribes your voice so you can dictate chat messages instead of typing.</string>
 <key>NSFaceIDUsageDescription</key>
-	<string>Helpr uses Face ID to confirm it's you before cashing out your earnings.</string>
+	<string>Helpr uses Face ID to unlock the app, and to confirm it's you before cashing out your earnings or changing your payout and account settings.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Helpr uses your location to show nearby jobs and confirm helpr arrival.</string>
 	<!--
@@ -172,7 +172,5 @@
 			<string>AppIcon</string>
 		</dict>
 	</dict>
-	<key>NSContactsUsageDescription</key>
-	<string>Helpr can access contacts only if you choose to invite a friend by phone or email.</string>
 </dict>
 </plist>

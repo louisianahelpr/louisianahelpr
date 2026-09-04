@@ -248,10 +248,18 @@ Deno.serve(async (req) => {
     // never "we could not check". Dropping the error collapsed those two into
     // the same falsy value, so a failed read sent mail to a bounced or
     // complained address — the case most likely to cost us sender reputation.
+    //
+    // Compared lowercased because that is the only form the table ever holds:
+    // `resend-webhook` lowercases every address before it upserts, and both
+    // columns are plain `text`, not `citext`. Matching `profiles.email` raw
+    // meant a mixed-case address never equalled its own suppression row, so
+    // the guard read "not suppressed" and mailed a bounced or complained
+    // recipient anyway. `engagement-automations` already lowercases both sides
+    // at all four of its call sites; this was the one reader that did neither.
     const { data: suppressed, error: suppressedError } = await supabase
       .from('suppressed_emails')
       .select('id')
-      .eq('email', profile.email)
+      .eq('email', profile.email.toLowerCase())
       .maybeSingle()
 
     if (suppressedError) {

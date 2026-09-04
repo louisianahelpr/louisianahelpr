@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo } from "react";
-import { formatName } from "@/lib/utils";
+import { dedupeById, formatName } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
@@ -493,8 +493,12 @@ export function useDashboardData() {
   });
 
   // Flatten loaded pages into a single array for downstream filtering/sorting.
+  // `dedupeById` because the pages are OFFSET/LIMIT windows over an order
+  // (`boosted_at DESC`) that mutates between fetches: a boost purchased while
+  // the helper is mid-scroll lifts that row above the offset and re-serves the
+  // previous page's last card as this page's first. See the helper's comment.
   const allJobs = useMemo<EnrichedJob[]>(
-    () => (pagesData?.pages ?? []).flatMap((p) => p.jobs),
+    () => dedupeById((pagesData?.pages ?? []).flatMap((p) => p.jobs)),
     [pagesData],
   );
 

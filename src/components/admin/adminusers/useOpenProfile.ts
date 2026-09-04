@@ -83,11 +83,26 @@ export const makeOpenProfile = (deps: OpenProfileDeps) => {
       }
     }
 
-    // Build a single lookup of all related users + jobs from both review sets
+    // Build a single lookup of all related users + jobs from both review sets.
+    //
+    // `reviews.reviewer_id` is NULLABLE — it is ON DELETE SET NULL, so a
+    // review whose AUTHOR has since deleted their account keeps the review
+    // (it is the subject's reputation, not the author's) with a null author.
+    // That null must not reach the `.in()` below: PostgREST sends
+    // `in.(<uuid>,null)`, Postgres rejects `null` as a uuid literal, and the
+    // whole request returns HTTP 400 `22P02`. The error is only logged, so
+    // `relatedUsersRes.data` comes back null, `nameMap` ends up EMPTY, and
+    // every reviewer on the panel renders as the "User" fallback — one
+    // departed author silently anonymising every other name on an admin
+    // trust-review surface, which reads as data rather than a failed lookup.
+    //
+    // `reviewee_id` is NOT NULL (ON DELETE CASCADE) so it needs no guard, but
+    // it is filtered the same way rather than relying on that staying true.
     const relatedUserIds = new Set<string>();
     const relatedJobIds = new Set<string>();
-    (reviewsRes.data || []).forEach((r: any) => { relatedUserIds.add(r.reviewer_id); if (r.job_id) relatedJobIds.add(r.job_id); });
-    (reviewsLeftRes.data || []).forEach((r: any) => { relatedUserIds.add(r.reviewee_id); if (r.job_id) relatedJobIds.add(r.job_id); });
+    const addUser = (id: string | null | undefined) => { if (id) relatedUserIds.add(id); };
+    (reviewsRes.data || []).forEach((r: any) => { addUser(r.reviewer_id); if (r.job_id) relatedJobIds.add(r.job_id); });
+    (reviewsLeftRes.data || []).forEach((r: any) => { addUser(r.reviewee_id); if (r.job_id) relatedJobIds.add(r.job_id); });
 
     const [relatedUsersRes, relatedJobsRes] = await Promise.all([
       relatedUserIds.size > 0

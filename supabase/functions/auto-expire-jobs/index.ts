@@ -44,6 +44,11 @@ Deno.serve(async (req) => {
       day: "2-digit",
     }).format(new Date());
 
+    // Declared before step 1 so the writes inside the reopen loop below can
+    // record a defect. It used to be created just before step 3, which is why
+    // a failed application-rejection there had nowhere to go but a log line.
+    const defects = defectTracker();
+
     // 1. Expire accepted jobs that were accepted 24h+ ago but never started
     // `helper_confirmed_at IS NULL` is the real predicate for "stale
     // acceptance". Selecting on `updated_at` alone un-booked CONFIRMED helpers:
@@ -91,13 +96,31 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      await supabase
+      // The job above is now `open` with no helper, so the helper's own
+      // application must not stay `accepted`. This write discarded its result
+      // entirely: supabase-js RESOLVES with `{ error }` rather than throwing,
+      // so a PostgREST failure was invisible, and a zero-row match returns
+      // `{ data: [], error: null }` — leaving the helper reading "accepted" on
+      // a job that has been re-opened and may already be someone else's.
+      const { data: rejectedApps, error: rejectErr } = await supabase
         .from("applications")
         .update({ status: "rejected" })
         .eq("job_id", job.id)
-        .eq("status", "accepted");
+        .eq("status", "accepted")
+        .select("id");
+      if (rejectErr) {
+        console.error(`[auto-expire-jobs] failed to reject applications for job ${job.id}:`, rejectErr);
+        defects.record(`reject applications for job ${job.id}: ${rejectErr.message}`);
+      } else if ((rejectedApps?.length ?? 0) === 0) {
+        // The job WAS in 'accepted' a moment ago (the guarded reopen above
+        // matched), so exactly one accepted application should have existed.
+        // Zero means the two tables disagree — worth saying out loud.
+        defects.record(
+          `job ${job.id} was reopened but no accepted application was found to reject`,
+        );
+      }
 
-      await supabase.from("notifications").insert({
+      const { error: notifyErr } = await supabase.from("notifications").insert({
         user_id: job.customer_id,
         title: "Job re-opened",
         message: `"${job.title}" was automatically re-opened because the helpr didn't start within 24 hours.`,
@@ -111,9 +134,13 @@ Deno.serve(async (req) => {
         // `open` has had no chip since the strip became five buckets.
         link: `/my-posts?job=${job.id}`,
       });
+      if (notifyErr) {
+        console.error(`[auto-expire-jobs] poster notification failed for job ${job.id}:`, notifyErr);
+        defects.record(`poster notification for job ${job.id}: ${notifyErr.message}`);
+      }
 
       if (job.helper_id) {
-        await supabase.from("notifications").insert({
+        const { error: helperNotifyErr } = await supabase.from("notifications").insert({
           user_id: job.helper_id,
           title: "Job expired",
           message: `You didn't start "${job.title}" within 24 hours. The job has been re-opened for other helprs.`,
@@ -125,6 +152,10 @@ Deno.serve(async (req) => {
           // applications row exists and `?job=` resolves against it.
           link: `/my-jobs?job=${job.id}`,
         });
+        if (helperNotifyErr) {
+          console.error(`[auto-expire-jobs] helper notification failed for job ${job.id}:`, helperNotifyErr);
+          defects.record(`helper notification for job ${job.id}: ${helperNotifyErr.message}`);
+        }
       }
 
       expiredCount++;
@@ -212,7 +243,6 @@ Deno.serve(async (req) => {
     // PGRST202 is deliberately NOT a defect: it means the migration merged but
     // db-deploy has not finished, which is expected for a few minutes on every
     // deploy. Any other RPC error is a real one.
-    const defects = defectTracker();
     try {
       const { data: unRpc, error: unRpcErr } = await supabase.rpc("expire_unanswered_offers");
       if (unRpcErr) {

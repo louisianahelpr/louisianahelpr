@@ -9,12 +9,18 @@ const corsHeaders = {
 };
 
 /**
- * Notification titles this cron sends to admins. Both are REMINDERS about a
- * condition that persists between ticks, so both are deduped through
+ * Notification titles this cron sends to admins. All three are REMINDERS about
+ * a condition that persists between ticks, so all three are deduped through
  * `recentlyRemindedKeys` below — see the comment there for why.
+ *
+ * Adding a title here is only half the job: it MUST also go into the
+ * `.in("title", …)` filter that builds `recentlyRemindedKeys`, or it is never
+ * deduped and this cron re-sends it every tick — the exact duplicate flood
+ * that comment describes.
  */
 const ESCALATED_TITLE = "Escalated dispute overdue";
 const STUCK_SPLIT_TITLE = "Dispute split did not settle";
+const UNSETTLEABLE_TITLE = "Dispute stuck — escrow cannot auto-settle";
 
 /** One reminder per admin per job per day, not one per cron tick. */
 const REMINDER_WINDOW_HOURS = 24;

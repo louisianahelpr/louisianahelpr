@@ -157,7 +157,15 @@ export const JobDetailFooter = ({
             className="font-sans font-semibold text-ds-14"
             style={{ color: "hsl(var(--success-ink-deep))" }}
           >
-            Applied — #{viewerAppPosition}
+            {/* NO position number. This used to read "Applied — #{n}", where n
+                came from findIndex() over a fetch of `applications` filtered to
+                this job — but RLS returns a helper exactly ONE row, their own,
+                so the index was always 0 and every helper on every job was told
+                they were #1. Proven live: the 3rd of 4 applicants on a real job
+                saw count 1. The viewer's true queue position is not derivable
+                client-side at all (the poster's applicant list is theirs alone),
+                so the honest surface is the fact of having applied. */}
+            Applied
           </span>
         </div>
       ) : (job.credential_tier ?? 0) > 0 && viewerTier < (job.credential_tier ?? 0) ? (

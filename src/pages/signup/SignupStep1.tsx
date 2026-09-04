@@ -140,7 +140,7 @@ export function SignupStep1({
               email-verification (the click-the-link step after signup)
               already catches typos. The double field was 2014-era
               friction that costs activations without preventing errors. */}
-          <Label htmlFor="email" className={labelCls}>Email <span aria-hidden style={{ color: "hsl(var(--destructive))" }}>*</span></Label>
+          <Label htmlFor="email" className={labelCls}>Email <span aria-hidden style={{ color: "hsl(var(--destructive-ink))" }}>*</span></Label>
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: "hsl(var(--olivewood) / 0.8)" }} strokeWidth={1.75} />
             <Input ref={emailRef} id="email" type="email" inputMode="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={onEmailKeyDown} required autoComplete="email" aria-invalid={emailError} aria-describedby={emailError ? "signup-email-error" : undefined}
@@ -174,7 +174,7 @@ export function SignupStep1({
           )}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="password" className={labelCls}>Password <span aria-hidden style={{ color: "hsl(var(--destructive))" }}>*</span></Label>
+          <Label htmlFor="password" className={labelCls}>Password <span aria-hidden style={{ color: "hsl(var(--destructive-ink))" }}>*</span></Label>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: "hsl(var(--olivewood) / 0.8)" }} strokeWidth={1.75} />
             <Input ref={passwordRef} id="password" type={showPassword ? "text" : "password"} enterKeyHint="next" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={onPasswordKeyDown} onKeyUp={trackCaps} required minLength={8} aria-invalid={passwordError} aria-describedby={passwordError ? "signup-password-error" : undefined}

@@ -1,16 +1,56 @@
-import { useEffect } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { XCircle, RefreshCw, Mail, LogOut } from "lucide-react";
+import { XCircle, RefreshCw, Mail, LogOut, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { signOutWithPushCleanup } from "@/lib/authSignOut";
 import AuthShell from "@/components/auth/AuthShell";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useDeleteAccount } from "@/hooks/useDeleteAccount";
+
+// The same lazy import Profile and AccountBanned use: the dialog chunk and its
+// confirm-flow deps are fetched only if the user actually opens it.
+const DeleteAccountDialog = lazy(() =>
+  import("@/components/profile/DeleteAccountDialog").then((m) => ({ default: m.DeleteAccountDialog })),
+);
 
 const AccountDenied = () => {
   usePageTitle("Account Denied — Helpr");
   const navigate = useNavigate();
   const { user, profile, isLoading } = useCurrentUser();
+
+  // ACCOUNT DELETION LIVES HERE TOO, FOR THE SAME REASON IT LIVES ON
+  // /account-banned — and this screen was missed when that one was fixed.
+  //
+  // Apple requires in-app account deletion (App Store Review Guideline
+  // 5.1.1(v)). A denied user can sign in, so they have an account, so they
+  // must be able to delete it. Three things had to line up for them to be
+  // unable to, and all three did:
+  //   1. `/account-denied` is in `noNavPages` (mobileNavHelpers.ts), so
+  //      MobileNav returns null — no bottom dock, hence no Profile tab, and
+  //      /profile is where the delete control otherwise lives.
+  //   2. AuthShell renders NO Navbar and NO Footer on native
+  //      (`isNativePlatform || noWebChrome ? content : …`), and this screen
+  //      passes `hideBack`, so there is no chevron either.
+  //   3. The only exits the card offered were /support and two buttons that
+  //      SIGN THE USER OUT first — after which the account still exists.
+  // On iOS there is no address bar, so that combination left no path at all.
+  //
+  // The two sibling states were each already fine, by different mechanisms,
+  // which is exactly why this one slipped: /account-pending IS in `authPages`
+  // so it keeps the dock and reaches Profile; /account-banned was given its
+  // own delete button. This screen got neither.
+  //
+  // Same hook, same dialog as Profile and AccountBanned — see
+  // `useDeleteAccount` for why this is shared rather than a second copy of the
+  // handler (a duplicated copy once broke deletion for every user for a day).
+  //
+  // No `extraKeptItems` here, deliberately: `retain_ban_on_deletion` fires
+  // only for ban_status IN ('banned','temp_banned','permanently_banned'), so a
+  // DENIED account carries nothing across deletion and it would be wrong to
+  // warn that it does. Re-applying with the same email is already this card's
+  // headline advice.
+  const deleteAccount = useDeleteAccount();
 
   // Redirect away once the account is no longer denied. Reads the shared
   // useCurrentUser profile so this gate can't drift from the rest of the
@@ -135,7 +175,13 @@ const AccountDenied = () => {
         </div>
       </div>
 
-      <div className="text-center mt-5">
+      {/* Sign Out and Delete Account, in that order and both subordinate to
+          Re-Apply / Appeal above. Same treatment as AccountBanned: deletion is
+          a real exit and must be offered, but a denied user's first move should
+          be re-applying or appealing, not the irreversible thing — so neither
+          wears a filled treatment, and `text-destructive` distinguishes the
+          permanent one from the reversible one without promoting it. */}
+      <div className="text-center mt-5 flex flex-col items-center gap-1">
         <Button
           variant="ghost"
           size="sm"
@@ -144,7 +190,21 @@ const AccountDenied = () => {
         >
           <LogOut className="w-4 h-4 mr-1" /> Sign Out
         </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={deleteAccount.requestDelete}
+          className="text-destructive hover:text-destructive"
+        >
+          <Trash2 className="w-4 h-4 mr-1" /> Delete Account
+        </Button>
       </div>
+
+      {deleteAccount.isOpen && (
+        <Suspense fallback={null}>
+          <DeleteAccountDialog {...deleteAccount.dialogProps} />
+        </Suspense>
+      )}
     </AuthShell>
   );
 };

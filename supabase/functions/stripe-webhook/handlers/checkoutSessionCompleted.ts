@@ -263,34 +263,61 @@ export async function handleCheckoutSessionCompleted(
     if (boostJobId) {
       const now = new Date();
       const expires = new Date(now.getTime() + durationHours * 60 * 60 * 1000);
-      const { error: boostError } = await supabase
+      // `.select("id")` + a zero-row branch, exactly like the escrow twin below.
+      // A null error does NOT mean the write happened, and this is the one boost
+      // path where the user actually PAID — both free paths in
+      // create-boost-payment already carry this guard.
+      //
+      // The zero-row case is reachable, not theoretical: create-boost-payment
+      // gates only on `status = 'open'` and never stamps `stripe_session_id`,
+      // so 20260903055308's delete guard — which keys on that column — does not
+      // cover a boost checkout at all. The poster can delete the job (RLS still
+      // allows it at unpaid+no-session or abandoned) while the Stripe page is
+      // open, and an admin delete bypasses RLS entirely. Without this branch the
+      // UPDATE matched zero rows, returned `error: null`, fell through to the
+      // `else` and logged "Boost applied" — then the webhook 200-ACKed, which
+      // COMMITS the idempotency row, so Stripe's redelivery dedupe-skips and the
+      // paid boost is lost permanently with no alert.
+      const { data: boostedRows, error: boostError } = await supabase
         .from("jobs")
         .update({
           boosted_at: now.toISOString(),
           boost_expires_at: expires.toISOString(),
           boost_auto_extended: false,
         })
-        .eq("id", boostJobId);
-      if (boostError) {
-        logStep("ERROR applying boost", { error: boostError.message });
+        .eq("id", boostJobId)
+        .select("id");
+      if (boostError || !boostedRows || boostedRows.length === 0) {
+        logStep("ERROR applying boost", {
+          error: boostError?.message ?? "matched 0 rows — job deleted mid-checkout",
+        });
         // Throw so the outer handler rolls back the idempotency row and returns
         // 500 — letting Stripe redeliver once the DB recovers. A silent 200 here
         // permanently loses the boost: the user paid but it never activates with
         // no retry path. The re-delivered UPDATE is idempotent (sets the same
-        // timestamps) so it is safe to retry.
+        // timestamps) so it is safe to retry. A retry cannot fix the job-deleted
+        // case, and that is deliberate and matches the escrow handler: the point
+        // is that the charge stays visibly unreconciled instead of silently
+        // disappearing, so someone refunds it.
         await postSlackOpsAlert({
           kind: "custom",
           severity: "critical",
-          title: "Job boost — activation failed after payment captured",
-          message: "A boost checkout captured but the jobs UPDATE (boosted_at/boost_expires_at) failed. Stripe will retry.",
+          title: boostError
+            ? "Job boost — activation failed after payment captured"
+            : "Job boost — THE JOB IS GONE and the payment was captured",
+          message: boostError
+            ? "A boost checkout captured but the jobs UPDATE (boosted_at/boost_expires_at) failed. Stripe will retry."
+            : "A boost checkout captured but the job row no longer exists, so the boost can never be applied. Refund the charge — Stripe will keep retrying until someone does.",
           fields: {
             session_id: session.id,
             job_id: String(boostJobId),
             duration_hours: String(durationHours),
-            db_error: boostError.message,
+            db_error: boostError?.message ?? "matched 0 rows",
           },
         });
-        throw new Error(`Boost activation failed for job ${boostJobId}: ${boostError.message}`);
+        throw new Error(
+          `Boost activation failed for job ${boostJobId}: ${boostError?.message ?? "matched 0 rows"}`,
+        );
       } else {
         logStep("Boost applied", { jobId: boostJobId, expires: expires.toISOString() });
       }

@@ -306,15 +306,35 @@ export function MarketingQueue({
                         {row.generated_by && <span>via {row.generated_by}</span>}
                       </div>
 
-                      {row.status === "failed" && row.last_error && (
+                      {/* `failed` is not the only status where last_error means
+                          something. When the dispatcher declines a row — channel
+                          off, over the daily cap, outside the posting window —
+                          `releaseRow` puts it BACK to `scheduled` with the reason
+                          in last_error (marketing-publish/index.ts:489-501). Gating
+                          this on `failed` hid exactly that case: the row read
+                          "Scheduled 9:00am", the time passed, nothing published,
+                          and the explanation sat in a column the UI would not
+                          render. Both write paths that move a row INTO `scheduled`
+                          deliberately null last_error (scheduleMarketingContent,
+                          retryMarketingContent), so a scheduled row carrying one is
+                          unambiguously a deferral — never a stale message.
+                          Amber, not red: it will be retried on the next tick. */}
+                      {row.last_error && (row.status === "failed" || row.status === "scheduled") && (
                         <p
                           className="rounded-md px-2 py-1.5 text-ds-11"
-                          style={{
-                            background: "hsl(var(--destructive) / 0.08)",
-                            color: "hsl(var(--destructive))",
-                          }}
+                          style={
+                            row.status === "failed"
+                              ? {
+                                  background: "hsl(var(--destructive) / 0.08)",
+                                  color: "hsl(var(--destructive))",
+                                }
+                              : {
+                                  background: "hsl(var(--amber-tint) / 0.12)",
+                                  color: "hsl(var(--burnt-sienna))",
+                                }
+                          }
                         >
-                          {row.last_error}
+                          {row.status === "scheduled" ? `Held back — ${row.last_error}` : row.last_error}
                         </p>
                       )}
 

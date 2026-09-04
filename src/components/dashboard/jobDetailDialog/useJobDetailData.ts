@@ -21,11 +21,19 @@ export function useJobDetailData({ job, guest, userLat, userLng }: UseJobDetailD
   // taps the "View all" pill on the cover. Plain number so a click
   // increments + re-fires the effect even on the same photo.
   const [gridOpenNonce, setGridOpenNonce] = useState(0);
-  const [applicationCount, setApplicationCount] = useState<number | null>(null);
-  // The viewer's own application position (1-indexed) among existing
-  // applicants for this job — null if they haven't applied yet. Drives
-  // the "you're #3 of 7" banner that replaces the generic "X applied"
-  // line for already-applied helpers, so the feed feels accountable.
+  // WHETHER the viewer has applied to this job — null if they haven't. The
+  // number itself is NOT meaningful and must never be rendered: RLS on
+  // `applications` returns a helper only their OWN row, so the index below is
+  // always 0 and the "position" is always 1, for every helper on every job
+  // (proven live against prod: the 3rd of 4 applicants sees a count of 1).
+  // Kept as a number rather than a boolean only to avoid churning the three
+  // call sites that read it for null-ness.
+  //
+  // A per-open `applicationCount` was computed off the same fetch and returned
+  // from this hook, but NO component ever consumed it — and it was equally
+  // wrong for the same reason. The real figure is already on the row as
+  // `applicant_count`, which `open_jobs_browse` projects; use that if a count
+  // is ever wanted here.
   const [viewerAppPosition, setViewerAppPosition] = useState<number | null>(null);
   // The auth'd user's ID — used to hide the Share button for jobs the
   // current user posted (they're the owner, not a potential helper).
@@ -75,7 +83,6 @@ export function useJobDetailData({ job, guest, userLat, userLng }: UseJobDetailD
   // Reset transient state when the dialog switches to a new job.
   useEffect(() => {
     setLightboxIndex(null);
-    setApplicationCount(null);
     setViewerAppPosition(null);
     setViewerUserId(null);
     setPosterCancelRate(null);
@@ -107,21 +114,17 @@ export function useJobDetailData({ job, guest, userLat, userLng }: UseJobDetailD
     })();
   }, [guest, job?.id, job?.customer_id]);
 
-  // Fetch how many helprs have already applied AND — if the viewer is
-  // already in that queue — what position (1-indexed by created_at)
-  // they hold. The position is what powers the "you're #3 of 7" banner
-  // for an already-applied helper; the raw count powers the original
-  // "X helpers applied — you'd be #(X+1)" banner for fresh viewers.
+  // Establish whether the viewer has already applied to this job, and pick up
+  // their user id while we're here.
   useEffect(() => {
     if (guest || !job?.id) return;
     let cancelled = false;
     (async () => {
-      // We need both the total count AND, for the current user, the
-      // index of their application in created_at order. Doing the
-      // small list fetch (just ids + created_at + helper_id) and
-      // counting locally is cheaper than two round-trips for a job
-      // with under ~50 applicants — and the head-count above is
-      // already gated to "has the helpr seen this job? yes."
+      // This reads as a list fetch but RLS makes it a membership test: the
+      // `applications` SELECT policy returns a helper only their own row, so
+      // `rows` is either empty or a single self row. It is NOT a census of the
+      // queue and must not be counted or indexed for display — see the
+      // viewerAppPosition comment above.
       const [{ data: apps, error }, { data: userRes }] = await Promise.all([
         supabase
           .from("applications")
@@ -132,12 +135,10 @@ export function useJobDetailData({ job, guest, userLat, userLng }: UseJobDetailD
       ]);
       if (cancelled) return;
       if (error) {
-        report(error, { tags: { source: "JobDetailDialog.applicationCount" } });
-        setApplicationCount(0);
+        report(error, { tags: { source: "JobDetailDialog.viewerApplied" } });
         return;
       }
       const rows = apps ?? [];
-      setApplicationCount(rows.length);
       const helperId = userRes?.user?.id;
       if (helperId) {
         setViewerUserId(helperId);
@@ -243,7 +244,6 @@ export function useJobDetailData({ job, guest, userLat, userLng }: UseJobDetailD
     descExpanded, setDescExpanded,
     lightboxIndex, setLightboxIndex,
     gridOpenNonce, setGridOpenNonce,
-    applicationCount,
     viewerAppPosition,
     viewerUserId,
     repeatJobs,

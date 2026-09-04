@@ -246,6 +246,79 @@ describe("fixture-job visibility — one switch, every surface", () => {
     ],
   ]);
 
+  /**
+   * The exemptions above that hold ONLY while nothing calls the object.
+   *
+   * Their reason text is prose, and prose is not a check. This is the same
+   * failure shape the name-regex axis had: the guard reads as if it verifies
+   * something it never looks at. `get_marketplace_activity_count` counts open
+   * jobs with no `is_seed` filter and consults no gate (confirmed against prod
+   * on 2026-09-03 — its live `pg_get_functiondef` contains neither
+   * `seed_jobs_hidden_publicly` nor `is_seed`). It is exempt purely because
+   * nothing calls it. Wire it into, say, a landing-page "jobs posted this
+   * month" counter and the exemption is silently false: this suite stays green
+   * while that counter reports fixture jobs after the launch flip.
+   *
+   * So the precondition is asserted, not asserted-in-a-comment. If this fails,
+   * do NOT add the caller to an allowlist — give the object the gate and move
+   * it into SEED_GATED_SURFACES.
+   */
+  const EXEMPT_ONLY_WHILE_UNCALLED = ["get_marketplace_activity_count"];
+
+  it("every exemption that depends on having no callers still has none", () => {
+    // `src/integrations/supabase/types.ts` is generated from the schema and
+    // names every RPC that exists, so it is a mention, never a call site.
+    const GENERATED = resolve(__dirname, "../integrations/supabase/types.ts");
+    const stripComments = (s: string) =>
+      s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^[^\n"'`]*\/\/.*$/gm, "");
+
+    const files: string[] = [];
+    const walk = (dir: string) => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const path = resolve(dir, entry.name);
+        if (entry.isDirectory()) {
+          if (entry.name !== "node_modules") walk(path);
+        } else if (
+          /\.tsx?$/.test(entry.name) &&
+          !entry.name.endsWith("parity.test.ts") &&
+          // `src/test/edge/harness.ts` writes and deletes gitignored `.gen.ts`
+          // siblings while its own tests run concurrently with this one — a
+          // real file that can vanish between this readdirSync and the
+          // readFileSync below. It is scaffolding, never a real call site.
+          !entry.name.includes(".gen.")
+        ) {
+          if (path !== GENERATED) files.push(path);
+        }
+      }
+    };
+    walk(resolve(__dirname, ".."));
+    walk(resolve(__dirname, "../../supabase/functions"));
+
+    const offenders: string[] = [];
+    for (const fn of EXEMPT_ONLY_WHILE_UNCALLED) {
+      for (const path of files) {
+        let content: string;
+        try {
+          content = readFileSync(path, "utf8");
+        } catch {
+          // Same transient-file race, one layer later — the harness deleted
+          // it between the walk above and this read. Not a real source file.
+          continue;
+        }
+        if (stripComments(content).includes(fn)) {
+          offenders.push(`${fn} <- ${path}`);
+        }
+      }
+    }
+
+    expect(
+      offenders.sort(),
+      `These objects are exempt from the seed gate ONLY because nothing calls ` +
+        `them, and something now does. Give them the gate and register them in ` +
+        `SEED_GATED_SURFACES — do not widen the exemption.`,
+    ).toEqual([]);
+  });
+
   it("every migration object that SELECTS open jobs is gated or declared not-a-feed", () => {
     const registered = new Set(SEED_GATED_SURFACES.map((s) => s.object.toLowerCase()));
 

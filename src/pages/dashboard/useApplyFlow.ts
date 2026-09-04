@@ -16,16 +16,36 @@ import type { EnrichedJob } from "@/components/dashboard/types";
 import type { ApplyVars, ApplySnapshot, DashboardContextSlice } from "./dashboardTypes";
 import { userFacingError } from "@/lib/userFacingError";
 
-// The apply_to_job RPC RAISEs these exact strings for the states a helper can
-// actually hit (see 20260612450000_apply_to_job_rate_limit.sql). Map each to a
-// warm, human toast so the real reason surfaces instead of the generic
-// "Couldn't send your application through" fallback. Keys MUST match the RPC's
-// RAISE text verbatim — a drift here silently falls back to the generic toast.
+/* Keyed by the exact string a Postgres RAISE puts in `error.message`.
+   The first four come from the `apply_to_job` RPC. The last two come from
+   BEFORE INSERT TRIGGERS on `applications`, which fire on the insert the RPC
+   performs and are therefore invisible from the RPC's own body — the reason
+   they were missing here. Anything NOT in this map falls through to the
+   generic errorToast at the bottom of onError, which offers a RETRY; every
+   entry here is a deterministic refusal where retrying re-fails identically,
+   so they must be matched by name and toasted without one.
+
+   `credential_tier_required` is a stable machine token (like `rate_limit_*`).
+   The application-limit entry matches the trigger's human prose, so it is
+   brittle by construction: if `enforce_application_limit`'s message is ever
+   reworded, this silently stops matching and the retry loop comes back. */
 const APPLY_RPC_MESSAGES: Record<string, string> = {
   "Already applied to this job": "You've already applied to this job.",
   "Cannot apply to your own job": "You can't apply to your own post.",
   "Job is no longer accepting applications": "This task isn't accepting applications anymore.",
   "Job not found": "This task is no longer available.",
+  // enforce_application_credential_tier (20260824251000). The trigger's HINT
+  // separates "licensed" from "licensed + insured", but PostgREST puts HINT in
+  // `hint` and supabase-js surfaces `message`, so the hint never arrives — one
+  // line has to cover both tiers.
+  credential_tier_required:
+    "You don't have the credentials this job requires. Add your license or insurance in your profile to apply.",
+  // enforce_application_limit. Deliberately the SAME copy as the RPC's
+  // `rate_limit_day` above and deliberately WITHOUT the count: the trigger caps
+  // at 15/24h while apply_to_job's own daily check is 200, so naming a number
+  // here would pick a side in a conflict the client cannot see.
+  "You have reached the daily application limit (15). Please try again tomorrow.":
+    "You've hit today's application limit — check back tomorrow.",
 };
 
 type UseApplyFlowArgs = {

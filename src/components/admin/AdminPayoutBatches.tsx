@@ -168,13 +168,30 @@ const AdminPayoutBatches = () => {
           .limit(50),
       );
       const rows = (data ?? []) as Omit<PayoutLedgerRow, "profiles">[];
-      const helperIds = [...new Set(rows.map((r) => r.helper_id))];
-      const profileRows = unwrap(
-        await supabase
-          .from("profiles")
-          .select("user_id, full_name")
-          .in("user_id", helperIds),
-      );
+      // `helper_id` is NULLABLE: payout_transfers_helper_id_fkey is
+      // ON DELETE SET NULL against auth.users, so a helper who deletes their
+      // account leaves their settled transfers behind with a null helper.
+      //
+      // A null must never reach `.in()`. PostgREST serialises the list into
+      // the URL as `in.(<uuid>,null)`, Postgres rejects `null` as a uuid
+      // literal, and the response is HTTP 400 `22P02 invalid input syntax for
+      // type uuid: "null"` — for the WHOLE request, not one row. Wrapped in
+      // `unwrap()` that throws, so a single departed helper would put the
+      // entire payout ledger into an error state rather than blanking one
+      // name. Verified against prod: `in.(<uuid>,null)` → 400, the same query
+      // without the null → 200.
+      //
+      // The row itself still renders; `nameMap.get(null)` misses and
+      // LedgerList falls back to its "Unknown Helpr" label.
+      const helperIds = [...new Set(rows.map((r) => r.helper_id).filter((id): id is string => !!id))];
+      const profileRows = helperIds.length
+        ? unwrap(
+            await supabase
+              .from("profiles")
+              .select("user_id, full_name")
+              .in("user_id", helperIds),
+          )
+        : [];
       const nameMap = new Map((profileRows ?? []).map((p) => [p.user_id, p.full_name]));
       return rows.map((r) => ({
         ...r,

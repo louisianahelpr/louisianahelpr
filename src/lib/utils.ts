@@ -72,3 +72,28 @@ export function formatName(fullName: string | null | undefined, fallback = "A ne
   }
   return parts[0];
 }
+
+/**
+ * Keep the FIRST occurrence of each `id`, preserving order.
+ *
+ * Both job feeds page with plain OFFSET/LIMIT over a rank that can change
+ * between two page fetches — `get_ranked_open_jobs` orders by `rank_score`,
+ * where buying a boost adds +1000 and moves that row to position 0, and the
+ * dashboard view orders by `boosted_at`. When a row jumps ABOVE the current
+ * offset mid-scroll every later row shifts down one slot, so the next page
+ * re-serves the row that was already the last card of the previous page.
+ * Reproduced against prod: page 1 of `get_ranked_open_jobs(4,0)`, a boost on a
+ * row further down, then `(4,4)` returned page 1's final id as its first.
+ *
+ * This kills the visible duplicate-card symptom only. The symmetric case — a
+ * row shifting DOWN past the offset and never being served at all — is
+ * invisible here and needs a keyset cursor to fix properly.
+ */
+export function dedupeById<T extends { id: string }>(rows: T[]): T[] {
+  const seen = new Set<string>();
+  return rows.filter((row) => {
+    if (seen.has(row.id)) return false;
+    seen.add(row.id);
+    return true;
+  });
+}

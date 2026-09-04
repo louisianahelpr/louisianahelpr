@@ -46,6 +46,38 @@ import { join } from "node:path";
 const COMMITTED = "src/integrations/supabase/types.ts";
 
 /**
+ * The `public:` schema block, and ONLY it.
+ *
+ * WHY (filed by lh-generated-drift 2026-09-03, after this guard's first red run)
+ * A generated `Database` type holds one block per schema. The committed file was
+ * produced by an older CLI invocation that also emitted `graphql_public`, whose
+ * `Functions:` block declares `graphql()`. `npm run db:types` passes
+ * `--schema public` and therefore never emits that block — so comparing the two
+ * whole files reported `graphql()` as "gone from prod — callers are already
+ * failing" on EVERY run, against a function no code has ever called.
+ *
+ * That is this repo's signature failure in its other direction: not a green
+ * that should be red, but a permanent red nobody can act on. A gate that names
+ * the same phantom every time is a gate people learn to scroll past, and the
+ * real drift it was built to surface scrolls past with it.
+ *
+ * Both extractors below are scoped through here so the comparison is
+ * schema-for-schema. Absence is a hard failure rather than a fallback to the
+ * whole file: a types file with no `public` schema is not something to guess at.
+ */
+function publicSchema(source, label) {
+  const start = source.search(/^ {2}public: \{$/m);
+  if (start === -1) {
+    console.error(`✖ No \`public:\` schema block found in the ${label} types.`);
+    console.error("  That is a broken check, not a passing one. Refusing to report success.");
+    process.exit(1);
+  }
+  const rest = source.slice(start);
+  const end = rest.search(/^ {2}\}$/m);
+  return end === -1 ? rest : rest.slice(0, end);
+}
+
+/**
  * Extract `table.column -> nullable?` from a generated types file.
  *
  * Only the `Row:` block of each table matters: `Insert`/`Update` legitimately
@@ -166,10 +198,14 @@ if (freshFlag !== -1) {
 }
 
 const committedText = readFileSync(COMMITTED, "utf8");
-const committed = nullabilityMap(committedText);
-const fresh = nullabilityMap(freshText);
-const committedFns = functionNames(committedText);
-const freshFns = functionNames(freshText);
+// Scoped to `public` on BOTH sides — see publicSchema() for why comparing the
+// whole files reported a phantom `graphql()` removal on every run.
+const committedPublic = publicSchema(committedText, "committed");
+const freshPublic = publicSchema(freshText, "freshly generated");
+const committed = nullabilityMap(committedPublic);
+const fresh = nullabilityMap(freshPublic);
+const committedFns = functionNames(committedPublic);
+const freshFns = functionNames(freshPublic);
 
 if (fresh.size === 0) {
   // A generation that parsed to nothing would pass vacuously — the exact bug

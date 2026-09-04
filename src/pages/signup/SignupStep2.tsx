@@ -135,7 +135,7 @@ export function SignupStep2(props: SignupStep2Props) {
             pushed First/Last to x=273 while every field below started at
             x=129 — a visible step down the form's left edge. */}
         <div className="space-y-2 text-center pb-3">
-          <Label className={labelCls}>Profile photo <span aria-hidden style={{ color: "hsl(var(--destructive))" }}>*</span></Label>
+          <Label className={labelCls}>Profile photo <span aria-hidden style={{ color: "hsl(var(--destructive-ink))" }}>*</span></Label>
           <div className="flex flex-col items-center gap-1.5">
           <label className="cursor-pointer group relative inline-block active:scale-[0.98] transition-transform rounded-full focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring">
             <div
@@ -188,7 +188,7 @@ export function SignupStep2(props: SignupStep2Props) {
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
-            <Label htmlFor="firstName" className={labelCls}>First name <span aria-hidden style={{ color: "hsl(var(--destructive))" }}>*</span></Label>
+            <Label htmlFor="firstName" className={labelCls}>First name <span aria-hidden style={{ color: "hsl(var(--destructive-ink))" }}>*</span></Label>
             <div className="relative">
               <Input id="firstName" value={firstName} onChange={(e) => { setFirstName(e.target.value); clearFieldError?.("firstName"); }} required aria-required="true" autoComplete="given-name" autoCapitalize="words" aria-invalid={!!fieldErrors.firstName} aria-describedby={fieldErrors.firstName ? "firstName-error" : undefined} className={`${inputCls}${firstNameValid && !fieldErrors.firstName ? " pr-10" : ""}${fieldErrors.firstName ? " border-destructive" : ""}`} />
               {firstNameValid && !fieldErrors.firstName && (
@@ -198,7 +198,7 @@ export function SignupStep2(props: SignupStep2Props) {
             <FieldError id="firstName-error" message={fieldErrors.firstName} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="lastName" className={labelCls}>Last name <span aria-hidden style={{ color: "hsl(var(--destructive))" }}>*</span></Label>
+            <Label htmlFor="lastName" className={labelCls}>Last name <span aria-hidden style={{ color: "hsl(var(--destructive-ink))" }}>*</span></Label>
             <div className="relative">
               <Input id="lastName" value={lastName} onChange={(e) => { setLastName(e.target.value); clearFieldError?.("lastName"); }} required aria-required="true" autoComplete="family-name" autoCapitalize="words" aria-invalid={!!fieldErrors.lastName} aria-describedby={fieldErrors.lastName ? "lastName-error" : undefined} className={`${inputCls}${lastNameValid && !fieldErrors.lastName ? " pr-10" : ""}${fieldErrors.lastName ? " border-destructive" : ""}`} />
               {lastNameValid && !fieldErrors.lastName && (
@@ -213,7 +213,7 @@ export function SignupStep2(props: SignupStep2Props) {
             full-width control. */}
         <div className="grid grid-cols-2 gap-3 items-start">
           <div className="space-y-2">
-            <Label htmlFor="dob" className={labelCls}>Date of birth <span aria-hidden style={{ color: "hsl(var(--destructive))" }}>*</span></Label>
+            <Label htmlFor="dob" className={labelCls}>Date of birth <span aria-hidden style={{ color: "hsl(var(--destructive-ink))" }}>*</span></Label>
             {/* Single native date field — on iOS this opens the system wheel
                 picker (one tap), and `max` (today − 18y) keeps the wheel near a
                 plausible birth year and blocks under-18 dates at the UI layer;
@@ -236,7 +236,7 @@ export function SignupStep2(props: SignupStep2Props) {
             <FieldError id="dob-error" message={fieldErrors.dateOfBirth} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="phone" className={labelCls}>Phone number <span aria-hidden style={{ color: "hsl(var(--destructive))" }}>*</span></Label>
+            <Label htmlFor="phone" className={labelCls}>Phone number <span aria-hidden style={{ color: "hsl(var(--destructive-ink))" }}>*</span></Label>
             <div className="relative">
               {/* Country code badge — Helpr is Louisiana-only, so every
                   number is +1. Showing it inline makes the formatting
@@ -279,7 +279,7 @@ export function SignupStep2(props: SignupStep2Props) {
             signup satisfies CompleteProfile's full gate immediately and
             never sees /complete-profile at all. */}
         <div className="space-y-2">
-          <Label htmlFor="location" className={labelCls}>City <span aria-hidden style={{ color: "hsl(var(--destructive))" }}>*</span></Label>
+          <Label htmlFor="location" className={labelCls}>City <span aria-hidden style={{ color: "hsl(var(--destructive-ink))" }}>*</span></Label>
           <div className="relative">
             <CityAutocomplete
               id="location"

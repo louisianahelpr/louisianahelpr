@@ -4,6 +4,7 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { queryKeys } from "@/lib/queryKeys";
+import { dedupeById } from "@/lib/utils";
 import { CARDS_PER_ROW, PAGE_SIZE } from "./jobsConstants";
 import type { JobsPage, PublicJob } from "./types";
 
@@ -99,8 +100,12 @@ export const useOpenJobsFeed = ({
     gcTime: 5 * 60 * 1000,
   });
 
+  // `dedupeById` because the pages are OFFSET/LIMIT windows over `rank_score`,
+  // which a boost raises by +1000 mid-scroll — lifting that row above the
+  // offset and re-serving the previous page's last card as this page's first.
+  // Reproduced live against prod; see the helper's comment.
   const jobs = useMemo<PublicJob[]>(
-    () => (pagesData?.pages ?? []).flatMap((p) => p.jobs),
+    () => dedupeById((pagesData?.pages ?? []).flatMap((p) => p.jobs)),
     [pagesData],
   );
 

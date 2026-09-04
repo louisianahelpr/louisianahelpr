@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { PARISHES, parishBySlug, parishByName, parishLabel } from "./parishes";
+import { PARISHES, parishBySlug, parishByName, parishLabel, parishForCity } from "./parishes";
 
 /**
  * These tests re-derive the parish registry from the ZIP→parish seed migration
@@ -98,5 +98,65 @@ describe("parish lookups", () => {
   it("adds the word Louisiana uses when rendering a name", () => {
     expect(parishLabel(parishBySlug("orleans")!)).toBe("Orleans Parish");
     expect(parishLabel(parishBySlug("east-baton-rouge")!)).toBe("East Baton Rouge Parish");
+  });
+});
+
+describe("parishForCity (signup ZIP/city sanity hint)", () => {
+  it("resolves a listed city to its parish, case-insensitively", () => {
+    expect(parishForCity("New Orleans")?.name).toBe("Orleans");
+    expect(parishForCity("new orleans")?.name).toBe("Orleans");
+    expect(parishForCity("  Baton Rouge  ")?.name).toBe("East Baton Rouge");
+  });
+
+  it("returns null for a city not in the registry — NOT evidence of a mismatch", () => {
+    // The registry only lists a handful of cities per parish (see the header
+    // comment); a real, correctly-matched small town absent from it must
+    // read as \"unknown\", never as \"wrong\". This is the exact distinction
+    // the signup mismatch hint's own logic depends on to avoid false
+    // positives — it only flags a match against a DIFFERENT parish.
+    expect(parishForCity("Some Tiny Unlisted Town")).toBeNull();
+  });
+
+  it("returns null for empty/null/undefined input", () => {
+    expect(parishForCity("")).toBeNull();
+    expect(parishForCity(null)).toBeNull();
+    expect(parishForCity(undefined)).toBeNull();
+  });
+
+  it("every UNAMBIGUOUS city (listed under exactly one parish) resolves back to that parish", () => {
+    // Some real city names are seeded under more than one parish (border
+    // towns) — parishForCity deliberately returns null for those rather than
+    // guessing, so this only asserts the round-trip for names that appear
+    // under a single parish across the whole registry.
+    const countsByCity = new Map<string, number>();
+    for (const parish of PARISHES) {
+      for (const city of parish.cities) {
+        const key = city.toLowerCase();
+        countsByCity.set(key, (countsByCity.get(key) ?? 0) + 1);
+      }
+    }
+    for (const parish of PARISHES) {
+      for (const city of parish.cities) {
+        if (countsByCity.get(city.toLowerCase())! > 1) continue;
+        expect(parishForCity(city)?.name, `${city} -> ${parish.name}`).toBe(parish.name);
+      }
+    }
+  });
+
+  it("returns null (not a guess) for a city seeded under more than one parish", () => {
+    // Robeline is listed under both Sabine and Natchitoches in the registry
+    // today. If the registry ever stops containing a genuine duplicate this
+    // assertion will need a different example — the point being tested is
+    // the ambiguous-city behavior, not this specific town.
+    const countsByCity = new Map<string, number>();
+    for (const parish of PARISHES) {
+      for (const city of parish.cities) {
+        const key = city.toLowerCase();
+        countsByCity.set(key, (countsByCity.get(key) ?? 0) + 1);
+      }
+    }
+    const duplicated = [...countsByCity.entries()].find(([, n]) => n > 1);
+    expect(duplicated, "expected at least one city listed under multiple parishes").toBeTruthy();
+    expect(parishForCity(duplicated![0])).toBeNull();
   });
 });

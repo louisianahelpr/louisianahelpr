@@ -26,6 +26,8 @@ import { getPublicOrigin } from "@/lib/authRedirects";
 import { userFacingError } from "@/lib/userFacingError";
 import { recognizedAuthError } from "@/lib/authErrors";
 import { completeSignupErrorCopy } from "./signup/completeSignupError";
+import { lookupParishByZip } from "@/lib/parishLookup";
+import { parishForCity } from "@/lib/parishes";
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -88,6 +90,33 @@ const Signup = () => {
   const [phone, setPhone] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [location, setLocation] = useState("");
+  // ZIP is optional (S-001, lh-suggester) — City alone satisfies the step,
+  // ZIP just unlocks parish-based helper-notification matching and Louisiana
+  // sales tax. Digits only, mirrors ProfileEditForm's own zipCode input.
+  const [zipCode, setZipCode] = useState("");
+  // Live parish resolution from the ZIP, mirroring ProfileEditForm's own
+  // effect exactly — resolved as the user types so the mismatch hint below
+  // can render before submit, not just at it.
+  const [resolvedZipParish, setResolvedZipParish] = useState<string | null>(null);
+  useEffect(() => {
+    const cleaned = zipCode.replace(/\D/g, "");
+    if (cleaned.length !== 5) { setResolvedZipParish(null); return; }
+    let cancelled = false;
+    lookupParishByZip(cleaned).then((p) => { if (!cancelled) setResolvedZipParish(p); });
+    return () => { cancelled = true; };
+  }, [zipCode]);
+  // Soft mismatch hint (owner-requested 2026-09-04): only fires when the
+  // typed City is a RECOGNIZED city of a DIFFERENT parish than the ZIP
+  // resolved to — never when the city is merely absent from the registry
+  // (parishForCity's own contract: null means "unknown", not "no match"),
+  // so a real small-town combination the registry doesn't list never gets
+  // flagged as wrong.
+  const cityZipMismatch = (() => {
+    if (!resolvedZipParish) return null;
+    const cityParish = parishForCity(location);
+    if (!cityParish || cityParish.name === resolvedZipParish) return null;
+    return `That ZIP usually maps to ${resolvedZipParish} Parish, not where ${location.trim()} is (${cityParish.name} Parish) — double check it.`;
+  })();
   // Referral code is captured only from the `?ref=` deep link now (the manual
   // entry field lived on the removed Step 3). process_referral just records the
   // link at signup; the $5 credit is released by a DB trigger when the referred
@@ -242,6 +271,10 @@ const Signup = () => {
   const completeProfile = async (userId: string) => {
     const avatarBase64 = avatarFile ? await fileToBase64(avatarFile) : null;
     const avatarExt = avatarFile ? avatarFile.name.split(".").pop() : null;
+    // Reuse the already-resolved value from the live effect above rather
+    // than re-querying — it tracks zipCode exactly, so it's always current
+    // by the time a user reaches this step.
+    const parish = resolvedZipParish;
 
     // The optional profile extras that used to be collected on Step 3 are
     // handled two different ways now, and the difference matters:
@@ -260,6 +293,8 @@ const Signup = () => {
         phone,
         bio,
         location,
+        zipCode: zipCode.trim() || null,
+        parish,
         dateOfBirth: dateOfBirth || null,
         // Explicit marketing-email consent captured at signup. Defaults to
         // false server-side; passing it here lets a user who ticked the box
@@ -506,6 +541,9 @@ const Signup = () => {
             setDateOfBirth={setDateOfBirth}
             location={location}
             setLocation={setLocation}
+            zipCode={zipCode}
+            setZipCode={setZipCode}
+            zipCityMismatch={cityZipMismatch}
             bio={bio}
             setBio={setBio}
             inputCls={inputCls}

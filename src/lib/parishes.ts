@@ -118,6 +118,42 @@ export const parishBySlug = (slug: string | undefined): Parish | null =>
 export const parishByName = (name: string | null | undefined): Parish | null =>
   name ? (BY_NAME.get(name) ?? null) : null;
 
+/** City name (case-insensitive) → the parish that lists it, for the small set
+ * of cities this registry actually names. Used only for a soft "does this
+ * ZIP match the city you typed" sanity check at signup/profile-edit — NOT
+ * exhaustive (the registry only lists a handful of cities per parish; a
+ * small town missing from it returns null, not "no parish"), so callers
+ * must never treat a null result as evidence of a mismatch, only a match
+ * against a DIFFERENT parish as evidence.
+ *
+ * A city listed under more than one parish (e.g. "Robeline" appears in both
+ * Sabine's and Natchitoches's seeded city lists — a real border town, not a
+ * data bug) is deliberately excluded rather than assigned to whichever
+ * parish iterates last: silently picking one would flag a false mismatch
+ * for every real resident of the OTHER parish it's also listed under. */
+const AMBIGUOUS_CITY_MARKER = Symbol("ambiguous city — listed under multiple parishes");
+const BY_CITY_LOWER: ReadonlyMap<string, Parish | typeof AMBIGUOUS_CITY_MARKER> = (() => {
+  const map = new Map<string, Parish | typeof AMBIGUOUS_CITY_MARKER>();
+  for (const p of PARISHES) {
+    for (const c of p.cities) {
+      const key = c.toLowerCase();
+      const existing = map.get(key);
+      if (existing && existing !== p) {
+        map.set(key, AMBIGUOUS_CITY_MARKER);
+      } else {
+        map.set(key, p);
+      }
+    }
+  }
+  return map;
+})();
+
+export const parishForCity = (city: string | null | undefined): Parish | null => {
+  if (!city) return null;
+  const found = BY_CITY_LOWER.get(city.trim().toLowerCase());
+  return found && found !== AMBIGUOUS_CITY_MARKER ? found : null;
+};
+
 /**
  * Human-facing name. Louisiana calls them parishes, not counties, and the DB
  * stores the bare stem — so every rendered string adds the word here rather

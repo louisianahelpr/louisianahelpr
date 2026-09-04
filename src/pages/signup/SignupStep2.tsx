@@ -60,6 +60,12 @@ export interface SignupStep2Props {
   setDateOfBirth: (v: string) => void;
   location: string;
   setLocation: (v: string) => void;
+  /** Optional — unlocks parish-based helper notifications + LA sales tax. */
+  zipCode: string;
+  setZipCode: (v: string) => void;
+  /** Soft sanity hint — set when the ZIP's parish and the typed City's
+   * recognized parish disagree. Null when there's nothing to flag. */
+  zipCityMismatch?: string | null;
   bio: string;
   setBio: (v: string) => void;
   inputCls: string;
@@ -95,6 +101,9 @@ export function SignupStep2(props: SignupStep2Props) {
     setDateOfBirth,
     location,
     setLocation,
+    zipCode,
+    setZipCode,
+    zipCityMismatch,
     bio,
     setBio,
     inputCls,
@@ -278,21 +287,55 @@ export function SignupStep2(props: SignupStep2Props) {
             enough to collect here. Colocating it in signup means an email
             signup satisfies CompleteProfile's full gate immediately and
             never sees /complete-profile at all. */}
-        <div className="space-y-2">
-          <Label htmlFor="location" className={labelCls}>City <span aria-hidden style={{ color: "hsl(var(--destructive-ink))" }}>*</span></Label>
-          <div className="relative">
-            <CityAutocomplete
-              id="location"
-              value={location}
-              onChange={(v) => { setLocation(v); clearFieldError?.("location"); }}
-              className={`${inputCls}${locationValid && !fieldErrors.location ? " pr-10" : ""}${fieldErrors.location ? " border-destructive" : ""}`}
-            />
-            {locationValid && !fieldErrors.location && (
-              <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none z-10" strokeWidth={2.5} aria-hidden />
-            )}
+        <div className="grid grid-cols-3 gap-3">
+          <div className="col-span-2 space-y-2">
+            <Label htmlFor="location" className={labelCls}>City <span aria-hidden style={{ color: "hsl(var(--destructive-ink))" }}>*</span></Label>
+            <div className="relative">
+              <CityAutocomplete
+                id="location"
+                value={location}
+                onChange={(v) => { setLocation(v); clearFieldError?.("location"); }}
+                className={`${inputCls}${locationValid && !fieldErrors.location ? " pr-10" : ""}${fieldErrors.location ? " border-destructive" : ""}`}
+              />
+              {locationValid && !fieldErrors.location && (
+                <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none z-10" strokeWidth={2.5} aria-hidden />
+              )}
+            </div>
+            <FieldError id="location-error" message={fieldErrors.location} />
           </div>
-          <FieldError id="location-error" message={fieldErrors.location} />
+          {/* ZIP is OPTIONAL — City alone satisfies this step (S-001,
+              lh-suggester). ZIP unlocks two things that otherwise never
+              happen: parish-based "a job near you" notifications for
+              helpers, and Louisiana sales tax on the jobs this account
+              posts. Not required because adding a second required field to
+              the highest-traffic form in the product is a friction/quality
+              tradeoff worth making deliberately, not as a side effect of
+              closing a notification gap. */}
+          <div className="space-y-2">
+            <Label htmlFor="zipCode" className={labelCls}>
+              ZIP <span className="font-normal" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>(optional)</span>
+            </Label>
+            <Input
+              id="zipCode"
+              value={zipCode}
+              onChange={(e) => setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5))}
+              inputMode="numeric"
+              autoComplete="postal-code"
+              maxLength={5}
+              placeholder="70801"
+              className={inputCls}
+            />
+          </div>
         </div>
+        {zipCityMismatch && (
+          <p
+            className="flex items-center gap-1 text-ds-11"
+            style={{ color: "hsl(var(--burnt-sienna))" }}
+          >
+            <AlertCircle className="w-3 h-3 shrink-0" aria-hidden />
+            {zipCityMismatch}
+          </p>
+        )}
         <div className="space-y-2">
           <Label htmlFor="bio" className={labelCls}>About you <span className="font-normal" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>(optional)</span></Label>
           <Textarea

@@ -56,6 +56,17 @@ serve(async (req) => {
       phone,
       bio,
       location,
+      // S-001 (lh-suggester, launch audit): signup collected City but never
+      // ZIP, and notify_helpers_on_job_post matches helpers on
+      // profiles.parish — which is ONLY ever derived from ZIP (see
+      // lookupParishByZip / get_parish_for_zip). With no ZIP collected here,
+      // parish stayed NULL for the large majority of accounts and the
+      // supply-side "a job near you was posted" notification was structurally
+      // dead for them, silently. Both are optional (never block signup on a
+      // lookup failure) and both are resolved client-side before this call —
+      // see Signup.tsx — so a Postgres-unreachable client still completes.
+      zipCode,
+      parish,
       skills,
       dateOfBirth,
       availability,
@@ -477,6 +488,13 @@ serve(async (req) => {
     if (phone) updateData.phone = phone;
     if (bio) updateData.bio = bio;
     if (location) updateData.location = location;
+    // Optional. `zipCode` unlocks parish (helper-notification matching) and
+    // Louisiana sales tax; `parish` is resolved client-side via
+    // lookupParishByZip() BEFORE this call so a lookup failure there degrades
+    // to "no parish yet", not a blocked signup — same contract as every other
+    // deferred field on this path.
+    if (typeof zipCode === "string" && zipCode.trim()) updateData.zip_code = zipCode.trim();
+    if (typeof parish === "string" && parish.trim()) updateData.parish = parish.trim();
     if (skills) updateData.skills = skills;
     if (dateOfBirth) updateData.date_of_birth = dateOfBirth;
     if (avatarUrl) updateData.avatar_url = avatarUrl;

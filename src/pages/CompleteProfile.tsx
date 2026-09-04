@@ -11,7 +11,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { toast } from "sonner";
-import { Camera, Check, Circle, Loader2, ShieldCheck, X } from "lucide-react";
+import { AlertCircle, Camera, Check, Circle, Loader2, ShieldCheck, X } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { DatePickerField } from "@/components/DatePickerField";
 import { CityAutocomplete } from "@/components/postjob/CityAutocomplete";
@@ -26,6 +26,8 @@ import { safeInternalRedirect } from "@/lib/authRedirects";
 import { LATEST_TERMS_VERSION } from "@/lib/consent";
 import { report } from "@/lib/errorLogger";
 import { uploadProfileFiles } from "./completeProfile/uploadProfileFiles";
+import { lookupParishByZip } from "@/lib/parishLookup";
+import { parishForCity } from "@/lib/parishes";
 import type { ProfileCompletionUpdates } from "./completeProfile/types";
 import {
   ALLOWED_IMAGE_TYPES,
@@ -57,6 +59,23 @@ const CompleteProfile = () => {
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [phone, setPhone] = useState("");
   const [location, setLocation] = useState("");
+  // Optional — mirrors the same field on Signup.tsx's email path (S-001).
+  const [zipCode, setZipCode] = useState("");
+  const [resolvedZipParish, setResolvedZipParish] = useState<string | null>(null);
+  useEffect(() => {
+    const cleaned = zipCode.replace(/\D/g, "");
+    if (cleaned.length !== 5) { setResolvedZipParish(null); return; }
+    let cancelled = false;
+    lookupParishByZip(cleaned).then((p) => { if (!cancelled) setResolvedZipParish(p); });
+    return () => { cancelled = true; };
+  }, [zipCode]);
+  // Soft mismatch hint — see the identical comment in Signup.tsx.
+  const cityZipMismatch = (() => {
+    if (!resolvedZipParish) return null;
+    const cityParish = parishForCity(location);
+    if (!cityParish || cityParish.name === resolvedZipParish) return null;
+    return `That ZIP usually maps to ${resolvedZipParish} Parish, not where ${location.trim()} is (${cityParish.name} Parish) — double check it.`;
+  })();
   const [bio, setBio] = useState("");
   // Hydrated from profile.accepted_terms_at on mount so users who already
   // accepted (and were bounced back here for some other missing field, or who
@@ -93,6 +112,7 @@ const CompleteProfile = () => {
     if (profile.date_of_birth && !dateOfBirth) setDateOfBirth(profile.date_of_birth);
     if (profile.phone && !phone) setPhone(formatPhone(profile.phone));
     if (profile.location && !location) setLocation(profile.location);
+    if (profile.zip_code && !zipCode) setZipCode(profile.zip_code);
     if (profile.bio && !bio) setBio(profile.bio);
     // NOTE: avatar_url is deliberately NOT hydrated here. This effect is
     // one-shot (hydratedRef), and the avatar is the one field the gate reads
@@ -275,6 +295,9 @@ const CompleteProfile = () => {
       const { avatarUrl, idDocumentPath, staleAvatarObjects } =
         await uploadProfileFiles(user.id, avatarFile, null);
 
+      // Reuse the already-resolved value from the live effect above.
+      const parish = resolvedZipParish;
+
       // A superseded photo that survived the replace is STILL PUBLIC. Do not
       // fail the submit over it — the new photo is live and the profile is
       // about to point at it — but never let it pass silently either: if the
@@ -292,6 +315,8 @@ const CompleteProfile = () => {
         phone: phone.trim(),
         bio: bio.trim(),
         location: location.trim(),
+        ...(zipCode.trim() ? { zip_code: zipCode.trim() } : {}),
+        ...(parish ? { parish } : {}),
         date_of_birth: dateOfBirth,
         // `approval_status: "pending"` used to be sent here. It never did
         // anything for a normal user — the BEFORE UPDATE trigger
@@ -689,25 +714,52 @@ const CompleteProfile = () => {
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="city">City <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
-              {/* CityAutocomplete is the same combobox used on the
-                  Post-a-Task form. It nudges the user toward canonical
-                  Louisiana spellings (the LOUISIANA_CITIES bundle) but
-                  still accepts a free-typed value for tiny communities
-                  not on the list, so the form never traps anyone. */}
-              <div className="relative">
-                <CityAutocomplete
-                  id="city"
-                  value={location}
-                  onChange={setLocation}
-                  className={`rounded-ds-md ${cityValid ? "pr-10" : ""}`}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="col-span-2 space-y-1.5">
+                <Label htmlFor="city">City <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
+                {/* CityAutocomplete is the same combobox used on the
+                    Post-a-Task form. It nudges the user toward canonical
+                    Louisiana spellings (the LOUISIANA_CITIES bundle) but
+                    still accepts a free-typed value for tiny communities
+                    not on the list, so the form never traps anyone. */}
+                <div className="relative">
+                  <CityAutocomplete
+                    id="city"
+                    value={location}
+                    onChange={setLocation}
+                    className={`rounded-ds-md ${cityValid ? "pr-10" : ""}`}
+                  />
+                  {cityValid && (
+                    <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none z-10" strokeWidth={2.5} aria-hidden />
+                  )}
+                </div>
+              </div>
+              {/* Optional (S-001) — City alone satisfies this step. ZIP
+                  unlocks parish-based helper-notification matching and
+                  Louisiana sales tax; the email-signup path (SignupStep2)
+                  carries the identical field for the same reason. */}
+              <div className="space-y-1.5">
+                <Label htmlFor="zipCode">
+                  ZIP <span className="font-normal" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>(optional)</span>
+                </Label>
+                <Input
+                  id="zipCode"
+                  value={zipCode}
+                  onChange={(e) => setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5))}
+                  inputMode="numeric"
+                  autoComplete="postal-code"
+                  maxLength={5}
+                  placeholder="70801"
+                  className="rounded-ds-md"
                 />
-                {cityValid && (
-                  <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none z-10" strokeWidth={2.5} aria-hidden />
-                )}
               </div>
             </div>
+            {cityZipMismatch && (
+              <p className="flex items-center gap-1 text-ds-11 -mt-1" style={{ color: "hsl(var(--burnt-sienna))" }}>
+                <AlertCircle className="w-3 h-3 shrink-0" aria-hidden />
+                {cityZipMismatch}
+              </p>
+            )}
 
             <div className="space-y-1.5">
               <Label htmlFor="bio">About you <span className="font-normal" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>(optional)</span></Label>

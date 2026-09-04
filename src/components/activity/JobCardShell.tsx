@@ -1,6 +1,7 @@
 import { type ReactNode } from "react";
 import { categoryColors, categoryLabels } from "./activityConstants";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
+import { formatCategory } from "@/lib/format";
 
 interface JobCardShellProps {
   /** When false, the card is non-interactive (no expand-on-click, no keyboard role). */
@@ -74,7 +75,7 @@ export function JobCardShell({
               className="w-2.5 h-2.5 shrink-0"
               strokeWidth={2.25}
             />
-            <span className="font-serif italic">{categoryLabels[category] || category}</span>
+            <span className="font-serif italic">{categoryLabels[category] || formatCategory(category)}</span>
           </span>
         </div>
       ) : null}

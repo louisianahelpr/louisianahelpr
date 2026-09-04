@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Landmark } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatPrice } from "@/lib/format";
 
 // IRS estimated-tax quarterly due dates (standard schedule). Returns the
 // next deadline after `now` so the admin always sees the upcoming one.
@@ -68,8 +69,7 @@ export const TaxReserveCard = ({
   const reserveThisQuarter = feesThisQuarter * rate;
   const dueDate = nextEstimatedTaxDate(new Date());
   const dueLabel = dueDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-  const money = (n: number) =>
-    n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+  const money = (n: number) => `$${formatPrice(n)}`;
 
   return (
     <div

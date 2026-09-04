@@ -183,46 +183,15 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
           }
         }
 
-        // Home-autopilot: auto-create/update a maintenance reminder for
-        // the poster so they know when to re-book this category of work.
-        // Fire-and-forget; PGRST202 (table not deployed) degrades silently.
-        if (isPoster && user) {
-          (async () => {
-            try {
-              const postedJob = postedJobs.find((j) => j.id === jobId);
-              if (postedJob?.category) {
-                const intervalDays: Record<string, number> = {
-                  cleaning: 42,
-                  yard_work: 14,
-                  pet_care: 7,
-                  handyman: 180,
-                  painting: 365,
-                };
-                const interval = intervalDays[postedJob.category] ?? 90;
-                const today = new Date().toISOString().split("T")[0];
-                const nextDate = new Date(Date.now() + interval * 86400_000)
-                  .toISOString()
-                  .split("T")[0];
-                await supabase
-                  .from("home_maintenance_reminders")
-                  .upsert(
-                    {
-                      user_id: user.id,
-                      category: postedJob.category,
-                      last_job_id: jobId,
-                      last_completed_date: today,
-                      reminder_interval_days: interval,
-                      next_reminder_date: nextDate,
-                      is_active: true,
-                    },
-                    { onConflict: "user_id,category" },
-                  );
-              }
-            } catch {
-              // Non-fatal — reminder is a nice-to-have
-            }
-          })();
-        }
+        // Home-autopilot reminder write removed 2026-09-04 — cut, not
+        // fixed. `home_maintenance_reminders` had exactly one writer (this
+        // block) and zero readers anywhere in src/ or supabase/functions/:
+        // nothing was ever going to notify a poster their re-booking
+        // window had arrived. The table is dropped (migration
+        // 20260904034410). If a real re-booking-reminder feature gets
+        // built later, it needs a reader (a sweep + notification) written
+        // alongside the write, not a write that has been accumulating
+        // silent rows on its own since before this comment.
       } else {
         hapticMedium();
         await refresh();

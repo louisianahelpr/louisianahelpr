@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { TimePickerSelect } from "@/components/TimePickerSelect";
+import { TimePickerWheel } from "@/components/TimePickerWheel";
 import { DatePickerField } from "@/components/DatePickerField";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -191,28 +191,26 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
               <Label className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">Location</Label>
               <Input aria-label="Location" value={location} onChange={(e) => setLocation(e.target.value)} disabled={hasHelper} autoCapitalize="words" enterKeyHint="next" />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="edit-date-needed" className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">Date needed</Label>
-                {hasHelper ? (
-                  // When a helpr is locked in, the field is read-only. Show a
-                  // disabled Input mirroring the locked state of the other
-                  // fields in this dialog rather than a non-interactive
-                  // DatePickerField (which has no `disabled` styling).
-                  <Input id="edit-date-needed" type="date" value={dateNeeded} disabled readOnly />
-                ) : (
-                  <DatePickerField
-                    id="edit-date-needed"
-                    value={dateNeeded}
-                    onChange={setDateNeeded}
-                    min={todayLocalISO()}
-                  />
-                )}
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">Start time</Label>
-                <TimePickerSelect value={startTime} onChange={setStartTime} disabled={hasHelper} />
-              </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-date-needed" className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">Date needed</Label>
+              {hasHelper ? (
+                // When a helpr is locked in, the field is read-only. Show a
+                // disabled Input mirroring the locked state of the other
+                // fields in this dialog rather than a non-interactive
+                // DatePickerField (which has no `disabled` styling).
+                <Input id="edit-date-needed" type="date" value={dateNeeded} disabled readOnly />
+              ) : (
+                <DatePickerField
+                  id="edit-date-needed"
+                  value={dateNeeded}
+                  onChange={setDateNeeded}
+                  min={todayLocalISO()}
+                />
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">Start time</Label>
+              <TimePickerWheel value={startTime} onChange={setStartTime} disabled={hasHelper} />
             </div>
           </section>
 

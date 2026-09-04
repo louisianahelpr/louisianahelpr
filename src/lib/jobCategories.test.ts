@@ -69,8 +69,8 @@ describe("job categories — single source of truth", () => {
     expect(canonical[canonical.length - 1]).toBe("other");
   });
 
-  it("jobCategoryLabel falls back to the raw value for unknown input", () => {
+  it("jobCategoryLabel humanizes unknown input via formatCategory", () => {
     expect(jobCategoryLabel("storm_prep")).toBe("Storm Prep");
-    expect(jobCategoryLabel("not_a_category")).toBe("not_a_category");
+    expect(jobCategoryLabel("not_a_category")).toBe("Not a category");
   });
 });

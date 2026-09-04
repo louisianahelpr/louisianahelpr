@@ -18,8 +18,54 @@ export async function handleCheckoutSessionExpired(
   { supabase, logStep }: WebhookContext,
 ): Promise<void> {
   const session = event.data.object as Stripe.Checkout.Session;
-  const pifCreditId = (session.metadata as Record<string, string> | null)?.pif_credit_id;
-  if (!pifCreditId) return; // not a PIF difference checkout — nothing to unwind
+  const meta = session.metadata as Record<string, string> | null;
+
+  // ── Release the job's hold on this session ────────────────────────────────
+  //
+  // Runs for EVERY expired checkout, not just the PIF branch below.
+  //
+  // `jobs.stripe_session_id` is stamped when checkout opens and, until now, was
+  // never cleared — an abandoned checkout left it set forever. That is what
+  // makes the money lock safe to tighten: `enforce_poster_jobs_money_lock` now
+  // refuses budget edits while a session id is present, and without this the
+  // poster of an abandoned checkout could never edit their job's price again
+  // and it would sit unpayable at the old amount.
+  //
+  // Three conditions, and each one matters:
+  //   • `stripe_session_id = session.id` — only THIS session's hold is released,
+  //     so a stale re-delivery cannot clear a newer checkout.
+  //   • `payment_status = 'unpaid'` — a funded job is never touched, so an
+  //     expiry racing a completion cannot un-stamp a paid job.
+  //   • `.select("id")` — a zero-row match is a real outcome here, not a
+  //     failure, but it must be observable rather than assumed.
+  const jobId = meta?.job_id;
+  if (jobId && session.id) {
+    const { data: released, error: releaseErr } = await supabase
+      .from("jobs")
+      .update({ stripe_session_id: null })
+      .eq("id", jobId)
+      .eq("stripe_session_id", session.id)
+      .eq("payment_status", "unpaid")
+      .select("id")
+      .maybeSingle();
+    if (releaseErr) {
+      // Throw for the same reason the PIF branch below does: a plain return
+      // commits the dedupe row and acks 200 permanently, stranding the job
+      // behind a session hold that nothing will ever clear.
+      throw new Error(
+        `Failed to clear stripe_session_id for job ${jobId} on expired checkout ${session.id}: ${releaseErr.message}`,
+      );
+    }
+    logStep(
+      released
+        ? "Expired checkout — job session hold released, budget editable again"
+        : "Expired checkout — job already funded or session superseded, hold left alone",
+      { jobId, sessionId: session.id },
+    );
+  }
+
+  const pifCreditId = meta?.pif_credit_id;
+  if (!pifCreditId) return; // not a PIF difference checkout — nothing further to unwind
 
   const { data: freed, error: freeErr } = await supabase
     .from("pif_credits")

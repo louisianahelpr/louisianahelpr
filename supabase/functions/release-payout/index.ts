@@ -338,6 +338,45 @@ serve(async (req) => {
   let escrowChargeId: string | null = null;
   let escrowAmountReceivedCents: number | null = null;
 
+  // How much of this escrow the gift credit funded, in cents.
+  //
+  // Without this the HARD CAP below is a NO-OP on precisely the path that needs
+  // it most: `escrowAmountReceivedCents` stays null for a gift-funded job, the
+  // cap is written `!== null && ...`, and `source_transaction` is deliberately
+  // omitted because there is no charge to draw from. Both guards therefore
+  // vanish together, and a budget raised after checkout would transfer
+  // uncapped from the platform balance.
+  //
+  // Valued through the same dry-run RPC `execute-dispute-split` and
+  // `process-scheduled-payouts` use, so no two payout paths can disagree about
+  // the size of the same escrow.
+  let giftAppliedCents = 0;
+  if (pifRow) {
+    const { data: giftPreview, error: giftPreviewErr } = await supabaseAdmin.rpc(
+      "restore_pif_credit_for_job",
+      { p_job_id: job.id, p_share_bps: 10000, p_dry_run: true },
+    );
+    const preview = (giftPreview ?? null) as { outcome?: string; applied_cents?: number } | null;
+    const outcome = giftPreviewErr ? null : preview?.outcome;
+    if (outcome !== "would_restore" && outcome !== "already_restored") {
+      const why = giftPreviewErr
+        ? `${giftPreviewErr.message}${(giftPreviewErr as { code?: string }).code ? ` (${(giftPreviewErr as { code?: string }).code})` : ""}`
+        : `unrecognised outcome ${JSON.stringify(preview)}`;
+      console.error(`[release-payout] gift valuation failed for job ${job.id}: ${why}`);
+      return jsonResponse(
+        { error: "could not value this job's Pay-It-Forward gift — nothing was moved, retry" },
+        503,
+      );
+    }
+    giftAppliedCents = Number(preview?.applied_cents ?? 0);
+    if (!Number.isFinite(giftAppliedCents) || giftAppliedCents < 0) {
+      return jsonResponse(
+        { error: "this job's Pay-It-Forward gift has no usable applied amount — refused" },
+        409,
+      );
+    }
+  }
+
   if (!pifRow) {
     let paymentIntentId = job.stripe_payment_intent_id;
     if (!paymentIntentId && job.stripe_session_id) {
@@ -570,17 +609,23 @@ serve(async (req) => {
   //   1. this explicit assertion, which fails loudly with an admin alert, and
   //   2. `source_transaction` on the transfer below, which makes Stripe itself
   //      refuse to move more than that specific charge holds.
-  // Skipped only for PIF-credit-funded jobs, which have no Stripe charge.
-  if (escrowAmountReceivedCents !== null && payoutCents > escrowAmountReceivedCents) {
+  // Judged against the WHOLE escrow — captured dollars plus applied gift credit
+  // — so it no longer skips gift-funded jobs. It used to read
+  // `escrowAmountReceivedCents !== null`, which is null exactly when the gift
+  // path removes `source_transaction` too, so both guards went missing together
+  // on the one path where the assertion stands alone.
+  const escrowValueCents = (escrowAmountReceivedCents ?? 0) + giftAppliedCents;
+  if (payoutCents > escrowValueCents) {
     console.error(
-      `[release-payout] REFUSING: payout ${payoutCents}c exceeds captured ${escrowAmountReceivedCents}c for job ${job.id}`,
+      `[release-payout] REFUSING: payout ${payoutCents}c exceeds escrow ${escrowValueCents}c ` +
+        `(captured ${escrowAmountReceivedCents ?? 0}c + gift ${giftAppliedCents}c) for job ${job.id}`,
     );
     const { ids: adminIds } = await loadAdminIds(supabaseAdmin, "release-payout");
     for (const adminId of adminIds) {
       await supabaseAdmin.from("notifications").insert({
         user_id: adminId,
         title: "Payout blocked — exceeds captured amount",
-        message: `Job ${job.id} ("${job.title}") tried to pay out $${(payoutCents / 100).toFixed(2)} against $${(escrowAmountReceivedCents / 100).toFixed(2)} captured. Budget may have been altered after checkout.`,
+        message: `Job ${job.id} ("${job.title}") tried to pay out $${(payoutCents / 100).toFixed(2)} against $${(escrowValueCents / 100).toFixed(2)} of escrow ($${((escrowAmountReceivedCents ?? 0) / 100).toFixed(2)} captured + $${(giftAppliedCents / 100).toFixed(2)} gift). Budget may have been altered after checkout.`,
         type: "admin_alert", link: "/admin",
       });
     }

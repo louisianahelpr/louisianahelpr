@@ -314,7 +314,48 @@ serve(async (req) => {
       }
       const isPifFunded = !!pifRow;
 
+      // How much of this escrow was funded by a gift credit, in cents.
+      //
+      // Needed for the HARD CAP below. `source_transaction` makes Stripe refuse
+      // to over-draw a charge, but a gift-funded job has no charge to draw from
+      // — so on that path the cap computed here is the ONLY guard left, and it
+      // has to know what the gift was actually worth.
+      //
+      // Valued through the same dry-run RPC `execute-dispute-split` uses, so the
+      // two payout paths cannot disagree about the size of the same escrow.
+      let giftAppliedCents = 0;
+      if (isPifFunded) {
+        const { data: giftPreview, error: giftPreviewErr } = await supabaseAdmin.rpc(
+          "restore_pif_credit_for_job",
+          { p_job_id: job.id, p_share_bps: 10000, p_dry_run: true },
+        );
+        const preview = (giftPreview ?? null) as { outcome?: string; applied_cents?: number } | null;
+        const outcome = giftPreviewErr ? null : preview?.outcome;
+        if (outcome !== "would_restore" && outcome !== "already_restored") {
+          // A null error is not an answer — only the outcomes the function
+          // defines are. PGRST202 means the migration has not deployed yet.
+          // Either way the gift half of this escrow is unknowable, so nothing
+          // may move: defer to the next run rather than transfer uncapped.
+          const why = giftPreviewErr
+            ? `${giftPreviewErr.message}${(giftPreviewErr as { code?: string }).code ? ` (${(giftPreviewErr as { code?: string }).code})` : ""}`
+            : `unrecognised outcome ${JSON.stringify(preview)}`;
+          console.error(`[process-scheduled-payouts] gift valuation failed for job ${job.id}: ${why}`);
+          results.push({ job_id: job.id, status: "gift_valuation_failed", error: why });
+          defects.record(`gift valuation ${job.id}: ${why}`);
+          continue;
+        }
+        giftAppliedCents = Number(preview?.applied_cents ?? 0);
+        if (!Number.isFinite(giftAppliedCents) || giftAppliedCents < 0) {
+          console.error(`[process-scheduled-payouts] job ${job.id} gift has no usable applied amount`);
+          results.push({ job_id: job.id, status: "gift_amount_unusable", skipped: true });
+          defects.record(`gift amount unusable ${job.id}`);
+          continue;
+        }
+      }
+
       // ── Step 2: Resolve payment intent ID (skipped for PIF — no poster charge) ──
+      /** What Stripe actually captured, in cents. 0 for a purely gift-funded job. */
+      let capturedCents = 0;
       let paymentIntentId = job.stripe_payment_intent_id;
       if (!isPifFunded) {
         if (!paymentIntentId && job.stripe_session_id) {
@@ -340,6 +381,12 @@ serve(async (req) => {
         // ── Step 3: Verify charge is captured (immediate capture — should be succeeded) ──
         try {
           const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+          // Keep the AMOUNT, not just the status. This step already had the
+          // PaymentIntent in hand and threw the figure away, which is why this
+          // function could transfer more than was ever collected.
+          const received = pi.amount_received;
+          if (typeof received === "number" && received > 0) capturedCents = received;
 
           if (pi.status !== "succeeded") {
             console.error(`Payment ${paymentIntentId} for job ${job.id} has status "${pi.status}" — CANNOT transfer funds.`);
@@ -510,10 +557,64 @@ serve(async (req) => {
       }
       const failedCount = claim.failedCount;
 
+      // ── Step 4b: HARD CAP — never transfer more than the escrow was funded with ──
+      //
+      // `jobs.budget` is writable by the poster under RLS while
+      // `payment_status` is still 'unpaid', and the Checkout Session freezes its
+      // amount at creation — so a poster can pay a $10 session, raise the
+      // budget, and this cron would compute the payout from the raised figure.
+      //
+      // `release-payout` and `execute-dispute-split` have carried this
+      // assertion for some time. This function — the one that pays MOST jobs,
+      // on the normal schedule — did not, and `source_transaction` below is not
+      // a substitute: it is deliberately omitted for gift-funded jobs, because
+      // there is no charge to draw from. On that path this check is the only
+      // thing standing between a raised budget and an uncapped transfer out of
+      // the platform's own balance.
+      //
+      // The gift leg counts toward the cap: it is real value leaving the
+      // platform, denominated in credit rather than dollars.
+      const escrowValueCents = capturedCents + giftAppliedCents;
+      const payoutCents = Math.round(helperPayout * 100);
+      if (payoutCents > escrowValueCents) {
+        console.error(
+          `[process-scheduled-payouts] REFUSING: payout ${payoutCents}c exceeds escrow ${escrowValueCents}c ` +
+            `(captured ${capturedCents}c + gift ${giftAppliedCents}c) for job ${job.id}`,
+        );
+        await rollBackOnboardingFeeClaim();
+        await postSlackOpsAlert({
+          kind: "custom",
+          severity: "critical",
+          title: "Scheduled payout blocked — exceeds captured escrow",
+          message:
+            "A scheduled payout computed to more than the escrow was funded with. Nothing moved. " +
+            "The job's budget may have been altered after checkout.",
+          fields: {
+            job_id: job.id,
+            helper_id: helperId,
+            payout_cents: payoutCents,
+            captured_cents: capturedCents,
+            gift_applied_cents: giftAppliedCents,
+          },
+        });
+        results.push({
+          job_id: job.id,
+          status: "exceeds_captured_escrow",
+          payout_cents: payoutCents,
+          escrow_cents: escrowValueCents,
+        });
+        // A defect, not an outcome: a payout that should have been payable and
+        // was not means something upstream is wrong, and it must not answer 2xx.
+        defects.record(
+          `payout ${payoutCents}c exceeds escrow ${escrowValueCents}c for job ${job.id}`,
+        );
+        continue;
+      }
+
       // ── Step 5: Transfer to helper (charge is confirmed captured) ──
       try {
         const transferParams: any = {
-          amount: Math.round(helperPayout * 100),
+          amount: payoutCents,
           currency: "usd",
           destination: helperProfile.stripe_account_id,
           // Group all charges/transfers for this job so Stripe Dashboard

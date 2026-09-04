@@ -15,16 +15,50 @@ import { PARISHES, parishBySlug, parishByName, parishLabel, parishForCity } from
  * empty query and reads as a cold market rather than a bug.
  */
 const SEED_SQL = "supabase/migrations/20260418042714_4ba9bea1-f204-429a-bda3-b6edd663f3c5.sql";
+/**
+ * The 2026-09-04 correction pass. 28 ZIPs were filed under the wrong parish and
+ * 19 carried a wrong city label — 11% of the seed — found by checking all 260
+ * rows against GeoNames and the Census ZCTA-to-County file. See
+ * docs/ZIP_SEED_AUDIT_2026-09-04.md.
+ *
+ * Read here because the seed alone is no longer what the database holds, and a
+ * registry derived from the seed alone would now be stale in exactly the places
+ * that were wrong. Later migrations win, as they do in Postgres.
+ */
+const FIX_SQL = "supabase/migrations/20260904211910_correct_zip_parish_seed.sql";
 
 interface SeedRow { zip: string; parish: string; city: string }
 
+/**
+ * The seed as the DATABASE holds it: the original INSERT, then the corrections.
+ *
+ * Two things this deliberately reproduces, because the file and the table
+ * disagree in both:
+ *
+ *   1. `zip_code` is the PRIMARY KEY and the original INSERT contains eight
+ *      colliding rows under `ON CONFLICT DO NOTHING`, so FIRST-in-file wins and
+ *      the later row is silently dropped. Reading the file naively yields 260
+ *      rows; the table holds 252. For three of those collisions the discarded
+ *      row was the correct one — which is why nothing caught Minden and
+ *      Coushatta being filed under the wrong parish.
+ *   2. The correction migration then re-points 47 of the survivors.
+ */
 const readSeed = (): SeedRow[] => {
+  const byZip = new Map<string, SeedRow>();
   const sql = readFileSync(SEED_SQL, "utf8");
-  return [...sql.matchAll(/\('(\d{5})','([^']+)','([^']+)'\)/g)].map((m) => ({
-    zip: m[1],
-    parish: m[2],
-    city: m[3],
-  }));
+  for (const m of sql.matchAll(/\('(\d{5})','([^']+)','([^']+)'\)/g)) {
+    // First write wins — ON CONFLICT (zip_code) DO NOTHING.
+    if (!byZip.has(m[1])) byZip.set(m[1], { zip: m[1], parish: m[2], city: m[3] });
+  }
+  // Corrections are `(zip, parish, city)` tuples in the UPDATE ... FROM (VALUES)
+  // blocks. The verification block at the end of that file holds two-column
+  // tuples, which this pattern does not match.
+  const fix = readFileSync(FIX_SQL, "utf8");
+  for (const m of fix.matchAll(/\('(\d{5})', '([^']+)', '([^']+)'\)/g)) {
+    const row = byZip.get(m[1]);
+    if (row) { row.parish = m[2]; row.city = m[3]; }
+  }
+  return [...byZip.values()];
 };
 
 describe("PARISHES registry", () => {
@@ -33,7 +67,7 @@ describe("PARISHES registry", () => {
   it("reads a non-trivial seed (guards the regex silently matching nothing)", () => {
     // Without this, every set-comparison below would pass vacuously if the
     // migration were reformatted and the regex stopped matching.
-    expect(seed.length).toBeGreaterThan(200);
+    expect(seed.length).toBe(252); // 260 in the file, 8 lost to the primary key
     expect(new Set(seed.map((r) => r.parish)).size).toBeGreaterThan(60);
   });
 
@@ -143,11 +177,21 @@ describe("parishForCity (signup ZIP/city sanity hint)", () => {
     }
   });
 
-  it("returns null (not a guess) for a city seeded under more than one parish", () => {
-    // Robeline is listed under both Sabine and Natchitoches in the registry
-    // today. If the registry ever stops containing a genuine duplicate this
-    // assertion will need a different example — the point being tested is
-    // the ambiguous-city behavior, not this specific town.
+  it("returns null (not a guess) for ANY city seeded under more than one parish", () => {
+    // This used to assert that a duplicate exists, naming Robeline — and its own
+    // comment anticipated needing rework "if the registry ever stops containing
+    // a genuine duplicate". It has.
+    //
+    // Not because border towns stopped existing: `zip_code` is the seed table's
+    // PRIMARY KEY, so a town straddling two parishes can only ever hold one row,
+    // and the registry is now derived from the 252 rows the DATABASE holds
+    // rather than the 260 tuples in the migration text. Robeline's second row —
+    // the Sabine one — is among the eight the primary key discarded.
+    //
+    // So the assertion is now over whatever duplicates exist rather than over a
+    // named town: if one appears, `parishForCity` must refuse to guess. Today
+    // there are none, and that is recorded rather than asserted, because a
+    // future duplicate would be legitimate data, not a regression.
     const countsByCity = new Map<string, number>();
     for (const parish of PARISHES) {
       for (const city of parish.cities) {
@@ -155,8 +199,16 @@ describe("parishForCity (signup ZIP/city sanity hint)", () => {
         countsByCity.set(key, (countsByCity.get(key) ?? 0) + 1);
       }
     }
-    const duplicated = [...countsByCity.entries()].find(([, n]) => n > 1);
-    expect(duplicated, "expected at least one city listed under multiple parishes").toBeTruthy();
-    expect(parishForCity(duplicated![0])).toBeNull();
+    const duplicated = [...countsByCity.entries()].filter(([, n]) => n > 1).map(([c]) => c);
+    for (const city of duplicated) {
+      expect(parishForCity(city), `${city} is under >1 parish and must not be guessed`).toBeNull();
+    }
+  });
+
+  it("refuses to guess a city it has never seen", () => {
+    // The non-vacuous half of the pair above: whatever the data contains,
+    // `parishForCity` must answer null rather than a nearest match.
+    expect(parishForCity("Nacogdoches")).toBeNull();
+    expect(parishForCity("Not A Real Town")).toBeNull();
   });
 });

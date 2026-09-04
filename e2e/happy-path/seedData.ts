@@ -126,7 +126,6 @@ const JOB_BASE = {
   boost_auto_extended: false,
   credential_tier: 0,
   has_active_dispute: false,
-  instant_book: false,
   is_auto_created: false,
   is_flexible_schedule: false,
   pricing_mode: "fixed",

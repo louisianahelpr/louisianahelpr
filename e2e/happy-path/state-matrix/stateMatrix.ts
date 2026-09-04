@@ -317,7 +317,6 @@ export const BASE_JOB: Record<string, unknown> = {
   helper_confirmed_at: null,
   helper_dayof_confirmed_at: null,
   helper_on_the_way_at: null,
-  instant_book: false,
   is_auto_created: false,
   is_flexible_schedule: false,
   is_group_job: false,

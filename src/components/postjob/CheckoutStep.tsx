@@ -647,7 +647,12 @@ export function CheckoutStep({
                   </span>
                 </div>
                 <p className="text-ds-11 text-muted-foreground leading-snug">
-                  Assembly is taxable labor in Louisiana, so tax applies to the
+                  {/* Hardcoded to "Assembly" until 2026-09-04 — TAXABLE_CATEGORIES
+                      (src/lib/salesTax.ts) covers both "assembly" and "handyman", so
+                      every Handyman checkout was telling the poster "Assembly is
+                      taxable labor," a category their job wasn't. Caught live posting
+                      a Handyman job with Licensed+Insured selected. */}
+                  {categoryLabel} is taxable labor in Louisiana, so tax applies to the
                   ${formatPriceExact(budgetNum)} job budget — never to the fees. The exact
                   rate is set by the billing address you enter at checkout.
                 </p>

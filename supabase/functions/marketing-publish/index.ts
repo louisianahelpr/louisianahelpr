@@ -158,6 +158,15 @@ Deno.serve(async (req) => {
     // ── Detail. Not part of the contract; safe to rename. ────────────────
     /** Publishes that were really recoveries of a lost response. */
     adopted: 0,
+    /**
+     * Retries where the duplicate scan could NOT be performed.
+     *
+     * The twin of `adopted`, and the more important of the two: a scan that
+     * fails means we published without knowing whether the previous attempt
+     * had already landed. Counted separately because `adopted: 0` alone cannot
+     * distinguish "no duplicates happened" from "the guard is dead".
+     */
+    duplicateScanFailed: 0,
     /** PUBLISHED to Meta but the status write did not land. Critical. */
     unrecorded: 0,
     failedPermanently: 0,
@@ -365,7 +374,13 @@ Deno.serve(async (req) => {
       // ── 6. Publish. ───────────────────────────────────────────────────
       let result: PublishResult;
       try {
-        result = await publishRow(row, env);
+        result = await publishRow(row, env, (reason) => {
+          outcomes.duplicateScanFailed++;
+          // A defect, not an outcome: the guard intended to run and could not.
+          // It does not fail the publish — proceeding is correct — but the run
+          // must not answer 2xx as though the safety check had happened.
+          defects.record(`duplicate scan failed for row ${row.id}: ${reason}`);
+        });
       } catch (err) {
         const permanent = err instanceof MetaConfigError;
         const message = err instanceof Error ? err.message : String(err);
@@ -459,16 +474,26 @@ function isChannelEnabled(settings: MarketingSettings, channel: MarketingChannel
   return false;
 }
 
-async function publishRow(row: ClaimedRow, env: MetaEnv): Promise<PublishResult> {
+async function publishRow(
+  row: ClaimedRow,
+  env: MetaEnv,
+  onScanFailure: (reason: string) => void,
+): Promise<PublishResult> {
   // On a RETRY, ask Meta whether the previous attempt actually landed before
   // making a second one. `attempts` is post-increment, so 1 is the first try.
   if (row.attempts > 1) {
-    const existing = await findRecentDuplicate(row, env);
-    if (existing) {
+    const scan = await findRecentDuplicate(row, env);
+    if (scan.kind === "adopt") {
       console.warn(
-        `[${FN}] row ${row.id} was already posted as ${existing.externalId} — adopting instead of re-posting.`,
+        `[${FN}] row ${row.id} was already posted as ${scan.result.externalId} — adopting instead of re-posting.`,
       );
-      return existing;
+      return scan.result;
+    }
+    if (scan.kind === "scan_failed") {
+      // Publish anyway — blocking here would strand every retry behind a read
+      // permission. But this row is now being posted WITHOUT the guard, and
+      // that fact has to leave the function.
+      onScanFailure(scan.reason);
     }
   }
   return row.channel === "instagram"

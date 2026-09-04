@@ -583,20 +583,36 @@ async function instagramPermalink(mediaId: string, token: string): Promise<strin
  * flaked would be a worse failure than the one this guards against, and the
  * duplicate window is narrow (a matching caption within 2 hours).
  */
+/**
+ * The three distinct answers a duplicate scan can give.
+ *
+ * `null` used to mean both "no duplicate" and "the scan itself failed", which
+ * are opposite facts: the first says it is safe to publish, the second says we
+ * do not know. Collapsing them made a permanently-dead guard — a token without
+ * read scope, a revoked permission, Meta erroring — look exactly like a clean
+ * run, forever, with nothing counted and nothing raised. This is the anti-
+ * double-post mechanism; it is the last thing that should fail quietly.
+ */
+export type DuplicateScan =
+  | { kind: "adopt"; result: PublishResult }
+  | { kind: "none" }
+  | { kind: "scan_failed"; reason: string };
+
 export async function findRecentDuplicate(
   row: MarketingRow,
   env: MetaEnv,
-): Promise<PublishResult | null> {
+): Promise<DuplicateScan> {
   try {
     const caption = buildCaption(row);
     const needle = normaliseForCompare(caption);
-    if (needle.length < 20) return null; // too short to match confidently
+    // Genuinely "no duplicate to find": too short to match anything confidently.
+    if (needle.length < 20) return { kind: "none" };
     const token = env.pageAccessToken;
-    if (!token) return null;
+    if (!token) return { kind: "scan_failed", reason: "no page access token" };
     const cutoff = Date.now() - DUPLICATE_LOOKBACK_MS;
 
     if (row.channel === "facebook") {
-      if (!env.pageId) return null;
+      if (!env.pageId) return { kind: "scan_failed", reason: "META_PAGE_ID not set" };
       // VERIFY: /{page-id}/feed?fields=id,message,created_time returns the
       // Page's own posts newest-first.
       const out = await graphGet<{
@@ -614,13 +630,16 @@ export async function findRecentDuplicate(
         if (!p.id || !p.message) continue;
         if (Date.parse(p.created_time ?? "") < cutoff) continue;
         if (normaliseForCompare(p.message) === needle) {
-          return { externalId: p.id, externalUrl: facebookPermalink(p.id), adopted: true };
+          return {
+            kind: "adopt",
+            result: { externalId: p.id, externalUrl: facebookPermalink(p.id), adopted: true },
+          };
         }
       }
-      return null;
+      return { kind: "none" };
     }
 
-    if (!env.igUserId) return null;
+    if (!env.igUserId) return { kind: "scan_failed", reason: "META_IG_USER_ID not set" };
     // VERIFY: /{ig-user-id}/media?fields=id,caption,timestamp,permalink returns
     // the account's own media newest-first.
     const out = await graphGet<{
@@ -638,16 +657,19 @@ export async function findRecentDuplicate(
       if (!m.id || !m.caption) continue;
       if (Date.parse(m.timestamp ?? "") < cutoff) continue;
       if (normaliseForCompare(m.caption) === needle) {
-        return { externalId: m.id, externalUrl: m.permalink ?? null, adopted: true };
+        return {
+          kind: "adopt",
+          result: { externalId: m.id, externalUrl: m.permalink ?? null, adopted: true },
+        };
       }
     }
-    return null;
+    return { kind: "none" };
   } catch (err) {
-    console.warn(
-      "[meta] duplicate scan failed; proceeding with publish:",
-      err instanceof Error ? err.message : err,
-    );
-    return null;
+    // Still proceed with the publish — a read failure must never block a first
+    // post — but say so, so the caller can count it and the run can report it.
+    const reason = err instanceof Error ? err.message : String(err);
+    console.warn("[meta] duplicate scan failed; proceeding with publish:", reason);
+    return { kind: "scan_failed", reason };
   }
 }
 

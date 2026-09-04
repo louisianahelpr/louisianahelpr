@@ -131,15 +131,59 @@ function resolveUserId(): string | null {
 }
 
 /**
+ * Campaign parameters copied onto every event, when the current URL carries them.
+ *
+ * `url` stores `window.location.pathname` ONLY — the query string is dropped —
+ * so before this, `analytics_events` could not answer "which post drove that
+ * signup" even in principle. Not for want of tagging: the tag arrived, was
+ * captured by PostHog, and was thrown away on our own side.
+ *
+ * This is an ALLOWLIST rather than `location.search`, deliberately. Capturing
+ * the whole query string would mean every future param is logged by default,
+ * including any that turns out to carry something private — and an analytics
+ * table is the wrong place to find that out. Today `/reset-password` reads its
+ * token from `location.hash`, which never reaches `search`; that is luck, not a
+ * guarantee, and an allowlist does not depend on it staying true.
+ */
+const CAMPAIGN_PARAMS = [
+  "utm_source",
+  "utm_medium",
+  "utm_campaign",
+  "utm_content",
+  "utm_term",
+  "fbclid",
+  "gclid",
+] as const;
+
+/** The campaign params present on the current URL, or `{}`. Never throws. */
+function campaignProps(): Record<string, string> {
+  try {
+    const q = new URLSearchParams(window.location.search);
+    const out: Record<string, string> = {};
+    for (const key of CAMPAIGN_PARAMS) {
+      const v = q.get(key);
+      // Bounded: a hostile or malformed link should not push a large string
+      // into every row of the events table.
+      if (v) out[key] = v.slice(0, 200);
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+/**
  * Track an event. Non-blocking — fires and forgets. Buffered for 1.5s
  * before flushing to cut request volume on the dashboard.
  */
 export function track(event: EventName, props: Record<string, unknown> = {}) {
   if (typeof window === "undefined") return;
+  // Caller-supplied props win: an explicit value beats one scraped from the URL.
+  const campaign = campaignProps();
   queue.push({
     event,
     user_id: resolveUserId(),
-    properties: props,
+    properties: Object.keys(campaign).length ? { ...campaign, ...props } : props,
     url: window.location.pathname,
     referrer: document.referrer || null,
     platform: (window as { Capacitor?: { getPlatform?: () => string } }).Capacitor?.getPlatform?.() ?? "web",

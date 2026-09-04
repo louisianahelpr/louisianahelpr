@@ -57,9 +57,25 @@ jobs:
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
       SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
       SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
-      # Bake the commit SHA into the bundle so the runtime `release` tag
-      # Sentry sees matches the release name we create below.
-      VITE_SENTRY_RELEASE: ${{ github.sha }}
+      # DELIBERATELY NOT SET, as of 2026-09-04. `VITE_SENTRY_RELEASE` used to
+      # be baked in here so the runtime `release` tag matched the release
+      # name created below — but Vite inlines every `import.meta.env` value
+      # into the bundle at build time, so setting a var Vercel's build does
+      # NOT set changes the literal source of src/lib/sentry.ts (and every
+      # chunk that imports it), which changes THAT CHUNK'S CONTENT HASH.
+      # Re-measured after fixing the Node-version and PROJECT_ID gaps below:
+      # divergence was UNCHANGED at ~42% (219/377 filenames shared) — this
+      # var was the remaining cause, not those two.
+      #
+      # It doesn't need to be set: src/lib/sentry.ts's own RELEASE fallback
+      # chain already resolves to `__APP_COMMIT_FULL__` (vite.config.ts),
+      # which is correct in BOTH builds by a DIFFERENT path each time —
+      # Vercel's build reads `VERCEL_GIT_COMMIT_SHA`, this workflow's build
+      # (checked out with `fetch-depth: 0` below) reads `git rev-parse HEAD`
+      # — and for the same commit those are the same SHA. So the release TAG
+      # this workflow creates (`version: ${{ github.sha }}`, below) still
+      # matches what the running client reports, with no env divergence.
+      #
       # The Supabase config MUST match what Vercel builds with, or this whole
       # workflow uploads sourcemaps for files production never serves.
       #
@@ -120,9 +136,9 @@ jobs:
 
       - name: Build production bundle
         if: steps.check-secrets.outputs.configured == 'true'
-        # VITE_SENTRY_RELEASE flows through to `import.meta.env` so the
-        # client's Sentry.init() reports the same release tag we create
-        # below — that's what makes crash dedup work across deploys.
+        # No VITE_SENTRY_RELEASE here (see the env block above for why) —
+        # __APP_COMMIT_FULL__ supplies the same release tag the "Create
+        # Sentry release" step below uses, with no build-input divergence.
         run: npm run build
 
       - name: Create Sentry release and upload source maps

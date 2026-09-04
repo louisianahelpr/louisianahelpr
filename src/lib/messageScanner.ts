@@ -1,6 +1,12 @@
 // Advisory UX only — scan_message_content() in Postgres is the authoritative gate; keep patterns in sync.
 // Off-platform activity detection patterns
-const PHONE_REGEX = /(\+?1?\s*[-.]?\s*\(?\d{3}\)?[\s.-]*\d{3}[\s.-]*\d{4})/gi;
+// Middle two separators widened from `[\s.-]*` to `[^0-9a-zA-Z]{0,4}` to
+// match scan_message_content()'s separator scope exactly — the server
+// catches "504/555/1212" (slash-separated) and this client-side warning
+// used to miss it silently, the same phantom-delivery direction the
+// cash-only/in-cash fix closed. Leading `+1`/parens are still handled
+// separately since the server's simpler pattern has no equivalent.
+const PHONE_REGEX = /(\+?1?\s*[-.]?\s*\(?\d{3}\)?[^0-9a-zA-Z]{0,4}\d{3}[^0-9a-zA-Z]{0,4}\d{4})/gi;
 // Spelled-out phone: 7+ consecutive number-words (mirrors the server heuristic).
 const SPELLED_PHONE_REGEX = /(zero|one|two|three|four|five|six|seven|eight|nine|oh)([^a-z0-9]+(zero|one|two|three|four|five|six|seven|eight|nine|oh)){6,}/gi;
 const EMAIL_REGEX = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi;

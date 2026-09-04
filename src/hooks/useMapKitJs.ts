@@ -91,10 +91,19 @@ let cachedStatus: MapKitStatus = "idle";
 let pending: Promise<MapKitStatus> | null = null;
 
 function getBuildTimeToken(): string | undefined {
-  // Vite injects import.meta.env.* at build time. We use bracket access
-  // so a missing var doesn't blow up TS strict mode.
-  const env = (import.meta as { env?: Record<string, string | undefined> }).env;
-  return env?.VITE_APPLE_MAPKIT_TOKEN;
+  // Named property access, NOT `(import.meta as {...}).env` — that cast
+  // defeats Vite's per-key static replacement (it can only inline
+  // `import.meta.env.VITE_X` as a literal string when it can see the exact
+  // key at the reference site), so Vite fell back to embedding the WHOLE
+  // runtime `import.meta.env` object verbatim. That object reflects every
+  // env var present in whichever machine ran the build — not just the ones
+  // this app declares — so this chunk's content, and therefore its hashed
+  // filename, differed between a GitHub Actions build and a Vercel build
+  // even with identical source and identical VITE_* secrets, which is
+  // exactly the class of bug that leaves Sentry unable to symbolicate a
+  // production stack trace (see .github/workflows/sentry-release.yml).
+  // Direct property access lets Vite inline just this one string.
+  return import.meta.env.VITE_APPLE_MAPKIT_TOKEN;
 }
 
 /**
@@ -121,9 +130,10 @@ function getBuildTimeToken(): string | undefined {
  * a console warning MapKit happens to print.
  */
 async function fetchServerToken(): Promise<string | null> {
-  const env = (import.meta as { env?: Record<string, string | undefined> }).env;
-  const base = env?.VITE_SUPABASE_URL;
-  const apikey = env?.VITE_SUPABASE_PUBLISHABLE_KEY;
+  // Named access — see getBuildTimeToken's comment above for why the
+  // bracket-cast form this replaced is a real bug, not just style.
+  const base = import.meta.env.VITE_SUPABASE_URL;
+  const apikey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
   if (!base || !apikey) return null;
 
   try {

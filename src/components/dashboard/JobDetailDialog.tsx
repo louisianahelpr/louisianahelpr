@@ -5,6 +5,7 @@ import {
   Repeat, Rocket, Zap, Bookmark, Flag, Star,
 } from "lucide-react";
 import { categoryLabels, categoryColors } from "@/components/activity/activityConstants";
+import { formatCategory } from "@/lib/format";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 import { getCity } from "@/lib/locationUtils";
@@ -589,7 +590,7 @@ const JobDetailDialog = ({
               strokeWidth={2.25}
             />
             <span className="font-serif italic truncate">
-              {categoryLabels[job.category] || job.category}
+              {categoryLabels[job.category] || formatCategory(job.category)}
             </span>
           </span>
           {/* Recommended — right of category, before Urgent/Boosted (owner:

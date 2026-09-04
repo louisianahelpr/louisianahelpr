@@ -1,6 +1,7 @@
 # A poster can raise `budget` while checkout is open, and one payout path has no cap
 
-**Status:** open · **Found:** 2026-09-04 · **Severity:** HIGH
+**Status:** fix (1) SHIPPED 2026-09-04 (`20260904210915_lock_budget_while_checkout_session_open.sql`,
+commit 4c3d6d664) · fixes (2) and (3) still open · **Found:** 2026-09-04 · **Severity:** HIGH
 **Exploitable today:** no — production holds only seed/test data and no real
 money has moved. **Exploitable the day real users arrive:** yes.
 
@@ -93,7 +94,12 @@ budget and a difference session is opened.
 
 ## Fixes, smallest first
 
-1. **Narrow the lock.** Gate `budget` on `stripe_session_id IS NULL` rather than
+1. **Narrow the lock.** ✅ **DONE** — `enforce_poster_jobs_money_lock` now treats
+   `OLD.stripe_session_id IS NOT NULL` as money-in-flight alongside
+   `payment_status <> 'unpaid'`. Exploit re-run after the change: refused.
+   Regression-checked: pre-checkout budget edits still allowed, and
+   `report_helper_no_show`'s trusted-ladder reopen still works.
+   ~~Gate `budget` on `stripe_session_id IS NULL` rather than~~
    on `payment_status <> 'unpaid'`. Once a session exists the amount is frozen,
    so the budget must be too. This closes the window itself rather than catching
    its consequences, and it is one predicate.

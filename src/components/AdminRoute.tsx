@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
@@ -35,6 +35,26 @@ const AdminRoute = ({ children }: AdminRouteProps) => {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // AR-012 (lh-authz-rls 2026-09-04): this used to call report() directly in
+  // the render body. React can render a component multiple times for one
+  // commit (StrictMode double-invoke, a state update during render from a
+  // sibling, etc.), and errorLogger batches same-tick calls into one INSERT
+  // (src/lib/errorLogger.ts) — so `error_logs` showed 2 rows per incident
+  // with identical microsecond timestamps, inflating any alert threshold on
+  // this signal. Effect + dependency array reports exactly once per actual
+  // transition into "unknown". `location.search` is included so the `?view=`
+  // being opened is recoverable from the log — previously only `pathname`
+  // was recorded, which is why a locked-out admin's exact destination
+  // couldn't be reconstructed after the fact.
+  useEffect(() => {
+    if (adminStatus !== "unknown") return;
+    report(new Error("AdminRoute: admin role indeterminate (access denied, retryable)"), {
+      severity: "warning",
+      tags: { source: "AdminRoute.adminStatusUnknown" },
+      context: { path: location.pathname, search: location.search },
+    });
+  }, [adminStatus, location.pathname, location.search]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-premium-page">
@@ -46,14 +66,7 @@ const AdminRoute = ({ children }: AdminRouteProps) => {
   // Could not determine the role. Deny access — but say so, and offer the
   // retry, instead of bouncing an admin to /dashboard as if we had checked.
   if (adminStatus === "unknown") {
-    // The hook already console.errors the underlying failure. This is the
-    // route-level signal, so the lockout is alertable rather than only ever
-    // reported by the one person it locks out.
-    report(new Error("AdminRoute: admin role indeterminate (access denied, retryable)"), {
-      severity: "warning",
-      tags: { source: "AdminRoute.adminStatusUnknown" },
-      context: { path: location.pathname },
-    });
+    // Reporting moved to the effect above (AR-012) — this branch only renders.
     return (
       <div className="min-h-screen flex bg-premium-page">
         <ErrorState

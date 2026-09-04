@@ -26,10 +26,10 @@ export const JobDetailFooter = ({
   viewerUserId, viewerAppPosition, viewerTier, onAskQuestion,
 }: JobDetailFooterProps) => {
   if (guest) {
-    // Mirror the authenticated footer's verb so the CTA names the real action:
-    // an instant-book job invites a booking, else an apply. (The third
-    // "Sign up to bid" branch went away with bidding — zero production usage.)
-    const guestCtaLabel = job.instant_book ? "Sign up to book" : "Sign up to apply";
+    // Instant Book was dropped (20260904034410, dead-feature cut) — the CTA
+    // always names the real action now, applying. (A third "Sign up to bid"
+    // branch went away earlier with bidding — zero production usage.)
+    const guestCtaLabel = "Sign up to apply";
     return (
       <div className="flex gap-1.5 pt-0.5 items-stretch">
       {/* Guest save — the strongest interest signal a guest can give
@@ -258,10 +258,9 @@ export const JobDetailFooter = ({
                 form in place (see JobDetailDialog's merged-into-one-screen
                 apply flow), which has its OWN "Apply Now" that actually
                 submits. Two identically-labelled buttons doing different
-                things read as broken. Instant-book jobs skip that form
-                entirely, so "Book Now" here is still the real, final action
-                for them. */}
-            <span className="truncate">{job.instant_book ? "Book Now" : "Continue"}</span>
+                things read as broken. (Instant Book, which used to skip this
+                form, was dropped in 20260904034410.) */}
+            <span className="truncate">Continue</span>
             <ChevronRight
               className="w-4 h-4 shrink-0 transition-transform duration-300 group-hover:translate-x-1"
               strokeWidth={2.5}

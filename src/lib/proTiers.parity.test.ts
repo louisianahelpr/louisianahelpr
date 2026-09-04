@@ -109,3 +109,49 @@ describe("consumer subscription checkout price config (F-MONEY-01 drift guard)",
     }
   });
 });
+
+describe("ME-039 (lh-money-escrow 2026-09-04): STRIPE_PRICE_* overrides are gated on STRIPE_SECRET_KEY's own mode", () => {
+  // resolvePrice() used to apply an env override unconditionally whenever the
+  // six STRIPE_PRICE_* vars were set, with nothing coupling their removal to
+  // flipping STRIPE_SECRET_KEY back to live — a go-live that swapped the key
+  // but left the overrides set would silently post TEST price ids to a LIVE
+  // key. Simulates the Deno runtime by stubbing `globalThis.Deno.env.get`,
+  // since resolvePrice() reads it fresh on every property access rather than
+  // snapshotting at import time (see `readEnv` in the edge source).
+  const ORIGINAL_DENO = (globalThis as { Deno?: unknown }).Deno;
+
+  const withDenoEnv = (vars: Record<string, string>, run: () => void) => {
+    (globalThis as { Deno?: unknown }).Deno = {
+      env: { get: (k: string) => vars[k] },
+    };
+    try {
+      run();
+    } finally {
+      (globalThis as { Deno?: unknown }).Deno = ORIGINAL_DENO;
+    }
+  };
+
+  it("ignores the override when STRIPE_SECRET_KEY is a live key", () => {
+    withDenoEnv(
+      { STRIPE_SECRET_KEY: "sk_live_abc123", STRIPE_PRICE_PRO_MONTHLY: "price_TEST_OVERRIDE" },
+      () => {
+        expect(EDGE_PRO_PRICE_MAP.monthly.pro).toBe("price_1TAZkLKp2H4b7tEC0ACbAX2y");
+      },
+    );
+  });
+
+  it("honors the override when STRIPE_SECRET_KEY is a test key", () => {
+    withDenoEnv(
+      { STRIPE_SECRET_KEY: "sk_test_abc123", STRIPE_PRICE_PRO_MONTHLY: "price_TEST_OVERRIDE" },
+      () => {
+        expect(EDGE_PRO_PRICE_MAP.monthly.pro).toBe("price_TEST_OVERRIDE");
+      },
+    );
+  });
+
+  it("falls back to the live id when no override is set, in either mode", () => {
+    withDenoEnv({ STRIPE_SECRET_KEY: "sk_test_abc123" }, () => {
+      expect(EDGE_PRO_PRICE_MAP.monthly.pro).toBe("price_1TAZkLKp2H4b7tEC0ACbAX2y");
+    });
+  });
+});

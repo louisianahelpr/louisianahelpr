@@ -90,8 +90,14 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
         // The list is exactly what the confirm dialog renders (see the comment
         // above); the apply mutation itself only needs the id, so the
         // best-effort miss below is unchanged in behaviour.
+        // `instant_book` dropped by 20260904034410 (dead-feature cut) — naming
+        // it here 400'd the whole select ("column jobs.instant_book does not
+        // exist"), silently losing title/budget/earnings-breakdown for any
+        // deep-linked (?quickApply=) job not already in the loaded feed. Every
+        // reader of confirmApplyJob.instant_book elsewhere in the client now
+        // just sees `undefined` (falsy) — correct, since the feature is gone.
         .select(
-          "id, title, budget, category, date_needed, pricing_mode, instant_book, is_urgent, customer_id, status",
+          "id, title, budget, category, date_needed, pricing_mode, is_urgent, customer_id, status",
         )
         .eq("id", confirmApplyJobId)
         .maybeSingle();
@@ -390,10 +396,11 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
     const jobId = confirmApplyJobId;
     const files = applyFiles;
     const message = applyMessage;
-    // Read the instant_book flag from the job in the feed. Cast through
-    // `any` because EnrichedJob predates this column; the DB default is
-    // false so a missing key is treated the same way.
-    const isInstantBook = !!confirmApplyJob?.instant_book;
+    // Instant Book was dropped (20260904034410, dead-feature cut) — always
+    // false now. Kept as a variable (not deleted outright) because the
+    // mutation below still branches on it in a few places pending a fuller
+    // cleanup of that plumbing.
+    const isInstantBook = false;
     // Close the dialog + reset its state synchronously so the next paint
     // already has the optimistic feed. The mutation continues in the
     // background; React Query's onError rolls things back on failure.

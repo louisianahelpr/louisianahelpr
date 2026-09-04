@@ -179,7 +179,7 @@ const SwipeableJobCard = ({
             className="text-ds-10 font-serif italic uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--bark))" }}
           >
-            {job.instant_book ? "Book" : "Apply"}
+            Apply
           </span>
         </motion.div>
       </motion.div>

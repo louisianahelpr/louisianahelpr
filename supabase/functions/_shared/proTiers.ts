@@ -14,11 +14,20 @@
 // STRIPE_SECRET_KEY), those live IDs don't exist and create-pro-checkout
 // fails with an internal error. To support test-mode QA without duplicating
 // the file, each ID can be overridden by a matching `STRIPE_PRICE_*` env
-// var. `resolvePrice()` reads the env at call time — undefined env → fall
-// back to the hardcoded live ID — so client-side (vitest, browser) code
-// that has no `Deno.env` still gets the live IDs at import time, and edge
-// runtime that provides the env sees the test IDs. Set the six vars via
-// `supabase secrets set` when swapping keys.
+// var — but the override is only HONORED when STRIPE_SECRET_KEY is itself a
+// test key (`sk_test_...`). Set the six vars via `supabase secrets set` when
+// testing.
+//
+// ME-039 (lh-money-escrow, 2026-09-04): the override used to apply
+// unconditionally whenever the six STRIPE_PRICE_* vars were set, with
+// nothing coupling their removal to flipping STRIPE_SECRET_KEY back to live.
+// A go-live that swapped the key but forgot to unset the six overrides (or
+// unset them in a separate step CI doesn't enforce) would silently post test
+// Price IDs to a live Stripe key and 500 every membership checkout —
+// launch-day-shaped, since nothing short of a live transaction attempt would
+// catch it. Deriving the mode from the key's own prefix removes the
+// human-coordinated step entirely: the ID always matches whatever mode the
+// key running RIGHT NOW is actually in, so the two can no longer drift apart.
 
 export type ProTierKey = "basic" | "pro" | "elite";
 export type ProBillingCycle = "monthly" | "annual" | "one_time";
@@ -29,6 +38,12 @@ const readEnv = (key: string): string | undefined => {
   const d = (globalThis as { Deno?: { env?: { get?: (k: string) => string | undefined } } }).Deno;
   return d?.env?.get?.(key);
 };
+
+// The override only ever applies in test mode — never in vitest/browser
+// (no Deno.env → undefined → falls through to "not test mode" → live IDs,
+// same as before) and never when STRIPE_SECRET_KEY is a live key, no matter
+// what the six STRIPE_PRICE_* vars are set to.
+const isStripeTestMode = (): boolean => (readEnv("STRIPE_SECRET_KEY") ?? "").startsWith("sk_test_");
 
 const LIVE_PRO_PRICE_MAP: Record<ProBillingCycle, Record<ProTierKey, string>> = {
   monthly: {
@@ -81,21 +96,29 @@ const ENV_KEY: Record<ProBillingCycle, Record<ProTierKey, string>> = {
  * are exposed as getters so each read hits the env fresh — no module-load
  * snapshot to invalidate when secrets rotate.
  */
+const resolvePrice = (cycle: ProBillingCycle, tier: ProTierKey): string => {
+  if (isStripeTestMode()) {
+    const override = readEnv(ENV_KEY[cycle][tier]);
+    if (override) return override;
+  }
+  return LIVE_PRO_PRICE_MAP[cycle][tier];
+};
+
 export const PRO_PRICE_MAP: Record<ProBillingCycle, Record<ProTierKey, string>> = {
   monthly: {
-    get basic() { return readEnv(ENV_KEY.monthly.basic) ?? LIVE_PRO_PRICE_MAP.monthly.basic; },
-    get pro() { return readEnv(ENV_KEY.monthly.pro) ?? LIVE_PRO_PRICE_MAP.monthly.pro; },
-    get elite() { return readEnv(ENV_KEY.monthly.elite) ?? LIVE_PRO_PRICE_MAP.monthly.elite; },
+    get basic() { return resolvePrice("monthly", "basic"); },
+    get pro() { return resolvePrice("monthly", "pro"); },
+    get elite() { return resolvePrice("monthly", "elite"); },
   } as Record<ProTierKey, string>,
   annual: {
-    get basic() { return readEnv(ENV_KEY.annual.basic) ?? LIVE_PRO_PRICE_MAP.annual.basic; },
-    get pro() { return readEnv(ENV_KEY.annual.pro) ?? LIVE_PRO_PRICE_MAP.annual.pro; },
-    get elite() { return readEnv(ENV_KEY.annual.elite) ?? LIVE_PRO_PRICE_MAP.annual.elite; },
+    get basic() { return resolvePrice("annual", "basic"); },
+    get pro() { return resolvePrice("annual", "pro"); },
+    get elite() { return resolvePrice("annual", "elite"); },
   } as Record<ProTierKey, string>,
   one_time: {
-    get basic() { return readEnv(ENV_KEY.one_time.basic) ?? LIVE_PRO_PRICE_MAP.one_time.basic; },
-    get pro() { return readEnv(ENV_KEY.one_time.pro) ?? LIVE_PRO_PRICE_MAP.one_time.pro; },
-    get elite() { return readEnv(ENV_KEY.one_time.elite) ?? LIVE_PRO_PRICE_MAP.one_time.elite; },
+    get basic() { return resolvePrice("one_time", "basic"); },
+    get pro() { return resolvePrice("one_time", "pro"); },
+    get elite() { return resolvePrice("one_time", "elite"); },
   } as Record<ProTierKey, string>,
 };
 

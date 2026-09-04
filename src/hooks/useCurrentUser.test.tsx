@@ -263,6 +263,35 @@ describe("useCurrentUser", () => {
       await waitFor(() => expect(result.current.adminStatus).toBe("admin"));
       expect(result.current.isAdmin).toBe(true);
     });
+
+    it("AR-011: retries the role lookup within one fetch, so a single transient failure never surfaces as 'unknown'", async () => {
+      // Before the fix, `fetchCurrentUser` caught the FIRST error and
+      // resolved — so `useQuery`'s own `retry: 2` (disabled by `wrap`'s
+      // QueryClient anyway, but true in production too) never got a chance:
+      // the query itself always "succeeded" with adminCheckFailed=true. One
+      // flaky response therefore locked an admin out with no automatic
+      // retry — verified live 2026-09-04 by injecting a single HTTP 500 and
+      // counting exactly one `user_roles` request for the page's life.
+      mocks.authReadyState.user = { id: "u1" };
+      mocks.authReadyState.isReady = true;
+      mocks.profileMaybeSingle.mockResolvedValue({
+        data: { user_id: "u1", full_name: "Lexi" },
+        error: null,
+      });
+      mocks.rolesMaybeSingle
+        .mockResolvedValueOnce({ data: null, error: { message: "transient 500" } })
+        .mockResolvedValueOnce({ data: { role: "admin" }, error: null });
+
+      const { result } = renderHook(() => useCurrentUser(), { wrapper: wrap });
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+      // The single transient failure is absorbed by the in-flight retry —
+      // the confirmed admin state comes back on the FIRST fetch, no refresh()
+      // call needed.
+      expect(result.current.adminStatus).toBe("admin");
+      expect(result.current.isAdmin).toBe(true);
+      expect(mocks.rolesMaybeSingle).toHaveBeenCalledTimes(2);
+    });
   });
 
   it("subscribes to a postgres_changes channel for the user's profile row", async () => {

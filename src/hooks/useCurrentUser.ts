@@ -103,13 +103,40 @@ const fetchCurrentUser = async (
   // own roles" policy (USING auth.uid() = user_id) lets them read their own
   // rows, so no admin row resolves as `{ data: null, error: null }` — a real
   // answer, not an error. An error here really does mean "could not determine".
-  const adminPromise = withTimeout(
+  // ONE attempt is not enough (AR-011, lh-authz-rls 2026-09-04): this whole
+  // promise catches and RESOLVES on failure, so a slow/flaky connection never
+  // reaches React Query's own `retry: 2` — that only applies to a REJECTED
+  // query, and this one never rejects. Verified live: a single injected
+  // HTTP 500 on this exact read locked a real admin out of /admin with no
+  // automatic retry, needing a manual "Try again" tap. Retrying INSIDE the
+  // existing 10s timeout budget (not adding a new one) means a fast error is
+  // retried for free while a genuinely slow connection still gets the same
+  // 10s it always had — not 30s of extra waiting for a legitimately down
+  // network.
+  const ADMIN_ROLE_ATTEMPTS = 3;
+  const ADMIN_ROLE_RETRY_DELAY_MS = 250;
+  const readAdminRoleOnce = () =>
     Promise.resolve(
       supabase.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle(),
     ).then(({ data, error }): { ok: true; isAdmin: boolean } => {
       if (error) throw error;
       return { ok: true, isAdmin: !!data };
-    }),
+    });
+  const adminPromise = withTimeout(
+    (async (): Promise<{ ok: true; isAdmin: boolean }> => {
+      let lastErr: unknown;
+      for (let attempt = 0; attempt < ADMIN_ROLE_ATTEMPTS; attempt++) {
+        if (attempt > 0) {
+          await new Promise((resolve) => window.setTimeout(resolve, ADMIN_ROLE_RETRY_DELAY_MS * attempt));
+        }
+        try {
+          return await readAdminRoleOnce();
+        } catch (err) {
+          lastErr = err;
+        }
+      }
+      throw lastErr;
+    })(),
   ).catch((err): { ok: false; isAdmin: false } => {
     // Loud on purpose: this used to vanish without a trace, which is most of
     // why it took a two-lane outage to find.

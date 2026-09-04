@@ -96,6 +96,18 @@ describe("scanMessage", () => {
         expect(v.some((x) => x.type === "phone_number"), `should flag: ${msg}`).toBe(true);
       }
     });
+
+    it("flags a leading-separator phone number — server has no leading-boundary requirement at all (V-016, lh-verifier 2026-09-04)", () => {
+      // The prior fix above widened the MIDDLE two separators but left the
+      // leading segment as `\s*[-.]?\s*\(?` — narrower than the server,
+      // which has no special leading-boundary handling: its regex is just
+      // three digit groups joined by `[^0-9a-zA-Z]{0,4}`, with no anchor and
+      // no required prefix character at all. "504_555_0100" (underscore
+      // before the area code, not just between groups) matched server-side
+      // and was missed here until the leading segment was widened to match.
+      const v = scanMessage("reach me at 504_555_0100");
+      expect(v.some((x) => x.type === "phone_number")).toBe(true);
+    });
   });
 
   describe("emails", () => {

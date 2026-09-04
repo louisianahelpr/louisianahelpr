@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       admin_audit_log: {
@@ -436,6 +411,33 @@ export type Database = {
           },
         ]
       }
+      edge_rate_limit_log: {
+        Row: {
+          bucket: string
+          created_at: string
+          forwarded_for: string | null
+          id: number
+          ip: string | null
+          subject: string | null
+        }
+        Insert: {
+          bucket: string
+          created_at?: string
+          forwarded_for?: string | null
+          id?: number
+          ip?: string | null
+          subject?: string | null
+        }
+        Update: {
+          bucket?: string
+          created_at?: string
+          forwarded_for?: string | null
+          id?: number
+          ip?: string | null
+          subject?: string | null
+        }
+        Relationships: []
+      }
       email_send_log: {
         Row: {
           created_at: string
@@ -831,33 +833,6 @@ export type Database = {
         }
         Relationships: []
       }
-      helper_skills: {
-        Row: {
-          category: string | null
-          created_at: string
-          endorsement_count: number
-          id: string
-          skill: string
-          user_id: string
-        }
-        Insert: {
-          category?: string | null
-          created_at?: string
-          endorsement_count?: number
-          id?: string
-          skill: string
-          user_id: string
-        }
-        Update: {
-          category?: string | null
-          created_at?: string
-          endorsement_count?: number
-          id?: string
-          skill?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       helper_verifications: {
         Row: {
           changed_at: string
@@ -934,64 +909,6 @@ export type Database = {
           {
             foreignKeyName: "helper_w9_records_job_id_fkey"
             columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "open_jobs_browse"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      home_maintenance_reminders: {
-        Row: {
-          category: string
-          created_at: string
-          id: string
-          is_active: boolean
-          last_completed_date: string | null
-          last_job_id: string | null
-          next_reminder_date: string | null
-          reminder_interval_days: number
-          user_id: string
-        }
-        Insert: {
-          category: string
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          last_completed_date?: string | null
-          last_job_id?: string | null
-          next_reminder_date?: string | null
-          reminder_interval_days?: number
-          user_id: string
-        }
-        Update: {
-          category?: string
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          last_completed_date?: string | null
-          last_job_id?: string | null
-          next_reminder_date?: string | null
-          reminder_interval_days?: number
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "home_maintenance_reminders_last_job_id_fkey"
-            columns: ["last_job_id"]
-            isOneToOne: false
-            referencedRelation: "jobs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "home_maintenance_reminders_last_job_id_fkey"
-            columns: ["last_job_id"]
-            isOneToOne: false
-            referencedRelation: "jobs_helper_safe"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "home_maintenance_reminders_last_job_id_fkey"
-            columns: ["last_job_id"]
             isOneToOne: false
             referencedRelation: "open_jobs_browse"
             referencedColumns: ["id"]
@@ -1085,70 +1002,6 @@ export type Database = {
           },
           {
             foreignKeyName: "job_checkins_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "open_jobs_browse"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      job_disputes: {
-        Row: {
-          created_at: string
-          description: string | null
-          id: string
-          job_id: string
-          opened_by: string | null
-          photos: string[] | null
-          reason: string
-          resolution_note: string | null
-          resolved_at: string | null
-          resolved_by: string | null
-          status: string
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          job_id: string
-          opened_by?: string | null
-          photos?: string[] | null
-          reason: string
-          resolution_note?: string | null
-          resolved_at?: string | null
-          resolved_by?: string | null
-          status?: string
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          job_id?: string
-          opened_by?: string | null
-          photos?: string[] | null
-          reason?: string
-          resolution_note?: string | null
-          resolved_at?: string | null
-          resolved_by?: string | null
-          status?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "job_disputes_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "jobs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "job_disputes_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "jobs_helper_safe"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "job_disputes_job_id_fkey"
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "open_jobs_browse"
@@ -1411,7 +1264,6 @@ export type Database = {
           helper_on_the_way_at: string | null
           helpers_needed: number | null
           id: string
-          instant_book: boolean
           is_auto_created: boolean
           is_flexible_schedule: boolean
           is_group_job: boolean | null
@@ -1522,7 +1374,6 @@ export type Database = {
           helper_on_the_way_at?: string | null
           helpers_needed?: number | null
           id?: string
-          instant_book?: boolean
           is_auto_created?: boolean
           is_flexible_schedule?: boolean
           is_group_job?: boolean | null
@@ -1633,7 +1484,6 @@ export type Database = {
           helper_on_the_way_at?: string | null
           helpers_needed?: number | null
           id?: string
-          instant_book?: boolean
           is_auto_created?: boolean
           is_flexible_schedule?: boolean
           is_group_job?: boolean | null
@@ -1729,7 +1579,7 @@ export type Database = {
           privacy_version: string
           terms_version: string
           user_agent: string | null
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
@@ -1739,7 +1589,7 @@ export type Database = {
           privacy_version: string
           terms_version: string
           user_agent?: string | null
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
@@ -1749,7 +1599,7 @@ export type Database = {
           privacy_version?: string
           terms_version?: string
           user_agent?: string | null
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -1795,6 +1645,102 @@ export type Database = {
           created_at?: string
           parish?: string
           zip_code?: string
+        }
+        Relationships: []
+      }
+      marketing_content: {
+        Row: {
+          attempts: number
+          body: string
+          campaign: string | null
+          channel: Database["public"]["Enums"]["marketing_channel"]
+          created_at: string
+          created_by: string | null
+          external_id: string | null
+          external_url: string | null
+          generated_by: string | null
+          hashtags: string[]
+          id: string
+          last_error: string | null
+          locked_at: string | null
+          media_urls: string[]
+          model: string | null
+          parish: string | null
+          published_at: string | null
+          scheduled_for: string | null
+          status: Database["public"]["Enums"]["marketing_status"]
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          body: string
+          campaign?: string | null
+          channel: Database["public"]["Enums"]["marketing_channel"]
+          created_at?: string
+          created_by?: string | null
+          external_id?: string | null
+          external_url?: string | null
+          generated_by?: string | null
+          hashtags?: string[]
+          id?: string
+          last_error?: string | null
+          locked_at?: string | null
+          media_urls?: string[]
+          model?: string | null
+          parish?: string | null
+          published_at?: string | null
+          scheduled_for?: string | null
+          status?: Database["public"]["Enums"]["marketing_status"]
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          body?: string
+          campaign?: string | null
+          channel?: Database["public"]["Enums"]["marketing_channel"]
+          created_at?: string
+          created_by?: string | null
+          external_id?: string | null
+          external_url?: string | null
+          generated_by?: string | null
+          hashtags?: string[]
+          id?: string
+          last_error?: string | null
+          locked_at?: string | null
+          media_urls?: string[]
+          model?: string | null
+          parish?: string | null
+          published_at?: string | null
+          scheduled_for?: string | null
+          status?: Database["public"]["Enums"]["marketing_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      marketing_settings: {
+        Row: {
+          auto_publish_enabled: boolean
+          channels_enabled: Json
+          daily_post_cap: number
+          id: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          auto_publish_enabled?: boolean
+          channels_enabled?: Json
+          daily_post_cap?: number
+          id?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          auto_publish_enabled?: boolean
+          channels_enabled?: Json
+          daily_post_cap?: number
+          id?: boolean
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
@@ -2788,6 +2734,7 @@ export type Database = {
           idv_failure_reason: string | null
           idv_session_id: string | null
           idv_status: string | null
+          insurance_expires_at: string | null
           insurance_rejection_reason: string | null
           insurance_reviewed_at: string | null
           insurance_reviewed_by: string | null
@@ -2804,6 +2751,7 @@ export type Database = {
           last_verification_email_at: string | null
           latitude: number | null
           legacy_manual_review: boolean
+          license_expires_at: string | null
           license_rejection_reason: string | null
           license_reviewed_at: string | null
           license_reviewed_by: string | null
@@ -2887,6 +2835,7 @@ export type Database = {
           idv_failure_reason?: string | null
           idv_session_id?: string | null
           idv_status?: string | null
+          insurance_expires_at?: string | null
           insurance_rejection_reason?: string | null
           insurance_reviewed_at?: string | null
           insurance_reviewed_by?: string | null
@@ -2903,6 +2852,7 @@ export type Database = {
           last_verification_email_at?: string | null
           latitude?: number | null
           legacy_manual_review?: boolean
+          license_expires_at?: string | null
           license_rejection_reason?: string | null
           license_reviewed_at?: string | null
           license_reviewed_by?: string | null
@@ -2986,6 +2936,7 @@ export type Database = {
           idv_failure_reason?: string | null
           idv_session_id?: string | null
           idv_status?: string | null
+          insurance_expires_at?: string | null
           insurance_rejection_reason?: string | null
           insurance_reviewed_at?: string | null
           insurance_reviewed_by?: string | null
@@ -3002,6 +2953,7 @@ export type Database = {
           last_verification_email_at?: string | null
           latitude?: number | null
           legacy_manual_review?: boolean
+          license_expires_at?: string | null
           license_rejection_reason?: string | null
           license_reviewed_at?: string | null
           license_reviewed_by?: string | null
@@ -3228,7 +3180,7 @@ export type Database = {
           reason: string
           reported_id: string
           reported_type: string
-          reporter_id: string
+          reporter_id: string | null
           status: string
         }
         Insert: {
@@ -3239,7 +3191,7 @@ export type Database = {
           reason: string
           reported_id: string
           reported_type: string
-          reporter_id: string
+          reporter_id?: string | null
           status?: string
         }
         Update: {
@@ -3250,8 +3202,41 @@ export type Database = {
           reason?: string
           reported_id?: string
           reported_type?: string
-          reporter_id?: string
+          reporter_id?: string | null
           status?: string
+        }
+        Relationships: []
+      }
+      retained_bans: {
+        Row: {
+          ban_status: string
+          ban_type: string | null
+          email_sha256: string
+          expires_at: string | null
+          id: string
+          reapplied_at: string | null
+          reason: string
+          retained_at: string
+        }
+        Insert: {
+          ban_status: string
+          ban_type?: string | null
+          email_sha256: string
+          expires_at?: string | null
+          id?: string
+          reapplied_at?: string | null
+          reason: string
+          retained_at?: string
+        }
+        Update: {
+          ban_status?: string
+          ban_type?: string | null
+          email_sha256?: string
+          expires_at?: string | null
+          id?: string
+          reapplied_at?: string | null
+          reason?: string
+          retained_at?: string
         }
         Relationships: []
       }
@@ -3421,59 +3406,6 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
-      }
-      skill_endorsements: {
-        Row: {
-          created_at: string
-          endorser_id: string | null
-          id: string
-          job_id: string | null
-          skill_id: string
-        }
-        Insert: {
-          created_at?: string
-          endorser_id?: string | null
-          id?: string
-          job_id?: string | null
-          skill_id: string
-        }
-        Update: {
-          created_at?: string
-          endorser_id?: string | null
-          id?: string
-          job_id?: string | null
-          skill_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "skill_endorsements_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "jobs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "skill_endorsements_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "jobs_helper_safe"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "skill_endorsements_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "open_jobs_browse"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "skill_endorsements_skill_id_fkey"
-            columns: ["skill_id"]
-            isOneToOne: false
-            referencedRelation: "helper_skills"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       str_calendar_connections: {
         Row: {
@@ -3958,13 +3890,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "user_strikes_dispute_id_fkey"
-            columns: ["dispute_id"]
-            isOneToOne: false
-            referencedRelation: "job_disputes"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "user_strikes_job_id_fkey"
             columns: ["job_id"]
             isOneToOne: false
@@ -4376,6 +4301,7 @@ export type Database = {
           budget: number | null
           category: Database["public"]["Enums"]["job_category"] | null
           created_at: string | null
+          credential_tier: number | null
           customer_id: string | null
           date_needed: string | null
           description: string | null
@@ -4394,6 +4320,7 @@ export type Database = {
           longitude: number | null
           offered_to_helper_id: string | null
           parent_job_id: string | null
+          parish: string | null
           payment_status: string | null
           photos: string[] | null
           pricing_mode: string | null
@@ -4413,6 +4340,7 @@ export type Database = {
           budget?: number | null
           category?: Database["public"]["Enums"]["job_category"] | null
           created_at?: string | null
+          credential_tier?: number | null
           customer_id?: string | null
           date_needed?: string | null
           description?: string | null
@@ -4431,6 +4359,7 @@ export type Database = {
           longitude?: never
           offered_to_helper_id?: string | null
           parent_job_id?: string | null
+          parish?: string | null
           payment_status?: string | null
           photos?: string[] | null
           pricing_mode?: string | null
@@ -4450,6 +4379,7 @@ export type Database = {
           budget?: number | null
           category?: Database["public"]["Enums"]["job_category"] | null
           created_at?: string | null
+          credential_tier?: number | null
           customer_id?: string | null
           date_needed?: string | null
           description?: string | null
@@ -4468,6 +4398,7 @@ export type Database = {
           longitude?: never
           offered_to_helper_id?: string | null
           parent_job_id?: string | null
+          parish?: string | null
           payment_status?: string | null
           photos?: string[] | null
           pricing_mode?: string | null
@@ -4630,6 +4561,37 @@ export type Database = {
             }
             Returns: Json
           }
+      claim_marketing_content: {
+        Args: { p_limit?: number }
+        Returns: {
+          attempts: number
+          body: string
+          campaign: string | null
+          channel: Database["public"]["Enums"]["marketing_channel"]
+          created_at: string
+          created_by: string | null
+          external_id: string | null
+          external_url: string | null
+          generated_by: string | null
+          hashtags: string[]
+          id: string
+          last_error: string | null
+          locked_at: string | null
+          media_urls: string[]
+          model: string | null
+          parish: string | null
+          published_at: string | null
+          scheduled_for: string | null
+          status: Database["public"]["Enums"]["marketing_status"]
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "marketing_content"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       cleanup_observability_tables: { Args: never; Returns: undefined }
       cleanup_stripe_webhook_events: { Args: never; Returns: undefined }
       clear_available_now: { Args: never; Returns: undefined }
@@ -4638,6 +4600,22 @@ export type Database = {
         Returns: boolean
       }
       count_profiles: { Args: never; Returns: number }
+      cron_dispatch_health: {
+        Args: never
+        Returns: {
+          active: boolean
+          expected_max_gap: string
+          jobname: string
+          last_end: string
+          last_message: string
+          last_start: string
+          last_status: string
+          recent_failures: number
+          registered_at: string
+          runs_total: number
+          schedule: string
+        }[]
+      }
       decline_job_offer: { Args: { p_application_id: string }; Returns: Json }
       delete_email: {
         Args: { message_id: number; queue_name: string }
@@ -4646,7 +4624,6 @@ export type Database = {
       detect_stuck_payments: { Args: never; Returns: number }
       detect_suspicious_user_patterns: { Args: never; Returns: number }
       early_access_cutoff: { Args: never; Returns: string }
-      endorse_skill: { Args: { p_skill_id: string }; Returns: undefined }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
@@ -4850,7 +4827,6 @@ export type Database = {
           helper_on_the_way_at: string | null
           helpers_needed: number | null
           id: string
-          instant_book: boolean
           is_auto_created: boolean
           is_flexible_schedule: boolean
           is_group_job: boolean | null
@@ -4983,7 +4959,6 @@ export type Database = {
           helper_on_the_way_at: string | null
           helpers_needed: number | null
           id: string
-          instant_book: boolean
           is_auto_created: boolean
           is_flexible_schedule: boolean
           is_group_job: boolean | null
@@ -5376,7 +5351,6 @@ export type Database = {
         Returns: string
       }
       idv_requirement_paused: { Args: never; Returns: boolean }
-      instant_book_claim: { Args: { p_job_id: string }; Returns: undefined }
       is_caller_banned: { Args: never; Returns: boolean }
       is_category_taxable: {
         Args: { _category: Database["public"]["Enums"]["job_category"] }
@@ -5385,6 +5359,10 @@ export type Database = {
       is_helper_shadowbanned: { Args: { _helper_id: string }; Returns: boolean }
       is_late_cancellation: {
         Args: { p_has_helper: boolean; p_hours_until: number }
+        Returns: boolean
+      }
+      is_party_to_job: {
+        Args: { _job_id: string; _user_id: string }
         Returns: boolean
       }
       is_party_to_job_folder: {
@@ -5439,6 +5417,10 @@ export type Database = {
         Args: { p_job_id: string; p_lat?: number; p_lng?: number }
         Returns: Json
       }
+      marketing_published_today: {
+        Args: { p_channel: Database["public"]["Enums"]["marketing_channel"] }
+        Returns: number
+      }
       mask_job_location: { Args: { loc: string }; Returns: string }
       miles_between: {
         Args: { lat1: number; lat2: number; lng1: number; lng2: number }
@@ -5457,6 +5439,16 @@ export type Database = {
         Args: { p_link: string }
         Returns: string
       }
+      notify_ops_dispute_filed: {
+        Args: {
+          _job_id: string
+          _job_title: string
+          _opener_id: string
+          _reason: string
+          _refiled?: boolean
+        }
+        Returns: undefined
+      }
       poster_cancel_job: {
         Args: { p_job_id: string; p_reason?: string }
         Returns: Json
@@ -5467,7 +5459,20 @@ export type Database = {
       }
       profiles_locked_update_columns: { Args: never; Returns: string[] }
       prune_cron_run_log: { Args: never; Returns: undefined }
+      prune_edge_rate_limit_log: { Args: never; Returns: Json }
       purge_user_data: { Args: { p_user_id: string }; Returns: Json }
+      rate_limit_hit: {
+        Args: {
+          p_bucket: string
+          p_forwarded_for?: string
+          p_ip: string
+          p_ip_max: number
+          p_max: number
+          p_subject: string
+          p_window_seconds: number
+        }
+        Returns: Json
+      }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
@@ -5512,12 +5517,23 @@ export type Database = {
         Args: { p_dry_run?: boolean; p_job_id: string; p_share_bps?: number }
         Returns: Json
       }
+      retain_ban_on_deletion: { Args: { p_user_id: string }; Returns: number }
       review_credential: {
         Args: {
           _credential: string
           _decision: string
+          _expires?: string
           _reason?: string
           _user_id: string
+        }
+        Returns: undefined
+      }
+      review_helper_credential: {
+        Args: {
+          _credential_id: string
+          _decision: string
+          _expires?: string
+          _reason?: string
         }
         Returns: undefined
       }
@@ -5573,6 +5589,7 @@ export type Database = {
         }
         Returns: string
       }
+      sweep_cron_blackouts: { Args: never; Returns: Json }
       sweep_cron_http_failures: { Args: never; Returns: Json }
       sweep_daily_job_digest: { Args: never; Returns: number }
       sweep_dayof_confirm_reminders: { Args: never; Returns: number }
@@ -5626,6 +5643,14 @@ export type Database = {
         | "revision_requested"
         | "disputed"
         | "pending_approval"
+      marketing_channel: "instagram" | "facebook"
+      marketing_status:
+        | "draft"
+        | "scheduled"
+        | "publishing"
+        | "published"
+        | "failed"
+        | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -5641,12 +5666,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -5670,11 +5695,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -5695,11 +5720,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -5720,11 +5745,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -5737,11 +5762,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -5751,9 +5776,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       app_role: ["admin", "customer", "helper"],
@@ -5782,6 +5804,15 @@ export const Constants = {
         "revision_requested",
         "disputed",
         "pending_approval",
+      ],
+      marketing_channel: ["instagram", "facebook"],
+      marketing_status: [
+        "draft",
+        "scheduled",
+        "publishing",
+        "published",
+        "failed",
+        "cancelled",
       ],
     },
   },

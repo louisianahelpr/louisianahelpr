@@ -153,7 +153,18 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
   return (
     <>
     <Dialog open={!!job} onOpenChange={handleClose}>
-      <DialogContent role="alertdialog">
+      {/* NOT `role="alertdialog"` — that is the shared Dialog kit's signal
+          that every DialogPrimaryAction/DialogSecondaryAction inside auto-
+          wraps in DialogPrimitive.Close (see MaybeClose in ui/dialog.tsx).
+          This is a real editable FORM, not a confirm: Save Changes must only
+          open the "Save These Changes?" confirm below, and let THAT dialog's
+          own action decide. With the role on, one click did both — opened
+          the confirm dialog AND self-closed via Close, which fired
+          handleClose(false), saw isDirty, and opened "Discard Your
+          Changes?" on top of it in the same click — so the save button
+          silently never saved anything the confirm dialog didn't first
+          survive. */}
+      <DialogContent>
         <DialogHero title={title ? `"${title}"` : "Edit Job"} />
         <div className="space-y-5">
           {locked && (

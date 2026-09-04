@@ -361,6 +361,19 @@
      warm-white liquid-glass look; the dark overrides flip them to a deep
      warm surface so the dock doesn't stay bright-white over a dark page. */
   --nav-pill-bg:       hsla(0, 0%, 100%, 0.40);
+  /* The long-press quick-menu panel. OPAQUE, and it has to be: the panel is
+     anchored `absolute bottom-full` INSIDE the dock pill (NavQuickMenu's own
+     comment explains the anchoring is why it can't be portalled), and the pill
+     carries backdrop-filter — which makes the PILL the backdrop root for its
+     descendants. So the panel's own blur(40px) samples the already-composited
+     pill instead of the page: it is inert, and the 40% fill left page text
+     legible straight through the menu rows. Measured 2026-09-04 on
+     /dashboard: menu backdrop-filter blur(40px) saturate(1.8) with ancestor
+     div.flex-1.rounded-full carrying the identical filter.
+     Same value the reduce-transparency block picks for this surface, and for
+     the same reason stated there: full white, not --background, so the panel
+     stays lighter than the page it floats over rather than reading as a hole. */
+  --nav-menu-bg:       hsl(0 0% 100%);
   --nav-rim-strong:    hsla(0, 0%, 100%, 0.85);
   --nav-rim-soft:      hsla(0, 0%, 100%, 0.55);
   --nav-rim-bottom:    hsla(0, 0%, 100%, 0.45);
@@ -619,6 +632,10 @@
      Rims drop to faint light hairlines; the curtain fades a near-black
      warm tint instead of warm-white. */
   --nav-pill-bg:       hsl(220 14% 12% / 0.72);
+  /* Opaque quick-menu panel, dark. Same hue as the pill at alpha 1 — a rung
+     darker than the dark canvas, so it still reads as a raised object. See
+     the light-mode note for why this surface cannot rely on its own blur. */
+  --nav-menu-bg:       hsl(220 14% 12%);
   --nav-rim-strong:    hsla(0, 0%, 100%, 0.14);
   --nav-rim-soft:      hsla(0, 0%, 100%, 0.08);
   --nav-rim-bottom:    hsla(0, 0%, 100%, 0.05);

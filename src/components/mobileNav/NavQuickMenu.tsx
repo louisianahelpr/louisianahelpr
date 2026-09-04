@@ -77,9 +77,24 @@ export function NavQuickMenu({
             aria-label={title}
             className="absolute bottom-full left-1/2 z-50 mb-3 w-56 -translate-x-1/2 overflow-hidden rounded-2xl"
             style={{
-              backgroundColor: "var(--nav-pill-bg)",
-              backdropFilter: "blur(40px) saturate(180%)",
-              WebkitBackdropFilter: "blur(40px) saturate(180%)",
+              // OPAQUE, and deliberately not --nav-pill-bg + a blur.
+              //
+              // This panel is anchored `absolute bottom-full` inside the dock
+              // pill (see the comment above — that anchoring is why it isn't
+              // portalled), and the pill itself carries backdrop-filter. An
+              // ancestor with backdrop-filter becomes the BACKDROP ROOT for its
+              // descendants, so this panel's own blur sampled the
+              // already-composited pill rather than the page: the frost did
+              // nothing, and the 40%-alpha fill it was paired with left page
+              // text readable straight through the menu rows in both themes.
+              // Measured on /dashboard 2026-09-04 — panel and ancestor
+              // div.flex-1.rounded-full both reported blur(40px) saturate(1.8).
+              //
+              // A surface that cannot blur must carry its own colour, so this
+              // uses the opaque --nav-menu-bg (full white / dark pill hue).
+              // Dropping the dead backdrop-filter also drops a real compositing
+              // cost on the app's most animation-heavy surface.
+              backgroundColor: "var(--nav-menu-bg)",
               border: "0.5px solid hsl(var(--bark) / 0.1)",
               boxShadow:
                 "0 8px 18px -6px hsl(var(--bark) / 0.25), 0 22px 44px -10px hsl(var(--olivewood) / 0.22)",

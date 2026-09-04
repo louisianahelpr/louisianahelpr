@@ -171,7 +171,15 @@ export function useProfileEarnings(userId: string | undefined, enabled: boolean)
         .select("job_id")
         .eq("helper_id", id);
       const rosterJobIds = [...new Set((unwrap(rosterRes) ?? []).map((r) => r.job_id))];
-      const jobsQuery = supabase.from("jobs").select("*").neq("status", "cancelled");
+      // ME-042 (lh-money-escrow, 2026-09-04): seed/demo fixtures were created
+      // with `payment_status='released'` (or `payout_pending`) directly in
+      // SQL, with no corresponding `payout_transfers` row — no real Stripe
+      // transfer ever happened for them. Left unfiltered, any test/demo
+      // account these were ever assigned to shows a "total earned" the real
+      // payout ledger can never match, exactly the reported $349.60-vs-
+      // $248.40 divergence. Seed jobs were never real income for anyone —
+      // exclude them here, at the one query every earnings surface reads.
+      const jobsQuery = supabase.from("jobs").select("*").neq("status", "cancelled").eq("is_seed", false);
       const [jobsRes, tipsRes] = await Promise.all([
         (rosterJobIds.length
           ? jobsQuery.or(`helper_id.eq.${id},id.in.(${rosterJobIds.join(",")})`)

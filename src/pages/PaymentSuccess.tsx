@@ -76,7 +76,9 @@ const LIFECYCLE_STEPS = [
 type ConfirmState = "checking" | "held" | "not_held" | "unknown";
 
 /** Why we ended up in `unknown` — changes only the explanatory sentence. */
-type UnknownReason = "no-reference" | "unreachable" | "not-found" | "moved" | "pending";
+// ME-041 (lh-money-escrow, 2026-09-04): "moved" was declared here but nothing
+// in this file ever assigned it — dead since whenever it was added.
+type UnknownReason = "no-reference" | "unreachable" | "not-found" | "pending";
 
 /**
  * `jobs.payment_status` values where "held securely until you confirm the work
@@ -90,7 +92,13 @@ type UnknownReason = "no-reference" | "unreachable" | "not-found" | "moved" | "p
  * user to My Posts where the job's real state is shown. Better to say "we
  * can't confirm that here" than to print a sentence that isn't true.
  */
-const HELD_STATUSES = new Set(["escrow", "payout_pending"]);
+// "released" added (ME-041, lh-money-escrow 2026-09-04): re-opening this
+// return URL for a job whose payout already completed fell through every
+// poll attempt (matched neither set) and landed on the "hasn't been
+// confirmed on our side yet… please don't pay again" pending copy — actively
+// wrong for a payment that not only succeeded but has already been paid out.
+// `released` means the charge succeeded at least as much as `escrow` did.
+const HELD_STATUSES = new Set(["escrow", "payout_pending", "released"]);
 
 /** States that mean this job never got funded. */
 const NOT_HELD_STATUSES = new Set(["failed", "cancelled", "abandoned"]);
@@ -129,6 +137,10 @@ const PaymentSuccess = () => {
   // Job category, read in the same lookup, purely to pick the materials list.
   // Null (or a category with no entry in categoryMaterials) renders nothing.
   const [category, setCategory] = useState<string | null>(null);
+  // ME-041: distinguishes "still escrowed, releases on your confirmation"
+  // from "already released" — both are `isHeld`, but they are not the same
+  // claim, and the escrow copy below is false for the second one.
+  const [alreadyReleased, setAlreadyReleased] = useState(false);
   const [confirmState, setConfirmState] = useState<ConfirmState>(
     resolvedJobId ? "checking" : "unknown",
   );
@@ -264,6 +276,7 @@ const PaymentSuccess = () => {
 
         const status = data.payment_status;
         if (status && HELD_STATUSES.has(status)) {
+          if (status === "released") setAlreadyReleased(true);
           setConfirmState("held");
           return;
         }
@@ -402,7 +415,18 @@ const PaymentSuccess = () => {
             aria-live="polite"
           >
             {isHeld ? (
-              escrowAmount != null ? (
+              alreadyReleased ? (
+                escrowAmount != null ? (
+                  <>
+                    <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
+                      ${formatPrice(escrowAmount)}
+                    </span>{" "}
+                    was paid and has already been released to your helper.
+                  </>
+                ) : (
+                  <>This payment was already released to your helper.</>
+                )
+              ) : escrowAmount != null ? (
                 <>
                   <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
                     ${formatPrice(escrowAmount)}

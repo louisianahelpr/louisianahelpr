@@ -165,7 +165,7 @@ jobs:
           echo "--- row counts ---"
           for t in '"auth"."users"' '"public"."profiles"' '"public"."jobs"' '"public"."applications"' '"public"."messages"'; do
             N=$(grep -cF "INSERT INTO ${t} " out/data.sql || true)
-            printf '%-28s %s rows\n' "$t" "$N"
+            printf '%-28s %s statement(s) — multi-row, see note above\n' "$t" "$N"
             if [ "$N" -lt 1 ]; then
               echo "::error::data.sql has no rows for ${t} — dump is structurally valid but empty where it matters"
               FAIL=1

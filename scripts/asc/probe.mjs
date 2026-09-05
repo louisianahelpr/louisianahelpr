@@ -39,7 +39,17 @@ for (const g of groups) {
       .then((r) => !!r?.data?.id).catch(() => false);
     console.log(`      ${a.productId}  ${a.subscriptionPeriod}  level=${a.groupLevel}  state=${a.state}`);
     const shot = await asc(`/v1/subscriptions/${s.id}/appStoreReviewScreenshot`, { token })
-      .then((r) => (r?.data ? `${r.data.attributes?.assetDeliveryState?.state ?? "present"}` : "NONE"))
+      .then((r) => {
+        if (!r?.data) return "NONE";
+        const st = r.data.attributes?.assetDeliveryState;
+        // Apple puts the REASON in assetDeliveryState.errors. Without printing
+        // it, a FAILED asset is just a wall — the upload call itself returned
+        // 200, so the log says success and the state says otherwise.
+        const why = st?.errors?.length ? ` ${JSON.stringify(st.errors)}` : "";
+        const dims = r.data.attributes?.imageAsset
+          ? ` ${r.data.attributes.imageAsset.width}x${r.data.attributes.imageAsset.height}` : "";
+        return `${st?.state ?? "present"}${dims}${why}`;
+      })
       .catch(() => "NONE");
     console.log(`         loc=${locs.map((l) => l.attributes.locale).join(",") || "NONE"}  prices=${prices.length}  available=${avail}  reviewScreenshot=${shot}`);
   }

@@ -16,7 +16,7 @@ on:
       mode:
         description: "probe (read-only), create (writes products), screenshots (uploads the review image)"
         type: choice
-        options: [probe, create, screenshots]
+        options: [probe, create, screenshots, inspect]
         default: probe
         required: true
 

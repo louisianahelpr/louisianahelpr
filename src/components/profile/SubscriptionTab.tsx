@@ -17,6 +17,14 @@ import { tierConfig, TierIcon } from "@/components/profile/subscriptionTab/tierC
 import { renewalLabel } from "@/lib/subscriptionRenewalLabel";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { isNativePlatform } from "@/lib/nativeInit";
+import {
+  isIapAvailable,
+  purchaseTier,
+  restorePurchases,
+  IapBlockedError,
+  type IapTier,
+  type IapCadence,
+} from "@/lib/iap";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -134,15 +142,58 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
     setLoadingCheckout(tier);
     try {
       const billing_cycle = billingInterval === "one_time" ? "one_time" : billingInterval;
+
+      // App Store guideline 3.1.1: a digital subscription bought inside the iOS
+      // app must go through Apple. Sending an iOS member to Stripe checkout is
+      // the rejection this whole path exists to avoid.
+      //
+      // The condition is isIapAvailable(), NOT isNativePlatform: it also
+      // requires the purchase plugin to actually be present in the WebView.
+      // Until `cordova-plugin-purchase` is installed and synced, a native build
+      // falls through to the Stripe branch exactly as it does today, rather
+      // than throwing at a member who tapped Upgrade.
+      if (isIapAvailable()) {
+        await purchaseTier(tier as IapTier, billing_cycle as IapCadence);
+        // The grant lands through the StoreKit approval handler, which calls
+        // verify-apple-iap. Re-read the profile so the card reflects it.
+        await refreshSubscription();
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke("create-pro-checkout", {
         body: { tier, billing_cycle, native: isNativePlatform },
       });
       if (error) throw error;
       if (data?.url) await openExternalUrl(data.url, () => void refreshSubscription());
     } catch (err: unknown) {
+      // A refusal from the pre-purchase gate already carries copy written for a
+      // member ("You already have a membership billed through our website…").
+      // Passing it through functionErrorMessage would replace that with a
+      // generic checkout error and lose the one thing they need to know.
+      if (err instanceof IapBlockedError) {
+        toast.error(err.message);
+        return;
+      }
       toast.error(await functionErrorMessage(err, "Couldn't start checkout — try again?"));
     } finally {
       setLoadingCheckout(null);
+    }
+  };
+
+  // Apple REQUIRES a Restore Purchases control in any app selling
+  // subscriptions; an app without one is rejected at review. Shown only where
+  // it can do anything, so the web storefront is unchanged.
+  const [restoring, setRestoring] = useState(false);
+  const handleRestorePurchases = async () => {
+    setRestoring(true);
+    try {
+      await restorePurchases();
+      await refreshSubscription();
+      toast.success("Purchases restored. If you had a membership, it's back on your account.");
+    } catch {
+      toast.error("Couldn't restore purchases — try again?");
+    } finally {
+      setRestoring(false);
     }
   };
 
@@ -721,6 +772,25 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
           );
         })}
       </div>
+
+      {/* RESTORE PURCHASES. Apple requires this control in any app selling
+          subscriptions — a build without one is rejected at review, and it is
+          the only way back for someone who reinstalled or changed device.
+          Rendered only where it can do anything (native iOS with the purchase
+          plugin present), so the web storefront is untouched. */}
+      {isIapAvailable() && (
+        <div className="mt-4 flex justify-center">
+          <button
+            type="button"
+            onClick={handleRestorePurchases}
+            disabled={restoring}
+            className="text-ds-12 underline underline-offset-2 disabled:opacity-60 rounded-ds-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            style={{ color: "hsl(var(--bark))" }}
+          >
+            {restoring ? "Restoring…" : "Restore purchases"}
+          </button>
+        </div>
+      )}
     </div>
   );
 };

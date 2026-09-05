@@ -366,3 +366,45 @@ describe("create-pro-checkout enforces the same gate server-side", () => {
     expect(SRC).toMatch(/verdict\.reason/);
   });
 });
+
+describe("SubscriptionTab routes iOS through Apple", () => {
+  const SRC = codeOnly(read("src/components/profile/SubscriptionTab.tsx"));
+
+  it("takes the IAP branch before ever calling create-pro-checkout", () => {
+    // Sending an iOS member to Stripe checkout is the 3.1.1 rejection this
+    // whole path exists to avoid, so the branch must come FIRST.
+    const sub = SRC.slice(SRC.indexOf("const handleSubscribe"));
+    expect(sub.indexOf("isIapAvailable()"))
+      .toBeLessThan(sub.indexOf("create-pro-checkout"));
+    expect(sub).toContain("purchaseTier(");
+  });
+
+  it("gates on plugin presence, not merely on being native", () => {
+    // isNativePlatform alone would throw at anyone tapping Upgrade on a build
+    // where cordova-plugin-purchase is not yet installed. isIapAvailable()
+    // also checks the global is there, so such a build falls through to Stripe
+    // instead of breaking.
+    const sub = SRC.slice(SRC.indexOf("const handleSubscribe"), SRC.indexOf("handleRestorePurchases"));
+    expect(sub).toContain("isIapAvailable()");
+    expect(sub).not.toMatch(/if\s*\(\s*isNativePlatform\s*\)/);
+  });
+
+  it("shows the gate's own wording rather than a generic checkout error", () => {
+    // The refusal copy tells the member which store already bills them; a
+    // generic "couldn't start checkout" loses the only actionable part.
+    expect(SRC).toContain("IapBlockedError");
+    // Anchor inside handleSubscribe — handleManageSubscription has its own
+    // `catch (err: unknown)` earlier in the file, and slicing from the first
+    // one measured the wrong handler entirely.
+    const sub = SRC.slice(SRC.indexOf("const handleSubscribe"), SRC.indexOf("const handleRestorePurchases"));
+    expect(sub.indexOf("err instanceof IapBlockedError"))
+      .toBeLessThan(sub.indexOf("functionErrorMessage"));
+  });
+
+  it("actually RENDERS a restore control, not just a handler", () => {
+    // A handler with no button is the same defect as an RPC with no caller.
+    expect(SRC).toMatch(/isIapAvailable\(\)\s*&&/);
+    expect(SRC).toContain("handleRestorePurchases");
+    expect(SRC).toMatch(/Restore purchases/);
+  });
+});

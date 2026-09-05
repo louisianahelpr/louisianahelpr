@@ -19,7 +19,7 @@ incomplete audit, no matter how confident its prose.
 ## The unit changed on 2026-08-31: this ledger counts STATES now, not places
 
 Everything below section 1 counts **places** — routes, redirects, tabs, admin
-views, edge functions, overlay roots. 232 of them. That count was honestly
+views, edge functions, overlay roots. 236 of them (232 when this paragraph was written; re-derived 2026-09-04). That count was honestly
 derived and it is still tracked, because a place nobody has opened is still a
 gap.
 
@@ -38,7 +38,7 @@ one of them was in a place this ledger was missing.** Every one was in a
 - step 2 of a dialog — `ReportDialog` has three screens; every sweep saw one
 
 The route sweep photographs each place once, in whatever state production data
-happened to be in. It cannot see any of that, and the 155 `WALKED` rows below
+happened to be in. It cannot see any of that, and the 147 `WALKED` rows below
 do not claim it can. `/my-posts` being WALKED means the route rendered; it says
 nothing about the eight statuses, the expansion axis, or the arrival lattice
 that route can render.
@@ -51,31 +51,82 @@ clean while broken.
 
 | Axis | Unit | Total | Source of truth |
 | --- | --- | ---: | --- |
-| Places (sections 1–7) | route / tab / view / function / overlay root | 231 | `src/App.tsx`, `TAB_TITLES`, `type View`, `ls supabase/functions`, the overlay grep |
+| Places (sections 1–7) | route / tab / view / function / overlay root | 236 | `src/App.tsx`, `TAB_TITLES`, `type View`, `ls supabase/functions`, the overlay grep |
 | **States (section 8)** | status × role × data-presence × expansion × step | **195** | `e2e/happy-path/state-matrix/stateMatrix.ts`, derived from the `job_status` enum, `application_status`, `deriveAppliedJobCardState` and the nullable columns each card branches on |
 
 ---
 
-## Summary — as of 2026-08-31 (full-surface audit)
+## Summary — recomputed 2026-09-04 (was: as of 2026-08-31)
 
 | Status | Count | Share |
 | --- | ---: | ---: |
-| **WALKED** — operated against real data, with a durable artifact | **154** | 67% |
+| **WALKED** — operated against real data, with a durable artifact | **147** | 62% |
 | **PARTIAL** — touched only by an E2E spec (Chromium against a *mocked* Supabase) | **0** | 0% |
-| **NEVER WALKED** | **77** | 33% |
-| **Total tracked units** | **231** | |
+| **NEVER WALKED** | **89** | 38% |
+| **Total tracked units** | **236** | |
 
-Breakdown of the 231, each figure derived from source, not asserted:
+Breakdown of the 236, each figure **re-derived from source on 2026-09-04**, not
+carried forward:
 
-| Group | Total | Walked | Never |
-| --- | ---: | ---: | ---: |
-| Real routes | 33 | 31 | 2 |
-| Redirect routes | 14 | 14 | 0 |
-| Profile tabs | 17 | 17 | 0 |
-| Activity tabs | 2 | 2 | 0 |
-| Admin views | 24 | 24 | 0 |
-| Edge functions | 63 | 63 | 0 |
-| **Overlay/dialog roots** | **78** | **3** | **75** |
+| Group | Total | Walked | Never | Δ since 2026-08-31 |
+| --- | ---: | ---: | ---: | --- |
+| Real routes | 27 | 25 | 2 | −6: six became Profile tabs (c94209a08, 9c241632b) |
+| Redirect routes | 12 | 12 | 0 | −2: `/analytics` became a tab, `/pay-it-forward` deleted (2affc9dbb) |
+| Profile tabs | 24 | 17 | 7 | +7 tabs, none yet walked *as a tab* |
+| Activity tabs | 2 | 2 | 0 | — |
+| Admin views | 25 | 24 | 1 | +1: `social` (8a3c7c3d7) |
+| Edge functions | 69 | 63 | 6 | +7 added, −1 (`boost-job`, deleted 11b192598) |
+| **Overlay/dialog roots** | **77** | **4** | **73** | grep now returns 77 roots, not 78 |
+
+### 2026-09-04 ledger-integrity check — what moved and why
+
+Nothing was promoted. Every change below is a downgrade, a retirement, or the
+addition of a unit that existed in the code and was missing here.
+
+**The stated summary did not match the body.** The file claimed 154 / 0 / 77 of
+231 while its own section headings and the code they name had drifted apart in
+five places. Recomputed: **147 / 0 / 89 of 236**. The prose above section 1 also
+says "155 WALKED rows"; the correct figure at the time was 154, and is now 147.
+
+**Eight tracked units no longer exist as the thing they are tracked as.** Six
+routes (`/str-settings`, `/auto-tip`, `/home-history`, `/work-record`,
+`/wrapped`, `/pets`) and one redirect (`/analytics`) were folded into Profile
+tabs on 2026-09-02; `/pay-it-forward` was deleted outright. Their rows are
+marked `RETIRED` below rather than removed, so the history stays legible. **The
+seven replacement tabs are `NEVER WALKED`**: the 2026-08-31 screenshots
+(`authed-wrapped.png`, `authed-pets.png`, …) photograph these components inside
+a *route* shell that no longer exists, so they are not evidence for the tab.
+
+**`boost-job` was in the tracked list of 63 but was deleted 2026-08-29** — two
+days before the sweep that claimed "all 63 executed again via curl". The curl
+artifact is honest and does not contain it; the prose list was never
+re-derived. Conversely **six deployed edge functions had never been curled at
+all** (`admin-test-push`, `email-unsubscribe`, `resend-webhook`,
+`subscription-reconciliation`, `marketing-publish`, `marketing-token-health`).
+This is the registry-checked-against-itself failure the section's own closing
+note warns about: the list is meant to be re-derived from `ls
+supabase/functions` whenever it is touched, and it was not.
+
+**Section 7 contradicts itself on the overlay count.** Its heading says "3 of 78
+WALKED"; its group table says Profile is "2 of 14 WALKED" for
+`DeleteAccountDialog` steps 1 and 2 — a *fourth* root, and the named table's
+`SecurityTab` change-email is itself a Profile overlay, so the group table's own
+2 is also wrong. Four distinct roots have been opened and operated. The grep the
+section names now returns **77** roots, not 78.
+
+**Three cited artifacts no longer exist.** All three rows survive on independent
+measured evidence and are NOT downgraded, but the dead paths are annotated in
+place so nobody chases them: `.audit-shots/force-update/blocked-*.png`
+(gitignored, directory gone), `/tmp/help-{375,1440}-final.png` and
+`/tmp/lhnotif/A-resolved-destination.png` (both wiped by the hourly `/tmp`
+sweep). **Stop writing audit artifacts to `/tmp` or a gitignored dir** — a
+screenshot that lives ~12 hours is not a durable artifact, and under rule 4 the
+next reader is entitled to downgrade the row.
+
+**Drift warning that no count captures: 302 commits have landed since the
+2026-08-31 walk**, touching 70 files under `src/pages` alone. Every `WALKED`
+row below is inside its 14-day window by date and stale by change. Treat the
+route rows as "rendered correctly on 2026-08-31", not as current.
 
 The 2 unwalked routes are the parameterised pair, `/jobs/:id` and
 `/user/:userId` — they need a live job id and profile id and were not driven in
@@ -184,7 +235,7 @@ Methods, spelled: `browser` (Chrome, real session), `iOS sim`, `device`,
 
 ---
 
-## 1. Routes — screens (33)
+## 1. Routes — screens (27 live + 6 retired)
 
 Source of truth: the `<Route>` table in `src/App.tsx`. Enumerated, not guessed.
 
@@ -212,20 +263,20 @@ Source of truth: the `<Route>` table in `src/App.tsx`. Enumerated, not guessed.
 | `/legal` | Legal | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
 | `/jobs` | Jobs (public) | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
 | `/browse` | DashboardGuest | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
-| `/str-settings` | StrSettings | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
-| `/auto-tip` | AutoTip | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
+| `/str-settings` | StrSettings | RETIRED 2026-09-02 | n/a — unit no longer exists | Route deregistered from `src/App.tsx`; the component is now a **Profile tab** (see §3), which is `NEVER WALKED` as a tab. The 2026-08-31 artifact photographs the retired route shell. Commits c94209a08 / 9c241632b |
+| `/auto-tip` | AutoTip | RETIRED 2026-09-02 | n/a — unit no longer exists | Route deregistered from `src/App.tsx`; the component is now a **Profile tab** (see §3), which is `NEVER WALKED` as a tab. The 2026-08-31 artifact photographs the retired route shell. Commits c94209a08 / 9c241632b |
 | `/gift-card` | PayItForward | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
-| `/home-history` | HomeHistory | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
-| `/work-record` | WorkRecord | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
-| `/help` | HelpCenter | WALKED | 2026-09-01 · browser | Re-walked by the copy-parity lane at 375 + 1440 with all 7 sections and 23 answers EXPANDED (the FAQ is a two-level accordion; a collapsed pass reads only 695 chars and certifies nothing). scrollWidth == clientWidth at both, 0 elements wider than viewport, 0 page errors, h1 1. 21 of 22 rewritten claims asserted present in rendered text; /tmp/help-{375,1440}-final.png |
-| `/wrapped` | HelprWrapped | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
-| `/pets` | PetProfiles | WALKED | 2026-08-31 · browser | 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
+| `/home-history` | HomeHistory | RETIRED 2026-09-02 | n/a — unit no longer exists | Route deregistered from `src/App.tsx`; the component is now a **Profile tab** (see §3), which is `NEVER WALKED` as a tab. The 2026-08-31 artifact photographs the retired route shell. Commits c94209a08 / 9c241632b |
+| `/work-record` | WorkRecord | RETIRED 2026-09-02 | n/a — unit no longer exists | Route deregistered from `src/App.tsx`; the component is now a **Profile tab** (see §3), which is `NEVER WALKED` as a tab. The 2026-08-31 artifact photographs the retired route shell. Commits c94209a08 / 9c241632b |
+| `/help` | HelpCenter | WALKED | 2026-09-01 · browser | Re-walked by the copy-parity lane at 375 + 1440 with all 7 sections and 23 answers EXPANDED (the FAQ is a two-level accordion; a collapsed pass reads only 695 chars and certifies nothing). scrollWidth == clientWidth at both, 0 elements wider than viewport, 0 page errors, h1 1. 21 of 22 rewritten claims asserted present in rendered text; ~~/tmp/help-{375,1440}-final.png~~ **(2026-09-04: both PNGs are GONE — wiped by the hourly `/tmp` sweep. Row kept `WALKED` on the measured record above plus the surviving 2026-08-31 `public-help.png` at all 4 breakpoint dirs; the /tmp paths prove nothing now.)** |
+| `/wrapped` | HelprWrapped | RETIRED 2026-09-02 | n/a — unit no longer exists | Route deregistered from `src/App.tsx`; the component is now a **Profile tab** (see §3), which is `NEVER WALKED` as a tab. The 2026-08-31 artifact photographs the retired route shell. Commits c94209a08 / 9c241632b |
+| `/pets` | PetProfiles | RETIRED 2026-09-02 | n/a — unit no longer exists | Route deregistered from `src/App.tsx`; the component is now a **Profile tab** (see §3), which is `NEVER WALKED` as a tab. The 2026-08-31 artifact photographs the retired route shell. Commits c94209a08 / 9c241632b |
 | `*` | NotFound | WALKED | 2026-08-31 · browser | driven as /nonexistent-audit-404; 6 breakpoints light + 2 dark, ~/lh-audit-2026-08-30/; axe 0, overflow 0, h1 1 |
 | `/jobs/:id` | JobDetail | NEVER WALKED | never | needs a live job id — not driven this pass |
 | `/user/:userId` | UserProfile | NEVER WALKED | never | needs a live profile id — not driven this pass |
 
 
-## 2. Routes — redirects (14)
+## 2. Routes — redirects (12 live + 2 retired)
 
 A redirect is walked when you have observed the *landing* URL after navigating
 to the source, not when you have read the `<Navigate>` element.
@@ -241,14 +292,14 @@ to the source, not when you have read the `<Navigate>` element.
 | `/schedule` | `/profile?tab=schedule` | WALKED | landing URL observed in browser; 2026-08-31 · browser |
 | `/availability` | `/profile?tab=availability` | WALKED | landing URL observed in browser; 2026-08-31 · browser |
 | `/saved-helpers` | `/profile?tab=saved_helpers` | WALKED | landing URL observed in browser; 2026-08-31 · browser |
-| `/pay-it-forward` | `/gift-card` | WALKED | **query-string preservation now driven, not just the landing URL.** `?claim=<token>` survives signed-out (`/login?redirect=%2Fgift-card%3Fclaim%3D…`) and signed-in (`claim-pif-credit` invoked with `{"claim_token":"…"}`); prod A/B shows the pre-fix `?redirect=%2Fgift-card` with the token gone. 2026-09-01 · browser (Playwright) |
-| `/analytics` | `/profile?tab=earnings` | WALKED | landing URL observed in browser; 2026-08-31 · browser |
+| `/pay-it-forward` | ~~`/gift-card`~~ | RETIRED 2026-09-02 | **query-string preservation now driven, not just the landing URL.** `?claim=<token>` survives signed-out (`/login?redirect=%2Fgift-card%3Fclaim%3D…`) and signed-in (`claim-pif-credit` invoked with `{"claim_token":"…"}`); prod A/B shows the pre-fix `?redirect=%2Fgift-card` with the token gone. 2026-09-01 · browser (Playwright). **Route deleted 2026-09-02 (2affc9dbb) — the redirect no longer exists; evidence retained for history.** |
+| `/analytics` | ~~`/profile?tab=earnings`~~ | RETIRED 2026-09-02 | landing URL observed in browser 2026-08-31; **route deregistered 2026-09-02 (c94209a08) — `analytics` is now a Profile tab (§3), `NEVER WALKED` as a tab** |
 | `/dashboard/post-login` | `/dashboard` | WALKED | landing URL observed in browser; 2026-08-31 · browser |
 | `/settings/profile` | `/profile` | WALKED | landing URL observed in browser; 2026-08-31 · browser |
 | `/settings` | `/profile` | WALKED | landing URL observed in browser; 2026-08-31 · browser |
 
 
-## 3. Profile tabs (17)
+## 3. Profile tabs (24)
 
 Source of truth: `TAB_TITLES` in `src/pages/profile/types.ts`, plus the
 `landing` tab. Each is a distinct screen reached as `/profile?tab=<key>`.
@@ -273,6 +324,17 @@ Source of truth: `TAB_TITLES` in `src/pages/profile/types.ts`, plus the
 | `credentials` | Licensed & Insured | WALKED | 2026-08-31 · browser; rendered + axe + layout measured at 1440 light & dark; ~/lh-audit-2026-08-30/ |
 | `saved_helpers` | Saved Helprs | WALKED | 2026-08-31 · browser; rendered + axe + layout measured at 1440 light & dark; ~/lh-audit-2026-08-30/ |
 | `accessibility` | Accessibility | WALKED | 2026-08-31 · browser; rendered + axe + layout measured at 1440 light & dark; ~/lh-audit-2026-08-30/ |
+| `pets` | Pet Profiles | NEVER WALKED | never **as a tab**. Arrived 2026-09-02 (c94209a08 / 9c241632b) when the standalone route was retired. The 2026-08-31 `authed-pets.png` screenshots are of the *route* shell, which no longer exists, so they are not evidence for this tab. |
+| `work_record` | Work Record | NEVER WALKED | never **as a tab**. Arrived 2026-09-02 (c94209a08 / 9c241632b) when the standalone route was retired. The 2026-08-31 `authed-work-record.png` screenshots are of the *route* shell, which no longer exists, so they are not evidence for this tab. |
+| `home_history` | Home History | NEVER WALKED | never **as a tab**. Arrived 2026-09-02 (c94209a08 / 9c241632b) when the standalone route was retired. The 2026-08-31 `authed-home-history.png` screenshots are of the *route* shell, which no longer exists, so they are not evidence for this tab. |
+| `str_settings` | STR Settings | NEVER WALKED | never **as a tab**. Arrived 2026-09-02 (c94209a08 / 9c241632b) when the standalone route was retired. The 2026-08-31 `authed-str-settings.png` screenshots are of the *route* shell, which no longer exists, so they are not evidence for this tab. |
+| `auto_tip` | Auto-Tip | NEVER WALKED | never **as a tab**. Arrived 2026-09-02 (c94209a08 / 9c241632b) when the standalone route was retired. The 2026-08-31 `authed-auto-tip.png` screenshots are of the *route* shell, which no longer exists, so they are not evidence for this tab. |
+| `wrapped` | Helpr Wrapped | NEVER WALKED | never **as a tab**. Arrived 2026-09-02 (c94209a08 / 9c241632b) when the standalone route was retired. The 2026-08-31 `authed-wrapped.png` screenshots are of the *route* shell, which no longer exists, so they are not evidence for this tab. |
+| `analytics` | Helper Analytics | NEVER WALKED | never **as a tab**. Arrived 2026-09-02 (c94209a08 / 9c241632b) when the standalone route was retired. The 2026-08-31 `(none — `/analytics` was a redirect)` screenshots are of the *route* shell, which no longer exists, so they are not evidence for this tab. |
+
+**2026-09-04:** re-derived from `type Tab` in `src/pages/profile/types.ts` —
+**24 members**, not 17. `TAB_TITLES` carries 23 of them; `landing` has no
+title by design and is not a gap.
 
 
 ## 4. Activity tabs (2)
@@ -283,10 +345,10 @@ them; a tab seen in one status is not a walked tab.
 
 | Tab | Route | Status | Evidence |
 | --- | --- | --- | --- |
-| `posted` | `/my-posts` | WALKED | 2026-08-31 · browser; incl. ?filter=scheduled/waiting/done, 6 breakpoints. 2026-09-01 · browser (Playwright/Chromium 1440, session = helpr-audit-web-0824@mailinator.com, the job's own poster): notification deep-link resolution driven end to end. `?job=db21c20d…` → `/my-posts?job=…&filter=done`, chip **Done 3** the ONLY one selected, card "Rake and bag front-yard leaves" rendered (236×23 visible), 0 h-overflow — /tmp/lhnotif/A-resolved-destination.png. Stale-filter case `?job=…&filter=offered` now also resolves to `filter=done`; with the precedence line temporarily reverted the same URL gave **0 chips selected and no card**, which is the defect. |
+| `posted` | `/my-posts` | WALKED | 2026-08-31 · browser; incl. ?filter=scheduled/waiting/done, 6 breakpoints. 2026-09-01 · browser (Playwright/Chromium 1440, session = helpr-audit-web-0824@mailinator.com, the job's own poster): notification deep-link resolution driven end to end. `?job=db21c20d…` → `/my-posts?job=…&filter=done`, chip **Done 3** the ONLY one selected, card "Rake and bag front-yard leaves" rendered (236×23 visible), 0 h-overflow — ~~/tmp/lhnotif/A-resolved-destination.png~~ **(2026-09-04: GONE, `/tmp` sweep; the measured record above is what carries this row).** Stale-filter case `?job=…&filter=offered` now also resolves to `filter=done`; with the precedence line temporarily reverted the same URL gave **0 chips selected and no card**, which is the defect. |
 | `applied` | `/my-jobs` | WALKED | 2026-08-31 · browser; incl. ?filter=scheduled/waiting/completed, 6 breakpoints |
 
-## 5. Edge functions (63)
+## 5. Edge functions (69)
 
 Source of truth: `supabase/functions/` (excluding `_shared`). "Walked" here
 means **executed against the deployed function** and the status observed —
@@ -345,6 +407,35 @@ prod: `create-payment` (real $86.00 test-mode checkout, PI succeeded),
 `slack-ops-alert`, `str-ical-sync`, `stripe-connect`, `stripe-idv-start`,
 `stripe-idv-webhook`, `stripe-payouts`, `stripe-webhook`,
 `verification-webhook`, `void-cancelled-payments`, `weekly-helper-report`.
+
+**2026-09-04 — this list was NOT re-derived, and it drifted in both directions.**
+Re-derived from `ls supabase/functions` (excluding `_shared`): **69 functions**,
+not 63.
+
+- **`boost-job` above is dead.** It was deleted on 2026-08-29 (`11b192598`),
+  *two days before* the 2026-08-31 sweep that claims "all 63 executed again via
+  curl". The curl artifact is honest — `~/lh-audit-2026-08-30/edge-functions.txt`
+  contains 63 names and `boost-job` is not one of them. The prose list is what
+  was stale. Strike it.
+- **Six deployed functions have NEVER been curled**, and are `NEVER WALKED`:
+
+| Function | Added | Status |
+| --- | --- | --- |
+| `admin-test-push` | 2026-08-31 (`efab00a3b`) | NEVER WALKED |
+| `email-unsubscribe` | 2026-08-31 (`740a70619`) | NEVER WALKED |
+| `resend-webhook` | 2026-08-31 (`fa6a78987`) | NEVER WALKED |
+| `subscription-reconciliation` | 2026-08-31 (`ad315368f`) | NEVER WALKED |
+| `marketing-publish` | 2026-09-02 (`8a3c7c3d7`) | NEVER WALKED |
+| `marketing-token-health` | 2026-09-02 (`8a3c7c3d7`) | NEVER WALKED |
+
+`backfill-job-geocode` (added 2026-08-30) *was* curled and is in the artifact,
+but was missing from this prose list — a third direction of drift. It is
+`WALKED`.
+
+This is the failure the closing note below warns about, arriving anyway: a
+registry that is both the input and the definition of correctness cannot fail
+for a missing member. Re-derive from `ls supabase/functions` — do not read this
+list and tick it off.
 
 > Keep this section a list rather than a table on purpose: it is meant to be
 > re-derived from `ls supabase/functions` whenever it is touched, so a function
@@ -410,9 +501,9 @@ callers is covered by a harness test but not by a real deploy-window run.
 
 ---
 
-## 6. Admin views (24)
+## 6. Admin views (25)
 
-Source of truth: `type View` in `src/pages/Admin.tsx:45`. Each is a distinct
+Source of truth: `type View` in `src/pages/Admin.tsx:46`. Each is a distinct
 screen reached as `/admin?view=<key>`. `/admin` being walked does NOT cover
 them. Reached by minting a session and elevating the seeded account via
 `user_roles`.
@@ -443,13 +534,14 @@ them. Reached by minting a session and elevating the seeded account via
 | `credentials` | WALKED | 2026-08-31 · browser; rendered + axe + layout at 1440 light & dark, ~/lh-audit-2026-08-30/ |
 | `exceptions` | WALKED | 2026-08-31 · browser; rendered + axe + layout at 1440 light & dark, ~/lh-audit-2026-08-30/ |
 | `banreview` | WALKED | 2026-08-31 · browser; rendered + axe + layout at 1440 light & dark, ~/lh-audit-2026-08-30/ |
+| `social` | NEVER WALKED | never. Added 2026-09-02 (`8a3c7c3d7`, the marketing publish pipe) — after the 2026-08-31 sweep, so no artifact exists for it. |
 
 All 24 rendered clean: 0 axe violations, 0 horizontal overflow, exactly one
 `<h1>` each, none under the 65% desktop-fill bar. Note this covers the views'
 READ surface only — the destructive dialogs they host (ban, refund, delete,
 status override) are in section 7 and remain unwalked.
 
-## 7. Overlays — dialogs, sheets, popovers, drawers (78)
+## 7. Overlays — dialogs, sheets, popovers, drawers (77)
 
 Source of truth:
 `grep -roE "<(Dialog|AlertDialog|Sheet|Drawer|Popover|DropdownMenu|HoverCard)\s+open=" src --exclude-dir=ui`
@@ -457,7 +549,14 @@ Source of truth:
 why previous audits could report "all routes walked" while no popup in the app
 had ever been opened by an auditor.
 
-**Status: 3 of 78 WALKED.**
+**Status: 4 of 77 WALKED.** (Corrected 2026-09-04. The grep named above now
+returns **77** roots. This line said "3 of 78" while the group table below
+said Profile was "2 of 14" for `DeleteAccountDialog` steps 1 and 2 — a fourth
+root — and the named table's `SecurityTab` change-email is itself a Profile
+overlay, so the group table's 2 was wrong in the other direction. Four distinct
+roots have been opened and operated: `FilterSheet`, `JobDetailDialog`,
+`SecurityTab` change-email, `DeleteAccountDialog`. One root walked across two
+steps is one root.)
 
 | Overlay | Trigger | Status | Evidence |
 | --- | --- | --- | --- |
@@ -494,7 +593,7 @@ class is the whole reason this bar exists.
 | Dashboard / Browse / Jobs | 12 | NEVER WALKED |
 | Activity (largest family: boost, tip, cancel, dispute, review, completion, W9, applicants) | 25 | NEVER WALKED |
 | Messages | 10 | NEVER WALKED |
-| Profile (incl. delete account, 2FA, instant payout, ProUpgradeSheet paywall) | 14 | 2 of 14 WALKED — DeleteAccountDialog steps 1 and 2, driven at 375 and 1440 (2026-08-31, see §Account deletion below). Remaining 12 NEVER WALKED |
+| Profile (incl. delete account, 2FA, instant payout, ProUpgradeSheet paywall) | 14 | 2 of 14 WALKED — `DeleteAccountDialog` (steps 1 and 2, driven at 375 and 1440, 2026-08-31, see §Account deletion below) and `SecurityTab` change-email. Remaining 12 NEVER WALKED |
 | Post Job (IDV gate, redirect overlay, pickers) | 10 | NEVER WALKED |
 | Nav / shell (GateSheet guest paywall, quick menu, sidebar) | 5 | NEVER WALKED |
 | Admin (command palette, ban, refund, remove, status override, user detail) | 18 | NEVER WALKED |
@@ -865,12 +964,12 @@ are the App Store finding below and are real, not flaky.
 | Cell | Status | Evidence |
 | --- | --- | --- |
 | Build ABOVE the minimum → app loads | WALKED | browser · `6000 vs 5000`: block screen absent, `#main-content` count 1. Also asserted at the boundary (`5906 vs 5906` → loads) in `ForceUpdateGate.test.tsx`. |
-| Build BELOW the minimum → BLOCKED | WALKED | browser · driven twice: through the harness (`build=5906&min=6000`) and through the REAL read path with the RPC returning `min_supported_build: 6000`. Block screen present both times; `#main-content` absent, so the app tree is unmounted rather than hidden. Screenshot `.audit-shots/force-update/blocked-375.png`. |
+| Build BELOW the minimum → BLOCKED | WALKED | browser · driven twice: through the harness (`build=5906&min=6000`) and through the REAL read path with the RPC returning `min_supported_build: 6000`. Block screen present both times; `#main-content` absent, so the app tree is unmounted rather than hidden. ~~Screenshot `.audit-shots/force-update/blocked-375.png`~~ **(2026-09-04: `.audit-shots/` is gitignored and the directory no longer exists. Row kept `WALKED` on the two drives + the `#main-content` measurement; the screenshot is not recoverable).** |
 | `min_supported_build = 0` (off) → app loads | WALKED | browser · both via the harness and via an intercepted RPC returning 0. |
 | Settings read FAILS → app loads (FAIL OPEN) | WALKED | browser · four independent failure modes, all non-blocking: network `route.abort("failed")`; HTTP 500; RPC response omitting the column (the deploy-lag window); and the live prod RPC uninterrupted, which omits it today. |
 | Fail-open unit matrix | WALKED | `src/lib/minSupportedBuild.test.ts` — 32 assertions: RPC error, RPC throw, empty row set, null, non-numeric, negative, >999,999, dotted CFBundleVersion, and the Supabase `error` being logged rather than dropped. |
 | Web is never blocked | WALKED | browser · loaded `/` with no demo flag and the RPC armed at `999999`: block screen absent AND the gate issued **0 settings calls** — the platform check short-circuits before the request. |
-| No horizontal overflow, 320/375/768/1440 | WALKED | browser · `documentElement.scrollWidth <= clientWidth` at all four (320/320, 375/375, 768/768, 1440/1440) and zero elements wider than the viewport. Screenshots `.audit-shots/force-update/blocked-{320,375,768,1440}.png`. |
+| No horizontal overflow, 320/375/768/1440 | WALKED | browser · `documentElement.scrollWidth <= clientWidth` at all four (320/320, 375/375, 768/768, 1440/1440) and zero elements wider than the viewport. ~~Screenshots `.audit-shots/force-update/blocked-{320,375,768,1440}.png`~~ **(2026-09-04: GONE with `.audit-shots/`; the four measured `scrollWidth`/`clientWidth` pairs above are what carry this row).** |
 | Primary CTA is glossy | WALKED | browser · computed `background-image` read at all four widths = `radial-gradient(125% 125% at 32% 22%, rgb(100,110,73) 0%, …)`. Read as a real gradient, not as a class name. |
 | CTA tap target ≥ 44px | WALKED | browser · 272×56 at 320px; 327×56 at 375; 384×56 at 768 and 1440. |
 | Block screen a11y | WALKED | browser · `role="dialog"`, `aria-modal="true"`, accessible name "Update Helpr to continue". |

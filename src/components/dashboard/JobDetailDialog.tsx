@@ -356,7 +356,30 @@ const JobDetailDialog = ({
           // floor means the box does not resize between steps, which is what
           // dialog.tsx prescribed as the right fix all along — "reserve the
           // content's height, not re-anchor one dialog".
-          "min-h-[min(68dvh,600px)]",
+          // SIZED FROM A MEASUREMENT, not picked. The comment above says this
+          // reservation "needs a height reservation sized from the settled
+          // content, which is a measurement someone has to take rather than a
+          // number to guess" — 68dvh was the guess, and it left the sheet a
+          // third empty. Owner reported the dead space from a device
+          // screenshot 2026-09-04; measured off that screenshot:
+          //
+          //   sheet at the floor   545px  (== 68dvh, so viewport ~801px)
+          //   content extent       384px  (47.9dvh — ends at the Continue CTA)
+          //   dead space           161px  (29% of the sheet)
+          //
+          // The binding constraint is NOT the detail step, it is the apply
+          // step: the floor only has to be tall enough that stepping
+          // detail -> apply doesn't resize the box (the 66.4px jump this
+          // reservation exists to absorb). 384 + 66.4 = 450px = 56.2dvh, so
+          // anything at or above ~57dvh keeps the no-jump property. 58dvh
+          // takes it with a small margin and hands ~80px back — half the dead
+          // space — without re-anchoring the sheet the owner asked to keep
+          // centred, twice.
+          //
+          // Jobs whose content already exceeds the floor (long description,
+          // photos) are unaffected: they size naturally now as they did
+          // before, and lowering a floor cannot make those taller cases worse.
+          "min-h-[min(58dvh,500px)]",
           "content-start",
           "sm:w-[calc(100%-2rem)] sm:max-w-lg",
           "sm:pb-7",

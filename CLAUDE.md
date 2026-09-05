@@ -204,6 +204,31 @@ this list tight; project-specific trivia belongs in code comments, not here.
   lint-staged (offline by design; a hook that needs the network is a hook
   people bypass). Put rule explanations in the commit message or beside the
   code that depends on them, never in that file.
+- **`REVOKE ... FROM PUBLIC` does NOT revoke `anon`, and a green db-deploy does
+  NOT clear an earlier red one.** Two halves of the same afternoon (2026-09-05).
+  Supabase's `ALTER DEFAULT PRIVILEGES` grants EXECUTE on every new `public`
+  function to anon, authenticated and service_role **individually**, so
+  revoking PUBLIC drops only the implicit world grant and leaves all three
+  explicit ones intact. `admin_reverse_violation` shipped ending in
+  `REVOKE ALL ... FROM PUBLIC; GRANT EXECUTE ... TO authenticated;` — which
+  reads as least privilege and achieved nothing: anon kept EXECUTE on the only
+  `admin_*` function it could call. **A REVOKE that silently does nothing is
+  worse than none, because it reads as done in review.** Always name the roles:
+  `FROM PUBLIC, anon`. Verify in `pg_proc.proacl` — leading `=X/postgres` means
+  PUBLIC has it, `anon=X` means anon does (house norm: 168 of 241 revoked).
+
+  The reason it survived is the second half. `db-deploy.yml`'s migration-lint
+  gate lints only migrations **new relative to a diff base**, so it went red on
+  the commit that introduced the function ("New public function(s) defined
+  without an explicit GRANT or REVOKE") and the NEXT push went green without
+  re-examining it — the file was no longer new. The migration deploys either
+  way (`db push` applies everything pending), so the red looks self-healing
+  when nothing was fixed. **Read the red run itself**
+  (`gh run view <id> --log-failed | grep -E "❌|Process completed"`); a later
+  green is not an answer, and verify the fix by object state
+  (`pg_proc.proacl`, `to_regprocedure`), never by run colour. Same family as
+  the `vercel.json` rule above: the deploy that matters is not always the run
+  you happen to be looking at.
 - **Migrations auto-deploy on merge to main** via `.github/workflows/db-deploy.yml`
   (`supabase db push`, also manually runnable via `gh workflow run db-deploy.yml`).
   No manual pushes, no side channels. Ship a graceful fallback for PGRST202

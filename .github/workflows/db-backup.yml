@@ -141,9 +141,27 @@ jobs:
               FAIL=1
             fi
           done
-          # And prove the DATA dump carries rows, not just COPY headers.
-          if ! grep -qE "^COPY public\.(profiles|jobs) " out/data.sql; then
-            echo "::error::data.sql contains no COPY block for profiles/jobs — dump has no data"
+          # And prove the DATA dump carries rows for the two tables whose loss
+          # ends the marketplace. Deliberately tolerant of HOW the CLI writes
+          # them: COPY or INSERT, quoted or bare, schema-qualified or not.
+          # The first version of this check demanded exactly `^COPY public.x `
+          # and failed the very first run against a perfectly good 4.2 MB dump
+          # — a backup guard that rejects real backups is worse than none,
+          # because the fix is to loosen it and the temptation is to delete it.
+          for t in profiles jobs; do
+            if ! grep -qE "^(COPY|INSERT INTO) \"?(public\"?\.\"?)?${t}\"?[ (]" out/data.sql; then
+              echo "::error::data.sql has no COPY/INSERT rows for ${t} — dump has no data"
+              FAIL=1
+            fi
+          done
+          # Belt and braces: a dump of an EMPTY database would still contain
+          # the COPY headers above. Assert real byte weight in the data file
+          # for those tables by counting lines between the marker and its
+          # terminator.
+          ROWS=$(awk '/^COPY .*(profiles|jobs)[ (]/{f=1;next} /^\\\.$/{f=0} f{n++} END{print n+0}' out/data.sql)
+          echo "data rows across profiles/jobs COPY blocks: $ROWS"
+          if [ "$ROWS" -lt 10 ]; then
+            echo "::error::only $ROWS data rows found for profiles/jobs — expected the live table counts"
             FAIL=1
           fi
           exit $FAIL

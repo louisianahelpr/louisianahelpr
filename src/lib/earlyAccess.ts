@@ -1,7 +1,7 @@
 // Single source of truth for the subscription "early access" perk delay.
 //
 // Free/no-tier users see brand-new jobs only after a 20-minute delay;
-// Basic shaves 5 min off, Pro 10, Elite the full 20 (they see jobs
+// Basic shaves 5 min off, Pro 10, Plus 15, Elite the full 20 (they see jobs
 // immediately). This perk applies to ALL users equally regardless of role.
 //
 // Elite used to share its branch with a `business` tier that no longer exists
@@ -58,6 +58,7 @@ export function resolveEarlyAccessTier(
 export function earlyAccessDelayMs(tier: string | null | undefined): number {
   const earlyMinutes =
     tier === "elite" ? 20
+    : tier === "plus" ? 15
     : tier === "pro" ? 10
     : tier === "basic" ? 5
     : 0;

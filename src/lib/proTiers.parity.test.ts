@@ -16,7 +16,13 @@ import {
   PRO_RECURRING_AMOUNT_CENTS as EDGE_PRO_RECURRING_AMOUNT_CENTS,
 } from "../../supabase/functions/_shared/proTiers";
 
-const PAID_TIERS: ProTierKey[] = ["basic", "pro", "elite"];
+// DERIVED from TIER_PERKS (every tier but free), not hand-listed. The literal
+// form said ["basic","pro","elite"] and could not fail for a tier it never had
+// — so when Plus was restored on 2026-09-05 this file would have gone on
+// green while never once checking Plus's Price ids for a placeholder, which is
+// the exact bug that got Plus pulled the first time.
+const PAID_TIERS: ProTierKey[] = (Object.keys(TIER_PERKS) as SubscriptionTier[])
+  .filter((t) => t !== "free") as ProTierKey[];
 const CYCLES: ProBillingCycle[] = ["monthly", "annual", "one_time"];
 
 describe("consumer subscription checkout price config (F-MONEY-01 drift guard)", () => {
@@ -25,9 +31,9 @@ describe("consumer subscription checkout price config (F-MONEY-01 drift guard)",
     expect(PRO_RECURRING_AMOUNT_CENTS).toEqual(EDGE_PRO_RECURRING_AMOUNT_CENTS);
   });
 
-  it("maps exactly the four paid consumer tiers for every billing cycle", () => {
+  it("maps exactly the paid consumer tiers for every billing cycle", () => {
     for (const cycle of CYCLES) {
-      expect(Object.keys(PRO_PRICE_MAP[cycle]).sort()).toEqual(["basic", "elite", "pro"]);
+      expect(Object.keys(PRO_PRICE_MAP[cycle]).sort()).toEqual([...PAID_TIERS].sort());
     }
   });
 

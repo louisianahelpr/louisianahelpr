@@ -2,6 +2,7 @@ import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
 import { PRODUCT_TO_TIER, ONE_TIME_PRODUCTS } from "../constants.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
+import { TIER_FEE_PERCENT } from "../../_shared/helperFees.ts";
 import { sendPifGiftEmail } from "../../_shared/pifGiftEmail.ts";
 import { settleOnboardingFee } from "./settleOnboardingFee.ts";
 import { subscriptionCurrentPeriodEndISO } from "../../_shared/stripeSubscriptionPeriod.ts";
@@ -40,7 +41,15 @@ export async function handleCheckoutSessionCompleted(
     tier = PRODUCT_TO_TIER[productId] || null;
     if (!tier) {
       const metaTier = (session.metadata as Record<string, string> | null)?.tier;
-      if (metaTier && ["basic", "pro", "elite"].includes(metaTier)) tier = metaTier;
+      // DERIVED from the tier table, not hand-listed. This was
+      // ["basic","pro","elite"] — the safety net below PRODUCT_TO_TIER, and it
+      // had the same hole it exists to cover: a Plus checkout whose product id
+      // was unmapped would fall through BOTH, and the handler would skip the
+      // grant entirely. Paid, no entitlement. Taking the members from
+      // TIER_FEE_PERCENT means the net always covers every sellable tier.
+      // `free` is excluded because nobody checks out for it.
+      const SELLABLE_TIERS = Object.keys(TIER_FEE_PERCENT).filter((t) => t !== "free");
+      if (metaTier && SELLABLE_TIERS.includes(metaTier)) tier = metaTier;
       // Loud either way: an unmapped product means PRODUCT_TO_TIER is stale and
       // the next product added will hit the same hole without the metadata net.
       await postSlackOpsAlert({

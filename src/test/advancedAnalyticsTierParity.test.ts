@@ -27,11 +27,22 @@ import { TIER_PERKS, type SubscriptionTier } from "@/lib/subscriptionTiers";
 const repoRoot = resolve(__dirname, "../..");
 const MIGRATIONS = resolve(repoRoot, "supabase/migrations");
 
-/** The migration that owns the gate — found by name so a rename fails loudly. */
+/**
+ * The migration that owns the gate — found by name so a rename fails loudly.
+ *
+ * The NEWEST match wins. This used to take the first, which was correct while
+ * exactly one migration defined the gate and silently wrong the moment a second
+ * one redefined it: migrations are append-only, so the later file is the live
+ * definition, and reading the older one would have compared TIER_PERKS against
+ * a body Postgres had already replaced. Sorting by the timestamp prefix is
+ * enough — `npm run migration:new` guarantees the format and
+ * migrationVersions.test.ts fails CI on a collision.
+ */
 function gateMigrationSource(): string {
-  const file = readdirSync(MIGRATIONS).find((f) =>
-    f.endsWith("_helper_advanced_analytics.sql"),
-  );
+  const file = readdirSync(MIGRATIONS)
+    .filter((f) => f.endsWith("_helper_advanced_analytics.sql"))
+    .sort()
+    .pop();
   expect(
     file,
     "No *_helper_advanced_analytics.sql in supabase/migrations. If the gate moved, point this test at its new home rather than deleting it.",
@@ -41,7 +52,9 @@ function gateMigrationSource(): string {
 
 /** Tiers listed in `subscription_tier IN (…)` inside helper_has_advanced_analytics. */
 function tiersInSql(sql: string): string[] {
-  const fn = /CREATE FUNCTION public\.helper_has_advanced_analytics[\s\S]*?\$function\$([\s\S]*?)\$function\$/.exec(sql);
+  // `CREATE OR REPLACE` as well as `CREATE` — a redefinition is the normal
+  // shape for every migration after the first.
+  const fn = /CREATE (?:OR REPLACE )?FUNCTION public\.helper_has_advanced_analytics[\s\S]*?\$function\$([\s\S]*?)\$function\$/.exec(sql);
   expect(fn, "helper_has_advanced_analytics(uuid) not found in the migration").toBeTruthy();
   const list = /subscription_tier\s+IN\s*\(([^)]*)\)/i.exec(fn![1]);
   expect(list, "No `subscription_tier IN (…)` list inside helper_has_advanced_analytics").toBeTruthy();

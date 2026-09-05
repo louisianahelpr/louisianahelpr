@@ -54,7 +54,7 @@ const PROD_BASE = "https://api.storekit.itunes.apple.com";
 const SANDBOX_BASE = "https://api.storekit-sandbox.itunes.apple.com";
 
 /** The paid tiers sellable through Apple. Mirrors ProTierKey exactly. */
-export const APPLE_TIERS: readonly ProTierKey[] = ["basic", "pro", "elite"] as const;
+export const APPLE_TIERS: readonly ProTierKey[] = ["basic", "pro", "plus", "elite"] as const;
 export const APPLE_CYCLES: readonly ProBillingCycle[] = ["monthly", "annual", "one_time"] as const;
 
 /**

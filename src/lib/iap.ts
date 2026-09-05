@@ -41,7 +41,7 @@ import { Capacitor } from "@capacitor/core";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 
-export type IapTier = "basic" | "pro" | "elite";
+export type IapTier = "basic" | "pro" | "plus" | "elite";
 export type IapCadence = "monthly" | "annual" | "one_time";
 
 /**
@@ -59,7 +59,7 @@ export function productIdFor(tier: IapTier, cadence: IapCadence): string {
   return `com.helpr.${tier}.${suffix}`;
 }
 
-export const IAP_TIERS: IapTier[] = ["basic", "pro", "elite"];
+export const IAP_TIERS: IapTier[] = ["basic", "pro", "plus", "elite"];
 export const IAP_CADENCES: IapCadence[] = ["monthly", "annual", "one_time"];
 
 const ALL_PRODUCT_IDS: string[] = IAP_TIERS.flatMap((tier) =>

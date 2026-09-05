@@ -3,7 +3,7 @@
  * There are exactly four: Free / Basic / Pro / Elite.
  *
  * Consumer prices MUST equal the live Stripe Price objects (verified):
- *   basic $5/mo $50/yr   pro  $10/mo  $100/yr   elite  $20/mo  $200/yr
+ *   basic $5/mo $50/yr   pro $10/mo $100/yr   plus $15/mo $150/yr   elite $20/mo $200/yr
  * `annualPrice` is stored as the monthly-equivalent of the annual plan
  * (yearly ÷ 12) because the membership cards render it as "$X/mo annual".
  *
@@ -41,13 +41,28 @@
  *
  * The tier IDs align with the subscription_tier column on profiles
  * ("basic", "pro", "elite"). "free" is the default/null case. The commission
- * ladder is four rungs: free 12% → basic 11% → pro 10% → elite 8%.
+ * ladder is five rungs: free 12% → basic 11% → pro 10% → plus 9% → elite 8%.
  *
- * There is deliberately NO 9% rung. A "Plus" tier ($15/mo, 9%) shipped on
- * 2026-08-27 and was removed by the owner on 2026-08-28 — it was never wired
- * into LIVE Stripe (its three Price IDs were placeholders), so selling it the
- * moment the live key went in would have 500'd every purchase. Do not
- * reintroduce a rung between Pro and Elite without live Stripe Prices.
+ * PLUS, restored 2026-09-05 on the owner's call: $15/mo, 9% fee, between Pro
+ * and Elite. It shipped 2026-08-27 and was pulled a day later — NOT because
+ * the tier was wrong, but because its three LIVE Stripe Price ids were
+ * `price_TODO_LIVE_PLUS_*` placeholders while both storefronts sold it, so
+ * every purchase would have 500'd the moment the live key went in.
+ *
+ * The condition that removal set — "do not reintroduce a rung between Pro and
+ * Elite without live Stripe Prices" — is now met: three real Prices were
+ * created on acct_1RQbAfKp2H4b7tEC and read back to confirm their amounts
+ * ($15 / $150 / $15). proTiers.parity.test.ts additionally forbids a
+ * placeholder id on ANY paid tier and cycle, so the failure mode is guarded in
+ * general rather than patched for this one tier.
+ *
+ * Its only NEW perk is the 15-minute early-access step (Pro 10 → Plus 15 →
+ * Elite 20); everything else it grants, it grants by inheriting Pro, which the
+ * ladder requires — a higher tier can never hold fewer perks than a lower one.
+ * Elite's identity perks (Featured Crown Badge, priority support) are
+ * deliberately NOT moved down: which of them Plus should get is a pricing
+ * judgement for the owner, not an interpolation, so Plus ships thin-but-honest
+ * rather than advertising a perk that does not exist or gutting Elite unasked.
  *
  * BASIC positioning: entry paid tier ($5/mo) for helpers testing the
  * marketplace who want the utility perks (Instant Payouts, 5-min Early
@@ -85,7 +100,7 @@ export { tierDisplayName };
  */
 export const ONE_TIME_PASS_DAYS = 30;
 
-export type SubscriptionTier = "free" | "basic" | "pro" | "elite";
+export type SubscriptionTier = "free" | "basic" | "pro" | "plus" | "elite";
 
 export interface TierPerks {
   name: string;
@@ -177,6 +192,28 @@ export const TIER_PERKS: Record<SubscriptionTier, TierPerks> = {
       "Advanced Analytics",
     ],
   },
+  plus: {
+    name: TIER_DISPLAY_NAMES.plus,
+    price: 15,
+    annualPrice: 12.5, // $150/yr ÷ 12
+    platformFeePercent: 9,
+    // Everything Pro grants, because a tier above Pro must never grant less.
+    priorityPlacement: true,
+    earlyAccess: true, // 15 min — see earlyAccess.ts
+    advancedAnalytics: true,
+    // Elite-only, left alone on purpose (see the PLUS note in the header).
+    featuredBadge: false,
+    dedicatedSupport: false,
+    tagline: "A lower cut on every job",
+    ctaLabel: "Upgrade",
+    // ONE bullet, and that is the honest state of this tier: the only thing
+    // Plus adds over Pro that is a real shipping feature is the extra five
+    // minutes of early access. Its actual value proposition is the 9% fee,
+    // which both storefronts render prominently and separately (which is why
+    // fees are deliberately absent from every tier's bullets). Do not pad this
+    // list with a perk that isn't built.
+    featureBullets: ["15-min early access"],
+  },
   elite: {
     name: TIER_DISPLAY_NAMES.elite,
     // Raised $15 → $20 by the owner on 2026-08-27. The test-mode Stripe
@@ -244,7 +281,20 @@ export function getPaysSelfBack(
  * Unknown / null / empty → "free" (the safe default that never charges a
  * user for perks they didn't opt into). */
 export function toSubscriptionTier(raw: string | null | undefined): SubscriptionTier {
-  if (raw === "basic" || raw === "pro" || raw === "elite") return raw;
+  // DERIVED from TIER_PERKS, not a hand-written allowlist. This read
+  // `raw === "basic" || raw === "pro" || raw === "elite"` and was missed when
+  // Plus was restored on 2026-09-05, so every client-side Plus fee resolved to
+  // the FREE rate: the storefront would have shown a Plus member 12% while the
+  // edge payout resolver charged them the correct 9%. The UI and the money
+  // disagreeing about commission is the exact class this file exists to
+  // prevent, and a hardcoded list here cannot fail for a tier it never had.
+  //
+  // hasOwnProperty rather than `in`, so an inherited key like "constructor"
+  // cannot resolve to a tier — the same prototype-lookup hole create-pro-
+  // checkout's ALLOWED_TIERS guards against.
+  if (raw && Object.prototype.hasOwnProperty.call(TIER_PERKS, raw)) {
+    return raw as SubscriptionTier;
+  }
   return "free";
 }
 
@@ -255,7 +305,7 @@ export function toSubscriptionTier(raw: string | null | undefined): Subscription
  * the edge payout resolver (`_shared/helperFees.ts` `getHelperFeePercent`) so the
  * commission the UI SHOWS a helper matches the fee their payout is actually
  * charged. The ladder is identical for poster and helper (free 12 / basic
- * 11 / pro 10 / elite 8). Case is normalized so "PRO" resolves like "pro",
+ * 11 / pro 10 / plus 9 / elite 8). Case is normalized so "PRO" resolves like "pro",
  * and any value off the ladder — including a legacy "business" — falls to the
  * free rate, which never under-charges.
  */

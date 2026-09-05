@@ -45,7 +45,7 @@ describe("tier display names (client TIER_PERKS <-> edge tierNames)", () => {
     // unknown value, never as the plan name for something nobody can buy.
     expect(TIER_DISPLAY_NAMES.business).toBeUndefined();
     expect(tierDisplayName("business")).toBe("Free");
-    expect(Object.keys(TIER_DISPLAY_NAMES).sort()).toEqual(["basic", "elite", "free", "pro"]);
+    expect(Object.keys(TIER_DISPLAY_NAMES).sort()).toEqual(["basic", "elite", "free", "plus", "pro"]);
   });
 
   it("no 'Helpr ' prefix can creep back onto a consumer tier", () => {

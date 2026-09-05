@@ -1,5 +1,5 @@
 import { Crown, Leaf, Sparkles, Star } from "lucide-react";
-import { ONE_TIME_PASS_DAYS, TIER_PERKS } from "@/lib/subscriptionTiers";
+import { ONE_TIME_PASS_DAYS, TIER_PERKS, type SubscriptionTier } from "@/lib/subscriptionTiers";
 
 export type TierIconName = "leaf" | "star" | "sparkles" | "crown";
 
@@ -33,7 +33,13 @@ interface TierDisplay {
  * tab, /subscription, checkout, Legal) follows. Previously
  * each string was hardcoded here and drifted on any change.
  */
-function formatTierPrices(tierId: "basic" | "pro" | "elite") {
+// DERIVED from SubscriptionTier rather than a hand-written union. This read
+// `"basic" | "pro" | "elite"` and became a compile error the moment Plus was
+// restored — which is the good outcome, but only because the call site was
+// added in the same commit. Excluding "free" is the real rule (free has null
+// prices, hence the non-null assertions below), and stating it that way means
+// the next paid tier needs no edit here at all.
+function formatTierPrices(tierId: Exclude<SubscriptionTier, "free">) {
   const perk = TIER_PERKS[tierId];
   // TIER_PERKS.pro/elite always have prices — TS narrows via non-null assertion
   // rather than falling back to a hardcoded default, so a config change to
@@ -108,13 +114,27 @@ export const tierConfig: TierDisplay[] = [
     features: [`Everything in ${TIER_PERKS.basic.name}`, ...TIER_PERKS.pro.featureBullets],
   },
   {
+    id: "plus",
+    name: TIER_PERKS.plus.name,
+    // Sparkles, same as Pro — the crown is Elite's Featured Crown Badge and
+    // must not appear on a tier that doesn't grant it.
+    iconName: "sparkles",
+    forWhom: "For Helprs who want a smaller cut.",
+    ...formatTierPrices("plus"),
+    feePercent: TIER_PERKS.plus.platformFeePercent,
+    features: [`Everything in ${TIER_PERKS.pro.name}`, ...TIER_PERKS.plus.featureBullets],
+  },
+  {
     id: "elite",
     name: TIER_PERKS.elite.name,
     iconName: "crown",
     forWhom: "For full-time Helprs.",
     ...formatTierPrices("elite"),
     feePercent: TIER_PERKS.elite.platformFeePercent,
-    features: [`Everything in ${TIER_PERKS.pro.name}`, ...TIER_PERKS.elite.featureBullets],
+    // "Everything in Plus" now that Plus sits directly below Elite. This said
+    // "Everything in Pro" while Plus did not exist; leaving it would skip a
+    // rung and understate what Elite includes.
+    features: [`Everything in ${TIER_PERKS.plus.name}`, ...TIER_PERKS.elite.featureBullets],
   },
 ];
 

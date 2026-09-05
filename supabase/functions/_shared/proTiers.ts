@@ -29,7 +29,7 @@
 // human-coordinated step entirely: the ID always matches whatever mode the
 // key running RIGHT NOW is actually in, so the two can no longer drift apart.
 
-export type ProTierKey = "basic" | "pro" | "elite";
+export type ProTierKey = "basic" | "pro" | "plus" | "elite";
 export type ProBillingCycle = "monthly" | "annual" | "one_time";
 
 // Read a Deno.env var safely — returns undefined outside a Deno runtime
@@ -76,16 +76,19 @@ const LIVE_PRO_PRICE_MAP: Record<ProBillingCycle, Record<ProTierKey, string>> = 
     // window between.
     basic: "price_1TAZjdKp2H4b7tECG4TDPOxd",
     pro: "price_1TAZkLKp2H4b7tEC0ACbAX2y",
+    plus: "price_1UCROAKp2H4b7tECluSTpunn",
     elite: "price_1UCRNVKp2H4b7tECg66qPod9",
   },
   annual: {
     basic: "price_1TAZkXKp2H4b7tECRBtNRne5",
     pro: "price_1TAZkbKp2H4b7tECZ7Qr6CZS",
+    plus: "price_1UCROHKp2H4b7tECpRrkVVsR",
     elite: "price_1UCRNsKp2H4b7tECkZLTQjRB",
   },
   one_time: {
     basic: "price_1TAZkdKp2H4b7tECtvvFRyJf",
     pro: "price_1TAZkeKp2H4b7tECnfZ7vF0C",
+    plus: "price_1UCROlKp2H4b7tECxd4qNA5i",
     elite: "price_1UCRNzKp2H4b7tEC3MUHI7Lu",
   },
 };
@@ -94,16 +97,19 @@ const ENV_KEY: Record<ProBillingCycle, Record<ProTierKey, string>> = {
   monthly: {
     basic: "STRIPE_PRICE_BASIC_MONTHLY",
     pro: "STRIPE_PRICE_PRO_MONTHLY",
+    plus: "STRIPE_PRICE_PLUS_MONTHLY",
     elite: "STRIPE_PRICE_ELITE_MONTHLY",
   },
   annual: {
     basic: "STRIPE_PRICE_BASIC_ANNUAL",
     pro: "STRIPE_PRICE_PRO_ANNUAL",
+    plus: "STRIPE_PRICE_PLUS_ANNUAL",
     elite: "STRIPE_PRICE_ELITE_ANNUAL",
   },
   one_time: {
     basic: "STRIPE_PRICE_BASIC_ONETIME",
     pro: "STRIPE_PRICE_PRO_ONETIME",
+    plus: "STRIPE_PRICE_PLUS_ONETIME",
     elite: "STRIPE_PRICE_ELITE_ONETIME",
   },
 };
@@ -124,22 +130,37 @@ const resolvePrice = (cycle: ProBillingCycle, tier: ProTierKey): string => {
   return LIVE_PRO_PRICE_MAP[cycle][tier];
 };
 
+// NOTE THE MISSING `as Record<ProTierKey, string>` CASTS. They used to be on
+// each cycle, and they were load-bearing in the worst way: the objects listed
+// only basic/pro/elite, and the cast asserted to TypeScript that they were
+// complete. When Plus was restored on 2026-09-05 the compiler therefore said
+// nothing, `PRO_PRICE_MAP.monthly.plus` was `undefined`, and create-pro-checkout
+// would have thrown "No Stripe price configured for tier plus" on every Plus
+// purchase — the tier sellable everywhere except the one place that charges.
+//
+// Worse, the parity tests derive their tier list FROM this object, so the
+// omission was invisible to them too: a registry cannot fail for a member it
+// never had. Without the casts, a new ProTierKey is a compile error here, which
+// is the only guard that actually works.
 export const PRO_PRICE_MAP: Record<ProBillingCycle, Record<ProTierKey, string>> = {
   monthly: {
     get basic() { return resolvePrice("monthly", "basic"); },
     get pro() { return resolvePrice("monthly", "pro"); },
+    get plus() { return resolvePrice("monthly", "plus"); },
     get elite() { return resolvePrice("monthly", "elite"); },
-  } as Record<ProTierKey, string>,
+  },
   annual: {
     get basic() { return resolvePrice("annual", "basic"); },
     get pro() { return resolvePrice("annual", "pro"); },
+    get plus() { return resolvePrice("annual", "plus"); },
     get elite() { return resolvePrice("annual", "elite"); },
-  } as Record<ProTierKey, string>,
+  },
   one_time: {
     get basic() { return resolvePrice("one_time", "basic"); },
     get pro() { return resolvePrice("one_time", "pro"); },
+    get plus() { return resolvePrice("one_time", "plus"); },
     get elite() { return resolvePrice("one_time", "elite"); },
-  } as Record<ProTierKey, string>,
+  },
 };
 
 /**
@@ -157,6 +178,6 @@ export const PRO_PRICE_MAP: Record<ProBillingCycle, Record<ProTierKey, string>> 
  * would itself be an un-guarded guess.
  */
 export const PRO_RECURRING_AMOUNT_CENTS: Record<"monthly" | "annual", Record<ProTierKey, number>> = {
-  monthly: { basic: 500, pro: 1000, elite: 2000 },
-  annual: { basic: 5000, pro: 10000, elite: 20000 },
+  monthly: { basic: 500, pro: 1000, plus: 1500, elite: 2000 },
+  annual: { basic: 5000, pro: 10000, plus: 15000, elite: 20000 },
 };

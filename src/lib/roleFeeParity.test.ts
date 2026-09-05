@@ -142,7 +142,13 @@ describe("expiry is handled identically on both sides (the asymmetry that was fi
 describe("unknown tiers fall back to the FREE rate, never to a cheaper one", () => {
   it("never resolves below the free rate for a value that is not on the ladder", () => {
     const free = TIER_PERKS.free.platformFeePercent; // 12
-    for (const junk of [null, undefined, "", "nonsense", "premium", "plus", "PLUS", "  pro  ", "business", "BUSINESS"]) {
+    // "plus" AND "PLUS" both left this list on 2026-09-05, when the tier was
+    // restored with real live Stripe Prices. Not just the lower-case form:
+    // feePercentForTier lowercases before lookup, so every casing of a real
+    // tier resolves to that tier's rate by design. "  pro  " stays precisely
+    // because that normalisation does NOT trim, so a padded value is still
+    // junk and must still fall back to the free rate.
+    for (const junk of [null, undefined, "", "nonsense", "premium", "  pro  ", "business", "BUSINESS"]) {
       for (const resolve of [edgeHelperFeePercent, edgePosterFeePercent, uiHelperFeePercent, uiPosterFeePercent]) {
         expect(resolve(junk), `unknown tier ${JSON.stringify(junk)} under-charged`).toBe(free);
       }

@@ -30,6 +30,7 @@ import {
   type AppleTransaction,
 } from "../../supabase/functions/_shared/appleAppStore";
 import { PRO_PRICE_MAP, type ProTierKey, type ProBillingCycle } from "../lib/proTiers";
+import { productIdFor, IAP_TIERS, IAP_CADENCES } from "../lib/iap";
 
 const read = (p: string) => readFileSync(resolve(process.cwd(), p), "utf8");
 
@@ -277,5 +278,91 @@ describe("apple-app-store-notifications — the trust boundary", () => {
     expect(SRC).toContain("unknown_product");
     // ...but a zero-row update IS worth retrying: the row existed a moment ago.
     expect(SRC).toMatch(/zero_row_update[\s\S]{0,40}500/);
+  });
+});
+
+describe("client/server product id parity", () => {
+  // The client cannot import the Deno-side module (it carries the App Store
+  // Server API fetch path, which has no business in the web bundle), so
+  // productIdFor is a mirror. This is the guard that keeps a mirror honest —
+  // the same shape the Stripe price map already uses. A drift here means the
+  // app orders a product id the server cannot resolve, and every purchase is
+  // rejected as "unknown product" AFTER Apple has taken the money.
+  it("client productIdFor matches the server appleProductId everywhere", () => {
+    for (const tier of APPLE_TIERS) {
+      for (const cycle of APPLE_CYCLES) {
+        expect(productIdFor(tier as never, cycle as never))
+          .toBe(appleProductId(tier, cycle));
+      }
+    }
+  });
+
+  it("client and server agree on the full tier and cadence lists", () => {
+    expect([...IAP_TIERS].sort()).toEqual([...APPLE_TIERS].sort());
+    expect([...IAP_CADENCES].sort()).toEqual([...APPLE_CYCLES].sort());
+  });
+});
+
+describe("iap.ts — never finish an unverified transaction", () => {
+  const SRC = codeOnly(read("src/lib/iap.ts"));
+
+  it("finishes only after a confirmed grant", () => {
+    // finish() tells StoreKit the purchase was delivered and it stops
+    // re-presenting the transaction. Doing that in a `finally` — as the
+    // feat/apple-iap branch did — means a failed verification permanently
+    // discards the buyer's only receipt. Redelivery IS the retry mechanism.
+    expect(SRC).not.toMatch(/finally\s*\{[^}]*finish\(\)/);
+    const handler = SRC.slice(SRC.indexOf("approved((tx)"), SRC.indexOf("await store.initialize"));
+    expect(handler).toMatch(/if\s*\(granted\)/);
+    expect(handler).toContain("tx.finish()");
+  });
+
+  it("reads the invoke error instead of relying on a throw", () => {
+    // supabase.functions.invoke RESOLVES with { error } when the function
+    // fails, so a try/catch alone never sees it.
+    const confirm = SRC.slice(SRC.indexOf("async function confirmGrant"), SRC.indexOf("ensureInitialized"));
+    expect(confirm).toMatch(/const \{ data, error \}/);
+    expect(confirm).toMatch(/if \(error\)/);
+    expect(confirm).toMatch(/return false/);
+  });
+
+  it("gates a purchase but never a restore", () => {
+    // Restoring charges nothing, and someone who already owns a subscription
+    // is exactly who needs it — gating it would break the control Apple
+    // requires and reject the build.
+    const purchase = SRC.slice(SRC.indexOf("export async function purchaseTier"));
+    const restore = SRC.slice(SRC.indexOf("export async function restorePurchases"));
+    expect(purchase).toContain("assertMayPurchase");
+    expect(restore).not.toContain("assertMayPurchase");
+  });
+
+  it("fails closed when eligibility cannot be determined", () => {
+    const gate = SRC.slice(SRC.indexOf("export async function assertMayPurchase"), SRC.indexOf("export async function purchaseTier"));
+    expect(gate).toMatch(/if \(error\)[\s\S]{0,220}throw new IapBlockedError/);
+  });
+
+  it("only marks itself initialized after initialize() resolves", () => {
+    const init = SRC.slice(SRC.indexOf("async function ensureInitialized"));
+    expect(init.indexOf("await store.initialize")).toBeLessThan(init.indexOf("initialized = true"));
+  });
+});
+
+describe("create-pro-checkout enforces the same gate server-side", () => {
+  const SRC = codeOnly(read("supabase/functions/create-pro-checkout/index.ts"));
+
+  it("calls the eligibility RPC before creating a Checkout Session", () => {
+    // A client-side check is a courtesy. This runs where the Session is
+    // actually created and cannot be skipped.
+    expect(SRC).toContain("subscription_purchase_eligibility");
+    expect(SRC.indexOf("subscription_purchase_eligibility"))
+      .toBeLessThan(SRC.indexOf("checkout.sessions.create"));
+  });
+
+  it("fails closed if the check itself errors", () => {
+    expect(SRC).toMatch(/eligibilityErr[\s\S]{0,400}status: 503/);
+  });
+
+  it("refuses with the server's own wording, not an invented one", () => {
+    expect(SRC).toMatch(/verdict\.reason/);
   });
 });

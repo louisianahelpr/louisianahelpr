@@ -67,6 +67,46 @@ serve(async (req) => {
     const priceId = cycle[tier as (typeof ALLOWED_TIERS)[number]];
     if (!priceId) throw new Error(`No Stripe price configured for tier "${tier}" on the ${billing_cycle} cycle.`);
 
+    // ── Cross-platform guard: no second subscription through Stripe ────────
+    // The owner's rule for holding both an Apple and a Stripe membership is to
+    // PREVENT IT AT PURCHASE TIME (2026-09-05), and this is the server half of
+    // it. The iOS client asks the same RPC before opening the purchase sheet,
+    // but a client check is a courtesy, not a guard — this one runs where the
+    // Checkout Session is actually created and cannot be skipped.
+    //
+    // Deliberately BEFORE the Stripe customer lookup below: it is one query
+    // against our own database versus up to 100 customer records plus a
+    // subscription list per record, and there is no reason to pay for that on
+    // behalf of someone who is not allowed to buy.
+    //
+    // This complements rather than replaces the existing active-Stripe-
+    // subscription check further down. That one asks Stripe "does this email
+    // already have a live subscription"; this one asks our own row "is Apple
+    // the authority here". Neither can see what the other sees.
+    //
+    // Note the eligibility RPC runs as the CALLER (auth.uid()), so it can only
+    // ever report on the person making the request.
+    const { data: eligibility, error: eligibilityErr } = await supabaseClient
+      .rpc("subscription_purchase_eligibility", { p_platform: "stripe" });
+    if (eligibilityErr) {
+      // Fail CLOSED. A purchase we cannot prove is allowed is exactly the one
+      // that produces a double charge, and the recovery for a wrongly-blocked
+      // checkout is a retry, while the recovery for a wrongly-allowed one is a
+      // refund and a support ticket.
+      console.error("[create-pro-checkout] eligibility check failed:", eligibilityErr);
+      return new Response(
+        JSON.stringify({ error: "We couldn't confirm your membership status. Please try again in a moment." }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 503 },
+      );
+    }
+    const verdict = eligibility as { allowed?: boolean; reason?: string } | null;
+    if (verdict && verdict.allowed === false) {
+      return new Response(
+        JSON.stringify({ error: verdict.reason ?? "You already have an active membership." }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 },
+      );
+    }
+
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
     });

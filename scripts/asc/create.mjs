@@ -109,6 +109,36 @@ if (group) {
 const existingSubs = await ascAll(`/v1/subscriptionGroups/${group.id}/subscriptions?limit=200`, token);
 const subByProduct = new Map(existingSubs.map((s) => [s.attributes.productId, s]));
 
+/**
+ * Declare WHERE a subscription sells, before saying what it costs.
+ *
+ * Apple rejects a price on a subscription with no availability, and the error
+ * it gives is actively misleading: a 409 whose source pointer is
+ * `/data/relationships/subscriptionPricePoint/id` and whose detail is "An error
+ * occurred while processing the pricing information". The price point was
+ * valid the whole time (verified: customerPrice "20.0", territory USA) — what
+ * was missing was any territory to charge it in.
+ */
+async function ensureAvailability(subId, label) {
+  const existing = await asc(`/v1/subscriptions/${subId}/subscriptionAvailability`, { token })
+    .catch((e) => (e.status === 404 ? null : Promise.reject(e)));
+  if (existing?.data?.id) { log(`    = ${label} already available`); return; }
+  await asc("/v1/subscriptionAvailabilities", {
+    method: "POST", token,
+    body: { data: { type: "subscriptionAvailabilities",
+      // New App Store territories should inherit the subscription rather than
+      // silently excluding it — the app is Louisiana-only today, but that is a
+      // product decision, not a storefront one, and opting out here would be an
+      // odd place to encode it.
+      attributes: { availableInNewTerritories: true },
+      relationships: {
+        subscription: { data: { type: "subscriptions", id: subId } },
+        availableTerritories: { data: [{ type: "territories", id: TERRITORY }] },
+      } } },
+  });
+  log(`    + ${label} available in ${TERRITORY}`);
+}
+
 /** Attach a price to a subscription, choosing the price point Apple offers. */
 async function priceSubscription(subId, customerPrice, label) {
   const existing = await ascAll(
@@ -193,6 +223,7 @@ for (const t of TIERS) {
       });
       log(`    + en-US localization`);
     }
+    await ensureAvailability(sub.id, pid);
     await priceSubscription(sub.id, cadence === "monthly" ? t.monthly : t.annual, pid);
   }
 }

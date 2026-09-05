@@ -312,7 +312,7 @@ export function useDashboardData() {
             // readout and ranking tie-break silently no-op'd on /dashboard
             // while working on /jobs, which reads the same column from a
             // different RPC.
-            "id, title, description, category, budget, date_needed, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_flexible_schedule, is_recurring, is_group_job, helpers_needed, estimated_hours, special_requirements, photos, boosted_at, boost_expires_at, expires_at, start_time, recurrence_interval, recurrence_end_date, parent_job_id, payment_status, location, latitude, longitude, pricing_mode, applicant_count, credential_tier, parish",
+            "id, title, description, category, budget, date_needed, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_flexible_schedule, is_recurring, is_group_job, helpers_needed, estimated_hours, special_requirements, photos, boosted_at, boost_expires_at, expires_at, start_time, recurrence_interval, recurrence_end_date, parent_job_id, payment_status, location, latitude, longitude, pricing_mode, applicant_count, credential_tier, parish, is_auto_created",
           )
           .neq("payment_status", "abandoned");
 

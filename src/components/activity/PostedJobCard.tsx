@@ -18,6 +18,8 @@ import { PostedJobApplicants } from "./postedJobCard/PostedJobApplicants";
 import { PostedJobActions } from "./postedJobCard/PostedJobActions";
 import { JOB_ACTION_FULL_CLASS, jobActionChipStyle } from "./JobActionRow";
 import { useHighlightPulse } from "./useHighlightPulse";
+import { UnfundedJobNotice, shouldShowUnfundedNotice } from "./postedJobCard/UnfundedJobNotice";
+import { useFundExistingJob } from "@/hooks/useFundExistingJob";
 
 /**
  * PostedJobCard — one card in the poster's "my posts" feed: the job
@@ -79,6 +81,7 @@ function PostedJobCardInner({
   // showed. Both are gone — every card expands, and every card hides its body
   // until it does — so "archived completed" is no longer a special layout.
   // The "Tipped & Reviewed" strip below reads completedJobMeta directly.
+  const { fundJob, fundingJobId } = useFundExistingJob();
   const isExpanded = expandedJobIds.has(job.id);
 
   // A description that merely restates the title is not a description.
@@ -648,6 +651,18 @@ function PostedJobCardInner({
                   {job.is_group_job && <GroupJobHelpers jobId={job.id} helpersNeeded={job.helpers_needed || 2} isOwner={true} jobStatus={job.status} initialHelpers={initialGroupHelpers} />}
 
                 </div>
+              )}
+
+              {/* A calendar-created job nobody has paid for is invisible to
+                  every helper, while this card looks completely normal. Say so
+                  before the applicants row, which would otherwise read "0
+                  applicants" and be taken as low demand. */}
+              {shouldShowUnfundedNotice(job) && (
+                <UnfundedJobNotice
+                  job={job}
+                  onFund={fundJob}
+                  funding={fundingJobId === job.id}
+                />
               )}
 
               {/* Applicants button + inline expanded applicant list */}

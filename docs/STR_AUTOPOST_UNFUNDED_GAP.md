@@ -1,6 +1,6 @@
 # STR calendar sync creates jobs no helper can see
 
-**Status:** open · **Found:** 2026-09-03 · **Live damage so far:** none
+**Status:** FIXED 2026-09-05 (Option A) · **Found:** 2026-09-03 · **Live damage:** none
 **Severity:** would be high the moment a host connects a calendar; zero until then.
 
 ## What happens
@@ -100,3 +100,42 @@ hosts must stay on manually-posted turnover cleaning, which works — see the
 
 Also note `/str-settings` is no longer a route (removed 2026-09-02); the settings
 live as a Profile tab, so there is no deep link to send anyone to.
+
+
+---
+
+## Fixed — 2026-09-05, Option A
+
+Shipped the fund-it affordance, the option this doc recommended and the one
+that keeps the feature as pitched.
+
+- `src/hooks/useFundExistingJob.ts` — invokes `create-payment` with
+  `{ action: 'escrow', jobId }`, the same call `useJobSubmit` makes, and opens
+  the returned Checkout URL through `openExternalUrl`.
+- `src/components/activity/postedJobCard/UnfundedJobNotice.tsx` — "Not posted
+  yet · no Helpr can see it until it's funded" with a **Fund & publish** button,
+  shown on the poster's own card above the applicants row.
+- `useDashboardData` now selects `is_auto_created`, which the posted feed had
+  never read.
+
+**One deliberate departure from the post-a-job flow.** That path calls
+`cleanupOrphanJob()` and DELETES the job when payment setup fails — correct
+there, since it created the row seconds earlier. It would be badly wrong here:
+this job came from the host's real calendar and names a real guest checkout on a
+real date, so a transient Stripe error must never destroy it. Failure leaves the
+row untouched and the toast says so, because "couldn't start payment" on its own
+reads like the job may have been cancelled.
+
+**Why the notice is gated on all three of `is_auto_created` / `unpaid` /
+`open`.** A hand-posted job is `unpaid` for the moment between insert and the
+Stripe redirect, so a looser check would flash "no Helpr can see this" on the
+healthy path — worse than the original bug, because it discredits the warning
+everywhere it is right. 12 tests cover both directions, and the predicate is
+mutation-proven: turning it into an OR, accepting a truthy/undefined
+`is_auto_created`, or dropping the `open` condition each fail between 5 and 11
+of them.
+
+**Still true:** do not market calendar automation yet. This makes the gap
+recoverable and visible rather than silent — the host now sees that the job is
+not live and can publish it in one tap — but it is still a manual step, not the
+hands-off automation an ad would promise.

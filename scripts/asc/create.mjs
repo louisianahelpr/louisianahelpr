@@ -286,6 +286,27 @@ for (const t of TIERS) {
     log(`    + en-US localization`);
   }
 
+  // Availability, the same requirement subscriptions have and the one thing
+  // the IAP branch of this script never set. Subscriptions got it because their
+  // price POST failed loudly without it; a non-renewing IAP accepts its price
+  // schedule regardless, so the gap was silent.
+  const iapAvail = await asc(`/v2/inAppPurchases/${iap.id}/inAppPurchaseAvailability`, { token })
+    .then((r) => !!r?.data?.id).catch(() => false);
+  if (!iapAvail) {
+    await asc("/v1/inAppPurchaseAvailabilities", {
+      method: "POST", token,
+      body: { data: { type: "inAppPurchaseAvailabilities",
+        attributes: { availableInNewTerritories: true },
+        relationships: {
+          inAppPurchase: { data: { type: "inAppPurchases", id: iap.id } },
+          availableTerritories: { data: [{ type: "territories", id: TERRITORY }] },
+        } } },
+    }).then(() => log(`    + available in ${TERRITORY}`))
+      .catch((e) => log(`    ! availability: ${e.message.slice(0, 120)}`));
+  } else {
+    log(`    = already available`);
+  }
+
   const sched = await ascAll(`/v2/inAppPurchases/${iap.id}/iapPriceSchedule?limit=1`, token).catch(() => []);
   if (Array.isArray(sched) && sched.length) { log(`    = already priced`); continue; }
   const points = await ascAll(

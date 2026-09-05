@@ -136,15 +136,28 @@ async function priceSubscription(subId, customerPrice, label) {
       `(${points.length} points fetched). Nearest: ${near}`,
     );
   }
-  await asc("/v1/subscriptionPrices", {
-    method: "POST", token,
-    body: { data: { type: "subscriptionPrices",
-      attributes: { startDate: null, preserveCurrentPrice: false },
-      relationships: {
-        subscription: { data: { type: "subscriptions", id: subId } },
-        subscriptionPricePoint: { data: { type: "subscriptionPricePoints", id: point.id } },
-      } } },
-  });
+  // NO `attributes`. Both are optional on this endpoint, and sending
+  // `startDate: null, preserveCurrentPrice: false` produced a 409 pointing at
+  // /data/relationships/subscriptionPricePoint/id — an unhelpful place, since
+  // the point id was valid and came straight from this subscription's own
+  // pricePoints list. Omitting the optional attributes is what Apple accepts:
+  // no start date means "effective immediately", which is what we want anyway.
+  try {
+    await asc("/v1/subscriptionPrices", {
+      method: "POST", token,
+      body: { data: { type: "subscriptionPrices",
+        relationships: {
+          subscription: { data: { type: "subscriptions", id: subId } },
+          subscriptionPricePoint: { data: { type: "subscriptionPricePoints", id: point.id } },
+        } } },
+    });
+  } catch (e) {
+    // Print what we actually chose. A 409 on a relationship tells you nothing
+    // about WHICH point was wrong, and re-running blind is how this loop eats
+    // an afternoon.
+    console.error(`    price point chosen for ${label}:`, JSON.stringify(point));
+    throw e;
+  }
   log(`    + ${label} priced at ${customerPrice}`);
 }
 

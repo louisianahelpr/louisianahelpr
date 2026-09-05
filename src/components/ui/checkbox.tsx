@@ -24,7 +24,7 @@ const Checkbox = React.forwardRef<
       className={cn(
         // iOS-style checkbox: 20×20 px for a comfortable tap target feel
         // with a rounded-sm shape and brand-token checked state.
-        "peer h-5 w-5 shrink-0 rounded-[5px]",
+        "peer h-5 w-5 shrink-0 rounded-sm",
         "border border-[hsl(var(--ink-deep)/0.25)]",
         "ring-offset-background",
         // Checked: olivewood fill + white indicator.

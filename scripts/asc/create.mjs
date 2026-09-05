@@ -116,10 +116,25 @@ async function priceSubscription(subId, customerPrice, label) {
   if (existing.length) { log(`    = ${label} already priced`); return; }
   const points = await ascAll(
     `/v1/subscriptions/${subId}/pricePoints?filter[territory]=${TERRITORY}&limit=200`, token);
-  const point = points.find((p) => p.attributes.customerPrice === customerPrice);
+  // Match NUMERICALLY. Apple returns customerPrice as a string whose formatting
+  // is not guaranteed ("20" vs "20.00"), and a string compare failed on the
+  // first run against a catalogue that plainly contains $20.
+  const want = Number(customerPrice);
+  const point = points.find((p) => Number(p.attributes.customerPrice) === want);
   if (!point) {
-    const near = points.map((p) => p.attributes.customerPrice).slice(0, 8).join(", ");
-    throw new Error(`No ${TERRITORY} price point at ${customerPrice} for ${label}. Nearby: ${near}`);
+    // Show the points ACTUALLY NEAREST the target, not the first eight in the
+    // list — the first eight are all sub-dollar and tell you nothing about why
+    // $20 was missed.
+    const near = points
+      .map((p) => Number(p.attributes.customerPrice))
+      .filter((n) => Number.isFinite(n))
+      .sort((a, b) => Math.abs(a - want) - Math.abs(b - want))
+      .slice(0, 8)
+      .join(", ");
+    throw new Error(
+      `No ${TERRITORY} price point at ${customerPrice} for ${label} ` +
+      `(${points.length} points fetched). Nearest: ${near}`,
+    );
   }
   await asc("/v1/subscriptionPrices", {
     method: "POST", token,
@@ -207,9 +222,19 @@ for (const t of TIERS) {
   if (Array.isArray(sched) && sched.length) { log(`    = already priced`); continue; }
   const points = await ascAll(
     `/v2/inAppPurchases/${iap.id}/pricePoints?filter[territory]=${TERRITORY}&limit=200`, token);
-  const point = points.find((p) => p.attributes.customerPrice === t.once);
+  const wantOnce = Number(t.once);
+  const point = points.find((p) => Number(p.attributes.customerPrice) === wantOnce);
   if (!point) {
-    throw new Error(`No ${TERRITORY} price point at ${t.once} for ${pid}`);
+    const near = points
+      .map((p) => Number(p.attributes.customerPrice))
+      .filter((n) => Number.isFinite(n))
+      .sort((a, b) => Math.abs(a - wantOnce) - Math.abs(b - wantOnce))
+      .slice(0, 8)
+      .join(", ");
+    throw new Error(
+      `No ${TERRITORY} price point at ${t.once} for ${pid} ` +
+      `(${points.length} points fetched). Nearest: ${near}`,
+    );
   }
   await asc("/v1/inAppPurchasePriceSchedules", {
     method: "POST", token,

@@ -123,6 +123,10 @@ sweep). **Stop writing audit artifacts to `/tmp` or a gitignored dir** — a
 screenshot that lives ~12 hours is not a durable artifact, and under rule 4 the
 next reader is entitled to downgrade the row.
 
+**Trend:** `docs/audit/COVERAGE_LEDGER_HISTORY.md` — one line per run. It is
+`.md`, not `.log`, because `.gitignore:3` is `*.log` and a trend file that
+cannot be committed is not a trend file.
+
 **Drift warning that no count captures: 302 commits have landed since the
 2026-08-31 walk**, touching 70 files under `src/pages` alone. Every `WALKED`
 row below is inside its 14-day window by date and stale by change. Treat the

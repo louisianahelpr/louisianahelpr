@@ -172,6 +172,67 @@ serve(async (req) => {
       }
     }
 
+    // ── Revision settle-out (2026-09-05) ──
+    // The pass the main query's own comment asks for: "If revision jobs should
+    // ever settle on their own, that needs its own pass keyed on
+    // revision_deadline — not this one." This is that pass.
+    //
+    // WHY IT WAS MISSING AND WHY IT MATTERS. The main set excludes every
+    // revision job (`.is("revision_requested_at", null)`) and that exclusion is
+    // CORRECT — it stopped posters being auto-paid out from under a fix they
+    // had formally requested. But nothing was ever written to settle the OTHER
+    // end of that flow, so a revision job could never settle at all: the helper
+    // delivered the fix, the poster went quiet, and the escrow sat forever. The
+    // only exit was the helper filing a dispute — which the UI never suggests,
+    // because three separate surfaces promise the opposite:
+    //   ActiveJobSection  "payment auto-releases to you"
+    //   PostedJobCard     "If no action is taken, payment auto-releases"
+    //   create-payment    "If you do nothing, payment auto-releases"
+    // Those promises were false. This makes them true rather than deleting
+    // them, because the promise is the right product behaviour — it is the same
+    // 24h-ghost rule the main path already applies, just keyed on the revision
+    // clock instead of the completion clock.
+    //
+    // THE GUARD IS DELIBERATELY TIGHT, because the failure mode is paying out
+    // money that should not move:
+    //   revision_completed_at IS NOT NULL  the helper actually delivered a fix.
+    //                                      A revision still being worked on has
+    //                                      no deadline running and must not
+    //                                      settle.
+    //   revision_acceptance_deadline <= now()  the poster's 72h to respond, set
+    //                                      by create-payment's resolve_revision
+    //                                      branch, has genuinely elapsed.
+    //   status = 'revision_requested'      any poster response (approve,
+    //   payment_status = 'escrow'          re-request, dispute) moves one of
+    //                                      these, so acting on them cannot race
+    //                                      a poster who did reply.
+    // Rows land in the SAME loop as everything else, so every per-job guard,
+    // the payout cap and the group-job fan-out all still apply.
+    let revisionQuery = supabaseAdmin
+      .from("jobs")
+      // The two revision_* columns are selected as well as filtered on: they
+      // are what makes this query self-describing next to its two identical
+      // siblings, and they are the discriminator the edge-test harness matches
+      // on (it keys mock results by column list).
+      .select("id, title, helper_id, customer_id, budget, platform_fee_amount, urgent_fee, helper_fee_percent, poster_completed_at, helper_completed_at, revision_completed_at, revision_acceptance_deadline, stripe_session_id, stripe_payment_intent_id, status, is_group_job, helpers_needed")
+      .eq("status", "revision_requested")
+      .eq("payment_status", "escrow")
+      .not("revision_completed_at", "is", null)
+      .lte("revision_acceptance_deadline", new Date().toISOString());
+    if (!includeSeed) revisionQuery = revisionQuery.eq("is_seed", false);
+    const { data: revisionDue, error: revisionErr } = await revisionQuery;
+    if (revisionErr) {
+      // Fail open, exactly like the instant-release set above: a broken
+      // revision sweep must never take the ordinary 24h releases down with it.
+      console.error("[auto-release-payment] revision settle-out query failed:", revisionErr);
+      defects.record(`revision settle-out query: ${revisionErr.message}`);
+    }
+    const revisionIds = new Set<string>();
+    for (const j of revisionDue || []) {
+      revisionIds.add(j.id);
+      (jobs || []).push(j);
+    }
+
     let released = 0;
     const results: any[] = [];
 

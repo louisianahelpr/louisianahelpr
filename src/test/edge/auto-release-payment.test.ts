@@ -75,8 +75,60 @@ function cronRequest(fn: EdgeHarness): Request {
  * whole dollars and an off-by-a-rung preview is unmistakable: 8% → $184,
  * 12% → $176.
  */
+/**
+ * A job the helper FIXED and the poster then ghosted past the 72h acceptance
+ * deadline. Distinct from seedDueJob: it is `revision_requested`, its clock is
+ * revision_acceptance_deadline rather than helper_completed_at, and it is
+ * returned ONLY for the selector that asks for the revision columns — the
+ * ordinary due query must not see it, exactly as in production where
+ * `.is("revision_requested_at", null)` excludes it.
+ */
+function seedRevisionDueJob(s: SupabaseScenario, jobOverrides: Record<string, unknown> = {}) {
+  const row = {
+    id: "job-rev-1",
+    title: "Repaint the trim",
+    helper_id: HELPER_ID,
+    customer_id: POSTER_ID,
+    budget: 200,
+    platform_fee_amount: 16,
+    urgent_fee: 0,
+    poster_completed_at: null,
+    helper_completed_at: new Date(Date.now() - 120 * 3600 * 1000).toISOString(),
+    revision_completed_at: new Date(Date.now() - 80 * 3600 * 1000).toISOString(),
+    revision_acceptance_deadline: new Date(Date.now() - 8 * 3600 * 1000).toISOString(),
+    stripe_session_id: "cs_1",
+    stripe_payment_intent_id: "pi_1",
+    status: "revision_requested",
+    is_group_job: false,
+    helpers_needed: 1,
+    helper_fee_percent: 8,
+    ...jobOverrides,
+  };
+  s.reads.jobs = {
+    rows: [],
+    selectOverrides: [{ includes: "revision_acceptance_deadline", result: { rows: [row] } }],
+  };
+  // Same three the ordinary due-job seed sets, for the same reasons: not
+  // PIF-funded so the Stripe capture check runs, an empty profiles BASE so the
+  // instant-release flag lookup enqueues nobody, and a captured PaymentIntent
+  // to verify against.
+  s.reads.pif_credits = { rows: [] };
+  s.reads.profiles = { rows: [] };
+  stripeMock.paymentIntents.retrieve.mockResolvedValue({
+    id: "pi_1",
+    status: "succeeded",
+  });
+}
+
 function seedDueJob(s: SupabaseScenario, jobOverrides: Record<string, unknown> = {}) {
   s.reads.jobs = {
+    // The revision settle-out selector (2026-09-05) reads the SAME table and,
+    // but for these two columns, the same column list. The mock keys results by
+    // table name, so without this every seeded due job would also come back as
+    // a revision-due job and be released twice. A due job is not a revision
+    // job, so the honest answer for that query is "no rows" — tests that want
+    // one seed it explicitly via seedRevisionDueJob below.
+    selectOverrides: [{ includes: "revision_acceptance_deadline", result: { rows: [] } }],
     rows: [
       {
         id: "job-1",
@@ -322,7 +374,7 @@ describe("auto-release-payment edge function", () => {
     // Verified against the real source rather than the mock. Both Phase 1
     // queries feed the same loop (the instant-release set is pushed into the
     // due set), so both have to carry the column.
-    it("selects helper_fee_percent in BOTH phase-1 job queries", async () => {
+    it("selects helper_fee_percent in ALL phase-1 job queries", async () => {
       const { readFileSync } = await import("node:fs");
       const { fileURLToPath } = await import("node:url");
       const { dirname, join, resolve } = await import("node:path");
@@ -331,8 +383,15 @@ describe("auto-release-payment edge function", () => {
         join(resolve(here, "../../.."), "supabase/functions/auto-release-payment/index.ts"),
         "utf8",
       );
+      // THREE now, not two: the due set, the instant-release set, and the
+      // revision settle-out set added 2026-09-05. All three feed the same
+      // release loop, so all three must carry the column — a new selector that
+      // forgets it ships `undefined` to production, where PostgREST returns
+      // exactly the columns asked for and the frozen rate silently becomes the
+      // free rung. This count is the tripwire: adding a fourth selector must be
+      // a deliberate act that updates this number.
       const phase1Selects = [...src.matchAll(/\.select\("([^"]*poster_completed_at[^"]*)"\)/g)];
-      expect(phase1Selects).toHaveLength(2);
+      expect(phase1Selects).toHaveLength(3);
       for (const [, cols] of phase1Selects) {
         expect(cols.split(/\s*,\s*/)).toContain("helper_fee_percent");
       }
@@ -360,4 +419,52 @@ describe("auto-release-payment edge function", () => {
       );
     });
   });
+
+  // ── Revision settle-out (2026-09-05) ────────────────────────────────────
+  // Before this, a revision job could never settle: the main query excludes
+  // every revision row (correctly — it stopped posters being auto-paid out
+  // from under a fix they had asked for), and nothing was written for the
+  // other end. Helper delivers the fix, poster goes quiet, escrow sits
+  // forever, and the only exit is a dispute the UI never mentions — while
+  // three surfaces promise "payment auto-releases".
+  describe("revision settle-out", () => {
+    it("releases a fixed revision the poster ghosted past the deadline", async () => {
+      seedRevisionDueJob(scenario);
+      seedHelperTier(scenario, "elite", new Date(Date.now() + 30 * 864e5).toISOString());
+
+      const fn = await load();
+      const res = await fn.fetch(cronRequest(fn));
+      expect(res.status).toBe(200);
+      expect((await json(res)).released).toBe(1);
+
+      const jobWrite = scenario.writes.find((w) => w.table === "jobs" && w.op === "update");
+      expect((jobWrite?.payload as Record<string, unknown>).payment_status).toBe("payout_pending");
+      // Same optimistic-concurrency guard the ordinary path uses — these rows
+      // go through the identical loop, so a chargeback landing mid-run still
+      // wins.
+      expect(jobWrite?.filters).toContainEqual({
+        op: "eq",
+        column: "payment_status",
+        value: "escrow",
+      });
+    });
+
+    it("leaves an ordinary due job alone — the two selectors do not overlap", async () => {
+      // Production relies on this: the due query excludes revision rows via
+      // `.is("revision_requested_at", null)` and this one requires
+      // status='revision_requested', so no job can be picked up twice and
+      // released twice. Here the seed proves the revision selector returns
+      // nothing for a plain due job.
+      seedDueJob(scenario);
+      seedHelperTier(scenario, "elite", new Date(Date.now() + 30 * 864e5).toISOString());
+
+      const fn = await load();
+      const res = await fn.fetch(cronRequest(fn));
+      expect((await json(res)).released).toBe(1);
+      expect(
+        scenario.writes.filter((w) => w.table === "jobs" && w.op === "update"),
+      ).toHaveLength(1);
+    });
+  });
+
 });

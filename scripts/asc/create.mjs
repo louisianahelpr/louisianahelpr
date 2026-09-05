@@ -106,6 +106,30 @@ if (group) {
   log(`+ group "${GROUP_REF}" (${group.id})`);
 }
 
+// ── Group localization ──────────────────────────────────────────────────────
+// The GROUP needs its own display name, separately from every subscription's.
+// It is what a member sees in iOS Settings → Subscriptions, and without it the
+// products stay MISSING_METADATA no matter how complete they individually are —
+// which is exactly where all twelve sat after names, descriptions, prices,
+// availability and review screenshots were all in place.
+{
+  const glocs = await ascAll(
+    `/v1/subscriptionGroups/${group.id}/subscriptionGroupLocalizations?limit=50`, token).catch(() => []);
+  if (glocs.some((l) => l.attributes.locale === "en-US")) {
+    log(`= group localization en-US exists`);
+  } else {
+    await asc("/v1/subscriptionGroupLocalizations", {
+      method: "POST", token,
+      body: { data: { type: "subscriptionGroupLocalizations",
+        // `name` is the customer-facing group name. "Helpr Membership" reads
+        // correctly in Settings, where it appears without app context.
+        attributes: { locale: "en-US", name: "Helpr Membership" },
+        relationships: { subscriptionGroup: { data: { type: "subscriptionGroups", id: group.id } } } } },
+    });
+    log(`+ group localization en-US`);
+  }
+}
+
 const existingSubs = await ascAll(`/v1/subscriptionGroups/${group.id}/subscriptions?limit=200`, token);
 const subByProduct = new Map(existingSubs.map((s) => [s.attributes.productId, s]));
 

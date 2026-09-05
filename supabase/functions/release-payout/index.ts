@@ -32,6 +32,7 @@ import { netUrgentFeeDollars } from "../_shared/stripeFees.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { claimPayout, classifyLedger, failClaim, settleClaim, type LedgerRow } from "../_shared/payoutClaim.ts";
+import { resolveCapturedEscrow } from "../_shared/capturedEscrow.ts";
 
 /**
  * Job payment states this function may legitimately walk forward to 'released'.
@@ -418,7 +419,34 @@ serve(async (req) => {
       }
       return jsonResponse({ error: `escrow charge not captured (PI status: ${pi.status}) — payout refused`, pi_status: pi.status }, 409);
     }
-    escrowAmountReceivedCents = pi.amount_received;
+    // Read the AMOUNT, not just the status — and never let a missing field
+    // read as zero captured, which would refuse the payout under the wrong
+    // banner. See `_shared/capturedEscrow.ts`.
+    const captured = resolveCapturedEscrow(pi);
+    if (captured.kind === "unverifiable") {
+      console.error(
+        `[release-payout] cannot establish captured escrow for job ${job.id} (PI ${paymentIntentId}): ${captured.reason}`,
+      );
+      const { ids: adminIds } = await loadAdminIds(supabaseAdmin, "release-payout");
+      for (const adminId of adminIds) {
+        await supabaseAdmin.from("notifications").insert({
+          user_id: adminId,
+          title: "Payout blocked — escrow amount unverifiable",
+          message: `Job ${job.id} ("${job.title}") payout blocked: ${captured.reason}. This is an integration fault, not a poster problem — the charge may well be fine.`,
+          type: "admin_alert", link: "/admin",
+        });
+      }
+      return jsonResponse(
+        { error: "could not verify how much escrow was captured — payout refused", reason: captured.reason },
+        409,
+      );
+    }
+    if (captured.source === "amount") {
+      console.warn(
+        `[release-payout] PI ${paymentIntentId} had no usable amount_received; falling back to amount (${captured.cents}c).`,
+      );
+    }
+    escrowAmountReceivedCents = captured.cents;
     escrowChargeId = typeof pi.latest_charge === "string"
       ? pi.latest_charge
       : pi.latest_charge?.id ?? null;

@@ -52,31 +52,42 @@ async function json(res: Response): Promise<Record<string, unknown>> {
  * an active Connect account, PI succeeded, no existing transfer.
  * `onboarding_fee_paid` defaults FALSE (fee owed) so the claim path runs.
  */
+/**
+ * The poster-side charge for a seeded job, in cents — i.e. what Stripe
+ * captured into escrow. Budget + urgent fee + the 12% customer fee.
+ *
+ * Deliberately the POSTER total and not the helper payout: the cap under test
+ * asserts payout <= captured, and a fixture that captured exactly the payout
+ * would pass that assertion for the wrong reason and stop catching a raise.
+ */
+function capturedCentsFor(job: Record<string, unknown>): number {
+  const budget = Number(job.budget ?? 0);
+  const urgent = Number(job.urgent_fee ?? 0);
+  return Math.round((budget + urgent) * 100 * 1.12);
+}
+
 function seedPayableJob(s: SupabaseScenario, overrides: {
   job?: Record<string, unknown>;
   profile?: Record<string, unknown>;
 } = {}) {
-  s.reads.jobs = {
-    rows: [
-      {
-        id: "job-1",
-        title: "Mow the lawn",
-        helper_id: "helper-1",
-        customer_id: "poster-1",
-        budget: 100,
-        platform_fee_amount: 10,
-        helper_fee_percent: 10,
-        urgent_fee: 0,
-        stripe_session_id: "cs_1",
-        stripe_payment_intent_id: "pi_1",
-        status: "completed",
-        is_group_job: false,
-        helpers_needed: 1,
-        sales_tax_rate: 0,
-        ...overrides.job,
-      },
-    ],
+  const job = {
+    id: "job-1",
+    title: "Mow the lawn",
+    helper_id: "helper-1",
+    customer_id: "poster-1",
+    budget: 100,
+    platform_fee_amount: 10,
+    helper_fee_percent: 10,
+    urgent_fee: 0,
+    stripe_session_id: "cs_1",
+    stripe_payment_intent_id: "pi_1",
+    status: "completed",
+    is_group_job: false,
+    helpers_needed: 1,
+    sales_tax_rate: 0,
+    ...overrides.job,
   };
+  s.reads.jobs = { rows: [job] };
   s.reads.platform_settings = { rows: [{ onboarding_fee_cents: 200 }] };
   s.reads.profiles = {
     rows: [
@@ -94,10 +105,21 @@ function seedPayableJob(s: SupabaseScenario, overrides: {
   // A successful atomic claim: the `.update(...).select("user_id")` returns a row.
   s.writeSelectRows.profiles = [{ user_id: "helper-1" }];
 
+  // What the POSTER was charged, which is what Stripe captured — budget plus
+  // the urgent fee plus the 12% customer fee. Derived from the seeded job so a
+  // test that raises the budget raises the escrow with it.
+  //
+  // This mock used to carry a status and no amount at all, which no real
+  // succeeded PaymentIntent ever does. That was invisible for as long as
+  // nothing read the figure; the moment the payout cap did, every test in this
+  // file failed, because a fixture that models a $100 job had been asserting
+  // payouts against $0 of escrow the whole time.
   stripeMock.paymentIntents.retrieve.mockResolvedValue({
     id: "pi_1",
     status: "succeeded",
     latest_charge: "ch_1",
+    amount: capturedCentsFor(job),
+    amount_received: capturedCentsFor(job),
   });
   stripeMock.transfers.create.mockResolvedValue({ id: "tr_1" });
 }
@@ -244,6 +266,50 @@ describe("process-scheduled-payouts edge function", () => {
       const transferArg = stripeMock.transfers.create.mock.calls[0][0] as Record<string, unknown>;
       expect(transferArg.amount).toBe(9000);
       expect((transferArg.metadata as Record<string, unknown>).onboarding_fee_first_payout).toBe("false");
+    });
+
+    // ── The payout CAP ────────────────────────────────────────────────────
+    //
+    // This cron pays MOST jobs and had no cap at all until it was added; it
+    // then shipped with no test, against fixtures whose PaymentIntent carried
+    // no amount. Both directions are asserted here so the guard cannot rot
+    // into either a no-op or a blanket refusal.
+    it("refuses the payout when the budget was raised after checkout", async () => {
+      seedPayableJob(scenario, { job: { budget: 500 } });
+      // Escrow still holds what the $100 session captured.
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({
+        id: "pi_1",
+        status: "succeeded",
+        latest_charge: "ch_1",
+        amount: 11200,
+        amount_received: 11200,
+      });
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: {} }),
+      );
+      expect(res.status).not.toBe(200);
+      const results = (await json(res)).results as Array<Record<string, unknown>>;
+      expect(results[0].status).toBe("exceeds_captured_escrow");
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    });
+
+    it("skips under its OWN status when the captured amount cannot be established", async () => {
+      seedPayableJob(scenario);
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({
+        id: "pi_1",
+        status: "succeeded",
+        latest_charge: "ch_1",
+      });
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: {} }),
+      );
+      const results = (await json(res)).results as Array<Record<string, unknown>>;
+      // Not "exceeds_captured_escrow": that would point the on-call at the
+      // poster's budget for what is an integration fault.
+      expect(results[0].status).toBe("escrow_amount_unverifiable");
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
     });
 
     it("rolls back the claim when the transfer fails so the retry re-collects the fee", async () => {

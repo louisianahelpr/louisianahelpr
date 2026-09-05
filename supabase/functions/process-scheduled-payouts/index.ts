@@ -9,6 +9,7 @@ import { loadAdminIds } from "../_shared/adminIds.ts";
 import { formatPayoutDollars } from "../_shared/money.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { claimPayout, failClaim, settleClaim } from "../_shared/payoutClaim.ts";
+import { resolveCapturedEscrow } from "../_shared/capturedEscrow.ts";
 
 /**
  * Job payment states this cron may legitimately walk forward to 'released'.
@@ -385,8 +386,7 @@ serve(async (req) => {
           // Keep the AMOUNT, not just the status. This step already had the
           // PaymentIntent in hand and threw the figure away, which is why this
           // function could transfer more than was ever collected.
-          const received = pi.amount_received;
-          if (typeof received === "number" && received > 0) capturedCents = received;
+          const captured = resolveCapturedEscrow(pi);
 
           if (pi.status !== "succeeded") {
             console.error(`Payment ${paymentIntentId} for job ${job.id} has status "${pi.status}" — CANNOT transfer funds.`);
@@ -404,6 +404,22 @@ serve(async (req) => {
             }
             continue;
           }
+
+          // Status is succeeded, so anything still unverifiable is a missing
+          // amount on Stripe's side, not an uncaptured charge. Skip THIS job
+          // under its own status rather than letting a zero cap refuse it as
+          // "exceeds captured escrow" — that message would send the on-call
+          // after the poster's budget for what is an integration fault.
+          if (captured.kind === "unverifiable") {
+            console.error(`Cannot establish captured escrow for job ${job.id} (PI ${paymentIntentId}): ${captured.reason}`);
+            results.push({ job_id: job.id, status: "escrow_amount_unverifiable", skipped: true });
+            defects.record(`escrow amount unverifiable ${job.id}: ${captured.reason}`);
+            continue;
+          }
+          if (captured.source === "amount") {
+            console.warn(`PI ${paymentIntentId} had no usable amount_received; falling back to amount (${captured.cents}c).`);
+          }
+          capturedCents = captured.cents;
         } catch (e: any) {
           console.error(`Failed to verify payment for job ${job.id}:`, e);
           results.push({ job_id: job.id, status: "verify_error", error: (e as Error).message });

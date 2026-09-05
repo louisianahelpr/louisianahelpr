@@ -135,6 +135,19 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/payoutClaim.ts";`,
   );
 
+  // Captured-escrow resolver: `_shared/capturedEscrow.ts` has ZERO imports (it
+  // is structurally typed over the PaymentIntent), so the generated file points
+  // at the REAL module — same reasoning as payoutClaim above. It is the single
+  // place that decides how many cents Stripe actually took, which is the ceiling
+  // both payout paths cap their transfer against. Mocking it would mean the
+  // guard against paying out more than was ever collected is the one thing not
+  // under test, and its whole point is that a MISSING amount must not read as
+  // zero captured and silently refuse every payout on the platform.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/capturedEscrow\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/capturedEscrow.ts";`,
+  );
+
   // Subscription period resolver: `_shared/stripeSubscriptionPeriod.ts` has
   // ZERO imports (it is structurally typed over the Stripe payload), so the
   // generated file points at the REAL module rather than a mock — same

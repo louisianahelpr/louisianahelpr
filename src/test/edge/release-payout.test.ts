@@ -48,36 +48,64 @@ async function json(res: Response): Promise<Record<string, unknown>> {
 }
 
 /**
+ * The poster-side charge for a seeded job, in cents — what Stripe captured
+ * into escrow. Budget + urgent fee + the 12% customer fee.
+ *
+ * Deliberately the POSTER total, not the helper payout: the cap asserts
+ * payout <= captured, and capturing exactly the payout would satisfy that for
+ * the wrong reason and stop catching a post-checkout budget raise.
+ */
+function capturedCentsFor(job: Record<string, unknown>): number {
+  const budget = Number(job.budget ?? 0);
+  const urgent = Number(job.urgent_fee ?? 0);
+  return Math.round((budget + urgent) * 100 * 1.12);
+}
+
+/**
  * Seed a fully-payable job: completed, payout_pending, helper with an
  * active Connect account, no dispute, no existing transfer.
  */
 function seedPayableJob(s: SupabaseScenario, overrides: Record<string, unknown> = {}) {
-  s.reads.jobs = {
-    rows: [
-      {
-        id: "job-1",
-        title: "Mow the lawn",
-        status: "completed",
-        payment_status: "payout_pending",
-        helper_id: "helper-1",
-        customer_id: "poster-1",
-        budget: 100,
-        urgent_fee: 0,
-        dispute_status: null,
-        disputed_at: null,
-        is_group_job: false,
-        helpers_needed: null,
-        stripe_payment_intent_id: "pi_1",
-        stripe_session_id: null,
-        ...overrides,
-      },
-    ],
+  const job = {
+    id: "job-1",
+    title: "Mow the lawn",
+    status: "completed",
+    payment_status: "payout_pending",
+    helper_id: "helper-1",
+    customer_id: "poster-1",
+    budget: 100,
+    urgent_fee: 0,
+    dispute_status: null,
+    disputed_at: null,
+    is_group_job: false,
+    helpers_needed: null,
+    stripe_payment_intent_id: "pi_1",
+    stripe_session_id: null,
+    ...overrides,
   };
+  s.reads.jobs = { rows: [job] };
   // Not a Pay-It-Forward job by default, and the escrow charge captured.
+  //
+  // The amount matters as much as the status. This mock carried only a status
+  // until the payout cap started reading the figure — a succeeded
+  // PaymentIntent with no amount is not a thing Stripe returns, and modelling
+  // one meant every payout here was asserted against $0 of escrow.
   s.reads.pif_credits = { rows: [] };
+  // A gift-funded job has no Stripe charge, so its escrow is valued through the
+  // same dry-run RPC the other payout paths use. Seeded by default rather than
+  // per-test: a test flips a job to Pay-It-Forward by seeding `pif_credits`,
+  // and without this the valuation would fail and the payout 503 for a reason
+  // that has nothing to do with what the test is asserting. A test that WANTS
+  // the valuation to fail sets `scenario.rpcErrors`, which wins over this.
+  s.rpc.restore_pif_credit_for_job = {
+    outcome: "would_restore",
+    applied_cents: capturedCentsFor(job),
+  };
   stripeMock.paymentIntents.retrieve.mockResolvedValue({
     id: "pi_1",
     status: "succeeded",
+    amount: capturedCentsFor(job),
+    amount_received: capturedCentsFor(job),
   });
   s.reads.profiles = {
     rows: [
@@ -552,6 +580,85 @@ describe("release-payout edge function", () => {
       expect(res.status).toBe(409);
       expect(out.roster_size).toBe(2);
       expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    });
+
+    // ── The payout CAP ────────────────────────────────────────────────────
+    //
+    // These four are the tests the cap shipped without. It landed with every
+    // fixture in this file modelling a succeeded PaymentIntent that carried no
+    // amount at all, so the guard read $0 captured, refused all 20 payouts,
+    // and turned main red — while the case it exists to catch had no coverage
+    // in either direction. A guard nothing exercises is indistinguishable from
+    // a guard that is wrong.
+    it("refuses the payout when the budget was raised after checkout", async () => {
+      // Escrow captured $112 for a $100 job; the budget is then $500. Nothing
+      // about the PaymentIntent changes — this is exactly the shape of the bug.
+      seedPayableJob(scenario);
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({
+        id: "pi_1",
+        status: "succeeded",
+        amount: 11200,
+        amount_received: 11200,
+      });
+      scenario.reads.jobs = {
+        rows: [{ ...(scenario.reads.jobs!.rows as Record<string, unknown>[])[0], budget: 500 }],
+      };
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: { job_id: "job-1" } }),
+      );
+      expect(res.status).toBe(409);
+      expect((await json(res)).error).toMatch(/exceeds captured escrow/i);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    });
+
+    it("refuses a gift-funded payout the gift does not cover", async () => {
+      // The gift path omits `source_transaction`, so Stripe's own ceiling is
+      // absent and this assertion is the ONLY thing standing there.
+      seedPayableJob(scenario, { stripe_payment_intent_id: null, stripe_session_id: null, budget: 500 });
+      scenario.reads.pif_credits = { rows: [{ id: "pif-1" }] };
+      scenario.rpc.restore_pif_credit_for_job = { outcome: "would_restore", applied_cents: 5000 };
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: { job_id: "job-1" } }),
+      );
+      expect(res.status).toBe(409);
+      expect((await json(res)).error).toMatch(/exceeds captured escrow/i);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    });
+
+    it("refuses under its OWN error when the captured amount cannot be established", async () => {
+      // A succeeded intent with no amount is not a poster problem, and must not
+      // be reported as one — "exceeds captured escrow" would send the on-call
+      // after a budget that is perfectly fine.
+      seedPayableJob(scenario);
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_1", status: "succeeded" });
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: { job_id: "job-1" } }),
+      );
+      expect(res.status).toBe(409);
+      const body = await json(res);
+      expect(body.error).toMatch(/could not verify how much escrow was captured/i);
+      expect(body.error).not.toMatch(/exceeds/i);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    });
+
+    it("pays out on `amount` when Stripe omits `amount_received`", async () => {
+      // The fallback that keeps one missing field from halting every payout on
+      // the platform. On a succeeded intent the two are equal.
+      seedPayableJob(scenario);
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({
+        id: "pi_1",
+        status: "succeeded",
+        amount: 11200,
+      });
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: { job_id: "job-1" } }),
+      );
+      expect(res.status).toBe(200);
+      expect(stripeMock.transfers.create).toHaveBeenCalled();
     });
 
     it("refuses to transfer and returns 409 when the escrow charge did not capture", async () => {

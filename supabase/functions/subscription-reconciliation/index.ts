@@ -140,6 +140,8 @@ interface ProfileRow {
   subscription_expires_at: string | null;
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
+  /** Which billing system is the authority for this row: 'stripe' | 'apple' | null. */
+  subscription_source: string | null;
   subscription_billing_cycle: string | null;
   subscription_cancel_at_period_end: boolean | null;
 }
@@ -252,7 +254,7 @@ serve(async (req) => {
     let profileQuery = admin
       .from("profiles")
       .select(
-        "user_id, email, subscription_tier, subscription_expires_at, stripe_customer_id, stripe_subscription_id, subscription_billing_cycle, subscription_cancel_at_period_end",
+        "user_id, email, subscription_tier, subscription_expires_at, stripe_customer_id, stripe_subscription_id, subscription_billing_cycle, subscription_cancel_at_period_end, subscription_source",
       )
       .or("subscription_tier.not.is.null,stripe_subscription_id.not.is.null")
       .limit(SCAN_LIMIT);
@@ -485,6 +487,35 @@ serve(async (req) => {
         // inside the period it was paid for. Anchoring on the expiry rather
         // than on "is there a subscription" is what keeps this check from
         // paging on every single pass buyer.
+        continue;
+      }
+
+      // APPLE ROWS ARE NOT OURS TO GRADE. This whole section reasons "no live
+      // Stripe subscription, therefore no subscription", which is sound only
+      // where Stripe is the system of record. For an App Store member it is a
+      // false premise: there was never going to be a Stripe subscription.
+      //
+      // Scope, precisely, because it is easy to overstate: the future-expiry
+      // guard above ALREADY protects a healthy Apple member, so this is not a
+      // nightly mass-clearing — I claimed that in commit 36d2b0606 and it was
+      // wrong. What it actually prevents is narrower and still worth fixing.
+      //   - A legitimate Apple grant with a NULL expiry (an auto-renewable
+      //     transaction Apple returned without an expiresDate) was cleared
+      //     outright by the branch below, on the strength of a Stripe
+      //     subscription that was never supposed to exist.
+      //   - A lapsed Apple member was cleared with the reason "expire-
+      //     subscriptions is lagging", a Stripe-framed finding that sends
+      //     whoever reads the report looking in the wrong system.
+      // expire-subscriptions still clears a genuinely lapsed Apple tier on its
+      // own (it filters on a past non-null expiry and does not care who billed
+      // it), so skipping here loses no enforcement.
+      //
+      // Note what is deliberately NOT cleared anywhere:
+      // apple_original_transaction_id. It is the only identity the App Store
+      // Server Notifications webhook has to find the buyer, so wiping it on a
+      // lapse would mean a successful billing retry could never restore the
+      // member it belongs to.
+      if (p.subscription_source === "apple") {
         continue;
       }
 

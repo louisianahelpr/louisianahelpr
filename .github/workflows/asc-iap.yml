@@ -1,0 +1,38 @@
+# App Store Connect in-app purchase management.
+#
+# WHY A WORKFLOW AND NOT A LOCAL SCRIPT. The .p8 signing key exists only as a
+# repository secret. GitHub secrets are write-only — they cannot be read back —
+# so this work is not possible from a laptop without the owner exporting the key
+# again, which is a worse idea than running it where the key already lives.
+#
+# `probe` is read-only and safe to run at any time. `create` writes real product
+# catalogue entries to App Store Connect, so it is manual-dispatch only, never
+# on push, and defaults to probe.
+name: ASC in-app purchases
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "probe (read-only) or create (writes IAP products)"
+        type: choice
+        options: [probe, create]
+        default: probe
+        required: true
+
+jobs:
+  asc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+      - name: Run
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_CONTENT: ${{ secrets.ASC_KEY_CONTENT || secrets.ASC_KEY_BASE64 }}
+          ASC_BUNDLE_ID: com.Helpr
+        run: node scripts/asc/${{ inputs.mode }}.mjs

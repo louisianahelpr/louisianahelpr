@@ -162,3 +162,49 @@ which produce an error anywhere else.
   alongside every Instagram caption saying what to make.
 - **It will not post twice.** Three independent guards: an atomic claim, an
   attempt counter, and a unique constraint on the platform's own post id.
+
+## Verifying the dispatch gate
+
+`claim_marketing_content()` is what decides which rows reach the owner's real
+Instagram and Facebook. Auto-publish is on, so nothing human stands between it
+and the feed, and every one of its guards fails **silently** when wrong — a post
+that never goes out looks exactly like a quiet week.
+
+It cannot be covered by a vitest test: it is PL/pgSQL, it needs real Postgres,
+and `@electric-sql/pglite` is deliberately not a dependency of this repo. So it
+has a hand-run probe instead:
+
+```
+mkdir -p ~/.lh-pglite-probe && cd ~/.lh-pglite-probe && npm i @electric-sql/pglite
+cd /path/to/repo && node scripts/probes/claim-marketing-content.probe.mjs
+```
+
+It reads the table DDL and the function body **verbatim out of the migration**,
+so it cannot drift from what ships. 36 assertions, all green as of 2026-09-04,
+covering the three guards that matter:
+
+- **The service-role gate.** An authenticated user or anon caller is refused —
+  reaching this function means publishing arbitrary rows to the business's
+  public accounts.
+- **The attempts burn-down.** 4 is claimable, 5 is not, and the claim itself
+  increments — so a row that keeps failing stops instead of retrying forever.
+- **The 15-minute reclaim.** A dispatcher 14 minutes in is left alone; one dead
+  past 15 is reclaimed, so a crash cannot strand a row in `publishing` and
+  silently drop the post. A `publishing` row with a NULL `locked_at` is *not*
+  reclaimed, because `NULL < x` is never true.
+
+Plus the surrounding data constraints: an Instagram row with no media cannot be
+inserted at all, a `scheduled` row with no `scheduled_for` is refused at write
+time, a `published` row must carry an `external_id` receipt, and the same
+`external_id` cannot be recorded twice on one channel.
+
+**Run it before believing a change to the claim function or its table.** It is
+proven non-vacuous: disabling the attempts cap, shrinking the reclaim window,
+dropping the service-role gate, ignoring `scheduled_for`, and not incrementing
+`attempts` each fail between one and four assertions. Point `MIG_PATH` at a
+modified copy to re-check that yourself without touching the repo file.
+
+One thing the probe deliberately does **not** prove: `FOR UPDATE SKIP LOCKED`.
+PGlite is single-connection, so genuine two-dispatcher concurrency cannot be
+exercised there. The uniqueness of `(channel, external_id)` is the guard that
+still holds if SKIP LOCKED were ever defeated, and that one IS covered.

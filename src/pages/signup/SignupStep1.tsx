@@ -283,6 +283,11 @@ export function SignupStep1({
         <Checkbox
           id="policies"
           aria-labelledby="policies-label"
+          // The nudge is a shake plus a burnt-sienna border — both PURELY
+          // VISUAL. Without aria-invalid a screen-reader user tapped Continue
+          // and perceived nothing at all, while the email and password fields
+          // next to it announce their errors properly.
+          aria-invalid={nudgeKey > 0 && !acceptedPolicies}
           checked={acceptedPolicies}
           onCheckedChange={(checked) => setAcceptedPolicies(checked === true)}
           className="h-5 w-5 mt-[1px] shrink-0 [&_svg]:h-4 [&_svg]:w-4"
@@ -332,6 +337,8 @@ export function SignupStep1({
         <Checkbox
           id="age-confirm"
           aria-labelledby="age-confirm-label"
+          // Same reason as the policies box above — the nudge is visual only.
+          aria-invalid={nudgeKey > 0 && !ageConfirmed}
           checked={ageConfirmed}
           onCheckedChange={(checked) => setAgeConfirmed(checked === true)}
           className="h-5 w-5 mt-[1px] shrink-0 [&_svg]:h-4 [&_svg]:w-4"
@@ -375,6 +382,33 @@ export function SignupStep1({
           Email me occasional Helpr news and offers.
         </span>
       </label>
+
+      {/* SCREEN-READER PARITY FOR THE CONSENT GATE.
+          Tapping Continue with a required box unchecked shakes it and paints a
+          burnt-sienna border. Both are purely visual, so a screen-reader user
+          got NOTHING — no alert, no aria-invalid, nothing — while an empty
+          email announces "Add your email address" and a malformed one
+          announces "Enter a valid email address" through a real role=alert.
+          The gate was the one blocker on this screen you could not perceive.
+
+          Deliberately sr-only: the shake + border ARE the sighted design and
+          this must not add a second, visible error to a screen the owner has
+          already tuned. It names the specific box(es) still unticked, so the
+          announcement is as actionable as the visual nudge.
+
+          Keyed on nudgeKey so a repeat tap re-announces — an aria-live region
+          whose text is unchanged between taps is silent on every screen
+          reader, which would reproduce the original defect for anyone who
+          taps twice. */}
+      <p key={`consent-alert-${nudgeKey}`} role="alert" className="sr-only">
+        {nudgeKey > 0 && (!acceptedPolicies || !ageConfirmed)
+          ? !acceptedPolicies && !ageConfirmed
+            ? "To continue, agree to the Terms, Rules and Privacy, and confirm you are 18 or older."
+            : !acceptedPolicies
+              ? "To continue, agree to the Terms, Rules and Privacy."
+              : "To continue, confirm you are 18 years of age or older."
+          : ""}
+      </p>
       </div>
 
       <Button

@@ -141,35 +141,32 @@ jobs:
               FAIL=1
             fi
           done
-          # DIAGNOSTIC — table NAMES only, never row content. The data dump is
-          # 4.2 MB, so it plainly holds data; this reports the shape it is in
-          # so the assertions below can match reality instead of my guess.
-          echo "--- statement forms present in data.sql (names only) ---"
-          grep -oE "^(COPY|INSERT INTO) [^(]*" out/data.sql | sort -u | head -40 || true
-          echo "--- first 3 non-comment, non-SET lines (structure only) ---"
-          grep -vE "^(--|SET |SELECT pg_catalog|$)" out/data.sql | head -3 | cut -c1-120
-          echo "--- end diagnostic ---"
-          # And prove the DATA dump carries rows for the two tables whose loss
-          # ends the marketplace. Deliberately tolerant of HOW the CLI writes
-          # them: COPY or INSERT, quoted or bare, schema-qualified or not.
-          # The first version of this check demanded exactly `^COPY public.x `
-          # and failed the very first run against a perfectly good 4.2 MB dump
-          # — a backup guard that rejects real backups is worse than none,
-          # because the fix is to loosen it and the temptation is to delete it.
-          for t in profiles jobs; do
-            if ! grep -qE "^(COPY|INSERT INTO) \"?(public\"?\.\"?)?${t}\"?[ (]" out/data.sql; then
-              echo "::error::data.sql has no COPY/INSERT rows for ${t} — dump has no data"
+          # Row-level proof. `supabase db dump --data-only` emits
+          #   INSERT INTO "public"."profiles" (...) VALUES (...);
+          # one statement per row — NOT the COPY blocks the first two versions
+          # of this check looked for, which is why they reported 0 rows against
+          # a healthy 4.2 MB dump. Counting statements is therefore a direct
+          # row count, and it is the substance the check always meant to test:
+          # a structurally perfect dump of an empty database is the failure
+          # this job exists to catch.
+          #
+          # auth.users is in the list deliberately. It lives outside `public`
+          # and is easy to assume Supabase keeps for you — it does not, on this
+          # plan. Restoring `public.profiles` without it would give back every
+          # row of user data with nothing able to log in and claim it.
+          echo "--- row counts ---"
+          for t in '"auth"."users"' '"public"."profiles"' '"public"."jobs"' '"public"."applications"' '"public"."messages"'; do
+            N=$(grep -cF "INSERT INTO ${t} " out/data.sql || true)
+            printf '%-28s %s rows\n' "$t" "$N"
+            if [ "$N" -lt 1 ]; then
+              echo "::error::data.sql has no rows for ${t} — dump is structurally valid but empty where it matters"
               FAIL=1
             fi
           done
-          # Belt and braces: a dump of an EMPTY database would still contain
-          # the COPY headers above. Assert real byte weight in the data file
-          # for those tables by counting lines between the marker and its
-          # terminator.
-          ROWS=$(awk '/^COPY .*(profiles|jobs)[ (]/{f=1;next} /^\\\.$/{f=0} f{n++} END{print n+0}' out/data.sql)
-          echo "data rows across profiles/jobs COPY blocks: $ROWS"
-          if [ "$ROWS" -lt 10 ]; then
-            echo "::error::only $ROWS data rows found for profiles/jobs — expected the live table counts"
+          TOTAL=$(grep -cE "^INSERT INTO " out/data.sql || true)
+          echo "total INSERT statements: $TOTAL"
+          if [ "$TOTAL" -lt 100 ]; then
+            echo "::error::only $TOTAL rows in the entire dump — expected thousands"
             FAIL=1
           fi
           exit $FAIL

@@ -20,6 +20,15 @@ import { test, expect, FAKE_HELPER, installSupabaseMocks } from "./fixtures";
 // Run it on demand: `npx playwright test iap-review-screenshot`.
 // `helperPage` — not `page`. The bare page fixture has no session, so
 // /profile bounces to Log In; that is what the first run screenshotted.
+// Apple rejects anything that is not a REAL device resolution:
+// IMAGE_INCORRECT_DIMENSIONS, which is what a 720x1520 capture earned. 414x736
+// CSS at deviceScaleFactor 3 is 1242x2208 — the iPhone 5.5" size, on Apple's
+// accepted list, and genuine pixels rather than an upscale of a smaller shot.
+// The scale factor is a CONTEXT option, so it has to be set here; the viewport
+// is set inside the test because the helperPage fixture sets its own after
+// this and would otherwise win.
+test.use({ deviceScaleFactor: 3 });
+
 test("capture the membership screen for App Store review", async ({ helperPage: page }) => {
   await installSupabaseMocks(page, { user: FAKE_HELPER, rules: [] });
   // The onboarding tour renders a modal that would sit over the tier cards.
@@ -28,14 +37,7 @@ test("capture the membership screen for App Store review", async ({ helperPage: 
       localStorage.setItem("helpr_onboarding", JSON.stringify({ seen: true, completed: true }));
     } catch { /* no-storage guard */ }
   });
-  // Apple requires the review screenshot to be at least 640x920. A 430x932
-  // viewport is the true iPhone CSS width but produces a 430px-wide PNG at this
-  // project's deviceScaleFactor of 1 — under the minimum, and rejected. The
-  // viewport is therefore sized to clear the floor directly rather than
-  // upscaling afterwards, which would be fake resolution rather than more
-  // detail. It stays phone-proportioned (~2.1:1) so the layout Apple sees is
-  // the phone layout a real buyer sees.
-  await page.setViewportSize({ width: 720, height: 1520 });
+  await page.setViewportSize({ width: 414, height: 736 });
   await page.goto("/profile?tab=subscription");
 
   // Wait for the tier cards themselves, not just the route — the tab is lazy

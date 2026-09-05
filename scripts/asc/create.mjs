@@ -38,12 +38,49 @@ const TIERS = [
 const productId = (tier, cadence) =>
   `com.helpr.${tier}.${cadence === "one_time" ? "onetime" : cadence}`;
 
+// Apple's limits, discovered the hard way on the first run: a subscription
+// localization DESCRIPTION is capped at 55 characters and the API only says so
+// at POST time, after the product itself has been created. Names are capped at
+// 30. These are checked in the pre-flight below so a violation fails before
+// anything is written, rather than nine products in.
+const MAX = { subDescription: 55, locName: 30, iapDescription: 45 };
+
 const DESCRIPTION = {
-  elite: "Maximum visibility, the lowest platform fee, and 20-minute early access to new jobs.",
-  plus:  "A lower cut on every job, plus 15-minute early access to new jobs.",
-  pro:   "Priority placement, advanced analytics, and 10-minute early access to new jobs.",
-  basic: "A lower platform fee and 5-minute early access to new jobs.",
+  elite: "Lowest fee, top placement, 20-min early job access.",
+  plus:  "A lower fee on every job, 15-min early job access.",
+  pro:   "Priority placement and 10-min early job access.",
+  basic: "A lower platform fee and 5-min early job access.",
 };
+
+const IAP_DESCRIPTION = {
+  elite: "One month of Elite. Does not renew.",
+  plus:  "One month of Plus. Does not renew.",
+  pro:   "One month of Pro. Does not renew.",
+  basic: "One month of Basic. Does not renew.",
+};
+
+// ── Pre-flight: every string Apple will length-check, checked here first ─────
+// The first run created a subscription group and one subscription before Apple
+// rejected the description. Nothing is deletable in bulk afterwards, so the
+// cheap fix is to refuse to start when any string is already known to be too
+// long.
+{
+  const bad = [];
+  for (const t of TIERS) {
+    const check = (label, value, limit) => {
+      if (value.length > limit) bad.push(`${label}: ${value.length} > ${limit} — "${value}"`);
+    };
+    check(`${t.key} sub description`, DESCRIPTION[t.key], MAX.subDescription);
+    check(`${t.key} sub loc name`, `Helpr ${t.label}`, MAX.locName);
+    check(`${t.key} iap loc name`, `Helpr ${t.label} Month Pass`, MAX.locName);
+    check(`${t.key} iap description`, IAP_DESCRIPTION[t.key], MAX.iapDescription);
+  }
+  if (bad.length) {
+    console.error("Pre-flight failed — nothing was written:\n  " + bad.join("\n  "));
+    process.exit(1);
+  }
+  console.log("✓ pre-flight: all names and descriptions within Apple's limits\n");
+}
 
 const token = mintToken();
 const log = (...a) => console.log(...a);

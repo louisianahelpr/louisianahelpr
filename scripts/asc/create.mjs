@@ -43,7 +43,7 @@ const productId = (tier, cadence) =>
 // at POST time, after the product itself has been created. Names are capped at
 // 30. These are checked in the pre-flight below so a violation fails before
 // anything is written, rather than nine products in.
-const MAX = { subDescription: 55, locName: 30, iapDescription: 45 };
+const MAX = { subDescription: 55, locName: 30, iapDescription: 55 };
 
 const DESCRIPTION = {
   elite: "Lowest fee, top placement, 20-min early job access.",
@@ -256,7 +256,7 @@ for (const t of TIERS) {
       method: "POST", token,
       body: { data: { type: "inAppPurchaseLocalizations",
         attributes: { locale: "en-US", name: `Helpr ${t.label} Month Pass`,
-          description: `One month of ${t.label}. ${DESCRIPTION[t.key]}` },
+          description: IAP_DESCRIPTION[t.key] },
         relationships: { inAppPurchaseV2: { data: { type: "inAppPurchases", id: iap.id } } } } },
     });
     log(`    + en-US localization`);

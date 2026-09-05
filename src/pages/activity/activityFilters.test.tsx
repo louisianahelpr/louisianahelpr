@@ -165,6 +165,28 @@ describe("Activity — whose move is it", () => {
     expect(appliedActivityBucket(app({ status: "accepted", jobStatus: "completed" }))).toBe("done");
   });
 
+  it("puts an application whose job row never arrived in Cancelled, not Waiting", () => {
+    // REGRESSION (found 2026-09-05, live in prod: 15 rows across 10 helpers).
+    // `get_jobs_for_my_applications` hands a helper a job only when
+    // customer_id = me, helper_id = me, status = 'open', or they are on the
+    // group roster. A job CANCELLED BEFORE ANYONE WAS HIRED matches none of
+    // them, so `app.job` is null — and a null job used to fall through every
+    // branch to the "Applied, awaiting their decision" default and sit in
+    // Waiting forever, inflating that tab's count with rows the card itself
+    // was already rendering as "Job no longer available".
+    //
+    // `status: "pending"` is the point: the application really is still
+    // pending in the database, and deliberately stays that way. The bucket,
+    // not the row, is what had to learn that a vanished job is a dead end.
+    const orphaned = app({ status: "pending", jobStatus: "open" });
+    (orphaned as { job?: unknown }).job = null;
+    expect(appliedActivityBucket(orphaned)).toBe("cancelled");
+
+    const undef = app({ status: "pending", jobStatus: "open" });
+    (undef as { job?: unknown }).job = undefined;
+    expect(appliedActivityBucket(undef)).toBe("cancelled");
+  });
+
   it("separates an open job WITH applicants from one without", () => {
     // The distinction the whole `applicantCount` argument exists for: a queue
     // of people waiting on a reply is the poster's move, an empty one is not.

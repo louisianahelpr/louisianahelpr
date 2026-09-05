@@ -312,7 +312,25 @@ export function useDashboardData() {
             // readout and ranking tie-break silently no-op'd on /dashboard
             // while working on /jobs, which reads the same column from a
             // different RPC.
-            "id, title, description, category, budget, date_needed, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_flexible_schedule, is_recurring, is_group_job, helpers_needed, estimated_hours, special_requirements, photos, boosted_at, boost_expires_at, expires_at, start_time, recurrence_interval, recurrence_end_date, parent_job_id, payment_status, location, latitude, longitude, pricing_mode, applicant_count, credential_tier, parish, is_auto_created",
+            // `is_auto_created` was added here on 2026-09-05 (ef3550115) and
+            // took the WHOLE FEED DOWN: this select runs against
+            // `open_jobs_browse`, and that view does not project the column —
+            // only `public.jobs` has it. PostgREST answers an unknown column
+            // with 400 / 42703 for the entire query, so /dashboard rendered
+            // "We couldn't load jobs" for every helper rather than degrading.
+            //
+            // Nothing on this feed ever read it. Its only consumer is
+            // `UnfundedJobNotice`, which lives on the POSTER's card and reads
+            // `public.jobs` directly — so the column was added to the wrong
+            // query, and removing it here restores the feed without narrowing
+            // anything. Adding it to the view instead would widen what browse
+            // exposes for a consumer that does not exist.
+            //
+            // The two columns named in the note above (`credential_tier`,
+            // `parish`) are the counter-example worth keeping in view: both
+            // were added to the VIEW first, by 20260904031002, before any
+            // select asked for them.
+            "id, title, description, category, budget, date_needed, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_flexible_schedule, is_recurring, is_group_job, helpers_needed, estimated_hours, special_requirements, photos, boosted_at, boost_expires_at, expires_at, start_time, recurrence_interval, recurrence_end_date, parent_job_id, payment_status, location, latitude, longitude, pricing_mode, applicant_count, credential_tier, parish",
           )
           .neq("payment_status", "abandoned");
 

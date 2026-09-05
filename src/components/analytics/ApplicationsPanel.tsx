@@ -132,7 +132,7 @@ export function ApplicationsPanel({
 
       {yours !== null && winner !== null ? (
         <div
-          className="rounded-xl px-3 py-2.5 text-ds-12 leading-snug"
+          className="rounded-ds-md px-3 py-2.5 text-ds-12 leading-snug"
           style={{
             background: "hsl(var(--ivory-sand) / 0.7)",
             border: "0.5px solid hsl(var(--olivewood) / 0.10)",

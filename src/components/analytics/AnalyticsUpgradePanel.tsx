@@ -81,7 +81,7 @@ export function AnalyticsUpgradePanel({
     >
       {showMath ? (
         <div
-          className="rounded-xl px-3 py-3 text-ds-12 leading-snug space-y-1"
+          className="rounded-ds-md px-3 py-3 text-ds-12 leading-snug space-y-1"
           style={{
             background: "hsl(var(--bark) / 0.06)",
             border: "0.5px solid hsl(var(--bark) / 0.18)",

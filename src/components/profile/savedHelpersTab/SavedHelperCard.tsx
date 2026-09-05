@@ -207,7 +207,7 @@ export function SavedHelperCard({
               </Button>
               <Button
                 type="button"
-                variant="primary"
+                variant="secondary"
                 size="sm"
                 onClick={() => void saveNote(h.helper_id)}
                 disabled={savingNote}

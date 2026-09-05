@@ -573,7 +573,7 @@ export default function GiftCard() {
                           >
                             <span
                               aria-hidden
-                              className="w-8 h-8 shrink-0 rounded-[6px]"
+                              className="w-8 h-8 shrink-0 rounded-md"
                               style={{
                                 background: d.background,
                                 border: "0.5px solid hsl(var(--ink-deep) / 0.15)",

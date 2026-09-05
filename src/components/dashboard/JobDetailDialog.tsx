@@ -356,30 +356,30 @@ const JobDetailDialog = ({
           // floor means the box does not resize between steps, which is what
           // dialog.tsx prescribed as the right fix all along — "reserve the
           // content's height, not re-anchor one dialog".
-          // SIZED FROM A MEASUREMENT, not picked. The comment above says this
-          // reservation "needs a height reservation sized from the settled
-          // content, which is a measurement someone has to take rather than a
-          // number to guess" — 68dvh was the guess, and it left the sheet a
-          // third empty. Owner reported the dead space from a device
-          // screenshot 2026-09-04; measured off that screenshot:
+          // 68dvh IS THE APPLY STEP'S REAL HEIGHT — do not shrink it.
           //
-          //   sheet at the floor   545px  (== 68dvh, so viewport ~801px)
-          //   content extent       384px  (47.9dvh — ends at the Continue CTA)
-          //   dead space           161px  (29% of the sheet)
+          // Owner reported the sheet looking a third empty and I lowered this
+          // to 58dvh, measured off their screenshot. That measurement was of
+          // ONE job with a two-line description at 393px wide, and generalising
+          // it was wrong: e2e/happy-path/apply-single-sheet.spec.ts went red on
+          // the exact assertion this floor exists to protect.
           //
-          // The binding constraint is NOT the detail step, it is the apply
-          // step: the floor only has to be tall enough that stepping
-          // detail -> apply doesn't resize the box (the 66.4px jump this
-          // reservation exists to absorb). 384 + 66.4 = 450px = 56.2dvh, so
-          // anything at or above ~57dvh keeps the no-jump property. 58dvh
-          // takes it with a small margin and hands ~80px back — half the dead
-          // space — without re-anchoring the sheet the owner asked to keep
-          // centred, twice.
+          // Measured properly, in that spec's own harness at 375x812:
+          //   detail step top 170.5  -> box 471px  (== the 58dvh floor)
+          //   apply  step top 132.1  -> box 547.8px (== 67.5dvh)
+          // The apply step needs 67.5dvh, so a 58dvh floor let the box grow
+          // 76.8px and, because it is CENTRED, walked the top edge 38.4px up.
           //
-          // Jobs whose content already exceeds the floor (long description,
-          // photos) are unaffected: they size naturally now as they did
-          // before, and lowering a floor cannot make those taller cases worse.
-          "min-h-[min(58dvh,500px)]",
+          // So the empty space under a SHORT job's detail step is not slack —
+          // it is the room the apply step is about to need, held still so the
+          // surface doesn't jump when you step forward. Removing it means
+          // giving up either the centring (owner asked for it twice) or the
+          // stable anchor (the regression this spec was written for).
+          //
+          // The only fix that gets all three is a per-job reservation measured
+          // at runtime from the settled apply content, rather than any single
+          // CSS number. That is a real change, not a tweak to this line.
+"min-h-[min(68dvh,600px)]",
           "content-start",
           "sm:w-[calc(100%-2rem)] sm:max-w-lg",
           "sm:pb-7",

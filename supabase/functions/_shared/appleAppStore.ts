@@ -1,4 +1,10 @@
-// Apple In-App Purchase (StoreKit 2) server-side validation.
+// Apple In-App Purchase server-side validation.
+//
+// The CLIENT is StoreKit 1 (cordova-plugin-purchase v13 is SKProduct /
+// SKPaymentQueue — this file said "StoreKit 2" until the plugin was installed
+// and read). Immaterial here: the App Store Server API accepts a transaction id
+// from either generation, and the JWS payload shape below is the API's, not the
+// client's.
 //
 // Adapted from the unmerged `feat/apple-iap` branch (50efe839c, 2026-06-21),
 // whose core design is right and is kept: the client sends ONLY a
@@ -96,7 +102,7 @@ export const PRODUCT_TIER_MAP: Record<string, ProductMeta> = Object.fromEntries(
 
 export const PRODUCT_IDS = Object.keys(PRODUCT_TIER_MAP);
 
-/** Apple's StoreKit 2 JWSTransactionDecodedPayload — the fields we use. */
+/** Apple's JWSTransactionDecodedPayload as the App Store Server API returns it. */
 export interface AppleTransaction {
   transactionId: string;
   originalTransactionId: string;

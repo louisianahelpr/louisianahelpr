@@ -1,4 +1,15 @@
-// Apple In-App Purchase client adapter (StoreKit 2 via cordova-plugin-purchase).
+// Apple In-App Purchase client adapter, via cordova-plugin-purchase v13.
+//
+// ON THE CLIENT THIS IS STOREKIT 1, not StoreKit 2. This header said "StoreKit
+// 2" until the plugin was actually installed and its iOS source read:
+// cordova-plugin-purchase 13.18's implementation is SKProduct / SKPaymentQueue,
+// and it ships no StoreKit 2 adapter. The mistake was inherited from the
+// feat/apple-iap branch, which claimed SK2 throughout.
+//
+// It does not change the design, which is why the correction is a comment and
+// not a rewrite: the trust boundary is the App Store SERVER API, and
+// /inApps/v1/transactions/{id} accepts a transaction id originating from either
+// StoreKit generation. What the client hands us is only ever an id to look up.
 //
 // App Store guideline 3.1.1 requires digital subscriptions to sell through
 // Apple inside the iOS app; Stripe checkout stays web-only. SubscriptionTab

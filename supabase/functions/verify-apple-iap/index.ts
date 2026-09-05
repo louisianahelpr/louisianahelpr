@@ -1,6 +1,6 @@
 // Verify an Apple In-App Purchase and grant the subscription tier it bought.
 //
-// Called by the native iOS client immediately after a successful StoreKit 2
+// Called by the native iOS client immediately after a successful StoreKit
 // purchase. The client sends ONLY a transactionId; we re-fetch the
 // authoritative transaction from Apple (see _shared/appleAppStore.ts), so a
 // tampered client cannot grant itself a tier it never paid for.

@@ -103,9 +103,38 @@ const AdminReports = () => {
       if (error) throw error;
 
       const reportRows = (data || []) as Report[];
+      // `reported_id` IS NOT ALWAYS A USER. For reported_type 'job' it holds a
+      // JOB id, and looking that up in `profiles` can only ever miss — which
+      // the fallback below then renders as "Deleted user". Measured in prod
+      // 2026-09-05: all four job reports in the queue read "Deleted user",
+      // including two whose job row is alive and titled, while the three user
+      // reports beside them showed real names. An admin opening the moderation
+      // queue could not tell WHAT had been reported, and the two states the
+      // fallback exists to distinguish — gone vs. unreadable — were both wrong
+      // for every job report.
+      const isUserSubject = (r: Report) => r.reported_type !== "job";
       const userIds = [
-        ...new Set(reportRows.flatMap(r => [r.reporter_id, r.reported_id, r.assigned_to].filter(Boolean) as string[])),
+        ...new Set(reportRows.flatMap(r => [
+          r.reporter_id,
+          isUserSubject(r) ? r.reported_id : null,
+          r.assigned_to,
+        ].filter(Boolean) as string[])),
       ];
+      // Hydrated separately because it is a different table, and kept OUT of
+      // `nameMap` so `reported_exists` still means "is a messageable user" —
+      // a job report has no person to message, and that button must stay off.
+      const jobIds = [...new Set(reportRows.filter(r => !isUserSubject(r)).map(r => r.reported_id).filter(Boolean) as string[])];
+      const jobTitles = new Map<string, string>();
+      if (jobIds.length > 0) {
+        const { data: jobRows, error: jobsError } = await supabase
+          .from("jobs")
+          .select("id, title")
+          .in("id", jobIds);
+        // Same rule as the profile read below: never drop the error, never let
+        // a failed lookup blank the queue.
+        if (jobsError) report(jobsError, { severity: "warning", tags: { source: "AdminReports.hydrateJobTitles" } });
+        for (const j of jobRows || []) jobTitles.set(j.id, j.title);
+      }
       if (userIds.length > 0) {
       // Secondary name-hydration read. Don't drop the error: on failure every
       // row silently renders the "Unknown"/fallback name, which looks like real
@@ -139,10 +168,17 @@ const AdminReports = () => {
           (id ? nameMap.get(id) : undefined) ??
           (profilesError && id ? "Name unavailable" : "Deleted user");
 
+        // A job report names the JOB. Falling back to "Deleted job" keeps the
+        // same two-state honesty as `nameFor`: the row is genuinely gone (a
+        // cancelled job the admin can no longer read) rather than mislabelled
+        // as a person who never existed.
+        const subjectFor = (r: Report) =>
+          isUserSubject(r) ? nameFor(r.reported_id) : (jobTitles.get(r.reported_id) ?? "Deleted job");
+
         return reportRows.map(r => ({
           ...r,
           reporter_name: nameFor(r.reporter_id),
-          reported_name: nameFor(r.reported_id),
+          reported_name: subjectFor(r),
           // Deleted actors cannot receive a message — the notification would
           // be written against a user_id with nothing behind it.
           reporter_exists: r.reporter_id !== null && nameMap.has(r.reporter_id),

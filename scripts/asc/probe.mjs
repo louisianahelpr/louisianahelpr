@@ -33,7 +33,12 @@ for (const g of groups) {
   const subs = await ascAll(`/v1/subscriptionGroups/${g.id}/subscriptions?limit=200`, token);
   for (const s of subs) {
     const a = s.attributes;
-    console.log(`      ${a.productId}  "${a.name}"  ${a.subscriptionPeriod}  level=${a.groupLevel}  state=${a.state}`);
+    const locs = await ascAll(`/v1/subscriptions/${s.id}/subscriptionLocalizations?limit=50`, token);
+    const prices = await ascAll(`/v1/subscriptions/${s.id}/prices?limit=50`, token).catch(() => []);
+    const avail = await asc(`/v1/subscriptions/${s.id}/subscriptionAvailability`, { token })
+      .then((r) => !!r?.data?.id).catch(() => false);
+    console.log(`      ${a.productId}  ${a.subscriptionPeriod}  level=${a.groupLevel}  state=${a.state}`);
+    console.log(`         loc=${locs.map((l) => l.attributes.locale).join(",") || "NONE"}  prices=${prices.length}  available=${avail}`);
   }
   if (!subs.length) console.log("      (empty)");
 }
@@ -44,7 +49,11 @@ const iaps = await ascAll(`/v1/apps/${app.id}/inAppPurchasesV2?limit=200`, token
 console.log(`\nNON-SUBSCRIPTION IAPs: ${iaps.length}`);
 for (const p of iaps) {
   const a = p.attributes;
-  console.log(`  • ${a.productId}  "${a.name}"  ${a.inAppPurchaseType}  state=${a.state}`);
+  const ilocs = await ascAll(`/v2/inAppPurchases/${p.id}/inAppPurchaseLocalizations?limit=50`, token).catch(() => []);
+  const sched = await asc(`/v2/inAppPurchases/${p.id}/iapPriceSchedule`, { token })
+    .then((r) => !!r?.data?.id).catch(() => false);
+  console.log(`  • ${a.productId}  ${a.inAppPurchaseType}  state=${a.state}`);
+  console.log(`       loc=${ilocs.map((l) => l.attributes.locale).join(",") || "NONE"}  priceSchedule=${sched}`);
 }
 if (!iaps.length) console.log("  (none)");
 

@@ -141,6 +141,14 @@ jobs:
               FAIL=1
             fi
           done
+          # DIAGNOSTIC — table NAMES only, never row content. The data dump is
+          # 4.2 MB, so it plainly holds data; this reports the shape it is in
+          # so the assertions below can match reality instead of my guess.
+          echo "--- statement forms present in data.sql (names only) ---"
+          grep -oE "^(COPY|INSERT INTO) [^(]*" out/data.sql | sort -u | head -40 || true
+          echo "--- first 3 non-comment, non-SET lines (structure only) ---"
+          grep -vE "^(--|SET |SELECT pg_catalog|$)" out/data.sql | head -3 | cut -c1-120
+          echo "--- end diagnostic ---"
           # And prove the DATA dump carries rows for the two tables whose loss
           # ends the marketplace. Deliberately tolerant of HOW the CLI writes
           # them: COPY or INSERT, quoted or bare, schema-qualified or not.

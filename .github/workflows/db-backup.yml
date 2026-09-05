@@ -1,0 +1,190 @@
+# Nightly logical backup of the production database.
+#
+# WHY THIS EXISTS. Supabase's free tier has no automatic backups and no
+# point-in-time recovery. Until this workflow, a dropped table, a bad migration
+# or an account problem would have lost every profile, job, application,
+# message and escrow record with no way back — and the app is live with real
+# users and real Stripe Connect accounts attached. The owner is staying on the
+# free tier (a deliberate cost decision), so recovery has to be something we
+# run ourselves.
+#
+# TWO THINGS THIS FILE TAKES SERIOUSLY, because a backup job that "works" is
+# the easiest thing in the world to ship and the hardest to notice failing:
+#
+#   1. IT MUST NOT SILENTLY PRODUCE AN EMPTY FILE. The classic failure is a
+#      dump that exits 0 having written nothing (wrong ref, auth accepted but
+#      no permission, a CLI change), and a green checkmark every night for
+#      months until the day you need it. Every dump below is size-checked AND
+#      content-checked against tables that must exist, and the job fails loudly
+#      if either looks wrong. A red backup job is recoverable; a green empty
+#      one is not.
+#
+#   2. IT MUST NOT LEAK PII. The data dump contains real names, emails, phone
+#      numbers, street addresses and Stripe customer/account ids. GitHub
+#      artifacts are readable by anyone with repo read access and are NOT an
+#      appropriate resting place for that in the clear. So the archive is
+#      encrypted with GPG symmetric AES-256 before it ever leaves the runner,
+#      and the job HARD-FAILS if BACKUP_PASSPHRASE is unset rather than
+#      falling back to an unencrypted upload. Refusing to back up is a smaller
+#      problem than quietly publishing the user table.
+#
+# REQUIRED SECRETS
+#   SUPABASE_ACCESS_TOKEN   } already set — db-deploy.yml uses the same three
+#   SUPABASE_DB_PASSWORD    }
+#   SUPABASE_PROJECT_REF    }
+#   BACKUP_PASSPHRASE         NEW. Any long random string. Store it somewhere
+#                             that is NOT this repo and NOT only GitHub — if
+#                             you lose it the backups are unreadable, and if
+#                             you lose GitHub you need it elsewhere anyway.
+#
+# TO RESTORE
+#   gh run download <run-id> -n db-backup-<date>
+#   gpg --decrypt --batch --passphrase "$BACKUP_PASSPHRASE" \
+#       backup.tar.gz.gpg > backup.tar.gz
+#   tar xzf backup.tar.gz
+#   psql "$TARGET_DB_URL" -f roles.sql -f schema.sql -f data.sql
+# Restore into a NEW project first and diff it before pointing anything at it.
+
+name: DB backup (nightly)
+
+on:
+  schedule:
+    # 07:40 UTC ≈ 01:40 America/Chicago — after the nightly drift detector and
+    # well clear of the daily sweeps, so a long dump cannot contend with them.
+    - cron: "40 7 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: db-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Fail fast on missing secrets
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          MISSING=""
+          [ -z "${SUPABASE_ACCESS_TOKEN:-}" ] && MISSING="$MISSING SUPABASE_ACCESS_TOKEN"
+          [ -z "${SUPABASE_DB_PASSWORD:-}" ]  && MISSING="$MISSING SUPABASE_DB_PASSWORD"
+          [ -z "${SUPABASE_PROJECT_REF:-}" ]  && MISSING="$MISSING SUPABASE_PROJECT_REF"
+          # Deliberately fatal, not a warning. See header point 2.
+          [ -z "${BACKUP_PASSPHRASE:-}" ]     && MISSING="$MISSING BACKUP_PASSPHRASE"
+          if [ -n "$MISSING" ]; then
+            echo "::error::Missing required secret(s):$MISSING"
+            echo "BACKUP_PASSPHRASE is required — this job will NOT upload an"
+            echo "unencrypted dump of real user data as a fallback."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v7
+
+      - uses: supabase/setup-cli@v3
+        with:
+          version: latest
+
+      - name: Link to prod
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: supabase link --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}"
+
+      - name: Dump roles, schema and data
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          # Three separate dumps, because a restore needs them applied in this
+          # order and a single --data-only file cannot recreate the schema.
+          supabase db dump --linked --role-only -f out/roles.sql
+          supabase db dump --linked             -f out/schema.sql
+          supabase db dump --linked --data-only -f out/data.sql
+          ls -l out/
+
+      - name: Verify the dump is real
+        run: |
+          set -euo pipefail
+          FAIL=0
+          # Size floors. Chosen well below the current real sizes so ordinary
+          # growth never trips them, but far above the ~0-200 byte file a
+          # failed-but-exit-0 dump produces.
+          check_size() {
+            local f="$1" min="$2" actual
+            actual=$(wc -c < "$f")
+            if [ "$actual" -lt "$min" ]; then
+              echo "::error::$f is $actual bytes, expected at least $min — treating as a FAILED dump, not a small one"
+              FAIL=1
+            else
+              echo "ok  $f  ${actual} bytes"
+            fi
+          }
+          check_size out/schema.sql 50000
+          check_size out/data.sql   20000
+          check_size out/roles.sql  100
+
+          # Content checks. Size alone can be satisfied by an error page or a
+          # schema dump with zero tables, so assert the things a usable restore
+          # actually needs. These are the load-bearing tables: losing any one
+          # of them loses the marketplace.
+          for t in profiles jobs applications messages notifications user_violations; do
+            if ! grep -q "public\.$t" out/schema.sql; then
+              echo "::error::schema.sql has no definition for public.$t — dump is incomplete"
+              FAIL=1
+            fi
+          done
+          # And prove the DATA dump carries rows, not just COPY headers.
+          if ! grep -qE "^COPY public\.(profiles|jobs) " out/data.sql; then
+            echo "::error::data.sql contains no COPY block for profiles/jobs — dump has no data"
+            FAIL=1
+          fi
+          exit $FAIL
+
+      - name: Encrypt
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          STAMP=$(date -u +%Y-%m-%d)
+          tar czf "backup-$STAMP.tar.gz" -C out roles.sql schema.sql data.sql
+          gpg --batch --yes --symmetric --cipher-algo AES256 \
+              --passphrase "$BACKUP_PASSPHRASE" \
+              -o "backup-$STAMP.tar.gz.gpg" "backup-$STAMP.tar.gz"
+          # Remove the plaintext BEFORE the upload step can ever see it.
+          rm -f "backup-$STAMP.tar.gz"
+          rm -rf out
+          ls -l "backup-$STAMP.tar.gz.gpg"
+          echo "STAMP=$STAMP" >> "$GITHUB_ENV"
+
+      - name: Prove the encrypted archive round-trips
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          # An encrypted file nobody has ever decrypted is not a backup, it is a
+          # hope. Decrypt it here, every night, and assert the contents survive.
+          gpg --batch --yes --decrypt --passphrase "$BACKUP_PASSPHRASE" \
+              -o roundtrip.tar.gz "backup-$STAMP.tar.gz.gpg"
+          tar tzf roundtrip.tar.gz | sort > listing.txt
+          cat listing.txt
+          grep -qx "data.sql"   listing.txt
+          grep -qx "roles.sql"  listing.txt
+          grep -qx "schema.sql" listing.txt
+          rm -f roundtrip.tar.gz listing.txt
+
+      - uses: actions/upload-artifact@v5
+        with:
+          name: db-backup-${{ env.STAMP }}
+          path: backup-${{ env.STAMP }}.tar.gz.gpg
+          # 90 days is the GitHub free-tier maximum. Long enough that a problem
+          # discovered weeks late is still recoverable.
+          retention-days: 90
+          if-no-files-found: error

@@ -38,7 +38,10 @@ for (const g of groups) {
     const avail = await asc(`/v1/subscriptions/${s.id}/subscriptionAvailability`, { token })
       .then((r) => !!r?.data?.id).catch(() => false);
     console.log(`      ${a.productId}  ${a.subscriptionPeriod}  level=${a.groupLevel}  state=${a.state}`);
-    console.log(`         loc=${locs.map((l) => l.attributes.locale).join(",") || "NONE"}  prices=${prices.length}  available=${avail}`);
+    const shot = await asc(`/v1/subscriptions/${s.id}/appStoreReviewScreenshot`, { token })
+      .then((r) => (r?.data ? `${r.data.attributes?.assetDeliveryState?.state ?? "present"}` : "NONE"))
+      .catch(() => "NONE");
+    console.log(`         loc=${locs.map((l) => l.attributes.locale).join(",") || "NONE"}  prices=${prices.length}  available=${avail}  reviewScreenshot=${shot}`);
   }
   if (!subs.length) console.log("      (empty)");
 }
@@ -53,7 +56,10 @@ for (const p of iaps) {
   const sched = await asc(`/v2/inAppPurchases/${p.id}/iapPriceSchedule`, { token })
     .then((r) => !!r?.data?.id).catch(() => false);
   console.log(`  • ${a.productId}  ${a.inAppPurchaseType}  state=${a.state}`);
-  console.log(`       loc=${ilocs.map((l) => l.attributes.locale).join(",") || "NONE"}  priceSchedule=${sched}`);
+  const ishot = await asc(`/v2/inAppPurchases/${p.id}/appStoreReviewScreenshot`, { token })
+    .then((r) => (r?.data ? `${r.data.attributes?.assetDeliveryState?.state ?? "present"}` : "NONE"))
+    .catch(() => "NONE");
+  console.log(`       loc=${ilocs.map((l) => l.attributes.locale).join(",") || "NONE"}  priceSchedule=${sched}  reviewScreenshot=${ishot}`);
 }
 if (!iaps.length) console.log("  (none)");
 

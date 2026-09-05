@@ -14,9 +14,9 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "probe (read-only) or create (writes IAP products)"
+        description: "probe (read-only), create (writes products), screenshots (uploads the review image)"
         type: choice
-        options: [probe, create]
+        options: [probe, create, screenshots]
         default: probe
         required: true
 

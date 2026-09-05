@@ -54,19 +54,39 @@ const LIVE_PRO_PRICE_MAP: Record<ProBillingCycle, Record<ProTierKey, string>> = 
     // placeholder string to live Stripe and returned an opaque 500.
     // Verified against live acct_1RQbAfKp2H4b7tEC: all three are active,
     // livemode, and match PRO_RECURRING_AMOUNT_CENTS (500 / 5000 / 500).
+    //
+    // ELITE REPOINTED 2026-09-05. The old ids
+    // (price_1TAZkSKp…lf0VNiEa / …agD42xRa / …mn27C8JM) are still ACTIVE in
+    // live Stripe and still charge the PRE-RAISE $15 / $150 / $15. The
+    // 2026-08-27 raise to $20 / $200 / $20 reached this file and the TEST-mode
+    // Prices; live never got it. Read straight off the live account today:
+    // Basic and Pro matched to the cent, Elite was 25% under on all three
+    // cycles — so the moment STRIPE_SECRET_KEY goes live the storefront sells
+    // Elite at $20 and Stripe collects $15.
+    //
+    // Nothing could have caught it. PRO_RECURRING_AMOUNT_CENTS is only ever
+    // compared against our own displayed prices (proTiers.parity.test.ts), so
+    // the guard is a closed loop between two files we control and cannot see
+    // Stripe at all. Zero live subscriptions existed, so nobody was
+    // grandfathered and no refund is owed.
+    //
+    // Stripe Prices are IMMUTABLE in unit_amount, so the fix is new Price
+    // objects, not an edit. The old ones are deliberately left active until
+    // this deploys — archiving them first would break live checkout in the
+    // window between.
     basic: "price_1TAZjdKp2H4b7tECG4TDPOxd",
     pro: "price_1TAZkLKp2H4b7tEC0ACbAX2y",
-    elite: "price_1TAZkSKp2H4b7tEClf0VNiEa",
+    elite: "price_1UCRNVKp2H4b7tECg66qPod9",
   },
   annual: {
     basic: "price_1TAZkXKp2H4b7tECRBtNRne5",
     pro: "price_1TAZkbKp2H4b7tECZ7Qr6CZS",
-    elite: "price_1TAZkcKp2H4b7tECagD42xRa",
+    elite: "price_1UCRNsKp2H4b7tECkZLTQjRB",
   },
   one_time: {
     basic: "price_1TAZkdKp2H4b7tECtvvFRyJf",
     pro: "price_1TAZkeKp2H4b7tECnfZ7vF0C",
-    elite: "price_1TAZkeKp2H4b7tECmn27C8JM",
+    elite: "price_1UCRNzKp2H4b7tEC3MUHI7Lu",
   },
 };
 

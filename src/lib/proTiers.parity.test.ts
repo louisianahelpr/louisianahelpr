@@ -73,11 +73,11 @@ describe("consumer subscription checkout price config (F-MONEY-01 drift guard)",
     // and its LIVE fallback is a TODO placeholder until Basic ships to live —
     // covered by the next test.
     expect(PRO_PRICE_MAP.monthly.pro).toBe("price_1TAZkLKp2H4b7tEC0ACbAX2y");
-    expect(PRO_PRICE_MAP.monthly.elite).toBe("price_1TAZkSKp2H4b7tEClf0VNiEa");
+    expect(PRO_PRICE_MAP.monthly.elite).toBe("price_1UCRNVKp2H4b7tECg66qPod9");
     expect(PRO_PRICE_MAP.annual.pro).toBe("price_1TAZkbKp2H4b7tECZ7Qr6CZS");
-    expect(PRO_PRICE_MAP.annual.elite).toBe("price_1TAZkcKp2H4b7tECagD42xRa");
+    expect(PRO_PRICE_MAP.annual.elite).toBe("price_1UCRNsKp2H4b7tECkZLTQjRB");
     expect(PRO_PRICE_MAP.one_time.pro).toBe("price_1TAZkeKp2H4b7tECnfZ7vF0C");
-    expect(PRO_PRICE_MAP.one_time.elite).toBe("price_1TAZkeKp2H4b7tECmn27C8JM");
+    expect(PRO_PRICE_MAP.one_time.elite).toBe("price_1UCRNzKp2H4b7tEC3MUHI7Lu");
   });
 
   it("sells no tier that lacks a live Stripe Price", () => {

@@ -39,6 +39,25 @@ console.log(`image ${fileName}  ${bytes.length} bytes  md5=${checksum}\n`);
 
 const token = mintToken();
 
+/**
+ * Is there a USABLE screenshot already? Returns the id to delete when there is
+ * a broken one.
+ *
+ * "Has a screenshot" is not the same question as "is done". The first upload
+ * attempt left all twelve assets in state FAILED
+ * (IMAGE_INCORRECT_DIMENSIONS), and the plain existence check then reported
+ * them as already handled and skipped every one — idempotency treating a broken
+ * artifact as a finished one, which is worse than no check at all because it is
+ * silent.
+ */
+async function existingScreenshot(relPath) {
+  const r = await asc(relPath, { token }).catch(() => null);
+  if (!r?.data) return { ok: false, staleId: null };
+  const state = r.data.attributes?.assetDeliveryState?.state;
+  if (state === "COMPLETE" || state === "UPLOAD_COMPLETE") return { ok: true, staleId: null };
+  return { ok: false, staleId: r.data.id };
+}
+
 /** Run the reserve → upload → commit handshake for one reservation. */
 async function uploadAsset(reservation, endpoint) {
   const ops = reservation.data.attributes.uploadOperations ?? [];
@@ -64,9 +83,12 @@ const groups = await ascAll(`/v1/apps/${appId}/subscriptionGroups?limit=200`, to
 for (const g of groups) {
   for (const sub of await ascAll(`/v1/subscriptionGroups/${g.id}/subscriptions?limit=200`, token)) {
     const pid = sub.attributes.productId;
-    const has = await asc(`/v1/subscriptions/${sub.id}/appStoreReviewScreenshot`, { token })
-      .then((r) => !!r?.data?.id).catch(() => false);
-    if (has) { console.log(`= ${pid} already has a screenshot`); continue; }
+    const { ok, staleId } = await existingScreenshot(`/v1/subscriptions/${sub.id}/appStoreReviewScreenshot`);
+    if (ok) { console.log(`= ${pid} already has a usable screenshot`); continue; }
+    if (staleId) {
+      await asc(`/v1/subscriptionAppStoreReviewScreenshots/${staleId}`, { method: "DELETE", token });
+      console.log(`- ${pid} removed a failed screenshot`);
+    }
     const reservation = await asc("/v1/subscriptionAppStoreReviewScreenshots", {
       method: "POST", token,
       body: { data: { type: "subscriptionAppStoreReviewScreenshots",
@@ -81,9 +103,12 @@ for (const g of groups) {
 // ── Non-renewing one-time passes ────────────────────────────────────────────
 for (const iap of await ascAll(`/v1/apps/${appId}/inAppPurchasesV2?limit=200`, token)) {
   const pid = iap.attributes.productId;
-  const has = await asc(`/v2/inAppPurchases/${iap.id}/appStoreReviewScreenshot`, { token })
-    .then((r) => !!r?.data?.id).catch(() => false);
-  if (has) { console.log(`= ${pid} already has a screenshot`); continue; }
+  const { ok, staleId } = await existingScreenshot(`/v2/inAppPurchases/${iap.id}/appStoreReviewScreenshot`);
+  if (ok) { console.log(`= ${pid} already has a usable screenshot`); continue; }
+  if (staleId) {
+    await asc(`/v1/inAppPurchaseAppStoreReviewScreenshots/${staleId}`, { method: "DELETE", token });
+    console.log(`- ${pid} removed a failed screenshot`);
+  }
   const reservation = await asc("/v1/inAppPurchaseAppStoreReviewScreenshots", {
     method: "POST", token,
     body: { data: { type: "inAppPurchaseAppStoreReviewScreenshots",

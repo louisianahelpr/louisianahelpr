@@ -29,7 +29,9 @@ console.log(`APP  ${app.attributes.name}  ${app.attributes.bundleId}  id=${app.i
 const groups = await ascAll(`/v1/apps/${app.id}/subscriptionGroups?limit=200`, token);
 console.log(`SUBSCRIPTION GROUPS: ${groups.length}`);
 for (const g of groups) {
-  console.log(`  • ${g.attributes.referenceName}  (${g.id})`);
+  const glocs = await ascAll(`/v1/subscriptionGroups/${g.id}/subscriptionGroupLocalizations?limit=50`, token)
+    .catch(() => []);
+  console.log(`  • ${g.attributes.referenceName}  (${g.id})  groupLocalizations=${glocs.map((l) => l.attributes.locale).join(",") || "NONE"}`);
   const subs = await ascAll(`/v1/subscriptionGroups/${g.id}/subscriptions?limit=200`, token);
   for (const s of subs) {
     const a = s.attributes;

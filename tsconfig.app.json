@@ -53,6 +53,7 @@
     "supabase/functions/_shared/capturedEscrow.ts"
   ],
   "exclude": [
-    "src/test/edge/**/*.gen.ts"
+    "src/test/edge/**/*.gen.ts",
+    "src/test/marketingDuplicateScan.test.ts"
   ]
 }

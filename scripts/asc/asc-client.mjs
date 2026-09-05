@@ -63,7 +63,31 @@ export function mintToken() {
   return `${header}.${payload}.${b64u(sig)}`;
 }
 
-export async function asc(path, { method = "GET", body, token } = {}) {
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Apple's API returns transient 500s and 429s under no particular provocation —
+ * one appeared mid-way through uploading the twelfth review screenshot, after
+ * four had gone through unchanged. Retry those, and only those: a 4xx other
+ * than 429 is a real rejection and retrying it just repeats a mistake more
+ * slowly.
+ */
+export async function asc(path, opts = {}) {
+  const attempts = 4;
+  for (let i = 1; ; i++) {
+    try {
+      return await ascOnce(path, opts);
+    } catch (e) {
+      const retryable = e.status === 429 || (e.status >= 500 && e.status < 600);
+      if (!retryable || i === attempts) throw e;
+      const wait = 1000 * 2 ** (i - 1);
+      console.warn(`    ! ${e.status} on ${opts.method ?? "GET"} ${path} — retry ${i}/${attempts - 1} in ${wait}ms`);
+      await sleep(wait);
+    }
+  }
+}
+
+async function ascOnce(path, { method = "GET", body, token } = {}) {
   const res = await fetch(path.startsWith("http") ? path : `${HOST}${path}`, {
     method,
     headers: {

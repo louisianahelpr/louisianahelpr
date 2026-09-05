@@ -50,7 +50,13 @@
     "supabase/functions/_shared/salesTax.ts",
     "supabase/functions/_shared/recurringSchedule.ts",
     "supabase/functions/_shared/storageKeys.ts",
-    "supabase/functions/_shared/capturedEscrow.ts"
+    "supabase/functions/_shared/capturedEscrow.ts",
+    // Apple IAP. appleAppStore.ts is imported by src/test/appleIap.test.ts to
+    // test the product registry and entitlement maths directly; jwt.ts comes
+    // with it because appleAppStore mints the App Store Server API bearer
+    // through it (dynamically, but TS still resolves the module).
+    "supabase/functions/_shared/appleAppStore.ts",
+    "supabase/functions/_shared/jwt.ts"
   ],
   "exclude": [
     "src/test/edge/**/*.gen.ts",

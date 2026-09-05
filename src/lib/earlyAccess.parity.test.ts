@@ -1,9 +1,10 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { describe, it, expect } from "vitest";
 
 import { earlyAccessDelayMs } from "./earlyAccess";
+import { TIER_PERKS, type SubscriptionTier } from "./subscriptionTiers";
 
 /**
  * The early-access delay exists in TWO places: this module (the client
@@ -16,17 +17,31 @@ import { earlyAccessDelayMs } from "./earlyAccess";
  * inconsistency is the exact class of bug migration 20260720120000 was written
  * to fix, so it is worth a guard rather than a comment.
  */
-const SQL = readFileSync(
-  // The migration that defines the live cutoff. This has to be the
-  // HIGHEST-numbered redefinition or the guard grades a dead file — it once
-  // pointed at 20260820001000, which later migrations had already superseded,
-  // then at 20260901010104's inline copy inside get_open_jobs_for_map.
-  // 20260901022522 hoisted that CASE out into `early_access_cutoff()` and put
-  // /jobs and the dashboard view behind the same function, so there is now one
-  // body to grade instead of one per surface.
-  resolve(__dirname, "../../supabase/migrations/20260901022522_early_access_server_gate_all_surfaces.sql"),
-  "utf8",
-);
+/**
+ * The migration that currently DEFINES the cutoff — the newest file containing
+ * `CREATE OR REPLACE FUNCTION public.early_access_cutoff()`.
+ *
+ * This used to be a hardcoded path. That is a trap twice over: migrations are
+ * append-only, so a later redefinition is the live one and a pinned path grades
+ * a body Postgres has already replaced; and the pin silently survives the very
+ * change it should catch. It did exactly that on 2026-09-05, when the Plus
+ * branch was added to the function and this test kept reading the 2026-09-01
+ * file and passing.
+ */
+const SQL = (() => {
+  const dir = resolve(__dirname, "../../supabase/migrations");
+  const file = readdirSync(dir)
+    .filter((f) => f.endsWith(".sql"))
+    .filter((f) =>
+      readFileSync(resolve(dir, f), "utf8").includes(
+        "CREATE OR REPLACE FUNCTION public.early_access_cutoff()",
+      ),
+    )
+    .sort()
+    .pop();
+  if (!file) throw new Error("No migration defines early_access_cutoff()");
+  return readFileSync(resolve(dir, file), "utf8");
+})();
 
 /**
  * The executable body of `early_access_cutoff()`, prose headers excluded. The
@@ -52,7 +67,14 @@ const GATED_SURFACES: Array<[string, string]> = [
 /** Minutes each tier shaves off the 20-minute base, as the SQL declares them. */
 function sqlEarnedMinutes(): Record<string, number> {
   const earned: Record<string, number> = {};
-  for (const tier of ["elite", "pro", "basic"] as const) {
+  // DERIVED from TIER_PERKS, not hand-listed. The literal
+  // ["elite","pro","basic"] could not fail for a tier it never had, so when
+  // Plus was restored this loop simply never checked it — the perk was missing
+  // server-side and the guard reported agreement.
+  const paidTiers = (Object.keys(TIER_PERKS) as SubscriptionTier[]).filter(
+    (t) => t !== "free" && TIER_PERKS[t].earlyAccess,
+  );
+  for (const tier of paidTiers) {
     const m = CUTOFF_BODY.match(
       new RegExp(`WHEN p\\.subscription_tier = '${tier}'\\s+THEN (\\d+)`),
     );
@@ -118,15 +140,26 @@ describe("early-access delay — client/SQL parity", () => {
     // gate: /jobs had none and the dashboard's lived in JavaScript. If a later
     // migration redefines one of these without the predicate, the perk leaks
     // again on that surface alone — silently, because the other two still work.
+    // Each surface is graded against ITS OWN newest defining migration, not
+    // against whichever file happens to define the cutoff. Those were the same
+    // file while one migration created all four objects; they stopped being the
+    // same the moment early_access_cutoff() could be changed on its own (which
+    // is the point of having hoisted it). Demanding they stay co-located would
+    // force every future cutoff tweak to pointlessly re-emit three unrelated
+    // objects — and the invariant that actually matters is unchanged: whatever
+    // defines a surface last must still compare against the shared cutoff.
+    const dir = resolve(__dirname, "../../supabase/migrations");
+    const migrations = readdirSync(dir).filter((f) => f.endsWith(".sql")).sort();
     for (const [surface, object] of GATED_SURFACES) {
-      // Slice the object's OWN definition, not "everything after it" — the
-      // latter passes trivially for whichever object happens to come first.
-      const start = SQL.search(
-        new RegExp(`CREATE OR REPLACE (?:FUNCTION|VIEW) ${object.replace(".", "\\.")}\\b`),
-      );
-      expect(start, `${surface} (${object}) is not redefined in this migration`).toBeGreaterThan(-1);
-      const nextSection = SQL.indexOf("\n-- ═", start);
-      const body = SQL.slice(start, nextSection === -1 ? undefined : nextSection);
+      const re = new RegExp(`CREATE OR REPLACE (?:FUNCTION|VIEW) ${object.replace(".", "\\.")}\\b`);
+      const owner = [...migrations]
+        .reverse()
+        .find((f) => re.test(readFileSync(resolve(dir, f), "utf8")));
+      expect(owner, `${surface} (${object}) is not defined by any migration`).toBeTruthy();
+      const ownerSql = readFileSync(resolve(dir, owner!), "utf8");
+      const start = ownerSql.search(re);
+      const nextSection = ownerSql.indexOf("\n-- ═", start);
+      const body = ownerSql.slice(start, nextSection === -1 ? undefined : nextSection);
       expect(
         /early_access_cutoff\(\)|cutoff\.ts\b/.test(body),
         `${surface} (${object}) does not compare against early_access_cutoff()`,

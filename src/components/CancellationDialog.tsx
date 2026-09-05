@@ -1,5 +1,5 @@
 import {
-  jobLocalMidnightMs,
+  jobLocalStartMs,
   cancellationFeePercent as sharedCancellationFeePercent,
 } from "../../supabase/functions/_shared/cancellationFee";
 import { CANCELLATION_LADDER_RUNGS } from "@/lib/reliabilityLadder";
@@ -39,6 +39,9 @@ type CancellationDialogProps = {
   jobId: string;
   jobTitle: string;
   jobDate: string;
+  /** Job's scheduled start; null means midnight. Required so the quoted
+   *  tier matches what the server charges — see jobLocalStartMs. */
+  jobStartTime: string | null;
   jobBudget: number;
   /* No `userId`: the cancelling identity is auth.uid() inside
      poster_cancel_job now, so the client no longer asserts who it is. */
@@ -50,7 +53,7 @@ type CancellationDialogProps = {
   onCancelled: () => void;
 };
 
-export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, hasHelper, helperId: _helperId, helperName, open, onClose, onCancelled }: CancellationDialogProps) => {
+export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, jobBudget, hasHelper, helperId: _helperId, helperName, open, onClose, onCancelled }: CancellationDialogProps) => {
   // Is this a recurring PARENT? Fetched on open so the dialog can say the
   // one thing the card no longer says (owner: card = less hectic; the
   // cancel-scope warning belongs at the moment of cancelling).
@@ -95,7 +98,11 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobBudget, hasHel
   // (America/Chicago) and the edge function (Deno Deploy, UTC) disagreed by
   // 5-6 hours: a poster cancelling ~24.5h out was shown "free cancellation"
   // here and charged 25% of the budget by void-cancelled-payments.
-  const hoursUntilJob = (jobLocalMidnightMs(jobDate) - Date.now()) / (1000 * 60 * 60);
+  // CHANGED 2026-09-05: anchored on the job's START, not midnight of its day.
+  // Midnight is never later than the real start, so the old maths could only
+  // ever quote a HARSHER tier than the schedule earns — 41 hours of notice
+  // read as 23 and showed 25% where the copy below promises free.
+  const hoursUntilJob = (jobLocalStartMs(jobDate, jobStartTime) - Date.now()) / (1000 * 60 * 60);
   const cancellationFeePercent = sharedCancellationFeePercent(hasHelper, hoursUntilJob);
   const feeTier = cancellationFeePercent === 50
     ? "Less than 2 hours before job"

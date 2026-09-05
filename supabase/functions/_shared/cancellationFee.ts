@@ -51,8 +51,40 @@ const JOB_TIMEZONE = "America/Chicago";
  * -5/-6, so DST is handled without a table.
  */
 export function jobLocalMidnightMs(dateNeeded: string, timeZone = JOB_TIMEZONE): number {
+  return jobLocalStartMs(dateNeeded, null, timeZone);
+}
+
+/**
+ * Epoch ms for the job's actual START — `dateNeeded` at `startTime` **in
+ * JOB_TIMEZONE**. A null `startTime` falls back to midnight, which is what
+ * every caller used to get unconditionally.
+ *
+ * WHY THIS EXISTS (2026-09-05): the fee ladder measured "hours until the job"
+ * from MIDNIGHT of the job's day, because `date_needed` was the only field it
+ * was given. `start_time` was never consulted. So a 6:00 PM job was treated as
+ * starting at 00:00 — eighteen hours early — and every job fell into a harsher
+ * tier than its schedule earns. Cancelling at 1:00 AM for a 6:00 PM job the
+ * next day is 41 hours of notice, which the dialog's own copy calls free; the
+ * old maths returned 23 and charged 25% of budget.
+ *
+ * The error was one-directional — midnight is never later than the real start,
+ * so the tier was always >= the disclosed one. It could only ever overcharge.
+ *
+ * Passing the real hour through `Date.UTC` (rather than adding hours onto a
+ * midnight epoch) is also what keeps it DST-correct: the offset is measured at
+ * the START instant, so a job on a spring-forward morning is not an hour out.
+ * Mirrors the SQL `(date_needed + COALESCE(start_time,'00:00')) AT TIME ZONE
+ * 'America/Chicago'` in migration 20260905021859.
+ */
+export function jobLocalStartMs(
+  dateNeeded: string,
+  startTime: string | null,
+  timeZone = JOB_TIMEZONE,
+): number {
   const [y, m, d] = dateNeeded.split("-").map(Number);
-  const utcMidnight = Date.UTC(y, (m ?? 1) - 1, d ?? 1, 0, 0, 0);
+  // `start_time` arrives as Postgres `time` — "HH:MM:SS" or "HH:MM".
+  const [sh, sm] = (startTime ?? "00:00").split(":").map(Number);
+  const utcMidnight = Date.UTC(y, (m ?? 1) - 1, d ?? 1, sh || 0, sm || 0, 0);
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone,
     hour12: false,
@@ -65,10 +97,23 @@ export function jobLocalMidnightMs(dateNeeded: string, timeZone = JOB_TIMEZONE):
   return utcMidnight - (asZone - utcMidnight);
 }
 
-/** Hours between when the cancellation was recorded and the job's start. */
-export function hoursUntilJob(dateNeeded: string, cancelledAtIso: string | null): number {
-  // Midnight on the job's day IN THE PLATFORM'S ZONE — not the runtime's.
-  const start = jobLocalMidnightMs(dateNeeded);
+/**
+ * Hours between when the cancellation was recorded and the job's start.
+ *
+ * `startTime` is REQUIRED rather than optional, and sits after the two
+ * pre-existing parameters on purpose: making it required means the compiler
+ * finds every call site, and keeping the first two in place means no existing
+ * call silently changes meaning. Pass null only when the job genuinely has no
+ * start_time — that is the midnight fallback, not a shortcut.
+ */
+export function hoursUntilJob(
+  dateNeeded: string,
+  cancelledAtIso: string | null,
+  startTime: string | null,
+): number {
+  // The job's real START in the PLATFORM'S zone — not midnight, not the
+  // runtime's zone. See jobLocalStartMs for why both of those were wrong.
+  const start = jobLocalStartMs(dateNeeded, startTime);
   // Use the recorded cancellation time so a slow cron run can't push the job
   // into a cheaper/pricier tier than the moment the poster actually cancelled.
   const at = cancelledAtIso ? new Date(cancelledAtIso).getTime() : Date.now();
@@ -79,6 +124,13 @@ export function hoursUntilJob(dateNeeded: string, cancelledAtIso: string | null)
 export interface CancellationFeeJob {
   budget: number | null;
   date_needed: string | null;
+  /**
+   * The job's scheduled start. REQUIRED (nullable, not optional) so every
+   * caller has to fetch it — an omitted `start_time` silently reinstates the
+   * midnight anchor this module was fixed to stop using, and the resulting
+   * overcharge looks identical to a correct fee.
+   */
+  start_time: string | null;
   cancelled_at: string | null;
   helper_id: string | null;
 }
@@ -91,7 +143,7 @@ export interface CancellationFeeJob {
 export function computeCancellationFee(job: CancellationFeeJob): number {
   const budget = job.budget ?? 0;
   if (!(budget > 0) || !job.helper_id || !job.date_needed) return 0;
-  const hours = hoursUntilJob(job.date_needed, job.cancelled_at);
+  const hours = hoursUntilJob(job.date_needed, job.cancelled_at, job.start_time);
   const percent = cancellationFeePercent(!!job.helper_id, hours);
   // round(budget * percent) / 100 mirrors the client's cent-accurate math.
   return Math.round(budget * percent) / 100;

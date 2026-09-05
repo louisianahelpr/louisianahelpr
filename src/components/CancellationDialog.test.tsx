@@ -29,6 +29,7 @@ function makeProps(overrides: Record<string, unknown> = {}) {
     jobId: "job-1",
     jobTitle: "Fix the fence",
     jobDate: isoDateHoursFromNow(20),
+    jobStartTime: null,
     jobBudget: 100,
     hasHelper: true,
     helperName: "Marie",

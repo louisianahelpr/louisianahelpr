@@ -293,7 +293,7 @@ serve(async (req) => {
       const q = admin
         .from("jobs")
         .select(
-          "id, is_seed, status, payment_status, budget, date_needed, cancelled_at, helper_id, cancellation_fee, cancellation_fee_status, late_cancellation, platform_fee_amount, helper_fee_percent, is_group_job, helpers_needed, has_active_dispute, dispute_status, poster_completed_at, helper_completed_at, payout_scheduled_at, updated_at",
+          "id, is_seed, status, payment_status, budget, date_needed, start_time, cancelled_at, helper_id, cancellation_fee, cancellation_fee_status, late_cancellation, platform_fee_amount, helper_fee_percent, is_group_job, helpers_needed, has_active_dispute, dispute_status, poster_completed_at, helper_completed_at, payout_scheduled_at, updated_at",
           countOpt,
         )
         // Paging without an ORDER BY is sampling, not paging: the cap and the
@@ -317,6 +317,10 @@ serve(async (req) => {
       const expectedFee = computeCancellationFee({
         budget: money(job.budget),
         date_needed: job.date_needed as string | null,
+        // Required by CancellationFeeJob: without it the recomputation
+        // silently falls back to the midnight anchor and would 'confirm'
+        // the very overcharge this reconciliation exists to catch.
+        start_time: job.start_time as string | null,
         cancelled_at: job.cancelled_at as string | null,
         helper_id: job.helper_id as string | null,
       });
@@ -336,7 +340,11 @@ serve(async (req) => {
       // assigned and the schedule is known; otherwise the flag has no defined
       // truth and is skipped rather than guessed at.
       if (job.helper_id && job.date_needed) {
-        const hrs = hoursUntilJob(job.date_needed as string, job.cancelled_at as string | null);
+        const hrs = hoursUntilJob(
+          job.date_needed as string,
+          job.cancelled_at as string | null,
+          job.start_time as string | null,
+        );
         const expectedLate = hrs < 24;
         if (!!job.late_cancellation !== expectedLate) {
           checks.lateFlag.add({

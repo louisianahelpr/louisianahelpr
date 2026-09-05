@@ -397,7 +397,7 @@ serve(async (req) => {
     // ── Part A: Cancelled jobs still in escrow ──
     const { data: cancelledJobs, error } = await supabaseAdmin
       .from("jobs")
-      .select("id, title, stripe_session_id, stripe_payment_intent_id, budget, customer_fee_amount, cancellation_fee, date_needed, cancelled_at, helper_id, customer_id, helper_fee_percent")
+      .select("id, title, stripe_session_id, stripe_payment_intent_id, budget, customer_fee_amount, cancellation_fee, date_needed, start_time, cancelled_at, helper_id, customer_id, helper_fee_percent")
       .eq("status", "cancelled")
       .eq("payment_status", "escrow");
 

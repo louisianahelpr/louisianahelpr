@@ -128,7 +128,9 @@ jobs:
             fi
           }
           check_size out/schema.sql 50000
-          check_size out/data.sql   20000
+          # 4.26 MB at the time of writing. A floor of 500 KB is far below
+          # any plausible real dump and far above a broken one.
+          check_size out/data.sql   500000
           check_size out/roles.sql  100
 
           # Content checks. Size alone can be satisfied by an error page or a
@@ -141,14 +143,20 @@ jobs:
               FAIL=1
             fi
           done
-          # Row-level proof. `supabase db dump --data-only` emits
-          #   INSERT INTO "public"."profiles" (...) VALUES (...);
-          # one statement per row — NOT the COPY blocks the first two versions
-          # of this check looked for, which is why they reported 0 rows against
-          # a healthy 4.2 MB dump. Counting statements is therefore a direct
-          # row count, and it is the substance the check always meant to test:
-          # a structurally perfect dump of an empty database is the failure
-          # this job exists to catch.
+          # Data proof. Measured, not assumed — it took three wrong guesses to
+          # pin down the actual format, so here it is written down:
+          # `supabase db dump --data-only` emits ONE multi-row statement per
+          # table,
+          #   INSERT INTO "public"."profiles" (...) VALUES (...),(...),(...);
+          # not COPY blocks, and not one statement per row. So a statement
+          # count is a count of TABLES, and the only honest row-level signals
+          # are per-table presence and total byte weight. Both are used below;
+          # neither is a proxy for the other.
+          #
+          # This still catches the failure the job exists for. A dump of an
+          # empty database emits no INSERT for a table with no rows, so an
+          # emptied `profiles` fails the per-table check, and a broadly empty
+          # database fails the size floor.
           #
           # auth.users is in the list deliberately. It lives outside `public`
           # and is easy to assume Supabase keeps for you — it does not, on this
@@ -163,10 +171,12 @@ jobs:
               FAIL=1
             fi
           done
-          TOTAL=$(grep -cE "^INSERT INTO " out/data.sql || true)
-          echo "total INSERT statements: $TOTAL"
-          if [ "$TOTAL" -lt 100 ]; then
-            echo "::error::only $TOTAL rows in the entire dump — expected thousands"
+          # Tables carrying data (one statement each — see above). 62 at the
+          # time of writing; 30 leaves room to drop features without nagging.
+          TABLES=$(grep -cE "^INSERT INTO " out/data.sql || true)
+          echo "tables with data: $TABLES"
+          if [ "$TABLES" -lt 30 ]; then
+            echo "::error::only $TABLES tables carry data — expected ~60"
             FAIL=1
           fi
           exit $FAIL

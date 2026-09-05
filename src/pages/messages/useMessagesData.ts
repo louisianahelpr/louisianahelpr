@@ -259,6 +259,51 @@ export function useMessagesData({
     [queryClient],
   );
 
+  /**
+   * What the inbox's "Try again" button must call. NOT `loadConversations`.
+   *
+   * `loadError` has TWO branches (see above): a genuine query failure, and a
+   * stalled identity — `identityStalled && !resolvedUserId`. The retry used to
+   * be `() => { if (userId) loadConversations(userId) }`, which is dead in
+   * precisely the second one, because that branch is DEFINED by the user id
+   * being null. So the state the grace-window timeout was added to rescue —
+   * app resumed from background, auth came back empty — swapped an infinite
+   * skeleton for an error screen whose only button silently did nothing, and
+   * killing the app remained the only way out. The comment above still claimed
+   * the ErrorState "already offers a retry".
+   *
+   * The two branches need different retries, because they failed at different
+   * things: refetch the CONVERSATIONS when we have an id, and re-attempt the
+   * SESSION when we don't. Refreshing the session is what makes the second one
+   * recoverable in place — it repopulates `useCurrentUser`, which feeds
+   * `cachedUser`, which is half of `resolvedUserId`.
+   *
+   * Clearing `identityStalled` first is load-bearing in both branches: it drops
+   * the UI back to the skeleton and restarts the IDENTITY_GRACE_MS window, so a
+   * retry that is still in flight cannot immediately re-render the same error,
+   * and a second failure re-errors honestly 8s later rather than instantly.
+   */
+  const retryInbox = useCallback(async () => {
+    setIdentityStalled(false);
+    if (resolvedUserId) {
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.messages.conversations(resolvedUserId),
+      });
+      return;
+    }
+    // No id to refetch WITH — the session itself is what is missing.
+    const { data, error } = await supabase.auth.refreshSession();
+    if (error) {
+      // Don't drop it: a refresh that fails here is the difference between
+      // "retry did nothing" and "you are signed out", and only one of those
+      // is worth the user tapping again.
+      report(error, { severity: "warning", tags: { source: "useMessagesData.retryIdentity" } });
+    }
+    if (data?.user) {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.currentUser.all });
+    }
+  }, [queryClient, resolvedUserId]);
+
   // Auto-open conversation from deep link. Ran inside the old loader; now it
   // waits on the query's first successful result. The ref guard keeps it to
   // once per mount exactly as before, so a background refetch never yanks the
@@ -597,6 +642,7 @@ export function useMessagesData({
     setMessages,
     loading,
     loadError,
+    retryInbox,
     chatLoadError,
     chatLoading,
     hasMoreMessages,

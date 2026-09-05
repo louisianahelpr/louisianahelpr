@@ -64,6 +64,13 @@ interface ConversationListProps {
   allConversations?: Conversation[];
   loading: boolean;
   loadError: boolean;
+  /**
+   * Retry for the inbox error state. Must come from the hook rather than
+   * being built here from `userId`: `loadError` is true in a branch where
+   * `userId` is null by definition, so a `if (userId)` retry is dead in the
+   * one state it most needs to work. See useMessagesData.retryInbox.
+   */
+  retryInbox: () => void | Promise<void>;
   userId: string | null;
   /** Reloads the conversation list — drives retry + pull-to-refresh. */
   loadConversations: (uid: string) => Promise<void>;
@@ -162,6 +169,7 @@ export function ConversationList({
   allConversations,
   loading,
   loadError,
+  retryInbox,
   userId,
   loadConversations,
   openConvo,
@@ -861,7 +869,7 @@ export function ConversationList({
             <div className="flex-1 min-h-0 flex">
               <ErrorState
                 title="We couldn't load your messages."
-                onRetry={() => { if (userId) loadConversations(userId); }}
+                onRetry={() => { void retryInbox(); }}
               />
             </div>
           ) : !loading && conversations.length === 0 && !isSpecialFilterView ? (

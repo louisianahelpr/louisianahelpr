@@ -47,6 +47,11 @@ project_id = "fncmgoasalhdgfwzhsqa"
     verify_jwt = false
   [functions.stripe-webhook]
     verify_jwt = false
+  # Apple posts these unauthenticated — it cannot present a Supabase JWT.
+  # The handler trusts nothing in the body beyond a transaction id and
+  # re-pulls the authoritative transaction from Apple; see its header.
+  [functions.apple-app-store-notifications]
+    verify_jwt = false
   [functions.email-tracking]
     verify_jwt = false
   # The commercial-email opt-out. Two callers, neither of which can present a

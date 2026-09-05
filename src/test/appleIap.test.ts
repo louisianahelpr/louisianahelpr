@@ -217,3 +217,65 @@ describe("verify-apple-iap — the regressions that made the branch dangerous", 
     expect(SRC).not.toMatch(/\[\s*["']basic["']\s*,\s*["']pro["']\s*,\s*["']elite["']\s*\]/);
   });
 });
+
+describe("apple-app-store-notifications — the trust boundary", () => {
+  const SRC = codeOnly(read("supabase/functions/apple-app-store-notifications/index.ts"));
+  const CFG = read("supabase/config.toml");
+
+  it("runs unauthenticated, and says so in config", () => {
+    // Apple cannot present a Supabase JWT. This MUST be declared, or every
+    // notification is rejected at the gateway and subscriptions never renew.
+    expect(CFG).toMatch(
+      /\[functions\.apple-app-store-notifications\][\s\S]{0,80}verify_jwt = false/,
+    );
+  });
+
+  it("never trusts the posted body for anything but a transaction id", () => {
+    // The endpoint is open to the internet. Entitlement must come from the
+    // authoritative re-fetch, never from the payload — otherwise anyone can
+    // POST themselves an Elite membership.
+    expect(SRC).toContain("fetchAppleTransaction");
+    // The only field read off the posted payload.
+    // Slice to the CALL, not the import — `fetchAppleTransaction` appears in
+    // the import list first, which made this an empty (and vacuously passing
+    // on `not.toContain`) range.
+    const posted = SRC.slice(
+      SRC.indexOf("const posted"),
+      SRC.indexOf("await fetchAppleTransaction("),
+    );
+    expect(posted.length).toBeGreaterThan(50);
+    expect(posted).toContain("transactionId");
+    expect(posted).not.toContain("productId");
+    expect(posted).not.toContain("expiresDate");
+  });
+
+  it("decides entitlement from the transaction, not the notification type", () => {
+    // Mapping ~a dozen overlapping ASSN types to outcomes is a list that rots;
+    // the transaction already states revocation and expiry. A grace period is
+    // then handled for free, as an expiry still in the future.
+    expect(SRC).toContain("isEntitled(tx, meta)");
+    expect(SRC).not.toMatch(/notificationType === ["']DID_RENEW["']/);
+    expect(SRC).not.toMatch(/switch\s*\(\s*notificationType/);
+  });
+
+  it("asserts the revoke/renew write touched a row", () => {
+    expect(SRC).toContain('.select("user_id")');
+    expect(SRC).toMatch(/updated\.length === 0/);
+  });
+
+  it("keeps subscription_source on revoke so Stripe cannot reclaim the row", () => {
+    // Clearing it would hand a lapsed Apple member back to the Stripe
+    // reconciler, which has no business grading them.
+    const revoke = SRC.slice(SRC.indexOf("subscription_tier: null"));
+    expect(revoke).toMatch(/subscription_source:\s*["']apple["']/);
+  });
+
+  it("acknowledges what it cannot process instead of making Apple retry for days", () => {
+    // Apple retries non-2xx for up to three days. An unknown product or a
+    // deleted account will never succeed, so retrying is pure noise.
+    expect(SRC).toContain("no_linked_profile");
+    expect(SRC).toContain("unknown_product");
+    // ...but a zero-row update IS worth retrying: the row existed a moment ago.
+    expect(SRC).toMatch(/zero_row_update[\s\S]{0,40}500/);
+  });
+});

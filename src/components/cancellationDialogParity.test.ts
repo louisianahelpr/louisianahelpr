@@ -18,6 +18,24 @@ import { resolve } from "node:path";
  *   written as 25% + late_cancellation=true from America/New_York. Chicago
  *   agreed with itself, which is why nobody saw it.
  *
+ * UPDATED 2026-09-05 — the anchor moved, and so did the reason.
+ *
+ *   The helper is now jobLocalStartMs(dateNeeded, startTime), not
+ *   jobLocalMidnightMs(dateNeeded). The zone half of the story above is
+ *   unchanged and still the reason the `new Date(d + "T00:00:00")` guard below
+ *   exists. What changed is WHICH INSTANT is correct: the ladder used to
+ *   measure notice from MIDNIGHT of the job's day because start_time was never
+ *   consulted, so a 6:00 PM job was priced as if it began at 00:00 and every
+ *   cancellation landed a tier harsher than the policy discloses. Midnight is
+ *   never later than the real start, so it could only ever overcharge.
+ *
+ *   The parity this file protects is therefore now two-dimensional: the quote
+ *   we SHOW and the fee we PERSIST must agree on the zone (as before) AND on
+ *   the anchor. Asserting the component imports jobLocalStartMs is what stops
+ *   the displayed estimate drifting back to midnight while the server charges
+ *   from the start — which would reinstate the original split with a friendlier
+ *   face, quoting free and charging 25%.
+ *
  * This is a SOURCE check on purpose: the defect is "a second implementation
  * exists", and no value-level test can see that — the mirror will always agree
  * with itself. What must be true is that the file contains no hand-rolled date
@@ -49,7 +67,7 @@ const SRC = RAW
 describe("CancellationDialog derives every fee from the shared module", () => {
   it("imports the shared helpers", () => {
     expect(SRC).toMatch(/from\s+["'].*_shared\/cancellationFee["']/);
-    expect(SRC).toContain("jobLocalMidnightMs");
+    expect(SRC).toContain("jobLocalStartMs");
     expect(SRC).toContain("sharedCancellationFeePercent");
   });
 

@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { hapticError } from "@/lib/haptics";
+import { hapticError, hapticLight } from "@/lib/haptics";
 import {
   Bell, CheckCircle2, Loader2, Mail, Smartphone, Lock, Moon, Send,
 } from "lucide-react";
@@ -146,6 +146,7 @@ const NotificationPreferences = () => {
     // the opposite of what it was for: turn "Applications" off, then touch
     // "Job Offers", and the user's explicit choice would be silently
     // overwritten by a value they never set.
+    hapticLight();
     setPrefs(updated);
     setSavingKey(key);
 
@@ -170,6 +171,7 @@ const NotificationPreferences = () => {
   const patchPrefs = async (patch: Partial<Prefs>, key: string) => {
     if (!userId) return;
     const updated = { ...prefs, ...patch };
+    hapticLight();
     setPrefs(updated);
     setSavingKey(key);
     const { error } = await supabase

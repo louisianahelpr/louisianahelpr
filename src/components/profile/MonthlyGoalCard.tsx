@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Target, Flame, Pencil, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { hapticSuccess } from "@/lib/haptics";
+import { hapticSuccess, hapticLight } from "@/lib/haptics";
 import { formatPrice, formatPriceFloor } from "@/lib/format";
 
 interface MonthlyGoalCardProps {
@@ -104,6 +104,7 @@ export function MonthlyGoalCard({ completedJobs }: MonthlyGoalCardProps) {
     try {
       localStorage.setItem(GOAL_KEY, String(val));
     } catch { /* best-effort */ }
+    hapticLight();
     setEditing(false);
   }, [draft]);
 

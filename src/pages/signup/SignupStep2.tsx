@@ -303,28 +303,35 @@ export function SignupStep2(props: SignupStep2Props) {
             </div>
             <FieldError id="location-error" message={fieldErrors.location} />
           </div>
-          {/* ZIP is OPTIONAL — City alone satisfies this step (S-001,
-              lh-suggester). ZIP unlocks two things that otherwise never
-              happen: parish-based "a job near you" notifications for
-              helpers, and Louisiana sales tax on the jobs this account
-              posts. Not required because adding a second required field to
-              the highest-traffic form in the product is a friction/quality
-              tradeoff worth making deliberately, not as a side effect of
-              closing a notification gap. */}
+          {/* ZIP is REQUIRED (owner decision 2026-09-05). It used to be
+              optional, on the reasoning that a second required field on the
+              highest-traffic form in the product is a friction cost worth
+              weighing deliberately. The owner has now weighed it: ZIP is the
+              only thing that resolves a member's PARISH, and parish is what
+              drives "a job near you" notifications, the daily digest, and
+              Louisiana sales tax on jobs this account posts. Optional meant a
+              silently degraded account — signed up fine, then never heard
+              about a single nearby job and never understood why. */}
           <div className="space-y-2">
             <Label htmlFor="zipCode" className={labelCls}>
-              ZIP <span className="font-normal" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>(optional)</span>
+              ZIP <span aria-hidden style={{ color: "hsl(var(--destructive-ink))" }}>*</span>
             </Label>
             <Input
               id="zipCode"
               value={zipCode}
-              onChange={(e) => setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5))}
+              onChange={(e) => {
+                setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5));
+                clearFieldError?.("zipCode");
+              }}
               inputMode="numeric"
               autoComplete="postal-code"
               maxLength={5}
               placeholder="70801"
-              className={inputCls}
+              aria-invalid={!!fieldErrors.zipCode}
+              aria-describedby={fieldErrors.zipCode ? "zipCode-error" : undefined}
+              className={`${inputCls}${fieldErrors.zipCode ? " border-destructive" : ""}`}
             />
+            <FieldError id="zipCode-error" message={fieldErrors.zipCode} />
           </div>
         </div>
         {zipCityMismatch && (

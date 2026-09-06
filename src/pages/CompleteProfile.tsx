@@ -190,6 +190,13 @@ const CompleteProfile = () => {
       { label: "Date of birth (18+)", done: Boolean(dateOfBirth) && ageOk },
       { label: "Phone number", done: phoneDigits.length === 10 },
       { label: "City", done: location.trim().length > 0 },
+      // ZIP is REQUIRED as of 2026-09-05 (owner). It matters MORE on this
+      // screen than on email signup: Google/Apple sign-ins never see
+      // SignupStep2, so this is the only place they are ever asked. Leaving it
+      // optional here would have moved the gap rather than closed it — social
+      // accounts would still land with no parish, and therefore no job-match
+      // notifications, no digest, and no Louisiana sales tax.
+      { label: "ZIP code", done: zipCode.replace(/\D/g, "").length === 5 },
       // Government-issued ID is intentionally NOT in the required checklist:
       // new signup (SignupStep2) no longer collects it, and identity
       // verification is deferred to first-post / IDV. The upload field below
@@ -207,6 +214,11 @@ const CompleteProfile = () => {
     ageOk,
     phone,
     location,
+    // zipCode is load-bearing here, not tidiness: the checklist gates the
+    // submit button, so omitting it would leave "ZIP code" permanently
+    // unchecked and the button permanently disabled no matter what the user
+    // typed — a form nobody could finish.
+    zipCode,
     acceptedPolicies,
   ]);
 
@@ -272,6 +284,7 @@ const CompleteProfile = () => {
     if (!ageOk) return fail("You'll need to be 18 or older to join.");
     if (!phone.trim() || phone.replace(/\D/g, "").length < 10) return fail("Add a valid phone number — at least 10 digits.");
     if (!location.trim()) return fail("Tell us your city to continue.");
+    if (zipCode.replace(/\D/g, "").length !== 5) return fail("Add your 5-digit ZIP code to continue.");
     if (!avatarFile && !profile?.avatar_url) return fail("Add a profile photo to continue.");
     // Government-issued ID is no longer required here — it's optional at
     // profile completion and deferred to first-post / IDV (matches the
@@ -315,7 +328,8 @@ const CompleteProfile = () => {
         phone: phone.trim(),
         bio: bio.trim(),
         location: location.trim(),
-        ...(zipCode.trim() ? { zip_code: zipCode.trim() } : {}),
+        // Required now — the checklist and submit guard both enforce 5 digits.
+        zip_code: zipCode.trim(),
         ...(parish ? { parish } : {}),
         date_of_birth: dateOfBirth,
         // `approval_status: "pending"` used to be sent here. It never did
@@ -734,13 +748,12 @@ const CompleteProfile = () => {
                   )}
                 </div>
               </div>
-              {/* Optional (S-001) — City alone satisfies this step. ZIP
-                  unlocks parish-based helper-notification matching and
-                  Louisiana sales tax; the email-signup path (SignupStep2)
-                  carries the identical field for the same reason. */}
+              {/* REQUIRED (owner, 2026-09-05) — see the checklist entry above.
+                  SignupStep2 carries the identical field for the same reason;
+                  this one covers the social sign-ins that never see it. */}
               <div className="space-y-1.5">
                 <Label htmlFor="zipCode">
-                  ZIP <span className="font-normal" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>(optional)</span>
+                  ZIP <span aria-hidden style={{ color: "hsl(var(--destructive-ink))" }}>*</span>
                 </Label>
                 <Input
                   id="zipCode"

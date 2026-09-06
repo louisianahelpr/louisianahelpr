@@ -90,9 +90,10 @@ const Signup = () => {
   const [phone, setPhone] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [location, setLocation] = useState("");
-  // ZIP is optional (S-001, lh-suggester) — City alone satisfies the step,
-  // ZIP just unlocks parish-based helper-notification matching and Louisiana
-  // sales tax. Digits only, mirrors ProfileEditForm's own zipCode input.
+  // ZIP is REQUIRED (owner, 2026-09-05) — see the validator below. It resolves
+  // the member's parish, which is what drives job-match notifications, the
+  // daily digest, and Louisiana sales tax. Digits only, mirrors
+  // ProfileEditForm's own zipCode input.
   const [zipCode, setZipCode] = useState("");
   // Live parish resolution from the ZIP, mirroring ProfileEditForm's own
   // effect exactly — resolved as the user types so the mismatch hint below
@@ -182,6 +183,15 @@ const Signup = () => {
     // DOB, phone, city) and skips /complete-profile entirely; only Google/
     // Apple sign-ins, which never see this step, still land on it.
     if (!location.trim()) errors.location = "Add your city";
+    // ZIP is REQUIRED as of 2026-09-05 (owner). It is the ONLY input that
+    // resolves a parish, and parish drives helper job-match notifications, the
+    // daily digest, and Louisiana sales tax. An account without one works
+    // everywhere except the places that quietly matter most.
+    {
+      const zip = zipCode.replace(/\D/g, "");
+      if (!zip) errors.zipCode = "Add your ZIP code";
+      else if (zip.length !== 5) errors.zipCode = "Enter a 5-digit ZIP code";
+    }
     // Bio is optional — but if the user starts one, keep the 20-char floor so
     // a half-typed sentence doesn't ship as their whole profile.
     if (bio.trim().length > 0 && bio.trim().length < 20) errors.bio = "Add at least 20 characters, or leave it blank for now";
@@ -293,7 +303,8 @@ const Signup = () => {
         phone,
         bio,
         location,
-        zipCode: zipCode.trim() || null,
+        // Required now — the validator above guarantees 5 digits.
+        zipCode: zipCode.trim(),
         parish,
         dateOfBirth: dateOfBirth || null,
         // Explicit marketing-email consent captured at signup. Defaults to

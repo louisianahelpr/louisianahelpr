@@ -139,13 +139,16 @@ PageHeader fix in commit `53000f3b`.
 **Always** generate new migrations with:
 
 ```bash
-supabase migration new <slug>
+npm run migration:new -- <slug>
 ```
 
-This creates a file with a valid `YYYYMMDDhhmmss` prefix. **Never**
-hand-roll prefixes like `20260506240000` (hour 24+ is invalid and
-won't parse as a timestamp — only string-sorts correctly by
-accident).
+This runs `scripts/new-migration.mjs`, which stamps a collision-safe
+`YYYYMMDDhhmmss` prefix and refuses to write if that version already exists.
+**Never** use `supabase migration new` directly — it does not have the
+collision guard, and three version collisions happened in a single day under
+parallel lanes before the wrapper was written. **Never** hand-roll prefixes
+like `20260506240000` (hour 24+ is invalid and won't parse as a timestamp
+— only string-sorts correctly by accident).
 
 If a migration is applied to prod via the Studio MCP
 `apply_migration` path, the recorded `schema_migrations.version` is
@@ -251,7 +254,7 @@ Cross-session protocol when authorizing prod-touching work:
 - `src/integrations/supabase/` — generated types + client
   singleton. Don't edit `types.ts` by hand.
 - `supabase/migrations/` — chronological SQL. Append-only via
-  `supabase migration new`.
+  `npm run migration:new -- <slug>` (see Migration filename hygiene above).
 - `supabase/functions/` — edge functions, deployed independently
   via `supabase functions deploy <name>`.
 

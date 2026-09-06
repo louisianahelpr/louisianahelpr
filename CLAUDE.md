@@ -26,7 +26,7 @@ not, so iOS handed the app a valid APNs token on every launch and it was
 dropped on the floor — unfillable `push_tokens`, no error, no log.
 
 **That specific bug is FIXED — verified 2026-09-02, do not go looking for it
-again.** `AppDelegate.swift:127-140` posts both
+again.** `AppDelegate.swift:139-151` posts both
 `.capacitorDidRegisterForRemoteNotifications` and
 `.capacitorDidFailToRegisterForRemoteNotifications`, confirmed against the
 plugin's own source
@@ -87,9 +87,9 @@ floats in a lopsided column with blank bands has failed the audit.
   layer.** This entry said LEFT until 2026-09-02, and named two rules that do
   not exist: `.app-shell-frame { left: … }` and `#root { padding-left: … }`.
   Grep the stylesheet — the only two rail insets in the entire file are
-  `right: var(--desktop-sidebar-w)` on `.app-shell-frame` (`src/index.css:918`)
+  `right: var(--desktop-sidebar-w)` on `.app-shell-frame` (`src/index.css:987`)
   and `padding-right: var(--desktop-sidebar-w)` on `#root`
-  (`src/index.css:1111`). There is no `left:` or `padding-left:` rail inset
+  (`src/index.css:1188`). There is no `left:` or `padding-left:` rail inset
   anywhere. `--desktop-sidebar-w` is 248px. Both rules are additionally gated on
   `.side-panel-open`, so the inset exists only while the panel is open — a
   closed panel is not a narrower rail, it is no rail.

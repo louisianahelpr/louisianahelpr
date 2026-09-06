@@ -207,6 +207,14 @@ jobs:
         # and types are reported as warnings (see rules in knip.json) — there is a
         # real backlog there that needs per-symbol verification, and failing on it
         # today would only invite blanket ignores.
+        #
+        # knip.json ignores `cordova-plugin-purchase`, and the reason is not
+        # laziness: src/lib/iap.ts talks to the `window.CdvPurchase` GLOBAL that
+        # Capacitor's Cordova bridge injects into the iOS WebView at runtime, and
+        # never imports the package — importing it would drag a native-only
+        # dependency into the web bundle for no benefit. knip cannot see a runtime
+        # global, so it reads the package as unused and fails the build. This step
+        # was red for ~13h after the plugin was installed for exactly that reason.
         run: npm run deadcode
 
       - name: Dead edge functions

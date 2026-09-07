@@ -4,9 +4,19 @@ import { Label } from "@/components/ui/label";
 import { CheckCircle2, XCircle, AlertTriangle, Scale, RefreshCw } from "lucide-react";
 import { slaBadge } from "./adminDisputesHelpers";
 import type { DisputedJob, DisputeRecord, FilterTab } from "./types";
-import { formatShortDate, formatPriceExact } from "@/lib/format";
+import { formatShortDate } from "@/lib/format";
 import { previewDisputeSplit } from "@/lib/disputeSplitPreview";
 import { isUnsettled, unsettledReason } from "./unsettled";
+
+/**
+ * The split readout is ONE money column — net, gross and deduction stacked.
+ * `formatPriceExact` drops a zero cent part by design, which put "$90 gross"
+ * beside "$79.20 paid" in the same column. Mixed precision in a column of
+ * amounts an admin is comparing reads as two different kinds of number, so
+ * this column alone always shows cents. Everywhere else keeps the house rule.
+ */
+const money2 = (n: number): string =>
+  (Number.isFinite(n) ? n : 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 interface DisputeCardProps {
   job: DisputedJob;
@@ -294,14 +304,14 @@ export const DisputeCard = ({
                     {c.side} <span className="font-semibold text-foreground">{c.percent}%</span>
                   </p>
                   <p className="text-ds-13 font-semibold text-foreground">
-                    ${formatPriceExact(c.net)}
+                    ${money2(c.net)}
                   </p>
                   <p className="text-ds-10 text-muted-foreground">{c.netVerb}</p>
                   <p className="text-ds-10 text-muted-foreground mt-1">
-                    ${formatPriceExact(c.gross)} gross
+                    ${money2(c.gross)} gross
                   </p>
                   <p className="text-ds-10 text-muted-foreground">
-                    −${formatPriceExact(c.deduction)} {c.deductionLabel}
+                    −${money2(c.deduction)} {c.deductionLabel}
                   </p>
                 </div>
               ))}

@@ -144,6 +144,13 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
    * notice — the screen looked like it was working.
    */
   const nearbyUnavailable = nearbyMiles !== null && userLoc.status !== "ready";
+  // The radius DID run, but from a parish centroid derived from the signup ZIP
+  // rather than a device fix (see useUserLocation's fallback chain). Callers
+  // must not quote a small mileage off this as though it were measured — it is
+  // parish-scale. Same principle as `nearbyUnavailable`: the UI never claims
+  // more precision than it has (BD-001).
+  const nearbyApproximate =
+    nearbyMiles !== null && userLoc.status === "ready" && userLoc.approximate;
 
   // Budget is ONE filter even though it occupies two state slots: the sheet's
   // budget bands ("$50 – $150") write min AND max together, so counting them
@@ -444,6 +451,6 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
     activeFilterCount, hasFilters, clearFilters,
     filteredJobs, nearbyJobs, mapFilter,
     totalMatchingCount, totalMatchingCountLoading,
-    userLoc, nearbyMiles, nearbyUnavailable,
+    userLoc, nearbyMiles, nearbyUnavailable, nearbyApproximate,
   };
 }

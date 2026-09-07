@@ -81,8 +81,18 @@ export function BrowseTasksToolbar({
   // at a subset. Announcing "Filtered Results" over an unnarrowed feed told
   // them a filter had run when none had (BD-001).
   const narrowedCount = filters.activeFilterCount - (filters.nearbyUnavailable ? 1 : 0);
+  // `nearbyApproximate` is folded into the NARROWED branch rather than sitting
+  // beside it. Choosing a radius is itself an active filter, so whenever the
+  // radius runs `narrowedCount` is already > 0 — a sibling ternary for the
+  // approximate case would be a branch that can never render, which is exactly
+  // the class of dead control this pass exists to remove.
   const headingTitle = narrowedCount > 0
-    ? "Filtered Results"
+    ? filters.nearbyApproximate
+      // The radius DID run, but off a parish centroid derived from the signup
+      // ZIP rather than a device fix. Plain "Filtered Results" would overstate
+      // it by the width of a parish.
+      ? "Filtered Results — distance measured from your approximate area"
+      : "Filtered Results"
     : filters.nearbyUnavailable
       ? "Browse Jobs — location unavailable, distance filter not applied"
       : "Browse Jobs";

@@ -80,7 +80,11 @@ export function BrowseTasksToolbar({
   // signal this row gives a screen-reader user about whether they are looking
   // at a subset. Announcing "Filtered Results" over an unnarrowed feed told
   // them a filter had run when none had (BD-001).
-  const narrowedCount = filters.activeFilterCount - (filters.nearbyUnavailable ? 1 : 0);
+  // No subtraction here any more: activeFilterCount now excludes an
+  // unapplied radius at the source (useDashboardFilters), so taking it off
+  // again would put this count one BELOW the number of filters that really
+  // are narrowing the feed.
+  const narrowedCount = filters.activeFilterCount;
   // `nearbyApproximate` is folded into the NARROWED branch rather than sitting
   // beside it. Choosing a radius is itself an active filter, so whenever the
   // radius runs `narrowedCount` is already > 0 — a sibling ternary for the

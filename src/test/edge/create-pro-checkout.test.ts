@@ -46,10 +46,12 @@ const post = (body: unknown, auth: string | null = JWT) =>
 
 beforeEach(async () => {
   resetEnv(); resetStripeMock(); resetSupabaseMock(); resetSharedMocks();
-  setEnv("SUPABASE_URL", "https://project.supabase.co");
-  setEnv("SUPABASE_ANON_KEY", "anon-key");
-  setEnv("SUPABASE_SERVICE_ROLE_KEY", "service-key");
-  setEnv("STRIPE_SECRET_KEY", "sk_test_x");
+  setEnv({
+    SUPABASE_URL: "https://project.supabase.co",
+    SUPABASE_ANON_KEY: "anon-key",
+    SUPABASE_SERVICE_ROLE_KEY: "service-key",
+    STRIPE_SECRET_KEY: "sk_test_x",
+  });
   scenario.authUser = USER;
   scenario.rpc.subscription_purchase_eligibility = { allowed: true, code: "no_active_subscription" };
   stripeMock.customers.list.mockResolvedValue({ data: [] });

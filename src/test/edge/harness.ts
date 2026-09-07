@@ -196,6 +196,17 @@ function rewriteExternalImports(src: string): string {
     `$1 {$2} from "../../../supabase/functions/_shared/productTiers.ts";`,
   );
 
+  // Apple IAP validation: `_shared/appleAppStore.ts` is plain TypeScript (its
+  // Deno touch is a guarded `globalThis.Deno` read and its only other import is
+  // dynamic), so the generated file points at the REAL module. It is the TRUST
+  // BOUNDARY for Apple purchases — it decides which product maps to which tier
+  // and whether a transaction still entitles anything. Mocking it would leave
+  // the grant decision untested while appearing to test the grant.
+  out = out.replace(
+    /(import|export)\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/appleAppStore\.ts["'];?/g,
+    `$1 {$2} from "../../../supabase/functions/_shared/appleAppStore.ts";`,
+  );
+
   // Consumer subscription Price IDs: `_shared/proTiers.ts` is plain TypeScript
   // (its only Deno touch is a guarded `globalThis.Deno` read), so the generated
   // file points at the REAL module. It decides WHICH Stripe Price a membership

@@ -218,7 +218,12 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     // any path that gets past this.)
     if (isScheduleInThePast(dateNeeded, startTime)) {
       toast.error("That start time has already passed. Pick a later time or a future date.");
-      scrollToField("date");
+      // The START TIME, not the date. When the poster picked today, the date
+      // is correct and the time is the thing that is wrong — scrolling to the
+      // date field pointed at the one field they had no reason to change.
+      // (The same condition also paints an inline error here and disables the
+      // CTA, so this handler is now the backstop rather than the only signal.)
+      scrollToField("start-time");
       return;
     }
     // special_requirements is optional — no validation needed

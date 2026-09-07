@@ -4,7 +4,10 @@ import { BudgetSection } from "@/components/postjob/BudgetSection";
 import { DetailsSection } from "@/components/postjob/DetailsSection";
 import { DirectOfferBanner } from "./DirectOfferBanner";
 import { OpenJobLimitNotice } from "./OpenJobLimitNotice";
-import { formatPrice } from "@/lib/format";
+// formatPriceExact, not formatPrice: this button quotes the CHARGE. See the
+// note at the render site — `formatPrice` rounds to whole dollars, which
+// silently understated every total whose fee carried cents.
+import { formatPriceExact } from "@/lib/format";
 import type { usePostJobForm } from "./usePostJobForm";
 
 interface FormStepProps {
@@ -42,7 +45,12 @@ export function FormStep({ form }: FormStepProps) {
     if (!form.streetAddress.trim() || !form.city.trim() || !form.addrState.trim() || !form.zipCode.trim())
       submitLabel = "Add the Address to Continue";
     else if (!form.dateNeeded) submitLabel = "Pick a Date to Continue";
-    else submitLabel = "Pick a Start Time to Continue";
+    else if (!form.startTime) submitLabel = "Pick a Start Time to Continue";
+    // The schedule is filled in but has already gone by. This branch is why
+    // `scheduleInPast` is surfaced separately from `logisticsComplete`: the
+    // button used to read "Review & Pay · $72" in exactly this state and then
+    // refuse the tap with a toast the poster could not see from down here.
+    else submitLabel = "That Start Time Has Passed";
   } else if (!form.budgetComplete) {
     submitLabel = "Set a Budget to Continue";
   }
@@ -113,6 +121,7 @@ export function FormStep({ form }: FormStepProps) {
             setDateNeeded={form.setDateNeeded}
             startTime={form.startTime}
             setStartTime={form.setStartTime}
+            scheduleInPast={form.scheduleInPast}
             isFlexibleSchedule={form.isFlexibleSchedule}
             setIsFlexibleSchedule={form.setIsFlexibleSchedule}
             specialRequirements={form.specialRequirements}
@@ -193,13 +202,26 @@ export function FormStep({ form }: FormStepProps) {
                   invisible until the next screen. useJobDerived computes
                   totalCharge through posterServiceFeeCents, the same authority
                   create-payment uses, so this figure equals the Stripe charge
-                  (bar sales tax, which resolves on the checkout step). */}
+                  (bar sales tax, which resolves on the checkout step).
+
+                  `formatPriceExact`, NOT `formatPrice`. The line above promises
+                  this figure equals the Stripe charge and `formatPrice` broke
+                  that promise: it rounds to whole dollars, so a $120 budget at
+                  the 12% free-tier rate (totalCharge $134.40) rendered
+                  "Review & Pay · $134" and then charged $134.40. Every fee this
+                  button sums carries cents — posterServiceFeeCents returns a
+                  percentage of the budget — so the drift was the common case,
+                  not an edge case, and it ran up to 49c in EITHER direction:
+                  under-quoting a charge on a button the poster is agreeing to,
+                  or over-quoting it. CheckoutStep, the very next screen, has
+                  always been exact, so the same flow quoted two different
+                  numbers. Show the cents. */}
               {formReady && form.totalCharge > 0 && (
                 <span
                   className="font-display italic font-bold tabular-nums shrink-0 text-ds-16"
                   style={{ letterSpacing: "-0.01em" }}
                 >
-                  {" "}· ${formatPrice(form.totalCharge)}
+                  {" "}· ${formatPriceExact(form.totalCharge)}
                 </span>
               )}
             </span>

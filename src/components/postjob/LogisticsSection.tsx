@@ -87,6 +87,13 @@ interface LogisticsSectionProps {
   setDateNeeded: (v: string) => void;
   startTime: string;
   setStartTime: (v: string) => void;
+  /**
+   * The chosen date + start time has already gone by. Rendered as an inline
+   * error under the schedule rather than left to the submit handler's toast:
+   * the toast fires at the top of a page whose submit button is far below the
+   * fold, so from the poster's viewport the button just stopped working.
+   */
+  scheduleInPast?: boolean;
   isFlexibleSchedule: boolean;
   setIsFlexibleSchedule: (v: boolean) => void;
   specialRequirements: string;
@@ -141,6 +148,7 @@ export function LogisticsSection({
   setDateNeeded,
   startTime,
   setStartTime,
+  scheduleInPast = false,
   isFlexibleSchedule,
   setIsFlexibleSchedule,
   specialRequirements,
@@ -361,9 +369,26 @@ export function LogisticsSection({
         />
       </div>
 
-      <div className="space-y-3" role="group" aria-labelledby="start-time-label">
+      {/* `id="start-time"` is the scroll anchor `scrollToField` targets when
+          the submit handler refuses a schedule that has already passed — the
+          refusal used to scroll to the DATE field, which is not the thing that
+          is wrong when the date is today and the time is what has gone by. */}
+      <div
+        id="start-time"
+        className="space-y-3"
+        role="group"
+        aria-labelledby="start-time-label"
+        aria-describedby={scheduleInPast ? "start-time-error" : undefined}
+      >
         <Label id="start-time-label">Start time <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
         <TimePickerWheel value={startTime} onChange={setStartTime} />
+        {/* Live, not submit-only: this clears the moment the poster moves the
+            date or the time, so fixing it visibly changes the screen. */}
+        <FieldError id="start-time-error">
+          {scheduleInPast
+            ? "That start time has already passed. Pick a later time, or move the job to a future date."
+            : undefined}
+        </FieldError>
       </div>
 
       {/* `items-center`, and no `mt-0.5` on the box. The label is one line at

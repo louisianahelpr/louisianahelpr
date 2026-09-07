@@ -500,26 +500,41 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                 </span>
               )}
 
-              {/* items-stretch, not items-start: the price/CTA column needs
-                  the row's FULL height so its items can spread evenly across
-                  it (see justify-between below) — icon and feature-list opt
-                  back OUT with `self-start` since they should stay pinned to
-                  the top regardless. */}
-              <div className="flex items-stretch gap-3">
+              {/* A GRID, not a three-item flex row, because the card needs two
+                  different arrangements and duplicating the CTA to get them
+                  would ship two Subscribe buttons per tier.
+
+                  PHONE (default) — three stacked rows:
+                      [icon] [name + tagline]
+                      [feature list, full card width]
+                      [price ......................... CTA]
+                  TABLET+ (sm:) — the original three-column row, unchanged:
+                      [icon] [name + tagline]  [price]
+                             [feature list ]   [ CTA ]
+
+                  The flex version gave the feature list a measured 97px at
+                  375 while the price/CTA column held a fixed 132px it did not
+                  need, so every perk wrapped to 2-3 lines ("12% platform /
+                  fee", "Instant / Payouts") and the tagline truncated at 97px
+                  against a 141px natural width ("For Helprs testing the …").
+                  Nothing about the price or the button requires sitting
+                  beside the perks on a phone, so on a phone they don't. */}
+              <div
+                className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-3 gap-y-2
+                           sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-stretch sm:gap-y-0"
+              >
                 {/* Icon — smaller (w-8) to free vertical space */}
                 <span
-                  className="shrink-0 self-start w-8 h-8 rounded-ds-md flex items-center justify-center"
+                  className="row-start-1 col-start-1 self-start w-8 h-8 rounded-ds-md flex items-center justify-center"
                   style={{ background: accentSoft, color: accent }}
                 >
                   <TierIcon name={tier.iconName} className="w-4 h-4" />
                 </span>
 
-                {/* Name + forWhom row, then a checkmark feature list
-                    showing every perk for the tier. Inline-wrap so even
-                    Elite's 5 features fit in 2 short lines on a 320pt
-                    viewport — the user explicitly asked to see all
-                    features without scrolling. */}
-                <div className="min-w-0 flex-1 self-start">
+                {/* Name + forWhom. The feature list used to live inside this
+                    block; it is now its own grid item so it can span the full
+                    card width on a phone. */}
+                <div className="row-start-1 col-start-2 min-w-0 self-start">
                   <div className="flex items-baseline gap-2 flex-wrap">
                     {/* h2, not h3: the only heading above the tier cards is
                         the page h1 ("Membership", via ProfileTabHeader →
@@ -563,69 +578,73 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                       </p>
                     );
                   })()}
-                  {/* Actual perks, one per line. Was `flex flex-wrap`, which
-                      ran bullets left-to-right and let unrelated perks share
-                      a visual line, breaking mid-phrase at odd points and
-                      reading as a run-on rather than a list. A vertical
-                      stack costs a bit more height but each perk is a
-                      complete, scannable line (owner, 2026-08-30). */}
-                  <ul className="mt-1 space-y-0.5">
-                    {/* Fee % moved here from the price column — first item
-                        in the list, same bullet style as every other perk
-                        (owner, 2026-08-30: "move the fee to the left with
-                        the other features make it the first thing in the
-                        list"). */}
-                    <li
-                      className="flex items-start gap-1 font-sans text-ds-11"
-                      style={{ color: "hsl(var(--olivewood) / 0.85)" }}
-                    >
-                      <CheckCircle
-                        className="w-2.5 h-2.5 shrink-0 mt-[3px]"
-                        style={{ color: accent }}
-                        strokeWidth={2.5}
-                      />
-                      <span>{tier.feePercent}% platform fee</span>
-                    </li>
-                    {tier.features
-                      .filter((f) => !/^Everything in/i.test(f))
-                      // The bullets in subscriptionTiers.ts are written for a
-                      // RECURRING plan, and the Once tab renders the same list
-                      // under a one-time price — so Pro advertised "1 free Job
-                      // Boost every month" on a pass that only ever sees one
-                      // month. On the one-time cycle a per-month perk is
-                      // restated for the single period it actually covers,
-                      // rather than promising a cadence the pass cannot reach.
-                      .map((f) =>
-                        billingInterval === "one_time"
-                          ? f.replace(/\s*every month$/i, ` for your ${ONE_TIME_PASS_DAYS} days`)
-                          : f,
-                      )
-                      .map((feature) => (
-                        <li
-                          key={feature}
-                          // `items-start` + a shrink-0 icon nudged to the
-                          // first line's optical center, matching the public
-                          // /subscription card. This was `inline-flex
-                          // items-center` around a BARE text node, so a bullet
-                          // that wrapped laid the check out inline with the
-                          // flowed text: Elite's Reliability Shield rendered as
-                          // "Reliability Shield — first" / "✓ strike every 6
-                          // months" / "forgiven". Shortening copy only hides
-                          // that; the next wrap (any tier, any larger Dynamic
-                          // Type size) brings it back.
-                          className="flex items-start gap-1 font-sans text-ds-11"
-                          style={{ color: "hsl(var(--olivewood) / 0.85)" }}
-                        >
-                          <CheckCircle
-                            className="w-2.5 h-2.5 shrink-0 mt-[3px]"
-                            style={{ color: accent }}
-                            strokeWidth={2.5}
-                          />
-                          <span>{feature}</span>
-                        </li>
-                      ))}
-                  </ul>
                 </div>
+
+                {/* Actual perks, one per line. Was `flex flex-wrap`, which
+                    ran bullets left-to-right and let unrelated perks share
+                    a visual line, breaking mid-phrase at odd points and
+                    reading as a run-on rather than a list. A vertical
+                    stack costs a bit more height but each perk is a
+                    complete, scannable line (owner, 2026-08-30).
+
+                    Spans the whole card on a phone (col-start-1 col-span-2),
+                    tucks back under the name from sm: up. */}
+                <ul className="row-start-2 col-start-1 col-span-2 space-y-0.5 sm:col-start-2 sm:col-span-1 sm:mt-1">
+                  {/* Fee % moved here from the price column — first item
+                      in the list, same bullet style as every other perk
+                      (owner, 2026-08-30: "move the fee to the left with
+                      the other features make it the first thing in the
+                      list"). */}
+                  <li
+                    className="flex items-start gap-1 font-sans text-ds-11"
+                    style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+                  >
+                    <CheckCircle
+                      className="w-2.5 h-2.5 shrink-0 mt-[3px]"
+                      style={{ color: accent }}
+                      strokeWidth={2.5}
+                    />
+                    <span>{tier.feePercent}% platform fee</span>
+                  </li>
+                  {tier.features
+                    .filter((f) => !/^Everything in/i.test(f))
+                    // The bullets in subscriptionTiers.ts are written for a
+                    // RECURRING plan, and the Once tab renders the same list
+                    // under a one-time price — so Pro advertised "1 free Job
+                    // Boost every month" on a pass that only ever sees one
+                    // month. On the one-time cycle a per-month perk is
+                    // restated for the single period it actually covers,
+                    // rather than promising a cadence the pass cannot reach.
+                    .map((f) =>
+                      billingInterval === "one_time"
+                        ? f.replace(/\s*every month$/i, ` for your ${ONE_TIME_PASS_DAYS} days`)
+                        : f,
+                    )
+                    .map((feature) => (
+                      <li
+                        key={feature}
+                        // `items-start` + a shrink-0 icon nudged to the
+                        // first line's optical center, matching the public
+                        // /subscription card. This was `inline-flex
+                        // items-center` around a BARE text node, so a bullet
+                        // that wrapped laid the check out inline with the
+                        // flowed text: Elite's Reliability Shield rendered as
+                        // "Reliability Shield — first" / "✓ strike every 6
+                        // months" / "forgiven". Shortening copy only hides
+                        // that; the next wrap (any tier, any larger Dynamic
+                        // Type size) brings it back.
+                        className="flex items-start gap-1 font-sans text-ds-11"
+                        style={{ color: "hsl(var(--olivewood) / 0.85)" }}
+                      >
+                        <CheckCircle
+                          className="w-2.5 h-2.5 shrink-0 mt-[3px]"
+                          style={{ color: accent }}
+                          strokeWidth={2.5}
+                        />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                </ul>
 
                 {/* Price + CTA on the right edge */}
                 {/* min-w so the buttons below have real width to fill —
@@ -645,8 +664,17 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                     cards — that capping is deliberately NOT what's wanted;
                     every card fills its own box on its own terms. py-1
                     keeps top/bottom padding off the stretched row's bare
-                    edges so the first/last item isn't flush to it. */}
-                <div className="shrink-0 min-w-[132px] py-1 flex flex-col items-end justify-between">
+                    edges so the first/last item isn't flush to it.
+
+                    On a PHONE the same items lay out horizontally on their own
+                    full-width row under the perks — price on the left, CTA on
+                    the right — so the 132px reservation (and the wrapping it
+                    forced on every perk) simply doesn't exist there. */}
+                <div
+                  className="row-start-3 col-start-1 col-span-2 flex flex-row flex-wrap items-center justify-between gap-x-3 gap-y-1
+                             sm:row-start-1 sm:col-start-3 sm:col-span-1 sm:row-span-2 sm:self-stretch
+                             sm:min-w-[132px] sm:py-1 sm:flex-col sm:flex-nowrap sm:items-end sm:justify-between sm:gap-0"
+                >
                   <p
                     className="font-display italic font-bold tabular-nums leading-none text-ds-16"
                     style={{ color: accent, letterSpacing: "-0.02em" }}

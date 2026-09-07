@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { categoryPricing } from "@/lib/pricingGuide";
 import { categories } from "@/components/postjob/DetailsSection";
 import { hasUnfilledPlaceholders } from "@/lib/postingTemplates";
@@ -7,13 +8,20 @@ import { MIN_JOB_BUDGET_DOLLARS } from "@/lib/moneyLimits";
 import { useCategoryPriceStats } from "@/hooks/useCategoryPriceStats";
 import { useHelprActivity } from "@/hooks/useHelprActivity";
 import { computeBudgetPresets } from "./postJobFormHelpers";
+import { isScheduleInThePast } from "@/lib/jobExpiry";
+import { jobStartDateTime } from "@/lib/dateUtils";
 
 /**
- * useJobDerived — pure derived values for the Post-a-Task form: checkout
+ * useJobDerived — derived values for the Post-a-Task form: checkout
  * money math (budget, fees, onboarding, total), per-chapter
  * completion flags for the progress bar, live pricing stats, two-sided
  * liquidity signal, and the budget preset pills. Structural extraction
- * from usePostJobForm; every calculation is unchanged.
+ * from usePostJobForm; every money calculation is unchanged.
+ *
+ * One value is NOT pure: `scheduleInPast` reads the clock, because the
+ * question "has this start time already gone by?" has no answer that survives
+ * being computed once. See useScheduleInPast below for why it moved here from
+ * the submit handler.
  */
 export interface UseJobDerivedParams {
   budget: string;
@@ -38,6 +46,47 @@ export interface UseJobDerivedParams {
    * refuse — see usePifCredit). Drives the gift math below.
    */
   pifCreditAmount?: number | null;
+}
+
+/**
+ * Is the chosen date + start time already in the past?
+ *
+ * WHY THIS IS DERIVED STATE AND NOT A SUBMIT-TIME CHECK
+ *
+ * It used to exist ONLY inside `handleReview`, as a toast. So the moment a
+ * poster picked today with a time that had gone by, the form entered a state
+ * where the only feedback was a transient message at the top of a long page:
+ * the CTA stayed enabled, stayed priced ("Review & Pay · $72"), and gave no
+ * sign that anything about it had changed. From the bottom of the form — which
+ * is where the button is — the button simply looked dead, and nothing that
+ * happened afterwards (including fixing the date) visibly changed the screen.
+ *
+ * Computing it here makes the refusal a first-class piece of form state that
+ * every consumer re-reads on every render, so picking a later date or time
+ * clears it the instant the value changes rather than on the next submit.
+ *
+ * The timer covers the one case a render cannot: a poster sitting on the form
+ * while the start time they picked actually arrives. It fires once, at that
+ * moment, instead of polling — and is only armed when the start is close
+ * enough to be reached in a plausible sitting.
+ */
+function useScheduleInPast(dateNeeded: string, startTime: string): boolean {
+  const [, tick] = useState(0);
+  const start = jobStartDateTime(dateNeeded, startTime)?.getTime() ?? null;
+
+  useEffect(() => {
+    if (start === null) return;
+    const delay = start - Date.now();
+    // Already gone (nothing to wait for), or hours out (the poster will have
+    // left and come back, and a fresh render re-reads the clock anyway).
+    if (delay <= 0 || delay > 6 * 60 * 60 * 1000) return;
+    const id = setTimeout(() => tick((n) => n + 1), delay + 1_000);
+    return () => clearTimeout(id);
+  }, [start]);
+
+  // Read the clock at RENDER, not from the state above — the state exists only
+  // to schedule a re-render, so a value read here is never stale.
+  return isScheduleInThePast(dateNeeded, startTime);
 }
 
 export function useJobDerived(params: UseJobDerivedParams) {
@@ -145,7 +194,15 @@ export function useJobDerived(params: UseJobDerivedParams) {
     category &&
     !hasUnfilledPlaceholders(description)
   );
-  const logisticsComplete = !!(streetAddress.trim() && city.trim() && addrState.trim() && zipCode.trim() && dateNeeded && startTime);
+  // A schedule that has already gone by is INCOMPLETE, not merely invalid —
+  // same doctrine as the over-length title above. The alternative is a
+  // Logistics header showing a green tick and the word DONE over a start time
+  // the form is about to refuse, and a "Review & Pay · $72" button that does
+  // nothing when tapped. Folding it in here is what makes the CTA disable
+  // itself, drop its price, and name the field that is blocking it, all
+  // through the machinery that already existed for the other required fields.
+  const scheduleInPast = useScheduleInPast(dateNeeded, startTime);
+  const logisticsComplete = !!(streetAddress.trim() && city.trim() && addrState.trim() && zipCode.trim() && dateNeeded && startTime && !scheduleInPast);
   // The budget is always required now. It used to be optional in "Accept bids"
   // mode, where helpers named the price — that mode is gone
   // (PRICING_MODE_REMOVED in BudgetSection).
@@ -185,6 +242,10 @@ export function useJobDerived(params: UseJobDerivedParams) {
     categoryLabel,
     detailsComplete,
     logisticsComplete,
+    /** Surfaced separately from `logisticsComplete` so the form can say WHY
+     *  the schedule is not done — "pick a date" and "that time has passed"
+     *  are different instructions. */
+    scheduleInPast,
     budgetComplete,
     priceStats,
     priceStatsLoading,

@@ -400,6 +400,7 @@ export function usePostJobForm() {
     categoryLabel,
     detailsComplete,
     logisticsComplete,
+    scheduleInPast,
     budgetComplete,
     priceStats,
     priceStatsLoading,
@@ -588,6 +589,11 @@ export function usePostJobForm() {
     categoryLabel,
     detailsComplete,
     logisticsComplete,
+    /** The chosen date + start time has already gone by. Kept beside
+     *  `logisticsComplete` (which it also turns off) so the CTA and the
+     *  schedule field can each say WHY, instead of the form silently
+     *  refusing to advance. */
+    scheduleInPast,
     budgetComplete,
     priceStats,
     priceStatsLoading,

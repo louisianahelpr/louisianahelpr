@@ -358,12 +358,17 @@ Deno.serve(async (req) => {
       // was simply absent from `optedOut` and got the campaign. That is the
       // CAN-SPAM half of this function failing open on a read that returned a
       // clean 200.
-      const prefsScan = await scanAll<{ user_id: string; email_promotions: boolean | null }>(
+      //
+      // `email_enabled` is the Email MASTER (migration 20260907032218). The
+      // master no longer writes `false` across the category columns, so
+      // master OFF + Promotions ON is what "mute all email" now looks like,
+      // and `email_promotions` alone would blast them.
+      const prefsScan = await scanAll<{ user_id: string; email_promotions: boolean | null; email_enabled?: boolean | null }>(
         "notification_preferences",
         (countOpt) =>
           supabase
             .from("notification_preferences")
-            .select("user_id, email_promotions", countOpt)
+            .select("user_id, email_promotions, email_enabled", countOpt)
             .order("id", { ascending: true }),
       );
       if (prefsScan.error || !prefsScan.complete) {
@@ -373,7 +378,9 @@ Deno.serve(async (req) => {
         );
       }
       const optedOut = new Set(
-        prefsScan.rows.filter((p) => p.email_promotions === false).map((p) => p.user_id),
+        prefsScan.rows
+          .filter((p) => p.email_promotions === false || p.email_enabled === false)
+          .map((p) => p.user_id),
       );
 
       // The query above already includes the segment filter (in() on

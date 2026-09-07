@@ -127,7 +127,13 @@ const READY = Boolean(POSTER_EMAIL && POSTER_PASSWORD && HELPER_EMAIL && HELPER_
 const E2E_TITLE_MARKER = "[E2E DO NOT ACCEPT]";
 
 /** Stripe's universally-accepted test card. Only ever valid on a test key. */
-const TEST_CARD = { number: "4242 4242 4242 4242", expiry: "12 / 34", cvc: "123", zip: "70801" };
+const TEST_CARD = {
+  number: "4242 4242 4242 4242",
+  expiry: "12 / 34",
+  cvc: "123",
+  zip: "70801",
+  name: "Prod Lifecycle Test",
+};
 
 /**
  * THE LIVE-KEY TRIPWIRE.
@@ -330,13 +336,49 @@ test.describe("full money loop against production", () => {
       });
     } else {
       await page.goto(String(checkoutUrl), { waitUntil: "domcontentloaded" });
-      await page.getByPlaceholder("1234 1234 1234 1234").fill(TEST_CARD.number);
-      await page.getByPlaceholder("MM / YY").fill(TEST_CARD.expiry);
-      await page.getByPlaceholder("CVC").fill(TEST_CARD.cvc);
-      const zip = page.getByPlaceholder("12345");
-      if (await zip.count()) await zip.fill(TEST_CARD.zip);
+
+      /* Stripe's hosted page, driven the way it actually behaves. The previous
+         version reached for `getByPlaceholder("1234 1234 1234 1234")` and hung
+         until the 5-minute test timeout — the first thing this suite has ever
+         done past the is_seed assertion, and it could not have worked:
+
+           * Card is one option in a payment-method ACCORDION (Card / Affirm /
+             US bank account / Cash App), and it starts COLLAPSED, so no card
+             input exists in the DOM to match a placeholder against. Opening it
+             by clicking the text "Card" does not work either — Stripe's own
+             `card-accordion-item-button` sits on top and swallows the click.
+             Clicking the first radio, forced, is what opens it.
+           * Once open the fields carry stable ids, so use those rather than
+             placeholder text that is localised and has changed before.
+           * "Save my information" (`#enableStripePass`) is checked by default
+             and makes Link demand a phone number; leave it on and the Pay
+             button silently refuses to submit. It must be unchecked.
+
+         Each of these was found by driving the real hosted page — see the shots
+         under docs/audit/launch-2026-09/lanes/e2e/. */
+      await page.getByRole("radio").first().click({ force: true });
+      await page.locator("#cardNumber").waitFor({ state: "visible", timeout: 30_000 });
+      await page.locator("#cardNumber").fill(TEST_CARD.number);
+      await page.locator("#cardExpiry").fill(TEST_CARD.expiry);
+      await page.locator("#cardCvc").fill(TEST_CARD.cvc);
+      for (const [id, value] of [
+        ["#billingName", TEST_CARD.name],
+        ["#billingPostalCode", TEST_CARD.zip],
+      ] as const) {
+        const field = page.locator(id);
+        if ((await field.count()) && (await field.isVisible().catch(() => false))) {
+          await field.fill(value).catch(() => {});
+        }
+      }
+      const linkOptIn = page.locator("#enableStripePass");
+      if ((await linkOptIn.count()) && (await linkOptIn.isChecked().catch(() => false))) {
+        await linkOptIn.uncheck({ force: true }).catch(() => {});
+      }
       await page.getByTestId("hosted-payment-submit-button").click();
-      await page.waitForURL(/\/payment-success/, { timeout: 90_000 });
+      /* Stripe returns to the PROD origin — `create-payment` builds an absolute
+         success_url — so this deliberately does not assert the base URL, only
+         the path. A run pointed at a preview deployment still lands here. */
+      await page.waitForURL(/\/payment-success/, { timeout: 120_000 });
 
       // The webhook, not the redirect, is what moves the row. Poll for it — a
       // redirect that lands before `checkout.session.completed` is delivered is

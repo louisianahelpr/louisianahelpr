@@ -129,13 +129,50 @@ console.log(`Prod lifecycle sweeper — ${BASE}`);
 console.log(`Stranded jobs matching "${E2E_TITLE_MARKER}": ${jobs.length}${DRY ? "  (DRY RUN)" : ""}\n`);
 
 const failures = [];
+let unremovableCount = 0;
 for (const job of jobs) {
-  const funded = job.payment_status !== "unpaid" || job.stripe_session_id !== null;
-  const plan = funded ? "cancel_escrow" : job.status === "open" ? "delete" : "reopen + delete";
+  /* A Checkout Session id proves a session was MINTED, not that it was paid —
+     it is set by create-payment before the poster ever sees the card form. This
+     line used to fold it into `funded`, so a job the poster abandoned at
+     checkout was sent to cancel_escrow, which correctly answered 409 ("never
+     held in escrow"), and the sweeper then reported it as a stranded funded job
+     and failed the whole workflow. It is the same discriminator
+     UnfundedJobNotice uses, read the opposite way round: session + unpaid means
+     abandoned, which is the one thing it is NOT.
+
+     `payment_status` alone is the funded test. */
+  const funded = job.payment_status !== "unpaid";
+  /* The gap this exposes, stated rather than papered over: an unpaid job that
+     DID reach checkout can be unwound by nobody. cancel_escrow refuses it
+     (nothing was held) and the DELETE policy refuses it too — it requires
+     `payment_status = 'unpaid' AND stripe_session_id IS NULL`, or 'abandoned',
+     and a poster cannot set payment_status (it is in enforce_poster_jobs_money_
+     lock's locked_always). So the row is genuinely unremovable by its owner.
+     Reported as such below instead of being silently retried; closing it needs
+     either the DELETE policy widened to cover `unpaid` + session, or the
+     abandoned-checkout sweep marking these 'abandoned'. Do not widen it here. */
+  const unremovable =
+    !funded && job.stripe_session_id !== null && job.payment_status === "unpaid";
+  const plan = funded
+    ? "cancel_escrow"
+    : unremovable
+      ? "UNREMOVABLE (abandoned checkout — see note in this file)"
+      : job.status === "open"
+        ? "delete"
+        : "reopen + delete";
   console.log(`  ${job.id}  status=${job.status} payment=${job.payment_status} → ${plan}`);
   if (DRY) continue;
 
-  if (funded) {
+  if (unremovable) {
+    // Counted and named, but not fatal: nothing the poster can do removes it,
+    // so failing every future run over it would only mask the next real
+    // stranding. It is a finding about the delete path, not a sweeper error.
+    console.log(
+      `    ↳ leaving in place: abandoned checkout, unremovable by its owner ` +
+        `(cancel_escrow would 409, DELETE policy requires stripe_session_id IS NULL)`,
+    );
+    unremovableCount++;
+  } else if (funded) {
     const r = await cancelEscrow(job.id);
     if (!r.ok) failures.push(`cancel_escrow ${job.id}: HTTP ${r.status} ${r.body}`);
   } else {
@@ -148,6 +185,14 @@ for (const job of jobs) {
     const r = await deleteJob(job.id);
     if (!r.ok) failures.push(`delete ${job.id}: HTTP ${r.status} removed=${r.removed} ${r.body}`);
   }
+}
+
+if (unremovableCount) {
+  console.log(
+    `\n::warning::${unremovableCount} abandoned-checkout job(s) left in place — unpaid but ` +
+      `carrying a Checkout Session, which neither cancel_escrow nor the poster's DELETE policy ` +
+      `can touch. They are invisible to every browse surface, so they are inert; they accumulate.`,
+  );
 }
 
 if (failures.length) {

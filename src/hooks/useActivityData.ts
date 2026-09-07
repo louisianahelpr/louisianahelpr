@@ -409,6 +409,8 @@ export async function fetchAppliedActivity(userId: string): Promise<AppliedActiv
       // value here, not a placeholder.
       flag_reason: null,
       flagged_hidden: false,
+      job_latitude: null,
+      job_longitude: null,
       attachment_urls: null,
       poster_viewed_at: null,
       stake_amount: null,

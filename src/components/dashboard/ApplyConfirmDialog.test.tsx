@@ -17,7 +17,7 @@ vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 // all sixteen. `null` = nothing blocks this helper, which is the state every
 // pre-existing test assumed. The notice's own behaviour is covered by its
 // dedicated block at the bottom of this file.
-const mockAwardBlockReason = vi.fn<[], string | null>(() => null);
+const mockAwardBlockReason = vi.fn<() => string | null>(() => null);
 vi.mock("@/hooks/useAwardBlockReason", () => ({
   useAwardBlockReason: () => mockAwardBlockReason(),
 }));

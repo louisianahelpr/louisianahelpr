@@ -49,6 +49,23 @@ const INTERNAL_PATTERNS: RegExp[] = [
   /^\s*\{.*\}\s*$/, // a serialised object, not a sentence
   /^(TypeError|ReferenceError|SyntaxError|RangeError):/,
   /Failed to fetch|NetworkError|ERR_[A-Z_]+/,
+  // The app SHIPS in WKWebView, and the two lines above only know Chromium.
+  // Proven by executing this module (2026-09-07): every WebKit-shaped string
+  // sailed through verbatim, so on the real surface this filter was a no-op
+  // for exactly the failures it exists for. `Load failed` is WebKit's whole
+  // message for a rejected fetch; `Network request failed` is React Native's
+  // and older Safari's; the NSURLError prose is what a WKWebView surfaces
+  // for offline / timeout / dropped connection. sentry.ts:110-113 already
+  // lists these — this is the same list, pointed at the person instead of
+  // the log.
+  /^Load failed$/i,
+  /^Network request failed$/i,
+  /The (network connection was lost|request timed out|Internet connection appears to be offline)/i,
+  // A JS engine's own `.message` carries no "TypeError:" prefix — that only
+  // appears on String(err) — so the class-name pattern above never matched
+  // the one thing a person must never read: a runtime error's message.
+  // WebKit and V8 phrase them differently; both families are covered.
+  /Can't find variable|is not defined$|is not a function|is not an object|undefined is not|null is not|Cannot read propert|Cannot access|is not iterable|Maximum call stack|out of memory/i,
   /supabase|postgres|pgrst/i,
   /\bat \w+ \(.*:\d+:\d+\)/, // a stack frame
   // supabase-js's own transport wrappers. They read as prose and contain none

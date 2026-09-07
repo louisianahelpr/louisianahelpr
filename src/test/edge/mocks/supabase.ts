@@ -91,7 +91,7 @@ export interface SupabaseScenario {
    */
   clients?: Array<{ url: string; key: string; options?: Record<string, unknown> }>;
   /**
-   * Captured writes, in order. `filters` records the `eq`/`neq`/`in` calls that
+   * Captured writes, in order. `filters` records the `eq`/`neq`/`in`/`or` calls that
    * were chained onto the write — the filters themselves are no-ops for
    * matching (the scenario decides the result), but a conditional write's
    * predicate IS the behaviour under test in the money paths, so it has to be
@@ -101,7 +101,7 @@ export interface SupabaseScenario {
     table: string;
     op: "insert" | "update" | "delete";
     payload: unknown;
-    filters: Array<{ op: "eq" | "neq" | "in"; column: string; value: unknown }>;
+    filters: Array<{ op: "eq" | "neq" | "in" | "or"; column: string; value: unknown }>;
     /**
      * The column list passed to the write's trailing `.select(...)`, or null
      * when the write did not end in one.
@@ -170,7 +170,7 @@ class QueryBuilder implements PromiseLike<{ data: unknown; error: unknown }> {
   private cols = "";
   /** Column list passed to a WRITE's trailing `.select(...)`. */
   private writeSelectCols: string | null = null;
-  private filters: Array<{ op: "eq" | "neq" | "in"; column: string; value: unknown }> = [];
+  private filters: Array<{ op: "eq" | "neq" | "in" | "or"; column: string; value: unknown }> = [];
   /** Set by `.select(cols, { count: "exact" })`. */
   private wantsCount = false;
   /** Set by `.select(cols, { head: true })` — a count with no rows. */

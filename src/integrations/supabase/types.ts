@@ -5361,6 +5361,10 @@ export type Database = {
         Returns: string
       }
       idv_requirement_paused: { Args: never; Returns: boolean }
+      identity_is_verified: {
+        Args: { p_idv_status: string; p_stripe_identity_verified: boolean }
+        Returns: boolean
+      }
       is_caller_banned: { Args: never; Returns: boolean }
       is_category_taxable: {
         Args: { _category: Database["public"]["Enums"]["job_category"] }
